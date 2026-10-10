@@ -32,6 +32,10 @@ export default defineConfig({
           name: "chromium",
           include: unitInclude,
           exclude: unitExclude,
+          // One file at a time. The drag and velocity tests run here, and in CI's
+          // GPU-less Chromium, pages animating in parallel slowed frames enough that
+          // a 40ms flick's mouse moves coalesced and read as a slow drag.
+          fileParallelism: false,
           browser: {
             enabled: true,
             headless: true,
