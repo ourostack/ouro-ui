@@ -1,0 +1,46 @@
+# Contributing to Ouro UI
+
+Rules for people and coding agents who change this repository. (Consumers read `README.md` and `docs/`, not this file.)
+
+## Project constraints
+
+- Package `@ouro.bot/ui`, MIT license, repository `https://github.com/ourostack/ouro-ui`.
+- No code is copied from Tailwind Catalyst or Tailwind Plus. Ideas only.
+- Touch targets are at least 44px on coarse pointers (`@media (pointer: coarse)`).
+- With `prefers-reduced-motion: reduce`, no transform or position change animates. Opacity may still animate.
+- The default breakpoint `sm` is 640px. Below it, `Dialog` with `presentation="auto"` renders as a sheet.
+- CI gates: type check, lint, unit and browser tests with 100% line and branch coverage, build, and the package-contents check.
+- Never add AI attribution to commits, pull requests, code or docs (no `Co-Authored-By`, no "Generated with").
+
+## Dev message format
+
+Exact format: `[ouro-ui] <Component>: <what's wrong>. Fix: <exact code>.`
+
+- Emit each message once per component instance.
+- Strip messages when `process.env.NODE_ENV === "production"`.
+
+## Appearance classes warn
+
+A `className` token warns when, after stripping any variant prefix such as `hover:`, it matches `/^(bg|text|border|rounded|shadow|font|ring|from|via|to|fill|stroke)-/`, or when it starts with `dark:`. There are no exceptions: `text-center` also warns, and the message points to the component's `align` prop where one exists, or else says alignment is the parent's job.
+
+## Rules for writing components (spec section 4)
+
+1. Props-first: the default export takes props that describe the whole thing; building-block parts live at `@ouro.bot/ui/parts` and their JSDoc says when to use them.
+2. Anything that "always" applies is a required prop (`title` with `hideTitle`, `label` with `hideLabel`, `legend`, `name`); leaving it out is a type error.
+3. One state, one prop: `error`, `loading`, `disabled`, `required` each handle all of their ARIA, messaging and animation.
+4. Appearance comes from named options (`tone`, `variant`, `size`) that map to theme tokens, never color names or classes.
+5. `className` is for layout only; warn in development about appearance classes and give common layout needs a prop (for example `fullWidth`).
+6. The prop agents guess is the prop that exists: use the common name, or declare it as `never` with JSDoc pointing to the real prop (`isLoading?: never`).
+7. Mode-dependent types follow the mode with discriminated unions (`multiple` makes `Select` use `string[]`; `href` makes `Button` a link).
+8. Parts check where they are: outside their parent they throw in development with the correct JSX shape; where it is safe, the parent wraps loose children instead.
+9. Docs live in the types: every export has JSDoc with a one-line purpose, a minimal example and "use X instead when" guidance; the root `index.d.ts` opens with a catalog; `README.md` and `docs/<component>.md` ship in the package.
+10. Behavior and motion are the component's job (dialog-to-sheet on phones, focus, touch targets, durations, springs, reduced motion); no component takes a duration or easing prop, motion comes from theme tokens.
+11. Errors teach: every dev message uses the format above.
+12. Higher-level patterns capture whole interactions agents assemble badly (`ConfirmDialog`, later `EditSheet`).
+
+## Workflow
+
+- Use pnpm 10. Run `pnpm typecheck`, `pnpm lint`, `pnpm build`, `pnpm test`, `pnpm test:scripts`, `pnpm check:package` and `pnpm build-storybook` before opening a pull request. Build before test: the package-contents tests read `dist`.
+- Test with Vitest browser mode. Projects: `chromium`, `webkit`, `touch` (files named `*.touch.test.ts(x)`, Chromium as a 390x844 touch phone) and `visual` (files named `*.visual.test.ts(x)`, only when `CI_VISUAL=1`).
+- Custom browser commands live in `vitest.commands.ts`: `commands.emulateMedia({ reducedMotion, colorScheme })` and `commands.drag({ from, to, steps, durationMs })`. Drag tests run in Chromium only.
+- `motion` is a peer dependency (and a dev dependency) so apps do not load two copies.

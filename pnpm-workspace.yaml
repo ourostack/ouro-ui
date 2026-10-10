@@ -1,0 +1,5 @@
+# The root package is the library. The landing site (`site`) joins this list in
+# Task 9, when the folder exists; listing a missing folder is harmless for
+# pnpm, but keeping the list exact keeps the lockfile honest.
+packages:
+  - "."
