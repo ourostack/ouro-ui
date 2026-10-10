@@ -10,6 +10,9 @@
   "homepage": "https://github.com/ourostack/ouro-ui",
   "type": "module",
   "packageManager": "pnpm@10.2.0",
+  "engines": {
+    "node": ">=22"
+  },
   "sideEffects": [
     "**/*.css"
   ],

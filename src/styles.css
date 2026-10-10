@@ -3,5 +3,6 @@
  * app's own utilities and base styles always win. Tokens go in @layer base and
  * component rules in @layer components.
  */
+@layer theme, base, components, utilities;
 @import "tailwindcss/theme" layer(base) prefix(ou);
 @import "tailwindcss/utilities" layer(components) prefix(ou);

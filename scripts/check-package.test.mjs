@@ -49,3 +49,12 @@ test("the check script accepts this package and rejects a broken one", async () 
   assert.ok(problems.some((problem) => problem.includes("dist/index.js")));
   assert.ok(problems.some((problem) => problem.includes("use client")));
 });
+
+test("built styles.css starts with the layer-order statement", () => {
+  const css = readFileSync(join(root, "dist/styles.css"), "utf8");
+  const firstStatement = css.replace(/\/\*[\s\S]*?\*\//g, "").trimStart();
+  assert.ok(
+    firstStatement.startsWith("@layer theme, base, components, utilities;"),
+    "dist/styles.css must open with @layer theme, base, components, utilities;",
+  );
+});

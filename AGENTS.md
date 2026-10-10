@@ -9,7 +9,7 @@ Rules for people and coding agents who change this repository. (Consumers read `
 - Touch targets are at least 44px on coarse pointers (`@media (pointer: coarse)`).
 - With `prefers-reduced-motion: reduce`, no transform or position change animates. Opacity may still animate.
 - The default breakpoint `sm` is 640px. Below it, `Dialog` with `presentation="auto"` renders as a sheet.
-- CI gates: type check, lint, unit and browser tests with 100% line and branch coverage, build, and the package-contents check.
+- CI gates: type check, lint, unit and browser tests with 100% line and branch coverage (the coverage gate measures `src/**` only), build, and the package-contents check.
 - Never add AI attribution to commits, pull requests, code or docs (no `Co-Authored-By`, no "Generated with").
 
 ## Dev message format
