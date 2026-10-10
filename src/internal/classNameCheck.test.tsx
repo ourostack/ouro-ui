@@ -84,6 +84,18 @@ describe("findClassNameProblem", () => {
     "md:flex-row sm:p-4 hover:mt-2",
     "bgx-1 context-menu borders shadowed ringed",
     "[&_svg]:size-4",
+    // Text wrapping, overflow and table layout are layout, not appearance.
+    "text-wrap",
+    "text-nowrap",
+    "text-balance",
+    "text-pretty",
+    "text-ellipsis",
+    "text-clip",
+    "md:text-nowrap",
+    "border-collapse",
+    "border-separate",
+    "border-spacing-2",
+    "border-spacing-x-1",
     "",
     undefined,
   ])("allows %s", (input) => expect(findClassNameProblem(input)).toBeUndefined());
@@ -122,6 +134,17 @@ describe("useAppearanceClassNameCheck", () => {
     expect(String(warn.mock.calls[1]?.[0])).toBe(
       '[ouro-ui] Button: "text-center" aligns content, and className is for layout only. Fix: <div className="text-center"><Button /></div>.',
     );
+  });
+
+  it("takes a hint function that picks the fix for the offending token", async () => {
+    function HintProbe({ className }: { className: string }) {
+      useAppearanceClassNameCheck("Text", className, (token) => (token === "text-sm" ? 'size="sm"' : 'tone="danger"'));
+      return null;
+    }
+    await render(<HintProbe className="mt-2 text-sm" />);
+    await render(<HintProbe className="bg-red-500" />);
+    expect(String(warn.mock.calls[0]?.[0])).toContain('Fix: size="sm".');
+    expect(String(warn.mock.calls[1]?.[0])).toContain('Fix: tone="danger".');
   });
 
   it("warns for dark: classes", async () => {

@@ -22,7 +22,7 @@ Exact format: `[ouro-ui] <Component>: <what's wrong>. Fix: <exact code>.`
 
 ## Appearance classes warn
 
-A `className` token warns when, after removing variants (split on `:` outside `[...]`) and a leading or trailing `!`, its base matches `/^(bg|text|border|rounded|shadow|font|ring|from|via|to|fill|stroke)-/` or is exactly `border`, `rounded`, `shadow` or `ring`, or when `dark` appears at any variant position. Ordinary layout classes (`mt-4`, `w-full`, `grid-cols-2`, `size-4`) never warn. Alignment classes (`text-left|center|right|justify|start|end`) also warn, and the message points to the component's `align` prop where one exists (the `alignHint` argument), or else shows the class on a parent element. Hints are exact code, such as `tone="danger"`.
+A `className` token warns when, after removing variants (split on `:` outside `[...]`) and a leading or trailing `!`, its base matches `/^(bg|text|border|rounded|shadow|font|ring|from|via|to|fill|stroke)-/` or is exactly `border`, `rounded`, `shadow` or `ring`, or when `dark` appears at any variant position. Ordinary layout classes (`mt-4`, `w-full`, `grid-cols-2`, `size-4`) never warn, and neither do text wrapping, text overflow and table layout classes that share a prefix (`text-wrap`, `text-nowrap`, `text-balance`, `text-pretty`, `text-ellipsis`, `text-clip`, `border-collapse`, `border-separate`, `border-spacing-*`). Alignment classes (`text-left|center|right|justify|start|end`) also warn, and the message points to the component's `align` prop where one exists (the `alignHint` argument), or else shows the class on a parent element. Hints are exact code, such as `tone="danger"`. A component may pass a hint function that picks the fix from the offending token (`src/internal/appearanceHints.ts` maps `bg-red-500` to `tone="danger"` and `text-lg` to `size="lg"`); pass hints only in development (`process.env.NODE_ENV !== "production" ? hint : ""`) so their text is stripped.
 
 ## Rules for writing components (spec section 4)
 
@@ -39,11 +39,20 @@ A `className` token warns when, after removing variants (split on `:` outside `[
 11. Errors teach: every dev message uses the format above.
 12. Higher-level patterns capture whole interactions agents assemble badly (`ConfirmDialog`, later `EditSheet`).
 
+## Component conventions
+
+- Every component root carries `data-ouro="<component>"`, so apps can exclude Ouro UI subtrees from global rules.
+- There is no reset, so reset what the browser sets (button borders, backgrounds, margins on `<p>` and headings, `box-sizing`) in the component's own classes.
+- Class strings are literals so Tailwind finds them; Tailwind scans `src` except tests, type tests, stories and `src/generated`. Stories therefore lay out with inline styles and `--ouro-*` variables.
+- Interactive controls use the `ou:press` utility (spring release, quick color easing), a `motion-safe:` press scale of `--ouro-press-scale`, and `<TouchTarget />` (`src/internal/TouchTarget.tsx`) as the first child of a `relative` root for the 44px coarse-pointer hit area.
+- Dark mode is set on the root: `data-theme` on `<html>` (via `ThemeScript`) or the OS setting, which always works. A scheme set on a wrapper (`color-scheme: dark` on a subtree) needs native `light-dark()`; a consumer pipeline that lowers `light-dark()` (Lightning CSS, Tailwind's optimizer) resolves the tokens once at the root. `dist/styles.css` ships native `light-dark()`, and Storybook keeps it native (`optimize: false`, modern `cssTarget`) so its side-by-side dark panels render.
+- Keyframes are namespaced (`ouro-spin`), never Tailwind's global `spin` or `pulse`.
+
 ## Workflow
 
 - Use pnpm 10. Run `pnpm typecheck`, `pnpm lint`, `pnpm build`, `pnpm test`, `pnpm test:scripts`, `pnpm check:package` and `pnpm build-storybook` before opening a pull request. Build before test: the package-contents tests read `dist`.
 - Test with Vitest browser mode. Projects: `chromium`, `webkit`, `touch` (files named `*.touch.test.ts(x)`, Chromium as a 390x844 touch phone) and `visual` (files named `*.visual.test.ts(x)`, only when `CI_VISUAL=1`).
-- Custom browser commands live in `vitest.commands.ts`: `commands.emulateMedia({ reducedMotion, colorScheme })` and `commands.drag({ from, to, steps, durationMs })`. Drag tests run in Chromium only.
+- Custom browser commands live in `vitest.commands.ts`: `commands.emulateMedia({ reducedMotion, colorScheme })`, `commands.drag({ from, to, steps, durationMs })` and `commands.pointerPress({ selector, action })` (holds the real mouse down so `:active` applies). Drag tests run in Chromium only.
 - `motion` is a peer dependency (and a dev dependency) so apps do not load two copies.
 - `src/generated/theme.css` is generated from `src/theme/ouro.ts` by `pnpm theme` (also run by `pnpm build`) and committed. CI runs `pnpm theme --check`. Never edit it by hand. Tokens are plain custom properties in `@layer base`, so Tailwind never drops them.
 - Contributors need Node 22.18 or later (`devEngines`; `.node-version` pins 24) because `scripts/build-theme.mts` runs through Node's type stripping. `engines` stays `>=22` for consumers.
