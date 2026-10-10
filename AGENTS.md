@@ -17,11 +17,12 @@ Rules for people and coding agents who change this repository. (Consumers read `
 Exact format: `[ouro-ui] <Component>: <what's wrong>. Fix: <exact code>.`
 
 - Emit each message once per component instance.
-- Strip messages when `process.env.NODE_ENV === "production"`.
+- Strip messages in production with the bare `process.env.NODE_ENV !== "production"` form, with no `typeof process` guard, so bundlers replace it statically and drop the dead branch. Put the check at each warn call site (`if (process.env.NODE_ENV !== "production") devWarn(...)`), and build `devThrow`'s fix argument only inside a development branch. `scripts/dev-strip.test.mjs` bundles a probe with Vite in production mode and asserts the message strings are gone.
+- Consumers need a bundler that defines `process.env.NODE_ENV` (Vite, Next.js, webpack and React Router all do). Without one, dev messages are not stripped and the bare reference throws in a browser.
 
 ## Appearance classes warn
 
-A `className` token warns when, after stripping any variant prefix such as `hover:`, it matches `/^(bg|text|border|rounded|shadow|font|ring|from|via|to|fill|stroke)-/`, or when it starts with `dark:`. There are no exceptions: `text-center` also warns, and the message points to the component's `align` prop where one exists, or else says alignment is the parent's job.
+A `className` token warns when, after removing variants (split on `:` outside `[...]`) and a leading or trailing `!`, its base matches `/^(bg|text|border|rounded|shadow|font|ring|from|via|to|fill|stroke)-/` or is exactly `border`, `rounded`, `shadow` or `ring`, or when `dark` appears at any variant position. Ordinary layout classes (`mt-4`, `w-full`, `grid-cols-2`, `size-4`) never warn. Alignment classes (`text-left|center|right|justify|start|end`) also warn, and the message points to the component's `align` prop where one exists (the `alignHint` argument), or else shows the class on a parent element. Hints are exact code, such as `tone="danger"`.
 
 ## Rules for writing components (spec section 4)
 
@@ -34,7 +35,7 @@ A `className` token warns when, after stripping any variant prefix such as `hove
 7. Mode-dependent types follow the mode with discriminated unions (`multiple` makes `Select` use `string[]`; `href` makes `Button` a link).
 8. Parts check where they are: outside their parent they throw in development with the correct JSX shape; where it is safe, the parent wraps loose children instead.
 9. Docs live in the types: every export has JSDoc with a one-line purpose, a minimal example and "use X instead when" guidance; the root `index.d.ts` opens with a catalog; `README.md` and `docs/<component>.md` ship in the package.
-10. Behavior and motion are the component's job (dialog-to-sheet on phones, focus, touch targets, durations, springs, reduced motion); no component takes a duration or easing prop, motion comes from theme tokens.
+10. Behavior and motion are the component's job (dialog-to-sheet on phones, focus, touch targets, durations, springs, reduced motion); no component takes a duration or easing prop, motion comes from theme tokens. Each Motion-driven component wraps its own Motion usage in `MotionConfig reducedMotion="user"` (or uses `useReducedMotion`) and must not rely on `OuroProvider`, which is optional.
 11. Errors teach: every dev message uses the format above.
 12. Higher-level patterns capture whole interactions agents assemble badly (`ConfirmDialog`, later `EditSheet`).
 
