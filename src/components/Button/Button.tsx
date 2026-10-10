@@ -1,4 +1,5 @@
 import { Button as BaseButton } from "@base-ui/react/button";
+import { useEffect, useRef } from "react";
 import type {
   AnchorHTMLAttributes,
   ButtonHTMLAttributes,
@@ -9,6 +10,7 @@ import type {
   Ref,
   SVGProps,
 } from "react";
+import { announce } from "../../internal/announce.ts";
 import { fontFor, radiusFor, sizeFor, toneFor } from "../../internal/appearanceHints.ts";
 import { useAppearanceClassNameCheck } from "../../internal/classNameCheck.ts";
 import { TouchTarget } from "../../internal/TouchTarget.tsx";
@@ -43,8 +45,9 @@ export interface ButtonBaseProps {
    */
   loading?: boolean | undefined;
   /**
-   * What screen readers hear, politely, when `loading` turns on. Use the action
-   * in progress: `loadingLabel="Saving recipe"`. @default "Loading"
+   * What screen readers hear, politely, when `loading` turns on. It is spoken
+   * through a shared live region, so the button's name stays its label. Use the
+   * action in progress: `loadingLabel="Saving recipe"`. @default "Loading"
    */
   loadingLabel?: string | undefined;
   /** Icon before the label. Pass the component, not an element: `startIcon={PlusIcon}`. */
@@ -268,6 +271,14 @@ export function Button(props: ButtonProps): JSX.Element {
       : /* istanbul ignore next -- production only */ undefined,
   );
 
+  // Speak the busy state when loading turns on. The shared region sits outside the
+  // button, so the button's accessible name stays exactly its label.
+  const wasLoading = useRef(loading);
+  useEffect(() => {
+    if (loading && !wasLoading.current) announce(loadingLabel);
+    wasLoading.current = loading;
+  }, [loading, loadingLabel]);
+
   const classes = [
     base,
     sizes[size],
@@ -291,10 +302,6 @@ export function Button(props: ButtonProps): JSX.Element {
         {EndIcon && <EndIcon aria-hidden="true" className={`${iconClass} ou:-me-0.5`} />}
       </span>
       {loading && <Spinner />}
-      {/* Present from the first render so assistive technology tracks it before it changes. */}
-      <span aria-live="polite" className="ou:sr-only">
-        {loading ? loadingLabel : ""}
-      </span>
     </>
   );
 

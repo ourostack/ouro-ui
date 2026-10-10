@@ -213,27 +213,47 @@ describe("loading", () => {
     expect(getComputedStyle(button).opacity).toBe("0.5");
   });
 
-  it("announces loading politely and clears the announcement after", async () => {
+  it("keeps the accessible name exactly the label while loading", async () => {
     const screen = await render(<Button>Save</Button>);
-    const region = () => screen.button.querySelector<HTMLElement>("[aria-live='polite']")!;
-    expect(region()).not.toBeNull();
-    expect(region().textContent).toBe("");
     await screen.rerender(<Button loading>Save</Button>);
-    expect(region().textContent).toBe("Loading");
-    expect(region().getBoundingClientRect().width).toBeLessThanOrEqual(1);
-    await screen.rerender(<Button loading loadingLabel="Saving recipe">Save</Button>);
-    expect(region().textContent).toBe("Saving recipe");
-    await screen.rerender(<Button>Save</Button>);
-    expect(region().textContent).toBe("");
+    expect(screen.button.textContent).toBe("Save");
+    expect(screen.button.querySelector("[aria-live]")).toBeNull();
+    await expect.element(page.getByRole("button", { name: "Save", exact: true })).toBeInTheDocument();
   });
 
-  it("announces loading on links too", async () => {
-    const { button } = await render(
-      <Button href="/x" loading>
-        Go
-      </Button>,
+  it("announces loadingLabel through one shared region when loading turns on", async () => {
+    const announcer = () => document.querySelectorAll<HTMLElement>("[data-ouro-announcer]");
+    const screen = await render(
+      <>
+        <Button>Save</Button>
+        <Button href="/x">Open</Button>
+      </>,
     );
-    expect(button.querySelector("[aria-live='polite']")!.textContent).toBe("Loading");
+    await screen.rerender(
+      <>
+        <Button loading loadingLabel="Saving recipe">
+          Save
+        </Button>
+        <Button href="/x" loading>
+          Open
+        </Button>
+      </>,
+    );
+    expect(announcer()).toHaveLength(1);
+    expect(announcer()[0]!.getAttribute("role")).toBe("status");
+    await expect.poll(() => announcer()[0]!.textContent).toMatch(/^(Saving recipe|Loading)$/);
+    // Turning loading off announces nothing new; turning it on again re-announces.
+    await screen.rerender(<Button>Save</Button>);
+    await screen.rerender(<Button loading>Save</Button>);
+    await expect.poll(() => announcer()[0]!.textContent).toBe("Loading");
+    expect(announcer()).toHaveLength(1);
+  });
+
+  it("does not announce when it mounts already loading", async () => {
+    for (const region of document.querySelectorAll("[data-ouro-announcer]")) region.remove();
+    await render(<Button loading>Save</Button>);
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    expect(document.querySelector("[data-ouro-announcer]")).toBeNull();
   });
 
   it("spins, and pulses instead of rotating with reduced motion", async () => {
@@ -640,6 +660,8 @@ describe("server rendering", () => {
       </>,
     );
     expect(html).toContain('data-ouro="button"');
+    expect(html).not.toContain("data-ouro-announcer");
+    expect(html).not.toContain("aria-live");
     expect(html).toContain('href="/x"');
     expect(warn).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
