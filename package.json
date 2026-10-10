@@ -41,14 +41,15 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsdown && tailwindcss -i src/styles.css -o dist/styles.css",
+    "theme": "node scripts/build-theme.mts",
+    "build": "pnpm theme && tsdown && tailwindcss -i src/styles.css -o dist/styles.css",
     "test": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "check:package": "node scripts/check-package.mjs",
-    "test:scripts": "node --test scripts/check-package.test.mjs"
+    "test:scripts": "node --test scripts/check-package.test.mjs scripts/build-theme.test.mjs"
   },
   "peerDependencies": {
     "motion": "^12.29.0 || ^13 || ^14",
