@@ -55,7 +55,7 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "check:package": "node scripts/check-package.mjs",
-    "test:scripts": "node --test scripts/check-package.test.mjs scripts/build-theme.test.mjs"
+    "test:scripts": "node --test scripts/check-package.test.mjs scripts/build-theme.test.mjs scripts/dev-strip.test.mjs"
   },
   "peerDependencies": {
     "motion": "^12.29.0 || ^13 || ^14",

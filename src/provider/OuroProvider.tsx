@@ -26,17 +26,22 @@ const OuroContext = createContext<OuroContextValue>({ linkComponent: DefaultLink
 
 export interface OuroProviderProps {
   children: ReactNode;
-  /** Router link component used for internal `href`s, for example React Router's `Link` adapted to `href`. */
+  /** Renders internal `href`s, for example an adapter around a router's `Link`. */
   linkComponent?: OuroLinkComponent;
 }
 
 /**
- * Optional app-level provider. Components work without it; add it only when you
- * need a router `linkComponent` (client-side navigation for `href`) or want to
- * override reduced motion (it sets Motion's `reducedMotion="user"`, which follows
- * the OS setting).
+ * Optional app-level provider. Ouro UI components work without it and honor
+ * reduced motion themselves. Add it to supply a router `linkComponent`
+ * (client-side navigation for internal `href`s), or to make your own Motion
+ * animations follow the OS reduced-motion setting. It sets Motion's
+ * `reducedMotion="user"` for its subtree, overriding any outer `MotionConfig`.
+ *
+ * Type a custom adapter with `ComponentProps<OuroLinkComponent>` so it always
+ * compiles, including under `exactOptionalPropertyTypes`.
  *
  * @example
+ * const RouterLink = (props: ComponentProps<OuroLinkComponent>) => <Link to={props.href} {...props} />;
  * <OuroProvider linkComponent={RouterLink}><App /></OuroProvider>
  */
 export function OuroProvider({ children, linkComponent }: OuroProviderProps): JSX.Element {

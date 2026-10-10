@@ -15,6 +15,7 @@ function Probe({ query = "(min-width: 640px)", serverDefault }: { query?: string
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   document.body.replaceChildren();
 });
 
@@ -49,6 +50,15 @@ describe("useMediaQuery", () => {
     });
     expect(container.textContent).toBe("false");
     expect(error).not.toHaveBeenCalled();
+  });
+
+  it("falls back to serverDefault where matchMedia is missing", async () => {
+    vi.stubGlobal("matchMedia", undefined);
+    const container = document.body.appendChild(document.createElement("div"));
+    const root = createRoot(container);
+    await act(async () => root.render(<Probe serverDefault />));
+    expect(container.textContent).toBe("true");
+    await act(async () => root.unmount());
   });
 
   it("switches subscription when the query changes", async () => {

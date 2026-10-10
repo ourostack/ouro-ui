@@ -2,7 +2,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { findAppearanceClass, useAppearanceClassNameCheck } from "./classNameCheck.ts";
+import { findClassNameProblem, useAppearanceClassNameCheck } from "./classNameCheck.ts";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -24,24 +24,69 @@ afterEach(async () => {
 });
 
 function Probe({ className }: { className?: string | undefined }) {
-  useAppearanceClassNameCheck("Button", className, 'Use tone="danger" instead');
+  useAppearanceClassNameCheck("Button", className, 'tone="danger"');
   return null;
 }
 
-describe("findAppearanceClass", () => {
+describe("findClassNameProblem", () => {
   it.each([
-    ["bg-red-500", "bg-red-500"],
-    ["mt-4 hover:text-red-500", "hover:text-red-500"],
-    ["md:hover:rounded-lg", "md:hover:rounded-lg"],
-    ["dark:bg-black", "dark:bg-black"],
-    ["text-center", "text-center"],
-    ["p-2 shadow-md", "shadow-md"],
-  ])("flags %s", (input, token) => expect(findAppearanceClass(input)).toBe(token));
+    "bg-red-500",
+    "bg-[#fff]",
+    "bg-[url(https://x.test/y.png)]",
+    "bg-red-500!",
+    "!bg-red-500",
+    "hover:text-red-500",
+    "md:hover:rounded-lg",
+    "dark:bg-black",
+    "dark:mt-4",
+    "md:dark:mt-4",
+    "[&_svg]:fill-current",
+    "p-2 shadow-md",
+    "border",
+    "rounded",
+    "shadow",
+    "ring",
+    "!border",
+    "sm:rounded",
+    "border-t",
+    "ring-0",
+    "shadow-none",
+    "font-bold",
+    "text-sm",
+    "stroke-2",
+    "from-red-500",
+  ])("flags %s as appearance", (input) => {
+    expect(findClassNameProblem(input)?.kind).toBe("appearance");
+  });
 
-  it.each(["mt-4 w-full", "grid col-span-2", "", undefined, "bgx-1 context-menu"])(
-    "allows %s",
-    (input) => expect(findAppearanceClass(input)).toBeUndefined(),
+  it.each(["text-center", "text-left", "text-right", "text-justify", "text-start", "text-end", "md:text-center", "!text-center"])(
+    "flags %s as alignment",
+    (input) => expect(findClassNameProblem(input)?.kind).toBe("align"),
   );
+
+  it("returns the first offending token as written", () => {
+    expect(findClassNameProblem("mt-4 !bg-red-500 text-center")).toEqual({
+      token: "!bg-red-500",
+      kind: "appearance",
+    });
+  });
+
+  it.each([
+    "mt-4 w-full",
+    "grid col-span-2",
+    "size-4",
+    "grid-cols-2",
+    "top-0 left-1/2",
+    "w-[calc(100%-1rem)]",
+    "-translate-y-1",
+    "whitespace-nowrap",
+    "flex items-center justify-between gap-2",
+    "md:flex-row sm:p-4 hover:mt-2",
+    "bgx-1 context-menu borders shadowed ringed",
+    "[&_svg]:size-4",
+    "",
+    undefined,
+  ])("allows %s", (input) => expect(findClassNameProblem(input)).toBeUndefined());
 });
 
 describe("useAppearanceClassNameCheck", () => {
@@ -60,8 +105,23 @@ describe("useAppearanceClassNameCheck", () => {
     expect(warn).toHaveBeenCalledTimes(1);
     const message = String(warn.mock.calls[0]?.[0]);
     expect(message).toContain('"bg-red-500"');
-    expect(message).toContain('Use tone="danger" instead');
+    expect(message).toContain('tone="danger"');
     expect(message).toMatch(/^\[ouro-ui\] Button: .+\. Fix: .+\.$/);
+  });
+
+  it("points alignment classes to the alignHint, or to the parent", async () => {
+    function AlignProbe({ alignHint }: { alignHint?: string }) {
+      useAppearanceClassNameCheck("Button", "text-center", 'tone="danger"', alignHint);
+      return null;
+    }
+    await render(<AlignProbe alignHint='align="center"' />);
+    expect(String(warn.mock.calls[0]?.[0])).toBe(
+      '[ouro-ui] Button: "text-center" aligns content, and className is for layout only. Fix: align="center".',
+    );
+    await render(<AlignProbe />);
+    expect(String(warn.mock.calls[1]?.[0])).toBe(
+      '[ouro-ui] Button: "text-center" aligns content, and className is for layout only. Fix: <div className="text-center"><Button /></div>.',
+    );
   });
 
   it("warns for dark: classes", async () => {

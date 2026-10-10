@@ -1,5 +1,3 @@
-import { isProduction } from "./env.ts";
-
 const seenMessages = new Set<string>();
 const seenByKey = new WeakMap<object, Set<string>>();
 
@@ -16,25 +14,34 @@ function format(component: string, problem: string, fix: string): string {
  * With a `key` (use a per-instance ref object) the warning is emitted once per
  * key and message; without one, once per message text. No-op in production.
  *
+ * The check is the bare `process.env.NODE_ENV !== "production"` form, which
+ * bundlers replace statically. Guard the call site the same way so the message
+ * strings are removed from production builds too.
+ *
  * @example
- * devWarn("Button", '"bg-red-500" sets appearance', 'Use tone="danger" instead', ref);
+ * if (process.env.NODE_ENV !== "production") {
+ *   devWarn("Button", '"bg-red-500" sets appearance', 'tone="danger"', ref);
+ * }
  */
 export function devWarn(component: string, problem: string, fix: string, key?: object): void {
-  if (isProduction()) return;
-  const message = format(component, problem, fix);
-  if (key) {
-    let seen = seenByKey.get(key);
-    if (!seen) {
-      seen = new Set();
-      seenByKey.set(key, seen);
+  // The else path only exists in production bundles; scripts/dev-strip.test.mjs covers it.
+  /* istanbul ignore else */
+  if (process.env.NODE_ENV !== "production") {
+    const message = format(component, problem, fix);
+    if (key) {
+      let seen = seenByKey.get(key);
+      if (!seen) {
+        seen = new Set();
+        seenByKey.set(key, seen);
+      }
+      if (seen.has(message)) return;
+      seen.add(message);
+    } else {
+      if (seenMessages.has(message)) return;
+      seenMessages.add(message);
     }
-    if (seen.has(message)) return;
-    seen.add(message);
-  } else {
-    if (seenMessages.has(message)) return;
-    seenMessages.add(message);
+    console.warn(message);
   }
-  console.warn(message);
 }
 
 /**
@@ -42,10 +49,22 @@ export function devWarn(component: string, problem: string, fix: string, key?: o
  * the message teaches the fix; in production it is shortened to
  * `[ouro-ui] <Component>: <problem>`.
  *
+ * Build the `fix` argument only in development so its text is stripped from
+ * production builds.
+ *
  * @example
- * devThrow("Sheet.Title", "must be rendered inside <Sheet>", "<Sheet title=\"…\">…</Sheet>");
+ * devThrow(
+ *   "Sheet.Title",
+ *   "must be rendered inside <Sheet>",
+ *   process.env.NODE_ENV !== "production" ? '<Sheet title="…">…</Sheet>' : "",
+ * );
  */
 export function devThrow(component: string, problem: string, fix: string): never {
-  if (isProduction()) throw new Error(`[ouro-ui] ${component}: ${problem}`);
-  throw new Error(format(component, problem, fix));
+  // The else path only exists in production bundles; scripts/dev-strip.test.mjs covers it.
+  /* istanbul ignore else */
+  if (process.env.NODE_ENV !== "production") {
+    throw new Error(format(component, problem, fix));
+  } else {
+    throw new Error(`[ouro-ui] ${component}: ${problem}`);
+  }
 }
