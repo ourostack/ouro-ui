@@ -4,7 +4,8 @@ import { createElement } from "react";
 import { Button, Heading, Text } from "../../dist/index.js";
 
 export const elements = [
-  createElement(Button, { className: "bg-red-500" }, "Go"),
+  createElement(Button, { className: "bg-red-500", isLoading: true }, "Go"),
+  createElement(Button, { href: "/x", type: "submit" }, "Link"),
   createElement(Text, { className: "text-center" }, "Body"),
   createElement(Heading, { level: 2, className: "text-4xl" }, "Title"),
 ];

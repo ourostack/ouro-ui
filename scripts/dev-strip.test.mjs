@@ -66,6 +66,8 @@ const DIST_DEV_STRINGS = [
   "defineTheme({ radius",
   "<Text><strong>",
   'align="center"',
+  "is not a prop",
+  "without href",
 ];
 
 test("a Vite development bundle of dist keeps the components' dev messages (control)", async () => {

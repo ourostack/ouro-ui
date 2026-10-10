@@ -24,6 +24,11 @@ export type ThemeScriptProps = {
  *
  * `"system"` removes the attribute, which lets `color-scheme: light dark` follow the OS.
  * A stored value other than `light`, `dark` or `system` is ignored in favor of `defaultTheme`.
+ *
+ * Set the scheme on the root, as this script does: `data-theme` on `<html>` (or the OS
+ * setting) always works, even when your CSS pipeline lowers `light-dark()` for older
+ * browsers. A dark scheme set on a wrapper (`style={{ colorScheme: "dark" }}`) needs
+ * native `light-dark()` support, because lowered tokens resolve once at the root.
  */
 export function ThemeScript({ storageKey = "ouro-theme", defaultTheme = "system", nonce }: ThemeScriptProps) {
   // `<` is escaped so a key can never close the script element.

@@ -37,6 +37,12 @@ const lightDark = ({ light, dark }: SchemeColor) => `light-dark(${light}, ${dark
  * are only emitted when you set them; otherwise the utilities derive them with `color-mix`
  * over the base variables where they are used, so a scoped override of a base color
  * reaches them. Text on a soft background uses `<tone>-ink`, not the plain tone.
+ *
+ * Colors are emitted as `light-dark(light, dark)`. Switching the scheme on the root
+ * (`data-theme` on `<html>`, or the OS setting) always works. A scheme set on a wrapper
+ * (`color-scheme: dark` on a subtree) needs native `light-dark()` support: if your CSS
+ * pipeline lowers it for older browsers (Lightning CSS, Tailwind's optimizer), the
+ * lowered tokens resolve once at the root and the wrapper's scheme is ignored.
  */
 export function defineTheme(
   partial: DeepPartial<ThemeTokens> = {},

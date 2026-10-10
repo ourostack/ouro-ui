@@ -1,6 +1,8 @@
 import type { HTMLAttributes, JSX, ReactNode, Ref } from "react";
-import { sizeFor } from "../../internal/appearanceHints.ts";
+import { fontFor, sizeFor, toneFor } from "../../internal/appearanceHints.ts";
 import { useAppearanceClassNameCheck } from "../../internal/classNameCheck.ts";
+import { devThrow } from "../../internal/dev.ts";
+import { useDevWarnings } from "../../internal/useDevWarnings.ts";
 import { alignClasses, type TextAlign } from "./Text.tsx";
 
 /** A heading size from the theme's type scale. */
@@ -43,7 +45,9 @@ const sizeByLevel = { 1: "2xl", 2: "xl", 3: "lg", 4: "md", 5: "sm", 6: "sm" } as
 
 function headingHint(token: string): string {
   const size = sizeFor(token, ["sm", "sm", "sm", "md", "lg", "xl", "2xl"]);
-  return size ? `size="${size}"` : "<Heading level={2}>…</Heading>";
+  if (size) return `size="${size}"`;
+  if (token.startsWith("font-")) return fontFor("Heading", token, "display");
+  return "<Heading level={2}>…</Heading>";
 }
 
 /**
@@ -58,12 +62,35 @@ function headingHint(token: string): string {
  * <Heading level={2} size="lg">Ingredients</Heading>
  */
 export function Heading(props: HeadingProps): JSX.Element {
-  const { level, size = sizeByLevel[level], align, className, ref, ...rest } = props;
+  const { level, size: sizeProp, align, className, ref, color, as, ...rest } = props;
+  if (!(level in sizeByLevel) || typeof level !== "number") {
+    devThrow(
+      "Heading",
+      `level must be 1, 2, 3, 4, 5 or 6, got ${JSON.stringify(level)}`,
+      process.env.NODE_ENV !== "production" ? "<Heading level={2}>" : /* istanbul ignore next -- production only */ "",
+    );
+  }
+  const size = sizeProp ?? sizeByLevel[level];
   useAppearanceClassNameCheck(
     "Heading",
     className,
     process.env.NODE_ENV !== "production" ? headingHint : /* istanbul ignore next -- production only */ "",
     process.env.NODE_ENV !== "production" ? 'align="center"' : /* istanbul ignore next -- production only */ undefined,
+  );
+  useDevWarnings(
+    "Heading",
+    process.env.NODE_ENV !== "production"
+      ? () => [
+          color !== undefined && [
+            "color is not a prop; headings use the theme ink color",
+            `<Text tone="${toneFor(`text-${String(color)}`)}">`,
+          ],
+          as !== undefined && [
+            "as is not a prop; level sets the tag",
+            `<Heading level={${/^h[1-6]$/.test(String(as)) ? String(as).slice(1) : 2}}>`,
+          ],
+        ]
+      : /* istanbul ignore next -- production only */ undefined,
   );
   const Tag = `h${level}` as const;
   const classes = [

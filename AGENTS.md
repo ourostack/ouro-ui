@@ -45,6 +45,7 @@ A `className` token warns when, after removing variants (split on `:` outside `[
 - There is no reset, so reset what the browser sets (button borders, backgrounds, margins on `<p>` and headings, `box-sizing`) in the component's own classes.
 - Class strings are literals so Tailwind finds them; Tailwind scans `src` except tests, type tests, stories and `src/generated`. Stories therefore lay out with inline styles and `--ouro-*` variables.
 - Interactive controls use the `ou:press` utility (spring release, quick color easing), a `motion-safe:` press scale of `--ouro-press-scale`, and `<TouchTarget />` (`src/internal/TouchTarget.tsx`) as the first child of a `relative` root for the 44px coarse-pointer hit area.
+- Dark mode is set on the root: `data-theme` on `<html>` (via `ThemeScript`) or the OS setting, which always works. A scheme set on a wrapper (`color-scheme: dark` on a subtree) needs native `light-dark()`; a consumer pipeline that lowers `light-dark()` (Lightning CSS, Tailwind's optimizer) resolves the tokens once at the root. `dist/styles.css` ships native `light-dark()`, and Storybook keeps it native (`optimize: false`, modern `cssTarget`) so its side-by-side dark panels render.
 - Keyframes are namespaced (`ouro-spin`), never Tailwind's global `spin` or `pulse`.
 
 ## Workflow

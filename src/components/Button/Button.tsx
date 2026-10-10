@@ -9,9 +9,10 @@ import type {
   Ref,
   SVGProps,
 } from "react";
-import { radiusFor, sizeFor, toneFor } from "../../internal/appearanceHints.ts";
+import { fontFor, radiusFor, sizeFor, toneFor } from "../../internal/appearanceHints.ts";
 import { useAppearanceClassNameCheck } from "../../internal/classNameCheck.ts";
 import { TouchTarget } from "../../internal/TouchTarget.tsx";
+import { useDevWarnings } from "../../internal/useDevWarnings.ts";
 import { useOuro } from "../../provider/OuroProvider.tsx";
 import type { ToneName } from "../../theme/tokens.ts";
 
@@ -41,6 +42,11 @@ export interface ButtonBaseProps {
    * turns busy.
    */
   loading?: boolean | undefined;
+  /**
+   * What screen readers hear, politely, when `loading` turns on. Use the action
+   * in progress: `loadingLabel="Saving recipe"`. @default "Loading"
+   */
+  loadingLabel?: string | undefined;
   /** Icon before the label. Pass the component, not an element: `startIcon={PlusIcon}`. */
   startIcon?: ButtonIcon | undefined;
   /** Icon after the label. Pass the component, not an element: `endIcon={ArrowRightIcon}`. */
@@ -72,10 +78,12 @@ export type ButtonLinkProps = ButtonBaseProps &
     /**
      * Where the link goes. Internal paths render through `OuroProvider`'s
      * `linkComponent` (your router's link); `http(s)://`, `mailto:` and other
-     * absolute URLs render as a plain `<a>`.
+     * absolute URLs render as a plain `<a>`. An absolute URL with
+     * `target="_blank"` always gets `rel="noopener noreferrer"`, merged with
+     * any `rel` you pass.
      */
     href: string;
-    /** Not available on a link. Remove `href` to make a submit or reset button. */
+    /** Links have no `type`. Remove `href` to make a submit button: `<Button type="submit">`. */
     type?: never;
     /** A link cannot be disabled. Remove `href` to render a disabled button, or don't render the link. */
     disabled?: never;
@@ -162,7 +170,7 @@ const EXTERNAL = /^([a-z][a-z\d+.-]*:|\/\/)/i;
 function buttonHint(token: string): string {
   const size = sizeFor(token, ["sm", "sm", "md", "lg", "lg", "lg", "lg"]);
   if (size) return `size="${size}"`;
-  if (token.startsWith("font-")) return 'size="lg"';
+  if (token.startsWith("font-")) return fontFor("Button", token, "body");
   if (token.startsWith("rounded")) return radiusFor(token);
   if (/^(border|ring|shadow)/.test(token)) return 'variant="outline"';
   if (/^bg-(transparent|none)$/.test(token)) return 'variant="plain"';
@@ -190,6 +198,14 @@ function Spinner(): JSX.Element {
 
 const preventDefault = (event: MouseEvent) => event.preventDefault();
 
+/** `rel` with `noopener` and `noreferrer` added once each, keeping the caller's tokens. */
+function safeRel(rel: string | undefined): string {
+  const tokens = new Set((rel ?? "").split(/\s+/).filter(Boolean));
+  tokens.add("noopener");
+  tokens.add("noreferrer");
+  return [...tokens].join(" ");
+}
+
 /**
  * A button, or a link styled as one. The obvious name for any action: pressing
  * it gives physical feedback, it has a 44px touch target on phones, and `loading`
@@ -210,10 +226,17 @@ export function Button(props: ButtonProps): JSX.Element {
     size = "md",
     fullWidth,
     loading,
+    loadingLabel = "Loading",
     startIcon: StartIcon,
     endIcon: EndIcon,
     children,
     className,
+    // Guard props: typed `never`, dropped here so they never reach the DOM.
+    isLoading,
+    color,
+    asChild,
+    leftIcon,
+    rightIcon,
     ...rest
   } = props;
   const { linkComponent: LinkComponent } = useOuro();
@@ -221,6 +244,28 @@ export function Button(props: ButtonProps): JSX.Element {
     "Button",
     className,
     process.env.NODE_ENV !== "production" ? buttonHint : /* istanbul ignore next -- production only */ "",
+  );
+  useDevWarnings(
+    "Button",
+    process.env.NODE_ENV !== "production"
+      ? () => {
+          const link = rest as { href?: string; type?: string; disabled?: boolean };
+          return [
+            isLoading !== undefined && ["isLoading is not a prop", "<Button loading>"],
+            color !== undefined && ["color is not a prop", `<Button tone="${toneFor(`bg-${String(color)}`)}">`],
+            asChild !== undefined && ["asChild is not a prop", '<Button href="/path">'],
+            leftIcon !== undefined && ["leftIcon is not a prop", "<Button startIcon={Icon}>"],
+            rightIcon !== undefined && ["rightIcon is not a prop", "<Button endIcon={Icon}>"],
+            link.href !== undefined &&
+              link.type !== undefined && [
+                `a link has no type, so type="${link.type}" is ignored`,
+                `<Button type="${link.type}"> without href`,
+              ],
+            link.href !== undefined &&
+              link.disabled !== undefined && ["a link cannot be disabled", "<Button disabled> without href"],
+          ];
+        }
+      : /* istanbul ignore next -- production only */ undefined,
   );
 
   const classes = [
@@ -246,18 +291,27 @@ export function Button(props: ButtonProps): JSX.Element {
         {EndIcon && <EndIcon aria-hidden="true" className={`${iconClass} ou:-me-0.5`} />}
       </span>
       {loading && <Spinner />}
+      {/* Present from the first render so assistive technology tracks it before it changes. */}
+      <span aria-live="polite" className="ou:sr-only">
+        {loading ? loadingLabel : ""}
+      </span>
     </>
   );
 
   if (rest.href !== undefined) {
-    const { href, target, rel, onClick, ref, ...anchorProps } = rest as Omit<ButtonLinkProps, keyof ButtonBaseProps>;
+    // `type` and `disabled` are typed `never` on links; drop them if they arrive anyway.
+    const { href, target, rel, onClick, ref, type, disabled, ...anchorProps } = rest as Omit<
+      ButtonLinkProps,
+      keyof ButtonBaseProps
+    >;
     const external = EXTERNAL.test(href);
     const linkProps = {
       ...anchorProps,
       href,
       target,
-      rel: rel ?? (external && target === "_blank" ? "noopener noreferrer" : undefined),
+      rel: external && target === "_blank" ? safeRel(rel) : rel,
       onClick: loading ? preventDefault : onClick,
+      onAuxClick: loading ? preventDefault : anchorProps.onAuxClick,
       ...(ref ? { ref } : {}),
       className: classes,
       "data-ouro": "button",
@@ -276,7 +330,7 @@ export function Button(props: ButtonProps): JSX.Element {
       ref={ref as Ref<HTMLElement> | undefined}
       type={type}
       disabled={Boolean(disabled || loading)}
-      focusableWhenDisabled={Boolean(loading)}
+      focusableWhenDisabled={Boolean(loading && !disabled)}
       className={classes}
       data-ouro="button"
       data-loading={loading ? "" : undefined}

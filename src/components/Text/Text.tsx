@@ -1,6 +1,7 @@
 import type { CSSProperties, HTMLAttributes, JSX, ReactNode, Ref } from "react";
-import { sizeFor, toneFor } from "../../internal/appearanceHints.ts";
+import { fontFor, isWeight, sizeFor, toneFor } from "../../internal/appearanceHints.ts";
 import { useAppearanceClassNameCheck } from "../../internal/classNameCheck.ts";
+import { useDevWarnings } from "../../internal/useDevWarnings.ts";
 import type { ToneName } from "../../theme/tokens.ts";
 
 /** Text alignment, in writing direction: `start` is left in English and right in Arabic. */
@@ -59,12 +60,17 @@ const tones = {
 /** Alignment classes, shared with `Heading`. */
 export const alignClasses = { start: "ou:text-start", center: "ou:text-center", end: "ou:text-end" } as const;
 
+function textTone(token: string): string {
+  const tone = toneFor(token);
+  return tone === "neutral" ? "muted" : tone;
+}
+
 function textHint(token: string): string {
   const size = sizeFor(token, ["sm", "sm", "md", "lg", "lg", "lg", "lg"]);
   if (size) return `size="${size}"`;
-  if (token.startsWith("font-")) return "<Text><strong>…</strong></Text>";
-  const tone = toneFor(token);
-  return `tone="${tone === "neutral" ? "muted" : tone}"`;
+  if (isWeight(token)) return "<Text><strong>…</strong></Text>";
+  if (token.startsWith("font-")) return fontFor("Text", token, "body");
+  return `tone="${textTone(token)}"`;
 }
 
 /**
@@ -80,12 +86,18 @@ function textHint(token: string): string {
  * <Text lines={2}>{recipe.description}</Text>
  */
 export function Text(props: TextProps): JSX.Element {
-  const { as: Tag = "p", size = "md", tone = "default", align, truncate, lines, className, style, ref, ...rest } = props;
+  const { as: Tag = "p", size = "md", tone = "default", align, truncate, lines, className, style, ref, color, ...rest } = props;
   useAppearanceClassNameCheck(
     "Text",
     className,
     process.env.NODE_ENV !== "production" ? textHint : /* istanbul ignore next -- production only */ "",
     process.env.NODE_ENV !== "production" ? 'align="center"' : /* istanbul ignore next -- production only */ undefined,
+  );
+  useDevWarnings(
+    "Text",
+    process.env.NODE_ENV !== "production"
+      ? () => [color !== undefined && ["color is not a prop", `<Text tone="${textTone(`text-${String(color)}`)}">`]]
+      : /* istanbul ignore next -- production only */ undefined,
   );
   const classes = [
     "ou:m-0 ou:font-body",

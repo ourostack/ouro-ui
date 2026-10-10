@@ -198,6 +198,50 @@ describe("loading", () => {
     button.dispatchEvent(event);
     expect(event.defaultPrevented).toBe(true);
     expect(onClick).not.toHaveBeenCalled();
+    const aux = new MouseEvent("auxclick", { bubbles: true, cancelable: true, button: 1 });
+    button.dispatchEvent(aux);
+    expect(aux.defaultPrevented).toBe(true);
+  });
+
+  it("keeps a disabled button natively disabled while loading", async () => {
+    const { button } = await render(
+      <Button disabled loading>
+        Save
+      </Button>,
+    );
+    expect((button as HTMLButtonElement).disabled).toBe(true);
+    expect(getComputedStyle(button).opacity).toBe("0.5");
+  });
+
+  it("announces loading politely and clears the announcement after", async () => {
+    const screen = await render(<Button>Save</Button>);
+    const region = () => screen.button.querySelector<HTMLElement>("[aria-live='polite']")!;
+    expect(region()).not.toBeNull();
+    expect(region().textContent).toBe("");
+    await screen.rerender(<Button loading>Save</Button>);
+    expect(region().textContent).toBe("Loading");
+    expect(region().getBoundingClientRect().width).toBeLessThanOrEqual(1);
+    await screen.rerender(<Button loading loadingLabel="Saving recipe">Save</Button>);
+    expect(region().textContent).toBe("Saving recipe");
+    await screen.rerender(<Button>Save</Button>);
+    expect(region().textContent).toBe("");
+  });
+
+  it("announces loading on links too", async () => {
+    const { button } = await render(
+      <Button href="/x" loading>
+        Go
+      </Button>,
+    );
+    expect(button.querySelector("[aria-live='polite']")!.textContent).toBe("Loading");
+  });
+
+  it("spins, and pulses instead of rotating with reduced motion", async () => {
+    const spinner = (host: HTMLElement) => host.querySelector<SVGElement>("[data-ouro-spinner]")!;
+    const spinning = await render(<Button loading>Save</Button>);
+    expect(getComputedStyle(spinner(spinning.host)).animationName).toBe("ouro-spin");
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    expect(getComputedStyle(spinner(spinning.host)).animationName).toBe("ouro-pulse");
   });
 });
 
@@ -251,13 +295,22 @@ describe("link branch", () => {
     expect(button.getAttribute("rel")).toBe("noopener noreferrer");
   });
 
-  it("keeps an explicit rel", async () => {
-    const { button } = await render(
-      <Button href="https://ouro.bot" target="_blank" rel="noopener">
-        Ouro
-      </Button>,
+  it("merges an explicit rel with noopener noreferrer on an external _blank link", async () => {
+    const { host } = await render(
+      <>
+        <Button href="https://ouro.bot" target="_blank" rel="noopener">
+          Ouro
+        </Button>
+        <Button href="https://ouro.bot" target="_blank" rel="nofollow  noreferrer">
+          Ouro
+        </Button>
+        <Button href="https://ouro.bot" rel="nofollow">
+          Same tab
+        </Button>
+      </>,
     );
-    expect(button.getAttribute("rel")).toBe("noopener");
+    const rels = [...host.querySelectorAll("a")].map((a) => a.getAttribute("rel"));
+    expect(rels).toEqual(["noopener noreferrer", "nofollow noreferrer noopener", "nofollow"]);
   });
 
   it("forwards a ref to the anchor", async () => {
@@ -461,7 +514,7 @@ describe("className", () => {
     ["md:border-2", 'variant="outline"'],
     ["bg-transparent", 'variant="plain"'],
     ["hover:bg-emerald-600", 'tone="success"'],
-    ["font-bold", 'size="lg"'],
+    ["font-bold", 'remove "font-bold"; Button sets its own font (change the family with defineTheme({ font: { body: "…" } }))'],
     ["text-center", '<div className="text-center"><Button /></div>'],
   ])("points %s to %s", async (className, fix) => {
     await render(<Button className={className}>Go</Button>);
@@ -475,6 +528,59 @@ describe("className", () => {
       </Button>,
     );
     expect(warn).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("runtime guards", () => {
+  // The guard props are typed `never`; these cast past the types the way an untyped
+  // caller (or a dev server that does not typecheck) would.
+  const Untyped = Button as unknown as (props: Record<string, unknown>) => React.ReactElement;
+
+  it.each([
+    ["isLoading", true, "<Button loading>"],
+    ["color", "red", '<Button tone="danger">'],
+    ["asChild", true, '<Button href="/path">'],
+    ["leftIcon", Star, "<Button startIcon={Icon}>"],
+    ["rightIcon", Star, "<Button endIcon={Icon}>"],
+  ])("strips %s from the DOM and warns once with the fix", async (prop, value, fix) => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const screen = await render(<Untyped {...{ [prop]: value }}>Go</Untyped>);
+    await screen.rerender(<Untyped {...{ [prop]: value }}>Go again</Untyped>);
+    expect(screen.button.hasAttribute(prop)).toBe(false);
+    expect(screen.button.hasAttribute(prop.toLowerCase())).toBe(false);
+    expect(error).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]?.[0])).toBe(`[ouro-ui] Button: ${prop} is not a prop. Fix: ${fix}.`);
+  });
+
+  it("drops type on a link and warns", async () => {
+    const { button } = await render(
+      <Untyped href="/x" type="submit">
+        Go
+      </Untyped>,
+    );
+    expect(button.tagName).toBe("A");
+    expect(button.hasAttribute("type")).toBe(false);
+    expect(String(warn.mock.calls[0]?.[0])).toBe(
+      '[ouro-ui] Button: a link has no type, so type="submit" is ignored. Fix: <Button type="submit"> without href.',
+    );
+  });
+
+  it("drops disabled on a link and warns", async () => {
+    const { button } = await render(
+      <Untyped href="/x" disabled>
+        Go
+      </Untyped>,
+    );
+    expect(button.hasAttribute("disabled")).toBe(false);
+    expect(String(warn.mock.calls[0]?.[0])).toBe(
+      "[ouro-ui] Button: a link cannot be disabled. Fix: <Button disabled> without href.",
+    );
+  });
+
+  it("does not warn on server render", () => {
+    renderToString(<Untyped isLoading>Go</Untyped>);
+    expect(warn).not.toHaveBeenCalled();
   });
 });
 

@@ -37,3 +37,15 @@ export function radiusFor(token: string): string {
   const value = token === "rounded-none" ? "0px" : token === "rounded-full" ? "999px" : "12px";
   return `defineTheme({ radius: { control: "${value}" } })`;
 }
+
+const WEIGHT = /^font-(thin|extralight|light|normal|medium|semibold|bold|extrabold|black)$/;
+
+/** True for a font-weight token such as `font-bold`. */
+export function isWeight(token: string): boolean {
+  return WEIGHT.test(token);
+}
+
+/** The fix for a `font-*` token on a component that sets its own font from `family`. */
+export function fontFor(component: string, token: string, family: "body" | "display"): string {
+  return `remove "${token}"; ${component} sets its own font (change the family with defineTheme({ font: { ${family}: "…" } }))`;
+}

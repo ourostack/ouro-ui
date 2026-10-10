@@ -152,6 +152,7 @@ describe("Text", () => {
     ["text-gray-500", 'tone="muted"'],
     ["text-sm", 'size="sm"'],
     ["font-bold", "<Text><strong>…</strong></Text>"],
+    ["font-mono", 'remove "font-mono"; Text sets its own font (change the family with defineTheme({ font: { body: "…" } }))'],
     ["text-center", 'align="center"'],
   ])("warns once for %s, pointing to %s", async (className, fix) => {
     await render(<Text className={className}>a</Text>);
@@ -222,6 +223,7 @@ describe("Heading", () => {
     ["text-4xl", 'size="2xl"'],
     ["text-center", 'align="center"'],
     ["bg-black", "<Heading level={2}>…</Heading>"],
+    ["font-serif", 'remove "font-serif"; Heading sets its own font (change the family with defineTheme({ font: { display: "…" } }))'],
   ])("warns for %s, pointing to %s", async (className, fix) => {
     await render(
       <Heading level={2} className={className}>
@@ -230,6 +232,50 @@ describe("Heading", () => {
     );
     expect(String(warn.mock.calls[0]?.[0])).toMatch(/^\[ouro-ui\] Heading: /);
     expect(String(warn.mock.calls[0]?.[0])).toContain(`Fix: ${fix}.`);
+  });
+});
+
+describe("runtime guards", () => {
+  const UntypedText = Text as unknown as (props: Record<string, unknown>) => React.ReactElement;
+  const UntypedHeading = Heading as unknown as (props: Record<string, unknown>) => React.ReactElement;
+
+  it("strips color from Text and warns with the fix", async () => {
+    const { el } = await render(<UntypedText color="red">a</UntypedText>);
+    expect(el.hasAttribute("color")).toBe(false);
+    expect(String(warn.mock.calls[0]?.[0])).toBe('[ouro-ui] Text: color is not a prop. Fix: <Text tone="danger">.');
+  });
+
+  it("strips color and as from Heading and warns with the fix", async () => {
+    const { el } = await render(
+      <UntypedHeading level={2} color="red" as="h3">
+        a
+      </UntypedHeading>,
+    );
+    expect(el.tagName).toBe("H2");
+    expect(el.hasAttribute("color")).toBe(false);
+    expect(el.hasAttribute("as")).toBe(false);
+    const messages = warn.mock.calls.map((call: unknown[]) => String(call[0]));
+    expect(messages).toEqual([
+      '[ouro-ui] Heading: color is not a prop; headings use the theme ink color. Fix: <Text tone="danger">.',
+      "[ouro-ui] Heading: as is not a prop; level sets the tag. Fix: <Heading level={3}>.",
+    ]);
+  });
+
+  it("points an as that is not a heading tag to level={2}", async () => {
+    await render(
+      <UntypedHeading level={1} as="div">
+        a
+      </UntypedHeading>,
+    );
+    expect(String(warn.mock.calls[0]?.[0])).toContain("Fix: <Heading level={2}>.");
+  });
+
+  it.each([undefined, 0, 7, "2"])("throws for level=%s with the fix", (level) => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(() => renderToString(<UntypedHeading level={level}>a</UntypedHeading>)).toThrow(
+      `[ouro-ui] Heading: level must be 1, 2, 3, 4, 5 or 6, got ${JSON.stringify(level)}. Fix: <Heading level={2}>.`,
+    );
+    error.mockRestore();
   });
 });
 
