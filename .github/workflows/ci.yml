@@ -1,0 +1,30 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium webkit
+      - run: pnpm typecheck
+      - run: pnpm lint
+      # Build before test: the package-contents tests read dist.
+      - run: pnpm build
+      - run: pnpm test
+      - run: pnpm test:scripts
+      - run: pnpm check:package
+      - run: pnpm build-storybook

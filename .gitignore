@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+storybook-static/
+.tmp/
+.DS_Store
+*.log
+__screenshots__/**/__diff_output__/
+.vitest/

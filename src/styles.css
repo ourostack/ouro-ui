@@ -1,0 +1,8 @@
+/*
+ * Ouro UI styles. Utilities carry the `ou` prefix and there is no reset, so an
+ * app's own utilities and base styles always win. Tokens go in @layer base and
+ * component rules in @layer components.
+ */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme" layer(base) prefix(ou);
+@import "tailwindcss/utilities" layer(components) prefix(ou);

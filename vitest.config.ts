@@ -1,0 +1,98 @@
+import react from "@vitejs/plugin-react";
+import { playwright } from "@vitest/browser-playwright";
+import { defineConfig } from "vitest/config";
+import { commands } from "./vitest.commands.ts";
+
+const visual = process.env["CI_VISUAL"] === "1";
+
+const shared = {
+  plugins: [react()],
+};
+
+const unitInclude = ["src/**/*.test.{ts,tsx}"];
+const unitExclude = ["src/**/*.touch.test.{ts,tsx}", "src/**/*.visual.test.{ts,tsx}"];
+
+export default defineConfig({
+  test: {
+    passWithNoTests: true,
+    coverage: {
+      provider: "istanbul",
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: ["**/*.stories.tsx", "**/*.test.{ts,tsx}", "src/**/index.ts", "src/parts.ts", "src/generated/**"],
+      reporter: ["text", "lcov"],
+      thresholds: { lines: 100, branches: 100, functions: 100, statements: 100 },
+    },
+    projects: [
+      {
+        ...shared,
+        test: {
+          name: "chromium",
+          include: unitInclude,
+          exclude: unitExclude,
+          browser: {
+            enabled: true,
+            headless: true,
+            provider: playwright(),
+            instances: [{ browser: "chromium" }],
+            commands,
+          },
+        },
+      },
+      {
+        ...shared,
+        test: {
+          name: "webkit",
+          include: unitInclude,
+          exclude: unitExclude,
+          browser: {
+            enabled: true,
+            headless: true,
+            provider: playwright(),
+            instances: [{ browser: "webkit" }],
+            commands,
+          },
+        },
+      },
+      {
+        // Coarse-pointer tests (touch targets, touch drags): Chromium emulating a phone.
+        ...shared,
+        test: {
+          name: "touch",
+          include: ["src/**/*.touch.test.{ts,tsx}"],
+          browser: {
+            enabled: true,
+            headless: true,
+            provider: playwright({
+              contextOptions: {
+                hasTouch: true,
+                isMobile: true,
+                viewport: { width: 390, height: 844 },
+              },
+            }),
+            instances: [{ browser: "chromium" }],
+            viewport: { width: 390, height: 844 },
+            commands,
+          },
+        },
+      },
+      ...(visual
+        ? [
+            {
+              ...shared,
+              test: {
+                name: "visual",
+                include: ["src/**/*.visual.test.{ts,tsx}"],
+                browser: {
+                  enabled: true,
+                  headless: true,
+                  provider: playwright(),
+                  instances: [{ browser: "chromium" as const }],
+                  commands,
+                },
+              },
+            },
+          ]
+        : []),
+    ],
+  },
+});
