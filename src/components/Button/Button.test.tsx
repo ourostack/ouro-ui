@@ -1,15 +1,15 @@
 import distCss from "../../../dist/styles.css?raw";
-import { act, type ReactNode, type SVGProps } from "react";
+import { type ReactNode, type SVGProps } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { OuroProvider, type OuroLinkComponent } from "../../provider/OuroProvider.tsx";
 import { Button } from "./Button.tsx";
+import { act } from "../../../test/act.ts";
 
 // Reads the built dist/styles.css, so run `pnpm build` first.
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const roots: Root[] = [];
 let mounted: Element[] = [];

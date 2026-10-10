@@ -1,14 +1,14 @@
 import distCss from "../../../dist/styles.css?raw";
-import { act, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Heading } from "./Heading.tsx";
 import { Text } from "./Text.tsx";
+import { act } from "../../../test/act.ts";
 
 // Reads the built dist/styles.css, so run `pnpm build` first.
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const roots: Root[] = [];
 let mounted: Element[] = [];

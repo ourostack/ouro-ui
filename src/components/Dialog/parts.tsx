@@ -190,7 +190,8 @@ export function DialogContent({ className, ...props }: DialogContentProps): JSX.
 
 /**
  * Part: the actions row. A row at the end on wider screens; on phones the
- * actions stack full width in reverse, so put the primary action last.
+ * actions stack full width. Put the primary action last, so it sits at the
+ * bottom on phones, nearest the thumb.
  */
 export function DialogFooter(props: Omit<JSX.IntrinsicElements["div"], "className">): JSX.Element {
   useDialogPart(

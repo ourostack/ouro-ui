@@ -1,6 +1,16 @@
-import { useState, type JSX, type ReactElement, type ReactNode } from "react";
+import {
+  cloneElement,
+  useRef,
+  useState,
+  type JSX,
+  type MouseEvent,
+  type ReactElement,
+  type ReactNode,
+  type Ref,
+} from "react";
 import { useAppearanceClassNameCheck } from "../../internal/classNameCheck.ts";
 import { checkOpenMode } from "../../internal/openMode.ts";
+import { useMergedRef } from "../../internal/refs.ts";
 import { TouchTarget } from "../../internal/TouchTarget.tsx";
 import { useDevWarnings } from "../../internal/useDevWarnings.ts";
 import { useMediaQuery } from "../../internal/useMediaQuery.ts";
@@ -16,7 +26,6 @@ import {
   DialogPortal,
   DialogRoot,
   DialogTitle,
-  DialogTrigger,
   DialogViewport,
   type DialogSize,
 } from "./parts.tsx";
@@ -51,8 +60,9 @@ export interface DialogBaseProps {
   /** The centered dialog's maximum width: `sm` 24rem, `md` 32rem, `lg` 40rem. @default "md" */
   size?: DialogSize | undefined;
   /**
-   * The actions row: a row at the end on wider screens, stacked full width in
-   * reverse on phones. Put the primary action last:
+   * The actions row: a row at the end on wider screens, stacked full width on
+   * phones. Put the primary action last, so it sits on the right on wider
+   * screens and at the bottom, nearest the thumb, on phones:
    * `footer={<><Button variant="outline" tone="neutral">Cancel</Button><Button>Save</Button></>}`.
    */
   footer?: ReactNode;
@@ -98,6 +108,14 @@ export type DialogControlledProps = DialogBaseProps & {
 
 /** Props for {@link Dialog}: either `trigger`, or `open` with `onOpenChange`. */
 export type DialogProps = DialogWithTriggerProps | DialogControlledProps;
+
+/** The props Dialog reads from, and adds to, its trigger element. */
+type TriggerProps = {
+  ref?: Ref<HTMLElement> | undefined;
+  onClick?: ((event: MouseEvent<HTMLElement>) => void) | undefined;
+  "aria-haspopup"?: string;
+  "aria-expanded"?: boolean;
+};
 
 /** The close button's icon: a 16px cross in the text color. */
 function CloseIcon(): JSX.Element {
@@ -191,10 +209,30 @@ export function Dialog(props: DialogProps): JSX.Element {
   const isOpenNow = controlled ? open : ownOpen;
   const setOpen = controlled ? onOpenChange! : setOwnOpen;
 
+  // The trigger is rendered once, outside both presentations, so its DOM node (and
+  // its focus, and the server-rendered node after hydration) survives a switch
+  // between the centered dialog and the sheet.
+  const triggerRef = useRef<HTMLElement>(null);
+  const triggerProps = (trigger?.props ?? {}) as TriggerProps;
+  const mergedTriggerRef = useMergedRef(triggerProps.ref, triggerRef);
+  const triggerNode =
+    trigger !== undefined &&
+    cloneElement(trigger as ReactElement<TriggerProps>, {
+      ref: mergedTriggerRef,
+      onClick: (event: MouseEvent<HTMLElement>) => {
+        triggerProps.onClick?.(event);
+        if (!event.defaultPrevented) setOpen(true);
+      },
+      "aria-haspopup": "dialog",
+      "aria-expanded": isOpenNow,
+    });
+  // Focus returns to the trigger on close, in either presentation.
+  const finalFocus = trigger !== undefined ? { finalFocus: triggerRef } : {};
+
   // The server and hydration render the dialog form; the client corrects it after.
   const wide = useMediaQuery("(min-width: 640px)", true);
-  if (presentation === "sheet" || (presentation === "auto" && !wide)) {
-    return (
+  const presented =
+    presentation === "sheet" || (presentation === "auto" && !wide) ? (
       <SheetFrame
         title={title}
         hideTitle={hideTitle}
@@ -202,38 +240,41 @@ export function Dialog(props: DialogProps): JSX.Element {
         description={description}
         side="bottom"
         className={className}
-        trigger={trigger}
         open={isOpenNow}
         onOpenChange={setOpen}
         footer={footer}
         presentation="sheet"
+        {...finalFocus}
       >
         {children}
       </SheetFrame>
+    ) : (
+      <DialogRoot open={isOpenNow} onOpenChange={(next) => setOpen(next)}>
+        <DialogPortal>
+          <DialogBackdrop />
+          <DialogViewport>
+            <DialogPopupUnchecked className={className} size={size} {...finalFocus}>
+              {/* Always rendered: with a hidden title it still keeps the body clear of the close button. */}
+              <div data-ouro-dialog-header="">
+                <DialogTitle visuallyHidden={hideTitle}>{title}</DialogTitle>
+                {description !== undefined && <DialogDescription>{description}</DialogDescription>}
+              </div>
+              <DialogContent>{children}</DialogContent>
+              {footer !== undefined && <DialogFooter>{footer}</DialogFooter>}
+              <DialogClose data-ouro-dialog-close="" aria-label={closeLabel}>
+                <TouchTarget />
+                <CloseIcon />
+              </DialogClose>
+            </DialogPopupUnchecked>
+          </DialogViewport>
+        </DialogPortal>
+      </DialogRoot>
     );
-  }
 
   return (
-    <DialogRoot open={isOpenNow} onOpenChange={(next) => setOpen(next)}>
-      {trigger !== undefined && <DialogTrigger render={trigger} />}
-      <DialogPortal>
-        <DialogBackdrop />
-        <DialogViewport>
-          <DialogPopupUnchecked className={className} size={size}>
-            {/* Always rendered: with a hidden title it still keeps the body clear of the close button. */}
-            <div data-ouro-dialog-header="">
-              <DialogTitle visuallyHidden={hideTitle}>{title}</DialogTitle>
-              {description !== undefined && <DialogDescription>{description}</DialogDescription>}
-            </div>
-            <DialogContent>{children}</DialogContent>
-            {footer !== undefined && <DialogFooter>{footer}</DialogFooter>}
-            <DialogClose data-ouro-dialog-close="" aria-label={closeLabel}>
-              <TouchTarget />
-              <CloseIcon />
-            </DialogClose>
-          </DialogPopupUnchecked>
-        </DialogViewport>
-      </DialogPortal>
-    </DialogRoot>
+    <>
+      {triggerNode}
+      {presented}
+    </>
   );
 }

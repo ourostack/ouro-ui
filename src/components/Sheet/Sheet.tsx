@@ -1,4 +1,4 @@
-import type { JSX, ReactElement, ReactNode } from "react";
+import type { JSX, ReactElement, ReactNode, RefObject } from "react";
 import { useAppearanceClassNameCheck } from "../../internal/classNameCheck.ts";
 import { checkOpenMode } from "../../internal/openMode.ts";
 import { useDevWarnings } from "../../internal/useDevWarnings.ts";
@@ -183,6 +183,8 @@ export interface SheetFrameProps {
   footer?: ReactNode;
   /** Marks the popup with `data-ouro-presentation`, when `Dialog` renders as a sheet. */
   presentation?: "sheet" | undefined;
+  /** Where focus goes on close: `Dialog` passes its own trigger, which it renders outside the sheet. */
+  finalFocus?: RefObject<HTMLElement | null> | undefined;
 }
 
 /**
@@ -206,6 +208,7 @@ export function SheetFrame({
   onOpenChange,
   footer,
   presentation,
+  finalFocus,
 }: SheetFrameProps): JSX.Element {
   const showHeader = !hideTitle || description !== undefined;
   const titleNode = <SheetTitle visuallyHidden={hideTitle}>{title}</SheetTitle>;
@@ -220,7 +223,11 @@ export function SheetFrame({
       <SheetPortal>
         <SheetBackdrop />
         <SheetViewport>
-          <SheetPopupUnchecked className={className} data-ouro-presentation={presentation}>
+          <SheetPopupUnchecked
+            className={className}
+            data-ouro-presentation={presentation}
+            {...(finalFocus ? { finalFocus } : {})}
+          >
             {side === "bottom" && <SheetHandle />}
             {showHeader ? (
               <div data-ouro-sheet-header="" className="ou:grid ou:shrink-0 ou:gap-1 ou:px-5 ou:pt-3 ou:pb-2">

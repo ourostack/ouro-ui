@@ -76,7 +76,7 @@ type Story = StoryObj<typeof meta>;
 /** Centered from 640px up; narrow the window (or open on a phone) to get the bottom sheet. */
 export const Playground: Story = {};
 
-/** `footer` holds the actions: a row at the end on wider screens, stacked in reverse on phones. */
+/** `footer` holds the actions: a row at the end on wider screens, stacked on phones with the primary action at the bottom. */
 export const WithFooter: Story = {
   args: {
     description: "Changes are saved to every cookbook with this recipe.",

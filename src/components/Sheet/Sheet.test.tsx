@@ -1,6 +1,6 @@
 import distCss from "../../../dist/styles.css?raw";
 import sheetCss from "./sheet.css?raw";
-import { act, createRef, useState, type ReactNode, type Ref } from "react";
+import { createRef, useState, type ReactNode, type Ref } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -20,12 +20,12 @@ import {
   SheetViewport,
 } from "./parts.tsx";
 import { Sheet, type SheetProps } from "./Sheet.tsx";
+import { act } from "../../../test/act.ts";
 
 // Reads the built dist/styles.css, so run `pnpm build` first.
 // Drag and velocity tests run in Chromium only (plan amendment): WebKit drag is covered
 // by the recorded feel check. Everything else runs in Chromium and WebKit at 390x844.
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const FIX = "Pass trigger={<Button>…</Button>} for an uncontrolled sheet, or open and onOpenChange to control it.";
 const chromiumOnly = it.skipIf(server.browser !== "chromium");
@@ -116,6 +116,17 @@ async function openUncontrolled(props: Partial<SheetProps> = {}) {
   await userEvent.click(trigger());
   await settled();
   return popup()!;
+}
+
+/**
+ * Flicks the sheet by its handle area with exact event timestamps (CDP), so the
+ * page measures the velocity the test asks for even on a loaded CI runner.
+ */
+async function flickSheet(dy: number, durationMs: number) {
+  const rect = popup()!.getBoundingClientRect();
+  const x = rect.left + rect.width / 2;
+  const y = rect.top + 10;
+  await commands.flick({ from: [x, y], to: [x, y + dy], steps: 4, durationMs });
 }
 
 /** Drags the sheet by its handle area (outside Drawer.Content, so a mouse drag swipes). */
@@ -300,8 +311,16 @@ describe("dragging (Chromium)", () => {
 
   chromiumOnly("dismisses on a quick flick even over a short distance", async () => {
     const sheet = await openUncontrolled();
-    await dragSheet(sheet.offsetHeight * 0.2, { durationMs: 40, steps: 4 });
+    await flickSheet(sheet.offsetHeight * 0.2, 40);
     await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
+  });
+
+  chromiumOnly("springs back from the same distance moved slowly (the flick test's control)", async () => {
+    const sheet = await openUncontrolled();
+    await flickSheet(sheet.offsetHeight * 0.2, 400);
+    expect(popup()).toBe(sheet);
+    await expect.poll(() => isIdentity(sheet), { timeout: 1500 }).toBe(true);
+    expect(popup()).toBe(sheet);
   });
 
   chromiumOnly("never moves the sheet further than the finger when pulled past the edge", async () => {
@@ -325,7 +344,7 @@ describe("dragging (Chromium)", () => {
       }
     });
     observer.observe(layer, { attributes: true });
-    await dragSheet(sheet.offsetHeight * 0.2, { durationMs: 40, steps: 4 });
+    await flickSheet(sheet.offsetHeight * 0.2, 40);
     await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
     observer.disconnect();
     expect(durations.length).toBeGreaterThan(0);

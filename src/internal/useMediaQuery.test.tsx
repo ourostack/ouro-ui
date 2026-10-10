@@ -1,12 +1,11 @@
-import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { page } from "vitest/browser";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useMediaQuery } from "./useMediaQuery.ts";
+import { act } from "../../test/act.ts";
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 function Probe({ query = "(min-width: 640px)", serverDefault }: { query?: string; serverDefault: boolean }) {
   const matches = useMediaQuery(query, serverDefault);

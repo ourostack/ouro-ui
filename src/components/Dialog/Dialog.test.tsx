@@ -1,5 +1,5 @@
 import distCss from "../../../dist/styles.css?raw";
-import { act, createRef, StrictMode, useState, type ReactNode } from "react";
+import { createRef, StrictMode, useState, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -19,10 +19,10 @@ import {
   DialogTrigger,
   DialogViewport,
 } from "./parts.tsx";
+import { act } from "../../../test/act.ts";
 
 // Reads the built dist/styles.css, so run `pnpm build` first. Runs in Chromium and WebKit.
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const FIX = "Pass trigger={<Button>…</Button>} for an uncontrolled dialog, or open and onOpenChange to control it.";
 
@@ -212,16 +212,71 @@ describe("server rendering", () => {
     document.body.append(host);
     mounted.push(host);
     host.innerHTML = renderToString(app());
+    const serverTrigger = host.querySelector('[data-ouro="button"]');
     await act(async () => {
       roots.push(hydrateRoot(host, <StrictMode>{app()}</StrictMode>, { onRecoverableError: recoverable }));
     });
+    // Let the media query settle on the phone width after hydration.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
     expect(error).not.toHaveBeenCalled();
     expect(recoverable).not.toHaveBeenCalled();
-    if (host.querySelector('[data-ouro="button"]')) {
+    // The server-rendered trigger node survives the switch to the sheet form.
+    expect(host.querySelector('[data-ouro="button"]')).toBe(serverTrigger);
+    if (serverTrigger) {
       await userEvent.click(trigger());
       await settled();
       expect(popup()!.getAttribute("data-ouro-presentation")).toBe("sheet");
     }
+  });
+});
+
+describe("trigger", () => {
+  it("keeps the same trigger node, and its keyboard focus, across resizes past 640px", async () => {
+    await render(
+      <Dialog title="Edit recipe" trigger={<Button>Edit</Button>}>
+        Body
+      </Dialog>,
+    );
+    const node = trigger();
+    node.focus();
+    for (const [width, height, wide] of [[390, 844, false], [1280, 800, true], [390, 844, false]] as const) {
+      await page.viewport(width, height);
+      await expect.poll(() => matchMedia("(min-width: 640px)").matches).toBe(wide);
+      await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+      expect(trigger()).toBe(node);
+      expect(document.activeElement).toBe(node);
+    }
+    await userEvent.keyboard("{Enter}");
+    await settled();
+    expect(popup()!.getAttribute("data-ouro-presentation")).toBe("sheet");
+    expect(node.getAttribute("aria-expanded")).toBe("true");
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
+    await expect.poll(() => document.activeElement).toBe(node);
+    expect(node.getAttribute("aria-expanded")).toBe("false");
+    expect(node.getAttribute("aria-haspopup")).toBe("dialog");
+  });
+
+  it("keeps the trigger's own ref and onClick, and stays closed when onClick prevents default", async () => {
+    const ref = createRef<HTMLButtonElement>();
+    const onClick = vi.fn((event: { preventDefault(): void }) => event.preventDefault());
+    await render(
+      <Dialog
+        title="Edit recipe"
+        trigger={
+          <Button ref={ref} onClick={onClick}>
+            Edit
+          </Button>
+        }
+      >
+        Body
+      </Dialog>,
+    );
+    expect(ref.current).toBe(trigger());
+    await userEvent.click(trigger());
+    expect(onClick).toHaveBeenCalledOnce();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(popup()).toBeNull();
   });
 });
 
@@ -336,12 +391,12 @@ describe("footer", () => {
     expect(Math.abs(row.getBoundingClientRect().right - 20 - save!.right)).toBeLessThanOrEqual(1);
   });
 
-  it.each(["dialog", "sheet"] as const)("stacks actions in reverse, full width, on phones (%s)", async (presentation) => {
+  it.each(["dialog", "sheet"] as const)("stacks actions full width on phones, the primary at the bottom (%s)", async (presentation) => {
     await page.viewport(390, 844);
     const element = await openUncontrolled({ footer, presentation });
     const row = element.querySelector<HTMLElement>("[data-ouro-footer]")!;
     const [cancel, save] = [...row.children].map((child) => child.getBoundingClientRect());
-    expect(save!.bottom).toBeLessThanOrEqual(cancel!.top);
+    expect(cancel!.bottom).toBeLessThanOrEqual(save!.top);
     expect(cancel!.width).toBe(save!.width);
     expect(cancel!.width).toBeGreaterThan(row.getBoundingClientRect().width - 48);
   });

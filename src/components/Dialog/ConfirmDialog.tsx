@@ -31,7 +31,9 @@ export interface ConfirmDialogBaseProps {
   /**
    * Runs the action. Return a promise to keep the dialog open while it runs: the
    * confirm button shows `loading` until it settles. When it resolves the dialog
-   * closes; when it rejects the dialog stays open so the user can retry or cancel.
+   * closes; when it rejects (or `onConfirm` throws) the dialog stays open so the
+   * user can retry or cancel. Cancel and Escape still close it while pending;
+   * the result is then ignored.
    */
   onConfirm: () => void | Promise<void>;
 
@@ -75,7 +77,8 @@ export type ConfirmDialogProps = ConfirmDialogWithTriggerProps | ConfirmDialogCo
 /**
  * Asks the user to confirm an action, with Cancel focused first. It is always
  * a centered dialog, on phones too, and an outside press does not dismiss it.
- * The actions stack full width on phones, the confirm action on top.
+ * The actions stack full width on phones, the confirm action at the bottom,
+ * nearest the thumb.
  *
  * Use `tone="danger"` for destructive actions, and return a promise from
  * `onConfirm` to show progress until the action finishes. Use `Dialog` instead
@@ -151,7 +154,13 @@ export function ConfirmDialog(props: ConfirmDialogProps): JSX.Element {
   };
 
   const confirm = () => {
-    const result = onConfirm();
+    let result: void | Promise<void>;
+    try {
+      result = onConfirm();
+    } catch (error) {
+      // A synchronous throw takes the rejection path: the dialog stays open and the error is reported.
+      result = Promise.reject(error);
+    }
     if (!result) {
       setOpen(false);
       return;
@@ -163,14 +172,19 @@ export function ConfirmDialog(props: ConfirmDialogProps): JSX.Element {
         if (attempt.current === current) setOpen(false);
       },
       (error: unknown) => {
-        setPending(false);
+        // A rejection from an attempt the user already left (Cancel, Escape, a newer
+        // confirm) must not clear a newer confirm's busy state; it is still reported.
+        const stale = attempt.current !== current;
+        if (!stale) setPending(false);
         // The else path only exists in production bundles; scripts/dev-strip.test.mjs covers it.
         /* istanbul ignore else */
         if (process.env.NODE_ENV !== "production") {
           const message = error instanceof Error ? error.message : String(error);
           devWarn(
             "ConfirmDialog",
-            `onConfirm rejected with "${message}", so the dialog stayed open`,
+            stale
+              ? `onConfirm rejected with "${message}" after the user had left that confirmation`
+              : `onConfirm rejected with "${message}", so the dialog stayed open`,
             "onConfirm={() => remove().catch((error) => { setError(error.message); throw error; })} description={error}",
             warnKey.current,
           );

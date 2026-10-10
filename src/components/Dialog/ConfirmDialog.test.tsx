@@ -1,15 +1,15 @@
 import distCss from "../../../dist/styles.css?raw";
-import { act, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { Button } from "../Button/Button.tsx";
 import { ConfirmDialog, type ConfirmDialogProps } from "./ConfirmDialog.tsx";
+import { act } from "../../../test/act.ts";
 
 // Reads the built dist/styles.css, so run `pnpm build` first. Runs in Chromium and WebKit.
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const FIX =
   "Pass trigger={<Button>…</Button>} for an uncontrolled confirmation, or open and onOpenChange to control it.";
@@ -175,6 +175,46 @@ describe("ConfirmDialog", () => {
     expect(onOpenChange.mock.calls).toEqual([[false]]);
   });
 
+  it("keeps a newer confirm busy when an older attempt rejects after the user left it", async () => {
+    const first = deferred();
+    const second = deferred();
+    const onConfirm = vi.fn().mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+    await open({ onConfirm });
+    await userEvent.click(button("Delete"));
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
+    await userEvent.click(trigger());
+    await settled();
+    await userEvent.click(button("Delete"));
+    expect(button("Delete").element().getAttribute("aria-busy")).toBe("true");
+    await act(() => first.reject(new Error("first failed")));
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(button("Delete").element().getAttribute("aria-busy")).toBe("true");
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] ConfirmDialog: onConfirm rejected with "first failed" after the user had left that confirmation. Fix: onConfirm={() => remove().catch((error) => { setError(error.message); throw error; })} description={error}.',
+    );
+    await act(() => second.resolve());
+    await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
+  });
+
+  it("treats a synchronous throw from onConfirm like a rejection: stays open and warns", async () => {
+    const windowErrors: string[] = [];
+    const onError = (event: ErrorEvent) => windowErrors.push(event.message);
+    window.addEventListener("error", onError);
+    await open({
+      onConfirm: () => {
+        throw new Error("sync boom");
+      },
+    });
+    await userEvent.click(button("Delete"));
+    await expect.poll(() => warn.mock.calls.length).toBe(1);
+    window.removeEventListener("error", onError);
+    expect(String(warn.mock.calls[0]![0])).toContain('onConfirm rejected with "sync boom", so the dialog stayed open');
+    expect(popup()).not.toBeNull();
+    expect(button("Delete").element().hasAttribute("aria-busy")).toBe(false);
+    expect(windowErrors).toEqual([]);
+  });
+
   it("closes a controlled confirmation through onOpenChange when the promise resolves", async () => {
     const onOpenChange = vi.fn();
     await render(
@@ -199,7 +239,7 @@ describe("ConfirmDialog", () => {
     expect(button("Delete").element().getAttribute("data-tone")).toBe("accent");
   });
 
-  it("stays centered on a phone with side margins and stacks its actions in reverse", async () => {
+  it("stays centered on a phone with side margins and stacks its actions with confirm at the bottom", async () => {
     await page.viewport(390, 844);
     const element = await open();
     expect(element.getAttribute("data-ouro-presentation")).toBe("dialog");
@@ -209,7 +249,7 @@ describe("ConfirmDialog", () => {
     expect(Math.abs(rect.top + rect.height / 2 - innerHeight / 2)).toBeLessThanOrEqual(1);
     const cancel = button("Cancel").element().getBoundingClientRect();
     const confirm = button("Delete").element().getBoundingClientRect();
-    expect(confirm.bottom).toBeLessThanOrEqual(cancel.top);
+    expect(cancel.bottom).toBeLessThanOrEqual(confirm.top);
     expect(confirm.width).toBe(cancel.width);
   });
 

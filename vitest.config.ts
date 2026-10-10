@@ -12,6 +12,9 @@ const shared = {
   optimizeDeps: { include: ["@base-ui/react/alert-dialog", "@base-ui/react/button", "@base-ui/react/dialog", "@base-ui/react/drawer"] },
 };
 
+// Fails any test that logs a React act() warning (see test/setup.ts).
+const setupFiles = ["./test/setup.ts"];
+
 const unitInclude = ["src/**/*.test.{ts,tsx}"];
 const unitExclude = ["src/**/*.touch.test.{ts,tsx}", "src/**/*.visual.test.{ts,tsx}"];
 
@@ -30,12 +33,9 @@ export default defineConfig({
         ...shared,
         test: {
           name: "chromium",
+          setupFiles,
           include: unitInclude,
           exclude: unitExclude,
-          // One file at a time. The drag and velocity tests run here, and in CI's
-          // GPU-less Chromium, pages animating in parallel slowed frames enough that
-          // a 40ms flick's mouse moves coalesced and read as a slow drag.
-          fileParallelism: false,
           browser: {
             enabled: true,
             headless: true,
@@ -49,6 +49,7 @@ export default defineConfig({
         ...shared,
         test: {
           name: "webkit",
+          setupFiles,
           include: unitInclude,
           exclude: unitExclude,
           browser: {
@@ -65,6 +66,7 @@ export default defineConfig({
         ...shared,
         test: {
           name: "touch",
+          setupFiles,
           include: ["src/**/*.touch.test.{ts,tsx}"],
           browser: {
             enabled: true,
@@ -88,6 +90,7 @@ export default defineConfig({
               ...shared,
               test: {
                 name: "visual",
+                setupFiles,
                 include: ["src/**/*.visual.test.{ts,tsx}"],
                 browser: {
                   enabled: true,

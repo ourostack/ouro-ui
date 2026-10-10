@@ -7,7 +7,8 @@
  * - The viewport keeps a 1rem margin (or the safe area) on every side, so the
  *   dialog fits a phone; the body scrolls when the dialog is taller than that.
  * - The footer ([data-ouro-footer], also used by the sheet presentation) is a row
- *   at the end from 640px up, and stacks full width in reverse below it.
+ *   at the end from 640px up. Below it the actions stack full width in DOM order,
+ *   so the primary action (last) sits at the bottom, nearest the thumb.
  *
  * Selectors use data-ouro attributes, and every rule sits in @layer components,
  * so an app's own utilities always win.
@@ -165,7 +166,7 @@
   }
   @media (max-width: 639.98px) {
     [data-ouro-footer] {
-      flex-direction: column-reverse;
+      flex-direction: column;
     }
     [data-ouro-footer] > * {
       width: 100%;

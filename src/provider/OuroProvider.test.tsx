@@ -1,11 +1,11 @@
 import { MotionConfigContext } from "motion/react";
-import { act, useContext, type ReactNode } from "react";
+import { useContext, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
 import { OuroProvider, useOuro, type OuroLinkComponent } from "./OuroProvider.tsx";
+import { act } from "../../test/act.ts";
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 afterEach(() => document.body.replaceChildren());
 

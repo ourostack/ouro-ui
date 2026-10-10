@@ -1,19 +1,5 @@
 import { useCallback, type Ref, type RefCallback } from "react";
-
-/** Points `ref` at `element` and returns what undoes it, for a ref forwarded by hand. */
-function attachRef<T>(ref: Ref<T> | undefined, element: T): () => void {
-  if (typeof ref === "function") {
-    const cleanup = ref(element);
-    return typeof cleanup === "function" ? cleanup : () => ref(null);
-  }
-  if (ref) {
-    ref.current = element;
-    return () => {
-      ref.current = null;
-    };
-  }
-  return () => {};
-}
+import { attachRef } from "./refs.ts";
 
 /**
  * A callback ref for a backdrop. It keeps the backdrop's `--ou-backdrop-top` at
