@@ -53,8 +53,11 @@ test("the check script accepts this package and rejects a broken one", async () 
 test("built styles.css starts with the layer-order statement", () => {
   const css = readFileSync(join(root, "dist/styles.css"), "utf8");
   const firstStatement = css.replace(/\/\*[\s\S]*?\*\//g, "").trimStart();
-  assert.ok(
-    firstStatement.startsWith("@layer theme, base, components, utilities;"),
+  // Tailwind may first declare `properties` (its @property fallbacks), which is the
+  // lowest layer and so does not change the order the app's utilities rely on.
+  assert.match(
+    firstStatement,
+    /^(@layer properties;\s*)?@layer theme, base, components, utilities;/,
     "dist/styles.css must open with @layer theme, base, components, utilities;",
   );
 });

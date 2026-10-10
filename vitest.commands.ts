@@ -40,11 +40,35 @@ export const drag: BrowserCommand<[DragOptions]> = async (ctx, { from, to, steps
   await page.mouse.up();
 };
 
-export const commands = { emulateMedia, drag };
+export interface PointerPressOptions {
+  /** CSS selector of the element to press, inside the test iframe. */
+  selector: string;
+  /** `down` moves to the element's center and presses; `up` releases. */
+  action: "down" | "up";
+}
+
+/**
+ * Presses or releases the real mouse over an element, so `:active` styles apply.
+ * Coordinates come from Playwright, so the iframe offset is already included.
+ */
+export const pointerPress: BrowserCommand<[PointerPressOptions]> = async (ctx, { selector, action }) => {
+  const { page } = ctx;
+  if (action === "up") {
+    await page.mouse.up();
+    return;
+  }
+  const box = await ctx.iframe.locator(selector).boundingBox();
+  if (!box) throw new Error(`pointerPress: ${selector} is not visible`);
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+};
+
+export const commands = { emulateMedia, drag, pointerPress };
 
 declare module "vitest/browser" {
   interface BrowserCommands {
     emulateMedia: (options: EmulateMediaOptions) => Promise<void>;
     drag: (options: DragOptions) => Promise<void>;
+    pointerPress: (options: PointerPressOptions) => Promise<void>;
   }
 }

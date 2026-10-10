@@ -87,6 +87,18 @@ for (const scheme of ["light", "dark"] as const) {
       }
     });
 
+    it.each(inkTones)("%s-ink text on both surfaces is at least 4.5:1 (Text tones, plain and outline buttons)", (tone) => {
+      for (const surface of Object.values(surfaces())) {
+        expect(ratio(toRgb(fg(`ou:text-${tone}-ink`), surface), surface)).toBeGreaterThanOrEqual(4.5);
+      }
+    });
+
+    it("neutral text on both surfaces is at least 4.5:1", () => {
+      for (const surface of Object.values(surfaces())) {
+        expect(ratio(toRgb(fg("ou:text-neutral"), surface), surface)).toBeGreaterThanOrEqual(4.5);
+      }
+    });
+
     it("ink text on soft-neutral is at least 4.5:1 over both surfaces", () => {
       for (const surface of Object.values(surfaces())) {
         const soft = toRgb(bg("ou:bg-soft-neutral"), surface);
