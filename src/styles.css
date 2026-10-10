@@ -30,6 +30,9 @@
 @source inline("ou:mt-1");
 @source inline("ou:bg-{surface,surface-raised}");
 
+/* Component stylesheets whose rules are easier to read as CSS than as utilities. */
+@import "./components/Sheet/sheet.css";
+
 /*
  * Press feedback for controls: the release springs back with the theme's spring
  * tokens, and colors ease quickly. Each control adds the scale itself with a

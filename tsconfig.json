@@ -18,5 +18,5 @@
     "allowImportingTsExtensions": true,
     "types": ["node", "vite/client", "@vitest/browser-playwright"]
   },
-  "include": ["src", ".storybook", "*.ts", "*.config.ts"]
+  "include": ["src", "stories", ".storybook", "*.ts", "*.config.ts"]
 }

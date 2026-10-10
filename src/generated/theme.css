@@ -31,6 +31,8 @@
   --ouro-z-overlay: 1000;
   --ouro-z-popover: 1100;
   --ouro-z-toast: 1200;
+  --ouro-backdrop-color: light-dark(#18181b, #000000);
+  --ouro-backdrop-max: 0.4;
 }
 :root[data-theme="light"] {
   color-scheme: light;

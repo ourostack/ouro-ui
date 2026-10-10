@@ -96,6 +96,14 @@ describe("defineTheme", () => {
       expect(css).toContain(name);
     }
   });
+
+  it("emits the backdrop color and its maximum opacity, and lets a theme override them", () => {
+    expect(ouroTheme.css).toContain("--ouro-backdrop-color: light-dark(#18181b, #000000);");
+    expect(ouroTheme.css).toContain("--ouro-backdrop-max: 0.4;");
+    const { css } = defineTheme({ backdrop: { opacity: 0.6, color: { light: "#111", dark: "#000" } } });
+    expect(css).toContain("--ouro-backdrop-color: light-dark(#111, #000);");
+    expect(css).toContain("--ouro-backdrop-max: 0.6;");
+  });
 });
 
 describe("cssSpring", () => {

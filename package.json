@@ -43,6 +43,7 @@
   "files": [
     "dist",
     "src",
+    "!src/**/*.stories.tsx",
     "docs",
     "README.md"
   ],

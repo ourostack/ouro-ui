@@ -50,7 +50,7 @@ export function defineTheme(
 ): DefinedTheme {
   const selector = opts.selector ?? ":root";
   const tokens = merge(defaultTokens, partial) as ThemeTokens;
-  const { color, radius, font, motion, z } = tokens;
+  const { color, radius, font, motion, z, backdrop } = tokens;
   const spring = cssSpring(motion.spring.visualDuration, motion.spring.bounce);
 
   const lines: string[] = ["color-scheme: light dark;"];
@@ -69,6 +69,8 @@ export function defineTheme(
   prop("ease-spring", spring.easing);
   prop("press-scale", motion.pressScale);
   for (const [name, value] of Object.entries(z)) prop(`z-${name}`, value);
+  prop("backdrop-color", lightDark(backdrop.color));
+  prop("backdrop-max", backdrop.opacity);
 
   // On :root the attribute sits on the same element, so the ancestor form could never match.
   const scheme = (name: "light" | "dark") => {
