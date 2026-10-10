@@ -30,6 +30,12 @@ export type ThemeTokens = {
     pressScale: number;
   };
   z: { overlay: number; popover: number; toast: number };
+  /** The dimming layer behind sheets and dialogs. */
+  backdrop: {
+    color: SchemeColor;
+    /** Opacity when the sheet or dialog is fully open. A dragged sheet fades it toward 0. */
+    opacity: number;
+  };
 };
 
 export type DeepPartial<T> = {
@@ -86,4 +92,5 @@ export const defaultTokens: ThemeTokens = {
     pressScale: 0.97,
   },
   z: { overlay: 1000, popover: 1100, toast: 1200 },
+  backdrop: { color: { light: "#18181b", dark: "#000000" }, opacity: 0.4 },
 };

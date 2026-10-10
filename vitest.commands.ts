@@ -14,6 +14,11 @@ export interface DragOptions {
   steps: number;
   /** Total time the drag takes, in milliseconds. */
   durationMs: number;
+  /**
+   * Keep the button pressed after the last move, so a test can inspect the
+   * mid-drag state. Release with `commands.pointerPress({ action: "up" })`.
+   */
+  hold?: boolean;
 }
 
 /** Wraps Playwright's `page.emulateMedia` for `prefers-reduced-motion` and `prefers-color-scheme`. */
@@ -27,7 +32,7 @@ export const emulateMedia: BrowserCommand<[EmulateMediaOptions]> = async (ctx, o
  * Coordinates are relative to the top-level page (Vitest renders tests in an
  * iframe, so add the iframe offset when starting from an element's rect).
  */
-export const drag: BrowserCommand<[DragOptions]> = async (ctx, { from, to, steps, durationMs }) => {
+export const drag: BrowserCommand<[DragOptions]> = async (ctx, { from, to, steps, durationMs, hold }) => {
   const { page } = ctx;
   const pause = steps > 0 ? durationMs / steps : 0;
   await page.mouse.move(from[0], from[1]);
@@ -37,12 +42,12 @@ export const drag: BrowserCommand<[DragOptions]> = async (ctx, { from, to, steps
     await page.mouse.move(from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t);
     if (pause > 0) await page.waitForTimeout(pause);
   }
-  await page.mouse.up();
+  if (!hold) await page.mouse.up();
 };
 
 export interface PointerPressOptions {
-  /** CSS selector of the element to press, inside the test iframe. */
-  selector: string;
+  /** CSS selector of the element to press, inside the test iframe. Not needed for `up`. */
+  selector?: string;
   /** `down` moves to the element's center and presses; `up` releases. */
   action: "down" | "up";
 }
@@ -57,6 +62,7 @@ export const pointerPress: BrowserCommand<[PointerPressOptions]> = async (ctx, {
     await page.mouse.up();
     return;
   }
+  if (!selector) throw new Error("pointerPress: down needs a selector");
   const box = await ctx.iframe.locator(selector).boundingBox();
   if (!box) throw new Error(`pointerPress: ${selector} is not visible`);
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);

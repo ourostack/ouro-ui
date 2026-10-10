@@ -7,6 +7,9 @@ const visual = process.env["CI_VISUAL"] === "1";
 
 const shared = {
   plugins: [react()],
+  // Pre-bundle Base UI entry points up front. A dependency Vite discovers mid-run
+  // triggers a re-optimization and reload, which can load React twice for one file.
+  optimizeDeps: { include: ["@base-ui/react/button", "@base-ui/react/drawer"] },
 };
 
 const unitInclude = ["src/**/*.test.{ts,tsx}"];

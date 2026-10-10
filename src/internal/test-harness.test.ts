@@ -25,3 +25,16 @@ test.skipIf(server.browser !== "chromium")("drag command sends mouse down, moves
   expect(events.slice(down).filter((e) => e === "mousemove").length).toBeGreaterThanOrEqual(4);
   expect(events.at(-1)).toBe("mouseup");
 });
+
+test.skipIf(server.browser !== "chromium")("drag with hold keeps the button down until pointerPress up", async () => {
+  const events: string[] = [];
+  const target = document.createElement("div");
+  target.style.cssText = "position:fixed;inset:0;";
+  document.body.append(target);
+  for (const type of ["mousedown", "mouseup"]) target.addEventListener(type, () => events.push(type));
+  await commands.drag({ from: [10, 10], to: [10, 60], steps: 2, durationMs: 20, hold: true });
+  expect(events).toEqual(["mousedown"]);
+  await commands.pointerPress({ action: "up" });
+  target.remove();
+  expect(events).toEqual(["mousedown", "mouseup"]);
+});

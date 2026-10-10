@@ -68,6 +68,11 @@ const DIST_DEV_STRINGS = [
   'align="center"',
   "is not a prop",
   "without href",
+  "Pass trigger={<Button>",
+  "<SheetPortal><SheetBackdrop />",
+  "onOpenChange={setOpen}",
+  "snapPoints={[0.5, 1]}",
+  "defineTheme({ color: { surface",
 ];
 
 test("a Vite development bundle of dist keeps the components' dev messages (control)", async () => {
