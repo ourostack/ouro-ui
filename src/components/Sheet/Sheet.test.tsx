@@ -304,6 +304,55 @@ describe("dragging (Chromium)", () => {
     await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
   });
 
+  chromiumOnly("never moves the sheet further than the finger when pulled past the edge", async () => {
+    const sheet = await openUncontrolled();
+    for (const pull of [1, 2, 5, 12, 40, 80]) {
+      await dragSheet(-pull, { durationMs: 200, steps: Math.max(2, Math.min(pull, 10)), hold: true });
+      const lift = -translation(sheet).y;
+      await commands.pointerPress({ action: "up" });
+      expect(lift, `lift for a ${pull}px pull`).toBeLessThanOrEqual(pull + 0.01);
+      await expect.poll(() => isIdentity(sheet), { timeout: 1500 }).toBe(true);
+    }
+  });
+
+  chromiumOnly("fades the backdrop out quickly when a flick dismisses the sheet", async () => {
+    const sheet = await openUncontrolled();
+    const layer = backdrop()!;
+    const durations: string[] = [];
+    const observer = new MutationObserver(() => {
+      if (layer.hasAttribute("data-swipe-dismiss") && layer.hasAttribute("data-ending-style")) {
+        durations.push(getComputedStyle(layer).transitionDuration);
+      }
+    });
+    observer.observe(layer, { attributes: true });
+    await dragSheet(sheet.offsetHeight * 0.2, { durationMs: 40, steps: 4 });
+    await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
+    observer.disconnect();
+    expect(durations.length).toBeGreaterThan(0);
+    expect(durations.at(-1)).toBe("0.1s");
+  });
+
+  chromiumOnly("keeps Tab inside the sheet, wrapping from the last control to the first", async () => {
+    await render(
+      <Sheet title="Pick" trigger={<Button>Open</Button>}>
+        <Button>First</Button>
+        <Button>Second</Button>
+      </Sheet>,
+    );
+    await userEvent.click(trigger());
+    await settled();
+    const sheet = popup()!;
+    const seen: string[] = [];
+    for (let i = 0; i < 4; i++) {
+      await userEvent.keyboard("{Tab}");
+      expect(sheet.contains(document.activeElement)).toBe(true);
+      seen.push(document.activeElement!.textContent ?? "");
+    }
+    // Close is the last control; Tab from it wraps back to the first.
+    // A mouse open focuses the popup itself, so Tab starts at the first control.
+    expect(seen).toEqual(["First", "Second", "Close", "First"]);
+  });
+
   chromiumOnly("stretches when pulled past the open edge, with the bleed filling the gap", async () => {
     const sheet = await openUncontrolled();
     await dragSheet(-80, { durationMs: 400, steps: 8, hold: true });
@@ -351,6 +400,80 @@ describe("sides", () => {
     expect(sheet.getAttribute("data-side")).toBe(side);
     expect(atEdge(sheet.getBoundingClientRect())).toBe(true);
     expect(sheet.getBoundingClientRect().width).toBeLessThanOrEqual(innerWidth);
+  });
+});
+
+describe("close control", () => {
+  it("renders a Close button last in the sheet, hidden until keyboard focus, that closes it", async () => {
+    await render(
+      <Sheet title="Save to cookbook" trigger={<Button>Save</Button>}>
+        <Button>Weeknight dinners</Button>
+      </Sheet>,
+    );
+    await userEvent.click(trigger());
+    await settled();
+    const close = page.getByRole("dialog").getByRole("button", { name: "Close" });
+    const element = close.element() as HTMLElement;
+    const focusable = popup()!.querySelectorAll("button, [href], input, [tabindex]:not([tabindex='-1'])");
+    expect(focusable[focusable.length - 1]).toBe(element);
+    expect(element.getBoundingClientRect().width).toBeLessThanOrEqual(1);
+    await userEvent.keyboard("{Tab}");
+    expect(document.activeElement!.textContent).toBe("Weeknight dinners");
+    await userEvent.keyboard("{Tab}");
+    expect(document.activeElement).toBe(element);
+    expect(element.getBoundingClientRect().width).toBeGreaterThan(20);
+    await userEvent.click(close);
+    await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
+  });
+
+  it("takes its label from closeLabel and closes a controlled sheet through onOpenChange", async () => {
+    const onOpenChange = vi.fn();
+    await render(
+      <Sheet title="Filters" open onOpenChange={onOpenChange} closeLabel="Done">
+        Body
+      </Sheet>,
+    );
+    await settled();
+    const done = page.getByRole("dialog").getByRole("button", { name: "Done" }).element();
+    for (let i = 0; i < 5 && document.activeElement !== done; i++) await userEvent.keyboard("{Tab}");
+    expect(document.activeElement).toBe(done);
+    await userEvent.keyboard("{Enter}");
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+});
+
+describe("iOS backdrop rule", () => {
+  // The rule applies under @supports (-webkit-touch-callout: none), which only iOS
+  // matches. data-ouro-test-ios on the portal forces the same rule here.
+  it("covers the visible screen on a page scrolled 2000px", async () => {
+    const tall = document.createElement("div");
+    tall.style.height = "5000px";
+    document.body.append(tall);
+    mounted.push(tall);
+    window.scrollTo(0, 2000);
+    expect(window.scrollY).toBe(2000);
+    await render(
+      <SheetRoot defaultOpen>
+        <SheetPortal data-ouro-test-ios="">
+          <SheetBackdrop />
+          <SheetViewport>
+            <SheetPopup>
+              <SheetTitle>Scrolled</SheetTitle>
+            </SheetPopup>
+          </SheetViewport>
+        </SheetPortal>
+      </SheetRoot>,
+    );
+    const layer = backdrop()!;
+    expect(getComputedStyle(layer).position).toBe("absolute");
+    await expect
+      .poll(() => {
+        const rect = layer.getBoundingClientRect();
+        return rect.top <= 0 && rect.bottom >= innerHeight && rect.left <= 0 && rect.right >= innerWidth;
+      })
+      .toBe(true);
+    expect(window.scrollY).toBe(2000);
+    window.scrollTo(0, 0);
   });
 });
 
@@ -450,6 +573,33 @@ describe("parts", () => {
     );
     await expect.poll(() => popup()).not.toBeNull();
     expect(document.querySelector("[data-ouro-sheet-handle]")).toBeNull();
+  });
+
+  it.each([
+    ["SheetPopup", "bg-white", 'defineTheme({ color: { surface: { light: "…", dark: "…" } } })'],
+    ["SheetContent", "text-lg", '<SheetContent><div className="text-lg">…</div></SheetContent>'],
+  ])("%s warns about the appearance class %s", async (part, token, fix) => {
+    await render(
+      <SheetRoot defaultOpen>
+        <SheetPortal>
+          <SheetViewport>
+            <SheetPopup className={part === "SheetPopup" ? token : undefined}>
+              <SheetTitle>Checked</SheetTitle>
+              <SheetContent className={part === "SheetContent" ? token : undefined}>Body</SheetContent>
+            </SheetPopup>
+          </SheetViewport>
+        </SheetPortal>
+      </SheetRoot>,
+    );
+    await expect.poll(() => popup()).not.toBeNull();
+    expect(warn.mock.calls.map((call: unknown[]) => call[0])).toEqual([
+      `[ouro-ui] ${part}: "${token}" sets appearance, and className is for layout only. Fix: ${fix}.`,
+    ]);
+  });
+
+  it("warns once, as Sheet, when Sheet passes an appearance class to its popup", async () => {
+    await openUncontrolled({ className: "bg-white" });
+    expect(warn).toHaveBeenCalledTimes(1);
   });
 
   const shape = (inner: string) =>

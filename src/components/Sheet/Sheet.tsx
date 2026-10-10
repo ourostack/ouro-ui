@@ -4,15 +4,17 @@ import { devThrow } from "../../internal/dev.ts";
 import { useDevWarnings } from "../../internal/useDevWarnings.ts";
 import {
   SheetBackdrop,
+  SheetClose,
   SheetContent,
   SheetDescription,
   SheetHandle,
-  SheetPopup,
+  SheetPopupUnchecked,
   SheetPortal,
   SheetRoot,
   SheetTitle,
   SheetTrigger,
   SheetViewport,
+  sheetHint,
   type SheetSide,
   type SheetSnapPoint,
 } from "./parts.tsx";
@@ -25,6 +27,12 @@ export interface SheetBaseProps {
   title: string;
   /** Hides the title visually. It still names the dialog for screen readers. */
   hideTitle?: boolean | undefined;
+  /**
+   * The label of the sheet's close button. The button is the last control in the
+   * sheet, hidden until it has keyboard focus, so screen-reader users on phones
+   * (who have no Escape key) can always close the sheet. @default "Close"
+   */
+  closeLabel?: string | undefined;
   /** A short line under the title, read out when the sheet opens. */
   description?: ReactNode;
   /** The edge the sheet slides in from and is dragged back to. @default "bottom" */
@@ -88,14 +96,6 @@ function throwOpenMode(problem: string): never {
   );
 }
 
-function sheetHint(token: string): string {
-  if (token.startsWith("rounded")) {
-    return `defineTheme({ radius: { surface: "${token === "rounded-none" ? "0px" : "16px"}" } })`;
-  }
-  if (/^(text|font)-/.test(token)) return `<Sheet title="…"><div className="${token}">…</div></Sheet>`;
-  return 'defineTheme({ color: { surface: { light: "…", dark: "…" } } })';
-}
-
 /**
  * A panel that slides in from an edge and is dragged back to dismiss: the
  * mobile form of a dialog. It stretches when pulled past its edge, its backdrop
@@ -118,6 +118,7 @@ export function Sheet(props: SheetProps): JSX.Element {
   const {
     title,
     hideTitle,
+    closeLabel = "Close",
     description,
     side = "bottom",
     snapPoints,
@@ -145,7 +146,9 @@ export function Sheet(props: SheetProps): JSX.Element {
   useAppearanceClassNameCheck(
     "Sheet",
     className,
-    process.env.NODE_ENV !== "production" ? sheetHint : /* istanbul ignore next -- production only */ "",
+    process.env.NODE_ENV !== "production"
+      ? sheetHint('<Sheet title="…">', "</Sheet>")
+      : /* istanbul ignore next -- production only */ "",
   );
   useDevWarnings(
     "Sheet",
@@ -172,7 +175,7 @@ export function Sheet(props: SheetProps): JSX.Element {
       <SheetPortal>
         <SheetBackdrop />
         <SheetViewport>
-          <SheetPopup className={className}>
+          <SheetPopupUnchecked className={className}>
             {side === "bottom" && <SheetHandle />}
             {showHeader ? (
               <div data-ouro-sheet-header="" className="ou:grid ou:shrink-0 ou:gap-1 ou:px-5 ou:pt-3 ou:pb-2">
@@ -184,7 +187,8 @@ export function Sheet(props: SheetProps): JSX.Element {
             )}
             <SheetContent>{children}</SheetContent>
             {side === "top" && <SheetHandle />}
-          </SheetPopup>
+            <SheetClose data-ouro-sheet-close="">{closeLabel}</SheetClose>
+          </SheetPopupUnchecked>
         </SheetViewport>
       </SheetPortal>
     </SheetRoot>

@@ -35,6 +35,10 @@ export function checkPackage(cwd = root, overrides = {}) {
   for (const path of requiredFiles) {
     if (!files.includes(path)) problems.push(`${path} is missing from the package`);
   }
+  for (const path of files) {
+    // Stories import story-only code (stories/reference) that is not packed.
+    if (/\.stories\./.test(path)) problems.push(`${path} is a story and must not be packed`);
+  }
   for (const path of clientEntries) {
     let source;
     try {

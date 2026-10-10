@@ -48,6 +48,16 @@ test("the check script accepts this package and rejects a broken one", async () 
   const problems = checkPackage(root, { files: ["README.md"], read: () => "export {}" });
   assert.ok(problems.some((problem) => problem.includes("dist/index.js")));
   assert.ok(problems.some((problem) => problem.includes("use client")));
+  const withStory = checkPackage(root, {
+    files: ["src/components/Sheet/Sheet.stories.tsx"],
+    read: () => '"use client";',
+  });
+  assert.ok(withStory.some((problem) => problem.includes("Sheet.stories.tsx is a story")));
+});
+
+test("npm pack ships no stories", () => {
+  const stories = packedFiles().filter((path) => /\.stories\./.test(path));
+  assert.deepEqual(stories, [], "stories import story-only code that does not ship");
 });
 
 test("built styles.css starts with the layer-order statement", () => {

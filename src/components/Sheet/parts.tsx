@@ -1,5 +1,6 @@
 import { Drawer } from "@base-ui/react/drawer";
-import { createContext, useContext, type JSX } from "react";
+import { createContext, useContext, useEffect, useRef, type JSX } from "react";
+import { useAppearanceClassNameCheck } from "../../internal/classNameCheck.ts";
 import { devThrow } from "../../internal/dev.ts";
 
 /** The edge a sheet slides in from, and is dragged back to, to dismiss. */
@@ -36,6 +37,20 @@ function useSheetPart(part: string, inner: string): SheetContextValue {
     );
   }
   return context;
+}
+
+/**
+ * The Fix code for an appearance class on a sheet part: the theme for colors and
+ * radius, or a wrapper inside `open`…`close` for text classes. Development only.
+ */
+export function sheetHint(open: string, close: string) {
+  return (token: string): string => {
+    if (token.startsWith("rounded")) {
+      return `defineTheme({ radius: { surface: "${token === "rounded-none" ? "0px" : "16px"}" } })`;
+    }
+    if (/^(text|font)-/.test(token)) return `${open}<div className="${token}">…</div>${close}`;
+    return 'defineTheme({ color: { surface: { light: "…", dark: "…" } } })';
+  };
 }
 
 const join = (...classes: Array<string | false | undefined>) => classes.filter(Boolean).join(" ");
@@ -95,10 +110,34 @@ export function SheetPortal(props: Omit<Drawer.Portal.Props, "className">): JSX.
   );
 }
 
-/** Part: the dimming layer. It lightens as the sheet is dragged away. */
+/**
+ * Part: the dimming layer. It lightens as the sheet is dragged away.
+ *
+ * On iOS the backdrop is absolutely positioned (see sheet.css), so it keeps
+ * `--ou-backdrop-top` at the offset that puts its top at the top of the screen,
+ * whatever the page's scroll position. Elsewhere it is fixed and the offset stays 0.
+ */
 export function SheetBackdrop(props: Omit<Drawer.Backdrop.Props, "className">): JSX.Element {
   useSheetPart("SheetBackdrop", "…");
-  return <Drawer.Backdrop {...props} data-ouro="sheet-backdrop" />;
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const node = ref.current!;
+    const anchor = () => {
+      const current = Number.parseFloat(node.style.getPropertyValue("--ou-backdrop-top")) || 0;
+      node.style.setProperty("--ou-backdrop-top", `${current - node.getBoundingClientRect().top}px`);
+    };
+    anchor();
+    // Base UI may lock scrolling after this effect runs, so check again on the next frame.
+    const frame = requestAnimationFrame(anchor);
+    addEventListener("scroll", anchor, { passive: true });
+    addEventListener("resize", anchor);
+    return () => {
+      cancelAnimationFrame(frame);
+      removeEventListener("scroll", anchor);
+      removeEventListener("resize", anchor);
+    };
+  }, []);
+  return <Drawer.Backdrop {...props} ref={ref} data-ouro="sheet-backdrop" />;
 }
 
 /** Part: the full-screen layer that positions the popup against its edge. */
@@ -111,7 +150,19 @@ export function SheetViewport(props: Omit<Drawer.Viewport.Props, "className">): 
 export type SheetPopupProps = Omit<Drawer.Popup.Props, "className"> & { className?: string | undefined };
 
 /** Part: the sheet panel. It stretches past its edge when pulled and springs back on release. */
-export function SheetPopup({ className, ...props }: SheetPopupProps): JSX.Element {
+export function SheetPopup(props: SheetPopupProps): JSX.Element {
+  useAppearanceClassNameCheck(
+    "SheetPopup",
+    props.className,
+    process.env.NODE_ENV !== "production"
+      ? sheetHint("<SheetPopup>", "</SheetPopup>")
+      : /* istanbul ignore next -- production only */ "",
+  );
+  return <SheetPopupUnchecked {...props} />;
+}
+
+/** The popup without its own className check, for `Sheet`, which checks its own `className`. */
+export function SheetPopupUnchecked({ className, ...props }: SheetPopupProps): JSX.Element {
   const { side, snap } = useSheetPart("SheetPopup", "…");
   return (
     <Drawer.Popup
@@ -182,6 +233,13 @@ export type SheetContentProps = Omit<Drawer.Content.Props, "className"> & { clas
  */
 export function SheetContent({ className, ...props }: SheetContentProps): JSX.Element {
   useSheetPart("SheetContent", "<SheetContent>…</SheetContent>");
+  useAppearanceClassNameCheck(
+    "SheetContent",
+    className,
+    process.env.NODE_ENV !== "production"
+      ? sheetHint("<SheetContent>", "</SheetContent>")
+      : /* istanbul ignore next -- production only */ "",
+  );
   return (
     <Drawer.Content
       {...props}
