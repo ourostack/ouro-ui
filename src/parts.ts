@@ -7,6 +7,23 @@
  * message with the JSX it belongs in.
  */
 export {
+  DialogBackdrop,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogPopup,
+  DialogPortal,
+  DialogRoot,
+  DialogTitle,
+  DialogTrigger,
+  DialogViewport,
+  type DialogContentProps,
+  type DialogPopupProps,
+  type DialogSize,
+  type DialogTitleProps,
+} from "./components/Dialog/parts";
+export {
   SheetBackdrop,
   SheetClose,
   SheetContent,

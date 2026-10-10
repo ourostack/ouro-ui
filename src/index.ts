@@ -10,6 +10,8 @@
  * - `Button`: a button, or a link styled as one (`href`). `tone`, `variant`, `size`, `loading`.
  *
  * Overlays
+ * - `Dialog`: a centered dialog that becomes a bottom sheet on phones. `title`, `trigger` or `open`, `footer`, `size`, `presentation`.
+ * - `ConfirmDialog`: confirm an action, Cancel focused first. `title`, `confirmLabel`, `onConfirm`, `tone`.
  * - `Sheet`: a panel that slides in from an edge and is dragged back to dismiss. `title`, `trigger` or `open`, `side`, `snapPoints`.
  *
  * Text
@@ -35,6 +37,22 @@ export {
   type ButtonLinkProps,
   type ButtonProps,
 } from "./components/Button/Button";
+export {
+  ConfirmDialog,
+  type ConfirmDialogBaseProps,
+  type ConfirmDialogControlledProps,
+  type ConfirmDialogProps,
+  type ConfirmDialogWithTriggerProps,
+} from "./components/Dialog/ConfirmDialog";
+export {
+  Dialog,
+  type DialogBaseProps,
+  type DialogControlledProps,
+  type DialogPresentation,
+  type DialogProps,
+  type DialogSize,
+  type DialogWithTriggerProps,
+} from "./components/Dialog/Dialog";
 export {
   Sheet,
   type SheetBaseProps,

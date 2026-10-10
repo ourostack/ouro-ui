@@ -1,6 +1,6 @@
 import distCss from "../../../dist/styles.css?raw";
 import sheetCss from "./sheet.css?raw";
-import { act, useState, type ReactNode } from "react";
+import { act, createRef, useState, type ReactNode, type Ref } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -442,10 +442,40 @@ describe("close control", () => {
   });
 });
 
+/**
+ * The bodies of the stylesheet's iOS-only rules (`@supports (-webkit-touch-callout: none)`),
+ * unwrapped. Desktop test browsers never match that query, so the test injects the
+ * shipped rules itself instead of the stylesheet carrying a test-only selector.
+ */
+function iosRules(css: string): string {
+  const marker = "@supports (-webkit-touch-callout: none)";
+  const bodies: string[] = [];
+  for (let at = css.indexOf(marker); at !== -1; at = css.indexOf(marker, at + 1)) {
+    const open = css.indexOf("{", at);
+    let depth = 0;
+    let end = open;
+    for (; end < css.length; end++) {
+      if (css[end] === "{") depth++;
+      else if (css[end] === "}" && --depth === 0) break;
+    }
+    bodies.push(css.slice(open + 1, end));
+  }
+  return bodies.join("\n");
+}
+
 describe("iOS backdrop rule", () => {
+  it("ships no test-only selector", () => {
+    expect(distCss).not.toContain("data-ouro-test-ios");
+    expect(iosRules(distCss)).toContain('[data-ouro="sheet-backdrop"]');
+  });
+
   // The rule applies under @supports (-webkit-touch-callout: none), which only iOS
-  // matches. data-ouro-test-ios on the portal forces the same rule here.
+  // matches, so the test injects the shipped rule's body unwrapped.
   it("covers the visible screen on a page scrolled 2000px", async () => {
+    const ios = document.createElement("style");
+    ios.textContent = `@layer components { ${iosRules(distCss)} }`;
+    document.head.append(ios);
+    mounted.push(ios);
     const tall = document.createElement("div");
     tall.style.height = "5000px";
     document.body.append(tall);
@@ -454,7 +484,7 @@ describe("iOS backdrop rule", () => {
     expect(window.scrollY).toBe(2000);
     await render(
       <SheetRoot defaultOpen>
-        <SheetPortal data-ouro-test-ios="">
+        <SheetPortal>
           <SheetBackdrop />
           <SheetViewport>
             <SheetPopup>
@@ -556,6 +586,41 @@ describe("parts", () => {
     expect(document.querySelector("[data-ouro-sheet-handle]")!.getAttribute("aria-hidden")).toBe("true");
     await userEvent.click(page.getByRole("button", { name: "Done" }));
     await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
+  });
+
+  it("forwards a ref passed to SheetBackdrop, as an object or a callback", async () => {
+    const objectRef = createRef<HTMLDivElement>();
+    const callbackRef = vi.fn();
+    const sheet = (ref: Ref<HTMLDivElement>) => (
+      <SheetRoot defaultOpen>
+        <SheetPortal>
+          <SheetBackdrop ref={ref} />
+          <SheetViewport>
+            <SheetPopup>
+              <SheetTitle>Ref</SheetTitle>
+            </SheetPopup>
+          </SheetViewport>
+        </SheetPortal>
+      </SheetRoot>
+    );
+    await render(sheet(objectRef));
+    await expect.poll(() => backdrop()).not.toBeNull();
+    expect(objectRef.current).toBe(backdrop());
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    expect(objectRef.current).toBeNull();
+    await render(sheet(callbackRef));
+    await expect.poll(() => backdrop()).not.toBeNull();
+    expect(callbackRef).toHaveBeenLastCalledWith(backdrop());
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    expect(callbackRef).toHaveBeenLastCalledWith(null);
+    const cleanup = vi.fn();
+    const withCleanup = vi.fn(() => cleanup);
+    await render(sheet(withCleanup));
+    await expect.poll(() => backdrop()).not.toBeNull();
+    expect(withCleanup).toHaveBeenCalledExactlyOnceWith(backdrop());
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    expect(cleanup).toHaveBeenCalledOnce();
+    expect(withCleanup).toHaveBeenCalledOnce();
   });
 
   it("does not draw a handle on a side sheet", async () => {

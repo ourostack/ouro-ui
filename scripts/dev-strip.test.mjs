@@ -73,6 +73,11 @@ const DIST_DEV_STRINGS = [
   "onOpenChange={setOpen}",
   "snapPoints={[0.5, 1]}",
   "defineTheme({ color: { surface",
+  "a Dialog is centered",
+  "<DialogPortal><DialogBackdrop />",
+  "onConfirm rejected",
+  "setError(error.message)",
+  "<ConfirmDialog tone=",
 ];
 
 test("a Vite development bundle of dist keeps the components' dev messages (control)", async () => {
