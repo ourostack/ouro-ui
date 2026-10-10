@@ -4,9 +4,16 @@ export type ToneName = "neutral" | "accent" | "success" | "warning" | "danger";
 /** A color that has one value per color scheme. */
 export type SchemeColor = { light: string; dark: string };
 
+/** Tones that have a `<tone>-ink` text color for use on `soft-<tone>`. Neutral uses `ink`. */
+export type InkToneName = Exclude<ToneName, "neutral">;
+
 export type BaseColorName = "surface" | "surface-raised" | "ink" | "ink-muted" | "line" | ToneName;
-/** `on-<tone>` is the text color on a solid tone; `soft-<tone>` is the tone's tinted background. */
-export type DerivedColorName = `on-${ToneName}` | `soft-${ToneName}`;
+/**
+ * `on-<tone>` is the text color on a solid tone. `soft-<tone>` is the tone's tinted
+ * background, and text on it uses `<tone>-ink` (the tone darkened toward `ink`), never the
+ * plain tone, which fails 4.5:1 in light mode.
+ */
+export type DerivedColorName = `on-${ToneName}` | `soft-${ToneName}` | `${InkToneName}-ink`;
 
 /** All token groups of a theme. `on-<tone>` and `soft-<tone>` are derived when not given. */
 export type ThemeTokens = {
@@ -30,6 +37,7 @@ export type DeepPartial<T> = {
 };
 
 export const toneNames: readonly ToneName[] = ["neutral", "accent", "success", "warning", "danger"];
+export const inkToneNames: readonly InkToneName[] = ["accent", "success", "warning", "danger"];
 
 /** Share of the tone color mixed into transparent to make `soft-<tone>`. */
 export const softAmount = "14%";
@@ -37,6 +45,14 @@ export const softAmount = "14%";
 /** The CSS expression for a derived `soft-<tone>` color, evaluated over the base variable. */
 export function softExpression(tone: ToneName): string {
   return `color-mix(in oklab, var(--ouro-color-${tone}) ${softAmount}, transparent)`;
+}
+
+/** Share of `ink` mixed into the tone to make `<tone>-ink`. Chosen so it reaches 4.5:1 on `soft-<tone>`. */
+export const inkAmount = "40%";
+
+/** The CSS expression for a derived `<tone>-ink` color, evaluated over the base variables. */
+export function inkExpression(tone: InkToneName): string {
+  return `color-mix(in oklab, var(--ouro-color-${tone}), var(--ouro-color-ink) ${inkAmount})`;
 }
 
 /** The default `on-<tone>` color: white on light, black on dark. */

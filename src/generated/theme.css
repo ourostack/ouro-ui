@@ -12,15 +12,10 @@
   --ouro-color-warning: light-dark(#b45309, #fbbf24);
   --ouro-color-danger: light-dark(#dc2626, #f87171);
   --ouro-color-on-neutral: light-dark(white, black);
-  --ouro-color-soft-neutral: color-mix(in oklab, var(--ouro-color-neutral) 14%, transparent);
   --ouro-color-on-accent: light-dark(white, black);
-  --ouro-color-soft-accent: color-mix(in oklab, var(--ouro-color-accent) 14%, transparent);
   --ouro-color-on-success: light-dark(white, black);
-  --ouro-color-soft-success: color-mix(in oklab, var(--ouro-color-success) 14%, transparent);
   --ouro-color-on-warning: light-dark(white, black);
-  --ouro-color-soft-warning: color-mix(in oklab, var(--ouro-color-warning) 14%, transparent);
   --ouro-color-on-danger: light-dark(white, black);
-  --ouro-color-soft-danger: color-mix(in oklab, var(--ouro-color-danger) 14%, transparent);
   --ouro-radius-control: 8px;
   --ouro-radius-surface: 12px;
   --ouro-radius-pill: 999px;
@@ -37,9 +32,9 @@
   --ouro-z-popover: 1100;
   --ouro-z-toast: 1200;
 }
-:root[data-theme="light"], [data-theme="light"] :root {
+:root[data-theme="light"] {
   color-scheme: light;
 }
-:root[data-theme="dark"], [data-theme="dark"] :root {
+:root[data-theme="dark"] {
   color-scheme: dark;
 }

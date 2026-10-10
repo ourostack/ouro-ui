@@ -5,7 +5,7 @@ import { ThemeScript } from "./ThemeScript.tsx";
 
 function scriptSource(element: Parameters<typeof renderToString>[0]) {
   const html = renderToString(element);
-  const match = /^<script>([\s\S]*)<\/script>$/.exec(html);
+  const match = /^<script[^>]*>([\s\S]*)<\/script>$/.exec(html);
   if (!match?.[1]) throw new Error(`unexpected markup: ${html}`);
   return match[1];
 }
@@ -44,6 +44,16 @@ describe("ThemeScript", () => {
   it("follows the system by default", () => {
     document.documentElement.dataset["theme"] = "dark";
     expect(run(<ThemeScript />)).toBeUndefined();
+  });
+
+  it("ignores an unrecognized stored value and uses defaultTheme", () => {
+    localStorage.setItem("ouro-theme", "blue");
+    expect(run(<ThemeScript defaultTheme="dark" />)).toBe("dark");
+  });
+
+  it("passes a nonce to the script element", () => {
+    expect(renderToString(<ThemeScript nonce="abc123" />)).toContain('nonce="abc123"');
+    expect(renderToString(<ThemeScript />)).not.toContain("nonce");
   });
 
   it("reads a custom storage key", () => {

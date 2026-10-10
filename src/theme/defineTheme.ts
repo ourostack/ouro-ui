@@ -2,7 +2,6 @@ import { cssSpring } from "./springs.ts";
 import {
   defaultOn,
   defaultTokens,
-  softExpression,
   toneNames,
   type DeepPartial,
   type SchemeColor,
@@ -33,9 +32,11 @@ const lightDark = ({ light, dark }: SchemeColor) => `light-dark(${light}, ${dark
  * const { css } = defineTheme({ color: { accent: { light: "#c2410c", dark: "#fb923c" } } });
  * ```
  *
- * Use `opts.selector` to scope a theme to a subtree instead of `:root`. Derived colors
- * (`soft-<tone>`, and `on-<tone>` unless you set it) are CSS expressions over the base
- * variables, so the utilities follow a scoped override of a base color.
+ * Use `opts.selector` to scope a theme to a subtree instead of `:root`.
+ * `on-<tone>` defaults to white (light) or black (dark). `soft-<tone>` and `<tone>-ink`
+ * are only emitted when you set them; otherwise the utilities derive them with `color-mix`
+ * over the base variables where they are used, so a scoped override of a base color
+ * reaches them. Text on a soft background uses `<tone>-ink`, not the plain tone.
  */
 export function defineTheme(
   partial: DeepPartial<ThemeTokens> = {},
@@ -51,10 +52,7 @@ export function defineTheme(
 
   for (const [name, value] of Object.entries(color)) prop(`color-${name}`, lightDark(value));
   for (const tone of toneNames) {
-    const on = color[`on-${tone}`];
-    const soft = color[`soft-${tone}`];
-    if (!on) prop(`color-on-${tone}`, defaultOn);
-    if (!soft) prop(`color-soft-${tone}`, softExpression(tone));
+    if (!color[`on-${tone}`]) prop(`color-on-${tone}`, defaultOn);
   }
   for (const [name, value] of Object.entries(radius)) prop(`radius-${name}`, value);
   for (const [name, value] of Object.entries(font)) prop(`font-${name}`, value);
@@ -66,8 +64,12 @@ export function defineTheme(
   prop("press-scale", motion.pressScale);
   for (const [name, value] of Object.entries(z)) prop(`z-${name}`, value);
 
-  const scheme = (name: "light" | "dark") =>
-    `${selector}[data-theme="${name}"], [data-theme="${name}"] ${selector} {\n  color-scheme: ${name};\n}`;
+  // On :root the attribute sits on the same element, so the ancestor form could never match.
+  const scheme = (name: "light" | "dark") => {
+    const own = `${selector}[data-theme="${name}"]`;
+    const selectors = selector === ":root" ? own : `${own}, [data-theme="${name}"] ${selector}`;
+    return `${selectors} {\n  color-scheme: ${name};\n}`;
+  };
   const css = `${selector} {\n${lines.map((line) => `  ${line}`).join("\n")}\n}\n${scheme("light")}\n${scheme("dark")}\n`;
   return { tokens, css };
 }

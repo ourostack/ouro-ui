@@ -72,4 +72,22 @@ describe("scoped overrides", () => {
     expect(bg("#scoped b")).not.toBe(softBefore);
     expect(bg("#scoped b")).toMatch(/^(color\(srgb 1 0 0 \/ 0\.14\)|rgba\(255, 0, 0, 0\.14\)|oklab\(.*\/ 0\.14\))/);
   });
+
+  it("uses an explicit --ouro-color-soft-accent over the derived color", () => {
+    const host = addElement(
+      '<div style="--ouro-color-soft-accent: rgb(0, 128, 0)"><b class="ou:bg-soft-accent"></b></div>' +
+        '<div style="--ouro-color-soft-accent: rgb(0, 128, 0); --ouro-color-accent: rgb(255, 0, 0)"><b class="ou:bg-soft-accent"></b></div>',
+    );
+    const [first, second] = [...host.querySelectorAll("b")].map((el) => getComputedStyle(el).backgroundColor);
+    expect(first).toBe("rgb(0, 128, 0)");
+    expect(second).toBe("rgb(0, 128, 0)");
+  });
+
+  it("changes text-accent-ink when only --ouro-color-accent is overridden", () => {
+    const host = addElement(
+      '<div><i class="ou:text-accent-ink"></i></div><div style="--ouro-color-accent: rgb(255, 0, 0)"><i class="ou:text-accent-ink"></i></div>',
+    );
+    const [plain, scoped] = [...host.querySelectorAll("i")].map((el) => getComputedStyle(el).color);
+    expect(scoped).not.toBe(plain);
+  });
 });

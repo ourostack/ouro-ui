@@ -45,3 +45,5 @@ A `className` token warns when, after stripping any variant prefix such as `hove
 - Custom browser commands live in `vitest.commands.ts`: `commands.emulateMedia({ reducedMotion, colorScheme })` and `commands.drag({ from, to, steps, durationMs })`. Drag tests run in Chromium only.
 - `motion` is a peer dependency (and a dev dependency) so apps do not load two copies.
 - `src/generated/theme.css` is generated from `src/theme/ouro.ts` by `pnpm theme` (also run by `pnpm build`) and committed. CI runs `pnpm theme --check`. Never edit it by hand. Tokens are plain custom properties in `@layer base`, so Tailwind never drops them.
+- Contributors need Node 22.18 or later (`devEngines`; `.node-version` pins 24) because `scripts/build-theme.mts` runs through Node's type stripping. `engines` stays `>=22` for consumers.
+- Soft variants (`soft-<tone>` backgrounds) take `<tone>-ink` text (`ou:text-accent-ink`), never the plain tone: the plain tone fails 4.5:1 on its own soft background in light mode. `src/theme/contrast.test.tsx` checks every pair in light and dark.

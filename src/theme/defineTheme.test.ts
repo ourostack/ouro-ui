@@ -49,12 +49,11 @@ describe("defineTheme", () => {
     expect(ouroTheme.css).toMatch(/--ouro-spring-duration: \d+ms;/);
   });
 
-  it("derives soft and on colors as CSS expressions over the base variable", () => {
+  it("defaults on-<tone> and leaves soft and ink to the utilities", () => {
     const { css } = ouroTheme;
-    expect(css).toContain(
-      "--ouro-color-soft-danger: color-mix(in oklab, var(--ouro-color-danger) 14%, transparent);",
-    );
     expect(css).toContain("--ouro-color-on-danger: light-dark(white, black);");
+    expect(css).not.toContain("--ouro-color-soft-");
+    expect(css).not.toMatch(/(accent|success|warning|danger)-ink:/);
   });
 
   it("uses explicit on and soft colors instead of deriving them", () => {
@@ -62,10 +61,12 @@ describe("defineTheme", () => {
       color: {
         "on-warning": { light: "#000", dark: "#111" },
         "soft-warning": { light: "#fef3c7", dark: "#451a03" },
+        "warning-ink": { light: "#78350f", dark: "#fde68a" },
       },
     });
     expect(css).toContain("--ouro-color-on-warning: light-dark(#000, #111);");
     expect(css).toContain("--ouro-color-soft-warning: light-dark(#fef3c7, #451a03);");
+    expect(css).toContain("--ouro-color-warning-ink: light-dark(#78350f, #fde68a);");
     expect(css.match(/--ouro-color-on-warning:/g)).toHaveLength(1);
     expect(css.match(/--ouro-color-soft-warning:/g)).toHaveLength(1);
   });
@@ -75,6 +76,11 @@ describe("defineTheme", () => {
     expect(css.startsWith(".sj-theme {")).toBe(true);
     expect(css).toContain('.sj-theme[data-theme="dark"], [data-theme="dark"] .sj-theme {');
     expect(css).not.toContain(":root");
+  });
+
+  it("does not emit the dead ancestor selector for :root", () => {
+    expect(ouroTheme.css).not.toContain(':root[data-theme="dark"], [data-theme="dark"] :root');
+    expect(ouroTheme.css).toContain(':root[data-theme="dark"] {');
   });
 
   it("emits radius, font, motion, press scale and z tokens", () => {
