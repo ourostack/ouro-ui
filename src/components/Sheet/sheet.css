@@ -283,4 +283,10 @@
       opacity: 0;
     }
   }
+
+  /* A body that overflows is a tab stop (useKeyboardScrollable); show where focus is. */
+  [data-ouro-sheet-content]:focus-visible {
+    outline: 2px solid var(--ouro-color-accent);
+    outline-offset: -2px;
+  }
 }

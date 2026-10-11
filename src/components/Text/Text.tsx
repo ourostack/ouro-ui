@@ -24,6 +24,7 @@ interface TextBaseProps extends Omit<HTMLAttributes<HTMLElement>, "color" | "cla
    * Appearance classes warn in development; use `size`, `tone` and `align`.
    */
   className?: string | undefined;
+  /** The text. Inline elements such as `<strong>` and `<a>` are fine inside. */
   children: ReactNode;
   ref?: Ref<HTMLElement> | undefined;
   /** Not a prop. Ouro UI uses `tone`: `<Text tone="muted">`. */
@@ -36,11 +37,13 @@ export type TextProps = TextBaseProps &
     | {
         /** Cuts the text to one line with an ellipsis. Use `lines` for more than one line. */
         truncate?: boolean | undefined;
+        /** Not with `truncate`. Use `truncate` for one line or `lines` for more, not both. */
         lines?: never;
       }
     | {
         /** Clamps the text to this many lines with an ellipsis. Use `truncate` for one line. */
         lines?: number | undefined;
+        /** Not with `lines`. Use `truncate` for one line or `lines` for more, not both. */
         truncate?: never;
       }
   );

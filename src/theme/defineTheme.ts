@@ -8,6 +8,7 @@ import {
   type ThemeTokens,
 } from "./tokens.ts";
 
+/** What {@link defineTheme} returns: the merged tokens and the CSS that applies them. */
 export type DefinedTheme = { tokens: ThemeTokens; css: string };
 
 type Tree = { [key: string]: unknown };
@@ -26,11 +27,8 @@ const lightDark = ({ light, dark }: SchemeColor) => `light-dark(${light}, ${dark
 
 /**
  * Builds a theme: the full token set (your overrides over the Ouro defaults) and the CSS
- * custom properties that apply it.
- *
- * ```ts
- * const { css } = defineTheme({ color: { accent: { light: "#c2410c", dark: "#fb923c" } } });
- * ```
+ * custom properties that apply it. Put `css` in a stylesheet loaded after
+ * `@ouro.bot/ui/styles.css`.
  *
  * Use `opts.selector` to scope a theme to a subtree instead of `:root`.
  * `on-<tone>` defaults to white (light) or black (dark). `soft-<tone>` and `<tone>-ink`
@@ -43,6 +41,10 @@ const lightDark = ({ light, dark }: SchemeColor) => `light-dark(${light}, ${dark
  * (`color-scheme: dark` on a subtree) needs native `light-dark()` support: if your CSS
  * pipeline lowers it for older browsers (Lightning CSS, Tailwind's optimizer), the
  * lowered tokens resolve once at the root and the wrapper's scheme is ignored.
+ *
+ * @example
+ * const { css } = defineTheme({ color: { accent: { light: "#c2410c", dark: "#fb923c" } } });
+ * const { css: brand } = defineTheme({ radius: { control: "999px" } }, { selector: ".brand" });
  */
 export function defineTheme(
   partial: DeepPartial<ThemeTokens> = {},

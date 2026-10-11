@@ -3,7 +3,9 @@ import { Dialog as BaseDialog } from "@base-ui/react/dialog";
 import { createContext, useContext, type JSX, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "../../internal/classNameCheck.ts";
 import { devThrow } from "../../internal/dev.ts";
+import { useMergedRef } from "../../internal/refs.ts";
 import { useBackdropAnchor } from "../../internal/useBackdropAnchor.ts";
+import { useKeyboardScrollable } from "../../internal/useKeyboardScrollable.ts";
 import { sheetHint } from "../Sheet/parts.tsx";
 
 /** A centered dialog's maximum width: `sm` 24rem, `md` 32rem, `lg` 40rem. */
@@ -175,8 +177,12 @@ export function DialogDescription(props: Omit<BaseDialog.Description.Props, "cla
 /** Props for {@link DialogContent}. `className` is for layout only. */
 export type DialogContentProps = Omit<JSX.IntrinsicElements["div"], "className"> & { className?: string | undefined };
 
-/** Part: the dialog's body. It scrolls when the dialog is taller than the screen. */
-export function DialogContent({ className, ...props }: DialogContentProps): JSX.Element {
+/**
+ * Part: the dialog's body. It scrolls when the dialog is taller than the
+ * screen, and while it overflows it is a tab stop, so a keyboard can scroll it.
+ */
+export function DialogContent({ className, ref, ...props }: DialogContentProps): JSX.Element {
+  const scrollRef = useMergedRef(ref, useKeyboardScrollable<HTMLDivElement>(props.tabIndex === undefined));
   useDialogPart("DialogContent", "<DialogTitle>…</DialogTitle><DialogContent>…</DialogContent>");
   useAppearanceClassNameCheck(
     "DialogContent",
@@ -185,7 +191,7 @@ export function DialogContent({ className, ...props }: DialogContentProps): JSX.
       ? sheetHint("<DialogContent>", "</DialogContent>")
       : /* istanbul ignore next -- production only */ "",
   );
-  return <div {...props} data-ouro-dialog-content="" className={className} />;
+  return <div {...props} ref={scrollRef} data-ouro-dialog-content="" className={className} />;
 }
 
 /**

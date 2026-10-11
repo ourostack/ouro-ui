@@ -1,7 +1,8 @@
-// Verifies what `npm pack` would publish: required files are present and the
-// client entry chunks start with "use client";. Run after `pnpm build`.
+// Verifies what `npm pack` would publish: required files (including every generated
+// docs page) are present, the client entry chunks start with "use client";, and the
+// root types open with the component catalog. Run after `pnpm build` and `pnpm run docs`.
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -16,6 +17,10 @@ export const requiredFiles = [
   "src/index.ts",
   "README.md",
   "LICENSE",
+  // Agents read these from node_modules (spec section 4.9).
+  "docs/Button.md",
+  "docs/Sheet.md",
+  "docs/parts.md",
 ];
 export const clientEntries = ["dist/index.js", "dist/parts.js"];
 
@@ -32,12 +37,14 @@ export function checkPackage(cwd = root, overrides = {}) {
   const files = overrides.files ?? packedFiles(cwd);
   const read = overrides.read ?? ((path) => readFileSync(join(cwd, path), "utf8"));
   const problems = [];
-  for (const path of requiredFiles) {
+  const docs = overrides.docs ?? readdirSync(join(cwd, "docs")).filter((file) => file.endsWith(".md"));
+  for (const path of new Set([...requiredFiles, ...docs.map((file) => `docs/${file}`)])) {
     if (!files.includes(path)) problems.push(`${path} is missing from the package`);
   }
   for (const path of files) {
     // Stories import story-only code (stories/reference) that is not packed.
     if (/\.stories\./.test(path)) problems.push(`${path} is a story and must not be packed`);
+    if (path.includes("__screenshots__")) problems.push(`${path} is a screenshot baseline and must not be packed`);
   }
   for (const path of clientEntries) {
     let source;
@@ -48,6 +55,15 @@ export function checkPackage(cwd = root, overrides = {}) {
       continue;
     }
     if (!source.startsWith('"use client";')) problems.push(`${path} must start with "use client";`);
+  }
+  let types = "";
+  try {
+    types = read("dist/index.d.ts");
+  } catch {
+    // Reported above as missing.
+  }
+  if (!/^\/\*\*\n \* Ouro UI[\s\S]*? \* - \*\*\w+\*\* — [\s\S]*?\*\//.test(types)) {
+    problems.push("dist/index.d.ts must open with the component catalog (see tsdown.config.ts)");
   }
   return problems;
 }

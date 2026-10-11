@@ -5,5 +5,8 @@ storybook-static/
 .tmp/
 .DS_Store
 *.log
-__screenshots__/**/__diff_output__/
+**/__screenshots__/**/__diff_output__/
+# Baselines come from Linux CI (visual-baselines.yml); local runs on other systems stay local.
+**/__screenshots__/**/*-darwin.png
+**/__screenshots__/**/*-win32.png
 .vitest/

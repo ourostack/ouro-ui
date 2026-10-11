@@ -7,6 +7,7 @@ export type SchemeColor = { light: string; dark: string };
 /** Tones that have a `<tone>-ink` text color for use on `soft-<tone>`. Neutral uses `ink`. */
 export type InkToneName = Exclude<ToneName, "neutral">;
 
+/** The colors every theme sets: page surfaces, text, lines and the five tones. */
 export type BaseColorName = "surface" | "surface-raised" | "ink" | "ink-muted" | "line" | ToneName;
 /**
  * `on-<tone>` is the text color on a solid tone. `soft-<tone>` is the tone's tinted
@@ -38,6 +39,7 @@ export type ThemeTokens = {
   };
 };
 
+/** Every key optional, at every depth: the shape `defineTheme` takes for overrides. */
 export type DeepPartial<T> = {
   [K in keyof T]?: (T[K] extends object ? DeepPartial<T[K]> : T[K]) | undefined;
 };
