@@ -226,12 +226,21 @@ describe("ConfirmDialog", () => {
     await expect.poll(() => onOpenChange.mock.calls).toEqual([[false]]);
   });
 
-  it('gives the confirm button data-tone="danger" with tone="danger", and accent by default', async () => {
-    await open({ tone: "danger" });
-    expect(button("Delete").element().getAttribute("data-tone")).toBe("danger");
+  it('gives the confirm button data-tone="destructive" with tone="destructive", and primary by default', async () => {
+    await open({ tone: "destructive" });
+    expect(button("Delete").element().getAttribute("data-tone")).toBe("destructive");
     await act(async () => roots.splice(0).forEach((root) => root.unmount()));
     await open();
-    expect(button("Delete").element().getAttribute("data-tone")).toBe("accent");
+    expect(button("Delete").element().getAttribute("data-tone")).toBe("primary");
+  });
+
+  it.each([
+    ["danger", 'tone="danger" is not a tone. Fix: <ConfirmDialog tone="destructive">.'],
+    ["success", 'tone="success" is not a tone; use "primary", "destructive". Fix: <ConfirmDialog tone="primary">.'],
+  ])("renders a primary confirm button for tone=%j and warns once with the fix", async (tone, message) => {
+    await open({ tone } as object);
+    expect(button("Delete").element().getAttribute("data-tone")).toBe("primary");
+    expect(warn.mock.calls.map((call: unknown[]) => call[0])).toEqual([`[ouro-ui] ConfirmDialog: ${message}`]);
   });
 
   it("stays centered on a phone with side margins and stacks its actions with confirm at the bottom", async () => {
@@ -295,7 +304,7 @@ describe("ConfirmDialog dev messages", () => {
       "[ouro-ui] ConfirmDialog: isOpen is not a prop. Fix: <ConfirmDialog open={open} onOpenChange={setOpen}>.",
       "[ouro-ui] ConfirmDialog: onClose is not a prop. Fix: <ConfirmDialog open={open} onOpenChange={setOpen}>.",
       "[ouro-ui] ConfirmDialog: onCancel is not a prop; Cancel calls onOpenChange(false). Fix: <ConfirmDialog open={open} onOpenChange={setOpen}>.",
-      '[ouro-ui] ConfirmDialog: destructive is not a prop. Fix: <ConfirmDialog tone="danger">.',
+      '[ouro-ui] ConfirmDialog: destructive is not a prop. Fix: <ConfirmDialog tone="destructive">.',
       '[ouro-ui] ConfirmDialog: confirmText is not a prop. Fix: <ConfirmDialog confirmLabel="Delete">.',
       '[ouro-ui] ConfirmDialog: cancelText is not a prop. Fix: <ConfirmDialog cancelLabel="Keep">.',
     ]);

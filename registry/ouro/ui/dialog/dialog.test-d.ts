@@ -45,13 +45,14 @@ type Confirm = { title: "Delete?"; confirmLabel: "Delete"; onConfirm: () => void
 expectTypeOf<Confirm & { trigger: ReactElement }>().toExtend<ConfirmDialogProps>();
 expectTypeOf<Confirm & { open: boolean; onOpenChange: SetOpen }>().toExtend<ConfirmDialogProps>();
 expectTypeOf<
-  Confirm & { trigger: ReactElement; description: "Gone for good"; cancelLabel: "Keep"; tone: "danger"; onConfirm: () => Promise<void> }
+  Confirm & { trigger: ReactElement; description: "Gone for good"; cancelLabel: "Keep"; tone: "destructive"; onConfirm: () => Promise<void> }
 >().toExtend<ConfirmDialogProps>();
 expectTypeOf<ComponentProps<typeof ConfirmDialog>>().toEqualTypeOf<ConfirmDialogProps>();
 expectTypeOf<Confirm>().not.toExtend<ConfirmDialogProps>();
 expectTypeOf<Omit<Confirm, "confirmLabel"> & { trigger: ReactElement }>().not.toExtend<ConfirmDialogProps>();
 expectTypeOf<Omit<Confirm, "onConfirm"> & { trigger: ReactElement }>().not.toExtend<ConfirmDialogProps>();
 expectTypeOf<Confirm & { trigger: ReactElement; tone: "success" }>().not.toExtend<ConfirmDialogProps>();
+expectTypeOf<Confirm & { trigger: ReactElement; tone: "danger" }>().not.toExtend<ConfirmDialogProps>();
 expectTypeOf<Confirm & { trigger: ReactElement; destructive: true }>().not.toExtend<ConfirmDialogProps>();
 expectTypeOf<Confirm & { trigger: ReactElement; open: true; onOpenChange: SetOpen }>().not.toExtend<ConfirmDialogProps>();
 

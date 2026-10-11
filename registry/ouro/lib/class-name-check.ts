@@ -55,7 +55,7 @@ export function findClassNameProblem(className: string | undefined): ClassNamePr
  * Runs in an effect, so it never warns during server rendering, and warns at
  * most once per component instance. Removed from production builds.
  *
- * @param hint Exact code to use instead, for example `tone="danger"`, or a
+ * @param hint Exact code to use instead, for example `tone="destructive"`, or a
  * function that picks it from the offending token (with variants and `!`
  * removed), for example `size="lg"` for `text-lg`. Pass it only in development
  * (`process.env.NODE_ENV !== "production" ? hint : ""`) so its text is

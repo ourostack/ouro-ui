@@ -20,7 +20,7 @@ function format(component: string, problem: string, fix: string): string {
  *
  * @example
  * if (process.env.NODE_ENV !== "production") {
- *   devWarn("Button", '"bg-red-500" sets appearance', 'tone="danger"', ref);
+ *   devWarn("Button", '"bg-red-500" sets appearance', 'tone="destructive"', ref);
  * }
  */
 export function devWarn(component: string, problem: string, fix: string, key?: object): void {

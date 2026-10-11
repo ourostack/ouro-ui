@@ -374,7 +374,7 @@ describe("centered dialog", () => {
 describe("footer", () => {
   const footer = (
     <>
-      <Button variant="outline" tone="neutral">
+      <Button variant="outline" tone="secondary">
         Cancel
       </Button>
       <Button>Save</Button>

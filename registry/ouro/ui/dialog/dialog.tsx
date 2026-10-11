@@ -64,7 +64,7 @@ export interface DialogBaseProps {
    * The actions row: a row at the end on wider screens, stacked full width on
    * phones. Put the primary action last, so it sits on the right on wider
    * screens and at the bottom, nearest the thumb, on phones:
-   * `footer={<><Button variant="outline" tone="neutral">Cancel</Button><Button>Save</Button></>}`.
+   * `footer={<><Button variant="outline" tone="secondary">Cancel</Button><Button>Save</Button></>}`.
    */
   footer?: ReactNode;
   /** The body. It scrolls when the dialog is taller than the screen. */

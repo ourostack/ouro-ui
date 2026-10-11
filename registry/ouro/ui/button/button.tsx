@@ -17,14 +17,14 @@ import { cn } from "@/registry/ouro/lib/cn";
 import { TouchTarget } from "@/registry/ouro/ui/touch-target/touch-target";
 import { useDevWarnings } from "@/registry/ouro/lib/use-dev-warnings";
 import { useOuro } from "@/registry/ouro/lib/ouro-provider";
-import type { ToneName } from "@/registry/ouro/lib/tones";
+import { toneWarning, type ToneName } from "@/registry/ouro/lib/tones";
 
 /** An icon component, such as one from `lucide-react` or `@heroicons/react`. */
 export type ButtonIcon = ComponentType<SVGProps<SVGSVGElement>>;
 
 /** Props shared by both kinds of Button (`href` switches between them). */
 export interface ButtonBaseProps {
-  /** Color role from the theme. @default "accent" */
+  /** Color role from the theme, named after its token: `primary` reads `--primary`. @default "primary" */
   tone?: ToneName | undefined;
   /**
    * Visual weight: `solid` for the primary action, `soft` for secondary actions,
@@ -66,7 +66,7 @@ export interface ButtonBaseProps {
 
   /** Not a prop. Ouro UI uses `loading`: `<Button loading>`. */
   isLoading?: never;
-  /** Not a prop. Ouro UI uses `tone`: `<Button tone="danger">`. */
+  /** Not a prop. Ouro UI uses `tone`: `<Button tone="destructive">`. */
   color?: never;
   /** Not a prop. To render a link, pass `href`: `<Button href="/recipes">`. For other elements, use parts. */
   asChild?: never;
@@ -128,44 +128,44 @@ const sizes = {
 } as const;
 
 // `soft` is the tone at low opacity behind text in the tone, the pattern shadcn uses for
-// destructive. The neutral tone's text is the page's foreground, as on any surface.
+// destructive. Secondary's text is the page's foreground, as on any surface.
 const looks = {
   solid: {
-    neutral: "border-transparent bg-secondary text-secondary-foreground",
-    accent: "border-transparent bg-primary text-primary-foreground",
+    secondary: "border-transparent bg-secondary text-secondary-foreground",
+    primary: "border-transparent bg-primary text-primary-foreground",
     success: "border-transparent bg-success text-success-foreground",
     warning: "border-transparent bg-warning text-warning-foreground",
-    danger: "border-transparent bg-destructive text-destructive-foreground",
+    destructive: "border-transparent bg-destructive text-destructive-foreground",
   },
   soft: {
-    neutral: "border-transparent bg-secondary/10 text-foreground",
-    accent: "border-transparent bg-primary/10 text-primary",
+    secondary: "border-transparent bg-secondary/10 text-foreground",
+    primary: "border-transparent bg-primary/10 text-primary",
     success: "border-transparent bg-success/10 text-success",
     warning: "border-transparent bg-warning/10 text-warning",
-    danger: "border-transparent bg-destructive/10 text-destructive",
+    destructive: "border-transparent bg-destructive/10 text-destructive",
   },
   outline: {
-    neutral: "border-border bg-transparent text-foreground",
-    accent: "border-primary/45 bg-transparent text-primary",
+    secondary: "border-border bg-transparent text-foreground",
+    primary: "border-primary/45 bg-transparent text-primary",
     success: "border-success/45 bg-transparent text-success",
     warning: "border-warning/45 bg-transparent text-warning",
-    danger: "border-destructive/45 bg-transparent text-destructive",
+    destructive: "border-destructive/45 bg-transparent text-destructive",
   },
   plain: {
-    neutral: "border-transparent bg-transparent text-foreground",
-    accent: "border-transparent bg-transparent text-primary",
+    secondary: "border-transparent bg-transparent text-foreground",
+    primary: "border-transparent bg-transparent text-primary",
     success: "border-transparent bg-transparent text-success",
     warning: "border-transparent bg-transparent text-warning",
-    danger: "border-transparent bg-transparent text-destructive",
+    destructive: "border-transparent bg-transparent text-destructive",
   },
 } as const;
 
 const rings = {
-  neutral: "outline-secondary",
-  accent: "outline-primary",
+  primary: "outline-primary",
+  secondary: "outline-secondary",
+  destructive: "outline-destructive",
   success: "outline-success",
   warning: "outline-warning",
-  danger: "outline-destructive",
 } as const;
 
 const iconClass = "size-[1.25em] shrink-0";
@@ -181,6 +181,20 @@ function buttonHint(token: string): string {
   if (/^(border|ring|shadow)/.test(token)) return 'variant="outline"';
   if (/^bg-(transparent|none)$/.test(token)) return 'variant="plain"';
   return `tone="${toneFor(token)}"`;
+}
+
+/** shadcn's Button variants, with the Ouro UI props that do the same job. Development only. */
+const shadcnVariants: Readonly<Record<string, string>> = {
+  default: "<Button>",
+  destructive: '<Button tone="destructive">',
+  secondary: '<Button tone="secondary" variant="soft">',
+  ghost: '<Button variant="plain">',
+};
+
+/** The dev message for a variant that is not one of Ouro UI's. */
+function variantWarning(variant: string): readonly [string, string] {
+  const fix = Object.hasOwn(shadcnVariants, variant) ? shadcnVariants[variant]! : '<Button variant="solid">';
+  return [`variant="${variant}" is not a variant`, fix];
 }
 
 function Spinner(): JSX.Element {
@@ -223,12 +237,12 @@ function safeRel(rel: string | undefined): string {
  * @example
  * <Button onClick={save} loading={saving}>Save</Button>
  * <Button href="/recipes/new" startIcon={PlusIcon}>New recipe</Button>
- * <Button tone="danger" variant="soft" type="submit">Delete</Button>
+ * <Button tone="destructive" variant="soft" type="submit">Delete</Button>
  */
 export function Button(props: ButtonProps): JSX.Element {
   const {
-    tone = "accent",
-    variant = "solid",
+    tone: toneProp = "primary",
+    variant: variantProp = "solid",
     size = "md",
     fullWidth,
     loading,
@@ -246,6 +260,9 @@ export function Button(props: ButtonProps): JSX.Element {
     ...rest
   } = props;
   const { linkComponent: LinkComponent } = useOuro();
+  // A tone or variant that is not one of Ouro UI's (a type error) warns and renders the default.
+  const tone = Object.hasOwn(rings, toneProp) ? toneProp : "primary";
+  const variant = Object.hasOwn(looks, variantProp) ? variantProp : "solid";
   useAppearanceClassNameCheck(
     "Button",
     className,
@@ -257,6 +274,8 @@ export function Button(props: ButtonProps): JSX.Element {
       ? () => {
           const link = rest as { href?: string; type?: string; disabled?: boolean };
           return [
+            tone !== toneProp && toneWarning("Button", String(toneProp), Object.keys(rings)),
+            variant !== variantProp && variantWarning(String(variantProp)),
             isLoading !== undefined && ["isLoading is not a prop", "<Button loading>"],
             color !== undefined && ["color is not a prop", `<Button tone="${toneFor(`bg-${String(color)}`)}">`],
             asChild !== undefined && ["asChild is not a prop", '<Button href="/path">'],

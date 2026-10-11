@@ -12,7 +12,7 @@ expectTypeOf<{ children: "Go"; type: "submit"; loading: true }>().toExtend<Butto
 expectTypeOf<{ children: "Go"; href: "/x"; target: "_blank"; rel: "noopener" }>().toExtend<ButtonProps>();
 expectTypeOf<{
   children: "Go";
-  tone: "danger";
+  tone: "destructive";
   variant: "soft";
   size: "lg";
   fullWidth: true;
@@ -35,6 +35,11 @@ expectTypeOf<{ children: "Go"; href: "/x"; disabled: true }>().not.toExtend<Butt
 // Appearance is named, never a color.
 expectTypeOf<{ children: "Go"; tone: "red" }>().not.toExtend<ButtonProps>();
 expectTypeOf<{ children: "Go"; variant: "ghost" }>().not.toExtend<ButtonProps>();
+// shadcn and older Ouro names are not tones or variants; the tone names are the theme tokens.
+expectTypeOf<{ children: "Go"; tone: "danger" }>().not.toExtend<ButtonProps>();
+expectTypeOf<{ children: "Go"; tone: "accent" }>().not.toExtend<ButtonProps>();
+expectTypeOf<{ children: "Go"; variant: "destructive" }>().not.toExtend<ButtonProps>();
+expectTypeOf<{ children: "Go"; variant: "default" }>().not.toExtend<ButtonProps>();
 
 // Children are required.
 expectTypeOf<{ type: "button" }>().not.toExtend<ButtonProps>();

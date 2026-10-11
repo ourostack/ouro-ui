@@ -347,13 +347,13 @@ describe("link branch", () => {
 
 describe("appearance", () => {
   const variants = ["solid", "soft", "outline", "plain"] as const;
-  const tones = ["neutral", "accent", "success", "warning", "danger"] as const;
+  const tones = ["secondary", "primary", "success", "warning", "destructive"] as const;
 
-  it("defaults to a solid accent button", async () => {
+  it("defaults to a solid primary button", async () => {
     const { host } = await render(
       <>
         <Button>Default</Button>
-        <Button tone="accent" variant="solid">
+        <Button tone="primary" variant="solid">
           Explicit
         </Button>
       </>,
@@ -417,7 +417,7 @@ describe("appearance", () => {
   it("shows a crisp focus ring in the tone color on keyboard focus", async () => {
     const { host } = await render(
       <>
-        <Button tone="danger">Delete</Button>
+        <Button tone="destructive">Delete</Button>
         <i className="bg-destructive" />
       </>,
     );
@@ -523,7 +523,7 @@ describe("className", () => {
     await screen.rerender(<Button className="bg-red-500">Go again</Button>);
     expect(warn).toHaveBeenCalledTimes(1);
     expect(String(warn.mock.calls[0]?.[0])).toBe(
-      '[ouro-ui] Button: "bg-red-500" sets appearance, and className is for layout only. Fix: tone="danger".',
+      '[ouro-ui] Button: "bg-red-500" sets appearance, and className is for layout only. Fix: tone="destructive".',
     );
   });
 
@@ -558,7 +558,7 @@ describe("runtime guards", () => {
 
   it.each([
     ["isLoading", true, "<Button loading>"],
-    ["color", "red", '<Button tone="danger">'],
+    ["color", "red", '<Button tone="destructive">'],
     ["asChild", true, '<Button href="/path">'],
     ["leftIcon", Star, "<Button startIcon={Icon}>"],
     ["rightIcon", Star, "<Button endIcon={Icon}>"],
@@ -596,6 +596,34 @@ describe("runtime guards", () => {
     expect(String(warn.mock.calls[0]?.[0])).toBe(
       "[ouro-ui] Button: a link cannot be disabled. Fix: <Button disabled> without href.",
     );
+  });
+
+  it.each([
+    ["tone", "danger", 'tone="danger" is not a tone. Fix: <Button tone="destructive">.'],
+    ["tone", "accent", 'tone="accent" is not a tone. Fix: <Button tone="primary">.'],
+    ["tone", "neutral", 'tone="neutral" is not a tone. Fix: <Button tone="secondary">.'],
+    [
+      "tone",
+      "blue",
+      'tone="blue" is not a tone; use "primary", "secondary", "destructive", "success", "warning". Fix: <Button tone="primary">.',
+    ],
+    ["variant", "destructive", 'variant="destructive" is not a variant. Fix: <Button tone="destructive">.'],
+    ["variant", "default", 'variant="default" is not a variant. Fix: <Button>.'],
+    ["variant", "secondary", 'variant="secondary" is not a variant. Fix: <Button tone="secondary" variant="soft">.'],
+    ["variant", "ghost", 'variant="ghost" is not a variant. Fix: <Button variant="plain">.'],
+    ["variant", "link", 'variant="link" is not a variant. Fix: <Button variant="solid">.'],
+  ])("renders the default look for %s=%j and warns once with the fix", async (prop, value, message) => {
+    const screen = await render(
+      <div>
+        <Button>Default</Button>
+        <Untyped {...{ [prop]: value }}>Odd</Untyped>
+      </div>,
+    );
+    const [plain, odd] = [...screen.host.querySelectorAll("button")].map((el) => getComputedStyle(el));
+    expect(odd!.backgroundColor).toBe(plain!.backgroundColor);
+    expect(odd!.color).toBe(plain!.color);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]?.[0])).toBe(`[ouro-ui] Button: ${message}`);
   });
 
   it("does not warn on server render", () => {

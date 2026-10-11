@@ -5,17 +5,18 @@ import type { ToneName } from "@/registry/ouro/lib/tones";
 // does the same job with a prop. Components pass them only in development, so
 // none of this ships in production bundles.
 
+// Palette colors, and shadcn's token names (`bg-destructive`), mapped to the tone.
 const PALETTE: Array<[RegExp, ToneName]> = [
-  [/-(red|rose|pink)(-|$)/, "danger"],
-  [/-(green|emerald|lime|teal)(-|$)/, "success"],
-  [/-(amber|yellow|orange)(-|$)/, "warning"],
-  [/-(gray|grey|zinc|slate|neutral|stone|black|white)(-|$)/, "neutral"],
+  [/-(red|rose|pink|destructive)(-|\/|$)/, "destructive"],
+  [/-(green|emerald|lime|teal|success)(-|\/|$)/, "success"],
+  [/-(amber|yellow|orange|warning)(-|\/|$)/, "warning"],
+  [/-(gray|grey|zinc|slate|neutral|stone|black|white|secondary|muted)(-|\/|$)/, "secondary"],
 ];
 
-/** The tone closest to a palette color in the token, or `accent`. */
+/** The tone closest to a palette color or theme token in the token, or `primary`. */
 export function toneFor(token: string): ToneName {
   for (const [pattern, tone] of PALETTE) if (pattern.test(token)) return tone;
-  return "accent";
+  return "primary";
 }
 
 const TEXT_SIZE = /^text-(xs|sm|base|lg|xl|\dxl)$/;

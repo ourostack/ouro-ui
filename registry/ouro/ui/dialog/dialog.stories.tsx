@@ -81,7 +81,7 @@ export const WithFooter: Story = {
     description: "Changes are saved to every cookbook with this recipe.",
     footer: (
       <>
-        <Button variant="outline" tone="neutral">
+        <Button variant="outline" tone="secondary">
           Cancel
         </Button>
         <Button>Save</Button>
@@ -163,10 +163,10 @@ export const Confirm: Story = {
       title="Delete recipe?"
       description="Shakshuka will be removed from every cookbook. This can't be undone."
       confirmLabel="Delete"
-      tone="danger"
+      tone="destructive"
       onConfirm={() => new Promise((resolve) => setTimeout(resolve, 1200))}
       trigger={
-        <Button tone="danger" variant="soft">
+        <Button tone="destructive" variant="soft">
           Delete recipe
         </Button>
       }

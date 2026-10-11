@@ -11,7 +11,7 @@ afterEach(() => {
 
 describe("devWarn", () => {
   it("uses the spec format", () => {
-    devWarn("Button", "bg-red-500 sets appearance", 'tone="danger"', {});
+    devWarn("Button", "bg-red-500 sets appearance", 'tone="destructive"', {});
     expect(warn).toHaveBeenCalledTimes(1);
     expect(String(warn.mock.calls[0]?.[0])).toMatch(/^\[ouro-ui\] Button: .+\. Fix: .+\.$/);
   });

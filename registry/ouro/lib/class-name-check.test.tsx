@@ -24,7 +24,7 @@ afterEach(async () => {
 });
 
 function Probe({ className }: { className?: string | undefined }) {
-  useAppearanceClassNameCheck("Button", className, 'tone="danger"');
+  useAppearanceClassNameCheck("Button", className, 'tone="destructive"');
   return null;
 }
 
@@ -117,13 +117,13 @@ describe("useAppearanceClassNameCheck", () => {
     expect(warn).toHaveBeenCalledTimes(1);
     const message = String(warn.mock.calls[0]?.[0]);
     expect(message).toContain('"bg-red-500"');
-    expect(message).toContain('tone="danger"');
+    expect(message).toContain('tone="destructive"');
     expect(message).toMatch(/^\[ouro-ui\] Button: .+\. Fix: .+\.$/);
   });
 
   it("points alignment classes to the alignHint, or to the parent", async () => {
     function AlignProbe({ alignHint }: { alignHint?: string }) {
-      useAppearanceClassNameCheck("Button", "text-center", 'tone="danger"', alignHint);
+      useAppearanceClassNameCheck("Button", "text-center", 'tone="destructive"', alignHint);
       return null;
     }
     await render(<AlignProbe alignHint='align="center"' />);
@@ -138,13 +138,13 @@ describe("useAppearanceClassNameCheck", () => {
 
   it("takes a hint function that picks the fix for the offending token", async () => {
     function HintProbe({ className }: { className: string }) {
-      useAppearanceClassNameCheck("Text", className, (token) => (token === "text-sm" ? 'size="sm"' : 'tone="danger"'));
+      useAppearanceClassNameCheck("Text", className, (token) => (token === "text-sm" ? 'size="sm"' : 'tone="destructive"'));
       return null;
     }
     await render(<HintProbe className="mt-2 text-sm" />);
     await render(<HintProbe className="bg-red-500" />);
     expect(String(warn.mock.calls[0]?.[0])).toContain('Fix: size="sm".');
-    expect(String(warn.mock.calls[1]?.[0])).toContain('Fix: tone="danger".');
+    expect(String(warn.mock.calls[1]?.[0])).toContain('Fix: tone="destructive".');
   });
 
   it("warns for dark: classes", async () => {

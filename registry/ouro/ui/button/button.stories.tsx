@@ -28,7 +28,7 @@ const DownloadIcon = icon(<path d="M12 4v11M7 10l5 5 5-5M5 20h14" />);
 const HeartIcon = icon(<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z" />);
 const ExternalIcon = icon(<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />);
 
-const tones = ["neutral", "accent", "success", "warning", "danger"] as const;
+const tones = ["secondary", "primary", "success", "warning", "destructive"] as const;
 const variants = ["solid", "soft", "outline", "plain"] as const;
 
 const row: CSSProperties = { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 };
@@ -129,10 +129,10 @@ export const Sizes: Story = {
           <Button size={size} variant="soft" endIcon={ArrowRightIcon}>
             Continue
           </Button>
-          <Button size={size} variant="outline" tone="neutral" startIcon={DownloadIcon}>
+          <Button size={size} variant="outline" tone="secondary" startIcon={DownloadIcon}>
             Export
           </Button>
-          <Button size={size} variant="plain" tone="neutral" aria-label="Add">
+          <Button size={size} variant="plain" tone="secondary" aria-label="Add">
             <PlusIcon aria-hidden="true" style={{ width: "1.25em", height: "1.25em" }} />
           </Button>
         </div>
@@ -175,7 +175,7 @@ export const Loading: Story = {
           Saving
         </Button>
         <Button loading>Saving</Button>
-        <Button loading size="lg" tone="danger">
+        <Button loading size="lg" tone="destructive">
           Deleting
         </Button>
       </div>
@@ -191,7 +191,7 @@ export const Links: Story = {
         <Button href="#recipes" endIcon={ArrowRightIcon}>
           Browse recipes
         </Button>
-        <Button href="https://github.com/ourostack/ouro-ui" target="_blank" variant="outline" tone="neutral" endIcon={ExternalIcon}>
+        <Button href="https://github.com/ourostack/ouro-ui" target="_blank" variant="outline" tone="secondary" endIcon={ExternalIcon}>
           Source on GitHub
         </Button>
         <Button href="#cookbooks" variant="plain">
@@ -228,10 +228,10 @@ export const InContext: Story = {
             Add to shopping list
           </Button>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            <Button variant="soft" tone="neutral" fullWidth>
+            <Button variant="soft" tone="secondary" fullWidth>
               Cancel
             </Button>
-            <Button variant="soft" tone="danger" startIcon={TrashIcon} fullWidth>
+            <Button variant="soft" tone="destructive" startIcon={TrashIcon} fullWidth>
               Delete
             </Button>
           </div>
@@ -243,10 +243,10 @@ export const InContext: Story = {
             Add to shopping list
           </Button>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            <Button variant="soft" tone="neutral" fullWidth>
+            <Button variant="soft" tone="secondary" fullWidth>
               Cancel
             </Button>
-            <Button variant="soft" tone="danger" startIcon={TrashIcon} fullWidth>
+            <Button variant="soft" tone="destructive" startIcon={TrashIcon} fullWidth>
               Delete
             </Button>
           </div>

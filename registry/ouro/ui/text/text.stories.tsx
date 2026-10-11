@@ -50,7 +50,7 @@ const meta = {
   argTypes: {
     as: { control: "inline-radio", options: ["p", "span", "div"] },
     size: { control: "inline-radio", options: ["sm", "md", "lg"] },
-    tone: { control: "select", options: ["default", "muted", "neutral", "accent", "success", "warning", "danger"] },
+    tone: { control: "select", options: ["default", "muted", "secondary", "primary", "success", "warning", "destructive"] },
     align: { control: "inline-radio", options: ["start", "center", "end"] },
   },
 } satisfies Meta<typeof Text>;
@@ -69,11 +69,11 @@ export const SizesAndTones: Story = {
       <Text size="sm">Small: captions, metadata and fine print.</Text>
       <div style={{ display: "grid", gap: 6 }}>
         <Text tone="muted">Muted: updated 2 days ago</Text>
-        <Text tone="neutral">Neutral: 4 servings</Text>
-        <Text tone="accent">Accent: 3 new comments</Text>
+        <Text tone="secondary">Secondary: 4 servings</Text>
+        <Text tone="primary">Primary: 3 new comments</Text>
         <Text tone="success">Success: saved to Weeknight dinners</Text>
         <Text tone="warning">Warning: contains tree nuts</Text>
-        <Text tone="danger">Danger: could not save the recipe</Text>
+        <Text tone="destructive">Destructive: could not save the recipe</Text>
       </div>
     </BothSchemes>
   ),
@@ -125,7 +125,7 @@ export const RecipeCard: Story = {
   render: () => (
     <BothSchemes>
       <article style={{ display: "grid", gap: 12, maxWidth: 380 }}>
-        <Text size="sm" tone="accent">
+        <Text size="sm" tone="primary">
           Korean · 3 hours
         </Text>
         <Heading level={2}>Gochujang braised short ribs</Heading>
@@ -134,7 +134,7 @@ export const RecipeCard: Story = {
         </Text>
         <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
           <Button href="#cook">Start cooking</Button>
-          <Button variant="soft" tone="neutral">
+          <Button variant="soft" tone="secondary">
             Save
           </Button>
         </div>

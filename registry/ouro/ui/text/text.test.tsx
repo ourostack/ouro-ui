@@ -113,11 +113,11 @@ describe("Text", () => {
         <Text>a</Text>
         <Text tone="default">a</Text>
         <Text tone="muted">a</Text>
-        <Text tone="neutral">a</Text>
-        <Text tone="accent">a</Text>
+        <Text tone="secondary">a</Text>
+        <Text tone="primary">a</Text>
         <Text tone="success">a</Text>
         <Text tone="warning">a</Text>
-        <Text tone="danger">a</Text>
+        <Text tone="destructive">a</Text>
         <i className="text-foreground" />
         <i className="text-muted-foreground" />
         <i className="text-primary" />
@@ -142,7 +142,7 @@ describe("Text", () => {
   });
 
   it.each([
-    ["text-red-500", 'tone="danger"'],
+    ["text-red-500", 'tone="destructive"'],
     ["text-gray-500", 'tone="muted"'],
     ["text-sm", 'size="sm"'],
     ["font-bold", "<Text><strong>…</strong></Text>"],
@@ -236,7 +236,22 @@ describe("runtime guards", () => {
   it("strips color from Text and warns with the fix", async () => {
     const { el } = await render(<UntypedText color="red">a</UntypedText>);
     expect(el.hasAttribute("color")).toBe(false);
-    expect(String(warn.mock.calls[0]?.[0])).toBe('[ouro-ui] Text: color is not a prop. Fix: <Text tone="danger">.');
+    expect(String(warn.mock.calls[0]?.[0])).toBe('[ouro-ui] Text: color is not a prop. Fix: <Text tone="destructive">.');
+  });
+
+  it.each([
+    ["danger", 'tone="danger" is not a tone. Fix: <Text tone="destructive">.'],
+    ["accent", 'tone="accent" is not a tone. Fix: <Text tone="primary">.'],
+    [
+      "blue",
+      'tone="blue" is not a tone; use "default", "muted", "primary", "secondary", "destructive", "success", "warning". Fix: <Text tone="default">.',
+    ],
+  ])("renders the default color for tone=%j and warns once with the fix", async (tone, message) => {
+    const { el } = await render(<UntypedText tone={tone}>a</UntypedText>);
+    const reference = await render(<Text>a</Text>);
+    expect(getComputedStyle(el).color).toBe(getComputedStyle(reference.el).color);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]?.[0])).toBe(`[ouro-ui] Text: ${message}`);
   });
 
   it("strips color and as from Heading and warns with the fix", async () => {
@@ -250,7 +265,7 @@ describe("runtime guards", () => {
     expect(el.hasAttribute("as")).toBe(false);
     const messages = warn.mock.calls.map((call: unknown[]) => String(call[0]));
     expect(messages).toEqual([
-      '[ouro-ui] Heading: color is not a prop; headings use the theme ink color. Fix: <Text tone="danger">.',
+      '[ouro-ui] Heading: color is not a prop; headings use the theme foreground color. Fix: <Text tone="destructive">.',
       "[ouro-ui] Heading: as is not a prop; level sets the tag. Fix: <Heading level={3}>.",
     ]);
   });

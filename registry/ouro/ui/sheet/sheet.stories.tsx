@@ -29,7 +29,7 @@ function CookbookList() {
           <Button
             key={name}
             variant={on ? "soft" : "plain"}
-            tone={on ? "accent" : "neutral"}
+            tone={on ? "primary" : "secondary"}
             fullWidth
             aria-pressed={on}
             onClick={() => setSaved(on ? saved.filter((item) => item !== name) : [...saved, name])}

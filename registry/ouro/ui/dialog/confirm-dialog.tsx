@@ -1,6 +1,7 @@
 import { useRef, useState, type JSX, type ReactElement, type ReactNode } from "react";
 import { devWarn } from "@/registry/ouro/lib/dev";
 import { checkOpenMode } from "@/registry/ouro/lib/open-mode";
+import { toneWarning } from "@/registry/ouro/lib/tones";
 import { useDevWarnings } from "@/registry/ouro/lib/use-dev-warnings";
 import { Button } from "@/registry/ouro/ui/button/button";
 import {
@@ -26,8 +27,8 @@ export interface ConfirmDialogBaseProps {
   confirmLabel: string;
   /** The cancel button's label. Cancel has focus when the dialog opens. @default "Cancel" */
   cancelLabel?: string | undefined;
-  /** The confirm button's color role. Use `danger` for destructive actions. @default "accent" */
-  tone?: "accent" | "danger" | undefined;
+  /** The confirm button's color role. Use `destructive` for destructive actions. @default "primary" */
+  tone?: "primary" | "destructive" | undefined;
   /**
    * Runs the action. Return a promise to keep the dialog open while it runs: the
    * confirm button shows `loading` until it settles. When it resolves the dialog
@@ -43,7 +44,7 @@ export interface ConfirmDialogBaseProps {
   onClose?: never;
   /** Not a prop. Cancel calls `onOpenChange(false)`: `<ConfirmDialog open={open} onOpenChange={setOpen}>`. */
   onCancel?: never;
-  /** Not a prop. Ouro UI uses `tone`: `<ConfirmDialog tone="danger">`. */
+  /** Not a prop. Ouro UI uses `tone`: `<ConfirmDialog tone="destructive">`. */
   destructive?: never;
   /** Not a prop. Ouro UI uses `confirmLabel`: `<ConfirmDialog confirmLabel="Delete">`. */
   confirmText?: never;
@@ -53,7 +54,7 @@ export interface ConfirmDialogBaseProps {
 
 /** An uncontrolled ConfirmDialog: `trigger` opens it. */
 export type ConfirmDialogWithTriggerProps = ConfirmDialogBaseProps & {
-  /** The element that opens the confirmation, usually a Button: `trigger={<Button tone="danger">Delete</Button>}`. */
+  /** The element that opens the confirmation, usually a Button: `trigger={<Button tone="destructive">Delete</Button>}`. */
   trigger: ReactElement;
   /** Not with `trigger`. Remove `trigger` to control the confirmation with `open` and `onOpenChange`. */
   open?: never;
@@ -80,7 +81,7 @@ export type ConfirmDialogProps = ConfirmDialogWithTriggerProps | ConfirmDialogCo
  * The actions stack full width on phones, the confirm action at the bottom,
  * nearest the thumb.
  *
- * Use `tone="danger"` for destructive actions, and return a promise from
+ * Use `tone="destructive"` for destructive actions, and return a promise from
  * `onConfirm` to show progress until the action finishes. Use `Dialog` instead
  * when the user has more to do than confirm or cancel.
  *
@@ -89,9 +90,9 @@ export type ConfirmDialogProps = ConfirmDialogWithTriggerProps | ConfirmDialogCo
  *   title="Delete recipe?"
  *   description="This can't be undone."
  *   confirmLabel="Delete"
- *   tone="danger"
+ *   tone="destructive"
  *   onConfirm={() => deleteRecipe(id)}
- *   trigger={<Button tone="danger" variant="soft">Delete</Button>}
+ *   trigger={<Button tone="destructive" variant="soft">Delete</Button>}
  * />
  */
 export function ConfirmDialog(props: ConfirmDialogProps): JSX.Element {
@@ -100,7 +101,7 @@ export function ConfirmDialog(props: ConfirmDialogProps): JSX.Element {
     description,
     confirmLabel,
     cancelLabel = "Cancel",
-    tone = "accent",
+    tone: toneProp = "primary",
     onConfirm,
     trigger,
     open,
@@ -118,6 +119,9 @@ export function ConfirmDialog(props: ConfirmDialogProps): JSX.Element {
     onOpenChange?: (open: boolean) => void;
   };
 
+  // A tone that is not one of the confirm tones (a type error) warns and renders primary.
+  const tone = toneProp === "destructive" ? "destructive" : "primary";
+
   checkOpenMode("ConfirmDialog", "confirmation", trigger !== undefined, open, onOpenChange);
 
   useDevWarnings(
@@ -126,10 +130,11 @@ export function ConfirmDialog(props: ConfirmDialogProps): JSX.Element {
       ? () => {
           const controlFix = "<ConfirmDialog open={open} onOpenChange={setOpen}>";
           return [
+            tone !== toneProp && toneWarning("ConfirmDialog", String(toneProp), ["primary", "destructive"]),
             isOpen !== undefined && ["isOpen is not a prop", controlFix],
             onClose !== undefined && ["onClose is not a prop", controlFix],
             onCancel !== undefined && ["onCancel is not a prop; Cancel calls onOpenChange(false)", controlFix],
-            destructive !== undefined && ["destructive is not a prop", '<ConfirmDialog tone="danger">'],
+            destructive !== undefined && ["destructive is not a prop", '<ConfirmDialog tone="destructive">'],
             confirmText !== undefined && ["confirmText is not a prop", '<ConfirmDialog confirmLabel="Delete">'],
             cancelText !== undefined && ["cancelText is not a prop", '<ConfirmDialog cancelLabel="Keep">'],
           ];
@@ -208,7 +213,7 @@ export function ConfirmDialog(props: ConfirmDialogProps): JSX.Element {
               <DialogClose
                 ref={cancelRef}
                 render={
-                  <Button variant="outline" tone="neutral">
+                  <Button variant="outline" tone="secondary">
                     {cancelLabel}
                   </Button>
                 }

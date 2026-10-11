@@ -3,7 +3,7 @@ import { fontFor, isWeight, sizeFor, toneFor } from "@/registry/ouro/lib/appeara
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/class-name-check";
 import { cn } from "@/registry/ouro/lib/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/use-dev-warnings";
-import type { ToneName } from "@/registry/ouro/lib/tones";
+import { toneWarning, type ToneName } from "@/registry/ouro/lib/tones";
 
 /** Text alignment, in writing direction: `start` is left in English and right in Arabic. */
 export type TextAlign = "start" | "center" | "end";
@@ -14,8 +14,8 @@ interface TextBaseProps extends Omit<HTMLAttributes<HTMLElement>, "color" | "cla
   /** Type size from the theme. @default "md" */
   size?: "sm" | "md" | "lg" | undefined;
   /**
-   * Text color: `default` ink, `muted` for secondary text, or a tone for
-   * status text (`danger` for an error). @default "default"
+   * Text color: `default` foreground, `muted` for secondary text, or a tone for
+   * status text (`destructive` for an error). @default "default"
    */
   tone?: "default" | "muted" | ToneName | undefined;
   /** Alignment in writing direction. @default inherited */
@@ -54,11 +54,11 @@ const sizes = { sm: "text-sm", md: "text-base", lg: "text-lg" } as const;
 const tones = {
   default: "text-foreground",
   muted: "text-muted-foreground",
-  neutral: "text-secondary",
-  accent: "text-primary",
+  primary: "text-primary",
+  secondary: "text-secondary",
+  destructive: "text-destructive",
   success: "text-success",
   warning: "text-warning",
-  danger: "text-destructive",
 } as const;
 
 /** Alignment classes, shared with `Heading`. */
@@ -66,7 +66,7 @@ export const alignClasses = { start: "text-start", center: "text-center", end: "
 
 function textTone(token: string): string {
   const tone = toneFor(token);
-  return tone === "neutral" ? "muted" : tone;
+  return tone === "secondary" ? "muted" : tone;
 }
 
 function textHint(token: string): string {
@@ -86,11 +86,13 @@ function textHint(token: string): string {
  * @example
  * <Text>Braise for three hours.</Text>
  * <Text size="sm" tone="muted">Updated 2 days ago</Text>
- * <Text tone="danger">Could not save the recipe.</Text>
+ * <Text tone="destructive">Could not save the recipe.</Text>
  * <Text lines={2}>{recipe.description}</Text>
  */
 export function Text(props: TextProps): JSX.Element {
-  const { as: Tag = "p", size = "md", tone = "default", align, truncate, lines, className, style, ref, color, ...rest } = props;
+  const { as: Tag = "p", size = "md", tone: toneProp = "default", align, truncate, lines, className, style, ref, color, ...rest } = props;
+  // A tone that is not one of Ouro UI's (a type error) warns and renders the default.
+  const tone = Object.hasOwn(tones, toneProp) ? toneProp : "default";
   useAppearanceClassNameCheck(
     "Text",
     className,
@@ -100,7 +102,10 @@ export function Text(props: TextProps): JSX.Element {
   useDevWarnings(
     "Text",
     process.env.NODE_ENV !== "production"
-      ? () => [color !== undefined && ["color is not a prop", `<Text tone="${textTone(`text-${String(color)}`)}">`]]
+      ? () => [
+          tone !== toneProp && toneWarning("Text", String(toneProp), Object.keys(tones)),
+          color !== undefined && ["color is not a prop", `<Text tone="${textTone(`text-${String(color)}`)}">`],
+        ]
       : /* istanbul ignore next -- production only */ undefined,
   );
   const classes = cn(

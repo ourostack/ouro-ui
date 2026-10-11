@@ -31,7 +31,7 @@ export interface HeadingProps extends Omit<HTMLAttributes<HTMLHeadingElement>, "
   ref?: Ref<HTMLHeadingElement> | undefined;
   /** Not a prop. The tag comes from `level`: `<Heading level={2}>`. */
   as?: never;
-  /** Not a prop. Headings use the theme's ink color; for colored text use `<Text tone="…">`. */
+  /** Not a prop. Headings use the theme's foreground color; for colored text use `<Text tone="…">`. */
   color?: never;
 }
 
@@ -53,7 +53,7 @@ function headingHint(token: string): string {
 }
 
 /**
- * A section title, `<h1>` to `<h6>`, in the theme's display font. `level` sets
+ * A section title, `<h1>` to `<h6>`, in the theme's foreground color. `level` sets
  * the tag and a default size; `size` changes only the look.
  *
  * Use `Text` instead for body copy, and for a dialog or sheet title use its
@@ -84,7 +84,7 @@ export function Heading(props: HeadingProps): JSX.Element {
     process.env.NODE_ENV !== "production"
       ? () => [
           color !== undefined && [
-            "color is not a prop; headings use the theme ink color",
+            "color is not a prop; headings use the theme foreground color",
             `<Text tone="${toneFor(`text-${String(color)}`)}">`,
           ],
           as !== undefined && [

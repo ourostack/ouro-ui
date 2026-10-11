@@ -3,14 +3,14 @@ import { radiusFor, sizeFor, toneFor } from "@/registry/ouro/lib/appearance-hint
 
 describe("toneFor", () => {
   it.each([
-    ["bg-red-500", "danger"],
-    ["text-rose-600", "danger"],
+    ["bg-red-500", "destructive"],
+    ["text-rose-600", "destructive"],
     ["bg-emerald-600", "success"],
     ["border-amber-300", "warning"],
-    ["text-gray-500", "neutral"],
-    ["bg-black", "neutral"],
-    ["bg-blue-500", "accent"],
-    ["bg-[#123456]", "accent"],
+    ["text-gray-500", "secondary"],
+    ["bg-black", "secondary"],
+    ["bg-blue-500", "primary"],
+    ["bg-[#123456]", "primary"],
   ])("maps %s to %s", (token, tone) => expect(toneFor(token)).toBe(tone));
 });
 
