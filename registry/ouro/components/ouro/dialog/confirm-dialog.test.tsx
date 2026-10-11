@@ -203,6 +203,45 @@ describe("ConfirmDialog", () => {
     await expect.poll(() => document.activeElement?.textContent).toBe("Recipes");
   });
 
+  it("returns focus to the trigger when the app closes a confirmation it reopened after a confirm", async () => {
+    let setOpenFromApp!: (next: boolean) => void;
+    function Page() {
+      const [openState, setOpen] = useState(false);
+      const headingRef = useRef<HTMLHeadingElement>(null);
+      setOpenFromApp = setOpen;
+      return (
+        <main>
+          <h1 ref={headingRef} tabIndex={-1}>
+            Recipes
+          </h1>
+          <Button onClick={() => setOpen(true)}>Delete recipe</Button>
+          <ConfirmDialog
+            title="Delete recipe?"
+            confirmLabel="Delete"
+            finalFocus={headingRef}
+            onConfirm={() => {}}
+            open={openState}
+            onOpenChange={setOpen}
+          />
+        </main>
+      );
+    }
+    await render(<Page />);
+    await userEvent.click(trigger());
+    await settled();
+    await userEvent.click(button("Delete"));
+    await expect.poll(() => popup()).toBeNull();
+    await expect.poll(() => document.activeElement?.textContent).toBe("Recipes");
+
+    // The app reopens the confirmation from its own button, then closes it itself
+    // (on navigation, say) without the user confirming.
+    await userEvent.click(trigger());
+    await settled();
+    await act(async () => setOpenFromApp(false));
+    await expect.poll(() => popup()).toBeNull();
+    await expect.poll(() => document.activeElement).toBe(trigger());
+  });
+
   it("returns focus to the trigger after Cancel when finalFocus is not set", async () => {
     await open();
     await userEvent.click(button("Cancel"));
