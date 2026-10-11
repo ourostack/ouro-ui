@@ -1,4 +1,5 @@
 import { docsItems } from "./docs/items";
+import { HERO_COPY } from "./copy";
 import { latestRelease } from "./release";
 
 /** Every page the site builds. Paths are relative to the base (`/ouro-ui/`) and end in `/`. */
@@ -8,8 +9,7 @@ export interface Route {
   description: string;
 }
 
-const DESCRIPTION =
-  "React components with handcrafted interactions, installed into your project as code you own, designed so coding agents use them correctly.";
+const DESCRIPTION = `${HERO_COPY} Copy-in React components for shadcn/ui apps.`;
 
 export const routes: Route[] = [
   { path: "/", title: "Ouro UI", description: DESCRIPTION },

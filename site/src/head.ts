@@ -14,7 +14,7 @@ export function headTags(route: Route, canonical: boolean): string[] {
   const title = escape(route.title);
   const description = escape(route.description);
   const image = `${SITE}/og.png`;
-  const alt = "Ouro UI: the landing page, with a bottom sheet open in a phone frame.";
+  const alt = "Ouro UI: the landing page, with the headline Designed down to the last tap and the last prop.";
   return [
     `<title>${title}</title>`,
     `<meta name="description" content="${description}" />`,

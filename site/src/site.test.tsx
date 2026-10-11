@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { commands, page, userEvent } from "vitest/browser";
+import { commands, page } from "vitest/browser";
 import { cleanupPage, describeViolations, renderPage, scan, setScheme, settle } from "../test/render";
 import { latestRelease, upgrading } from "./release";
 import { docsItems } from "./docs/items";
@@ -8,6 +8,9 @@ import { parse } from "./docs/markdown";
 import ogImage from "../public/og.png?url";
 import { headTags } from "./head";
 import { routes } from "./routes";
+import { AGENTS_COMING_SOON, HERO_SUBLINE, HERO_TITLE, SHADCN_LINE } from "./copy";
+import readme from "../../README.md?raw";
+import llms from "../public/llms.txt?raw";
 
 // The site's contract (Task 11): the hero says exactly what it should, the live Sheet
 // opens, every page passes axe in light and dark at a phone and a desktop width, nothing
@@ -28,25 +31,51 @@ const INIT = "npx shadcn@latest init --base base --preset nova --yes --no-monore
 const upgradeCommands = parse(upgrading).flatMap((block) => (block.kind === "code" ? [block.text] : []));
 
 describe("landing page", () => {
-  it("renders the exact hero text", async () => {
+  it("renders the exact hero text and the shadcn wording", async () => {
     await renderPage("/");
     const heading = page.getByRole("heading", { level: 1 });
     await expect.element(heading).toBeVisible();
-    expect(heading.element().textContent).toBe("Interfaces that feel right, built by agents that get them right.");
-    await expect.element(page.getByText("shadcn/ui compliant", { exact: true })).toBeVisible();
+    expect(heading.element().textContent).toBe(HERO_TITLE);
+    expect(HERO_TITLE).toBe("Designed down to the last tap and the last prop.");
+    expect(HERO_SUBLINE).toBe(
+      "Interactions that feel right to the humans using them. Code that's obvious to the agents building with them.",
+    );
+    await expect.element(page.getByText(HERO_SUBLINE, { exact: true })).toBeVisible();
+    await expect.element(page.getByText("Works with shadcn/ui", { exact: true })).toBeVisible();
+    await expect.element(page.getByText(SHADCN_LINE, { exact: true })).toBeVisible();
+    expect(SHADCN_LINE).toBe(
+      "Installs with the shadcn CLI, uses shadcn's theme tokens, and sits alongside the shadcn/ui components you already have.",
+    );
+    expect(document.body.innerText).not.toContain("compliant");
     expect(page.getByRole("link", { name: "llms.txt" }).element().getAttribute("href")).toBe("https://ourostack.github.io/ouro-ui/llms.txt");
   });
 
-  it("opens the live Sheet demo inside the phone frame", async () => {
-    await page.viewport(1280, 800);
+  it("has no phone mockup", async () => {
     const host = await renderPage("/");
-    await userEvent.click(page.getByRole("button", { name: "Save to cookbook" }));
-    const sheet = page.getByRole("dialog", { name: "Save to cookbook" });
-    await expect.element(sheet).toBeVisible();
-    // The sheet renders into the phone screen, not across the page.
-    const frame = host.querySelector("[data-site-phone-screen]")!;
-    expect(frame.contains(sheet.element())).toBe(true);
-    await expect.element(page.getByText("Drag it. Flick it. Pull it past the edge.")).toBeVisible();
+    expect(host.querySelector("[data-site-phone-screen]")).toBeNull();
+    expect(page.getByRole("button", { name: "Save to cookbook" }).elements()).toEqual([]);
+  });
+
+  it("announces Ouro UI for agents as coming soon, with no date", async () => {
+    await renderPage("/");
+    await expect.element(page.getByRole("heading", { level: 2, name: "Coming soon: Ouro UI for agents" })).toBeVisible();
+    for (const text of [AGENTS_COMING_SOON.intro, AGENTS_COMING_SOON.cli, AGENTS_COMING_SOON.mcp]) {
+      await expect.element(page.getByText(text, { exact: true })).toBeVisible();
+    }
+    expect(AGENTS_COMING_SOON.cli).toContain("--json");
+    expect(AGENTS_COMING_SOON.mcp).toContain("one error shape");
+    const copy = Object.values(AGENTS_COMING_SOON).join(" ");
+    expect(copy).not.toMatch(/people|20\d\d|Q[1-4]/);
+  });
+
+  it("keeps the hero copy the same in the head tags, README and llms.txt", () => {
+    expect(routes[0]!.description.startsWith(`${HERO_TITLE} ${HERO_SUBLINE}`)).toBe(true);
+    expect(readme).toContain(`${HERO_TITLE} ${HERO_SUBLINE}`);
+    expect(llms).toContain(`${HERO_TITLE} ${HERO_SUBLINE}`);
+    for (const text of [readme, llms, routes[0]!.description]) {
+      expect(text).not.toContain("handcrafted interactions");
+      expect(text).not.toContain("built by agents that get them right");
+    }
   });
 
   it("starts the install steps with shadcn's init, with the Base UI base, then pins the newest release", async () => {
@@ -123,16 +152,6 @@ describe.each([
     await renderPage(path);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(width);
   });
-});
-
-it("the Sheet demo passes axe while open, at a phone width", async () => {
-  await page.viewport(390, 844);
-  await renderPage("/");
-  await userEvent.click(page.getByRole("button", { name: "Save to cookbook" }));
-  await expect.element(page.getByRole("dialog", { name: "Save to cookbook" })).toBeVisible();
-  await settle();
-  const violations = await scan();
-  expect(violations, describeViolations(violations)).toEqual([]);
 });
 
 it("the Updating page's note has the tag filled in and no raw-file hint", () => {

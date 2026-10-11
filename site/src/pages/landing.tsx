@@ -6,12 +6,12 @@ import { agentExamples } from "../agents/examples";
 import { CodeBlock, Command, InlineCode } from "../components/code";
 import { ArrowRightIcon } from "../components/icons";
 import { Container, SiteFooter, SiteHeader } from "../components/layout";
-import { PhoneDemo } from "../components/phone-demo";
 import generated from "../generated/agent-messages.json";
+import { AGENTS_COMING_SOON, HERO_SUBLINE, HERO_TITLE, SHADCN_BADGE, SHADCN_LINE } from "../copy";
 import { latestRelease } from "../release";
 import { href } from "../routes";
 
-/** A small label beside a heading: "shadcn/ui compliant", "Alpha". */
+/** A small label beside a heading: "Works with shadcn/ui", "Alpha". */
 export function Pill({ children }: { children: ReactNode }): JSX.Element {
   return (
     <span className="inline-flex h-6 items-center rounded-full border border-border px-2.5 text-xs font-medium text-muted-foreground">
@@ -29,15 +29,17 @@ function Hero(): JSX.Element {
   return (
     <section aria-labelledby="hero-title" className="min-w-0">
       <div className="flex flex-wrap gap-2">
-        <Pill>shadcn/ui compliant</Pill>
+        <Pill>{SHADCN_BADGE}</Pill>
         <Pill>Alpha</Pill>
       </div>
-      <Heading level={1} size="display" id="hero-title" className="mt-6 max-w-[16ch]">
-        Interfaces that feel right, built by agents that get them right.
+      <Heading level={1} size="display" id="hero-title" className="mt-6 max-w-[18ch]">
+        {HERO_TITLE}
       </Heading>
       <Text size="lg" tone="muted" className="mt-6 max-w-[34rem] text-pretty">
-        Ouro UI is React components with handcrafted interactions, installed into your project as code you own. They're
-        designed so coding agents use them correctly, without a skill or a rules file.
+        {HERO_SUBLINE}
+      </Text>
+      <Text size="sm" tone="muted" className="mt-4 max-w-[34rem] text-pretty">
+        {SHADCN_LINE}
       </Text>
       <div className="mt-9 flex flex-wrap gap-3">
         <Button href="#install" size="lg">
@@ -101,7 +103,7 @@ function Agents(): JSX.Element {
   return (
     <section aria-labelledby="agents-title" className="border-t border-border">
       <Container className="py-20 sm:py-28">
-        <Eyebrow>For agents</Eyebrow>
+        <Eyebrow>How agents use it</Eyebrow>
         <Heading level={2} size="2xl" id="agents-title">
           Agents read the types
         </Heading>
@@ -319,24 +321,42 @@ function Switching(): JSX.Element {
   );
 }
 
+function ComingSoon(): JSX.Element {
+  return (
+    <section aria-labelledby="coming-soon-title" className="border-t border-border">
+      <Container className="py-20 sm:py-28">
+        <Eyebrow>Next</Eyebrow>
+        <Heading level={2} size="2xl" id="coming-soon-title">
+          {AGENTS_COMING_SOON.title}
+        </Heading>
+        <Text size="lg" tone="muted" className="mt-4 max-w-[42rem]">
+          {AGENTS_COMING_SOON.intro}
+        </Text>
+        <ul className="m-0 mt-8 grid list-none gap-4 p-0 sm:grid-cols-2">
+          {[AGENTS_COMING_SOON.cli, AGENTS_COMING_SOON.mcp].map((line) => (
+            <li key={line} className="rounded-2xl border border-border p-5 sm:p-6">
+              <Text tone="muted">{line}</Text>
+            </li>
+          ))}
+        </ul>
+      </Container>
+    </section>
+  );
+}
+
 export function Landing(): JSX.Element {
   return (
     <>
       <SiteHeader />
       <main>
-        <Container className="grid gap-16 pt-10 pb-20 sm:pt-16 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-20 lg:pt-20 lg:pb-28">
+        <Container className="pt-10 pb-20 sm:pt-16 lg:pt-20 lg:pb-28">
           <Hero />
-          <section aria-labelledby="demo-title" className="min-w-0">
-            <h2 id="demo-title" className="sr-only">
-              Live demo
-            </h2>
-            <PhoneDemo />
-          </section>
         </Container>
         <Agents />
         <Principles />
         <Install />
         <Switching />
+        <ComingSoon />
       </main>
       <SiteFooter />
     </>
