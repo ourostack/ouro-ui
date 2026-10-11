@@ -244,11 +244,11 @@ test("each item has a one-line description and a docs message with its docs URL"
   assert.equal(sheet.description, "A panel that slides in from an edge and is dragged back to dismiss: the mobile form of a dialog.");
   assert.equal(
     sheet.docs,
-    `${sheet.description} Import: import { Sheet } from "@/components/ouro/sheet/sheet". Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/sheet`,
+    `${sheet.description} Import: import { Sheet } from "@/components/ouro/sheet/sheet", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/sheet`,
   );
   assert.equal(
     item("confirm-dialog").docs,
-    `${item("confirm-dialog").description} Import: import { ConfirmDialog } from "@/components/ouro/dialog/confirm-dialog". Also installed: button, dialog, ouro-base, ouro-lib, sheet. Docs: https://ourostack.github.io/ouro-ui/docs/confirm-dialog`,
+    `${item("confirm-dialog").description} Import: import { ConfirmDialog } from "@/components/ouro/dialog/confirm-dialog", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, dialog, ouro-base, ouro-lib, sheet. Docs: https://ourostack.github.io/ouro-ui/docs/confirm-dialog`,
   );
   assert.match(item("heading").docs, /import \{ Heading \} from "@\/components\/ouro\/text\/heading"/);
   for (const name of ["ouro-base", "ouro-lib"]) {

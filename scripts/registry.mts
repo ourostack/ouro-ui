@@ -431,7 +431,8 @@ export function buildRegistry(root: string): Registry {
     const item = byName.get(entry.name)!;
     const also = [...installedWith(entry.name)].sort().join(", ");
     item.docs =
-      `${item.description} Import: import { ${entry.title} } from "@/components/ouro/${entry.folder}/${entry.stem}". ` +
+      `${item.description} Import: import { ${entry.title} } from "@/components/ouro/${entry.folder}/${entry.stem}", ` +
+      "with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). " +
       `Also installed: ${also}. Docs: ${DOCS_URL}/${entry.name}`;
   }
   return {
