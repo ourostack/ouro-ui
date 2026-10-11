@@ -37,13 +37,25 @@ test("hasClientDirective finds \"use client\" only as the first statement", () =
   assert.equal(hasClientDirective("a.ts", ""), false);
 });
 
-test("needsClientDirective covers components, providers and modules that call hooks", () => {
+test("needsClientDirective requires the directive in every component and lib .tsx file unless it is listed as pure", () => {
   assert.equal(needsClientDirective("registry/ouro/components/ouro/text/text.tsx", "export { Text };\n"), true);
+  assert.equal(needsClientDirective("registry/ouro/components/ouro/text/new-part.ts", "export const a = 'b';\n"), true);
   assert.equal(needsClientDirective("registry/ouro/lib/ouro/ouro-provider.tsx", "export { OuroProvider };\n"), true);
-  assert.equal(needsClientDirective("registry/ouro/lib/ouro/a.ts", "import { useRef } from 'react';\nexport function useA() { return useRef(0); }\n"), true);
-  assert.equal(needsClientDirective("registry/ouro/lib/ouro/a.ts", "export const C = React.createContext(null);\n"), true);
+  assert.equal(needsClientDirective("registry/ouro/lib/ouro/badge.tsx", "export const Badge = () => null;\n"), true);
   assert.equal(needsClientDirective("registry/ouro/components/ouro/sheet/sheet-styles.ts", "export const a = 'b';\n"), false);
-  assert.equal(needsClientDirective("registry/ouro/lib/ouro/cn.ts", "/** useEffect(() => {}) in a comment */\nexport const cn = () => '';\n"), false);
+  assert.equal(needsClientDirective("registry/ouro/lib/ouro/touch-target.tsx", "export function TouchTarget() { return null; }\n"), false);
+});
+
+test("needsClientDirective finds hooks in other modules, also under another name or as React 19's use()", () => {
+  const lib = (text) => needsClientDirective("registry/ouro/lib/ouro/a.ts", text);
+  assert.equal(lib("import { useRef } from 'react';\nexport function useA() { return useRef(0); }\n"), true);
+  assert.equal(lib("import { useEffect as effect } from 'react';\nexport function a() { effect(() => {}); }\n"), true);
+  assert.equal(lib("import { use } from 'react';\nexport function a(p) { return use(p); }\n"), true);
+  assert.equal(lib("import * as React from 'react';\nexport function a(p) { return React.use(p); }\n"), true);
+  assert.equal(lib("export const C = React.createContext(null);\n"), true);
+  assert.equal(lib("import { Component } from 'react';\nexport class A extends Component {}\n"), true);
+  assert.equal(lib("/** useEffect(() => {}) in a comment */\nexport const cn = () => '';\n"), false);
+  assert.equal(lib("import { memo as m } from 'react';\nexport const a = m(() => null);\n"), false);
 });
 
 test("every runtime registry file that renders or calls hooks starts with \"use client\", so a Next.js Server Component can render it", () => {
