@@ -16,7 +16,9 @@ import { act } from "./act.ts";
 // as in the component tests; .storybook/preview.tsx imports the Tailwind source,
 // which this Vitest config does not compile.
 
-setProjectAnnotations([{ parameters: { layout: "centered" } }]);
+// No project annotations beyond React's own: the preview's only parameters (layout,
+// the a11y addon's mode) configure Storybook's UI, which these tests do not render.
+setProjectAnnotations([]);
 
 /** Every story file, by component. A new `*.stories.tsx` must be added here (the test checks). */
 export const storyFiles = {
