@@ -96,7 +96,8 @@ export type SheetProps = SheetWithTriggerProps | SheetControlledProps;
  * dialog on larger screens; it renders this sheet on phones.
  *
  * To close the sheet from an action, control it (`open`/`onOpenChange`) and set
- * `open` to `false` in the handler, or wrap the action:
+ * `open` to `false` in the handler, or wrap each action in `SheetClose`
+ * (`import { SheetClose } from "@/registry/ouro/components/ouro/sheet/sheet-parts"`):
  * `<SheetClose render={<Button>Copy link</Button>} />`.
  *
  * It stacks above the page at `--ouro-layer`, a z-index of 50 by default (from
