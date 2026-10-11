@@ -644,6 +644,22 @@ describe("runtime guards", () => {
   });
 });
 
+/**
+ * A theme variable as the browser computes it, read from a probe element (inside a
+ * `.dark` wrapper for `"dark"`), so the tests hold under any app theme.
+ */
+function themeColor(variable: string, scheme?: "dark"): string {
+  const wrapper = document.createElement("div");
+  if (scheme) wrapper.className = scheme;
+  const probe = document.createElement("div");
+  probe.style.backgroundColor = `var(${variable})`;
+  wrapper.append(probe);
+  document.body.append(wrapper);
+  const value = getComputedStyle(probe).backgroundColor;
+  wrapper.remove();
+  return value;
+}
+
 describe("theme", () => {
   it("follows an app theme that sets --primary on a wrapper, solid and soft", async () => {
     const { host } = await render(
@@ -675,16 +691,17 @@ describe("theme", () => {
       </>,
     );
     const [light, dark] = [...host.querySelectorAll("button")].map((el) => getComputedStyle(el).backgroundColor);
-    expect(light).toBe("rgb(34, 97, 235)");
-    expect(dark).toBe("rgb(96, 165, 250)");
+    expect(light).toBe(themeColor("--primary"));
+    expect(dark).toBe(themeColor("--primary", "dark"));
+    expect(dark).not.toBe(light);
   });
 
   it("follows the .dark class on the root", async () => {
     document.documentElement.classList.add("dark");
     try {
       const { button } = await render(<Button>Theme</Button>);
-      expect(getComputedStyle(button).backgroundColor).toBe("rgb(96, 165, 250)");
-      expect(getComputedStyle(button).color).toBe("rgb(0, 0, 0)");
+      expect(getComputedStyle(button).backgroundColor).toBe(themeColor("--primary"));
+      expect(getComputedStyle(button).color).toBe(themeColor("--primary-foreground"));
     } finally {
       document.documentElement.classList.remove("dark");
     }

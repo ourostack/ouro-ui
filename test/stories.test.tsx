@@ -18,7 +18,7 @@ import {
 // Runs in Chromium and WebKit, at a phone width and a desktop width, so both
 // of Dialog's presentations are scanned.
 
-const storyModules = import.meta.glob("../registry/**/*.stories.tsx");
+const storyModules = import.meta.glob(["../registry/**/*.stories.tsx", "../stories/**/*.stories.tsx"]);
 
 /** axe's result as readable lines: rule, impact, help and the offending selectors. */
 function describeViolations(violations: axe.Result[]): string {
@@ -59,7 +59,7 @@ afterEach(async () => {
 });
 
 it("covers every story file", () => {
-  const files = Object.keys(storyModules).map((path) => path.replace(/^.*\/([\w-]+)\.stories\.tsx$/, "$1"));
+  const files = Object.keys(storyModules).map((path) => path.replace(/^.*\/([\w-]+)\.stories\.tsx$/, "$1").replaceAll("-", ""));
   expect(Object.keys(storyFiles).map((name) => name.toLowerCase()).sort()).toEqual(files.sort());
 });
 

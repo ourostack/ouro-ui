@@ -2,7 +2,7 @@ import { spring } from "motion";
 import { afterEach, describe, expect, it } from "vitest";
 import { commands } from "vitest/browser";
 
-// The Ouro look (ouro-theme.css) over ouro-base.css, both loaded through app.css in test/setup.ts.
+// The Ouro look (ouro-theme.css) over ouro-base.css, both loaded through app.css, which vitest.config.ts loads before every test.
 // Colors are read through getComputedStyle, so the browser really evaluates the
 // variables. Elements are painted with the variables themselves, not utilities, so a
 // pair no component uses yet (`card`) is still checked; `soft` mixes the tone the way

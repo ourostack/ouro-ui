@@ -1,7 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ReactNode } from "react";
-import { Button } from "@/registry/ouro/components/ouro/button/button";
-import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
 
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names).
@@ -86,45 +84,6 @@ export const TruncateAndClamp: Story = {
   ),
 };
 
-/** Heading levels set the tag and a default size; `size` changes only the look. */
-export const Headings: Story = {
-  render: () => (
-    <Surface>
-      {([1, 2, 3, 4, 5, 6] as const).map((level) => (
-        <Heading key={level} level={level}>
-          Heading level {level}
-        </Heading>
-      ))}
-      <Heading level={2} size="sm">
-        An h2 that looks small
-      </Heading>
-    </Surface>
-  ),
-};
-
-/** Text, Heading and Button together: a recipe card. */
-export const RecipeCard: Story = {
-  render: () => (
-    <Surface>
-      <article style={{ display: "grid", gap: 12, maxWidth: 380 }}>
-        <Text size="sm" tone="primary">
-          Korean · 3 hours
-        </Text>
-        <Heading level={2}>Gochujang braised short ribs</Heading>
-        <Text tone="muted" lines={3}>
-          {description}
-        </Text>
-        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-          <Button href="#cook">Start cooking</Button>
-          <Button variant="soft" tone="secondary">
-            Save
-          </Button>
-        </div>
-      </article>
-    </Surface>
-  ),
-};
-
 /** Alignment follows the writing direction: `start` is the left in English. */
 export const Alignment: Story = {
   render: () => (
@@ -132,9 +91,6 @@ export const Alignment: Story = {
       <Text align="start">Start-aligned</Text>
       <Text align="center">Centered</Text>
       <Text align="end">End-aligned</Text>
-      <Heading level={3} align="center">
-        A centered heading
-      </Heading>
     </Surface>
   ),
 };

@@ -2,7 +2,7 @@ import "../src/styles.css";
 import { afterEach, beforeEach } from "vitest";
 
 // The site's own stylesheet, and the same rule as the registry tests: any React act()
-// warning fails the test that caused it (see test/setup.ts).
+// warning fails the test that caused it (see registry/ouro/lib/ouro/testing/setup.ts).
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = false;
 

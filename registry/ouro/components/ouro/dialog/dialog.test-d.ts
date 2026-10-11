@@ -2,7 +2,6 @@
 // fails the check if the line below it stops being an error.
 import { createElement, type ComponentProps, type ReactElement } from "react";
 import { expectTypeOf } from "vitest";
-import { ConfirmDialog, type ConfirmDialogProps } from "@/registry/ouro/components/ouro/dialog/confirm-dialog";
 import { Dialog, type DialogProps } from "@/registry/ouro/components/ouro/dialog/dialog";
 
 const trigger = createElement("button") as ReactElement;
@@ -40,26 +39,7 @@ expectTypeOf<{ title: "Edit"; trigger: ReactElement; position: "bottom"; childre
 expectTypeOf<{ title: "Edit"; trigger: ReactElement; isOpen: true; children: "Body" }>().not.toExtend<DialogProps>();
 expectTypeOf<{ title: "Edit"; trigger: ReactElement; onClose: () => void; children: "Body" }>().not.toExtend<DialogProps>();
 
-// ConfirmDialog.
-type Confirm = { title: "Delete?"; confirmLabel: "Delete"; onConfirm: () => void };
-expectTypeOf<Confirm & { trigger: ReactElement }>().toExtend<ConfirmDialogProps>();
-expectTypeOf<Confirm & { open: boolean; onOpenChange: SetOpen }>().toExtend<ConfirmDialogProps>();
-expectTypeOf<
-  Confirm & { trigger: ReactElement; description: "Gone for good"; cancelLabel: "Keep"; tone: "destructive"; onConfirm: () => Promise<void> }
->().toExtend<ConfirmDialogProps>();
-expectTypeOf<ComponentProps<typeof ConfirmDialog>>().toEqualTypeOf<ConfirmDialogProps>();
-expectTypeOf<Confirm>().not.toExtend<ConfirmDialogProps>();
-expectTypeOf<Omit<Confirm, "confirmLabel"> & { trigger: ReactElement }>().not.toExtend<ConfirmDialogProps>();
-expectTypeOf<Omit<Confirm, "onConfirm"> & { trigger: ReactElement }>().not.toExtend<ConfirmDialogProps>();
-expectTypeOf<Confirm & { trigger: ReactElement; tone: "success" }>().not.toExtend<ConfirmDialogProps>();
-expectTypeOf<Confirm & { trigger: ReactElement; tone: "danger" }>().not.toExtend<ConfirmDialogProps>();
-expectTypeOf<Confirm & { trigger: ReactElement; destructive: true }>().not.toExtend<ConfirmDialogProps>();
-expectTypeOf<Confirm & { trigger: ReactElement; open: true; onOpenChange: SetOpen }>().not.toExtend<ConfirmDialogProps>();
-
 // JSX: the same rules at a call site.
 // @ts-expect-error -- neither trigger nor open
 createElement(Dialog, { title: "Edit", children: "Body" });
 createElement(Dialog, { title: "Edit", trigger, children: "Body" });
-// @ts-expect-error -- confirmLabel is required
-createElement(ConfirmDialog, { title: "Delete?", onConfirm: () => {}, trigger });
-createElement(ConfirmDialog, { title: "Delete?", confirmLabel: "Delete", onConfirm: () => {}, trigger });

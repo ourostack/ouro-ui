@@ -19,5 +19,6 @@
     "types": ["node", "vite/client", "@vitest/browser-playwright"],
     "paths": { "@/*": ["./*"] }
   },
-  "include": ["registry", "test", "stories", ".storybook", "site", "*.ts", "*.config.ts"]
+  "include": ["registry", "test", "stories", ".storybook", "site", "*.ts", "*.config.ts"],
+  "exclude": ["test/install-fixture"]
 }

@@ -1,4 +1,3 @@
-import appCss from "@/app.css?inline";
 import { createRef, useState, type ReactNode, type Ref } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -20,6 +19,7 @@ import {
 } from "@/registry/ouro/components/ouro/sheet/sheet-parts";
 import { Sheet, type SheetProps } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pageCss } from "@/registry/ouro/lib/ouro/testing/page-css";
 
 // Drag and velocity tests run in Chromium only (plan amendment): WebKit drag is covered
 // by the recorded feel check. Everything else runs in Chromium and WebKit at 390x844.
@@ -275,7 +275,7 @@ describe("feel", () => {
   });
 
   it("pads the popup bottom by var(--drawer-keyboard-inset, 0px) so the keyboard never covers inputs", async () => {
-    expect(appCss).toMatch(/var\(--drawer-keyboard-inset, ?0px\)/);
+    expect(pageCss()).toMatch(/var\(--drawer-keyboard-inset, ?0px\)/);
     const sheet = await openUncontrolled();
     const before = Number.parseFloat(getComputedStyle(sheet).paddingBottom);
     viewport()!.style.setProperty("--drawer-keyboard-inset", "300px");
@@ -476,16 +476,16 @@ function withIosRules(css: string): string {
 
 describe("iOS backdrop rule", () => {
   it("ships no test-only selector", () => {
-    expect(appCss).not.toContain("data-ouro-test-ios");
-    expect(appCss).toMatch(/@supports \(-webkit-touch-callout: ?none\)/);
-    expect(withIosRules(appCss)).not.toBe(appCss);
+    expect(pageCss()).not.toContain("data-ouro-test-ios");
+    expect(pageCss()).toMatch(/@supports \(-webkit-touch-callout: ?none\)/);
+    expect(withIosRules(pageCss())).not.toBe(pageCss());
   });
 
   // The rule applies under @supports (-webkit-touch-callout: none), which only iOS
   // matches, so the test switches the shipped rule on (withIosRules).
   it("covers the visible screen on a page scrolled 2000px", async () => {
     const ios = document.createElement("style");
-    ios.textContent = withIosRules(appCss);
+    ios.textContent = withIosRules(pageCss());
     document.head.append(ios);
     mounted.push(ios);
     const tall = document.createElement("div");

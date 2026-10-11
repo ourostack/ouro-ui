@@ -1,0 +1,21 @@
+import { defineConfig, devices } from "@playwright/test";
+
+// End-to-end specs: registry/ouro/e2e/ouro/*.spec.ts, the specs each item installs into an
+// app's e2e/ouro/. They open stories in a Storybook (OURO_E2E_URL, default
+// http://localhost:6006); here, this repository's own.
+export default defineConfig({
+  testDir: "registry/ouro/e2e",
+  forbidOnly: !!process.env["CI"],
+  retries: process.env["CI"] ? 1 : 0,
+  reporter: process.env["CI"] ? [["list"], ["html", { open: "never" }]] : "list",
+  projects: [
+    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    { name: "webkit", use: { ...devices["Desktop Safari"] } },
+  ],
+  webServer: {
+    command: "pnpm exec storybook dev -p 6006 --ci --no-open",
+    url: "http://localhost:6006/iframe.html",
+    reuseExistingServer: !process.env["CI"],
+    timeout: 180_000,
+  },
+});
