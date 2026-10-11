@@ -1,0 +1,42 @@
+name: Pages
+# Publishes https://ourostack.github.io/ouro-ui/ from main: the site and docs at /, the
+# Storybook at /storybook/, and the registry for the @ouro namespace at /r/ (each item at
+# /r/<item>.json, the index at /r/registry.json). In the namespace build, same-repo
+# registryDependencies are @ouro/<item>, so an app installs everything from Pages.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      - run: pnpm site:build && mkdir -p _site && cp -R site/dist/. _site/
+      - run: pnpm build-storybook --output-dir _site/storybook
+      - run: |
+          node scripts/registry.mts --out .tmp/registry.json --deps "@ouro/{name}"
+          npx --yes shadcn@4.21.1 build .tmp/registry.json --output _site/r
+      - uses: actions/upload-pages-artifact@v4
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

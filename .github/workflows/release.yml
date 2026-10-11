@@ -1,0 +1,92 @@
+name: Release
+# Cuts v<version>. The tag points at a release commit that main never receives: a branch
+# off green main whose registry.json pins every same-repo registryDependency to the tag
+# (scripts/registry.mts --release), so `shadcn add ourostack/ouro-ui/<item>#v<version>`
+# installs every Ouro dependency at that tag while main stays unpinned. The release pull
+# request carries the commit's CI run; after the tag and the GitHub release it is closed
+# unmerged and its branch deleted (the tag keeps the commit).
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, without the v (for example 0.1.0)"
+        required: true
+permissions:
+  contents: write # push the release branch and the tag, create the release
+  pull-requests: write # open and close the release pull request
+  actions: write # run CI on the release branch
+concurrency:
+  group: release
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ inputs.version }}
+      TAG: v${{ inputs.version }}
+      BRANCH: release/v${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - name: Check that main is green and the tag is new
+        run: |
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::version must be x.y.z, without the v"; exit 1; }
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then echo "::error::$TAG already exists"; exit 1; fi
+          sha=$(git rev-parse HEAD)
+          conclusion=$(gh run list --workflow ci.yml --branch main --event push --commit "$sha" --json conclusion --jq '.[0].conclusion')
+          [ "$conclusion" = success ] || { echo "::error::CI on main ($sha) is '${conclusion:-not run}', not success"; exit 1; }
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      - name: Open the release pull request
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          node scripts/registry.mts --release "$VERSION"
+          git commit -am "Release $TAG"
+          git push origin "$BRANCH"
+          gh pr create --base main --head "$BRANCH" --title "Release $TAG" --body "Pins every same-repo registryDependency in registry.json to \`#$TAG\` and records the version. The Release workflow tags this commit once CI passes, then closes this pull request unmerged, so main keeps unpinned dependencies."
+      - name: Run CI on the release branch
+        run: |
+          gh workflow run ci.yml --ref "$BRANCH"
+          for _ in $(seq 60); do
+            run=$(gh run list --workflow ci.yml --branch "$BRANCH" --event workflow_dispatch --json databaseId --jq '.[0].databaseId')
+            [ -n "$run" ] && break
+            sleep 5
+          done
+          [ -n "$run" ] || { echo "::error::CI did not start on $BRANCH"; exit 1; }
+          gh run watch "$run" --exit-status --interval 30
+      - name: Tag and publish the release
+        run: |
+          git tag "$TAG"
+          git push origin "$TAG"
+          {
+            echo "Install an item at this release; its Ouro dependencies install from the same tag:"
+            echo
+            echo '```sh'
+            echo "npx shadcn@latest add ourostack/ouro-ui/dialog#$TAG"
+            echo '```'
+            echo
+            echo 'Or through the `@ouro` namespace, which serves the newest code on main (not pinned to this release). Add it to `components.json` once:'
+            echo
+            echo '```json'
+            echo '"registries": { "@ouro": "https://ourostack.github.io/ouro-ui/r/{name}.json" }'
+            echo '```'
+            echo
+            echo '```sh'
+            echo 'npx shadcn@latest add @ouro/dialog'
+            echo '```'
+            echo
+            echo "Items:"
+            echo
+            jq -r '.items[] | "- `\(.name)`: \(.description)"' registry.json
+          } > "$RUNNER_TEMP/notes.md"
+          gh release create "$TAG" --verify-tag --title "$TAG" --notes-file "$RUNNER_TEMP/notes.md"
+          gh pr close "$BRANCH" --delete-branch --comment "Released as $TAG: https://github.com/${{ github.repository }}/releases/tag/$TAG. Closed unmerged so main keeps unpinned dependencies."

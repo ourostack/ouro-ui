@@ -3,7 +3,7 @@
 # every Ouro UI item the way an app does, then runs the app's type check, build, the
 # shipped Vitest browser tests and the shipped Playwright specs.
 #
-#   scripts/install-test.sh <shadcn|ouro|github> <app-dir> [ref]
+#   scripts/install-test.sh <shadcn|ouro|github|namespace> <app-dir> [ref]
 #
 # shadcn: the app keeps the theme `shadcn init` wrote, and a stock shadcn button is added
 #         beside Ouro's; both must build.
@@ -13,16 +13,20 @@
 #         every item and dependency comes from the default branch. Type check, build and
 #         the install check only. Meaningful once main has this registry (CI runs it on
 #         push to main).
+# namespace: the @ouro namespace as Pages serves it (pages.yml): the registry built with
+#         @ouro/<item> dependencies, served on localhost and registered in components.json,
+#         then `shadcn add @ouro/dialog`. Type check and build.
 #
 # Same-repo registryDependencies are written without a ref (ourostack/ouro-ui/<item>), so
 # shadcn resolves them on the default branch; refs are not inherited. To install this
 # commit's items with this commit's dependencies, the script builds a temporary copy of
 # the registry whose dependencies point at the locally built item files, and installs
-# from those (scripts/registry.mts --local-deps).
+# from those (scripts/registry.mts --deps). Release tags pin them (release.yml).
 set -euo pipefail
 
-variant=${1:?usage: install-test.sh <shadcn|ouro|github> <app-dir> [ref]}
-app=${2:?usage: install-test.sh <shadcn|ouro|github> <app-dir> [ref]}
+usage="usage: install-test.sh <shadcn|ouro|github|namespace> <app-dir> [ref]"
+variant=${1:?$usage}
+app=${2:?$usage}
 root=$(cd "$(dirname "$0")/.." && pwd)
 ref=${3:-$(git -C "$root" rev-parse HEAD)}
 shadcn=(npx --yes shadcn@4.21.1)
@@ -51,8 +55,42 @@ if [ "$variant" = github ]; then
   exit 0
 fi
 
+if [ "$variant" = namespace ]; then
+  echo "::group::@ouro/dialog from the namespace, served locally"
+  node "$root/scripts/registry.mts" --out "$registry/registry.json" --deps "@ouro/{name}"
+  "${shadcn[@]}" build "$registry/registry.json" --output "$registry/r" --cwd "$root"
+  python3 -m http.server 8765 --bind 127.0.0.1 --directory "$registry" 2>"$registry/served.log" &
+  server=$!
+  trap 'kill $server' EXIT
+  for _ in $(seq 50); do curl -sf http://127.0.0.1:8765/r/registry.json >/dev/null && break; sleep 0.2; done
+  node -e 'const f = "components.json"; const c = JSON.parse(require("fs").readFileSync(f, "utf8"));
+    c.registries = { "@ouro": "http://127.0.0.1:8765/r/{name}.json" };
+    require("fs").writeFileSync(f, JSON.stringify(c, null, 2) + "\n");'
+  "${shadcn[@]}" add --yes @ouro/dialog
+  for item in dialog sheet button ouro-lib ouro-testing ouro-base; do
+    grep -q "GET /r/$item.json" "$registry/served.log" || { echo "$item did not resolve through @ouro"; exit 1; }
+  done
+  for path in components/ouro/dialog/dialog.tsx components/ouro/sheet/sheet.tsx components/ouro/button/button.tsx lib/ouro/cn.ts lib/ouro/testing/vitest.ts; do
+    test -f "src/$path" || { echo "missing src/$path"; exit 1; }
+  done
+  grep -q -- "--ouro-spring-duration" src/index.css || { echo "ouro-base did not reach src/index.css"; exit 1; }
+  cat > src/App.tsx <<'EOF'
+import { Dialog } from "~/components/ouro/dialog/dialog";
+
+export function App() {
+  return <Dialog title="Namespace" open onOpenChange={() => {}}>Installed from @ouro.</Dialog>;
+}
+EOF
+  echo "::endgroup::"
+  echo "::group::Type check and build"
+  npx tsc -b
+  npx vite build
+  echo "::endgroup::"
+  exit 0
+fi
+
 echo "::group::Registry copy with local dependencies"
-node "$root/scripts/registry.mts" --out "$registry/registry.json" --local-deps "$registry/r"
+node "$root/scripts/registry.mts" --out "$registry/registry.json" --deps "$registry/r/{name}.json"
 "${shadcn[@]}" build "$registry/registry.json" --output "$registry/r" --cwd "$root"
 echo "::endgroup::"
 
