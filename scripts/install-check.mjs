@@ -44,6 +44,7 @@ const testFiles = [
   "e2e/ouro/story.ts",
 ];
 const testFile = /\.(test|touch\.test)\.tsx?$|\.test-d\.ts$|\.stories\.tsx$|\.spec\.ts$/;
+const ouroToken = /^--(color-)?(ouro-|success|warning|destructive-foreground)/;
 const testTooling = /^(storybook|@storybook\/.*|vitest|@vitest\/.*|playwright|@playwright\/.*)$/;
 
 /** Problems with an installed app, as readable lines; empty when it passes. */
@@ -92,8 +93,10 @@ export function checkInstall(app, variant, stage) {
     if (!declares(name)) problems.push(`${cssPath} does not declare ${name}`);
   }
   // `--x: var(--x)` is a cycle: it only works while another declaration of --x wins the cascade.
+  // Only Ouro's tokens are checked: an app's own theme may map a variable that something else
+  // sets on an element (shadcn's Next.js theme writes `--font-sans: var(--font-sans)` for next/font).
   for (const match of css.matchAll(/(--[\w-]+)\s*:\s*var\(\s*(--[\w-]+)\s*\)/g)) {
-    if (match[1] === match[2]) problems.push(`${cssPath}: ${match[1]}: var(${match[2]}) refers to itself`);
+    if (match[1] === match[2] && ouroToken.test(match[1])) problems.push(`${cssPath}: ${match[1]}: var(${match[2]}) refers to itself`);
   }
   for (const rule of ["@utility press", "@keyframes ouro-spin", "@keyframes ouro-pulse"]) {
     if (!css.includes(rule)) problems.push(`${cssPath} has no ${rule}`);
@@ -162,10 +165,14 @@ export function checkDirectives(app, root) {
  */
 export function checkSources(app, root, aliases) {
   const problems = [];
+  // Only module specifiers on import and export lines are rewritten: JSDoc may quote an
+  // installed import such as `from "@/components/ouro/sheet/sheet-parts"`, which an app with the
+  // @/components alias also has.
+  const specifier = (alias) => new RegExp(`^((?:import|export)\\b.*?from\\s*|\\}\\s*from\\s*|import\\s*)"${alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/ouro/`, "gm");
   const toSource = (text) =>
     text
-      .replaceAll(`"${aliases.components}/ouro/`, '"@/registry/ouro/components/ouro/')
-      .replaceAll(`"${aliases.lib}/ouro/`, '"@/registry/ouro/lib/ouro/');
+      .replace(specifier(aliases.components), '$1"@/registry/ouro/components/ouro/')
+      .replace(specifier(aliases.lib), '$1"@/registry/ouro/lib/ouro/');
   const sources = readdirSync(join(root, "registry/ouro"), { recursive: true }).map((file) => `registry/ouro/${String(file)}`);
   for (const path of sources) {
     const target = installedPath(path);

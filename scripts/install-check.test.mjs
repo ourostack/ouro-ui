@@ -170,3 +170,23 @@ test("an installed file that lost its source's \"use client\" fails", () => {
     'src/components/ouro/button/button.tsx lost "use client" from registry/ouro/components/ouro/button/button.tsx',
   ]);
 });
+
+test("with the @/components alias, a JSDoc that quotes an installed path is not mistaken for an import", () => {
+  const root = mkdtempSync(join(tmpdir(), "ouro-install-source-"));
+  const dir = mkdtempSync(join(tmpdir(), "ouro-install-equal-"));
+  const write = (base, file, text) => {
+    mkdirSync(dirname(join(base, file)), { recursive: true });
+    writeFileSync(join(base, file), text);
+  };
+  const doc = '/** Wrap it: `import { SheetClose } from "@/components/ouro/sheet/sheet-parts"`. */\n';
+  write(root, "registry/ouro/components/ouro/a/a.tsx", `import { cn } from "@/registry/ouro/lib/ouro/cn";\n${doc}export const a = cn;\n`);
+  write(dir, "src/components/ouro/a/a.tsx", `import { cn } from "@/lib/ouro/cn";\n${doc}export const a = cn;\n`);
+  assert.deepEqual(checkSources(dir, root, { components: "@/components", lib: "@/lib" }), []);
+});
+
+test("only Ouro's tokens must not refer to themselves; an app's own theme may", () => {
+  const dir = app("shadcn");
+  const css = readFileSync(join(dir, "src/index.css"), "utf8");
+  writeFileSync(join(dir, "src/index.css"), css.replace("@theme inline {", "@theme inline {\n  --font-sans: var(--font-sans);\n  --color-success: var(--color-success);"));
+  assert.deepEqual(checkInstall(dir, "shadcn", "tests"), ["src/index.css: --color-success: var(--color-success) refers to itself"]);
+});
