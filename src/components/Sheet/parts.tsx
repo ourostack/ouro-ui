@@ -2,7 +2,9 @@ import { Drawer } from "@base-ui/react/drawer";
 import { createContext, useContext, type JSX, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "../../internal/classNameCheck.ts";
 import { devThrow } from "../../internal/dev.ts";
+import { useMergedRef } from "../../internal/refs.ts";
 import { useBackdropAnchor } from "../../internal/useBackdropAnchor.ts";
+import { useKeyboardScrollable } from "../../internal/useKeyboardScrollable.ts";
 
 /** The edge a sheet slides in from, and is dragged back to, to dismiss. */
 export type SheetSide = "bottom" | "top" | "left" | "right";
@@ -215,8 +217,10 @@ export type SheetContentProps = Omit<Drawer.Content.Props, "className"> & { clas
 /**
  * Part: the scrollable body. A mouse can select text in it without dragging the
  * sheet; touch still drags from anywhere once the body is scrolled to the top.
+ * While it overflows it is a tab stop, so a keyboard can scroll it.
  */
-export function SheetContent({ className, ...props }: SheetContentProps): JSX.Element {
+export function SheetContent({ className, ref, ...props }: SheetContentProps): JSX.Element {
+  const scrollRef = useMergedRef(ref, useKeyboardScrollable<HTMLDivElement>(props.tabIndex === undefined));
   useSheetPart("SheetContent", "<SheetContent>…</SheetContent>");
   useAppearanceClassNameCheck(
     "SheetContent",
@@ -228,6 +232,7 @@ export function SheetContent({ className, ...props }: SheetContentProps): JSX.El
   return (
     <Drawer.Content
       {...props}
+      ref={scrollRef}
       data-ouro-sheet-content=""
       className={join(
         "ou:box-border ou:min-h-0 ou:flex-1 ou:overflow-y-auto ou:overscroll-contain ou:touch-auto ou:px-5 ou:pt-2 ou:pb-5",
