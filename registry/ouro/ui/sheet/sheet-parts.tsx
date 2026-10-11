@@ -52,6 +52,8 @@ const swipeDirections = { bottom: "down", top: "up", left: "left", right: "right
  * page. The backdrops therefore keep --ou-backdrop-top at the offset that puts them at
  * the top of the screen (useBackdropAnchor), and the large viewport height reaches under
  * the toolbars. Shared with the dialog backdrop.
+ *
+ * @internal
  */
 export const iosBackdrop =
   "supports-[-webkit-touch-callout:none]:absolute supports-[-webkit-touch-callout:none]:inset-x-0 " +
@@ -132,6 +134,8 @@ const popupSides = {
  * The actions row of a Dialog, in either presentation: a row at the end from 640px up.
  * Below it the actions stack full width in DOM order, so the primary action (last)
  * sits at the bottom, nearest the thumb. Shared with `DialogFooter`.
+ *
+ * @internal
  */
 export const footerClass = "box-border flex shrink-0 justify-end gap-3 px-5 pt-3 pb-5 max-sm:flex-col max-sm:*:w-full";
 
@@ -167,6 +171,8 @@ function useSheetPart(part: string, inner: string): SheetContextValue {
  * The Fix code for an appearance class on a sheet part: the theme's CSS variables
  * for colors and radius, or a wrapper inside `open`…`close` for text classes.
  * Development only.
+ *
+ * @internal
  */
 export function sheetHint(open: string, close: string) {
   return (token: string): string => {
@@ -188,7 +194,7 @@ export type SheetRootProps = Omit<Drawer.Root.Props, "swipeDirection" | "snapPoi
 
 /**
  * Part: the state owner of a sheet built from parts. Use the `Sheet` component
- * from `@ouro.bot/ui` instead unless its props cannot express your layout.
+ * instead unless its props cannot express your layout.
  *
  * @example
  * <SheetRoot side="bottom">
@@ -275,7 +281,11 @@ export function SheetPopup(props: SheetPopupProps): JSX.Element {
   return <SheetPopupUnchecked {...props} />;
 }
 
-/** The popup without its own className check, for `Sheet`, which checks its own `className`. */
+/**
+ * The popup without its own className check, for `Sheet`, which checks its own `className`.
+ *
+ * @internal
+ */
 export function SheetPopupUnchecked({ className, ...props }: SheetPopupProps): JSX.Element {
   const { side, snap } = useSheetPart("SheetPopup", "…");
   return (

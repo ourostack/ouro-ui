@@ -203,7 +203,7 @@ export interface SheetFrameProps {
  * checks, and `Dialog` renders it on phones after Dialog's checks, so every dev
  * message names the component the app wrote.
  *
- * Internal; not exported from the package.
+ * @internal Shared with `Dialog`; apps use `Sheet`.
  */
 export function SheetFrame({
   title,

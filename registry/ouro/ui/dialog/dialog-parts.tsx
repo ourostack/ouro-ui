@@ -63,8 +63,7 @@ function useDialogPart(part: string, inner: string): void {
 
 /**
  * Part: the state owner of a centered dialog built from parts. Use the `Dialog`
- * component from `@ouro.bot/ui` instead unless its props cannot express your
- * layout; `Dialog` also becomes a bottom sheet on phones, which parts do not.
+ * component instead unless its props cannot express your layout; `Dialog` also becomes a bottom sheet on phones, which parts do not.
  *
  * @example
  * <DialogRoot>
@@ -95,7 +94,7 @@ export function DialogRoot(props: BaseDialog.Root.Props): JSX.Element {
  * The root for `ConfirmDialog`: Base UI's alert dialog, which an outside press
  * cannot dismiss. It shares every other part with `DialogRoot`.
  *
- * Internal; not exported from the package.
+ * @internal For `ConfirmDialog`; apps use `ConfirmDialog`.
  */
 export function AlertDialogRoot(props: AlertDialog.Root.Props): JSX.Element {
   return (
@@ -158,7 +157,11 @@ export function DialogPopup(props: DialogPopupProps): JSX.Element {
   return <DialogPopupUnchecked {...props} />;
 }
 
-/** The popup without its own className check, for `Dialog` and `ConfirmDialog`, which check their own. */
+/**
+ * The popup without its own className check, for `Dialog` and `ConfirmDialog`, which check their own.
+ *
+ * @internal
+ */
 export function DialogPopupUnchecked({ className, size = "md", ...props }: DialogPopupProps): JSX.Element {
   useDialogPart("DialogPopup", "…");
   return (

@@ -11,7 +11,7 @@ const script = join(root, "scripts/gen-docs.mts");
 const run = (...args) => spawnSync("node", [script, ...args], { cwd: root, encoding: "utf8" });
 const doc = (name) => readFileSync(join(root, "docs", name), "utf8");
 
-test("the committed docs, README catalog and index.ts catalog are up to date", () => {
+test("the committed docs and README catalog are up to date", () => {
   const result = run("--check");
   assert.equal(result.status, 0, result.stderr);
 });
@@ -44,14 +44,14 @@ test("generating is deterministic and matches the committed files", () => {
   for (const file of files) {
     assert.equal(readFileSync(join(out, "docs", file), "utf8"), doc(file), file);
   }
-  for (const file of ["README.md", "src/index.ts"]) {
+  for (const file of ["README.md"]) {
     assert.equal(readFileSync(join(out, file), "utf8"), readFileSync(join(root, file), "utf8"), file);
   }
 });
 
-test("there is one doc per component, plus parts and the theme tools", () => {
+test("there is one doc per component, plus parts", () => {
   const files = readdirSync(join(root, "docs")).sort();
-  for (const name of ["Button", "ConfirmDialog", "Dialog", "Heading", "OuroProvider", "Sheet", "Text", "ThemeScript", "defineTheme", "parts"]) {
+  for (const name of ["Button", "ConfirmDialog", "Dialog", "Heading", "OuroProvider", "Sheet", "Text", "parts"]) {
     assert.ok(files.includes(`${name}.md`), `docs/${name}.md is missing`);
   }
 });
@@ -59,11 +59,11 @@ test("there is one doc per component, plus parts and the theme tools", () => {
 test("a component doc has purpose, import, example, props, and use-instead guidance", () => {
   const button = doc("Button.md");
   assert.match(button, /^# Button\n\nA button, or a link styled as one\./m);
-  assert.match(button, /import \{ Button \} from "@ouro\.bot\/ui";/);
+  assert.match(button, /import \{ Button \} from "@\/registry\/ouro\/ui\/button\/button";/);
   assert.match(button, /## Example\n\n```tsx\n<Button onClick=\{save\} loading=\{saving\}>Save<\/Button>/);
   assert.match(button, /## Use instead when\n\n- Use `Text` with an `<a>` instead when a link sits inside running text\./);
   assert.match(button, /\| Prop \| Type \| Default \| Description \|/);
-  assert.match(button, /\| `tone` \| `"neutral" \\\| "accent" \\\| "success" \\\| "warning" \\\| "danger"` \| `"accent"` \|/);
+  assert.match(button, /\| `tone` \| `"primary" \\\| "secondary" \\\| "destructive" \\\| "success" \\\| "warning"` \| `"primary"` \|/);
   assert.match(button, /\| `children` \(required\) \| `ReactNode` \|/);
 });
 
@@ -108,12 +108,15 @@ test("the className rule is spelled out where className is accepted", () => {
 
 test("referenced types are defined in the doc", () => {
   assert.match(doc("Sheet.md"), /### `SheetSnapPoint`[\s\S]*type SheetSnapPoint = number \| `\$\{number\}px` \| `\$\{number\}rem`;/);
-  assert.match(doc("defineTheme.md"), /### `ThemeTokens`/);
 });
 
 test("the parts doc shows the required nesting and every part", () => {
   const parts = doc("parts.md");
-  assert.match(parts, /import \{\n {2}DialogBackdrop,\n[\s\S]* {2}SheetViewport,\n\} from "@ouro\.bot\/ui\/parts";/);
+  assert.match(parts, /import \{\n {2}DialogBackdrop,\n[\s\S]* {2}DialogViewport,\n\} from "@\/registry\/ouro\/ui\/dialog\/dialog-parts";/);
+  assert.match(parts, /import \{\n {2}SheetBackdrop,\n[\s\S]* {2}SheetViewport,\n\} from "@\/registry\/ouro\/ui\/sheet\/sheet-parts";/);
+  for (const internal of ["DialogPopupUnchecked", "SheetPopupUnchecked", "AlertDialogRoot", "SheetFrame"]) {
+    assert.doesNotMatch(parts, new RegExp(internal), internal);
+  }
   assert.match(parts, /## Sheet parts[\s\S]*### Required nesting\n\n```tsx\n<SheetRoot side="bottom">/);
   assert.match(parts, /## Dialog parts[\s\S]*<DialogRoot>/);
   assert.match(parts, /throws in development/);
@@ -123,15 +126,12 @@ test("the parts doc shows the required nesting and every part", () => {
   assert.match(doc("Sheet.md"), /\[parts\.md\]\(parts\.md#sheet-parts\)/);
 });
 
-test("the catalog is grouped by job, in README and at the top of index.ts", () => {
+test("the catalog is grouped by job in README", () => {
   const readme = readFileSync(join(root, "README.md"), "utf8");
   const catalog = readme.split("<!-- catalog:start -->")[1].split("<!-- catalog:end -->")[0];
   assert.match(catalog, /### Actions\n\n- \*\*Button\*\* — A button, or a link styled as one\./);
   assert.match(catalog, /### Overlays\n\n- \*\*ConfirmDialog\*\* — [^\n]+\n- \*\*Dialog\*\* — [^\n]+\n- \*\*Sheet\*\* — A panel that slides in/);
   assert.match(catalog, /### Text\n\n- \*\*Heading\*\* — [^\n]+\n- \*\*Text\*\* — /);
-  const index = readFileSync(join(root, "src/index.ts"), "utf8");
-  assert.match(index, /^\/\*\*\n/);
-  assert.match(index, / \* - \*\*Sheet\*\* — A panel that slides in/);
 });
 
 test("no timestamps", () => {

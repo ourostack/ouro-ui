@@ -1,0 +1,10 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "types": [],
+    "noEmit": true,
+    "paths": { "@/*": ["../../../*"] }
+  },
+  "include": ["../../../registry/**/*.ts", "../../../registry/**/*.tsx"],
+  "exclude": ["../../../registry/**/*.test.ts", "../../../registry/**/*.test.tsx", "../../../registry/**/*.test-d.ts", "../../../registry/**/*.stories.tsx", "../../../registry/ouro/testing/**"]
+}

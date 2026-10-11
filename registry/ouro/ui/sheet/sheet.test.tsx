@@ -287,6 +287,16 @@ describe("feel", () => {
     expect(sheet.hasAttribute("data-snap-points")).toBe(true);
     expect(Math.abs(innerHeight - sheet.getBoundingClientRect().top - innerHeight / 2)).toBeLessThanOrEqual(2);
   });
+
+  it("gives a top sheet with snap points the full height less the gap, and fits a top sheet without them", async () => {
+    const fitted = await openUncontrolled({ side: "top" });
+    const fittedHeight = fitted.getBoundingClientRect().height;
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    const snapped = await openUncontrolled({ side: "top", snapPoints: [0.5, 1] });
+    expect(snapped.getBoundingClientRect().height).toBeGreaterThan(fittedHeight);
+    // --ou-sheet-gap is 2rem.
+    expect(Math.abs(snapped.getBoundingClientRect().height - (innerHeight - 32))).toBeLessThanOrEqual(2);
+  });
 });
 
 describe("dragging (Chromium)", () => {

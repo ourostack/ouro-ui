@@ -61,7 +61,11 @@ const tones = {
   warning: "text-warning",
 } as const;
 
-/** Alignment classes, shared with `Heading`. */
+/**
+ * Alignment classes, shared with `Heading`.
+ *
+ * @internal
+ */
 export const alignClasses = { start: "text-start", center: "text-center", end: "text-end" } as const;
 
 function textTone(token: string): string {

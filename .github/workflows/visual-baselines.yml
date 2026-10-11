@@ -1,7 +1,7 @@
 # Regenerates the screenshot baselines on Linux, the renderer CI compares against, and
 # uploads them as the `visual-baselines` artifact. To refresh them: run this workflow on
 # your branch, download the artifact with `gh run download <run-id> -n visual-baselines
-# -D src/__screenshots__`, review the images, and commit them.
+# -D test/__screenshots__`, review the images, and commit them.
 name: Visual baselines
 on:
   workflow_dispatch:
@@ -21,7 +21,6 @@ jobs:
           cache: pnpm
       - run: pnpm i --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm build
       # Write fresh references, then compare against them in a second run, so a baseline
       # that does not reproduce on the same machine fails here instead of in CI.
       - run: pnpm test:visual --update
@@ -29,5 +28,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: visual-baselines
-          path: src/__screenshots__/
+          path: test/__screenshots__/
           if-no-files-found: error
