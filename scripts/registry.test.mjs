@@ -220,7 +220,10 @@ test("--release pins every same-repo dependency to the release tag and records t
     assert.equal(onMain.status, 1, JSON.stringify(env));
     assert.match(onMain.stderr, /pinned to a release.*main stays unpinned/s);
   }
-  const mainOk = spawnSync("node", [script, "--check"], { cwd: root, encoding: "utf8", env: { ...branchEnv, GITHUB_REF: "refs/heads/main" } });
+  // An unpinned file passes on main. (Not the committed registry.json: on the release branch, where this test also runs, that one is pinned.)
+  const unpinned = join(dirname(out), "unpinned.json");
+  assert.equal(run("--out", unpinned).status, 0);
+  const mainOk = spawnSync("node", [script, "--check", "--out", unpinned], { cwd: root, encoding: "utf8", env: { ...branchEnv, GITHUB_REF: "refs/heads/main" } });
   assert.equal(mainOk.status, 0, mainOk.stderr);
 
   const bad = run("--out", out, "--release", "v0.1.0");
