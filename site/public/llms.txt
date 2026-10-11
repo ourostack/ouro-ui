@@ -1,6 +1,6 @@
 # Ouro UI
 
-> React components with handcrafted interactions, designed for coding agents to use correctly without a skill. Copy-in source distributed as a shadcn/ui registry on GitHub (ourostack/ouro-ui). No npm package: the shadcn CLI copies each component into your app.
+> Designed down to the last tap and the last prop. Interactions that feel right to the humans using them. Code that's obvious to the agents building with them. Copy-in source distributed as a shadcn/ui registry on GitHub (ourostack/ouro-ui). No npm package: the shadcn CLI copies each component into your app.
 
 ## Install
 

@@ -1,6 +1,6 @@
 # Ouro UI
 
-React components with handcrafted interactions, designed for coding agents to use correctly without a skill.
+Designed down to the last tap and the last prop. Interactions that feel right to the humans using them. Code that's obvious to the agents building with them.
 
 ```sh
 npx shadcn@latest search 'ourostack/ouro-ui#v0.3.1'     # list the items

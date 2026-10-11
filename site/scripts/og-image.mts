@@ -1,7 +1,7 @@
 // Renders site/public/og.png, the 1200×630 image link previews show (the og:image and
-// twitter:image tags, site/src/head.ts), from the landing page itself: the hero beside the
-// phone demo with its sheet open, in the light theme with motion reduced so the frame is
-// settled. Rerun after the landing page changes, review the image, and commit it:
+// twitter:image tags, site/src/head.ts), from the landing page itself: the hero, in the light
+// theme with motion reduced so the frame is settled. Rerun after the landing page changes,
+// review the image, and commit it:
 //
 //   node site/scripts/og-image.mts
 //
@@ -19,14 +19,11 @@ const server = await createServer({ configFile: join(repo, "site/vite.config.ts"
 await server.listen();
 const browser = await chromium.launch();
 try {
-  // Laid out at 1600×840, a desktop width where the hero and the phone sit side by side, and
-  // captured at 0.75 scale: 1200×630.
+  // Laid out at 1600×840, a desktop width, and captured at 0.75 scale: 1200×630.
   const context = await browser.newContext({ viewport: { width: 1600, height: 840 }, deviceScaleFactor: 0.75, colorScheme: "light", reducedMotion: "reduce" });
   const page = await context.newPage();
   await page.goto("http://localhost:4180/ouro-ui/", { waitUntil: "networkidle" });
-  // A DOM click opens the sheet without scrolling the page to the trigger.
-  await page.getByRole("button", { name: "Save to cookbook" }).evaluate((button: HTMLElement) => button.click());
-  await page.getByRole("dialog").waitFor();
+  await page.getByRole("heading", { level: 1 }).waitFor();
   // Wait until every transition has finished, so the frame is the same on each run.
   await page.waitForFunction(() => document.getAnimations().length === 0);
   await page.evaluate(() => document.fonts.ready);

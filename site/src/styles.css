@@ -13,14 +13,11 @@
 
 :root {
   color-scheme: light;
-  /* The phone frame around the live demo. */
-  --site-bezel: #1c1c1f;
   --site-code: color-mix(in oklab, var(--muted) 70%, var(--background));
 }
 
 .dark {
   color-scheme: dark;
-  --site-bezel: #2a2a2f;
   --site-code: #121215;
 }
 
