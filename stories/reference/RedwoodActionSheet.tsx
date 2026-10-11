@@ -2,7 +2,7 @@
  * Story-only reference: a port of RedwoodUI's ActionSheet
  * (https://github.com/arimendelow/RedwoodUI/blob/main/web/src/ui/ActionSheet/ActionSheet.tsx),
  * Ari's own component, kept here only to compare feel with Ouro UI's Sheet in
- * Storybook. It is not part of the package.
+ * Storybook. It is repository-only: no registry item ships it.
  *
  * Changes from the original, none of which touch the physics:
  * - Imports come from `motion/react` instead of `framer-motion`.
