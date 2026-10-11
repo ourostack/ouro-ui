@@ -29,8 +29,6 @@ const groups: Array<{ name: string; entries: string[] }> = [
 ];
 /** Groups whose entries are components an app composes; each must say what to use instead. */
 const componentGroups = new Set(["Actions", "Text", "Overlays"]);
-/** Exported functions that are documented on another export's page. */
-const documentedElsewhere: Record<string, string> = { useOuro: "OuroProvider" };
 
 /** The registry files whose exports are documented. A part file's parts are documented together on parts.md. */
 const componentFiles = [
@@ -517,7 +515,6 @@ for (const file of componentFiles) {
   for (const symbol of exportsOf(file)) {
     if (!symbol.declarations?.some(ts.isFunctionDeclaration)) continue;
     const name = symbol.getName();
-    if (documentedElsewhere[name]) continue;
     const group = grouped.get(name);
     if (!group) {
       throw new Error(`${name} is exported from ${file} but has no catalog group. Add it to \`groups\` in scripts/gen-docs.mts, or tag it @internal.`);

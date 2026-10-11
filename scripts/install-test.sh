@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# The install test: copies test/install-fixture to <app-dir>, runs `shadcn init`, installs
-# every Ouro UI item the way an app does, then runs the app's type check, build, the
-# shipped Vitest browser tests and the shipped Playwright specs.
+# The install test: copies test/install-fixture (a bare Vite app) to <app-dir>, runs
+# `shadcn init`, installs every Ouro UI component the way an app does, and checks that the
+# runtime items brought no tests, stories, specs or test tooling: `npx vitest run` finds
+# no Ouro tests. Then it adds the testing setup from test/install-fixture-tests (the files
+# the ouro-testing message prints) and the ouro-tests item, and runs the app's type check,
+# build, the shipped Vitest browser tests and the shipped Playwright specs.
 #
 #   scripts/install-test.sh <shadcn|ouro|github|namespace> <app-dir> [ref]
 #
@@ -30,7 +33,21 @@ app=${2:?$usage}
 root=$(cd "$(dirname "$0")/.." && pwd)
 ref=${3:-$(git -C "$root" rev-parse HEAD)}
 shadcn=(npx --yes shadcn@4.21.1)
+vitest=(npx --yes vitest@5.0.3)
 items=(button text heading sheet dialog confirm-dialog)
+
+# The runtime items add components only: no test, story or spec file, no test kit, no test
+# tooling in package.json, and so nothing for a plain `vitest run` to find.
+runtime_only() {
+  node "$root/scripts/install-check.mjs" "$app" "$1" runtime
+  local found
+  found=$(find src e2e \( -name '*.test.ts' -o -name '*.test.tsx' -o -name '*.test-d.ts' -o -name '*.stories.tsx' -o -name '*.spec.ts' \) 2>/dev/null || true)
+  [ -z "$found" ] || { echo "the runtime items added test files:"; echo "$found"; exit 1; }
+  local out
+  out=$("${vitest[@]}" run --passWithNoTests 2>&1) || { echo "$out"; exit 1; }
+  echo "$out"
+  grep -q "No test files found" <<<"$out" || { echo "vitest run found tests after a runtime-only install"; exit 1; }
+}
 
 mkdir -p "$app"
 app=$(cd "$app" && pwd)
@@ -50,7 +67,7 @@ if [ "$variant" = github ]; then
   echo "::group::Type check and build"
   npx tsc -b
   npx vite build
-  node "$root/scripts/install-check.mjs" "$app" shadcn
+  runtime_only shadcn
   echo "::endgroup::"
   exit 0
 fi
@@ -67,11 +84,17 @@ if [ "$variant" = namespace ]; then
     c.registries = { "@ouro": "http://127.0.0.1:8765/r/{name}.json" };
     require("fs").writeFileSync(f, JSON.stringify(c, null, 2) + "\n");'
   "${shadcn[@]}" add --yes @ouro/dialog
-  for item in dialog sheet button ouro-lib ouro-testing ouro-base; do
+  for item in dialog sheet ouro-lib ouro-base; do
     grep -q "GET /r/$item.json" "$registry/served.log" || { echo "$item did not resolve through @ouro"; exit 1; }
   done
-  for path in components/ouro/dialog/dialog.tsx components/ouro/sheet/sheet.tsx components/ouro/button/button.tsx lib/ouro/cn.ts lib/ouro/testing/vitest.ts; do
+  for item in ouro-testing dialog-tests; do
+    if grep -q "GET /r/$item.json" "$registry/served.log"; then echo "@ouro/dialog pulled in $item"; exit 1; fi
+  done
+  for path in components/ouro/dialog/dialog.tsx components/ouro/sheet/sheet.tsx lib/ouro/cn.ts; do
     test -f "src/$path" || { echo "missing src/$path"; exit 1; }
+  done
+  for path in lib/ouro/testing components/ouro/dialog/dialog.test.tsx components/ouro/dialog/dialog.stories.tsx; do
+    if test -e "src/$path"; then echo "@ouro/dialog added src/$path"; exit 1; fi
   done
   grep -q -- "--ouro-spring-duration" src/index.css || { echo "ouro-base did not reach src/index.css"; exit 1; }
   cat > src/App.tsx <<'EOF'
@@ -100,7 +123,7 @@ if [ "$variant" = ouro ]; then
   echo "::endgroup::"
 fi
 
-echo "::group::Every item"
+echo "::group::Every component, runtime only"
 items_json=()
 for item in "${items[@]}"; do items_json+=("$registry/r/$item.json"); done
 "${shadcn[@]}" add --yes "${items_json[@]}"
@@ -125,10 +148,18 @@ EOF
   echo "::endgroup::"
 fi
 
-echo "::group::Type check and build"
+echo "::group::Type check, build, and no tests from the runtime items"
 npx tsc -b
 npx vite build
-node "$root/scripts/install-check.mjs" "$app" "$variant"
+runtime_only "$variant"
+echo "::endgroup::"
+
+echo "::group::The testing setup and ouro-tests"
+cp -R "$root/test/install-fixture-tests/." "$app/"
+"${shadcn[@]}" add --yes "$registry/r/ouro-tests.json"
+npx tsc -b
+npx vite build
+node "$root/scripts/install-check.mjs" "$app" "$variant" tests
 echo "::endgroup::"
 
 echo "::group::Shipped Vitest browser tests"

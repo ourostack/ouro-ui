@@ -4,7 +4,7 @@ import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
-import { alignClasses, checkAlign, type TextAlign } from "@/registry/ouro/components/ouro/text/text";
+import { alignClasses, checkAlign, type TextAlign } from "@/registry/ouro/components/ouro/text/text-styles";
 
 /** A heading size from the theme's type scale. `display` is for a page's hero headline. */
 export type HeadingSize = "sm" | "md" | "lg" | "xl" | "2xl" | "display";

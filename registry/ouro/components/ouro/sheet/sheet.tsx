@@ -14,13 +14,9 @@ import {
   SheetTitle,
   SheetTrigger,
   SheetViewport,
-  footerClass,
-  sheetHint,
-  sheetSides,
-  sideWarning,
-  type SheetSide,
   type SheetSnapPoint,
 } from "@/registry/ouro/components/ouro/sheet/sheet-parts";
+import { footerClass, sheetHint, sheetSides, sideWarning, type SheetSide } from "@/registry/ouro/components/ouro/sheet/sheet-styles";
 
 export type { SheetSide, SheetSnapPoint } from "@/registry/ouro/components/ouro/sheet/sheet-parts";
 

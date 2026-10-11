@@ -16,7 +16,7 @@ import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
-import { useOuro } from "@/registry/ouro/lib/ouro/ouro-provider";
+import { useOuro } from "@/registry/ouro/lib/ouro/use-ouro";
 import { toneWarning } from "@/registry/ouro/lib/ouro/tones";
 
 /** An icon component, such as one from `lucide-react` or `@heroicons/react`. */
@@ -374,7 +374,7 @@ export function Button(props: ButtonProps): JSX.Element {
 
   if (rest.href !== undefined) {
     // `type` and `disabled` are typed `never` on links; drop them if they arrive anyway.
-    const { href, target, rel, onClick, ref, type, disabled, ...anchorProps } = rest as Omit<
+    const { href, target, rel, onClick, ref, type: _type, disabled: _disabled, ...anchorProps } = rest as Omit<
       ButtonLinkProps,
       keyof ButtonBaseProps
     >;

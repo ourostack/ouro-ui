@@ -1,14 +1,37 @@
-// Checks an app after scripts/install-test.sh installed every Ouro UI item and built it:
-// the files landed where spec §3 says, every registry import was rewritten, the base
-// tokens reached the app's CSS and its build, and the theme is the one the variant wants.
+// Checks an app after scripts/install-test.sh installed Ouro UI items and built it: the
+// files landed where spec §3 says, every registry import was rewritten, the base tokens
+// reached the app's CSS and its build, no token refers to itself, and the theme is the
+// one the variant wants.
 //
-//   node scripts/install-check.mjs <app-dir> <shadcn|ouro>
+//   node scripts/install-check.mjs <app-dir> <shadcn|ouro> <runtime|tests>
+//
+// runtime: only the component items were added, so the app must have no Ouro test,
+//          story, spec or test kit, and no test tooling in package.json.
+// tests:   the -tests items were added too, so their files must be there.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+const runtimeFiles = [
+  "src/components/ouro/button/button.tsx",
+  "src/components/ouro/text/heading.tsx",
+  "src/components/ouro/sheet/sheet-parts.tsx",
+  "src/components/ouro/dialog/confirm-dialog.tsx",
+  "src/lib/ouro/cn.ts",
+  "src/lib/ouro/env.d.ts",
+];
+const testFiles = [
+  "src/components/ouro/button/button.test.tsx",
+  "src/components/ouro/button/button.stories.tsx",
+  "src/lib/ouro/testing/vitest.ts",
+  "e2e/ouro/sheet.spec.ts",
+  "e2e/ouro/story.ts",
+];
+const testFile = /\.(test|touch\.test)\.tsx?$|\.test-d\.ts$|\.stories\.tsx$|\.spec\.ts$/;
+const testTooling = /^(storybook|@storybook\/.*|vitest|@vitest\/.*|playwright|@playwright\/.*)$/;
+
 /** Problems with an installed app, as readable lines; empty when it passes. */
-export function checkInstall(app, variant) {
+export function checkInstall(app, variant, stage) {
   const problems = [];
   const read = (path) => readFileSync(join(app, path), "utf8");
   const files = (dir) =>
@@ -16,20 +39,17 @@ export function checkInstall(app, variant) {
       ? readdirSync(join(app, dir), { recursive: true }).map((file) => join(dir, String(file)))
       : [];
 
-  for (const path of [
-    "src/components/ouro/button/button.tsx",
-    "src/components/ouro/button/button.test.tsx",
-    "src/components/ouro/button/button.stories.tsx",
-    "src/components/ouro/text/heading.tsx",
-    "src/components/ouro/sheet/sheet-parts.tsx",
-    "src/components/ouro/dialog/confirm-dialog.tsx",
-    "src/lib/ouro/cn.ts",
-    "src/lib/ouro/env.d.ts",
-    "src/lib/ouro/testing/vitest.ts",
-    "e2e/ouro/sheet.spec.ts",
-    "e2e/ouro/story.ts",
-  ]) {
+  for (const path of stage === "tests" ? [...runtimeFiles, ...testFiles] : runtimeFiles) {
     if (!existsSync(join(app, path))) problems.push(`missing ${path}`);
+  }
+  if (stage === "runtime") {
+    const ouroFiles = [...files("src/components/ouro"), ...files("src/lib/ouro"), ...files("e2e/ouro")];
+    for (const path of ouroFiles.filter((file) => testFile.test(file) || file.startsWith("src/lib/ouro/testing/") || file.startsWith("e2e/"))) {
+      if (/\.\w+$/.test(path)) problems.push(`the runtime install added ${path}`);
+    }
+    const pkg = JSON.parse(read("package.json"));
+    const tooling = Object.keys({ ...pkg.dependencies, ...pkg.devDependencies }).filter((name) => testTooling.test(name)).sort();
+    if (tooling.length > 0) problems.push(`the runtime install added ${tooling.join(", ")} to package.json`);
   }
   if (existsSync(join(app, "src/components/ui/sheet.tsx"))) problems.push("an Ouro item landed in components/ui");
 
@@ -54,6 +74,10 @@ export function checkInstall(app, variant) {
   ]) {
     if (!declares(name)) problems.push(`src/index.css does not declare ${name}`);
   }
+  // `--x: var(--x)` is a cycle: it only works while another declaration of --x wins the cascade.
+  for (const match of css.matchAll(/(--[\w-]+)\s*:\s*var\(\s*(--[\w-]+)\s*\)/g)) {
+    if (match[1] === match[2]) problems.push(`src/index.css: ${match[1]}: var(${match[2]}) refers to itself`);
+  }
   for (const rule of ["@utility press", "@keyframes ouro-spin", "@keyframes ouro-pulse"]) {
     if (!css.includes(rule)) problems.push(`src/index.css has no ${rule}`);
   }
@@ -73,9 +97,14 @@ export function checkInstall(app, variant) {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const [app, variant] = process.argv.slice(2);
-  const problems = checkInstall(app, variant);
-  for (const problem of problems) console.error(`install check: ${problem}`);
-  if (problems.length === 0) console.log(`install check: ${variant} app passes`);
-  process.exitCode = problems.length === 0 ? 0 : 1;
+  const [app, variant, stage] = process.argv.slice(2);
+  if (stage !== "runtime" && stage !== "tests") {
+    console.error("usage: install-check.mjs <app-dir> <shadcn|ouro> <runtime|tests>");
+    process.exitCode = 2;
+  } else {
+    const problems = checkInstall(app, variant, stage);
+    for (const problem of problems) console.error(`install check: ${problem}`);
+    if (problems.length === 0) console.log(`install check: ${variant} app passes (${stage})`);
+    process.exitCode = problems.length === 0 ? 0 : 1;
+  }
 }

@@ -8,26 +8,10 @@ import { useBackdropAnchor } from "@/registry/ouro/lib/ouro/use-backdrop-anchor"
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 import { useKeyboardScrollable } from "@/registry/ouro/lib/ouro/use-keyboard-scrollable";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { footerClass, iosBackdrop, sheetHint } from "@/registry/ouro/components/ouro/sheet/sheet-parts";
+import { footerClass, iosBackdrop, sheetHint } from "@/registry/ouro/components/ouro/sheet/sheet-styles";
+import { dialogSizes, dialogSizeWarning, type DialogSize } from "@/registry/ouro/components/ouro/dialog/dialog-styles";
 
-/** A centered dialog's maximum width: `sm` 24rem, `md` 32rem, `lg` 40rem. */
-export type DialogSize = "sm" | "md" | "lg";
-
-/**
- * The three sizes, for checking a `size` prop. Shared with `Dialog`.
- *
- * @internal
- */
-export const dialogSizes: readonly DialogSize[] = ["sm", "md", "lg"];
-
-/**
- * The dev message for a size that is not one of {@link dialogSizes}. Development only.
- *
- * @internal
- */
-export function dialogSizeWarning(size: string, fix: string): readonly [string, string] {
-  return [`size="${size}" is not a size; use ${dialogSizes.map((name) => `"${name}"`).join(", ")}`, fix];
-}
+export type { DialogSize } from "@/registry/ouro/components/ouro/dialog/dialog-styles";
 
 const DialogContext = createContext(false);
 

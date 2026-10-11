@@ -8,25 +8,31 @@ import { checkInstall } from "./install-check.mjs";
 // A real installed app is the install job's to build; these cases prove the check fails
 // on each kind of broken install, using a stand-in with a passing app's key files.
 
-const app = (variant, css) => {
+const runtimeFiles = [
+  "src/components/ouro/button/button.tsx",
+  "src/components/ouro/text/heading.tsx",
+  "src/components/ouro/sheet/sheet-parts.tsx",
+  "src/components/ouro/dialog/confirm-dialog.tsx",
+  "src/lib/ouro/cn.ts",
+  "src/lib/ouro/env.d.ts",
+];
+const testFiles = [
+  "src/components/ouro/button/button.test.tsx",
+  "src/components/ouro/button/button.stories.tsx",
+  "src/lib/ouro/testing/vitest.ts",
+  "e2e/ouro/sheet.spec.ts",
+  "e2e/ouro/story.ts",
+];
+
+const app = (variant, css, stage = "tests") => {
   const dir = mkdtempSync(join(tmpdir(), "ouro-install-check-"));
   const write = (file, text) => {
     mkdirSync(dirname(join(dir, file)), { recursive: true });
     writeFileSync(join(dir, file), text);
   };
-  const files = [
-    "src/components/ouro/button/button.tsx",
-    "src/components/ouro/button/button.test.tsx",
-    "src/components/ouro/button/button.stories.tsx",
-    "src/components/ouro/text/heading.tsx",
-    "src/components/ouro/sheet/sheet-parts.tsx",
-    "src/components/ouro/dialog/confirm-dialog.tsx",
-    "src/lib/ouro/cn.ts",
-    "src/lib/ouro/env.d.ts",
-    "src/lib/ouro/testing/vitest.ts",
-    "e2e/ouro/sheet.spec.ts",
-    "e2e/ouro/story.ts",
-  ];
+  const files = stage === "tests" ? [...runtimeFiles, ...testFiles] : runtimeFiles;
+  const devDependencies = stage === "tests" ? { vitest: "^5.0.3", storybook: "^10.6.1" } : { vite: "^8.3.2" };
+  write("package.json", JSON.stringify({ dependencies: { react: "^19.3.0" }, devDependencies }));
   for (const file of files) write(file, 'import { cn } from "~/lib/ouro/cn";\n');
   const primary = variant === "ouro" ? "#2261eb" : "oklch(0.205 0 0)";
   const index = css ?? `:root {\n  --primary: ${primary};\n  --success: #157d3c;\n  --success-foreground: #fff;\n  --warning: #b05109;\n  --warning-foreground: #fff;\n  --destructive-foreground: #fff;\n  --ouro-spring-duration: 750ms;\n  --ouro-ease-spring: linear(0, 1);\n  --ouro-press-scale: 0.97;\n  --ouro-backdrop-color: #000;\n}\n@theme inline {\n  --color-success: var(--success);\n  --color-warning: var(--warning);\n  @keyframes ouro-spin { to { rotate: 1turn; } }\n  @keyframes ouro-pulse { 50% { opacity: 0.4; } }\n}\n@utility press { scale: 1; }\n`;
@@ -35,14 +41,39 @@ const app = (variant, css) => {
   return dir;
 };
 
-test("a complete install passes, for each variant", () => {
-  assert.deepEqual(checkInstall(app("ouro"), "ouro"), []);
-  assert.deepEqual(checkInstall(app("shadcn"), "shadcn"), []);
+test("a complete install passes, for each variant and stage", () => {
+  assert.deepEqual(checkInstall(app("ouro"), "ouro", "tests"), []);
+  assert.deepEqual(checkInstall(app("shadcn"), "shadcn", "tests"), []);
+  assert.deepEqual(checkInstall(app("shadcn", undefined, "runtime"), "shadcn", "runtime"), []);
+});
+
+test("a runtime install that brought tests, stories, specs, the test kit or test tooling fails", () => {
+  const dir = app("shadcn", undefined, "runtime");
+  writeFileSync(join(dir, "src/components/ouro/button/button.stories.tsx"), "");
+  mkdirSync(join(dir, "e2e/ouro"), { recursive: true });
+  writeFileSync(join(dir, "e2e/ouro/sheet.spec.ts"), "");
+  mkdirSync(join(dir, "src/lib/ouro/testing"), { recursive: true });
+  writeFileSync(join(dir, "src/lib/ouro/testing/act.ts"), "");
+  writeFileSync(join(dir, "package.json"), JSON.stringify({ devDependencies: { "@playwright/test": "^1.63.0", "@storybook/react-vite": "^10.6.1", vitest: "^5.0.3" } }));
+  const problems = checkInstall(dir, "shadcn", "runtime").join("\n");
+  assert.match(problems, /runtime install added src\/components\/ouro\/button\/button\.stories\.tsx/);
+  assert.match(problems, /runtime install added e2e\/ouro\/sheet\.spec\.ts/);
+  assert.match(problems, /runtime install added src\/lib\/ouro\/testing\/act\.ts/);
+  assert.match(problems, /runtime install added @playwright\/test, @storybook\/react-vite, vitest to package\.json/);
+});
+
+test("a token that refers to itself fails", () => {
+  const dir = app("ouro");
+  const css = readFileSync(join(dir, "src/index.css"), "utf8");
+  writeFileSync(join(dir, "src/index.css"), css.replace("@theme inline {", "@theme inline {\n  --ouro-press-scale: var(--ouro-press-scale);\n  --color-ouro-backdrop-color:var( --ouro-backdrop-color );"));
+  const problems = checkInstall(dir, "ouro", "tests").join("\n");
+  assert.match(problems, /--ouro-press-scale: var\(--ouro-press-scale\) refers to itself/);
+  assert.doesNotMatch(problems, /--color-ouro-backdrop-color.*refers to itself/);
 });
 
 test("the wrong theme fails", () => {
-  assert.match(checkInstall(app("shadcn"), "ouro").join("\n"), /not the Ouro theme/);
-  assert.match(checkInstall(app("ouro"), "shadcn").join("\n"), /shadcn theme was not kept/);
+  assert.match(checkInstall(app("shadcn"), "ouro", "tests").join("\n"), /not the Ouro theme/);
+  assert.match(checkInstall(app("ouro"), "shadcn", "tests").join("\n"), /shadcn theme was not kept/);
 });
 
 test("a missing token, rule or file, or an unrewritten import, fails", () => {
@@ -51,9 +82,11 @@ test("a missing token, rule or file, or an unrewritten import, fails", () => {
   writeFileSync(join(dir, "src/index.css"), css.replace("--warning: #b05109;", "").replace("@keyframes ouro-pulse", ""));
   writeFileSync(join(dir, "src/lib/ouro/cn.ts"), 'import { x } from "@/registry/ouro/lib/ouro/x";\n');
   writeFileSync(join(dir, "dist/assets/index.css"), "");
-  const problems = checkInstall(dir, "ouro").join("\n");
+  const problems = checkInstall(dir, "ouro", "tests").join("\n");
   assert.match(problems, /does not declare --warning\b/);
   assert.match(problems, /no @keyframes ouro-pulse/);
   assert.match(problems, /cn\.ts still imports @\/registry\//);
   assert.match(problems, /vite build wrote no CSS/);
+  const missingTests = app("ouro", undefined, "runtime");
+  assert.match(checkInstall(missingTests, "ouro", "tests").join("\n"), /missing e2e\/ouro\/story\.ts/);
 });

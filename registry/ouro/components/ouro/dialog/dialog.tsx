@@ -15,7 +15,7 @@ import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
-import { sheetHint } from "@/registry/ouro/components/ouro/sheet/sheet-parts";
+import { sheetHint } from "@/registry/ouro/components/ouro/sheet/sheet-styles";
 import { SheetFrame } from "@/registry/ouro/components/ouro/sheet/sheet";
 import {
   DialogBackdrop,
@@ -28,10 +28,8 @@ import {
   DialogRoot,
   DialogTitle,
   DialogViewport,
-  dialogSizes,
-  dialogSizeWarning,
-  type DialogSize,
 } from "@/registry/ouro/components/ouro/dialog/dialog-parts";
+import { dialogSizes, dialogSizeWarning, type DialogSize } from "@/registry/ouro/components/ouro/dialog/dialog-styles";
 
 export type { DialogSize } from "@/registry/ouro/components/ouro/dialog/dialog-parts";
 
