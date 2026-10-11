@@ -22,6 +22,8 @@ import {
 
 export type { SheetSide, SheetSnapPoint } from "@/registry/ouro/components/ouro/sheet/sheet-parts";
 
+const sides: readonly SheetSide[] = ["bottom", "top", "left", "right"];
+
 /** Props shared by both ways of opening a Sheet. */
 export interface SheetBaseProps {
   /** Names the sheet for screen readers and shows at its top. Always required; hide it with `hideTitle`. */
@@ -37,7 +39,7 @@ export interface SheetBaseProps {
   /** A short line under the title, read out when the sheet opens. */
   description?: ReactNode;
   /** The edge the sheet slides in from and is dragged back to. @default "bottom" */
-  side?: SheetSide | undefined;
+  side?: SheetSide | (string & { 'Use "bottom", "top", "left" or "right"': never }) | undefined;
   /**
    * Heights a bottom or top sheet rests at, smallest first: fractions of the
    * viewport (`0.5`), `px` or `rem`. `snapPoints={[0.5, 1]}` opens at half
@@ -109,14 +111,14 @@ export function Sheet(props: SheetProps): JSX.Element {
     hideTitle,
     closeLabel = "Close",
     description,
-    side = "bottom",
+    side: sideProp = "bottom",
     snapPoints,
     children,
     className,
     trigger,
     open,
     onOpenChange,
-    // Guard props: typed `never`, dropped here so they never reach the DOM.
+    // Guard props (hint types), dropped here so they never reach the DOM.
     isOpen,
     onClose,
     position,
@@ -129,6 +131,9 @@ export function Sheet(props: SheetProps): JSX.Element {
 
   checkOpenMode("Sheet", "sheet", trigger !== undefined, open, onOpenChange);
 
+  // A side that is not one of Ouro UI's (a type error) warns and renders a bottom sheet.
+  const side = sides.includes(sideProp as SheetSide) ? (sideProp as SheetSide) : "bottom";
+
   useAppearanceClassNameCheck(
     "Sheet",
     className,
@@ -140,6 +145,10 @@ export function Sheet(props: SheetProps): JSX.Element {
     "Sheet",
     process.env.NODE_ENV !== "production"
       ? () => [
+          side !== sideProp && [
+            `side="${String(sideProp)}" is not a side; use ${sides.map((name) => `"${name}"`).join(", ")}`,
+            '<Sheet side="bottom">',
+          ],
           isOpen !== undefined && ["isOpen is not a prop", "<Sheet open={open} onOpenChange={setOpen}>"],
           onClose !== undefined && ["onClose is not a prop", "<Sheet open={open} onOpenChange={setOpen}>"],
           position !== undefined && ["position is not a prop", '<Sheet side="bottom">'],

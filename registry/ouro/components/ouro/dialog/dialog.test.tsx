@@ -540,6 +540,16 @@ describe("dev messages", () => {
     for (const name of ["isopen", "position", "side", "snappoints"]) expect(element.hasAttribute(name)).toBe(false);
   });
 
+  it("renders the md size and auto presentation for values that are not Ouro UI's, and warns once with each fix", async () => {
+    const element = await openUncontrolled({ size: "xl", presentation: "modal" } as object);
+    expect(element.getAttribute("data-size")).toBe("md");
+    expect(element.getAttribute("data-ouro-presentation")).toBe("dialog");
+    expect(warn.mock.calls.map((call: unknown[]) => call[0])).toEqual([
+      '[ouro-ui] Dialog: size="xl" is not a size; use "sm", "md", "lg". Fix: <Dialog size="md">.',
+      '[ouro-ui] Dialog: presentation="modal" is not a presentation; use "auto", "dialog", "sheet". Fix: <Dialog presentation="auto">.',
+    ]);
+  });
+
   it.each([
     ["bg-white", ":root { --popover: …; } .dark { --popover: …; }"],
     ["rounded-none", ":root { --radius: 0px }"],

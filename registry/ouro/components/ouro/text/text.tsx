@@ -8,7 +8,8 @@ import { toneWarning } from "@/registry/ouro/lib/ouro/tones";
 /** Text alignment, in writing direction: `start` is left in English and right in Arabic. */
 export type TextAlign = "start" | "center" | "end";
 
-interface TextBaseProps extends Omit<HTMLAttributes<HTMLElement>, "color" | "className" | "children"> {
+/** The props Text adds to the HTML attributes it passes through. */
+export interface TextOwnProps {
   /** The element to render. Use `span` inside other text, `div` around block content. @default "p" */
   as?: "p" | "span" | "div" | undefined;
   /** Type size from the theme. @default "md" */
@@ -18,7 +19,16 @@ interface TextBaseProps extends Omit<HTMLAttributes<HTMLElement>, "color" | "cla
    * status text (`destructive` for an error). `secondary` is the same as `muted`,
    * because shadcn's `--secondary` is a surface color, not a text color. @default "default"
    */
-  tone?: "default" | "muted" | "primary" | "secondary" | "destructive" | "success" | "warning" | undefined;
+  tone?:
+    | "default"
+    | "muted"
+    | "primary"
+    | "secondary"
+    | "destructive"
+    | "success"
+    | "warning"
+    | (string & { 'danger is "destructive"; accent is "primary"; neutral is "secondary"': never })
+    | undefined;
   /** Alignment in writing direction. @default inherited */
   align?: TextAlign | undefined;
   /**
@@ -31,10 +41,20 @@ interface TextBaseProps extends Omit<HTMLAttributes<HTMLElement>, "color" | "cla
   ref?: Ref<HTMLElement> | undefined;
   /** Not a prop. Ouro UI uses `tone`: `<Text tone="muted">`. */
   color?: { 'Use <Text tone="muted">': never };
+  /** Not a prop. Text has no variants; use `size` and `tone`: `<Text size="sm" tone="muted">`. */
+  variant?: { 'Use <Text size="sm" tone="muted">': never };
 }
 
-/** Props for {@link Text}. `truncate` (one line) and `lines` (many) are exclusive. */
-export type TextProps = TextBaseProps &
+/**
+ * Props for {@link Text}. `truncate` (one line) and `lines` (many) are exclusive. The
+ * HTML attributes sit outside the `truncate`/`lines` union, which keeps the editor's
+ * hover docs on every prop.
+ */
+export type TextProps = Omit<
+  HTMLAttributes<HTMLElement>,
+  "color" | "className" | "children" | "truncate" | "lines" | keyof TextOwnProps
+> &
+  TextOwnProps &
   (
     | {
         /** Cuts the text to one line with an ellipsis. Use `lines` for more than one line. */
@@ -95,9 +115,23 @@ function textHint(token: string): string {
  * <Text lines={2}>{recipe.description}</Text>
  */
 export function Text(props: TextProps): JSX.Element {
-  const { as: Tag = "p", size = "md", tone: toneProp = "default", align, truncate, lines, className, style, ref, color, ...rest } = props;
+  const {
+    as: Tag = "p",
+    size = "md",
+    tone: toneProp = "default",
+    align,
+    truncate,
+    lines,
+    className,
+    style,
+    ref,
+    // Guard props (hint types), dropped here so they never reach the DOM.
+    color,
+    variant,
+    ...rest
+  } = props;
   // A tone that is not one of Ouro UI's (a type error) warns and renders the default.
-  const tone = Object.hasOwn(tones, toneProp) ? toneProp : "default";
+  const tone = Object.hasOwn(tones, toneProp) ? (toneProp as keyof typeof tones) : "default";
   useAppearanceClassNameCheck(
     "Text",
     className,
@@ -110,6 +144,7 @@ export function Text(props: TextProps): JSX.Element {
       ? () => [
           tone !== toneProp && toneWarning("Text", String(toneProp), Object.keys(tones)),
           color !== undefined && ["color is not a prop", `<Text tone="${textTone(`text-${String(color)}`)}">`],
+          variant !== undefined && ["variant is not a prop; Text has no variants", '<Text size="sm" tone="muted">'],
         ]
       : /* istanbul ignore next -- production only */ undefined,
   );

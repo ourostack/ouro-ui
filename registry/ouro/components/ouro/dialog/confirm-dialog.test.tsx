@@ -298,6 +298,7 @@ describe("ConfirmDialog dev messages", () => {
       destructive: true,
       confirmText: "Go",
       cancelText: "Keep",
+      variant: "destructive",
     } as object;
     const element = await open(guessed);
     expect(warn.mock.calls.map((call: unknown[]) => call[0])).toEqual([
@@ -307,7 +308,8 @@ describe("ConfirmDialog dev messages", () => {
       '[ouro-ui] ConfirmDialog: destructive is not a prop. Fix: <ConfirmDialog tone="destructive">.',
       '[ouro-ui] ConfirmDialog: confirmText is not a prop. Fix: <ConfirmDialog confirmLabel="Delete">.',
       '[ouro-ui] ConfirmDialog: cancelText is not a prop. Fix: <ConfirmDialog cancelLabel="Keep">.',
+      '[ouro-ui] ConfirmDialog: variant is not a prop. Fix: <ConfirmDialog tone="destructive">.',
     ]);
-    for (const name of ["isopen", "destructive", "confirmtext", "canceltext"]) expect(element.hasAttribute(name)).toBe(false);
+    for (const name of ["isopen", "destructive", "confirmtext", "canceltext", "variant"]) expect(element.hasAttribute(name)).toBe(false);
   });
 });

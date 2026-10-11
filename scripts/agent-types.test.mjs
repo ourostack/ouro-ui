@@ -1,6 +1,7 @@
-// Spec §4.6: the type check and the editor's hover tell an agent the fix. Runs `tsc`
-// and the TypeScript language service on fixtures/agent-types/app.tsx, which makes the
-// mistakes agents with shadcn/ui habits make.
+// Spec §4.6: the type check and the editor's hover tell an agent the fix. Runs `tsc` and the
+// TypeScript language service on fixtures/agent-types/app.tsx, which makes the mistakes
+// agents make, and checks them against fixtures/agent-types/cases.ts. The development
+// messages, the third channel, are checked in test/agent-types.test.tsx.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -9,48 +10,87 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
+import { agentCases, validSnippets } from "./fixtures/agent-types/cases.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const fixtureDir = join(root, "scripts/fixtures/agent-types");
 const app = join(fixtureDir, "app.tsx");
-const text = readFileSync(app, "utf8");
+const lines = readFileSync(app, "utf8").split("\n");
 const tsc = createRequire(import.meta.url).resolve("typescript/bin/tsc");
 
-/** The 1-based line of `export const <name> =` in the fixture. */
-function lineOf(name) {
-  const index = text.split("\n").findIndex((line) => line.startsWith(`export const ${name} =`));
-  assert.notEqual(index, -1, `no ${name} in the fixture`);
+/** The 1-based line of `export const <id> =` in the fixture. */
+function lineOf(id) {
+  const index = lines.findIndex((line) => line.startsWith(`export const ${id} =`));
+  assert.notEqual(index, -1, `no ${id} in the fixture`);
   return index + 1;
 }
 
-test("tsc names the fix for guard props and for shadcn's variants and sizes", () => {
-  const result = spawnSync(process.execPath, [tsc, "-p", fixtureDir, "--pretty", "false"], { cwd: root, encoding: "utf8" });
-  const errors = new Map();
-  for (const line of result.stdout.split("\n")) {
-    const match = /^scripts\/fixtures\/agent-types\/app\.tsx\((\d+),\d+\): (error TS\d+: .*)$/.exec(line);
-    if (match) errors.set(Number(match[1]), [...(errors.get(Number(match[1])) ?? []), match[2]]);
-    else assert.equal(line, "", `unexpected tsc output: ${line}`);
+/** Top-level members of a printed union, ignoring `|` inside parentheses and braces. */
+function members(union) {
+  const parts = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < union.length; i++) {
+    const char = union[i];
+    if (char === "(" || char === "{") depth++;
+    else if (char === ")" || char === "}") depth--;
+    else if (depth === 0 && union.startsWith(" | ", i)) {
+      parts.push(union.slice(start, i));
+      start = i + 3;
+    }
   }
-  // Union members print in the order the compiler created their types, which is not the
-  // order they are written in; every member prints, because the union stays short.
-  const variants = `(string & { 'From shadcn? Use tone="destructive" or tone="secondary". default is "solid"; ghost and link are "plain"': never; }) | "solid" | "soft" | "outline" | "plain" | undefined`;
-  const sizes = `"sm" | "lg" | (string & { 'From shadcn? default is "md"; for icon, pass aria-label with the icon as children': never; }) | "md" | undefined`;
-  const expected = new Map([
-    [lineOf("button"), [`error TS2322: Type 'boolean' is not assignable to type '{ 'Use <Button loading>': never; }'.`]],
-    [lineOf("sheet"), [`error TS2322: Type 'boolean' is not assignable to type '{ 'Use <Sheet open={open} onOpenChange={setOpen}>': never; }'.`]],
-    [lineOf("dialog"), [`error TS2322: Type 'boolean' is not assignable to type '{ 'Use <Dialog open={open} onOpenChange={setOpen}>': never; }'.`]],
-    [lineOf("confirm"), [`error TS2322: Type 'boolean' is not assignable to type '{ 'Use <ConfirmDialog open={open} onOpenChange={setOpen}>': never; }'.`]],
-    ...["destructive", "default", "secondary", "ghost", "link"].map((value) => [
-      lineOf(value === "default" ? "variantDefault" : value),
-      [`error TS2322: Type '"${value}"' is not assignable to type '${variants}'.`],
-    ]),
-    [lineOf("sizeDefault"), [`error TS2322: Type '"default"' is not assignable to type '${sizes}'.`]],
-    [lineOf("icon"), [`error TS2322: Type '"icon"' is not assignable to type '${sizes}'.`]],
-  ]);
-  assert.deepEqual(errors, expected);
+  return [...parts, union.slice(start)].sort();
+}
+
+/** Compares two `tsc` messages; a union target is compared as a set of members. */
+function assertSameMessage(actual, expected, label) {
+  assert.doesNotMatch(actual, /\.\.\. \d+ more/, `${label}: tsc truncated the type`);
+  const pattern = /^(error TS\d+: Type '.*?' is not assignable to type ')(.*)('\.)$/s;
+  const [a, e] = [pattern.exec(actual), pattern.exec(expected)];
+  if (a && e && e[2].includes(" | ") && !e[2].startsWith("{")) {
+    assert.equal(a[1], e[1], label);
+    assert.deepEqual(members(a[2]), members(e[2]), label);
+  } else {
+    assert.equal(actual, expected, label);
+  }
+}
+
+test("every snippet names the fix in at least one channel", () => {
+  for (const item of agentCases) {
+    assert.ok(item.names.length > 0, item.id);
+    assert.equal(item.names.includes("dev"), item.dev !== undefined, `${item.id}: dev`);
+    assert.equal(item.names.includes("hover"), item.hover !== undefined, `${item.id}: hover`);
+  }
+  const ids = lines.flatMap((line) => /^export const (\w+) =/.exec(line)?.[1] ?? []);
+  assert.deepEqual(ids, [...agentCases.map((item) => item.id), ...validSnippets]);
 });
 
-test("hovering a prop shows its JSDoc, even on an element with a type error", () => {
+test("tsc reports exactly the expected errors, naming the fix where the case says so", () => {
+  const result = spawnSync(process.execPath, [tsc, "-p", fixtureDir, "--pretty", "false"], { cwd: root, encoding: "utf8" });
+  // Each error starts with `file(line,col): `; continuation lines are indented.
+  const errors = new Map();
+  let last;
+  for (const line of result.stdout.split("\n")) {
+    const match = /^scripts\/fixtures\/agent-types\/app\.tsx\((\d+),\d+\): (error TS\d+: .*)$/.exec(line);
+    if (match) {
+      last = [...(errors.get(Number(match[1])) ?? []), match[2]];
+      errors.set(Number(match[1]), last);
+    } else if (line.startsWith(" ") && last) {
+      last[last.length - 1] += `\n${line}`;
+    } else {
+      assert.equal(line, "", `unexpected tsc output: ${line}`);
+    }
+  }
+  for (const id of validSnippets) assert.equal(errors.get(lineOf(id)), undefined, `${id} is valid`);
+  for (const item of agentCases) {
+    const actual = errors.get(lineOf(item.id)) ?? [];
+    assert.equal(actual.length, item.tsc.length, `${item.id}: ${actual.join("\n")}`);
+    item.tsc.forEach((expected, index) => assertSameMessage(actual[index], expected, item.id));
+  }
+  assert.equal(errors.size, agentCases.length);
+});
+
+test("hovering any prop shows its JSDoc, including on elements with a type error", () => {
   const config = ts.getParsedCommandLineOfConfigFile(join(fixtureDir, "tsconfig.json"), {}, {
     ...ts.sys,
     onUnRecoverableConfigFileDiagnostic: (diagnostic) => assert.fail(ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n")),
@@ -74,37 +114,37 @@ test("hovering a prop shows its JSDoc, even on an element with a type error", ()
     },
     ts.createDocumentRegistry(),
   );
-  /** The JSDoc the editor shows when hovering `prop` in the element `name`. */
-  const hover = (name, prop) => {
-    const line = text.split("\n")[lineOf(name) - 1];
-    const column = line.search(new RegExp(`\\s${prop}[=\\s/>]`)) + 1;
-    assert.ok(column > 0, `no ${prop} in ${name}`);
-    const offset = text.split("\n").slice(0, lineOf(name) - 1).join("\n").length + 1 + column;
-    const info = service.getQuickInfoAtPosition(app, offset);
-    return ts.displayPartsToString(info?.documentation);
+  const source = service.getProgram().getSourceFile(app);
+  /** The hover JSDoc of each attribute on the snippet's outer element. */
+  const hovers = (id) => {
+    const statement = source.statements.find(
+      (node) => ts.isVariableStatement(node) && node.declarationList.declarations[0].name.getText(source) === id,
+    );
+    const element = statement.declarationList.declarations[0].initializer;
+    const attributes = ts.isJsxSelfClosingElement(element) ? element.attributes : element.openingElement.attributes;
+    return new Map(
+      attributes.properties.map((attribute) => [
+        attribute.name.getText(source),
+        ts.displayPartsToString(service.getQuickInfoAtPosition(app, attribute.name.getStart(source))?.documentation),
+      ]),
+    );
   };
-  const cases = [
-    ["button", "loading", /^Shows a centered spinner/],
-    ["button", "tone", /^Color role from the theme/],
-    ["button", "isLoading", /^Not a prop\. Ouro UI uses `loading`: `<Button loading>`\.$/],
-    ["destructive", "loading", /^Shows a centered spinner/],
-    ["destructive", "variant", /^Visual weight/],
-    ["sheet", "title", /^Names the sheet for screen readers/],
-    ["sheet", "trigger", /^The element that opens the sheet/],
-    ["sheet", "isOpen", /^Not a prop\. Ouro UI uses `open` with `onOpenChange`/],
-    ["dialog", "title", /^Names the dialog for screen readers/],
-    ["dialog", "trigger", /^The element that opens the dialog/],
-    ["dialog", "isOpen", /^Not a prop\. Ouro UI uses `open` with `onOpenChange`/],
-    ["confirm", "title", /^The question, which names the dialog/],
-    ["confirm", "tone", /^The confirm button's color role/],
-    ["confirm", "trigger", /^The element that opens the confirmation/],
-    ["confirm", "isOpen", /^Not a prop\. Ouro UI uses `open` with `onOpenChange`/],
-  ];
-  for (const [name, prop, doc] of cases) assert.match(hover(name, prop), doc, `${name} ${prop}`);
+  for (const id of [...agentCases.filter((item) => !item.hoverLost).map((item) => item.id), ...validSnippets]) {
+    for (const [prop, doc] of hovers(id)) assert.notEqual(doc, "", `${id}: hover on ${prop} shows no JSDoc`);
+  }
+  for (const item of agentCases.filter((item) => item.hoverLost)) {
+    assert.ok([...hovers(item.id).values()].every((doc) => doc === ""), `${item.id} has hover now; drop hoverLost`);
+  }
+  for (const item of agentCases.filter((item) => item.hover)) {
+    assert.ok(hovers(item.id).get(item.hover.prop).includes(item.hover.doc), `${item.id}: hover on ${item.hover.prop}`);
+  }
+  // Guard props carry their redirect text.
+  assert.equal(hovers("s04").get("asChild"), "Not a prop. To render a link, pass `href`: `<Button href=\"/recipes\">`. For other elements, use parts.");
+  assert.equal(hovers("s08").get("variant"), "Not a prop. Text has no variants; use `size` and `tone`: `<Text size=\"sm\" tone=\"muted\">`.");
 
-  // The hint member accepts nothing, so completion offers only the real values.
-  const line = lineOf("ghost");
-  const offset = text.split("\n").slice(0, line - 1).join("\n").length + 1 + text.split("\n")[line - 1].indexOf('"ghost"') + 1;
+  // A hint member accepts nothing, so completion offers only the real values.
+  const line = lineOf("s01");
+  const offset = lines.slice(0, line - 1).join("\n").length + 1 + lines[line - 1].indexOf('"ghost"') + 1;
   const completions = service.getCompletionsAtPosition(app, offset, {});
   assert.deepEqual(completions?.entries.map((entry) => entry.name).sort(), ["outline", "plain", "soft", "solid"]);
 });

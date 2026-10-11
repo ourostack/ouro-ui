@@ -72,6 +72,7 @@ Also accepts the attributes in React's `HTMLAttributes` (`id`, `aria-*`, event h
 These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
 - `color`: Not a prop. Ouro UI uses `tone`: `<Text tone="muted">`.
+- `variant`: Not a prop. Text has no variants; use `size` and `tone`: `<Text size="sm" tone="muted">`.
 
 ## `className` is for layout only
 

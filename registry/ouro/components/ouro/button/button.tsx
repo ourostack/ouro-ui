@@ -29,7 +29,14 @@ export interface ButtonBaseProps {
    * shadcn's `variant="destructive"` is `tone="destructive"`, and its `variant="secondary"` is `tone="secondary"`.
    * @default "primary"
    */
-  tone?: "primary" | "secondary" | "destructive" | "success" | "warning" | undefined;
+  tone?:
+    | "primary"
+    | "secondary"
+    | "destructive"
+    | "success"
+    | "warning"
+    | (string & { 'danger is "destructive"; accent is "primary"; neutral is "secondary"': never })
+    | undefined;
   /**
    * Visual weight: `solid` for the primary action, `soft` for secondary actions,
    * `outline` for a quiet bordered control, `plain` for a borderless one.
@@ -282,7 +289,7 @@ export function Button(props: ButtonProps): JSX.Element {
     endIcon: EndIcon,
     children,
     className,
-    // Guard props: typed `never`, dropped here so they never reach the DOM.
+    // Guard props (hint types), dropped here so they never reach the DOM.
     isLoading,
     color,
     asChild,
@@ -292,7 +299,7 @@ export function Button(props: ButtonProps): JSX.Element {
   } = props;
   const { linkComponent: LinkComponent } = useOuro();
   // A tone, variant or size that is not one of Ouro UI's (a type error) warns and renders the default.
-  const tone = Object.hasOwn(looks.solid, toneProp) ? toneProp : "primary";
+  const tone = Object.hasOwn(looks.solid, toneProp) ? (toneProp as keyof typeof looks.solid) : "primary";
   const variant = Object.hasOwn(looks, variantProp) ? (variantProp as keyof typeof looks) : "solid";
   const size = Object.hasOwn(sizes, sizeProp) ? (sizeProp as keyof typeof sizes) : "md";
   useAppearanceClassNameCheck(

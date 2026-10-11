@@ -558,6 +558,14 @@ describe("dev messages", () => {
     ]);
   });
 
+  it("renders a bottom sheet for a side that is not one of the four, and warns once with the fix", async () => {
+    const element = await openUncontrolled({ side: "left-ish" } as object);
+    expect(element.getAttribute("data-side")).toBe("bottom");
+    expect(warn.mock.calls.map((call: unknown[]) => call[0])).toEqual([
+      '[ouro-ui] Sheet: side="left-ish" is not a side; use "bottom", "top", "left", "right". Fix: <Sheet side="bottom">.',
+    ]);
+  });
+
   it.each([
     ["bg-white", ":root { --popover: …; } .dark { --popover: …; }"],
     ["rounded-none", ":root { --radius: 0px }"],

@@ -82,3 +82,4 @@ These are not props. Passing one fails the type check with the fix in the error,
 - `isOpen`: Not a prop. Ouro UI uses `open` with `onOpenChange`: `<ConfirmDialog open={open} onOpenChange={setOpen}>`.
 - `onCancel`: Not a prop. Cancel calls `onOpenChange(false)`: `<ConfirmDialog open={open} onOpenChange={setOpen}>`.
 - `onClose`: Not a prop. `onOpenChange(false)` fires on close: `<ConfirmDialog open={open} onOpenChange={setOpen}>`.
+- `variant`: Not a prop. Ouro UI uses `tone`: `<ConfirmDialog tone="destructive">`.

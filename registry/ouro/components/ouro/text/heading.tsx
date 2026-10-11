@@ -22,7 +22,7 @@ export interface HeadingProps extends Omit<HTMLAttributes<HTMLHeadingElement>, "
    * landing page, tightly set and larger from the `sm` breakpoint: `<Heading level={1} size="display">`.
    * @default derived from `level` (1 is `2xl`, 2 is `xl`, 3 is `lg`, 4 is `md`, 5 and 6 are `sm`)
    */
-  size?: HeadingSize | undefined;
+  size?: HeadingSize | (string & { 'Use "sm", "md", "lg", "xl", "2xl" or, larger, "display"': never }) | undefined;
   /** Alignment in writing direction. @default inherited */
   align?: TextAlign | undefined;
   /**
@@ -36,7 +36,7 @@ export interface HeadingProps extends Omit<HTMLAttributes<HTMLHeadingElement>, "
   /** Not a prop. The tag comes from `level`: `<Heading level={2}>`. */
   as?: { 'Use <Heading level={2}>': never };
   /** Not a prop. Headings use the theme's foreground color; for colored text use `<Text tone="…">`. */
-  color?: { 'Use <Text tone="…">': never };
+  color?: { 'Use <Text tone="primary">': never };
 }
 
 const sizes = {
@@ -79,7 +79,8 @@ export function Heading(props: HeadingProps): JSX.Element {
       process.env.NODE_ENV !== "production" ? "<Heading level={2}>" : /* istanbul ignore next -- production only */ "",
     );
   }
-  const size = sizeProp ?? sizeByLevel[level];
+  // A size that is not one of Ouro UI's (a type error) warns and renders the level's default.
+  const size = sizeProp !== undefined && Object.hasOwn(sizes, sizeProp) ? (sizeProp as HeadingSize) : sizeByLevel[level];
   useAppearanceClassNameCheck(
     "Heading",
     className,
@@ -94,6 +95,11 @@ export function Heading(props: HeadingProps): JSX.Element {
             "color is not a prop; headings use the theme foreground color",
             `<Text tone="${toneFor(`text-${String(color)}`)}">`,
           ],
+          sizeProp !== undefined &&
+            size !== sizeProp && [
+              `size="${String(sizeProp)}" is not a size; use ${Object.keys(sizes).map((name) => `"${name}"`).join(", ")}`,
+              `<Heading level={${level}} size="${/^\d+xl$/.test(String(sizeProp)) ? "display" : sizeByLevel[level]}">`,
+            ],
           as !== undefined && [
             "as is not a prop; level sets the tag",
             `<Heading level={${/^h[1-6]$/.test(String(as)) ? String(as).slice(1) : 2}}>`,

@@ -90,6 +90,23 @@ describe("Heading", () => {
     expect(px).toBe((window.innerWidth >= 640 ? 3.75 : 2.5) * rem);
   });
 
+  it.each([
+    ["3xl", '[ouro-ui] Heading: size="3xl" is not a size; use "sm", "md", "lg", "xl", "2xl", "display". Fix: <Heading level={1} size="display">.'],
+    ["huge", '[ouro-ui] Heading: size="huge" is not a size; use "sm", "md", "lg", "xl", "2xl", "display". Fix: <Heading level={1} size="2xl">.'],
+  ])("renders the level's default size for size=%j and warns once with the fix", async (size, message) => {
+    const { host } = await render(
+      <>
+        <Heading level={1} {...({ size } as object)}>
+          Odd
+        </Heading>
+        <Heading level={1}>Default</Heading>
+      </>,
+    );
+    const [odd, plain] = [...host.children].map((el) => getComputedStyle(el).fontSize);
+    expect(odd).toBe(plain);
+    expect(warn.mock.calls.map((call: unknown[]) => call[0])).toEqual([message]);
+  });
+
   it("aligns center and passes attributes through", async () => {
     const { el } = await render(
       <Heading level={2} align="center" id="t">

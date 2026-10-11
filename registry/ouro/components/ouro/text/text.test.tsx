@@ -169,6 +169,14 @@ describe("runtime guards", () => {
     expect(String(warn.mock.calls[0]?.[0])).toBe('[ouro-ui] Text: color is not a prop. Fix: <Text tone="destructive">.');
   });
 
+  it("strips variant from Text and warns with the fix", async () => {
+    const { el } = await render(<UntypedText variant="muted">a</UntypedText>);
+    expect(el.hasAttribute("variant")).toBe(false);
+    expect(String(warn.mock.calls[0]?.[0])).toBe(
+      '[ouro-ui] Text: variant is not a prop; Text has no variants. Fix: <Text size="sm" tone="muted">.',
+    );
+  });
+
   it.each([
     ["danger", 'tone="danger" is not a tone. Fix: <Text tone="destructive">.'],
     ["accent", 'tone="accent" is not a tone. Fix: <Text tone="primary">.'],

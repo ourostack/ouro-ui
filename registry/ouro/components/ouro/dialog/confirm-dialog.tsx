@@ -28,7 +28,7 @@ export interface ConfirmDialogBaseProps {
   /** The cancel button's label. Cancel has focus when the dialog opens. @default "Cancel" */
   cancelLabel?: string | undefined;
   /** The confirm button's color role. Use `destructive` for destructive actions. @default "primary" */
-  tone?: "primary" | "destructive" | undefined;
+  tone?: "primary" | "destructive" | (string & { 'danger is "destructive"; accent is "primary"': never }) | undefined;
   /**
    * Runs the action. Return a promise to keep the dialog open while it runs: the
    * confirm button shows `loading` until it settles. When it resolves the dialog
@@ -50,6 +50,8 @@ export interface ConfirmDialogBaseProps {
   confirmText?: { 'Use <ConfirmDialog confirmLabel="Delete">': never };
   /** Not a prop. Ouro UI uses `cancelLabel`: `<ConfirmDialog cancelLabel="Keep">`. */
   cancelText?: { 'Use <ConfirmDialog cancelLabel="Keep">': never };
+  /** Not a prop. Ouro UI uses `tone`: `<ConfirmDialog tone="destructive">`. */
+  variant?: { 'Use <ConfirmDialog tone="destructive">': never };
 }
 
 /** An uncontrolled ConfirmDialog: `trigger` opens it. */
@@ -106,13 +108,14 @@ export function ConfirmDialog(props: ConfirmDialogProps): JSX.Element {
     trigger,
     open,
     onOpenChange,
-    // Guard props: typed `never`, dropped here so they never reach the DOM.
+    // Guard props (hint types), dropped here so they never reach the DOM.
     isOpen,
     onClose,
     onCancel,
     destructive,
     confirmText,
     cancelText,
+    variant,
   } = props as ConfirmDialogBaseProps & {
     trigger?: ReactElement;
     open?: boolean;
@@ -137,6 +140,7 @@ export function ConfirmDialog(props: ConfirmDialogProps): JSX.Element {
             destructive !== undefined && ["destructive is not a prop", '<ConfirmDialog tone="destructive">'],
             confirmText !== undefined && ["confirmText is not a prop", '<ConfirmDialog confirmLabel="Delete">'],
             cancelText !== undefined && ["cancelText is not a prop", '<ConfirmDialog cancelLabel="Keep">'],
+            variant !== undefined && ["variant is not a prop", '<ConfirmDialog tone="destructive">'],
           ];
         }
       : /* istanbul ignore next -- production only */ undefined,
