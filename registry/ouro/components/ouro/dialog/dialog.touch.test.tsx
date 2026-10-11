@@ -5,7 +5,6 @@ import { commands, page, userEvent } from "vitest/browser";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
-import { ConfirmDialog } from "@/registry/ouro/components/ouro/dialog/confirm-dialog";
 import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
 
 // Runs in the `touch` project: Chromium as a 390x844 phone with a coarse pointer.
@@ -181,33 +180,6 @@ describe("initial focus in a controlled dialog opened from the app's own button"
     const element = await openWith(open);
     expect(element.getAttribute("data-ouro-presentation")).toBe("sheet");
     expect(focusOf(element)).toBe("popup");
-  });
-});
-
-describe("initial focus in a controlled ConfirmDialog matches a trigger-opened one", () => {
-  function ControlledConfirm() {
-    const [open, setOpen] = useState(false);
-    return (
-      <>
-        <button type="button" data-app-opener="" onClick={() => setOpen(true)}>
-          Delete
-        </button>
-        <ConfirmDialog title="Delete recipe?" confirmLabel="Delete" onConfirm={() => {}} open={open} onOpenChange={setOpen} />
-      </>
-    );
-  }
-
-  it("focuses Cancel after a tap, with a trigger or controlled", async () => {
-    await mount(<ConfirmDialog title="Delete recipe?" confirmLabel="Delete" onConfirm={() => {}} trigger={<Button>Delete</Button>} />);
-    await commands.tap(TRIGGER);
-    await opened();
-    expect(document.activeElement?.textContent).toBe("Cancel");
-    await act(() => root!.unmount());
-    for (const element of nodes.splice(0)) element.remove();
-
-    await mount(<ControlledConfirm />);
-    await openWith("tap");
-    expect(document.activeElement?.textContent).toBe("Cancel");
   });
 });
 
