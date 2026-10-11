@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, expect, it } from "vitest";
-import { commands } from "vitest/browser";
+import { commands, page } from "vitest/browser";
+import { Field } from "@/registry/ouro/components/ouro/field/field";
+import { FieldControl } from "@/registry/ouro/components/ouro/field/field-parts";
 import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -11,6 +13,7 @@ import { act } from "@/registry/ouro/lib/ouro/testing/act";
 let root: Root | undefined;
 const nodes: Element[] = [];
 afterEach(async () => {
+  await page.viewport(390, 844);
   await act(async () => root?.unmount());
   for (const node of nodes.splice(0)) node.remove();
 });
@@ -71,4 +74,35 @@ it("gives the toggle a 44px hit area, though it is smaller than the box", async 
   ] as const) {
     expect(document.elementFromPoint(x, y)?.closest("button")).toBe(toggle);
   }
+});
+
+it("keeps 16px text and a 44px box on a landscape phone, past the sm breakpoint", async () => {
+  await page.viewport(844, 390);
+  expect(matchMedia("(min-width: 640px)").matches).toBe(true);
+  const host = await render(
+    <>
+      <TextField label="Email" type="email" />
+      <TextArea label="Notes" />
+      <Field label="Name">
+        <FieldControl />
+      </Field>
+    </>,
+  );
+  for (const control of host.querySelectorAll("input, textarea")) {
+    expect(parseFloat(getComputedStyle(control).fontSize)).toBeGreaterThanOrEqual(16);
+  }
+  expect(host.querySelector<HTMLElement>("[data-ouro-input-group]")!.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+  expect(host.querySelectorAll("input")[1]!.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+});
+
+it("keeps the clear button's and the toggle's touch areas apart", async () => {
+  const host = await render(<TextField label="PIN" type="password" clearable defaultValue="1234" />);
+  const clear = host.querySelector<HTMLElement>('button[aria-label="Clear"]')!;
+  const toggle = host.querySelector<HTMLElement>('button[aria-label="Show password"]')!;
+  const a = clear.getBoundingClientRect();
+  const b = toggle.getBoundingClientRect();
+  const y = a.top + a.height / 2;
+  // Just past each button's visible edge, toward the other, the press still lands on it.
+  expect(document.elementFromPoint(a.right + 3, y)?.closest("button")).toBe(clear);
+  expect(document.elementFromPoint(b.left - 3, y)?.closest("button")).toBe(toggle);
 });

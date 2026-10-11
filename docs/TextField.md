@@ -29,6 +29,7 @@ Type: `TextFieldProps`.
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-4`, `col-span-2`). Appearance classes warn in development; style fields in your theme. |
 | `clearable` | `boolean` |  | Adds a button that empties the field and puts focus back in it. It shows while there is text. |
+| `clearLabel` | `string` | `"Clear"` | The label of the clear button that `clearable` adds. Translate it with your app. |
 | `description` | `ReactNode` |  | Supporting text under the label, read after the label through `aria-describedby`. |
 | `disabled` | `boolean` |  | Disables the field, its buttons included, and fades it. |
 | `endAdornment` | `ReactNode` |  | Text or an icon inside the box, after the input: `"kg"`, `<CheckIcon />`. Text is also read as part of the description. |
@@ -39,6 +40,7 @@ Type: `TextFieldProps`.
 | `placeholder` | `string` |  | An example of what to type, shown while the field is empty: `"you@example.com"`. It is not a label; pass `label`, which stays visible. |
 | `ref` | `Ref<HTMLInputElement>` |  | The input element. |
 | `required` | `boolean` |  | The field must be filled: it gets `required` and `aria-required`, and the label a marker. |
+| `showPasswordLabel` | `string` | `"Show password"` | The label of a password field's show/hide button. It stays the same while the password shows; the button's pressed state (`aria-pressed`) says whether it does. Translate it with your app. |
 | `startAdornment` | `ReactNode` |  | Text or an icon inside the box, before the input: `"$"`, `<SearchIcon />`. Text is also read as part of the field's description. Replaces shadcn's InputGroup. |
 | `type` | `"search" \| "time" \| "text" \| "email" \| "password" \| "tel" \| "url" \| "date"` | `"text"` | What kind of text it holds. Each type sets the phone keyboard (`inputMode`) and autofill (`autoComplete`) for you; pass either to override. `password` adds a show/hide button; `date` and `time` open the OS picker. For numbers use `NumberField`, which parses and steps them; for digit codes, `inputMode="numeric"`. |
 

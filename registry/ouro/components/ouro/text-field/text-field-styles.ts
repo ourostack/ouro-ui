@@ -21,7 +21,7 @@ type TextFieldType = (typeof textFieldTypes)[number];
 
 /** The attributes a type sets unless the app passes its own. */
 interface TypeDefaults {
-  inputMode?: "text" | "email" | "tel" | "url" | "search";
+  inputMode?: "text" | "email" | "tel" | "url" | "search" | "decimal";
   autoComplete: string;
   autoCapitalize?: "none";
   spellCheck?: false;
@@ -48,15 +48,15 @@ const typeDefaults: Readonly<Record<TextFieldType, TypeDefaults>> = {
 
 /**
  * The box around the input and its adornments: Field's control look (44px tall with a 16px
- * font on phones, stepping down from `sm`), with the focus outline on the box while the input
+ * font on phones, stepping down from `sm` with a fine pointer), with the focus outline on the box while the input
  * has keyboard focus. Its height is one unprefixed class that reads a variable.
  *
  * @internal
  */
 const groupClass =
   "relative m-0 box-border flex w-full min-w-0 items-center gap-2 h-(--ouro-control-h) px-3 py-0 cursor-text " +
-  "[--ouro-control-h:calc(var(--spacing)*11)] sm:[--ouro-control-h:calc(var(--spacing)*9)] " +
-  "rounded-md border border-solid border-input bg-transparent text-base text-foreground sm:text-sm " +
+  "[--ouro-control-h:calc(var(--spacing)*11)] sm:pointer-fine:[--ouro-control-h:calc(var(--spacing)*9)] " +
+  "rounded-md border border-solid border-input bg-transparent text-base text-foreground sm:pointer-fine:text-sm " +
   "outline-ring outline-offset-2 has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-solid " +
   "transition-[border-color] duration-(--ouro-duration-fast) ease-out " +
   "has-[input[aria-invalid=true]]:border-destructive has-[input:disabled]:cursor-not-allowed has-[input:disabled]:opacity-50 " +
@@ -88,11 +88,12 @@ const nativeClearClass = "[&::-webkit-search-cancel-button]:appearance-none";
 const adornmentClass = "flex shrink-0 items-center whitespace-nowrap text-muted-foreground select-none [&_svg]:size-4 [&_svg]:shrink-0";
 
 /**
- * The trailing buttons (clear, show password) sit close to the box's end edge.
+ * The trailing buttons (clear, show password) sit close to the box's end edge. On a coarse
+ * pointer they sit 12px apart, so their 44px touch areas do not overlap.
  *
  * @internal
  */
-const endSlotClass = "-me-2 flex shrink-0 items-center";
+const endSlotClass = "-me-2 flex shrink-0 items-center gap-1 pointer-coarse:gap-3";
 
 /**
  * The dev message for `type="number"`: NumberField is the fix. Development only.

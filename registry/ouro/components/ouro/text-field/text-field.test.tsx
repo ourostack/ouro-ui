@@ -3,6 +3,8 @@ import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
+import { Field } from "@/registry/ouro/components/ouro/field/field";
+import { FieldControl } from "@/registry/ouro/components/ouro/field/field-parts";
 import { TextField, type TextFieldProps } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -153,10 +155,11 @@ describe("TextField types", () => {
     expect(name!.hasAttribute("autocapitalize")).toBe(false);
   });
 
-  it("renders a text input and points to NumberField for type=number", async () => {
+  it("renders a text input with a decimal keyboard and points to NumberField for type=number", async () => {
     const props = { label: "Servings", type: "number" } as unknown as TextFieldProps;
     const { input } = await render(<TextField {...props} />);
     expect(input.type).toBe("text");
+    expect(input.getAttribute("inputmode")).toBe("decimal");
     expect(warn).toHaveBeenCalledWith(
       '[ouro-ui] TextField: type="number" is not a TextField type; NumberField parses, steps and formats numbers. Fix: <NumberField label="Servings" />, or <TextField inputMode="numeric"> for digit codes.',
     );
@@ -181,11 +184,45 @@ describe("TextField password toggle", () => {
     expect(show.type).toBe("button");
     await userEvent.click(show);
     expect(input.type).toBe("text");
-    const hide = button("Hide password")!;
-    expect(hide).toBe(show);
-    expect(hide.getAttribute("aria-pressed")).toBe("true");
-    await userEvent.click(hide);
+    // The name stays fixed; the pressed state says whether the password shows.
+    expect(show.getAttribute("aria-label")).toBe("Show password");
+    expect(show.getAttribute("aria-pressed")).toBe("true");
+    expect(button("Hide password")).toBeNull();
+    await userEvent.click(show);
     expect(input.type).toBe("password");
+    expect(show.getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("names the toggle and the clear button with showPasswordLabel and clearLabel", async () => {
+    const { button, input } = await render(
+      <TextField label="Passwort" type="password" clearable defaultValue="x" showPasswordLabel="Passwort anzeigen" clearLabel="Leeren" />,
+    );
+    const toggle = button("Passwort anzeigen")!;
+    await userEvent.click(toggle);
+    expect(input.type).toBe("text");
+    expect(toggle.getAttribute("aria-label")).toBe("Passwort anzeigen");
+    expect(button("Leeren")).not.toBeNull();
+    expect(button("Show password")).toBeNull();
+    expect(button("Clear")).toBeNull();
+  });
+
+  it("hides the password again when the form submits, so password managers see a password field", async () => {
+    let typeAtSubmit = "";
+    const { host, button } = await render(
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          typeAtSubmit = event.currentTarget.querySelector("input")!.type;
+        }}
+      >
+        <TextField label="Password" type="password" defaultValue="hunter22" />
+        <button type="submit">Sign in</button>
+      </form>,
+    );
+    await userEvent.click(button("Show password")!);
+    expect(host.querySelector("input")!.type).toBe("text");
+    await userEvent.click(host.querySelector<HTMLButtonElement>('button[type="submit"]')!);
+    expect(typeAtSubmit).toBe("password");
     expect(button("Show password")!.getAttribute("aria-pressed")).toBe("false");
   });
 
@@ -198,7 +235,7 @@ describe("TextField password toggle", () => {
     expect(document.activeElement).toBe(input);
     expect([input.selectionStart, input.selectionEnd]).toEqual([3, 3]);
     input.setSelectionRange(2, 5);
-    await userEvent.click(button("Hide password")!);
+    await userEvent.click(button("Show password")!);
     expect(input.type).toBe("password");
     expect(document.activeElement).toBe(input);
     expect([input.selectionStart, input.selectionEnd]).toEqual([2, 5]);
@@ -363,6 +400,31 @@ describe("TextField adornments", () => {
     const { input, group } = await render(<TextField label="Price" startAdornment="$" />);
     await userEvent.click(group.querySelector("[data-ouro-adornment]")!);
     expect(document.activeElement).toBe(input);
+  });
+
+  it("focuses the input when the box is pressed inside a focusable container, such as a dialog", async () => {
+    const { input, group } = await render(
+      <div tabIndex={-1}>
+        <TextField label="Price" startAdornment="$" />
+      </div>,
+    );
+    await userEvent.click(group.querySelector("[data-ouro-adornment]")!);
+    expect(document.activeElement).toBe(input);
+  });
+
+  it("leaves a plain Field inside an adornment named Field", async () => {
+    const { host } = await render(
+      <TextField
+        label="Outer"
+        endAdornment={
+          <Field label="Inner">
+            <FieldControl />
+          </Field>
+        }
+      />,
+    );
+    expect(host.querySelector('[data-ouro="text-field"]')).not.toBeNull();
+    expect(host.querySelectorAll('[data-ouro="field"]')).toHaveLength(1);
   });
 
   it("leaves focus alone when an interactive adornment is pressed", async () => {

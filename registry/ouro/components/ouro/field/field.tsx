@@ -1,10 +1,10 @@
 "use client";
 
 import { Field as BaseField } from "@base-ui/react/field";
-import { useId, useMemo, useRef, type JSX, type ReactNode } from "react";
+import { useCallback, useId, useMemo, useRef, type JSX, type ReactNode } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { FieldContext, useFieldOwner } from "@/registry/ouro/lib/ouro/use-field";
+import { FieldContext, FieldOwnerContext, useFieldOwner } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 import { FieldDescription, FieldError, FieldLabel } from "@/registry/ouro/components/ouro/field/field-parts";
 import { fieldHint, rootClass } from "@/registry/ouro/components/ouro/field/field-styles";
@@ -63,6 +63,9 @@ export interface FieldProps {
   /** Not a prop, and not a label. Pass `label`, and a placeholder example on the control: `<FieldControl placeholder="you@example.com" />`. */
   placeholder?: { 'Use label="Email"; a placeholder example goes on the control': never };
 }
+
+/** The owner a plain Field has, restored for the Field's own children. */
+const fieldOwner = { name: "Field", data: "field" };
 
 /** The messages in an `error` prop, without empty ones or repeats (merged validators can repeat one). */
 function messagesOf(error: string | string[] | undefined): string[] {
@@ -130,12 +133,11 @@ export function Field(props: FieldProps): JSX.Element {
   // registered its id with the label.
   const rootRef = useRef<HTMLDivElement>(null);
 
+  const hint = useCallback((token: string) => fieldHint(token, owner.name), [owner.name]);
   useAppearanceClassNameCheck(
     owner.name,
     className,
-    process.env.NODE_ENV !== "production"
-      ? (token: string) => fieldHint(token, owner.name)
-      : /* istanbul ignore next @preserve -- production only */ "",
+    process.env.NODE_ENV !== "production" ? hint : /* istanbul ignore next @preserve -- production only */ "",
   );
   useDevWarnings(
     owner.name,
@@ -176,7 +178,8 @@ export function Field(props: FieldProps): JSX.Element {
       >
         <FieldLabel className={hideLabel ? "sr-only" : undefined}>{label}</FieldLabel>
         {hasDescription && <FieldDescription id={descriptionId}>{description}</FieldDescription>}
-        {children}
+        {/* The owner names this Field only: a plain Field inside (in an adornment's popover) is a Field. */}
+        <FieldOwnerContext.Provider value={fieldOwner}>{children}</FieldOwnerContext.Provider>
         {invalid ? (
           <FieldError id={errorId} match>
             {messages.length > 1 ? (

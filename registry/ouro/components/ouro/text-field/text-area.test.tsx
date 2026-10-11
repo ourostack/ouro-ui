@@ -113,6 +113,17 @@ describe("TextArea", () => {
     expect(onValueChange).toHaveBeenLastCalledWith("Salt!", expect.anything());
   });
 
+  it("keeps the size the user dragged it to while they type", async () => {
+    const { textarea } = await render(<TextArea label="Notes" defaultValue="Salt" />);
+    // The resize handle writes the dragged size into the inline style.
+    textarea.style.height = "150px";
+    textarea.focus();
+    textarea.setSelectionRange(4, 4);
+    await userEvent.keyboard("!");
+    expect(textarea.value).toBe("Salt!");
+    expect(textarea.style.height).toBe("150px");
+  });
+
   it("forwards an object ref to the textarea", async () => {
     const object = createRef<HTMLTextAreaElement>();
     const { textarea } = await render(<TextArea label="Notes" ref={object} />);

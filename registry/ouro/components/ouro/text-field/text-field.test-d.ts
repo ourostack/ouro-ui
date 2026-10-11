@@ -27,6 +27,12 @@ for (const type of ["text", "email", "password", "tel", "url", "search", "date",
   createElement(TextField, { label: "Value", type });
 }
 expectTypeOf<{ label: "Search"; value: "pasta"; onValueChange: (value: string) => void }>().toExtend<TextFieldProps>();
+// The button labels translate.
+expectTypeOf<{ label: "Passwort"; type: "password"; showPasswordLabel: "Passwort anzeigen"; clearable: true; clearLabel: "Leeren" }>().toExtend<TextFieldProps>();
+expectTypeOf<{ label: "Passwort"; showPasswordLabel: 1 }>().not.toExtend<TextFieldProps>();
+// There is one toggle label: the pressed state says whether the password shows.
+// @ts-expect-error hidePasswordLabel is not a prop.
+createElement(TextField, { label: "Passwort", type: "password", hidePasswordLabel: "Passwort verbergen" });
 
 // The label is required, and is a string.
 expectTypeOf<{ type: "email" }>().not.toExtend<TextFieldProps>();

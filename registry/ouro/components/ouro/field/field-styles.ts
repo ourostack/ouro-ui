@@ -55,15 +55,16 @@ const legendClass = "m-0 p-0 text-base leading-6 font-semibold text-foreground d
 
 /**
  * The text control: 44px tall with a 16px font on phones (iOS zooms into smaller text on
- * focus), stepping down to desktop density from the `sm` breakpoint. Its height is one
+ * focus), stepping down to desktop density from the `sm` breakpoint with a fine pointer, so a
+ * landscape phone keeps the phone size. Its height is one
  * unprefixed class that reads a variable, so an app's `h-*` replaces it at every width.
  *
  * @internal
  */
 const controlClass =
   "m-0 box-border block w-full min-w-0 h-(--ouro-control-h) px-3 py-0 " +
-  "[--ouro-control-h:calc(var(--spacing)*11)] sm:[--ouro-control-h:calc(var(--spacing)*9)] " +
-  "rounded-md border border-solid border-input bg-transparent text-base text-foreground sm:text-sm " +
+  "[--ouro-control-h:calc(var(--spacing)*11)] sm:pointer-fine:[--ouro-control-h:calc(var(--spacing)*9)] " +
+  "rounded-md border border-solid border-input bg-transparent text-base text-foreground sm:pointer-fine:text-sm " +
   "font-[inherit] placeholder:text-muted-foreground " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
   "transition-[border-color] duration-(--ouro-duration-fast) ease-out " +

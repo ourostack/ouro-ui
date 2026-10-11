@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import type { JSX, MouseEvent, ReactNode, Ref } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Field } from "@/registry/ouro/components/ouro/field/field";
@@ -77,6 +78,17 @@ export interface TextFieldOwnProps {
   placeholder?: string | undefined;
   /** Adds a button that empties the field and puts focus back in it. It shows while there is text. */
   clearable?: boolean | undefined;
+  /**
+   * The label of the clear button that `clearable` adds. Translate it with your app.
+   * @default "Clear"
+   */
+  clearLabel?: string | undefined;
+  /**
+   * The label of a password field's show/hide button. It stays the same while the password
+   * shows; the button's pressed state (`aria-pressed`) says whether it does. Translate it with your app.
+   * @default "Show password"
+   */
+  showPasswordLabel?: string | undefined;
   /**
    * Layout only: margins, width, grid placement (`mt-4`, `col-span-2`). Appearance classes
    * warn in development; style fields in your theme.
@@ -177,6 +189,8 @@ export function TextField(props: TextFieldProps): JSX.Element {
     startAdornment,
     endAdornment,
     clearable,
+    clearLabel = "Clear",
+    showPasswordLabel = "Show password",
     className,
     ref,
     value,
@@ -205,7 +219,8 @@ export function TextField(props: TextFieldProps): JSX.Element {
   } = props;
   // A type that is not one of TextField's (a type error) warns and renders the default.
   const type: TextFieldType = textFieldTypes.includes(typeProp as TextFieldType) ? (typeProp as TextFieldType) : "text";
-  const defaults = typeDefaults[type];
+  // A number that fell back to text still gets a number keyboard.
+  const defaults = typeProp === "number" ? { ...typeDefaults.text, inputMode: "decimal" as const } : typeDefaults[type];
   const id = useId();
   const startId = `${id}-start`;
   const endId = `${id}-end`;
@@ -263,6 +278,16 @@ export function TextField(props: TextFieldProps): JSX.Element {
     if (input.ownerDocument.activeElement === input) selection.current = [input.selectionStart, input.selectionEnd];
     setRevealed((shown) => !shown);
   };
+  // A password submitted while it shows would reach password managers as text, so hide it
+  // when the form submits (before the app's own submit handler runs).
+  const password = type === "password";
+  useEffect(() => {
+    const form = inputRef.current!.form;
+    if (!password || !form) return;
+    const onSubmit = () => flushSync(() => setRevealed(false));
+    form.addEventListener("submit", onSubmit);
+    return () => form.removeEventListener("submit", onSubmit);
+  }, [password]);
   useLayoutEffect(() => {
     const saved = selection.current;
     if (!saved) return;
@@ -278,7 +303,9 @@ export function TextField(props: TextFieldProps): JSX.Element {
   // pressing a plain input's padding does. Buttons and links inside keep their own focus.
   const focusInput = (event: MouseEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement;
-    if (target === inputRef.current || target.closest("button, a, input, select, textarea, [tabindex]")) return;
+    // Only controls inside the box count: a dialog around the field has a tabindex too.
+    const control = target.closest("button, a, input, select, textarea, [tabindex]");
+    if (target === inputRef.current || (control && event.currentTarget.contains(control))) return;
     event.preventDefault();
     inputRef.current!.focus();
   };
@@ -290,7 +317,6 @@ export function TextField(props: TextFieldProps): JSX.Element {
   const describedBy =
     [isText(startAdornment) && startId, isText(endAdornment) && endId, describedByProp].filter(Boolean).join(" ") || undefined;
   const showClear = clearable && filled && !disabled && !readOnly;
-  const password = type === "password";
 
   return (
     <FieldOwnerContext.Provider value={owner}>
@@ -335,7 +361,7 @@ export function TextField(props: TextFieldProps): JSX.Element {
                   variant="plain"
                   tone="secondary"
                   size="sm"
-                  aria-label="Clear"
+                  aria-label={clearLabel}
                   className="aspect-square px-0"
                   onMouseDown={preventFocusMove}
                   onClick={clear}
@@ -350,7 +376,7 @@ export function TextField(props: TextFieldProps): JSX.Element {
                   variant="plain"
                   tone="secondary"
                   size="sm"
-                  aria-label={revealed ? "Hide password" : "Show password"}
+                  aria-label={showPasswordLabel}
                   aria-pressed={revealed}
                   disabled={disabled}
                   className="aspect-square px-0"

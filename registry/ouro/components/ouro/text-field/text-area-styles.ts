@@ -6,14 +6,15 @@ export { fitHeight, textAreaClass };
 
 /**
  * The textarea: Field's control look with a 16px font and 24px lines on phones (iOS zooms
- * into smaller text on focus), stepping down to 14px on 20px lines from the `sm` breakpoint.
+ * into smaller text on focus), stepping down to 14px on 20px lines from the `sm` breakpoint with a fine pointer, so a
+ * landscape phone keeps the phone size.
  * The user can drag its height unless it grows by itself.
  *
  * @internal
  */
 const textAreaClass =
   "m-0 box-border block w-full min-w-0 px-3 py-2 " +
-  "rounded-md border border-solid border-input bg-transparent text-base leading-6 text-foreground sm:text-sm sm:leading-5 " +
+  "rounded-md border border-solid border-input bg-transparent text-base leading-6 text-foreground sm:pointer-fine:text-sm sm:pointer-fine:leading-5 " +
   "font-[inherit] placeholder:text-muted-foreground " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
   "transition-[border-color] duration-(--ouro-duration-fast) ease-out " +
@@ -22,17 +23,12 @@ const textAreaClass =
 
 /**
  * Sizes a textarea to its content, between `rows` and `maxRows` lines, and lets it scroll
- * only once it is capped. Without `autoGrow` it removes the inline height, so `rows` and the
- * user's resize handle apply again.
+ * only once it is capped. Only an `autoGrow` TextArea calls it; without `autoGrow` the
+ * inline height belongs to the user's resize handle.
  *
  * @internal
  */
-function fitHeight(textarea: HTMLTextAreaElement, autoGrow: boolean, rows: number, maxRows: number | undefined): void {
-  if (!autoGrow) {
-    textarea.style.height = "";
-    textarea.style.overflowY = "";
-    return;
-  }
+function fitHeight(textarea: HTMLTextAreaElement, rows: number, maxRows: number | undefined): void {
   const style = getComputedStyle(textarea);
   const line = parseFloat(style.lineHeight);
   const padding = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);

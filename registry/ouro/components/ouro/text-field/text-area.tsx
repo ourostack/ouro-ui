@@ -143,11 +143,22 @@ export function TextArea(props: TextAreaProps): JSX.Element {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
 
-  // Fit after every render (a controlled value, a prop change) and on every keystroke.
-  const fit = () => fitHeight(textareaRef.current!, autoGrow, rows, maxRows);
+  // With autoGrow, fit after every render (a controlled value, a prop change) and on every
+  // keystroke. Without it, measure nothing: the inline height is the user's resize handle.
+  // Turning autoGrow off once clears the height autoGrow set, so `rows` applies again.
+  const grew = useRef(autoGrow);
+  const fit = () => {
+    const textarea = textareaRef.current!;
+    if (autoGrow) fitHeight(textarea, rows, maxRows);
+    else if (grew.current) {
+      textarea.style.height = "";
+      textarea.style.overflowY = "";
+    }
+    grew.current = autoGrow;
+  };
   useLayoutEffect(fit);
   const handleChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
-    fit();
+    if (autoGrow) fitHeight(event.currentTarget, rows, maxRows);
     onChange?.(event);
   };
   // The text rewraps when the width changes (a rotated phone, a resized window).
@@ -158,7 +169,7 @@ export function TextArea(props: TextAreaProps): JSX.Element {
     const observer = new ResizeObserver(() => {
       if (textarea.offsetWidth === width) return;
       width = textarea.offsetWidth;
-      fitHeight(textarea, true, rows, maxRows);
+      fitHeight(textarea, rows, maxRows);
     });
     observer.observe(textarea);
     return () => observer.disconnect();
