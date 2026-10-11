@@ -18,9 +18,11 @@
 #         every item and dependency comes from the default branch. Type check, build and
 #         the install check only. Meaningful once main has this registry (CI runs it on
 #         push to main).
-# namespace: the @ouro namespace as Pages serves it (pages.yml): the registry built with
-#         @ouro/<item> dependencies, served on localhost and registered in components.json,
-#         then `shadcn add @ouro/dialog`. Type check and build.
+# namespace: the @ouro namespace as Pages serves it (pages.yml): built from the newest release
+#         tag (package.json ouro.latestRelease) by scripts/namespace.sh, served on localhost and
+#         registered in components.json, then `shadcn add @ouro/dialog`. Every dependency must
+#         come through @ouro, every installed file must equal the tag's source, and each item
+#         must name that release. Type check and build.
 # next:   a Next.js App Router app from create-next-app (TypeScript, Tailwind CSS v4, src/),
 #         `shadcn init` (which writes "rsc": true), every runtime item, and a Server Component
 #         page that renders every component; `next build` must pass and prerender it, and
@@ -165,8 +167,11 @@ fi
 
 if [ "$variant" = namespace ]; then
   echo "::group::@ouro/dialog from the namespace, served locally"
-  node "$root/scripts/registry.mts" --out "$registry/registry.json" --deps "@ouro/{name}"
-  "${shadcn[@]}" build "$registry/registry.json" --output "$registry/r" --cwd "$root"
+  tag=$(node "$root/scripts/latest-release.mjs")
+  "$root/scripts/namespace.sh" "$registry/r" "$tag"
+  for item in dialog sheet ouro-lib ouro-base; do
+    node -e 'const i = require(process.argv[1]); if (!i.docs.endsWith(` Ouro UI ${process.argv[2]}.`)) throw new Error(`${i.name} does not name ${process.argv[2]}: ${i.docs.slice(-40)}`)' "$registry/r/$item.json" "${tag#v}"
+  done
   python3 -m http.server 8765 --bind 127.0.0.1 --directory "$registry" 2>"$registry/served.log" &
   server=$!
   trap 'kill $server' EXIT
@@ -188,6 +193,10 @@ if [ "$variant" = namespace ]; then
     if test -e "src/$path"; then echo "@ouro/dialog added src/$path"; exit 1; fi
   done
   grep -q -- "--ouro-spring-duration" src/index.css || { echo "ouro-base did not reach src/index.css"; exit 1; }
+  # What @ouro served is the release: every installed file equals the tag's source.
+  mkdir -p "$registry/tag"
+  git -C "$root" archive "$tag" | tar -x -C "$registry/tag"
+  node "$root/scripts/install-check.mjs" --sources "$app" "$registry/tag"
   cat > src/App.tsx <<'EOF'
 import { Dialog } from "~/components/ouro/dialog/dialog";
 

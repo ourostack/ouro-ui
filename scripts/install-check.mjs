@@ -18,6 +18,11 @@
 // A file whose source starts with "use client" must keep it, or a Next.js Server Component
 // that renders it fails to build.
 //
+//   node scripts/install-check.mjs --sources <app-dir> <source-root>
+//
+// Checks only that every installed Ouro file equals its source under <source-root> (a release
+// tag's files, for the @ouro namespace install).
+//
 //   node scripts/install-check.mjs --layer-override <css-file>
 //
 // Checks that an app's own `:root { --ouro-layer: … }` rule, after the Ouro tokens and
@@ -210,6 +215,13 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const problems = checkLayerOverride(readFileSync(process.argv[3], "utf8"), process.argv[4] ?? "60");
   for (const problem of problems) console.error(`install check: ${problem}`);
   if (problems.length === 0) console.log("install check: the app's --ouro-layer override survived");
+  process.exitCode = problems.length === 0 ? 0 : 1;
+} else if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url) && process.argv[2] === "--sources") {
+  const [, , , app, sourceRoot] = process.argv;
+  const { aliases } = JSON.parse(readFileSync(join(app, "components.json"), "utf8"));
+  const problems = checkSources(app, sourceRoot, aliases);
+  for (const problem of problems) console.error(`install check: ${problem}`);
+  if (problems.length === 0) console.log(`install check: every installed file equals its source in ${sourceRoot}`);
   process.exitCode = problems.length === 0 ? 0 : 1;
 } else if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [app, variant, stage] = process.argv.slice(2);
