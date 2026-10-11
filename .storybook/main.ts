@@ -1,18 +1,16 @@
+import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import type { StorybookConfig } from "@storybook/react-vite";
 
 const config: StorybookConfig = {
-  stories: ["../src/**/*.stories.@(ts|tsx)"],
-  addons: ["@storybook/addon-a11y", "@storybook/addon-docs"],
+  stories: ["../registry/**/*.stories.@(ts|tsx)"],
+  addons: ["@storybook/addon-a11y", "@storybook/addon-docs", "@storybook/addon-themes"],
   framework: "@storybook/react-vite",
-  // `src/styles.css` uses Tailwind v4 directives, so Vite needs the plugin.
-  // Keep native light-dark(), as dist/styles.css ships it: Tailwind's optimizer
-  // and Vite's CSS minifier would otherwise lower it to variables that only follow
-  // a stylesheet's color-scheme, so the stories' dark panels would render light.
+  // app.css compiles the registry source with Tailwind, as an app does.
   viteFinal: (viteConfig) => ({
     ...viteConfig,
-    build: { ...viteConfig.build, cssTarget: ["chrome123", "edge123", "firefox120", "safari17.5"] },
-    plugins: [...(viteConfig.plugins ?? []), tailwindcss({ optimize: false })],
+    resolve: { ...viteConfig.resolve, alias: { ...viteConfig.resolve?.alias, "@": fileURLToPath(new URL("..", import.meta.url)) } },
+    plugins: [...(viteConfig.plugins ?? []), tailwindcss()],
   }),
 };
 
