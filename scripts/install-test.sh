@@ -42,6 +42,9 @@ app=${2:?$usage}
 root=$(cd "$(dirname "$0")/.." && pwd)
 ref=${3:-$(git -C "$root" rev-parse HEAD)}
 shadcn=(npx --yes shadcn@4.21.1)
+# The README's init uses --preset nova. OURO_PRESET runs the same test with another of
+# shadcn's presets (CI runs vega too), so the docs can say which presets are verified.
+preset=${OURO_PRESET:-nova}
 vitest=(npx --yes vitest@5.0.3)
 items=(button text heading sheet dialog confirm-dialog)
 
@@ -66,7 +69,7 @@ echo "::group::Fixture app"
 cp -R "$root/test/install-fixture/." "$app/"
 cd "$app"
 npm install --no-audit --no-fund
-"${shadcn[@]}" init --base base --preset nova --yes --no-monorepo
+"${shadcn[@]}" init --base base --preset "$preset" --yes --no-monorepo
 echo "::endgroup::"
 
 if [ "$variant" = github ]; then
@@ -199,7 +202,7 @@ if [ "$variant" = upgrade ]; then
   cd "$layout"
   to_app_layout
   npm install --no-audit --no-fund
-  "${shadcn[@]}" init --base base --preset nova --yes --no-monorepo
+  "${shadcn[@]}" init --base base --preset "$preset" --yes --no-monorepo
   node -e 'const c = require("./components.json"); if (!c.tailwind.css.startsWith("app/")) throw new Error(`components.json css is ${c.tailwind.css}`)'
   echo "::endgroup::"
 

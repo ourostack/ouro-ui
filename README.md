@@ -36,7 +36,8 @@ npx shadcn@latest add ourostack/ouro-ui/dialog#v0.2.0
 ```
 
 - Pass `--base base`: Ouro UI is built on Base UI. Don't pass `-t`/`--template` in an existing app; it adds shadcn's `components/ui/button.tsx`.
-- New Vite app? Add `@tailwindcss/vite`, `@import "tailwindcss";`, a Vite `@` alias and `"paths": { "@/*": ["./src/*"] }` (no `baseUrl` on TypeScript 6) before `init`.
+- New Vite app? Add `@tailwindcss/vite`, `@import "tailwindcss";`, a Vite `@` alias, and `"paths": { "@/*": ["./src/*"] }` in both `tsconfig.json` and `tsconfig.app.json` (no `baseUrl` on TypeScript 6) before `init`. shadcn reads the root file, and `tsc -b` builds the app one.
+- `--preset nova` lets `init` run without prompts. It sets shadcn's starting theme, font and icons (nova adds the Geist font, `lucide-react` and `tw-animate-css`), which Ouro components read like any shadcn theme. The install test runs `nova` and `vega`; other presets are untested.
 
 ### Details
 

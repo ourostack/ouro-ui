@@ -100,6 +100,14 @@ jobs:
       fail-fast: false
       matrix:
         variant: [shadcn, ouro, namespace]
+        preset: [nova]
+        include:
+          # Another shadcn preset than the README's, so its preset wording is verified.
+          - variant: shadcn
+            preset: vega
+    name: install (${{ matrix.variant }}, ${{ matrix.preset }})
+    env:
+      OURO_PRESET: ${{ matrix.preset }}
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
@@ -112,7 +120,7 @@ jobs:
       - if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: install-${{ matrix.variant }}
+          name: install-${{ matrix.variant }}-${{ matrix.preset }}
           path: |
             ${{ runner.temp }}/app/src/index.css
             ${{ runner.temp }}/app/components.json
