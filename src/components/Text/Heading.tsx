@@ -25,6 +25,7 @@ export interface HeadingProps extends Omit<HTMLAttributes<HTMLHeadingElement>, "
    * warn in development; use `size` and `align`.
    */
   className?: string | undefined;
+  /** The heading text. */
   children: ReactNode;
   ref?: Ref<HTMLHeadingElement> | undefined;
   /** Not a prop. The tag comes from `level`: `<Heading level={2}>`. */

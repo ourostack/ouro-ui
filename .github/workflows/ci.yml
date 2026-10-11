@@ -21,6 +21,7 @@ jobs:
       - run: pnpm i --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium webkit
       - run: pnpm theme --check
+      - run: pnpm run docs --check
       - run: pnpm typecheck
       - run: pnpm lint
       # Build before test: the package-contents tests read dist.

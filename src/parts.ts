@@ -1,7 +1,7 @@
 /**
  * Building-block parts for the rare case where a component's props cannot
  * express what you need. Prefer the props-first components from
- * `@ouro.bot/ui`. Parts are added as components land.
+ * `@ouro.bot/ui`.
  *
  * Each part checks that it sits inside its root and, in development, throws a
  * message with the JSX it belongs in.

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -42,6 +42,20 @@ test("client entry chunks start with the use client directive", () => {
   assert.doesNotMatch(theme, /^"use client"/, "the theme entry must stay server-safe");
 });
 
+test("npm pack ships the generated docs, one page per component plus parts", () => {
+  const files = packedFiles();
+  const docs = readdirSync(join(root, "docs")).filter((file) => file.endsWith(".md"));
+  assert.ok(docs.length >= 8, "docs/ holds the generated pages (run pnpm run docs)");
+  for (const file of docs) assert.ok(files.includes(`docs/${file}`), `docs/${file} is missing from the package`);
+  for (const file of ["docs/Button.md", "docs/Sheet.md", "docs/parts.md"]) assert.ok(files.includes(file), file);
+});
+
+test("dist/index.d.ts opens with the component catalog", () => {
+  const types = readFileSync(join(root, "dist/index.d.ts"), "utf8");
+  assert.match(types, /^\/\*\*\n \* Ouro UI/, "the catalog comment must come first");
+  assert.match(types.slice(0, types.indexOf("*/")), / \* - \*\*Button\*\* — /);
+});
+
 test("the check script accepts this package and rejects a broken one", async () => {
   const { checkPackage } = await import("./check-package.mjs");
   assert.deepEqual(checkPackage(root), []);
@@ -53,6 +67,9 @@ test("the check script accepts this package and rejects a broken one", async () 
     read: () => '"use client";',
   });
   assert.ok(withStory.some((problem) => problem.includes("Sheet.stories.tsx is a story")));
+  const noDocs = checkPackage(root, { files: ["README.md"], read: () => '"use client";' });
+  assert.ok(noDocs.some((problem) => problem.includes("docs/Button.md is missing")));
+  assert.ok(noDocs.some((problem) => problem.includes("dist/index.d.ts must open with the component catalog")));
 });
 
 test("npm pack ships no stories", () => {

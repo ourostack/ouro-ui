@@ -1,3 +1,4 @@
+/** Props for {@link ThemeScript}. */
 export type ThemeScriptProps = {
   /** The localStorage key that holds `"light"`, `"dark"` or `"system"`. */
   storageKey?: string;
@@ -11,13 +12,6 @@ export type ThemeScriptProps = {
  * Sets `data-theme` on `<html>` before the first paint, so a stored dark preference
  * never flashes light. Render it once, in the server-rendered root `<head>`.
  *
- * ```tsx
- * <html suppressHydrationWarning>
- *   <head><ThemeScript /></head>
- *   ...
- * </html>
- * ```
- *
  * `suppressHydrationWarning` on `<html>` is required: the script adds `data-theme` before
  * React hydrates, and React would otherwise report the extra attribute as a mismatch.
  * Do not render it in client-only trees, where React warns about client-rendered scripts.
@@ -29,6 +23,14 @@ export type ThemeScriptProps = {
  * setting) always works, even when your CSS pipeline lowers `light-dark()` for older
  * browsers. A dark scheme set on a wrapper (`style={{ colorScheme: "dark" }}`) needs
  * native `light-dark()` support, because lowered tokens resolve once at the root.
+ *
+ * @example
+ * <html suppressHydrationWarning>
+ *   <head>
+ *     <ThemeScript />
+ *   </head>
+ *   <body>…</body>
+ * </html>
  */
 export function ThemeScript({ storageKey = "ouro-theme", defaultTheme = "system", nonce }: ThemeScriptProps) {
   // `<` is escaped so a key can never close the script element.
