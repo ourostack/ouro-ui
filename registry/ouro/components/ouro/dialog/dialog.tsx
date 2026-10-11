@@ -1,5 +1,6 @@
 import {
   cloneElement,
+  useEffect,
   useRef,
   useState,
   type JSX,
@@ -101,7 +102,11 @@ export type DialogWithTriggerProps = DialogBaseProps & {
 
 /** A controlled Dialog: you own `open` and update it in `onOpenChange`. */
 export type DialogControlledProps = DialogBaseProps & {
-  /** Whether the dialog is open. */
+  /**
+   * Whether the dialog is open. When a touch or pen tap opened it (on your own
+   * button, say), the centered dialog focuses itself rather than its first input,
+   * so no software keyboard pops up; after a key press it focuses the first control.
+   */
   open: boolean;
   /** Called with `false` when the user dismisses the dialog (close button, Escape, outside press, swipe). */
   onOpenChange: (open: boolean) => void;
@@ -131,6 +136,23 @@ const closeClass =
   "[transition:background-color_var(--ouro-duration-fast)_ease-out,color_var(--ouro-duration-fast)_ease-out] " +
   "hover:bg-accent hover:text-accent-foreground " +
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid [&>svg]:size-4";
+
+/**
+ * How the user last interacted with the page: the pointer type of the last
+ * `pointerdown` on the document ("mouse", "touch" or "pen"), or "keyboard" after a
+ * later key press. A controlled Dialog reads it when it opens, because the app's own
+ * button opened it and Dialog never saw that press.
+ */
+let lastInput = "";
+let tracking = false;
+
+/** Starts recording {@link lastInput}, once per page, in the capture phase so nothing can stop it. */
+function trackLastInput(): void {
+  if (tracking) return;
+  tracking = true;
+  document.addEventListener("pointerdown", (event) => (lastInput = event.pointerType), true);
+  document.addEventListener("keydown", () => (lastInput = "keyboard"), true);
+}
 
 /** The close button's icon: a 16px cross in the text color. */
 function CloseIcon(): JSX.Element {
@@ -278,12 +300,21 @@ export function Dialog(props: DialogProps): JSX.Element {
       "aria-haspopup": "dialog",
       "aria-expanded": isOpenNow,
     });
+  // A controlled dialog opens from the app's own button, so it reads how the user last
+  // pressed anything on the page instead.
+  useEffect(trackLastInput, []);
+
   // Focus returns to the trigger on close, in either presentation.
   const finalFocus = trigger !== undefined ? { finalFocus: triggerRef } : {};
   // The centered dialog focuses itself after a touch or pen open, and the first
-  // control otherwise, as Base UI does with its own trigger. (The sheet always
+  // control otherwise, as Base UI does with its own trigger. A controlled dialog
+  // decides when it opens, from the last press on the page. (The sheet always
   // focuses itself, like a plain Sheet.)
-  const initialFocus = tapOpened ? { initialFocus: popupRef } : {};
+  const initialFocus = controlled
+    ? { initialFocus: () => (lastInput === "touch" || lastInput === "pen" ? popupRef.current : true) }
+    : tapOpened
+      ? { initialFocus: popupRef }
+      : {};
 
   // The server and hydration render the dialog form; the client corrects it after.
   const wide = useMediaQuery("(min-width: 640px)", true);

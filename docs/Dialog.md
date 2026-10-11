@@ -63,7 +63,7 @@ A controlled Dialog: you own `open` and update it in `onOpenChange`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `onOpenChange` (required) | `(open: boolean) => void` |  | Called with `false` when the user dismisses the dialog (close button, Escape, outside press, swipe). |
-| `open` (required) | `boolean` |  | Whether the dialog is open. |
+| `open` (required) | `boolean` |  | Whether the dialog is open. When a touch or pen tap opened it (on your own button, say), the centered dialog focuses itself rather than its first input, so no software keyboard pops up; after a key press it focuses the first control. |
 
 Not in this mode (typed `never`):
 
