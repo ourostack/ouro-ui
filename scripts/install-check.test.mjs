@@ -190,3 +190,16 @@ test("only Ouro's tokens must not refer to themselves; an app's own theme may", 
   writeFileSync(join(dir, "src/index.css"), css.replace("@theme inline {", "@theme inline {\n  --font-sans: var(--font-sans);\n  --color-success: var(--color-success);"));
   assert.deepEqual(checkInstall(dir, "shadcn", "tests"), ["src/index.css: --color-success: var(--color-success) refers to itself"]);
 });
+
+test("the README's Next.js files are the ones the Next.js install job builds", () => {
+  const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+  const readme = readFileSync(join(root, "README.md"), "utf8");
+  for (const file of ["src/app/providers.tsx", "src/app/layout.tsx"]) {
+    const text = readFileSync(join(root, "test/install-fixture-next", file), "utf8");
+    assert.ok(readme.includes("```tsx\n" + text + "```"), `README.md does not show test/install-fixture-next/${file} verbatim`);
+  }
+  assert.match(readFileSync(join(root, "test/install-fixture-next/src/app/providers.tsx"), "utf8"), /^"use client";\n/);
+  for (const file of ["src/app/layout.tsx", "src/app/page.tsx"]) {
+    assert.doesNotMatch(readFileSync(join(root, "test/install-fixture-next", file), "utf8"), /"use client"/, `${file} must stay a Server Component`);
+  }
+});

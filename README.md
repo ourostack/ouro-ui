@@ -39,6 +39,44 @@ npx shadcn@latest add ourostack/ouro-ui/dialog#v0.3.0
 - New Vite app? Add `@tailwindcss/vite`, `@import "tailwindcss";`, a Vite `@` alias, and `"paths": { "@/*": ["./src/*"] }` in both `tsconfig.json` and `tsconfig.app.json` (no `baseUrl` on TypeScript 6) before `init`. shadcn reads the root file, and `tsc -b` builds the app one.
 - `--preset nova` lets `init` run without prompts. It sets shadcn's starting theme, font and icons (nova adds the Geist font, `lucide-react` and `tw-animate-css`), which Ouro components read like any shadcn theme. The install test runs `nova` and `vega`; other presets are untested.
 
+### Next.js
+
+In a Next.js App Router app, `init` writes `"rsc": true`, so the components keep their `"use client"` line and a Server Component page can render them, parts included. Pass them only what can cross from the server: elements, strings, numbers, and a server action (`"use server"`) for `ConfirmDialog`'s `onConfirm`. CI builds such an app with `next build` (`scripts/install-test.sh next`).
+
+To route `href`s through `next/link`, put `OuroProvider` in a client file, because a Server Component can't pass `Link`, a function, to a client component. `app/providers.tsx`:
+
+```tsx
+"use client";
+
+import Link from "next/link";
+import type { ReactNode } from "react";
+import { OuroProvider } from "@/lib/ouro/ouro-provider";
+
+// A Server Component can't pass next/link's Link (a function) to a Client Component, so the
+// provider gets it here, in a client file.
+export function Providers({ children }: { children: ReactNode }) {
+  return <OuroProvider linkComponent={Link}>{children}</OuroProvider>;
+}
+```
+
+Then wrap the app in `app/layout.tsx`, which stays a Server Component:
+
+```tsx
+import type { ReactNode } from "react";
+import { Providers } from "./providers";
+import "./globals.css";
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <Providers>{children}</Providers>
+      </body>
+    </html>
+  );
+}
+```
+
 ### Details
 
 - The CLI reads `registry.json` at this repository's root. A [release](https://github.com/ourostack/ouro-ui/releases) tag such as `#v0.3.0` installs the item and every Ouro dependency (`ouro-lib`, `button` and so on) at that tag. Without a ref, items come from `main`, which is for contributors: it can hold changes no release has yet. A `#<branch>` or `#<sha>` ref pins only the item you name; its Ouro dependencies come from `main`.

@@ -23,6 +23,11 @@ export interface OuroProviderProps {
  * Type a custom adapter with `ComponentProps<OuroLinkComponent>` so it always
  * compiles, including under `exactOptionalPropertyTypes`.
  *
+ * In Next.js, render it from a client file, such as `app/providers.tsx` starting with
+ * `"use client"`, that passes `next/link`'s `Link` (`<OuroProvider linkComponent={Link}>`),
+ * and wrap the app in it from `app/layout.tsx`: a Server Component can't pass `Link`, a
+ * function, to a client component. The README's "Next.js" section has both files.
+ *
  * @example
  * const RouterLink = (props: ComponentProps<OuroLinkComponent>) => <Link to={props.href} {...props} />;
  * <OuroProvider linkComponent={RouterLink}><App /></OuroProvider>
