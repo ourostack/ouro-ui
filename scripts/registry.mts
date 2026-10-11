@@ -2,7 +2,8 @@
 //
 //   node scripts/registry.mts           write registry.json
 //   node scripts/registry.mts --check   fail when registry.json is stale (CI); a released
-//                                       registry.json (one with a version) is checked as released
+//                                       registry.json (one with a version) is checked as released,
+//                                       except on main or a pull request into it, where it fails
 //   --out <file>                        write or check another file
 //   --release <x.y.z>                   pin same-repo registryDependencies to the tag v<x.y.z> and
 //                                       record the version (release.yml, on the release branch)
@@ -404,6 +405,11 @@ function main(argv: string[]): number {
   }
   const text = `${JSON.stringify(registry, null, 2)}\n`;
   if (check) {
+    const onMain = process.env["GITHUB_REF"] === "refs/heads/main" || process.env["GITHUB_BASE_REF"] === "main";
+    if (onMain && (version || /"ourostack\/ouro-ui\/[\w-]+#v/.test(current))) {
+      process.stderr.write(`${relative(process.cwd(), out)} is pinned to a release (a version field or #v refs), but main stays unpinned: only release tags are pinned. Run pnpm registry and commit the result.\n`);
+      return 1;
+    }
     if (current !== text) {
       process.stderr.write(`${relative(process.cwd(), out)} is stale. Run pnpm registry and commit the result.\n`);
       return 1;

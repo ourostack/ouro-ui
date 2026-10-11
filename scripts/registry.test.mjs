@@ -211,6 +211,16 @@ test("--release pins every same-repo dependency to the release tag and records t
   writeFileSync(out, JSON.stringify(released, null, 2) + "\n");
   assert.equal(run("--check", "--out", out).status, 1);
 
+  // On main, and on pull requests into main, a released file never passes: main stays unpinned.
+  assert.equal(run("--out", out, "--release", "0.1.0").status, 0);
+  for (const env of [{ GITHUB_REF: "refs/heads/main" }, { GITHUB_BASE_REF: "main" }]) {
+    const onMain = spawnSync("node", [script, "--check", "--out", out], { cwd: root, encoding: "utf8", env: { ...process.env, ...env } });
+    assert.equal(onMain.status, 1, JSON.stringify(env));
+    assert.match(onMain.stderr, /pinned to a release.*main stays unpinned/s);
+  }
+  const mainOk = spawnSync("node", [script, "--check"], { cwd: root, encoding: "utf8", env: { ...process.env, GITHUB_REF: "refs/heads/main" } });
+  assert.equal(mainOk.status, 0, mainOk.stderr);
+
   const bad = run("--out", out, "--release", "v0.1.0");
   assert.equal(bad.status, 1);
   assert.match(bad.stderr, /--release takes x\.y\.z/);
