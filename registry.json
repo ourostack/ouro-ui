@@ -2,13 +2,14 @@
   "$schema": "https://ui.shadcn.com/schema/registry.json",
   "name": "ouro",
   "homepage": "https://ourostack.github.io/ouro-ui/",
+  "version": "0.4.0",
   "items": [
     {
       "name": "ouro-base",
       "type": "registry:item",
       "title": "Ouro base",
       "description": "Installed with every component; you don't need to add it. What every Ouro UI component needs in the app's CSS: success and warning colors, a destructive foreground, the motion tokens, the press utility, the spinner keyframes, and --ouro-layer, the z-index of sheets and dialogs (50; raise it in a :root rule of your own if your app has fixed bars above z-50).",
-      "docs": "Ouro UI's base tokens are in your CSS. Your theme's values win: edit them like any shadcn variable.",
+      "docs": "Ouro UI's base tokens are in your CSS. Your theme's values win: edit them like any shadcn variable. Ouro UI v0.4.0.",
       "cssVars": {
         "light": {
           "destructive-foreground": "#ffffff",
@@ -67,7 +68,7 @@
       "type": "registry:theme",
       "title": "Ouro theme",
       "description": "Ouro UI's own look, as a shadcn theme for :root and .dark. Skip it to keep your app's theme.",
-      "docs": "The Ouro theme replaced your theme's colors in :root and .dark. Docs: https://ourostack.github.io/ouro-ui/docs",
+      "docs": "The Ouro theme replaced your theme's colors in :root and .dark. Docs: https://ourostack.github.io/ouro-ui/docs Ouro UI v0.4.0.",
       "cssVars": {
         "light": {
           "radius": "0.5rem",
@@ -143,7 +144,7 @@
       "type": "registry:lib",
       "title": "Ouro lib",
       "description": "Installed with every component; you don't need to add it. Shared helpers every Ouro UI component uses, in lib/ouro: cn, dev messages, the className check, announce, OuroProvider and hooks.",
-      "docs": "Ouro UI's helpers are in lib/ouro. OuroProvider is optional; it routes internal hrefs through your router's link. Docs: https://ourostack.github.io/ouro-ui/docs",
+      "docs": "Ouro UI's helpers are in lib/ouro. OuroProvider is optional; it routes internal hrefs through your router's link. Docs: https://ourostack.github.io/ouro-ui/docs Ouro UI v0.4.0.",
       "dependencies": [
         "clsx@^2.1.1",
         "tailwind-merge@^3.7.0"
@@ -246,7 +247,7 @@
       "type": "registry:lib",
       "title": "Ouro testing",
       "description": "Installed with every -tests item; you don't need to add it. The test kit Ouro UI's tests use: Vitest browser projects with the drag, flick, tap and emulateMedia commands, the act helper, axeExclude, and the end-to-end story helper.",
-      "docs": "The -tests items install Ouro UI's tests beside each component. To run the Vitest browser tests, add vitest.config.ts (use your components.json tailwind.css path for css), then run npx playwright install chromium webkit and npx vitest run:\n--- vitest.config.ts\nimport { defineConfig, mergeConfig } from \"vitest/config\";\nimport viteConfig from \"./vite.config.ts\";\nimport { ouroTestProjects } from \"./src/lib/ouro/testing/vitest.ts\";\n\nexport default mergeConfig(viteConfig, defineConfig({ test: { projects: ouroTestProjects({ css: \"./src/index.css\" }) } }));\n\nThe end-to-end specs in e2e/ouro open the Ouro stories in a Storybook. If your app has none, add these two files (use your stylesheet in preview.ts):\n--- .storybook/main.ts\nexport default { stories: [\"../src/**/*.stories.@(ts|tsx)\"], framework: \"@storybook/react-vite\" };\n--- .storybook/preview.ts\nimport \"../src/index.css\";\n\nIf your app has no Playwright config, add this one, which starts that Storybook and runs Chromium and WebKit:\n--- playwright.config.ts\nimport { defineConfig, devices } from \"@playwright/test\";\n\n// Starts the app's Storybook, where Ouro UI's specs (e2e/ouro) open their stories.\nexport default defineConfig({\n  testDir: \"e2e\",\n  projects: [\n    { name: \"chromium\", use: { ...devices[\"Desktop Chrome\"] } },\n    { name: \"webkit\", use: { ...devices[\"Desktop Safari\"] } },\n  ],\n  webServer: {\n    command: \"npx storybook dev -p 6006 --ci --no-open\",\n    url: \"http://localhost:6006/iframe.html\",\n    reuseExistingServer: !process.env[\"CI\"],\n    timeout: 180_000,\n  },\n});\n\nThen run npx playwright test e2e/ouro. With a Playwright config of your own, start Storybook with npx storybook dev -p 6006 and run OURO_E2E_URL=http://localhost:6006 npx playwright test e2e/ouro.\nDocs: https://ourostack.github.io/ouro-ui/docs",
+      "docs": "The -tests items install Ouro UI's tests beside each component. To run the Vitest browser tests, add vitest.config.ts (use your components.json tailwind.css path for css), then run npx playwright install chromium webkit and npx vitest run:\n--- vitest.config.ts\nimport { defineConfig, mergeConfig } from \"vitest/config\";\nimport viteConfig from \"./vite.config.ts\";\nimport { ouroTestProjects } from \"./src/lib/ouro/testing/vitest.ts\";\n\nexport default mergeConfig(viteConfig, defineConfig({ test: { projects: ouroTestProjects({ css: \"./src/index.css\" }) } }));\n\nThe end-to-end specs in e2e/ouro open the Ouro stories in a Storybook. If your app has none, add these two files (use your stylesheet in preview.ts):\n--- .storybook/main.ts\nexport default { stories: [\"../src/**/*.stories.@(ts|tsx)\"], framework: \"@storybook/react-vite\" };\n--- .storybook/preview.ts\nimport \"../src/index.css\";\n\nIf your app has no Playwright config, add this one, which starts that Storybook and runs Chromium and WebKit:\n--- playwright.config.ts\nimport { defineConfig, devices } from \"@playwright/test\";\n\n// Starts the app's Storybook, where Ouro UI's specs (e2e/ouro) open their stories.\nexport default defineConfig({\n  testDir: \"e2e\",\n  projects: [\n    { name: \"chromium\", use: { ...devices[\"Desktop Chrome\"] } },\n    { name: \"webkit\", use: { ...devices[\"Desktop Safari\"] } },\n  ],\n  webServer: {\n    command: \"npx storybook dev -p 6006 --ci --no-open\",\n    url: \"http://localhost:6006/iframe.html\",\n    reuseExistingServer: !process.env[\"CI\"],\n    timeout: 180_000,\n  },\n});\n\nThen run npx playwright test e2e/ouro. With a Playwright config of your own, start Storybook with npx storybook dev -p 6006 and run OURO_E2E_URL=http://localhost:6006 npx playwright test e2e/ouro.\nDocs: https://ourostack.github.io/ouro-ui/docs Ouro UI v0.4.0.",
       "devDependencies": [
         "@playwright/test@^1.63.0",
         "@vitest/browser-playwright@^5.0.3",
@@ -306,13 +307,13 @@
       "type": "registry:ui",
       "title": "Button",
       "description": "A button, or a link styled as one.",
-      "docs": "A button, or a link styled as one. Import: import { Button } from \"@/components/ouro/button/button\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/button.md",
+      "docs": "A button, or a link styled as one. Import: import { Button } from \"@/components/ouro/button/button\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/button.md Ouro UI v0.4.0.",
       "dependencies": [
         "@base-ui/react@^1.8.0"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/ouro-base",
-        "ourostack/ouro-ui/ouro-lib"
+        "ourostack/ouro-ui/ouro-base#v0.4.0",
+        "ourostack/ouro-ui/ouro-lib#v0.4.0"
       ],
       "files": [
         {
@@ -327,10 +328,10 @@
       "type": "registry:ui",
       "title": "Text",
       "description": "Body text in the theme's type scale and colors.",
-      "docs": "Body text in the theme's type scale and colors. Import: import { Text } from \"@/components/ouro/text/text\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/text.md",
+      "docs": "Body text in the theme's type scale and colors. Import: import { Text } from \"@/components/ouro/text/text\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/text.md Ouro UI v0.4.0.",
       "registryDependencies": [
-        "ourostack/ouro-ui/ouro-base",
-        "ourostack/ouro-ui/ouro-lib"
+        "ourostack/ouro-ui/ouro-base#v0.4.0",
+        "ourostack/ouro-ui/ouro-lib#v0.4.0"
       ],
       "files": [
         {
@@ -350,11 +351,11 @@
       "type": "registry:ui",
       "title": "Heading",
       "description": "A section title, `<h1>` to `<h6>`, in the theme's foreground color.",
-      "docs": "A section title, `<h1>` to `<h6>`, in the theme's foreground color. Import: import { Heading } from \"@/components/ouro/text/heading\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib, text. Docs: https://ourostack.github.io/ouro-ui/docs/heading.md",
+      "docs": "A section title, `<h1>` to `<h6>`, in the theme's foreground color. Import: import { Heading } from \"@/components/ouro/text/heading\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib, text. Docs: https://ourostack.github.io/ouro-ui/docs/heading.md Ouro UI v0.4.0.",
       "registryDependencies": [
-        "ourostack/ouro-ui/ouro-base",
-        "ourostack/ouro-ui/ouro-lib",
-        "ourostack/ouro-ui/text"
+        "ourostack/ouro-ui/ouro-base#v0.4.0",
+        "ourostack/ouro-ui/ouro-lib#v0.4.0",
+        "ourostack/ouro-ui/text#v0.4.0"
       ],
       "files": [
         {
@@ -369,13 +370,13 @@
       "type": "registry:ui",
       "title": "Sheet",
       "description": "A panel that slides in from an edge and is dragged back to dismiss: the mobile form of a dialog.",
-      "docs": "A panel that slides in from an edge and is dragged back to dismiss: the mobile form of a dialog. Import: import { Sheet } from \"@/components/ouro/sheet/sheet\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/sheet.md",
+      "docs": "A panel that slides in from an edge and is dragged back to dismiss: the mobile form of a dialog. Import: import { Sheet } from \"@/components/ouro/sheet/sheet\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/sheet.md Ouro UI v0.4.0.",
       "dependencies": [
         "@base-ui/react@^1.8.0"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/ouro-base",
-        "ourostack/ouro-ui/ouro-lib"
+        "ourostack/ouro-ui/ouro-base#v0.4.0",
+        "ourostack/ouro-ui/ouro-lib#v0.4.0"
       ],
       "files": [
         {
@@ -400,14 +401,14 @@
       "type": "registry:ui",
       "title": "Dialog",
       "description": "A dialog that presents itself for the screen: a centered dialog on wider screens and a bottom sheet you can drag away on phones (below 640px).",
-      "docs": "A dialog that presents itself for the screen: a centered dialog on wider screens and a bottom sheet you can drag away on phones (below 640px). Import: import { Dialog } from \"@/components/ouro/dialog/dialog\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib, sheet. Docs: https://ourostack.github.io/ouro-ui/docs/dialog.md",
+      "docs": "A dialog that presents itself for the screen: a centered dialog on wider screens and a bottom sheet you can drag away on phones (below 640px). Import: import { Dialog } from \"@/components/ouro/dialog/dialog\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib, sheet. Docs: https://ourostack.github.io/ouro-ui/docs/dialog.md Ouro UI v0.4.0.",
       "dependencies": [
         "@base-ui/react@^1.8.0"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/ouro-base",
-        "ourostack/ouro-ui/ouro-lib",
-        "ourostack/ouro-ui/sheet"
+        "ourostack/ouro-ui/ouro-base#v0.4.0",
+        "ourostack/ouro-ui/ouro-lib#v0.4.0",
+        "ourostack/ouro-ui/sheet#v0.4.0"
       ],
       "files": [
         {
@@ -432,12 +433,12 @@
       "type": "registry:ui",
       "title": "ConfirmDialog",
       "description": "Asks the user to confirm an action, with Cancel focused first.",
-      "docs": "Asks the user to confirm an action, with Cancel focused first. Import: import { ConfirmDialog } from \"@/components/ouro/dialog/confirm-dialog\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, dialog, ouro-base, ouro-lib, sheet. Docs: https://ourostack.github.io/ouro-ui/docs/confirm-dialog.md",
+      "docs": "Asks the user to confirm an action, with Cancel focused first. Import: import { ConfirmDialog } from \"@/components/ouro/dialog/confirm-dialog\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, dialog, ouro-base, ouro-lib, sheet. Docs: https://ourostack.github.io/ouro-ui/docs/confirm-dialog.md Ouro UI v0.4.0.",
       "registryDependencies": [
-        "ourostack/ouro-ui/button",
-        "ourostack/ouro-ui/dialog",
-        "ourostack/ouro-ui/ouro-base",
-        "ourostack/ouro-ui/ouro-lib"
+        "ourostack/ouro-ui/button#v0.4.0",
+        "ourostack/ouro-ui/dialog#v0.4.0",
+        "ourostack/ouro-ui/ouro-base#v0.4.0",
+        "ourostack/ouro-ui/ouro-lib#v0.4.0"
       ],
       "files": [
         {
@@ -452,13 +453,13 @@
       "type": "registry:ui",
       "title": "Field",
       "description": "A labeled form control: the label, an optional description, the control and its error, wired together with ids that match between the server and the browser.",
-      "docs": "A labeled form control: the label, an optional description, the control and its error, wired together with ids that match between the server and the browser. Import: import { Field } from \"@/components/ouro/field/field\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/field.md",
+      "docs": "A labeled form control: the label, an optional description, the control and its error, wired together with ids that match between the server and the browser. Import: import { Field } from \"@/components/ouro/field/field\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/field.md Ouro UI v0.4.0.",
       "dependencies": [
         "@base-ui/react@^1.8.0"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/ouro-base",
-        "ourostack/ouro-ui/ouro-lib"
+        "ourostack/ouro-ui/ouro-base#v0.4.0",
+        "ourostack/ouro-ui/ouro-lib#v0.4.0"
       ],
       "files": [
         {
@@ -483,14 +484,14 @@
       "type": "registry:ui",
       "title": "Fieldset",
       "description": "A titled group of related fields, such as an address, rendered as a `<fieldset>` named by its legend.",
-      "docs": "A titled group of related fields, such as an address, rendered as a `<fieldset>` named by its legend. Import: import { Fieldset } from \"@/components/ouro/field/fieldset\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: field, ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/fieldset.md",
+      "docs": "A titled group of related fields, such as an address, rendered as a `<fieldset>` named by its legend. Import: import { Fieldset } from \"@/components/ouro/field/fieldset\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: field, ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/fieldset.md Ouro UI v0.4.0.",
       "dependencies": [
         "@base-ui/react@^1.8.0"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/field",
-        "ourostack/ouro-ui/ouro-base",
-        "ourostack/ouro-ui/ouro-lib"
+        "ourostack/ouro-ui/field#v0.4.0",
+        "ourostack/ouro-ui/ouro-base#v0.4.0",
+        "ourostack/ouro-ui/ouro-lib#v0.4.0"
       ],
       "files": [
         {
@@ -505,10 +506,10 @@
       "type": "registry:ui",
       "title": "Link",
       "description": "A text link that navigates through your router.",
-      "docs": "A text link that navigates through your router. Import: import { Link } from \"@/components/ouro/link/link\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/link.md",
+      "docs": "A text link that navigates through your router. Import: import { Link } from \"@/components/ouro/link/link\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/link.md Ouro UI v0.4.0.",
       "registryDependencies": [
-        "ourostack/ouro-ui/ouro-base",
-        "ourostack/ouro-ui/ouro-lib"
+        "ourostack/ouro-ui/ouro-base#v0.4.0",
+        "ourostack/ouro-ui/ouro-lib#v0.4.0"
       ],
       "files": [
         {
@@ -523,13 +524,13 @@
       "type": "registry:item",
       "title": "Ouro lib tests",
       "description": "Optional: the Vitest browser tests for ouro-lib, with the test tooling as devDependencies. Add it beside ouro-lib: add ouro-lib ouro-lib-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
-      "docs": "ouro-lib's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs",
+      "docs": "ouro-lib's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs Ouro UI v0.4.0.",
       "devDependencies": [
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/ouro-lib",
-        "ourostack/ouro-ui/ouro-testing"
+        "ourostack/ouro-ui/ouro-lib#v0.4.0",
+        "ourostack/ouro-ui/ouro-testing#v0.4.0"
       ],
       "files": [
         {
@@ -579,7 +580,7 @@
       "type": "registry:item",
       "title": "Button tests",
       "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for button, with the test tooling as devDependencies. Add it beside button: add button button-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
-      "docs": "button's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/button.md",
+      "docs": "button's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/button.md Ouro UI v0.4.0.",
       "devDependencies": [
         "@playwright/test@^1.63.0",
         "@storybook/react-vite@^10.6.1",
@@ -587,9 +588,9 @@
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/button",
-        "ourostack/ouro-ui/ouro-lib",
-        "ourostack/ouro-ui/ouro-testing"
+        "ourostack/ouro-ui/button#v0.4.0",
+        "ourostack/ouro-ui/ouro-lib#v0.4.0",
+        "ourostack/ouro-ui/ouro-testing#v0.4.0"
       ],
       "files": [
         {
@@ -624,7 +625,7 @@
       "type": "registry:item",
       "title": "Text tests",
       "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for text, with the test tooling as devDependencies. Add it beside text: add text text-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
-      "docs": "text's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/text.md",
+      "docs": "text's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/text.md Ouro UI v0.4.0.",
       "devDependencies": [
         "@playwright/test@^1.63.0",
         "@storybook/react-vite@^10.6.1",
@@ -632,8 +633,8 @@
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/ouro-testing",
-        "ourostack/ouro-ui/text"
+        "ourostack/ouro-ui/ouro-testing#v0.4.0",
+        "ourostack/ouro-ui/text#v0.4.0"
       ],
       "files": [
         {
@@ -663,7 +664,7 @@
       "type": "registry:item",
       "title": "Heading tests",
       "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for heading, with the test tooling as devDependencies. Add it beside heading: add heading heading-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
-      "docs": "heading's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/heading.md",
+      "docs": "heading's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/heading.md Ouro UI v0.4.0.",
       "devDependencies": [
         "@playwright/test@^1.63.0",
         "@storybook/react-vite@^10.6.1",
@@ -671,10 +672,10 @@
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/button",
-        "ourostack/ouro-ui/heading",
-        "ourostack/ouro-ui/ouro-testing",
-        "ourostack/ouro-ui/text"
+        "ourostack/ouro-ui/button#v0.4.0",
+        "ourostack/ouro-ui/heading#v0.4.0",
+        "ourostack/ouro-ui/ouro-testing#v0.4.0",
+        "ourostack/ouro-ui/text#v0.4.0"
       ],
       "files": [
         {
@@ -704,7 +705,7 @@
       "type": "registry:item",
       "title": "Sheet tests",
       "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for sheet, with the test tooling as devDependencies. Add it beside sheet: add sheet sheet-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
-      "docs": "sheet's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/sheet.md",
+      "docs": "sheet's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/sheet.md Ouro UI v0.4.0.",
       "devDependencies": [
         "@playwright/test@^1.63.0",
         "@storybook/react-vite@^10.6.1",
@@ -712,9 +713,9 @@
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/button",
-        "ourostack/ouro-ui/ouro-testing",
-        "ourostack/ouro-ui/sheet"
+        "ourostack/ouro-ui/button#v0.4.0",
+        "ourostack/ouro-ui/ouro-testing#v0.4.0",
+        "ourostack/ouro-ui/sheet#v0.4.0"
       ],
       "files": [
         {
@@ -744,7 +745,7 @@
       "type": "registry:item",
       "title": "Dialog tests",
       "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for dialog, with the test tooling as devDependencies. Add it beside dialog: add dialog dialog-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
-      "docs": "dialog's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/dialog.md",
+      "docs": "dialog's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/dialog.md Ouro UI v0.4.0.",
       "devDependencies": [
         "@playwright/test@^1.63.0",
         "@storybook/react-vite@^10.6.1",
@@ -752,10 +753,10 @@
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/button",
-        "ourostack/ouro-ui/dialog",
-        "ourostack/ouro-ui/ouro-testing",
-        "ourostack/ouro-ui/sheet"
+        "ourostack/ouro-ui/button#v0.4.0",
+        "ourostack/ouro-ui/dialog#v0.4.0",
+        "ourostack/ouro-ui/ouro-testing#v0.4.0",
+        "ourostack/ouro-ui/sheet#v0.4.0"
       ],
       "files": [
         {
@@ -795,7 +796,7 @@
       "type": "registry:item",
       "title": "ConfirmDialog tests",
       "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for confirm-dialog, with the test tooling as devDependencies. Add it beside confirm-dialog: add confirm-dialog confirm-dialog-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
-      "docs": "confirm-dialog's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/confirm-dialog.md",
+      "docs": "confirm-dialog's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/confirm-dialog.md Ouro UI v0.4.0.",
       "devDependencies": [
         "@playwright/test@^1.63.0",
         "@storybook/react-vite@^10.6.1",
@@ -803,9 +804,9 @@
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/button",
-        "ourostack/ouro-ui/confirm-dialog",
-        "ourostack/ouro-ui/ouro-testing"
+        "ourostack/ouro-ui/button#v0.4.0",
+        "ourostack/ouro-ui/confirm-dialog#v0.4.0",
+        "ourostack/ouro-ui/ouro-testing#v0.4.0"
       ],
       "files": [
         {
@@ -840,7 +841,7 @@
       "type": "registry:item",
       "title": "Field tests",
       "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for field, with the test tooling as devDependencies. Add it beside field: add field field-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
-      "docs": "field's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/field.md",
+      "docs": "field's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/field.md Ouro UI v0.4.0.",
       "devDependencies": [
         "@playwright/test@^1.63.0",
         "@storybook/react-vite@^10.6.1",
@@ -848,9 +849,9 @@
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/button",
-        "ourostack/ouro-ui/field",
-        "ourostack/ouro-ui/ouro-testing"
+        "ourostack/ouro-ui/button#v0.4.0",
+        "ourostack/ouro-ui/field#v0.4.0",
+        "ourostack/ouro-ui/ouro-testing#v0.4.0"
       ],
       "files": [
         {
@@ -880,7 +881,7 @@
       "type": "registry:item",
       "title": "Fieldset tests",
       "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for fieldset, with the test tooling as devDependencies. Add it beside fieldset: add fieldset fieldset-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
-      "docs": "fieldset's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/fieldset.md",
+      "docs": "fieldset's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/fieldset.md Ouro UI v0.4.0.",
       "devDependencies": [
         "@playwright/test@^1.63.0",
         "@storybook/react-vite@^10.6.1",
@@ -888,9 +889,9 @@
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/field",
-        "ourostack/ouro-ui/fieldset",
-        "ourostack/ouro-ui/ouro-testing"
+        "ourostack/ouro-ui/field#v0.4.0",
+        "ourostack/ouro-ui/fieldset#v0.4.0",
+        "ourostack/ouro-ui/ouro-testing#v0.4.0"
       ],
       "files": [
         {
@@ -920,7 +921,7 @@
       "type": "registry:item",
       "title": "Link tests",
       "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for link, with the test tooling as devDependencies. Add it beside link: add link link-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
-      "docs": "link's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/link.md",
+      "docs": "link's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/link.md Ouro UI v0.4.0.",
       "devDependencies": [
         "@playwright/test@^1.63.0",
         "@storybook/react-vite@^10.6.1",
@@ -928,10 +929,10 @@
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/link",
-        "ourostack/ouro-ui/ouro-lib",
-        "ourostack/ouro-ui/ouro-testing",
-        "ourostack/ouro-ui/text"
+        "ourostack/ouro-ui/link#v0.4.0",
+        "ourostack/ouro-ui/ouro-lib#v0.4.0",
+        "ourostack/ouro-ui/ouro-testing#v0.4.0",
+        "ourostack/ouro-ui/text#v0.4.0"
       ],
       "files": [
         {
@@ -961,18 +962,18 @@
       "type": "registry:item",
       "title": "Ouro tests",
       "description": "Optional: every Ouro UI component with its tests, type tests, stories and Playwright spec, and the test kit. The whole suite in one command. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
-      "docs": "Every Ouro UI component and its tests are installed. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs",
+      "docs": "Every Ouro UI component and its tests are installed. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs Ouro UI v0.4.0.",
       "registryDependencies": [
-        "ourostack/ouro-ui/button-tests",
-        "ourostack/ouro-ui/confirm-dialog-tests",
-        "ourostack/ouro-ui/dialog-tests",
-        "ourostack/ouro-ui/field-tests",
-        "ourostack/ouro-ui/fieldset-tests",
-        "ourostack/ouro-ui/heading-tests",
-        "ourostack/ouro-ui/link-tests",
-        "ourostack/ouro-ui/ouro-lib-tests",
-        "ourostack/ouro-ui/sheet-tests",
-        "ourostack/ouro-ui/text-tests"
+        "ourostack/ouro-ui/button-tests#v0.4.0",
+        "ourostack/ouro-ui/confirm-dialog-tests#v0.4.0",
+        "ourostack/ouro-ui/dialog-tests#v0.4.0",
+        "ourostack/ouro-ui/field-tests#v0.4.0",
+        "ourostack/ouro-ui/fieldset-tests#v0.4.0",
+        "ourostack/ouro-ui/heading-tests#v0.4.0",
+        "ourostack/ouro-ui/link-tests#v0.4.0",
+        "ourostack/ouro-ui/ouro-lib-tests#v0.4.0",
+        "ourostack/ouro-ui/sheet-tests#v0.4.0",
+        "ourostack/ouro-ui/text-tests#v0.4.0"
       ]
     }
   ]
