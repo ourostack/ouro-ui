@@ -236,7 +236,7 @@ interface PropsDoc {
   native: string[];
 }
 
-const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name);
+const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name, "en");
 
 function words(identifier: string): string {
   const spaced = identifier.replace(/([a-z])([A-Z])/g, "$1 $2");
@@ -270,7 +270,7 @@ function propsDoc(component: string, parameter: ts.ParameterDeclaration): PropsD
     typeName,
     common: shared.filter((prop) => !prop.guard).sort(byName),
     guards: shared.filter((prop) => prop.guard).sort(byName),
-    modes: branches.length > 1 ? modes.sort((a, b) => a.label.localeCompare(b.label)) : [],
+    modes: branches.length > 1 ? modes.sort((a, b) => a.label.localeCompare(b.label, "en")) : [],
     // Native attributes are listed once when every mode takes the same, otherwise per mode.
     native: modes.every((mode) => mode.native.join() === modes[0]!.native.join()) ? modes[0]!.native : [],
   };
@@ -313,7 +313,7 @@ function referencedTypes(texts: string[], skip: Set<string>): Array<ts.TypeAlias
       queue.push(declaration.getText());
     }
   }
-  return [...found.values()].sort((a, b) => a.name.text.localeCompare(b.name.text));
+  return [...found.values()].sort((a, b) => a.name.text.localeCompare(b.name.text, "en"));
 }
 
 function typesSection(texts: string[], skip: Set<string>): string {
@@ -463,7 +463,7 @@ function partsPage(parts: ts.Symbol[], families: string[]): string {
   ];
   for (const family of families) {
     const members = functions.filter((symbol) => symbol.getName().startsWith(family))
-      .sort((a, b) => a.getName().localeCompare(b.getName()));
+      .sort((a, b) => a.getName().localeCompare(b.getName(), "en"));
     const rootPart = members.find((symbol) => symbol.getName() === `${family}Root`);
     if (!rootPart) throw new Error(`parts: ${family} has no ${family}Root`);
     const rootDoc = describe(rootPart);

@@ -61,6 +61,13 @@ describe.each(widths)("at $width px", ({ width, height }) => {
       }
       await expect(page).toMatchScreenshot(`${name}-${mode.name}-${width}`, {
         screenshotOptions: { animations: "disabled", caret: "hide" },
+        // Text renders in the runner's `system-ui` font, so a weekly image update to
+        // fonts or FreeType can shift a few antialiased glyph edges with no code change.
+        // 0.1% of the frame (about 330 pixels at 390x844, 1,000 at 1280x800) absorbs
+        // that, while a changed color, size, radius or layout moves far more. Bundling
+        // a test font would remove the cause; that is a later change.
+        comparatorName: "pixelmatch",
+        comparatorOptions: { allowedMismatchedPixelRatio: 0.001 },
       });
     });
   });

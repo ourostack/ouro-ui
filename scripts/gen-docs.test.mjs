@@ -71,7 +71,7 @@ test("props are sorted by name", () => {
   const table = doc("Button.md").split("## Props")[1].split("\n## ")[0];
   const names = [...table.matchAll(/^\| `([^`]+)`/gm)].map((match) => match[1]);
   assert.ok(names.length > 5);
-  assert.deepEqual(names, [...names].sort((a, b) => a.localeCompare(b)));
+  assert.deepEqual(names, [...names].sort((a, b) => a.localeCompare(b, "en")));
 });
 
 test("discriminated unions become modes, each with its own props and exclusions", () => {
