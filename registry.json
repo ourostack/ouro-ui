@@ -1,7 +1,7 @@
 {
   "$schema": "https://ui.shadcn.com/schema/registry.json",
   "name": "ouro",
-  "homepage": "https://github.com/ourostack/ouro-ui",
+  "homepage": "https://ourostack.github.io/ouro-ui/",
   "items": [
     {
       "name": "ouro-base",

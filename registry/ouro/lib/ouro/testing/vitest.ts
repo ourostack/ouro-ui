@@ -1,4 +1,5 @@
 import { playwright } from "@vitest/browser-playwright";
+import { fileURLToPath } from "node:url";
 import { configDefaults, type TestProjectInlineConfiguration } from "vitest/config";
 // Relative and with its extension, not `@/…`: Vitest loads this file with its config, which
 // Node runs directly (Vite's native config loader), before any alias applies.
@@ -40,7 +41,7 @@ export function ouroTestProjects({
   include = ["**/ouro/**/*.test.{ts,tsx}"],
   browsers = ["chromium", "webkit"],
 }: OuroTestOptions): TestProjectInlineConfiguration[] {
-  const setupFiles = [css, decodeURIComponent(new URL("./setup.ts", import.meta.url).pathname)];
+  const setupFiles = [css, fileURLToPath(new URL("./setup.ts", import.meta.url))];
   const touchInclude = include.map((glob) => glob.replace(/\.test\.(\{[^}]*\}|\w+)$/, ".touch.test.$1"));
   const exclude = [...configDefaults.exclude, "**/*.touch.test.{ts,tsx}", "**/*.visual.test.{ts,tsx}"];
   // Tests wait on conditions (`expect.poll`), never on fixed timers. A loaded CI runner

@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useRef, useState, type JSX, type ReactElement, type ReactNode, type RefObject } from "react";
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
 import { checkOpenMode } from "@/registry/ouro/lib/ouro/open-mode";
@@ -33,8 +35,10 @@ export interface ConfirmDialogBaseProps {
    * Runs the action. Return a promise to keep the dialog open while it runs: the
    * confirm button shows `loading` until it settles. When it resolves the dialog
    * closes; when it rejects (or `onConfirm` throws) the dialog stays open so the
-   * user can retry or cancel. Cancel and Escape still close it while pending;
-   * the result is then ignored.
+   * user can retry or cancel. Cancel and Escape still close it while pending, so a
+   * stuck action never traps the user, and the result is then ignored. Cancel does
+   * not stop an action that has already started; make `onConfirm` cancellable or
+   * idempotent if that matters.
    *
    * If the action removes the trigger (a delete), pass `finalFocus` to what
    * replaces it, such as the next item or the page heading.
@@ -95,8 +99,11 @@ export type ConfirmDialogProps = ConfirmDialogWithTriggerProps | ConfirmDialogCo
  * nearest the thumb.
  *
  * Use `tone="destructive"` for destructive actions, and return a promise from
- * `onConfirm` to show progress until the action finishes. Use `Dialog` instead
- * when the user has more to do than confirm or cancel.
+ * `onConfirm` to show progress until the action finishes. Cancel and Escape close
+ * the dialog even while the action runs, and its result is then ignored. Cancel does
+ * not stop an action that has already started; make `onConfirm` cancellable or
+ * idempotent if that matters. Use `Dialog` instead when the user has more to do
+ * than confirm or cancel.
  *
  * It stacks above the page at `--ouro-layer`, a z-index of 50 by default (from
  * ouro-base.css). If your app has fixed bars above z-50, raise it in a `:root` rule

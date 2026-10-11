@@ -10,6 +10,9 @@
 //   --deps <template>                   point same-repo registryDependencies at <template> with
 //                                       {name} replaced: @ouro/{name} for the Pages build
 //                                       (pages.yml), <dir>/{name}.json for the install test
+//   --from <registry.json>              with --deps: rewrite that registry (a release tag's, whose
+//                                       dependencies end in #v<x.y.z>) instead of building one;
+//                                       scripts/namespace.sh builds the @ouro namespace this way
 //
 // shadcn's CLI reads registry.json but has no way to make one: this script fills the
 // gaps. Each component is two items: <name> ships the runtime source only, and the opt-in
@@ -450,19 +453,22 @@ export function buildRegistry(root: string): Registry {
   return {
     $schema: "https://ui.shadcn.com/schema/registry.json",
     name: "ouro",
-    homepage: "https://github.com/ourostack/ouro-ui",
+    homepage: "https://ourostack.github.io/ouro-ui/",
     items,
   };
 }
 
-/** A copy of the registry whose same-repo registryDependencies point wherever `to` says (an item JSON path or URL). */
+/**
+ * A copy of the registry whose same-repo registryDependencies point wherever `to` says (an item
+ * JSON path or URL). A release's `#v<x.y.z>` ref is dropped: `to` gets the item name.
+ */
 export function rewriteDependencies(registry: Registry, to: (name: string) => string): Registry {
   const prefix = `${REPO}/`;
   return {
     ...registry,
     items: registry.items.map((item) =>
       item.registryDependencies
-        ? { ...item, registryDependencies: item.registryDependencies.map((dep) => (dep.startsWith(prefix) ? to(dep.slice(prefix.length)) : dep)) }
+        ? { ...item, registryDependencies: item.registryDependencies.map((dep) => (dep.startsWith(prefix) ? to(dep.slice(prefix.length).replace(/#.*$/, "")) : dep)) }
         : item,
     ),
   };
@@ -498,8 +504,13 @@ function main(argv: string[]): number {
       return undefined; // Unreadable counts as stale.
     }
   };
-  const version = flag("--release") ?? (check ? releasedAs() : undefined);
-  let registry = buildRegistry(root);
+  const from = flag("--from");
+  if (from !== undefined && deps === undefined) {
+    process.stderr.write("--from rewrites a registry's dependencies, so it needs --deps.\n");
+    return 1;
+  }
+  const version = from === undefined ? (flag("--release") ?? (check ? releasedAs() : undefined)) : undefined;
+  let registry = from === undefined ? buildRegistry(root) : (JSON.parse(readFileSync(from, "utf8")) as Registry);
   try {
     if (version) registry = release(registry, version);
     if (deps !== undefined) {

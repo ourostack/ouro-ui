@@ -1,3 +1,5 @@
+"use client";
+
 import { Button as BaseButton } from "@base-ui/react/button";
 import { useEffect, useRef } from "react";
 import type {

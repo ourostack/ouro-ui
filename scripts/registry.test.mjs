@@ -35,7 +35,7 @@ test("--check fails when registry.json is stale, and names the fix", () => {
 
 test("the registry is named ouro and lists every item", () => {
   assert.equal(registry.name, "ouro");
-  assert.equal(registry.homepage, "https://github.com/ourostack/ouro-ui");
+  assert.equal(registry.homepage, "https://ourostack.github.io/ouro-ui/");
   assert.deepEqual(
     registry.items.map((entry) => entry.name),
     [
@@ -366,4 +366,16 @@ test("site/public/llms.txt gives the init, search and add commands and lists eve
     assert.ok(llms.includes(line), `llms.txt lists ${entry.name} with its registry description; update site/public/llms.txt`);
   }
   assert.ok(llms.includes("https://ourostack.github.io/ouro-ui/docs/parts.md"), "llms.txt links parts.md");
+});
+
+test("--from rewrites a released registry.json for the @ouro namespace, keeping its version and docs (Pages serves the newest tag)", () => {
+  const dir = mkdtempSync(join(tmpdir(), "ouro-registry-"));
+  const released = join(dir, "released.json");
+  assert.equal(run("--out", released, "--release", "0.3.0").status, 0);
+  assert.equal(run("--from", released, "--out", join(dir, "ns.json"), "--deps", "@ouro/{name}").status, 0);
+  const namespaced = JSON.parse(readFileSync(join(dir, "ns.json"), "utf8"));
+  assert.equal(namespaced.version, "0.3.0");
+  assert.deepEqual(namespaced.items.find((entry) => entry.name === "dialog").registryDependencies, ["@ouro/ouro-base", "@ouro/ouro-lib", "@ouro/sheet"]);
+  assert.ok(namespaced.items.every((entry) => entry.docs === undefined || entry.docs.endsWith(" Ouro UI v0.3.0.")));
+  assert.equal(run("--from", released, "--out", join(dir, "bad.json")).status, 1, "--from without --deps fails");
 });

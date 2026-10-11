@@ -4,8 +4,9 @@
 //
 //   node scripts/upgrade-note.mjs commands <step> --shadcn "<cli>" --address "<path with {name}>"
 //
-// prints step <step>'s commands, one per line, with each ourostack/ouro-ui/<item>#v0.2.0
-// address pointed at a local registry file and `npx shadcn@latest` at a pinned CLI (`add`
+// prints step <step>'s commands, one per line, with each ourostack/ouro-ui/<item>#{{latestRelease}}
+// address (the placeholder each place that shows the note fills with the newest release,
+// scripts/latest-release.mjs) pointed at a local registry file and `npx shadcn@latest` at a pinned CLI (`add`
 // also gets --yes).
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -40,7 +41,7 @@ export function localCommand(command, { shadcn, address }) {
   return command
     .replaceAll("npx shadcn@latest add ", `${shadcn} add --yes `)
     .replaceAll("npx shadcn@latest ", `${shadcn} `)
-    .replace(/ourostack\/ouro-ui\/([^\s#"'|]+)#v0\.2\.0/g, (_, name) => address.replace("{name}", name));
+    .replace(/ourostack\/ouro-ui\/([^\s#"'|]+)#\{\{latestRelease\}\}/g, (_, name) => address.replace("{name}", name));
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

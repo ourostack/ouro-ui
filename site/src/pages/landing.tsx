@@ -8,6 +8,7 @@ import { ArrowRightIcon } from "../components/icons";
 import { Container, SiteFooter, SiteHeader } from "../components/layout";
 import { PhoneDemo } from "../components/phone-demo";
 import generated from "../generated/agent-messages.json";
+import { latestRelease } from "../release";
 import { href } from "../routes";
 
 /** A small label beside a heading: "shadcn/ui compliant", "Alpha". */
@@ -269,11 +270,15 @@ function Install(): JSX.Element {
             <Command command="npx shadcn@latest init --base base --preset nova --yes --no-monorepo" />
           </Step>
           <Step number={1} title="Add a component from GitHub">
-            <Command command="npx shadcn@latest add ourostack/ouro-ui/sheet" />
+            <Command command={`npx shadcn@latest add ourostack/ouro-ui/sheet#${latestRelease}`} />
+            <Text size="sm" tone="muted">
+              The tag pins the newest release. Without it, the address installs <InlineCode>main</InlineCode>, which is for
+              contributors.
+            </Text>
           </Step>
           <Step number={2} title="Or add the @ouro namespace once">
             <Text size="sm" tone="muted">
-              Put this in <InlineCode>components.json</InlineCode>:
+              It serves the newest release. Put this in <InlineCode>components.json</InlineCode>:
             </Text>
             <CodeBlock code={namespace} />
             <Command command="npx shadcn@latest add @ouro/sheet" />

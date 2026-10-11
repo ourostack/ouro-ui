@@ -1,3 +1,5 @@
+"use client";
+
 import { Drawer } from "@base-ui/react/drawer";
 import { createContext, useContext, type JSX, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";

@@ -1,9 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { cleanupPage, describeViolations, renderPage, scan, setScheme, settle } from "../test/render";
-import upgrading from "../../UPGRADING.md?raw";
+import { latestRelease, upgrading } from "./release";
 import { docsItems } from "./docs/items";
+import { unpinnedAddresses } from "../../scripts/addresses.mjs";
 import { parse } from "./docs/markdown";
+import ogImage from "../public/og.png?url";
+import { headTags } from "./head";
 import { routes } from "./routes";
 
 // The site's contract (Task 11): the hero says exactly what it should, the live Sheet
@@ -46,10 +49,12 @@ describe("landing page", () => {
     await expect.element(page.getByText("Drag it. Flick it. Pull it past the edge.")).toBeVisible();
   });
 
-  it("starts the install steps with shadcn's init, with the Base UI base", async () => {
+  it("starts the install steps with shadcn's init, with the Base UI base, then pins the newest release", async () => {
     await renderPage("/");
     await expect.element(page.getByText(INIT, { exact: true })).toBeVisible();
-    await expect.element(page.getByText("npx shadcn@latest add ourostack/ouro-ui/sheet", { exact: true })).toBeVisible();
+    expect(latestRelease).toMatch(/^v\d+\.\d+\.\d+$/);
+    await expect.element(page.getByText(`npx shadcn@latest add ourostack/ouro-ui/sheet#${latestRelease}`, { exact: true })).toBeVisible();
+    await expect.element(page.getByText(/Without it, the address installs/)).toBeVisible();
   });
 });
 
@@ -63,9 +68,9 @@ describe("docs", () => {
   it.each(docsItems)("docs/$name shows a live demo, the init step, both install commands, the tests item and the guard props", async ({ name }) => {
     await renderPage(`/docs/${name}/`);
     await expect.element(page.getByText(INIT, { exact: true })).toBeVisible();
-    await expect.element(page.getByText(`npx shadcn@latest add ourostack/ouro-ui/${name}`, { exact: true })).toBeVisible();
+    await expect.element(page.getByText(`npx shadcn@latest add ourostack/ouro-ui/${name}#${latestRelease}`, { exact: true })).toBeVisible();
     await expect.element(page.getByText(`npx shadcn@latest add @ouro/${name}`, { exact: true })).toBeVisible();
-    await expect.element(page.getByText(`npx shadcn@latest add ourostack/ouro-ui/${name} ourostack/ouro-ui/${name}-tests`, { exact: true })).toBeVisible();
+    await expect.element(page.getByText(`npx shadcn@latest add ourostack/ouro-ui/${name}#${latestRelease} ourostack/ouro-ui/${name}-tests#${latestRelease}`, { exact: true })).toBeVisible();
     await expect.element(page.getByRole("region", { name: "Live demo" })).toBeVisible();
     await expect.element(page.getByRole("heading", { name: "Props", level: 2 })).toBeVisible();
     await expect.element(page.getByRole("heading", { name: "Use instead when", level: 2 })).toBeVisible();
@@ -87,7 +92,7 @@ describe("docs", () => {
     await expect.element(page.getByText("npx shadcn@latest add @ouro/sheet --dry-run", { exact: true })).toBeVisible();
     await expect.element(page.getByText("npx shadcn@latest add @ouro/sheet --diff src/components/ouro/sheet/sheet.tsx", { exact: true })).toBeVisible();
     await expect.element(page.getByText("npx shadcn@latest add @ouro/sheet @ouro/sheet-tests --overwrite", { exact: true })).toBeVisible();
-    await expect.element(page.getByText("npx shadcn@latest add ourostack/ouro-ui/sheet#v0.2.0", { exact: true })).toBeVisible();
+    await expect.element(page.getByText(`npx shadcn@latest add ourostack/ouro-ui/sheet#${latestRelease}`, { exact: true })).toBeVisible();
     await expect.element(page.getByRole("heading", { name: "Upgrading from v0.1.0", level: 2 })).toBeVisible();
     expect(upgradeCommands.length).toBeGreaterThanOrEqual(3);
     for (const command of upgradeCommands) await expect.element(page.getByText(command, { exact: true })).toBeVisible();
@@ -128,4 +133,48 @@ it("the Sheet demo passes axe while open, at a phone width", async () => {
   await settle();
   const violations = await scan();
   expect(violations, describeViolations(violations)).toEqual([]);
+});
+
+describe("head tags", () => {
+  it("give every page Open Graph and Twitter tags with the 1200x630 og.png", async () => {
+    const route = { path: "/docs/sheet/", title: "Sheet · Ouro UI", description: 'Install "sheet" & go' };
+    const tags = headTags(route, true);
+    for (const tag of [
+      '<meta property="og:title" content="Sheet · Ouro UI" />',
+      '<meta property="og:description" content="Install &quot;sheet&quot; &amp; go" />',
+      '<meta property="og:url" content="https://ourostack.github.io/ouro-ui/docs/sheet/" />',
+      '<meta property="og:image" content="https://ourostack.github.io/ouro-ui/og.png" />',
+      '<meta property="og:image:width" content="1200" />',
+      '<meta property="og:image:height" content="630" />',
+      '<meta name="twitter:card" content="summary_large_image" />',
+      '<meta name="twitter:image" content="https://ourostack.github.io/ouro-ui/og.png" />',
+    ]) {
+      expect(tags).toContain(tag);
+    }
+    expect(headTags(route, false).some((tag) => tag.includes("og:url") || tag.includes("canonical"))).toBe(false);
+    const image = new Image();
+    image.src = ogImage;
+    await image.decode();
+    expect([image.naturalWidth, image.naturalHeight]).toEqual([1200, 630]);
+  });
+
+  it("pin each docs route's install command to the newest release", () => {
+    for (const route of routes.filter((entry) => entry.description.includes("shadcn@latest add"))) {
+      expect(route.description).toContain(`#${latestRelease}.`);
+    }
+  });
+});
+
+describe("install addresses", () => {
+  it("every page pins each ourostack/ouro-ui address to a release, or says it is for contributors", async () => {
+    const problems: string[] = [];
+    let seen = 0;
+    for (const route of routes) {
+      await renderPage(route.path);
+      seen += document.body.innerText.split("ourostack/ouro-ui/").length - 1;
+      for (const address of unpinnedAddresses(document.body.innerText)) problems.push(`${route.path}: ${address}`);
+    }
+    expect(seen).toBeGreaterThan(10);
+    expect(problems).toEqual([]);
+  });
 });

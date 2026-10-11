@@ -8,7 +8,7 @@ import { demos } from "../docs/demos";
 import { docsItems, GITHUB, installedPaths, partsSection, summary, type DocsItem } from "../docs/items";
 import { inline, Markdown, parse, type Block } from "../docs/markdown";
 import { href } from "../routes";
-import upgrading from "../../../UPGRADING.md?raw";
+import { latestRelease, upgrading } from "../release";
 
 function PageTitle({ eyebrow, title, lead }: { eyebrow: string; title: string; lead: ReactNode }): JSX.Element {
   return (
@@ -67,7 +67,7 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
           <InlineCode>--base base</InlineCode>; skip <InlineCode>-t</InlineCode> in an existing app):
         </Text>
         <Command command="npx shadcn@latest init --base base --preset nova --yes --no-monorepo" />
-        <Command command={`npx shadcn@latest add ourostack/ouro-ui/${item.name}`} />
+        <Command command={`npx shadcn@latest add ourostack/ouro-ui/${item.name}#${latestRelease}`} />
         <Text size="sm" tone="muted">
           Or, with the <a href={`${href("/")}#install`} className="text-primary underline underline-offset-4">@ouro namespace</a> set
           up:
@@ -76,7 +76,7 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
         <Text size="sm" tone="muted">
           Its tests, stories and Playwright spec are optional, with Vitest, Storybook and Playwright as devDependencies:
         </Text>
-        <Command command={`npx shadcn@latest add ourostack/ouro-ui/${item.name} ourostack/ouro-ui/${item.name}-tests`} />
+        <Command command={`npx shadcn@latest add ourostack/ouro-ui/${item.name}#${latestRelease} ourostack/ouro-ui/${item.name}-tests#${latestRelease}`} />
         <CodeBlock code={importLine} className="mt-2" />
         <Text size="sm" tone="muted">
           Paths use shadcn's default <InlineCode>@/</InlineCode> alias; the CLI rewrites them to yours.
@@ -157,7 +157,7 @@ const switchingCoexist = `
 
 shadcn/ui installs to \`components/ui/\`. Ouro UI installs to \`components/ouro/\`, so a shadcn \`button\` and an Ouro \`button\` never collide. Switch a screen at a time, and remove the shadcn file when nothing imports it any more.
 
-Ouro components read shadcn's variables (\`--primary\`, \`--muted-foreground\`, \`--radius\` and the rest), so your theme carries over unchanged. Dark mode is the same \`.dark\` class. Ouro UI adds only what shadcn themes lack, in \`ouro-base.css\`: \`--success\` and \`--warning\` with their foregrounds, \`--destructive-foreground\`, the motion tokens, and \`--ouro-layer\`, the z-index of sheets and dialogs (50, as in shadcn's overlays; if your app has fixed bars above z-50, raise it in a \`:root\` rule of your own after the Ouro tokens, outside any \`@layer\`, not by editing the line shadcn wrote). The Ouro look (\`ouro-theme\`) is optional; skip it to keep yours.
+Ouro components read shadcn's variables (\`--primary\`, \`--muted-foreground\`, \`--radius\` and the rest), so your theme carries over unchanged. Dark mode is the same \`.dark\` class. Ouro UI adds only what shadcn themes lack, in \`ouro-base.css\`: \`--success\` and \`--warning\` with their foregrounds, \`--destructive-foreground\`, the motion tokens, and \`--ouro-layer\`, the z-index of sheets and dialogs (50, as in shadcn's overlays; raise it if your app has fixed bars above z-50). To change any \`--ouro-*\` token, such as \`--ouro-layer\`, \`--ouro-press-scale\` or \`--ouro-backdrop-max\`, set it in a \`:root\` (or \`.dark\`) rule of your own after the Ouro tokens, outside any \`@layer\`. Don't edit the lines shadcn wrote: every \`shadcn add\` of an Ouro item rewrites them. The Ouro look (\`ouro-theme\`) is optional; skip it to keep yours.
 
 ## Components
 
@@ -243,7 +243,7 @@ export function Updating(): JSX.Element {
           <Text>Then see the difference for each of those files by its path:</Text>
           <Command command="npx shadcn@latest add @ouro/sheet --diff src/components/ouro/sheet/sheet.tsx" />
           <Text size="sm" tone="muted">
-            Without the namespace, use <InlineCode>ourostack/ouro-ui/sheet</InlineCode> in place of <InlineCode>@ouro/sheet</InlineCode>. A bare{" "}
+            Without the namespace, use <InlineCode>{`ourostack/ouro-ui/sheet#${latestRelease}`}</InlineCode> in place of <InlineCode>@ouro/sheet</InlineCode>. A bare{" "}
             <InlineCode>--diff</InlineCode> without a path can stop after the first few unchanged files, before the one you edited.
           </Text>
         </li>
@@ -284,14 +284,14 @@ export function Updating(): JSX.Element {
             Pin a version
           </Heading>
           <Text>
-            Add a tag to install a release instead of the latest code:
+            Add a tag to pin a release, so a later release doesn't change what you install:
           </Text>
-          <Command command="npx shadcn@latest add ourostack/ouro-ui/sheet#v0.2.0" />
+          <Command command={`npx shadcn@latest add ourostack/ouro-ui/sheet#${latestRelease}`} />
           <Text size="sm" tone="muted">
             A release tag pins the item and every Ouro dependency it brings (such as <InlineCode>ouro-lib</InlineCode> and{" "}
             <InlineCode>button</InlineCode>) to the same tag. Any other ref, <InlineCode>#&lt;sha&gt;</InlineCode> or{" "}
             <InlineCode>#&lt;branch&gt;</InlineCode>, pins only the item you name: its Ouro dependencies come from <InlineCode>main</InlineCode>.
-            The <InlineCode>@ouro</InlineCode> namespace always serves <InlineCode>main</InlineCode>. Releases are listed on{" "}
+            The <InlineCode>@ouro</InlineCode> namespace serves the newest release, <InlineCode>{latestRelease}</InlineCode>. Without a ref, the GitHub address installs <InlineCode>main</InlineCode>, which is for contributors and can hold unreleased changes. Releases are listed on{" "}
             <a href={`${GITHUB}/releases`} className="text-primary underline underline-offset-4">GitHub</a>.
           </Text>
         </li>

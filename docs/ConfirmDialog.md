@@ -23,7 +23,7 @@ import { ConfirmDialog } from "@/registry/ouro/components/ouro/dialog/confirm-di
 
 ## Usage
 
-Use `tone="destructive"` for destructive actions, and return a promise from `onConfirm` to show progress until the action finishes.
+Use `tone="destructive"` for destructive actions, and return a promise from `onConfirm` to show progress until the action finishes. Cancel and Escape close the dialog even while the action runs, and its result is then ignored. Cancel does not stop an action that has already started; make `onConfirm` cancellable or idempotent if that matters.
 
 It stacks above the page at `--ouro-layer`, a z-index of 50 by default (from ouro-base.css). If your app has fixed bars above z-50, raise it in a `:root` rule of your own after the Ouro tokens, outside any `@layer`: `:root { --ouro-layer: 60; }`. Don't edit the `--ouro-layer: 50` line shadcn wrote; `shadcn add` resets it.
 
@@ -43,7 +43,7 @@ Props every mode takes. Type: `ConfirmDialogProps`.
 | `confirmLabel` (required) | `string` |  | The confirm button's label: the action, not "OK" (`confirmLabel="Delete"`). |
 | `description` | `ReactNode` |  | What happens if the user confirms: `description="This can't be undone."`. |
 | `finalFocus` | `RefObject<HTMLElement \| null>` |  | Where focus goes after a confirmed action closes the confirmation. Any other close (Cancel, Escape, or your app setting `open` to false) returns focus to the trigger, even after an earlier confirm. When `onConfirm` removes the trigger, point this at what replaces it (give a heading `tabIndex={-1}`): `finalFocus={headingRef}`. |
-| `onConfirm` (required) | `() => void \| Promise<void>` |  | Runs the action. Return a promise to keep the dialog open while it runs: the confirm button shows `loading` until it settles. When it resolves the dialog closes; when it rejects (or `onConfirm` throws) the dialog stays open so the user can retry or cancel. Cancel and Escape still close it while pending; the result is then ignored. If the action removes the trigger (a delete), pass `finalFocus` to what replaces it, such as the next item or the page heading. |
+| `onConfirm` (required) | `() => void \| Promise<void>` |  | Runs the action. Return a promise to keep the dialog open while it runs: the confirm button shows `loading` until it settles. When it resolves the dialog closes; when it rejects (or `onConfirm` throws) the dialog stays open so the user can retry or cancel. Cancel and Escape still close it while pending, so a stuck action never traps the user, and the result is then ignored. Cancel does not stop an action that has already started; make `onConfirm` cancellable or idempotent if that matters. If the action removes the trigger (a delete), pass `finalFocus` to what replaces it, such as the next item or the page heading. |
 | `title` (required) | `string` |  | The question, which names the dialog: `title="Delete recipe?"`. |
 | `tone` | `"primary" \| "destructive"` | `"primary"` | The confirm button's color role. Use `destructive` for destructive actions. |
 

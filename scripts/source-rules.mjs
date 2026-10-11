@@ -5,6 +5,11 @@
 //   start with a statement that has no comment before it: the imports, or an export list.
 // - unpreservedHints: esbuild's TypeScript transform (Vite) strips comments, so an
 //   istanbul hint survives only with `@preserve`: `/* istanbul ignore next @preserve -- why */`.
+// - needsClientDirective / hasClientDirective: Next.js App Router renders a file as a
+//   Server Component unless it starts with "use client", and a hook there fails the build.
+//   Every runtime component, parts and provider file, and every module that calls a hook
+//   or creates a context, starts with the directive; shadcn keeps it when the app's
+//   components.json has "rsc": true.
 // - testNames: the full name of every test (describe titles and the test title), so a
 //   name filter (`vitest -t`, `playwright -g`) can target each test alone.
 //
@@ -22,6 +27,68 @@ export function leadingComment(path, text) {
   if (!first) return "";
   const ranges = ts.getLeadingCommentRanges(text, first.getFullStart()) ?? [];
   return ranges.map((range) => text.slice(range.pos, range.end)).join("\n");
+}
+
+/** Whether the file's first statement is the "use client" directive. */
+export function hasClientDirective(path, text) {
+  const first = parse(path, text).statements[0];
+  return Boolean(first && ts.isExpressionStatement(first) && ts.isStringLiteral(first.expression) && first.expression.text === "use client");
+}
+
+/**
+ * Runtime files under components/ouro/ or lib/ouro/*.tsx that are pure (no hooks, no
+ * context, no state), so a Server Component may import their values directly. Every other
+ * file there needs "use client". Add a file here only when it can never need a hook.
+ */
+export const pureFiles = new Set([
+  "registry/ouro/components/ouro/dialog/dialog-styles.ts",
+  "registry/ouro/components/ouro/sheet/sheet-styles.ts",
+  "registry/ouro/components/ouro/text/text-styles.ts",
+  "registry/ouro/lib/ouro/touch-target.tsx",
+]);
+
+const hookNames = new Set(["use", "createContext"]);
+const isHookName = (name) => hookNames.has(name) || /^use[A-Z]/.test(name);
+
+/**
+ * Whether a runtime registry file must start with "use client": every component file
+ * (under components/) and every lib/ouro .tsx file unless it is in `pureFiles`, and any
+ * other module that calls a hook (`useX(...)`, React 19's `use(...)`, a hook imported from
+ * react under another name), calls `createContext`, or defines a class component.
+ */
+export function needsClientDirective(path, text) {
+  if (/\/components\//.test(path) || /\/lib\/ouro\/[^/]+\.tsx$/.test(path)) return !pureFiles.has(path);
+  const source = parse(path, text);
+  // Local names bound to react's hooks: `import { useEffect as effect } from "react"`,
+  // and namespace or default imports (`React.use(...)`).
+  const hookAliases = new Set();
+  const reactNamespaces = new Set();
+  for (const statement of source.statements) {
+    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier) || statement.moduleSpecifier.text !== "react") continue;
+    const clause = statement.importClause;
+    if (!clause) continue;
+    if (clause.name) reactNamespaces.add(clause.name.text);
+    const bindings = clause.namedBindings;
+    if (bindings && ts.isNamespaceImport(bindings)) reactNamespaces.add(bindings.name.text);
+    if (bindings && ts.isNamedImports(bindings)) {
+      for (const element of bindings.elements) {
+        if (isHookName((element.propertyName ?? element.name).text)) hookAliases.add(element.name.text);
+      }
+    }
+  }
+  let found = false;
+  const visit = (node) => {
+    if (found) return;
+    if (ts.isCallExpression(node)) {
+      const callee = node.expression;
+      if (ts.isIdentifier(callee) && (isHookName(callee.text) || hookAliases.has(callee.text))) found = true;
+      if (ts.isPropertyAccessExpression(callee) && isHookName(callee.name.text)) found = true;
+    }
+    if (ts.isClassLike(node) && node.heritageClauses?.some((clause) => /\b(Component|PureComponent)\b/.test(clause.getText(source)))) found = true;
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return found;
 }
 
 /** Every comment in a file, in order, as text. */

@@ -2,7 +2,7 @@
   "name": "ouro-ui",
   "private": true,
   "version": "0.0.1",
-  "description": "React components for coding agents, as a shadcn registry. Install: npx shadcn@latest add ourostack/ouro-ui/<item>#v0.2.0",
+  "description": "React components for coding agents, as a shadcn registry. Install: npx shadcn@latest add ourostack/ouro-ui/<item>#v0.3.0",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -10,6 +10,9 @@
   },
   "homepage": "https://github.com/ourostack/ouro-ui",
   "type": "module",
+  "ouro": {
+    "latestRelease": "v0.3.0"
+  },
   "packageManager": "pnpm@10.2.0",
   "engines": {
     "node": ">=22"
@@ -32,7 +35,7 @@
     "site:build": "node site/scripts/agent-messages.mts --check && vite build --config site/vite.config.ts && vite build --config site/vite.config.ts --ssr src/entry-server.tsx --outDir ../.tmp/site-ssr && node site/scripts/prerender.mts",
     "site:preview": "vite preview --config site/vite.config.ts",
     "site:messages": "node site/scripts/agent-messages.mts",
-    "test:scripts": "node --test scripts/app-lint.test.mjs scripts/agent-types.test.mjs scripts/changes.test.mjs scripts/dev-strip.test.mjs scripts/gen-docs.test.mjs scripts/registry.test.mjs scripts/install-check.test.mjs scripts/source-rules.test.mjs scripts/upgrade-note.test.mjs site/scripts/agent-messages.test.mjs",
+    "test:scripts": "node --test scripts/app-lint.test.mjs scripts/agent-types.test.mjs scripts/changes.test.mjs scripts/dev-strip.test.mjs scripts/gen-docs.test.mjs scripts/registry.test.mjs scripts/install-check.test.mjs scripts/latest-release.test.mjs scripts/source-rules.test.mjs scripts/upgrade-note.test.mjs scripts/workflows.test.mjs site/scripts/agent-messages.test.mjs",
     "test:e2e": "playwright test",
     "registry": "node scripts/registry.mts"
   },

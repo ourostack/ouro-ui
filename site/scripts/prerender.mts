@@ -11,33 +11,25 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const repo = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const dist = join(repo, "site/dist");
 const server = join(repo, ".tmp/site-ssr/entry-server.js");
-const SITE = "https://ourostack.github.io/ouro-ui";
 
 interface Route {
   path: string;
   title: string;
   description: string;
 }
-const { render, routes, docsItems, installedPaths } = (await import(pathToFileURL(server).href)) as {
+const { render, routes, docsItems, installedPaths, headTags } = (await import(pathToFileURL(server).href)) as {
   render: (path: string) => string;
+  headTags: (route: Route, canonical: boolean) => string[];
   installedPaths: (markdown: string) => string;
   routes: Route[];
   docsItems: Array<{ name: string; title: string }>;
 };
 
-const escape = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 const template = readFileSync(join(dist, "index.html"), "utf8");
 if (!template.includes("<!--app-->") || !template.includes("<!--head-->")) throw new Error("site/dist/index.html has no <!--app--> or <!--head--> marker");
 
 function page(route: Route, path: string, canonical: boolean): string {
-  const head = [
-    `<title>${escape(route.title)}</title>`,
-    `<meta name="description" content="${escape(route.description)}" />`,
-    canonical ? `<link rel="canonical" href="${SITE}${route.path}" />` : "",
-    `<link rel="icon" href="/ouro-ui/favicon.svg" type="image/svg+xml" />`,
-  ]
-    .filter(Boolean)
-    .join("\n    ");
+  const head = headTags(route, canonical).join("\n    ");
   return template.replace("<!--head-->", head).replace("<!--app-->", render(path));
 }
 

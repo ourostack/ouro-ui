@@ -3,15 +3,25 @@
 // reached the app's CSS and its build, no token refers to itself, and the theme is the
 // one the variant wants.
 //
-//   node scripts/install-check.mjs <app-dir> <shadcn|ouro> <runtime|tests>
+//   node scripts/install-check.mjs <app-dir> <shadcn|ouro|next> <runtime|tests>
 //
 // runtime: only the component items were added, so the app must have no Ouro test,
 //          story, spec or test kit, and no test tooling in package.json.
 // tests:   the -tests items were added too, so their files must be there.
+// next:    a Next.js App Router app: the CSS file is the one components.json names
+//          (src/app/globals.css), the build is `next build` (.next/static), and the app
+//          keeps the theme `shadcn init` wrote.
 //
 // Every installed Ouro file must also equal its source once import paths are mapped to the
 // app's aliases, and keep every comment: the shadcn CLI drops comments before a file's first
 // statement, so a header or a first export's JSDoc would vanish (scripts/source-rules.mjs).
+// A file whose source starts with "use client" must keep it, or a Next.js Server Component
+// that renders it fails to build.
+//
+//   node scripts/install-check.mjs --sources <app-dir> <source-root>
+//
+// Checks only that every installed Ouro file equals its source under <source-root> (a release
+// tag's files, for the @ouro namespace install).
 //
 //   node scripts/install-check.mjs --layer-override <css-file>
 //
@@ -21,7 +31,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import postcss from "postcss";
-import { comments } from "./source-rules.mjs";
+import { comments, hasClientDirective } from "./source-rules.mjs";
 
 const runtimeFiles = [
   "src/components/ouro/button/button.tsx",
@@ -39,6 +49,7 @@ const testFiles = [
   "e2e/ouro/story.ts",
 ];
 const testFile = /\.(test|touch\.test)\.tsx?$|\.test-d\.ts$|\.stories\.tsx$|\.spec\.ts$/;
+const ouroToken = /^--(color-)?(ouro-|success|warning|destructive-foreground)/;
 const testTooling = /^(storybook|@storybook\/.*|vitest|@vitest\/.*|playwright|@playwright\/.*)$/;
 
 /** Problems with an installed app, as readable lines; empty when it passes. */
@@ -68,7 +79,8 @@ export function checkInstall(app, variant, stage) {
     if (read(path).includes("@/registry/")) problems.push(`${path} still imports @/registry/`);
   }
 
-  const css = read("src/index.css");
+  const cssPath = existsSync(join(app, "components.json")) ? JSON.parse(read("components.json")).tailwind.css : "src/index.css";
+  const css = read(cssPath);
   const declares = (name) => new RegExp(`${name}\\s*:`).test(css);
   for (const name of [
     "--success",
@@ -83,24 +95,27 @@ export function checkInstall(app, variant, stage) {
     "--color-success",
     "--color-warning",
   ]) {
-    if (!declares(name)) problems.push(`src/index.css does not declare ${name}`);
+    if (!declares(name)) problems.push(`${cssPath} does not declare ${name}`);
   }
   // `--x: var(--x)` is a cycle: it only works while another declaration of --x wins the cascade.
+  // Only Ouro's tokens are checked: an app's own theme may map a variable that something else
+  // sets on an element (shadcn's Next.js theme writes `--font-sans: var(--font-sans)` for next/font).
   for (const match of css.matchAll(/(--[\w-]+)\s*:\s*var\(\s*(--[\w-]+)\s*\)/g)) {
-    if (match[1] === match[2]) problems.push(`src/index.css: ${match[1]}: var(${match[2]}) refers to itself`);
+    if (match[1] === match[2] && ouroToken.test(match[1])) problems.push(`${cssPath}: ${match[1]}: var(${match[2]}) refers to itself`);
   }
   for (const rule of ["@utility press", "@keyframes ouro-spin", "@keyframes ouro-pulse"]) {
-    if (!css.includes(rule)) problems.push(`src/index.css has no ${rule}`);
+    if (!css.includes(rule)) problems.push(`${cssPath} has no ${rule}`);
   }
   const primary = css.match(/:root\s*\{[^}]*?--primary:\s*([^;]+);/)?.[1]?.trim();
   if (variant === "ouro" && primary !== "#2261eb") problems.push(`--primary is ${primary}, not the Ouro theme's #2261eb`);
-  if (variant === "shadcn" && (!primary || primary === "#2261eb")) problems.push(`--primary is ${primary}; the app's shadcn theme was not kept`);
+  if ((variant === "shadcn" || variant === "next") && (!primary || primary === "#2261eb")) problems.push(`--primary is ${primary}; the app's shadcn theme was not kept`);
 
-  const built = files("dist/assets")
+  const builder = variant === "next" ? { dir: ".next/static", name: "next build" } : { dir: "dist/assets", name: "vite build" };
+  const built = files(builder.dir)
     .filter((file) => file.endsWith(".css"))
     .map(read)
     .join("\n");
-  if (!built) problems.push("vite build wrote no CSS");
+  if (!built) problems.push(`${builder.name} wrote no CSS`);
   for (const needle of ["@keyframes ouro-spin", "--ouro-spring-duration", "--success"]) {
     if (built && !built.includes(needle)) problems.push(`the built CSS has no ${needle}`);
   }
@@ -133,15 +148,36 @@ export function checkComments(app, root) {
 }
 
 /**
+ * Installed files whose source starts with "use client" but which lost it, as readable lines.
+ * Files the app does not have are skipped.
+ */
+export function checkDirectives(app, root) {
+  const problems = [];
+  const sources = readdirSync(join(root, "registry/ouro"), { recursive: true }).map((file) => `registry/ouro/${String(file)}`);
+  for (const path of sources) {
+    const target = installedPath(path);
+    if (!target || !existsSync(join(app, target))) continue;
+    if (hasClientDirective(path, readFileSync(join(root, path), "utf8")) && !hasClientDirective(target, readFileSync(join(app, target), "utf8"))) {
+      problems.push(`${target} lost "use client" from ${path}`);
+    }
+  }
+  return problems;
+}
+
+/**
  * Installed files that differ from their source other than in import paths, as readable lines.
  * `aliases` are components.json's (`{ components: "~/components", lib: "~/lib" }`).
  */
 export function checkSources(app, root, aliases) {
   const problems = [];
+  // Only module specifiers on import and export lines are rewritten: JSDoc may quote an
+  // installed import such as `from "@/components/ouro/sheet/sheet-parts"`, which an app with the
+  // @/components alias also has.
+  const specifier = (alias) => new RegExp(`^((?:import|export)\\b.*?from\\s*|\\}\\s*from\\s*|import\\s*)"${alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/ouro/`, "gm");
   const toSource = (text) =>
     text
-      .replaceAll(`"${aliases.components}/ouro/`, '"@/registry/ouro/components/ouro/')
-      .replaceAll(`"${aliases.lib}/ouro/`, '"@/registry/ouro/lib/ouro/');
+      .replace(specifier(aliases.components), '$1"@/registry/ouro/components/ouro/')
+      .replace(specifier(aliases.lib), '$1"@/registry/ouro/lib/ouro/');
   const sources = readdirSync(join(root, "registry/ouro"), { recursive: true }).map((file) => `registry/ouro/${String(file)}`);
   for (const path of sources) {
     const target = installedPath(path);
@@ -180,15 +216,27 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   for (const problem of problems) console.error(`install check: ${problem}`);
   if (problems.length === 0) console.log("install check: the app's --ouro-layer override survived");
   process.exitCode = problems.length === 0 ? 0 : 1;
+} else if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url) && process.argv[2] === "--sources") {
+  const [, , , app, sourceRoot] = process.argv;
+  const { aliases } = JSON.parse(readFileSync(join(app, "components.json"), "utf8"));
+  const problems = checkSources(app, sourceRoot, aliases);
+  for (const problem of problems) console.error(`install check: ${problem}`);
+  if (problems.length === 0) console.log(`install check: every installed file equals its source in ${sourceRoot}`);
+  process.exitCode = problems.length === 0 ? 0 : 1;
 } else if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [app, variant, stage] = process.argv.slice(2);
   if (stage !== "runtime" && stage !== "tests") {
-    console.error("usage: install-check.mjs <app-dir> <shadcn|ouro> <runtime|tests>");
+    console.error("usage: install-check.mjs <app-dir> <shadcn|ouro|next> <runtime|tests>");
     process.exitCode = 2;
   } else {
     const root = join(dirname(fileURLToPath(import.meta.url)), "..");
     const { aliases } = JSON.parse(readFileSync(join(app, "components.json"), "utf8"));
-    const problems = [...checkInstall(app, variant, stage), ...checkComments(app, root), ...checkSources(app, root, aliases)];
+    const problems = [
+      ...checkInstall(app, variant, stage),
+      ...checkComments(app, root),
+      ...checkDirectives(app, root),
+      ...checkSources(app, root, aliases),
+    ];
     for (const problem of problems) console.error(`install check: ${problem}`);
     if (problems.length === 0) console.log(`install check: ${variant} app passes (${stage})`);
     process.exitCode = problems.length === 0 ? 0 : 1;

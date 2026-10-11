@@ -1,3 +1,5 @@
+"use client";
+
 import type { JSX, ReactElement, ReactNode, RefObject } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { checkOpenMode } from "@/registry/ouro/lib/ouro/open-mode";

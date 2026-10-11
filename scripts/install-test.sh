@@ -6,7 +6,7 @@
 # the ouro-testing message prints) and the ouro-tests item, and runs the app's type check,
 # build, the shipped Vitest browser tests and the shipped Playwright specs.
 #
-#   scripts/install-test.sh <shadcn|ouro|github|namespace|upgrade> <app-dir> [ref]
+#   scripts/install-test.sh <shadcn|ouro|github|namespace|next|upgrade> <app-dir> [ref]
 #
 # shadcn: the app keeps the theme `shadcn init` wrote, and a stock shadcn button is added
 #         beside Ouro's; both must build.
@@ -18,9 +18,17 @@
 #         every item and dependency comes from the default branch. Type check, build and
 #         the install check only. Meaningful once main has this registry (CI runs it on
 #         push to main).
-# namespace: the @ouro namespace as Pages serves it (pages.yml): the registry built with
-#         @ouro/<item> dependencies, served on localhost and registered in components.json,
-#         then `shadcn add @ouro/dialog`. Type check and build.
+# namespace: the @ouro namespace as Pages serves it (pages.yml): built from the newest release
+#         tag (package.json ouro.latestRelease) by scripts/namespace.sh, served on localhost and
+#         registered in components.json, then `shadcn add @ouro/dialog`. Every dependency must
+#         come through @ouro, every installed file must equal the tag's source, and each item
+#         must name that release. Type check and build.
+# next:   a Next.js App Router app from create-next-app (TypeScript, Tailwind CSS v4, src/),
+#         `shadcn init` (which writes "rsc": true), every runtime item, and test/install-fixture-next:
+#         a Server Component layout with the README's providers.tsx (<OuroProvider
+#         linkComponent={Link}>, next/link) and a Server Component page that renders every
+#         component and the Dialog and Sheet parts; `next build` must pass and prerender it, and
+#         every installed file keeps its source's "use client".
 # upgrade: an app on v0.1.0 (dialog from GitHub at #v0.1.0, which brought button and sheet,
 #         with the v0.1.0 test setup and a test of its own, test/install-fixture-upgrade)
 #         runs UPGRADING.md's commands against this commit's registry. In an app/ layout
@@ -36,7 +44,7 @@
 # from those (scripts/registry.mts --deps). Release tags pin them (release.yml).
 set -euo pipefail
 
-usage="usage: install-test.sh <shadcn|ouro|github|namespace|upgrade> <app-dir> [ref]"
+usage="usage: install-test.sh <shadcn|ouro|github|namespace|next|upgrade> <app-dir> [ref]"
 variant=${1:?$usage}
 app=${2:?$usage}
 root=$(cd "$(dirname "$0")/.." && pwd)
@@ -46,6 +54,7 @@ shadcn=(npx --yes shadcn@4.21.1)
 # shadcn's presets (CI runs vega too), so the docs can say which presets are verified.
 preset=${OURO_PRESET:-nova}
 vitest=(npx --yes vitest@5.0.3)
+create_next_app=(npx --yes create-next-app@16.3.8)
 items=(button text heading sheet dialog confirm-dialog)
 
 # The runtime items add components only: no test, story or spec file, no test kit, no test
@@ -64,6 +73,47 @@ runtime_only() {
 mkdir -p "$app"
 app=$(cd "$app" && pwd)
 registry=$(mktemp -d)
+
+if [ "$variant" = next ]; then
+  echo "::group::Next.js App Router app"
+  # create-next-app accepts the empty folder made above.
+  "${create_next_app[@]}" "$app" --ts --tailwind --app --src-dir --import-alias "@/*" --use-npm --disable-git --yes
+  cd "$app"
+  "${shadcn[@]}" init --base base --preset "$preset" --yes --no-monorepo
+  node -e 'if (require("./components.json").rsc !== true) throw new Error("shadcn init did not set rsc: true")'
+  echo "::endgroup::"
+
+  echo "::group::Every component, runtime only"
+  node "$root/scripts/registry.mts" --out "$registry/registry.json" --deps "$registry/r/{name}.json"
+  "${shadcn[@]}" build "$registry/registry.json" --output "$registry/r" --cwd "$root"
+  items_json=()
+  for item in "${items[@]}"; do items_json+=("$registry/r/$item.json"); done
+  "${shadcn[@]}" add --yes "${items_json[@]}"
+  echo "::endgroup::"
+
+  echo "::group::Every component from Server Components"
+  # test/install-fixture-next: app/layout.tsx and app/page.tsx are Server Components (no
+  # "use client"). The page renders every component and the Dialog and Sheet parts with
+  # serializable props (elements, strings, a server action for ConfirmDialog's onConfirm). The
+  # layout wraps the app in app/providers.tsx, the client file the README gives Next.js apps
+  # for <OuroProvider linkComponent={Link}>, because next/link's Link can't cross from a Server
+  # Component.
+  cp -R "$root/test/install-fixture-next/." "$app/"
+  echo "::endgroup::"
+
+  echo "::group::Type check, next build, and the install check"
+  npx tsc --noEmit
+  npx next build
+  html=.next/server/app/index.html
+  for text in "Ouro server page" "Rendered by a Server Component." "Ouro button" "Ouro link" "Open dialog" "Open sheet" "Delete" "Open parts dialog" "Open parts sheet"; do
+    grep -q "$text" "$html" || { echo "the prerendered page has no \"$text\""; exit 1; }
+  done
+  # Button's href rendered through OuroProvider's linkComponent, next/link.
+  grep -q 'href="/recipes"' "$html" || { echo "the prerendered page has no link to /recipes"; exit 1; }
+  node "$root/scripts/install-check.mjs" "$app" next runtime
+  echo "::endgroup::"
+  exit 0
+fi
 
 echo "::group::Fixture app"
 cp -R "$root/test/install-fixture/." "$app/"
@@ -86,8 +136,11 @@ fi
 
 if [ "$variant" = namespace ]; then
   echo "::group::@ouro/dialog from the namespace, served locally"
-  node "$root/scripts/registry.mts" --out "$registry/registry.json" --deps "@ouro/{name}"
-  "${shadcn[@]}" build "$registry/registry.json" --output "$registry/r" --cwd "$root"
+  tag=$(node "$root/scripts/latest-release.mjs")
+  "$root/scripts/namespace.sh" "$registry/r" "$tag" "$registry/tag"
+  for item in dialog sheet ouro-lib ouro-base; do
+    node -e 'const i = require(process.argv[1]); if (!i.docs.endsWith(` Ouro UI ${process.argv[2]}.`)) throw new Error(`${i.name} does not name ${process.argv[2]}: ${i.docs.slice(-40)}`)' "$registry/r/$item.json" "$tag"
+  done
   python3 -m http.server 8765 --bind 127.0.0.1 --directory "$registry" 2>"$registry/served.log" &
   server=$!
   trap 'kill $server' EXIT
@@ -109,6 +162,8 @@ if [ "$variant" = namespace ]; then
     if test -e "src/$path"; then echo "@ouro/dialog added src/$path"; exit 1; fi
   done
   grep -q -- "--ouro-spring-duration" src/index.css || { echo "ouro-base did not reach src/index.css"; exit 1; }
+  # What @ouro served is the release: every installed file equals the tag's source.
+  node "$root/scripts/install-check.mjs" --sources "$app" "$registry/tag"
   cat > src/App.tsx <<'EOF'
 import { Dialog } from "~/components/ouro/dialog/dialog";
 

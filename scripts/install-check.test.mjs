@@ -3,7 +3,8 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
-import { checkComments, checkInstall, checkLayerOverride, checkSources } from "./install-check.mjs";
+import { fileURLToPath } from "node:url";
+import { checkComments, checkDirectives, checkInstall, checkLayerOverride, checkSources } from "./install-check.mjs";
 
 // A real installed app is the install job's to build; these cases prove the check fails
 // on each kind of broken install, using a stand-in with a passing app's key files.
@@ -135,4 +136,70 @@ test("an --ouro-layer override passes only as the last declaration, in :root, ou
   ]);
   assert.deepEqual(checkLayerOverride(base + ".app { --ouro-layer: 60; }\n", "60"), ["the override is not in a :root rule"]);
   assert.deepEqual(checkLayerOverride(":root { --primary: red; }", "60"), ["no --ouro-layer declaration"]);
+});
+
+test("a Next.js app passes with the CSS file components.json names and the next build output", () => {
+  const dir = app("shadcn", undefined, "runtime");
+  const css = readFileSync(join(dir, "src/index.css"), "utf8");
+  mkdirSync(join(dir, "src/app"), { recursive: true });
+  writeFileSync(join(dir, "src/app/globals.css"), css);
+  writeFileSync(join(dir, "src/index.css"), "");
+  writeFileSync(join(dir, "components.json"), JSON.stringify({ tailwind: { css: "src/app/globals.css" } }));
+  mkdirSync(join(dir, ".next/static/chunks"), { recursive: true });
+  writeFileSync(join(dir, ".next/static/chunks/app.css"), readFileSync(join(dir, "dist/assets/index.css"), "utf8"));
+  assert.deepEqual(checkInstall(dir, "next", "runtime"), []);
+  writeFileSync(join(dir, ".next/static/chunks/app.css"), "");
+  assert.match(checkInstall(dir, "next", "runtime").join("\n"), /next build wrote no CSS/);
+  writeFileSync(join(dir, "src/app/globals.css"), "");
+  assert.match(checkInstall(dir, "next", "runtime").join("\n"), /src\/app\/globals\.css does not declare --success/);
+});
+
+test("an installed file that lost its source's \"use client\" fails", () => {
+  const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+  const dir = mkdtempSync(join(tmpdir(), "ouro-install-check-"));
+  const write = (file, text) => {
+    mkdirSync(dirname(join(dir, file)), { recursive: true });
+    writeFileSync(join(dir, file), text);
+  };
+  const source = readFileSync(join(root, "registry/ouro/components/ouro/button/button.tsx"), "utf8");
+  write("src/components/ouro/button/button.tsx", source);
+  write("src/lib/ouro/cn.ts", readFileSync(join(root, "registry/ouro/lib/ouro/cn.ts"), "utf8"));
+  assert.deepEqual(checkDirectives(dir, root), []);
+  write("src/components/ouro/button/button.tsx", source.replace(/^"use client";\n\n/, ""));
+  assert.deepEqual(checkDirectives(dir, root), [
+    'src/components/ouro/button/button.tsx lost "use client" from registry/ouro/components/ouro/button/button.tsx',
+  ]);
+});
+
+test("with the @/components alias, a JSDoc that quotes an installed path is not mistaken for an import", () => {
+  const root = mkdtempSync(join(tmpdir(), "ouro-install-source-"));
+  const dir = mkdtempSync(join(tmpdir(), "ouro-install-equal-"));
+  const write = (base, file, text) => {
+    mkdirSync(dirname(join(base, file)), { recursive: true });
+    writeFileSync(join(base, file), text);
+  };
+  const doc = '/** Wrap it: `import { SheetClose } from "@/components/ouro/sheet/sheet-parts"`. */\n';
+  write(root, "registry/ouro/components/ouro/a/a.tsx", `import { cn } from "@/registry/ouro/lib/ouro/cn";\n${doc}export const a = cn;\n`);
+  write(dir, "src/components/ouro/a/a.tsx", `import { cn } from "@/lib/ouro/cn";\n${doc}export const a = cn;\n`);
+  assert.deepEqual(checkSources(dir, root, { components: "@/components", lib: "@/lib" }), []);
+});
+
+test("only Ouro's tokens must not refer to themselves; an app's own theme may", () => {
+  const dir = app("shadcn");
+  const css = readFileSync(join(dir, "src/index.css"), "utf8");
+  writeFileSync(join(dir, "src/index.css"), css.replace("@theme inline {", "@theme inline {\n  --font-sans: var(--font-sans);\n  --color-success: var(--color-success);"));
+  assert.deepEqual(checkInstall(dir, "shadcn", "tests"), ["src/index.css: --color-success: var(--color-success) refers to itself"]);
+});
+
+test("the README's Next.js files are the ones the Next.js install job builds", () => {
+  const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+  const readme = readFileSync(join(root, "README.md"), "utf8");
+  for (const file of ["src/app/providers.tsx", "src/app/layout.tsx"]) {
+    const text = readFileSync(join(root, "test/install-fixture-next", file), "utf8");
+    assert.ok(readme.includes("```tsx\n" + text + "```"), `README.md does not show test/install-fixture-next/${file} verbatim`);
+  }
+  assert.match(readFileSync(join(root, "test/install-fixture-next/src/app/providers.tsx"), "utf8"), /^"use client";\n/);
+  for (const file of ["src/app/layout.tsx", "src/app/page.tsx"]) {
+    assert.doesNotMatch(readFileSync(join(root, "test/install-fixture-next", file), "utf8"), /"use client"/, `${file} must stay a Server Component`);
+  }
 });
