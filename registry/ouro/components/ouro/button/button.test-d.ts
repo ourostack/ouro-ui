@@ -40,6 +40,12 @@ expectTypeOf<{ children: "Go"; tone: "danger" }>().not.toExtend<ButtonProps>();
 expectTypeOf<{ children: "Go"; tone: "accent" }>().not.toExtend<ButtonProps>();
 expectTypeOf<{ children: "Go"; variant: "destructive" }>().not.toExtend<ButtonProps>();
 expectTypeOf<{ children: "Go"; variant: "default" }>().not.toExtend<ButtonProps>();
+expectTypeOf<{ children: "Go"; variant: "link" }>().not.toExtend<ButtonProps>();
+// shadcn's sizes are not sizes either; the error names `md` and `aria-label`.
+expectTypeOf<{ children: "Go"; size: "default" }>().not.toExtend<ButtonProps>();
+expectTypeOf<{ children: "Go"; size: "icon" }>().not.toExtend<ButtonProps>();
+// The hint member accepts no string.
+expectTypeOf<{ children: "Go"; variant: string }>().not.toExtend<ButtonProps>();
 
 // Children are required.
 expectTypeOf<{ type: "button" }>().not.toExtend<ButtonProps>();

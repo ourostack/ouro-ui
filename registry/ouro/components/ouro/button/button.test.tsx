@@ -638,6 +638,22 @@ describe("runtime guards", () => {
     expect(String(warn.mock.calls[0]?.[0])).toBe(`[ouro-ui] Button: ${message}`);
   });
 
+  it.each([
+    ["default", 'size="default" is not a size. Fix: <Button size="md">.'],
+    ["icon", 'size="icon" is not a size. Fix: <Button aria-label="Add"><PlusIcon /></Button>.'],
+  ])("renders the md size for shadcn's size=%j and warns once with the fix", async (value, message) => {
+    const screen = await render(
+      <div>
+        <Button>Default</Button>
+        <Untyped size={value}>Odd</Untyped>
+      </div>,
+    );
+    const [plain, odd] = [...screen.host.querySelectorAll("button")].map((el) => el.getBoundingClientRect().height);
+    expect(odd).toBe(plain);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]?.[0])).toBe(`[ouro-ui] Button: ${message}`);
+  });
+
   it("does not warn on server render", () => {
     renderToString(<Untyped isLoading>Go</Untyped>);
     expect(warn).not.toHaveBeenCalled();

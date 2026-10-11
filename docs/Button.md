@@ -36,10 +36,10 @@ Props every mode takes. Type: `ButtonProps`.
 | `fullWidth` | `boolean` |  | Stretches the button to the width of its container. |
 | `loading` | `boolean` |  | Shows a centered spinner, keeps the width, sets `aria-busy` and disables the button. It stays focusable, so focus is not lost when a pressed button turns busy. |
 | `loadingLabel` | `string` | `"Loading"` | What screen readers hear, politely, when `loading` turns on. It is spoken through a shared live region, so the button's name stays its label. Use the action in progress: `loadingLabel="Saving recipe"`. |
-| `size` | `"sm" \| "md" \| "lg"` | `"md"` | Control size. Each size is taller on phones and steps down to desktop density from the `sm` breakpoint (640px). |
+| `size` | `"sm" \| "md" \| "lg"` | `"md"` | Control size. Each size is taller on phones and steps down to desktop density from the `sm` breakpoint (640px). shadcn's `default` is `md`; for an icon-only button, pass the icon as children and an `aria-label`. Any other string is a type error whose message names the fix. |
 | `startIcon` | `ButtonIcon` |  | Icon before the label. Pass the component, not an element: `startIcon={PlusIcon}`. |
 | `tone` | `"primary" \| "secondary" \| "destructive" \| "success" \| "warning"` | `"primary"` | Color role from the theme, named after its token: `primary` reads `--primary`. shadcn's `variant="destructive"` is `tone="destructive"`, and its `variant="secondary"` is `tone="secondary"`. |
-| `variant` | `"solid" \| "soft" \| "outline" \| "plain"` | `"solid"` | Visual weight: `solid` for the primary action, `soft` for secondary actions, `outline` for a quiet bordered control, `plain` for a borderless one. shadcn's `default` is `solid` (the default), `ghost` and `link` are `plain`, and `destructive` and `secondary` are tones: `tone="destructive"`. |
+| `variant` | `"solid" \| "soft" \| "outline" \| "plain"` | `"solid"` | Visual weight: `solid` for the primary action, `soft` for secondary actions, `outline` for a quiet bordered control, `plain` for a borderless one. shadcn's `default` is `solid` (the default), `ghost` and `link` are `plain`, and `destructive` and `secondary` are tones: `tone="destructive"`. Any other string is a type error whose message names the fix. |
 
 ## Modes
 
@@ -78,7 +78,7 @@ Not in this mode (typed `never`):
 
 ## Don't use
 
-These are not props. Each is typed `never`, so the type check fails, and in development a message names the fix.
+These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
 - `asChild`: Not a prop. To render a link, pass `href`: `<Button href="/recipes">`. For other elements, use parts.
 - `color`: Not a prop. Ouro UI uses `tone`: `<Button tone="destructive">`.

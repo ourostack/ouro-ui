@@ -72,6 +72,24 @@ describe("Heading", () => {
     expect(parseFloat(getComputedStyle(small!).fontSize)).toBeLessThan(parseFloat(getComputedStyle(h1!).fontSize));
   });
 
+  it("sets display larger than 2xl, and larger again from the sm breakpoint, for a hero headline", async () => {
+    const { host } = await render(
+      <>
+        <Heading level={1} size="display">
+          Hero
+        </Heading>
+        <Heading level={1}>Page</Heading>
+      </>,
+    );
+    const [display, h1] = [...host.children] as HTMLElement[];
+    expect(display!.tagName).toBe("H1");
+    const px = parseFloat(getComputedStyle(display!).fontSize);
+    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    expect(px).toBeGreaterThan(parseFloat(getComputedStyle(h1!).fontSize));
+    // 2.5rem below the `sm` breakpoint (640px), Tailwind's text-6xl (3.75rem) from it.
+    expect(px).toBe((window.innerWidth >= 640 ? 3.75 : 2.5) * rem);
+  });
+
   it("aligns center and passes attributes through", async () => {
     const { el } = await render(
       <Heading level={2} align="center" id="t">
@@ -83,7 +101,8 @@ describe("Heading", () => {
   });
 
   it.each([
-    ["text-4xl", 'size="2xl"'],
+    ["text-3xl", 'size="2xl"'],
+    ["text-6xl", 'size="display"'],
     ["text-center", 'align="center"'],
     ["bg-black", "<Heading level={2}>…</Heading>"],
     ["font-serif", '<div className="font-serif"><Heading /></div>'],

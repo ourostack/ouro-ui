@@ -76,15 +76,15 @@ export interface DialogBaseProps {
   className?: string | undefined;
 
   /** Not a prop. Ouro UI uses `open` with `onOpenChange`: `<Dialog open={open} onOpenChange={setOpen}>`. */
-  isOpen?: never;
+  isOpen?: { 'Use <Dialog open={open} onOpenChange={setOpen}>': never };
   /** Not a prop. `onOpenChange(false)` fires on close: `<Dialog open={open} onOpenChange={setOpen}>`. */
-  onClose?: never;
+  onClose?: { 'Use <Dialog open={open} onOpenChange={setOpen}>': never };
   /** Not a prop. A Dialog is centered, or a bottom sheet on phones. For another edge use `<Sheet side="…">`. */
-  position?: never;
+  position?: { 'Use <Sheet side="…">': never };
   /** Not a prop. A Dialog is centered, or a bottom sheet on phones. For another edge use `<Sheet side="…">`. */
-  side?: never;
+  side?: { 'Use <Sheet side="…">': never };
   /** Not a prop. A Dialog fits its content. For snap points use `<Sheet snapPoints={[0.5, 1]}>`. */
-  snapPoints?: never;
+  snapPoints?: { 'Use <Sheet snapPoints={[0.5, 1]}>': never };
 }
 
 /** An uncontrolled Dialog: `trigger` opens it. */

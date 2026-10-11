@@ -186,11 +186,23 @@ interface Prop {
 const literal = (type: ts.Type) =>
   type.isLiteral() || (type.flags & (ts.TypeFlags.BooleanLiteral | ts.TypeFlags.Undefined)) !== 0;
 
+/**
+ * A type-error hint: an object type whose only properties are typed `never`, such as
+ * `{ 'Use <Button loading>': never }`. Nothing is assignable to it, so a prop typed
+ * with one is a guard, and a union member `string & { … }` only names the fix.
+ */
+function isHint(type: ts.Type): boolean {
+  if (type.isIntersection()) return type.types.some(isHint);
+  const props = type.flags & ts.TypeFlags.Object ? checker.getPropertiesOfType(type) : [];
+  return props.length > 0 && props.every((prop) => checker.getTypeOfSymbol(prop).flags & ts.TypeFlags.Never);
+}
+
 /** A prop's type as written, with literal unions spelled out and `| undefined` dropped. */
 function typeText(symbol: ts.Symbol, declaration: ts.Declaration): string {
   const type = checker.getTypeOfSymbolAtLocation(symbol, declaration);
-  if (type.isUnion() && type.types.every(literal)) {
-    const members = type.types.filter((member) => !(member.flags & ts.TypeFlags.Undefined));
+  const values = type.isUnion() ? type.types.filter((member) => !isHint(member)) : [];
+  if (values.length > 0 && values.every(literal)) {
+    const members = values.filter((member) => !(member.flags & ts.TypeFlags.Undefined));
     const names = members.map((member) => checker.typeToString(member));
     if (names.includes("true") && names.includes("false")) {
       return ["boolean", ...names.filter((name) => name !== "true" && name !== "false")].join(" | ");
@@ -215,8 +227,8 @@ function propOf(symbol: ts.Symbol): Prop | undefined {
     description:
       paragraphs(docText(symbol.getDocumentationComment(checker))).join(" ") ||
       (symbol.getName() === "ref" ? "Reaches the rendered element." : ""),
-    // `prop?: never` reads as `undefined`; without the undefined it is `never`.
-    guard: (checker.getNonNullableType(type).flags & ts.TypeFlags.Never) !== 0,
+    // `prop?: never` reads as `undefined`; without the undefined it is `never` or a hint.
+    guard: (checker.getNonNullableType(type).flags & ts.TypeFlags.Never) !== 0 || isHint(checker.getNonNullableType(type)),
     declaration,
   };
 }
@@ -426,7 +438,7 @@ function componentPage(page: Page, symbol: ts.Symbol, partFamilies: Set<string>)
     if (doc.native.length > 0) sections.push(`## Native attributes\n\n${nativeLine(doc.native)}`);
     if (doc.guards.length > 0) {
       sections.push(
-        `## Don't use\n\nThese are not props. Each is typed \`never\`, so the type check fails, and in development a message names the fix.\n\n${list(doc.guards.map((prop) => `\`${prop.name}\`: ${prop.description}`))}`,
+        `## Don't use\n\nThese are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.\n\n${list(doc.guards.map((prop) => `\`${prop.name}\`: ${prop.description}`))}`,
       );
     }
     if (all.some((prop) => prop.name === "className")) {

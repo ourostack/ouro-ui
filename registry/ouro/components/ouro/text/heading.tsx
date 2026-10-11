@@ -6,8 +6,8 @@ import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 import { alignClasses, type TextAlign } from "@/registry/ouro/components/ouro/text/text";
 
-/** A heading size from the theme's type scale. */
-export type HeadingSize = "sm" | "md" | "lg" | "xl" | "2xl";
+/** A heading size from the theme's type scale. `display` is for a page's hero headline. */
+export type HeadingSize = "sm" | "md" | "lg" | "xl" | "2xl" | "display";
 
 /** Props for {@link Heading}. */
 export interface HeadingProps extends Omit<HTMLAttributes<HTMLHeadingElement>, "color" | "className" | "children"> {
@@ -17,7 +17,11 @@ export interface HeadingProps extends Omit<HTMLAttributes<HTMLHeadingElement>, "
    * big it looks.
    */
   level: 1 | 2 | 3 | 4 | 5 | 6;
-  /** Visual size, independent of the level. @default derived from `level` (1 is `2xl`, 2 is `xl`, 3 is `lg`, 4 is `md`, 5 and 6 are `sm`) */
+  /**
+   * Visual size, independent of the level. `display` is the hero headline of a
+   * landing page, tightly set and larger from the `sm` breakpoint: `<Heading level={1} size="display">`.
+   * @default derived from `level` (1 is `2xl`, 2 is `xl`, 3 is `lg`, 4 is `md`, 5 and 6 are `sm`)
+   */
   size?: HeadingSize | undefined;
   /** Alignment in writing direction. @default inherited */
   align?: TextAlign | undefined;
@@ -30,9 +34,9 @@ export interface HeadingProps extends Omit<HTMLAttributes<HTMLHeadingElement>, "
   children: ReactNode;
   ref?: Ref<HTMLHeadingElement> | undefined;
   /** Not a prop. The tag comes from `level`: `<Heading level={2}>`. */
-  as?: never;
+  as?: { 'Use <Heading level={2}>': never };
   /** Not a prop. Headings use the theme's foreground color; for colored text use `<Text tone="…">`. */
-  color?: never;
+  color?: { 'Use <Text tone="…">': never };
 }
 
 const sizes = {
@@ -41,11 +45,13 @@ const sizes = {
   lg: "text-xl",
   xl: "text-2xl",
   "2xl": "text-3xl",
+  display: "text-[2.5rem] leading-[1.05] tracking-[-0.035em] sm:text-6xl sm:leading-[1.02]",
 } as const;
 
 const sizeByLevel = { 1: "2xl", 2: "xl", 3: "lg", 4: "md", 5: "sm", 6: "sm" } as const;
 
 function headingHint(token: string): string {
+  if (/^text-[4-9]xl$/.test(token)) return 'size="display"';
   const size = sizeFor(token, ["sm", "sm", "sm", "md", "lg", "xl", "2xl"]);
   if (size) return `size="${size}"`;
   if (token.startsWith("font-")) return fontFor("Heading", token);
@@ -62,6 +68,7 @@ function headingHint(token: string): string {
  * @example
  * <Heading level={1}>Recipes</Heading>
  * <Heading level={2} size="lg">Ingredients</Heading>
+ * <Heading level={1} size="display">Dinner, sorted</Heading>
  */
 export function Heading(props: HeadingProps): JSX.Element {
   const { level, size: sizeProp, align, className, ref, color, as, ...rest } = props;

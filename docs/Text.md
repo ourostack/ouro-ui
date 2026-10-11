@@ -69,7 +69,7 @@ Also accepts the attributes in React's `HTMLAttributes` (`id`, `aria-*`, event h
 
 ## Don't use
 
-These are not props. Each is typed `never`, so the type check fails, and in development a message names the fix.
+These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
 - `color`: Not a prop. Ouro UI uses `tone`: `<Text tone="muted">`.
 

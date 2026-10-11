@@ -53,13 +53,13 @@ export interface SheetBaseProps {
   className?: string | undefined;
 
   /** Not a prop. Ouro UI uses `open` with `onOpenChange`: `<Sheet open={open} onOpenChange={setOpen}>`. */
-  isOpen?: never;
+  isOpen?: { 'Use <Sheet open={open} onOpenChange={setOpen}>': never };
   /** Not a prop. `onOpenChange(false)` fires on close: `<Sheet open={open} onOpenChange={setOpen}>`. */
-  onClose?: never;
+  onClose?: { 'Use <Sheet open={open} onOpenChange={setOpen}>': never };
   /** Not a prop. Ouro UI uses `side`: `<Sheet side="bottom">`. */
-  position?: never;
+  position?: { 'Use <Sheet side="bottom">': never };
   /** Not a prop. A sheet fits its content; to set heights use `snapPoints={[0.5, 1]}`. */
-  size?: never;
+  size?: { 'Use <Sheet snapPoints={[0.5, 1]}>': never };
 }
 
 /** An uncontrolled Sheet: `trigger` opens it. */

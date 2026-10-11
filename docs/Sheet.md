@@ -74,7 +74,7 @@ Not in this mode (typed `never`):
 
 ## Don't use
 
-These are not props. Each is typed `never`, so the type check fails, and in development a message names the fix.
+These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
 - `isOpen`: Not a prop. Ouro UI uses `open` with `onOpenChange`: `<Sheet open={open} onOpenChange={setOpen}>`.
 - `onClose`: Not a prop. `onOpenChange(false)` fires on close: `<Sheet open={open} onOpenChange={setOpen}>`.

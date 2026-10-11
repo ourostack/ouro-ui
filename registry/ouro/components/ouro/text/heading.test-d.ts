@@ -3,6 +3,7 @@ import { expectTypeOf } from "vitest";
 import type { HeadingProps } from "@/registry/ouro/components/ouro/text/heading";
 
 expectTypeOf<{ children: "a"; level: 2; size: "xl" }>().toExtend<HeadingProps>();
+expectTypeOf<{ children: "a"; level: 1; size: "display" }>().toExtend<HeadingProps>();
 // level is required: it sets the tag and the document outline.
 expectTypeOf<{ children: "a" }>().not.toExtend<HeadingProps>();
 expectTypeOf<{ children: "a"; level: 7 }>().not.toExtend<HeadingProps>();

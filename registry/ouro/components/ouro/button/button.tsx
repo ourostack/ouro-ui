@@ -34,15 +34,29 @@ export interface ButtonBaseProps {
    * Visual weight: `solid` for the primary action, `soft` for secondary actions,
    * `outline` for a quiet bordered control, `plain` for a borderless one.
    * shadcn's `default` is `solid` (the default), `ghost` and `link` are `plain`, and
-   * `destructive` and `secondary` are tones: `tone="destructive"`.
+   * `destructive` and `secondary` are tones: `tone="destructive"`. Any other
+   * string is a type error whose message names the fix.
    * @default "solid"
    */
-  variant?: "solid" | "soft" | "outline" | "plain" | undefined;
+  variant?:
+    | "solid"
+    | "soft"
+    | "outline"
+    | "plain"
+    | (string & { 'From shadcn? Use tone="destructive" or tone="secondary". default is "solid"; ghost and link are "plain"': never })
+    | undefined;
   /**
    * Control size. Each size is taller on phones and steps down to desktop
-   * density from the `sm` breakpoint (640px). @default "md"
+   * density from the `sm` breakpoint (640px). shadcn's `default` is `md`; for an
+   * icon-only button, pass the icon as children and an `aria-label`. Any other
+   * string is a type error whose message names the fix. @default "md"
    */
-  size?: "sm" | "md" | "lg" | undefined;
+  size?:
+    | "sm"
+    | "md"
+    | "lg"
+    | (string & { 'From shadcn? default is "md"; for icon, pass aria-label with the icon as children': never })
+    | undefined;
   /** Stretches the button to the width of its container. */
   fullWidth?: boolean | undefined;
   /**
@@ -71,15 +85,15 @@ export interface ButtonBaseProps {
   className?: string | undefined;
 
   /** Not a prop. Ouro UI uses `loading`: `<Button loading>`. */
-  isLoading?: never;
+  isLoading?: { 'Use <Button loading>': never };
   /** Not a prop. Ouro UI uses `tone`: `<Button tone="destructive">`. */
-  color?: never;
+  color?: { 'Use <Button tone="destructive">': never };
   /** Not a prop. To render a link, pass `href`: `<Button href="/recipes">`. For other elements, use parts. */
-  asChild?: never;
+  asChild?: { 'Use <Button href="/path">': never };
   /** Not a prop. Ouro UI uses `startIcon`: `<Button startIcon={PlusIcon}>`. */
-  leftIcon?: never;
+  leftIcon?: { 'Use <Button startIcon={Icon}>': never };
   /** Not a prop. Ouro UI uses `endIcon`: `<Button endIcon={ArrowRightIcon}>`. */
-  rightIcon?: never;
+  rightIcon?: { 'Use <Button endIcon={Icon}>': never };
 }
 
 /** A Button with `href`: renders a link that looks like a button. */
@@ -208,6 +222,12 @@ function variantWarning(variant: string): readonly [string, string] {
   return [`variant="${variant}" is not a variant`, fix];
 }
 
+/** The dev message for a size that is not one of Ouro UI's, such as shadcn's `default` and `icon`. */
+function sizeWarning(size: string): readonly [string, string] {
+  const fix = size === "icon" ? '<Button aria-label="Add"><PlusIcon /></Button>' : '<Button size="md">';
+  return [`size="${size}" is not a size`, fix];
+}
+
 function Spinner(): JSX.Element {
   return (
     <span
@@ -254,7 +274,7 @@ export function Button(props: ButtonProps): JSX.Element {
   const {
     tone: toneProp = "primary",
     variant: variantProp = "solid",
-    size = "md",
+    size: sizeProp = "md",
     fullWidth,
     loading,
     loadingLabel = "Loading",
@@ -271,9 +291,10 @@ export function Button(props: ButtonProps): JSX.Element {
     ...rest
   } = props;
   const { linkComponent: LinkComponent } = useOuro();
-  // A tone or variant that is not one of Ouro UI's (a type error) warns and renders the default.
+  // A tone, variant or size that is not one of Ouro UI's (a type error) warns and renders the default.
   const tone = Object.hasOwn(looks.solid, toneProp) ? toneProp : "primary";
-  const variant = Object.hasOwn(looks, variantProp) ? variantProp : "solid";
+  const variant = Object.hasOwn(looks, variantProp) ? (variantProp as keyof typeof looks) : "solid";
+  const size = Object.hasOwn(sizes, sizeProp) ? (sizeProp as keyof typeof sizes) : "md";
   useAppearanceClassNameCheck(
     "Button",
     className,
@@ -287,6 +308,7 @@ export function Button(props: ButtonProps): JSX.Element {
           return [
             tone !== toneProp && toneWarning("Button", String(toneProp), Object.keys(looks.solid)),
             variant !== variantProp && variantWarning(String(variantProp)),
+            size !== sizeProp && sizeWarning(String(sizeProp)),
             isLoading !== undefined && ["isLoading is not a prop", "<Button loading>"],
             color !== undefined && ["color is not a prop", `<Button tone="${toneFor(`bg-${String(color)}`)}">`],
             asChild !== undefined && ["asChild is not a prop", '<Button href="/path">'],

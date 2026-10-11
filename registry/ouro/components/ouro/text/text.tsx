@@ -30,7 +30,7 @@ interface TextBaseProps extends Omit<HTMLAttributes<HTMLElement>, "color" | "cla
   children: ReactNode;
   ref?: Ref<HTMLElement> | undefined;
   /** Not a prop. Ouro UI uses `tone`: `<Text tone="muted">`. */
-  color?: never;
+  color?: { 'Use <Text tone="muted">': never };
 }
 
 /** Props for {@link Text}. `truncate` (one line) and `lines` (many) are exclusive. */

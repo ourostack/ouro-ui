@@ -31,7 +31,7 @@ const meta = {
   args: { level: 2, children: "Gochujang braised short ribs" },
   argTypes: {
     level: { control: "inline-radio", options: [1, 2, 3, 4, 5, 6] },
-    size: { control: "inline-radio", options: ["sm", "md", "lg", "xl", "2xl"] },
+    size: { control: "inline-radio", options: ["sm", "md", "lg", "xl", "2xl", "display"] },
     align: { control: "inline-radio", options: ["start", "center", "end"] },
   },
 } satisfies Meta<typeof Heading>;
@@ -56,6 +56,20 @@ export const Headings: Story = {
       <Heading level={2} size="sm">
         An h2 that looks small
       </Heading>
+    </Surface>
+  ),
+};
+
+/** `size="display"` is a landing page's hero headline: larger than `2xl`, and larger again from the `sm` breakpoint. */
+export const Display: Story = {
+  render: () => (
+    <Surface>
+      <Heading level={1} size="display" style={{ maxWidth: "16ch" }}>
+        Dinner, sorted before you get home.
+      </Heading>
+      <Text size="lg" tone="muted">
+        Plan the week, shop once, and cook from your phone.
+      </Text>
     </Surface>
   ),
 };

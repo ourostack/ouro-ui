@@ -39,17 +39,17 @@ export interface ConfirmDialogBaseProps {
   onConfirm: () => void | Promise<void>;
 
   /** Not a prop. Ouro UI uses `open` with `onOpenChange`: `<ConfirmDialog open={open} onOpenChange={setOpen}>`. */
-  isOpen?: never;
+  isOpen?: { 'Use <ConfirmDialog open={open} onOpenChange={setOpen}>': never };
   /** Not a prop. `onOpenChange(false)` fires on close: `<ConfirmDialog open={open} onOpenChange={setOpen}>`. */
-  onClose?: never;
+  onClose?: { 'Use <ConfirmDialog open={open} onOpenChange={setOpen}>': never };
   /** Not a prop. Cancel calls `onOpenChange(false)`: `<ConfirmDialog open={open} onOpenChange={setOpen}>`. */
-  onCancel?: never;
+  onCancel?: { 'Use <ConfirmDialog open={open} onOpenChange={setOpen}>': never };
   /** Not a prop. Ouro UI uses `tone`: `<ConfirmDialog tone="destructive">`. */
-  destructive?: never;
+  destructive?: { 'Use <ConfirmDialog tone="destructive">': never };
   /** Not a prop. Ouro UI uses `confirmLabel`: `<ConfirmDialog confirmLabel="Delete">`. */
-  confirmText?: never;
+  confirmText?: { 'Use <ConfirmDialog confirmLabel="Delete">': never };
   /** Not a prop. Ouro UI uses `cancelLabel`: `<ConfirmDialog cancelLabel="Keep">`. */
-  cancelText?: never;
+  cancelText?: { 'Use <ConfirmDialog cancelLabel="Keep">': never };
 }
 
 /** An uncontrolled ConfirmDialog: `trigger` opens it. */

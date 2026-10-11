@@ -1,26 +1,26 @@
 {
   "variant": {
-    "error": "error TS2322: Type '\"destructive\"' is not assignable to type '\"solid\" | \"soft\" | \"outline\" | \"plain\" | undefined'.",
+    "error": "error TS2322: Type '\"destructive\"' is not assignable to type '\"solid\" | \"soft\" | \"outline\" | \"plain\" | (string & { 'From shadcn? Use tone=\"destructive\" or tone=\"secondary\". default is \"solid\"; ghost and link are \"plain\"': never; }) | undefined'.",
     "source": {
       "file": "components/ouro/button/button.tsx",
-      "doc": "Visual weight: `solid` for the primary action, `soft` for secondary actions, `outline` for a quiet bordered control, `plain` for a borderless one. shadcn's `default` is `solid` (the default), `ghost` and `link` are `plain`, and `destructive` and `secondary` are tones: `tone=\"destructive\"`.",
-      "code": "variant?: \"solid\" | \"soft\" | \"outline\" | \"plain\" | undefined;"
+      "doc": "Visual weight: `solid` for the primary action, `soft` for secondary actions, `outline` for a quiet bordered control, `plain` for a borderless one. shadcn's `default` is `solid` (the default), `ghost` and `link` are `plain`, and `destructive` and `secondary` are tones: `tone=\"destructive\"`. Any other string is a type error whose message names the fix.",
+      "code": "variant?:\n    | \"solid\"\n    | \"soft\"\n    | \"outline\"\n    | \"plain\"\n    | (string & { 'From shadcn? Use tone=\"destructive\" or tone=\"secondary\". default is \"solid\"; ghost and link are \"plain\"': never })\n    | undefined;"
     }
   },
   "isLoading": {
-    "error": "error TS2322: Type 'true' is not assignable to type 'never'.",
+    "error": "error TS2322: Type 'boolean' is not assignable to type '{ 'Use <Button loading>': never; }'.",
     "source": {
       "file": "components/ouro/button/button.tsx",
       "doc": "Not a prop. Ouro UI uses `loading`: `<Button loading>`.",
-      "code": "isLoading?: never;"
+      "code": "isLoading?: { 'Use <Button loading>': never };"
     }
   },
   "asChild": {
-    "error": "error TS2322: Type 'true' is not assignable to type 'never'.",
+    "error": "error TS2322: Type 'boolean' is not assignable to type '{ 'Use <Button href=\"/path\">': never; }'.",
     "source": {
       "file": "components/ouro/button/button.tsx",
       "doc": "Not a prop. To render a link, pass `href`: `<Button href=\"/recipes\">`. For other elements, use parts.",
-      "code": "asChild?: never;"
+      "code": "asChild?: { 'Use <Button href=\"/path\">': never };"
     }
   }
 }
