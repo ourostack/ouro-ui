@@ -1,3 +1,5 @@
+"use client";
+
 import { useMemo, type JSX, type ReactNode } from "react";
 import { DefaultLink, OuroContext, type OuroContextValue, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/use-ouro";
 

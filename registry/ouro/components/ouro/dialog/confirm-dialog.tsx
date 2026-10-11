@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useRef, useState, type JSX, type ReactElement, type ReactNode, type RefObject } from "react";
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
 import { checkOpenMode } from "@/registry/ouro/lib/ouro/open-mode";

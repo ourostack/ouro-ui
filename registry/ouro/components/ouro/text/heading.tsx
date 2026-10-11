@@ -1,3 +1,5 @@
+"use client";
+
 import type { HTMLAttributes, JSX, ReactNode, Ref } from "react";
 import { fontFor, sizeFor, toneFor } from "@/registry/ouro/lib/ouro/appearance-hints";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";

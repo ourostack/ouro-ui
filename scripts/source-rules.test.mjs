@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { comments, duplicateTestNames, leadingComment, testNames, unpreservedHints } from "./source-rules.mjs";
+import { comments, duplicateTestNames, hasClientDirective, leadingComment, needsClientDirective, testNames, unpreservedHints } from "./source-rules.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const tracked = (...globs) =>
@@ -27,6 +27,35 @@ test("no registry file has a comment before its first statement, which the shadc
     .filter(({ path, text }) => leadingComment(path, text) !== "")
     .map(({ path, text }) => `${path}: ${leadingComment(path, text).split("\n")[0]}`);
   assert.deepEqual(problems, [], "Move the comment after the imports, as JSDoc on the first export it explains.");
+});
+
+test("hasClientDirective finds \"use client\" only as the first statement", () => {
+  assert.equal(hasClientDirective("a.tsx", '"use client";\n\nimport { a } from "a";\n'), true);
+  assert.equal(hasClientDirective("a.ts", "'use client'\nexport { a };\n"), true);
+  assert.equal(hasClientDirective("a.ts", 'import { a } from "a";\n"use client";\n'), false);
+  assert.equal(hasClientDirective("a.ts", '"use strict";\n'), false);
+  assert.equal(hasClientDirective("a.ts", ""), false);
+});
+
+test("needsClientDirective covers components, providers and modules that call hooks", () => {
+  assert.equal(needsClientDirective("registry/ouro/components/ouro/text/text.tsx", "export { Text };\n"), true);
+  assert.equal(needsClientDirective("registry/ouro/lib/ouro/ouro-provider.tsx", "export { OuroProvider };\n"), true);
+  assert.equal(needsClientDirective("registry/ouro/lib/ouro/a.ts", "import { useRef } from 'react';\nexport function useA() { return useRef(0); }\n"), true);
+  assert.equal(needsClientDirective("registry/ouro/lib/ouro/a.ts", "export const C = React.createContext(null);\n"), true);
+  assert.equal(needsClientDirective("registry/ouro/components/ouro/sheet/sheet-styles.ts", "export const a = 'b';\n"), false);
+  assert.equal(needsClientDirective("registry/ouro/lib/ouro/cn.ts", "/** useEffect(() => {}) in a comment */\nexport const cn = () => '';\n"), false);
+});
+
+test("every runtime registry file that renders or calls hooks starts with \"use client\", so a Next.js Server Component can render it", () => {
+  const runtime = tracked("registry/**/*.ts", "registry/**/*.tsx").filter(
+    (path) => !/\.(test|test-d|stories)\.tsx?$|\.d\.ts$|\/lib\/ouro\/testing\/|\/e2e\/|\/theme\//.test(path),
+  );
+  assert.ok(runtime.length > 20);
+  const files = runtime.map(read);
+  const missing = files.filter(({ path, text }) => needsClientDirective(path, text) && !hasClientDirective(path, text)).map(({ path }) => path);
+  assert.deepEqual(missing, [], 'Start these files with "use client"; (before the imports).');
+  const extra = files.filter(({ path, text }) => !needsClientDirective(path, text) && hasClientDirective(path, text)).map(({ path }) => path);
+  assert.deepEqual(extra, [], 'These files need no "use client": a Server Component may import their values directly.');
 });
 
 test("comments lists every comment in order, including JSX and end-of-file comments", () => {

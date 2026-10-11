@@ -1,3 +1,5 @@
+"use client";
+
 import { useCallback, type Ref, type RefCallback } from "react";
 
 /**

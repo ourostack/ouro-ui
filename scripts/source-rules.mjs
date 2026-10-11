@@ -5,6 +5,11 @@
 //   start with a statement that has no comment before it: the imports, or an export list.
 // - unpreservedHints: esbuild's TypeScript transform (Vite) strips comments, so an
 //   istanbul hint survives only with `@preserve`: `/* istanbul ignore next @preserve -- why */`.
+// - needsClientDirective / hasClientDirective: Next.js App Router renders a file as a
+//   Server Component unless it starts with "use client", and a hook there fails the build.
+//   Every runtime component, parts and provider file, and every module that calls a hook
+//   or creates a context, starts with the directive; shadcn keeps it when the app's
+//   components.json has "rsc": true.
 // - testNames: the full name of every test (describe titles and the test title), so a
 //   name filter (`vitest -t`, `playwright -g`) can target each test alone.
 //
@@ -22,6 +27,34 @@ export function leadingComment(path, text) {
   if (!first) return "";
   const ranges = ts.getLeadingCommentRanges(text, first.getFullStart()) ?? [];
   return ranges.map((range) => text.slice(range.pos, range.end)).join("\n");
+}
+
+/** Whether the file's first statement is the "use client" directive. */
+export function hasClientDirective(path, text) {
+  const first = parse(path, text).statements[0];
+  return Boolean(first && ts.isExpressionStatement(first) && ts.isStringLiteral(first.expression) && first.expression.text === "use client");
+}
+
+/**
+ * Whether a runtime registry file must start with "use client": a component, parts or
+ * provider file (a .tsx file under components/, or a *-provider.tsx), or any module that
+ * calls a hook (`useX(...)`) or `createContext`.
+ */
+export function needsClientDirective(path, text) {
+  if (/\/components\/.*\.tsx$/.test(path) || /-provider\.tsx$/.test(path)) return true;
+  const source = parse(path, text);
+  let found = false;
+  const visit = (node) => {
+    if (found) return;
+    if (ts.isCallExpression(node)) {
+      const callee = node.expression;
+      const name = ts.isIdentifier(callee) ? callee.text : ts.isPropertyAccessExpression(callee) ? callee.name.text : "";
+      if (/^use[A-Z]/.test(name) || name === "createContext") found = true;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return found;
 }
 
 /** Every comment in a file, in order, as text. */
