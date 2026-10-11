@@ -1,0 +1,58 @@
+name: Scheduled install
+# Every week, installs every item into fresh apps from main and from the newest release tag
+# (package.json ouro.latestRelease), with each ref's own install test. Item dependency ranges
+# float (@base-ui/react@^1.8.0), so a new upstream release can change what a pinned #v<x.y.z>
+# install gets without any commit here; this run notices. A variant the tag's install test
+# does not have yet is skipped with a notice.
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  refs:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: main
+          persist-credentials: false
+      - id: tag
+        run: echo "tag=$(node scripts/latest-release.mjs)" >> "$GITHUB_OUTPUT"
+  install:
+    needs: refs
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ref: [main, "${{ needs.refs.outputs.tag }}"]
+        variant: [shadcn, ouro, namespace, next]
+    name: install (${{ matrix.ref }}, ${{ matrix.variant }})
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: ${{ matrix.ref }}
+          persist-credentials: false
+      - id: has
+        env:
+          VARIANT: ${{ matrix.variant }}
+        run: |
+          if grep -qE "^usage=.*[<|]$VARIANT[|>]" scripts/install-test.sh; then
+            echo "variant=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::${{ matrix.ref }} has no $VARIANT install test; skipped."
+          fi
+      - if: steps.has.outputs.variant == 'true'
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+      - if: steps.has.outputs.variant == 'true'
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - if: steps.has.outputs.variant == 'true'
+        run: pnpm i --frozen-lockfile
+      - if: steps.has.outputs.variant == 'true'
+        run: scripts/install-test.sh ${{ matrix.variant }} "$RUNNER_TEMP/app" "$(git rev-parse HEAD)"
