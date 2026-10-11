@@ -2,6 +2,7 @@
   "$schema": "https://ui.shadcn.com/schema/registry.json",
   "name": "ouro",
   "homepage": "https://github.com/ourostack/ouro-ui",
+  "version": "0.1.0",
   "items": [
     {
       "name": "ouro-base",
@@ -147,7 +148,7 @@
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/ouro-testing"
+        "ourostack/ouro-ui/ouro-testing#v0.1.0"
       ],
       "files": [
         {
@@ -338,9 +339,9 @@
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/ouro-base",
-        "ourostack/ouro-ui/ouro-lib",
-        "ourostack/ouro-ui/ouro-testing"
+        "ourostack/ouro-ui/ouro-base#v0.1.0",
+        "ourostack/ouro-ui/ouro-lib#v0.1.0",
+        "ourostack/ouro-ui/ouro-testing#v0.1.0"
       ],
       "files": [
         {
@@ -388,9 +389,9 @@
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/ouro-base",
-        "ourostack/ouro-ui/ouro-lib",
-        "ourostack/ouro-ui/ouro-testing"
+        "ourostack/ouro-ui/ouro-base#v0.1.0",
+        "ourostack/ouro-ui/ouro-lib#v0.1.0",
+        "ourostack/ouro-ui/ouro-testing#v0.1.0"
       ],
       "files": [
         {
@@ -433,11 +434,11 @@
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/button",
-        "ourostack/ouro-ui/ouro-base",
-        "ourostack/ouro-ui/ouro-lib",
-        "ourostack/ouro-ui/ouro-testing",
-        "ourostack/ouro-ui/text"
+        "ourostack/ouro-ui/button#v0.1.0",
+        "ourostack/ouro-ui/ouro-base#v0.1.0",
+        "ourostack/ouro-ui/ouro-lib#v0.1.0",
+        "ourostack/ouro-ui/ouro-testing#v0.1.0",
+        "ourostack/ouro-ui/text#v0.1.0"
       ],
       "files": [
         {
@@ -483,10 +484,10 @@
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/button",
-        "ourostack/ouro-ui/ouro-base",
-        "ourostack/ouro-ui/ouro-lib",
-        "ourostack/ouro-ui/ouro-testing"
+        "ourostack/ouro-ui/button#v0.1.0",
+        "ourostack/ouro-ui/ouro-base#v0.1.0",
+        "ourostack/ouro-ui/ouro-lib#v0.1.0",
+        "ourostack/ouro-ui/ouro-testing#v0.1.0"
       ],
       "files": [
         {
@@ -537,11 +538,11 @@
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/button",
-        "ourostack/ouro-ui/ouro-base",
-        "ourostack/ouro-ui/ouro-lib",
-        "ourostack/ouro-ui/ouro-testing",
-        "ourostack/ouro-ui/sheet"
+        "ourostack/ouro-ui/button#v0.1.0",
+        "ourostack/ouro-ui/ouro-base#v0.1.0",
+        "ourostack/ouro-ui/ouro-lib#v0.1.0",
+        "ourostack/ouro-ui/ouro-testing#v0.1.0",
+        "ourostack/ouro-ui/sheet#v0.1.0"
       ],
       "files": [
         {
@@ -594,11 +595,11 @@
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/button",
-        "ourostack/ouro-ui/dialog",
-        "ourostack/ouro-ui/ouro-base",
-        "ourostack/ouro-ui/ouro-lib",
-        "ourostack/ouro-ui/ouro-testing"
+        "ourostack/ouro-ui/button#v0.1.0",
+        "ourostack/ouro-ui/dialog#v0.1.0",
+        "ourostack/ouro-ui/ouro-base#v0.1.0",
+        "ourostack/ouro-ui/ouro-lib#v0.1.0",
+        "ourostack/ouro-ui/ouro-testing#v0.1.0"
       ],
       "files": [
         {
