@@ -100,6 +100,6 @@ The layout mirrors where shadcn installs files, so the CLI's import rewrite land
 - Main is never pinned: only the tag points at the release commit. `pnpm registry --check` reads the `version` field, so CI on the release branch checks the pinned file; on main and on pull requests into main it fails on a `version` field or a `#v` dependency.
 - Rerunning is safe. If the tag exists and has a release, the workflow exits with a notice. A failed run deletes its branch, so rerun after fixing the cause. Recovery:
   - CI failed on the release branch: fix main, then run Release again.
-  - The tag exists without a GitHub release (the run warns): delete the tag with `git push origin :refs/tags/v<version>`, then run Release again.
+  - The tag exists without a GitHub release (the run fails and says so): delete the tag with `git push origin :refs/tags/v<version>`, then run Release again.
   - A wrong release was published: delete it with `gh release delete v<version> --cleanup-tag`, then release a new version (prefer a new version over reusing a published tag).
 - `ourostack/ouro-ui/<item>#v<version>` installs the item and all its Ouro dependencies at that tag, because the tagged `registry.json` names them with the same tag.

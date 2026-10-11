@@ -4,8 +4,9 @@ name: Release
 # (scripts/registry.mts --release), so `shadcn add ourostack/ouro-ui/<item>#v<version>`
 # installs every Ouro dependency at that tag while main stays unpinned. CI runs on that
 # commit; when it passes, the commit is tagged, the GitHub release is created and the
-# branch is deleted (the tag keeps the commit). Rerunning is safe: an existing tag exits
-# cleanly, and a failed run deletes its branch. Recovery: AGENTS.md, "Pages and releases".
+# branch is deleted (the tag keeps the commit). Rerunning is safe: a released tag exits
+# cleanly, a tag without a release fails with the fix, and a failed run deletes its
+# branch. Recovery: AGENTS.md, "Pages and releases".
 on:
   workflow_dispatch:
     inputs:
@@ -38,10 +39,10 @@ jobs:
           if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
             if gh release view "$TAG" >/dev/null 2>&1; then
               echo "::notice::$TAG is already released. Nothing to do."
-            else
-              echo "::warning::Tag $TAG exists but has no GitHub release. Delete the tag (git push origin :refs/tags/$TAG) and run Release again."
+              exit 0
             fi
-            exit 0
+            echo "::error::Tag $TAG exists but has no GitHub release. Delete the tag (git push origin :refs/tags/$TAG) and run Release again."
+            exit 1
           fi
           sha=$(git rev-parse HEAD)
           conclusion=$(gh run list --workflow ci.yml --branch main --event push --commit "$sha" --json conclusion --jq '.[0].conclusion')
