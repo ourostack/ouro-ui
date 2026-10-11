@@ -21,10 +21,11 @@
 #         then `shadcn add @ouro/dialog`. Type check and build.
 # upgrade: an app on v0.1.0 (dialog from GitHub at #v0.1.0, which brought button and sheet,
 #         with the v0.1.0 test setup and a test of its own, test/install-fixture-upgrade)
-#         runs UPGRADING.md's commands against this commit's registry: steps 1 and 2 in
-#         <app-dir>, steps 1 to 3 in <app-dir>-without-tests. Each must type check, build,
-#         keep the app's own test and config, add no component and leave no token that
-#         refers to itself.
+#         runs UPGRADING.md's commands against this commit's registry. In an app/ layout
+#         (<app-dir>-app-layout): step 1 on an app with no Ouro component must stop before
+#         adding anything; then steps 1 to 3. In the src/ layout: steps 1 and 2 in <app-dir>,
+#         steps 1 to 3 in <app-dir>-without-tests. Each must type check, build, keep the app's
+#         own test and config, add no component and keep no v0.1.0 token line.
 #
 # Same-repo registryDependencies are written without a ref (ourostack/ouro-ui/<item>), so
 # shadcn resolves them on the default branch; refs are not inherited. To install this
@@ -118,31 +119,12 @@ EOF
   exit 0
 fi
 
-if [ "$variant" = upgrade ]; then
-  echo "::group::dialog at v0.1.0 from GitHub, with its test setup and a test of the app's own"
-  "${shadcn[@]}" add --yes "ourostack/ouro-ui/dialog#v0.1.0"
-  cp -R "$root/test/install-fixture-tests/." "$app/"
-  cp -R "$root/test/install-fixture-upgrade/." "$app/"
-  # The app works on v0.1.0 before the upgrade.
-  npx tsc -b
-  npx vite build
-  npx vitest run --project app
-  # v0.1.0's dialog brought button and sheet; the note must find all three.
-  folders=$(ls src/components/ouro | tr '\n' ' ')
-  [ "$folders" = "button dialog sheet " ] || { echo "v0.1.0 dialog installed: $folders"; exit 1; }
-  echo "::endgroup::"
-fi
-
 echo "::group::Registry copy with local dependencies"
 node "$root/scripts/registry.mts" --out "$registry/registry.json" --deps "$registry/r/{name}.json"
 "${shadcn[@]}" build "$registry/registry.json" --output "$registry/r" --cwd "$root"
 echo "::endgroup::"
 
 if [ "$variant" = upgrade ]; then
-  bare="$app-without-tests"
-  mkdir -p "$bare"
-  cp -R "$app/." "$bare/"
-
   # Runs step <n> of UPGRADING.md, the note README.md, the site and the release notes show,
   # exactly as written, except that each ourostack/ouro-ui/<item>#v0.2.0 address is this
   # commit's built item file and the CLI is pinned and non-interactive.
@@ -150,43 +132,120 @@ if [ "$variant" = upgrade ]; then
     node "$root/scripts/upgrade-note.mjs" commands "$1" --shadcn "${shadcn[*]}" --address "$registry/r/{name}.json" >"$registry/step-$1.sh"
     bash -ex "$registry/step-$1.sh"
   }
-  # After either path: the app type checks, builds and runs its own test with its own
-  # config; it has the same Ouro components as before; no v0.1.0 @theme inline token line
-  # (`--ouro-x: var(--ouro-x);`, `--color-ouro-backdrop-color: var(--ouro-backdrop-color);`) is left.
+  # Moves the app in the current folder from src/ to app/, the layout Spoonjoy uses: the
+  # folder and every config path, so the ~/* alias points at ./app/*.
+  to_app_layout() {
+    if [ -d src ]; then
+      mkdir -p app
+      cp -R src/. app/
+      mv src "$(mktemp -d)/"
+    fi
+    local file
+    for file in tsconfig.json tsconfig.app.json vite.config.ts index.html vitest.config.ts .storybook/main.ts components.json; do
+      if [ -f "$file" ]; then perl -pi -e 's{(["/.])src/}{$1app/}g; s{"src"}{"app"}g; s{"\./src"}{"./app"}g' "$file"; fi
+    done
+  }
+  # Makes the app in the current folder a v0.1.0 app: dialog from GitHub at #v0.1.0 (which
+  # brings button and sheet), the v0.1.0 test setup, and a test and Vitest project of its own.
+  # <base> is the layout's folder (src or app).
+  v010_app() {
+    "${shadcn[@]}" add --yes "ourostack/ouro-ui/dialog#v0.1.0"
+    cp -R "$root/test/install-fixture-tests/." .
+    cp -R "$root/test/install-fixture-upgrade/." .
+    if [ "$1" = app ]; then to_app_layout; fi
+    npx tsc -b
+    npx vite build
+    npx vitest run --project app
+    local found
+    found=$(ls "$1/components/ouro" | tr '\n' ' ')
+    [ "$found" = "button dialog sheet " ] || { echo "v0.1.0 dialog installed: $found"; exit 1; }
+  }
+  # After an upgrade: the app type checks, builds and runs its own test with its own config;
+  # it has the same Ouro components as before; no v0.1.0 @theme inline token line
+  # (`--ouro-x: var(--ouro-x);`, `--color-ouro-backdrop-color: var(--ouro-backdrop-color);`)
+  # is left in the CSS file components.json names. <base> is the layout's folder.
   upgraded() {
     npx tsc -b
     npx vite build
     grep -q 'name: "app"' vitest.config.ts || { echo "the upgrade removed the app's Vitest project"; exit 1; }
     npx vitest run --project app
-    local now
-    now=$(ls src/components/ouro | tr '\n' ' ')
-    [ "$now" = "$folders" ] || { echo "the upgrade changed the component folders: $folders-> $now"; exit 1; }
-    if grep -En -- '^[[:space:]]*--(color-)?ouro-[a-z-]+:[[:space:]]*var\(--ouro-[a-z-]+\);' src/index.css; then
-      echo "src/index.css still maps an Ouro token through @theme inline"; exit 1
+    local now css
+    now=$(ls "$1/components/ouro" | tr '\n' ' ')
+    [ "$now" = "button dialog sheet " ] || { echo "the upgrade changed the component folders: $now"; exit 1; }
+    css=$(node -p 'require("./components.json").tailwind.css')
+    if grep -En -- '^[[:space:]]*--(color-)?ouro-[a-z-]+:[[:space:]]*var\(--ouro-[a-z-]+\);' "$css"; then
+      echo "$css still maps an Ouro token through @theme inline"; exit 1
     fi
   }
+  # After step 3: no Ouro test, story or spec file and no test kit is left.
+  no_ouro_tests() {
+    local left
+    left=$(find "$1/components/ouro" "$1/lib/ouro" e2e \( -name '*.test.ts' -o -name '*.test.tsx' -o -name '*.test-d.ts' -o -name '*.stories.tsx' -o -name '*.spec.ts' \) 2>/dev/null || true)
+    [ -z "$left" ] || { echo "step 3 left Ouro test files:"; echo "$left"; exit 1; }
+    test ! -e "$1/lib/ouro/testing" || { echo "step 3 left $1/lib/ouro/testing"; exit 1; }
+  }
+  # Step 3's prose: remove the ouroTestProjects import and call from the Vitest config.
+  drop_ouro_projects() {
+    grep -v ouroTestProjects vitest.config.ts >vitest.config.next.ts
+    mv vitest.config.next.ts vitest.config.ts
+  }
 
-  echo "::group::Upgrade (steps 1 and 2), keeping the tests"
+  echo "::group::app/ layout: a fresh app with ~/* aliases on ./app/*"
+  layout="$app-app-layout"
+  mkdir -p "$layout"
+  cp -R "$root/test/install-fixture/." "$layout/"
+  cd "$layout"
+  to_app_layout
+  npm install --no-audit --no-fund
+  "${shadcn[@]}" init --base base --preset nova --yes --no-monorepo
+  node -e 'const c = require("./components.json"); if (!c.tailwind.css.startsWith("app/")) throw new Error(`components.json css is ${c.tailwind.css}`)'
+  echo "::endgroup::"
+
+  echo "::group::Step 1 stops when it finds no Ouro component"
+  cp package.json "$registry/package.before.json"
+  if note_step 1 >"$registry/empty.log" 2>&1; then cat "$registry/empty.log"; echo "step 1 ran in an app with no Ouro components"; exit 1; fi
+  cat "$registry/empty.log"
+  grep -q "No Ouro components in .*/app/components/ouro" "$registry/empty.log" || { echo "step 1 did not say why it stopped"; exit 1; }
+  if grep -q " add " "$registry/empty.log"; then echo "step 1 called shadcn add"; exit 1; fi
+  test ! -e app/components/ouro && test ! -e app/lib/ouro || { echo "step 1 changed the app"; exit 1; }
+  cmp -s package.json "$registry/package.before.json" || { echo "step 1 changed package.json"; exit 1; }
+  echo "::endgroup::"
+
+  echo "::group::app/ layout: v0.1.0, then steps 1 to 3"
+  v010_app app
   note_step 1
   note_step 2
-  upgraded
+  note_step 3
+  drop_ouro_projects
+  upgraded app
+  no_ouro_tests app
+  echo "::endgroup::"
+
+  echo "::group::src/ layout: v0.1.0"
+  cd "$app"
+  v010_app src
+  bare="$app-without-tests"
+  mkdir -p "$bare"
+  cp -R "$app/." "$bare/"
+  echo "::endgroup::"
+
+  echo "::group::src/ layout: steps 1 and 2, keeping the tests"
+  note_step 1
+  note_step 2
+  upgraded src
   for path in components/ouro/dialog/dialog.test.tsx components/ouro/sheet/sheet.stories.tsx lib/ouro/testing/vitest.ts; do
     test -f "src/$path" || { echo "the upgrade did not keep src/$path"; exit 1; }
   done
   echo "::endgroup::"
 
-  echo "::group::Upgrade (steps 1 to 3), without Ouro's tests"
+  echo "::group::src/ layout: steps 1 to 3, without Ouro's tests"
   cd "$bare"
   note_step 1
   note_step 2
   note_step 3
-  # Step 3's prose: remove the ouroTestProjects import and call from the Vitest config.
-  grep -v ouroTestProjects vitest.config.ts >vitest.config.next.ts
-  mv vitest.config.next.ts vitest.config.ts
-  upgraded
-  left=$(find src/components/ouro src/lib/ouro e2e \( -name '*.test.ts' -o -name '*.test.tsx' -o -name '*.test-d.ts' -o -name '*.stories.tsx' -o -name '*.spec.ts' \) 2>/dev/null || true)
-  [ -z "$left" ] || { echo "step 3 left Ouro test files:"; echo "$left"; exit 1; }
-  test ! -e src/lib/ouro/testing || { echo "step 3 left src/lib/ouro/testing"; exit 1; }
+  drop_ouro_projects
+  upgraded src
+  no_ouro_tests src
   echo "::endgroup::"
   exit 0
 fi

@@ -121,8 +121,8 @@ jobs:
           if-no-files-found: ignore
   install-upgrade:
     # An app on v0.1.0 (dialog from GitHub at #v0.1.0, with tests of its own) runs the
-    # commands in UPGRADING.md against this commit's registry, keeping Ouro's tests and
-    # without them (scripts/install-test.sh upgrade).
+    # commands in UPGRADING.md against this commit's registry, in a src/ and an app/
+    # layout, keeping Ouro's tests and without them (scripts/install-test.sh upgrade).
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
