@@ -351,7 +351,7 @@ export function buildRegistry(root: string): Registry {
       kind: "tests" as const,
       // Says what the item ships, by the kinds of file it has (ouro-lib-tests has only tests).
       description: `Optional: the ${fileKinds(shipped(entry.name))} for ${entry.of}, with the test tooling as devDependencies. Add it beside ${entry.of}: add ${entry.of} ${entry.name}. ${vitestPin}`,
-      docs: `${entry.of}'s tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: ${DOCS_URL}${entry.docsPage}`,
+      docs: `${entry.of}'s tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: ${DOCS_URL}${entry.docsPage ? `${entry.docsPage}.md` : ""}`,
     })),
     {
       name: "ouro-tests",
@@ -443,7 +443,7 @@ export function buildRegistry(root: string): Registry {
     item.docs =
       `${item.description} Import: import { ${entry.title} } from "@/components/ouro/${entry.folder}/${entry.stem}", ` +
       "with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). " +
-      `Also installed: ${also}. Docs: ${DOCS_URL}/${entry.name}`;
+      `Also installed: ${also}. Docs: ${DOCS_URL}/${entry.name}.md`;
   }
   return {
     $schema: "https://ui.shadcn.com/schema/registry.json",
