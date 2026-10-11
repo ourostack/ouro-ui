@@ -1,4 +1,4 @@
-import { useRef, useState, type JSX, type ReactElement, type ReactNode, type RefObject } from "react";
+import { useEffect, useRef, useState, type JSX, type ReactElement, type ReactNode, type RefObject } from "react";
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
 import { checkOpenMode } from "@/registry/ouro/lib/ouro/open-mode";
 import { toneWarning } from "@/registry/ouro/lib/ouro/tones";
@@ -41,8 +41,9 @@ export interface ConfirmDialogBaseProps {
    */
   onConfirm: () => void | Promise<void>;
   /**
-   * Where focus goes after a confirmed action closes the confirmation. Cancel and
-   * Escape still return focus to the trigger. When `onConfirm` removes the trigger,
+   * Where focus goes after a confirmed action closes the confirmation. Any other close
+   * (Cancel, Escape, or your app setting `open` to false) returns focus to the trigger,
+   * even after an earlier confirm. When `onConfirm` removes the trigger,
    * point this at what replaces it (give a heading `tabIndex={-1}`):
    * `finalFocus={headingRef}`.
    */
@@ -182,6 +183,14 @@ export function ConfirmDialog(props: ConfirmDialogProps): JSX.Element {
   const confirmed = useRef(false);
 
   const controlled = open !== undefined;
+  const shown = controlled ? open : ownOpen;
+  // Every open starts unconfirmed, however it opened. An app that sets `open` itself
+  // never calls setOpen, so without this a close the app makes after reopening a
+  // confirmed dialog would still send focus to `finalFocus`.
+  useEffect(() => {
+    if (shown) confirmed.current = false;
+  }, [shown]);
+
   const setOpen = (next: boolean, afterConfirm = false) => {
     confirmed.current = afterConfirm;
     attempt.current++;
@@ -230,7 +239,7 @@ export function ConfirmDialog(props: ConfirmDialogProps): JSX.Element {
   };
 
   return (
-    <AlertDialogRoot open={controlled ? open : ownOpen} onOpenChange={(next) => setOpen(next)}>
+    <AlertDialogRoot open={shown} onOpenChange={(next) => setOpen(next)}>
       {trigger !== undefined && <DialogTrigger render={trigger} />}
       <DialogPortal>
         <DialogBackdrop />
