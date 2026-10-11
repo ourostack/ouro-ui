@@ -24,8 +24,10 @@
 #         come through @ouro, every installed file must equal the tag's source, and each item
 #         must name that release. Type check and build.
 # next:   a Next.js App Router app from create-next-app (TypeScript, Tailwind CSS v4, src/),
-#         `shadcn init` (which writes "rsc": true), every runtime item, and a Server Component
-#         page that renders every component; `next build` must pass and prerender it, and
+#         `shadcn init` (which writes "rsc": true), every runtime item, a Server Component layout
+#         with <OuroProvider linkComponent={Link}> (next/link), and a Server Component page that
+#         renders every component and the Dialog and Sheet parts; `next build` must pass and
+#         prerender it, and
 #         every installed file keeps its source's "use client".
 # upgrade: an app on v0.1.0 (dialog from GitHub at #v0.1.0, which brought button and sheet,
 #         with the v0.1.0 test setup and a test of its own, test/install-fixture-upgrade)
@@ -89,18 +91,57 @@ if [ "$variant" = next ]; then
   "${shadcn[@]}" add --yes "${items_json[@]}"
   echo "::endgroup::"
 
-  echo "::group::Every component from a Server Component page"
-  # No "use client" here: app/page.tsx is a Server Component by default. Props cross to the
-  # client components, so they are serializable: elements, strings, and a server action for
-  # ConfirmDialog's onConfirm.
+  echo "::group::Every component from Server Components"
+  # No "use client" here: app/layout.tsx and app/page.tsx are Server Components by default.
+  # Props cross to the client components, so they are serializable: elements, strings, a
+  # server action for ConfirmDialog's onConfirm, and next/link's Link as OuroProvider's
+  # linkComponent, the way the README tells a Next.js app to set it up.
+  cat > src/app/layout.tsx <<'LAYOUT'
+import Link from "next/link";
+import type { ReactNode } from "react";
+import { OuroProvider } from "@/lib/ouro/ouro-provider";
+import "./globals.css";
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <OuroProvider linkComponent={Link}>{children}</OuroProvider>
+      </body>
+    </html>
+  );
+}
+LAYOUT
   cat > src/app/page.tsx <<'PAGE'
 import { Button } from "@/components/ouro/button/button";
 import { ConfirmDialog } from "@/components/ouro/dialog/confirm-dialog";
 import { Dialog } from "@/components/ouro/dialog/dialog";
+import {
+  DialogBackdrop,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogPopup,
+  DialogPortal,
+  DialogRoot,
+  DialogTitle,
+  DialogTrigger,
+  DialogViewport,
+} from "@/components/ouro/dialog/dialog-parts";
 import { Sheet } from "@/components/ouro/sheet/sheet";
+import {
+  SheetBackdrop,
+  SheetContent,
+  SheetHandle,
+  SheetPopup,
+  SheetPortal,
+  SheetRoot,
+  SheetTitle,
+  SheetTrigger,
+  SheetViewport,
+} from "@/components/ouro/sheet/sheet-parts";
 import { Heading } from "@/components/ouro/text/heading";
 import { Text } from "@/components/ouro/text/text";
-import { OuroProvider } from "@/lib/ouro/ouro-provider";
 
 async function deleteRecipe() {
   "use server";
@@ -108,27 +149,53 @@ async function deleteRecipe() {
 
 export default function Page() {
   return (
-    <OuroProvider>
-      <main>
-        <Heading level={1}>Ouro server page</Heading>
-        <Text>Rendered by a Server Component.</Text>
-        <Button>Ouro button</Button>
-        <Button href="/recipes">Ouro link</Button>
-        <Dialog title="Edit recipe" trigger={<Button>Open dialog</Button>}>
-          <Text>Dialog body</Text>
-        </Dialog>
-        <Sheet title="Filters" trigger={<Button>Open sheet</Button>}>
-          <Text>Sheet body</Text>
-        </Sheet>
-        <ConfirmDialog
-          title="Delete recipe?"
-          confirmLabel="Delete"
-          tone="destructive"
-          onConfirm={deleteRecipe}
-          trigger={<Button tone="destructive">Delete</Button>}
-        />
-      </main>
-    </OuroProvider>
+    <main>
+      <Heading level={1}>Ouro server page</Heading>
+      <Text>Rendered by a Server Component.</Text>
+      <Button>Ouro button</Button>
+      <Button href="/recipes">Ouro link</Button>
+      <Dialog title="Edit recipe" trigger={<Button>Open dialog</Button>}>
+        <Text>Dialog body</Text>
+      </Dialog>
+      <Sheet title="Filters" trigger={<Button>Open sheet</Button>}>
+        <Text>Sheet body</Text>
+      </Sheet>
+      <ConfirmDialog
+        title="Delete recipe?"
+        confirmLabel="Delete"
+        tone="destructive"
+        onConfirm={deleteRecipe}
+        trigger={<Button tone="destructive">Delete</Button>}
+      />
+      <DialogRoot>
+        <DialogTrigger render={<Button>Open parts dialog</Button>} />
+        <DialogPortal>
+          <DialogBackdrop />
+          <DialogViewport>
+            <DialogPopup size="sm">
+              <DialogTitle>Parts dialog</DialogTitle>
+              <DialogContent>Built from the parts.</DialogContent>
+              <DialogFooter>
+                <DialogClose render={<Button>Done</Button>} />
+              </DialogFooter>
+            </DialogPopup>
+          </DialogViewport>
+        </DialogPortal>
+      </DialogRoot>
+      <SheetRoot side="bottom">
+        <SheetTrigger render={<Button>Open parts sheet</Button>} />
+        <SheetPortal>
+          <SheetBackdrop />
+          <SheetViewport>
+            <SheetPopup>
+              <SheetHandle />
+              <SheetTitle>Parts sheet</SheetTitle>
+              <SheetContent>Built from the parts.</SheetContent>
+            </SheetPopup>
+          </SheetViewport>
+        </SheetPortal>
+      </SheetRoot>
+    </main>
   );
 }
 PAGE
@@ -138,9 +205,11 @@ PAGE
   npx tsc --noEmit
   npx next build
   html=.next/server/app/index.html
-  for text in "Ouro server page" "Rendered by a Server Component." "Ouro button" "Ouro link" "Open dialog" "Open sheet" "Delete"; do
+  for text in "Ouro server page" "Rendered by a Server Component." "Ouro button" "Ouro link" "Open dialog" "Open sheet" "Delete" "Open parts dialog" "Open parts sheet"; do
     grep -q "$text" "$html" || { echo "the prerendered page has no \"$text\""; exit 1; }
   done
+  # Button's href rendered through OuroProvider's linkComponent, next/link.
+  grep -q 'href="/recipes"' "$html" || { echo "the prerendered page has no link to /recipes"; exit 1; }
   node "$root/scripts/install-check.mjs" "$app" next runtime
   echo "::endgroup::"
   exit 0
