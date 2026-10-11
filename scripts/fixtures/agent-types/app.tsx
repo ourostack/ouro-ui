@@ -1,6 +1,6 @@
 // What agents write. Snippets s01-s23 are the review's probe of habits from shadcn/ui,
-// Radix, MUI and plain guessing, and s24-s31 the remaining enum props (re-review 1); v01-v05 are the rest of shadcn's Button variants and
-// sizes; ok01-ok07 are valid code. Every snippet except the ok ones is a type error on
+// Radix, MUI and plain guessing, s24-s31 the remaining enum props (re-review 1), and s32-s42 the Field, Fieldset and Link habits; v01-v05 are the rest of shadcn's Button variants and
+// sizes; ok01-ok10 are valid code. Every snippet except the ok ones is a type error on
 // purpose. scripts/agent-types.test.mjs runs `tsc` on this file and hovers its props
 // through the TypeScript language service, and test/agent-types.test.tsx renders the
 // snippets and reads the development messages. scripts/fixtures/agent-types/cases.ts
@@ -8,6 +8,10 @@
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { ConfirmDialog } from "@/registry/ouro/components/ouro/dialog/confirm-dialog";
 import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
+import { Field } from "@/registry/ouro/components/ouro/field/field";
+import { FieldControl } from "@/registry/ouro/components/ouro/field/field-parts";
+import { Fieldset } from "@/registry/ouro/components/ouro/field/fieldset";
+import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { DialogPopup, DialogPortal, DialogRoot } from "@/registry/ouro/components/ouro/dialog/dialog-parts";
 import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { SheetRoot } from "@/registry/ouro/components/ouro/sheet/sheet-parts";
@@ -51,6 +55,17 @@ export const s28 = <Heading level={7} align="center">Recipes</Heading>;
 export const s29 = <Button loading type="primary">Save</Button>;
 export const s30 = <SheetRoot side="left-ish" open={false} />;
 export const s31 = <DialogRoot open><DialogPortal><DialogPopup size="xl">Body</DialogPopup></DialogPortal></DialogRoot>;
+export const s32 = <Field label="Email" htmlFor="email"><FieldControl /></Field>;
+export const s33 = <Field label="Email" errorMessage="Required."><FieldControl /></Field>;
+export const s34 = <Field label="Email" helperText="We never share it."><FieldControl /></Field>;
+export const s35 = <Field label="Email" isInvalid><FieldControl /></Field>;
+export const s36 = <Field label="Email" isRequired><FieldControl /></Field>;
+export const s37 = <Field label="Email" isDisabled><FieldControl /></Field>;
+export const s38 = <Field placeholder="Email"><FieldControl /></Field>;
+export const s39 = <Fieldset label="Shipping address">Fields</Fieldset>;
+export const s40 = <Link to="/recipes">Recipes</Link>;
+export const s41 = <Link href="https://ouro.bot" isExternal>Ouro</Link>;
+export const s42 = <Link href="/recipes" tone="danger">Delete</Link>;
 
 export const v01 = <Button loading tone="primary" variant="destructive">Delete</Button>;
 export const v02 = <Button variant="default">Save</Button>;
@@ -65,3 +80,6 @@ export const ok04 = <Button loading tone="primary" href="/x">Go</Button>;
 export const ok05 = <Heading level={1} size="display">Hero</Heading>;
 export const ok06 = <Dialog title="Edit" size="sm" open={open} onOpenChange={setOpen}>Body</Dialog>;
 export const ok07 = <ConfirmDialog title="Delete?" confirmLabel="Delete" tone="destructive" onConfirm={() => {}} trigger={<Button>Delete</Button>} />;
+export const ok08 = <Field label="Email" name="email" required description="We never share it." error="Required."><FieldControl /></Field>;
+export const ok09 = <Fieldset legend="Shipping address" description="Where we send it." disabled>Fields</Fieldset>;
+export const ok10 = <Link href="https://ouro.bot" external tone="secondary">Ouro</Link>;

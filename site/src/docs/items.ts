@@ -1,7 +1,10 @@
 import buttonDoc from "../../../docs/Button.md?raw";
 import confirmDialogDoc from "../../../docs/ConfirmDialog.md?raw";
 import dialogDoc from "../../../docs/Dialog.md?raw";
+import fieldDoc from "../../../docs/Field.md?raw";
+import fieldsetDoc from "../../../docs/Fieldset.md?raw";
 import headingDoc from "../../../docs/Heading.md?raw";
+import linkDoc from "../../../docs/Link.md?raw";
 import partsDoc from "../../../docs/parts.md?raw";
 import sheetDoc from "../../../docs/Sheet.md?raw";
 import textDoc from "../../../docs/Text.md?raw";
@@ -17,19 +20,22 @@ export interface DocsItem {
   /** The component's export name. */
   title: string;
   /** Catalog group, as in the README catalog. */
-  group: "Actions" | "Text" | "Overlays";
+  group: "Actions" | "Text" | "Forms" | "Overlays";
   /** The registry source file, from the repo root. */
   source: string;
   /** docs/<title>.md, generated. */
   markdown: string;
   /** The family in docs/parts.md whose nesting this page shows, if it has parts. */
-  parts?: "Sheet" | "Dialog";
+  parts?: "Sheet" | "Dialog" | "Field";
 }
 
 export const docsItems: DocsItem[] = [
   { name: "button", title: "Button", group: "Actions", source: "registry/ouro/components/ouro/button/button.tsx", markdown: buttonDoc },
   { name: "text", title: "Text", group: "Text", source: "registry/ouro/components/ouro/text/text.tsx", markdown: textDoc },
   { name: "heading", title: "Heading", group: "Text", source: "registry/ouro/components/ouro/text/heading.tsx", markdown: headingDoc },
+  { name: "link", title: "Link", group: "Text", source: "registry/ouro/components/ouro/link/link.tsx", markdown: linkDoc },
+  { name: "field", title: "Field", group: "Forms", source: "registry/ouro/components/ouro/field/field.tsx", markdown: fieldDoc, parts: "Field" },
+  { name: "fieldset", title: "Fieldset", group: "Forms", source: "registry/ouro/components/ouro/field/fieldset.tsx", markdown: fieldsetDoc },
   { name: "sheet", title: "Sheet", group: "Overlays", source: "registry/ouro/components/ouro/sheet/sheet.tsx", markdown: sheetDoc, parts: "Sheet" },
   { name: "dialog", title: "Dialog", group: "Overlays", source: "registry/ouro/components/ouro/dialog/dialog.tsx", markdown: dialogDoc, parts: "Dialog" },
   {
@@ -42,7 +48,7 @@ export const docsItems: DocsItem[] = [
 ];
 
 /** The `## <family> parts` section of docs/parts.md, without its heading. */
-export function partsSection(family: "Sheet" | "Dialog"): string {
+export function partsSection(family: "Sheet" | "Dialog" | "Field"): string {
   const start = partsDoc.indexOf(`## ${family} parts\n`);
   const body = partsDoc.slice(start).split("\n").slice(1).join("\n");
   const end = body.search(/^## /m);

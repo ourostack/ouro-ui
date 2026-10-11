@@ -98,7 +98,7 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
 }
 
 export function DocsIndex(): JSX.Element {
-  const groups = ["Actions", "Text", "Overlays"] as const;
+  const groups = ["Actions", "Text", "Forms", "Overlays"] as const;
   const card =
     "group grid h-full gap-1.5 rounded-xl border border-border p-4 no-underline outline-ring transition-colors hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-offset-2";
   return (

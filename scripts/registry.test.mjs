@@ -49,6 +49,9 @@ test("the registry is named ouro and lists every item", () => {
       "sheet",
       "dialog",
       "confirm-dialog",
+      "field",
+      "fieldset",
+      "link",
       "ouro-lib-tests",
       "button-tests",
       "text-tests",
@@ -56,12 +59,15 @@ test("the registry is named ouro and lists every item", () => {
       "sheet-tests",
       "dialog-tests",
       "confirm-dialog-tests",
+      "field-tests",
+      "fieldset-tests",
+      "link-tests",
       "ouro-tests",
     ],
   );
 });
 
-const components = ["button", "text", "heading", "sheet", "dialog", "confirm-dialog"];
+const components = ["button", "text", "heading", "sheet", "dialog", "confirm-dialog", "field", "fieldset", "link"];
 const runtimeItems = ["ouro-base", "ouro-theme", "ouro-lib", ...components];
 const testFile = /\.(test|touch\.test)\.tsx?$|\.test-d\.ts$|\.stories\.tsx$|\.spec\.ts$/;
 
@@ -256,7 +262,7 @@ test("each item has a one-line description and a docs message with its docs URL"
   }
   assert.match(item("ouro-testing").description, /^Installed with every -tests item; you don't need to add it\. /);
   assert.match(item("sheet-tests").docs, /https:\/\/ourostack\.github\.io\/ouro-ui\/docs\/sheet\.md$/);
-  for (const name of ["button", "text", "heading", "sheet", "dialog", "confirm-dialog"]) {
+  for (const name of ["button", "text", "heading", "sheet", "dialog", "confirm-dialog", "field", "fieldset", "link"]) {
     assert.ok(item(name).docs.endsWith(`Docs: https://ourostack.github.io/ouro-ui/docs/${name}.md`), name);
   }
   assert.match(item("ouro-testing").docs, /ouroTestProjects/);
@@ -357,7 +363,7 @@ test("site/public/llms.txt gives the init, search and add commands and lists eve
   assert.ok(llms.includes("npx shadcn@latest init --base base --preset nova --yes --no-monorepo"));
   assert.ok(llms.includes("npx shadcn@latest search 'ourostack/ouro-ui#v"));
   assert.ok(llms.includes("npx shadcn@latest add ourostack/ouro-ui/dialog#v"));
-  const components = ["button", "text", "heading", "sheet", "dialog", "confirm-dialog"];
+  const components = ["button", "text", "heading", "sheet", "dialog", "confirm-dialog", "field", "fieldset", "link"];
   for (const entry of registry.items) {
     // A component's line ends with its page's full Markdown URL, so an agent never composes one.
     const line = components.includes(entry.name)
@@ -378,4 +384,31 @@ test("--from rewrites a released registry.json for the @ouro namespace, keeping 
   assert.deepEqual(namespaced.items.find((entry) => entry.name === "dialog").registryDependencies, ["@ouro/ouro-base", "@ouro/ouro-lib", "@ouro/sheet"]);
   assert.ok(namespaced.items.every((entry) => entry.docs === undefined || entry.docs.endsWith(" Ouro UI v0.3.0.")));
   assert.equal(run("--from", released, "--out", join(dir, "bad.json")).status, 1, "--from without --deps fails");
+});
+
+test("no item lists a package as a devDependency that a runtime item, or anything it installs, needs", () => {
+  // The CLI installs devDependencies with --save-dev, which moves a package the app already has
+  // in dependencies; a production install would then lack it (scripts/install-check.mjs checks
+  // an installed app the same way).
+  const byName = new Map(registry.items.map((entry) => [entry.name, entry]));
+  const packageOf = (spec) => spec.slice(0, spec.indexOf("@", 1));
+  const closure = (name, seen = new Set()) => {
+    for (const dependency of byName.get(name)?.registryDependencies ?? []) {
+      const dep = dependency.replace(/^ourostack\/ouro-ui\//, "").replace(/#.*$/, "");
+      if (!seen.has(dep)) {
+        seen.add(dep);
+        closure(dep, seen);
+      }
+    }
+    return seen;
+  };
+  const runtime = registry.items.filter((entry) => !entry.name.endsWith("-tests") && entry.name !== "ouro-testing");
+  const runtimePackages = new Set(runtime.flatMap((entry) => (entry.dependencies ?? []).map(packageOf)));
+  assert.ok(runtimePackages.has("@base-ui/react"));
+  for (const entry of registry.items) {
+    const dev = (entry.devDependencies ?? []).map(packageOf);
+    const installed = new Set([entry.name, ...closure(entry.name)].flatMap((name) => (byName.get(name)?.dependencies ?? []).map(packageOf)));
+    assert.deepEqual(dev.filter((name) => installed.has(name)), [], `${entry.name}: a devDependency its own install already lists as a dependency`);
+    assert.deepEqual(dev.filter((name) => runtimePackages.has(name)), [], `${entry.name}: a devDependency that a runtime item needs`);
+  }
 });

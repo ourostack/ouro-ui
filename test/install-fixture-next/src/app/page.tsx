@@ -13,6 +13,10 @@ import {
   DialogTrigger,
   DialogViewport,
 } from "@/components/ouro/dialog/dialog-parts";
+import { Field } from "@/components/ouro/field/field";
+import { FieldControl, FieldError, FieldLabel, FieldRoot } from "@/components/ouro/field/field-parts";
+import { Fieldset } from "@/components/ouro/field/fieldset";
+import { Link } from "@/components/ouro/link/link";
 import { Sheet } from "@/components/ouro/sheet/sheet";
 import {
   SheetBackdrop,
@@ -39,6 +43,20 @@ export default function Page() {
       <Text>Rendered by a Server Component.</Text>
       <Button>Ouro button</Button>
       <Button href="/recipes">Ouro link</Button>
+      <Link href="/cookbooks">Ouro text link</Link>
+      <Link href="https://ouro.bot" external>
+        Ouro external link
+      </Link>
+      <Fieldset legend="Ouro fieldset" description="Grouped on the server.">
+        <Field label="Ouro field" name="email" description="Field description" error="Field error" required>
+          <FieldControl type="email" />
+        </Field>
+      </Fieldset>
+      <FieldRoot name="notes">
+        <FieldLabel>Ouro parts field</FieldLabel>
+        <FieldControl />
+        <FieldError />
+      </FieldRoot>
       <Dialog title="Edit recipe" trigger={<Button>Open dialog</Button>}>
         <Text>Dialog body</Text>
       </Dialog>

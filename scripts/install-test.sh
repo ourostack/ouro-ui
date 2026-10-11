@@ -27,7 +27,7 @@
 #         `shadcn init` (which writes "rsc": true), every runtime item, and test/install-fixture-next:
 #         a Server Component layout with the README's providers.tsx (<OuroProvider
 #         linkComponent={Link}>, next/link) and a Server Component page that renders every
-#         component and the Dialog and Sheet parts; `next build` must pass and prerender it, and
+#         component and the Dialog, Sheet and Field parts; `next build` must pass and prerender it, and
 #         every installed file keeps its source's "use client".
 # upgrade: an app on v0.1.0 (dialog from GitHub at #v0.1.0, which brought button and sheet,
 #         with the v0.1.0 test setup and a test of its own, test/install-fixture-upgrade)
@@ -55,7 +55,7 @@ shadcn=(npx --yes shadcn@4.21.1)
 preset=${OURO_PRESET:-nova}
 vitest=(npx --yes vitest@5.0.3)
 create_next_app=(npx --yes create-next-app@16.3.8)
-items=(button text heading sheet dialog confirm-dialog)
+items=(button text heading link field fieldset sheet dialog confirm-dialog)
 
 # The runtime items add components only: no test, story or spec file, no test kit, no test
 # tooling in package.json, and so nothing for a plain `vitest run` to find.
@@ -93,7 +93,7 @@ if [ "$variant" = next ]; then
 
   echo "::group::Every component from Server Components"
   # test/install-fixture-next: app/layout.tsx and app/page.tsx are Server Components (no
-  # "use client"). The page renders every component and the Dialog and Sheet parts with
+  # "use client"). The page renders every component and the Dialog, Sheet and Field parts with
   # serializable props (elements, strings, a server action for ConfirmDialog's onConfirm). The
   # layout wraps the app in app/providers.tsx, the client file the README gives Next.js apps
   # for <OuroProvider linkComponent={Link}>, because next/link's Link can't cross from a Server
@@ -105,11 +105,14 @@ if [ "$variant" = next ]; then
   npx tsc --noEmit
   npx next build
   html=.next/server/app/index.html
-  for text in "Ouro server page" "Rendered by a Server Component." "Ouro button" "Ouro link" "Open dialog" "Open sheet" "Delete" "Open parts dialog" "Open parts sheet"; do
+  for text in "Ouro server page" "Rendered by a Server Component." "Ouro button" "Ouro link" "Ouro text link" "Ouro external link" "opens in a new tab" "Ouro fieldset" "Grouped on the server." "Ouro field" "Field description" "Field error" "Ouro parts field" "Open dialog" "Open sheet" "Delete" "Open parts dialog" "Open parts sheet"; do
     grep -q "$text" "$html" || { echo "the prerendered page has no \"$text\""; exit 1; }
   done
   # Button's href rendered through OuroProvider's linkComponent, next/link.
   grep -q 'href="/recipes"' "$html" || { echo "the prerendered page has no link to /recipes"; exit 1; }
+  # Link's href through the same linkComponent path, and Field's wiring in the server HTML.
+  grep -q 'href="/cookbooks"' "$html" || { echo "the prerendered page has no link to /cookbooks"; exit 1; }
+  grep -q 'aria-describedby="[^"]*-description [^"]*-error"' "$html" || { echo "the prerendered field has no aria-describedby"; exit 1; }
   node "$root/scripts/install-check.mjs" "$app" next runtime
   echo "::endgroup::"
   exit 0

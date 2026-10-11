@@ -42,6 +42,7 @@ export function hasClientDirective(path, text) {
  */
 export const pureFiles = new Set([
   "registry/ouro/components/ouro/dialog/dialog-styles.ts",
+  "registry/ouro/components/ouro/field/field-styles.ts",
   "registry/ouro/components/ouro/sheet/sheet-styles.ts",
   "registry/ouro/components/ouro/text/text-styles.ts",
   "registry/ouro/lib/ouro/touch-target.tsx",

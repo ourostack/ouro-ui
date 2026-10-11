@@ -195,6 +195,11 @@
           "target": "@lib/ouro/refs.ts"
         },
         {
+          "path": "registry/ouro/lib/ouro/router-link.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/router-link.ts"
+        },
+        {
           "path": "registry/ouro/lib/ouro/tones.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/tones.ts"
@@ -213,6 +218,11 @@
           "path": "registry/ouro/lib/ouro/use-dev-warnings.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/use-dev-warnings.ts"
+        },
+        {
+          "path": "registry/ouro/lib/ouro/use-field.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/use-field.ts"
         },
         {
           "path": "registry/ouro/lib/ouro/use-keyboard-scrollable.ts",
@@ -434,6 +444,77 @@
           "path": "registry/ouro/components/ouro/dialog/confirm-dialog.tsx",
           "type": "registry:ui",
           "target": "@components/ouro/dialog/confirm-dialog.tsx"
+        }
+      ]
+    },
+    {
+      "name": "field",
+      "type": "registry:ui",
+      "title": "Field",
+      "description": "A labeled form control: the label, an optional description, the control and its error, wired together with ids that match between the server and the browser.",
+      "docs": "A labeled form control: the label, an optional description, the control and its error, wired together with ids that match between the server and the browser. Import: import { Field } from \"@/components/ouro/field/field\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/field.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/field/field-parts.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/field/field-parts.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/field/field-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/field/field-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/field/field.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/field/field.tsx"
+        }
+      ]
+    },
+    {
+      "name": "fieldset",
+      "type": "registry:ui",
+      "title": "Fieldset",
+      "description": "A titled group of related fields, such as an address, rendered as a `<fieldset>` named by its legend.",
+      "docs": "A titled group of related fields, such as an address, rendered as a `<fieldset>` named by its legend. Import: import { Fieldset } from \"@/components/ouro/field/fieldset\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: field, ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/fieldset.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/field/fieldset.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/field/fieldset.tsx"
+        }
+      ]
+    },
+    {
+      "name": "link",
+      "type": "registry:ui",
+      "title": "Link",
+      "description": "A text link that navigates through your router.",
+      "docs": "A text link that navigates through your router. Import: import { Link } from \"@/components/ouro/link/link\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/link.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/link/link.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/link/link.tsx"
         }
       ]
     },
@@ -755,6 +836,127 @@
       ]
     },
     {
+      "name": "field-tests",
+      "type": "registry:item",
+      "title": "Field tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for field, with the test tooling as devDependencies. Add it beside field: add field field-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "field's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/field.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/field/field.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/field/field.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/field/field.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/field/field.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/field/field.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/field/field.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/field.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/field.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "fieldset-tests",
+      "type": "registry:item",
+      "title": "Fieldset tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for fieldset, with the test tooling as devDependencies. Add it beside fieldset: add fieldset fieldset-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "fieldset's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/fieldset.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/fieldset",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/field/fieldset.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/field/fieldset.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/field/fieldset.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/field/fieldset.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/field/fieldset.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/field/fieldset.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/fieldset.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/fieldset.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "link-tests",
+      "type": "registry:item",
+      "title": "Link tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for link, with the test tooling as devDependencies. Add it beside link: add link link-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "link's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/link.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/link",
+        "ourostack/ouro-ui/ouro-lib",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/text"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/link/link.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/link/link.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/link/link.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/link/link.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/link/link.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/link/link.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/link.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/link.spec.ts"
+        }
+      ]
+    },
+    {
       "name": "ouro-tests",
       "type": "registry:item",
       "title": "Ouro tests",
@@ -764,7 +966,10 @@
         "ourostack/ouro-ui/button-tests",
         "ourostack/ouro-ui/confirm-dialog-tests",
         "ourostack/ouro-ui/dialog-tests",
+        "ourostack/ouro-ui/field-tests",
+        "ourostack/ouro-ui/fieldset-tests",
         "ourostack/ouro-ui/heading-tests",
+        "ourostack/ouro-ui/link-tests",
         "ourostack/ouro-ui/ouro-lib-tests",
         "ourostack/ouro-ui/sheet-tests",
         "ourostack/ouro-ui/text-tests"
