@@ -170,7 +170,7 @@ if [ "$variant" = namespace ]; then
   tag=$(node "$root/scripts/latest-release.mjs")
   "$root/scripts/namespace.sh" "$registry/r" "$tag"
   for item in dialog sheet ouro-lib ouro-base; do
-    node -e 'const i = require(process.argv[1]); if (!i.docs.endsWith(` Ouro UI ${process.argv[2]}.`)) throw new Error(`${i.name} does not name ${process.argv[2]}: ${i.docs.slice(-40)}`)' "$registry/r/$item.json" "${tag#v}"
+    node -e 'const i = require(process.argv[1]); if (!i.docs.endsWith(` Ouro UI ${process.argv[2]}.`)) throw new Error(`${i.name} does not name ${process.argv[2]}: ${i.docs.slice(-40)}`)' "$registry/r/$item.json" "$tag"
   done
   python3 -m http.server 8765 --bind 127.0.0.1 --directory "$registry" 2>"$registry/served.log" &
   server=$!
