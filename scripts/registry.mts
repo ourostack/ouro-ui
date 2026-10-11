@@ -453,7 +453,7 @@ export function buildRegistry(root: string): Registry {
   return {
     $schema: "https://ui.shadcn.com/schema/registry.json",
     name: "ouro",
-    homepage: "https://github.com/ourostack/ouro-ui",
+    homepage: "https://ourostack.github.io/ouro-ui/",
     items,
   };
 }

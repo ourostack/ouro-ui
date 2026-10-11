@@ -1,4 +1,5 @@
 import { docsItems } from "./docs/items";
+import { latestRelease } from "./release";
 
 /** Every page the site builds. Paths are relative to the base (`/ouro-ui/`) and end in `/`. */
 export interface Route {
@@ -16,7 +17,7 @@ export const routes: Route[] = [
   ...docsItems.map((item) => ({
     path: `/docs/${item.name}/`,
     title: `${item.title} · Ouro UI`,
-    description: `${item.title}: install it with npx shadcn@latest add ourostack/ouro-ui/${item.name}.`,
+    description: `${item.title}: install it with npx shadcn@latest add ourostack/ouro-ui/${item.name}#${latestRelease}.`,
   })),
   {
     path: "/docs/switching-from-shadcn/",

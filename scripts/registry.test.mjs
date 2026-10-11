@@ -35,7 +35,7 @@ test("--check fails when registry.json is stale, and names the fix", () => {
 
 test("the registry is named ouro and lists every item", () => {
   assert.equal(registry.name, "ouro");
-  assert.equal(registry.homepage, "https://github.com/ourostack/ouro-ui");
+  assert.equal(registry.homepage, "https://ourostack.github.io/ouro-ui/");
   assert.deepEqual(
     registry.items.map((entry) => entry.name),
     [

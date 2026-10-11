@@ -4,6 +4,8 @@ import { cleanupPage, describeViolations, renderPage, scan, setScheme, settle } 
 import { latestRelease, upgrading } from "./release";
 import { docsItems } from "./docs/items";
 import { parse } from "./docs/markdown";
+import ogImage from "../public/og.png?url";
+import { headTags } from "./head";
 import { routes } from "./routes";
 
 // The site's contract (Task 11): the hero says exactly what it should, the live Sheet
@@ -130,4 +132,34 @@ it("the Sheet demo passes axe while open, at a phone width", async () => {
   await settle();
   const violations = await scan();
   expect(violations, describeViolations(violations)).toEqual([]);
+});
+
+describe("head tags", () => {
+  it("give every page Open Graph and Twitter tags with the 1200x630 og.png", async () => {
+    const route = { path: "/docs/sheet/", title: "Sheet · Ouro UI", description: 'Install "sheet" & go' };
+    const tags = headTags(route, true);
+    for (const tag of [
+      '<meta property="og:title" content="Sheet · Ouro UI" />',
+      '<meta property="og:description" content="Install &quot;sheet&quot; &amp; go" />',
+      '<meta property="og:url" content="https://ourostack.github.io/ouro-ui/docs/sheet/" />',
+      '<meta property="og:image" content="https://ourostack.github.io/ouro-ui/og.png" />',
+      '<meta property="og:image:width" content="1200" />',
+      '<meta property="og:image:height" content="630" />',
+      '<meta name="twitter:card" content="summary_large_image" />',
+      '<meta name="twitter:image" content="https://ourostack.github.io/ouro-ui/og.png" />',
+    ]) {
+      expect(tags).toContain(tag);
+    }
+    expect(headTags(route, false).some((tag) => tag.includes("og:url") || tag.includes("canonical"))).toBe(false);
+    const image = new Image();
+    image.src = ogImage;
+    await image.decode();
+    expect([image.naturalWidth, image.naturalHeight]).toEqual([1200, 630]);
+  });
+
+  it("pin each docs route's install command to the newest release", () => {
+    for (const route of routes.filter((entry) => entry.description.includes("shadcn@latest add"))) {
+      expect(route.description).toContain(`#${latestRelease}.`);
+    }
+  });
 });
