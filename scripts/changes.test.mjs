@@ -96,7 +96,7 @@ test("release.yml checks CHANGES.md against the last release before it pushes an
   assert.match(check.body, /node scripts\/changes\.mjs check CHANGES\.md /);
 });
 
-test("release.yml opens the PR that prepares main after the release is published, and runs CI on it", () => {
+test("release.yml opens the PR that prepares main after the release is published, and approves its held CI", () => {
   const reset = step("Prepare main for the next release");
   assert.ok(reset.start > step("Tag and publish the release").start);
   assert.match(reset.body, /git switch -c "\$NEXT_BRANCH" "\$MAIN_SHA"/);
@@ -104,7 +104,11 @@ test("release.yml opens the PR that prepares main after the release is published
   // The same PR makes the tag the newest release, and regenerates the docs that name it.
   assert.match(reset.body, /node scripts\/latest-release\.mjs set "\$TAG"\n\s*pnpm run docs\n\s*git commit -am "Prepare main for the next release"/);
   assert.match(reset.body, /gh pr create --base main --head "\$NEXT_BRANCH" --title "Prepare main for the next release"/);
-  assert.match(reset.body, /gh workflow run ci\.yml --ref "\$NEXT_BRANCH"/);
+  // The held pull_request CI run is approved so the ruleset's required checks report; when that fails,
+  // CI is dispatched and the exact approve command goes to the job summary and the PR body.
+  assert.match(reset.body, /--event pull_request/);
+  assert.match(reset.body, /gh api -X POST "repos\/\$GITHUB_REPOSITORY\/actions\/runs\/\$run\/approve"/);
+  assert.match(reset.body, /else\n[\s\S]*gh workflow run ci\.yml --ref "\$NEXT_BRANCH"[\s\S]*GITHUB_STEP_SUMMARY[\s\S]*gh pr edit "\$NEXT_BRANCH" --body/);
   assert.match(release, /pull-requests: write/);
 });
 

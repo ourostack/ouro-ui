@@ -161,10 +161,34 @@ jobs:
           gh pr create --base main --head "$NEXT_BRANCH" --title "Prepare main for the next release" \
             --body "$TAG is released with these changes in its notes, so CHANGES.md starts again for the next release, and $TAG becomes the newest release: the README, the site, llms.txt and the @ouro namespace move to it when this merges. Merge this before adding the next release's changes."
           # GitHub records a pull_request CI run for a PR a workflow opened with GITHUB_TOKEN,
-          # but holds it without jobs, so it never runs and reports no check. The real CI is
-          # this dispatched run on the PR's head commit; its jobs report under the same check
-          # names, so they satisfy required checks on that commit.
-          gh workflow run ci.yml --ref "$NEXT_BRANCH"
+          # but holds it (`action_required`) with no jobs, and the ruleset's required checks
+          # count only pull_request-event checks, not a dispatched run. Approve the held run
+          # so the required checks report on the PR. GitHub documents the approve endpoint for
+          # fork PRs and names only OAuth and classic PAT tokens, so whether GITHUB_TOKEN may
+          # call it is untested here; when the approval fails, dispatch CI on the branch (a
+          # signal only; it does not satisfy the ruleset) and leave the exact command for a
+          # person in the job summary and the PR body (AGENTS.md, "Pages and releases").
+          sha=$(git rev-parse HEAD)
+          run=
+          for _ in $(seq 24); do
+            run=$(gh run list --workflow ci.yml --branch "$NEXT_BRANCH" --commit "$sha" --event pull_request --json databaseId --jq '.[0].databaseId')
+            [ -n "$run" ] && break
+            sleep 5
+          done
+          if [ -n "$run" ] && gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$run/approve" >/dev/null; then
+            echo "Approved CI run $run on $NEXT_BRANCH; its checks report on the pull request." >> "$GITHUB_STEP_SUMMARY"
+          else
+            cmd="gh api -X POST repos/$GITHUB_REPOSITORY/actions/runs/${run:-<run id of the pull_request CI run on $NEXT_BRANCH>}/approve"
+            echo "::warning::Could not approve the held CI run on $NEXT_BRANCH; the required checks will not report until a person does."
+            gh workflow run ci.yml --ref "$NEXT_BRANCH"
+            printf '%s\n' "### Approve CI on the \"Prepare main for the next release\" PR" "" "The required checks run only after a person approves the held CI run:" "" '```sh' "$cmd" '```' >> "$GITHUB_STEP_SUMMARY"
+            pr_body=$(gh pr view "$NEXT_BRANCH" --json body --jq .body)
+            gh pr edit "$NEXT_BRANCH" --body "$pr_body
+
+          CI for this PR is held until a person approves it. Run:
+
+              $cmd"
+          fi
       - if: failure() && steps.check.outputs.new == 'true'
         name: Clean up after a failure
         run: |
