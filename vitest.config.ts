@@ -89,6 +89,22 @@ export default defineConfig({
           },
         },
       },
+      {
+        // The landing page and docs site (site/), rendered at the widths it is built for.
+        ...shared,
+        test: {
+          name: "site",
+          setupFiles: ["./site/test/setup.ts"],
+          include: ["site/**/*.test.{ts,tsx}"],
+          browser: {
+            enabled: true,
+            headless: true,
+            provider: playwright(),
+            instances: [{ browser: "chromium" }],
+            commands,
+          },
+        },
+      },
       ...(visual
         ? [
             {

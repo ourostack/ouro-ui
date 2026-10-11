@@ -1,5 +1,4 @@
-# The root package is the registry and its own app. The landing site (`site`) joins this list in
-# Task 9, when the folder exists; listing a missing folder is harmless for
-# pnpm, but keeping the list exact keeps the lockfile honest.
+# The root package is the registry and its own app. The landing site (`site/`) builds from the
+# root package's dependencies, so it is not listed here.
 packages:
   - "."
