@@ -1,6 +1,5 @@
 import {
   cloneElement,
-  useEffect,
   useRef,
   useState,
   type JSX,
@@ -144,15 +143,17 @@ const closeClass =
  * button opened it and Dialog never saw that press.
  */
 let lastInput = "";
-let tracking = false;
 
-/** Starts recording {@link lastInput}, once per page, in the capture phase so nothing can stop it. */
+/** Starts recording {@link lastInput}, in the capture phase so nothing can stop it. */
 function trackLastInput(): void {
-  if (tracking) return;
-  tracking = true;
   document.addEventListener("pointerdown", (event) => (lastInput = event.pointerType), true);
   document.addEventListener("keydown", () => (lastInput = "keyboard"), true);
 }
+
+// From module load, not from the first Dialog's mount: an app that mounts its Dialog on
+// the tap that opens it (`{editing && <Dialog open … />}`) must still see that tap.
+/* istanbul ignore else @preserve -- the else path is server rendering, which has no document */
+if (typeof document !== "undefined") trackLastInput();
 
 /** The close button's icon: a 16px cross in the text color. */
 function CloseIcon(): JSX.Element {
@@ -300,10 +301,6 @@ export function Dialog(props: DialogProps): JSX.Element {
       "aria-haspopup": "dialog",
       "aria-expanded": isOpenNow,
     });
-  // A controlled dialog opens from the app's own button, so it reads how the user last
-  // pressed anything on the page instead.
-  useEffect(trackLastInput, []);
-
   // Focus returns to the trigger on close, in either presentation.
   const finalFocus = trigger !== undefined ? { finalFocus: triggerRef } : {};
   // The centered dialog focuses itself after a touch or pen open, and the first

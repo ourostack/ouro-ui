@@ -678,6 +678,11 @@
       ],
       "files": [
         {
+          "path": "registry/ouro/components/ouro/dialog/dialog.first-mount.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/dialog/dialog.first-mount.touch.test.tsx"
+        },
+        {
           "path": "registry/ouro/components/ouro/dialog/dialog.stories.tsx",
           "type": "registry:component",
           "target": "@components/ouro/dialog/dialog.stories.tsx"

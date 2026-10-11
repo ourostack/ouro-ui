@@ -213,7 +213,9 @@ export function itemForFile(path: string): string | null {
     const component = components.find(
       (entry) =>
         entry.folder === folder &&
-        new RegExp(`^${entry.stem}(-parts|-styles)?\\.(tsx|ts|test\\.tsx|touch\\.test\\.tsx|test-d\\.ts|stories\\.tsx)$`).test(file),
+        (new RegExp(`^${entry.stem}(-parts|-styles)?\\.(tsx|ts|test\\.tsx|touch\\.test\\.tsx|test-d\\.ts|stories\\.tsx)$`).test(file) ||
+          // A test file of its own, for a case that needs fresh module state: dialog.first-mount.touch.test.tsx.
+          new RegExp(`^${entry.stem}\\.[a-z][a-z-]*\\.(test|touch\\.test)\\.tsx$`).test(file)),
     );
     if (component) return devFile.test(file) ? `${component.name}-tests` : component.name;
   }
