@@ -265,10 +265,11 @@ export function Updating(): JSX.Element {
             Add a tag to install a release instead of the latest code: <InlineCode>npx shadcn add ourostack/ouro-ui/sheet#v0.1.0</InlineCode>.
           </Text>
           <Text size="sm" tone="muted">
-            Until release tags exist, a ref pins only the item you name: <InlineCode>#&lt;sha&gt;</InlineCode> or{" "}
-            <InlineCode>#&lt;branch&gt;</InlineCode> installs that item at the ref, but its Ouro dependencies (such as{" "}
-            <InlineCode>ouro-lib</InlineCode> and <InlineCode>button</InlineCode>) come from <InlineCode>main</InlineCode>. Release tags pin every
-            dependency to the same tag.
+            A release tag pins the item and every Ouro dependency it brings (such as <InlineCode>ouro-lib</InlineCode> and{" "}
+            <InlineCode>button</InlineCode>) to the same tag. Any other ref, <InlineCode>#&lt;sha&gt;</InlineCode> or{" "}
+            <InlineCode>#&lt;branch&gt;</InlineCode>, pins only the item you name: its Ouro dependencies come from <InlineCode>main</InlineCode>.
+            The <InlineCode>@ouro</InlineCode> namespace always serves <InlineCode>main</InlineCode>. Releases are listed on{" "}
+            <a href={`${GITHUB}/releases`} className="text-primary underline underline-offset-4">GitHub</a>.
           </Text>
         </li>
       </ol>

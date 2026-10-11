@@ -1,7 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-// The app's Playwright setup. Ouro UI's specs (e2e/ouro) open stories in this app's
-// Storybook, at OURO_E2E_URL.
+// Starts the app's Storybook, where Ouro UI's specs (e2e/ouro) open their stories.
 export default defineConfig({
   testDir: "e2e",
   projects: [

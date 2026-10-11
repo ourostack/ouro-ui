@@ -1,10 +1,15 @@
 // Generates registry.json, the shadcn registry at the repository root, from registry/.
 //
 //   node scripts/registry.mts           write registry.json
-//   node scripts/registry.mts --check   fail when registry.json is stale (CI)
+//   node scripts/registry.mts --check   fail when registry.json is stale (CI); a released
+//                                       registry.json (one with a version) is checked as released,
+//                                       except on main or a pull request into it, where it fails
 //   --out <file>                        write or check another file
-//   --local-deps <dir>                  point same-repo registryDependencies at <dir>/<item>.json
-//                                       (the install test builds such a copy; see ci.yml)
+//   --release <x.y.z>                   pin same-repo registryDependencies to the tag v<x.y.z> and
+//                                       record the version (release.yml, on the release branch)
+//   --deps <template>                   point same-repo registryDependencies at <template> with
+//                                       {name} replaced: @ouro/{name} for the Pages build
+//                                       (pages.yml), <dir>/{name}.json for the install test
 //
 // shadcn's CLI reads registry.json but has no way to make one: this script fills the
 // gaps. It derives each item's files and targets from the folder layout, its
@@ -55,6 +60,25 @@ export const testingSetup: Record<string, string> = {
   ].join("\n"),
   ".storybook/main.ts": 'export default { stories: ["../src/**/*.stories.@(ts|tsx)"], framework: "@storybook/react-vite" };\n',
   ".storybook/preview.ts": 'import "../src/index.css";\n',
+  "playwright.config.ts": [
+    'import { defineConfig, devices } from "@playwright/test";',
+    "",
+    "// Starts the app's Storybook, where Ouro UI's specs (e2e/ouro) open their stories.",
+    "export default defineConfig({",
+    '  testDir: "e2e",',
+    "  projects: [",
+    '    { name: "chromium", use: { ...devices["Desktop Chrome"] } },',
+    '    { name: "webkit", use: { ...devices["Desktop Safari"] } },',
+    "  ],",
+    "  webServer: {",
+    '    command: "npx storybook dev -p 6006 --ci --no-open",',
+    '    url: "http://localhost:6006/iframe.html",',
+    '    reuseExistingServer: !process.env["CI"],',
+    "    timeout: 180_000,",
+    "  },",
+    "});",
+    "",
+  ].join("\n"),
 };
 
 function testingDocs(): string {
@@ -62,9 +86,11 @@ function testingDocs(): string {
   return [
     "Ouro UI's tests are installed beside each component. To run the Vitest browser tests, add vitest.config.ts (use your components.json tailwind.css path for css), then run npx playwright install chromium webkit and npx vitest run:",
     file("vitest.config.ts"),
-    "The end-to-end specs in e2e/ouro open the Ouro stories in a Storybook. If your app has none, add these two files (use your stylesheet in preview.ts) and run npx storybook dev -p 6006:",
+    "The end-to-end specs in e2e/ouro open the Ouro stories in a Storybook. If your app has none, add these two files (use your stylesheet in preview.ts):",
     file(".storybook/main.ts") + file(".storybook/preview.ts"),
-    "Then run OURO_E2E_URL=http://localhost:6006 npx playwright test e2e/ouro.",
+    "If your app has no Playwright config, add this one, which starts that Storybook and runs Chromium and WebKit:",
+    file("playwright.config.ts"),
+    "Then run npx playwright test e2e/ouro. With a Playwright config of your own, start Storybook with npx storybook dev -p 6006 and run OURO_E2E_URL=http://localhost:6006 npx playwright test e2e/ouro.",
     `Docs: ${DOCS_URL}`,
   ].join("\n");
 }
@@ -130,6 +156,7 @@ export interface Registry {
   $schema: string;
   name: string;
   homepage: string;
+  version?: string;
   items: RegistryItem[];
 }
 
@@ -335,6 +362,13 @@ export function rewriteDependencies(registry: Registry, to: (name: string) => st
   };
 }
 
+/** The registry as released at v<version>: every same-repo dependency pinned to that tag. */
+export function release(registry: Registry, version: string): Registry {
+  if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error(`--release takes x.y.z, without the v (got ${version}).`);
+  const { items, ...head } = rewriteDependencies(registry, (name) => `${REPO}/${name}#v${version}`);
+  return { ...head, version, items };
+}
+
 function main(argv: string[]): number {
   const root = join(dirname(fileURLToPath(import.meta.url)), "..");
   const flag = (name: string) => {
@@ -342,16 +376,39 @@ function main(argv: string[]): number {
     return index === -1 ? undefined : argv[index + 1];
   };
   const out = flag("--out") ?? join(root, "registry.json");
-  const localDeps = flag("--local-deps");
-  let registry = buildRegistry(root);
-  if (localDeps) registry = rewriteDependencies(registry, (name) => join(localDeps, `${name}.json`));
-  const text = `${JSON.stringify(registry, null, 2)}\n`;
-  if (argv.includes("--check")) {
-    let current = "";
+  const check = argv.includes("--check");
+  let current = "";
+  try {
+    current = readFileSync(out, "utf8");
+  } catch {
+    // Missing counts as stale.
+  }
+  const deps = flag("--deps");
+  const releasedAs = () => {
     try {
-      current = readFileSync(out, "utf8");
+      return (JSON.parse(current) as Registry).version;
     } catch {
-      // Missing counts as stale.
+      return undefined; // Unreadable counts as stale.
+    }
+  };
+  const version = flag("--release") ?? (check ? releasedAs() : undefined);
+  let registry = buildRegistry(root);
+  try {
+    if (version) registry = release(registry, version);
+    if (deps !== undefined) {
+      if (!deps.includes("{name}")) throw new Error(`--deps takes a template with {name}, such as @ouro/{name} (got ${deps}).`);
+      registry = rewriteDependencies(registry, (name) => deps.replaceAll("{name}", name));
+    }
+  } catch (error) {
+    process.stderr.write(`${(error as Error).message}\n`);
+    return 1;
+  }
+  const text = `${JSON.stringify(registry, null, 2)}\n`;
+  if (check) {
+    const onMain = process.env["GITHUB_REF"] === "refs/heads/main" || process.env["GITHUB_BASE_REF"] === "main";
+    if (onMain && (version || /"ourostack\/ouro-ui\/[\w-]+#v/.test(current))) {
+      process.stderr.write(`${relative(process.cwd(), out)} is pinned to a release (a version field or #v refs), but main stays unpinned: only release tags are pinned. Run pnpm registry and commit the result.\n`);
+      return 1;
     }
     if (current !== text) {
       process.stderr.write(`${relative(process.cwd(), out)} is stale. Run pnpm registry and commit the result.\n`);

@@ -3,10 +3,13 @@ on:
   pull_request:
   push:
     branches: [main]
+  # release.yml runs CI on its release branch this way: pushes made with GITHUB_TOKEN
+  # trigger no workflows.
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 jobs:
   ci:
@@ -91,11 +94,12 @@ jobs:
     # app's type check, build, the shipped Vitest tests and the shipped Playwright specs
     # (scripts/install-test.sh). shadcn: the app keeps the theme `shadcn init` wrote, and a
     # stock shadcn button builds beside Ouro's. ouro: ouro-theme comes from GitHub at this commit.
+    # namespace: `shadcn add @ouro/dialog` from the registry Pages serves, built and served locally.
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        theme: [shadcn, ouro]
+        variant: [shadcn, ouro, namespace]
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
@@ -104,11 +108,11 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
-      - run: scripts/install-test.sh ${{ matrix.theme }} "$RUNNER_TEMP/app" ${{ github.event.pull_request.head.sha || github.sha }}
+      - run: scripts/install-test.sh ${{ matrix.variant }} "$RUNNER_TEMP/app" ${{ github.event.pull_request.head.sha || github.sha }}
       - if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: install-${{ matrix.theme }}
+          name: install-${{ matrix.variant }}
           path: |
             ${{ runner.temp }}/app/src/index.css
             ${{ runner.temp }}/app/components.json

@@ -1,0 +1,114 @@
+name: Release
+# Cuts v<version>. The tag points at a release commit that main never receives: a branch
+# off green main whose registry.json pins every same-repo registryDependency to the tag
+# (scripts/registry.mts --release), so `shadcn add ourostack/ouro-ui/<item>#v<version>`
+# installs every Ouro dependency at that tag while main stays unpinned. CI runs on that
+# commit; when it passes, the commit is tagged, the GitHub release is created and the
+# branch is deleted (the tag keeps the commit). Rerunning is safe: an existing tag exits
+# cleanly, and a failed run deletes its branch. Recovery: AGENTS.md, "Pages and releases".
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, without the v (for example 0.1.0)"
+        required: true
+permissions:
+  contents: write # push the release branch and the tag, create the release
+  actions: write # run CI on the release branch
+concurrency:
+  group: release
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ inputs.version }}
+      TAG: v${{ inputs.version }}
+      BRANCH: release/v${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - id: check
+        name: Check the version, the tag and main's CI
+        run: |
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::version must be x.y.z, without the v"; exit 1; }
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
+            if gh release view "$TAG" >/dev/null 2>&1; then
+              echo "::notice::$TAG is already released. Nothing to do."
+            else
+              echo "::warning::Tag $TAG exists but has no GitHub release. Delete the tag (git push origin :refs/tags/$TAG) and run Release again."
+            fi
+            exit 0
+          fi
+          sha=$(git rev-parse HEAD)
+          conclusion=$(gh run list --workflow ci.yml --branch main --event push --commit "$sha" --json conclusion --jq '.[0].conclusion')
+          [ "$conclusion" = success ] || { echo "::error::CI on main ($sha) is '${conclusion:-not run}', not success"; exit 1; }
+          echo "new=true" >> "$GITHUB_OUTPUT"
+      - if: steps.check.outputs.new == 'true'
+        uses: pnpm/action-setup@v4
+      - if: steps.check.outputs.new == 'true'
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - if: steps.check.outputs.new == 'true'
+        run: pnpm i --frozen-lockfile
+      - if: steps.check.outputs.new == 'true'
+        name: Push the release branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          node scripts/registry.mts --release "$VERSION"
+          git commit -am "Release $TAG"
+          git push --force origin "$BRANCH"
+      - if: steps.check.outputs.new == 'true'
+        name: Run CI on the release commit
+        run: |
+          sha=$(git rev-parse HEAD)
+          gh workflow run ci.yml --ref "$BRANCH"
+          for _ in $(seq 60); do
+            run=$(gh run list --workflow ci.yml --branch "$BRANCH" --commit "$sha" --event workflow_dispatch --json databaseId --jq '.[0].databaseId')
+            [ -n "$run" ] && break
+            sleep 5
+          done
+          [ -n "$run" ] || { echo "::error::CI did not start on $BRANCH ($sha)"; exit 1; }
+          gh run watch "$run" --exit-status --interval 30
+      - if: steps.check.outputs.new == 'true'
+        name: Tag and publish the release
+        run: |
+          git tag "$TAG"
+          git push origin "$TAG"
+          {
+            echo "Install an item at this release; its Ouro dependencies install from the same tag:"
+            echo
+            echo '```sh'
+            echo "npx shadcn@latest add ourostack/ouro-ui/dialog#$TAG"
+            echo '```'
+            echo
+            echo 'Or through the `@ouro` namespace, which serves the newest code on main (not pinned to this release). Add it to `components.json` once:'
+            echo
+            echo '```json'
+            echo '"registries": { "@ouro": "https://ourostack.github.io/ouro-ui/r/{name}.json" }'
+            echo '```'
+            echo
+            echo '```sh'
+            echo 'npx shadcn@latest add @ouro/dialog'
+            echo '```'
+            echo
+            echo "Items:"
+            echo
+            jq -r '.items[] | "- `\(.name)`: \(.description)"' registry.json
+          } > "$RUNNER_TEMP/notes.md"
+          gh release create "$TAG" --verify-tag --title "$TAG" --notes-file "$RUNNER_TEMP/notes.md"
+          git push origin --delete "$BRANCH"
+      - if: failure() && steps.check.outputs.new == 'true'
+        name: Clean up after a failure
+        run: |
+          git push origin --delete "$BRANCH" || true
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null && ! gh release view "$TAG" >/dev/null 2>&1; then
+            echo "::error::Tag $TAG was pushed but the release was not created. Delete the tag (git push origin :refs/tags/$TAG) and run Release again."
+          fi

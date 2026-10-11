@@ -23,7 +23,8 @@ Ouro UI is alpha. In an app that has run `npx shadcn init` (Tailwind CSS v4):
 npx shadcn@latest add ourostack/ouro-ui/sheet
 ```
 
-- The CLI reads `registry.json` at this repository's root. Add `#<tag>`, `#<branch>` or `#<sha>` to the address to pin a version. Until release tags exist, a ref pins only the item you name: its Ouro dependencies (`ouro-lib`, `button` and so on) come from `main`. Release tags will pin every dependency to the same tag.
+- The CLI reads `registry.json` at this repository's root. To pin a version, add a [release](https://github.com/ourostack/ouro-ui/releases) tag: `npx shadcn@latest add ourostack/ouro-ui/sheet#v0.1.0` installs the item and every Ouro dependency (`ouro-lib`, `button` and so on) at `v0.1.0`. A `#<branch>` or `#<sha>` ref pins only the item you name; its Ouro dependencies come from `main`.
+- Or add the `@ouro` namespace to `components.json` once, `"registries": { "@ouro": "https://ourostack.github.io/ouro-ui/r/{name}.json" }`, and run `npx shadcn@latest add @ouro/sheet`. The namespace serves `main`.
 - Components land in `components/ouro/<component>/`, beside shadcn's `components/ui/`, and the shared helpers in `lib/ouro/`. The base tokens (`ouro-base`) are added to your CSS with any component.
 - Each component brings its stories, its Vitest browser tests and a Playwright spec in `e2e/ouro/`. The `ouro-testing` item's install message says how to run them: add `ouroTestProjects` from `lib/ouro/testing/vitest.ts` to your Vitest config, and point `OURO_E2E_URL` at a Storybook with the Ouro stories for the specs.
 - For the Ouro look, add `ourostack/ouro-ui/ouro-theme`. Skip it to keep your app's shadcn theme.

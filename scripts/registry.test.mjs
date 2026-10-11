@@ -9,7 +9,9 @@ import { buildRegistry, cssToItem, itemForFile, rewriteDependencies, testingSetu
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const script = join(root, "scripts/registry.mts");
-const run = (...args) => spawnSync("node", [script, ...args], { cwd: root, encoding: "utf8" });
+// Runs the script as on a branch other than main (CI sets these on main and on pull requests).
+const branchEnv = Object.fromEntries(Object.entries(process.env).filter(([name]) => name !== "GITHUB_REF" && name !== "GITHUB_BASE_REF"));
+const run = (...args) => spawnSync("node", [script, ...args], { cwd: root, encoding: "utf8", env: branchEnv });
 const registry = buildRegistry(root);
 const item = (name) => registry.items.find((entry) => entry.name === name);
 const repo = (name) => `ourostack/ouro-ui/${name}`;
@@ -158,7 +160,7 @@ test("each item has a one-line description and a docs message with its docs URL"
   }
 });
 
-test("rewriteDependencies points same-repo dependencies at local item files, for the install test", () => {
+test("rewriteDependencies points same-repo dependencies anywhere, leaving the registry unchanged", () => {
   const local = rewriteDependencies(registry, (name) => `/tmp/r/${name}.json`);
   assert.deepEqual(local.items.find((entry) => entry.name === "heading").registryDependencies, [
     "/tmp/r/button.json",
@@ -170,12 +172,70 @@ test("rewriteDependencies points same-repo dependencies at local item files, for
   assert.deepEqual(item("heading").registryDependencies[0], repo("button"));
 });
 
+test("--deps writes a copy whose same-repo dependencies follow a template: the @ouro namespace (Pages) or local files (install test)", () => {
+  const dir = mkdtempSync(join(tmpdir(), "ouro-registry-"));
+  assert.equal(run("--out", join(dir, "ns.json"), "--deps", "@ouro/{name}").status, 0);
+  const namespaced = JSON.parse(readFileSync(join(dir, "ns.json"), "utf8"));
+  assert.deepEqual(namespaced.items.find((entry) => entry.name === "dialog").registryDependencies, [
+    "@ouro/button",
+    "@ouro/ouro-base",
+    "@ouro/ouro-lib",
+    "@ouro/ouro-testing",
+    "@ouro/sheet",
+  ]);
+  assert.equal(namespaced.version, undefined);
+  assert.equal(run("--out", join(dir, "local.json"), "--deps", "/srv/r/{name}.json").status, 0);
+  const local = JSON.parse(readFileSync(join(dir, "local.json"), "utf8"));
+  assert.deepEqual(local.items.find((entry) => entry.name === "ouro-lib").registryDependencies, ["/srv/r/ouro-testing.json"]);
+  assert.equal(run("--out", join(dir, "bad.json"), "--deps", "@ouro/").status, 1, "a template without {name} fails");
+});
+
+test("--release pins every same-repo dependency to the release tag and records the version", () => {
+  const out = join(mkdtempSync(join(tmpdir(), "ouro-registry-")), "registry.json");
+  assert.equal(run("--out", out, "--release", "0.1.0").status, 0);
+  const released = JSON.parse(readFileSync(out, "utf8"));
+  assert.deepEqual(Object.keys(released), ["$schema", "name", "homepage", "version", "items"]);
+  assert.equal(released.version, "0.1.0");
+  assert.deepEqual(released.items.find((entry) => entry.name === "dialog").registryDependencies, [
+    "ourostack/ouro-ui/button#v0.1.0",
+    "ourostack/ouro-ui/ouro-base#v0.1.0",
+    "ourostack/ouro-ui/ouro-lib#v0.1.0",
+    "ourostack/ouro-ui/ouro-testing#v0.1.0",
+    "ourostack/ouro-ui/sheet#v0.1.0",
+  ]);
+  for (const entry of released.items) {
+    for (const dependency of entry.registryDependencies ?? []) assert.match(dependency, /^ourostack\/ouro-ui\/[\w-]+#v0\.1\.0$/);
+  }
+
+  // CI on the release branch: --check reads the version from the file and still catches drift.
+  assert.equal(run("--check", "--out", out).status, 0);
+  released.items.find((entry) => entry.name === "dialog").registryDependencies[0] = "ourostack/ouro-ui/button";
+  writeFileSync(out, JSON.stringify(released, null, 2) + "\n");
+  assert.equal(run("--check", "--out", out).status, 1);
+
+  // On main, and on pull requests into main, a released file never passes: main stays unpinned.
+  assert.equal(run("--out", out, "--release", "0.1.0").status, 0);
+  for (const env of [{ GITHUB_REF: "refs/heads/main" }, { GITHUB_BASE_REF: "main" }]) {
+    const onMain = spawnSync("node", [script, "--check", "--out", out], { cwd: root, encoding: "utf8", env: { ...branchEnv, ...env } });
+    assert.equal(onMain.status, 1, JSON.stringify(env));
+    assert.match(onMain.stderr, /pinned to a release.*main stays unpinned/s);
+  }
+  const mainOk = spawnSync("node", [script, "--check"], { cwd: root, encoding: "utf8", env: { ...branchEnv, GITHUB_REF: "refs/heads/main" } });
+  assert.equal(mainOk.status, 0, mainOk.stderr);
+
+  const bad = run("--out", out, "--release", "v0.1.0");
+  assert.equal(bad.status, 1);
+  assert.match(bad.stderr, /--release takes x\.y\.z/);
+});
+
 test("the install fixture uses exactly the setup files the ouro-testing docs print", () => {
   const docs = item("ouro-testing").docs;
   for (const [path, content] of Object.entries(testingSetup)) {
     assert.equal(readFileSync(join(root, "test/install-fixture", path), "utf8"), content, `test/install-fixture/${path} differs from the docs`);
     assert.ok(docs.includes(`--- ${path}\n${content}`), `the docs print ${path}`);
   }
+  assert.ok("playwright.config.ts" in testingSetup, "the fixture's Playwright config is one of the documented files");
   assert.match(docs, /npx storybook dev -p 6006/);
+  assert.match(docs, /Then run npx playwright test e2e\/ouro\./);
   assert.match(docs, /OURO_E2E_URL=http:\/\/localhost:6006 npx playwright test e2e\/ouro/);
 });
