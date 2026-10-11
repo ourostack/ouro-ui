@@ -11,9 +11,9 @@ export type TextAlign = "start" | "center" | "end";
 /** The props Text adds to the HTML attributes it passes through. */
 export interface TextOwnProps {
   /** The element to render. Use `span` inside other text, `div` around block content. @default "p" */
-  as?: "p" | "span" | "div" | undefined;
+  as?: "p" | "span" | "div" | (string & { 'Use "p", "span" or "div"; for a title use Heading': never }) | undefined;
   /** Type size from the theme. @default "md" */
-  size?: "sm" | "md" | "lg" | undefined;
+  size?: "sm" | "md" | "lg" | (string & { 'Use "sm", "md" or "lg"; for a title use Heading': never }) | undefined;
   /**
    * Text color: `default` foreground, `muted` for secondary text, or a tone for
    * status text (`destructive` for an error). `secondary` is the same as `muted`,
@@ -30,7 +30,7 @@ export interface TextOwnProps {
     | (string & { 'danger is "destructive"; accent is "primary"; neutral is "secondary"': never })
     | undefined;
   /** Alignment in writing direction. @default inherited */
-  align?: TextAlign | undefined;
+  align?: TextAlign | (string & { 'Use "start", "center" or "end": left is "start", right is "end"': never }) | undefined;
   /**
    * Layout only: margins, width, grid placement (`mt-2`, `max-w-prose`).
    * Appearance classes warn in development; use `size`, `tone` and `align`.
@@ -89,6 +89,25 @@ const tones = {
  */
 export const alignClasses = { start: "text-start", center: "text-center", end: "text-end" } as const;
 
+/**
+ * The value an `align` prop is, or `undefined` (inherited) with the dev message for one
+ * that is not: `left` and `right` point to `start` and `end`. Shared with `Heading`.
+ *
+ * @internal
+ */
+export function checkAlign(component: string, align: string | undefined): [TextAlign | undefined, readonly [string, string] | false] {
+  if (align === undefined || Object.hasOwn(alignClasses, align)) return [align as TextAlign | undefined, false];
+  const fix = align === "right" ? "end" : "start";
+  return [
+    undefined,
+    process.env.NODE_ENV !== "production"
+      ? [`align="${align}" is not an alignment; use "start", "center", "end"`, `<${component} align="${fix}">`]
+      : /* istanbul ignore next -- production only */ false,
+  ];
+}
+
+const tags = ["p", "span", "div"] as const;
+
 function textTone(token: string): string {
   const tone = toneFor(token);
   return tone === "secondary" ? "muted" : tone;
@@ -116,10 +135,10 @@ function textHint(token: string): string {
  */
 export function Text(props: TextProps): JSX.Element {
   const {
-    as: Tag = "p",
-    size = "md",
+    as: asProp = "p",
+    size: sizeProp = "md",
     tone: toneProp = "default",
-    align,
+    align: alignProp,
     truncate,
     lines,
     className,
@@ -132,6 +151,10 @@ export function Text(props: TextProps): JSX.Element {
   } = props;
   // A tone that is not one of Ouro UI's (a type error) warns and renders the default.
   const tone = Object.hasOwn(tones, toneProp) ? (toneProp as keyof typeof tones) : "default";
+  // Likewise an element, size or alignment: it renders a <p>, size md, or inherited alignment.
+  const Tag = tags.includes(asProp as (typeof tags)[number]) ? (asProp as (typeof tags)[number]) : "p";
+  const size = Object.hasOwn(sizes, sizeProp) ? (sizeProp as keyof typeof sizes) : "md";
+  const [align, alignWarning] = checkAlign("Text", alignProp);
   useAppearanceClassNameCheck(
     "Text",
     className,
@@ -143,6 +166,15 @@ export function Text(props: TextProps): JSX.Element {
     process.env.NODE_ENV !== "production"
       ? () => [
           tone !== toneProp && toneWarning("Text", String(toneProp), Object.keys(tones)),
+          Tag !== asProp && [
+            `as="${String(asProp)}" is not an element Text renders; use "p", "span", "div"`,
+            /^h[1-6]$/.test(String(asProp)) ? `<Heading level={${String(asProp).slice(1)}}>` : '<Text as="span">',
+          ],
+          size !== sizeProp && [
+            `size="${String(sizeProp)}" is not a size; use "sm", "md", "lg"`,
+            /xl$/.test(String(sizeProp)) ? "<Heading level={2}>" : '<Text size="md">',
+          ],
+          alignWarning,
           color !== undefined && ["color is not a prop", `<Text tone="${textTone(`text-${String(color)}`)}">`],
           variant !== undefined && ["variant is not a prop; Text has no variants", '<Text size="sm" tone="muted">'],
         ]

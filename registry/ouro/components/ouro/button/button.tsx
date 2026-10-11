@@ -126,8 +126,11 @@ export type ButtonButtonProps = ButtonBaseProps &
   Omit<ButtonHTMLAttributes<HTMLButtonElement>, keyof ButtonBaseProps | "type"> & {
     /** Not set: this is a `<button>`. Pass `href` to render a link instead. */
     href?: never;
-    /** @default "button" (never submits a form by accident) */
-    type?: "button" | "submit" | "reset" | undefined;
+    /**
+     * The button's role in a form: `submit` sends it, `reset` clears it.
+     * @default "button" (never submits a form by accident)
+     */
+    type?: "button" | "submit" | "reset" | (string & { 'Use "button", "submit" or "reset"; for looks use tone and variant': never }) | undefined;
     ref?: Ref<HTMLButtonElement> | undefined;
   };
 
@@ -200,6 +203,8 @@ const looks = {
 } as const;
 
 const iconClass = "size-[1.25em] shrink-0";
+
+const buttonTypes = ["button", "submit", "reset"] as const;
 
 /** Absolute URLs (`https:`, `mailto:`, protocol-relative) skip the router link. */
 const EXTERNAL = /^([a-z][a-z\d+.-]*:|\/\/)/i;
@@ -321,6 +326,12 @@ export function Button(props: ButtonProps): JSX.Element {
             asChild !== undefined && ["asChild is not a prop", '<Button href="/path">'],
             leftIcon !== undefined && ["leftIcon is not a prop", "<Button startIcon={Icon}>"],
             rightIcon !== undefined && ["rightIcon is not a prop", "<Button endIcon={Icon}>"],
+            link.href === undefined &&
+              link.type !== undefined &&
+              !buttonTypes.includes(link.type as (typeof buttonTypes)[number]) && [
+                `type="${link.type}" is not a button type; use "button", "submit", "reset"`,
+                Object.hasOwn(looks.solid, link.type) ? `<Button tone="${link.type}">` : '<Button type="button">',
+              ],
             link.href !== undefined &&
               link.type !== undefined && [
                 `a link has no type, so type="${link.type}" is ignored`,
@@ -386,7 +397,9 @@ export function Button(props: ButtonProps): JSX.Element {
     return external ? <a {...linkProps}>{content}</a> : <LinkComponent {...linkProps}>{content}</LinkComponent>;
   }
 
-  const { ref, disabled, type = "button", ...buttonProps } = rest as Omit<ButtonButtonProps, keyof ButtonBaseProps>;
+  const { ref, disabled, type: typeProp = "button", ...buttonProps } = rest as Omit<ButtonButtonProps, keyof ButtonBaseProps>;
+  // A type that is not a button type would submit forms (the browser's default), so it renders "button".
+  const type = buttonTypes.includes(typeProp as (typeof buttonTypes)[number]) ? (typeProp as (typeof buttonTypes)[number]) : "button";
   return (
     <BaseButton
       {...buttonProps}

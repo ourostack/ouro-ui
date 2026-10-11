@@ -169,6 +169,21 @@ describe("runtime guards", () => {
     expect(String(warn.mock.calls[0]?.[0])).toBe('[ouro-ui] Text: color is not a prop. Fix: <Text tone="destructive">.');
   });
 
+  it.each([
+    [{ as: "h2" }, "P", 'as="h2" is not an element Text renders; use "p", "span", "div". Fix: <Heading level={2}>.'],
+    [{ as: "label" }, "P", 'as="label" is not an element Text renders; use "p", "span", "div". Fix: <Text as="span">.'],
+    [{ size: "xl" }, "P", 'size="xl" is not a size; use "sm", "md", "lg". Fix: <Heading level={2}>.'],
+    [{ size: "xs" }, "P", 'size="xs" is not a size; use "sm", "md", "lg". Fix: <Text size="md">.'],
+    [{ align: "left" }, "P", 'align="left" is not an alignment; use "start", "center", "end". Fix: <Text align="start">.'],
+    [{ align: "right" }, "P", 'align="right" is not an alignment; use "start", "center", "end". Fix: <Text align="end">.'],
+  ])("renders the default for %j and warns once with the fix", async (props, tag, message) => {
+    const { el } = await render(<UntypedText {...props}>a</UntypedText>);
+    const reference = await render(<Text>a</Text>);
+    expect(el.tagName).toBe(tag);
+    expect(el.className).toBe(reference.el.className);
+    expect(warn.mock.calls.map((call: unknown[]) => call[0])).toEqual([`[ouro-ui] Text: ${message}`]);
+  });
+
   it("strips variant from Text and warns with the fix", async () => {
     const { el } = await render(<UntypedText variant="muted">a</UntypedText>);
     expect(el.hasAttribute("variant")).toBe(false);

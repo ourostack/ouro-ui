@@ -107,6 +107,18 @@ describe("Heading", () => {
     expect(warn.mock.calls.map((call: unknown[]) => call[0])).toEqual([message]);
   });
 
+  it("renders inherited alignment for align=\"left\" and warns once with the fix", async () => {
+    const { el } = await render(
+      <Heading level={2} {...({ align: "left" } as object)}>
+        Title
+      </Heading>,
+    );
+    expect(el.className).not.toMatch(/text-(start|center|end|left)/);
+    expect(warn.mock.calls.map((call: unknown[]) => call[0])).toEqual([
+      '[ouro-ui] Heading: align="left" is not an alignment; use "start", "center", "end". Fix: <Heading align="start">.',
+    ]);
+  });
+
   it("aligns center and passes attributes through", async () => {
     const { el } = await render(
       <Heading level={2} align="center" id="t">

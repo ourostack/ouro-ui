@@ -4,7 +4,7 @@ import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
-import { alignClasses, type TextAlign } from "@/registry/ouro/components/ouro/text/text";
+import { alignClasses, checkAlign, type TextAlign } from "@/registry/ouro/components/ouro/text/text";
 
 /** A heading size from the theme's type scale. `display` is for a page's hero headline. */
 export type HeadingSize = "sm" | "md" | "lg" | "xl" | "2xl" | "display";
@@ -16,7 +16,7 @@ export interface HeadingProps extends Omit<HTMLAttributes<HTMLHeadingElement>, "
    * the level is about document structure, not looks; use `size` to change how
    * big it looks.
    */
-  level: 1 | 2 | 3 | 4 | 5 | 6;
+  level: 1 | 2 | 3 | 4 | 5 | 6 | (number & { 'Use 1 to 6; size sets the look': never });
   /**
    * Visual size, independent of the level. `display` is the hero headline of a
    * landing page, tightly set and larger from the `sm` breakpoint: `<Heading level={1} size="display">`.
@@ -24,7 +24,7 @@ export interface HeadingProps extends Omit<HTMLAttributes<HTMLHeadingElement>, "
    */
   size?: HeadingSize | (string & { 'Use "sm", "md", "lg", "xl", "2xl" or, larger, "display"': never }) | undefined;
   /** Alignment in writing direction. @default inherited */
-  align?: TextAlign | undefined;
+  align?: TextAlign | (string & { 'Use "start", "center" or "end": left is "start", right is "end"': never }) | undefined;
   /**
    * Layout only: margins, width, grid placement (`mb-2`). Appearance classes
    * warn in development; use `size` and `align`.
@@ -71,7 +71,9 @@ function headingHint(token: string): string {
  * <Heading level={1} size="display">Dinner, sorted</Heading>
  */
 export function Heading(props: HeadingProps): JSX.Element {
-  const { level, size: sizeProp, align, className, ref, color, as, ...rest } = props;
+  const { level: levelProp, size: sizeProp, align: alignProp, className, ref, color, as, ...rest } = props;
+  const level = levelProp as keyof typeof sizeByLevel;
+  const [align, alignWarning] = checkAlign("Heading", alignProp);
   if (!(level in sizeByLevel) || typeof level !== "number") {
     devThrow(
       "Heading",
@@ -91,6 +93,7 @@ export function Heading(props: HeadingProps): JSX.Element {
     "Heading",
     process.env.NODE_ENV !== "production"
       ? () => [
+          alignWarning,
           color !== undefined && [
             "color is not a prop; headings use the theme foreground color",
             `<Text tone="${toneFor(`text-${String(color)}`)}">`,

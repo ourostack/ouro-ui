@@ -31,6 +31,7 @@ const variants =
   `(string & { 'From shadcn? Use tone="destructive" or tone="secondary". default is "solid"; ghost and link are "plain"': never; }) | "solid" | "soft" | "outline" | "plain" | undefined`;
 const sizes = `"sm" | "md" | "lg" | (string & { 'From shadcn? default is "md"; for icon, pass aria-label with the icon as children': never; }) | undefined`;
 const tones = `"primary" | "secondary" | "destructive" | "success" | "warning" | (string & { 'danger is "destructive"; accent is "primary"; neutral is "secondary"': never; }) | undefined`;
+const align = `(string & { 'Use "start", "center" or "end": left is "start", right is "end"': never; })`;
 const sheetControl = "<Sheet open={open} onOpenChange={setOpen}>";
 const dialogControl = "<Dialog open={open} onOpenChange={setOpen}>";
 const confirmControl = "<ConfirmDialog open={open} onOpenChange={setOpen}>";
@@ -126,6 +127,62 @@ export const agentCases: AgentCase[] = [
   },
   { id: "s22", habit: "a position on Dialog", tsc: [hint("string", 'Use <Sheet side="right">')], dev: '<Sheet side="bottom">', names: ["tsc", "dev"] },
   { id: "s23", habit: "a color on Heading", tsc: [hint("string", 'Use <Text tone="primary">')], dev: '<Text tone="destructive">', names: ["tsc", "dev"] },
+  {
+    id: "s24",
+    habit: "a left alignment on Text",
+    tsc: [notAssignable('"left"', `TextAlign | ${align} | undefined`)],
+    dev: '<Text align="start">',
+    names: ["tsc", "dev"],
+  },
+  {
+    id: "s25",
+    habit: "a left alignment on Heading",
+    tsc: [notAssignable('"left"', `TextAlign | ${align} | undefined`)],
+    dev: '<Heading align="start">',
+    names: ["tsc", "dev"],
+  },
+  {
+    id: "s26",
+    habit: "a heading tag on Text",
+    tsc: [notAssignable('"h2"', `"p" | "span" | "div" | (string & { 'Use "p", "span" or "div"; for a title use Heading': never; }) | undefined`)],
+    dev: "<Heading level={2}>",
+    names: ["tsc", "dev"],
+  },
+  {
+    id: "s27",
+    habit: "an xl Text",
+    tsc: [notAssignable('"xl"', `"sm" | "md" | "lg" | (string & { 'Use "sm", "md" or "lg"; for a title use Heading': never; }) | undefined`)],
+    dev: "<Heading level={2}>",
+    names: ["tsc", "dev"],
+  },
+  {
+    id: "s28",
+    habit: "a level past 6",
+    tsc: [notAssignable("7", `1 | 2 | 3 | 4 | 5 | 6 | (number & { 'Use 1 to 6; size sets the look': never; })`)],
+    dev: "<Heading level={2}>",
+    names: ["tsc", "dev"],
+  },
+  {
+    id: "s29",
+    habit: "a tone name as the button type",
+    tsc: [notAssignable('"primary"', `"button" | "submit" | "reset" | (string & { 'Use "button", "submit" or "reset"; for looks use tone and variant': never; }) | undefined`)],
+    dev: '<Button tone="primary">',
+    names: ["tsc", "dev"],
+  },
+  {
+    id: "s30",
+    habit: "a side that is not one of the four, on the SheetRoot part",
+    tsc: [notAssignable('"left-ish"', `SheetSide | (string & { 'Use "bottom", "top", "left" or "right"': never; }) | undefined`)],
+    dev: '<SheetRoot side="bottom">',
+    names: ["tsc", "dev"],
+  },
+  {
+    id: "s31",
+    habit: "an xl DialogPopup part",
+    tsc: [notAssignable('"xl"', `DialogSize | (string & { 'Use "sm", "md" or "lg"': never; }) | undefined`)],
+    dev: '<DialogPopup size="md">',
+    names: ["tsc", "dev"],
+  },
   { id: "v01", habit: "shadcn's destructive variant", tsc: [notAssignable('"destructive"', variants)], dev: '<Button tone="destructive">', names: ["tsc", "dev"] },
   { id: "v02", habit: "shadcn's default variant", tsc: [notAssignable('"default"', variants)], dev: "<Button>", names: ["tsc", "dev"] },
   { id: "v03", habit: "shadcn's secondary variant", tsc: [notAssignable('"secondary"', variants)], dev: '<Button tone="secondary">', names: ["tsc", "dev"] },

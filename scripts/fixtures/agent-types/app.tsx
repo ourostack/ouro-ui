@@ -1,5 +1,5 @@
 // What agents write. Snippets s01-s23 are the review's probe of habits from shadcn/ui,
-// Radix, MUI and plain guessing; v01-v05 are the rest of shadcn's Button variants and
+// Radix, MUI and plain guessing, and s24-s31 the remaining enum props (re-review 1); v01-v05 are the rest of shadcn's Button variants and
 // sizes; ok01-ok07 are valid code. Every snippet except the ok ones is a type error on
 // purpose. scripts/agent-types.test.mjs runs `tsc` on this file and hovers its props
 // through the TypeScript language service, and test/agent-types.test.tsx renders the
@@ -8,7 +8,9 @@
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { ConfirmDialog } from "@/registry/ouro/components/ouro/dialog/confirm-dialog";
 import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
+import { DialogPopup, DialogPortal, DialogRoot } from "@/registry/ouro/components/ouro/dialog/dialog-parts";
 import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
+import { SheetRoot } from "@/registry/ouro/components/ouro/sheet/sheet-parts";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
 
@@ -41,6 +43,14 @@ export const s20 = <ConfirmDialog title="Delete?" confirmLabel="Delete" variant=
 export const s21 = <ConfirmDialog title="Delete?" confirmLabel="Delete" tone="danger" onConfirm={() => {}} trigger={<Button>Delete</Button>} />;
 export const s22 = <Dialog title="Edit" size="sm" open={open} onOpenChange={setOpen} position="right">Body</Dialog>;
 export const s23 = <Heading level={2} color="red">Recipes</Heading>;
+export const s24 = <Text size="sm" align="left">Hi</Text>;
+export const s25 = <Heading level={2} align="left">Recipes</Heading>;
+export const s26 = <Text size="lg" as="h2">Recipes</Text>;
+export const s27 = <Text size="xl" tone="muted">Big</Text>;
+export const s28 = <Heading level={7} align="center">Recipes</Heading>;
+export const s29 = <Button loading type="primary">Save</Button>;
+export const s30 = <SheetRoot side="left-ish" open={false} />;
+export const s31 = <DialogRoot open><DialogPortal><DialogPopup size="xl">Body</DialogPopup></DialogPortal></DialogRoot>;
 
 export const v01 = <Button loading tone="primary" variant="destructive">Delete</Button>;
 export const v02 = <Button variant="default">Save</Button>;

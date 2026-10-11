@@ -28,6 +28,8 @@ import {
   DialogRoot,
   DialogTitle,
   DialogViewport,
+  dialogSizes,
+  dialogSizeWarning,
   type DialogSize,
 } from "@/registry/ouro/components/ouro/dialog/dialog-parts";
 
@@ -37,7 +39,6 @@ export type { DialogSize } from "@/registry/ouro/components/ouro/dialog/dialog-p
 export type DialogPresentation = "auto" | "dialog" | "sheet";
 
 const presentations: readonly DialogPresentation[] = ["auto", "dialog", "sheet"];
-const sizes: readonly DialogSize[] = ["sm", "md", "lg"];
 
 /** Props shared by both ways of opening a Dialog. */
 export interface DialogBaseProps {
@@ -193,7 +194,7 @@ export function Dialog(props: DialogProps): JSX.Element {
   checkOpenMode("Dialog", "dialog", trigger !== undefined, open, onOpenChange);
 
   // A size or presentation that is not one of Ouro UI's (a type error) warns and renders the default.
-  const size = sizes.includes(sizeProp as DialogSize) ? (sizeProp as DialogSize) : "md";
+  const size = dialogSizes.includes(sizeProp as DialogSize) ? (sizeProp as DialogSize) : "md";
   const presentation = presentations.includes(presentationProp as DialogPresentation)
     ? (presentationProp as DialogPresentation)
     : "auto";
@@ -212,7 +213,7 @@ export function Dialog(props: DialogProps): JSX.Element {
           const where = "a Dialog is centered, or a bottom sheet on phones";
           const list = (values: readonly string[]) => values.map((name) => `"${name}"`).join(", ");
           return [
-            size !== sizeProp && [`size="${String(sizeProp)}" is not a size; use ${list(sizes)}`, '<Dialog size="md">'],
+            size !== sizeProp && dialogSizeWarning(String(sizeProp), '<Dialog size="md">'),
             presentation !== presentationProp && [
               `presentation="${String(presentationProp)}" is not a presentation; use ${list(presentations)}`,
               '<Dialog presentation="auto">',

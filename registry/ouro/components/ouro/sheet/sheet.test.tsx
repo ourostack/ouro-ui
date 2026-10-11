@@ -581,6 +581,24 @@ describe("dev messages", () => {
 });
 
 describe("parts", () => {
+  it("renders a bottom SheetRoot for a side that is not one of the four, and warns once with the fix", async () => {
+    await render(
+      <SheetRoot {...({ side: "left-ish" } as object)} defaultOpen>
+        <SheetPortal>
+          <SheetViewport>
+            <SheetPopup>
+              <SheetTitle>Parts</SheetTitle>
+            </SheetPopup>
+          </SheetViewport>
+        </SheetPortal>
+      </SheetRoot>,
+    );
+    await expect.poll(() => popup()?.getAttribute("data-side")).toBe("bottom");
+    expect(warn.mock.calls.map((call: unknown[]) => call[0])).toEqual([
+      '[ouro-ui] SheetRoot: side="left-ish" is not a side; use "bottom", "top", "left", "right". Fix: <SheetRoot side="bottom">.',
+    ]);
+  });
+
   it("compose into a working sheet", async () => {
     await render(
       <SheetRoot>

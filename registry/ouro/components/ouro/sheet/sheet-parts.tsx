@@ -5,10 +5,27 @@ import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { useBackdropAnchor } from "@/registry/ouro/lib/ouro/use-backdrop-anchor";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 import { useKeyboardScrollable } from "@/registry/ouro/lib/ouro/use-keyboard-scrollable";
 
 /** The edge a sheet slides in from, and is dragged back to, to dismiss. */
 export type SheetSide = "bottom" | "top" | "left" | "right";
+
+/**
+ * The four sides, for checking a `side` prop. Shared with `Sheet`.
+ *
+ * @internal
+ */
+export const sheetSides: readonly SheetSide[] = ["bottom", "top", "left", "right"];
+
+/**
+ * The dev message for a side that is not one of {@link sheetSides}. Development only.
+ *
+ * @internal
+ */
+export function sideWarning(side: string, fix: string): readonly [string, string] {
+  return [`side="${side}" is not a side; use ${sheetSides.map((name) => `"${name}"`).join(", ")}`, fix];
+}
 
 /**
  * A snap point for a bottom or top sheet: a fraction of the viewport height
@@ -187,7 +204,7 @@ export function sheetHint(open: string, close: string) {
 /** Props for {@link SheetRoot}: Base UI `Drawer.Root` props with `side` in place of `swipeDirection`. */
 export type SheetRootProps = Omit<Drawer.Root.Props, "swipeDirection" | "snapPoints"> & {
   /** The edge the sheet slides in from. @default "bottom" */
-  side?: SheetSide | undefined;
+  side?: SheetSide | (string & { 'Use "bottom", "top", "left" or "right"': never }) | undefined;
   /** Snap points for a bottom or top sheet. Without them the sheet fits its content. */
   snapPoints?: SheetSnapPoint[] | undefined;
 };
@@ -211,7 +228,15 @@ export type SheetRootProps = Omit<Drawer.Root.Props, "swipeDirection" | "snapPoi
  *   </SheetPortal>
  * </SheetRoot>
  */
-export function SheetRoot({ side = "bottom", snapPoints, ...props }: SheetRootProps): JSX.Element {
+export function SheetRoot({ side: sideProp = "bottom", snapPoints, ...props }: SheetRootProps): JSX.Element {
+  // A side that is not one of Ouro UI's (a type error) warns and renders a bottom sheet.
+  const side = sheetSides.includes(sideProp as SheetSide) ? (sideProp as SheetSide) : "bottom";
+  useDevWarnings(
+    "SheetRoot",
+    process.env.NODE_ENV !== "production"
+      ? () => [side !== sideProp && sideWarning(String(sideProp), "<SheetRoot side=\"bottom\">")]
+      : /* istanbul ignore next -- production only */ undefined,
+  );
   const snap = Boolean(snapPoints && snapPoints.length > 0);
   return (
     <SheetContext.Provider value={{ side, snap }}>

@@ -584,6 +584,15 @@ describe("runtime guards", () => {
     expect(String(warn.mock.calls[0]?.[0])).toBe(`[ouro-ui] Button: ${prop} is not a prop. Fix: ${fix}.`);
   });
 
+  it.each([
+    ["primary", 'type="primary" is not a button type; use "button", "submit", "reset". Fix: <Button tone="primary">.'],
+    ["link", 'type="link" is not a button type; use "button", "submit", "reset". Fix: <Button type="button">.'],
+  ])("renders type=button for type=%j, so it never submits a form, and warns once with the fix", async (type, message) => {
+    const { button } = await render(<Untyped type={type}>Go</Untyped>);
+    expect(button.getAttribute("type")).toBe("button");
+    expect(warn.mock.calls.map((call: unknown[]) => call[0])).toEqual([`[ouro-ui] Button: ${message}`]);
+  });
+
   it("drops type on a link and warns", async () => {
     const { button } = await render(
       <Untyped href="/x" type="submit">

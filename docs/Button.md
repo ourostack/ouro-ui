@@ -52,7 +52,7 @@ A Button without `href`: renders a native `<button>`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `ref` | `Ref<HTMLButtonElement>` |  | Reaches the rendered element. |
-| `type` | `"button" \| "submit" \| "reset"` | `"button"` (never submits a form by accident) |  |
+| `type` | `"button" \| "submit" \| "reset"` | `"button"` (never submits a form by accident) | The button's role in a form: `submit` sends it, `reset` clears it. |
 
 Also accepts the attributes in React's `ButtonHTMLAttributes` and `HTMLAttributes` (`id`, `aria-*`, event handlers), passed to the rendered element, except those named on this page.
 

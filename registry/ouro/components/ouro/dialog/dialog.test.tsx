@@ -567,6 +567,24 @@ describe("dev messages", () => {
 });
 
 describe("parts", () => {
+  it("renders an md DialogPopup for a size that is not one of Ouro UI's, and warns once with the fix", async () => {
+    await render(
+      <DialogRoot open>
+        <DialogPortal>
+          <DialogViewport>
+            <DialogPopup {...({ size: "xl" } as object)}>
+              <DialogTitle>Parts</DialogTitle>
+            </DialogPopup>
+          </DialogViewport>
+        </DialogPortal>
+      </DialogRoot>,
+    );
+    await expect.poll(() => dialogPopup()?.getAttribute("data-size")).toBe("md");
+    expect(warn.mock.calls.map((call: unknown[]) => call[0])).toEqual([
+      '[ouro-ui] DialogPopup: size="xl" is not a size; use "sm", "md", "lg". Fix: <DialogPopup size="md">.',
+    ]);
+  });
+
   it("compose into a working dialog", async () => {
     const ref = createRef<HTMLDivElement>();
     await render(
