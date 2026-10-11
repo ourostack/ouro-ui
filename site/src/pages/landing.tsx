@@ -31,12 +31,9 @@ function Hero(): JSX.Element {
         <Pill>shadcn/ui compliant</Pill>
         <Pill>Alpha</Pill>
       </div>
-      <h1
-        id="hero-title"
-        className="m-0 mt-6 max-w-[16ch] text-[2.5rem] leading-[1.05] font-semibold tracking-[-0.035em] text-balance text-foreground sm:text-6xl sm:leading-[1.02]"
-      >
+      <Heading level={1} size="display" id="hero-title" className="mt-6 max-w-[16ch]">
         Interfaces that feel right, built by agents that get them right.
-      </h1>
+      </Heading>
       <Text size="lg" tone="muted" className="mt-6 max-w-[34rem] text-pretty">
         Ouro UI is React components with handcrafted interactions, installed into your project as code you own. They're
         designed so coding agents use them correctly, without a skill or a rules file.
@@ -173,8 +170,8 @@ const principles: Array<{ title: string; body: ReactNode }> = [
     title: "The guessed prop exists",
     body: (
       <>
-        When an agent guesses a common name, it either works or is typed <InlineCode>never</InlineCode> with a note pointing to
-        the real prop.
+        When an agent guesses a common name, it either works or fails the type check with an error that names the real
+        prop, and hovering it in the editor shows the same note.
       </>
     ),
   },

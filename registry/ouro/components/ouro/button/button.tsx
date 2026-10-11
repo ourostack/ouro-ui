@@ -29,20 +29,41 @@ export interface ButtonBaseProps {
    * shadcn's `variant="destructive"` is `tone="destructive"`, and its `variant="secondary"` is `tone="secondary"`.
    * @default "primary"
    */
-  tone?: "primary" | "secondary" | "destructive" | "success" | "warning" | undefined;
+  tone?:
+    | "primary"
+    | "secondary"
+    | "destructive"
+    | "success"
+    | "warning"
+    | (string & { 'danger is "destructive"; accent is "primary"; neutral is "secondary"': never })
+    | undefined;
   /**
    * Visual weight: `solid` for the primary action, `soft` for secondary actions,
    * `outline` for a quiet bordered control, `plain` for a borderless one.
    * shadcn's `default` is `solid` (the default), `ghost` and `link` are `plain`, and
-   * `destructive` and `secondary` are tones: `tone="destructive"`.
+   * `destructive` and `secondary` are tones: `tone="destructive"`. Any other
+   * string is a type error whose message names the fix.
    * @default "solid"
    */
-  variant?: "solid" | "soft" | "outline" | "plain" | undefined;
+  variant?:
+    | "solid"
+    | "soft"
+    | "outline"
+    | "plain"
+    | (string & { 'From shadcn? Use tone="destructive" or tone="secondary". default is "solid"; ghost and link are "plain"': never })
+    | undefined;
   /**
    * Control size. Each size is taller on phones and steps down to desktop
-   * density from the `sm` breakpoint (640px). @default "md"
+   * density from the `sm` breakpoint (640px). shadcn's `default` is `md`; for an
+   * icon-only button, pass the icon as children and an `aria-label`. Any other
+   * string is a type error whose message names the fix. @default "md"
    */
-  size?: "sm" | "md" | "lg" | undefined;
+  size?:
+    | "sm"
+    | "md"
+    | "lg"
+    | (string & { 'From shadcn? default is "md"; for icon, pass aria-label with the icon as children': never })
+    | undefined;
   /** Stretches the button to the width of its container. */
   fullWidth?: boolean | undefined;
   /**
@@ -71,15 +92,15 @@ export interface ButtonBaseProps {
   className?: string | undefined;
 
   /** Not a prop. Ouro UI uses `loading`: `<Button loading>`. */
-  isLoading?: never;
+  isLoading?: { 'Use <Button loading>': never };
   /** Not a prop. Ouro UI uses `tone`: `<Button tone="destructive">`. */
-  color?: never;
+  color?: { 'Use <Button tone="destructive">': never };
   /** Not a prop. To render a link, pass `href`: `<Button href="/recipes">`. For other elements, use parts. */
-  asChild?: never;
+  asChild?: { 'Use <Button href="/path">': never };
   /** Not a prop. Ouro UI uses `startIcon`: `<Button startIcon={PlusIcon}>`. */
-  leftIcon?: never;
+  leftIcon?: { 'Use <Button startIcon={Icon}>': never };
   /** Not a prop. Ouro UI uses `endIcon`: `<Button endIcon={ArrowRightIcon}>`. */
-  rightIcon?: never;
+  rightIcon?: { 'Use <Button endIcon={Icon}>': never };
 }
 
 /** A Button with `href`: renders a link that looks like a button. */
@@ -105,8 +126,11 @@ export type ButtonButtonProps = ButtonBaseProps &
   Omit<ButtonHTMLAttributes<HTMLButtonElement>, keyof ButtonBaseProps | "type"> & {
     /** Not set: this is a `<button>`. Pass `href` to render a link instead. */
     href?: never;
-    /** @default "button" (never submits a form by accident) */
-    type?: "button" | "submit" | "reset" | undefined;
+    /**
+     * The button's role in a form: `submit` sends it, `reset` clears it.
+     * @default "button" (never submits a form by accident)
+     */
+    type?: "button" | "submit" | "reset" | (string & { 'Use "button", "submit" or "reset"; for looks use tone and variant': never }) | undefined;
     ref?: Ref<HTMLButtonElement> | undefined;
   };
 
@@ -180,6 +204,8 @@ const looks = {
 
 const iconClass = "size-[1.25em] shrink-0";
 
+const buttonTypes = ["button", "submit", "reset"] as const;
+
 /** Absolute URLs (`https:`, `mailto:`, protocol-relative) skip the router link. */
 const EXTERNAL = /^([a-z][a-z\d+.-]*:|\/\/)/i;
 
@@ -206,6 +232,12 @@ const shadcnVariants: Readonly<Record<string, string>> = {
 function variantWarning(variant: string): readonly [string, string] {
   const fix = Object.hasOwn(shadcnVariants, variant) ? shadcnVariants[variant]! : '<Button variant="solid">';
   return [`variant="${variant}" is not a variant`, fix];
+}
+
+/** The dev message for a size that is not one of Ouro UI's, such as shadcn's `default` and `icon`. */
+function sizeWarning(size: string): readonly [string, string] {
+  const fix = size === "icon" ? '<Button aria-label="Add"><PlusIcon /></Button>' : '<Button size="md">';
+  return [`size="${size}" is not a size`, fix];
 }
 
 function Spinner(): JSX.Element {
@@ -254,7 +286,7 @@ export function Button(props: ButtonProps): JSX.Element {
   const {
     tone: toneProp = "primary",
     variant: variantProp = "solid",
-    size = "md",
+    size: sizeProp = "md",
     fullWidth,
     loading,
     loadingLabel = "Loading",
@@ -262,7 +294,7 @@ export function Button(props: ButtonProps): JSX.Element {
     endIcon: EndIcon,
     children,
     className,
-    // Guard props: typed `never`, dropped here so they never reach the DOM.
+    // Guard props (hint types), dropped here so they never reach the DOM.
     isLoading,
     color,
     asChild,
@@ -271,9 +303,10 @@ export function Button(props: ButtonProps): JSX.Element {
     ...rest
   } = props;
   const { linkComponent: LinkComponent } = useOuro();
-  // A tone or variant that is not one of Ouro UI's (a type error) warns and renders the default.
-  const tone = Object.hasOwn(looks.solid, toneProp) ? toneProp : "primary";
-  const variant = Object.hasOwn(looks, variantProp) ? variantProp : "solid";
+  // A tone, variant or size that is not one of Ouro UI's (a type error) warns and renders the default.
+  const tone = Object.hasOwn(looks.solid, toneProp) ? (toneProp as keyof typeof looks.solid) : "primary";
+  const variant = Object.hasOwn(looks, variantProp) ? (variantProp as keyof typeof looks) : "solid";
+  const size = Object.hasOwn(sizes, sizeProp) ? (sizeProp as keyof typeof sizes) : "md";
   useAppearanceClassNameCheck(
     "Button",
     className,
@@ -287,11 +320,18 @@ export function Button(props: ButtonProps): JSX.Element {
           return [
             tone !== toneProp && toneWarning("Button", String(toneProp), Object.keys(looks.solid)),
             variant !== variantProp && variantWarning(String(variantProp)),
+            size !== sizeProp && sizeWarning(String(sizeProp)),
             isLoading !== undefined && ["isLoading is not a prop", "<Button loading>"],
             color !== undefined && ["color is not a prop", `<Button tone="${toneFor(`bg-${String(color)}`)}">`],
             asChild !== undefined && ["asChild is not a prop", '<Button href="/path">'],
             leftIcon !== undefined && ["leftIcon is not a prop", "<Button startIcon={Icon}>"],
             rightIcon !== undefined && ["rightIcon is not a prop", "<Button endIcon={Icon}>"],
+            link.href === undefined &&
+              link.type !== undefined &&
+              !buttonTypes.includes(link.type as (typeof buttonTypes)[number]) && [
+                `type="${link.type}" is not a button type; use "button", "submit", "reset"`,
+                Object.hasOwn(looks.solid, link.type) ? `<Button tone="${link.type}">` : '<Button type="button">',
+              ],
             link.href !== undefined &&
               link.type !== undefined && [
                 `a link has no type, so type="${link.type}" is ignored`,
@@ -357,7 +397,9 @@ export function Button(props: ButtonProps): JSX.Element {
     return external ? <a {...linkProps}>{content}</a> : <LinkComponent {...linkProps}>{content}</LinkComponent>;
   }
 
-  const { ref, disabled, type = "button", ...buttonProps } = rest as Omit<ButtonButtonProps, keyof ButtonBaseProps>;
+  const { ref, disabled, type: typeProp = "button", ...buttonProps } = rest as Omit<ButtonButtonProps, keyof ButtonBaseProps>;
+  // A type that is not a button type would submit forms (the browser's default), so it renders "button".
+  const type = buttonTypes.includes(typeProp as (typeof buttonTypes)[number]) ? (typeProp as (typeof buttonTypes)[number]) : "button";
   return (
     <BaseButton
       {...buttonProps}

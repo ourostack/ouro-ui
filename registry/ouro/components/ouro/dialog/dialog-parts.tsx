@@ -5,12 +5,29 @@ import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { useBackdropAnchor } from "@/registry/ouro/lib/ouro/use-backdrop-anchor";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 import { useKeyboardScrollable } from "@/registry/ouro/lib/ouro/use-keyboard-scrollable";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { footerClass, iosBackdrop, sheetHint } from "@/registry/ouro/components/ouro/sheet/sheet-parts";
 
 /** A centered dialog's maximum width: `sm` 24rem, `md` 32rem, `lg` 40rem. */
 export type DialogSize = "sm" | "md" | "lg";
+
+/**
+ * The three sizes, for checking a `size` prop. Shared with `Dialog`.
+ *
+ * @internal
+ */
+export const dialogSizes: readonly DialogSize[] = ["sm", "md", "lg"];
+
+/**
+ * The dev message for a size that is not one of {@link dialogSizes}. Development only.
+ *
+ * @internal
+ */
+export function dialogSizeWarning(size: string, fix: string): readonly [string, string] {
+  return [`size="${size}" is not a size; use ${dialogSizes.map((name) => `"${name}"`).join(", ")}`, fix];
+}
 
 const DialogContext = createContext(false);
 
@@ -139,14 +156,22 @@ export function DialogViewport(props: Omit<BaseDialog.Viewport.Props, "className
 export type DialogPopupProps = Omit<BaseDialog.Popup.Props, "className"> & {
   className?: string | undefined;
   /** Maximum width: `sm` 24rem, `md` 32rem, `lg` 40rem. @default "md" */
-  size?: DialogSize | undefined;
+  size?: DialogSize | (string & { 'Use "sm", "md" or "lg"': never }) | undefined;
 };
 
 /**
  * Part: the dialog panel. It scales up from 0.96 and fades in with the theme
  * spring, and scales and fades out; reduced motion keeps only the fade.
  */
-export function DialogPopup(props: DialogPopupProps): JSX.Element {
+export function DialogPopup({ size: sizeProp = "md", ...props }: DialogPopupProps): JSX.Element {
+  // A size that is not one of Ouro UI's (a type error) warns and renders md.
+  const size = dialogSizes.includes(sizeProp as DialogSize) ? (sizeProp as DialogSize) : "md";
+  useDevWarnings(
+    "DialogPopup",
+    process.env.NODE_ENV !== "production"
+      ? () => [size !== sizeProp && dialogSizeWarning(String(sizeProp), '<DialogPopup size="md">')]
+      : /* istanbul ignore next -- production only */ undefined,
+  );
   useAppearanceClassNameCheck(
     "DialogPopup",
     props.className,
@@ -154,7 +179,7 @@ export function DialogPopup(props: DialogPopupProps): JSX.Element {
       ? sheetHint("<DialogPopup>", "</DialogPopup>")
       : /* istanbul ignore next -- production only */ "",
   );
-  return <DialogPopupUnchecked {...props} />;
+  return <DialogPopupUnchecked {...props} size={size} />;
 }
 
 /**
@@ -162,7 +187,11 @@ export function DialogPopup(props: DialogPopupProps): JSX.Element {
  *
  * @internal
  */
-export function DialogPopupUnchecked({ className, size = "md", ...props }: DialogPopupProps): JSX.Element {
+export function DialogPopupUnchecked({
+  className,
+  size,
+  ...props
+}: Omit<DialogPopupProps, "size"> & { size: DialogSize }): JSX.Element {
   useDialogPart("DialogPopup", "…");
   return (
     <BaseDialog.Popup

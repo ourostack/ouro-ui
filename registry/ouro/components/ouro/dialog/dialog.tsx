@@ -28,6 +28,8 @@ import {
   DialogRoot,
   DialogTitle,
   DialogViewport,
+  dialogSizes,
+  dialogSizeWarning,
   type DialogSize,
 } from "@/registry/ouro/components/ouro/dialog/dialog-parts";
 
@@ -35,6 +37,8 @@ export type { DialogSize } from "@/registry/ouro/components/ouro/dialog/dialog-p
 
 /** How a Dialog presents: `auto` is a centered dialog from 640px up and a bottom sheet below. */
 export type DialogPresentation = "auto" | "dialog" | "sheet";
+
+const presentations: readonly DialogPresentation[] = ["auto", "dialog", "sheet"];
 
 /** Props shared by both ways of opening a Dialog. */
 export interface DialogBaseProps {
@@ -57,9 +61,9 @@ export interface DialogBaseProps {
    * and corrects it on hydration; nothing shows until it opens, so nothing shifts.
    * @default "auto"
    */
-  presentation?: DialogPresentation | undefined;
+  presentation?: DialogPresentation | (string & { 'Use "auto", "dialog" or "sheet"': never }) | undefined;
   /** The centered dialog's maximum width: `sm` 24rem, `md` 32rem, `lg` 40rem. @default "md" */
-  size?: DialogSize | undefined;
+  size?: DialogSize | (string & { 'Use "sm", "md" or "lg"': never }) | undefined;
   /**
    * The actions row: a row at the end on wider screens, stacked full width on
    * phones. Put the primary action last, so it sits on the right on wider
@@ -76,15 +80,15 @@ export interface DialogBaseProps {
   className?: string | undefined;
 
   /** Not a prop. Ouro UI uses `open` with `onOpenChange`: `<Dialog open={open} onOpenChange={setOpen}>`. */
-  isOpen?: never;
+  isOpen?: { 'Use <Dialog open={open} onOpenChange={setOpen}>': never };
   /** Not a prop. `onOpenChange(false)` fires on close: `<Dialog open={open} onOpenChange={setOpen}>`. */
-  onClose?: never;
+  onClose?: { 'Use <Dialog open={open} onOpenChange={setOpen}>': never };
   /** Not a prop. A Dialog is centered, or a bottom sheet on phones. For another edge use `<Sheet side="…">`. */
-  position?: never;
+  position?: { 'Use <Sheet side="right">': never };
   /** Not a prop. A Dialog is centered, or a bottom sheet on phones. For another edge use `<Sheet side="…">`. */
-  side?: never;
+  side?: { 'Use <Sheet side="right">': never };
   /** Not a prop. A Dialog fits its content. For snap points use `<Sheet snapPoints={[0.5, 1]}>`. */
-  snapPoints?: never;
+  snapPoints?: { 'Use <Sheet snapPoints={[0.5, 1]}>': never };
 }
 
 /** An uncontrolled Dialog: `trigger` opens it. */
@@ -167,15 +171,15 @@ export function Dialog(props: DialogProps): JSX.Element {
     hideTitle,
     closeLabel = "Close",
     description,
-    presentation = "auto",
-    size = "md",
+    presentation: presentationProp = "auto",
+    size: sizeProp = "md",
     footer,
     children,
     className,
     trigger,
     open,
     onOpenChange,
-    // Guard props: typed `never`, dropped here so they never reach the DOM.
+    // Guard props (hint types), dropped here so they never reach the DOM.
     isOpen,
     onClose,
     position,
@@ -189,6 +193,12 @@ export function Dialog(props: DialogProps): JSX.Element {
 
   checkOpenMode("Dialog", "dialog", trigger !== undefined, open, onOpenChange);
 
+  // A size or presentation that is not one of Ouro UI's (a type error) warns and renders the default.
+  const size = dialogSizes.includes(sizeProp as DialogSize) ? (sizeProp as DialogSize) : "md";
+  const presentation = presentations.includes(presentationProp as DialogPresentation)
+    ? (presentationProp as DialogPresentation)
+    : "auto";
+
   useAppearanceClassNameCheck(
     "Dialog",
     className,
@@ -201,7 +211,13 @@ export function Dialog(props: DialogProps): JSX.Element {
     process.env.NODE_ENV !== "production"
       ? () => {
           const where = "a Dialog is centered, or a bottom sheet on phones";
+          const list = (values: readonly string[]) => values.map((name) => `"${name}"`).join(", ");
           return [
+            size !== sizeProp && dialogSizeWarning(String(sizeProp), '<Dialog size="md">'),
+            presentation !== presentationProp && [
+              `presentation="${String(presentationProp)}" is not a presentation; use ${list(presentations)}`,
+              '<Dialog presentation="auto">',
+            ],
             isOpen !== undefined && ["isOpen is not a prop", "<Dialog open={open} onOpenChange={setOpen}>"],
             onClose !== undefined && ["onClose is not a prop", "<Dialog open={open} onOpenChange={setOpen}>"],
             position !== undefined && [`position is not a prop; ${where}`, '<Sheet side="bottom">'],

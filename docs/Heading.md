@@ -13,6 +13,7 @@ import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 ```tsx
 <Heading level={1}>Recipes</Heading>
 <Heading level={2} size="lg">Ingredients</Heading>
+<Heading level={1} size="display">Dinner, sorted</Heading>
 ```
 
 ## Use instead when
@@ -30,7 +31,7 @@ Type: `HeadingProps`.
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mb-2`). Appearance classes warn in development; use `size` and `align`. |
 | `level` (required) | `1 \| 2 \| 3 \| 4 \| 5 \| 6` |  | Outline level: sets the tag (`level={2}` renders `<h2>`). Required, because the level is about document structure, not looks; use `size` to change how big it looks. |
 | `ref` | `Ref<HTMLHeadingElement>` |  | Reaches the rendered element. |
-| `size` | `"sm" \| "md" \| "lg" \| "xl" \| "2xl"` | derived from `level` (1 is `2xl`, 2 is `xl`, 3 is `lg`, 4 is `md`, 5 and 6 are `sm`) | Visual size, independent of the level. |
+| `size` | `"sm" \| "md" \| "lg" \| "xl" \| "2xl" \| "display"` | derived from `level` (1 is `2xl`, 2 is `xl`, 3 is `lg`, 4 is `md`, 5 and 6 are `sm`) | Visual size, independent of the level. `display` is the hero headline of a landing page, tightly set and larger from the `sm` breakpoint: `<Heading level={1} size="display">`. |
 
 ## Native attributes
 
@@ -38,7 +39,7 @@ Also accepts the attributes in React's `HTMLAttributes` (`id`, `aria-*`, event h
 
 ## Don't use
 
-These are not props. Each is typed `never`, so the type check fails, and in development a message names the fix.
+These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
 - `as`: Not a prop. The tag comes from `level`: `<Heading level={2}>`.
 - `color`: Not a prop. Headings use the theme's foreground color; for colored text use `<Text tone="…">`.

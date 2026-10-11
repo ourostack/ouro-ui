@@ -4,9 +4,8 @@
 //
 // - `error`: the diagnostic as `tsc` prints it (`error TS2322: …`);
 // - `source`: the flagged prop's declaration and JSDoc in the installed Button source,
-//   which the agent can open because the code is copied into its app. (An editor's hover
-//   is not quoted: on a union of props, as Button's are, TypeScript's quick info shows no
-//   JSDoc at the JSX attribute.)
+//   which the agent can open because the code is copied into its app. Hovering the prop in
+//   an editor shows the same JSDoc; scripts/agent-types.test.mjs checks that.
 //
 // `--check` exits 1 when the committed file differs. `--out <file>` writes elsewhere, for tests.
 import { readFileSync, writeFileSync } from "node:fs";

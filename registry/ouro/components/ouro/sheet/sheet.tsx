@@ -16,6 +16,8 @@ import {
   SheetViewport,
   footerClass,
   sheetHint,
+  sheetSides,
+  sideWarning,
   type SheetSide,
   type SheetSnapPoint,
 } from "@/registry/ouro/components/ouro/sheet/sheet-parts";
@@ -37,7 +39,7 @@ export interface SheetBaseProps {
   /** A short line under the title, read out when the sheet opens. */
   description?: ReactNode;
   /** The edge the sheet slides in from and is dragged back to. @default "bottom" */
-  side?: SheetSide | undefined;
+  side?: SheetSide | (string & { 'Use "bottom", "top", "left" or "right"': never }) | undefined;
   /**
    * Heights a bottom or top sheet rests at, smallest first: fractions of the
    * viewport (`0.5`), `px` or `rem`. `snapPoints={[0.5, 1]}` opens at half
@@ -53,13 +55,13 @@ export interface SheetBaseProps {
   className?: string | undefined;
 
   /** Not a prop. Ouro UI uses `open` with `onOpenChange`: `<Sheet open={open} onOpenChange={setOpen}>`. */
-  isOpen?: never;
+  isOpen?: { 'Use <Sheet open={open} onOpenChange={setOpen}>': never };
   /** Not a prop. `onOpenChange(false)` fires on close: `<Sheet open={open} onOpenChange={setOpen}>`. */
-  onClose?: never;
+  onClose?: { 'Use <Sheet open={open} onOpenChange={setOpen}>': never };
   /** Not a prop. Ouro UI uses `side`: `<Sheet side="bottom">`. */
-  position?: never;
+  position?: { 'Use <Sheet side="bottom">': never };
   /** Not a prop. A sheet fits its content; to set heights use `snapPoints={[0.5, 1]}`. */
-  size?: never;
+  size?: { 'Use <Sheet snapPoints={[0.5, 1]}>': never };
 }
 
 /** An uncontrolled Sheet: `trigger` opens it. */
@@ -109,14 +111,14 @@ export function Sheet(props: SheetProps): JSX.Element {
     hideTitle,
     closeLabel = "Close",
     description,
-    side = "bottom",
+    side: sideProp = "bottom",
     snapPoints,
     children,
     className,
     trigger,
     open,
     onOpenChange,
-    // Guard props: typed `never`, dropped here so they never reach the DOM.
+    // Guard props (hint types), dropped here so they never reach the DOM.
     isOpen,
     onClose,
     position,
@@ -129,6 +131,9 @@ export function Sheet(props: SheetProps): JSX.Element {
 
   checkOpenMode("Sheet", "sheet", trigger !== undefined, open, onOpenChange);
 
+  // A side that is not one of Ouro UI's (a type error) warns and renders a bottom sheet.
+  const side = sheetSides.includes(sideProp as SheetSide) ? (sideProp as SheetSide) : "bottom";
+
   useAppearanceClassNameCheck(
     "Sheet",
     className,
@@ -140,6 +145,7 @@ export function Sheet(props: SheetProps): JSX.Element {
     "Sheet",
     process.env.NODE_ENV !== "production"
       ? () => [
+          side !== sideProp && sideWarning(String(sideProp), '<Sheet side="bottom">'),
           isOpen !== undefined && ["isOpen is not a prop", "<Sheet open={open} onOpenChange={setOpen}>"],
           onClose !== undefined && ["onClose is not a prop", "<Sheet open={open} onOpenChange={setOpen}>"],
           position !== undefined && ["position is not a prop", '<Sheet side="bottom">'],

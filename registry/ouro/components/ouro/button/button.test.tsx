@@ -584,6 +584,15 @@ describe("runtime guards", () => {
     expect(String(warn.mock.calls[0]?.[0])).toBe(`[ouro-ui] Button: ${prop} is not a prop. Fix: ${fix}.`);
   });
 
+  it.each([
+    ["primary", 'type="primary" is not a button type; use "button", "submit", "reset". Fix: <Button tone="primary">.'],
+    ["link", 'type="link" is not a button type; use "button", "submit", "reset". Fix: <Button type="button">.'],
+  ])("renders type=button for type=%j, so it never submits a form, and warns once with the fix", async (type, message) => {
+    const { button } = await render(<Untyped type={type}>Go</Untyped>);
+    expect(button.getAttribute("type")).toBe("button");
+    expect(warn.mock.calls.map((call: unknown[]) => call[0])).toEqual([`[ouro-ui] Button: ${message}`]);
+  });
+
   it("drops type on a link and warns", async () => {
     const { button } = await render(
       <Untyped href="/x" type="submit">
@@ -634,6 +643,22 @@ describe("runtime guards", () => {
     const [plain, odd] = [...screen.host.querySelectorAll("button")].map((el) => getComputedStyle(el));
     expect(odd!.backgroundColor).toBe(plain!.backgroundColor);
     expect(odd!.color).toBe(plain!.color);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]?.[0])).toBe(`[ouro-ui] Button: ${message}`);
+  });
+
+  it.each([
+    ["default", 'size="default" is not a size. Fix: <Button size="md">.'],
+    ["icon", 'size="icon" is not a size. Fix: <Button aria-label="Add"><PlusIcon /></Button>.'],
+  ])("renders the md size for shadcn's size=%j and warns once with the fix", async (value, message) => {
+    const screen = await render(
+      <div>
+        <Button>Default</Button>
+        <Untyped size={value}>Odd</Untyped>
+      </div>,
+    );
+    const [plain, odd] = [...screen.host.querySelectorAll("button")].map((el) => el.getBoundingClientRect().height);
+    expect(odd).toBe(plain);
     expect(warn).toHaveBeenCalledTimes(1);
     expect(String(warn.mock.calls[0]?.[0])).toBe(`[ouro-ui] Button: ${message}`);
   });

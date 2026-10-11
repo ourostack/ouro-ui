@@ -72,6 +72,53 @@ describe("Heading", () => {
     expect(parseFloat(getComputedStyle(small!).fontSize)).toBeLessThan(parseFloat(getComputedStyle(h1!).fontSize));
   });
 
+  it("sets display larger than 2xl, and larger again from the sm breakpoint, for a hero headline", async () => {
+    const { host } = await render(
+      <>
+        <Heading level={1} size="display">
+          Hero
+        </Heading>
+        <Heading level={1}>Page</Heading>
+      </>,
+    );
+    const [display, h1] = [...host.children] as HTMLElement[];
+    expect(display!.tagName).toBe("H1");
+    const px = parseFloat(getComputedStyle(display!).fontSize);
+    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    expect(px).toBeGreaterThan(parseFloat(getComputedStyle(h1!).fontSize));
+    // 2.5rem below the `sm` breakpoint (640px), Tailwind's text-6xl (3.75rem) from it.
+    expect(px).toBe((window.innerWidth >= 640 ? 3.75 : 2.5) * rem);
+  });
+
+  it.each([
+    ["3xl", '[ouro-ui] Heading: size="3xl" is not a size; use "sm", "md", "lg", "xl", "2xl", "display". Fix: <Heading level={1} size="display">.'],
+    ["huge", '[ouro-ui] Heading: size="huge" is not a size; use "sm", "md", "lg", "xl", "2xl", "display". Fix: <Heading level={1} size="2xl">.'],
+  ])("renders the level's default size for size=%j and warns once with the fix", async (size, message) => {
+    const { host } = await render(
+      <>
+        <Heading level={1} {...({ size } as object)}>
+          Odd
+        </Heading>
+        <Heading level={1}>Default</Heading>
+      </>,
+    );
+    const [odd, plain] = [...host.children].map((el) => getComputedStyle(el).fontSize);
+    expect(odd).toBe(plain);
+    expect(warn.mock.calls.map((call: unknown[]) => call[0])).toEqual([message]);
+  });
+
+  it("renders inherited alignment for align=\"left\" and warns once with the fix", async () => {
+    const { el } = await render(
+      <Heading level={2} {...({ align: "left" } as object)}>
+        Title
+      </Heading>,
+    );
+    expect(el.className).not.toMatch(/text-(start|center|end|left)/);
+    expect(warn.mock.calls.map((call: unknown[]) => call[0])).toEqual([
+      '[ouro-ui] Heading: align="left" is not an alignment; use "start", "center", "end". Fix: <Heading align="start">.',
+    ]);
+  });
+
   it("aligns center and passes attributes through", async () => {
     const { el } = await render(
       <Heading level={2} align="center" id="t">
@@ -83,7 +130,8 @@ describe("Heading", () => {
   });
 
   it.each([
-    ["text-4xl", 'size="2xl"'],
+    ["text-3xl", 'size="2xl"'],
+    ["text-6xl", 'size="display"'],
     ["text-center", 'align="center"'],
     ["bg-black", "<Heading level={2}>…</Heading>"],
     ["font-serif", '<div className="font-serif"><Heading /></div>'],

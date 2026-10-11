@@ -74,7 +74,7 @@ Not in this mode (typed `never`):
 
 ## Don't use
 
-These are not props. Each is typed `never`, so the type check fails, and in development a message names the fix.
+These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
 - `cancelText`: Not a prop. Ouro UI uses `cancelLabel`: `<ConfirmDialog cancelLabel="Keep">`.
 - `confirmText`: Not a prop. Ouro UI uses `confirmLabel`: `<ConfirmDialog confirmLabel="Delete">`.
@@ -82,3 +82,4 @@ These are not props. Each is typed `never`, so the type check fails, and in deve
 - `isOpen`: Not a prop. Ouro UI uses `open` with `onOpenChange`: `<ConfirmDialog open={open} onOpenChange={setOpen}>`.
 - `onCancel`: Not a prop. Cancel calls `onOpenChange(false)`: `<ConfirmDialog open={open} onOpenChange={setOpen}>`.
 - `onClose`: Not a prop. `onOpenChange(false)` fires on close: `<ConfirmDialog open={open} onOpenChange={setOpen}>`.
+- `variant`: Not a prop. Ouro UI uses `tone`: `<ConfirmDialog tone="destructive">`.

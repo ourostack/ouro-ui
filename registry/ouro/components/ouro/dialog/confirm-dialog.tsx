@@ -28,7 +28,7 @@ export interface ConfirmDialogBaseProps {
   /** The cancel button's label. Cancel has focus when the dialog opens. @default "Cancel" */
   cancelLabel?: string | undefined;
   /** The confirm button's color role. Use `destructive` for destructive actions. @default "primary" */
-  tone?: "primary" | "destructive" | undefined;
+  tone?: "primary" | "destructive" | (string & { 'danger is "destructive"; accent is "primary"': never }) | undefined;
   /**
    * Runs the action. Return a promise to keep the dialog open while it runs: the
    * confirm button shows `loading` until it settles. When it resolves the dialog
@@ -39,17 +39,19 @@ export interface ConfirmDialogBaseProps {
   onConfirm: () => void | Promise<void>;
 
   /** Not a prop. Ouro UI uses `open` with `onOpenChange`: `<ConfirmDialog open={open} onOpenChange={setOpen}>`. */
-  isOpen?: never;
+  isOpen?: { 'Use <ConfirmDialog open={open} onOpenChange={setOpen}>': never };
   /** Not a prop. `onOpenChange(false)` fires on close: `<ConfirmDialog open={open} onOpenChange={setOpen}>`. */
-  onClose?: never;
+  onClose?: { 'Use <ConfirmDialog open={open} onOpenChange={setOpen}>': never };
   /** Not a prop. Cancel calls `onOpenChange(false)`: `<ConfirmDialog open={open} onOpenChange={setOpen}>`. */
-  onCancel?: never;
+  onCancel?: { 'Use <ConfirmDialog open={open} onOpenChange={setOpen}>': never };
   /** Not a prop. Ouro UI uses `tone`: `<ConfirmDialog tone="destructive">`. */
-  destructive?: never;
+  destructive?: { 'Use <ConfirmDialog tone="destructive">': never };
   /** Not a prop. Ouro UI uses `confirmLabel`: `<ConfirmDialog confirmLabel="Delete">`. */
-  confirmText?: never;
+  confirmText?: { 'Use <ConfirmDialog confirmLabel="Delete">': never };
   /** Not a prop. Ouro UI uses `cancelLabel`: `<ConfirmDialog cancelLabel="Keep">`. */
-  cancelText?: never;
+  cancelText?: { 'Use <ConfirmDialog cancelLabel="Keep">': never };
+  /** Not a prop. Ouro UI uses `tone`: `<ConfirmDialog tone="destructive">`. */
+  variant?: { 'Use <ConfirmDialog tone="destructive">': never };
 }
 
 /** An uncontrolled ConfirmDialog: `trigger` opens it. */
@@ -106,13 +108,14 @@ export function ConfirmDialog(props: ConfirmDialogProps): JSX.Element {
     trigger,
     open,
     onOpenChange,
-    // Guard props: typed `never`, dropped here so they never reach the DOM.
+    // Guard props (hint types), dropped here so they never reach the DOM.
     isOpen,
     onClose,
     onCancel,
     destructive,
     confirmText,
     cancelText,
+    variant,
   } = props as ConfirmDialogBaseProps & {
     trigger?: ReactElement;
     open?: boolean;
@@ -137,6 +140,7 @@ export function ConfirmDialog(props: ConfirmDialogProps): JSX.Element {
             destructive !== undefined && ["destructive is not a prop", '<ConfirmDialog tone="destructive">'],
             confirmText !== undefined && ["confirmText is not a prop", '<ConfirmDialog confirmLabel="Delete">'],
             cancelText !== undefined && ["cancelText is not a prop", '<ConfirmDialog cancelLabel="Keep">'],
+            variant !== undefined && ["variant is not a prop", '<ConfirmDialog tone="destructive">'],
           ];
         }
       : /* istanbul ignore next -- production only */ undefined,

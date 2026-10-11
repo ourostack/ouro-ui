@@ -201,7 +201,7 @@ Ouro components read shadcn's variables (\`--primary\`, \`--muted-foreground\`, 
 
 ## If you miss one
 
-Shadcn's prop names that Ouro UI doesn't use are typed \`never\`, and its variant values aren't in Ouro's types, so the type check fails on both. In development, Button's console message names the fix for each guard prop and each shadcn variant:
+Shadcn's prop names that Ouro UI doesn't use, and its Button variant and size values, fail the type check, and the error names the Ouro prop to use. In development, Button's console message names the fix for each guard prop and each shadcn variant and size:
 `;
 
 export function Switching(): JSX.Element {
