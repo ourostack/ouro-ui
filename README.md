@@ -2,7 +2,15 @@
 
 React components with handcrafted interactions, designed for coding agents to use correctly without a skill.
 
-Ouro UI is copy-in source in the shadcn/ui registry format: the shadcn CLI copies each component into your app, and your app's own Tailwind CSS v4 compiles its classes. The components read shadcn's theme variables (`--primary`, `--background`, `--radius`…), so an app that already has a shadcn theme keeps it.
+```sh
+npx shadcn@latest search 'ourostack/ouro-ui#v0.2.0'     # list the items
+npx shadcn@latest view 'ourostack/ouro-ui/dialog#v0.2.0' # read one item
+npx shadcn@latest add ourostack/ouro-ui/dialog#v0.2.0    # install it
+```
+
+A GitHub source is `owner/repo#ref`; an item is `owner/repo/item#ref`. `@v0.2.0`, `github:` and `/tree/` URLs don't work.
+
+Ouro UI is copy-in source in the shadcn/ui registry format: the shadcn CLI copies each component into your app, and your app's own Tailwind CSS v4 compiles its classes. Like shadcn/ui's own items, a component item installs only the component's source; its tests are a separate, optional item. The components read shadcn's theme variables (`--primary`, `--background`, `--radius`…), so an app that already has a shadcn theme keeps it.
 
 ```tsx
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -17,21 +25,30 @@ Import paths in this repository and its docs are the registry source paths. The 
 
 ## Install
 
-Ouro UI is alpha. In an app that has run `npx shadcn init` (Tailwind CSS v4):
+Ouro UI is alpha.
+
+### Quick start
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/sheet
+# Existing Vite/Next app with Tailwind CSS v4 and an "@/*" path alias:
+npx shadcn@latest init --base base --preset nova --yes --no-monorepo
+npx shadcn@latest add ourostack/ouro-ui/dialog#v0.2.0
 ```
 
-- The CLI reads `registry.json` at this repository's root. To pin a version, add a [release](https://github.com/ourostack/ouro-ui/releases) tag: `npx shadcn@latest add ourostack/ouro-ui/sheet#v0.1.0` installs the item and every Ouro dependency (`ouro-lib`, `button` and so on) at `v0.1.0`. A `#<branch>` or `#<sha>` ref pins only the item you name; its Ouro dependencies come from `main`.
-- Or add the `@ouro` namespace to `components.json` once, `"registries": { "@ouro": "https://ourostack.github.io/ouro-ui/r/{name}.json" }`, and run `npx shadcn@latest add @ouro/sheet`. The namespace serves `main`.
-- Components land in `components/ouro/<component>/`, beside shadcn's `components/ui/`, and the shared helpers in `lib/ouro/`. The base tokens (`ouro-base`) are added to your CSS with any component.
-- Each component brings its stories, its Vitest browser tests and a Playwright spec in `e2e/ouro/`. The `ouro-testing` item's install message says how to run them: add `ouroTestProjects` from `lib/ouro/testing/vitest.ts` to your Vitest config, and point `OURO_E2E_URL` at a Storybook with the Ouro stories for the specs.
-- For the Ouro look, add `ourostack/ouro-ui/ouro-theme`. Skip it to keep your app's shadcn theme.
-- To update, list the changed files with `npx shadcn add ourostack/ouro-ui/<item> --dry-run`, review each one marked overwrite with `--diff <path>`, then add the item again with `--overwrite` and reapply your edits.
-- Stories and tests ship with each component, so an item can depend on another Ouro item only through them: `sheet` and `heading` install `button` because their stories and tests use it.
+- Pass `--base base`: Ouro UI is built on Base UI. Don't pass `-t`/`--template` in an existing app; it adds shadcn's `components/ui/button.tsx`.
+- New Vite app? Add `@tailwindcss/vite`, `@import "tailwindcss";`, a Vite `@` alias and `"paths": { "@/*": ["./src/*"] }` (no `baseUrl` on TypeScript 6) before `init`.
 
-Items: `button`, `text`, `heading`, `sheet`, `dialog`, `confirm-dialog`, plus `ouro-base`, `ouro-lib` and `ouro-testing`, which the components pull in, and the optional `ouro-theme`.
+### Details
+
+- The CLI reads `registry.json` at this repository's root. A [release](https://github.com/ourostack/ouro-ui/releases) tag such as `#v0.2.0` installs the item and every Ouro dependency (`ouro-lib`, `button` and so on) at that tag. Without a ref, items come from `main`. A `#<branch>` or `#<sha>` ref pins only the item you name; its Ouro dependencies come from `main`.
+- Or add the `@ouro` namespace to `components.json` once, `"registries": { "@ouro": "https://ourostack.github.io/ouro-ui/r/{name}.json" }`, and run `npx shadcn@latest add @ouro/dialog`. The namespace serves `main`.
+- Components land in `components/ouro/<component>/`, beside shadcn's `components/ui/`, and the shared helpers in `lib/ouro/`. The base tokens (`ouro-base`) are added to your CSS with any component, and `ouro-lib` comes with any component too; you don't need to add either.
+- `init` is shadcn's: it writes `lib/utils.ts` and adds `cn`, `class-variance-authority`, `lucide-react` and `tw-animate-css`. Ouro UI doesn't use them; keep them for shadcn components. Ouro never writes to `components/ui/`, so don't pass `--overwrite` on a first install.
+- Tests are optional. Each component's Vitest browser tests, type tests, stories and Playwright spec are its `-tests` item, which also adds Vitest, Storybook and Playwright as devDependencies: `npx shadcn@latest add ourostack/ouro-ui/dialog#v0.2.0 ourostack/ouro-ui/dialog-tests#v0.2.0`. `ouro-tests` adds every component with all of its tests in one command. The install message of `ouro-testing` (the test kit the `-tests` items bring) lists the config files to add, then run `npx vitest run`.
+- For the Ouro look, add `ourostack/ouro-ui/ouro-theme`. Skip it to keep your app's shadcn theme.
+- To update, list the changed files with `npx shadcn@latest add ourostack/ouro-ui/<item> --dry-run`, review each one marked overwrite with `--diff <path>`, then add the item again with `--overwrite` (with its `-tests` item if you have it: `add <item> <item>-tests --overwrite`) and reapply your edits.
+
+Items: `button`, `text`, `heading`, `sheet`, `dialog`, `confirm-dialog`, plus `ouro-base` and `ouro-lib`, which every component brings, and the optional `ouro-theme`. Tests, all optional: `button-tests`, `text-tests`, `heading-tests`, `sheet-tests`, `dialog-tests`, `confirm-dialog-tests`, `ouro-lib-tests`, the test kit `ouro-testing` that they bring, and `ouro-tests`, which adds them all.
 
 ## For agents
 
@@ -44,6 +61,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **The prop you guess is the prop that exists**, or the type error names the real one: `isLoading` says to use `loading`, and shadcn's `variant="destructive"` says to use `tone="destructive"`.
 - **Modes follow the types.** `href` makes a Button a link; a Dialog takes either `trigger` or `open` with `onOpenChange`.
 - **Dev messages teach**, in one format: `[ouro-ui] <Component>: <what's wrong>. Fix: <exact code>.` They are stripped from production builds.
+- **axe in WebKit flags Base UI's focus guards; exclude them.** While a Dialog, ConfirmDialog or Sheet is open, WebKit gives Base UI's focus guards `role="button"` without a name so VoiceOver's cursor stays trapped, and axe reports `aria-command-name`. That is expected: `new AxeBuilder({ page }).exclude("[data-base-ui-focus-guard]")`, or spread `axeExclude` from `lib/ouro/testing/axe.ts` (in `ouro-testing`).
 
 ## Components
 

@@ -12,7 +12,7 @@ import textDoc from "../../../docs/Text.md?raw";
  * points to. The page body is the Markdown scripts/gen-docs.mts generates from the JSDoc.
  */
 export interface DocsItem {
-  /** The registry item name: `npx shadcn add ourostack/ouro-ui/<name>`. */
+  /** The registry item name: `npx shadcn@latest add ourostack/ouro-ui/<name>`. */
   name: string;
   /** The component's export name. */
   title: string;

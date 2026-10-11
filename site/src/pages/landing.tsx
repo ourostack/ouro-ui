@@ -255,20 +255,28 @@ function Install(): JSX.Element {
             <Pill>Alpha</Pill>
           </div>
           <Text tone="muted" className="mt-4">
-            The shadcn CLI copies each component into <InlineCode>components/ouro/</InlineCode>, with its tests and stories,
-            and installs what it depends on. Ouro UI is in alpha, so props can still change.
+            The shadcn CLI copies each component into <InlineCode>components/ouro/</InlineCode> and installs what it depends
+            on. Its tests and stories are an optional <InlineCode>-tests</InlineCode> item. Ouro UI is in alpha, so props can
+            still change.
           </Text>
         </div>
         <ol className="m-0 grid list-none gap-10 p-0">
+          <Step number={0} title="Set up shadcn once">
+            <Text size="sm" tone="muted">
+              In an app with Tailwind CSS v4 and an <InlineCode>@/*</InlineCode> path alias. <InlineCode>--base base</InlineCode>{" "}
+              because Ouro UI is built on Base UI; skip <InlineCode>-t</InlineCode> in an existing app.
+            </Text>
+            <Command command="npx shadcn@latest init --base base --preset nova --yes --no-monorepo" />
+          </Step>
           <Step number={1} title="Add a component from GitHub">
-            <Command command="npx shadcn add ourostack/ouro-ui/sheet" />
+            <Command command="npx shadcn@latest add ourostack/ouro-ui/sheet" />
           </Step>
           <Step number={2} title="Or add the @ouro namespace once">
             <Text size="sm" tone="muted">
               Put this in <InlineCode>components.json</InlineCode>:
             </Text>
             <CodeBlock code={namespace} />
-            <Command command="npx shadcn add @ouro/sheet" />
+            <Command command="npx shadcn@latest add @ouro/sheet" />
           </Step>
           <Step number={3} title="Use it">
             <CodeBlock code={firstSheet} />
