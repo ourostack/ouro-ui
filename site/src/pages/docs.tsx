@@ -67,7 +67,7 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
           <InlineCode>--base base</InlineCode>; skip <InlineCode>-t</InlineCode> in an existing app):
         </Text>
         <Command command="npx shadcn@latest init --base base --preset nova --yes --no-monorepo" />
-        <Command command={`npx shadcn@latest add ourostack/ouro-ui/${item.name}`} />
+        <Command command={`npx shadcn@latest add ourostack/ouro-ui/${item.name}#${latestRelease}`} />
         <Text size="sm" tone="muted">
           Or, with the <a href={`${href("/")}#install`} className="text-primary underline underline-offset-4">@ouro namespace</a> set
           up:
@@ -76,7 +76,7 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
         <Text size="sm" tone="muted">
           Its tests, stories and Playwright spec are optional, with Vitest, Storybook and Playwright as devDependencies:
         </Text>
-        <Command command={`npx shadcn@latest add ourostack/ouro-ui/${item.name} ourostack/ouro-ui/${item.name}-tests`} />
+        <Command command={`npx shadcn@latest add ourostack/ouro-ui/${item.name}#${latestRelease} ourostack/ouro-ui/${item.name}-tests#${latestRelease}`} />
         <CodeBlock code={importLine} className="mt-2" />
         <Text size="sm" tone="muted">
           Paths use shadcn's default <InlineCode>@/</InlineCode> alias; the CLI rewrites them to yours.

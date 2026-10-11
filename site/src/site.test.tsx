@@ -3,6 +3,7 @@ import { commands, page, userEvent } from "vitest/browser";
 import { cleanupPage, describeViolations, renderPage, scan, setScheme, settle } from "../test/render";
 import { latestRelease, upgrading } from "./release";
 import { docsItems } from "./docs/items";
+import { unpinnedAddresses } from "../../scripts/addresses.mjs";
 import { parse } from "./docs/markdown";
 import ogImage from "../public/og.png?url";
 import { headTags } from "./head";
@@ -161,5 +162,19 @@ describe("head tags", () => {
     for (const route of routes.filter((entry) => entry.description.includes("shadcn@latest add"))) {
       expect(route.description).toContain(`#${latestRelease}.`);
     }
+  });
+});
+
+describe("install addresses", () => {
+  it("every page pins each ourostack/ouro-ui address to a release, or says it is for contributors", async () => {
+    const problems: string[] = [];
+    let seen = 0;
+    for (const route of routes) {
+      await renderPage(route.path);
+      seen += document.body.innerText.split("ourostack/ouro-ui/").length - 1;
+      for (const address of unpinnedAddresses(document.body.innerText)) problems.push(`${route.path}: ${address}`);
+    }
+    expect(seen).toBeGreaterThan(10);
+    expect(problems).toEqual([]);
   });
 });

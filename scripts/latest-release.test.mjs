@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { unpinnedAddresses } from "./addresses.mjs";
 import { fillPlaceholder, latestRelease, PLACEHOLDER, releaseMismatches, withRelease } from "./latest-release.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -51,4 +52,20 @@ test("UPGRADING.md names no tag, only the placeholder, so each place that shows 
   const note = readFileSync(join(root, "UPGRADING.md"), "utf8");
   assert.deepEqual(releaseMismatches(note, "none"), []);
   assert.ok(note.includes(`#${PLACEHOLDER}`));
+});
+
+test("unpinnedAddresses finds an item address with no ref, outside sentences for contributors", () => {
+  assert.deepEqual(unpinnedAddresses("npx shadcn@latest add ourostack/ouro-ui/dialog ourostack/ouro-ui/dialog-tests#v1.0.0"), ["ourostack/ouro-ui/dialog"]);
+  assert.deepEqual(unpinnedAddresses("Update with `add ourostack/ouro-ui/<item> --dry-run`."), ["ourostack/ouro-ui/<item>"]);
+  assert.deepEqual(unpinnedAddresses("add ourostack/ouro-ui/${item.name}"), ["ourostack/ouro-ui/${item.name}"]);
+  assert.deepEqual(unpinnedAddresses("Pinned: ourostack/ouro-ui/dialog#v0.3.0, ourostack/ouro-ui#v0.3.0, @ouro/dialog."), []);
+  assert.deepEqual(unpinnedAddresses("See https://github.com/ourostack/ouro-ui/releases and ourostack.github.io/ouro-ui/docs/."), []);
+  assert.deepEqual(unpinnedAddresses("Install a release. Without a ref, ourostack/ouro-ui/dialog installs main, which is for contributors. Next."), []);
+});
+
+test("public docs give no unpinned install address", () => {
+  // The rendered docs pages are checked too, in site/src/site.test.tsx.
+  const files = tracked("README.md", "docs/*.md", "site/public/*", "site/src/*.ts", "site/src/*.tsx", "package.json").filter((path) => !/\.test\.tsx?$/.test(path));
+  const problems = files.flatMap((path) => unpinnedAddresses(readFileSync(join(root, path), "utf8")).map((address) => `${path}: ${address}`));
+  assert.deepEqual(problems, [], "Pin the address to the newest release (#v<x.y.z>, or ${latestRelease} in the site) or use @ouro/<item>.");
 });
