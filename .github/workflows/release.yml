@@ -93,6 +93,11 @@ jobs:
             echo
             echo "The tests, stories and specs are optional, one item per component: \`npx shadcn@latest add ourostack/ouro-ui/dialog#$TAG ourostack/ouro-ui/dialog-tests#$TAG\`, or \`ourostack/ouro-ui/ouro-tests#$TAG\` for all of them. List every item with \`npx shadcn@latest search 'ourostack/ouro-ui#$TAG'\`."
             echo
+            # CHANGES.md lists what this release changes in behaviour; empty it after a release.
+            if [ -s CHANGES.md ]; then
+              sed -e '1s/^# /### /' CHANGES.md
+              echo
+            fi
             # Remove this note once v0.1.0 is no longer in use.
             # UPGRADING.md is the note (README.md and the site copy it); its addresses get this tag.
             sed -e '1s/^# /### /' -e "s/#v0\.2\.0/#$TAG/g" UPGRADING.md
