@@ -24,6 +24,7 @@ async function bundle(mode, input = probe) {
     logLevel: "silent",
     mode,
     define,
+    resolve: { alias: { "@": root } },
     build: {
       write: false,
       minify: mode === "production",

@@ -1,6 +1,6 @@
 // Bundled by scripts/dev-strip.test.mjs to prove dev messages are stripped.
-import { useAppearanceClassNameCheck } from "../../src/internal/classNameCheck.ts";
-import { devThrow, devWarn } from "../../src/internal/dev.ts";
+import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/class-name-check";
+import { devThrow, devWarn } from "@/registry/ouro/lib/dev";
 
 export function warnProbe(): void {
   if (process.env.NODE_ENV !== "production") {

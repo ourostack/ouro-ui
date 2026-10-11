@@ -1,12 +1,15 @@
 import react from "@vitejs/plugin-react";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
-import { commands } from "./vitest.commands.ts";
+import { fileURLToPath } from "node:url";
+import { commands } from "./registry/ouro/testing/commands.ts";
 
 const visual = process.env["CI_VISUAL"] === "1";
 
 const shared = {
   plugins: [react()],
+  // `@/` is the repo root, as in an app's components.json, so registry imports resolve here too.
+  resolve: { alias: { "@": fileURLToPath(new URL(".", import.meta.url)) } },
   // Pre-bundle Base UI entry points up front. A dependency Vite discovers mid-run
   // triggers a re-optimization and reload, which can load React twice for one file.
   optimizeDeps: { include: ["@base-ui/react/alert-dialog", "@base-ui/react/button", "@base-ui/react/dialog", "@base-ui/react/drawer"] },
@@ -15,16 +18,16 @@ const shared = {
 // Fails any test that logs a React act() warning (see test/setup.ts).
 const setupFiles = ["./test/setup.ts"];
 
-const unitInclude = ["src/**/*.test.{ts,tsx}"];
-const unitExclude = ["src/**/*.touch.test.{ts,tsx}", "src/**/*.visual.test.{ts,tsx}"];
+const unitInclude = ["{registry,test,src}/**/*.test.{ts,tsx}"];
+const unitExclude = ["**/*.touch.test.{ts,tsx}", "**/*.visual.test.{ts,tsx}"];
 
 export default defineConfig({
   test: {
     passWithNoTests: true,
     coverage: {
       provider: "istanbul",
-      include: ["src/**/*.{ts,tsx}"],
-      exclude: ["**/*.stories.tsx", "**/*.test.{ts,tsx}", "**/*.test-d.ts", "src/**/index.ts", "src/parts.ts", "src/generated/**"],
+      include: ["registry/**/*.{ts,tsx}", "src/**/*.{ts,tsx}"],
+      exclude: ["**/*.stories.tsx", "registry/ouro/testing/**", "**/*.test.{ts,tsx}", "**/*.test-d.ts", "src/**/index.ts", "src/parts.ts", "src/generated/**"],
       reporter: ["text", "lcov"],
       thresholds: { lines: 100, branches: 100, functions: 100, statements: 100 },
     },
@@ -67,7 +70,7 @@ export default defineConfig({
         test: {
           name: "touch",
           setupFiles,
-          include: ["src/**/*.touch.test.{ts,tsx}"],
+          include: ["registry/**/*.touch.test.{ts,tsx}"],
           browser: {
             enabled: true,
             headless: true,
@@ -91,7 +94,7 @@ export default defineConfig({
               test: {
                 name: "visual",
                 setupFiles,
-                include: ["src/**/*.visual.test.{ts,tsx}"],
+                include: ["test/**/*.visual.test.{ts,tsx}"],
                 browser: {
                   enabled: true,
                   headless: true,

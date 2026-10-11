@@ -22,7 +22,7 @@ export {
   type DialogPopupProps,
   type DialogSize,
   type DialogTitleProps,
-} from "./components/Dialog/parts";
+} from "@/registry/ouro/ui/dialog/dialog-parts";
 export {
   SheetBackdrop,
   SheetClose,
@@ -41,4 +41,4 @@ export {
   type SheetSide,
   type SheetSnapPoint,
   type SheetTitleProps,
-} from "./components/Sheet/parts";
+} from "@/registry/ouro/ui/sheet/sheet-parts";

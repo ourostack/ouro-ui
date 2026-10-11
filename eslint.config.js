@@ -9,7 +9,7 @@ export default tseslint.config(
   reactHooks.configs.flat.recommended,
   {
     // Destructuring a prop out of `rest` is how components drop it before spreading to the DOM.
-    files: ["src/**/*.{ts,tsx}"],
+    files: ["registry/**/*.{ts,tsx}", "src/**/*.{ts,tsx}"],
     rules: { "@typescript-eslint/no-unused-vars": ["error", { ignoreRestSiblings: true }] },
   },
   {

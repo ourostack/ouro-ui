@@ -1,13 +1,13 @@
 import { composeStories, setProjectAnnotations } from "@storybook/react";
-import distCss from "../dist/styles.css?raw";
+import distCss from "@/dist/styles.css?raw";
 import type { ComponentType } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { userEvent } from "vitest/browser";
-import * as ButtonStories from "../src/components/Button/Button.stories.tsx";
-import * as DialogStories from "../src/components/Dialog/Dialog.stories.tsx";
-import * as SheetStories from "../src/components/Sheet/Sheet.stories.tsx";
-import * as TextStories from "../src/components/Text/Text.stories.tsx";
-import { act } from "./act.ts";
+import * as ButtonStories from "@/registry/ouro/ui/button/button.stories";
+import * as DialogStories from "@/registry/ouro/ui/dialog/dialog.stories";
+import * as SheetStories from "@/registry/ouro/ui/sheet/sheet.stories";
+import * as TextStories from "@/registry/ouro/ui/text/text.stories";
+import { act } from "@/registry/ouro/testing/act";
 
 // Shared by the story accessibility test and the visual test. Stories render
 // through Storybook's `composeStories`, so a test sees exactly what Storybook

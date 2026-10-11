@@ -38,7 +38,7 @@ export {
   type OuroContextValue,
   type OuroLinkComponent,
   type OuroProviderProps,
-} from "./provider/OuroProvider";
+} from "@/registry/ouro/lib/ouro-provider";
 export {
   Button,
   type ButtonBaseProps,
@@ -46,14 +46,14 @@ export {
   type ButtonIcon,
   type ButtonLinkProps,
   type ButtonProps,
-} from "./components/Button/Button";
+} from "@/registry/ouro/ui/button/button";
 export {
   ConfirmDialog,
   type ConfirmDialogBaseProps,
   type ConfirmDialogControlledProps,
   type ConfirmDialogProps,
   type ConfirmDialogWithTriggerProps,
-} from "./components/Dialog/ConfirmDialog";
+} from "@/registry/ouro/ui/dialog/confirm-dialog";
 export {
   Dialog,
   type DialogBaseProps,
@@ -62,7 +62,7 @@ export {
   type DialogProps,
   type DialogSize,
   type DialogWithTriggerProps,
-} from "./components/Dialog/Dialog";
+} from "@/registry/ouro/ui/dialog/dialog";
 export {
   Sheet,
   type SheetBaseProps,
@@ -71,7 +71,7 @@ export {
   type SheetSide,
   type SheetSnapPoint,
   type SheetWithTriggerProps,
-} from "./components/Sheet/Sheet";
-export { Heading, type HeadingProps, type HeadingSize } from "./components/Text/Heading";
-export { Text, type TextAlign, type TextProps } from "./components/Text/Text";
+} from "@/registry/ouro/ui/sheet/sheet";
+export { Heading, type HeadingProps, type HeadingSize } from "@/registry/ouro/ui/text/heading";
+export { Text, type TextAlign, type TextProps } from "@/registry/ouro/ui/text/text";
 export type { ToneName } from "./theme/tokens";

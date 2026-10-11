@@ -67,7 +67,7 @@ function exportsOf(file: string): ts.Symbol[] {
 /** Exported type aliases and interfaces declared in src/, by name, for the "Types" sections. */
 const ownTypes = new Map<string, ts.TypeAliasDeclaration | ts.InterfaceDeclaration>();
 for (const source of program.getSourceFiles()) {
-  if (!isOwn(source) || !source.fileName.startsWith(join(root, "src"))) continue;
+  if (!isOwn(source) || !/^(src|registry)\//.test(source.fileName.slice(root.length + 1))) continue;
   for (const statement of source.statements) {
     if (
       (ts.isTypeAliasDeclaration(statement) || ts.isInterfaceDeclaration(statement)) &&

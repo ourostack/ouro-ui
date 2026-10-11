@@ -16,7 +16,8 @@
     "skipLibCheck": true,
     "noEmit": true,
     "allowImportingTsExtensions": true,
-    "types": ["node", "vite/client", "@vitest/browser-playwright"]
+    "types": ["node", "vite/client", "@vitest/browser-playwright"],
+    "paths": { "@/*": ["./*"] }
   },
-  "include": ["src", "test", "stories", ".storybook", "*.ts", "*.config.ts"]
+  "include": ["registry", "src", "test", "stories", ".storybook", "*.ts", "*.config.ts"]
 }
