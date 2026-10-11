@@ -1,6 +1,6 @@
-import type { JSX, ReactElement, ReactNode } from "react";
+import type { JSX, ReactElement, ReactNode, RefObject } from "react";
 import { useAppearanceClassNameCheck } from "../../internal/classNameCheck.ts";
-import { devThrow } from "../../internal/dev.ts";
+import { checkOpenMode } from "../../internal/openMode.ts";
 import { useDevWarnings } from "../../internal/useDevWarnings.ts";
 import {
   SheetBackdrop,
@@ -84,18 +84,6 @@ export type SheetControlledProps = SheetBaseProps & {
 /** Props for {@link Sheet}: either `trigger`, or `open` with `onOpenChange`. */
 export type SheetProps = SheetWithTriggerProps | SheetControlledProps;
 
-/** The exact fix for a Sheet that has no single way to open. */
-const OPEN_FIX = "Pass trigger={<Button>…</Button>} for an uncontrolled sheet, or open and onOpenChange to control it";
-
-/** Throws for a Sheet without exactly one way to open, with the fix in development. */
-function throwOpenMode(problem: string): never {
-  return devThrow(
-    "Sheet",
-    problem,
-    process.env.NODE_ENV !== "production" ? OPEN_FIX : /* istanbul ignore next -- production only */ "",
-  );
-}
-
 /**
  * A panel that slides in from an edge and is dragged back to dismiss: the
  * mobile form of a dialog. It stretches when pulled past its edge, its backdrop
@@ -138,10 +126,7 @@ export function Sheet(props: SheetProps): JSX.Element {
     onOpenChange?: (open: boolean) => void;
   };
 
-  const controlled = open !== undefined;
-  if (trigger !== undefined && controlled) throwOpenMode("takes trigger or open, not both");
-  if (trigger === undefined && !controlled) throwOpenMode("needs trigger or open with onOpenChange");
-  if (controlled && typeof onOpenChange !== "function") throwOpenMode("open needs onOpenChange");
+  checkOpenMode("Sheet", "sheet", trigger !== undefined, open, onOpenChange);
 
   useAppearanceClassNameCheck(
     "Sheet",
@@ -162,6 +147,69 @@ export function Sheet(props: SheetProps): JSX.Element {
       : /* istanbul ignore next -- production only */ undefined,
   );
 
+  return (
+    <SheetFrame
+      title={title}
+      hideTitle={hideTitle}
+      closeLabel={closeLabel}
+      description={description}
+      side={side}
+      snapPoints={snapPoints}
+      className={className}
+      trigger={trigger}
+      open={open}
+      onOpenChange={onOpenChange}
+    >
+      {children}
+    </SheetFrame>
+  );
+}
+
+/** Props for {@link SheetFrame}: a Sheet's props after its checks, plus what `Dialog` adds. */
+export interface SheetFrameProps {
+  title: string;
+  hideTitle?: boolean | undefined;
+  closeLabel: string;
+  description?: ReactNode;
+  side: SheetSide;
+  snapPoints?: SheetSnapPoint[] | undefined;
+  children: ReactNode;
+  className?: string | undefined;
+  /** The opening element. May come with `open`, when `Dialog` owns the state. */
+  trigger?: ReactElement | undefined;
+  open?: boolean | undefined;
+  onOpenChange?: ((open: boolean) => void) | undefined;
+  /** An actions row below the body (`Dialog`'s `footer`). */
+  footer?: ReactNode;
+  /** Marks the popup with `data-ouro-presentation`, when `Dialog` renders as a sheet. */
+  presentation?: "sheet" | undefined;
+  /** Where focus goes on close: `Dialog` passes its own trigger, which it renders outside the sheet. */
+  finalFocus?: RefObject<HTMLElement | null> | undefined;
+}
+
+/**
+ * The sheet's markup, without prop checks: `Sheet` renders it after its own
+ * checks, and `Dialog` renders it on phones after Dialog's checks, so every dev
+ * message names the component the app wrote.
+ *
+ * Internal; not exported from the package.
+ */
+export function SheetFrame({
+  title,
+  hideTitle,
+  closeLabel,
+  description,
+  side,
+  snapPoints,
+  children,
+  className,
+  trigger,
+  open,
+  onOpenChange,
+  footer,
+  presentation,
+  finalFocus,
+}: SheetFrameProps): JSX.Element {
   const showHeader = !hideTitle || description !== undefined;
   const titleNode = <SheetTitle visuallyHidden={hideTitle}>{title}</SheetTitle>;
 
@@ -169,13 +217,17 @@ export function Sheet(props: SheetProps): JSX.Element {
     <SheetRoot
       side={side}
       snapPoints={snapPoints}
-      {...(controlled ? { open, onOpenChange: (next: boolean) => onOpenChange!(next) } : {})}
+      {...(open !== undefined ? { open, onOpenChange: (next: boolean) => onOpenChange!(next) } : {})}
     >
       {trigger !== undefined && <SheetTrigger render={trigger} />}
       <SheetPortal>
         <SheetBackdrop />
         <SheetViewport>
-          <SheetPopupUnchecked className={className}>
+          <SheetPopupUnchecked
+            className={className}
+            data-ouro-presentation={presentation}
+            {...(finalFocus ? { finalFocus } : {})}
+          >
             {side === "bottom" && <SheetHandle />}
             {showHeader ? (
               <div data-ouro-sheet-header="" className="ou:grid ou:shrink-0 ou:gap-1 ou:px-5 ou:pt-3 ou:pb-2">
@@ -186,6 +238,7 @@ export function Sheet(props: SheetProps): JSX.Element {
               titleNode
             )}
             <SheetContent>{children}</SheetContent>
+            {footer !== undefined && <div data-ouro-footer="">{footer}</div>}
             {side === "top" && <SheetHandle />}
             <SheetClose data-ouro-sheet-close="">{closeLabel}</SheetClose>
           </SheetPopupUnchecked>

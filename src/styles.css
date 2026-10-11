@@ -32,6 +32,7 @@
 
 /* Component stylesheets whose rules are easier to read as CSS than as utilities. */
 @import "./components/Sheet/sheet.css";
+@import "./components/Dialog/dialog.css";
 
 /*
  * Press feedback for controls: the release springs back with the theme's spring

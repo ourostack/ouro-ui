@@ -1,13 +1,12 @@
 import distCss from "../../../dist/styles.css?raw";
-import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, expect, it } from "vitest";
 import { Button } from "./Button.tsx";
+import { act } from "../../../test/act.ts";
 
 // Runs in the `touch` project: Chromium as a 390x844 phone with a coarse pointer.
 // Reads the built dist/styles.css, so run `pnpm build` first.
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 let root: Root | undefined;
 const nodes: Element[] = [];

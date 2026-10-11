@@ -1,10 +1,10 @@
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { findClassNameProblem, useAppearanceClassNameCheck } from "./classNameCheck.ts";
+import { act } from "../../test/act.ts";
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const roots: Root[] = [];
 async function render(node: ReactNode) {

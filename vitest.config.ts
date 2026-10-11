@@ -9,8 +9,11 @@ const shared = {
   plugins: [react()],
   // Pre-bundle Base UI entry points up front. A dependency Vite discovers mid-run
   // triggers a re-optimization and reload, which can load React twice for one file.
-  optimizeDeps: { include: ["@base-ui/react/button", "@base-ui/react/drawer"] },
+  optimizeDeps: { include: ["@base-ui/react/alert-dialog", "@base-ui/react/button", "@base-ui/react/dialog", "@base-ui/react/drawer"] },
 };
+
+// Fails any test that logs a React act() warning (see test/setup.ts).
+const setupFiles = ["./test/setup.ts"];
 
 const unitInclude = ["src/**/*.test.{ts,tsx}"];
 const unitExclude = ["src/**/*.touch.test.{ts,tsx}", "src/**/*.visual.test.{ts,tsx}"];
@@ -30,6 +33,7 @@ export default defineConfig({
         ...shared,
         test: {
           name: "chromium",
+          setupFiles,
           include: unitInclude,
           exclude: unitExclude,
           browser: {
@@ -45,6 +49,7 @@ export default defineConfig({
         ...shared,
         test: {
           name: "webkit",
+          setupFiles,
           include: unitInclude,
           exclude: unitExclude,
           browser: {
@@ -61,6 +66,7 @@ export default defineConfig({
         ...shared,
         test: {
           name: "touch",
+          setupFiles,
           include: ["src/**/*.touch.test.{ts,tsx}"],
           browser: {
             enabled: true,
@@ -84,6 +90,7 @@ export default defineConfig({
               ...shared,
               test: {
                 name: "visual",
+                setupFiles,
                 include: ["src/**/*.visual.test.{ts,tsx}"],
                 browser: {
                   enabled: true,

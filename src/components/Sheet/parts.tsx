@@ -1,7 +1,8 @@
 import { Drawer } from "@base-ui/react/drawer";
-import { createContext, useContext, useEffect, useRef, type JSX } from "react";
+import { createContext, useContext, type JSX, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "../../internal/classNameCheck.ts";
 import { devThrow } from "../../internal/dev.ts";
+import { useBackdropAnchor } from "../../internal/useBackdropAnchor.ts";
 
 /** The edge a sheet slides in from, and is dragged back to, to dismiss. */
 export type SheetSide = "bottom" | "top" | "left" | "right";
@@ -111,33 +112,17 @@ export function SheetPortal(props: Omit<Drawer.Portal.Props, "className">): JSX.
 }
 
 /**
- * Part: the dimming layer. It lightens as the sheet is dragged away.
- *
- * On iOS the backdrop is absolutely positioned (see sheet.css), so it keeps
- * `--ou-backdrop-top` at the offset that puts its top at the top of the screen,
- * whatever the page's scroll position. Elsewhere it is fixed and the offset stays 0.
+ * Part: the dimming layer. It lightens as the sheet is dragged away. On iOS it
+ * stays anchored to the top of the screen on a scrolled page. A `ref` reaches
+ * the backdrop element.
  */
-export function SheetBackdrop(props: Omit<Drawer.Backdrop.Props, "className">): JSX.Element {
+export function SheetBackdrop({
+  ref,
+  ...props
+}: Omit<Drawer.Backdrop.Props, "className"> & { ref?: Ref<HTMLDivElement> | undefined }): JSX.Element {
   useSheetPart("SheetBackdrop", "…");
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const node = ref.current!;
-    const anchor = () => {
-      const current = Number.parseFloat(node.style.getPropertyValue("--ou-backdrop-top")) || 0;
-      node.style.setProperty("--ou-backdrop-top", `${current - node.getBoundingClientRect().top}px`);
-    };
-    anchor();
-    // Base UI may lock scrolling after this effect runs, so check again on the next frame.
-    const frame = requestAnimationFrame(anchor);
-    addEventListener("scroll", anchor, { passive: true });
-    addEventListener("resize", anchor);
-    return () => {
-      cancelAnimationFrame(frame);
-      removeEventListener("scroll", anchor);
-      removeEventListener("resize", anchor);
-    };
-  }, []);
-  return <Drawer.Backdrop {...props} ref={ref} data-ouro="sheet-backdrop" />;
+  const anchorRef = useBackdropAnchor(ref);
+  return <Drawer.Backdrop {...props} ref={anchorRef} data-ouro="sheet-backdrop" />;
 }
 
 /** Part: the full-screen layer that positions the popup against its edge. */
