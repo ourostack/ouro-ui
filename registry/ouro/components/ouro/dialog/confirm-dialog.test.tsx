@@ -138,6 +138,71 @@ describe("ConfirmDialog", () => {
     await expect.poll(() => document.activeElement?.textContent).toBe("Recipe deleted");
   });
 
+  it.each(["Cancel", "Escape"] as const)(
+    "returns focus to the trigger after %s even when finalFocus is set, because the trigger still exists",
+    async (how) => {
+      function Page() {
+        const headingRef = useRef<HTMLHeadingElement>(null);
+        return (
+          <main>
+            <h1 ref={headingRef} tabIndex={-1}>
+              Pancakes
+            </h1>
+            <ConfirmDialog
+              title="Delete recipe?"
+              confirmLabel="Delete"
+              finalFocus={headingRef}
+              onConfirm={() => {}}
+              trigger={<Button>Delete recipe</Button>}
+            />
+          </main>
+        );
+      }
+      await render(<Page />);
+      await userEvent.click(trigger());
+      await settled();
+      if (how === "Cancel") await userEvent.click(button("Cancel"));
+      else await userEvent.keyboard("{Escape}");
+      await expect.poll(() => popup()).toBeNull();
+      await expect.poll(() => document.activeElement).toBe(trigger());
+    },
+  );
+
+  it("returns focus to the trigger after a confirm when finalFocus points at no element", async () => {
+    await open({ finalFocus: { current: null } });
+    await userEvent.click(button("Delete"));
+    await expect.poll(() => popup()).toBeNull();
+    await expect.poll(() => document.activeElement).toBe(trigger());
+  });
+
+  it("moves focus to finalFocus when an async confirm resolves", async () => {
+    const pending = deferred();
+    function Page() {
+      const headingRef = useRef<HTMLHeadingElement>(null);
+      return (
+        <main>
+          <h1 ref={headingRef} tabIndex={-1}>
+            Recipes
+          </h1>
+          <ConfirmDialog
+            title="Delete recipe?"
+            confirmLabel="Delete"
+            finalFocus={headingRef}
+            onConfirm={() => pending.promise}
+            trigger={<Button>Delete recipe</Button>}
+          />
+        </main>
+      );
+    }
+    await render(<Page />);
+    await userEvent.click(trigger());
+    await settled();
+    await userEvent.click(button("Delete"));
+    await act(async () => pending.resolve());
+    await expect.poll(() => popup()).toBeNull();
+    await expect.poll(() => document.activeElement?.textContent).toBe("Recipes");
+  });
+
   it("returns focus to the trigger after Cancel when finalFocus is not set", async () => {
     await open();
     await userEvent.click(button("Cancel"));

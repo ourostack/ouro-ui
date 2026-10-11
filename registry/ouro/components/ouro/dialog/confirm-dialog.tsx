@@ -41,9 +41,10 @@ export interface ConfirmDialogBaseProps {
    */
   onConfirm: () => void | Promise<void>;
   /**
-   * Where focus goes when the confirmation closes. By default it returns to the
-   * trigger; when `onConfirm` removes the trigger, point this at what replaces it
-   * (give a heading `tabIndex={-1}`): `finalFocus={headingRef}`.
+   * Where focus goes after a confirmed action closes the confirmation. Cancel and
+   * Escape still return focus to the trigger. When `onConfirm` removes the trigger,
+   * point this at what replaces it (give a heading `tabIndex={-1}`):
+   * `finalFocus={headingRef}`.
    */
   finalFocus?: RefObject<HTMLElement | null> | undefined;
 
@@ -175,8 +176,13 @@ export function ConfirmDialog(props: ConfirmDialogProps): JSX.Element {
   const warnKey = useRef({});
   const cancelRef = useRef<HTMLButtonElement>(null);
 
+  // Whether the last close came from a confirmed action. Only then does focus go to
+  // `finalFocus`; Cancel and Escape leave the trigger in place, so focus returns to it.
+  const confirmed = useRef(false);
+
   const controlled = open !== undefined;
-  const setOpen = (next: boolean) => {
+  const setOpen = (next: boolean, afterConfirm = false) => {
+    confirmed.current = afterConfirm;
     attempt.current++;
     setPending(false);
     if (controlled) onOpenChange!(next);
@@ -192,14 +198,14 @@ export function ConfirmDialog(props: ConfirmDialogProps): JSX.Element {
       result = Promise.reject(error);
     }
     if (!result) {
-      setOpen(false);
+      setOpen(false, true);
       return;
     }
     const current = ++attempt.current;
     setPending(true);
     result.then(
       () => {
-        if (attempt.current === current) setOpen(false);
+        if (attempt.current === current) setOpen(false, true);
       },
       (error: unknown) => {
         // A rejection from an attempt the user already left (Cancel, Escape, a newer
@@ -231,7 +237,9 @@ export function ConfirmDialog(props: ConfirmDialogProps): JSX.Element {
           <DialogPopupUnchecked
             size="sm"
             initialFocus={cancelRef}
-            {...(finalFocus ? { finalFocus } : {})}
+            {...(finalFocus
+              ? { finalFocus: () => (confirmed.current ? (finalFocus.current ?? true) : true) }
+              : {})}
             data-ouro-confirm=""
           >
             <div data-ouro-dialog-header="" className="box-border grid shrink-0 gap-1 px-5 pt-5 pb-2">
