@@ -100,8 +100,9 @@ export type SheetProps = SheetWithTriggerProps | SheetControlledProps;
  * `<SheetClose render={<Button>Copy link</Button>} />`.
  *
  * It stacks above the page at `--ouro-layer`, a z-index of 50 by default (from
- * ouro-base.css). Raise `--ouro-layer` if your app has fixed bars above z-50:
- * `:root { --ouro-layer: 60; }`.
+ * ouro-base.css). If your app has fixed bars above z-50, raise it in a `:root` rule
+ * of your own after the Ouro tokens, outside any `@layer`: `:root { --ouro-layer: 60; }`.
+ * Don't edit the `--ouro-layer: 50` line shadcn wrote; `shadcn add` resets it.
  *
  * Testing accessibility: in WebKit, Base UI's focus guards take `role="button"`
  * without a name so VoiceOver's cursor stays trapped. Exclude them:

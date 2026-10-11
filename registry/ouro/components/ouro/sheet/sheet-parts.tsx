@@ -196,8 +196,9 @@ export function SheetTrigger(props: Drawer.Trigger.Props): JSX.Element {
  * Part: moves the sheet to the end of `<body>` and makes it aware of the
  * software keyboard (`Drawer.VirtualKeyboardProvider`), so focused inputs stay visible.
  * The portal is its own stacking context at the `--ouro-layer` z-index (50 by default,
- * from ouro-base.css). Raise `--ouro-layer` if your app has fixed bars above z-50:
- * `:root { --ouro-layer: 60; }`.
+ * from ouro-base.css). If your app has fixed bars above z-50, raise it in a `:root`
+ * rule of your own after the Ouro tokens, outside any `@layer`: `:root { --ouro-layer: 60; }`.
+ * Don't edit the line shadcn wrote; `shadcn add` resets it.
  */
 export function SheetPortal(props: Omit<Drawer.Portal.Props, "className">): JSX.Element {
   useSheetPart("SheetPortal", "…");

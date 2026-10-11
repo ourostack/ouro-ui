@@ -285,10 +285,12 @@ describe("trigger", () => {
 });
 
 describe("Dialog stacking above the app's fixed bars", () => {
-  /** A fixed, full-screen app layer at z-index 50, like a tab bar or a header. */
-  function appBar(): HTMLElement {
+  /** The app's `--ouro-layer`: 50 from ouro-base, unless the app raised it. */
+  const layer = () => Number(getComputedStyle(document.documentElement).getPropertyValue("--ouro-layer"));
+  /** A fixed, full-screen app layer at the given z-index, like a tab bar or a header. */
+  function appBar(zIndex: number): HTMLElement {
     const bar = document.createElement("div");
-    Object.assign(bar.style, { position: "fixed", inset: "0", zIndex: "50" });
+    Object.assign(bar.style, { position: "fixed", inset: "0", zIndex: String(zIndex) });
     document.body.append(bar);
     mounted.push(bar);
     return bar;
@@ -300,7 +302,7 @@ describe("Dialog stacking above the app's fixed bars", () => {
   };
   const portal = () => document.querySelector<HTMLElement>('[data-ouro="dialog-portal"]')!;
 
-  it("puts the portal on the --ouro-layer level, 50 by default, as its own stacking context", async () => {
+  it("puts the portal on the --ouro-layer level, as its own stacking context", async () => {
     await render(
       <Dialog title="Edit recipe" open onOpenChange={() => {}}>
         Body
@@ -309,12 +311,13 @@ describe("Dialog stacking above the app's fixed bars", () => {
     await settled();
     const style = getComputedStyle(portal());
     expect(style.position).toBe("relative");
-    expect(style.zIndex).toBe("50");
+    expect(layer()).toBeGreaterThanOrEqual(50);
+    expect(style.zIndex).toBe(String(layer()));
     expect(style.isolation).toBe("isolate");
   });
 
-  it("stays above a z-50 fixed app bar at the default level: a tie, which the portal wins as the last child of body", async () => {
-    appBar();
+  it("stays above a fixed app bar at the same level: a tie, which the portal wins as the last child of body", async () => {
+    appBar(layer());
     await render(
       <Dialog title="Edit recipe" open onOpenChange={() => {}}>
         Body
@@ -325,8 +328,9 @@ describe("Dialog stacking above the app's fixed bars", () => {
     expect(onTop(dialogPopup()!)).toBe(true);
   });
 
-  it("stays above a z-50 fixed app bar added after it when the app raises --ouro-layer", async () => {
-    document.documentElement.style.setProperty("--ouro-layer", "60");
+  it("stays above a fixed app bar added after it when the app raises --ouro-layer past the bar", async () => {
+    const bar = layer();
+    document.documentElement.style.setProperty("--ouro-layer", String(bar + 10));
     try {
       await render(
       <Dialog title="Edit recipe" open onOpenChange={() => {}}>
@@ -335,8 +339,8 @@ describe("Dialog stacking above the app's fixed bars", () => {
     );
       await settled();
       // After the portal in the DOM, so at an equal level the bar would cover it.
-      appBar();
-      expect(getComputedStyle(portal()).zIndex).toBe("60");
+      appBar(bar);
+      expect(getComputedStyle(portal()).zIndex).toBe(String(bar + 10));
       expect(onTop(dialogPopup()!)).toBe(true);
     } finally {
       document.documentElement.style.removeProperty("--ouro-layer");

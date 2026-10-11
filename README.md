@@ -153,7 +153,7 @@ Two stylesheets ship with the components, as registry items that write into your
 
 Dark mode follows the `.dark` class, as in shadcn. To change a color, set its variable in your theme.
 
-Sheets and dialogs stack at `--ouro-layer`, a z-index of 50 by default, the level of shadcn's overlays. Raise `--ouro-layer` if your app has fixed bars above z-50, such as `:root { --ouro-layer: 60; }`; no class edit is needed. At an equal z-index the open sheet or dialog still wins, because its portal is the last child of `<body>`.
+Sheets and dialogs stack at `--ouro-layer`, a z-index of 50 by default, the level of shadcn's overlays. If your app has fixed bars above z-50, raise it in a `:root` rule of your own after the Ouro tokens, outside any `@layer`, such as `:root { --ouro-layer: 60; }` at the end of your CSS file; no class edit is needed. Don't edit the `--ouro-layer: 50` line that shadcn wrote, because every `shadcn add` of an Ouro item resets it. At an equal z-index the open sheet or dialog still wins, because its portal is the last child of `<body>`.
 
 ## License
 

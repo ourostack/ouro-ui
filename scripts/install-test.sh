@@ -10,6 +10,8 @@
 #
 # shadcn: the app keeps the theme `shadcn init` wrote, and a stock shadcn button is added
 #         beside Ouro's; both must build.
+# shadcn and ouro also raise --ouro-layer the way the README says, re-add an item, and check
+#         that the override still wins.
 # ouro:   the app installs the ouro-theme item first, from GitHub at <ref> (default HEAD,
 #         which must be pushed).
 # github: what a user runs today: `shadcn add ourostack/ouro-ui/<item>` with no ref, so
@@ -285,6 +287,17 @@ echo "::group::Type check, build, and no tests from the runtime items"
 npx tsc -b
 npx vite build
 runtime_only "$variant"
+echo "::endgroup::"
+
+# The README's way to raise --ouro-layer: a :root rule of the app's own, after the Ouro tokens
+# and outside any @layer. A later `shadcn add` rewrites the --ouro-layer line it wrote, but must
+# leave this rule as the winning declaration. The shipped tests below then run with it.
+echo "::group::An --ouro-layer override survives a re-add"
+printf '\n:root {\n  --ouro-layer: 60;\n}\n' >>src/index.css
+"${shadcn[@]}" add --yes --overwrite "$registry/r/sheet.json"
+node "$root/scripts/install-check.mjs" --layer-override src/index.css 60
+npx vite build
+grep -q -- "--ouro-layer:60" dist/assets/*.css || { echo "the built CSS lost the --ouro-layer override"; exit 1; }
 echo "::endgroup::"
 
 echo "::group::The testing setup and ouro-tests"

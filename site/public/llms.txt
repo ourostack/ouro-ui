@@ -21,7 +21,7 @@ npx shadcn@latest add ourostack/ouro-ui/dialog#v0.2.0     # install it
 
 ## Items
 
-- `ouro-base`: Installed with every component; you don't need to add it. What every Ouro UI component needs in the app's CSS: success and warning colors, a destructive foreground, the motion tokens, the press utility and the spinner keyframes.
+- `ouro-base`: Installed with every component; you don't need to add it. What every Ouro UI component needs in the app's CSS: success and warning colors, a destructive foreground, the motion tokens, the press utility, the spinner keyframes, and --ouro-layer, the z-index of sheets and dialogs (50; raise it in a :root rule of your own if your app has fixed bars above z-50).
 - `ouro-theme`: Ouro UI's own look, as a shadcn theme for :root and .dark. Skip it to keep your app's theme.
 - `ouro-lib`: Installed with every component; you don't need to add it. Shared helpers every Ouro UI component uses, in lib/ouro: cn, dev messages, the className check, announce, OuroProvider and hooks.
 - `ouro-testing`: Installed with every -tests item; you don't need to add it. The test kit Ouro UI's tests use: Vitest browser projects with the drag, flick, tap and emulateMedia commands, the act helper, axeExclude, and the end-to-end story helper.

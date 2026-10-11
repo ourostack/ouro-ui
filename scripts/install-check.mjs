@@ -9,12 +9,18 @@
 //          story, spec or test kit, and no test tooling in package.json.
 // tests:   the -tests items were added too, so their files must be there.
 //
-// Every installed Ouro file must also keep every comment of its source: the shadcn CLI
-// drops comments before a file's first statement, so a header or a first export's JSDoc
-// would vanish (scripts/source-rules.mjs).
+// Every installed Ouro file must also equal its source once import paths are mapped to the
+// app's aliases, and keep every comment: the shadcn CLI drops comments before a file's first
+// statement, so a header or a first export's JSDoc would vanish (scripts/source-rules.mjs).
+//
+//   node scripts/install-check.mjs --layer-override <css-file>
+//
+// Checks that an app's own `:root { --ouro-layer: … }` rule, after the Ouro tokens and
+// outside any @layer, is still the declaration that wins after a later `shadcn add`.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import postcss from "postcss";
 import { comments } from "./source-rules.mjs";
 
 const runtimeFiles = [
@@ -126,14 +132,63 @@ export function checkComments(app, root) {
   return problems;
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+/**
+ * Installed files that differ from their source other than in import paths, as readable lines.
+ * `aliases` are components.json's (`{ components: "~/components", lib: "~/lib" }`).
+ */
+export function checkSources(app, root, aliases) {
+  const problems = [];
+  const toSource = (text) =>
+    text
+      .replaceAll(`"${aliases.components}/ouro/`, '"@/registry/ouro/components/ouro/')
+      .replaceAll(`"${aliases.lib}/ouro/`, '"@/registry/ouro/lib/ouro/');
+  const sources = readdirSync(join(root, "registry/ouro"), { recursive: true }).map((file) => `registry/ouro/${String(file)}`);
+  for (const path of sources) {
+    const target = installedPath(path);
+    if (!target || !existsSync(join(app, target))) continue;
+    const want = readFileSync(join(root, path), "utf8");
+    const have = toSource(readFileSync(join(app, target), "utf8"));
+    if (have === want) continue;
+    const wantLines = want.split("\n");
+    const haveLines = have.split("\n");
+    const line = wantLines.findIndex((text, index) => haveLines[index] !== text);
+    problems.push(`${target} differs from ${path} at line ${line + 1}: ${JSON.stringify(wantLines[line])} became ${JSON.stringify(haveLines[line])}`);
+  }
+  return problems;
+}
+
+/**
+ * Problems with an app's `--ouro-layer` override: the last declaration must be the app's
+ * value, in a plain `:root` rule outside any `@layer`, so it wins over ouro-base's 50.
+ */
+export function checkLayerOverride(css, value) {
+  const declarations = [];
+  postcss.parse(css).walkDecls("--ouro-layer", (decl) => declarations.push(decl));
+  const last = declarations.at(-1);
+  if (!last) return ["no --ouro-layer declaration"];
+  const problems = [];
+  if (last.value !== value) problems.push(`the last --ouro-layer is ${last.value}, not the app's ${value}`);
+  if (last.parent?.type !== "rule" || last.parent.selector !== ":root") problems.push("the override is not in a :root rule");
+  for (let node = last.parent; node; node = node.parent) {
+    if (node.type === "atrule" && node.name === "layer") problems.push("the override is inside @layer, where the unlayered default wins");
+  }
+  return problems;
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url) && process.argv[2] === "--layer-override") {
+  const problems = checkLayerOverride(readFileSync(process.argv[3], "utf8"), process.argv[4] ?? "60");
+  for (const problem of problems) console.error(`install check: ${problem}`);
+  if (problems.length === 0) console.log("install check: the app's --ouro-layer override survived");
+  process.exitCode = problems.length === 0 ? 0 : 1;
+} else if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [app, variant, stage] = process.argv.slice(2);
   if (stage !== "runtime" && stage !== "tests") {
     console.error("usage: install-check.mjs <app-dir> <shadcn|ouro> <runtime|tests>");
     process.exitCode = 2;
   } else {
     const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-    const problems = [...checkInstall(app, variant, stage), ...checkComments(app, root)];
+    const { aliases } = JSON.parse(readFileSync(join(app, "components.json"), "utf8"));
+    const problems = [...checkInstall(app, variant, stage), ...checkComments(app, root), ...checkSources(app, root, aliases)];
     for (const problem of problems) console.error(`install check: ${problem}`);
     if (problems.length === 0) console.log(`install check: ${variant} app passes (${stage})`);
     process.exitCode = problems.length === 0 ? 0 : 1;

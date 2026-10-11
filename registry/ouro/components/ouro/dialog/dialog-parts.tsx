@@ -113,8 +113,9 @@ export function DialogTrigger(props: BaseDialog.Trigger.Props): JSX.Element {
 
 /**
  * Part: moves the dialog to the end of `<body>`, in its own stacking context at the
- * `--ouro-layer` z-index (50 by default, from ouro-base.css). Raise `--ouro-layer` if
- * your app has fixed bars above z-50: `:root { --ouro-layer: 60; }`.
+ * `--ouro-layer` z-index (50 by default, from ouro-base.css). If your app has fixed
+ * bars above z-50, raise it in a `:root` rule of your own after the Ouro tokens, outside
+ * any `@layer`: `:root { --ouro-layer: 60; }`. Don't edit the line shadcn wrote; `shadcn add` resets it.
  */
 export function DialogPortal(props: Omit<BaseDialog.Portal.Props, "className">): JSX.Element {
   useDialogPart("DialogPortal", "…");

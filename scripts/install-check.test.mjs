@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
-import { checkComments, checkInstall } from "./install-check.mjs";
+import { checkComments, checkInstall, checkLayerOverride, checkSources } from "./install-check.mjs";
 
 // A real installed app is the install job's to build; these cases prove the check fails
 // on each kind of broken install, using a stand-in with a passing app's key files.
@@ -107,4 +107,32 @@ test("an installed file that lost a comment of its source fails, and one that ke
   assert.deepEqual(checkComments(dir, root), ["src/lib/ouro/a.ts lost comments from registry/ouro/lib/ouro/a.ts: // Header."]);
   write(dir, "src/lib/ouro/a.ts", source.replace("@/registry/ouro/lib/ouro/cn", "~/lib/ouro/cn"));
   assert.deepEqual(checkComments(dir, root), []);
+});
+
+test("an installed file must equal its source once import paths are mapped to the app's aliases", () => {
+  const root = mkdtempSync(join(tmpdir(), "ouro-install-source-"));
+  const dir = mkdtempSync(join(tmpdir(), "ouro-install-equal-"));
+  const write = (base, file, text) => {
+    mkdirSync(dirname(join(base, file)), { recursive: true });
+    writeFileSync(join(base, file), text);
+  };
+  const aliases = { components: "~/components", lib: "~/lib" };
+  write(root, "registry/ouro/components/ouro/a/a.tsx", 'import { cn } from "@/registry/ouro/lib/ouro/cn";\nimport { B } from "@/registry/ouro/components/ouro/b/b";\nexport const a = [cn, B];\n');
+  write(dir, "src/components/ouro/a/a.tsx", 'import { cn } from "~/lib/ouro/cn";\nimport { B } from "~/components/ouro/b/b";\nexport const a = [cn, B];\n');
+  assert.deepEqual(checkSources(dir, root, aliases), []);
+  write(dir, "src/components/ouro/a/a.tsx", 'import { cn } from "~/lib/ouro/cn";\nimport { B } from "~/components/ouro/b/b";\nexport const a = [B, cn];\n');
+  assert.deepEqual(checkSources(dir, root, aliases), [
+    'src/components/ouro/a/a.tsx differs from registry/ouro/components/ouro/a/a.tsx at line 3: "export const a = [cn, B];" became "export const a = [B, cn];"',
+  ]);
+});
+
+test("an --ouro-layer override passes only as the last declaration, in :root, outside @layer", () => {
+  const base = ":root {\n  --primary: red;\n  --ouro-layer: 50;\n}\n";
+  assert.deepEqual(checkLayerOverride(base + ":root {\n  --ouro-layer: 60;\n}\n", "60"), []);
+  assert.deepEqual(checkLayerOverride(base, "60"), ["the last --ouro-layer is 50, not the app's 60"]);
+  assert.deepEqual(checkLayerOverride(base + "@layer base {\n  :root { --ouro-layer: 60; }\n}\n", "60"), [
+    "the override is inside @layer, where the unlayered default wins",
+  ]);
+  assert.deepEqual(checkLayerOverride(base + ".app { --ouro-layer: 60; }\n", "60"), ["the override is not in a :root rule"]);
+  assert.deepEqual(checkLayerOverride(":root { --primary: red; }", "60"), ["no --ouro-layer declaration"]);
 });

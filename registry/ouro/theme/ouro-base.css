@@ -37,9 +37,10 @@
   --ouro-backdrop-color: #18181b;
   --ouro-backdrop-max: 0.4;
   /*
-   * The stacking level of sheet and dialog portals, 50 as in shadcn's overlays. Raise it
-   * if your app has fixed bars above z-50. At an equal level the portal still wins,
-   * because it is the last child of <body>.
+   * The stacking level of sheet and dialog portals, 50 as in shadcn's overlays. To raise
+   * it, add a :root rule of your own after the Ouro tokens, outside any @layer, such as
+   * :root { --ouro-layer: 60; }. Don't edit this line: shadcn add resets it. At an equal
+   * level the portal still wins, because it is the last child of <body>.
    */
   --ouro-layer: 50;
 }
