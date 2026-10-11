@@ -19,10 +19,12 @@
 # namespace: the @ouro namespace as Pages serves it (pages.yml): the registry built with
 #         @ouro/<item> dependencies, served on localhost and registered in components.json,
 #         then `shadcn add @ouro/dialog`. Type check and build.
-# upgrade: an app on v0.1.0 (every component from GitHub at #v0.1.0, with the test setup
-#         the v0.1.0 docs gave) follows "Upgrading from v0.1.0" in README.md literally,
-#         against this commit's registry: once keeping the tests (<app-dir>) and once
-#         without them (<app-dir>-without-tests). Each must type check and build.
+# upgrade: an app on v0.1.0 (dialog from GitHub at #v0.1.0, which brought button and sheet,
+#         with the v0.1.0 test setup and a test of its own, test/install-fixture-upgrade)
+#         runs UPGRADING.md's commands against this commit's registry: steps 1 and 2 in
+#         <app-dir>, steps 1 to 3 in <app-dir>-without-tests. Each must type check, build,
+#         keep the app's own test and config, add no component and leave no token that
+#         refers to itself.
 #
 # Same-repo registryDependencies are written without a ref (ourostack/ouro-ui/<item>), so
 # shadcn resolves them on the default branch; refs are not inherited. To install this
@@ -117,14 +119,17 @@ EOF
 fi
 
 if [ "$variant" = upgrade ]; then
-  echo "::group::v0.1.0 from GitHub, with its test setup"
-  v010=()
-  for item in "${items[@]}"; do v010+=("ourostack/ouro-ui/$item#v0.1.0"); done
-  "${shadcn[@]}" add --yes "${v010[@]}"
+  echo "::group::dialog at v0.1.0 from GitHub, with its test setup and a test of the app's own"
+  "${shadcn[@]}" add --yes "ourostack/ouro-ui/dialog#v0.1.0"
   cp -R "$root/test/install-fixture-tests/." "$app/"
+  cp -R "$root/test/install-fixture-upgrade/." "$app/"
   # The app works on v0.1.0 before the upgrade.
   npx tsc -b
   npx vite build
+  npx vitest run --project app
+  # v0.1.0's dialog brought button and sheet; the note must find all three.
+  folders=$(ls src/components/ouro | tr '\n' ' ')
+  [ "$folders" = "button dialog sheet " ] || { echo "v0.1.0 dialog installed: $folders"; exit 1; }
   echo "::endgroup::"
 fi
 
@@ -134,34 +139,54 @@ node "$root/scripts/registry.mts" --out "$registry/registry.json" --deps "$regis
 echo "::endgroup::"
 
 if [ "$variant" = upgrade ]; then
-  local_items=()
-  for item in "${items[@]}"; do local_items+=("$registry/r/$item.json"); done
   bare="$app-without-tests"
   mkdir -p "$bare"
   cp -R "$app/." "$bare/"
 
-  # The steps below are README.md "Upgrading from v0.1.0", with the local registry's
-  # item files in place of ourostack/ouro-ui/<item>#v0.2.0.
-  self_refs='print unless /^\s*--(color-)?ouro-[\w-]+:\s*var\(--ouro-[\w-]+\);\s*$/'
+  # Runs step <n> of UPGRADING.md, the note README.md, the site and the release notes show,
+  # exactly as written, except that each ourostack/ouro-ui/<item>#v0.2.0 address is this
+  # commit's built item file and the CLI is pinned and non-interactive.
+  note_step() {
+    node "$root/scripts/upgrade-note.mjs" commands "$1" --shadcn "${shadcn[*]}" --address "$registry/r/{name}.json" >"$registry/step-$1.sh"
+    bash -ex "$registry/step-$1.sh"
+  }
+  # After either path: the app type checks, builds and runs its own test with its own
+  # config; it has the same Ouro components as before; no v0.1.0 @theme inline token line
+  # (`--ouro-x: var(--ouro-x);`, `--color-ouro-backdrop-color: var(--ouro-backdrop-color);`) is left.
+  upgraded() {
+    npx tsc -b
+    npx vite build
+    grep -q 'name: "app"' vitest.config.ts || { echo "the upgrade removed the app's Vitest project"; exit 1; }
+    npx vitest run --project app
+    local now
+    now=$(ls src/components/ouro | tr '\n' ' ')
+    [ "$now" = "$folders" ] || { echo "the upgrade changed the component folders: $folders-> $now"; exit 1; }
+    if grep -En -- '^[[:space:]]*--(color-)?ouro-[a-z-]+:[[:space:]]*var\(--ouro-[a-z-]+\);' src/index.css; then
+      echo "src/index.css still maps an Ouro token through @theme inline"; exit 1
+    fi
+  }
 
-  echo "::group::Upgrade, keeping the tests"
-  "${shadcn[@]}" add --yes "${local_items[@]}" "$registry/r/ouro-tests.json" --overwrite
-  perl -i -ne "$self_refs" src/index.css
-  npx tsc -b
-  npx vite build
-  node "$root/scripts/install-check.mjs" "$app" shadcn tests
+  echo "::group::Upgrade (steps 1 and 2), keeping the tests"
+  note_step 1
+  note_step 2
+  upgraded
+  for path in components/ouro/dialog/dialog.test.tsx components/ouro/sheet/sheet.stories.tsx lib/ouro/testing/vitest.ts; do
+    test -f "src/$path" || { echo "the upgrade did not keep src/$path"; exit 1; }
+  done
   echo "::endgroup::"
 
-  echo "::group::Upgrade, without the tests"
+  echo "::group::Upgrade (steps 1 to 3), without Ouro's tests"
   cd "$bare"
-  "${shadcn[@]}" add --yes "${local_items[@]}" --overwrite
-  find src/components/ouro src/lib/ouro \( -name '*.test.ts' -o -name '*.test.tsx' -o -name '*.test-d.ts' -o -name '*.stories.tsx' \) -delete
-  find src/lib/ouro/testing e2e/ouro vitest.config.ts playwright.config.ts .storybook -delete
-  npm uninstall storybook @storybook/react-vite vitest @vitest/browser-playwright playwright @playwright/test
-  perl -i -ne "$self_refs" src/index.css
-  npx tsc -b
-  npx vite build
-  node "$root/scripts/install-check.mjs" "$bare" shadcn runtime
+  note_step 1
+  note_step 2
+  note_step 3
+  # Step 3's prose: remove the ouroTestProjects import and call from the Vitest config.
+  grep -v ouroTestProjects vitest.config.ts >vitest.config.next.ts
+  mv vitest.config.next.ts vitest.config.ts
+  upgraded
+  left=$(find src/components/ouro src/lib/ouro e2e \( -name '*.test.ts' -o -name '*.test.tsx' -o -name '*.test-d.ts' -o -name '*.stories.tsx' -o -name '*.spec.ts' \) 2>/dev/null || true)
+  [ -z "$left" ] || { echo "step 3 left Ouro test files:"; echo "$left"; exit 1; }
+  test ! -e src/lib/ouro/testing || { echo "step 3 left src/lib/ouro/testing"; exit 1; }
   echo "::endgroup::"
   exit 0
 fi
