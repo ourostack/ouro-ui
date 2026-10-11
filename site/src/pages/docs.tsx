@@ -8,6 +8,7 @@ import { demos } from "../docs/demos";
 import { docsItems, GITHUB, installedPaths, partsSection, summary, type DocsItem } from "../docs/items";
 import { inline, Markdown, parse, type Block } from "../docs/markdown";
 import { href } from "../routes";
+import upgrading from "../../../UPGRADING.md?raw";
 
 function PageTitle({ eyebrow, title, lead }: { eyebrow: string; title: string; lead: ReactNode }): JSX.Element {
   return (
@@ -275,50 +276,8 @@ export function Updating(): JSX.Element {
           <Heading level={2} size="lg">
             Upgrading from v0.1.0
           </Heading>
-          <Text>
-            v0.1.0 installed every component with its tests, and v0.2.0 moves some shared helpers to new files, so update
-            everything in one go. Paths assume your components live under <InlineCode>src/</InlineCode>.
-          </Text>
-          <Text>
-            Update every Ouro item you installed in one command, at the same ref, with <InlineCode>--overwrite</InlineCode>{" "}
-            (without it the CLI stops to ask about each file). List each item you have, and <InlineCode>ouro-theme</InlineCode>{" "}
-            if you use it. To keep the tests, add <InlineCode>ouro-tests</InlineCode> to the same command:
-          </Text>
-          <Command command="npx shadcn@latest add ourostack/ouro-ui/button#v0.2.0 ourostack/ouro-ui/dialog#v0.2.0 ourostack/ouro-ui/ouro-tests#v0.2.0 --overwrite" />
-          <Text>
-            Without the tests, leave <InlineCode>ouro-tests</InlineCode> out and delete what v0.1.0 added for them: the test,
-            type-test and story files, the test kit, the specs, the test config (keep a config your own tests use, without{" "}
-            <InlineCode>ouroTestProjects</InlineCode>) and the test devDependencies:
-          </Text>
-          <Command command="find src/components/ouro src/lib/ouro \( -name '*.test.ts' -o -name '*.test.tsx' -o -name '*.test-d.ts' -o -name '*.stories.tsx' \) -delete" />
-          <Command command="find src/lib/ouro/testing e2e/ouro vitest.config.ts playwright.config.ts .storybook -delete" />
-          <Command command="npm uninstall storybook @storybook/react-vite vitest @vitest/browser-playwright playwright @playwright/test" />
-          <Text>
-            In your CSS, delete the self-referential lines v0.1.0 wrote into <InlineCode>@theme inline</InlineCode>: each{" "}
-            <InlineCode>--ouro-…: var(--ouro-…);</InlineCode> and <InlineCode>--color-ouro-backdrop-color: var(--ouro-backdrop-color);</InlineCode>.
-            The values stay in <InlineCode>:root</InlineCode> and <InlineCode>.dark</InlineCode>. Or run:
-          </Text>
-          <Command command="perl -i -ne 'print unless /^\s*--(color-)?ouro-[\w-]+:\s*var\(--ouro-[\w-]+\);\s*$/' src/index.css" />
-          <Text>If your own code imports these helpers, change the import:</Text>
-          <ul className="m-0 grid gap-2 ps-5 text-base leading-7 text-foreground">
-            <li>
-              <InlineCode>useOuro</InlineCode>: from <InlineCode>lib/ouro/ouro-provider</InlineCode> to <InlineCode>lib/ouro/use-ouro</InlineCode>
-            </li>
-            <li>
-              <InlineCode>sheetSides</InlineCode>, <InlineCode>sideWarning</InlineCode>, <InlineCode>sheetHint</InlineCode>,{" "}
-              <InlineCode>iosBackdrop</InlineCode>, <InlineCode>footerClass</InlineCode>: from{" "}
-              <InlineCode>components/ouro/sheet/sheet-parts</InlineCode> to <InlineCode>components/ouro/sheet/sheet-styles</InlineCode>
-            </li>
-            <li>
-              <InlineCode>dialogSizes</InlineCode>, <InlineCode>dialogSizeWarning</InlineCode>: from{" "}
-              <InlineCode>components/ouro/dialog/dialog-parts</InlineCode> to <InlineCode>components/ouro/dialog/dialog-styles</InlineCode>
-            </li>
-            <li>
-              <InlineCode>alignClasses</InlineCode>, <InlineCode>checkAlign</InlineCode>: from <InlineCode>components/ouro/text/text</InlineCode>{" "}
-              to <InlineCode>components/ouro/text/text-styles</InlineCode>
-            </li>
-          </ul>
-          <Text>Then type check and build your app.</Text>
+          {/* UPGRADING.md, the same note as README.md and the release notes; CI runs its commands. */}
+          <Markdown blocks={parse(upgrading).slice(1)} />
         </li>
         <li className="grid gap-3">
           <Heading level={2} size="lg">

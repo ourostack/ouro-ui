@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { cleanupPage, describeViolations, renderPage, scan, setScheme, settle } from "../test/render";
+import upgrading from "../../UPGRADING.md?raw";
 import { docsItems } from "./docs/items";
+import { parse } from "./docs/markdown";
 import { routes } from "./routes";
 
 // The site's contract (Task 11): the hero says exactly what it should, the live Sheet
@@ -19,7 +21,8 @@ afterEach(async () => {
 });
 
 const INIT = "npx shadcn@latest init --base base --preset nova --yes --no-monorepo";
-const UNINSTALL = "npm uninstall storybook @storybook/react-vite vitest @vitest/browser-playwright playwright @playwright/test";
+// The upgrade note is UPGRADING.md, rendered on the Updating page; every command shows.
+const upgradeCommands = parse(upgrading).flatMap((block) => (block.kind === "code" ? [block.text] : []));
 
 describe("landing page", () => {
   it("renders the exact hero text", async () => {
@@ -86,7 +89,9 @@ describe("docs", () => {
     await expect.element(page.getByText("npx shadcn@latest add @ouro/sheet @ouro/sheet-tests --overwrite", { exact: true })).toBeVisible();
     await expect.element(page.getByText("npx shadcn@latest add ourostack/ouro-ui/sheet#v0.2.0", { exact: true })).toBeVisible();
     await expect.element(page.getByRole("heading", { name: "Upgrading from v0.1.0", level: 2 })).toBeVisible();
-    await expect.element(page.getByText(UNINSTALL, { exact: true })).toBeVisible();
+    expect(upgradeCommands.length).toBeGreaterThan(3);
+    for (const command of upgradeCommands) await expect.element(page.getByText(command, { exact: true })).toBeVisible();
+    await expect.element(page.getByRole("heading", { name: "1. Update every Ouro component, with its tests", level: 3 })).toBeVisible();
     await expect.element(page.getByText("useOuro", { exact: true })).toBeVisible();
   });
 });

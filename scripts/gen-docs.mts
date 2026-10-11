@@ -2,7 +2,9 @@
 // registry/, through the TypeScript compiler API:
 //
 // - docs/<Export>.md for every component, and docs/parts.md;
-// - the catalog in README.md, between <!-- catalog:start --> and <!-- catalog:end -->.
+// - the catalog in README.md, between <!-- catalog:start --> and <!-- catalog:end -->;
+// - README.md "Upgrading from v0.1.0", between <!-- upgrade:start --> and <!-- upgrade:end -->,
+//   copied from UPGRADING.md.
 //
 // `--check` exits 1 when a committed file differs from what would be generated.
 // `--out <dir>` writes (or checks) under another root, for tests. Output is deterministic:
@@ -11,6 +13,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
+import { noteBody } from "./upgrade-note.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -562,7 +565,17 @@ const readme = readFileSync(readmePath, "utf8");
 if (!/<!-- catalog:start -->[\s\S]*<!-- catalog:end -->/.test(readme)) {
   throw new Error("README.md needs <!-- catalog:start --> and <!-- catalog:end --> markers.");
 }
-outputs.set("README.md", readme.replace(/<!-- catalog:start -->[\s\S]*<!-- catalog:end -->/, () => readmeCatalog));
+if (!/<!-- upgrade:start -->[\s\S]*<!-- upgrade:end -->/.test(readme)) {
+  throw new Error("README.md needs <!-- upgrade:start --> and <!-- upgrade:end --> markers.");
+}
+// "Upgrading from v0.1.0" is UPGRADING.md's body (scripts/upgrade-note.mjs), copied in whole.
+const upgrade = `<!-- upgrade:start -->\n${noteBody(readFileSync(join(root, "UPGRADING.md"), "utf8"))}\n<!-- upgrade:end -->`;
+outputs.set(
+  "README.md",
+  readme
+    .replace(/<!-- catalog:start -->[\s\S]*<!-- catalog:end -->/, () => readmeCatalog)
+    .replace(/<!-- upgrade:start -->[\s\S]*<!-- upgrade:end -->/, () => upgrade),
+);
 
 // ---------------------------------------------------------------------------------------
 // Write or check
