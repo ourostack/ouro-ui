@@ -1,12 +1,14 @@
 import { expect, test } from "@playwright/test";
 import { openStory } from "./story";
 
-test("headings form the document outline, each level a size step down", async ({ page }) => {
+test("headings form the document outline, and no level is larger than the one above it", async ({ page }) => {
   await openStory(page, "text-heading--headings");
+  const sizes: number[] = [];
   for (const level of [1, 2, 3, 4, 5, 6]) {
-    await expect(page.getByRole("heading", { level, name: `Heading level ${level}` })).toBeVisible();
+    const heading = page.getByRole("heading", { level, name: `Heading level ${level}` });
+    await expect(heading).toBeVisible();
+    sizes.push(await heading.evaluate((el) => parseFloat(getComputedStyle(el).fontSize)));
   }
-  const size = (level: number) =>
-    page.getByRole("heading", { level, name: `Heading level ${level}` }).evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
-  expect(await size(1)).toBeGreaterThan(await size(4));
+  for (let level = 1; level < sizes.length; level++) expect(sizes[level]).toBeLessThanOrEqual(sizes[level - 1]!);
+  expect(sizes[0]).toBeGreaterThan(sizes[5]!);
 });

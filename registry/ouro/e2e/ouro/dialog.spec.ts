@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { openStory } from "./story";
+import { openStory, settledBox, slowDrag } from "./story";
 
 test.describe("on a desktop", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
@@ -30,5 +30,17 @@ test.describe("on a phone", () => {
     const dialog = page.getByRole("dialog", { name: "Edit recipe" });
     await expect(dialog).toBeVisible();
     await expect.poll(async () => Math.round((await dialog.boundingBox())!.y + (await dialog.boundingBox())!.height)).toBe(844);
+  });
+
+  test("drags down to dismiss, and focus returns to the trigger", async ({ page }) => {
+    await openStory(page, "overlays-dialog--playground");
+    const trigger = page.getByRole("button", { name: "Edit" });
+    await trigger.click();
+    const dialog = page.getByRole("dialog", { name: "Edit recipe" });
+    const box = await settledBox(dialog);
+    const x = box.x + box.width / 2;
+    await slowDrag(page, x, box.y + 12, box.y + 12 + box.height * 0.8);
+    await expect(dialog).toBeHidden();
+    await expect(trigger).toBeFocused();
   });
 });

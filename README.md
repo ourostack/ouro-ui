@@ -13,7 +13,7 @@ import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
 </Dialog>;
 ```
 
-Import paths in this repository and its docs are the registry source paths. The shadcn CLI rewrites them to your app's aliases when it installs a component: `@/registry/ouro/components/ouro/button/button` becomes `@/components/ouro/button/button`. The components need `react` and `react-dom` 19; the CLI installs the rest (`@base-ui/react`, `motion`, `clsx`, `tailwind-merge`).
+Import paths in this repository and its docs are the registry source paths. The shadcn CLI rewrites them to your app's aliases when it installs a component: `@/registry/ouro/components/ouro/button/button` becomes `@/components/ouro/button/button`. The components need `react` and `react-dom` 19; the CLI installs the rest (`@base-ui/react`, `clsx`, `tailwind-merge`). They need no animation library: motion is CSS, and reduced motion is honored in CSS. If your app animates with Motion, wrap it in `<MotionConfig reducedMotion="user">`.
 
 ## Install
 
@@ -23,11 +23,12 @@ Ouro UI is alpha. In an app that has run `npx shadcn init` (Tailwind CSS v4):
 npx shadcn@latest add ourostack/ouro-ui/sheet
 ```
 
-- The CLI reads `registry.json` at this repository's root. Add `#<tag>`, `#<branch>` or `#<sha>` to the address to pin a version.
+- The CLI reads `registry.json` at this repository's root. Add `#<tag>`, `#<branch>` or `#<sha>` to the address to pin a version. Until release tags exist, a ref pins only the item you name: its Ouro dependencies (`ouro-lib`, `button` and so on) come from `main`. Release tags will pin every dependency to the same tag.
 - Components land in `components/ouro/<component>/`, beside shadcn's `components/ui/`, and the shared helpers in `lib/ouro/`. The base tokens (`ouro-base`) are added to your CSS with any component.
 - Each component brings its stories, its Vitest browser tests and a Playwright spec in `e2e/ouro/`. The `ouro-testing` item's install message says how to run them: add `ouroTestProjects` from `lib/ouro/testing/vitest.ts` to your Vitest config, and point `OURO_E2E_URL` at a Storybook with the Ouro stories for the specs.
 - For the Ouro look, add `ourostack/ouro-ui/ouro-theme`. Skip it to keep your app's shadcn theme.
-- To update, review with `npx shadcn add ourostack/ouro-ui/<item> --diff`, then add it again with `--overwrite` and reapply your edits.
+- To update, list the changed files with `npx shadcn add ourostack/ouro-ui/<item> --dry-run`, review each one marked overwrite with `--diff <path>`, then add the item again with `--overwrite` and reapply your edits.
+- Stories and tests ship with each component, so an item can depend on another Ouro item only through them: `sheet` and `heading` install `button` because their stories and tests use it.
 
 Items: `button`, `text`, `heading`, `sheet`, `dialog`, `confirm-dialog`, plus `ouro-base`, `ouro-lib` and `ouro-testing`, which the components pull in, and the optional `ouro-theme`.
 

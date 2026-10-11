@@ -5,7 +5,7 @@
   "items": [
     {
       "name": "ouro-base",
-      "type": "registry:theme",
+      "type": "registry:item",
       "title": "Ouro base",
       "description": "What every Ouro UI component needs in the app's CSS: success and warning colors, a destructive foreground, the motion tokens, the press utility and the spinner keyframes.",
       "docs": "Ouro UI's base tokens are in your CSS. Your theme's values win: edit them like any shadcn variable.",
@@ -141,7 +141,6 @@
       "docs": "Ouro UI's helpers are in lib/ouro. OuroProvider is optional; it routes internal hrefs through your router's link. Docs: https://ourostack.github.io/ouro-ui/docs",
       "dependencies": [
         "clsx@^2.1.1",
-        "motion@^14.0.0",
         "tailwind-merge@^3.7.0"
       ],
       "devDependencies": [
@@ -273,7 +272,7 @@
       "type": "registry:lib",
       "title": "Ouro testing",
       "description": "The test kit Ouro UI's tests use: Vitest browser projects with the drag, flick, tap and emulateMedia commands, the act helper, and the end-to-end story helper.",
-      "docs": "Ouro UI's tests are installed beside each component. To run them, add the projects to vitest.config.ts: test: { projects: ouroTestProjects({ css: \"./src/index.css\" }) }, imported from \"./src/lib/ouro/testing/vitest.ts\" (use your components.json tailwind.css path), then run npx playwright install chromium webkit and npx vitest run. The end-to-end specs in e2e/ouro open the Ouro stories in a Storybook: start one, then run OURO_E2E_URL=http://localhost:6006 npx playwright test e2e/ouro. Docs: https://ourostack.github.io/ouro-ui/docs",
+      "docs": "Ouro UI's tests are installed beside each component. To run the Vitest browser tests, add vitest.config.ts (use your components.json tailwind.css path for css), then run npx playwright install chromium webkit and npx vitest run:\n--- vitest.config.ts\nimport { defineConfig, mergeConfig } from \"vitest/config\";\nimport viteConfig from \"./vite.config.ts\";\nimport { ouroTestProjects } from \"./src/lib/ouro/testing/vitest.ts\";\n\nexport default mergeConfig(viteConfig, defineConfig({ test: { projects: ouroTestProjects({ css: \"./src/index.css\" }) } }));\n\nThe end-to-end specs in e2e/ouro open the Ouro stories in a Storybook. If your app has none, add these two files (use your stylesheet in preview.ts) and run npx storybook dev -p 6006:\n--- .storybook/main.ts\nexport default { stories: [\"../src/**/*.stories.@(ts|tsx)\"], framework: \"@storybook/react-vite\" };\n--- .storybook/preview.ts\nimport \"../src/index.css\";\n\nThen run OURO_E2E_URL=http://localhost:6006 npx playwright test e2e/ouro.\nDocs: https://ourostack.github.io/ouro-ui/docs",
       "devDependencies": [
         "@playwright/test@^1.63.0",
         "@vitest/browser-playwright@^5.0.3",

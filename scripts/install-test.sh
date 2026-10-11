@@ -3,12 +3,16 @@
 # every Ouro UI item the way an app does, then runs the app's type check, build, the
 # shipped Vitest browser tests and the shipped Playwright specs.
 #
-#   scripts/install-test.sh <shadcn|ouro> <app-dir> [ref]
+#   scripts/install-test.sh <shadcn|ouro|github> <app-dir> [ref]
 #
 # shadcn: the app keeps the theme `shadcn init` wrote, and a stock shadcn button is added
 #         beside Ouro's; both must build.
 # ouro:   the app installs the ouro-theme item first, from GitHub at <ref> (default HEAD,
 #         which must be pushed).
+# github: what a user runs today: `shadcn add ourostack/ouro-ui/<item>` with no ref, so
+#         every item and dependency comes from the default branch. Type check, build and
+#         the install check only. Meaningful once main has this registry (CI runs it on
+#         push to main).
 #
 # Same-repo registryDependencies are written without a ref (ourostack/ouro-ui/<item>), so
 # shadcn resolves them on the default branch; refs are not inherited. To install this
@@ -17,8 +21,8 @@
 # from those (scripts/registry.mts --local-deps).
 set -euo pipefail
 
-variant=${1:?usage: install-test.sh <shadcn|ouro> <app-dir> [ref]}
-app=${2:?usage: install-test.sh <shadcn|ouro> <app-dir> [ref]}
+variant=${1:?usage: install-test.sh <shadcn|ouro|github> <app-dir> [ref]}
+app=${2:?usage: install-test.sh <shadcn|ouro|github> <app-dir> [ref]}
 root=$(cd "$(dirname "$0")/.." && pwd)
 ref=${3:-$(git -C "$root" rev-parse HEAD)}
 shadcn=(npx --yes shadcn@4.21.1)
@@ -34,6 +38,18 @@ cd "$app"
 npm install --no-audit --no-fund
 "${shadcn[@]}" init --base base --preset nova --yes --no-monorepo
 echo "::endgroup::"
+
+if [ "$variant" = github ]; then
+  echo "::group::Every item from GitHub, no ref"
+  "${shadcn[@]}" add --yes "${items[@]/#/ourostack/ouro-ui/}"
+  echo "::endgroup::"
+  echo "::group::Type check and build"
+  npx tsc -b
+  npx vite build
+  node "$root/scripts/install-check.mjs" "$app" shadcn
+  echo "::endgroup::"
+  exit 0
+fi
 
 echo "::group::Registry copy with local dependencies"
 node "$root/scripts/registry.mts" --out "$registry/registry.json" --local-deps "$registry/r"

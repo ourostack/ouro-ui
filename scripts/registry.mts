@@ -39,6 +39,36 @@ const appPackages = new Set(["react", "react-dom"]);
 /** Packages an import needs alongside it (peer dependencies). */
 const companions: Record<string, string[]> = { "@storybook/react-vite": ["storybook"] };
 
+/**
+ * The files an app adds to run the shipped tests and specs, exactly as the ouro-testing
+ * docs message prints them. test/install-fixture uses these files verbatim (the registry
+ * test checks), so the install test proves the docs work.
+ */
+export const testingSetup: Record<string, string> = {
+  "vitest.config.ts": [
+    'import { defineConfig, mergeConfig } from "vitest/config";',
+    'import viteConfig from "./vite.config.ts";',
+    'import { ouroTestProjects } from "./src/lib/ouro/testing/vitest.ts";',
+    "",
+    'export default mergeConfig(viteConfig, defineConfig({ test: { projects: ouroTestProjects({ css: "./src/index.css" }) } }));',
+    "",
+  ].join("\n"),
+  ".storybook/main.ts": 'export default { stories: ["../src/**/*.stories.@(ts|tsx)"], framework: "@storybook/react-vite" };\n',
+  ".storybook/preview.ts": 'import "../src/index.css";\n',
+};
+
+function testingDocs(): string {
+  const file = (path: string) => `--- ${path}\n${testingSetup[path]}`;
+  return [
+    "Ouro UI's tests are installed beside each component. To run the Vitest browser tests, add vitest.config.ts (use your components.json tailwind.css path for css), then run npx playwright install chromium webkit and npx vitest run:",
+    file("vitest.config.ts"),
+    "The end-to-end specs in e2e/ouro open the Ouro stories in a Storybook. If your app has none, add these two files (use your stylesheet in preview.ts) and run npx storybook dev -p 6006:",
+    file(".storybook/main.ts") + file(".storybook/preview.ts"),
+    "Then run OURO_E2E_URL=http://localhost:6006 npx playwright test e2e/ouro.",
+    `Docs: ${DOCS_URL}`,
+  ].join("\n");
+}
+
 const foundation = [
   {
     name: "ouro-base",
@@ -67,14 +97,7 @@ const foundation = [
     title: "Ouro testing",
     description:
       "The test kit Ouro UI's tests use: Vitest browser projects with the drag, flick, tap and emulateMedia commands, the act helper, and the end-to-end story helper.",
-    docs: [
-      "Ouro UI's tests are installed beside each component. To run them, add the projects to vitest.config.ts:",
-      'test: { projects: ouroTestProjects({ css: "./src/index.css" }) }, imported from "./src/lib/ouro/testing/vitest.ts"',
-      "(use your components.json tailwind.css path), then run npx playwright install chromium webkit and npx vitest run.",
-      "The end-to-end specs in e2e/ouro open the Ouro stories in a Storybook: start one, then run",
-      "OURO_E2E_URL=http://localhost:6006 npx playwright test e2e/ouro.",
-      `Docs: ${DOCS_URL}`,
-    ].join(" "),
+    docs: testingDocs(),
   },
 ];
 
@@ -255,7 +278,9 @@ export function buildRegistry(root: string): Registry {
   for (const entry of entries) {
     const item: RegistryItem = {
       name: entry.name,
-      type: "css" in entry ? "registry:theme" : entry.kind === "component" ? "registry:ui" : "registry:lib",
+      // ouro-theme replaces the app's colors, so it is a theme (the CLI warns before it
+      // overwrites variables). ouro-base only adds variables, so it is a plain item.
+      type: entry.name === "ouro-theme" ? "registry:theme" : "css" in entry ? "registry:item" : entry.kind === "component" ? "registry:ui" : "registry:lib",
       title: entry.title,
       description: entry.description,
       docs: entry.docs,

@@ -69,7 +69,8 @@ describe("docs", () => {
     await expect.element(page.getByText("components/ui/", { exact: true }).first()).toBeVisible();
     await renderPage("/docs/updating/");
     await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent("Updating installed components");
-    await expect.element(page.getByText("npx shadcn add @ouro/sheet --diff", { exact: true })).toBeVisible();
+    await expect.element(page.getByText("npx shadcn add @ouro/sheet --dry-run", { exact: true })).toBeVisible();
+    await expect.element(page.getByText("npx shadcn add @ouro/sheet --diff src/components/ouro/sheet/sheet.tsx", { exact: true })).toBeVisible();
   });
 });
 

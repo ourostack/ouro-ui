@@ -115,3 +115,18 @@ jobs:
             ${{ runner.temp }}/app/package.json
             ${{ runner.temp }}/app/playwright-report/
           if-no-files-found: ignore
+  install-github:
+    # The install a user runs today: `shadcn add ourostack/ouro-ui/<item>` with no ref, so
+    # every item and its Ouro dependencies come from main. Runs after each push to main,
+    # once that commit's registry.json is on GitHub; type check and build.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      - run: scripts/install-test.sh github "$RUNNER_TEMP/app"

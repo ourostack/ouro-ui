@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { buildRegistry, cssToItem, itemForFile, rewriteDependencies } from "./registry.mts";
+import { buildRegistry, cssToItem, itemForFile, rewriteDependencies, testingSetup } from "./registry.mts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const script = join(root, "scripts/registry.mts");
@@ -42,6 +42,7 @@ test("the registry is named ouro and lists every item", () => {
 
 test("theme items come from the repository's CSS, in shadcn's cssVars format", () => {
   const base = item("ouro-base");
+  assert.equal(base.type, "registry:item");
   assert.equal(base.cssVars.light.success, "#157d3c");
   assert.equal(base.cssVars.dark.success, "#4ade80");
   assert.equal(base.cssVars.light["destructive-foreground"], "#ffffff");
@@ -131,7 +132,8 @@ test("registryDependencies are the same-repo items each item imports, as full un
 
 test("npm dependencies are pinned to the ranges this repository tests", () => {
   assert.deepEqual(item("button").dependencies, ["@base-ui/react@^1.8.0"]);
-  assert.deepEqual(item("ouro-lib").dependencies, ["clsx@^2.1.1", "motion@^14.0.0", "tailwind-merge@^3.7.0"]);
+  assert.deepEqual(item("ouro-lib").dependencies, ["clsx@^2.1.1", "tailwind-merge@^3.7.0"]);
+  assert.ok(!JSON.stringify(registry).includes('"motion@'), "no item depends on motion");
   assert.deepEqual(item("button").devDependencies, ["@playwright/test@^1.63.0", "@storybook/react-vite@^10.6.1", "storybook@^10.6.1", "vitest@^5.0.3"]);
   assert.deepEqual(item("ouro-testing").devDependencies, ["@playwright/test@^1.63.0", "@vitest/browser-playwright@^5.0.3", "playwright@^1.63.0", "vitest@^5.0.3"]);
   for (const entry of registry.items) {
@@ -166,4 +168,14 @@ test("rewriteDependencies points same-repo dependencies at local item files, for
     "/tmp/r/text.json",
   ]);
   assert.deepEqual(item("heading").registryDependencies[0], repo("button"));
+});
+
+test("the install fixture uses exactly the setup files the ouro-testing docs print", () => {
+  const docs = item("ouro-testing").docs;
+  for (const [path, content] of Object.entries(testingSetup)) {
+    assert.equal(readFileSync(join(root, "test/install-fixture", path), "utf8"), content, `test/install-fixture/${path} differs from the docs`);
+    assert.ok(docs.includes(`--- ${path}\n${content}`), `the docs print ${path}`);
+  }
+  assert.match(docs, /npx storybook dev -p 6006/);
+  assert.match(docs, /OURO_E2E_URL=http:\/\/localhost:6006 npx playwright test e2e\/ouro/);
 });
