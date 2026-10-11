@@ -2,6 +2,10 @@ import { useState, type JSX } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { ConfirmDialog } from "@/registry/ouro/components/ouro/dialog/confirm-dialog";
 import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
+import { Field } from "@/registry/ouro/components/ouro/field/field";
+import { FieldControl } from "@/registry/ouro/components/ouro/field/field-parts";
+import { Fieldset } from "@/registry/ouro/components/ouro/field/fieldset";
+import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
@@ -58,6 +62,66 @@ function HeadingDemo(): JSX.Element {
       <Heading level={2}>Recipes</Heading>
       <Heading level={3}>Ingredients</Heading>
       <Heading level={4}>For the sauce</Heading>
+    </div>
+  );
+}
+
+function LinkDemo(): JSX.Element {
+  return (
+    <div className="grid max-w-sm gap-2">
+      <Text>
+        Braise as in <Link href="#braising">our braising guide</Link>, then rest overnight.
+      </Text>
+      <Text size="sm" tone="muted">
+        Adapted from{" "}
+        <Link href="https://example.com/short-ribs" external>
+          the original recipe
+        </Link>
+        .
+      </Text>
+    </div>
+  );
+}
+
+function FieldDemo(): JSX.Element {
+  const [error, setError] = useState<string | undefined>();
+  return (
+    <form
+      noValidate
+      className="grid w-full max-w-sm gap-4"
+      onSubmit={(event) => {
+        event.preventDefault();
+        const email = String(new FormData(event.currentTarget).get("email") ?? "");
+        setError(/^[^@\s]+@[^@\s]+$/.test(email) ? undefined : "Enter an email address, like you@example.com.");
+      }}
+    >
+      <Field label="Email" name="email" required description="We send the shopping list here." error={error}>
+        <FieldControl type="email" placeholder="you@example.com" />
+      </Field>
+      <div>
+        <Button type="submit">Send list</Button>
+      </div>
+    </form>
+  );
+}
+
+function FieldsetDemo(): JSX.Element {
+  const [same, setSame] = useState(true);
+  return (
+    <div className="grid w-full max-w-sm gap-4">
+      <Fieldset legend="Billing address" description="Where your card statements go." disabled={same}>
+        <Field label="Street" name="street">
+          <FieldControl autoComplete="street-address" />
+        </Field>
+        <Field label="City" name="city">
+          <FieldControl autoComplete="address-level2" />
+        </Field>
+      </Fieldset>
+      <div>
+        <Button variant="outline" tone="secondary" onClick={() => setSame((value) => !value)}>
+          {same ? "Use a different address" : "Same as shipping"}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -170,6 +234,9 @@ export const demos: Record<string, () => JSX.Element> = {
   button: ButtonDemo,
   text: TextDemo,
   heading: HeadingDemo,
+  link: LinkDemo,
+  field: FieldDemo,
+  fieldset: FieldsetDemo,
   sheet: SheetDemo,
   dialog: DialogDemo,
   "confirm-dialog": ConfirmDialogDemo,

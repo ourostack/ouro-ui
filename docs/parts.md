@@ -6,6 +6,41 @@ Building-block parts for the rare case where a component's props cannot express 
 
 Each part checks that it sits inside its root and, in development, throws a message with the JSX it belongs in.
 
+## Field parts
+
+The state owner of a field built from parts. It connects the label, description and error to the control, and passes `name`, `disabled` and `required` down. Use the `Field` component instead unless its props cannot express your layout; every Ouro form control is built on these parts.
+
+```tsx
+import {
+  FieldControl,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+  FieldRoot,
+} from "@/registry/ouro/components/ouro/field/field-parts";
+```
+
+### Required nesting
+
+```tsx
+<FieldRoot name="email" required>
+  <FieldLabel>Email</FieldLabel>
+  <FieldDescription>We never share it.</FieldDescription>
+  <FieldControl type="email" />
+  <FieldError />
+</FieldRoot>
+```
+
+Each part checks that it sits inside `<FieldRoot>`. Outside it, a part throws in development with a message that shows this JSX shape.
+
+| Part | What it is |
+| --- | --- |
+| `FieldControl` | The control, a text `<input>` by default. It takes the field's id, `name`, `disabled` and `required`, `aria-invalid` from its error, and `aria-describedby` from its description and error. Render another element with `render={<textarea />}`. |
+| `FieldDescription` | Supporting text for the control, read after its label through `aria-describedby`. |
+| `FieldError` | The error message, linked to the control through `aria-describedby`. Without children it shows the browser's validation message, or a Base UI `Form` error for the field's `name`; with `match` and children it always shows them. It fades and slides in. |
+| `FieldLabel` | The control's label. It points at the control by id, and a required field adds a marker that screen readers skip (they hear "required" from the control). Hide it visually with `className="sr-only"`. |
+| `FieldRoot` | The state owner of a field built from parts. It connects the label, description and error to the control, and passes `name`, `disabled` and `required` down. Use the `Field` component instead unless its props cannot express your layout; every Ouro form control is built on these parts. |
+
 ## Dialog parts
 
 The state owner of a centered dialog built from parts. Use the `Dialog` component instead unless its props cannot express your layout; `Dialog` also becomes a bottom sheet on phones, which parts do not.

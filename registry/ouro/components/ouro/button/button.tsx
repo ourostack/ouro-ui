@@ -16,9 +16,9 @@ import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { fontFor, radiusFor, sizeFor, toneFor } from "@/registry/ouro/lib/ouro/appearance-hints";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { RouterLink } from "@/registry/ouro/lib/ouro/router-link";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
-import { useOuro } from "@/registry/ouro/lib/ouro/use-ouro";
 import { toneWarning } from "@/registry/ouro/lib/ouro/tones";
 
 /** An icon component, such as one from `lucide-react` or `@heroicons/react`. */
@@ -210,9 +210,6 @@ const iconClass = "size-[1.25em] shrink-0";
 
 const buttonTypes = ["button", "submit", "reset"] as const;
 
-/** Absolute URLs (`https:`, `mailto:`, protocol-relative) skip the router link. */
-const EXTERNAL = /^([a-z][a-z\d+.-]*:|\/\/)/i;
-
 function buttonHint(token: string): string {
   const size = sizeFor(token, ["sm", "sm", "md", "lg", "lg", "lg", "lg"]);
   if (size) return `size="${size}"`;
@@ -265,14 +262,6 @@ function Spinner(): JSX.Element {
 
 const preventDefault = (event: MouseEvent) => event.preventDefault();
 
-/** `rel` with `noopener` and `noreferrer` added once each, keeping the caller's tokens. */
-function safeRel(rel: string | undefined): string {
-  const tokens = new Set((rel ?? "").split(/\s+/).filter(Boolean));
-  tokens.add("noopener");
-  tokens.add("noreferrer");
-  return [...tokens].join(" ");
-}
-
 /**
  * A button, or a link styled as one. The obvious name for any action: pressing
  * it gives physical feedback, it has a 44px touch target on phones, and `loading`
@@ -308,7 +297,6 @@ export function Button(props: ButtonProps): JSX.Element {
     rightIcon,
     ...rest
   } = props;
-  const { linkComponent: LinkComponent } = useOuro();
   // A tone, variant or size that is not one of Ouro UI's (a type error) warns and renders the default.
   const tone = Object.hasOwn(looks.solid, toneProp) ? (toneProp as keyof typeof looks.solid) : "primary";
   const variant = Object.hasOwn(looks, variantProp) ? (variantProp as keyof typeof looks) : "solid";
@@ -383,27 +371,22 @@ export function Button(props: ButtonProps): JSX.Element {
 
   if (rest.href !== undefined) {
     // `type` and `disabled` are typed `never` on links; drop them if they arrive anyway.
-    const { href, target, rel, onClick, ref, type: _type, disabled: _disabled, ...anchorProps } = rest as Omit<
-      ButtonLinkProps,
-      keyof ButtonBaseProps
-    >;
-    const external = EXTERNAL.test(href);
-    const linkProps = {
-      ...anchorProps,
-      href,
-      target,
-      rel: external && target === "_blank" ? safeRel(rel) : rel,
-      onClick: loading ? preventDefault : onClick,
-      onAuxClick: loading ? preventDefault : anchorProps.onAuxClick,
-      ...(ref ? { ref } : {}),
-      className: classes,
-      "data-ouro": "button",
-      "data-loading": loading ? "" : undefined,
-      "data-disabled": loading ? "" : undefined,
-      "aria-busy": loading || undefined,
-      "aria-disabled": loading || undefined,
-    };
-    return external ? <a {...linkProps}>{content}</a> : <LinkComponent {...linkProps}>{content}</LinkComponent>;
+    const { onClick, type: _type, disabled: _disabled, ...anchorProps } = rest as Omit<ButtonLinkProps, keyof ButtonBaseProps>;
+    return (
+      <RouterLink
+        {...anchorProps}
+        onClick={loading ? preventDefault : onClick}
+        onAuxClick={loading ? preventDefault : anchorProps.onAuxClick}
+        className={classes}
+        data-ouro="button"
+        data-loading={loading ? "" : undefined}
+        data-disabled={loading ? "" : undefined}
+        aria-busy={loading || undefined}
+        aria-disabled={loading || undefined}
+      >
+        {content}
+      </RouterLink>
+    );
   }
 
   const { ref, disabled, type: typeProp = "button", ...buttonProps } = rest as Omit<ButtonButtonProps, keyof ButtonBaseProps>;

@@ -40,6 +40,9 @@ const components = [
   { name: "sheet", folder: "sheet", stem: "sheet", title: "Sheet" },
   { name: "dialog", folder: "dialog", stem: "dialog", title: "Dialog" },
   { name: "confirm-dialog", folder: "dialog", stem: "confirm-dialog", title: "ConfirmDialog" },
+  { name: "field", folder: "field", stem: "field", title: "Field" },
+  { name: "fieldset", folder: "field", stem: "fieldset", title: "Fieldset" },
+  { name: "link", folder: "link", stem: "link", title: "Link" },
 ];
 
 /** Registry files that test this repository itself and never ship. */

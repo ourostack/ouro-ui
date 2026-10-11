@@ -183,6 +183,29 @@ export const agentCases: AgentCase[] = [
     dev: '<DialogPopup size="md">',
     names: ["tsc", "dev"],
   },
+  {
+    id: "s32",
+    habit: "htmlFor on Field",
+    tsc: [hint("string", 'Field connects the label itself: <Field label="Email"><FieldControl /></Field>')],
+    dev: '<Field label="Email"><FieldControl /></Field>',
+    names: ["tsc", "dev"],
+  },
+  { id: "s33", habit: "an errorMessage prop", tsc: [hint("string", 'Use <Field error="Required.">')], dev: '<Field error="Required.">', names: ["tsc", "dev"] },
+  { id: "s34", habit: "MUI's helperText", tsc: [hint("string", 'Use <Field description="...">')], dev: '<Field description="We never share it.">', names: ["tsc", "dev"] },
+  { id: "s35", habit: "React Aria's or Chakra's isInvalid", tsc: [hint("boolean", 'Use <Field error="What is wrong">')], dev: '<Field error="What is wrong">', names: ["tsc", "dev"] },
+  { id: "s36", habit: "React Aria's or Chakra's isRequired", tsc: [hint("boolean", "Use <Field required>")], dev: "<Field required>", names: ["tsc", "dev"] },
+  { id: "s37", habit: "React Aria's or Chakra's isDisabled", tsc: [hint("boolean", "Use <Field disabled>")], dev: "<Field disabled>", names: ["tsc", "dev"] },
+  {
+    id: "s38",
+    habit: "a placeholder as the label",
+    tsc: [hint("string", 'Use label="Email"; a placeholder example goes on the control')],
+    dev: '<Field label="Email"><FieldControl placeholder="you@example.com" /></Field>',
+    names: ["tsc", "dev"],
+  },
+  { id: "s39", habit: "a label on a group", tsc: [hint("string", 'Use <Fieldset legend="Shipping address">')], dev: '<Fieldset legend="Shipping address">', names: ["tsc", "dev"] },
+  { id: "s40", habit: "React Router's to", tsc: [hint("string", 'Use <Link href="/recipes">')], dev: '<Link href="/recipes">', names: ["tsc", "dev"] },
+  { id: "s41", habit: "Chakra's isExternal", tsc: [hint("boolean", 'Use <Link href="https://..." external>')], dev: '<Link href="https://…" external>', names: ["tsc", "dev"] },
+  { id: "s42", habit: "a danger tone on Link", tsc: [notAssignable('"danger"', tones)], dev: '<Link tone="destructive">', names: ["tsc", "dev"] },
   { id: "v01", habit: "shadcn's destructive variant", tsc: [notAssignable('"destructive"', variants)], dev: '<Button tone="destructive">', names: ["tsc", "dev"] },
   { id: "v02", habit: "shadcn's default variant", tsc: [notAssignable('"default"', variants)], dev: "<Button>", names: ["tsc", "dev"] },
   { id: "v03", habit: "shadcn's secondary variant", tsc: [notAssignable('"secondary"', variants)], dev: '<Button tone="secondary">', names: ["tsc", "dev"] },
@@ -191,4 +214,4 @@ export const agentCases: AgentCase[] = [
 ];
 
 /** Valid snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets = ["ok01", "ok02", "ok03", "ok04", "ok05", "ok06", "ok07"];
+export const validSnippets = ["ok01", "ok02", "ok03", "ok04", "ok05", "ok06", "ok07", "ok08", "ok09", "ok10"];

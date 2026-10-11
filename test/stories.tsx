@@ -6,6 +6,9 @@ import { userEvent } from "vitest/browser";
 import * as ButtonStories from "@/registry/ouro/components/ouro/button/button.stories";
 import * as ConfirmDialogStories from "@/registry/ouro/components/ouro/dialog/confirm-dialog.stories";
 import * as DialogStories from "@/registry/ouro/components/ouro/dialog/dialog.stories";
+import * as FieldStories from "@/registry/ouro/components/ouro/field/field.stories";
+import * as FieldsetStories from "@/registry/ouro/components/ouro/field/fieldset.stories";
+import * as LinkStories from "@/registry/ouro/components/ouro/link/link.stories";
 import * as SheetStories from "@/registry/ouro/components/ouro/sheet/sheet.stories";
 import * as HeadingStories from "@/registry/ouro/components/ouro/text/heading.stories";
 import * as TextStories from "@/registry/ouro/components/ouro/text/text.stories";
@@ -26,7 +29,10 @@ export const storyFiles = {
   Button: composeStories(ButtonStories),
   ConfirmDialog: composeStories(ConfirmDialogStories),
   Dialog: composeStories(DialogStories),
+  Field: composeStories(FieldStories),
+  Fieldset: composeStories(FieldsetStories),
   Heading: composeStories(HeadingStories),
+  Link: composeStories(LinkStories),
   Sheet: composeStories(SheetStories),
   SheetFeel: composeStories(SheetFeelStories),
   Text: composeStories(TextStories),

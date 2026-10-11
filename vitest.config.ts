@@ -19,7 +19,17 @@ export default defineConfig({
   resolve: { alias: { "@": fileURLToPath(new URL(".", import.meta.url)) } },
   // Pre-bundle Base UI entry points up front. A dependency Vite discovers mid-run
   // triggers a re-optimization and reload, which can load React twice for one file.
-  optimizeDeps: { include: ["@base-ui/react/alert-dialog", "@base-ui/react/button", "@base-ui/react/dialog", "@base-ui/react/drawer"] },
+  optimizeDeps: {
+    include: [
+      "@base-ui/react/alert-dialog",
+      "@base-ui/react/button",
+      "@base-ui/react/dialog",
+      "@base-ui/react/drawer",
+      "@base-ui/react/field",
+      "@base-ui/react/fieldset",
+      "@base-ui/react/form",
+    ],
+  },
   test: {
     passWithNoTests: true,
     coverage: {

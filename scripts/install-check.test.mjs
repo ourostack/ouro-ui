@@ -14,6 +14,8 @@ const runtimeFiles = [
   "src/components/ouro/text/heading.tsx",
   "src/components/ouro/sheet/sheet-parts.tsx",
   "src/components/ouro/dialog/confirm-dialog.tsx",
+  "src/components/ouro/field/field-parts.tsx",
+  "src/components/ouro/link/link.tsx",
   "src/lib/ouro/cn.ts",
   "src/lib/ouro/env.d.ts",
 ];

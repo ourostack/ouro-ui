@@ -17,6 +17,9 @@ const subjects = [
   { name: "sheet-open", Story: storyFiles.Sheet.WithDescription, open: true },
   { name: "dialog-open", Story: storyFiles.Dialog.WithFooter, open: true },
   { name: "confirm-dialog-open", Story: storyFiles.ConfirmDialog.Destructive, open: true },
+  { name: "field-states", Story: storyFiles.Field.States },
+  { name: "fieldset", Story: storyFiles.Fieldset.Address },
+  { name: "link", Story: storyFiles.Link.InContext },
 ];
 
 const modes = [
