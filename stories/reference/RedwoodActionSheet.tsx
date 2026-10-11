@@ -66,8 +66,8 @@ const overlayStyle: CSSProperties = {
 const contentStyle: CSSProperties = {
   position: "absolute",
   zIndex: 1000,
-  background: "var(--ouro-color-surface)",
-  color: "var(--ouro-color-ink)",
+  background: "var(--background)",
+  color: "var(--foreground)",
   boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
   outline: "none",
 };
@@ -207,7 +207,7 @@ export function RedwoodActionSheet({
               >
                 {/* Extends past the edge of the screen, so a sheet dragged away from it looks like it is stretching. */}
                 <div
-                  style={{ position: "absolute", zIndex: 1000, background: "var(--ouro-color-surface)", ...config.overflowCSS }}
+                  style={{ position: "absolute", zIndex: 1000, background: "var(--background)", ...config.overflowCSS }}
                 />
                 {children}
               </motion.div>

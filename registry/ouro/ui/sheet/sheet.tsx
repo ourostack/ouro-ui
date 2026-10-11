@@ -14,6 +14,7 @@ import {
   SheetTitle,
   SheetTrigger,
   SheetViewport,
+  footerClass,
   sheetHint,
   type SheetSide,
   type SheetSnapPoint,
@@ -165,6 +166,16 @@ export function Sheet(props: SheetProps): JSX.Element {
   );
 }
 
+/**
+ * The close button: always present for screen readers (a phone has no Escape key),
+ * hidden from view until it has keyboard focus, then shown at the top corner.
+ */
+const closeClass =
+  "sr-only focus-visible:top-3 focus-visible:end-3 focus-visible:z-1 focus-visible:m-0 focus-visible:size-auto " +
+  "focus-visible:overflow-visible focus-visible:[clip-path:none] focus-visible:px-3 focus-visible:py-1.5 " +
+  "focus-visible:rounded-lg focus-visible:bg-muted focus-visible:text-foreground focus-visible:text-sm focus-visible:leading-5 focus-visible:font-medium " +
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid";
+
 /** Props for {@link SheetFrame}: a Sheet's props after its checks, plus what `Dialog` adds. */
 export interface SheetFrameProps {
   title: string;
@@ -230,7 +241,7 @@ export function SheetFrame({
           >
             {side === "bottom" && <SheetHandle />}
             {showHeader ? (
-              <div data-ouro-sheet-header="" className="ou:grid ou:shrink-0 ou:gap-1 ou:px-5 ou:pt-3 ou:pb-2">
+              <div data-ouro-sheet-header="" className="grid shrink-0 gap-1 px-5 pt-3 pb-2">
                 {titleNode}
                 {description !== undefined && <SheetDescription>{description}</SheetDescription>}
               </div>
@@ -238,9 +249,15 @@ export function SheetFrame({
               titleNode
             )}
             <SheetContent>{children}</SheetContent>
-            {footer !== undefined && <div data-ouro-footer="">{footer}</div>}
+            {footer !== undefined && (
+              <div data-ouro-footer="" className={footerClass}>
+                {footer}
+              </div>
+            )}
             {side === "top" && <SheetHandle />}
-            <SheetClose data-ouro-sheet-close="">{closeLabel}</SheetClose>
+            <SheetClose data-ouro-sheet-close="" className={closeClass}>
+              {closeLabel}
+            </SheetClose>
           </SheetPopupUnchecked>
         </SheetViewport>
       </SheetPortal>

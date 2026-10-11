@@ -200,7 +200,7 @@ export function ConfirmDialog(props: ConfirmDialogProps): JSX.Element {
         <DialogBackdrop />
         <DialogViewport>
           <DialogPopupUnchecked size="sm" initialFocus={cancelRef} data-ouro-confirm="">
-            <div data-ouro-dialog-header="">
+            <div data-ouro-dialog-header="" className="box-border grid shrink-0 gap-1 px-5 pt-5 pb-2">
               <DialogTitle>{title}</DialogTitle>
               {description !== undefined && <DialogDescription>{description}</DialogDescription>}
             </div>

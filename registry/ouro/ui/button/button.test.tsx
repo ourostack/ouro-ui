@@ -1,4 +1,3 @@
-import distCss from "@/dist/styles.css?raw";
 import { type ReactNode, type SVGProps } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -8,18 +7,10 @@ import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro-p
 import { Button } from "@/registry/ouro/ui/button/button";
 import { act } from "@/registry/ouro/testing/act";
 
-// Reads the built dist/styles.css, so run `pnpm build` first.
 
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
-
-function addStyle(css: string) {
-  const style = document.createElement("style");
-  style.textContent = css;
-  document.head.append(style);
-  mounted.push(style);
-}
 
 async function render(node: ReactNode) {
   const host = document.createElement("div");
@@ -39,7 +30,6 @@ async function render(node: ReactNode) {
 
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
-  addStyle(distCss);
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 });
 afterEach(async () => {
@@ -390,11 +380,11 @@ describe("appearance", () => {
     expect(seen.size).toBe(variants.length * tones.length);
   });
 
-  it("uses tone-ink text on soft backgrounds", async () => {
+  it("uses the tone's own color for text on soft backgrounds", async () => {
     const { host } = await render(
       <>
         <Button variant="soft">Soft</Button>
-        <i className="ou:text-accent-ink" />
+        <i className="text-primary" />
       </>,
     );
     expect(getComputedStyle(host.querySelector("button")!).color).toBe(
@@ -428,7 +418,7 @@ describe("appearance", () => {
     const { host } = await render(
       <>
         <Button tone="danger">Delete</Button>
-        <i className="ou:bg-danger" />
+        <i className="bg-destructive" />
       </>,
     );
     const button = host.querySelector("button")!;
@@ -507,16 +497,25 @@ describe("press feedback", () => {
 
 describe("className", () => {
   it("lets app layout classes win over library styles", async () => {
-    addStyle(".mt-4 { margin-top: 16px; } .w-full { width: 100%; }");
     const { host, button } = await render(
       <div style={{ width: 320 }}>
         <Button className="mt-4 w-full">Go</Button>
       </div>,
     );
+    // Button sets m-0; cn keeps it for the other sides and the app's mt-4 wins on top.
     expect(button.classList.contains("mt-4")).toBe(true);
+    expect(button.classList.contains("m-0")).toBe(true);
     expect(getComputedStyle(button).marginTop).toBe("16px");
+    expect(getComputedStyle(button).marginBottom).toBe("0px");
     expect(button.getBoundingClientRect().width).toBe(host.firstElementChild!.getBoundingClientRect().width);
     expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("drops its own class when the app's className sets the same property", async () => {
+    const { button } = await render(<Button className="h-20">Tall</Button>);
+    expect(button.classList.contains("h-20")).toBe(true);
+    expect(button.classList.contains("h-11")).toBe(false);
+    expect(button.getBoundingClientRect().height).toBe(80);
   });
 
   it("warns exactly once for an appearance class, pointing to tone", async () => {
@@ -530,11 +529,12 @@ describe("className", () => {
 
   it.each([
     ["text-lg", 'size="lg"'],
-    ["rounded-full", 'defineTheme({ radius: { control: "999px" } })'],
+    ["rounded-full", ":root { --radius: 999px }"],
     ["md:border-2", 'variant="outline"'],
     ["bg-transparent", 'variant="plain"'],
     ["hover:bg-emerald-600", 'tone="success"'],
-    ["font-bold", 'remove "font-bold"; Button sets its own font (change the family with defineTheme({ font: { body: "…" } }))'],
+    ["font-bold", 'remove "font-bold"; Button sets its own weight'],
+    ["font-serif", '<div className="font-serif"><Button /></div>'],
     ["text-center", '<div className="text-center"><Button /></div>'],
   ])("points %s to %s", async (className, fix) => {
     await render(<Button className={className}>Go</Button>);
@@ -604,13 +604,13 @@ describe("runtime guards", () => {
   });
 });
 
-describe("scoped theme overrides", () => {
-  it("follows a scoped --ouro-color-accent on a real Button", async () => {
+describe("theme", () => {
+  it("follows an app theme that sets --primary on a wrapper, solid and soft", async () => {
     const { host } = await render(
       <>
         <Button>Plain</Button>
         <Button variant="soft">Plain soft</Button>
-        <div style={{ "--ouro-color-accent": "rgb(255, 0, 0)" } as React.CSSProperties}>
+        <div style={{ "--primary": "rgb(255, 0, 0)" } as React.CSSProperties}>
           <Button>Scoped</Button>
           <Button variant="soft">Scoped soft</Button>
         </div>
@@ -622,20 +622,31 @@ describe("scoped theme overrides", () => {
     expect(scoped).toBe("rgb(255, 0, 0)");
     expect(scoped).not.toBe(plain);
     expect(scopedSoft).not.toBe(plainSoft);
-    expect(scopedSoft).toMatch(/^(color\(srgb 1 0 0 \/ 0\.14\)|rgba\(255, 0, 0, 0\.14\)|oklab\(.*\/ 0\.14\))/);
+    expect(scopedSoft).toMatch(/^(color\(srgb 1 0 0 \/ 0\.1\)|rgba\(255, 0, 0, 0\.1\)|oklab\(.*\/ 0\.1\))/);
   });
 
-  it("follows a [data-theme] scheme on the root", async () => {
-    const colorIn = async (theme: string) => {
-      document.documentElement.dataset["theme"] = theme;
-      const { button } = await render(<Button>Theme</Button>);
-      return getComputedStyle(button).backgroundColor;
-    };
+  it("switches to the dark values under a .dark ancestor", async () => {
+    const { host } = await render(
+      <>
+        <Button>Light</Button>
+        <div className="dark">
+          <Button>Dark</Button>
+        </div>
+      </>,
+    );
+    const [light, dark] = [...host.querySelectorAll("button")].map((el) => getComputedStyle(el).backgroundColor);
+    expect(light).toBe("rgb(34, 97, 235)");
+    expect(dark).toBe("rgb(96, 165, 250)");
+  });
+
+  it("follows the .dark class on the root", async () => {
+    document.documentElement.classList.add("dark");
     try {
-      expect(await colorIn("light")).toBe("rgb(37, 99, 235)");
-      expect(await colorIn("dark")).toBe("rgb(96, 165, 250)");
+      const { button } = await render(<Button>Theme</Button>);
+      expect(getComputedStyle(button).backgroundColor).toBe("rgb(96, 165, 250)");
+      expect(getComputedStyle(button).color).toBe("rgb(0, 0, 0)");
     } finally {
-      delete document.documentElement.dataset["theme"];
+      document.documentElement.classList.remove("dark");
     }
   });
 });

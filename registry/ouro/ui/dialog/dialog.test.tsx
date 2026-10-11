@@ -1,4 +1,4 @@
-import distCss from "@/dist/styles.css?raw";
+import appCss from "@/app.css?inline";
 import { createRef, StrictMode, useState, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -21,7 +21,7 @@ import {
 } from "@/registry/ouro/ui/dialog/dialog-parts";
 import { act } from "@/registry/ouro/testing/act";
 
-// Reads the built dist/styles.css, so run `pnpm build` first. Runs in Chromium and WebKit.
+// Runs in Chromium and WebKit.
 
 
 const FIX = "Pass trigger={<Button>…</Button>} for an uncontrolled dialog, or open and onOpenChange to control it.";
@@ -42,10 +42,6 @@ async function render(node: ReactNode) {
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(async () => {
   await page.viewport(1280, 800);
-  const style = document.createElement("style");
-  style.textContent = distCss;
-  document.head.append(style);
-  mounted.push(style);
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 });
 afterEach(async () => {
@@ -91,24 +87,12 @@ async function openUncontrolled(props: Partial<DialogProps> = {}) {
 }
 
 /**
- * The bodies of the stylesheet's iOS-only rules (`@supports (-webkit-touch-callout: none)`),
- * unwrapped. Desktop test browsers never match that query, so tests inject the shipped
- * rules themselves instead of the stylesheet carrying a test-only selector.
+ * The compiled app CSS with its iOS-only rules (`@supports (-webkit-touch-callout: none)`)
+ * switched on. Desktop test browsers never match that query, so the test swaps it for one
+ * every browser matches, instead of the components carrying a test-only selector.
  */
-function iosRules(css: string): string {
-  const marker = "@supports (-webkit-touch-callout: none)";
-  const bodies: string[] = [];
-  for (let at = css.indexOf(marker); at !== -1; at = css.indexOf(marker, at + 1)) {
-    const open = css.indexOf("{", at);
-    let depth = 0;
-    let end = open;
-    for (; end < css.length; end++) {
-      if (css[end] === "{") depth++;
-      else if (css[end] === "}" && --depth === 0) break;
-    }
-    bodies.push(css.slice(open + 1, end));
-  }
-  return bodies.join("\n");
+function withIosRules(css: string): string {
+  return css.replace(/@supports \(-webkit-touch-callout: ?none\)/g, "@supports (display: block)");
 }
 
 describe("automatic presentation", () => {
@@ -492,7 +476,7 @@ describe("motion", () => {
 describe("iOS backdrop rule", () => {
   it("covers the visible screen on a page scrolled 2000px", async () => {
     const ios = document.createElement("style");
-    ios.textContent = `@layer components { ${iosRules(distCss)} }`;
+    ios.textContent = withIosRules(appCss);
     document.head.append(ios);
     mounted.push(ios);
     const tall = document.createElement("div");
@@ -557,8 +541,8 @@ describe("dev messages", () => {
   });
 
   it.each([
-    ["bg-white", 'defineTheme({ color: { surface: { light: "…", dark: "…" } } })'],
-    ["rounded-none", 'defineTheme({ radius: { surface: "0px" } })'],
+    ["bg-white", ":root { --popover: …; } .dark { --popover: …; }"],
+    ["rounded-none", ":root { --radius: 0px }"],
     ["text-lg", '<Dialog title="…"><div className="text-lg">…</div></Dialog>'],
   ])("warns about the appearance class %s once, as Dialog, in either presentation", async (token, fix) => {
     const element = await openUncontrolled({ className: `mt-4 ${token}` });
@@ -602,7 +586,7 @@ describe("parts", () => {
   });
 
   it.each([
-    ["DialogPopup", "bg-white", 'defineTheme({ color: { surface: { light: "…", dark: "…" } } })'],
+    ["DialogPopup", "bg-white", ":root { --popover: …; } .dark { --popover: …; }"],
     ["DialogContent", "text-lg", '<DialogContent><div className="text-lg">…</div></DialogContent>'],
   ])("%s warns about the appearance class %s", async (part, token, fix) => {
     await render(

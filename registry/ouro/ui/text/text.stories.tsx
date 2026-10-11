@@ -4,12 +4,11 @@ import { Button } from "@/registry/ouro/ui/button/button";
 import { Heading } from "@/registry/ouro/ui/text/heading";
 import { Text } from "@/registry/ouro/ui/text/text";
 
-// Stories are not scanned by Tailwind (see src/styles.css), so layout here uses
-// inline styles and the theme's CSS variables.
+// Layout here uses inline styles and the theme's CSS variables (shadcn's names).
 
 const caption: CSSProperties = {
-  font: "500 12px/16px var(--ouro-font-body)",
-  color: "var(--ouro-color-ink-muted)",
+  fontWeight: 500, fontSize: "12px", lineHeight: "16px",
+  color: "var(--muted-foreground)",
   letterSpacing: "0.02em",
   textTransform: "uppercase",
 };
@@ -17,11 +16,11 @@ const caption: CSSProperties = {
 function Surface({ scheme, children }: { scheme: "light" | "dark"; children: ReactNode }) {
   return (
     <div
+      className={scheme === "dark" ? "dark" : undefined}
       style={{
-        colorScheme: scheme,
-        background: "var(--ouro-color-surface)",
-        border: "1px solid var(--ouro-color-line)",
-        borderRadius: "var(--ouro-radius-surface)",
+        background: "var(--background)",
+        border: "1px solid var(--border)",
+        borderRadius: "calc(var(--radius) + 4px)",
         padding: 24,
         display: "grid",
         gap: 16,

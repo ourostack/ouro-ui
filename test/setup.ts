@@ -1,3 +1,4 @@
+import "../app.css";
 import { afterEach, beforeEach } from "vitest";
 
 // Test output stays clean: any React act() warning fails the test that caused it.

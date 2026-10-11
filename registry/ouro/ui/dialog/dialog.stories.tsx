@@ -4,35 +4,34 @@ import { Button } from "@/registry/ouro/ui/button/button";
 import { ConfirmDialog } from "@/registry/ouro/ui/dialog/confirm-dialog";
 import { Dialog } from "@/registry/ouro/ui/dialog/dialog";
 
-// Stories are not scanned by Tailwind (see src/styles.css), so layout here uses
-// inline styles and the theme's CSS variables.
+// Layout here uses inline styles and the theme's CSS variables (shadcn's names).
 
 const stack: CSSProperties = { display: "grid", gap: 12 };
 const row: CSSProperties = { display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" };
 const caption: CSSProperties = {
-  font: "500 12px/16px var(--ouro-font-body)",
-  color: "var(--ouro-color-ink-muted)",
+  fontWeight: 500, fontSize: "12px", lineHeight: "16px",
+  color: "var(--muted-foreground)",
   letterSpacing: "0.02em",
   textTransform: "uppercase",
 };
-const body: CSSProperties = { font: "400 16px/24px var(--ouro-font-body)", color: "var(--ouro-color-ink)", margin: 0 };
+const body: CSSProperties = { fontWeight: 400, fontSize: "16px", lineHeight: "24px", color: "var(--foreground)", margin: 0 };
 const input: CSSProperties = {
-  font: "400 16px/24px var(--ouro-font-body)",
+  fontWeight: 400, fontSize: "16px", lineHeight: "24px",
   padding: "10px 12px",
-  borderRadius: "var(--ouro-radius-control)",
-  border: "1px solid var(--ouro-color-line)",
+  borderRadius: "var(--radius)",
+  border: "1px solid var(--border)",
   background: "transparent",
-  color: "var(--ouro-color-ink)",
+  color: "var(--foreground)",
 };
 
 function RecipeForm() {
   return (
     <div style={stack}>
-      <label style={{ ...stack, gap: 6, font: "500 14px/20px var(--ouro-font-body)" }}>
+      <label style={{ ...stack, gap: 6, fontWeight: 500, fontSize: "14px", lineHeight: "20px" }}>
         Name
         <input defaultValue="Shakshuka" style={input} />
       </label>
-      <label style={{ ...stack, gap: 6, font: "500 14px/20px var(--ouro-font-body)" }}>
+      <label style={{ ...stack, gap: 6, fontWeight: 500, fontSize: "14px", lineHeight: "20px" }}>
         Serves
         <input defaultValue="4" inputMode="numeric" style={input} />
       </label>

@@ -4,18 +4,17 @@ import { RedwoodActionSheet } from "@/stories/reference/RedwoodActionSheet";
 import { Button } from "@/registry/ouro/ui/button/button";
 import { Sheet } from "@/registry/ouro/ui/sheet/sheet";
 
-// Stories are not scanned by Tailwind (see src/styles.css), so layout here uses
-// inline styles and the theme's CSS variables.
+// Layout here uses inline styles and the theme's CSS variables (shadcn's names).
 
 const stack: CSSProperties = { display: "grid", gap: 12 };
 const row: CSSProperties = { display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" };
 const caption: CSSProperties = {
-  font: "500 12px/16px var(--ouro-font-body)",
-  color: "var(--ouro-color-ink-muted)",
+  fontWeight: 500, fontSize: "12px", lineHeight: "16px",
+  color: "var(--muted-foreground)",
   letterSpacing: "0.02em",
   textTransform: "uppercase",
 };
-const body: CSSProperties = { font: "400 16px/24px var(--ouro-font-body)", color: "var(--ouro-color-ink)", margin: 0 };
+const body: CSSProperties = { fontWeight: 400, fontSize: "16px", lineHeight: "24px", color: "var(--foreground)", margin: 0 };
 
 const cookbooks = ["Weeknight dinners", "Baking", "Grandma's recipes", "Meal prep", "Holidays"];
 
@@ -117,17 +116,17 @@ export const LongContent: Story = {
 export const WithForm: Story = {
   render: () => (
     <Sheet title="Add a note" trigger={<Button>Add note</Button>}>
-      <label style={{ ...stack, gap: 6, font: "500 14px/20px var(--ouro-font-body)" }}>
+      <label style={{ ...stack, gap: 6, fontWeight: 500, fontSize: "14px", lineHeight: "20px" }}>
         Note
         <input
           placeholder="Less salt next time"
           style={{
-            font: "400 16px/24px var(--ouro-font-body)",
+            fontWeight: 400, fontSize: "16px", lineHeight: "24px",
             padding: "10px 12px",
-            borderRadius: "var(--ouro-radius-control)",
-            border: "1px solid var(--ouro-color-line)",
+            borderRadius: "var(--radius)",
+            border: "1px solid var(--border)",
             background: "transparent",
-            color: "var(--ouro-color-ink)",
+            color: "var(--foreground)",
           }}
         />
       </label>
@@ -193,7 +192,7 @@ export const FeelComparison: Story = {
           }
         >
           <div style={{ display: "grid", gap: 8, padding: "20px 20px 0" }}>
-            <h2 style={{ ...body, font: "600 18px/24px var(--ouro-font-display)" }}>Save to cookbook</h2>
+            <h2 style={{ ...body, fontWeight: 600, fontSize: "18px", lineHeight: "24px" }}>Save to cookbook</h2>
             <CookbookList />
           </div>
         </RedwoodActionSheet>

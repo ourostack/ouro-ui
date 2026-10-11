@@ -1,4 +1,3 @@
-import distCss from "@/dist/styles.css?raw";
 import { useState, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -8,7 +7,7 @@ import { Button } from "@/registry/ouro/ui/button/button";
 import { ConfirmDialog, type ConfirmDialogProps } from "@/registry/ouro/ui/dialog/confirm-dialog";
 import { act } from "@/registry/ouro/testing/act";
 
-// Reads the built dist/styles.css, so run `pnpm build` first. Runs in Chromium and WebKit.
+// Runs in Chromium and WebKit.
 
 
 const FIX =
@@ -29,10 +28,6 @@ async function render(node: ReactNode) {
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(async () => {
   await page.viewport(1280, 800);
-  const style = document.createElement("style");
-  style.textContent = distCss;
-  document.head.append(style);
-  mounted.push(style);
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 });
 afterEach(async () => {

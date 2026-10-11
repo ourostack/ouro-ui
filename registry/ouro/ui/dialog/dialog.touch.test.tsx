@@ -1,4 +1,3 @@
-import distCss from "@/dist/styles.css?raw";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
 import type { ReactNode } from "react";
@@ -9,7 +8,6 @@ import { Sheet } from "@/registry/ouro/ui/sheet/sheet";
 import { Dialog } from "@/registry/ouro/ui/dialog/dialog";
 
 // Runs in the `touch` project: Chromium as a 390x844 phone with a coarse pointer.
-// Reads the built dist/styles.css, so run `pnpm build` first.
 
 let root: Root | undefined;
 const nodes: Element[] = [];
@@ -24,12 +22,9 @@ const anyPopup = () => document.querySelector<HTMLElement>("[data-ouro-presentat
 const TRIGGER = '[data-ouro="button"]';
 
 async function mount(node: ReactNode) {
-  const style = document.createElement("style");
-  style.textContent = distCss;
   const host = document.createElement("div");
-  document.head.append(style);
   document.body.append(host);
-  nodes.push(style, host);
+  nodes.push(host);
   root = createRoot(host);
   await act(() => root!.render(node));
 }
@@ -128,12 +123,9 @@ describe("initial focus in the sheet form matches a plain Sheet (390x844)", () =
 
 it("gives the centered dialog's close button a 44px hit area on a coarse pointer", async () => {
   expect(matchMedia("(pointer: coarse)").matches).toBe(true);
-  const style = document.createElement("style");
-  style.textContent = distCss;
   const host = document.createElement("div");
-  document.head.append(style);
   document.body.append(host);
-  nodes.push(style, host);
+  nodes.push(host);
   root = createRoot(host);
   await act(() =>
     root!.render(

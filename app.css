@@ -1,0 +1,15 @@
+/*
+ * The repo as its own app: Storybook, the Vitest browser tests and the docs compile the
+ * registry source with Tailwind, the way an app that installed Ouro UI does. Tailwind
+ * scans only registry/, and the Ouro default theme supplies the variables.
+ */
+@import "tailwindcss" source(none);
+@import "./registry/ouro/theme/ouro-theme.css";
+
+@source "./registry";
+
+@layer base {
+  body {
+    @apply bg-background text-foreground;
+  }
+}

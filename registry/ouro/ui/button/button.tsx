@@ -13,10 +13,11 @@ import type {
 import { announce } from "@/registry/ouro/lib/announce";
 import { fontFor, radiusFor, sizeFor, toneFor } from "@/registry/ouro/lib/appearance-hints";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/class-name-check";
+import { cn } from "@/registry/ouro/lib/cn";
 import { TouchTarget } from "@/registry/ouro/ui/touch-target/touch-target";
 import { useDevWarnings } from "@/registry/ouro/lib/use-dev-warnings";
 import { useOuro } from "@/registry/ouro/lib/ouro-provider";
-import type { ToneName } from "@/src/theme/tokens";
+import type { ToneName } from "@/registry/ouro/lib/tones";
 
 /** An icon component, such as one from `lucide-react` or `@heroicons/react`. */
 export type ButtonIcon = ComponentType<SVGProps<SVGSVGElement>>;
@@ -106,66 +107,68 @@ export type ButtonButtonProps = ButtonBaseProps &
 /** Props for {@link Button}. Passing `href` makes it a link; otherwise it is a `<button>`. */
 export type ButtonProps = ButtonLinkProps | ButtonButtonProps;
 
-// Class strings are literal so Tailwind can find them when it compiles styles.css.
+// Class strings are literal so the app's Tailwind finds them when it compiles.
 const base =
-  "ou:press ou:relative ou:m-0 ou:box-border ou:inline-flex ou:shrink-0 ou:items-center ou:justify-center ou:align-middle " +
-  "ou:rounded-control ou:border ou:border-solid ou:font-body ou:font-medium ou:whitespace-nowrap " +
-  "ou:no-underline ou:select-none ou:touch-manipulation ou:[-webkit-tap-highlight-color:transparent] " +
-  "ou:outline-offset-2 ou:focus-visible:outline-2 ou:focus-visible:outline-solid " +
+  "press relative m-0 box-border inline-flex shrink-0 items-center justify-center align-middle " +
+  "rounded-lg border border-solid font-medium whitespace-nowrap " +
+  "no-underline select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
+  "outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
   // A state layer in the text color: a light wash on hover, a deeper one while pressed.
-  "ou:before:pointer-events-none ou:before:absolute ou:before:-inset-px ou:before:rounded-[inherit] ou:before:bg-current " +
-  "ou:before:opacity-0 ou:before:transition-opacity ou:before:duration-(--ouro-duration-fast) ou:before:ease-out " +
-  "ou:not-data-disabled:hover:before:opacity-8 ou:not-data-disabled:active:before:opacity-14 " +
+  "before:pointer-events-none before:absolute before:-inset-px before:rounded-[inherit] before:bg-current " +
+  "before:opacity-0 before:transition-opacity before:duration-(--ouro-duration-fast) before:ease-out " +
+  "not-data-disabled:hover:before:opacity-8 not-data-disabled:active:before:opacity-14 " +
   // Press feedback: scale only when motion is allowed and the button is enabled.
-  "ou:motion-safe:not-data-disabled:active:scale-(--ouro-press-scale) ou:active:duration-(--ouro-duration-fast) ou:active:ease-out " +
-  "ou:disabled:cursor-not-allowed ou:disabled:opacity-50 ou:aria-busy:cursor-progress";
+  "motion-safe:not-data-disabled:active:scale-(--ouro-press-scale) active:duration-(--ouro-duration-fast) active:ease-out " +
+  "disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-progress";
 
 const sizes = {
-  sm: "ou:h-9 ou:gap-1.5 ou:px-3 ou:text-sm ou:sm:h-8 ou:sm:px-2.5",
-  md: "ou:h-11 ou:gap-2 ou:px-4 ou:text-base ou:sm:h-9 ou:sm:px-3.5 ou:sm:text-sm",
-  lg: "ou:h-12 ou:gap-2 ou:px-5 ou:text-base ou:sm:h-11",
+  sm: "h-9 gap-1.5 px-3 text-sm sm:h-8 sm:px-2.5",
+  md: "h-11 gap-2 px-4 text-base sm:h-9 sm:px-3.5 sm:text-sm",
+  lg: "h-12 gap-2 px-5 text-base sm:h-11",
 } as const;
 
+// `soft` is the tone at low opacity behind text in the tone, the pattern shadcn uses for
+// destructive. The neutral tone's text is the page's foreground, as on any surface.
 const looks = {
   solid: {
-    neutral: "ou:border-transparent ou:bg-neutral ou:text-on-neutral",
-    accent: "ou:border-transparent ou:bg-accent ou:text-on-accent",
-    success: "ou:border-transparent ou:bg-success ou:text-on-success",
-    warning: "ou:border-transparent ou:bg-warning ou:text-on-warning",
-    danger: "ou:border-transparent ou:bg-danger ou:text-on-danger",
+    neutral: "border-transparent bg-secondary text-secondary-foreground",
+    accent: "border-transparent bg-primary text-primary-foreground",
+    success: "border-transparent bg-success text-success-foreground",
+    warning: "border-transparent bg-warning text-warning-foreground",
+    danger: "border-transparent bg-destructive text-destructive-foreground",
   },
   soft: {
-    neutral: "ou:border-transparent ou:bg-soft-neutral ou:text-ink",
-    accent: "ou:border-transparent ou:bg-soft-accent ou:text-accent-ink",
-    success: "ou:border-transparent ou:bg-soft-success ou:text-success-ink",
-    warning: "ou:border-transparent ou:bg-soft-warning ou:text-warning-ink",
-    danger: "ou:border-transparent ou:bg-soft-danger ou:text-danger-ink",
+    neutral: "border-transparent bg-secondary/10 text-foreground",
+    accent: "border-transparent bg-primary/10 text-primary",
+    success: "border-transparent bg-success/10 text-success",
+    warning: "border-transparent bg-warning/10 text-warning",
+    danger: "border-transparent bg-destructive/10 text-destructive",
   },
   outline: {
-    neutral: "ou:border-line ou:bg-transparent ou:text-ink",
-    accent: "ou:border-[color-mix(in_oklab,var(--ouro-color-accent)_45%,transparent)] ou:bg-transparent ou:text-accent-ink",
-    success: "ou:border-[color-mix(in_oklab,var(--ouro-color-success)_45%,transparent)] ou:bg-transparent ou:text-success-ink",
-    warning: "ou:border-[color-mix(in_oklab,var(--ouro-color-warning)_45%,transparent)] ou:bg-transparent ou:text-warning-ink",
-    danger: "ou:border-[color-mix(in_oklab,var(--ouro-color-danger)_45%,transparent)] ou:bg-transparent ou:text-danger-ink",
+    neutral: "border-border bg-transparent text-foreground",
+    accent: "border-primary/45 bg-transparent text-primary",
+    success: "border-success/45 bg-transparent text-success",
+    warning: "border-warning/45 bg-transparent text-warning",
+    danger: "border-destructive/45 bg-transparent text-destructive",
   },
   plain: {
-    neutral: "ou:border-transparent ou:bg-transparent ou:text-ink",
-    accent: "ou:border-transparent ou:bg-transparent ou:text-accent-ink",
-    success: "ou:border-transparent ou:bg-transparent ou:text-success-ink",
-    warning: "ou:border-transparent ou:bg-transparent ou:text-warning-ink",
-    danger: "ou:border-transparent ou:bg-transparent ou:text-danger-ink",
+    neutral: "border-transparent bg-transparent text-foreground",
+    accent: "border-transparent bg-transparent text-primary",
+    success: "border-transparent bg-transparent text-success",
+    warning: "border-transparent bg-transparent text-warning",
+    danger: "border-transparent bg-transparent text-destructive",
   },
 } as const;
 
 const rings = {
-  neutral: "ou:outline-neutral",
-  accent: "ou:outline-accent",
-  success: "ou:outline-success",
-  warning: "ou:outline-warning",
-  danger: "ou:outline-danger",
+  neutral: "outline-secondary",
+  accent: "outline-primary",
+  success: "outline-success",
+  warning: "outline-warning",
+  danger: "outline-destructive",
 } as const;
 
-const iconClass = "ou:size-[1.25em] ou:shrink-0";
+const iconClass = "size-[1.25em] shrink-0";
 
 /** Absolute URLs (`https:`, `mailto:`, protocol-relative) skip the router link. */
 const EXTERNAL = /^([a-z][a-z\d+.-]*:|\/\/)/i;
@@ -173,7 +176,7 @@ const EXTERNAL = /^([a-z][a-z\d+.-]*:|\/\/)/i;
 function buttonHint(token: string): string {
   const size = sizeFor(token, ["sm", "sm", "md", "lg", "lg", "lg", "lg"]);
   if (size) return `size="${size}"`;
-  if (token.startsWith("font-")) return fontFor("Button", token, "body");
+  if (token.startsWith("font-")) return fontFor("Button", token);
   if (token.startsWith("rounded")) return radiusFor(token);
   if (/^(border|ring|shadow)/.test(token)) return 'variant="outline"';
   if (/^bg-(transparent|none)$/.test(token)) return 'variant="plain"';
@@ -184,13 +187,13 @@ function Spinner(): JSX.Element {
   return (
     <span
       aria-hidden="true"
-      className="ou:absolute ou:inset-0 ou:flex ou:items-center ou:justify-center ou:transition-opacity ou:duration-(--ouro-duration-base) ou:ease-out ou:starting:opacity-0"
+      className="absolute inset-0 flex items-center justify-center transition-opacity duration-(--ouro-duration-base) ease-out starting:opacity-0"
     >
       <svg
         data-ouro-spinner=""
         viewBox="0 0 24 24"
         fill="none"
-        className="ou:size-[1.25em] ou:animate-[ouro-spin_0.8s_linear_infinite] ou:motion-reduce:animate-[ouro-pulse_1.6s_ease-in-out_infinite]"
+        className="size-[1.25em] animate-[ouro-spin_0.8s_linear_infinite] motion-reduce:animate-[ouro-pulse_1.6s_ease-in-out_infinite]"
       >
         <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.5" opacity="0.25" />
         <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
@@ -279,27 +282,21 @@ export function Button(props: ButtonProps): JSX.Element {
     wasLoading.current = loading;
   }, [loading, loadingLabel]);
 
-  const classes = [
-    base,
-    sizes[size],
-    looks[variant][tone],
-    rings[tone],
-    fullWidth && "ou:w-full",
-    className,
-  ]
-    .filter(Boolean)
-    .join(" ");
+  const classes = cn(base, sizes[size], looks[variant][tone], rings[tone], fullWidth && "w-full", className);
 
   const content = (
     <>
       <TouchTarget />
       <span
         data-ouro-label=""
-        className={`ou:inline-flex ou:items-center ou:gap-[inherit] ou:transition-opacity ou:duration-(--ouro-duration-fast) ou:ease-out${loading ? " ou:opacity-0" : ""}`}
+        className={cn(
+          "inline-flex items-center gap-[inherit] transition-opacity duration-(--ouro-duration-fast) ease-out",
+          loading && "opacity-0",
+        )}
       >
-        {StartIcon && <StartIcon aria-hidden="true" className={`${iconClass} ou:-ms-0.5`} />}
+        {StartIcon && <StartIcon aria-hidden="true" className={cn(iconClass, "-ms-0.5")} />}
         {children}
-        {EndIcon && <EndIcon aria-hidden="true" className={`${iconClass} ou:-me-0.5`} />}
+        {EndIcon && <EndIcon aria-hidden="true" className={cn(iconClass, "-me-0.5")} />}
       </span>
       {loading && <Spinner />}
     </>

@@ -6,12 +6,44 @@ import { devThrow } from "@/registry/ouro/lib/dev";
 import { useMergedRef } from "@/registry/ouro/lib/refs";
 import { useBackdropAnchor } from "@/registry/ouro/hooks/use-backdrop-anchor";
 import { useKeyboardScrollable } from "@/registry/ouro/hooks/use-keyboard-scrollable";
-import { sheetHint } from "@/registry/ouro/ui/sheet/sheet-parts";
+import { cn } from "@/registry/ouro/lib/cn";
+import { footerClass, iosBackdrop, sheetHint } from "@/registry/ouro/ui/sheet/sheet-parts";
 
 /** A centered dialog's maximum width: `sm` 24rem, `md` 32rem, `lg` 40rem. */
 export type DialogSize = "sm" | "md" | "lg";
 
 const DialogContext = createContext(false);
+
+/*
+ * Styles. The popup scales from 0.96 and fades in with the theme spring, and scales and
+ * fades out quickly; reduced motion keeps only the fade. The viewport keeps a 1rem
+ * margin (or the safe area) on every side, so the dialog fits a phone; the body scrolls
+ * when the dialog is taller than that. Class strings are literal so the app's Tailwind
+ * finds them when it compiles.
+ */
+const backdropClass =
+  "fixed inset-0 z-1000 min-h-dvh bg-(--ouro-backdrop-color) opacity-(--ouro-backdrop-max) " +
+  "transition-opacity duration-(--ouro-duration-slow) ease-out " +
+  "data-starting-style:opacity-0 data-ending-style:opacity-0 data-ending-style:duration-(--ouro-duration-base) " +
+  iosBackdrop;
+
+const viewportClass =
+  "fixed inset-0 z-1000 box-border flex items-center justify-center " +
+  "pt-[max(1rem,env(safe-area-inset-top,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))] " +
+  "pb-[max(1rem,env(safe-area-inset-bottom,0px))] pl-[max(1rem,env(safe-area-inset-left,0px))]";
+
+const popupClass =
+  "relative box-border flex w-full max-h-full min-h-0 flex-col outline-none " +
+  "rounded-xl bg-popover text-popover-foreground " +
+  "[box-shadow:0_0_0_1px_color-mix(in_oklab,var(--border)_60%,transparent),0_16px_48px_rgb(0_0_0/0.18)] " +
+  "[transition:transform_var(--ouro-spring-duration)_var(--ouro-ease-spring),opacity_var(--ouro-duration-base)_ease-out] " +
+  "data-starting-style:[transform:scale(0.96)] data-starting-style:opacity-0 " +
+  "data-ending-style:[transform:scale(0.96)] data-ending-style:opacity-0 " +
+  "data-ending-style:duration-(--ouro-duration-base) data-ending-style:ease-in " +
+  "motion-reduce:[transition:opacity_var(--ouro-duration-base)_ease-out] " +
+  "motion-reduce:data-starting-style:[transform:none] motion-reduce:data-ending-style:[transform:none]";
+
+const popupSizes = { sm: "max-w-[24rem]", md: "max-w-[32rem]", lg: "max-w-[40rem]" } as const;
 
 /** The JSX that puts a part in its place, for the dev message when it is not. */
 function shape(inner: string): string {
@@ -82,7 +114,7 @@ export function DialogTrigger(props: BaseDialog.Trigger.Props): JSX.Element {
 /** Part: moves the dialog to the end of `<body>`, in its own stacking context. */
 export function DialogPortal(props: Omit<BaseDialog.Portal.Props, "className">): JSX.Element {
   useDialogPart("DialogPortal", "…");
-  return <BaseDialog.Portal {...props} data-ouro="dialog-portal" />;
+  return <BaseDialog.Portal {...props} data-ouro="dialog-portal" className="isolate" />;
 }
 
 /**
@@ -95,13 +127,13 @@ export function DialogBackdrop({
 }: Omit<BaseDialog.Backdrop.Props, "className"> & { ref?: Ref<HTMLDivElement> | undefined }): JSX.Element {
   useDialogPart("DialogBackdrop", "…");
   const anchorRef = useBackdropAnchor(ref);
-  return <BaseDialog.Backdrop {...props} ref={anchorRef} data-ouro="dialog-backdrop" />;
+  return <BaseDialog.Backdrop {...props} ref={anchorRef} data-ouro="dialog-backdrop" className={backdropClass} />;
 }
 
 /** Part: the full-screen layer that centers the popup and keeps it clear of the screen edges. */
 export function DialogViewport(props: Omit<BaseDialog.Viewport.Props, "className">): JSX.Element {
   useDialogPart("DialogViewport", "…");
-  return <BaseDialog.Viewport {...props} data-ouro="dialog-viewport" />;
+  return <BaseDialog.Viewport {...props} data-ouro="dialog-viewport" className={viewportClass} />;
 }
 
 /** Props for {@link DialogPopup}. `className` is for layout only (margins, width). */
@@ -132,7 +164,7 @@ export function DialogPopupUnchecked({ className, size = "md", ...props }: Dialo
   return (
     <BaseDialog.Popup
       {...props}
-      className={className}
+      className={cn(popupClass, popupSizes[size], className)}
       data-ouro="dialog"
       data-ouro-presentation="dialog"
       data-size={size}
@@ -155,8 +187,8 @@ export function DialogTitle({ visuallyHidden, ...props }: DialogTitleProps): JSX
       data-ouro-dialog-title=""
       className={
         visuallyHidden
-          ? "ou:sr-only"
-          : "ou:m-0 ou:font-display ou:text-lg ou:leading-6 ou:font-semibold ou:text-ink ou:text-balance"
+          ? "sr-only"
+          : "m-0 text-lg leading-6 font-semibold text-balance text-popover-foreground"
       }
     />
   );
@@ -169,7 +201,7 @@ export function DialogDescription(props: Omit<BaseDialog.Description.Props, "cla
     <BaseDialog.Description
       {...props}
       data-ouro-dialog-description=""
-      className="ou:m-0 ou:font-body ou:text-sm ou:leading-5 ou:text-ink-muted ou:text-pretty"
+      className="m-0 text-sm leading-5 text-pretty text-muted-foreground"
     />
   );
 }
@@ -191,7 +223,19 @@ export function DialogContent({ className, ref, ...props }: DialogContentProps):
       ? sheetHint("<DialogContent>", "</DialogContent>")
       : /* istanbul ignore next -- production only */ "",
   );
-  return <div {...props} ref={scrollRef} data-ouro-dialog-content="" className={className} />;
+  return (
+    <div
+      {...props}
+      ref={scrollRef}
+      data-ouro-dialog-content=""
+      className={cn(
+        "box-border min-h-0 flex-auto overflow-y-auto overscroll-contain px-5 pt-2 pb-5",
+        // A body that overflows is a tab stop (useKeyboardScrollable); show where focus is.
+        "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid",
+        className,
+      )}
+    />
+  );
 }
 
 /**
@@ -204,7 +248,7 @@ export function DialogFooter(props: Omit<JSX.IntrinsicElements["div"], "classNam
     "DialogFooter",
     "<DialogTitle>…</DialogTitle><DialogContent>…</DialogContent><DialogFooter>…</DialogFooter>",
   );
-  return <div {...props} data-ouro-footer="" />;
+  return <div {...props} data-ouro-footer="" className={footerClass} />;
 }
 
 /** Part: closes the dialog. Pass your button as `render={<Button>Done</Button>}`. */

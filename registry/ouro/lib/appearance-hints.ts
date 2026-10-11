@@ -1,4 +1,4 @@
-import type { ToneName } from "@/src/theme/tokens";
+import type { ToneName } from "@/registry/ouro/lib/tones";
 
 // Builders for the `Fix:` code in className warnings. Each takes the offending
 // token without variants (`bg-red-500`, `text-lg`) and returns exact code that
@@ -32,10 +32,10 @@ export function sizeFor(token: string, scale: readonly [string, string, string, 
   return scale[step === -1 ? 6 : step];
 }
 
-/** The `defineTheme` call that sets the control radius a `rounded-*` token asks for. */
+/** The theme CSS that sets the radius a `rounded-*` token asks for. Ouro UI reads shadcn's `--radius`. */
 export function radiusFor(token: string): string {
-  const value = token === "rounded-none" ? "0px" : token === "rounded-full" ? "999px" : "12px";
-  return `defineTheme({ radius: { control: "${value}" } })`;
+  const value = token === "rounded-none" ? "0px" : token === "rounded-full" ? "999px" : "0.75rem";
+  return `:root { --radius: ${value} }`;
 }
 
 const WEIGHT = /^font-(thin|extralight|light|normal|medium|semibold|bold|extrabold|black)$/;
@@ -45,7 +45,11 @@ export function isWeight(token: string): boolean {
   return WEIGHT.test(token);
 }
 
-/** The fix for a `font-*` token on a component that sets its own font from `family`. */
-export function fontFor(component: string, token: string, family: "body" | "display"): string {
-  return `remove "${token}"; ${component} sets its own font (change the family with defineTheme({ font: { ${family}: "…" } }))`;
+/**
+ * The fix for a `font-*` token: components set their own weight, and inherit the font
+ * family, so a family class belongs on a parent.
+ */
+export function fontFor(component: string, token: string): string {
+  if (isWeight(token)) return `remove "${token}"; ${component} sets its own weight`;
+  return `<div className="${token}"><${component} /></div>`;
 }

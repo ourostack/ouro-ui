@@ -7,6 +7,7 @@ import {
   openOverlay,
   overlayOpeners,
   renderStory,
+  setScheme,
   settle,
   stories,
   storyFiles,
@@ -15,8 +16,7 @@ import {
 // Every Storybook story renders and passes axe with zero violations (spec §8:
 // "axe checks in every story"), closed and with each of its overlays open.
 // Runs in Chromium and WebKit, at a phone width and a desktop width, so both
-// of Dialog's presentations are scanned. Reads dist/styles.css: run
-// `pnpm build` first.
+// of Dialog's presentations are scanned.
 
 const storyModules = import.meta.glob("../registry/**/*.stories.tsx");
 
@@ -52,11 +52,10 @@ async function scan(): Promise<axe.Result[]> {
 }
 
 beforeEach(async () => {
-  await commands.emulateMedia({ reducedMotion: "no-preference", colorScheme: "light" });
+  await commands.emulateMedia({ reducedMotion: "no-preference" });
 });
 afterEach(async () => {
   await cleanupStories();
-  await commands.emulateMedia({ reducedMotion: "no-preference", colorScheme: "light" });
 });
 
 it("covers every story file", () => {
@@ -72,9 +71,9 @@ describe.each([
     await page.viewport(width, height);
   });
 
-  describe.each(["light", "dark"] as const)("%s", (colorScheme) => {
+  describe.each(["light", "dark"] as const)("%s", (scheme) => {
     it.each(stories)("$id has no axe violations, closed and with each overlay open", async ({ id, Story }) => {
-      await commands.emulateMedia({ colorScheme });
+      setScheme(scheme);
       const host = await renderStory(Story);
       await settle();
       const found: string[] = [];

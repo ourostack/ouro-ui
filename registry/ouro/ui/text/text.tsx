@@ -1,8 +1,9 @@
 import type { CSSProperties, HTMLAttributes, JSX, ReactNode, Ref } from "react";
 import { fontFor, isWeight, sizeFor, toneFor } from "@/registry/ouro/lib/appearance-hints";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/class-name-check";
+import { cn } from "@/registry/ouro/lib/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/use-dev-warnings";
-import type { ToneName } from "@/src/theme/tokens";
+import type { ToneName } from "@/registry/ouro/lib/tones";
 
 /** Text alignment, in writing direction: `start` is left in English and right in Arabic. */
 export type TextAlign = "start" | "center" | "end";
@@ -48,20 +49,20 @@ export type TextProps = TextBaseProps &
       }
   );
 
-const sizes = { sm: "ou:text-sm", md: "ou:text-base", lg: "ou:text-lg" } as const;
+const sizes = { sm: "text-sm", md: "text-base", lg: "text-lg" } as const;
 
 const tones = {
-  default: "ou:text-ink",
-  muted: "ou:text-ink-muted",
-  neutral: "ou:text-neutral",
-  accent: "ou:text-accent-ink",
-  success: "ou:text-success-ink",
-  warning: "ou:text-warning-ink",
-  danger: "ou:text-danger-ink",
+  default: "text-foreground",
+  muted: "text-muted-foreground",
+  neutral: "text-secondary",
+  accent: "text-primary",
+  success: "text-success",
+  warning: "text-warning",
+  danger: "text-destructive",
 } as const;
 
 /** Alignment classes, shared with `Heading`. */
-export const alignClasses = { start: "ou:text-start", center: "ou:text-center", end: "ou:text-end" } as const;
+export const alignClasses = { start: "text-start", center: "text-center", end: "text-end" } as const;
 
 function textTone(token: string): string {
   const tone = toneFor(token);
@@ -72,7 +73,7 @@ function textHint(token: string): string {
   const size = sizeFor(token, ["sm", "sm", "md", "lg", "lg", "lg", "lg"]);
   if (size) return `size="${size}"`;
   if (isWeight(token)) return "<Text><strong>…</strong></Text>";
-  if (token.startsWith("font-")) return fontFor("Text", token, "body");
+  if (token.startsWith("font-")) return fontFor("Text", token);
   return `tone="${textTone(token)}"`;
 }
 
@@ -102,17 +103,15 @@ export function Text(props: TextProps): JSX.Element {
       ? () => [color !== undefined && ["color is not a prop", `<Text tone="${textTone(`text-${String(color)}`)}">`]]
       : /* istanbul ignore next -- production only */ undefined,
   );
-  const classes = [
-    "ou:m-0 ou:font-body",
+  const classes = cn(
+    "m-0",
     sizes[size],
     tones[tone],
     align && alignClasses[align],
-    truncate && "ou:truncate",
-    lines !== undefined && "ou:line-clamp-(--ouro-lines)",
+    truncate && "truncate",
+    lines !== undefined && "line-clamp-(--ouro-lines)",
     className,
-  ]
-    .filter(Boolean)
-    .join(" ");
+  );
   const finalStyle = lines !== undefined ? ({ ...style, "--ouro-lines": lines } as CSSProperties) : style;
   return <Tag {...rest} ref={ref as Ref<HTMLParagraphElement>} data-ouro="text" className={classes} style={finalStyle} />;
 }

@@ -119,6 +119,17 @@ type TriggerProps = {
   "aria-expanded"?: boolean;
 };
 
+/**
+ * A compact icon button in the top corner: a centered dialog has no swipe to dismiss.
+ * The header's end padding keeps the title clear of it, even when the title is hidden.
+ */
+const closeClass =
+  "absolute top-3 end-3 box-border inline-flex size-8 items-center justify-center m-0 p-0 border-0 rounded-lg " +
+  "bg-transparent text-muted-foreground cursor-pointer [-webkit-tap-highlight-color:transparent] " +
+  "[transition:background-color_var(--ouro-duration-fast)_ease-out,color_var(--ouro-duration-fast)_ease-out] " +
+  "hover:bg-accent hover:text-accent-foreground " +
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid [&>svg]:size-4";
+
 /** The close button's icon: a 16px cross in the text color. */
 function CloseIcon(): JSX.Element {
   return (
@@ -281,13 +292,13 @@ export function Dialog(props: DialogProps): JSX.Element {
               {...initialFocus}
             >
               {/* Always rendered: with a hidden title it still keeps the body clear of the close button. */}
-              <div data-ouro-dialog-header="">
+              <div data-ouro-dialog-header="" className="box-border grid min-h-13 shrink-0 gap-1 pt-5 pr-13 pb-2 pl-5">
                 <DialogTitle visuallyHidden={hideTitle}>{title}</DialogTitle>
                 {description !== undefined && <DialogDescription>{description}</DialogDescription>}
               </div>
               <DialogContent>{children}</DialogContent>
               {footer !== undefined && <DialogFooter>{footer}</DialogFooter>}
-              <DialogClose data-ouro-dialog-close="" aria-label={closeLabel}>
+              <DialogClose data-ouro-dialog-close="" aria-label={closeLabel} className={closeClass}>
                 <TouchTarget />
                 <CloseIcon />
               </DialogClose>

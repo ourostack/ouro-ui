@@ -1,5 +1,4 @@
-import distCss from "@/dist/styles.css?raw";
-import sheetCss from "./sheet.css?raw";
+import appCss from "@/app.css?inline";
 import { createRef, useState, type ReactNode, type Ref } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -22,7 +21,6 @@ import {
 import { Sheet, type SheetProps } from "@/registry/ouro/ui/sheet/sheet";
 import { act } from "@/registry/ouro/testing/act";
 
-// Reads the built dist/styles.css, so run `pnpm build` first.
 // Drag and velocity tests run in Chromium only (plan amendment): WebKit drag is covered
 // by the recorded feel check. Everything else runs in Chromium and WebKit at 390x844.
 
@@ -46,10 +44,6 @@ async function render(node: ReactNode) {
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(async () => {
   await page.viewport(390, 844);
-  const style = document.createElement("style");
-  style.textContent = distCss;
-  document.head.append(style);
-  mounted.push(style);
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 });
 afterEach(async () => {
@@ -281,7 +275,7 @@ describe("feel", () => {
   });
 
   it("pads the popup bottom by var(--drawer-keyboard-inset, 0px) so the keyboard never covers inputs", async () => {
-    expect(sheetCss).toContain("var(--drawer-keyboard-inset, 0px)");
+    expect(appCss).toMatch(/var\(--drawer-keyboard-inset, ?0px\)/);
     const sheet = await openUncontrolled();
     const before = Number.parseFloat(getComputedStyle(sheet).paddingBottom);
     viewport()!.style.setProperty("--drawer-keyboard-inset", "300px");
@@ -462,37 +456,26 @@ describe("close control", () => {
 });
 
 /**
- * The bodies of the stylesheet's iOS-only rules (`@supports (-webkit-touch-callout: none)`),
- * unwrapped. Desktop test browsers never match that query, so the test injects the
- * shipped rules itself instead of the stylesheet carrying a test-only selector.
+ * The compiled app CSS with its iOS-only rules (`@supports (-webkit-touch-callout: none)`)
+ * switched on. Desktop test browsers never match that query, so the test swaps it for one
+ * every browser matches, instead of the components carrying a test-only selector.
  */
-function iosRules(css: string): string {
-  const marker = "@supports (-webkit-touch-callout: none)";
-  const bodies: string[] = [];
-  for (let at = css.indexOf(marker); at !== -1; at = css.indexOf(marker, at + 1)) {
-    const open = css.indexOf("{", at);
-    let depth = 0;
-    let end = open;
-    for (; end < css.length; end++) {
-      if (css[end] === "{") depth++;
-      else if (css[end] === "}" && --depth === 0) break;
-    }
-    bodies.push(css.slice(open + 1, end));
-  }
-  return bodies.join("\n");
+function withIosRules(css: string): string {
+  return css.replace(/@supports \(-webkit-touch-callout: ?none\)/g, "@supports (display: block)");
 }
 
 describe("iOS backdrop rule", () => {
   it("ships no test-only selector", () => {
-    expect(distCss).not.toContain("data-ouro-test-ios");
-    expect(iosRules(distCss)).toContain('[data-ouro="sheet-backdrop"]');
+    expect(appCss).not.toContain("data-ouro-test-ios");
+    expect(appCss).toMatch(/@supports \(-webkit-touch-callout: ?none\)/);
+    expect(withIosRules(appCss)).not.toBe(appCss);
   });
 
   // The rule applies under @supports (-webkit-touch-callout: none), which only iOS
-  // matches, so the test injects the shipped rule's body unwrapped.
+  // matches, so the test switches the shipped rule on (withIosRules).
   it("covers the visible screen on a page scrolled 2000px", async () => {
     const ios = document.createElement("style");
-    ios.textContent = `@layer components { ${iosRules(distCss)} }`;
+    ios.textContent = withIosRules(appCss);
     document.head.append(ios);
     mounted.push(ios);
     const tall = document.createElement("div");
@@ -566,9 +549,9 @@ describe("dev messages", () => {
   });
 
   it.each([
-    ["bg-white", 'defineTheme({ color: { surface: { light: "…", dark: "…" } } })'],
-    ["rounded-none", 'defineTheme({ radius: { surface: "0px" } })'],
-    ["rounded-3xl", 'defineTheme({ radius: { surface: "16px" } })'],
+    ["bg-white", ":root { --popover: …; } .dark { --popover: …; }"],
+    ["rounded-none", ":root { --radius: 0px }"],
+    ["rounded-3xl", ":root { --radius: 0.75rem }"],
     ["text-lg", '<Sheet title="…"><div className="text-lg">…</div></Sheet>'],
   ])("warns about the appearance class %s on the popup", async (token, fix) => {
     await openUncontrolled({ className: `mx-auto ${token}` });
@@ -660,7 +643,7 @@ describe("parts", () => {
   });
 
   it.each([
-    ["SheetPopup", "bg-white", 'defineTheme({ color: { surface: { light: "…", dark: "…" } } })'],
+    ["SheetPopup", "bg-white", ":root { --popover: …; } .dark { --popover: …; }"],
     ["SheetContent", "text-lg", '<SheetContent><div className="text-lg">…</div></SheetContent>'],
   ])("%s warns about the appearance class %s", async (part, token, fix) => {
     await render(

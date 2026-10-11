@@ -1,6 +1,7 @@
 import { Drawer } from "@base-ui/react/drawer";
 import { createContext, useContext, type JSX, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/class-name-check";
+import { cn } from "@/registry/ouro/lib/cn";
 import { devThrow } from "@/registry/ouro/lib/dev";
 import { useMergedRef } from "@/registry/ouro/lib/refs";
 import { useBackdropAnchor } from "@/registry/ouro/hooks/use-backdrop-anchor";
@@ -24,6 +25,126 @@ const SheetContext = createContext<SheetContextValue | null>(null);
 
 const swipeDirections = { bottom: "down", top: "up", left: "left", right: "right" } as const;
 
+/*
+ * Styles: Base UI Drawer, tuned through its CSS variables (spec section 7).
+ *
+ * - Base UI moves the popup with --drawer-swipe-movement-x/y and places snap points
+ *   with --drawer-snap-point-offset. Past the open edge it damps the pull to the
+ *   square root of the distance (s = √d for a pull of d). The sheet lifts
+ *   k·(s − k/4) with k = --ou-sheet-stretch, which is never more than the pull:
+ *   d − k·(s − k/4) = (s − k/2)² ≥ 0. An 80px pull lifts it about 28px, like
+ *   RedwoodUI. A bleed (::after) in the sheet's color extends past the edge, so the
+ *   lift reads as stretching.
+ * - The backdrop fades with --drawer-swipe-progress, up to --ouro-backdrop-max.
+ * - Release and entry use the theme spring; a flick's release is scaled by
+ *   --drawer-swipe-strength (0.1 to 1).
+ * - Reduced motion drops transform transitions and keeps an opacity fade.
+ *
+ * Class strings are literal so the app's Tailwind finds them when it compiles.
+ */
+
+/**
+ * iOS 26+ Safari draws the page under its translucent toolbars, and a fixed element
+ * stops at the toolbars, leaving the page under them undimmed. Base UI's guidance is
+ * position: absolute (with body { position: relative } in the app). A library cannot
+ * set that on body, and Base UI's iOS scroll lock keeps the page's scroll offset, so an
+ * absolute backdrop would sit at the top of the document, off screen on a scrolled
+ * page. The backdrops therefore keep --ou-backdrop-top at the offset that puts them at
+ * the top of the screen (useBackdropAnchor), and the large viewport height reaches under
+ * the toolbars. Shared with the dialog backdrop.
+ */
+export const iosBackdrop =
+  "supports-[-webkit-touch-callout:none]:absolute supports-[-webkit-touch-callout:none]:inset-x-0 " +
+  "supports-[-webkit-touch-callout:none]:top-[var(--ou-backdrop-top,0px)] supports-[-webkit-touch-callout:none]:bottom-auto " +
+  "supports-[-webkit-touch-callout:none]:h-lvh";
+
+const backdropClass =
+  "fixed inset-0 z-1000 min-h-dvh bg-(--ouro-backdrop-color) " +
+  "opacity-[calc(var(--ouro-backdrop-max)*(1-var(--drawer-swipe-progress,0)))] " +
+  "[transition:opacity_var(--ouro-spring-duration)_var(--ouro-ease-spring)] " +
+  "data-starting-style:opacity-0 data-ending-style:opacity-0 " +
+  "data-ending-style:duration-(--ouro-duration-slow) data-ending-style:ease-out data-swiping:duration-0 " +
+  // A flick sends the sheet away in about 100ms. Base UI pins the backdrop's
+  // --drawer-swipe-strength at 1, but marks it data-swipe-dismiss, so fade it as fast.
+  "data-swipe-dismiss:data-ending-style:duration-(--ouro-duration-fast) " +
+  iosBackdrop;
+
+const viewportClasses = {
+  bottom: "items-end justify-center",
+  top: "items-start justify-center",
+  left: "justify-start",
+  right: "justify-end",
+} as const;
+
+const popupBase =
+  "[--ou-sheet-stretch:3.5] [--ou-sheet-slack:calc(var(--ou-sheet-stretch)*0.25px)] [--ou-sheet-gap:2rem] " +
+  "relative box-border flex min-h-0 flex-col outline-none touch-none " +
+  "bg-popover text-popover-foreground [-webkit-tap-highlight-color:transparent] " +
+  "[transition:transform_calc(var(--ouro-spring-duration)*var(--drawer-swipe-strength,1))_var(--ouro-ease-spring)] " +
+  "will-change-transform [transform:var(--ou-sheet-transform)] data-swiping:select-none " +
+  // While a finger is down, Base UI also writes the raw damped offset as an inline
+  // transform. The stretched transform has to win over it, so it is important here.
+  "data-swiping:[transform:var(--ou-sheet-transform)]! " +
+  // The bleed: the sheet's color past its edge, so pulling it inward looks like stretching.
+  "after:pointer-events-none after:absolute after:bg-inherit " +
+  // Reduced motion: fade in place.
+  "motion-reduce:[transition:transform_0s,opacity_var(--ouro-duration-base)_ease-out] " +
+  "motion-reduce:data-starting-style:[transform:var(--ou-sheet-transform)] motion-reduce:data-starting-style:opacity-0 " +
+  "motion-reduce:data-ending-style:[transform:var(--ou-sheet-transform)] motion-reduce:data-ending-style:opacity-0";
+
+// Bottom (the default) and top: full width up to 40rem, fitting content up to the viewport less a gap.
+const popupSides = {
+  bottom:
+    "w-full max-w-[40rem] max-h-[calc(100dvh-var(--ou-sheet-gap))] ps-[env(safe-area-inset-left,0px)] pe-[env(safe-area-inset-right,0px)] " +
+    "[--ou-sheet-y:calc(var(--drawer-snap-point-offset,0px)+var(--drawer-swipe-movement-y,0px))] " +
+    "[--ou-sheet-transform:translateY(calc(max(var(--ou-sheet-y),0px)+min(var(--ou-sheet-y)+var(--ou-sheet-slack),0px)*var(--ou-sheet-stretch)))] " +
+    "rounded-t-xl [box-shadow:0_-1px_0_color-mix(in_oklab,var(--border)_60%,transparent),0_-8px_32px_rgb(0_0_0/0.12)] " +
+    "after:inset-x-0 after:top-[calc(100%-1px)] after:h-[50dvh] " +
+    "data-starting-style:[transform:translateY(calc(100%+2px))] data-ending-style:[transform:translateY(calc(100%+2px))]",
+  top:
+    "w-full max-w-[40rem] max-h-[calc(100dvh-var(--ou-sheet-gap))] ps-[env(safe-area-inset-left,0px)] pe-[env(safe-area-inset-right,0px)] " +
+    "[--ou-sheet-y:calc(var(--drawer-snap-point-offset,0px)+var(--drawer-swipe-movement-y,0px))] " +
+    "[--ou-sheet-transform:translateY(calc(min(var(--ou-sheet-y),0px)+max(var(--ou-sheet-y)-var(--ou-sheet-slack),0px)*var(--ou-sheet-stretch)))] " +
+    "rounded-b-xl [box-shadow:0_1px_0_color-mix(in_oklab,var(--border)_60%,transparent),0_8px_32px_rgb(0_0_0/0.12)] " +
+    "pt-[env(safe-area-inset-top,0px)] " +
+    "after:inset-x-0 after:bottom-[calc(100%-1px)] after:h-[50dvh] " +
+    "data-starting-style:[transform:translateY(calc(-100%-2px))] data-ending-style:[transform:translateY(calc(-100%-2px))]",
+  // Left and right: full height, up to 22rem wide, always leaving a strip of the page visible.
+  left:
+    "h-full w-[min(22rem,calc(100vw-3rem))] pt-[env(safe-area-inset-top,0px)] " +
+    "pb-[calc(env(safe-area-inset-bottom,0px)+var(--drawer-keyboard-inset,0px))] " +
+    "[--ou-sheet-x:var(--drawer-swipe-movement-x,0px)] " +
+    "[--ou-sheet-transform:translateX(calc(min(var(--ou-sheet-x),0px)+max(var(--ou-sheet-x)-var(--ou-sheet-slack),0px)*var(--ou-sheet-stretch)))] " +
+    "rounded-r-xl [box-shadow:8px_0_32px_rgb(0_0_0/0.12)] pl-[env(safe-area-inset-left,0px)] " +
+    "after:inset-y-0 after:right-[calc(100%-1px)] after:w-[50vw] " +
+    "data-starting-style:[transform:translateX(calc(-100%-2px))] data-ending-style:[transform:translateX(calc(-100%-2px))]",
+  right:
+    "h-full w-[min(22rem,calc(100vw-3rem))] pt-[env(safe-area-inset-top,0px)] " +
+    "pb-[calc(env(safe-area-inset-bottom,0px)+var(--drawer-keyboard-inset,0px))] " +
+    "[--ou-sheet-x:var(--drawer-swipe-movement-x,0px)] " +
+    "[--ou-sheet-transform:translateX(calc(max(var(--ou-sheet-x),0px)+min(var(--ou-sheet-x)+var(--ou-sheet-slack),0px)*var(--ou-sheet-stretch)))] " +
+    "rounded-l-xl [box-shadow:-8px_0_32px_rgb(0_0_0/0.12)] pr-[env(safe-area-inset-right,0px)] " +
+    "after:inset-y-0 after:left-[calc(100%-1px)] after:w-[50vw] " +
+    "data-starting-style:[transform:translateX(calc(100%+2px))] data-ending-style:[transform:translateX(calc(100%+2px))]",
+} as const;
+
+/**
+ * The actions row of a Dialog, in either presentation: a row at the end from 640px up.
+ * Below it the actions stack full width in DOM order, so the primary action (last)
+ * sits at the bottom, nearest the thumb. Shared with `DialogFooter`.
+ */
+export const footerClass = "box-border flex shrink-0 justify-end gap-3 px-5 pt-3 pb-5 max-sm:flex-col max-sm:*:w-full";
+
+/**
+ * A bottom sheet's padding keeps its body above the home indicator and the software
+ * keyboard. At a lower snap point part of the sheet sits below the screen, so it is
+ * padded by that much more and the body ends on screen.
+ */
+const bottomPadding = {
+  fit: "pb-[calc(env(safe-area-inset-bottom,0px)+var(--drawer-keyboard-inset,0px))]",
+  snap: "h-[calc(100dvh-var(--ou-sheet-gap))] pb-[calc(env(safe-area-inset-bottom,0px)+var(--drawer-keyboard-inset,0px)+max(0px,var(--ou-sheet-y)))]",
+} as const;
+
 /** The JSX that puts a part in its place, for the dev message when it is not. */
 function shape(inner: string): string {
   return `<SheetRoot><SheetTrigger render={<Button>Open</Button>} /><SheetPortal><SheetBackdrop /><SheetViewport><SheetPopup>${inner}</SheetPopup></SheetViewport></SheetPortal></SheetRoot>`;
@@ -43,20 +164,19 @@ function useSheetPart(part: string, inner: string): SheetContextValue {
 }
 
 /**
- * The Fix code for an appearance class on a sheet part: the theme for colors and
- * radius, or a wrapper inside `open`…`close` for text classes. Development only.
+ * The Fix code for an appearance class on a sheet part: the theme's CSS variables
+ * for colors and radius, or a wrapper inside `open`…`close` for text classes.
+ * Development only.
  */
 export function sheetHint(open: string, close: string) {
   return (token: string): string => {
     if (token.startsWith("rounded")) {
-      return `defineTheme({ radius: { surface: "${token === "rounded-none" ? "0px" : "16px"}" } })`;
+      return `:root { --radius: ${token === "rounded-none" ? "0px" : "0.75rem"} }`;
     }
     if (/^(text|font)-/.test(token)) return `${open}<div className="${token}">…</div>${close}`;
-    return 'defineTheme({ color: { surface: { light: "…", dark: "…" } } })';
+    return ":root { --popover: …; } .dark { --popover: …; }";
   };
 }
-
-const join = (...classes: Array<string | false | undefined>) => classes.filter(Boolean).join(" ");
 
 /** Props for {@link SheetRoot}: Base UI `Drawer.Root` props with `side` in place of `swipeDirection`. */
 export type SheetRootProps = Omit<Drawer.Root.Props, "swipeDirection" | "snapPoints"> & {
@@ -108,7 +228,7 @@ export function SheetPortal(props: Omit<Drawer.Portal.Props, "className">): JSX.
   useSheetPart("SheetPortal", "…");
   return (
     <Drawer.VirtualKeyboardProvider>
-      <Drawer.Portal {...props} data-ouro="sheet-portal" />
+      <Drawer.Portal {...props} data-ouro="sheet-portal" className="isolate" />
     </Drawer.VirtualKeyboardProvider>
   );
 }
@@ -124,13 +244,20 @@ export function SheetBackdrop({
 }: Omit<Drawer.Backdrop.Props, "className"> & { ref?: Ref<HTMLDivElement> | undefined }): JSX.Element {
   useSheetPart("SheetBackdrop", "…");
   const anchorRef = useBackdropAnchor(ref);
-  return <Drawer.Backdrop {...props} ref={anchorRef} data-ouro="sheet-backdrop" />;
+  return <Drawer.Backdrop {...props} ref={anchorRef} data-ouro="sheet-backdrop" className={backdropClass} />;
 }
 
 /** Part: the full-screen layer that positions the popup against its edge. */
 export function SheetViewport(props: Omit<Drawer.Viewport.Props, "className">): JSX.Element {
   const { side } = useSheetPart("SheetViewport", "…");
-  return <Drawer.Viewport {...props} data-ouro="sheet-viewport" data-side={side} />;
+  return (
+    <Drawer.Viewport
+      {...props}
+      data-ouro="sheet-viewport"
+      data-side={side}
+      className={cn("fixed inset-0 z-1000 flex overflow-hidden touch-none", viewportClasses[side])}
+    />
+  );
 }
 
 /** Props for {@link SheetPopup}. `className` is for layout only (width, margins). */
@@ -154,7 +281,13 @@ export function SheetPopupUnchecked({ className, ...props }: SheetPopupProps): J
   return (
     <Drawer.Popup
       {...props}
-      className={className}
+      className={cn(
+        popupBase,
+        popupSides[side],
+        side === "bottom" && bottomPadding[snap ? "snap" : "fit"],
+        side === "top" && snap && "h-[calc(100dvh-var(--ou-sheet-gap))]",
+        className,
+      )}
       data-ouro="sheet"
       data-side={side}
       data-snap-points={snap ? "" : undefined}
@@ -170,9 +303,9 @@ export function SheetHandle(): JSX.Element | null {
     <div
       aria-hidden="true"
       data-ouro-sheet-handle=""
-      className="ou:flex ou:shrink-0 ou:justify-center ou:py-2 ou:touch-none"
+      className="flex shrink-0 justify-center py-2 touch-none"
     >
-      <div className="ou:h-1.25 ou:w-9 ou:rounded-pill ou:bg-line" />
+      <div className="h-1.25 w-9 rounded-full bg-border" />
     </div>
   );
 }
@@ -192,8 +325,8 @@ export function SheetTitle({ visuallyHidden, ...props }: SheetTitleProps): JSX.E
       data-ouro-sheet-title=""
       className={
         visuallyHidden
-          ? "ou:sr-only"
-          : "ou:m-0 ou:font-display ou:text-lg ou:leading-6 ou:font-semibold ou:text-ink ou:text-balance"
+          ? "sr-only"
+          : "m-0 text-lg leading-6 font-semibold text-balance text-popover-foreground"
       }
     />
   );
@@ -206,7 +339,7 @@ export function SheetDescription(props: Omit<Drawer.Description.Props, "classNam
     <Drawer.Description
       {...props}
       data-ouro-sheet-description=""
-      className="ou:m-0 ou:font-body ou:text-sm ou:leading-5 ou:text-ink-muted"
+      className="m-0 text-sm leading-5 text-muted-foreground"
     />
   );
 }
@@ -234,8 +367,10 @@ export function SheetContent({ className, ref, ...props }: SheetContentProps): J
       {...props}
       ref={scrollRef}
       data-ouro-sheet-content=""
-      className={join(
-        "ou:box-border ou:min-h-0 ou:flex-1 ou:overflow-y-auto ou:overscroll-contain ou:touch-auto ou:px-5 ou:pt-2 ou:pb-5",
+      className={cn(
+        "box-border min-h-0 flex-1 overflow-y-auto overscroll-contain touch-auto px-5 pt-2 pb-5",
+        // A body that overflows is a tab stop (useKeyboardScrollable); show where focus is.
+        "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid",
         className,
       )}
     />

@@ -1,3 +1,4 @@
+import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
@@ -7,7 +8,8 @@ import { commands } from "./registry/ouro/testing/commands.ts";
 const visual = process.env["CI_VISUAL"] === "1";
 
 const shared = {
-  plugins: [react()],
+  // app.css compiles the registry source with Tailwind, as an app that installed Ouro UI does.
+  plugins: [react(), tailwindcss()],
   // `@/` is the repo root, as in an app's components.json, so registry imports resolve here too.
   resolve: { alias: { "@": fileURLToPath(new URL(".", import.meta.url)) } },
   // Pre-bundle Base UI entry points up front. A dependency Vite discovers mid-run
@@ -15,10 +17,10 @@ const shared = {
   optimizeDeps: { include: ["@base-ui/react/alert-dialog", "@base-ui/react/button", "@base-ui/react/dialog", "@base-ui/react/drawer"] },
 };
 
-// Fails any test that logs a React act() warning (see test/setup.ts).
+// Loads app.css, and fails any test that logs a React act() warning (see test/setup.ts).
 const setupFiles = ["./test/setup.ts"];
 
-const unitInclude = ["{registry,test,src}/**/*.test.{ts,tsx}"];
+const unitInclude = ["{registry,test}/**/*.test.{ts,tsx}"];
 const unitExclude = ["**/*.touch.test.{ts,tsx}", "**/*.visual.test.{ts,tsx}"];
 
 export default defineConfig({
@@ -26,8 +28,8 @@ export default defineConfig({
     passWithNoTests: true,
     coverage: {
       provider: "istanbul",
-      include: ["registry/**/*.{ts,tsx}", "src/**/*.{ts,tsx}"],
-      exclude: ["**/*.stories.tsx", "registry/ouro/testing/**", "**/*.test.{ts,tsx}", "**/*.test-d.ts", "src/**/index.ts", "src/parts.ts", "src/generated/**"],
+      include: ["registry/**/*.{ts,tsx}"],
+      exclude: ["**/*.stories.tsx", "registry/ouro/testing/**", "**/*.test.{ts,tsx}", "**/*.test-d.ts", "**/*.d.ts"],
       reporter: ["text", "lcov"],
       thresholds: { lines: 100, branches: 100, functions: 100, statements: 100 },
     },

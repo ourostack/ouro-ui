@@ -1,4 +1,3 @@
-import distCss from "@/dist/styles.css?raw";
 import { type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -7,7 +6,6 @@ import { Heading } from "@/registry/ouro/ui/text/heading";
 import { Text } from "@/registry/ouro/ui/text/text";
 import { act } from "@/registry/ouro/testing/act";
 
-// Reads the built dist/styles.css, so run `pnpm build` first.
 
 
 const roots: Root[] = [];
@@ -26,10 +24,6 @@ async function render(node: ReactNode) {
 
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
-  const style = document.createElement("style");
-  style.textContent = distCss;
-  document.head.append(style);
-  mounted.push(style);
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 });
 afterEach(async () => {
@@ -124,9 +118,9 @@ describe("Text", () => {
         <Text tone="success">a</Text>
         <Text tone="warning">a</Text>
         <Text tone="danger">a</Text>
-        <i className="ou:text-ink" />
-        <i className="ou:text-ink-muted" />
-        <i className="ou:text-accent-ink" />
+        <i className="text-foreground" />
+        <i className="text-muted-foreground" />
+        <i className="text-primary" />
       </>,
     );
     const colors = [...host.children].map((el) => getComputedStyle(el).color);
@@ -152,7 +146,7 @@ describe("Text", () => {
     ["text-gray-500", 'tone="muted"'],
     ["text-sm", 'size="sm"'],
     ["font-bold", "<Text><strong>…</strong></Text>"],
-    ["font-mono", 'remove "font-mono"; Text sets its own font (change the family with defineTheme({ font: { body: "…" } }))'],
+    ["font-mono", '<div className="font-mono"><Text /></div>'],
     ["text-center", 'align="center"'],
   ])("warns once for %s, pointing to %s", async (className, fix) => {
     await render(<Text className={className}>a</Text>);
@@ -223,7 +217,7 @@ describe("Heading", () => {
     ["text-4xl", 'size="2xl"'],
     ["text-center", 'align="center"'],
     ["bg-black", "<Heading level={2}>…</Heading>"],
-    ["font-serif", 'remove "font-serif"; Heading sets its own font (change the family with defineTheme({ font: { display: "…" } }))'],
+    ["font-serif", '<div className="font-serif"><Heading /></div>'],
   ])("warns for %s, pointing to %s", async (className, fix) => {
     await render(
       <Heading level={2} className={className}>

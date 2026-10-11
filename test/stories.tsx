@@ -1,5 +1,4 @@
 import { composeStories, setProjectAnnotations } from "@storybook/react";
-import distCss from "@/dist/styles.css?raw";
 import type { ComponentType } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { userEvent } from "vitest/browser";
@@ -12,9 +11,7 @@ import { act } from "@/registry/ouro/testing/act";
 // Shared by the story accessibility test and the visual test. Stories render
 // through Storybook's `composeStories`, so a test sees exactly what Storybook
 // shows: the meta's args, the story's args and its render function. The
-// library styles come from the built dist/styles.css (run `pnpm build` first),
-// as in the component tests; .storybook/preview.tsx imports the Tailwind source,
-// which this Vitest config does not compile.
+// styles come from app.css, which test/setup.ts loads, as .storybook/preview.tsx does.
 
 // No project annotations beyond React's own: the preview's only parameters (layout,
 // the a11y addon's mode) configure Storybook's UI, which these tests do not render.
@@ -51,27 +48,31 @@ const plainOpeners: Record<string, string[]> = {
 const roots: Root[] = [];
 const mounted: Element[] = [];
 
-/** Adds the library CSS and renders a story into the page. */
+/**
+ * Switches the page between light and dark the way an app does with shadcn's
+ * convention: the `.dark` class on `<html>`. `cleanupStories` switches back to light.
+ */
+export function setScheme(scheme: "light" | "dark"): void {
+  document.documentElement.classList.toggle("dark", scheme === "dark");
+}
+
+/** Renders a story into the page. */
 export async function renderStory(Story: ComponentType): Promise<HTMLElement> {
-  const style = document.createElement("style");
-  // An app paints its page with the theme surface; without it, dark-mode text
-  // would sit on the browser's white default.
-  style.textContent = `${distCss}\nbody { background: var(--ouro-color-surface); color: var(--ouro-color-ink); }`;
-  document.head.append(style);
   const host = document.createElement("div");
   host.dataset["storyHost"] = "";
   document.body.append(host);
-  mounted.push(style, host);
+  mounted.push(host);
   const root = createRoot(host);
   roots.push(root);
   await act(async () => root.render(<Story />));
   return host;
 }
 
-/** Unmounts every rendered story and removes its CSS. */
+/** Unmounts every rendered story and switches back to light. */
 export async function cleanupStories(): Promise<void> {
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));
   for (const node of mounted.splice(0)) node.remove();
+  setScheme("light");
 }
 
 /** The elements that open an overlay in a story: Base UI triggers, then the plain openers. */

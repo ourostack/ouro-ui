@@ -1,17 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page } from "vitest/browser";
-import { cleanupStories, openOverlay, overlayOpeners, renderStory, settle, storyFiles } from "./stories.tsx";
+import { cleanupStories, openOverlay, overlayOpeners, renderStory, setScheme, settle, storyFiles } from "./stories.tsx";
 
 // Screenshot baselines (spec §8): light, dark and reduced motion, at 390px and
 // 1280px. Runs only in the `visual` project (CI_VISUAL=1), in Chromium on
 // Linux, the renderer that produced the committed baselines: the
-// `visual-baselines.yml` workflow regenerates them with `--update`. Reads
-// dist/styles.css: run `pnpm build` first.
+// `visual-baselines.yml` workflow regenerates them with `--update`. Dark is
+// shadcn's `.dark` class on <html>.
 
 const subjects = [
   // Every tone and variant, in forced light and dark panels side by side.
   { name: "button-variants", Story: storyFiles.Button.TonesAndVariants },
-  // Buttons on the page surface, following the emulated color scheme.
+  // Buttons on the page background, following the page's scheme.
   { name: "button-in-context", Story: storyFiles.Button.InContext },
   { name: "text", Story: storyFiles.Text.RecipeCard },
   { name: "sheet-open", Story: storyFiles.Sheet.WithDescription, open: true },
@@ -20,9 +20,9 @@ const subjects = [
 ];
 
 const modes = [
-  { name: "light", media: { colorScheme: "light", reducedMotion: "no-preference" } },
-  { name: "dark", media: { colorScheme: "dark", reducedMotion: "no-preference" } },
-  { name: "reduced-motion", media: { colorScheme: "light", reducedMotion: "reduce" } },
+  { name: "light", scheme: "light", reducedMotion: "no-preference" },
+  { name: "dark", scheme: "dark", reducedMotion: "no-preference" },
+  { name: "reduced-motion", scheme: "light", reducedMotion: "reduce" },
 ] as const;
 
 const widths = [
@@ -40,14 +40,15 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanupStories();
   style.remove();
-  await commands.emulateMedia({ colorScheme: "light", reducedMotion: "no-preference" });
+  await commands.emulateMedia({ reducedMotion: "no-preference" });
 });
 
 describe.each(widths)("at $width px", ({ width, height }) => {
   describe.each(modes)("$name", (mode) => {
     it.each(subjects)("$name", async ({ name, Story, open }) => {
       await page.viewport(width, height);
-      await commands.emulateMedia(mode.media);
+      await commands.emulateMedia({ reducedMotion: mode.reducedMotion });
+      setScheme(mode.scheme);
       const host = await renderStory(Story);
       await document.fonts.ready;
       await settle();

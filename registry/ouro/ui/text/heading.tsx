@@ -1,6 +1,7 @@
 import type { HTMLAttributes, JSX, ReactNode, Ref } from "react";
 import { fontFor, sizeFor, toneFor } from "@/registry/ouro/lib/appearance-hints";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/class-name-check";
+import { cn } from "@/registry/ouro/lib/cn";
 import { devThrow } from "@/registry/ouro/lib/dev";
 import { useDevWarnings } from "@/registry/ouro/lib/use-dev-warnings";
 import { alignClasses, type TextAlign } from "@/registry/ouro/ui/text/text";
@@ -35,11 +36,11 @@ export interface HeadingProps extends Omit<HTMLAttributes<HTMLHeadingElement>, "
 }
 
 const sizes = {
-  sm: "ou:text-base",
-  md: "ou:text-lg",
-  lg: "ou:text-xl",
-  xl: "ou:text-2xl",
-  "2xl": "ou:text-3xl",
+  sm: "text-base",
+  md: "text-lg",
+  lg: "text-xl",
+  xl: "text-2xl",
+  "2xl": "text-3xl",
 } as const;
 
 const sizeByLevel = { 1: "2xl", 2: "xl", 3: "lg", 4: "md", 5: "sm", 6: "sm" } as const;
@@ -47,7 +48,7 @@ const sizeByLevel = { 1: "2xl", 2: "xl", 3: "lg", 4: "md", 5: "sm", 6: "sm" } as
 function headingHint(token: string): string {
   const size = sizeFor(token, ["sm", "sm", "sm", "md", "lg", "xl", "2xl"]);
   if (size) return `size="${size}"`;
-  if (token.startsWith("font-")) return fontFor("Heading", token, "display");
+  if (token.startsWith("font-")) return fontFor("Heading", token);
   return "<Heading level={2}>…</Heading>";
 }
 
@@ -94,13 +95,11 @@ export function Heading(props: HeadingProps): JSX.Element {
       : /* istanbul ignore next -- production only */ undefined,
   );
   const Tag = `h${level}` as const;
-  const classes = [
-    "ou:m-0 ou:font-display ou:font-semibold ou:tracking-tight ou:text-balance ou:text-ink",
+  const classes = cn(
+    "m-0 font-semibold tracking-tight text-balance text-foreground",
     sizes[size],
     align && alignClasses[align],
     className,
-  ]
-    .filter(Boolean)
-    .join(" ");
+  );
   return <Tag {...rest} ref={ref} data-ouro="heading" className={classes} />;
 }

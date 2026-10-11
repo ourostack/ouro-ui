@@ -10,7 +10,7 @@ import type { JSX } from "react";
  * Internal; not exported from the package.
  *
  * @example
- * <button className="ou:relative">
+ * <button className="relative">
  *   <TouchTarget />
  *   Save
  * </button>
@@ -20,7 +20,7 @@ export function TouchTarget(): JSX.Element {
     <span
       aria-hidden="true"
       data-ouro-touch-target=""
-      className="ou:absolute ou:top-1/2 ou:left-1/2 ou:hidden ou:size-[max(100%,44px)] ou:-translate-1/2 ou:pointer-coarse:block"
+      className="absolute top-1/2 left-1/2 hidden size-[max(100%,44px)] -translate-1/2 pointer-coarse:block"
     />
   );
 }

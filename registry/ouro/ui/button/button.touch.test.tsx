@@ -1,11 +1,9 @@
-import distCss from "@/dist/styles.css?raw";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, expect, it } from "vitest";
 import { Button } from "@/registry/ouro/ui/button/button";
 import { act } from "@/registry/ouro/testing/act";
 
 // Runs in the `touch` project: Chromium as a 390x844 phone with a coarse pointer.
-// Reads the built dist/styles.css, so run `pnpm build` first.
 
 
 let root: Root | undefined;
@@ -16,13 +14,10 @@ afterEach(async () => {
 });
 
 async function renderSmall(href?: string) {
-  const style = document.createElement("style");
-  style.textContent = distCss;
   const host = document.createElement("div");
   host.style.padding = "40px";
-  document.head.append(style);
   document.body.append(host);
-  nodes.push(style, host);
+  nodes.push(host);
   root = createRoot(host);
   await act(async () =>
     root!.render(
