@@ -58,7 +58,9 @@ export interface DialogBaseProps {
   /**
    * `auto` renders a centered dialog from the `sm` breakpoint (640px) up and a
    * bottom sheet you can drag away below it. The server renders the dialog form
-   * and corrects it on hydration; nothing shows until it opens, so nothing shifts.
+   * and corrects it on hydration. A dialog that is closed at load shows nothing until
+   * it opens, so nothing shifts; one that is open at load (a route such as `?edit=1`)
+   * shows as the centered dialog on a phone until hydration swaps it to the sheet.
    * @default "auto"
    */
   presentation?: DialogPresentation | (string & { 'Use "auto", "dialog" or "sheet"': never }) | undefined;

@@ -48,7 +48,7 @@ Props every mode takes. Type: `DialogProps`.
 | `description` | `ReactNode` |  | A short line under the title, read out when the dialog opens. |
 | `footer` | `ReactNode` |  | The actions row: a row at the end on wider screens, stacked full width on phones. Put the primary action last, so it sits on the right on wider screens and at the bottom, nearest the thumb, on phones: `footer={<><Button variant="outline" tone="secondary">Cancel</Button><Button>Save</Button></>}`. |
 | `hideTitle` | `boolean` |  | Hides the title visually. It still names the dialog for screen readers. |
-| `presentation` | `"auto" \| "dialog" \| "sheet"` | `"auto"` | `auto` renders a centered dialog from the `sm` breakpoint (640px) up and a bottom sheet you can drag away below it. The server renders the dialog form and corrects it on hydration; nothing shows until it opens, so nothing shifts. |
+| `presentation` | `"auto" \| "dialog" \| "sheet"` | `"auto"` | `auto` renders a centered dialog from the `sm` breakpoint (640px) up and a bottom sheet you can drag away below it. The server renders the dialog form and corrects it on hydration. A dialog that is closed at load shows nothing until it opens, so nothing shifts; one that is open at load (a route such as `?edit=1`) shows as the centered dialog on a phone until hydration swaps it to the sheet. |
 | `size` | `"sm" \| "md" \| "lg"` | `"md"` | The centered dialog's maximum width: `sm` 24rem, `md` 32rem, `lg` 40rem. |
 | `title` (required) | `string` |  | Names the dialog for screen readers and shows at its top. Always required; hide it with `hideTitle`. |
 
