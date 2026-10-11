@@ -6,7 +6,7 @@
 # the ouro-testing message prints) and the ouro-tests item, and runs the app's type check,
 # build, the shipped Vitest browser tests and the shipped Playwright specs.
 #
-#   scripts/install-test.sh <shadcn|ouro|github|namespace> <app-dir> [ref]
+#   scripts/install-test.sh <shadcn|ouro|github|namespace|upgrade> <app-dir> [ref]
 #
 # shadcn: the app keeps the theme `shadcn init` wrote, and a stock shadcn button is added
 #         beside Ouro's; both must build.
@@ -19,6 +19,10 @@
 # namespace: the @ouro namespace as Pages serves it (pages.yml): the registry built with
 #         @ouro/<item> dependencies, served on localhost and registered in components.json,
 #         then `shadcn add @ouro/dialog`. Type check and build.
+# upgrade: an app on v0.1.0 (every component from GitHub at #v0.1.0, with the test setup
+#         the v0.1.0 docs gave) follows "Upgrading from v0.1.0" in README.md literally,
+#         against this commit's registry: once keeping the tests (<app-dir>) and once
+#         without them (<app-dir>-without-tests). Each must type check and build.
 #
 # Same-repo registryDependencies are written without a ref (ourostack/ouro-ui/<item>), so
 # shadcn resolves them on the default branch; refs are not inherited. To install this
@@ -27,7 +31,7 @@
 # from those (scripts/registry.mts --deps). Release tags pin them (release.yml).
 set -euo pipefail
 
-usage="usage: install-test.sh <shadcn|ouro|github|namespace> <app-dir> [ref]"
+usage="usage: install-test.sh <shadcn|ouro|github|namespace|upgrade> <app-dir> [ref]"
 variant=${1:?$usage}
 app=${2:?$usage}
 root=$(cd "$(dirname "$0")/.." && pwd)
@@ -112,10 +116,55 @@ EOF
   exit 0
 fi
 
+if [ "$variant" = upgrade ]; then
+  echo "::group::v0.1.0 from GitHub, with its test setup"
+  v010=()
+  for item in "${items[@]}"; do v010+=("ourostack/ouro-ui/$item#v0.1.0"); done
+  "${shadcn[@]}" add --yes "${v010[@]}"
+  cp -R "$root/test/install-fixture-tests/." "$app/"
+  # The app works on v0.1.0 before the upgrade.
+  npx tsc -b
+  npx vite build
+  echo "::endgroup::"
+fi
+
 echo "::group::Registry copy with local dependencies"
 node "$root/scripts/registry.mts" --out "$registry/registry.json" --deps "$registry/r/{name}.json"
 "${shadcn[@]}" build "$registry/registry.json" --output "$registry/r" --cwd "$root"
 echo "::endgroup::"
+
+if [ "$variant" = upgrade ]; then
+  local_items=()
+  for item in "${items[@]}"; do local_items+=("$registry/r/$item.json"); done
+  bare="$app-without-tests"
+  mkdir -p "$bare"
+  cp -R "$app/." "$bare/"
+
+  # The steps below are README.md "Upgrading from v0.1.0", with the local registry's
+  # item files in place of ourostack/ouro-ui/<item>#v0.2.0.
+  self_refs='print unless /^\s*--(color-)?ouro-[\w-]+:\s*var\(--ouro-[\w-]+\);\s*$/'
+
+  echo "::group::Upgrade, keeping the tests"
+  "${shadcn[@]}" add --yes "${local_items[@]}" "$registry/r/ouro-tests.json" --overwrite
+  perl -i -ne "$self_refs" src/index.css
+  npx tsc -b
+  npx vite build
+  node "$root/scripts/install-check.mjs" "$app" shadcn tests
+  echo "::endgroup::"
+
+  echo "::group::Upgrade, without the tests"
+  cd "$bare"
+  "${shadcn[@]}" add --yes "${local_items[@]}" --overwrite
+  find src/components/ouro src/lib/ouro \( -name '*.test.ts' -o -name '*.test.tsx' -o -name '*.test-d.ts' -o -name '*.stories.tsx' \) -delete
+  find src/lib/ouro/testing e2e/ouro vitest.config.ts playwright.config.ts .storybook -delete
+  npm uninstall storybook @storybook/react-vite vitest @vitest/browser-playwright playwright @playwright/test
+  perl -i -ne "$self_refs" src/index.css
+  npx tsc -b
+  npx vite build
+  node "$root/scripts/install-check.mjs" "$bare" shadcn runtime
+  echo "::endgroup::"
+  exit 0
+fi
 
 if [ "$variant" = ouro ]; then
   echo "::group::ouro-theme from GitHub at $ref"

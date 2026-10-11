@@ -19,6 +19,7 @@ afterEach(async () => {
 });
 
 const INIT = "npx shadcn@latest init --base base --preset nova --yes --no-monorepo";
+const UNINSTALL = "npm uninstall storybook @storybook/react-vite vitest @vitest/browser-playwright playwright @playwright/test";
 
 describe("landing page", () => {
   it("renders the exact hero text", async () => {
@@ -27,6 +28,7 @@ describe("landing page", () => {
     await expect.element(heading).toBeVisible();
     expect(heading.element().textContent).toBe("Interfaces that feel right, built by agents that get them right.");
     await expect.element(page.getByText("shadcn/ui compliant", { exact: true })).toBeVisible();
+    expect(page.getByRole("link", { name: "llms.txt" }).element().getAttribute("href")).toBe("https://ourostack.github.io/ouro-ui/llms.txt");
   });
 
   it("opens the live Sheet demo inside the phone frame", async () => {
@@ -83,6 +85,9 @@ describe("docs", () => {
     await expect.element(page.getByText("npx shadcn@latest add @ouro/sheet --diff src/components/ouro/sheet/sheet.tsx", { exact: true })).toBeVisible();
     await expect.element(page.getByText("npx shadcn@latest add @ouro/sheet @ouro/sheet-tests --overwrite", { exact: true })).toBeVisible();
     await expect.element(page.getByText("npx shadcn@latest add ourostack/ouro-ui/sheet#v0.2.0", { exact: true })).toBeVisible();
+    await expect.element(page.getByRole("heading", { name: "Upgrading from v0.1.0", level: 2 })).toBeVisible();
+    await expect.element(page.getByText(UNINSTALL, { exact: true })).toBeVisible();
+    await expect.element(page.getByText("useOuro", { exact: true })).toBeVisible();
   });
 });
 

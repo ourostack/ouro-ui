@@ -57,6 +57,7 @@ export function SiteFooter(): JSX.Element {
     { label: "GitHub", url: GITHUB },
     { label: "Storybook", url: STORYBOOK },
     { label: "Docs", url: href("/docs/") },
+    { label: "llms.txt", url: "https://ourostack.github.io/ouro-ui/llms.txt" },
     { label: "Ouro", url: "https://ouro.bot" },
   ];
   return (

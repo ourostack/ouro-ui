@@ -93,6 +93,19 @@ jobs:
             echo
             echo "The tests, stories and specs are optional, one item per component: \`npx shadcn@latest add ourostack/ouro-ui/dialog#$TAG ourostack/ouro-ui/dialog-tests#$TAG\`, or \`ourostack/ouro-ui/ouro-tests#$TAG\` for all of them. List every item with \`npx shadcn@latest search 'ourostack/ouro-ui#$TAG'\`."
             echo
+            # Remove this note once v0.1.0 is no longer in use.
+            sed "s/@TAG@/$TAG/g" <<'NOTE'
+          ### Upgrading from v0.1.0
+
+          v0.1.0 installed every component with its tests, and later releases move some shared helpers to new files, so update everything in one go (paths assume `src/`):
+
+          1. Update every Ouro item you installed in one command, at this tag, with `--overwrite`; add `ouro-theme` if you use it. To keep the tests, add `ouro-tests` to the same command: `npx shadcn@latest add ourostack/ouro-ui/button#@TAG@ ourostack/ouro-ui/dialog#@TAG@ ourostack/ouro-ui/ouro-tests#@TAG@ --overwrite`.
+          2. Without the tests, leave `ouro-tests` out and delete what v0.1.0 added for them: `find src/components/ouro src/lib/ouro \( -name '*.test.ts' -o -name '*.test.tsx' -o -name '*.test-d.ts' -o -name '*.stories.tsx' \) -delete`, then `find src/lib/ouro/testing e2e/ouro vitest.config.ts playwright.config.ts .storybook -delete` (keep a config your own tests use, without `ouroTestProjects`), then `npm uninstall storybook @storybook/react-vite vitest @vitest/browser-playwright playwright @playwright/test`.
+          3. In your CSS, delete the self-referential lines in `@theme inline`: each `--ouro-…: var(--ouro-…);` and `--color-ouro-backdrop-color: var(--ouro-backdrop-color);`. Or run `perl -i -ne 'print unless /^\s*--(color-)?ouro-[\w-]+:\s*var\(--ouro-[\w-]+\);\s*$/' src/index.css`.
+          4. If your code imports them: `useOuro` moved from `lib/ouro/ouro-provider` to `lib/ouro/use-ouro`; `sheetSides`, `sideWarning`, `sheetHint`, `iosBackdrop` and `footerClass` from `sheet-parts` to `sheet-styles`; `dialogSizes` and `dialogSizeWarning` from `dialog-parts` to `dialog-styles`; `alignClasses` and `checkAlign` from `text` to `text-styles`.
+
+          NOTE
+            echo
             echo 'Or through the `@ouro` namespace, which serves the newest code on main (not pinned to this release). Add it to `components.json` once:'
             echo
             echo '```json'
