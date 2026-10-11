@@ -13,15 +13,15 @@ A GitHub source is `owner/repo#ref`; an item is `owner/repo/item#ref`. `@v0.3.0`
 Ouro UI is copy-in source in the shadcn/ui registry format: the shadcn CLI copies each component into your app, and your app's own Tailwind CSS v4 compiles its classes. Like shadcn/ui's own items, a component item installs only the component's source; its tests are a separate, optional item. The components read shadcn's theme variables (`--primary`, `--background`, `--radius`…), so an app that already has a shadcn theme keeps it.
 
 ```tsx
-import { Button } from "@/registry/ouro/components/ouro/button/button";
-import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
+import { Button } from "@/components/ouro/button/button";
+import { Dialog } from "@/components/ouro/dialog/dialog";
 
 <Dialog title="Edit recipe" trigger={<Button>Edit</Button>}>
   <RecipeForm />
 </Dialog>;
 ```
 
-Import paths in this repository and its docs are the registry source paths. The shadcn CLI rewrites them to your app's aliases when it installs a component: `@/registry/ouro/components/ouro/button/button` becomes `@/components/ouro/button/button`. The components need `react` and `react-dom` 19; the CLI installs the rest (`@base-ui/react`, `clsx`, `tailwind-merge`). They need no animation library: motion is CSS, and reduced motion is honored in CSS. If your app animates with Motion, wrap it in `<MotionConfig reducedMotion="user">`.
+These are the paths in your app once the CLI has installed a component, with your components alias in place of `@/components` (`aliases.components` in `components.json`). The files in this repository and the `docs/` pages use the registry source paths, `@/registry/ouro/components/ouro/button/button`, which the CLI rewrites on install. The components need `react` and `react-dom` 19; the CLI installs the rest (`@base-ui/react`, `clsx`, `tailwind-merge`). They need no animation library: motion is CSS, and reduced motion is honored in CSS. If your app animates with Motion, wrap it in `<MotionConfig reducedMotion="user">`.
 
 ## Install
 
@@ -154,7 +154,9 @@ Two stylesheets ship with the components, as registry items that write into your
 
 Dark mode follows the `.dark` class, as in shadcn. To change a color, set its variable in your theme.
 
-Sheets and dialogs stack at `--ouro-layer`, a z-index of 50 by default, the level of shadcn's overlays. If your app has fixed bars above z-50, raise it in a `:root` rule of your own after the Ouro tokens, outside any `@layer`, such as `:root { --ouro-layer: 60; }` at the end of your CSS file; no class edit is needed. Don't edit the `--ouro-layer: 50` line that shadcn wrote, because every `shadcn add` of an Ouro item resets it. At an equal z-index the open sheet or dialog still wins, because its portal is the last child of `<body>`.
+To change any `--ouro-*` token (the spring and durations, `--ouro-press-scale`, the backdrop color and opacity, `--ouro-layer`), set it in a `:root` or `.dark` rule of your own after the Ouro tokens, outside any `@layer`, such as `:root { --ouro-press-scale: 0.98; }` at the end of your CSS file. Don't edit the lines shadcn wrote for the Ouro tokens, because every `shadcn add` of an Ouro item rewrites them.
+
+Sheets and dialogs stack at `--ouro-layer`, a z-index of 50 by default, the level of shadcn's overlays. If your app has fixed bars above z-50, raise it the same way, such as `:root { --ouro-layer: 60; }`; no class edit is needed. At an equal z-index the open sheet or dialog still wins, because its portal is the last child of `<body>`.
 
 ## License
 
