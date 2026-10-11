@@ -441,7 +441,7 @@
       "name": "ouro-lib-tests",
       "type": "registry:item",
       "title": "Ouro lib tests",
-      "description": "Optional: the Vitest browser tests for ouro-lib, with the test tooling as devDependencies. Add it beside ouro-lib: add ouro-lib ouro-lib-tests.",
+      "description": "Optional: the Vitest browser tests for ouro-lib, with the test tooling as devDependencies. Add it beside ouro-lib: add ouro-lib ouro-lib-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
       "docs": "ouro-lib's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs",
       "devDependencies": [
         "vitest@^5.0.3"
@@ -497,7 +497,7 @@
       "name": "button-tests",
       "type": "registry:item",
       "title": "Button tests",
-      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for button, with the test tooling as devDependencies. Add it beside button: add button button-tests.",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for button, with the test tooling as devDependencies. Add it beside button: add button button-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
       "docs": "button's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/button",
       "devDependencies": [
         "@playwright/test@^1.63.0",
@@ -542,7 +542,7 @@
       "name": "text-tests",
       "type": "registry:item",
       "title": "Text tests",
-      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for text, with the test tooling as devDependencies. Add it beside text: add text text-tests.",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for text, with the test tooling as devDependencies. Add it beside text: add text text-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
       "docs": "text's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/text",
       "devDependencies": [
         "@playwright/test@^1.63.0",
@@ -581,7 +581,7 @@
       "name": "heading-tests",
       "type": "registry:item",
       "title": "Heading tests",
-      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for heading, with the test tooling as devDependencies. Add it beside heading: add heading heading-tests.",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for heading, with the test tooling as devDependencies. Add it beside heading: add heading heading-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
       "docs": "heading's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/heading",
       "devDependencies": [
         "@playwright/test@^1.63.0",
@@ -622,7 +622,7 @@
       "name": "sheet-tests",
       "type": "registry:item",
       "title": "Sheet tests",
-      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for sheet, with the test tooling as devDependencies. Add it beside sheet: add sheet sheet-tests.",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for sheet, with the test tooling as devDependencies. Add it beside sheet: add sheet sheet-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
       "docs": "sheet's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/sheet",
       "devDependencies": [
         "@playwright/test@^1.63.0",
@@ -662,7 +662,7 @@
       "name": "dialog-tests",
       "type": "registry:item",
       "title": "Dialog tests",
-      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for dialog, with the test tooling as devDependencies. Add it beside dialog: add dialog dialog-tests.",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for dialog, with the test tooling as devDependencies. Add it beside dialog: add dialog dialog-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
       "docs": "dialog's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/dialog",
       "devDependencies": [
         "@playwright/test@^1.63.0",
@@ -708,7 +708,7 @@
       "name": "confirm-dialog-tests",
       "type": "registry:item",
       "title": "ConfirmDialog tests",
-      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for confirm-dialog, with the test tooling as devDependencies. Add it beside confirm-dialog: add confirm-dialog confirm-dialog-tests.",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for confirm-dialog, with the test tooling as devDependencies. Add it beside confirm-dialog: add confirm-dialog confirm-dialog-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
       "docs": "confirm-dialog's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/confirm-dialog",
       "devDependencies": [
         "@playwright/test@^1.63.0",
@@ -753,7 +753,7 @@
       "name": "ouro-tests",
       "type": "registry:item",
       "title": "Ouro tests",
-      "description": "Optional: every Ouro UI component with its tests, type tests, stories and Playwright spec, and the test kit. The whole suite in one command.",
+      "description": "Optional: every Ouro UI component with its tests, type tests, stories and Playwright spec, and the test kit. The whole suite in one command. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
       "docs": "Every Ouro UI component and its tests are installed. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs",
       "registryDependencies": [
         "ourostack/ouro-ui/button-tests",

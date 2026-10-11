@@ -84,6 +84,14 @@ export const testingSetup: Record<string, string> = {
   ].join("\n"),
 };
 
+/**
+ * What a -tests item does to an app's Vitest. The CLI installs each devDependency's range
+ * with the app's package manager, which picks the newest matching version, so a wider
+ * range (`^4.1.0 || ^5.0.0`) would still move a Vitest 4 app to 5.
+ */
+const vitestPin =
+  "It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.";
+
 function testingDocs(): string {
   const file = (path: string) => `--- ${path}\n${testingSetup[path]}`;
   return [
@@ -340,7 +348,7 @@ export function buildRegistry(root: string): Registry {
       ...entry,
       kind: "tests" as const,
       // Says what the item ships, by the kinds of file it has (ouro-lib-tests has only tests).
-      description: `Optional: the ${fileKinds(shipped(entry.name))} for ${entry.of}, with the test tooling as devDependencies. Add it beside ${entry.of}: add ${entry.of} ${entry.name}.`,
+      description: `Optional: the ${fileKinds(shipped(entry.name))} for ${entry.of}, with the test tooling as devDependencies. Add it beside ${entry.of}: add ${entry.of} ${entry.name}. ${vitestPin}`,
       docs: `${entry.of}'s tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: ${DOCS_URL}${entry.docsPage}`,
     })),
     {
@@ -348,7 +356,7 @@ export function buildRegistry(root: string): Registry {
       title: "Ouro tests",
       kind: "aggregate" as const,
       description:
-        "Optional: every Ouro UI component with its tests, type tests, stories and Playwright spec, and the test kit. The whole suite in one command.",
+        `Optional: every Ouro UI component with its tests, type tests, stories and Playwright spec, and the test kit. The whole suite in one command. ${vitestPin}`,
       docs: `Every Ouro UI component and its tests are installed. The ouro-testing message says how to run them. Docs: ${DOCS_URL}`,
     },
   ];
