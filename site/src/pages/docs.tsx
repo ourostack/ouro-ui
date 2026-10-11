@@ -8,7 +8,7 @@ import { demos } from "../docs/demos";
 import { docsItems, GITHUB, installedPaths, partsSection, summary, type DocsItem } from "../docs/items";
 import { inline, Markdown, parse, type Block } from "../docs/markdown";
 import { href } from "../routes";
-import upgrading from "../../../UPGRADING.md?raw";
+import { latestRelease, upgrading } from "../release";
 
 function PageTitle({ eyebrow, title, lead }: { eyebrow: string; title: string; lead: ReactNode }): JSX.Element {
   return (
@@ -243,7 +243,7 @@ export function Updating(): JSX.Element {
           <Text>Then see the difference for each of those files by its path:</Text>
           <Command command="npx shadcn@latest add @ouro/sheet --diff src/components/ouro/sheet/sheet.tsx" />
           <Text size="sm" tone="muted">
-            Without the namespace, use <InlineCode>ourostack/ouro-ui/sheet</InlineCode> in place of <InlineCode>@ouro/sheet</InlineCode>. A bare{" "}
+            Without the namespace, use <InlineCode>{`ourostack/ouro-ui/sheet#${latestRelease}`}</InlineCode> in place of <InlineCode>@ouro/sheet</InlineCode>. A bare{" "}
             <InlineCode>--diff</InlineCode> without a path can stop after the first few unchanged files, before the one you edited.
           </Text>
         </li>
@@ -284,14 +284,14 @@ export function Updating(): JSX.Element {
             Pin a version
           </Heading>
           <Text>
-            Add a tag to install a release instead of the latest code:
+            Add a tag to pin a release, so a later release doesn't change what you install:
           </Text>
-          <Command command="npx shadcn@latest add ourostack/ouro-ui/sheet#v0.2.0" />
+          <Command command={`npx shadcn@latest add ourostack/ouro-ui/sheet#${latestRelease}`} />
           <Text size="sm" tone="muted">
             A release tag pins the item and every Ouro dependency it brings (such as <InlineCode>ouro-lib</InlineCode> and{" "}
             <InlineCode>button</InlineCode>) to the same tag. Any other ref, <InlineCode>#&lt;sha&gt;</InlineCode> or{" "}
             <InlineCode>#&lt;branch&gt;</InlineCode>, pins only the item you name: its Ouro dependencies come from <InlineCode>main</InlineCode>.
-            The <InlineCode>@ouro</InlineCode> namespace always serves <InlineCode>main</InlineCode>. Releases are listed on{" "}
+            The <InlineCode>@ouro</InlineCode> namespace serves the newest release, <InlineCode>{latestRelease}</InlineCode>. Without a ref, the GitHub address installs <InlineCode>main</InlineCode>, which is for contributors and can hold unreleased changes. Releases are listed on{" "}
             <a href={`${GITHUB}/releases`} className="text-primary underline underline-offset-4">GitHub</a>.
           </Text>
         </li>

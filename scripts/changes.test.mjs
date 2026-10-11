@@ -38,7 +38,7 @@ test("a change the last release already listed is a problem that names it", () =
   const problem = changesProblem(changes, lastNotes);
   assert.match(problem, /still lists the last release's changes/);
   assert.match(problem, /- Sheets stack at --ouro-layer\./);
-  assert.match(problem, /Start CHANGES\.md for the next release/);
+  assert.match(problem, /Prepare main for the next release/);
 });
 
 test("new changes pass, with or without a last release", () => {
@@ -96,12 +96,25 @@ test("release.yml checks CHANGES.md against the last release before it pushes an
   assert.match(check.body, /node scripts\/changes\.mjs check CHANGES\.md /);
 });
 
-test("release.yml opens the PR that starts CHANGES.md after the release is published, and runs CI on it", () => {
-  const reset = step("Start CHANGES.md for the next release");
+test("release.yml opens the PR that prepares main after the release is published, and runs CI on it", () => {
+  const reset = step("Prepare main for the next release");
   assert.ok(reset.start > step("Tag and publish the release").start);
   assert.match(reset.body, /git switch -c "\$NEXT_BRANCH" "\$MAIN_SHA"/);
   assert.match(reset.body, /node scripts\/changes\.mjs reset CHANGES\.md/);
-  assert.match(reset.body, /gh pr create --base main --head "\$NEXT_BRANCH" --title "Start CHANGES\.md for the next release"/);
+  // The same PR makes the tag the newest release, and regenerates the docs that name it.
+  assert.match(reset.body, /node scripts\/latest-release\.mjs set "\$TAG"\n\s*pnpm run docs\n\s*git commit -am "Prepare main for the next release"/);
+  assert.match(reset.body, /gh pr create --base main --head "\$NEXT_BRANCH" --title "Prepare main for the next release"/);
   assert.match(reset.body, /gh workflow run ci\.yml --ref "\$NEXT_BRANCH"/);
   assert.match(release, /pull-requests: write/);
+});
+
+test("release.yml advises deleting a tag only when GitHub says its release was not found", () => {
+  const check = step("Check the version, the tag and main's CI");
+  const cleanup = step("Clean up after a failure");
+  for (const body of [check.body, cleanup.body]) {
+    assert.match(body, /out=\$\(gh release view "\$TAG" --json tagName 2>&1\)/);
+    assert.match(body, /if grep -q 'release not found' <<<"\$out"; then\n\s*echo "::error::Tag \$TAG .*Delete the tag/);
+    assert.match(body, /else\n\s*echo "::error::Could not check the release for \$TAG: \$out"/);
+    assert.doesNotMatch(body, />\/dev\/null 2>&1; then\n\s*echo "::error::Tag/);
+  }
 });

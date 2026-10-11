@@ -10,7 +10,7 @@
 //   node scripts/changes.mjs reset <CHANGES.md>
 //
 // starts the file again with only its heading. release.yml runs it after a release, on a
-// branch off the released main commit, and opens "Start CHANGES.md for the next release".
+// branch off the released main commit, and opens "Prepare main for the next release".
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
@@ -32,7 +32,7 @@ export function changesProblem(markdown, lastNotes) {
   const stale = lines.filter((line) => released.has(line));
   if (stale.length > 0) {
     return [
-      "CHANGES.md still lists the last release's changes. Merge the open \"Start CHANGES.md for the next release\" PR",
+      "CHANGES.md still lists the last release's changes. Merge the open \"Prepare main for the next release\" PR",
       "(or remove these lines yourself), list this release's changes, then run Release again:",
       ...stale,
     ].join(" ");

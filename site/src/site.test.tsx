@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { cleanupPage, describeViolations, renderPage, scan, setScheme, settle } from "../test/render";
-import upgrading from "../../UPGRADING.md?raw";
+import { latestRelease, upgrading } from "./release";
 import { docsItems } from "./docs/items";
 import { parse } from "./docs/markdown";
 import { routes } from "./routes";
@@ -46,10 +46,12 @@ describe("landing page", () => {
     await expect.element(page.getByText("Drag it. Flick it. Pull it past the edge.")).toBeVisible();
   });
 
-  it("starts the install steps with shadcn's init, with the Base UI base", async () => {
+  it("starts the install steps with shadcn's init, with the Base UI base, then pins the newest release", async () => {
     await renderPage("/");
     await expect.element(page.getByText(INIT, { exact: true })).toBeVisible();
-    await expect.element(page.getByText("npx shadcn@latest add ourostack/ouro-ui/sheet", { exact: true })).toBeVisible();
+    expect(latestRelease).toMatch(/^v\d+\.\d+\.\d+$/);
+    await expect.element(page.getByText(`npx shadcn@latest add ourostack/ouro-ui/sheet#${latestRelease}`, { exact: true })).toBeVisible();
+    await expect.element(page.getByText(/Without it, the address installs/)).toBeVisible();
   });
 });
 
@@ -87,7 +89,7 @@ describe("docs", () => {
     await expect.element(page.getByText("npx shadcn@latest add @ouro/sheet --dry-run", { exact: true })).toBeVisible();
     await expect.element(page.getByText("npx shadcn@latest add @ouro/sheet --diff src/components/ouro/sheet/sheet.tsx", { exact: true })).toBeVisible();
     await expect.element(page.getByText("npx shadcn@latest add @ouro/sheet @ouro/sheet-tests --overwrite", { exact: true })).toBeVisible();
-    await expect.element(page.getByText("npx shadcn@latest add ourostack/ouro-ui/sheet#v0.2.0", { exact: true })).toBeVisible();
+    await expect.element(page.getByText(`npx shadcn@latest add ourostack/ouro-ui/sheet#${latestRelease}`, { exact: true })).toBeVisible();
     await expect.element(page.getByRole("heading", { name: "Upgrading from v0.1.0", level: 2 })).toBeVisible();
     expect(upgradeCommands.length).toBeGreaterThanOrEqual(3);
     for (const command of upgradeCommands) await expect.element(page.getByText(command, { exact: true })).toBeVisible();

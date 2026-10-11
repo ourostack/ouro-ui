@@ -5,9 +5,11 @@ name: Release
 # installs every Ouro dependency at that tag while main stays unpinned. CI runs on that
 # commit; when it passes, the commit is tagged, the GitHub release is created and the
 # branch is deleted (the tag keeps the commit). Because main never receives the release
-# commit, the run then opens "Start CHANGES.md for the next release" against main, and the
-# next release refuses to start while CHANGES.md lists no change or still lists this
-# release's (scripts/changes.mjs). Rerunning is safe: a released tag exits
+# commit, the run then opens "Prepare main for the next release" against main: it starts
+# CHANGES.md again and makes the tag the newest release (package.json ouro.latestRelease,
+# scripts/latest-release.mjs), which the docs, the site and the @ouro namespace follow once
+# it merges. The next release refuses to start while CHANGES.md lists no change or still
+# lists this release's (scripts/changes.mjs). Rerunning is safe: a released tag exits
 # cleanly, a tag without a release fails with the fix, and a failed run deletes its
 # branch. Recovery: AGENTS.md, "Pages and releases".
 on:
@@ -19,7 +21,7 @@ on:
 permissions:
   contents: write # push the release branch and the tag, create the release
   actions: write # run CI on the release branch and the CHANGES.md branch
-  pull-requests: write # open the PR that starts CHANGES.md for the next release
+  pull-requests: write # open the PR that prepares main for the next release
 concurrency:
   group: release
   cancel-in-progress: false
@@ -41,11 +43,17 @@ jobs:
         run: |
           [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::version must be x.y.z, without the v"; exit 1; }
           if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
-            if gh release view "$TAG" >/dev/null 2>&1; then
-              echo "::notice::$TAG is already released. Nothing to do."
+            if out=$(gh release view "$TAG" --json tagName 2>&1); then
+              echo "::notice::$TAG is already released. Nothing to do. If the 'Prepare main for the next release' PR is missing, open it by hand (AGENTS.md, 'Pages and releases')."
               exit 0
             fi
-            echo "::error::Tag $TAG exists but has no GitHub release. Delete the tag (git push origin :refs/tags/$TAG) and run Release again."
+            # Only a missing release means the tag is orphaned; any other error (a rate limit,
+            # an API outage) must never lead to deleting a published tag.
+            if grep -q 'release not found' <<<"$out"; then
+              echo "::error::Tag $TAG exists but has no GitHub release. Delete the tag (git push origin :refs/tags/$TAG) and run Release again."
+            else
+              echo "::error::Could not check the release for $TAG: $out"
+            fi
             exit 1
           fi
           sha=$(git rev-parse HEAD)
@@ -108,10 +116,11 @@ jobs:
             sed -e '1s/^# /### /' CHANGES.md
             echo
             # Remove this note once v0.1.0 is no longer in use.
-            # UPGRADING.md is the note (README.md and the site copy it); its addresses get this tag.
-            sed -e '1s/^# /### /' -e "s/#v0\.2\.0/#$TAG/g" UPGRADING.md
+            # UPGRADING.md is the note (README.md and the site copy it); its {{latestRelease}}
+            # placeholder gets this tag (scripts/latest-release.mjs).
+            sed -e '1s/^# /### /' -e "s/{{latestRelease}}/$TAG/g" UPGRADING.md
             echo
-            echo 'Or through the `@ouro` namespace, which serves the newest code on main (not pinned to this release). Add it to `components.json` once:'
+            echo 'Or through the `@ouro` namespace, which serves the newest release: this one, once main is prepared for the next release. Add it to `components.json` once:'
             echo
             echo '```json'
             echo '"registries": { "@ouro": "https://ourostack.github.io/ouro-ui/r/{name}.json" }'
@@ -128,27 +137,38 @@ jobs:
           gh release create "$TAG" --verify-tag --title "$TAG" --notes-file "$RUNNER_TEMP/notes.md"
           git push origin --delete "$BRANCH"
       - if: steps.check.outputs.new == 'true'
-        name: Start CHANGES.md for the next release
+        name: Prepare main for the next release
         env:
-          NEXT_BRANCH: changes/after-v${{ inputs.version }}
+          NEXT_BRANCH: prepare/after-v${{ inputs.version }}
         run: |
-          # Main still lists this release's changes, because the release commit never reaches
-          # it. Start the file on a branch off the released main commit, so a line added to
-          # main's CHANGES.md during the release shows as a conflict instead of being dropped.
-          # If this step fails, the release stands; open the PR by hand ("Check CHANGES.md"
-          # stops the next release until main's CHANGES.md is started again).
+          # Main still lists this release's changes and names the previous release, because the
+          # release commit never reaches it. Start CHANGES.md again and make this tag the newest
+          # release (package.json ouro.latestRelease; `pnpm run docs` writes it into README.md,
+          # llms.txt and package.json), on a branch off the released main commit, so a line
+          # added to main's CHANGES.md during the release shows as a conflict instead of being
+          # dropped. If this step fails, the release stands; open the PR by hand ("Check
+          # CHANGES.md" stops the next release until main's CHANGES.md is started again).
           git switch -c "$NEXT_BRANCH" "$MAIN_SHA"
           node scripts/changes.mjs reset CHANGES.md
-          git commit -am "Start CHANGES.md for the next release"
+          node scripts/latest-release.mjs set "$TAG"
+          pnpm run docs
+          git commit -am "Prepare main for the next release"
           git push --force origin "$NEXT_BRANCH"
-          gh pr create --base main --head "$NEXT_BRANCH" --title "Start CHANGES.md for the next release" \
-            --body "$TAG is released with these changes in its notes, so CHANGES.md starts again for the next release. Merge this before adding the next release's changes."
-          # A PR opened with GITHUB_TOKEN starts no pull_request workflow, so run CI on its branch.
+          gh pr create --base main --head "$NEXT_BRANCH" --title "Prepare main for the next release" \
+            --body "$TAG is released with these changes in its notes, so CHANGES.md starts again for the next release, and $TAG becomes the newest release: the README, the site, llms.txt and the @ouro namespace move to it when this merges. Merge this before adding the next release's changes."
+          # GitHub records a pull_request CI run for a PR a workflow opened with GITHUB_TOKEN,
+          # but holds it without jobs, so it never runs and reports no check. The real CI is
+          # this dispatched run on the PR's head commit; its jobs report under the same check
+          # names, so they satisfy required checks on that commit.
           gh workflow run ci.yml --ref "$NEXT_BRANCH"
       - if: failure() && steps.check.outputs.new == 'true'
         name: Clean up after a failure
         run: |
           git push origin --delete "$BRANCH" || true
-          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null && ! gh release view "$TAG" >/dev/null 2>&1; then
-            echo "::error::Tag $TAG was pushed but the release was not created. Delete the tag (git push origin :refs/tags/$TAG) and run Release again."
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null && ! out=$(gh release view "$TAG" --json tagName 2>&1); then
+            if grep -q 'release not found' <<<"$out"; then
+              echo "::error::Tag $TAG was pushed but the release was not created. Delete the tag (git push origin :refs/tags/$TAG) and run Release again."
+            else
+              echo "::error::Could not check the release for $TAG: $out"
+            fi
           fi

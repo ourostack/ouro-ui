@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { fillPlaceholder, latestRelease, PLACEHOLDER } from "./latest-release.mjs";
 import { localCommand, noteBody, steps } from "./upgrade-note.mjs";
 
 // UPGRADING.md is the one source of "Upgrading from v0.1.0". The README section, the
@@ -26,15 +27,16 @@ test("the note has steps 0 to 4, and steps 1 to 3 have commands", () => {
   }
 });
 
-test("the README section is the note, between its markers", () => {
+test("the README section is the note, between its markers, with the newest release", () => {
   const section = read("README.md").match(/<!-- upgrade:start -->\n([\s\S]*)\n<!-- upgrade:end -->/);
   assert.ok(section, "README.md needs <!-- upgrade:start --> and <!-- upgrade:end -->");
-  assert.equal(section[1], noteBody(note));
+  assert.equal(section[1], fillPlaceholder(noteBody(note), latestRelease()));
 });
 
 test("the site's Updating page renders the note itself", () => {
   const docs = read("site/src/pages/docs.tsx");
-  assert.match(docs, /import upgrading from "\.\.\/\.\.\/\.\.\/UPGRADING\.md\?raw";/);
+  assert.match(docs, /import \{ latestRelease, upgrading \} from "\.\.\/release";/);
+  assert.match(read("site/src/release.ts"), /import upgradingNote from "\.\.\/\.\.\/UPGRADING\.md\?raw";/);
   for (const command of commands) assert.ok(!docs.includes(command), `docs.tsx copies ${command}`);
 });
 
@@ -47,8 +49,8 @@ test("the release notes are rendered from the note, with the release tag", () =>
   const result = spawnSync("bash", ["-c", script], { cwd: root, encoding: "utf8", env: { ...process.env, TAG: "v9.9.9" } });
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /^### Upgrading from v0\.1\.0\n/);
-  assert.ok(!result.stdout.includes("#v0.2.0"), "a #v0.2.0 address is left");
-  for (const command of commands) assert.ok(result.stdout.includes(command.replaceAll("#v0.2.0", "#v9.9.9")), command);
+  assert.ok(!result.stdout.includes(PLACEHOLDER), `a ${PLACEHOLDER} placeholder is left`);
+  for (const command of commands) assert.ok(result.stdout.includes(command.replaceAll(PLACEHOLDER, "v9.9.9")), command);
 });
 
 test("the upgrade install test runs the note's commands and copies none", () => {
@@ -83,12 +85,12 @@ test("the commands delete only paths Ouro owns and uninstall nothing", () => {
 test("localCommand points the note's addresses at a local registry and pins the CLI", () => {
   const options = { shadcn: "npx --yes shadcn@4.21.1", address: "/tmp/r/{name}.json" };
   assert.equal(
-    localCommand("x; npx shadcn@latest add ourostack/ouro-ui/dialog#v0.2.0 ourostack/ouro-ui/ouro-lib-tests#v0.2.0 --overwrite", options),
+    localCommand("x; npx shadcn@latest add ourostack/ouro-ui/dialog#{{latestRelease}} ourostack/ouro-ui/ouro-lib-tests#{{latestRelease}} --overwrite", options),
     "x; npx --yes shadcn@4.21.1 add --yes /tmp/r/dialog.json /tmp/r/ouro-lib-tests.json --overwrite",
   );
   assert.equal(localCommand("npx shadcn@latest info --json | node", options), "npx --yes shadcn@4.21.1 info --json | node");
   assert.equal(
-    localCommand("sed -E 's|.*|ourostack/ouro-ui/&#v0.2.0 ourostack/ouro-ui/&-tests#v0.2.0|'", options),
+    localCommand("sed -E 's|.*|ourostack/ouro-ui/&#{{latestRelease}} ourostack/ouro-ui/&-tests#{{latestRelease}}|'", options),
     "sed -E 's|.*|/tmp/r/&.json /tmp/r/&-tests.json|'",
   );
   for (const command of commands) assert.doesNotMatch(localCommand(command, options), /ourostack\/ouro-ui|shadcn@latest/, command);
@@ -142,7 +144,7 @@ for (const shell of shells) {
     const items = args.filter((arg) => arg.startsWith("ourostack/")).sort();
     assert.deepEqual(
       items,
-      ["button", "button-tests", "confirm-dialog", "confirm-dialog-tests", "dialog", "dialog-tests", "ouro-lib-tests"].map((name) => `ourostack/ouro-ui/${name}#v0.2.0`),
+      ["button", "button-tests", "confirm-dialog", "confirm-dialog-tests", "dialog", "dialog-tests", "ouro-lib-tests"].map((name) => `ourostack/ouro-ui/${name}#{{latestRelease}}`),
     );
     assert.ok(args.includes("--overwrite"));
   });

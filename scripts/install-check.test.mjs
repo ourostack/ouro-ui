@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 import { checkComments, checkDirectives, checkInstall, checkLayerOverride, checkSources } from "./install-check.mjs";
 
 // A real installed app is the install job's to build; these cases prove the check fails
@@ -154,7 +155,7 @@ test("a Next.js app passes with the CSS file components.json names and the next 
 });
 
 test("an installed file that lost its source's \"use client\" fails", () => {
-  const root = join(dirname(new URL(import.meta.url).pathname), "..");
+  const root = join(dirname(fileURLToPath(import.meta.url)), "..");
   const dir = mkdtempSync(join(tmpdir(), "ouro-install-check-"));
   const write = (file, text) => {
     mkdirSync(dirname(join(dir, file)), { recursive: true });
