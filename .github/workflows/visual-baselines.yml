@@ -5,6 +5,11 @@
 name: Visual baselines
 on:
   workflow_dispatch:
+  # GitHub dispatches only workflows that exist on the default branch, so the branch
+  # that introduced this workflow ran it on push. Committing baselines does not rerun it.
+  push:
+    branches: ["m1/task-7-*"]
+    paths-ignore: ["src/__screenshots__/**"]
 permissions:
   contents: read
 jobs:
