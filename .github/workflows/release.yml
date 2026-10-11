@@ -166,21 +166,20 @@ jobs:
           # so the required checks report on the PR. GitHub documents the approve endpoint for
           # fork PRs and names only OAuth and classic PAT tokens, so whether GITHUB_TOKEN may
           # call it is untested here; when the approval fails, dispatch CI on the branch (a
-          # signal only; it does not satisfy the ruleset) and leave the exact command for a
-          # person in the job summary and the PR body (AGENTS.md, "Pages and releases").
+          # signal only; it does not satisfy the ruleset); the exact command for a person goes to the
+          # job summary and the PR body first, so a failed dispatch cannot hide it (AGENTS.md, "Pages and releases").
           sha=$(git rev-parse HEAD)
           run=
           for _ in $(seq 24); do
-            run=$(gh run list --workflow ci.yml --branch "$NEXT_BRANCH" --commit "$sha" --event pull_request --json databaseId --jq '.[0].databaseId')
+            run=$(gh run list --workflow ci.yml --branch "$NEXT_BRANCH" --commit "$sha" --event pull_request --json databaseId --jq '.[0].databaseId' || true)
             [ -n "$run" ] && break
-            sleep 5
+            sleep "${POLL_SECONDS:-5}"
           done
           if [ -n "$run" ] && gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$run/approve" >/dev/null; then
             echo "Approved CI run $run on $NEXT_BRANCH; its checks report on the pull request." >> "$GITHUB_STEP_SUMMARY"
           else
             cmd="gh api -X POST repos/$GITHUB_REPOSITORY/actions/runs/${run:-<run id of the pull_request CI run on $NEXT_BRANCH>}/approve"
             echo "::warning::Could not approve the held CI run on $NEXT_BRANCH; the required checks will not report until a person does."
-            gh workflow run ci.yml --ref "$NEXT_BRANCH"
             printf '%s\n' "### Approve CI on the \"Prepare main for the next release\" PR" "" "The required checks run only after a person approves the held CI run:" "" '```sh' "$cmd" '```' >> "$GITHUB_STEP_SUMMARY"
             pr_body=$(gh pr view "$NEXT_BRANCH" --json body --jq .body)
             gh pr edit "$NEXT_BRANCH" --body "$pr_body
@@ -188,6 +187,7 @@ jobs:
           CI for this PR is held until a person approves it. Run:
 
               $cmd"
+            gh workflow run ci.yml --ref "$NEXT_BRANCH" || echo "::warning::Could not dispatch CI on $NEXT_BRANCH either."
           fi
       - if: failure() && steps.check.outputs.new == 'true'
         name: Clean up after a failure

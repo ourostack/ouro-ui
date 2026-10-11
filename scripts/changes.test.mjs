@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -108,7 +108,7 @@ test("release.yml opens the PR that prepares main after the release is published
   // CI is dispatched and the exact approve command goes to the job summary and the PR body.
   assert.match(reset.body, /--event pull_request/);
   assert.match(reset.body, /gh api -X POST "repos\/\$GITHUB_REPOSITORY\/actions\/runs\/\$run\/approve"/);
-  assert.match(reset.body, /else\n[\s\S]*gh workflow run ci\.yml --ref "\$NEXT_BRANCH"[\s\S]*GITHUB_STEP_SUMMARY[\s\S]*gh pr edit "\$NEXT_BRANCH" --body/);
+  assert.match(reset.body, /else\n[\s\S]*GITHUB_STEP_SUMMARY[\s\S]*gh pr edit "\$NEXT_BRANCH" --body[\s\S]*gh workflow run ci\.yml --ref "\$NEXT_BRANCH" \|\| echo "::warning::/);
   assert.match(release, /pull-requests: write/);
 });
 
@@ -121,4 +121,69 @@ test("release.yml advises deleting a tag only when GitHub says its release was n
     assert.match(body, /else\n\s*echo "::error::Could not check the release for \$TAG: \$out"/);
     assert.doesNotMatch(body, />\/dev\/null 2>&1; then\n\s*echo "::error::Tag/);
   }
+});
+
+// Runs the approval part of "Prepare main for the next release" against a stand-in gh and git.
+// MODE: ok (approve works), refuse (approve fails), flaky (the first `run list` fails, then works),
+// nodispatch (approve fails and so does the dispatch).
+const runApproval = (mode) => {
+  const body = step("Prepare main for the next release").body;
+  const from = body.indexOf("          sha=$(git rev-parse HEAD)");
+  assert.notEqual(from, -1);
+  const script = body.slice(from).replace(/^ {10}/gm, "");
+  const dir = mkdtempSync(join(tmpdir(), "ouro-approve-"));
+  const log = join(dir, "calls.log");
+  const summary = join(dir, "summary.md");
+  writeFileSync(
+    join(dir, "gh"),
+    `#!/usr/bin/env bash
+all="$*"; printf '%s\\n' "\${all//$'\\n'/ }" >> "${log}"
+case "$1 $2" in
+  "run list") if [ "$MODE" = flaky ] && [ ! -e "${dir}/once" ]; then : > "${dir}/once"; exit 1; fi; echo 77 ;;
+  "api -X") [ "$MODE" = ok ] || exit 1 ;;
+  "pr view") echo "old body" ;;
+  "workflow run") [ "$MODE" = nodispatch ] && exit 1 ;;
+esac
+exit 0
+`,
+  );
+  writeFileSync(join(dir, "git"), "#!/usr/bin/env bash\necho abc123\n");
+  chmodSync(join(dir, "gh"), 0o755);
+  chmodSync(join(dir, "git"), 0o755);
+  writeFileSync(summary, "");
+  const result = spawnSync("bash", ["-eo", "pipefail", "-c", script], {
+    encoding: "utf8",
+    env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, MODE: mode, POLL_SECONDS: "0", NEXT_BRANCH: "prepare/after-v1.2.3", GITHUB_REPOSITORY: "o/r", GITHUB_STEP_SUMMARY: summary },
+  });
+  return { result, calls: readFileSync(log, "utf8").trim().split("\n"), summary: readFileSync(summary, "utf8") };
+};
+
+test("the approval step approves the held run and does nothing else when GitHub allows it", () => {
+  const { result, calls, summary } = runApproval("ok");
+  assert.equal(result.status, 0, result.stderr);
+  assert.ok(calls.some((c) => c === "api -X POST repos/o/r/actions/runs/77/approve"));
+  assert.ok(!calls.some((c) => c.startsWith("workflow run") || c.startsWith("pr edit")));
+  assert.match(summary, /Approved CI run 77/);
+});
+
+test("the approval step, when the approval is refused, leaves the command in the summary and the PR body, then dispatches", () => {
+  const { result, calls, summary } = runApproval("refuse");
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /::warning::Could not approve the held CI run/);
+  assert.match(summary, /gh api -X POST repos\/o\/r\/actions\/runs\/77\/approve/);
+  const edit = calls.findIndex((c) => c.startsWith("pr edit prepare/after-v1.2.3 --body old body"));
+  assert.notEqual(edit, -1);
+  assert.match(calls[edit], /gh api -X POST repos\/o\/r\/actions\/runs\/77\/approve/);
+  assert.ok(calls.findIndex((c) => c.startsWith("workflow run ci.yml --ref prepare/after-v1.2.3")) > edit);
+});
+
+test("the approval step survives a failed dispatch and a failed first poll", () => {
+  const failed = runApproval("nodispatch");
+  assert.equal(failed.result.status, 0, failed.result.stderr);
+  assert.match(failed.result.stdout, /::warning::Could not dispatch CI/);
+  assert.match(failed.summary, /approve/);
+  const flaky = runApproval("flaky");
+  assert.equal(flaky.result.status, 0, flaky.result.stderr);
+  assert.equal(flaky.calls.filter((c) => c.startsWith("run list")).length, 2);
+  assert.match(flaky.calls.join("\n"), /runs\/77\/approve/);
 });
