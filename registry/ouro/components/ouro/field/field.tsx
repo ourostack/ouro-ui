@@ -25,7 +25,7 @@ export interface FieldProps {
   description?: ReactNode | undefined;
   /**
    * What is wrong, from your server action or client check. A message (or several, as a
-   * list) shows under the control, which gets `aria-invalid` and points at the message
+   * list, each shown once) shows under the control, which gets `aria-invalid` and points at the message
    * with `aria-describedby`. An empty string or array means valid.
    */
   error?: string | string[] | undefined;
@@ -64,10 +64,10 @@ export interface FieldProps {
   placeholder?: { 'Use label="Email"; a placeholder example goes on the control': never };
 }
 
-/** The messages in an `error` prop, without empty ones. */
+/** The messages in an `error` prop, without empty ones or repeats (merged validators can repeat one). */
 function messagesOf(error: string | string[] | undefined): string[] {
   if (error === undefined) return [];
-  return (Array.isArray(error) ? error : [error]).filter((message) => message !== "");
+  return [...new Set(Array.isArray(error) ? error : [error])].filter((message) => message !== "");
 }
 
 /** The label is connected when its `for` names an element inside the field. Development only. */

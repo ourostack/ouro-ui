@@ -34,7 +34,7 @@ Type: `FieldProps`.
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-4`, `col-span-2`). Appearance classes warn in development; style fields in your theme. |
 | `description` | `ReactNode` |  | Supporting text under the label, read after the label through `aria-describedby`. |
 | `disabled` | `boolean` |  | Disables the control and fades the field. |
-| `error` | `string \| string[]` |  | What is wrong, from your server action or client check. A message (or several, as a list) shows under the control, which gets `aria-invalid` and points at the message with `aria-describedby`. An empty string or array means valid. |
+| `error` | `string \| string[]` |  | What is wrong, from your server action or client check. A message (or several, as a list, each shown once) shows under the control, which gets `aria-invalid` and points at the message with `aria-describedby`. An empty string or array means valid. |
 | `hideLabel` | `boolean` |  | Hides the label visually; screen readers still read it as the control's name. |
 | `label` (required) | `string` |  | What the control is for, shown above it and read as its name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. |
 | `name` | `string` |  | The form field name the control submits under. A Base UI `Form`'s `errors` for this name show here without an `error` prop. |

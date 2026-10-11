@@ -18,7 +18,7 @@ export interface FieldsetProps {
   hideLegend?: boolean | undefined;
   /** Supporting text under the legend, read after it through `aria-describedby`. */
   description?: ReactNode | undefined;
-  /** Disables every control inside, including each `Field`, and fades the legend. */
+  /** Disables every native control and every `Field` inside it, and fades the legend. */
   disabled?: boolean | undefined;
   /** The fields and controls in the group. */
   children: ReactNode;
@@ -31,7 +31,7 @@ export interface FieldsetProps {
 
 /**
  * A titled group of related fields, such as an address, rendered as a `<fieldset>` named
- * by its legend. `disabled` disables every control inside it at once.
+ * by its legend. `disabled` disables every native control and every `Field` inside it at once.
  *
  * Use `Field` instead for a single control. A group of checkboxes or radios that make one
  * choice uses their group component, which takes the same `legend`.

@@ -52,7 +52,9 @@ export type FieldRootProps = Omit<BaseField.Root.Props, "className"> & {
  * Part: the state owner of a field built from parts. It connects the label, description
  * and error to the control, and passes `name`, `disabled` and `required` down. Use the
  * `Field` component instead unless its props cannot express your layout; every Ouro form
- * control is built on these parts.
+ * control is built on these parts. Parts link the description and error after hydration;
+ * use `Field` when the server HTML must carry them, or pass `id`s and `aria-describedby`
+ * yourself.
  *
  * @example
  * <FieldRoot name="email" required>

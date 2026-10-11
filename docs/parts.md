@@ -8,7 +8,7 @@ Each part checks that it sits inside its root and, in development, throws a mess
 
 ## Field parts
 
-The state owner of a field built from parts. It connects the label, description and error to the control, and passes `name`, `disabled` and `required` down. Use the `Field` component instead unless its props cannot express your layout; every Ouro form control is built on these parts.
+The state owner of a field built from parts. It connects the label, description and error to the control, and passes `name`, `disabled` and `required` down. Use the `Field` component instead unless its props cannot express your layout; every Ouro form control is built on these parts. Parts link the description and error after hydration; use `Field` when the server HTML must carry them, or pass `id`s and `aria-describedby` yourself.
 
 ```tsx
 import {
@@ -39,7 +39,7 @@ Each part checks that it sits inside `<FieldRoot>`. Outside it, a part throws in
 | `FieldDescription` | Supporting text for the control, read after its label through `aria-describedby`. |
 | `FieldError` | The error message, linked to the control through `aria-describedby`. Without children it shows the browser's validation message, or a Base UI `Form` error for the field's `name`; with `match` and children it always shows them. It fades and slides in. |
 | `FieldLabel` | The control's label. It points at the control by id, and a required field adds a marker that screen readers skip (they hear "required" from the control). Hide it visually with `className="sr-only"`. |
-| `FieldRoot` | The state owner of a field built from parts. It connects the label, description and error to the control, and passes `name`, `disabled` and `required` down. Use the `Field` component instead unless its props cannot express your layout; every Ouro form control is built on these parts. |
+| `FieldRoot` | The state owner of a field built from parts. It connects the label, description and error to the control, and passes `name`, `disabled` and `required` down. Use the `Field` component instead unless its props cannot express your layout; every Ouro form control is built on these parts. Parts link the description and error after hydration; use `Field` when the server HTML must carry them, or pass `id`s and `aria-describedby` yourself. |
 
 ## Dialog parts
 

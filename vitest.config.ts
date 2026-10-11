@@ -23,6 +23,7 @@ export default defineConfig({
     include: [
       "@base-ui/react/alert-dialog",
       "@base-ui/react/button",
+      "@base-ui/react/checkbox",
       "@base-ui/react/dialog",
       "@base-ui/react/drawer",
       "@base-ui/react/field",

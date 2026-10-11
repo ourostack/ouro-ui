@@ -2,7 +2,7 @@
 
 # Fieldset
 
-A titled group of related fields, such as an address, rendered as a `<fieldset>` named by its legend. `disabled` disables every control inside it at once.
+A titled group of related fields, such as an address, rendered as a `<fieldset>` named by its legend. `disabled` disables every native control and every `Field` inside it at once.
 
 ```tsx
 import { Fieldset } from "@/registry/ouro/components/ouro/field/fieldset";
@@ -34,7 +34,7 @@ Type: `FieldsetProps`.
 | `children` (required) | `ReactNode` |  | The fields and controls in the group. |
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-6`). Appearance classes warn in development. |
 | `description` | `ReactNode` |  | Supporting text under the legend, read after it through `aria-describedby`. |
-| `disabled` | `boolean` |  | Disables every control inside, including each `Field`, and fades the legend. |
+| `disabled` | `boolean` |  | Disables every native control and every `Field` inside it, and fades the legend. |
 | `hideLegend` | `boolean` |  | Hides the legend visually; screen readers still read it as the group's name. |
 | `legend` (required) | `string` |  | What the group is, shown above it and read as the group's name. Required: a group of controls needs a name. To hide it visually, keep it and add `hideLegend`. |
 

@@ -883,6 +883,7 @@
       "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for fieldset, with the test tooling as devDependencies. Add it beside fieldset: add fieldset fieldset-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
       "docs": "fieldset's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/fieldset.md",
       "devDependencies": [
+        "@base-ui/react@^1.8.0",
         "@playwright/test@^1.63.0",
         "@storybook/react-vite@^10.6.1",
         "storybook@^10.6.1",

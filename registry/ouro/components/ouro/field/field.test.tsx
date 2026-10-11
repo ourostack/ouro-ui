@@ -140,6 +140,27 @@ describe("Field wiring", () => {
     expect(describedBy(input)).toContain(error.id);
   });
 
+  it("shows a repeated message once, with no key warning", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { host } = await render(
+      <Field label="Email" error={["Required.", "Required.", "Use a full address."]}>
+        <FieldControl />
+      </Field>,
+    );
+    expect([...host.querySelectorAll("li")].map((li) => li.textContent)).toEqual(["Required.", "Use a full address."]);
+    expect(error).not.toHaveBeenCalled();
+  });
+
+  it("shows two copies of one message as that message", async () => {
+    const { host } = await render(
+      <Field label="Email" error={["Required.", "Required."]}>
+        <FieldControl />
+      </Field>,
+    );
+    expect(host.querySelector("ul")).toBeNull();
+    expect(host.textContent).toContain("Required.");
+  });
+
   it("treats an empty error array as valid", async () => {
     const { input } = await render(
       <Field label="Email" error={[]}>

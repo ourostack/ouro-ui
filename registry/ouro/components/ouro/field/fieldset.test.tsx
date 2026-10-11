@@ -4,7 +4,8 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page } from "vitest/browser";
 import { Field } from "@/registry/ouro/components/ouro/field/field";
-import { FieldControl } from "@/registry/ouro/components/ouro/field/field-parts";
+import { Checkbox } from "@base-ui/react/checkbox";
+import { FieldControl, FieldLabel, FieldRoot } from "@/registry/ouro/components/ouro/field/field-parts";
 import { Fieldset } from "@/registry/ouro/components/ouro/field/fieldset";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -81,6 +82,21 @@ describe("Fieldset", () => {
     expect(controls).toHaveLength(3);
     for (const control of controls) expect(control.matches(":disabled")).toBe(true);
     for (const field of host.querySelectorAll('[data-ouro="field"]')) expect(field.hasAttribute("data-disabled")).toBe(true);
+  });
+
+  it("disables a Base UI control in a FieldRoot, which is not a native control", async () => {
+    const { host } = await render(
+      <Fieldset legend="Preferences" disabled>
+        <FieldRoot name="newsletter">
+          <Checkbox.Root aria-label="Newsletter" />
+          <FieldLabel>Newsletter</FieldLabel>
+        </FieldRoot>
+      </Fieldset>,
+    );
+    const checkbox = host.querySelector<HTMLElement>('[role="checkbox"]')!;
+    expect(checkbox.getAttribute("aria-disabled")).toBe("true");
+    expect(checkbox.hasAttribute("data-disabled")).toBe(true);
+    expect(checkbox.tabIndex).toBe(-1);
   });
 
   it("leaves controls enabled by default", async () => {
