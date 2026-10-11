@@ -62,6 +62,36 @@ it("follows the content as it grows and shrinks", async () => {
   expect(scroller(host).hasAttribute("tabindex")).toBe(false);
 });
 
+it("follows a lone text child as its text grows (React sets nodeValue)", async () => {
+  function TextScroller({ words }: { words: number }) {
+    const ref = useKeyboardScrollable<HTMLDivElement>(true);
+    return (
+      <div ref={ref} data-scroller="" style={{ height: 100, width: 200, overflowY: "auto", scrollbarWidth: "none" }}>
+        {"word ".repeat(words)}
+      </div>
+    );
+  }
+  const { host, rerender } = await render(<TextScroller words={1} />);
+  // Let the ResizeObserver deliver its first notification, so only the text change remains.
+  await frames();
+  expect(scroller(host).hasAttribute("tabindex")).toBe(false);
+  await rerender(<TextScroller words={200} />);
+  await frames();
+  expect(scroller(host).getAttribute("tabindex")).toBe("0");
+});
+
+it("keeps the tab stop while the body has focus, and drops it on blur once the content fits", async () => {
+  const { host, rerender } = await render(<Scroller lines={10} />);
+  scroller(host).focus();
+  expect(document.activeElement).toBe(scroller(host));
+  await rerender(<Scroller lines={1} />);
+  await frames();
+  expect(document.activeElement).toBe(scroller(host));
+  expect(scroller(host).getAttribute("tabindex")).toBe("0");
+  scroller(host).blur();
+  expect(scroller(host).hasAttribute("tabindex")).toBe(false);
+});
+
 it("follows the container as it resizes", async () => {
   function Resizable() {
     const [tall, setTall] = useState(false);

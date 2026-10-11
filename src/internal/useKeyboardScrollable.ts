@@ -20,10 +20,14 @@ export function useKeyboardScrollable<T extends HTMLElement>(enabled: boolean): 
       if (!element || !enabled) return;
       const update = () => {
         if (element.scrollHeight > element.clientHeight) element.setAttribute("tabindex", "0");
-        else element.removeAttribute("tabindex");
+        // Removing the tab stop from the focused element would drop focus to
+        // <body>, out of the dialog; keep it until focus leaves (see blur below).
+        else if (element !== element.ownerDocument.activeElement) element.removeAttribute("tabindex");
       };
       // The container resizes with the viewport; its content changes size as
-      // children come and go, so watch the container and each child.
+      // children come and go and as text changes (React updates a lone text
+      // child through nodeValue, which no box resize reports), so watch the
+      // container, each child, and every mutation below it.
       const resize = new ResizeObserver(update);
       const observe = () => {
         resize.disconnect();
@@ -35,11 +39,13 @@ export function useKeyboardScrollable<T extends HTMLElement>(enabled: boolean): 
         update();
       });
       observe();
-      children.observe(element, { childList: true });
+      children.observe(element, { childList: true, subtree: true, characterData: true });
+      element.addEventListener("blur", update);
       update();
       return () => {
         resize.disconnect();
         children.disconnect();
+        element.removeEventListener("blur", update);
       };
     },
     [enabled],
