@@ -96,7 +96,7 @@ export function DocsIndex(): JSX.Element {
       <PageTitle
         eyebrow="Docs"
         title="Components"
-        lead="Every Ouro UI component, with a live demo, install commands, its props and what to use instead. The same docs live in each component's JSDoc, so your editor and your agent see them too."
+        lead="Every Ouro UI component, with a live demo, install commands, its props and what to use instead. The same docs live in each component's JSDoc, so an agent reading the installed source sees them too."
       />
       {groups.map((group) => (
         <section key={group} aria-labelledby={`group-${group}`} className="mt-10">
@@ -201,7 +201,7 @@ Ouro components read shadcn's variables (\`--primary\`, \`--muted-foreground\`, 
 
 ## If you miss one
 
-Each shadcn spelling Ouro UI doesn't use is typed \`never\`, so the type check fails on it, and in development the console names the fix:
+Shadcn's prop names that Ouro UI doesn't use are typed \`never\`, and its variant values aren't in Ouro's types, so the type check fails on both. In development, Button's console message names the fix for each guard prop and each shadcn variant:
 `;
 
 export function Switching(): JSX.Element {

@@ -3,7 +3,7 @@ import { renderToString } from "react-dom/server";
 import { App } from "./app";
 
 export { routes, routeFor } from "./routes";
-export { docsItems } from "./docs/items";
+export { docsItems, installedPaths } from "./docs/items";
 
 /** The HTML for one route, for site/scripts/prerender.mts. */
 export function render(path: string): string {

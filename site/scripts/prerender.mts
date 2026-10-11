@@ -2,9 +2,9 @@
 // docs URL a registry item points to) is complete without JavaScript, then hydrates.
 //
 // Reads the client build in site/dist and the server bundle in .tmp/site-ssr; writes
-// site/dist/<route>/index.html, site/dist/404.html and site/dist/docs/<name>.md (the
-// generated Markdown, for agents that prefer it).
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+// site/dist/<route>/index.html, site/dist/404.html and site/dist/docs/<name>.md and
+// docs/parts.md (the generated Markdown with installed paths, for agents that prefer it).
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -18,8 +18,9 @@ interface Route {
   title: string;
   description: string;
 }
-const { render, routes, docsItems } = (await import(pathToFileURL(server).href)) as {
+const { render, routes, docsItems, installedPaths } = (await import(pathToFileURL(server).href)) as {
   render: (path: string) => string;
+  installedPaths: (markdown: string) => string;
   routes: Route[];
   docsItems: Array<{ name: string; title: string }>;
 };
@@ -49,11 +50,19 @@ writeFileSync(
   join(dist, "404.html"),
   page({ path: "/404/", title: "Page not found · Ouro UI", description: "That page isn't here." }, "/404/", false),
 );
-for (const item of docsItems) copyFileSync(join(repo, "docs", `${item.title}.md`), join(dist, "docs", `${item.name}.md`));
+// The published Markdown shows installed paths (`@/components/ouro/...`), as the HTML pages
+// do, and parts.md is published beside it so each page's link to it resolves.
+for (const item of docsItems) {
+  writeFileSync(join(dist, "docs", `${item.name}.md`), installedPaths(readFileSync(join(repo, "docs", `${item.title}.md`), "utf8")));
+}
+writeFileSync(join(dist, "docs", "parts.md"), installedPaths(readFileSync(join(repo, "docs", "parts.md"), "utf8")));
 
 // The built site must have a page at every docs URL the registry advertises.
 for (const item of docsItems) {
   const file = join(dist, "docs", item.name, "index.html");
   if (!existsSync(file) || !readFileSync(file, "utf8").includes(`>${item.title}</h1>`)) throw new Error(`no docs page for ${item.name}`);
 }
-console.log(`prerendered ${routes.length} routes, 404.html and ${docsItems.length} Markdown docs into site/dist`);
+for (const file of [...docsItems.map((item) => `${item.name}.md`), "parts.md"]) {
+  if (readFileSync(join(dist, "docs", file), "utf8").includes("@/registry/")) throw new Error(`docs/${file} still has registry paths`);
+}
+console.log(`prerendered ${routes.length} routes, 404.html and ${docsItems.length + 1} Markdown docs into site/dist`);

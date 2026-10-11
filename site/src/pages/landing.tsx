@@ -110,7 +110,7 @@ function Agents(): JSX.Element {
         <Text size="lg" tone="muted" className="mt-4 max-w-[42rem]">
           An agent that learned on shadcn/ui writes what it knows. Ouro UI answers where the agent already looks: the type
           check, the source it just installed, and the console. Every message here is real output from the code,
-          regenerated whenever it changes.
+          checked against the code on every CI run.
         </Text>
         <ol className="m-0 mt-12 grid list-none gap-5 p-0">
           {agentExamples.map((example) => (
@@ -154,8 +154,9 @@ const principles: Array<{ title: string; body: ReactNode }> = [
     title: "Named appearance",
     body: (
       <>
-        <InlineCode>tone</InlineCode>, <InlineCode>variant</InlineCode> and <InlineCode>size</InlineCode> use the theme's token
-        names, so there is one vocabulary and no color names.
+        <InlineCode>tone</InlineCode> values are the theme's token names (<InlineCode>primary</InlineCode> reads{" "}
+        <InlineCode>--primary</InlineCode>), and <InlineCode>variant</InlineCode> and <InlineCode>size</InlineCode> are named
+        options, so there is one vocabulary and no color names.
       </>
     ),
   },
