@@ -89,7 +89,7 @@ describe("docs", () => {
     await expect.element(page.getByText("npx shadcn@latest add @ouro/sheet @ouro/sheet-tests --overwrite", { exact: true })).toBeVisible();
     await expect.element(page.getByText("npx shadcn@latest add ourostack/ouro-ui/sheet#v0.2.0", { exact: true })).toBeVisible();
     await expect.element(page.getByRole("heading", { name: "Upgrading from v0.1.0", level: 2 })).toBeVisible();
-    expect(upgradeCommands.length).toBeGreaterThan(3);
+    expect(upgradeCommands.length).toBeGreaterThanOrEqual(3);
     for (const command of upgradeCommands) await expect.element(page.getByText(command, { exact: true })).toBeVisible();
     await expect.element(page.getByRole("heading", { name: "1. Update every Ouro component, with its tests", level: 3 })).toBeVisible();
     await expect.element(page.getByText("useOuro", { exact: true })).toBeVisible();

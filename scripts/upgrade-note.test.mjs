@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -57,27 +58,137 @@ test("the upgrade install test runs the note's commands and copies none", () => 
   for (const command of commands) assert.ok(!script.includes(command), `install-test.sh copies ${command}`);
 });
 
+test("the commands find the app's folders through shadcn, never a hard-coded src/", () => {
+  for (const command of commands) assert.doesNotMatch(command, /(^|[\s"'])\.?\/?src\//, command);
+  for (const number of [1, 2, 3]) {
+    const text = steps(note).find((step) => step.number === number).commands.join("\n");
+    assert.match(text, /npx shadcn@latest info --json/, `step ${number}`);
+  }
+  assert.doesNotMatch(note, /assume[s]? .*`src\/`/, "the note still asks readers to swap src/");
+});
+
 test("the commands delete only paths Ouro owns and uninstall nothing", () => {
   for (const command of commands) {
     assert.doesNotMatch(command, /\b(npm|pnpm|yarn|bun) (uninstall|remove)\b/, command);
     assert.doesNotMatch(command, /\brm\b/, command);
     if (!command.includes("-delete")) continue;
-    const paths = command.replace(/^find /, "").split(/ \\\(| -delete/)[0].trim().split(/\s+/);
-    for (const path of paths) assert.match(path, /^(src\/components\/ouro|src\/lib\/ouro|src\/lib\/ouro\/testing|e2e\/ouro)$/, command);
+    assert.match(command, /c="\$\(p components\)\/ouro"/, command);
+    assert.match(command, /l="\$\(p lib\)\/ouro"/, command);
+    for (const call of command.matchAll(/\bfind ((?:(?!\\\(|-delete).)*)/g)) {
+      for (const path of call[1].trim().split(/\s+/)) assert.match(path, /^("\$c"|"\$l"|"\$l\/testing"|e2e\/ouro)$/, command);
+    }
   }
 });
 
 test("localCommand points the note's addresses at a local registry and pins the CLI", () => {
   const options = { shadcn: "npx --yes shadcn@4.21.1", address: "/tmp/r/{name}.json" };
   assert.equal(
-    localCommand("npx shadcn@latest add ourostack/ouro-ui/dialog#v0.2.0 ourostack/ouro-ui/ouro-lib-tests#v0.2.0 --overwrite", options),
-    "npx --yes shadcn@4.21.1 add --yes /tmp/r/dialog.json /tmp/r/ouro-lib-tests.json --overwrite",
+    localCommand("x; npx shadcn@latest add ourostack/ouro-ui/dialog#v0.2.0 ourostack/ouro-ui/ouro-lib-tests#v0.2.0 --overwrite", options),
+    "x; npx --yes shadcn@4.21.1 add --yes /tmp/r/dialog.json /tmp/r/ouro-lib-tests.json --overwrite",
   );
+  assert.equal(localCommand("npx shadcn@latest info --json | node", options), "npx --yes shadcn@4.21.1 info --json | node");
   assert.equal(
-    localCommand("sed -E 's|.*/(.*)\\.tsx$|ourostack/ouro-ui/\\1#v0.2.0 ourostack/ouro-ui/\\1-tests#v0.2.0|'", options),
-    "sed -E 's|.*/(.*)\\.tsx$|/tmp/r/\\1.json /tmp/r/\\1-tests.json|'",
+    localCommand("sed -E 's|.*|ourostack/ouro-ui/&#v0.2.0 ourostack/ouro-ui/&-tests#v0.2.0|'", options),
+    "sed -E 's|.*|/tmp/r/&.json /tmp/r/&-tests.json|'",
   );
   for (const command of commands) assert.doesNotMatch(localCommand(command, options), /ourostack\/ouro-ui|shadcn@latest/, command);
+});
+
+// The commands, run for real in a scratch app whose `npx` is a stand-in: `info --json`
+// reports the app's resolved folders (an app/ layout here), and `add` is only recorded.
+function scratchApp(componentFiles) {
+  const app = mkdtempSync(join(tmpdir(), "ouro-upgrade-"));
+  const bin = join(app, ".bin");
+  mkdirSync(bin);
+  const resolved = { components: join(app, "app/components"), lib: join(app, "app/lib"), tailwindCss: join(app, "app/styles/tailwind.css") };
+  writeFileSync(join(app, "info.json"), JSON.stringify({ config: { resolvedPaths: resolved } }));
+  writeFileSync(
+    join(bin, "npx"),
+    `#!/bin/sh\ncase "$*" in\n  *" info --json") cat "${join(app, "info.json")}" ;;\n  *" add "*) echo "$*" >>"${join(app, "added.log")}" ;;\n  *) exit 9 ;;\nesac\n`,
+  );
+  chmodSync(join(bin, "npx"), 0o755);
+  for (const file of componentFiles) {
+    mkdirSync(dirname(join(app, file)), { recursive: true });
+    writeFileSync(join(app, file), "export {};\n");
+  }
+  const run = (number, shell = "bash") => {
+    const step = steps(note).find((item) => item.number === number);
+    return spawnSync(shell, ["-c", step.commands.join("\n")], {
+      cwd: app,
+      encoding: "utf8",
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+    });
+  };
+  const added = () => (existsSync(join(app, "added.log")) ? readFileSync(join(app, "added.log"), "utf8") : "");
+  return { app, run, added };
+}
+
+const shells = ["bash", ...(spawnSync("zsh", ["-c", "true"]).status === 0 ? ["zsh"] : [])];
+
+for (const shell of shells) {
+  test(`step 1 adds every component file's item and its tests (${shell})`, () => {
+    const { run, added } = scratchApp([
+      "app/components/ouro/dialog/dialog.tsx",
+      "app/components/ouro/dialog/dialog-parts.tsx",
+      "app/components/ouro/dialog/confirm-dialog.tsx",
+      "app/components/ouro/dialog/dialog.test.tsx",
+      "app/components/ouro/dialog/dialog.stories.tsx",
+      "app/components/ouro/button/button.tsx",
+      "app/components/ui/button.tsx",
+    ]);
+    const result = run(1, shell);
+    assert.equal(result.status, 0, result.stderr);
+    const args = added().trim().split(/\s+/);
+    const items = args.filter((arg) => arg.startsWith("ourostack/")).sort();
+    assert.deepEqual(
+      items,
+      ["button", "button-tests", "confirm-dialog", "confirm-dialog-tests", "dialog", "dialog-tests", "ouro-lib-tests"].map((name) => `ourostack/ouro-ui/${name}#v0.2.0`),
+    );
+    assert.ok(args.includes("--overwrite"));
+  });
+
+  test(`step 1 stops before calling shadcn add when it finds no Ouro component (${shell})`, () => {
+    const { run, added } = scratchApp(["src/components/ouro/dialog/dialog.tsx"]);
+    const result = run(1, shell);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /No Ouro components? in .*app\/components\/ouro/);
+    assert.equal(added(), "");
+  });
+}
+
+test("step 3 deletes Ouro's test files and kit, and nothing of the app's", () => {
+  const ouroTests = [
+    "app/components/ouro/dialog/dialog.test.tsx",
+    "app/components/ouro/dialog/dialog.touch.test.tsx",
+    "app/components/ouro/dialog/dialog.test-d.ts",
+    "app/components/ouro/dialog/dialog.stories.tsx",
+    "app/lib/ouro/cn.test.ts",
+    "app/lib/ouro/testing/vitest.ts",
+    "e2e/ouro/dialog.spec.ts",
+  ];
+  const kept = [
+    "app/components/ouro/dialog/dialog.tsx",
+    "app/lib/ouro/cn.ts",
+    "app/own/own.test.ts",
+    "app/components/ui/button.stories.tsx",
+    "e2e/app.spec.ts",
+    "vitest.config.ts",
+    "playwright.config.ts",
+    ".storybook/main.ts",
+  ];
+  const { app, run } = scratchApp([...ouroTests, ...kept]);
+  const result = run(3);
+  assert.equal(result.status, 0, result.stderr);
+  for (const file of ouroTests) assert.ok(!existsSync(join(app, file)), `${file} is left`);
+  assert.ok(!existsSync(join(app, "app/lib/ouro/testing")));
+  for (const file of kept) assert.ok(existsSync(join(app, file)), `${file} was deleted`);
+});
+
+test("step 3 stops when it finds no Ouro folders", () => {
+  const { app, run } = scratchApp(["src/components/ouro/dialog/dialog.test.tsx"]);
+  const result = run(3);
+  assert.notEqual(result.status, 0);
+  assert.ok(existsSync(join(app, "src/components/ouro/dialog/dialog.test.tsx")));
 });
 
 test("the CLI prints one step's commands for the install test", () => {
@@ -89,6 +200,8 @@ test("the CLI prints one step's commands for the install test", () => {
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(
     result.stdout.trim().split("\n"),
-    steps(note).find((step) => step.number === 3).commands,
+    steps(note)
+      .find((step) => step.number === 3)
+      .commands.map((command) => localCommand(command, { shadcn: "npx shadcn", address: "r/{name}.json" })),
   );
 });

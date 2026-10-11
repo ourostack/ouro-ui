@@ -5,7 +5,8 @@
 //   node scripts/upgrade-note.mjs commands <step> --shadcn "<cli>" --address "<path with {name}>"
 //
 // prints step <step>'s commands, one per line, with each ourostack/ouro-ui/<item>#v0.2.0
-// address pointed at a local registry file and `npx shadcn@latest add` at a pinned CLI.
+// address pointed at a local registry file and `npx shadcn@latest` at a pinned CLI (`add`
+// also gets --yes).
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -37,7 +38,8 @@ export function steps(markdown) {
 /** A note command, run against a local registry with a pinned, non-interactive CLI. */
 export function localCommand(command, { shadcn, address }) {
   return command
-    .replace(/^npx shadcn@latest add /, `${shadcn} add --yes `)
+    .replaceAll("npx shadcn@latest add ", `${shadcn} add --yes `)
+    .replaceAll("npx shadcn@latest ", `${shadcn} `)
     .replace(/ourostack\/ouro-ui\/([^\s#"'|]+)#v0\.2\.0/g, (_, name) => address.replace("{name}", name));
 }
 
