@@ -4,7 +4,10 @@ name: Release
 # (scripts/registry.mts --release), so `shadcn add ourostack/ouro-ui/<item>#v<version>`
 # installs every Ouro dependency at that tag while main stays unpinned. CI runs on that
 # commit; when it passes, the commit is tagged, the GitHub release is created and the
-# branch is deleted (the tag keeps the commit). Rerunning is safe: a released tag exits
+# branch is deleted (the tag keeps the commit). Because main never receives the release
+# commit, the run then opens "Start CHANGES.md for the next release" against main, and the
+# next release refuses to start while CHANGES.md lists no change or still lists this
+# release's (scripts/changes.mjs). Rerunning is safe: a released tag exits
 # cleanly, a tag without a release fails with the fix, and a failed run deletes its
 # branch. Recovery: AGENTS.md, "Pages and releases".
 on:
@@ -15,7 +18,8 @@ on:
         required: true
 permissions:
   contents: write # push the release branch and the tag, create the release
-  actions: write # run CI on the release branch
+  actions: write # run CI on the release branch and the CHANGES.md branch
+  pull-requests: write # open the PR that starts CHANGES.md for the next release
 concurrency:
   group: release
   cancel-in-progress: false
@@ -47,6 +51,7 @@ jobs:
           sha=$(git rev-parse HEAD)
           conclusion=$(gh run list --workflow ci.yml --branch main --event push --commit "$sha" --json conclusion --jq '.[0].conclusion')
           [ "$conclusion" = success ] || { echo "::error::CI on main ($sha) is '${conclusion:-not run}', not success"; exit 1; }
+          echo "MAIN_SHA=$sha" >> "$GITHUB_ENV"
           echo "new=true" >> "$GITHUB_OUTPUT"
       - if: steps.check.outputs.new == 'true'
         uses: pnpm/action-setup@v4
@@ -57,6 +62,12 @@ jobs:
           cache: pnpm
       - if: steps.check.outputs.new == 'true'
         run: pnpm i --frozen-lockfile
+      - if: steps.check.outputs.new == 'true'
+        name: Check CHANGES.md
+        run: |
+          # The newest release's notes, or nothing before the first release.
+          gh release view --json body --jq .body > "$RUNNER_TEMP/last-notes.md" 2>/dev/null || : > "$RUNNER_TEMP/last-notes.md"
+          node scripts/changes.mjs check CHANGES.md "$RUNNER_TEMP/last-notes.md"
       - if: steps.check.outputs.new == 'true'
         name: Push the release branch
         run: |
@@ -93,11 +104,9 @@ jobs:
             echo
             echo "The tests, stories and specs are optional, one item per component: \`npx shadcn@latest add ourostack/ouro-ui/dialog#$TAG ourostack/ouro-ui/dialog-tests#$TAG\`, or \`ourostack/ouro-ui/ouro-tests#$TAG\` for all of them. List every item with \`npx shadcn@latest search 'ourostack/ouro-ui#$TAG'\`."
             echo
-            # CHANGES.md lists what this release changes in behaviour; empty it after a release.
-            if [ -s CHANGES.md ]; then
-              sed -e '1s/^# /### /' CHANGES.md
-              echo
-            fi
+            # CHANGES.md lists what this release changes in behaviour ("Check CHANGES.md").
+            sed -e '1s/^# /### /' CHANGES.md
+            echo
             # Remove this note once v0.1.0 is no longer in use.
             # UPGRADING.md is the note (README.md and the site copy it); its addresses get this tag.
             sed -e '1s/^# /### /' -e "s/#v0\.2\.0/#$TAG/g" UPGRADING.md
@@ -118,6 +127,24 @@ jobs:
           } > "$RUNNER_TEMP/notes.md"
           gh release create "$TAG" --verify-tag --title "$TAG" --notes-file "$RUNNER_TEMP/notes.md"
           git push origin --delete "$BRANCH"
+      - if: steps.check.outputs.new == 'true'
+        name: Start CHANGES.md for the next release
+        env:
+          NEXT_BRANCH: changes/after-v${{ inputs.version }}
+        run: |
+          # Main still lists this release's changes, because the release commit never reaches
+          # it. Start the file on a branch off the released main commit, so a line added to
+          # main's CHANGES.md during the release shows as a conflict instead of being dropped.
+          # If this step fails, the release stands; open the PR by hand ("Check CHANGES.md"
+          # stops the next release until main's CHANGES.md is started again).
+          git switch -c "$NEXT_BRANCH" "$MAIN_SHA"
+          node scripts/changes.mjs reset CHANGES.md
+          git commit -am "Start CHANGES.md for the next release"
+          git push --force origin "$NEXT_BRANCH"
+          gh pr create --base main --head "$NEXT_BRANCH" --title "Start CHANGES.md for the next release" \
+            --body "$TAG is released with these changes in its notes, so CHANGES.md starts again for the next release. Merge this before adding the next release's changes."
+          # A PR opened with GITHUB_TOKEN starts no pull_request workflow, so run CI on its branch.
+          gh workflow run ci.yml --ref "$NEXT_BRANCH"
       - if: failure() && steps.check.outputs.new == 'true'
         name: Clean up after a failure
         run: |
