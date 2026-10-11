@@ -89,6 +89,26 @@ export default defineConfig({
           },
         },
       },
+      {
+        // The landing page and docs site (site/), rendered at the widths it is built for. It
+        // declares its own Vite setup, matching site/vite.config.ts, rather than sharing the
+        // registry projects'.
+        plugins: [react(), tailwindcss()],
+        resolve: { alias: { "@": fileURLToPath(new URL(".", import.meta.url)) } },
+        optimizeDeps: { include: ["@base-ui/react/alert-dialog", "@base-ui/react/button", "@base-ui/react/dialog", "@base-ui/react/drawer"] },
+        test: {
+          name: "site",
+          setupFiles: ["./site/test/setup.ts"],
+          include: ["site/**/*.test.{ts,tsx}"],
+          browser: {
+            enabled: true,
+            headless: true,
+            provider: playwright(),
+            instances: [{ browser: "chromium" }],
+            commands,
+          },
+        },
+      },
       ...(visual
         ? [
             {

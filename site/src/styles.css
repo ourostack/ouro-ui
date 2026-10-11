@@ -1,0 +1,44 @@
+/*
+ * The site is an app like any other that installed Ouro UI: it uses the repository's
+ * app.css (Tailwind, ouro-base.css, the Ouro theme and shadcn's @theme mapping) and adds
+ * its own source files to what Tailwind scans.
+ */
+@import "../../app.css";
+
+@source "./";
+
+@theme {
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+:root {
+  color-scheme: light;
+  /* The phone frame around the live demo. */
+  --site-bezel: #1c1c1f;
+  --site-code: color-mix(in oklab, var(--muted) 70%, var(--background));
+}
+
+.dark {
+  color-scheme: dark;
+  --site-bezel: #2a2a2f;
+  --site-code: #121215;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+  body {
+    @apply m-0 font-sans antialiased;
+  }
+  :target {
+    scroll-margin-top: 1.5rem;
+  }
+}

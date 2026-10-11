@@ -28,7 +28,11 @@
     "lint": "eslint .",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "test:scripts": "node --test scripts/dev-strip.test.mjs scripts/gen-docs.test.mjs"
+    "site:dev": "vite --config site/vite.config.ts",
+    "site:build": "node site/scripts/agent-messages.mts --check && vite build --config site/vite.config.ts && vite build --config site/vite.config.ts --ssr src/entry-server.tsx --outDir ../.tmp/site-ssr && node site/scripts/prerender.mts",
+    "site:preview": "vite preview --config site/vite.config.ts",
+    "site:messages": "node site/scripts/agent-messages.mts",
+    "test:scripts": "node --test scripts/dev-strip.test.mjs scripts/gen-docs.test.mjs site/scripts/agent-messages.test.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
