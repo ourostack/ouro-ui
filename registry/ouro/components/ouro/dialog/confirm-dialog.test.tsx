@@ -116,10 +116,14 @@ describe("ConfirmDialog", () => {
   });
 
   it("shows aria-busy on confirm while the promise is pending, then closes when it resolves", async () => {
-    await open({ onConfirm: () => new Promise((resolve) => setTimeout(resolve, 50)) });
+    // The test settles the promise itself, after checking the busy state: a timer here
+    // could fire before the click's round trip to the browser returns.
+    const pending = deferred();
+    await open({ onConfirm: () => pending.promise });
     await userEvent.click(button("Delete"));
-    expect(button("Delete").element().getAttribute("aria-busy")).toBe("true");
+    await expect.poll(() => button("Delete").element().getAttribute("aria-busy")).toBe("true");
     expect(popup()).not.toBeNull();
+    await act(async () => pending.resolve());
     await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
   });
 
