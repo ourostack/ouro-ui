@@ -31,7 +31,7 @@ npx shadcn@latest add ourostack/ouro-ui/dialog#v0.2.0     # install it
 - `sheet`: A panel that slides in from an edge and is dragged back to dismiss: the mobile form of a dialog.
 - `dialog`: A dialog that presents itself for the screen: a centered dialog on wider screens and a bottom sheet you can drag away on phones (below 640px).
 - `confirm-dialog`: Asks the user to confirm an action, with Cancel focused first.
-- `ouro-lib-tests`: Optional: the Vitest browser tests, type tests, stories and Playwright spec for ouro-lib, with the test tooling as devDependencies. Add it beside ouro-lib: add ouro-lib ouro-lib-tests.
+- `ouro-lib-tests`: Optional: the Vitest browser tests for ouro-lib, with the test tooling as devDependencies. Add it beside ouro-lib: add ouro-lib ouro-lib-tests.
 - `button-tests`: Optional: the Vitest browser tests, type tests, stories and Playwright spec for button, with the test tooling as devDependencies. Add it beside button: add button button-tests.
 - `text-tests`: Optional: the Vitest browser tests, type tests, stories and Playwright spec for text, with the test tooling as devDependencies. Add it beside text: add text text-tests.
 - `heading-tests`: Optional: the Vitest browser tests, type tests, stories and Playwright spec for heading, with the test tooling as devDependencies. Add it beside heading: add heading heading-tests.

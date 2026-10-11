@@ -169,6 +169,20 @@ const testingDir = "registry/ouro/lib/ouro/testing/";
 const e2eDir = "registry/ouro/e2e/ouro/";
 const themeDir = "registry/ouro/theme/";
 
+/** Test-runner packages, which only the -tests items and ouro-testing may import. */
+const testTooling = /^(storybook|@storybook\/.*|vitest|@vitest\/.*|playwright|@playwright\/.*)$/;
+
+/** "Vitest browser tests, type tests, stories and Playwright spec", for the kinds of file present. */
+function fileKinds(paths: string[]): string {
+  const kinds = [
+    paths.some((path) => /\.test\.tsx?$/.test(path)) && "Vitest browser tests",
+    paths.some((path) => path.endsWith(".test-d.ts")) && "type tests",
+    paths.some((path) => path.endsWith(".stories.tsx")) && "stories",
+    paths.some((path) => path.endsWith(".spec.ts")) && "Playwright spec",
+  ].filter((kind): kind is string => Boolean(kind));
+  return kinds.length === 1 ? kinds[0]! : `${kinds.slice(0, -1).join(", ")} and ${kinds.at(-1)}`;
+}
+
 const devFile = /\.(test|touch\.test)\.tsx?$|\.test-d\.ts$|\.stories\.tsx$|\.spec\.ts$/;
 
 /** The item that ships a registry file, or null for a repository-only file. Throws for a file no item claims. */
@@ -325,7 +339,8 @@ export function buildRegistry(root: string): Registry {
     ...testsItems.map((entry) => ({
       ...entry,
       kind: "tests" as const,
-      description: `Optional: the Vitest browser tests, type tests, stories and Playwright spec for ${entry.of}, with the test tooling as devDependencies. Add it beside ${entry.of}: add ${entry.of} ${entry.name}.`,
+      // Says what the item ships, by the kinds of file it has (ouro-lib-tests has only tests).
+      description: `Optional: the ${fileKinds(shipped(entry.name))} for ${entry.of}, with the test tooling as devDependencies. Add it beside ${entry.of}: add ${entry.of} ${entry.name}.`,
       docs: `${entry.of}'s tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: ${DOCS_URL}${entry.docsPage}`,
     })),
     {
@@ -390,8 +405,11 @@ export function buildRegistry(root: string): Registry {
     if (registryDeps.size > 0) item.registryDependencies = [...registryDeps].sort().map((name) => `${REPO}/${name}`);
     if (paths.length > 0) item.files = paths.map(fileEntry);
     if ("css" in entry && entry.css) Object.assign(item, cssToItem(readFileSync(join(root, entry.css), "utf8")));
-    if (entry.kind !== "tests" && entry.kind !== "aggregate" && entry.name !== "ouro-testing" && devDependencies.length > 0) {
-      throw new Error(`${entry.name} is a runtime item but needs ${devDependencies.join(", ")}. Runtime files import no test tooling.`);
+    if (entry.kind !== "tests" && entry.kind !== "aggregate" && entry.name !== "ouro-testing") {
+      const tooling = [...runtime, ...dev].filter((name) => testTooling.test(name)).sort();
+      if (tooling.length > 0) {
+        throw new Error(`${entry.name} is a runtime item but imports test tooling: ${tooling.join(", ")}. Runtime files import no test tooling; move the import to a test or story.`);
+      }
     }
     items.push(item);
   }

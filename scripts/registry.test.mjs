@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -70,10 +70,27 @@ test("runtime items ship no tests, stories, specs or test tooling, and never pul
     const entry = item(name);
     for (const file of entry.files ?? []) assert.doesNotMatch(file.path, testFile, `${name} ships ${file.path}`);
     assert.equal(entry.devDependencies, undefined, `${name} has devDependencies`);
+    for (const dependency of entry.dependencies ?? []) {
+      assert.doesNotMatch(dependency, /^(storybook|@storybook\/|vitest|@vitest\/|playwright|@playwright\/)/, `${name} depends on ${dependency}`);
+    }
     for (const dependency of entry.registryDependencies ?? []) {
       assert.doesNotMatch(dependency, /ouro-testing|-tests$/, `${name} depends on ${dependency}`);
     }
   }
+});
+
+test("the generator fails when a runtime file imports test tooling", () => {
+  // The review's mutation: a runtime component that imports vitest.
+  const copy = mkdtempSync(join(tmpdir(), "ouro-registry-root-"));
+  for (const path of ["registry", "docs", "package.json"]) cpSync(join(root, path), join(copy, path), { recursive: true });
+  const button = join(copy, "registry/ouro/components/ouro/button/button.tsx");
+  writeFileSync(button, readFileSync(button, "utf8") + '\nimport { expect } from "vitest";\n');
+  assert.throws(() => buildRegistry(copy), /button is a runtime item but imports test tooling: vitest/);
+});
+
+test("each -tests item's description names the kinds of file it ships", () => {
+  assert.match(item("ouro-lib-tests").description, /^Optional: the Vitest browser tests for ouro-lib,/);
+  assert.match(item("text-tests").description, /^Optional: the Vitest browser tests, type tests, stories and Playwright spec for text,/);
 });
 
 test("each component has an opt-in -tests item with its tests, type tests, stories and spec", () => {
@@ -333,5 +350,7 @@ test("site/public/llms.txt gives the init, search and add commands and lists eve
   assert.ok(llms.includes("npx shadcn@latest init --base base --preset nova --yes --no-monorepo"));
   assert.ok(llms.includes("npx shadcn@latest search 'ourostack/ouro-ui#v"));
   assert.ok(llms.includes("npx shadcn@latest add ourostack/ouro-ui/dialog#v"));
-  for (const entry of registry.items) assert.ok(llms.includes(`- \`${entry.name}\`: `), `llms.txt lists ${entry.name}`);
+  for (const entry of registry.items) {
+    assert.ok(llms.includes(`- \`${entry.name}\`: ${entry.description}\n`), `llms.txt lists ${entry.name} with its registry description; update site/public/llms.txt`);
+  }
 });

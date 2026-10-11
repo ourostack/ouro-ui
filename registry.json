@@ -440,7 +440,7 @@
       "name": "ouro-lib-tests",
       "type": "registry:item",
       "title": "Ouro lib tests",
-      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for ouro-lib, with the test tooling as devDependencies. Add it beside ouro-lib: add ouro-lib ouro-lib-tests.",
+      "description": "Optional: the Vitest browser tests for ouro-lib, with the test tooling as devDependencies. Add it beside ouro-lib: add ouro-lib ouro-lib-tests.",
       "docs": "ouro-lib's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs",
       "devDependencies": [
         "vitest@^5.0.3"
