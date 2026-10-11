@@ -257,6 +257,21 @@ describe("trigger", () => {
     expect(node.getAttribute("aria-haspopup")).toBe("dialog");
   });
 
+  it("focuses the popup, not the first input, after a pen opens the centered dialog", async () => {
+    await render(
+      <Dialog title="Edit recipe" trigger={<Button>Edit</Button>}>
+        <input aria-label="Name" />
+      </Dialog>,
+    );
+    const node = trigger();
+    // Separate dispatches, as a real pen press and its click are.
+    await act(() => node.dispatchEvent(new PointerEvent("pointerdown", { pointerType: "pen", bubbles: true })));
+    await act(() => node.dispatchEvent(new MouseEvent("click", { detail: 1, bubbles: true })));
+    await settled();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(document.activeElement).toBe(popup());
+  });
+
   it("keeps the trigger's own ref and onClick, and stays closed when onClick prevents default", async () => {
     const ref = createRef<HTMLButtonElement>();
     const onClick = vi.fn((event: { preventDefault(): void }) => event.preventDefault());

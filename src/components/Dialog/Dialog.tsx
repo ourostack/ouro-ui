@@ -4,6 +4,7 @@ import {
   useState,
   type JSX,
   type MouseEvent,
+  type PointerEvent,
   type ReactElement,
   type ReactNode,
   type Ref,
@@ -113,6 +114,7 @@ export type DialogProps = DialogWithTriggerProps | DialogControlledProps;
 type TriggerProps = {
   ref?: Ref<HTMLElement> | undefined;
   onClick?: ((event: MouseEvent<HTMLElement>) => void) | undefined;
+  onPointerDown?: ((event: PointerEvent<HTMLElement>) => void) | undefined;
   "aria-haspopup"?: string;
   "aria-expanded"?: boolean;
 };
@@ -213,21 +215,39 @@ export function Dialog(props: DialogProps): JSX.Element {
   // its focus, and the server-rendered node after hydration) survives a switch
   // between the centered dialog and the sheet.
   const triggerRef = useRef<HTMLElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
+  // How the trigger last opened the dialog. Base UI's own trigger records this so a
+  // tap focuses the popup instead of the first input (which would raise the
+  // software keyboard); the cloned trigger records it here instead.
+  const [lastPointer, setLastPointer] = useState<string>();
+  const [tapOpened, setTapOpened] = useState(false);
   const triggerProps = (trigger?.props ?? {}) as TriggerProps;
   const mergedTriggerRef = useMergedRef(triggerProps.ref, triggerRef);
   const triggerNode =
     trigger !== undefined &&
     cloneElement(trigger as ReactElement<TriggerProps>, {
       ref: mergedTriggerRef,
+      onPointerDown: (event: PointerEvent<HTMLElement>) => {
+        triggerProps.onPointerDown?.(event);
+        setLastPointer(event.pointerType);
+      },
       onClick: (event: MouseEvent<HTMLElement>) => {
         triggerProps.onClick?.(event);
-        if (!event.defaultPrevented) setOpen(true);
+        if (event.defaultPrevented) return;
+        // A click with no pointer behind it (detail 0) came from the keyboard.
+        const pointer = event.detail === 0 ? "keyboard" : lastPointer;
+        setTapOpened(pointer === "touch" || pointer === "pen");
+        setOpen(true);
       },
       "aria-haspopup": "dialog",
       "aria-expanded": isOpenNow,
     });
   // Focus returns to the trigger on close, in either presentation.
   const finalFocus = trigger !== undefined ? { finalFocus: triggerRef } : {};
+  // The centered dialog focuses itself after a touch or pen open, and the first
+  // control otherwise, as Base UI does with its own trigger. (The sheet always
+  // focuses itself, like a plain Sheet.)
+  const initialFocus = tapOpened ? { initialFocus: popupRef } : {};
 
   // The server and hydration render the dialog form; the client corrects it after.
   const wide = useMediaQuery("(min-width: 640px)", true);
@@ -253,7 +273,13 @@ export function Dialog(props: DialogProps): JSX.Element {
         <DialogPortal>
           <DialogBackdrop />
           <DialogViewport>
-            <DialogPopupUnchecked className={className} size={size} {...finalFocus}>
+            <DialogPopupUnchecked
+              ref={popupRef}
+              className={className}
+              size={size}
+              {...finalFocus}
+              {...initialFocus}
+            >
               {/* Always rendered: with a hidden title it still keeps the body clear of the close button. */}
               <div data-ouro-dialog-header="">
                 <DialogTitle visuallyHidden={hideTitle}>{title}</DialogTitle>

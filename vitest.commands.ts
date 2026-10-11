@@ -115,13 +115,23 @@ export const pointerPress: BrowserCommand<[PointerPressOptions]> = async (ctx, {
   await page.mouse.down();
 };
 
-export const commands = { emulateMedia, drag, flick, pointerPress };
+/**
+ * Taps an element inside the test iframe with real touch input (Playwright's
+ * `locator.tap`), so the page sees `pointerType: "touch"`. Needs a context with
+ * `hasTouch`, as in the `touch` project.
+ */
+export const tap: BrowserCommand<[selector: string]> = async (ctx, selector) => {
+  await ctx.iframe.locator(selector).tap();
+};
+
+export const commands = { emulateMedia, drag, flick, pointerPress, tap };
 
 declare module "vitest/browser" {
   interface BrowserCommands {
     emulateMedia: (options: EmulateMediaOptions) => Promise<void>;
     drag: (options: DragOptions) => Promise<void>;
     flick: (options: FlickOptions) => Promise<void>;
+    tap: (selector: string) => Promise<void>;
     pointerPress: (options: PointerPressOptions) => Promise<void>;
   }
 }
