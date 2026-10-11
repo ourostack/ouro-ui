@@ -208,7 +208,7 @@ describe("runtime guards", () => {
   });
 });
 
-describe("server rendering", () => {
+describe("Text server rendering", () => {
   it("renders to a string without warnings", () => {
     const html = renderToString(<Text lines={2}>Body</Text>);
     expect(html).toContain("--ouro-lines:2");

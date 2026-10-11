@@ -1,10 +1,3 @@
-// Dialog: a centered dialog on wider screens and a bottom sheet you can drag away on phones.
-//
-//   <Dialog title="Edit recipe" trigger={<Button>Edit</Button>} footer={<Button>Save</Button>}>
-//     <RecipeForm />
-//   </Dialog>
-//
-// @see https://ourostack.github.io/ouro-ui/docs/dialog for every prop, with examples.
 import {
   cloneElement,
   useRef,
@@ -157,6 +150,10 @@ function CloseIcon(): JSX.Element {
  * control it. Use `ConfirmDialog` instead to confirm an action, and `Sheet`
  * instead when the panel should slide in from an edge at every width.
  *
+ * It stacks above the page at `--ouro-layer`, a z-index of 50 by default (from
+ * ouro-base.css). Raise `--ouro-layer` if your app has fixed bars above z-50:
+ * `:root { --ouro-layer: 60; }`.
+ *
  * Testing accessibility: in WebKit, Base UI's focus guards take `role="button"`
  * without a name so VoiceOver's cursor stays trapped. Exclude them:
  * `new AxeBuilder({ page }).exclude("[data-base-ui-focus-guard]")`.
@@ -215,7 +212,7 @@ export function Dialog(props: DialogProps): JSX.Element {
     className,
     process.env.NODE_ENV !== "production"
       ? sheetHint('<Dialog title="…">', "</Dialog>")
-      : /* istanbul ignore next -- production only */ "",
+      : /* istanbul ignore next @preserve -- production only */ "",
   );
   useDevWarnings(
     "Dialog",
@@ -240,7 +237,7 @@ export function Dialog(props: DialogProps): JSX.Element {
             ],
           ];
         }
-      : /* istanbul ignore next -- production only */ undefined,
+      : /* istanbul ignore next @preserve -- production only */ undefined,
   );
 
   // The Dialog owns the open state even with a trigger, so the dialog stays open

@@ -1,8 +1,9 @@
-// Type tests: `pnpm typecheck` compiles this file, and every `@ts-expect-error`
-// fails the check if the line below it stops being an error.
 import { createElement, type ComponentProps, type ComponentType, type SVGProps } from "react";
 import { expectTypeOf } from "vitest";
 import { Button, type ButtonProps } from "@/registry/ouro/components/ouro/button/button";
+
+// Type tests: `pnpm typecheck` compiles this file, and every `@ts-expect-error`
+// fails the check if the line below it stops being an error.
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 

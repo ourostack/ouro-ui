@@ -1,6 +1,7 @@
-// Type tests: `pnpm typecheck` compiles this file.
 import { expectTypeOf } from "vitest";
 import type { TextProps } from "@/registry/ouro/components/ouro/text/text";
+
+// Type tests: `pnpm typecheck` compiles this file.
 
 expectTypeOf<{ children: "a"; as: "span"; tone: "muted"; size: "lg"; align: "center" }>().toExtend<TextProps>();
 expectTypeOf<{ children: "a"; truncate: true }>().toExtend<TextProps>();

@@ -1,10 +1,3 @@
-// Sheet: a panel that slides in from an edge and is dragged back to dismiss.
-//
-//   <Sheet title="Share" trigger={<Button>Share</Button>} footer={<SheetClose render={<Button>Copy link</Button>} />}>
-//     <ShareOptions />
-//   </Sheet>
-//
-// @see https://ourostack.github.io/ouro-ui/docs/sheet for every prop, with examples.
 import type { JSX, ReactElement, ReactNode, RefObject } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { checkOpenMode } from "@/registry/ouro/lib/ouro/open-mode";
@@ -106,6 +99,10 @@ export type SheetProps = SheetWithTriggerProps | SheetControlledProps;
  * `open` to `false` in the handler, or wrap the action:
  * `<SheetClose render={<Button>Copy link</Button>} />`.
  *
+ * It stacks above the page at `--ouro-layer`, a z-index of 50 by default (from
+ * ouro-base.css). Raise `--ouro-layer` if your app has fixed bars above z-50:
+ * `:root { --ouro-layer: 60; }`.
+ *
  * Testing accessibility: in WebKit, Base UI's focus guards take `role="button"`
  * without a name so VoiceOver's cursor stays trapped. Exclude them:
  * `new AxeBuilder({ page }).exclude("[data-base-ui-focus-guard]")`.
@@ -155,7 +152,7 @@ export function Sheet(props: SheetProps): JSX.Element {
     className,
     process.env.NODE_ENV !== "production"
       ? sheetHint('<Sheet title="…">', "</Sheet>")
-      : /* istanbul ignore next -- production only */ "",
+      : /* istanbul ignore next @preserve -- production only */ "",
   );
   useDevWarnings(
     "Sheet",
@@ -168,7 +165,7 @@ export function Sheet(props: SheetProps): JSX.Element {
           position !== undefined && ["position is not a prop", '<Sheet side="bottom">'],
           size !== undefined && ["size is not a prop; a sheet fits its content", "<Sheet snapPoints={[0.5, 1]}>"],
         ]
-      : /* istanbul ignore next -- production only */ undefined,
+      : /* istanbul ignore next @preserve -- production only */ undefined,
   );
 
   return (

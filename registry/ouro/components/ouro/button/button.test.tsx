@@ -742,7 +742,7 @@ describe("touch target", () => {
   });
 });
 
-describe("server rendering", () => {
+describe("Button server rendering", () => {
   it("renders to a string without warnings", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const html = renderToString(

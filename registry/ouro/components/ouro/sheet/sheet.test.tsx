@@ -217,6 +217,66 @@ describe("opening and closing", () => {
   });
 });
 
+describe("Sheet stacking above the app's fixed bars", () => {
+  /** A fixed, full-screen app layer at z-index 50, like a tab bar or a header. */
+  function appBar(): HTMLElement {
+    const bar = document.createElement("div");
+    Object.assign(bar.style, { position: "fixed", inset: "0", zIndex: "50" });
+    document.body.append(bar);
+    mounted.push(bar);
+    return bar;
+  }
+  /** Whether the popup is what a press at its center lands on. */
+  const onTop = (element: HTMLElement) => {
+    const rect = element.getBoundingClientRect();
+    return element.contains(document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2));
+  };
+  const portal = () => document.querySelector<HTMLElement>('[data-ouro="sheet-portal"]')!;
+
+  it("puts the portal on the --ouro-layer level, 50 by default, as its own stacking context", async () => {
+    await render(
+      <Sheet title="Save to cookbook" open onOpenChange={() => {}}>
+        <Body />
+      </Sheet>,
+    );
+    await settled();
+    const style = getComputedStyle(portal());
+    expect(style.position).toBe("relative");
+    expect(style.zIndex).toBe("50");
+    expect(style.isolation).toBe("isolate");
+  });
+
+  it("stays above a z-50 fixed app bar at the default level: a tie, which the portal wins as the last child of body", async () => {
+    appBar();
+    await render(
+      <Sheet title="Save to cookbook" open onOpenChange={() => {}}>
+        <Body />
+      </Sheet>,
+    );
+    await settled();
+    expect(document.body.lastElementChild).toBe(portal());
+    expect(onTop(popup()!)).toBe(true);
+  });
+
+  it("stays above a z-50 fixed app bar added after it when the app raises --ouro-layer", async () => {
+    document.documentElement.style.setProperty("--ouro-layer", "60");
+    try {
+      await render(
+      <Sheet title="Save to cookbook" open onOpenChange={() => {}}>
+        <Body />
+      </Sheet>,
+    );
+      await settled();
+      // After the portal in the DOM, so at an equal level the bar would cover it.
+      appBar();
+      expect(getComputedStyle(portal()).zIndex).toBe("60");
+      expect(onTop(popup()!)).toBe(true);
+    } finally {
+      document.documentElement.style.removeProperty("--ouro-layer");
+    }
+  });
+});
+
 describe("footer", () => {
   it("renders footer as the actions row after the body, and closes from an action wrapped in SheetClose", async () => {
     const element = await openUncontrolled({
@@ -504,7 +564,7 @@ function withIosRules(css: string): string {
   return css.replace(/@supports \(-webkit-touch-callout: ?none\)/g, "@supports (display: block)");
 }
 
-describe("iOS backdrop rule", () => {
+describe("Sheet iOS backdrop rule", () => {
   it("ships no test-only selector", () => {
     expect(pageCss()).not.toContain("data-ouro-test-ios");
     expect(pageCss()).toMatch(/@supports \(-webkit-touch-callout: ?none\)/);
@@ -549,7 +609,7 @@ describe("iOS backdrop rule", () => {
   });
 });
 
-describe("dev messages", () => {
+describe("Sheet dev messages", () => {
   it("throws the exact fix when neither trigger nor open is passed", () => {
     // @ts-expect-error -- neither trigger nor open
     const sheet = <Sheet title="Save">Body</Sheet>;
@@ -617,7 +677,7 @@ describe("dev messages", () => {
   });
 });
 
-describe("parts", () => {
+describe("Sheet parts", () => {
   it("renders a bottom SheetRoot for a side that is not one of the four, and warns once with the fix", async () => {
     await render(
       <SheetRoot {...({ side: "left-ish" } as object)} defaultOpen>

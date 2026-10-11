@@ -136,7 +136,7 @@ function useSheetPart(part: string, inner: string): SheetContextValue {
     devThrow(
       part,
       "must be rendered inside <SheetRoot>",
-      process.env.NODE_ENV !== "production" ? shape(inner) : /* istanbul ignore next -- production only */ "",
+      process.env.NODE_ENV !== "production" ? shape(inner) : /* istanbul ignore next @preserve -- production only */ "",
     );
   }
   return context;
@@ -176,7 +176,7 @@ export function SheetRoot({ side: sideProp = "bottom", snapPoints, ...props }: S
     "SheetRoot",
     process.env.NODE_ENV !== "production"
       ? () => [side !== sideProp && sideWarning(String(sideProp), "<SheetRoot side=\"bottom\">")]
-      : /* istanbul ignore next -- production only */ undefined,
+      : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   const snap = Boolean(snapPoints && snapPoints.length > 0);
   return (
@@ -195,12 +195,15 @@ export function SheetTrigger(props: Drawer.Trigger.Props): JSX.Element {
 /**
  * Part: moves the sheet to the end of `<body>` and makes it aware of the
  * software keyboard (`Drawer.VirtualKeyboardProvider`), so focused inputs stay visible.
+ * The portal is its own stacking context at the `--ouro-layer` z-index (50 by default,
+ * from ouro-base.css). Raise `--ouro-layer` if your app has fixed bars above z-50:
+ * `:root { --ouro-layer: 60; }`.
  */
 export function SheetPortal(props: Omit<Drawer.Portal.Props, "className">): JSX.Element {
   useSheetPart("SheetPortal", "…");
   return (
     <Drawer.VirtualKeyboardProvider>
-      <Drawer.Portal {...props} data-ouro="sheet-portal" className="isolate" />
+      <Drawer.Portal {...props} data-ouro="sheet-portal" className="relative isolate z-(--ouro-layer)" />
     </Drawer.VirtualKeyboardProvider>
   );
 }
@@ -242,7 +245,7 @@ export function SheetPopup(props: SheetPopupProps): JSX.Element {
     props.className,
     process.env.NODE_ENV !== "production"
       ? sheetHint("<SheetPopup>", "</SheetPopup>")
-      : /* istanbul ignore next -- production only */ "",
+      : /* istanbul ignore next @preserve -- production only */ "",
   );
   return <SheetPopupUnchecked {...props} />;
 }
@@ -336,7 +339,7 @@ export function SheetContent({ className, ref, ...props }: SheetContentProps): J
     className,
     process.env.NODE_ENV !== "production"
       ? sheetHint("<SheetContent>", "</SheetContent>")
-      : /* istanbul ignore next -- production only */ "",
+      : /* istanbul ignore next @preserve -- production only */ "",
   );
   return (
     <Drawer.Content

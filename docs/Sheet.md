@@ -25,6 +25,8 @@ Use `trigger` for a sheet a button opens, or `open` with `onOpenChange` to contr
 
 To close the sheet from an action, control it (`open`/`onOpenChange`) and set `open` to `false` in the handler, or wrap the action: `<SheetClose render={<Button>Copy link</Button>} />`.
 
+It stacks above the page at `--ouro-layer`, a z-index of 50 by default (from ouro-base.css). Raise `--ouro-layer` if your app has fixed bars above z-50: `:root { --ouro-layer: 60; }`.
+
 Testing accessibility: in WebKit, Base UI's focus guards take `role="button"` without a name so VoiceOver's cursor stays trapped. Exclude them: `new AxeBuilder({ page }).exclude("[data-base-ui-focus-guard]")`.
 
 ## Use instead when

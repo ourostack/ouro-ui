@@ -172,7 +172,7 @@ describe("automatic presentation", () => {
   });
 });
 
-describe("server rendering", () => {
+describe("Dialog server rendering", () => {
   it("renders on the server without throwing or rendering the popup", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const html = renderToString(
@@ -276,6 +276,66 @@ describe("trigger", () => {
     expect(onClick).toHaveBeenCalledOnce();
     await new Promise((resolve) => setTimeout(resolve, 100));
     expect(popup()).toBeNull();
+  });
+});
+
+describe("Dialog stacking above the app's fixed bars", () => {
+  /** A fixed, full-screen app layer at z-index 50, like a tab bar or a header. */
+  function appBar(): HTMLElement {
+    const bar = document.createElement("div");
+    Object.assign(bar.style, { position: "fixed", inset: "0", zIndex: "50" });
+    document.body.append(bar);
+    mounted.push(bar);
+    return bar;
+  }
+  /** Whether the popup is what a press at its center lands on. */
+  const onTop = (element: HTMLElement) => {
+    const rect = element.getBoundingClientRect();
+    return element.contains(document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2));
+  };
+  const portal = () => document.querySelector<HTMLElement>('[data-ouro="dialog-portal"]')!;
+
+  it("puts the portal on the --ouro-layer level, 50 by default, as its own stacking context", async () => {
+    await render(
+      <Dialog title="Edit recipe" open onOpenChange={() => {}}>
+        Body
+      </Dialog>,
+    );
+    await settled();
+    const style = getComputedStyle(portal());
+    expect(style.position).toBe("relative");
+    expect(style.zIndex).toBe("50");
+    expect(style.isolation).toBe("isolate");
+  });
+
+  it("stays above a z-50 fixed app bar at the default level: a tie, which the portal wins as the last child of body", async () => {
+    appBar();
+    await render(
+      <Dialog title="Edit recipe" open onOpenChange={() => {}}>
+        Body
+      </Dialog>,
+    );
+    await settled();
+    expect(document.body.lastElementChild).toBe(portal());
+    expect(onTop(dialogPopup()!)).toBe(true);
+  });
+
+  it("stays above a z-50 fixed app bar added after it when the app raises --ouro-layer", async () => {
+    document.documentElement.style.setProperty("--ouro-layer", "60");
+    try {
+      await render(
+      <Dialog title="Edit recipe" open onOpenChange={() => {}}>
+        Body
+      </Dialog>,
+    );
+      await settled();
+      // After the portal in the DOM, so at an equal level the bar would cover it.
+      appBar();
+      expect(getComputedStyle(portal()).zIndex).toBe("60");
+      expect(onTop(dialogPopup()!)).toBe(true);
+    } finally {
+      document.documentElement.style.removeProperty("--ouro-layer");
+    }
   });
 });
 
@@ -473,7 +533,7 @@ describe("motion", () => {
   });
 });
 
-describe("iOS backdrop rule", () => {
+describe("Dialog iOS backdrop rule", () => {
   it("covers the visible screen on a page scrolled 2000px", async () => {
     const ios = document.createElement("style");
     ios.textContent = withIosRules(pageCss());
@@ -504,7 +564,7 @@ describe("iOS backdrop rule", () => {
   });
 });
 
-describe("dev messages", () => {
+describe("Dialog dev messages", () => {
   it("throws the exact fix when neither trigger nor open is passed", () => {
     // @ts-expect-error -- neither trigger nor open
     const dialog = <Dialog title="Edit">Body</Dialog>;
@@ -573,7 +633,7 @@ describe("dev messages", () => {
   });
 });
 
-describe("parts", () => {
+describe("Dialog parts", () => {
   it("renders an md DialogPopup for a size that is not one of Ouro UI's, and warns once with the fix", async () => {
     await render(
       <DialogRoot open>

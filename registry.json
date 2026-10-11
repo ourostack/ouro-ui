@@ -41,7 +41,8 @@
           "--ouro-duration-slow": "400ms",
           "--ouro-press-scale": "0.97",
           "--ouro-backdrop-color": "#18181b",
-          "--ouro-backdrop-max": "0.4"
+          "--ouro-backdrop-max": "0.4",
+          "--ouro-layer": "50"
         },
         ".dark": {
           "--ouro-backdrop-color": "#000000"

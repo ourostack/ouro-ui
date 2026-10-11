@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
-import { checkInstall } from "./install-check.mjs";
+import { checkComments, checkInstall } from "./install-check.mjs";
 
 // A real installed app is the install job's to build; these cases prove the check fails
 // on each kind of broken install, using a stand-in with a passing app's key files.
@@ -89,4 +89,22 @@ test("a missing token, rule or file, or an unrewritten import, fails", () => {
   assert.match(problems, /vite build wrote no CSS/);
   const missingTests = app("ouro", undefined, "runtime");
   assert.match(checkInstall(missingTests, "ouro", "tests").join("\n"), /missing e2e\/ouro\/story\.ts/);
+});
+
+test("an installed file that lost a comment of its source fails, and one that kept them passes", () => {
+  const root = mkdtempSync(join(tmpdir(), "ouro-install-source-"));
+  const dir = mkdtempSync(join(tmpdir(), "ouro-install-comments-"));
+  const write = (base, file, text) => {
+    mkdirSync(dirname(join(base, file)), { recursive: true });
+    writeFileSync(join(base, file), text);
+  };
+  const source = '// Header.\nimport { cn } from "@/registry/ouro/lib/ouro/cn";\n\n/** Doc. */\nexport const a = cn;\n';
+  write(root, "registry/ouro/lib/ouro/a.ts", source);
+  write(root, "registry/ouro/e2e/ouro/b.spec.ts", "// Kept.\nexport {};\n");
+  write(root, "registry/ouro/lib/ouro/not-installed.ts", "// Never installed.\nexport {};\n");
+  write(dir, "src/lib/ouro/a.ts", 'import { cn } from "~/lib/ouro/cn";\n\n/** Doc. */\nexport const a = cn;\n');
+  write(dir, "e2e/ouro/b.spec.ts", "// Kept.\nexport {};\n");
+  assert.deepEqual(checkComments(dir, root), ["src/lib/ouro/a.ts lost comments from registry/ouro/lib/ouro/a.ts: // Header."]);
+  write(dir, "src/lib/ouro/a.ts", source.replace("@/registry/ouro/lib/ouro/cn", "~/lib/ouro/cn"));
+  assert.deepEqual(checkComments(dir, root), []);
 });

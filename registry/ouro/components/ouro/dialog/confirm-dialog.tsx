@@ -1,14 +1,3 @@
-// ConfirmDialog: asks the user to confirm an action, with Cancel focused first.
-//
-//   <ConfirmDialog
-//     title="Delete recipe?"
-//     confirmLabel="Delete"
-//     tone="destructive"
-//     onConfirm={() => deleteRecipe(id)}
-//     trigger={<Button tone="destructive" variant="soft">Delete</Button>}
-//   />
-//
-// @see https://ourostack.github.io/ouro-ui/docs/confirm-dialog for every prop, with examples.
 import { useRef, useState, type JSX, type ReactElement, type ReactNode, type RefObject } from "react";
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
 import { checkOpenMode } from "@/registry/ouro/lib/ouro/open-mode";
@@ -107,6 +96,10 @@ export type ConfirmDialogProps = ConfirmDialogWithTriggerProps | ConfirmDialogCo
  * `onConfirm` to show progress until the action finishes. Use `Dialog` instead
  * when the user has more to do than confirm or cancel.
  *
+ * It stacks above the page at `--ouro-layer`, a z-index of 50 by default (from
+ * ouro-base.css). Raise `--ouro-layer` if your app has fixed bars above z-50:
+ * `:root { --ouro-layer: 60; }`.
+ *
  * Testing accessibility: in WebKit, Base UI's focus guards take `role="button"`
  * without a name so VoiceOver's cursor stays trapped. Exclude them:
  * `new AxeBuilder({ page }).exclude("[data-base-ui-focus-guard]")`.
@@ -171,7 +164,7 @@ export function ConfirmDialog(props: ConfirmDialogProps): JSX.Element {
             variant !== undefined && ["variant is not a prop", '<ConfirmDialog tone="destructive">'],
           ];
         }
-      : /* istanbul ignore next -- production only */ undefined,
+      : /* istanbul ignore next @preserve -- production only */ undefined,
   );
 
   const [ownOpen, setOwnOpen] = useState(false);
@@ -213,8 +206,7 @@ export function ConfirmDialog(props: ConfirmDialogProps): JSX.Element {
         // confirm) must not clear a newer confirm's busy state; it is still reported.
         const stale = attempt.current !== current;
         if (!stale) setPending(false);
-        // The else path only exists in production bundles; scripts/dev-strip.test.mjs covers it.
-        /* istanbul ignore else */
+        /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
         if (process.env.NODE_ENV !== "production") {
           const message = error instanceof Error ? error.message : String(error);
           devWarn(
