@@ -78,6 +78,7 @@ node "$root/scripts/install-check.mjs" "$app" "$variant"
 echo "::endgroup::"
 
 echo "::group::Shipped Vitest browser tests"
+npx playwright install ${CI:+--with-deps} chromium webkit
 npx vitest run
 echo "::endgroup::"
 

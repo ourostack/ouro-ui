@@ -69,7 +69,7 @@ const foundation = [
       "The test kit Ouro UI's tests use: Vitest browser projects with the drag, flick, tap and emulateMedia commands, the act helper, and the end-to-end story helper.",
     docs: [
       "Ouro UI's tests are installed beside each component. To run them, add the projects to vitest.config.ts:",
-      'test: { projects: ouroTestProjects({ css: "./src/index.css" }) }, imported from "./src/lib/ouro/testing/vitest"',
+      'test: { projects: ouroTestProjects({ css: "./src/index.css" }) }, imported from "./src/lib/ouro/testing/vitest.ts"',
       "(use your components.json tailwind.css path), then run npx playwright install chromium webkit and npx vitest run.",
       "The end-to-end specs in e2e/ouro open the Ouro stories in a Storybook: start one, then run",
       "OURO_E2E_URL=http://localhost:6006 npx playwright test e2e/ouro.",

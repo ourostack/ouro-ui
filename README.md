@@ -13,7 +13,23 @@ import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
 </Dialog>;
 ```
 
-Import paths in this repository and its docs are the registry source paths. The shadcn CLI rewrites them to your app's aliases when it installs a component: `@/registry/ouro/components/ouro/button/button` becomes `@/components/ouro/button/button`. The components need `react` and `react-dom` 19, `motion` 12 or later, `@base-ui/react`, `clsx` and `tailwind-merge`.
+Import paths in this repository and its docs are the registry source paths. The shadcn CLI rewrites them to your app's aliases when it installs a component: `@/registry/ouro/components/ouro/button/button` becomes `@/components/ouro/button/button`. The components need `react` and `react-dom` 19; the CLI installs the rest (`@base-ui/react`, `motion`, `clsx`, `tailwind-merge`).
+
+## Install
+
+Ouro UI is alpha. In an app that has run `npx shadcn init` (Tailwind CSS v4):
+
+```sh
+npx shadcn@latest add ourostack/ouro-ui/sheet
+```
+
+- The CLI reads `registry.json` at this repository's root. Add `#<tag>`, `#<branch>` or `#<sha>` to the address to pin a version.
+- Components land in `components/ouro/<component>/`, beside shadcn's `components/ui/`, and the shared helpers in `lib/ouro/`. The base tokens (`ouro-base`) are added to your CSS with any component.
+- Each component brings its stories, its Vitest browser tests and a Playwright spec in `e2e/ouro/`. The `ouro-testing` item's install message says how to run them: add `ouroTestProjects` from `lib/ouro/testing/vitest.ts` to your Vitest config, and point `OURO_E2E_URL` at a Storybook with the Ouro stories for the specs.
+- For the Ouro look, add `ourostack/ouro-ui/ouro-theme`. Skip it to keep your app's shadcn theme.
+- To update, review with `npx shadcn add ourostack/ouro-ui/<item> --diff`, then add it again with `--overwrite` and reapply your edits.
+
+Items: `button`, `text`, `heading`, `sheet`, `dialog`, `confirm-dialog`, plus `ouro-base`, `ouro-lib` and `ouro-testing`, which the components pull in, and the optional `ouro-theme`.
 
 ## For agents
 
@@ -58,10 +74,10 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ## Theme
 
-Two stylesheets ship with the components:
+Two stylesheets ship with the components, as registry items that write into your app's CSS:
 
-- `registry/ouro/theme/ouro-base.css` is required in every app. It adds what shadcn's themes lack: `--success`, `--warning` and their foregrounds, and `--destructive-foreground`, with defaults that pass 4.5:1 on shadcn's stock themes; the motion tokens (`--ouro-spring-duration`, `--ouro-ease-spring` and the other `--ouro-*` values); the `press` transition; and the spinner keyframes.
-- `registry/ouro/theme/ouro-theme.css` is optional: the Ouro color look as a shadcn theme, light values on `:root` and dark values on `.dark`. An app that already has a shadcn theme keeps its own.
+- `ouro-base` (`registry/ouro/theme/ouro-base.css`) is required in every app, and every component installs it. It adds what shadcn's themes lack: `--success`, `--warning` and their foregrounds, and `--destructive-foreground`, with defaults that pass 4.5:1 on shadcn's stock themes; the motion tokens (`--ouro-spring-duration`, `--ouro-ease-spring` and the other `--ouro-*` values); the `press` transition; and the spinner keyframes.
+- `ouro-theme` (`registry/ouro/theme/ouro-theme.css`) is optional: the Ouro color look as a shadcn theme, light values on `:root` and dark values on `.dark`. An app that already has a shadcn theme keeps its own.
 
 Dark mode follows the `.dark` class, as in shadcn. To change a color, set its variable in your theme.
 
