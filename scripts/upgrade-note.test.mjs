@@ -147,6 +147,8 @@ for (const shell of shells) {
       ["button", "button-tests", "confirm-dialog", "confirm-dialog-tests", "dialog", "dialog-tests", "ouro-lib-tests"].map((name) => `ourostack/ouro-ui/${name}#{{latestRelease}}`),
     );
     assert.ok(args.includes("--overwrite"));
+    // One line in both shells: zsh does not split an unquoted $items.
+    assert.match(result.stdout, /^Updating: button confirm-dialog dialog\n/m);
   });
 
   test(`step 1 stops before calling shadcn add when it finds no Ouro component (${shell})`, () => {
@@ -206,4 +208,28 @@ test("the CLI prints one step's commands for the install test", () => {
       .find((step) => step.number === 3)
       .commands.map((command) => localCommand(command, { shadcn: "npx shadcn", address: "r/{name}.json" })),
   );
+});
+
+test("the note says what changed by version, for an app that reads only this note", () => {
+  const section = note.match(/^#### What changed, by version\n([\s\S]*?)\n#### 0\./m);
+  assert.ok(section, "UPGRADING.md needs #### What changed, by version before step 0");
+  for (const needle of ["**v0.2.0:**", "**v0.3.0:**", "--ouro-layer", "z-index 1 to 49", "touch or pen tap", "@preserve", "\"use client\""]) {
+    assert.ok(section[1].includes(needle), `What changed lacks ${needle}`);
+  }
+});
+
+test("step 0 warns that add rewrites the Tailwind CSS file and package.json, and step 1 explains shadcn's Skipped message", () => {
+  const step0 = note.slice(note.indexOf("#### 0."), note.indexOf("#### 1."));
+  assert.match(step0, /@custom-variant dark \(&:is\(\.dark \*\)\);/);
+  assert.match(step0, /Keep only the new `--ouro-\*` lines and step 2's deletions/);
+  const step1 = note.slice(note.indexOf("#### 1."), note.indexOf("#### 2."));
+  assert.match(step1, /Skipped N files: \(files might be identical, use --overwrite to overwrite\)/);
+  assert.match(step1, /restore every test-tool version you had pinned \(`git diff package\.json`\): Vitest and its companions, Playwright and Storybook/);
+});
+
+test("no doc suggests re-pinning a test tool to a ^ range", () => {
+  for (const path of ["README.md", "UPGRADING.md", "site/public/llms.txt"]) {
+    assert.doesNotMatch(read(path), /(add -D|install -D) [^`]*@\^/, `${path} re-pins to a range`);
+  }
+  assert.match(read("README.md"), /after `add`, restore every test-tool version you had pinned \(`git diff package\.json`\)/);
 });

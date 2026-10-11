@@ -2,9 +2,19 @@
 
 v0.1.0 installed each component with its tests, and v0.2.0 moves some shared helpers to new files, so update every Ouro component in one go. Run the commands in your app's root, the folder with `components.json`. They find your folders the way shadcn does, from the aliases in `components.json` and the `paths` in your tsconfig (`npx shadcn@latest info` shows them), so they work in a `src/` or an `app/` layout as written.
 
+#### What changed, by version
+
+What an app on v0.1.0 has to know beyond these steps. The release notes list every change.
+
+- **v0.2.0:** each component's tests became an optional `<name>-tests` item, some helpers moved to new files (step 4), and v0.1.0's self-referential theme lines can go (step 2).
+- **v0.3.0:** sheets and dialogs stack at `--ouro-layer`, a z-index of 50 by default, instead of level 0, so an app element at z-index 1 to 49 that used to show above an open sheet or dialog now sits under it. Raise the token in a `:root` rule of your own if your app has fixed bars above z-50 (see "Theme" in the README), and drop any portal z-index workaround. A controlled `Dialog` opened by a touch or pen tap focuses its popup instead of its first input, and `ConfirmDialog`'s `finalFocus` applies only after a confirmed action; drop workarounds for either. Every coverage hint is `/* istanbul ignore … @preserve */`, so a build plugin that kept the hints can go. A `-tests` item sets Vitest to `^5`.
+- **v0.3.1:** every component starts with `"use client"`, so Next.js App Router pages can render them, and the `@ouro` namespace serves the newest release instead of `main`.
+
 #### 0. Commit first
 
 `--overwrite` replaces every Ouro file, including files you edited. Commit before you start. Afterwards, `git diff` shows your own edits being overwritten, so reapply the ones you need.
+
+Review the diff of your Tailwind CSS file too, the one `components.json` names in `tailwind.css`, because `shadcn add` rewrites more than Ouro's tokens there. It adds `@custom-variant dark (&:is(.dark *));` when the file has no `@custom-variant` (shadcn does this for any item with theme variables on Tailwind CSS v4, and it overrides a `darkMode` setting in a Tailwind config), re-adds Ouro's color defaults to `:root` and `.dark`, re-indents lines and can drop the final newline. Keep only the new `--ouro-*` lines and step 2's deletions, and revert the rest. Do the same for `package.json`: see "Details" in the README for keeping your test-tool pins.
 
 #### 1. Update every Ouro component, with its tests
 
@@ -13,10 +23,10 @@ Update every Ouro component in your app, not only the items you typed: v0.1.0 ad
 This command finds the components, prints them and adds them. If it finds none, it stops before adding anything; run it in the folder with `components.json`. If you use the Ouro theme, add `ourostack/ouro-ui/ouro-theme#{{latestRelease}}` to the `add` in it.
 
 ```sh
-( p() { npx shadcn@latest info --json | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).config.resolvedPaths.$1"; }; ouro="$(p components)/ouro"; items=$(find "$ouro" -name '*.tsx' ! -name '*-parts.tsx' ! -name '*.test.tsx' ! -name '*.stories.tsx' 2>/dev/null | sed -E 's|.*/(.*)\.tsx$|\1|' | sort); [ -n "$items" ] || { echo "No Ouro components in $ouro. Run this in the folder with components.json." >&2; exit 1; }; echo "Updating:" $items; npx shadcn@latest add $(echo "$items" | sed -E 's|.*|ourostack/ouro-ui/&#{{latestRelease}} ourostack/ouro-ui/&-tests#{{latestRelease}}|') ourostack/ouro-ui/ouro-lib-tests#{{latestRelease}} --overwrite )
+( p() { npx shadcn@latest info --json | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).config.resolvedPaths.$1"; }; ouro="$(p components)/ouro"; items=$(find "$ouro" -name '*.tsx' ! -name '*-parts.tsx' ! -name '*.test.tsx' ! -name '*.stories.tsx' 2>/dev/null | sed -E 's|.*/(.*)\.tsx$|\1|' | sort); [ -n "$items" ] || { echo "No Ouro components in $ouro. Run this in the folder with components.json." >&2; exit 1; }; echo "Updating: $(echo "$items" | paste -sd " " -)"; npx shadcn@latest add $(echo "$items" | sed -E 's|.*|ourostack/ouro-ui/&#{{latestRelease}} ourostack/ouro-ui/&-tests#{{latestRelease}}|') ourostack/ouro-ui/ouro-lib-tests#{{latestRelease}} --overwrite )
 ```
 
-This keeps the tests v0.1.0 installed, deletes none of your files and adds no component you didn't have. The `-tests` items set Vitest, Storybook and Playwright in `package.json` to the versions Ouro tests against. Check `package.json` afterwards and restore any pin you need; Ouro's tests may not run on an older Vitest.
+This keeps the tests v0.1.0 installed, deletes none of your files and adds no component you didn't have. shadcn may print `Skipped N files: (files might be identical, use --overwrite to overwrite)` even with `--overwrite`: those files already equal the release's, so nothing was missed. The `-tests` items set Vitest, Storybook and Playwright in `package.json` to the versions Ouro tests against. After `add`, restore every test-tool version you had pinned (`git diff package.json`): Vitest and its companions, Playwright and Storybook. Ouro's tests may not run on older versions, which we don't verify.
 
 #### 2. Remove the self-referential theme lines
 
