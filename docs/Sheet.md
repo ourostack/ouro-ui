@@ -23,7 +23,7 @@ import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
 
 Use `trigger` for a sheet a button opens, or `open` with `onOpenChange` to control it.
 
-To close the sheet from an action, control it (`open`/`onOpenChange`) and set `open` to `false` in the handler, or wrap each action in `SheetClose` (`import { SheetClose } from "@/registry/ouro/components/ouro/sheet/sheet-parts"`): `<SheetClose render={<Button>Copy link</Button>} />`.
+To close the sheet from an action, control it (`open`/`onOpenChange`) and set `open` to `false` in the handler, or wrap each action in `SheetClose` (`import { SheetClose } from "@/components/ouro/sheet/sheet-parts"`, with your components alias): `<SheetClose render={<Button>Copy link</Button>} />`.
 
 It stacks above the page at `--ouro-layer`, a z-index of 50 by default (from ouro-base.css). If your app has fixed bars above z-50, raise it in a `:root` rule of your own after the Ouro tokens, outside any `@layer`: `:root { --ouro-layer: 60; }`. Don't edit the `--ouro-layer: 50` line shadcn wrote; `shadcn add` resets it.
 

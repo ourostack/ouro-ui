@@ -141,5 +141,5 @@ test("no timestamps", () => {
 });
 
 test("Sheet's usage names the import of every part it tells you to use", () => {
-  assert.match(doc("Sheet.md"), /`import \{ SheetClose \} from "@\/registry\/ouro\/components\/ouro\/sheet\/sheet-parts"`/);
+  assert.match(doc("Sheet.md"), /`import \{ SheetClose \} from "@\/components\/ouro\/sheet\/sheet-parts"`, with your components alias/);
 });
