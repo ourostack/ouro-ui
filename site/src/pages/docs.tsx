@@ -8,6 +8,7 @@ import { demos } from "../docs/demos";
 import { docsItems, GITHUB, installedPaths, partsSection, summary, type DocsItem } from "../docs/items";
 import { inline, Markdown, parse, type Block } from "../docs/markdown";
 import { href } from "../routes";
+import upgrading from "../../../UPGRADING.md?raw";
 
 function PageTitle({ eyebrow, title, lead }: { eyebrow: string; title: string; lead: ReactNode }): JSX.Element {
   return (
@@ -61,12 +62,21 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
         Install
       </Heading>
       <div className="grid gap-3">
-        <Command command={`npx shadcn add ourostack/ouro-ui/${item.name}`} />
+        <Text size="sm" tone="muted">
+          Once per app, with Tailwind CSS v4 and an <InlineCode>@/*</InlineCode> path alias (Ouro UI is built on Base UI, so{" "}
+          <InlineCode>--base base</InlineCode>; skip <InlineCode>-t</InlineCode> in an existing app):
+        </Text>
+        <Command command="npx shadcn@latest init --base base --preset nova --yes --no-monorepo" />
+        <Command command={`npx shadcn@latest add ourostack/ouro-ui/${item.name}`} />
         <Text size="sm" tone="muted">
           Or, with the <a href={`${href("/")}#install`} className="text-primary underline underline-offset-4">@ouro namespace</a> set
           up:
         </Text>
-        <Command command={`npx shadcn add @ouro/${item.name}`} />
+        <Command command={`npx shadcn@latest add @ouro/${item.name}`} />
+        <Text size="sm" tone="muted">
+          Its tests, stories and Playwright spec are optional, with Vitest, Storybook and Playwright as devDependencies:
+        </Text>
+        <Command command={`npx shadcn@latest add ourostack/ouro-ui/${item.name} ourostack/ouro-ui/${item.name}-tests`} />
         <CodeBlock code={importLine} className="mt-2" />
         <Text size="sm" tone="muted">
           Paths use shadcn's default <InlineCode>@/</InlineCode> alias; the CLI rewrites them to yours.
@@ -229,9 +239,9 @@ export function Updating(): JSX.Element {
             1. Review the change
           </Heading>
           <Text>List the files the registry's current version would change. Each one marked overwrite differs from yours:</Text>
-          <Command command="npx shadcn add @ouro/sheet --dry-run" />
+          <Command command="npx shadcn@latest add @ouro/sheet --dry-run" />
           <Text>Then see the difference for each of those files by its path:</Text>
-          <Command command="npx shadcn add @ouro/sheet --diff src/components/ouro/sheet/sheet.tsx" />
+          <Command command="npx shadcn@latest add @ouro/sheet --diff src/components/ouro/sheet/sheet.tsx" />
           <Text size="sm" tone="muted">
             Without the namespace, use <InlineCode>ourostack/ouro-ui/sheet</InlineCode> in place of <InlineCode>@ouro/sheet</InlineCode>. A bare{" "}
             <InlineCode>--diff</InlineCode> without a path can stop after the first few unchanged files, before the one you edited.
@@ -244,7 +254,7 @@ export function Updating(): JSX.Element {
           <Text>
             The CLI replaces files; it doesn't merge. Commit first, so your edits are safe, then overwrite:
           </Text>
-          <Command command="npx shadcn add @ouro/sheet --overwrite" />
+          <Command command="npx shadcn@latest add @ouro/sheet --overwrite" />
           <Command command="git diff" />
           <Text>The diff shows the upstream change and, mixed in, your own edits being removed. Bring back the ones you still want.</Text>
         </li>
@@ -253,17 +263,30 @@ export function Updating(): JSX.Element {
             3. Run the tests that came with it
           </Heading>
           <Text>
-            Each component installs with its unit tests, stories and end-to-end specs, updated alongside it. Run them before you
-            commit.
+            A component's unit tests, stories and end-to-end specs are its optional <InlineCode>-tests</InlineCode> item. If you
+            installed them, update them with the component, then run them before you commit:
           </Text>
+          <Command command="npx shadcn@latest add @ouro/sheet @ouro/sheet-tests --overwrite" />
+          <Text size="sm" tone="muted">
+            To add them, run the same command without <InlineCode>--overwrite</InlineCode>. <InlineCode>ouro-tests</InlineCode>{" "}
+            adds every component's tests.
+          </Text>
+        </li>
+        <li className="grid gap-3">
+          <Heading level={2} size="lg">
+            Upgrading from v0.1.0
+          </Heading>
+          {/* UPGRADING.md, the same note as README.md and the release notes; CI runs its commands. */}
+          <Markdown blocks={parse(upgrading).slice(1)} />
         </li>
         <li className="grid gap-3">
           <Heading level={2} size="lg">
             Pin a version
           </Heading>
           <Text>
-            Add a tag to install a release instead of the latest code: <InlineCode>npx shadcn add ourostack/ouro-ui/sheet#v0.1.0</InlineCode>.
+            Add a tag to install a release instead of the latest code:
           </Text>
+          <Command command="npx shadcn@latest add ourostack/ouro-ui/sheet#v0.2.0" />
           <Text size="sm" tone="muted">
             A release tag pins the item and every Ouro dependency it brings (such as <InlineCode>ouro-lib</InlineCode> and{" "}
             <InlineCode>button</InlineCode>) to the same tag. Any other ref, <InlineCode>#&lt;sha&gt;</InlineCode> or{" "}

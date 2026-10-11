@@ -12,7 +12,10 @@
 //                                       (pages.yml), <dir>/{name}.json for the install test
 //
 // shadcn's CLI reads registry.json but has no way to make one: this script fills the
-// gaps. It derives each item's files and targets from the folder layout, its
+// gaps. Each component is two items: <name> ships the runtime source only, and the opt-in
+// <name>-tests ships its tests, type tests, stories and end-to-end spec with the test
+// tooling as devDependencies (ouro-lib-tests does the same for lib/ouro, and ouro-tests
+// installs them all). It derives each item's files and targets from the folder layout, its
 // registryDependencies and npm dependencies from the imports, its versions from this
 // repository's package.json (the versions the tests ran against), the theme items'
 // cssVars and css from registry/ouro/theme/*.css, and each description and docs
@@ -46,7 +49,7 @@ const companions: Record<string, string[]> = { "@storybook/react-vite": ["storyb
 
 /**
  * The files an app adds to run the shipped tests and specs, exactly as the ouro-testing
- * docs message prints them. test/install-fixture uses these files verbatim (the registry
+ * docs message prints them. test/install-fixture-tests holds these files verbatim (the registry
  * test checks), so the install test proves the docs work.
  */
 export const testingSetup: Record<string, string> = {
@@ -84,7 +87,7 @@ export const testingSetup: Record<string, string> = {
 function testingDocs(): string {
   const file = (path: string) => `--- ${path}\n${testingSetup[path]}`;
   return [
-    "Ouro UI's tests are installed beside each component. To run the Vitest browser tests, add vitest.config.ts (use your components.json tailwind.css path for css), then run npx playwright install chromium webkit and npx vitest run:",
+    "The -tests items install Ouro UI's tests beside each component. To run the Vitest browser tests, add vitest.config.ts (use your components.json tailwind.css path for css), then run npx playwright install chromium webkit and npx vitest run:",
     file("vitest.config.ts"),
     "The end-to-end specs in e2e/ouro open the Ouro stories in a Storybook. If your app has none, add these two files (use your stylesheet in preview.ts):",
     file(".storybook/main.ts") + file(".storybook/preview.ts"),
@@ -101,7 +104,7 @@ const foundation = [
     title: "Ouro base",
     css: "registry/ouro/theme/ouro-base.css",
     description:
-      "What every Ouro UI component needs in the app's CSS: success and warning colors, a destructive foreground, the motion tokens, the press utility and the spinner keyframes.",
+      "Installed with every component; you don't need to add it. What every Ouro UI component needs in the app's CSS: success and warning colors, a destructive foreground, the motion tokens, the press utility and the spinner keyframes.",
     docs: "Ouro UI's base tokens are in your CSS. Your theme's values win: edit them like any shadcn variable.",
   },
   {
@@ -115,14 +118,14 @@ const foundation = [
     name: "ouro-lib",
     title: "Ouro lib",
     description:
-      "Shared helpers every Ouro UI component uses, in lib/ouro: cn, dev messages, the className check, announce, OuroProvider and hooks.",
+      "Installed with every component; you don't need to add it. Shared helpers every Ouro UI component uses, in lib/ouro: cn, dev messages, the className check, announce, OuroProvider and hooks.",
     docs: `Ouro UI's helpers are in lib/ouro. OuroProvider is optional; it routes internal hrefs through your router's link. Docs: ${DOCS_URL}`,
   },
   {
     name: "ouro-testing",
     title: "Ouro testing",
     description:
-      "The test kit Ouro UI's tests use: Vitest browser projects with the drag, flick, tap and emulateMedia commands, the act helper, and the end-to-end story helper.",
+      "Installed with every -tests item; you don't need to add it. The test kit Ouro UI's tests use: Vitest browser projects with the drag, flick, tap and emulateMedia commands, the act helper, axeExclude, and the end-to-end story helper.",
     docs: testingDocs(),
   },
 ];
@@ -166,6 +169,20 @@ const testingDir = "registry/ouro/lib/ouro/testing/";
 const e2eDir = "registry/ouro/e2e/ouro/";
 const themeDir = "registry/ouro/theme/";
 
+/** Test-runner packages, which only the -tests items and ouro-testing may import. */
+const testTooling = /^(storybook|@storybook\/.*|vitest|@vitest\/.*|playwright|@playwright\/.*)$/;
+
+/** "Vitest browser tests, type tests, stories and Playwright spec", for the kinds of file present. */
+function fileKinds(paths: string[]): string {
+  const kinds = [
+    paths.some((path) => /\.test\.tsx?$/.test(path)) && "Vitest browser tests",
+    paths.some((path) => path.endsWith(".test-d.ts")) && "type tests",
+    paths.some((path) => path.endsWith(".stories.tsx")) && "stories",
+    paths.some((path) => path.endsWith(".spec.ts")) && "Playwright spec",
+  ].filter((kind): kind is string => Boolean(kind));
+  return kinds.length === 1 ? kinds[0]! : `${kinds.slice(0, -1).join(", ")} and ${kinds.at(-1)}`;
+}
+
 const devFile = /\.(test|touch\.test)\.tsx?$|\.test-d\.ts$|\.stories\.tsx$|\.spec\.ts$/;
 
 /** The item that ships a registry file, or null for a repository-only file. Throws for a file no item claims. */
@@ -178,19 +195,19 @@ export function itemForFile(path: string): string | null {
   } else if (path.startsWith(testingDir) || path === `${e2eDir}story.ts`) {
     return "ouro-testing";
   } else if (path.startsWith(libDir) && !path.slice(libDir.length).includes("/")) {
-    return "ouro-lib";
+    return devFile.test(file) ? "ouro-lib-tests" : "ouro-lib";
   } else if (path.startsWith(e2eDir)) {
     const stem = file.replace(/\.spec\.ts$/, "");
     const component = components.find((entry) => entry.stem === stem);
-    if (component && file.endsWith(".spec.ts")) return component.name;
+    if (component && file.endsWith(".spec.ts")) return `${component.name}-tests`;
   } else if (path.startsWith(componentsDir)) {
     const folder = path.slice(componentsDir.length).split("/")[0];
     const component = components.find(
       (entry) =>
         entry.folder === folder &&
-        new RegExp(`^${entry.stem}(-parts)?\\.(tsx|test\\.tsx|touch\\.test\\.tsx|test-d\\.ts|stories\\.tsx)$`).test(file),
+        new RegExp(`^${entry.stem}(-parts|-styles)?\\.(tsx|ts|test\\.tsx|touch\\.test\\.tsx|test-d\\.ts|stories\\.tsx)$`).test(file),
     );
-    if (component) return component.name;
+    if (component) return devFile.test(file) ? `${component.name}-tests` : component.name;
   }
   throw new Error(`${path}: no item ships this file. Add it to an item (or to repoOnly) in scripts/registry.mts.`);
 }
@@ -203,7 +220,10 @@ function fileEntry(path: string): RegistryFile {
   return { path, type: devFile.test(file) ? "registry:component" : "registry:ui", target };
 }
 
-/** Converts a theme CSS file to shadcn's item format: :root, .dark and @theme inline to cssVars, the rest to css. */
+/**
+ * Converts a theme CSS file to shadcn's item format: :root and .dark colors and @theme inline
+ * to cssVars; --ouro-* tokens, @utility and @keyframes to css.
+ */
 export function cssToItem(source: string): { cssVars: CssVars; css?: CssTree } {
   const cssVars: Required<CssVars> = { light: {}, dark: {}, theme: {} };
   const css: CssTree = {};
@@ -221,7 +241,17 @@ export function cssToItem(source: string): { cssVars: CssVars; css?: CssTree } {
   postcss.parse(source).each((node) => {
     if (node.type === "comment") return;
     if (node.type === "rule" && (node.selector === ":root" || node.selector === ".dark")) {
-      Object.assign(cssVars[node.selector === ":root" ? "light" : "dark"], declarations(node, node.selector, true));
+      // Colors go to cssVars, which the CLI also maps in `@theme inline` (--color-*). The
+      // --ouro-* tokens are not colors: as cssVars they would get a self-referential
+      // `--ouro-x: var(--ouro-x)` mapping, so they go to css under the same selector.
+      for (const [name, value] of Object.entries(declarations(node, node.selector, true))) {
+        if (name.startsWith("ouro-")) {
+          const rule = (css[node.selector] ??= {}) as CssTree;
+          rule[`--${name}`] = value;
+        } else {
+          cssVars[node.selector === ":root" ? "light" : "dark"][name] = value;
+        }
+      }
     } else if (node.type === "atrule" && node.name === "theme" && node.params === "inline") {
       Object.assign(cssVars.theme, declarations(node, "@theme inline", true));
     } else if (node.type === "atrule" && node.name === "utility") {
@@ -293,21 +323,49 @@ export function buildRegistry(root: string): Registry {
   const shipped = (name: string) => all.filter((file) => owner.get(file) === name && !file.endsWith(".css"));
 
   const items: RegistryItem[] = [];
+  const testsItems = [
+    { name: "ouro-lib-tests", title: "Ouro lib tests", of: "ouro-lib", docsPage: "" },
+    ...components.map((entry) => ({ name: `${entry.name}-tests`, title: `${entry.title} tests`, of: entry.name, docsPage: `/${entry.name}` })),
+  ];
   const entries = [
     ...foundation.map((entry) => ({ ...entry, kind: "foundation" as const })),
     ...components.map((entry) => ({
       ...entry,
       kind: "component" as const,
       description: firstSentence(root, entry.title),
-      docs: `${firstSentence(root, entry.title)} Docs: ${DOCS_URL}/${entry.name}`,
+      // Completed below, once every item's registryDependencies are known.
+      docs: "",
     })),
+    ...testsItems.map((entry) => ({
+      ...entry,
+      kind: "tests" as const,
+      // Says what the item ships, by the kinds of file it has (ouro-lib-tests has only tests).
+      description: `Optional: the ${fileKinds(shipped(entry.name))} for ${entry.of}, with the test tooling as devDependencies. Add it beside ${entry.of}: add ${entry.of} ${entry.name}.`,
+      docs: `${entry.of}'s tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: ${DOCS_URL}${entry.docsPage}`,
+    })),
+    {
+      name: "ouro-tests",
+      title: "Ouro tests",
+      kind: "aggregate" as const,
+      description:
+        "Optional: every Ouro UI component with its tests, type tests, stories and Playwright spec, and the test kit. The whole suite in one command.",
+      docs: `Every Ouro UI component and its tests are installed. The ouro-testing message says how to run them. Docs: ${DOCS_URL}`,
+    },
   ];
   for (const entry of entries) {
     const item: RegistryItem = {
       name: entry.name,
       // ouro-theme replaces the app's colors, so it is a theme (the CLI warns before it
-      // overwrites variables). ouro-base only adds variables, so it is a plain item.
-      type: entry.name === "ouro-theme" ? "registry:theme" : "css" in entry ? "registry:item" : entry.kind === "component" ? "registry:ui" : "registry:lib",
+      // overwrites variables). ouro-base only adds variables, so it is a plain item, and so
+      // are the -tests items, which add files of several kinds.
+      type:
+        entry.name === "ouro-theme"
+          ? "registry:theme"
+          : "css" in entry || entry.kind === "tests" || entry.kind === "aggregate"
+            ? "registry:item"
+            : entry.kind === "component"
+              ? "registry:ui"
+              : "registry:lib",
       title: entry.title,
       description: entry.description,
       docs: entry.docs,
@@ -315,10 +373,18 @@ export function buildRegistry(root: string): Registry {
     const paths = shipped(entry.name);
     const runtime = new Set<string>();
     const dev = new Set<string>();
-    const registryDeps = new Set<string>(entry.kind === "component" ? ["ouro-base"] : []);
+    const registryDeps = new Set<string>(
+      entry.kind === "component"
+        ? ["ouro-base"]
+        : entry.kind === "tests"
+          ? [entry.of, "ouro-testing"]
+          : entry.kind === "aggregate"
+            ? testsItems.map((tests) => tests.name)
+            : [],
+    );
     for (const path of paths) {
       const source = readFileSync(join(root, path), "utf8");
-      const isDev = entry.name === "ouro-testing" || devFile.test(path);
+      const isDev = entry.name === "ouro-testing" || entry.kind === "tests";
       for (const specifier of importsOf(source)) {
         if (specifier.startsWith("@/")) {
           if (path.startsWith(e2eDir)) throw new Error(`${path}: e2e files ship as registry:file, which the CLI does not rewrite; use relative imports.`);
@@ -339,7 +405,34 @@ export function buildRegistry(root: string): Registry {
     if (registryDeps.size > 0) item.registryDependencies = [...registryDeps].sort().map((name) => `${REPO}/${name}`);
     if (paths.length > 0) item.files = paths.map(fileEntry);
     if ("css" in entry && entry.css) Object.assign(item, cssToItem(readFileSync(join(root, entry.css), "utf8")));
+    if (entry.kind !== "tests" && entry.kind !== "aggregate" && entry.name !== "ouro-testing") {
+      const tooling = [...runtime, ...dev].filter((name) => testTooling.test(name)).sort();
+      if (tooling.length > 0) {
+        throw new Error(`${entry.name} is a runtime item but imports test tooling: ${tooling.join(", ")}. Runtime files import no test tooling; move the import to a test or story.`);
+      }
+    }
     items.push(item);
+  }
+
+  // A component's docs message: what to import and what else the CLI installed with it.
+  const byName = new Map(items.map((item) => [item.name, item]));
+  const prefix = `${REPO}/`;
+  const installedWith = (name: string, seen = new Set<string>()): Set<string> => {
+    for (const dependency of byName.get(name)?.registryDependencies ?? []) {
+      const dep = dependency.slice(prefix.length);
+      if (!seen.has(dep)) {
+        seen.add(dep);
+        installedWith(dep, seen);
+      }
+    }
+    return seen;
+  };
+  for (const entry of components) {
+    const item = byName.get(entry.name)!;
+    const also = [...installedWith(entry.name)].sort().join(", ");
+    item.docs =
+      `${item.description} Import: import { ${entry.title} } from "@/components/ouro/${entry.folder}/${entry.stem}". ` +
+      `Also installed: ${also}. Docs: ${DOCS_URL}/${entry.name}`;
   }
   return {
     $schema: "https://ui.shadcn.com/schema/registry.json",

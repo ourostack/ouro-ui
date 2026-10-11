@@ -20,5 +20,5 @@
     "paths": { "@/*": ["./*"] }
   },
   "include": ["registry", "test", "stories", ".storybook", "site", "*.ts", "*.config.ts"],
-  "exclude": ["test/install-fixture"]
+  "exclude": ["test/install-fixture", "test/install-fixture-tests", "test/install-fixture-upgrade"]
 }

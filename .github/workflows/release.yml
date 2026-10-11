@@ -84,11 +84,18 @@ jobs:
           git tag "$TAG"
           git push origin "$TAG"
           {
-            echo "Install an item at this release; its Ouro dependencies install from the same tag:"
+            echo "Install an item at this release; its Ouro dependencies install from the same tag. In an app with Tailwind CSS v4 and an \"@/*\" path alias, run shadcn's init once first, with the Base UI base:"
             echo
             echo '```sh'
+            echo "npx shadcn@latest init --base base --preset nova --yes --no-monorepo"
             echo "npx shadcn@latest add ourostack/ouro-ui/dialog#$TAG"
             echo '```'
+            echo
+            echo "The tests, stories and specs are optional, one item per component: \`npx shadcn@latest add ourostack/ouro-ui/dialog#$TAG ourostack/ouro-ui/dialog-tests#$TAG\`, or \`ourostack/ouro-ui/ouro-tests#$TAG\` for all of them. List every item with \`npx shadcn@latest search 'ourostack/ouro-ui#$TAG'\`."
+            echo
+            # Remove this note once v0.1.0 is no longer in use.
+            # UPGRADING.md is the note (README.md and the site copy it); its addresses get this tag.
+            sed -e '1s/^# /### /' -e "s/#v0\.2\.0/#$TAG/g" UPGRADING.md
             echo
             echo 'Or through the `@ouro` namespace, which serves the newest code on main (not pinned to this release). Add it to `components.json` once:'
             echo

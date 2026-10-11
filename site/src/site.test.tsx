@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { cleanupPage, describeViolations, renderPage, scan, setScheme, settle } from "../test/render";
+import upgrading from "../../UPGRADING.md?raw";
 import { docsItems } from "./docs/items";
+import { parse } from "./docs/markdown";
 import { routes } from "./routes";
 
 // The site's contract (Task 11): the hero says exactly what it should, the live Sheet
@@ -18,6 +20,10 @@ afterEach(async () => {
   setScheme("light");
 });
 
+const INIT = "npx shadcn@latest init --base base --preset nova --yes --no-monorepo";
+// The upgrade note is UPGRADING.md, rendered on the Updating page; every command shows.
+const upgradeCommands = parse(upgrading).flatMap((block) => (block.kind === "code" ? [block.text] : []));
+
 describe("landing page", () => {
   it("renders the exact hero text", async () => {
     await renderPage("/");
@@ -25,6 +31,7 @@ describe("landing page", () => {
     await expect.element(heading).toBeVisible();
     expect(heading.element().textContent).toBe("Interfaces that feel right, built by agents that get them right.");
     await expect.element(page.getByText("shadcn/ui compliant", { exact: true })).toBeVisible();
+    expect(page.getByRole("link", { name: "llms.txt" }).element().getAttribute("href")).toBe("https://ourostack.github.io/ouro-ui/llms.txt");
   });
 
   it("opens the live Sheet demo inside the phone frame", async () => {
@@ -38,6 +45,12 @@ describe("landing page", () => {
     expect(frame.contains(sheet.element())).toBe(true);
     await expect.element(page.getByText("Drag it. Flick it. Pull it past the edge.")).toBeVisible();
   });
+
+  it("starts the install steps with shadcn's init, with the Base UI base", async () => {
+    await renderPage("/");
+    await expect.element(page.getByText(INIT, { exact: true })).toBeVisible();
+    await expect.element(page.getByText("npx shadcn@latest add ourostack/ouro-ui/sheet", { exact: true })).toBeVisible();
+  });
 });
 
 describe("docs", () => {
@@ -47,10 +60,12 @@ describe("docs", () => {
     for (const name of names) expect(routes.map((route) => route.path)).toContain(`/docs/${name}/`);
   });
 
-  it.each(docsItems)("docs/$name shows a live demo, both install commands and the guard props", async ({ name }) => {
+  it.each(docsItems)("docs/$name shows a live demo, the init step, both install commands, the tests item and the guard props", async ({ name }) => {
     await renderPage(`/docs/${name}/`);
-    await expect.element(page.getByText(`npx shadcn add ourostack/ouro-ui/${name}`, { exact: true })).toBeVisible();
-    await expect.element(page.getByText(`npx shadcn add @ouro/${name}`, { exact: true })).toBeVisible();
+    await expect.element(page.getByText(INIT, { exact: true })).toBeVisible();
+    await expect.element(page.getByText(`npx shadcn@latest add ourostack/ouro-ui/${name}`, { exact: true })).toBeVisible();
+    await expect.element(page.getByText(`npx shadcn@latest add @ouro/${name}`, { exact: true })).toBeVisible();
+    await expect.element(page.getByText(`npx shadcn@latest add ourostack/ouro-ui/${name} ourostack/ouro-ui/${name}-tests`, { exact: true })).toBeVisible();
     await expect.element(page.getByRole("region", { name: "Live demo" })).toBeVisible();
     await expect.element(page.getByRole("heading", { name: "Props", level: 2 })).toBeVisible();
     await expect.element(page.getByRole("heading", { name: "Use instead when", level: 2 })).toBeVisible();
@@ -69,8 +84,15 @@ describe("docs", () => {
     await expect.element(page.getByText("components/ui/", { exact: true }).first()).toBeVisible();
     await renderPage("/docs/updating/");
     await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent("Updating installed components");
-    await expect.element(page.getByText("npx shadcn add @ouro/sheet --dry-run", { exact: true })).toBeVisible();
-    await expect.element(page.getByText("npx shadcn add @ouro/sheet --diff src/components/ouro/sheet/sheet.tsx", { exact: true })).toBeVisible();
+    await expect.element(page.getByText("npx shadcn@latest add @ouro/sheet --dry-run", { exact: true })).toBeVisible();
+    await expect.element(page.getByText("npx shadcn@latest add @ouro/sheet --diff src/components/ouro/sheet/sheet.tsx", { exact: true })).toBeVisible();
+    await expect.element(page.getByText("npx shadcn@latest add @ouro/sheet @ouro/sheet-tests --overwrite", { exact: true })).toBeVisible();
+    await expect.element(page.getByText("npx shadcn@latest add ourostack/ouro-ui/sheet#v0.2.0", { exact: true })).toBeVisible();
+    await expect.element(page.getByRole("heading", { name: "Upgrading from v0.1.0", level: 2 })).toBeVisible();
+    expect(upgradeCommands.length).toBeGreaterThanOrEqual(3);
+    for (const command of upgradeCommands) await expect.element(page.getByText(command, { exact: true })).toBeVisible();
+    await expect.element(page.getByRole("heading", { name: "1. Update every Ouro component, with its tests", level: 3 })).toBeVisible();
+    await expect.element(page.getByText("useOuro", { exact: true })).toBeVisible();
   });
 });
 

@@ -16,7 +16,7 @@ export const routes: Route[] = [
   ...docsItems.map((item) => ({
     path: `/docs/${item.name}/`,
     title: `${item.title} · Ouro UI`,
-    description: `${item.title}: install it with npx shadcn add ourostack/ouro-ui/${item.name}.`,
+    description: `${item.title}: install it with npx shadcn@latest add ourostack/ouro-ui/${item.name}.`,
   })),
   {
     path: "/docs/switching-from-shadcn/",

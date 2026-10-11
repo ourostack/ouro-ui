@@ -2,6 +2,7 @@ import axe from "axe-core";
 import { createRoot, type Root } from "react-dom/client";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { App } from "../src/app";
+import { axeExclude } from "@/registry/ouro/lib/ouro/testing/axe";
 
 let mounted: { root: Root; host: HTMLElement } | undefined;
 
@@ -50,7 +51,7 @@ export function describeViolations(violations: axe.Result[]): string {
 export async function scan(): Promise<axe.Result[]> {
   // Base UI's focus guards are excluded for the reason given in test/stories.test.tsx.
   const result = await axe.run(
-    { include: [document.documentElement], exclude: [["[data-base-ui-focus-guard]"]] },
+    { include: [document.documentElement], exclude: axeExclude.map((selector) => [selector]) },
     { resultTypes: ["violations"] },
   );
   return result.violations;

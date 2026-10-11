@@ -7,25 +7,9 @@ import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { useBackdropAnchor } from "@/registry/ouro/lib/ouro/use-backdrop-anchor";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 import { useKeyboardScrollable } from "@/registry/ouro/lib/ouro/use-keyboard-scrollable";
+import { iosBackdrop, sheetHint, sheetSides, sideWarning, type SheetSide } from "@/registry/ouro/components/ouro/sheet/sheet-styles";
 
-/** The edge a sheet slides in from, and is dragged back to, to dismiss. */
-export type SheetSide = "bottom" | "top" | "left" | "right";
-
-/**
- * The four sides, for checking a `side` prop. Shared with `Sheet`.
- *
- * @internal
- */
-export const sheetSides: readonly SheetSide[] = ["bottom", "top", "left", "right"];
-
-/**
- * The dev message for a side that is not one of {@link sheetSides}. Development only.
- *
- * @internal
- */
-export function sideWarning(side: string, fix: string): readonly [string, string] {
-  return [`side="${side}" is not a side; use ${sheetSides.map((name) => `"${name}"`).join(", ")}`, fix];
-}
+export type { SheetSide } from "@/registry/ouro/components/ouro/sheet/sheet-styles";
 
 /**
  * A snap point for a bottom or top sheet: a fraction of the viewport height
@@ -59,23 +43,6 @@ const swipeDirections = { bottom: "down", top: "up", left: "left", right: "right
  *
  * Class strings are literal so the app's Tailwind finds them when it compiles.
  */
-
-/**
- * iOS 26+ Safari draws the page under its translucent toolbars, and a fixed element
- * stops at the toolbars, leaving the page under them undimmed. Base UI's guidance is
- * position: absolute (with body { position: relative } in the app). A library cannot
- * set that on body, and Base UI's iOS scroll lock keeps the page's scroll offset, so an
- * absolute backdrop would sit at the top of the document, off screen on a scrolled
- * page. The backdrops therefore keep --ouro-backdrop-top at the offset that puts them at
- * the top of the screen (useBackdropAnchor), and the large viewport height reaches under
- * the toolbars. Shared with the dialog backdrop.
- *
- * @internal
- */
-export const iosBackdrop =
-  "supports-[-webkit-touch-callout:none]:absolute supports-[-webkit-touch-callout:none]:inset-x-0 " +
-  "supports-[-webkit-touch-callout:none]:top-[var(--ouro-backdrop-top,0px)] supports-[-webkit-touch-callout:none]:bottom-auto " +
-  "supports-[-webkit-touch-callout:none]:h-lvh";
 
 const backdropClass =
   "fixed inset-0 z-1000 min-h-dvh bg-(--ouro-backdrop-color) " +
@@ -148,15 +115,6 @@ const popupSides = {
 } as const;
 
 /**
- * The actions row of a Dialog, in either presentation: a row at the end from 640px up.
- * Below it the actions stack full width in DOM order, so the primary action (last)
- * sits at the bottom, nearest the thumb. Shared with `DialogFooter`.
- *
- * @internal
- */
-export const footerClass = "box-border flex shrink-0 justify-end gap-3 px-5 pt-3 pb-5 max-sm:flex-col max-sm:*:w-full";
-
-/**
  * A bottom sheet's padding keeps its body above the home indicator and the software
  * keyboard. At a lower snap point part of the sheet sits below the screen, so it is
  * padded by that much more and the body ends on screen.
@@ -182,23 +140,6 @@ function useSheetPart(part: string, inner: string): SheetContextValue {
     );
   }
   return context;
-}
-
-/**
- * The Fix code for an appearance class on a sheet part: the theme's CSS variables
- * for colors and radius, or a wrapper inside `open`…`close` for text classes.
- * Development only.
- *
- * @internal
- */
-export function sheetHint(open: string, close: string) {
-  return (token: string): string => {
-    if (token.startsWith("rounded")) {
-      return `:root { --radius: ${token === "rounded-none" ? "0px" : "0.75rem"} }`;
-    }
-    if (/^(text|font)-/.test(token)) return `${open}<div className="${token}">…</div>${close}`;
-    return ":root { --popover: …; } .dark { --popover: …; }";
-  };
 }
 
 /** Props for {@link SheetRoot}: Base UI `Drawer.Root` props with `side` in place of `swipeDirection`. */

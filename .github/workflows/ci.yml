@@ -119,6 +119,30 @@ jobs:
             ${{ runner.temp }}/app/package.json
             ${{ runner.temp }}/app/playwright-report/
           if-no-files-found: ignore
+  install-upgrade:
+    # An app on v0.1.0 (dialog from GitHub at #v0.1.0, with tests of its own) runs the
+    # commands in UPGRADING.md against this commit's registry, in a src/ and an app/
+    # layout, keeping Ouro's tests and without them (scripts/install-test.sh upgrade).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      - run: scripts/install-test.sh upgrade "$RUNNER_TEMP/app"
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: install-upgrade
+          path: |
+            ${{ runner.temp }}/app/src/index.css
+            ${{ runner.temp }}/app/package.json
+            ${{ runner.temp }}/app-without-tests/src/index.css
+            ${{ runner.temp }}/app-without-tests/package.json
+          if-no-files-found: ignore
   install-github:
     # The install a user runs today: `shadcn add ourostack/ouro-ui/<item>` with no ref, so
     # every item and its Ouro dependencies come from main. Runs after each push to main,

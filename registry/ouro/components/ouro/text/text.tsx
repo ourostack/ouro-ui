@@ -1,12 +1,17 @@
+// Text: body text in the theme's type scale and colors.
+//
+//   <Text size="sm" tone="muted">Updated 2 days ago</Text>
+//
+// @see https://ourostack.github.io/ouro-ui/docs/text for every prop, with examples.
 import type { CSSProperties, HTMLAttributes, JSX, ReactNode, Ref } from "react";
 import { fontFor, isWeight, sizeFor, toneFor } from "@/registry/ouro/lib/ouro/appearance-hints";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 import { toneWarning } from "@/registry/ouro/lib/ouro/tones";
+import { alignClasses, checkAlign, type TextAlign } from "@/registry/ouro/components/ouro/text/text-styles";
 
-/** Text alignment, in writing direction: `start` is left in English and right in Arabic. */
-export type TextAlign = "start" | "center" | "end";
+export type { TextAlign } from "@/registry/ouro/components/ouro/text/text-styles";
 
 /** The props Text adds to the HTML attributes it passes through. */
 export interface TextOwnProps {
@@ -82,30 +87,6 @@ const tones = {
   warning: "text-warning",
 } as const;
 
-/**
- * Alignment classes, shared with `Heading`.
- *
- * @internal
- */
-export const alignClasses = { start: "text-start", center: "text-center", end: "text-end" } as const;
-
-/**
- * The value an `align` prop is, or `undefined` (inherited) with the dev message for one
- * that is not: `left` and `right` point to `start` and `end`. Shared with `Heading`.
- *
- * @internal
- */
-export function checkAlign(component: string, align: string | undefined): [TextAlign | undefined, readonly [string, string] | false] {
-  if (align === undefined || Object.hasOwn(alignClasses, align)) return [align as TextAlign | undefined, false];
-  const fix = align === "right" ? "end" : "start";
-  return [
-    undefined,
-    process.env.NODE_ENV !== "production"
-      ? [`align="${align}" is not an alignment; use "start", "center", "end"`, `<${component} align="${fix}">`]
-      : /* istanbul ignore next -- production only */ false,
-  ];
-}
-
 const tags = ["p", "span", "div"] as const;
 
 function textTone(token: string): string {
@@ -126,6 +107,8 @@ function textHint(token: string): string {
  *
  * Use `Heading` instead for titles (it renders `<h1>`–`<h6>`). Inside a
  * `Button`, pass plain text as children; the button styles it.
+ *
+ * @see https://ourostack.github.io/ouro-ui/docs/text
  *
  * @example
  * <Text>Braise for three hours.</Text>

@@ -23,6 +23,10 @@ import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
 
 Use `trigger` for a sheet a button opens, or `open` with `onOpenChange` to control it.
 
+To close the sheet from an action, control it (`open`/`onOpenChange`) and set `open` to `false` in the handler, or wrap the action: `<SheetClose render={<Button>Copy link</Button>} />`.
+
+Testing accessibility: in WebKit, Base UI's focus guards take `role="button"` without a name so VoiceOver's cursor stays trapped. Exclude them: `new AxeBuilder({ page }).exclude("[data-base-ui-focus-guard]")`.
+
 ## Use instead when
 
 - Use `Dialog` instead when the content should be a centered dialog on larger screens; it renders this sheet on phones.
@@ -37,6 +41,7 @@ Props every mode takes. Type: `SheetProps`.
 | `className` | `string` |  | Layout only, applied to the sheet panel: width and margins (`max-w-lg`, `mx-auto`). Your classes win over Ouro UI's. Appearance classes warn in development. |
 | `closeLabel` | `string` | `"Close"` | The label of the sheet's close button. The button is the last control in the sheet, hidden until it has keyboard focus, so screen-reader users on phones (who have no Escape key) can always close the sheet. |
 | `description` | `ReactNode` |  | A short line under the title, read out when the sheet opens. |
+| `footer` | `ReactNode` |  | The actions row, stacked full width on phones; primary action last. |
 | `hideTitle` | `boolean` |  | Hides the title visually. It still names the dialog for screen readers. |
 | `side` | `"bottom" \| "top" \| "left" \| "right"` | `"bottom"` | The edge the sheet slides in from and is dragged back to. |
 | `snapPoints` | `SheetSnapPoint[]` |  | Heights a bottom or top sheet rests at, smallest first: fractions of the viewport (`0.5`), `px` or `rem`. `snapPoints={[0.5, 1]}` opens at half height and drags up to full. Without snap points the sheet fits its content. |

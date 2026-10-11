@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -105,6 +105,41 @@ describe("ConfirmDialog", () => {
     await userEvent.click(button("Keep it"));
     await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
     expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it("moves focus to finalFocus when the confirmed action removes the trigger", async () => {
+    function Recipe() {
+      const [deleted, setDeleted] = useState(false);
+      const headingRef = useRef<HTMLHeadingElement>(null);
+      return (
+        <main>
+          <h1 ref={headingRef} tabIndex={-1}>
+            {deleted ? "Recipe deleted" : "Pancakes"}
+          </h1>
+          {!deleted && (
+            <ConfirmDialog
+              title="Delete recipe?"
+              confirmLabel="Delete"
+              tone="destructive"
+              finalFocus={headingRef}
+              onConfirm={() => setDeleted(true)}
+              trigger={<Button>Delete recipe</Button>}
+            />
+          )}
+        </main>
+      );
+    }
+    await render(<Recipe />);
+    await userEvent.click(trigger());
+    await settled();
+    await userEvent.click(button("Delete"));
+    await expect.poll(() => document.activeElement?.textContent, { timeout: 3000 }).toBe("Recipe deleted");
+  });
+
+  it("returns focus to the trigger after Cancel when finalFocus is not set", async () => {
+    await open();
+    await userEvent.click(button("Cancel"));
+    await expect.poll(() => document.activeElement).toBe(trigger());
   });
 
   it("closes right away when onConfirm returns nothing", async () => {
@@ -292,6 +327,13 @@ describe("ConfirmDialog dev messages", () => {
     // @ts-expect-error -- open without onOpenChange
     const dialog = <ConfirmDialog title="Delete?" confirmLabel="Delete" onConfirm={() => {}} open />;
     expect(() => renderToString(dialog)).toThrow(`[ouro-ui] ConfirmDialog: open needs onOpenChange. Fix: ${FIX}`);
+  });
+
+  it.each([[""], [undefined]])("warns when the title is missing (%j): it names the confirmation for screen readers", async (title) => {
+    await open({ title } as object);
+    expect(warn.mock.calls.map((call: unknown[]) => call[0])).toEqual([
+      '[ouro-ui] ConfirmDialog: title is required; it names the confirmation for screen readers. Fix: <ConfirmDialog title="Delete recipe?">.',
+    ]);
   });
 
   it("warns once about guessed props and drops them from the DOM", async () => {
