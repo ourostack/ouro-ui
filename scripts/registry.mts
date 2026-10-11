@@ -24,6 +24,7 @@ import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import postcss from "postcss";
+import ts from "typescript";
 
 const REPO = "ourostack/ouro-ui";
 const DOCS_URL = "https://ourostack.github.io/ouro-ui/docs";
@@ -282,8 +283,9 @@ export function cssToItem(source: string): { cssVars: CssVars; css?: CssTree } {
 }
 
 /** Bare and alias import specifiers in a source file. */
+/** The modules a file imports, statically or dynamically; an import written in a comment does not count. */
 function importsOf(source: string): string[] {
-  return [...source.matchAll(/(?:from|import)\s*\(?\s*["']([^"']+)["']/g)].map((match) => match[1]!);
+  return ts.preProcessFile(source, true, true).importedFiles.map((file) => file.fileName);
 }
 
 function packageName(specifier: string): string | null {
