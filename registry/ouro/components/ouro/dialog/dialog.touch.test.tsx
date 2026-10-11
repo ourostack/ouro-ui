@@ -29,7 +29,7 @@ async function mount(node: ReactNode) {
   await act(() => root!.render(node));
 }
 
-/** Waits for the open popup's entrance, then for Base UI's initial focus. */
+/** Waits for the open popup's entrance, then for Base UI's initial focus to land in it. */
 async function opened() {
   await expect
     .poll(() => {
@@ -37,7 +37,7 @@ async function opened() {
       return Boolean(element && !element.hasAttribute("data-starting-style") && element.getAnimations().length === 0);
     })
     .toBe(true);
-  await new Promise((resolve) => setTimeout(resolve, 100));
+  await expect.poll(() => anyPopup()!.contains(document.activeElement)).toBe(true);
   return anyPopup()!;
 }
 
