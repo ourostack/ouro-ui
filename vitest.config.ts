@@ -33,11 +33,9 @@ export default defineConfig({
       ...ouroTestProjects({ css, include: ["{registry,test}/**/*.test.{ts,tsx}"] }),
       {
         // The landing page and docs site (site/), rendered at the widths it is built for. It
-        // declares its own Vite setup, matching site/vite.config.ts, rather than sharing the
-        // registry projects'.
-        plugins: [react(), tailwindcss()],
-        resolve: { alias: { "@": fileURLToPath(new URL(".", import.meta.url)) } },
-        optimizeDeps: { include: ["@base-ui/react/alert-dialog", "@base-ui/react/button", "@base-ui/react/dialog", "@base-ui/react/drawer"] },
+        // inherits this file's Vite setup (React, Tailwind, the `@` alias), which matches
+        // site/vite.config.ts.
+        extends: true as const,
         test: {
           name: "site",
           expect: { poll: { timeout: 10_000 } },
