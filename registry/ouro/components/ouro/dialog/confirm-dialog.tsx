@@ -1,14 +1,3 @@
-// ConfirmDialog: asks the user to confirm an action, with Cancel focused first.
-//
-//   <ConfirmDialog
-//     title="Delete recipe?"
-//     confirmLabel="Delete"
-//     tone="destructive"
-//     onConfirm={() => deleteRecipe(id)}
-//     trigger={<Button tone="destructive" variant="soft">Delete</Button>}
-//   />
-//
-// @see https://ourostack.github.io/ouro-ui/docs/confirm-dialog for every prop, with examples.
 import { useRef, useState, type JSX, type ReactElement, type ReactNode, type RefObject } from "react";
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
 import { checkOpenMode } from "@/registry/ouro/lib/ouro/open-mode";
@@ -52,9 +41,10 @@ export interface ConfirmDialogBaseProps {
    */
   onConfirm: () => void | Promise<void>;
   /**
-   * Where focus goes when the confirmation closes. By default it returns to the
-   * trigger; when `onConfirm` removes the trigger, point this at what replaces it
-   * (give a heading `tabIndex={-1}`): `finalFocus={headingRef}`.
+   * Where focus goes after a confirmed action closes the confirmation. Cancel and
+   * Escape still return focus to the trigger. When `onConfirm` removes the trigger,
+   * point this at what replaces it (give a heading `tabIndex={-1}`):
+   * `finalFocus={headingRef}`.
    */
   finalFocus?: RefObject<HTMLElement | null> | undefined;
 
@@ -106,6 +96,11 @@ export type ConfirmDialogProps = ConfirmDialogWithTriggerProps | ConfirmDialogCo
  * Use `tone="destructive"` for destructive actions, and return a promise from
  * `onConfirm` to show progress until the action finishes. Use `Dialog` instead
  * when the user has more to do than confirm or cancel.
+ *
+ * It stacks above the page at `--ouro-layer`, a z-index of 50 by default (from
+ * ouro-base.css). If your app has fixed bars above z-50, raise it in a `:root` rule
+ * of your own after the Ouro tokens, outside any `@layer`: `:root { --ouro-layer: 60; }`.
+ * Don't edit the `--ouro-layer: 50` line shadcn wrote; `shadcn add` resets it.
  *
  * Testing accessibility: in WebKit, Base UI's focus guards take `role="button"`
  * without a name so VoiceOver's cursor stays trapped. Exclude them:
@@ -171,7 +166,7 @@ export function ConfirmDialog(props: ConfirmDialogProps): JSX.Element {
             variant !== undefined && ["variant is not a prop", '<ConfirmDialog tone="destructive">'],
           ];
         }
-      : /* istanbul ignore next -- production only */ undefined,
+      : /* istanbul ignore next @preserve -- production only */ undefined,
   );
 
   const [ownOpen, setOwnOpen] = useState(false);
@@ -182,8 +177,13 @@ export function ConfirmDialog(props: ConfirmDialogProps): JSX.Element {
   const warnKey = useRef({});
   const cancelRef = useRef<HTMLButtonElement>(null);
 
+  // Whether the last close came from a confirmed action. Only then does focus go to
+  // `finalFocus`; Cancel and Escape leave the trigger in place, so focus returns to it.
+  const confirmed = useRef(false);
+
   const controlled = open !== undefined;
-  const setOpen = (next: boolean) => {
+  const setOpen = (next: boolean, afterConfirm = false) => {
+    confirmed.current = afterConfirm;
     attempt.current++;
     setPending(false);
     if (controlled) onOpenChange!(next);
@@ -199,22 +199,21 @@ export function ConfirmDialog(props: ConfirmDialogProps): JSX.Element {
       result = Promise.reject(error);
     }
     if (!result) {
-      setOpen(false);
+      setOpen(false, true);
       return;
     }
     const current = ++attempt.current;
     setPending(true);
     result.then(
       () => {
-        if (attempt.current === current) setOpen(false);
+        if (attempt.current === current) setOpen(false, true);
       },
       (error: unknown) => {
         // A rejection from an attempt the user already left (Cancel, Escape, a newer
         // confirm) must not clear a newer confirm's busy state; it is still reported.
         const stale = attempt.current !== current;
         if (!stale) setPending(false);
-        // The else path only exists in production bundles; scripts/dev-strip.test.mjs covers it.
-        /* istanbul ignore else */
+        /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
         if (process.env.NODE_ENV !== "production") {
           const message = error instanceof Error ? error.message : String(error);
           devWarn(
@@ -239,7 +238,9 @@ export function ConfirmDialog(props: ConfirmDialogProps): JSX.Element {
           <DialogPopupUnchecked
             size="sm"
             initialFocus={cancelRef}
-            {...(finalFocus ? { finalFocus } : {})}
+            {...(finalFocus
+              ? { finalFocus: () => (confirmed.current ? (finalFocus.current ?? true) : true) }
+              : {})}
             data-ouro-confirm=""
           >
             <div data-ouro-dialog-header="" className="box-border grid shrink-0 gap-1 px-5 pt-5 pb-2">

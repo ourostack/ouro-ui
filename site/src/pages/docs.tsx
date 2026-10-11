@@ -157,7 +157,7 @@ const switchingCoexist = `
 
 shadcn/ui installs to \`components/ui/\`. Ouro UI installs to \`components/ouro/\`, so a shadcn \`button\` and an Ouro \`button\` never collide. Switch a screen at a time, and remove the shadcn file when nothing imports it any more.
 
-Ouro components read shadcn's variables (\`--primary\`, \`--muted-foreground\`, \`--radius\` and the rest), so your theme carries over unchanged. Dark mode is the same \`.dark\` class. Ouro UI adds only what shadcn themes lack, in \`ouro-base.css\`: \`--success\` and \`--warning\` with their foregrounds, \`--destructive-foreground\`, and the motion tokens. The Ouro look (\`ouro-theme\`) is optional; skip it to keep yours.
+Ouro components read shadcn's variables (\`--primary\`, \`--muted-foreground\`, \`--radius\` and the rest), so your theme carries over unchanged. Dark mode is the same \`.dark\` class. Ouro UI adds only what shadcn themes lack, in \`ouro-base.css\`: \`--success\` and \`--warning\` with their foregrounds, \`--destructive-foreground\`, the motion tokens, and \`--ouro-layer\`, the z-index of sheets and dialogs (50, as in shadcn's overlays; if your app has fixed bars above z-50, raise it in a \`:root\` rule of your own after the Ouro tokens, outside any \`@layer\`, not by editing the line shadcn wrote). The Ouro look (\`ouro-theme\`) is optional; skip it to keep yours.
 
 ## Components
 

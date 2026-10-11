@@ -57,7 +57,7 @@ function useDialogPart(part: string, inner: string): void {
     devThrow(
       part,
       "must be rendered inside <DialogRoot>",
-      process.env.NODE_ENV !== "production" ? shape(inner) : /* istanbul ignore next -- production only */ "",
+      process.env.NODE_ENV !== "production" ? shape(inner) : /* istanbul ignore next @preserve -- production only */ "",
     );
   }
 }
@@ -111,10 +111,15 @@ export function DialogTrigger(props: BaseDialog.Trigger.Props): JSX.Element {
   return <BaseDialog.Trigger {...props} />;
 }
 
-/** Part: moves the dialog to the end of `<body>`, in its own stacking context. */
+/**
+ * Part: moves the dialog to the end of `<body>`, in its own stacking context at the
+ * `--ouro-layer` z-index (50 by default, from ouro-base.css). If your app has fixed
+ * bars above z-50, raise it in a `:root` rule of your own after the Ouro tokens, outside
+ * any `@layer`: `:root { --ouro-layer: 60; }`. Don't edit the line shadcn wrote; `shadcn add` resets it.
+ */
 export function DialogPortal(props: Omit<BaseDialog.Portal.Props, "className">): JSX.Element {
   useDialogPart("DialogPortal", "…");
-  return <BaseDialog.Portal {...props} data-ouro="dialog-portal" className="isolate" />;
+  return <BaseDialog.Portal {...props} data-ouro="dialog-portal" className="relative isolate z-(--ouro-layer)" />;
 }
 
 /**
@@ -154,14 +159,14 @@ export function DialogPopup({ size: sizeProp = "md", ...props }: DialogPopupProp
     "DialogPopup",
     process.env.NODE_ENV !== "production"
       ? () => [size !== sizeProp && dialogSizeWarning(String(sizeProp), '<DialogPopup size="md">')]
-      : /* istanbul ignore next -- production only */ undefined,
+      : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   useAppearanceClassNameCheck(
     "DialogPopup",
     props.className,
     process.env.NODE_ENV !== "production"
       ? sheetHint("<DialogPopup>", "</DialogPopup>")
-      : /* istanbul ignore next -- production only */ "",
+      : /* istanbul ignore next @preserve -- production only */ "",
   );
   return <DialogPopupUnchecked {...props} size={size} />;
 }
@@ -237,7 +242,7 @@ export function DialogContent({ className, ref, ...props }: DialogContentProps):
     className,
     process.env.NODE_ENV !== "production"
       ? sheetHint("<DialogContent>", "</DialogContent>")
-      : /* istanbul ignore next -- production only */ "",
+      : /* istanbul ignore next @preserve -- production only */ "",
   );
   return (
     <div

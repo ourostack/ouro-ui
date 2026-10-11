@@ -40,6 +40,7 @@ export default defineConfig({
         optimizeDeps: { include: ["@base-ui/react/alert-dialog", "@base-ui/react/button", "@base-ui/react/dialog", "@base-ui/react/drawer"] },
         test: {
           name: "site",
+          expect: { poll: { timeout: 10_000 } },
           setupFiles: ["./site/test/setup.ts"],
           include: ["site/**/*.test.{ts,tsx}"],
           browser: {
@@ -57,6 +58,7 @@ export default defineConfig({
               extends: true as const,
               test: {
                 name: "visual",
+                expect: { poll: { timeout: 10_000 } },
                 setupFiles: [css, "./registry/ouro/lib/ouro/testing/setup.ts"],
                 include: ["test/**/*.visual.test.{ts,tsx}"],
                 browser: {

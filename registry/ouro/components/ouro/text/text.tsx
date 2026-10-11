@@ -1,8 +1,3 @@
-// Text: body text in the theme's type scale and colors.
-//
-//   <Text size="sm" tone="muted">Updated 2 days ago</Text>
-//
-// @see https://ourostack.github.io/ouro-ui/docs/text for every prop, with examples.
 import type { CSSProperties, HTMLAttributes, JSX, ReactNode, Ref } from "react";
 import { fontFor, isWeight, sizeFor, toneFor } from "@/registry/ouro/lib/ouro/appearance-hints";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
@@ -141,8 +136,8 @@ export function Text(props: TextProps): JSX.Element {
   useAppearanceClassNameCheck(
     "Text",
     className,
-    process.env.NODE_ENV !== "production" ? textHint : /* istanbul ignore next -- production only */ "",
-    process.env.NODE_ENV !== "production" ? 'align="center"' : /* istanbul ignore next -- production only */ undefined,
+    process.env.NODE_ENV !== "production" ? textHint : /* istanbul ignore next @preserve -- production only */ "",
+    process.env.NODE_ENV !== "production" ? 'align="center"' : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   useDevWarnings(
     "Text",
@@ -161,7 +156,7 @@ export function Text(props: TextProps): JSX.Element {
           color !== undefined && ["color is not a prop", `<Text tone="${textTone(`text-${String(color)}`)}">`],
           variant !== undefined && ["variant is not a prop; Text has no variants", '<Text size="sm" tone="muted">'],
         ]
-      : /* istanbul ignore next -- production only */ undefined,
+      : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   const classes = cn(
     "m-0",

@@ -24,6 +24,7 @@ import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import postcss from "postcss";
+import ts from "typescript";
 
 const REPO = "ourostack/ouro-ui";
 const DOCS_URL = "https://ourostack.github.io/ouro-ui/docs";
@@ -84,6 +85,14 @@ export const testingSetup: Record<string, string> = {
   ].join("\n"),
 };
 
+/**
+ * What a -tests item does to an app's Vitest. The CLI installs each devDependency's range
+ * with the app's package manager, which picks the newest matching version, so a wider
+ * range (`^4.1.0 || ^5.0.0`) would still move a Vitest 4 app to 5.
+ */
+const vitestPin =
+  "It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.";
+
 function testingDocs(): string {
   const file = (path: string) => `--- ${path}\n${testingSetup[path]}`;
   return [
@@ -104,7 +113,7 @@ const foundation = [
     title: "Ouro base",
     css: "registry/ouro/theme/ouro-base.css",
     description:
-      "Installed with every component; you don't need to add it. What every Ouro UI component needs in the app's CSS: success and warning colors, a destructive foreground, the motion tokens, the press utility and the spinner keyframes.",
+      "Installed with every component; you don't need to add it. What every Ouro UI component needs in the app's CSS: success and warning colors, a destructive foreground, the motion tokens, the press utility, the spinner keyframes, and --ouro-layer, the z-index of sheets and dialogs (50; raise it in a :root rule of your own if your app has fixed bars above z-50).",
     docs: "Ouro UI's base tokens are in your CSS. Your theme's values win: edit them like any shadcn variable.",
   },
   {
@@ -205,7 +214,9 @@ export function itemForFile(path: string): string | null {
     const component = components.find(
       (entry) =>
         entry.folder === folder &&
-        new RegExp(`^${entry.stem}(-parts|-styles)?\\.(tsx|ts|test\\.tsx|touch\\.test\\.tsx|test-d\\.ts|stories\\.tsx)$`).test(file),
+        (new RegExp(`^${entry.stem}(-parts|-styles)?\\.(tsx|ts|test\\.tsx|touch\\.test\\.tsx|test-d\\.ts|stories\\.tsx)$`).test(file) ||
+          // A test file of its own, for a case that needs fresh module state: dialog.first-mount.touch.test.tsx.
+          new RegExp(`^${entry.stem}\\.[a-z][a-z-]*\\.(test|touch\\.test)\\.tsx$`).test(file)),
     );
     if (component) return devFile.test(file) ? `${component.name}-tests` : component.name;
   }
@@ -272,8 +283,9 @@ export function cssToItem(source: string): { cssVars: CssVars; css?: CssTree } {
 }
 
 /** Bare and alias import specifiers in a source file. */
+/** The modules a file imports, statically or dynamically; an import written in a comment does not count. */
 function importsOf(source: string): string[] {
-  return [...source.matchAll(/(?:from|import)\s*\(?\s*["']([^"']+)["']/g)].map((match) => match[1]!);
+  return ts.preProcessFile(source, true, true).importedFiles.map((file) => file.fileName);
 }
 
 function packageName(specifier: string): string | null {
@@ -340,15 +352,15 @@ export function buildRegistry(root: string): Registry {
       ...entry,
       kind: "tests" as const,
       // Says what the item ships, by the kinds of file it has (ouro-lib-tests has only tests).
-      description: `Optional: the ${fileKinds(shipped(entry.name))} for ${entry.of}, with the test tooling as devDependencies. Add it beside ${entry.of}: add ${entry.of} ${entry.name}.`,
-      docs: `${entry.of}'s tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: ${DOCS_URL}${entry.docsPage}`,
+      description: `Optional: the ${fileKinds(shipped(entry.name))} for ${entry.of}, with the test tooling as devDependencies. Add it beside ${entry.of}: add ${entry.of} ${entry.name}. ${vitestPin}`,
+      docs: `${entry.of}'s tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: ${DOCS_URL}${entry.docsPage ? `${entry.docsPage}.md` : ""}`,
     })),
     {
       name: "ouro-tests",
       title: "Ouro tests",
       kind: "aggregate" as const,
       description:
-        "Optional: every Ouro UI component with its tests, type tests, stories and Playwright spec, and the test kit. The whole suite in one command.",
+        `Optional: every Ouro UI component with its tests, type tests, stories and Playwright spec, and the test kit. The whole suite in one command. ${vitestPin}`,
       docs: `Every Ouro UI component and its tests are installed. The ouro-testing message says how to run them. Docs: ${DOCS_URL}`,
     },
   ];
@@ -431,8 +443,9 @@ export function buildRegistry(root: string): Registry {
     const item = byName.get(entry.name)!;
     const also = [...installedWith(entry.name)].sort().join(", ");
     item.docs =
-      `${item.description} Import: import { ${entry.title} } from "@/components/ouro/${entry.folder}/${entry.stem}". ` +
-      `Also installed: ${also}. Docs: ${DOCS_URL}/${entry.name}`;
+      `${item.description} Import: import { ${entry.title} } from "@/components/ouro/${entry.folder}/${entry.stem}", ` +
+      "with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). " +
+      `Also installed: ${also}. Docs: ${DOCS_URL}/${entry.name}.md`;
   }
   return {
     $schema: "https://ui.shadcn.com/schema/registry.json",
@@ -459,7 +472,8 @@ export function rewriteDependencies(registry: Registry, to: (name: string) => st
 export function release(registry: Registry, version: string): Registry {
   if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error(`--release takes x.y.z, without the v (got ${version}).`);
   const { items, ...head } = rewriteDependencies(registry, (name) => `${REPO}/${name}#v${version}`);
-  return { ...head, version, items };
+  // The CLI prints each item's docs message on add, and nothing else names the version.
+  return { ...head, version, items: items.map((item) => ({ ...item, docs: `${item.docs} Ouro UI v${version}.` })) };
 }
 
 function main(argv: string[]): number {

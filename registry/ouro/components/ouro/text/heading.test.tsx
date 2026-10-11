@@ -183,7 +183,7 @@ describe("runtime guards", () => {
   });
 });
 
-describe("server rendering", () => {
+describe("Heading server rendering", () => {
   it("renders to a string without warnings", () => {
     const html = renderToString(<Heading level={3}>Title</Heading>);
     expect(html).toContain("<h3");

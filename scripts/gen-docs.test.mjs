@@ -139,3 +139,7 @@ test("no timestamps", () => {
     assert.doesNotMatch(doc(file), /\b20\d\d-\d\d-\d\d\b/, file);
   }
 });
+
+test("Sheet's usage names the import of every part it tells you to use", () => {
+  assert.match(doc("Sheet.md"), /`import \{ SheetClose \} from "@\/components\/ouro\/sheet\/sheet-parts"`, with your components alias/);
+});

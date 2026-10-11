@@ -48,7 +48,7 @@ async function settled() {
         const element = popup();
         return Boolean(element && !element.hasAttribute("data-starting-style") && element.getAnimations().length === 0);
       },
-      { timeout: 3000, interval: 50 },
+      { interval: 50 },
     )
     .toBe(true);
 }
@@ -95,15 +95,17 @@ describe("ConfirmDialog", () => {
   it("does not close on an outside press", async () => {
     await open();
     await userEvent.click(document.body, { position: { x: 10, y: 10 } });
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    expect(popup()).not.toBeNull();
+    // A dismissal would have started by now: the press is handled and React has committed.
+    await act(async () => {});
+    expect(popup()!.hasAttribute("data-open")).toBe(true);
+    expect(popup()!.hasAttribute("data-ending-style")).toBe(false);
   });
 
   it("closes from Cancel without confirming, and takes cancelLabel", async () => {
     const onConfirm = vi.fn();
     await open({ onConfirm, cancelLabel: "Keep it" });
     await userEvent.click(button("Keep it"));
-    await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
+    await expect.poll(() => popup()).toBeNull();
     expect(onConfirm).not.toHaveBeenCalled();
   });
 
@@ -133,7 +135,72 @@ describe("ConfirmDialog", () => {
     await userEvent.click(trigger());
     await settled();
     await userEvent.click(button("Delete"));
-    await expect.poll(() => document.activeElement?.textContent, { timeout: 3000 }).toBe("Recipe deleted");
+    await expect.poll(() => document.activeElement?.textContent).toBe("Recipe deleted");
+  });
+
+  it.each(["Cancel", "Escape"] as const)(
+    "returns focus to the trigger after %s even when finalFocus is set, because the trigger still exists",
+    async (how) => {
+      function Page() {
+        const headingRef = useRef<HTMLHeadingElement>(null);
+        return (
+          <main>
+            <h1 ref={headingRef} tabIndex={-1}>
+              Pancakes
+            </h1>
+            <ConfirmDialog
+              title="Delete recipe?"
+              confirmLabel="Delete"
+              finalFocus={headingRef}
+              onConfirm={() => {}}
+              trigger={<Button>Delete recipe</Button>}
+            />
+          </main>
+        );
+      }
+      await render(<Page />);
+      await userEvent.click(trigger());
+      await settled();
+      if (how === "Cancel") await userEvent.click(button("Cancel"));
+      else await userEvent.keyboard("{Escape}");
+      await expect.poll(() => popup()).toBeNull();
+      await expect.poll(() => document.activeElement).toBe(trigger());
+    },
+  );
+
+  it("returns focus to the trigger after a confirm when finalFocus points at no element", async () => {
+    await open({ finalFocus: { current: null } });
+    await userEvent.click(button("Delete"));
+    await expect.poll(() => popup()).toBeNull();
+    await expect.poll(() => document.activeElement).toBe(trigger());
+  });
+
+  it("moves focus to finalFocus when an async confirm resolves", async () => {
+    const pending = deferred();
+    function Page() {
+      const headingRef = useRef<HTMLHeadingElement>(null);
+      return (
+        <main>
+          <h1 ref={headingRef} tabIndex={-1}>
+            Recipes
+          </h1>
+          <ConfirmDialog
+            title="Delete recipe?"
+            confirmLabel="Delete"
+            finalFocus={headingRef}
+            onConfirm={() => pending.promise}
+            trigger={<Button>Delete recipe</Button>}
+          />
+        </main>
+      );
+    }
+    await render(<Page />);
+    await userEvent.click(trigger());
+    await settled();
+    await userEvent.click(button("Delete"));
+    await act(async () => pending.resolve());
+    await expect.poll(() => popup()).toBeNull();
+    await expect.poll(() => document.activeElement?.textContent).toBe("Recipes");
   });
 
   it("returns focus to the trigger after Cancel when finalFocus is not set", async () => {
@@ -147,7 +214,7 @@ describe("ConfirmDialog", () => {
     await open({ onConfirm });
     await userEvent.click(button("Delete"));
     expect(onConfirm).toHaveBeenCalledOnce();
-    await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
+    await expect.poll(() => popup()).toBeNull();
   });
 
   it("shows aria-busy on confirm while the promise is pending, then closes when it resolves", async () => {
@@ -159,7 +226,7 @@ describe("ConfirmDialog", () => {
     await expect.poll(() => button("Delete").element().getAttribute("aria-busy")).toBe("true");
     expect(popup()).not.toBeNull();
     await act(async () => pending.resolve());
-    await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
+    await expect.poll(() => popup()).toBeNull();
   });
 
   it("stays open when the promise rejects, clears busy, and warns with the error", async () => {
@@ -168,8 +235,9 @@ describe("ConfirmDialog", () => {
     await userEvent.click(button("Delete"));
     await act(async () => pending.reject(new Error("Network down")));
     await expect.poll(() => button("Delete").element().hasAttribute("aria-busy")).toBe(false);
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    expect(popup()).not.toBeNull();
+    // The rejection is handled (busy cleared), so a close would have started.
+    expect(popup()!.hasAttribute("data-open")).toBe(true);
+    expect(popup()!.hasAttribute("data-ending-style")).toBe(false);
     expect(warn).toHaveBeenCalledWith(
       '[ouro-ui] ConfirmDialog: onConfirm rejected with "Network down", so the dialog stayed open. Fix: onConfirm={() => remove().catch((error) => { setError(error.message); throw error; })} description={error}.',
     );
@@ -204,7 +272,7 @@ describe("ConfirmDialog", () => {
     await settled();
     await userEvent.click(button("Delete"));
     await userEvent.click(button("Cancel"));
-    await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
+    await expect.poll(() => popup()).toBeNull();
     await act(async () => first.resolve());
     expect(onOpenChange.mock.calls).toEqual([[false]]);
   });
@@ -216,19 +284,24 @@ describe("ConfirmDialog", () => {
     await open({ onConfirm });
     await userEvent.click(button("Delete"));
     await userEvent.keyboard("{Escape}");
-    await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
+    await expect.poll(() => popup()).toBeNull();
     await userEvent.click(trigger());
     await settled();
     await userEvent.click(button("Delete"));
     expect(button("Delete").element().getAttribute("aria-busy")).toBe("true");
     await act(() => first.reject(new Error("first failed")));
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    expect(button("Delete").element().getAttribute("aria-busy")).toBe("true");
-    expect(warn).toHaveBeenCalledWith(
-      '[ouro-ui] ConfirmDialog: onConfirm rejected with "first failed" after the user had left that confirmation. Fix: onConfirm={() => remove().catch((error) => { setError(error.message); throw error; })} description={error}.',
+    // Wait until the stale rejection is handled, then check it left the newer confirm busy.
+    await vi.waitFor(
+      () =>
+        expect(warn).toHaveBeenCalledWith(
+          '[ouro-ui] ConfirmDialog: onConfirm rejected with "first failed" after the user had left that confirmation. Fix: onConfirm={() => remove().catch((error) => { setError(error.message); throw error; })} description={error}.',
+        ),
+      { timeout: 10_000 },
     );
+    await act(async () => {});
+    expect(button("Delete").element().getAttribute("aria-busy")).toBe("true");
     await act(() => second.resolve());
-    await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
+    await expect.poll(() => popup()).toBeNull();
   });
 
   it("treats a synchronous throw from onConfirm like a rejection: stays open and warns", async () => {

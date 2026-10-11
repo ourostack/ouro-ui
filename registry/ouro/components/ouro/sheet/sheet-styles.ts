@@ -1,23 +1,27 @@
+export { sheetSides, sideWarning, iosBackdrop, footerClass, sheetHint };
+export type { SheetSide };
+
 // Shared class strings, value lists and dev-message helpers for Sheet, its parts and
 // Dialog. They live apart from the components so each component file exports only
-// components, which React Fast Refresh needs (and an app's linter checks).
+// components, which React Fast Refresh needs (and an app's linter checks). The export
+// list comes first because the shadcn CLI drops comments before a file's first statement.
 
 /** The edge a sheet slides in from, and is dragged back to, to dismiss. */
-export type SheetSide = "bottom" | "top" | "left" | "right";
+type SheetSide = "bottom" | "top" | "left" | "right";
 
 /**
  * The four sides, for checking a `side` prop. Shared with `Sheet`.
  *
  * @internal
  */
-export const sheetSides: readonly SheetSide[] = ["bottom", "top", "left", "right"];
+const sheetSides: readonly SheetSide[] = ["bottom", "top", "left", "right"];
 
 /**
  * The dev message for a side that is not one of {@link sheetSides}. Development only.
  *
  * @internal
  */
-export function sideWarning(side: string, fix: string): readonly [string, string] {
+function sideWarning(side: string, fix: string): readonly [string, string] {
   return [`side="${side}" is not a side; use ${sheetSides.map((name) => `"${name}"`).join(", ")}`, fix];
 }
 
@@ -33,7 +37,7 @@ export function sideWarning(side: string, fix: string): readonly [string, string
  *
  * @internal
  */
-export const iosBackdrop =
+const iosBackdrop =
   "supports-[-webkit-touch-callout:none]:absolute supports-[-webkit-touch-callout:none]:inset-x-0 " +
   "supports-[-webkit-touch-callout:none]:top-[var(--ouro-backdrop-top,0px)] supports-[-webkit-touch-callout:none]:bottom-auto " +
   "supports-[-webkit-touch-callout:none]:h-lvh";
@@ -45,7 +49,7 @@ export const iosBackdrop =
  *
  * @internal
  */
-export const footerClass = "box-border flex shrink-0 justify-end gap-3 px-5 pt-3 pb-5 max-sm:flex-col max-sm:*:w-full";
+const footerClass = "box-border flex shrink-0 justify-end gap-3 px-5 pt-3 pb-5 max-sm:flex-col max-sm:*:w-full";
 
 /**
  * The Fix code for an appearance class on a sheet part: the theme's CSS variables
@@ -54,7 +58,7 @@ export const footerClass = "box-border flex shrink-0 justify-end gap-3 px-5 pt-3
  *
  * @internal
  */
-export function sheetHint(open: string, close: string) {
+function sheetHint(open: string, close: string) {
   return (token: string): string => {
     if (token.startsWith("rounded")) {
       return `:root { --radius: ${token === "rounded-none" ? "0px" : "0.75rem"} }`;

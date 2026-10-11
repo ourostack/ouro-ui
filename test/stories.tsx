@@ -1,6 +1,7 @@
 import { composeStories, setProjectAnnotations } from "@storybook/react";
 import type { ComponentType } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import * as ButtonStories from "@/registry/ouro/components/ouro/button/button.stories";
 import * as ConfirmDialogStories from "@/registry/ouro/components/ouro/dialog/confirm-dialog.stories";
@@ -105,6 +106,9 @@ export async function settle(): Promise<void> {
   throw new Error("animations did not settle");
 }
 
+/** How long an overlay may take to open or close on a loaded CI runner. */
+const waitOptions = { timeout: 10_000, interval: 20 };
+
 /** The open overlay's popup (Dialog, ConfirmDialog or Sheet, in either presentation). */
 export function openPopup(): HTMLElement | null {
   return document.querySelector<HTMLElement>('[role="dialog"][data-open], [role="alertdialog"][data-open]');
@@ -113,9 +117,10 @@ export function openPopup(): HTMLElement | null {
 /** Clicks an opener and waits for its overlay to finish opening. */
 export async function openOverlay(opener: HTMLElement): Promise<HTMLElement> {
   await userEvent.click(opener);
-  for (let tries = 0; tries < 100 && !openPopup(); tries++) await new Promise((resolve) => setTimeout(resolve, 20));
-  const popup = openPopup();
-  if (!popup) throw new Error(`clicking "${opener.textContent}" opened no overlay`);
+  await vi.waitFor(() => {
+    if (!openPopup()) throw new Error(`clicking "${opener.textContent}" opened no overlay`);
+  }, waitOptions);
+  const popup = openPopup()!;
   await settle();
   return popup;
 }
@@ -123,7 +128,8 @@ export async function openOverlay(opener: HTMLElement): Promise<HTMLElement> {
 /** Closes the open overlay with Escape and waits for it to unmount. */
 export async function closeOverlay(): Promise<void> {
   await userEvent.keyboard("{Escape}");
-  for (let tries = 0; tries < 100 && openPopup(); tries++) await new Promise((resolve) => setTimeout(resolve, 20));
-  if (openPopup()) throw new Error("Escape did not close the overlay");
+  await vi.waitFor(() => {
+    if (openPopup()) throw new Error("Escape did not close the overlay");
+  }, waitOptions);
   await settle();
 }

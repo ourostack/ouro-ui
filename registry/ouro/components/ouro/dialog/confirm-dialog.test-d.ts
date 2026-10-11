@@ -1,8 +1,9 @@
-// Type tests: `pnpm typecheck` compiles this file, and every `@ts-expect-error`
-// fails the check if the line below it stops being an error.
 import { createElement, type ComponentProps, type ReactElement } from "react";
 import { expectTypeOf } from "vitest";
 import { ConfirmDialog, type ConfirmDialogProps } from "@/registry/ouro/components/ouro/dialog/confirm-dialog";
+
+// Type tests: `pnpm typecheck` compiles this file, and every `@ts-expect-error`
+// fails the check if the line below it stops being an error.
 
 const trigger = createElement("button") as ReactElement;
 type SetOpen = (open: boolean) => void;

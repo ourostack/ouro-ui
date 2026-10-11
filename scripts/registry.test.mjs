@@ -244,18 +244,21 @@ test("each item has a one-line description and a docs message with its docs URL"
   assert.equal(sheet.description, "A panel that slides in from an edge and is dragged back to dismiss: the mobile form of a dialog.");
   assert.equal(
     sheet.docs,
-    `${sheet.description} Import: import { Sheet } from "@/components/ouro/sheet/sheet". Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/sheet`,
+    `${sheet.description} Import: import { Sheet } from "@/components/ouro/sheet/sheet", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/sheet.md`,
   );
   assert.equal(
     item("confirm-dialog").docs,
-    `${item("confirm-dialog").description} Import: import { ConfirmDialog } from "@/components/ouro/dialog/confirm-dialog". Also installed: button, dialog, ouro-base, ouro-lib, sheet. Docs: https://ourostack.github.io/ouro-ui/docs/confirm-dialog`,
+    `${item("confirm-dialog").description} Import: import { ConfirmDialog } from "@/components/ouro/dialog/confirm-dialog", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, dialog, ouro-base, ouro-lib, sheet. Docs: https://ourostack.github.io/ouro-ui/docs/confirm-dialog.md`,
   );
   assert.match(item("heading").docs, /import \{ Heading \} from "@\/components\/ouro\/text\/heading"/);
   for (const name of ["ouro-base", "ouro-lib"]) {
     assert.match(item(name).description, /^Installed with every component; you don't need to add it\. /, name);
   }
   assert.match(item("ouro-testing").description, /^Installed with every -tests item; you don't need to add it\. /);
-  assert.match(item("sheet-tests").docs, /https:\/\/ourostack\.github\.io\/ouro-ui\/docs\/sheet$/);
+  assert.match(item("sheet-tests").docs, /https:\/\/ourostack\.github\.io\/ouro-ui\/docs\/sheet\.md$/);
+  for (const name of ["button", "text", "heading", "sheet", "dialog", "confirm-dialog"]) {
+    assert.ok(item(name).docs.endsWith(`Docs: https://ourostack.github.io/ouro-ui/docs/${name}.md`), name);
+  }
   assert.match(item("ouro-testing").docs, /ouroTestProjects/);
   assert.match(item("ouro-testing").docs, /OURO_E2E_URL/);
   for (const entry of registry.items) {
@@ -306,7 +309,11 @@ test("--release pins every same-repo dependency to the release tag and records t
   assert.ok(released.items.find((entry) => entry.name === "sheet-tests").registryDependencies.includes("ourostack/ouro-ui/sheet#v0.1.0"));
   for (const entry of released.items) {
     for (const dependency of entry.registryDependencies ?? []) assert.match(dependency, /^ourostack\/ouro-ui\/[\w-]+#v0\.1\.0$/);
+    // Every add prints the version it installed; the CLI shows no other trace of it.
+    assert.ok(entry.docs.endsWith(" Ouro UI v0.1.0."), `${entry.name}: ${entry.docs.slice(-60)}`);
+    assert.equal(entry.docs, `${item(entry.name).docs} Ouro UI v0.1.0.`);
   }
+  for (const entry of registry.items) assert.doesNotMatch(entry.docs, /Ouro UI v\d/, `${entry.name} names a version on main`);
 
   // CI on the release branch: --check reads the version from the file and still catches drift.
   assert.equal(run("--check", "--out", out).status, 0);
@@ -350,7 +357,13 @@ test("site/public/llms.txt gives the init, search and add commands and lists eve
   assert.ok(llms.includes("npx shadcn@latest init --base base --preset nova --yes --no-monorepo"));
   assert.ok(llms.includes("npx shadcn@latest search 'ourostack/ouro-ui#v"));
   assert.ok(llms.includes("npx shadcn@latest add ourostack/ouro-ui/dialog#v"));
+  const components = ["button", "text", "heading", "sheet", "dialog", "confirm-dialog"];
   for (const entry of registry.items) {
-    assert.ok(llms.includes(`- \`${entry.name}\`: ${entry.description}\n`), `llms.txt lists ${entry.name} with its registry description; update site/public/llms.txt`);
+    // A component's line ends with its page's full Markdown URL, so an agent never composes one.
+    const line = components.includes(entry.name)
+      ? `- \`${entry.name}\`: ${entry.description} Docs: https://ourostack.github.io/ouro-ui/docs/${entry.name}.md\n`
+      : `- \`${entry.name}\`: ${entry.description}\n`;
+    assert.ok(llms.includes(line), `llms.txt lists ${entry.name} with its registry description; update site/public/llms.txt`);
   }
+  assert.ok(llms.includes("https://ourostack.github.io/ouro-ui/docs/parts.md"), "llms.txt links parts.md");
 });

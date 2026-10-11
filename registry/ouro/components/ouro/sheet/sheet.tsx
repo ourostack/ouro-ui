@@ -1,10 +1,3 @@
-// Sheet: a panel that slides in from an edge and is dragged back to dismiss.
-//
-//   <Sheet title="Share" trigger={<Button>Share</Button>} footer={<SheetClose render={<Button>Copy link</Button>} />}>
-//     <ShareOptions />
-//   </Sheet>
-//
-// @see https://ourostack.github.io/ouro-ui/docs/sheet for every prop, with examples.
 import type { JSX, ReactElement, ReactNode, RefObject } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { checkOpenMode } from "@/registry/ouro/lib/ouro/open-mode";
@@ -103,8 +96,14 @@ export type SheetProps = SheetWithTriggerProps | SheetControlledProps;
  * dialog on larger screens; it renders this sheet on phones.
  *
  * To close the sheet from an action, control it (`open`/`onOpenChange`) and set
- * `open` to `false` in the handler, or wrap the action:
+ * `open` to `false` in the handler, or wrap each action in `SheetClose`
+ * (`import { SheetClose } from "@/components/ouro/sheet/sheet-parts"`, with your components alias):
  * `<SheetClose render={<Button>Copy link</Button>} />`.
+ *
+ * It stacks above the page at `--ouro-layer`, a z-index of 50 by default (from
+ * ouro-base.css). If your app has fixed bars above z-50, raise it in a `:root` rule
+ * of your own after the Ouro tokens, outside any `@layer`: `:root { --ouro-layer: 60; }`.
+ * Don't edit the `--ouro-layer: 50` line shadcn wrote; `shadcn add` resets it.
  *
  * Testing accessibility: in WebKit, Base UI's focus guards take `role="button"`
  * without a name so VoiceOver's cursor stays trapped. Exclude them:
@@ -155,7 +154,7 @@ export function Sheet(props: SheetProps): JSX.Element {
     className,
     process.env.NODE_ENV !== "production"
       ? sheetHint('<Sheet title="…">', "</Sheet>")
-      : /* istanbul ignore next -- production only */ "",
+      : /* istanbul ignore next @preserve -- production only */ "",
   );
   useDevWarnings(
     "Sheet",
@@ -168,7 +167,7 @@ export function Sheet(props: SheetProps): JSX.Element {
           position !== undefined && ["position is not a prop", '<Sheet side="bottom">'],
           size !== undefined && ["size is not a prop; a sheet fits its content", "<Sheet snapPoints={[0.5, 1]}>"],
         ]
-      : /* istanbul ignore next -- production only */ undefined,
+      : /* istanbul ignore next @preserve -- production only */ undefined,
   );
 
   return (

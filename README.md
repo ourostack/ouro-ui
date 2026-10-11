@@ -36,7 +36,8 @@ npx shadcn@latest add ourostack/ouro-ui/dialog#v0.2.0
 ```
 
 - Pass `--base base`: Ouro UI is built on Base UI. Don't pass `-t`/`--template` in an existing app; it adds shadcn's `components/ui/button.tsx`.
-- New Vite app? Add `@tailwindcss/vite`, `@import "tailwindcss";`, a Vite `@` alias and `"paths": { "@/*": ["./src/*"] }` (no `baseUrl` on TypeScript 6) before `init`.
+- New Vite app? Add `@tailwindcss/vite`, `@import "tailwindcss";`, a Vite `@` alias, and `"paths": { "@/*": ["./src/*"] }` in both `tsconfig.json` and `tsconfig.app.json` (no `baseUrl` on TypeScript 6) before `init`. shadcn reads the root file, and `tsc -b` builds the app one.
+- `--preset nova` lets `init` run without prompts. It sets shadcn's starting theme, font and icons (nova adds the Geist font, `lucide-react` and `tw-animate-css`), which Ouro components read like any shadcn theme. The install test runs `nova` and `vega`; other presets are untested.
 
 ### Details
 
@@ -45,6 +46,7 @@ npx shadcn@latest add ourostack/ouro-ui/dialog#v0.2.0
 - Components land in `components/ouro/<component>/`, beside shadcn's `components/ui/`, and the shared helpers in `lib/ouro/`. The base tokens (`ouro-base`) are added to your CSS with any component, and `ouro-lib` comes with any component too; you don't need to add either.
 - `init` is shadcn's: it writes `lib/utils.ts` and adds `cn`, `class-variance-authority`, `lucide-react` and `tw-animate-css`. Ouro UI doesn't use them; keep them for shadcn components. Ouro never writes to `components/ui/`, so don't pass `--overwrite` on a first install.
 - Tests are optional. Each component's Vitest browser tests, type tests, stories and Playwright spec are its `-tests` item, which also adds Vitest, Storybook and Playwright as devDependencies: `npx shadcn@latest add ourostack/ouro-ui/dialog#v0.2.0 ourostack/ouro-ui/dialog-tests#v0.2.0`. `ouro-tests` adds every component with all of its tests in one command. The install message of `ouro-testing` (the test kit the `-tests` items bring) lists the config files to add, then run `npx vitest run`.
+- A `-tests` item sets Vitest to `^5`, the version its tests are verified on: the shadcn CLI installs a devDependency's range with your package manager, which upgrades an older pin (npm installs the newest matching version even under a range such as `^4.1.0 || ^5.0.0`). An app pinned to Vitest 4, for example by `@cloudflare/vitest-pool-workers`, keeps its pin by not adding the `-tests` items; the components need none of them. To keep the pin and still add the tests, re-pin only the Vitest packages after `shadcn add`: `npm install -D vitest@^4.1.0 @vitest/browser-playwright@^4.1.0`, or `pnpm add -D vitest@^4.1.0 @vitest/browser-playwright@^4.1.0`. Leave the other packages the items added. Ouro's tests then run on Vitest 4, which we don't verify.
 - For the Ouro look, add `ourostack/ouro-ui/ouro-theme`. Skip it to keep your app's shadcn theme.
 - To update, list the changed files with `npx shadcn@latest add ourostack/ouro-ui/<item> --dry-run`, review each one marked overwrite with `--diff <path>`, then add the item again with `--overwrite` (with its `-tests` item if you have it: `add <item> <item>-tests --overwrite`) and reapply your edits. Coming from v0.1.0? Follow [Upgrading from v0.1.0](#upgrading-from-v010) instead.
 
@@ -151,6 +153,8 @@ Two stylesheets ship with the components, as registry items that write into your
 - `ouro-theme` (`registry/ouro/theme/ouro-theme.css`) is optional: the Ouro color look as a shadcn theme, light values on `:root` and dark values on `.dark`. An app that already has a shadcn theme keeps its own.
 
 Dark mode follows the `.dark` class, as in shadcn. To change a color, set its variable in your theme.
+
+Sheets and dialogs stack at `--ouro-layer`, a z-index of 50 by default, the level of shadcn's overlays. If your app has fixed bars above z-50, raise it in a `:root` rule of your own after the Ouro tokens, outside any `@layer`, such as `:root { --ouro-layer: 60; }` at the end of your CSS file; no class edit is needed. Don't edit the `--ouro-layer: 50` line that shadcn wrote, because every `shadcn add` of an Ouro item resets it. At an equal z-index the open sheet or dialog still wins, because its portal is the last child of `<body>`.
 
 ## License
 

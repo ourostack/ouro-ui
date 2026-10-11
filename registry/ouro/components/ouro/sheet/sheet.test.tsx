@@ -84,7 +84,7 @@ async function settled() {
         last = y + x;
         return still && getAnimations(sheet) === 0;
       },
-      { timeout: 3000, interval: 50 },
+      { interval: 50 },
     )
     .toBe(true);
 }
@@ -123,6 +123,35 @@ async function flickSheet(dy: number, durationMs: number) {
   await commands.flick({ from: [x, y], to: [x, y + dy], steps: 4, durationMs });
 }
 
+/** A CSS time ("0.375s", "750ms") in milliseconds. */
+const ms = (time: string) => (time.trim().endsWith("ms") ? parseFloat(time) : parseFloat(time) * 1000);
+
+/**
+ * Runs a gesture, waits for the sheet to spring back to rest, and returns the longest
+ * transform transition the release scheduled, in ms (0 when the sheet never moved). It is read from the transition as it
+ * starts (`transitionrun`), not from the wall clock, so a loaded runner cannot change it.
+ */
+async function springBack(sheet: HTMLElement, gesture: () => Promise<void>): Promise<number> {
+  const durations: number[] = [];
+  const record = (event: TransitionEvent) => {
+    if (event.target !== sheet || event.propertyName !== "transform") return;
+    const style = getComputedStyle(sheet);
+    const index = style.transitionProperty.split(", ").indexOf("transform");
+    durations.push(ms(style.transitionDuration.split(", ")[index]!));
+  };
+  sheet.addEventListener("transitionrun", record);
+  try {
+    await gesture();
+    await expect.poll(() => isIdentity(sheet)).toBe(true);
+  } finally {
+    sheet.removeEventListener("transitionrun", record);
+  }
+  return Math.max(0, ...durations);
+}
+
+/** The theme's spring duration, the longest a release may take (--drawer-swipe-strength is at most 1). */
+const springDuration = () => ms(getComputedStyle(document.documentElement).getPropertyValue("--ouro-spring-duration"));
+
 /** Drags the sheet by its handle area (outside Drawer.Content, so a mouse drag swipes). */
 async function dragSheet(dy: number, { durationMs = 600, steps = 12, hold = false } = {}) {
   const rect = popup()!.getBoundingClientRect();
@@ -147,7 +176,7 @@ describe("opening and closing", () => {
   it("closes on Escape and returns focus to the trigger", async () => {
     await openUncontrolled();
     await userEvent.keyboard("{Escape}");
-    await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
+    await expect.poll(() => popup()).toBeNull();
     await expect.poll(() => document.activeElement).toBe(trigger());
   });
 
@@ -185,14 +214,14 @@ describe("opening and closing", () => {
     await userEvent.click(trigger());
     await settled();
     await userEvent.keyboard("{Escape}");
-    await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
+    await expect.poll(() => popup()).toBeNull();
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
   it("closes from an outside press on the backdrop area", async () => {
     await openUncontrolled();
     await userEvent.click(document.body, { position: { x: 20, y: 20 } });
-    await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
+    await expect.poll(() => popup()).toBeNull();
   });
 
   it("marks the popup, backdrop and viewport with data-ouro, and the portal isolates its stacking", async () => {
@@ -217,6 +246,70 @@ describe("opening and closing", () => {
   });
 });
 
+describe("Sheet stacking above the app's fixed bars", () => {
+  /** The app's `--ouro-layer`: 50 from ouro-base, unless the app raised it. */
+  const layer = () => Number(getComputedStyle(document.documentElement).getPropertyValue("--ouro-layer"));
+  /** A fixed, full-screen app layer at the given z-index, like a tab bar or a header. */
+  function appBar(zIndex: number): HTMLElement {
+    const bar = document.createElement("div");
+    Object.assign(bar.style, { position: "fixed", inset: "0", zIndex: String(zIndex) });
+    document.body.append(bar);
+    mounted.push(bar);
+    return bar;
+  }
+  /** Whether the popup is what a press at its center lands on. */
+  const onTop = (element: HTMLElement) => {
+    const rect = element.getBoundingClientRect();
+    return element.contains(document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2));
+  };
+  const portal = () => document.querySelector<HTMLElement>('[data-ouro="sheet-portal"]')!;
+
+  it("puts the portal on the --ouro-layer level, as its own stacking context", async () => {
+    await render(
+      <Sheet title="Save to cookbook" open onOpenChange={() => {}}>
+        <Body />
+      </Sheet>,
+    );
+    await settled();
+    const style = getComputedStyle(portal());
+    expect(style.position).toBe("relative");
+    expect(layer()).toBeGreaterThanOrEqual(50);
+    expect(style.zIndex).toBe(String(layer()));
+    expect(style.isolation).toBe("isolate");
+  });
+
+  it("stays above a fixed app bar at the same level: a tie, which the portal wins as the last child of body", async () => {
+    appBar(layer());
+    await render(
+      <Sheet title="Save to cookbook" open onOpenChange={() => {}}>
+        <Body />
+      </Sheet>,
+    );
+    await settled();
+    expect(document.body.lastElementChild).toBe(portal());
+    expect(onTop(popup()!)).toBe(true);
+  });
+
+  it("stays above a fixed app bar added after it when the app raises --ouro-layer past the bar", async () => {
+    const bar = layer();
+    document.documentElement.style.setProperty("--ouro-layer", String(bar + 10));
+    try {
+      await render(
+      <Sheet title="Save to cookbook" open onOpenChange={() => {}}>
+        <Body />
+      </Sheet>,
+    );
+      await settled();
+      // After the portal in the DOM, so at an equal level the bar would cover it.
+      appBar(bar);
+      expect(getComputedStyle(portal()).zIndex).toBe(String(bar + 10));
+      expect(onTop(popup()!)).toBe(true);
+    } finally {
+      document.documentElement.style.removeProperty("--ouro-layer");
+    }
+  });
+});
+
 describe("footer", () => {
   it("renders footer as the actions row after the body, and closes from an action wrapped in SheetClose", async () => {
     const element = await openUncontrolled({
@@ -238,7 +331,7 @@ describe("footer", () => {
       buttons.map(() => Math.round(footer.getBoundingClientRect().width - parseFloat(getComputedStyle(footer).paddingLeft) - parseFloat(getComputedStyle(footer).paddingRight))),
     );
     await userEvent.click(page.getByRole("button", { name: "Copy link" }));
-    await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
+    await expect.poll(() => popup()).toBeNull();
   });
 
   it("renders no actions row without footer", async () => {
@@ -270,7 +363,7 @@ describe("feel", () => {
   it("fades the backdrop with --drawer-swipe-progress up to --ouro-backdrop-max", async () => {
     await openUncontrolled();
     const layer = backdrop()!;
-    await expect.poll(() => Number(getComputedStyle(layer).opacity), { timeout: 3000 }).toBeCloseTo(0.4, 2);
+    await expect.poll(() => Number(getComputedStyle(layer).opacity)).toBeCloseTo(0.4, 2);
     layer.style.transition = "none";
     layer.style.setProperty("--drawer-swipe-progress", "0.5");
     expect(Number(getComputedStyle(layer).opacity)).toBeCloseTo(0.2, 2);
@@ -333,38 +426,47 @@ describe("dragging (Chromium)", () => {
   chromiumOnly("closes after a drag down past 60% of the sheet's height", async () => {
     const sheet = await openUncontrolled();
     await dragSheet(sheet.offsetHeight * 0.6, { durationMs: 1200, steps: 24 });
-    await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
+    await expect.poll(() => popup()).toBeNull();
   });
 
-  chromiumOnly("springs back after a 10% drag and settles at identity within 1s", async () => {
+  chromiumOnly("springs back after a 10% drag and settles at identity within the theme spring", async () => {
     const sheet = await openUncontrolled();
-    await dragSheet(sheet.offsetHeight * 0.1, { durationMs: 400, steps: 8 });
-    expect(popup()).toBe(sheet);
-    await expect.poll(() => isIdentity(sheet), { timeout: 1000 }).toBe(true);
+    const duration = await springBack(sheet, async () => {
+      await dragSheet(sheet.offsetHeight * 0.1, { durationMs: 400, steps: 8 });
+      expect(popup()).toBe(sheet);
+    });
+    expect(duration).toBeGreaterThan(0);
+    expect(duration).toBeLessThanOrEqual(springDuration());
   });
 
   chromiumOnly("dismisses on a quick flick even over a short distance", async () => {
     const sheet = await openUncontrolled();
     await flickSheet(sheet.offsetHeight * 0.2, 40);
-    await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
+    await expect.poll(() => popup()).toBeNull();
   });
 
   chromiumOnly("springs back from the same distance moved slowly (the flick test's control)", async () => {
     const sheet = await openUncontrolled();
-    await flickSheet(sheet.offsetHeight * 0.2, 400);
-    expect(popup()).toBe(sheet);
-    await expect.poll(() => isIdentity(sheet), { timeout: 1500 }).toBe(true);
+    const duration = await springBack(sheet, async () => {
+      await flickSheet(sheet.offsetHeight * 0.2, 400);
+      expect(popup()).toBe(sheet);
+    });
+    expect(duration).toBeGreaterThan(0);
+    expect(duration).toBeLessThanOrEqual(springDuration());
     expect(popup()).toBe(sheet);
   });
 
   chromiumOnly("never moves the sheet further than the finger when pulled past the edge", async () => {
     const sheet = await openUncontrolled();
     for (const pull of [1, 2, 5, 12, 40, 80]) {
-      await dragSheet(-pull, { durationMs: 200, steps: Math.max(2, Math.min(pull, 10)), hold: true });
-      const lift = -translation(sheet).y;
-      await commands.pointerPress({ action: "up" });
+      let lift = 0;
+      const duration = await springBack(sheet, async () => {
+        await dragSheet(-pull, { durationMs: 200, steps: Math.max(2, Math.min(pull, 10)), hold: true });
+        lift = -translation(sheet).y;
+        await commands.pointerPress({ action: "up" });
+      });
       expect(lift, `lift for a ${pull}px pull`).toBeLessThanOrEqual(pull + 0.01);
-      await expect.poll(() => isIdentity(sheet), { timeout: 1500 }).toBe(true);
+      expect(duration, `release after a ${pull}px pull`).toBeLessThanOrEqual(springDuration());
     }
   });
 
@@ -379,7 +481,7 @@ describe("dragging (Chromium)", () => {
     });
     observer.observe(layer, { attributes: true });
     await flickSheet(sheet.offsetHeight * 0.2, 40);
-    await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
+    await expect.poll(() => popup()).toBeNull();
     observer.disconnect();
     expect(durations.length).toBeGreaterThan(0);
     expect(durations.at(-1)).toBe("0.1s");
@@ -408,18 +510,22 @@ describe("dragging (Chromium)", () => {
 
   chromiumOnly("stretches when pulled past the open edge, with the bleed filling the gap", async () => {
     const sheet = await openUncontrolled();
-    await dragSheet(-80, { durationMs: 400, steps: 8, hold: true });
-    const lift = -translation(sheet).y;
-    await commands.pointerPress({ action: "up" });
+    let lift = 0;
+    const duration = await springBack(sheet, async () => {
+      await dragSheet(-80, { durationMs: 400, steps: 8, hold: true });
+      lift = -translation(sheet).y;
+      await commands.pointerPress({ action: "up" });
+    });
     expect(lift).toBeGreaterThanOrEqual(24);
     expect(lift).toBeLessThan(80);
-    await expect.poll(() => isIdentity(sheet), { timeout: 1000 }).toBe(true);
+    expect(duration).toBeGreaterThan(0);
+    expect(duration).toBeLessThanOrEqual(springDuration());
   });
 
   chromiumOnly("lightens the backdrop in step with a drag down", async () => {
     const sheet = await openUncontrolled();
     const layer = backdrop()!;
-    await expect.poll(() => Number(getComputedStyle(layer).opacity), { timeout: 3000 }).toBeCloseTo(0.4, 2);
+    await expect.poll(() => Number(getComputedStyle(layer).opacity)).toBeCloseTo(0.4, 2);
     await dragSheet(sheet.offsetHeight * 0.4, { durationMs: 800, steps: 16, hold: true });
     const progress = Number(layer.style.getPropertyValue("--drawer-swipe-progress"));
     const opacity = Number(getComputedStyle(layer).opacity);
@@ -433,7 +539,7 @@ describe("dragging (Chromium)", () => {
     const openTop = sheet.getBoundingClientRect().top;
     await dragSheet(sheet.offsetHeight * 0.3, { durationMs: 900, steps: 18 });
     await userEvent.keyboard("{Escape}");
-    await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
+    await expect.poll(() => popup()).toBeNull();
     await userEvent.click(trigger());
     await settled();
     const reopened = popup()!;
@@ -476,7 +582,7 @@ describe("close control", () => {
     expect(document.activeElement).toBe(element);
     expect(element.getBoundingClientRect().width).toBeGreaterThan(20);
     await userEvent.click(close);
-    await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
+    await expect.poll(() => popup()).toBeNull();
   });
 
   it("takes its label from closeLabel and closes a controlled sheet through onOpenChange", async () => {
@@ -504,7 +610,7 @@ function withIosRules(css: string): string {
   return css.replace(/@supports \(-webkit-touch-callout: ?none\)/g, "@supports (display: block)");
 }
 
-describe("iOS backdrop rule", () => {
+describe("Sheet iOS backdrop rule", () => {
   it("ships no test-only selector", () => {
     expect(pageCss()).not.toContain("data-ouro-test-ios");
     expect(pageCss()).toMatch(/@supports \(-webkit-touch-callout: ?none\)/);
@@ -549,7 +655,7 @@ describe("iOS backdrop rule", () => {
   });
 });
 
-describe("dev messages", () => {
+describe("Sheet dev messages", () => {
   it("throws the exact fix when neither trigger nor open is passed", () => {
     // @ts-expect-error -- neither trigger nor open
     const sheet = <Sheet title="Save">Body</Sheet>;
@@ -617,7 +723,7 @@ describe("dev messages", () => {
   });
 });
 
-describe("parts", () => {
+describe("Sheet parts", () => {
   it("renders a bottom SheetRoot for a side that is not one of the four, and warns once with the fix", async () => {
     await render(
       <SheetRoot {...({ side: "left-ish" } as object)} defaultOpen>
@@ -660,7 +766,7 @@ describe("parts", () => {
     expect(popup()!.getAttribute("data-side")).toBe("bottom");
     expect(document.querySelector("[data-ouro-sheet-handle]")!.getAttribute("aria-hidden")).toBe("true");
     await userEvent.click(page.getByRole("button", { name: "Done" }));
-    await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
+    await expect.poll(() => popup()).toBeNull();
   });
 
   it("forwards a ref passed to SheetBackdrop, as an object or a callback", async () => {

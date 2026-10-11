@@ -56,7 +56,7 @@ Each part checks that it sits inside `<DialogRoot>`. Outside it, a part throws i
 | `DialogDescription` | A line under the title that describes the dialog. |
 | `DialogFooter` | The actions row. A row at the end on wider screens; on phones the actions stack full width. Put the primary action last, so it sits at the bottom on phones, nearest the thumb. |
 | `DialogPopup` | The dialog panel. It scales up from 0.96 and fades in with the theme spring, and scales and fades out; reduced motion keeps only the fade. |
-| `DialogPortal` | Moves the dialog to the end of `<body>`, in its own stacking context. |
+| `DialogPortal` | Moves the dialog to the end of `<body>`, in its own stacking context at the `--ouro-layer` z-index (50 by default, from ouro-base.css). If your app has fixed bars above z-50, raise it in a `:root` rule of your own after the Ouro tokens, outside any `@layer`: `:root { --ouro-layer: 60; }`. Don't edit the line shadcn wrote; `shadcn add` resets it. |
 | `DialogRoot` | The state owner of a centered dialog built from parts. Use the `Dialog` component instead unless its props cannot express your layout; `Dialog` also becomes a bottom sheet on phones, which parts do not. |
 | `DialogTitle` | The dialog's title, which names it. Every dialog needs one. |
 | `DialogTrigger` | The button that opens the dialog. Pass your button as `render={<Button>Open</Button>}`. |
@@ -110,7 +110,7 @@ Each part checks that it sits inside `<SheetRoot>`. Outside it, a part throws in
 | `SheetDescription` | A line under the title that describes the dialog. |
 | `SheetHandle` | The grab handle at the free edge of a bottom or top sheet. Decorative; renders nothing on side sheets. |
 | `SheetPopup` | The sheet panel. It stretches past its edge when pulled and springs back on release. |
-| `SheetPortal` | Moves the sheet to the end of `<body>` and makes it aware of the software keyboard (`Drawer.VirtualKeyboardProvider`), so focused inputs stay visible. |
+| `SheetPortal` | Moves the sheet to the end of `<body>` and makes it aware of the software keyboard (`Drawer.VirtualKeyboardProvider`), so focused inputs stay visible. The portal is its own stacking context at the `--ouro-layer` z-index (50 by default, from ouro-base.css). If your app has fixed bars above z-50, raise it in a `:root` rule of your own after the Ouro tokens, outside any `@layer`: `:root { --ouro-layer: 60; }`. Don't edit the line shadcn wrote; `shadcn add` resets it. |
 | `SheetRoot` | The state owner of a sheet built from parts. Use the `Sheet` component instead unless its props cannot express your layout. |
 | `SheetTitle` | The sheet's title, which names the dialog. Every sheet needs one. |
 | `SheetTrigger` | The button that opens the sheet. Pass your button as `render={<Button>Open</Button>}`. |

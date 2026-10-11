@@ -1,6 +1,7 @@
+import { createContext, createElement, useContext, type AnchorHTMLAttributes, type ComponentType, type Ref } from "react";
+
 // The OuroProvider context and its hook, apart from the provider so ouro-provider.tsx
 // exports only components (React Fast Refresh).
-import { createContext, createElement, useContext, type AnchorHTMLAttributes, type ComponentType, type Ref } from "react";
 
 /** A component that renders an internal link, such as a router's `Link`. */
 export type OuroLinkComponent = ComponentType<

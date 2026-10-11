@@ -31,9 +31,21 @@ export function setScheme(scheme: "light" | "dark"): void {
   document.documentElement.classList.toggle("dark", scheme === "dark");
 }
 
-/** Waits for transitions started by a render or a click to finish. */
-export async function settle(ms = 900): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, ms));
+/**
+ * Waits for transitions started by a render or a click to finish: every finite
+ * animation and transition in the document, checked again a frame later in case one
+ * started meanwhile. A condition, not a timer, so a loaded runner only waits longer.
+ */
+export async function settle(): Promise<void> {
+  for (let round = 0; round < 50; round++) {
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const running = document
+      .getAnimations()
+      .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity && animation.playState === "running");
+    if (running.length === 0) return;
+    await Promise.all(running.map((animation) => animation.finished.catch(() => undefined)));
+  }
+  throw new Error("animations did not settle");
 }
 
 /** axe's violations as readable lines. */

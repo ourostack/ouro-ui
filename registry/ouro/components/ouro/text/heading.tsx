@@ -1,8 +1,3 @@
-// Heading: a section title, <h1> to <h6>, in the theme's foreground color.
-//
-//   <Heading level={2} size="lg">Ingredients</Heading>
-//
-// @see https://ourostack.github.io/ouro-ui/docs/heading for every prop, with examples.
 import type { HTMLAttributes, JSX, ReactNode, Ref } from "react";
 import { fontFor, sizeFor, toneFor } from "@/registry/ouro/lib/ouro/appearance-hints";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
@@ -85,7 +80,7 @@ export function Heading(props: HeadingProps): JSX.Element {
     devThrow(
       "Heading",
       `level must be 1, 2, 3, 4, 5 or 6, got ${JSON.stringify(level)}`,
-      process.env.NODE_ENV !== "production" ? "<Heading level={2}>" : /* istanbul ignore next -- production only */ "",
+      process.env.NODE_ENV !== "production" ? "<Heading level={2}>" : /* istanbul ignore next @preserve -- production only */ "",
     );
   }
   // A size that is not one of Ouro UI's (a type error) warns and renders the level's default.
@@ -93,8 +88,8 @@ export function Heading(props: HeadingProps): JSX.Element {
   useAppearanceClassNameCheck(
     "Heading",
     className,
-    process.env.NODE_ENV !== "production" ? headingHint : /* istanbul ignore next -- production only */ "",
-    process.env.NODE_ENV !== "production" ? 'align="center"' : /* istanbul ignore next -- production only */ undefined,
+    process.env.NODE_ENV !== "production" ? headingHint : /* istanbul ignore next @preserve -- production only */ "",
+    process.env.NODE_ENV !== "production" ? 'align="center"' : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   useDevWarnings(
     "Heading",
@@ -115,7 +110,7 @@ export function Heading(props: HeadingProps): JSX.Element {
             `<Heading level={${/^h[1-6]$/.test(String(as)) ? String(as).slice(1) : 2}}>`,
           ],
         ]
-      : /* istanbul ignore next -- production only */ undefined,
+      : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   const Tag = `h${level}` as const;
   const classes = cn(

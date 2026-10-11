@@ -10,6 +10,8 @@
 #
 # shadcn: the app keeps the theme `shadcn init` wrote, and a stock shadcn button is added
 #         beside Ouro's; both must build.
+# shadcn and ouro also raise --ouro-layer the way the README says, re-add an item, and check
+#         that the override still wins.
 # ouro:   the app installs the ouro-theme item first, from GitHub at <ref> (default HEAD,
 #         which must be pushed).
 # github: what a user runs today: `shadcn add ourostack/ouro-ui/<item>` with no ref, so
@@ -40,6 +42,9 @@ app=${2:?$usage}
 root=$(cd "$(dirname "$0")/.." && pwd)
 ref=${3:-$(git -C "$root" rev-parse HEAD)}
 shadcn=(npx --yes shadcn@4.21.1)
+# The README's init uses --preset nova. OURO_PRESET runs the same test with another of
+# shadcn's presets (CI runs vega too), so the docs can say which presets are verified.
+preset=${OURO_PRESET:-nova}
 vitest=(npx --yes vitest@5.0.3)
 items=(button text heading sheet dialog confirm-dialog)
 
@@ -64,7 +69,7 @@ echo "::group::Fixture app"
 cp -R "$root/test/install-fixture/." "$app/"
 cd "$app"
 npm install --no-audit --no-fund
-"${shadcn[@]}" init --base base --preset nova --yes --no-monorepo
+"${shadcn[@]}" init --base base --preset "$preset" --yes --no-monorepo
 echo "::endgroup::"
 
 if [ "$variant" = github ]; then
@@ -197,7 +202,7 @@ if [ "$variant" = upgrade ]; then
   cd "$layout"
   to_app_layout
   npm install --no-audit --no-fund
-  "${shadcn[@]}" init --base base --preset nova --yes --no-monorepo
+  "${shadcn[@]}" init --base base --preset "$preset" --yes --no-monorepo
   node -e 'const c = require("./components.json"); if (!c.tailwind.css.startsWith("app/")) throw new Error(`components.json css is ${c.tailwind.css}`)'
   echo "::endgroup::"
 
@@ -285,6 +290,17 @@ echo "::group::Type check, build, and no tests from the runtime items"
 npx tsc -b
 npx vite build
 runtime_only "$variant"
+echo "::endgroup::"
+
+# The README's way to raise --ouro-layer: a :root rule of the app's own, after the Ouro tokens
+# and outside any @layer. A later `shadcn add` rewrites the --ouro-layer line it wrote, but must
+# leave this rule as the winning declaration. The shipped tests below then run with it.
+echo "::group::An --ouro-layer override survives a re-add"
+printf '\n:root {\n  --ouro-layer: 60;\n}\n' >>src/index.css
+"${shadcn[@]}" add --yes --overwrite "$registry/r/sheet.json"
+node "$root/scripts/install-check.mjs" --layer-override src/index.css 60
+npx vite build
+grep -q -- "--ouro-layer:60" dist/assets/*.css || { echo "the built CSS lost the --ouro-layer override"; exit 1; }
 echo "::endgroup::"
 
 echo "::group::The testing setup and ouro-tests"

@@ -1,6 +1,7 @@
-// Type tests: `pnpm typecheck` compiles this file.
 import { expectTypeOf } from "vitest";
 import type { HeadingProps } from "@/registry/ouro/components/ouro/text/heading";
+
+// Type tests: `pnpm typecheck` compiles this file.
 
 expectTypeOf<{ children: "a"; level: 2; size: "xl" }>().toExtend<HeadingProps>();
 expectTypeOf<{ children: "a"; level: 1; size: "display" }>().toExtend<HeadingProps>();

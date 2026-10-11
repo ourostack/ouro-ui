@@ -1,9 +1,3 @@
-// Button: a button, or a link styled as one.
-//
-//   <Button onClick={save} loading={saving}>Save</Button>
-//   <Button href="/recipes/new" startIcon={PlusIcon}>New recipe</Button>
-//
-// @see https://ourostack.github.io/ouro-ui/docs/button for every prop, with examples.
 import { Button as BaseButton } from "@base-ui/react/button";
 import { useEffect, useRef } from "react";
 import type {
@@ -320,7 +314,7 @@ export function Button(props: ButtonProps): JSX.Element {
   useAppearanceClassNameCheck(
     "Button",
     className,
-    process.env.NODE_ENV !== "production" ? buttonHint : /* istanbul ignore next -- production only */ "",
+    process.env.NODE_ENV !== "production" ? buttonHint : /* istanbul ignore next @preserve -- production only */ "",
   );
   useDevWarnings(
     "Button",
@@ -351,7 +345,7 @@ export function Button(props: ButtonProps): JSX.Element {
               link.disabled !== undefined && ["a link cannot be disabled", "<Button disabled> without href"],
           ];
         }
-      : /* istanbul ignore next -- production only */ undefined,
+      : /* istanbul ignore next @preserve -- production only */ undefined,
   );
 
   // Speak the busy state when loading turns on. The shared region sits outside the

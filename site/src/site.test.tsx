@@ -108,7 +108,7 @@ describe.each([
     it.each(routes)("$path has zero axe violations", async ({ path }) => {
       setScheme(scheme);
       await renderPage(path);
-      await settle(50);
+      await settle();
       const violations = await scan();
       expect(violations, describeViolations(violations)).toEqual([]);
     });

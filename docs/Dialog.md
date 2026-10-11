@@ -28,6 +28,8 @@ import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
 
 Use `trigger` for a dialog a button opens, or `open` with `onOpenChange` to control it.
 
+It stacks above the page at `--ouro-layer`, a z-index of 50 by default (from ouro-base.css). If your app has fixed bars above z-50, raise it in a `:root` rule of your own after the Ouro tokens, outside any `@layer`: `:root { --ouro-layer: 60; }`. Don't edit the `--ouro-layer: 50` line shadcn wrote; `shadcn add` resets it.
+
 Testing accessibility: in WebKit, Base UI's focus guards take `role="button"` without a name so VoiceOver's cursor stays trapped. Exclude them: `new AxeBuilder({ page }).exclude("[data-base-ui-focus-guard]")`.
 
 ## Use instead when
@@ -61,7 +63,7 @@ A controlled Dialog: you own `open` and update it in `onOpenChange`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `onOpenChange` (required) | `(open: boolean) => void` |  | Called with `false` when the user dismisses the dialog (close button, Escape, outside press, swipe). |
-| `open` (required) | `boolean` |  | Whether the dialog is open. |
+| `open` (required) | `boolean` |  | Whether the dialog is open. When a touch or pen tap opened it (on your own button, say), the centered dialog focuses itself rather than its first input, so no software keyboard pops up; after a key press it focuses the first control. |
 
 Not in this mode (typed `never`):
 

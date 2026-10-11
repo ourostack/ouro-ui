@@ -57,6 +57,9 @@ const dialogPopup = () => document.querySelector<HTMLElement>('[data-ouro="dialo
 const backdrop = () => document.querySelector<HTMLElement>('[data-ouro="dialog-backdrop"]');
 const trigger = () => document.querySelector<HTMLElement>('[data-ouro="button"]')!;
 
+/** Resolves after the next frame's animation callbacks. */
+const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
 /** Waits until the open popup has finished its entrance (no starting style, no running transitions). */
 async function settled() {
   await expect
@@ -65,7 +68,7 @@ async function settled() {
         const element = popup();
         return Boolean(element && !element.hasAttribute("data-starting-style") && element.getAnimations().length === 0);
       },
-      { timeout: 3000, interval: 50 },
+      { interval: 50 },
     )
     .toBe(true);
 }
@@ -155,7 +158,7 @@ describe("automatic presentation", () => {
     await settled();
     expect(onOpenChange).not.toHaveBeenCalled();
     await userEvent.keyboard("{Escape}");
-    await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
+    await expect.poll(() => popup()).toBeNull();
     expect(onOpenChange).toHaveBeenCalledExactlyOnceWith(false);
   });
 
@@ -165,14 +168,14 @@ describe("automatic presentation", () => {
     await expect.poll(() => popup()?.getAttribute("data-ouro-presentation")).toBe("sheet");
     await settled();
     await userEvent.keyboard("{Escape}");
-    await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
+    await expect.poll(() => popup()).toBeNull();
     await userEvent.click(trigger());
     await settled();
     expect(popup()!.getAttribute("data-ouro-presentation")).toBe("sheet");
   });
 });
 
-describe("server rendering", () => {
+describe("Dialog server rendering", () => {
   it("renders on the server without throwing or rendering the popup", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const html = renderToString(
@@ -200,8 +203,9 @@ describe("server rendering", () => {
     await act(async () => {
       roots.push(hydrateRoot(host, <StrictMode>{app()}</StrictMode>, { onRecoverableError: recoverable }));
     });
-    // Let the media query settle on the phone width after hydration.
-    await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+    // Let the media query settle on the phone width after hydration: React commits
+    // inside act, and a frame passes, so any media change event has fired.
+    await act(nextFrame);
     expect(error).not.toHaveBeenCalled();
     expect(recoverable).not.toHaveBeenCalled();
     // The server-rendered trigger node survives the switch to the sheet form.
@@ -226,7 +230,8 @@ describe("trigger", () => {
     for (const [width, height, wide] of [[390, 844, false], [1280, 800, true], [390, 844, false]] as const) {
       await page.viewport(width, height);
       await expect.poll(() => matchMedia("(min-width: 640px)").matches).toBe(wide);
-      await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+      // The media change event fires before the next frame's callbacks; act commits the re-render.
+      await act(nextFrame);
       expect(trigger()).toBe(node);
       expect(document.activeElement).toBe(node);
     }
@@ -235,7 +240,7 @@ describe("trigger", () => {
     expect(popup()!.getAttribute("data-ouro-presentation")).toBe("sheet");
     expect(node.getAttribute("aria-expanded")).toBe("true");
     await userEvent.keyboard("{Escape}");
-    await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
+    await expect.poll(() => popup()).toBeNull();
     await expect.poll(() => document.activeElement).toBe(node);
     expect(node.getAttribute("aria-expanded")).toBe("false");
     expect(node.getAttribute("aria-haspopup")).toBe("dialog");
@@ -252,8 +257,7 @@ describe("trigger", () => {
     await act(() => node.dispatchEvent(new PointerEvent("pointerdown", { pointerType: "pen", bubbles: true })));
     await act(() => node.dispatchEvent(new MouseEvent("click", { detail: 1, bubbles: true })));
     await settled();
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    expect(document.activeElement).toBe(popup());
+    await expect.poll(() => document.activeElement).toBe(popup());
   });
 
   it("keeps the trigger's own ref and onClick, and stays closed when onClick prevents default", async () => {
@@ -274,8 +278,73 @@ describe("trigger", () => {
     expect(ref.current).toBe(trigger());
     await userEvent.click(trigger());
     expect(onClick).toHaveBeenCalledOnce();
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    // An open would be committed by now: the click is handled and React has flushed.
+    await act(async () => {});
     expect(popup()).toBeNull();
+  });
+});
+
+describe("Dialog stacking above the app's fixed bars", () => {
+  /** The app's `--ouro-layer`: 50 from ouro-base, unless the app raised it. */
+  const layer = () => Number(getComputedStyle(document.documentElement).getPropertyValue("--ouro-layer"));
+  /** A fixed, full-screen app layer at the given z-index, like a tab bar or a header. */
+  function appBar(zIndex: number): HTMLElement {
+    const bar = document.createElement("div");
+    Object.assign(bar.style, { position: "fixed", inset: "0", zIndex: String(zIndex) });
+    document.body.append(bar);
+    mounted.push(bar);
+    return bar;
+  }
+  /** Whether the popup is what a press at its center lands on. */
+  const onTop = (element: HTMLElement) => {
+    const rect = element.getBoundingClientRect();
+    return element.contains(document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2));
+  };
+  const portal = () => document.querySelector<HTMLElement>('[data-ouro="dialog-portal"]')!;
+
+  it("puts the portal on the --ouro-layer level, as its own stacking context", async () => {
+    await render(
+      <Dialog title="Edit recipe" open onOpenChange={() => {}}>
+        Body
+      </Dialog>,
+    );
+    await settled();
+    const style = getComputedStyle(portal());
+    expect(style.position).toBe("relative");
+    expect(layer()).toBeGreaterThanOrEqual(50);
+    expect(style.zIndex).toBe(String(layer()));
+    expect(style.isolation).toBe("isolate");
+  });
+
+  it("stays above a fixed app bar at the same level: a tie, which the portal wins as the last child of body", async () => {
+    appBar(layer());
+    await render(
+      <Dialog title="Edit recipe" open onOpenChange={() => {}}>
+        Body
+      </Dialog>,
+    );
+    await settled();
+    expect(document.body.lastElementChild).toBe(portal());
+    expect(onTop(dialogPopup()!)).toBe(true);
+  });
+
+  it("stays above a fixed app bar added after it when the app raises --ouro-layer past the bar", async () => {
+    const bar = layer();
+    document.documentElement.style.setProperty("--ouro-layer", String(bar + 10));
+    try {
+      await render(
+      <Dialog title="Edit recipe" open onOpenChange={() => {}}>
+        Body
+      </Dialog>,
+    );
+      await settled();
+      // After the portal in the DOM, so at an equal level the bar would cover it.
+      appBar(bar);
+      expect(getComputedStyle(portal()).zIndex).toBe(String(bar + 10));
+      expect(onTop(dialogPopup()!)).toBe(true);
+    } finally {
+      document.documentElement.style.removeProperty("--ouro-layer");
+    }
   });
 });
 
@@ -283,14 +352,14 @@ describe("centered dialog", () => {
   it("closes on Escape and returns focus to the trigger", async () => {
     await openUncontrolled();
     await userEvent.keyboard("{Escape}");
-    await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
+    await expect.poll(() => popup()).toBeNull();
     await expect.poll(() => document.activeElement).toBe(trigger());
   });
 
   it("closes from an outside press", async () => {
     await openUncontrolled();
     await userEvent.click(document.body, { position: { x: 10, y: 10 } });
-    await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
+    await expect.poll(() => popup()).toBeNull();
   });
 
   it("has a visible, compact close button in the top corner, labelled by closeLabel", async () => {
@@ -306,7 +375,7 @@ describe("centered dialog", () => {
     expect(rect.top - box.top).toBeLessThanOrEqual(20);
     expect(button.querySelector("svg")!.getAttribute("aria-hidden")).toBe("true");
     await userEvent.click(close);
-    await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
+    await expect.poll(() => popup()).toBeNull();
   });
 
   it("labels the close button Close by default", async () => {
@@ -444,7 +513,7 @@ describe("motion", () => {
     expect(transitionOf(element, "transform")!.duration).toBe("0.75s");
     expect(transitionOf(element, "opacity")).toBeDefined();
     await userEvent.keyboard("{Escape}");
-    await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
+    await expect.poll(() => popup()).toBeNull();
     observer.disconnect();
     const scale = (transform: string) => new DOMMatrix(transform).a;
     const start = seen.find((entry) => entry.phase === "data-starting-style")!;
@@ -457,7 +526,7 @@ describe("motion", () => {
 
   it("fades the backdrop in to --ouro-backdrop-max", async () => {
     await openUncontrolled();
-    await expect.poll(() => Number(getComputedStyle(backdrop()!).opacity), { timeout: 3000 }).toBeCloseTo(0.4, 2);
+    await expect.poll(() => Number(getComputedStyle(backdrop()!).opacity)).toBeCloseTo(0.4, 2);
   });
 
   it("drops the scale under reduced motion and keeps the fade", async () => {
@@ -473,7 +542,7 @@ describe("motion", () => {
   });
 });
 
-describe("iOS backdrop rule", () => {
+describe("Dialog iOS backdrop rule", () => {
   it("covers the visible screen on a page scrolled 2000px", async () => {
     const ios = document.createElement("style");
     ios.textContent = withIosRules(pageCss());
@@ -504,7 +573,7 @@ describe("iOS backdrop rule", () => {
   });
 });
 
-describe("dev messages", () => {
+describe("Dialog dev messages", () => {
   it("throws the exact fix when neither trigger nor open is passed", () => {
     // @ts-expect-error -- neither trigger nor open
     const dialog = <Dialog title="Edit">Body</Dialog>;
@@ -573,7 +642,7 @@ describe("dev messages", () => {
   });
 });
 
-describe("parts", () => {
+describe("Dialog parts", () => {
   it("renders an md DialogPopup for a size that is not one of Ouro UI's, and warns once with the fix", async () => {
     await render(
       <DialogRoot open>
@@ -617,7 +686,7 @@ describe("parts", () => {
     expect(dialogPopup()!.getAttribute("data-size")).toBe("sm");
     expect(ref.current).toBe(backdrop());
     await userEvent.click(page.getByRole("button", { name: "Done" }));
-    await expect.poll(() => dialogPopup(), { timeout: 3000 }).toBeNull();
+    await expect.poll(() => dialogPopup()).toBeNull();
   });
 
   it.each([
