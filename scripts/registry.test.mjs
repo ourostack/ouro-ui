@@ -9,7 +9,9 @@ import { buildRegistry, cssToItem, itemForFile, rewriteDependencies, testingSetu
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const script = join(root, "scripts/registry.mts");
-const run = (...args) => spawnSync("node", [script, ...args], { cwd: root, encoding: "utf8" });
+// Runs the script as on a branch other than main (CI sets these on main and on pull requests).
+const branchEnv = Object.fromEntries(Object.entries(process.env).filter(([name]) => name !== "GITHUB_REF" && name !== "GITHUB_BASE_REF"));
+const run = (...args) => spawnSync("node", [script, ...args], { cwd: root, encoding: "utf8", env: branchEnv });
 const registry = buildRegistry(root);
 const item = (name) => registry.items.find((entry) => entry.name === name);
 const repo = (name) => `ourostack/ouro-ui/${name}`;
@@ -214,11 +216,11 @@ test("--release pins every same-repo dependency to the release tag and records t
   // On main, and on pull requests into main, a released file never passes: main stays unpinned.
   assert.equal(run("--out", out, "--release", "0.1.0").status, 0);
   for (const env of [{ GITHUB_REF: "refs/heads/main" }, { GITHUB_BASE_REF: "main" }]) {
-    const onMain = spawnSync("node", [script, "--check", "--out", out], { cwd: root, encoding: "utf8", env: { ...process.env, ...env } });
+    const onMain = spawnSync("node", [script, "--check", "--out", out], { cwd: root, encoding: "utf8", env: { ...branchEnv, ...env } });
     assert.equal(onMain.status, 1, JSON.stringify(env));
     assert.match(onMain.stderr, /pinned to a release.*main stays unpinned/s);
   }
-  const mainOk = spawnSync("node", [script, "--check"], { cwd: root, encoding: "utf8", env: { ...process.env, GITHUB_REF: "refs/heads/main" } });
+  const mainOk = spawnSync("node", [script, "--check"], { cwd: root, encoding: "utf8", env: { ...branchEnv, GITHUB_REF: "refs/heads/main" } });
   assert.equal(mainOk.status, 0, mainOk.stderr);
 
   const bad = run("--out", out, "--release", "v0.1.0");
