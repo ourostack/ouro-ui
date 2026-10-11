@@ -123,6 +123,35 @@ async function flickSheet(dy: number, durationMs: number) {
   await commands.flick({ from: [x, y], to: [x, y + dy], steps: 4, durationMs });
 }
 
+/** A CSS time ("0.375s", "750ms") in milliseconds. */
+const ms = (time: string) => (time.trim().endsWith("ms") ? parseFloat(time) : parseFloat(time) * 1000);
+
+/**
+ * Runs a gesture, waits for the sheet to spring back to rest, and returns the longest
+ * transform transition the release scheduled, in ms (0 when the sheet never moved). It is read from the transition as it
+ * starts (`transitionrun`), not from the wall clock, so a loaded runner cannot change it.
+ */
+async function springBack(sheet: HTMLElement, gesture: () => Promise<void>): Promise<number> {
+  const durations: number[] = [];
+  const record = (event: TransitionEvent) => {
+    if (event.target !== sheet || event.propertyName !== "transform") return;
+    const style = getComputedStyle(sheet);
+    const index = style.transitionProperty.split(", ").indexOf("transform");
+    durations.push(ms(style.transitionDuration.split(", ")[index]!));
+  };
+  sheet.addEventListener("transitionrun", record);
+  try {
+    await gesture();
+    await expect.poll(() => isIdentity(sheet)).toBe(true);
+  } finally {
+    sheet.removeEventListener("transitionrun", record);
+  }
+  return Math.max(0, ...durations);
+}
+
+/** The theme's spring duration, the longest a release may take (--drawer-swipe-strength is at most 1). */
+const springDuration = () => ms(getComputedStyle(document.documentElement).getPropertyValue("--ouro-spring-duration"));
+
 /** Drags the sheet by its handle area (outside Drawer.Content, so a mouse drag swipes). */
 async function dragSheet(dy: number, { durationMs = 600, steps = 12, hold = false } = {}) {
   const rect = popup()!.getBoundingClientRect();
@@ -400,11 +429,14 @@ describe("dragging (Chromium)", () => {
     await expect.poll(() => popup()).toBeNull();
   });
 
-  chromiumOnly("springs back after a 10% drag and settles at identity", async () => {
+  chromiumOnly("springs back after a 10% drag and settles at identity within the theme spring", async () => {
     const sheet = await openUncontrolled();
-    await dragSheet(sheet.offsetHeight * 0.1, { durationMs: 400, steps: 8 });
-    expect(popup()).toBe(sheet);
-    await expect.poll(() => isIdentity(sheet)).toBe(true);
+    const duration = await springBack(sheet, async () => {
+      await dragSheet(sheet.offsetHeight * 0.1, { durationMs: 400, steps: 8 });
+      expect(popup()).toBe(sheet);
+    });
+    expect(duration).toBeGreaterThan(0);
+    expect(duration).toBeLessThanOrEqual(springDuration());
   });
 
   chromiumOnly("dismisses on a quick flick even over a short distance", async () => {
@@ -415,20 +447,26 @@ describe("dragging (Chromium)", () => {
 
   chromiumOnly("springs back from the same distance moved slowly (the flick test's control)", async () => {
     const sheet = await openUncontrolled();
-    await flickSheet(sheet.offsetHeight * 0.2, 400);
-    expect(popup()).toBe(sheet);
-    await expect.poll(() => isIdentity(sheet)).toBe(true);
+    const duration = await springBack(sheet, async () => {
+      await flickSheet(sheet.offsetHeight * 0.2, 400);
+      expect(popup()).toBe(sheet);
+    });
+    expect(duration).toBeGreaterThan(0);
+    expect(duration).toBeLessThanOrEqual(springDuration());
     expect(popup()).toBe(sheet);
   });
 
   chromiumOnly("never moves the sheet further than the finger when pulled past the edge", async () => {
     const sheet = await openUncontrolled();
     for (const pull of [1, 2, 5, 12, 40, 80]) {
-      await dragSheet(-pull, { durationMs: 200, steps: Math.max(2, Math.min(pull, 10)), hold: true });
-      const lift = -translation(sheet).y;
-      await commands.pointerPress({ action: "up" });
+      let lift = 0;
+      const duration = await springBack(sheet, async () => {
+        await dragSheet(-pull, { durationMs: 200, steps: Math.max(2, Math.min(pull, 10)), hold: true });
+        lift = -translation(sheet).y;
+        await commands.pointerPress({ action: "up" });
+      });
       expect(lift, `lift for a ${pull}px pull`).toBeLessThanOrEqual(pull + 0.01);
-      await expect.poll(() => isIdentity(sheet)).toBe(true);
+      expect(duration, `release after a ${pull}px pull`).toBeLessThanOrEqual(springDuration());
     }
   });
 
@@ -472,12 +510,16 @@ describe("dragging (Chromium)", () => {
 
   chromiumOnly("stretches when pulled past the open edge, with the bleed filling the gap", async () => {
     const sheet = await openUncontrolled();
-    await dragSheet(-80, { durationMs: 400, steps: 8, hold: true });
-    const lift = -translation(sheet).y;
-    await commands.pointerPress({ action: "up" });
+    let lift = 0;
+    const duration = await springBack(sheet, async () => {
+      await dragSheet(-80, { durationMs: 400, steps: 8, hold: true });
+      lift = -translation(sheet).y;
+      await commands.pointerPress({ action: "up" });
+    });
     expect(lift).toBeGreaterThanOrEqual(24);
     expect(lift).toBeLessThan(80);
-    await expect.poll(() => isIdentity(sheet)).toBe(true);
+    expect(duration).toBeGreaterThan(0);
+    expect(duration).toBeLessThanOrEqual(springDuration());
   });
 
   chromiumOnly("lightens the backdrop in step with a drag down", async () => {
