@@ -39,7 +39,7 @@ Props every mode takes. Type: `ButtonProps`.
 | `size` | `"sm" \| "md" \| "lg"` | `"md"` | Control size. Each size is taller on phones and steps down to desktop density from the `sm` breakpoint (640px). shadcn's `default` is `md`; for an icon-only button, pass the icon as children and an `aria-label`. Any other string is a type error whose message names the fix. |
 | `startIcon` | `ButtonIcon` |  | Icon before the label. Pass the component, not an element: `startIcon={PlusIcon}`. |
 | `tone` | `"primary" \| "secondary" \| "destructive" \| "success" \| "warning"` | `"primary"` | Color role from the theme, named after its token: `primary` reads `--primary`. shadcn's `variant="destructive"` is `tone="destructive"`, and its `variant="secondary"` is `tone="secondary"`. |
-| `variant` | `"solid" \| "soft" \| "outline" \| "plain"` | `"solid"` | Visual weight: `solid` for the primary action, `soft` for secondary actions, `outline` for a quiet bordered control, `plain` for a borderless one. shadcn's `default` is `solid` (the default), `ghost` and `link` are `plain`, and `destructive` and `secondary` are tones: `tone="destructive"`. Any other string is a type error whose message names the fix. |
+| `variant` | `"solid" \| "soft" \| "outline" \| "plain"` | `"solid"` | Visual weight: `solid` for the primary action, `soft` for secondary actions, `outline` for a quiet bordered control, `plain` for a borderless one. shadcn's `default` is `solid` (the default), `ghost` and `link` are `plain`, and `destructive` and `secondary` are tones: `tone="destructive"`. Any other string is a type error whose message names the fix. Variant is visual only. For a toggle, pass `aria-pressed`; for the current nav item, `aria-current="page"`. |
 
 ## Modes
 

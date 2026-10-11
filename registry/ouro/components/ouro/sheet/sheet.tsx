@@ -1,3 +1,10 @@
+// Sheet: a panel that slides in from an edge and is dragged back to dismiss.
+//
+//   <Sheet title="Share" trigger={<Button>Share</Button>} footer={<SheetClose render={<Button>Copy link</Button>} />}>
+//     <ShareOptions />
+//   </Sheet>
+//
+// @see https://ourostack.github.io/ouro-ui/docs/sheet for every prop, with examples.
 import type { JSX, ReactElement, ReactNode, RefObject } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { checkOpenMode } from "@/registry/ouro/lib/ouro/open-mode";
@@ -44,6 +51,8 @@ export interface SheetBaseProps {
   snapPoints?: SheetSnapPoint[] | undefined;
   /** The body. It scrolls when it is taller than the sheet. */
   children: ReactNode;
+  /** The actions row, stacked full width on phones; primary action last. */
+  footer?: ReactNode;
   /**
    * Layout only, applied to the sheet panel: width and margins (`max-w-lg`,
    * `mx-auto`). Your classes win over Ouro UI's. Appearance classes warn in development.
@@ -93,6 +102,16 @@ export type SheetProps = SheetWithTriggerProps | SheetControlledProps;
  * control it. Use `Dialog` instead when the content should be a centered
  * dialog on larger screens; it renders this sheet on phones.
  *
+ * To close the sheet from an action, control it (`open`/`onOpenChange`) and set
+ * `open` to `false` in the handler, or wrap the action:
+ * `<SheetClose render={<Button>Copy link</Button>} />`.
+ *
+ * Testing accessibility: in WebKit, Base UI's focus guards take `role="button"`
+ * without a name so VoiceOver's cursor stays trapped. Exclude them:
+ * `new AxeBuilder({ page }).exclude("[data-base-ui-focus-guard]")`.
+ *
+ * @see https://ourostack.github.io/ouro-ui/docs/sheet
+ *
  * @example
  * <Sheet title="Save to cookbook" trigger={<Button>Save</Button>}>
  *   <CookbookList />
@@ -110,6 +129,7 @@ export function Sheet(props: SheetProps): JSX.Element {
     side: sideProp = "bottom",
     snapPoints,
     children,
+    footer,
     className,
     trigger,
     open,
@@ -141,6 +161,7 @@ export function Sheet(props: SheetProps): JSX.Element {
     "Sheet",
     process.env.NODE_ENV !== "production"
       ? () => [
+          !title && ["title is required; it names the sheet for screen readers", '<Sheet title="Share">'],
           side !== sideProp && sideWarning(String(sideProp), '<Sheet side="bottom">'),
           isOpen !== undefined && ["isOpen is not a prop", "<Sheet open={open} onOpenChange={setOpen}>"],
           onClose !== undefined && ["onClose is not a prop", "<Sheet open={open} onOpenChange={setOpen}>"],
@@ -162,6 +183,7 @@ export function Sheet(props: SheetProps): JSX.Element {
       trigger={trigger}
       open={open}
       onOpenChange={onOpenChange}
+      footer={footer}
     >
       {children}
     </SheetFrame>

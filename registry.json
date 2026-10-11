@@ -254,6 +254,11 @@
           "target": "@lib/ouro/testing/act.ts"
         },
         {
+          "path": "registry/ouro/lib/ouro/testing/axe.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/testing/axe.ts"
+        },
+        {
           "path": "registry/ouro/lib/ouro/testing/commands.test.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/testing/commands.test.ts"

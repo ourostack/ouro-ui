@@ -28,6 +28,8 @@ import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
 
 Use `trigger` for a dialog a button opens, or `open` with `onOpenChange` to control it.
 
+Testing accessibility: in WebKit, Base UI's focus guards take `role="button"` without a name so VoiceOver's cursor stays trapped. Exclude them: `new AxeBuilder({ page }).exclude("[data-base-ui-focus-guard]")`.
+
 ## Use instead when
 
 - Use `ConfirmDialog` instead to confirm an action, and `Sheet` instead when the panel should slide in from an edge at every width.

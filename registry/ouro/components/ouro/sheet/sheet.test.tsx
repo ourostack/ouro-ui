@@ -217,6 +217,36 @@ describe("opening and closing", () => {
   });
 });
 
+describe("footer", () => {
+  it("renders footer as the actions row after the body, and closes from an action wrapped in SheetClose", async () => {
+    const element = await openUncontrolled({
+      footer: (
+        <>
+          <Button variant="soft">Send to a friend</Button>
+          <SheetClose render={<Button>Copy link</Button>} />
+        </>
+      ),
+    });
+    const footer = element.querySelector<HTMLElement>("[data-ouro-footer]")!;
+    expect(footer).not.toBeNull();
+    expect(footer.textContent).toBe("Send to a friend" + "Copy link");
+    // After the body, before the hidden close button.
+    expect(element.querySelector("[data-ouro-sheet-content]")!.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Stacked full width on a phone.
+    const buttons = [...footer.querySelectorAll<HTMLElement>('[data-ouro="button"]')];
+    expect(buttons.map((button) => Math.round(button.getBoundingClientRect().width))).toEqual(
+      buttons.map(() => Math.round(footer.getBoundingClientRect().width - parseFloat(getComputedStyle(footer).paddingLeft) - parseFloat(getComputedStyle(footer).paddingRight))),
+    );
+    await userEvent.click(page.getByRole("button", { name: "Copy link" }));
+    await expect.poll(() => popup(), { timeout: 3000 }).toBeNull();
+  });
+
+  it("renders no actions row without footer", async () => {
+    const element = await openUncontrolled();
+    expect(element.querySelector("[data-ouro-footer]")).toBeNull();
+  });
+});
+
 describe("title and description", () => {
   it("hides the title visually with hideTitle and keeps it as the accessible name", async () => {
     await openUncontrolled({ hideTitle: true });
@@ -555,6 +585,13 @@ describe("dev messages", () => {
       "[ouro-ui] Sheet: onClose is not a prop. Fix: <Sheet open={open} onOpenChange={setOpen}>.",
       '[ouro-ui] Sheet: position is not a prop. Fix: <Sheet side="bottom">.',
       "[ouro-ui] Sheet: size is not a prop; a sheet fits its content. Fix: <Sheet snapPoints={[0.5, 1]}>.",
+    ]);
+  });
+
+  it.each([[""], [undefined]])("warns when the title is missing (%j): it names the sheet for screen readers", async (title) => {
+    await openUncontrolled({ title } as object);
+    expect(warn.mock.calls.map((call: unknown[]) => call[0])).toEqual([
+      '[ouro-ui] Sheet: title is required; it names the sheet for screen readers. Fix: <Sheet title="Share">.',
     ]);
   });
 

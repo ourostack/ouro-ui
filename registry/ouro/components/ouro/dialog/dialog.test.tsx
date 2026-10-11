@@ -527,6 +527,13 @@ describe("dev messages", () => {
     expect(() => renderToString(dialog)).toThrow(`[ouro-ui] Dialog: open needs onOpenChange. Fix: ${FIX}`);
   });
 
+  it.each([[""], [undefined]])("warns when the title is missing (%j): it names the dialog for screen readers", async (title) => {
+    await openUncontrolled({ title } as object);
+    expect(warn.mock.calls.map((call: unknown[]) => call[0])).toEqual([
+      '[ouro-ui] Dialog: title is required; it names the dialog for screen readers. Fix: <Dialog title="Edit recipe">.',
+    ]);
+  });
+
   it("warns once about guessed props and drops them from the DOM", async () => {
     const guessed = { isOpen: true, onClose: () => {}, position: "bottom", side: "left", snapPoints: [0.5] } as object;
     const element = await openUncontrolled(guessed);

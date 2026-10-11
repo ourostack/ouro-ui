@@ -1,4 +1,15 @@
-import { useRef, useState, type JSX, type ReactElement, type ReactNode } from "react";
+// ConfirmDialog: asks the user to confirm an action, with Cancel focused first.
+//
+//   <ConfirmDialog
+//     title="Delete recipe?"
+//     confirmLabel="Delete"
+//     tone="destructive"
+//     onConfirm={() => deleteRecipe(id)}
+//     trigger={<Button tone="destructive" variant="soft">Delete</Button>}
+//   />
+//
+// @see https://ourostack.github.io/ouro-ui/docs/confirm-dialog for every prop, with examples.
+import { useRef, useState, type JSX, type ReactElement, type ReactNode, type RefObject } from "react";
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
 import { checkOpenMode } from "@/registry/ouro/lib/ouro/open-mode";
 import { toneWarning } from "@/registry/ouro/lib/ouro/tones";
@@ -35,8 +46,17 @@ export interface ConfirmDialogBaseProps {
    * closes; when it rejects (or `onConfirm` throws) the dialog stays open so the
    * user can retry or cancel. Cancel and Escape still close it while pending;
    * the result is then ignored.
+   *
+   * If the action removes the trigger (a delete), pass `finalFocus` to what
+   * replaces it, such as the next item or the page heading.
    */
   onConfirm: () => void | Promise<void>;
+  /**
+   * Where focus goes when the confirmation closes. By default it returns to the
+   * trigger; when `onConfirm` removes the trigger, point this at what replaces it
+   * (give a heading `tabIndex={-1}`): `finalFocus={headingRef}`.
+   */
+  finalFocus?: RefObject<HTMLElement | null> | undefined;
 
   /** Not a prop. Ouro UI uses `open` with `onOpenChange`: `<ConfirmDialog open={open} onOpenChange={setOpen}>`. */
   isOpen?: { 'Use <ConfirmDialog open={open} onOpenChange={setOpen}>': never };
@@ -87,6 +107,12 @@ export type ConfirmDialogProps = ConfirmDialogWithTriggerProps | ConfirmDialogCo
  * `onConfirm` to show progress until the action finishes. Use `Dialog` instead
  * when the user has more to do than confirm or cancel.
  *
+ * Testing accessibility: in WebKit, Base UI's focus guards take `role="button"`
+ * without a name so VoiceOver's cursor stays trapped. Exclude them:
+ * `new AxeBuilder({ page }).exclude("[data-base-ui-focus-guard]")`.
+ *
+ * @see https://ourostack.github.io/ouro-ui/docs/confirm-dialog
+ *
  * @example
  * <ConfirmDialog
  *   title="Delete recipe?"
@@ -105,6 +131,7 @@ export function ConfirmDialog(props: ConfirmDialogProps): JSX.Element {
     cancelLabel = "Cancel",
     tone: toneProp = "primary",
     onConfirm,
+    finalFocus,
     trigger,
     open,
     onOpenChange,
@@ -133,6 +160,7 @@ export function ConfirmDialog(props: ConfirmDialogProps): JSX.Element {
       ? () => {
           const controlFix = "<ConfirmDialog open={open} onOpenChange={setOpen}>";
           return [
+            !title && ["title is required; it names the confirmation for screen readers", '<ConfirmDialog title="Delete recipe?">'],
             tone !== toneProp && toneWarning("ConfirmDialog", String(toneProp), ["primary", "destructive"]),
             isOpen !== undefined && ["isOpen is not a prop", controlFix],
             onClose !== undefined && ["onClose is not a prop", controlFix],
@@ -208,7 +236,12 @@ export function ConfirmDialog(props: ConfirmDialogProps): JSX.Element {
       <DialogPortal>
         <DialogBackdrop />
         <DialogViewport>
-          <DialogPopupUnchecked size="sm" initialFocus={cancelRef} data-ouro-confirm="">
+          <DialogPopupUnchecked
+            size="sm"
+            initialFocus={cancelRef}
+            {...(finalFocus ? { finalFocus } : {})}
+            data-ouro-confirm=""
+          >
             <div data-ouro-dialog-header="" className="box-border grid shrink-0 gap-1 px-5 pt-5 pb-2">
               <DialogTitle>{title}</DialogTitle>
               {description !== undefined && <DialogDescription>{description}</DialogDescription>}

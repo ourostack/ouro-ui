@@ -1,3 +1,9 @@
+// Button: a button, or a link styled as one.
+//
+//   <Button onClick={save} loading={saving}>Save</Button>
+//   <Button href="/recipes/new" startIcon={PlusIcon}>New recipe</Button>
+//
+// @see https://ourostack.github.io/ouro-ui/docs/button for every prop, with examples.
 import { Button as BaseButton } from "@base-ui/react/button";
 import { useEffect, useRef } from "react";
 import type {
@@ -43,6 +49,8 @@ export interface ButtonBaseProps {
    * shadcn's `default` is `solid` (the default), `ghost` and `link` are `plain`, and
    * `destructive` and `secondary` are tones: `tone="destructive"`. Any other
    * string is a type error whose message names the fix.
+   * Variant is visual only. For a toggle, pass `aria-pressed`; for the current
+   * nav item, `aria-current="page"`.
    * @default "solid"
    */
   variant?:
@@ -277,6 +285,8 @@ function safeRel(rel: string | undefined): string {
  * Use `href` to navigate (it renders a link); use `type="submit"` in a form.
  * Use `Text` with an `<a>` instead when a link sits inside running text.
  *
+ * @see https://ourostack.github.io/ouro-ui/docs/button
+ *
  * @example
  * <Button onClick={save} loading={saving}>Save</Button>
  * <Button href="/recipes/new" startIcon={PlusIcon}>New recipe</Button>
@@ -354,13 +364,16 @@ export function Button(props: ButtonProps): JSX.Element {
 
   const classes = cn(base, sizes[size], looks[variant][tone], fullWidth && "w-full", className);
 
+  // The touch target comes first and the label is positioned, so the label paints above
+  // the target: the target still enlarges the hit area, and nothing covers the text
+  // (axe can check its contrast).
   const content = (
     <>
       <TouchTarget />
       <span
         data-ouro-label=""
         className={cn(
-          "inline-flex items-center gap-[inherit] transition-opacity duration-(--ouro-duration-fast) ease-out",
+          "relative inline-flex items-center gap-[inherit] transition-opacity duration-(--ouro-duration-fast) ease-out",
           loading && "opacity-0",
         )}
       >

@@ -1,3 +1,8 @@
+// Heading: a section title, <h1> to <h6>, in the theme's foreground color.
+//
+//   <Heading level={2} size="lg">Ingredients</Heading>
+//
+// @see https://ourostack.github.io/ouro-ui/docs/heading for every prop, with examples.
 import type { HTMLAttributes, JSX, ReactNode, Ref } from "react";
 import { fontFor, sizeFor, toneFor } from "@/registry/ouro/lib/ouro/appearance-hints";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
@@ -64,6 +69,8 @@ function headingHint(token: string): string {
  *
  * Use `Text` instead for body copy, and for a dialog or sheet title use its
  * `title` prop, which also labels it for assistive technology.
+ *
+ * @see https://ourostack.github.io/ouro-ui/docs/heading
  *
  * @example
  * <Heading level={1}>Recipes</Heading>

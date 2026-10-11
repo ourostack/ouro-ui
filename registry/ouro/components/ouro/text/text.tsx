@@ -1,3 +1,8 @@
+// Text: body text in the theme's type scale and colors.
+//
+//   <Text size="sm" tone="muted">Updated 2 days ago</Text>
+//
+// @see https://ourostack.github.io/ouro-ui/docs/text for every prop, with examples.
 import type { CSSProperties, HTMLAttributes, JSX, ReactNode, Ref } from "react";
 import { fontFor, isWeight, sizeFor, toneFor } from "@/registry/ouro/lib/ouro/appearance-hints";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
@@ -102,6 +107,8 @@ function textHint(token: string): string {
  *
  * Use `Heading` instead for titles (it renders `<h1>`–`<h6>`). Inside a
  * `Button`, pass plain text as children; the button styles it.
+ *
+ * @see https://ourostack.github.io/ouro-ui/docs/text
  *
  * @example
  * <Text>Braise for three hours.</Text>

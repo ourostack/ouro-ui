@@ -1,3 +1,10 @@
+// Dialog: a centered dialog on wider screens and a bottom sheet you can drag away on phones.
+//
+//   <Dialog title="Edit recipe" trigger={<Button>Edit</Button>} footer={<Button>Save</Button>}>
+//     <RecipeForm />
+//   </Dialog>
+//
+// @see https://ourostack.github.io/ouro-ui/docs/dialog for every prop, with examples.
 import {
   cloneElement,
   useRef,
@@ -150,6 +157,12 @@ function CloseIcon(): JSX.Element {
  * control it. Use `ConfirmDialog` instead to confirm an action, and `Sheet`
  * instead when the panel should slide in from an edge at every width.
  *
+ * Testing accessibility: in WebKit, Base UI's focus guards take `role="button"`
+ * without a name so VoiceOver's cursor stays trapped. Exclude them:
+ * `new AxeBuilder({ page }).exclude("[data-base-ui-focus-guard]")`.
+ *
+ * @see https://ourostack.github.io/ouro-ui/docs/dialog
+ *
  * @example
  * <Dialog title="Edit recipe" trigger={<Button>Edit</Button>}>
  *   <RecipeForm />
@@ -211,6 +224,7 @@ export function Dialog(props: DialogProps): JSX.Element {
           const where = "a Dialog is centered, or a bottom sheet on phones";
           const list = (values: readonly string[]) => values.map((name) => `"${name}"`).join(", ");
           return [
+            !title && ["title is required; it names the dialog for screen readers", '<Dialog title="Edit recipe">'],
             size !== sizeProp && dialogSizeWarning(String(sizeProp), '<Dialog size="md">'),
             presentation !== presentationProp && [
               `presentation="${String(presentationProp)}" is not a presentation; use ${list(presentations)}`,

@@ -25,6 +25,8 @@ import { ConfirmDialog } from "@/registry/ouro/components/ouro/dialog/confirm-di
 
 Use `tone="destructive"` for destructive actions, and return a promise from `onConfirm` to show progress until the action finishes.
 
+Testing accessibility: in WebKit, Base UI's focus guards take `role="button"` without a name so VoiceOver's cursor stays trapped. Exclude them: `new AxeBuilder({ page }).exclude("[data-base-ui-focus-guard]")`.
+
 ## Use instead when
 
 - Use `Dialog` instead when the user has more to do than confirm or cancel.
@@ -38,7 +40,8 @@ Props every mode takes. Type: `ConfirmDialogProps`.
 | `cancelLabel` | `string` | `"Cancel"` | The cancel button's label. Cancel has focus when the dialog opens. |
 | `confirmLabel` (required) | `string` |  | The confirm button's label: the action, not "OK" (`confirmLabel="Delete"`). |
 | `description` | `ReactNode` |  | What happens if the user confirms: `description="This can't be undone."`. |
-| `onConfirm` (required) | `() => void \| Promise<void>` |  | Runs the action. Return a promise to keep the dialog open while it runs: the confirm button shows `loading` until it settles. When it resolves the dialog closes; when it rejects (or `onConfirm` throws) the dialog stays open so the user can retry or cancel. Cancel and Escape still close it while pending; the result is then ignored. |
+| `finalFocus` | `RefObject<HTMLElement \| null>` |  | Where focus goes when the confirmation closes. By default it returns to the trigger; when `onConfirm` removes the trigger, point this at what replaces it (give a heading `tabIndex={-1}`): `finalFocus={headingRef}`. |
+| `onConfirm` (required) | `() => void \| Promise<void>` |  | Runs the action. Return a promise to keep the dialog open while it runs: the confirm button shows `loading` until it settles. When it resolves the dialog closes; when it rejects (or `onConfirm` throws) the dialog stays open so the user can retry or cancel. Cancel and Escape still close it while pending; the result is then ignored. If the action removes the trigger (a delete), pass `finalFocus` to what replaces it, such as the next item or the page heading. |
 | `title` (required) | `string` |  | The question, which names the dialog: `title="Delete recipe?"`. |
 | `tone` | `"primary" \| "destructive"` | `"primary"` | The confirm button's color role. Use `destructive` for destructive actions. |
 

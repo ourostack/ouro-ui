@@ -1,6 +1,7 @@
 import axe from "axe-core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page } from "vitest/browser";
+import { axeExclude } from "@/registry/ouro/lib/ouro/testing/axe";
 import {
   cleanupStories,
   closeOverlay,
@@ -32,11 +33,11 @@ function describeViolations(violations: axe.Result[]): string {
 }
 
 async function scan(): Promise<axe.Result[]> {
-  // Base UI's focus-trap guards are excluded, not a rule: in WebKit they take
-  // `role="button"` on purpose, with no name, so VoiceOver's virtual cursor
-  // fires focus on them and the modal's trap catches it (Base UI
-  // utils/FocusGuard). They are visually hidden and never reached by Tab.
-  const context: axe.ElementContext = { include: [document.documentElement], exclude: [["[data-base-ui-focus-guard]"]] };
+  // Base UI's focus-trap guards are excluded, not a rule (axeExclude, which ships to
+  // apps): in WebKit they take `role="button"` on purpose, with no name, so
+  // VoiceOver's virtual cursor fires focus on them and the modal's trap catches it
+  // (Base UI utils/FocusGuard). They are visually hidden and never reached by Tab.
+  const context: axe.ElementContext = { include: [document.documentElement], exclude: axeExclude.map((selector) => [selector]) };
   const result = await axe.run(context, {
     resultTypes: ["violations"],
     rules: {
