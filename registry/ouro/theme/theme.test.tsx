@@ -1,7 +1,8 @@
 import { spring } from "motion";
 import { afterEach, describe, expect, it } from "vitest";
+import { commands } from "vitest/browser";
 
-// The Ouro default theme (ouro-theme.css, loaded through app.css in test/setup.ts).
+// The Ouro look (ouro-theme.css) over ouro-base.css, both loaded through app.css in test/setup.ts.
 // Colors are read through getComputedStyle, so the browser really evaluates the
 // variables. Elements are painted with the variables themselves, not utilities, so a
 // pair no component uses yet (`card`) is still checked; `soft` mixes the tone the way
@@ -78,14 +79,15 @@ for (const scheme of ["light", "dark"] as const) {
       },
     );
 
-    it("foreground text on the secondary soft tint is at least 4.5:1 over the page and a popover", () => {
+    it("secondary-foreground text on the soft secondary surface is at least 4.5:1 over the page and a popover", () => {
       for (const surface of Object.values(surfaces())) {
-        const tint = toRgb(soft("secondary"), surface);
-        expect(ratio(toRgb(color("foreground"), tint), tint)).toBeGreaterThanOrEqual(4.5);
+        const tint = toRgb(paint("color-mix(in oklab, var(--secondary) 50%, transparent)"), surface);
+        expect(ratio(toRgb(color("secondary-foreground"), tint), tint)).toBeGreaterThanOrEqual(4.5);
       }
     });
 
-    it.each(tones)("%s text on the page and a popover is at least 4.5:1 (Text tones, plain and outline buttons)", (tone) => {
+    // Secondary is a surface (shadcn's meaning), never text on the page.
+    it.each(tones.filter((tone) => tone !== "secondary"))("%s text on the page and a popover is at least 4.5:1 (Text tones, plain and outline buttons)", (tone) => {
       for (const surface of Object.values(surfaces())) {
         expect(ratio(toRgb(color(tone), surface), surface)).toBeGreaterThanOrEqual(4.5);
       }
@@ -115,13 +117,14 @@ describe("dark mode", () => {
     expect(toRgb(dark!)).toEqual([96, 165, 250]);
   });
 
-  it("ignores the OS color scheme: only the .dark class switches", () => {
+  it("ignores the OS color scheme: only the .dark class switches", async () => {
     const before = color("background");
-    document.documentElement.style.colorScheme = "dark";
+    await commands.emulateMedia({ colorScheme: "dark" });
     try {
+      expect(matchMedia("(prefers-color-scheme: dark)").matches).toBe(true);
       expect(color("background")).toBe(before);
     } finally {
-      document.documentElement.style.colorScheme = "";
+      await commands.emulateMedia({ colorScheme: "light" });
     }
   });
 });

@@ -9,7 +9,7 @@ Rules for people and coding agents who change this repository. (Consumers read `
 - Touch targets are at least 44px on coarse pointers (`@media (pointer: coarse)`).
 - With `prefers-reduced-motion: reduce`, no transform or position change animates. Opacity may still animate.
 - The default breakpoint `sm` is 640px. Below it, `Dialog` with `presentation="auto"` renders as a sheet.
-- CI gates, in order: `pnpm run docs --check`, type check, lint, unit and browser tests with 100% line and branch coverage (measured over `registry/**`, without stories and `registry/ouro/testing/`), the script tests, and the Storybook build.
+- CI gates, in order: `pnpm run docs --check`, type check, lint, unit and browser tests with 100% line and branch coverage (measured over `registry/**`, without stories and `registry/ouro/lib/ouro/testing/`), the script tests, and the Storybook build.
 - Never add AI attribution to commits, pull requests, code or docs (no `Co-Authored-By`, no "Generated with").
 
 ## Dev message format
@@ -22,7 +22,7 @@ Exact format: `[ouro-ui] <Component>: <what's wrong>. Fix: <exact code>.`
 
 ## Appearance classes warn
 
-A `className` token warns when, after removing variants (split on `:` outside `[...]`) and a leading or trailing `!`, its base matches `/^(bg|text|border|rounded|shadow|font|ring|from|via|to|fill|stroke)-/` or is exactly `border`, `rounded`, `shadow` or `ring`, or when `dark` appears at any variant position. Ordinary layout classes (`mt-4`, `w-full`, `grid-cols-2`, `size-4`) never warn, and neither do text wrapping, text overflow and table layout classes that share a prefix (`text-wrap`, `text-nowrap`, `text-balance`, `text-pretty`, `text-ellipsis`, `text-clip`, `border-collapse`, `border-separate`, `border-spacing-*`). Alignment classes (`text-left|center|right|justify|start|end`) also warn, and the message points to the component's `align` prop where one exists (the `alignHint` argument), or else shows the class on a parent element. Hints are exact code, such as `tone="destructive"`. A component may pass a hint function that picks the fix from the offending token (`registry/ouro/lib/appearance-hints.ts` maps `bg-red-500` to `tone="destructive"` and `text-lg` to `size="lg"`); pass hints only in development (`process.env.NODE_ENV !== "production" ? hint : ""`) so their text is stripped.
+A `className` token warns when, after removing variants (split on `:` outside `[...]`) and a leading or trailing `!`, its base matches `/^(bg|text|border|rounded|shadow|font|ring|from|via|to|fill|stroke)-/` or is exactly `border`, `rounded`, `shadow` or `ring`, or when `dark` appears at any variant position. Ordinary layout classes (`mt-4`, `w-full`, `grid-cols-2`, `size-4`) never warn, and neither do text wrapping, text overflow and table layout classes that share a prefix (`text-wrap`, `text-nowrap`, `text-balance`, `text-pretty`, `text-ellipsis`, `text-clip`, `border-collapse`, `border-separate`, `border-spacing-*`). Alignment classes (`text-left|center|right|justify|start|end`) also warn, and the message points to the component's `align` prop where one exists (the `alignHint` argument), or else shows the class on a parent element. Hints are exact code, such as `tone="destructive"`. A component may pass a hint function that picks the fix from the offending token (`registry/ouro/lib/ouro/appearance-hints.ts` maps `bg-red-500` to `tone="destructive"` and `text-lg` to `size="lg"`); pass hints only in development (`process.env.NODE_ENV !== "production" ? hint : ""`) so their text is stripped.
 
 ## Rules for writing components (spec section 4)
 
@@ -41,26 +41,29 @@ A `className` token warns when, after removing variants (split on `:` outside `[
 
 ## Layout
 
-- `registry/ouro/ui/<component>/`: components, their parts, tests and stories.
-- `registry/ouro/lib/`: shared helpers (`cn`, dev messages, the className check, `OuroProvider`, tone names, `env.d.ts`, which declares `process.env.NODE_ENV` so apps without `@types/node` typecheck; `pnpm typecheck` also checks the registry source without Node types).
-- `registry/ouro/hooks/`: `useMediaQuery`, `useKeyboardScrollable` and the backdrop anchor.
-- `registry/ouro/testing/`: the `act` helper and the custom browser commands.
-- `registry/ouro/theme/ouro-theme.css`: the Ouro default theme in shadcn's format.
-- `app.css`: the repository as its own app. It imports Tailwind and the theme and scans `registry/`; Storybook and the Vitest projects compile it with `@tailwindcss/vite`.
-- `test/`: the story-wide accessibility test, the screenshot test and their baselines.
+The layout mirrors where shadcn installs files, so the CLI's import rewrite lands them in `components/ouro/` and `lib/ouro/` (spec §3).
+
+- `registry/ouro/components/ouro/<component>/`: components, their parts, tests and stories.
+- `registry/ouro/lib/ouro/`: shared helpers and hooks (`cn`, dev messages, the className check, `OuroProvider`, tone names, `useMediaQuery`, `useKeyboardScrollable`, the backdrop anchor, `TouchTarget`, and `env.d.ts`, which declares `process.env.NODE_ENV` so apps without `@types/node` typecheck; `pnpm typecheck` also checks the registry source without Node types).
+- `registry/ouro/lib/ouro/testing/`: the `act` helper and the custom browser commands.
+- `registry/ouro/theme/ouro-base.css`: required in every app. The success and warning pairs and `--destructive-foreground` (which shadcn's themes lack), the `--ouro-*` motion tokens, the `press` utility and the keyframes.
+- `registry/ouro/theme/ouro-theme.css`: optional. The Ouro color look as a shadcn theme (`:root` and `.dark` values only).
+- `app.css`: the repository as its own app. It imports Tailwind, `ouro-base.css` and `ouro-theme.css`, adds the `@custom-variant dark` and `@theme inline` mapping `shadcn init` writes, and scans `registry/`; Storybook and the Vitest projects compile it with `@tailwindcss/vite`.
+- `test/`: the story-wide accessibility test, the screenshot test and their baselines, and `stock-theme.test.tsx`, which checks every tone and variant at 4.5:1 under stock shadcn variables (`test/shadcn-stock.css`, copied from `shadcn init`) plus `ouro-base.css`, and under the Ouro theme.
 - Imports between registry files use `@/registry/ouro/...`, which the shadcn CLI rewrites to an app's aliases on install. `@/` resolves to the repository root (tsconfig `paths` and the Vite alias).
 
 ## Component conventions
 
 - Every component root carries `data-ouro="<component>"`, so apps can exclude Ouro UI subtrees from global rules.
 - Style with plain Tailwind utilities on shadcn's token names (`bg-primary`, `text-muted-foreground`, `border-border`, `rounded-lg`), merged with `cn(...)` with the app's `className` last, so the app's layout classes win. There is no prefix and no stylesheet per component.
-- `tone` values are the theme token names: `primary`, `secondary`, `destructive`, `success`, `warning`. `variant="soft"` is the tone at 10% behind tone-colored text (`bg-destructive/10 text-destructive`). A tone or variant that is not one of ours (`tone="danger"`, shadcn's `variant="destructive"`) renders the default and warns with the fix.
+- A layout property the app may override (`h-*`, `px-*`) is one unprefixed class at every width. When it changes at a breakpoint, the class reads a variable and the breakpoint sets the variable (`h-(--ouro-button-h) [--ouro-button-h:…] sm:[--ouro-button-h:…]`), so tailwind-merge replaces it with the app's class.
+- `tone` values are the theme token names: `primary`, `secondary`, `destructive`, `success`, `warning`. `secondary` has shadcn's meaning: a quiet surface (`bg-secondary text-secondary-foreground`), never a text color, so Text's `secondary` is the muted foreground. `variant="soft"` is the tone at 10% behind text in the tone mixed 20% toward the foreground (shadcn's stock destructive fails 4.5:1 on its own tint otherwise). Focus outlines use `outline-ring` for every tone. A tone or variant that is not one of ours (`tone="danger"`, shadcn's `variant="destructive"`) renders the default and warns with the fix.
 - There is no reset, so reset what the browser sets (button borders, backgrounds, margins on `<p>` and headings, `box-sizing`) in the component's own classes.
 - Class strings are literals so Tailwind finds them; `app.css` scans `registry/`. Stories lay out with inline styles and the theme variables (`var(--muted-foreground)`).
-- Interactive controls use the `press` utility (spring release, quick color easing), a `motion-safe:` press scale of `--ouro-press-scale`, and `<TouchTarget />` (`registry/ouro/ui/touch-target/touch-target.tsx`) as the first child of a `relative` root for the 44px coarse-pointer hit area.
+- Interactive controls use the `press` utility (spring release, quick color easing), a `motion-safe:` press scale of `--ouro-press-scale`, and `<TouchTarget />` (`registry/ouro/lib/ouro/touch-target.tsx`) as the first child of a `relative` root for the 44px coarse-pointer hit area.
 - Dark mode is the `.dark` class on an ancestor, as in shadcn. The OS setting alone does not switch it.
 - Keyframes are namespaced (`ouro-spin`), never Tailwind's global `spin` or `pulse`.
-- Motion tokens keep the `--ouro-` prefix (`--ouro-spring-duration`, `--ouro-ease-spring`); `registry/ouro/theme/theme.test.tsx` checks the spring against Motion's `spring(0.4, 0.15)` and checks every text pair at 4.5:1 in light and dark.
+- Every variable Ouro UI adds that is not a shadcn color uses the `--ouro-` prefix (`--ouro-spring-duration`, `--ouro-sheet-gap`); `registry/ouro/theme/theme.test.tsx` checks the spring against Motion's `spring(0.4, 0.15)` and checks the Ouro theme's text pairs at 4.5:1 in light and dark.
 
 ## Workflow
 
@@ -69,5 +72,5 @@ A `className` token warns when, after removing variants (split on `:` outside `[
 - `test/stories.test.tsx` renders every story through `composeStories` and runs axe (zero violations) closed and with each overlay open, light and dark, at 390px and 1280px, in Chromium and WebKit. A new `*.stories.tsx` file must be added to `test/stories.tsx`; a controlled story that opens from a plain button lists it in `plainOpeners` there.
 - Screenshot baselines (`test/__screenshots__/**/*-linux.png`, light, dark and reduced motion at 390px and 1280px) come from Linux CI only. To refresh them, run the `visual-baselines.yml` workflow on your branch, download its `visual-baselines` artifact into `test/__screenshots__`, review and commit. CI compares with `pnpm test:visual` in its `visual` job. Both workflows pin `ubuntu-24.04`, the image that rendered the baselines; moving to a new image means regenerating them. Local runs on macOS write `*-darwin.png` files, which git ignores.
 - Test with Vitest browser mode. Projects: `chromium`, `webkit`, `touch` (files named `*.touch.test.ts(x)`, Chromium as a 390x844 touch phone) and `visual` (files named `*.visual.test.ts(x)`, only when `CI_VISUAL=1`).
-- Custom browser commands live in `registry/ouro/testing/commands.ts`: `commands.emulateMedia({ reducedMotion, colorScheme })`, `commands.drag({ from, to, steps, durationMs, hold })` (`hold` keeps the button down so a test can inspect the mid-drag state; release with `pointerPress({ action: "up" })`), `commands.flick`, `commands.tap` and `commands.pointerPress({ selector, action })` (holds the real mouse down so `:active` applies). Drag tests run in Chromium only.
+- Custom browser commands live in `registry/ouro/lib/ouro/testing/commands.ts`: `commands.emulateMedia({ reducedMotion, colorScheme })`, `commands.drag({ from, to, steps, durationMs, hold })` (`hold` keeps the button down so a test can inspect the mid-drag state; release with `pointerPress({ action: "up" })`), `commands.flick`, `commands.tap` and `commands.pointerPress({ selector, action })` (holds the real mouse down so `:active` applies). Drag tests run in Chromium only.
 - Contributors need Node 22.18 or later (`devEngines`; `.node-version` pins 24) because the scripts run through Node's type stripping.

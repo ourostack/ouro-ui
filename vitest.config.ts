@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
 import { fileURLToPath } from "node:url";
-import { commands } from "./registry/ouro/testing/commands.ts";
+import { commands } from "./registry/ouro/lib/ouro/testing/commands.ts";
 
 const visual = process.env["CI_VISUAL"] === "1";
 
@@ -29,7 +29,7 @@ export default defineConfig({
     coverage: {
       provider: "istanbul",
       include: ["registry/**/*.{ts,tsx}"],
-      exclude: ["**/*.stories.tsx", "registry/ouro/testing/**", "**/*.test.{ts,tsx}", "**/*.test-d.ts", "**/*.d.ts"],
+      exclude: ["**/*.stories.tsx", "registry/ouro/lib/ouro/testing/**", "**/*.test.{ts,tsx}", "**/*.test-d.ts", "**/*.d.ts"],
       reporter: ["text", "lcov"],
       thresholds: { lines: 100, branches: 100, functions: 100, statements: 100 },
     },

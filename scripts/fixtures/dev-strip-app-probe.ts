@@ -2,14 +2,14 @@
 // stripped from an app's production build. Imports the registry source, as an app
 // that installed the components would.
 import { createElement } from "react";
-import { Button } from "@/registry/ouro/ui/button/button";
-import { ConfirmDialog } from "@/registry/ouro/ui/dialog/confirm-dialog";
-import { Dialog } from "@/registry/ouro/ui/dialog/dialog";
-import { DialogPopup } from "@/registry/ouro/ui/dialog/dialog-parts";
-import { Sheet } from "@/registry/ouro/ui/sheet/sheet";
-import { SheetPopup } from "@/registry/ouro/ui/sheet/sheet-parts";
-import { Heading } from "@/registry/ouro/ui/text/heading";
-import { Text } from "@/registry/ouro/ui/text/text";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { ConfirmDialog } from "@/registry/ouro/components/ouro/dialog/confirm-dialog";
+import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
+import { DialogPopup } from "@/registry/ouro/components/ouro/dialog/dialog-parts";
+import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
+import { SheetPopup } from "@/registry/ouro/components/ouro/sheet/sheet-parts";
+import { Heading } from "@/registry/ouro/components/ouro/text/heading";
+import { Text } from "@/registry/ouro/components/ouro/text/text";
 
 const Untyped = <P,>(component: P) => component as unknown as (props: Record<string, unknown>) => null;
 

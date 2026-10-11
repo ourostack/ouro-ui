@@ -5,7 +5,7 @@
 A panel that slides in from an edge and is dragged back to dismiss: the mobile form of a dialog. It stretches when pulled past its edge, its backdrop lightens as it is dragged away, and it springs back on release. It handles focus, Escape, scroll locking, safe areas and the software keyboard.
 
 ```tsx
-import { Sheet } from "@/registry/ouro/ui/sheet/sheet";
+import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
 ```
 
 ## Example
@@ -91,7 +91,7 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ## Parts
 
-When these props cannot express your layout, build it from the parts in `@/registry/ouro/ui/sheet/sheet-parts`. See [parts.md](parts.md#sheet-parts) for the required nesting.
+When these props cannot express your layout, build it from the parts in `@/registry/ouro/components/ouro/sheet/sheet-parts`. See [parts.md](parts.md#sheet-parts) for the required nesting.
 
 ## Types
 

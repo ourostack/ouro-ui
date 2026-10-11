@@ -1,12 +1,55 @@
 /*
  * The repo as its own app: Storybook, the Vitest browser tests and the docs compile the
- * registry source with Tailwind, the way an app that installed Ouro UI does. Tailwind
- * scans only registry/, and the Ouro default theme supplies the variables.
+ * registry source with Tailwind, the way an app that installed Ouro UI does. The
+ * @custom-variant and @theme inline mapping are what `shadcn init` writes into an app;
+ * ouro-base.css is required in every app and ouro-theme.css is the optional Ouro look.
+ * Tailwind scans only registry/.
  */
 @import "tailwindcss" source(none);
+@import "./registry/ouro/theme/ouro-base.css";
 @import "./registry/ouro/theme/ouro-theme.css";
 
 @source "./registry";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+}
 
 /*
  * The app's font, as any app sets its own. This is the system stack Ouro UI's stories

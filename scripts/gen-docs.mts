@@ -34,18 +34,18 @@ const documentedElsewhere: Record<string, string> = { useOuro: "OuroProvider" };
 
 /** The registry files whose exports are documented. A part file's parts are documented together on parts.md. */
 const componentFiles = [
-  "registry/ouro/ui/button/button.tsx",
-  "registry/ouro/ui/text/heading.tsx",
-  "registry/ouro/ui/text/text.tsx",
-  "registry/ouro/ui/dialog/confirm-dialog.tsx",
-  "registry/ouro/ui/dialog/dialog.tsx",
-  "registry/ouro/ui/sheet/sheet.tsx",
-  "registry/ouro/lib/ouro-provider.tsx",
+  "registry/ouro/components/ouro/button/button.tsx",
+  "registry/ouro/components/ouro/text/heading.tsx",
+  "registry/ouro/components/ouro/text/text.tsx",
+  "registry/ouro/components/ouro/dialog/confirm-dialog.tsx",
+  "registry/ouro/components/ouro/dialog/dialog.tsx",
+  "registry/ouro/components/ouro/sheet/sheet.tsx",
+  "registry/ouro/lib/ouro/ouro-provider.tsx",
 ];
 /** Part files, by the family their parts are named after. */
 const partFiles: Record<string, string> = {
-  Dialog: "registry/ouro/ui/dialog/dialog-parts.tsx",
-  Sheet: "registry/ouro/ui/sheet/sheet-parts.tsx",
+  Dialog: "registry/ouro/components/ouro/dialog/dialog-parts.tsx",
+  Sheet: "registry/ouro/components/ouro/sheet/sheet-parts.tsx",
 };
 /** The import path for a registry file, as written in the registry source. */
 const importPath = (file: string) => `@/${file.replace(/\.tsx?$/, "")}`;

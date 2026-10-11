@@ -5,7 +5,7 @@
 Asks the user to confirm an action, with Cancel focused first. It is always a centered dialog, on phones too, and an outside press does not dismiss it. The actions stack full width on phones, the confirm action at the bottom, nearest the thumb.
 
 ```tsx
-import { ConfirmDialog } from "@/registry/ouro/ui/dialog/confirm-dialog";
+import { ConfirmDialog } from "@/registry/ouro/components/ouro/dialog/confirm-dialog";
 ```
 
 ## Example

@@ -5,15 +5,15 @@ React components with handcrafted interactions, designed for coding agents to us
 Ouro UI is copy-in source in the shadcn/ui registry format: the shadcn CLI copies each component into your app, and your app's own Tailwind CSS v4 compiles its classes. The components read shadcn's theme variables (`--primary`, `--background`, `--radius`…), so an app that already has a shadcn theme keeps it.
 
 ```tsx
-import { Button } from "@/registry/ouro/ui/button/button";
-import { Dialog } from "@/registry/ouro/ui/dialog/dialog";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
 
 <Dialog title="Edit recipe" trigger={<Button>Edit</Button>}>
   <RecipeForm />
 </Dialog>;
 ```
 
-Import paths in this repository and its docs are the registry source paths. The shadcn CLI rewrites `@/registry/ouro/...` to your app's aliases when it installs a component. The components need `react` and `react-dom` 19, `motion` 12 or later, `@base-ui/react`, `clsx` and `tailwind-merge`.
+Import paths in this repository and its docs are the registry source paths. The shadcn CLI rewrites them to your app's aliases when it installs a component: `@/registry/ouro/components/ouro/button/button` becomes `@/components/ouro/button/button`. The components need `react` and `react-dom` 19, `motion` 12 or later, `@base-ui/react`, `clsx` and `tailwind-merge`.
 
 ## For agents
 
@@ -21,7 +21,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 - **Props first.** Each component's props describe the whole thing. Parts (`dialog-parts`, `sheet-parts`) are an escape hatch, only for layouts the props cannot express.
 - **What always applies is required.** A Dialog or Sheet needs a `title`; hide it with `hideTitle`.
-- **Appearance comes from named props**: `tone` (`primary`, `secondary`, `destructive`, `success`, `warning`, each named after the theme variable it reads), `variant` and `size`. There are no color names.
+- **Appearance comes from named props**: `tone` (`primary`, `secondary`, `destructive`, `success`, `warning`, each named after the theme variable it reads, with shadcn's meaning), `variant` and `size`. There are no color names.
 - **`className` is for layout only**: margins, width and grid placement. Your classes always win. Appearance classes (`bg-*`, `text-<color>`, `rounded-*`, `font-*`, `dark:*`…) warn in development with the prop to use instead.
 - **The prop you guess is the prop that exists**, or it is typed `never` with a pointer to the real one: `isLoading` says to use `loading`, and shadcn's `variant="destructive"` says to use `tone="destructive"`.
 - **Modes follow the types.** `href` makes a Button a link; a Dialog takes either `trigger` or `open` with `onOpenChange`.
@@ -58,7 +58,12 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ## Theme
 
-`registry/ouro/theme/ouro-theme.css` is the Ouro default look in shadcn's theme format: light values on `:root`, dark values on `.dark`, and the `@theme inline` mapping to Tailwind utilities. It adds `--success`, `--warning` and their foregrounds, which shadcn lacks, and the motion tokens (`--ouro-spring-duration`, `--ouro-ease-spring` and the other `--ouro-*` values). Dark mode follows the `.dark` class, as in shadcn. To change a color, set its variable in your theme.
+Two stylesheets ship with the components:
+
+- `registry/ouro/theme/ouro-base.css` is required in every app. It adds what shadcn's themes lack: `--success`, `--warning` and their foregrounds, and `--destructive-foreground`, with defaults that pass 4.5:1 on shadcn's stock themes; the motion tokens (`--ouro-spring-duration`, `--ouro-ease-spring` and the other `--ouro-*` values); the `press` transition; and the spinner keyframes.
+- `registry/ouro/theme/ouro-theme.css` is optional: the Ouro color look as a shadcn theme, light values on `:root` and dark values on `.dark`. An app that already has a shadcn theme keeps its own.
+
+Dark mode follows the `.dark` class, as in shadcn. To change a color, set its variable in your theme.
 
 ## License
 

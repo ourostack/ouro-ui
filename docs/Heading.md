@@ -5,7 +5,7 @@
 A section title, `<h1>` to `<h6>`, in the theme's foreground color. `level` sets the tag and a default size; `size` changes only the look.
 
 ```tsx
-import { Heading } from "@/registry/ouro/ui/text/heading";
+import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 ```
 
 ## Example

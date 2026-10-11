@@ -23,7 +23,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogViewport,
-} from "@/registry/ouro/ui/dialog/dialog-parts";
+} from "@/registry/ouro/components/ouro/dialog/dialog-parts";
 ```
 
 ### Required nesting
@@ -79,7 +79,7 @@ import {
   SheetTitle,
   SheetTrigger,
   SheetViewport,
-} from "@/registry/ouro/ui/sheet/sheet-parts";
+} from "@/registry/ouro/components/ouro/sheet/sheet-parts";
 ```
 
 ### Required nesting

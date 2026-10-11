@@ -5,7 +5,7 @@
 Body text in the theme's type scale and colors. Renders a `<p>` by default.
 
 ```tsx
-import { Text } from "@/registry/ouro/ui/text/text";
+import { Text } from "@/registry/ouro/components/ouro/text/text";
 ```
 
 ## Example
@@ -37,7 +37,7 @@ Props every mode takes. Type: `TextProps`.
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-2`, `max-w-prose`). Appearance classes warn in development; use `size`, `tone` and `align`. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 | `size` | `"sm" \| "md" \| "lg"` | `"md"` | Type size from the theme. |
-| `tone` | `"primary" \| "secondary" \| "destructive" \| "success" \| "warning" \| "default" \| "muted"` | `"default"` | Text color: `default` foreground, `muted` for secondary text, or a tone for status text (`destructive` for an error). |
+| `tone` | `"primary" \| "secondary" \| "destructive" \| "success" \| "warning" \| "default" \| "muted"` | `"default"` | Text color: `default` foreground, `muted` for secondary text, or a tone for status text (`destructive` for an error). `secondary` is the same as `muted`, because shadcn's `--secondary` is a surface color, not a text color. |
 
 ## Modes
 

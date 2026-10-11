@@ -59,7 +59,7 @@ test("there is one doc per component, plus parts", () => {
 test("a component doc has purpose, import, example, props, and use-instead guidance", () => {
   const button = doc("Button.md");
   assert.match(button, /^# Button\n\nA button, or a link styled as one\./m);
-  assert.match(button, /import \{ Button \} from "@\/registry\/ouro\/ui\/button\/button";/);
+  assert.match(button, /import \{ Button \} from "@\/registry\/ouro\/components\/ouro\/button\/button";/);
   assert.match(button, /## Example\n\n```tsx\n<Button onClick=\{save\} loading=\{saving\}>Save<\/Button>/);
   assert.match(button, /## Use instead when\n\n- Use `Text` with an `<a>` instead when a link sits inside running text\./);
   assert.match(button, /\| Prop \| Type \| Default \| Description \|/);
@@ -112,8 +112,8 @@ test("referenced types are defined in the doc", () => {
 
 test("the parts doc shows the required nesting and every part", () => {
   const parts = doc("parts.md");
-  assert.match(parts, /import \{\n {2}DialogBackdrop,\n[\s\S]* {2}DialogViewport,\n\} from "@\/registry\/ouro\/ui\/dialog\/dialog-parts";/);
-  assert.match(parts, /import \{\n {2}SheetBackdrop,\n[\s\S]* {2}SheetViewport,\n\} from "@\/registry\/ouro\/ui\/sheet\/sheet-parts";/);
+  assert.match(parts, /import \{\n {2}DialogBackdrop,\n[\s\S]* {2}DialogViewport,\n\} from "@\/registry\/ouro\/components\/ouro\/dialog\/dialog-parts";/);
+  assert.match(parts, /import \{\n {2}SheetBackdrop,\n[\s\S]* {2}SheetViewport,\n\} from "@\/registry\/ouro\/components\/ouro\/sheet\/sheet-parts";/);
   for (const internal of ["DialogPopupUnchecked", "SheetPopupUnchecked", "AlertDialogRoot", "SheetFrame"]) {
     assert.doesNotMatch(parts, new RegExp(internal), internal);
   }

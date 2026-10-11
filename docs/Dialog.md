@@ -5,7 +5,7 @@
 A dialog that presents itself for the screen: a centered dialog on wider screens and a bottom sheet you can drag away on phones (below 640px). It handles focus, Escape, outside presses, scroll locking and a close button.
 
 ```tsx
-import { Dialog } from "@/registry/ouro/ui/dialog/dialog";
+import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
 ```
 
 ## Example
@@ -98,4 +98,4 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ## Parts
 
-When these props cannot express your layout, build it from the parts in `@/registry/ouro/ui/dialog/dialog-parts`. See [parts.md](parts.md#dialog-parts) for the required nesting.
+When these props cannot express your layout, build it from the parts in `@/registry/ouro/components/ouro/dialog/dialog-parts`. See [parts.md](parts.md#dialog-parts) for the required nesting.

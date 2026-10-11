@@ -1,5 +1,5 @@
 {
-  "name": "@ouro.bot/ui",
+  "name": "ouro-ui",
   "private": true,
   "version": "0.0.1",
   "description": "Ouro UI: a shadcn registry of React components with handcrafted interactions, designed for coding agents to use correctly without a skill.",
