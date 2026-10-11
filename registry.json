@@ -519,6 +519,55 @@
       ]
     },
     {
+      "name": "text-field",
+      "type": "registry:ui",
+      "title": "TextField",
+      "description": "A labeled one-line text input on the Field contract: pass `label`, and `error` from your server action or client check.",
+      "docs": "A labeled one-line text input on the Field contract: pass `label`, and `error` from your server action or client check. Import: import { TextField } from \"@/components/ouro/text-field/text-field\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, field, ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/text-field.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/text-field/text-field-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/text-field/text-field-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/text-field/text-field.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/text-field/text-field.tsx"
+        }
+      ]
+    },
+    {
+      "name": "text-area",
+      "type": "registry:ui",
+      "title": "TextArea",
+      "description": "A labeled multi-line text field on the Field contract, a native `<textarea>`: pass `label`, and `error` from your server action or client check.",
+      "docs": "A labeled multi-line text field on the Field contract, a native `<textarea>`: pass `label`, and `error` from your server action or client check. Import: import { TextArea } from \"@/components/ouro/text-field/text-area\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: field, ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/text-area.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/text-field/text-area-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/text-field/text-area-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/text-field/text-area.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/text-field/text-area.tsx"
+        }
+      ]
+    },
+    {
       "name": "ouro-lib-tests",
       "type": "registry:item",
       "title": "Ouro lib tests",
@@ -957,6 +1006,90 @@
       ]
     },
     {
+      "name": "text-field-tests",
+      "type": "registry:item",
+      "title": "TextField tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for text-field, with the test tooling as devDependencies. Add it beside text-field: add text-field text-field-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "text-field's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/text-field.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/text-area",
+        "ourostack/ouro-ui/text-field"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/text-field/text-field.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/text-field/text-field.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/text-field/text-field.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/text-field/text-field.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/text-field/text-field.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/text-field/text-field.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/text-field/text-field.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/text-field/text-field.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/text-field.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/text-field.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "text-area-tests",
+      "type": "registry:item",
+      "title": "TextArea tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for text-area, with the test tooling as devDependencies. Add it beside text-area: add text-area text-area-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "text-area's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/text-area.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/text-area"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/text-field/text-area.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/text-field/text-area.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/text-field/text-area.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/text-field/text-area.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/text-field/text-area.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/text-field/text-area.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/text-area.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/text-area.spec.ts"
+        }
+      ]
+    },
+    {
       "name": "ouro-tests",
       "type": "registry:item",
       "title": "Ouro tests",
@@ -972,6 +1105,8 @@
         "ourostack/ouro-ui/link-tests",
         "ourostack/ouro-ui/ouro-lib-tests",
         "ourostack/ouro-ui/sheet-tests",
+        "ourostack/ouro-ui/text-area-tests",
+        "ourostack/ouro-ui/text-field-tests",
         "ourostack/ouro-ui/text-tests"
       ]
     }

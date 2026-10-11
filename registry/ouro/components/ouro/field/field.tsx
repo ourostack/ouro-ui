@@ -4,7 +4,7 @@ import { Field as BaseField } from "@base-ui/react/field";
 import { useId, useMemo, useRef, type JSX, type ReactNode } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { FieldContext } from "@/registry/ouro/lib/ouro/use-field";
+import { FieldContext, useFieldOwner } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 import { FieldDescription, FieldError, FieldLabel } from "@/registry/ouro/components/ouro/field/field-parts";
 import { fieldHint, rootClass } from "@/registry/ouro/components/ouro/field/field-styles";
@@ -71,11 +71,11 @@ function messagesOf(error: string | string[] | undefined): string[] {
 }
 
 /** The label is connected when its `for` names an element inside the field. Development only. */
-function labelConnected(root: HTMLElement): boolean {
+function labelConnected(root: HTMLElement, data: string): boolean {
   const target = root.querySelector("label")?.htmlFor;
   /* istanbul ignore next @preserve -- Field always renders a label with a for */
   if (!target) return false;
-  return root.ownerDocument.getElementById(target)?.closest('[data-ouro="field"]') === root;
+  return root.ownerDocument.getElementById(target)?.closest(`[data-ouro="${data}"]`) === root;
 }
 
 /**
@@ -116,6 +116,8 @@ export function Field(props: FieldProps): JSX.Element {
     placeholder,
   } = props;
   const id = useId();
+  // A control built on Field (TextField) names itself in the messages and the root.
+  const owner = useFieldOwner();
   const messages = messagesOf(error);
   const invalid = messages.length > 0;
   const hasDescription = description !== undefined && description !== null && description !== false && description !== "";
@@ -129,19 +131,21 @@ export function Field(props: FieldProps): JSX.Element {
   const rootRef = useRef<HTMLDivElement>(null);
 
   useAppearanceClassNameCheck(
-    "Field",
+    owner.name,
     className,
-    process.env.NODE_ENV !== "production" ? fieldHint : /* istanbul ignore next @preserve -- production only */ "",
+    process.env.NODE_ENV !== "production"
+      ? (token: string) => fieldHint(token, owner.name)
+      : /* istanbul ignore next @preserve -- production only */ "",
   );
   useDevWarnings(
-    "Field",
+    owner.name,
     process.env.NODE_ENV !== "production"
       ? () => [
           !label && [
             `label is ${label === "" ? "empty" : "missing"}, so the control has no name`,
-            '<Field label="Email" hideLabel> to hide a label you still need',
+            `<${owner.name} label="Email" hideLabel> to hide a label you still need`,
           ],
-          !labelConnected(rootRef.current!) && [
+          !labelConnected(rootRef.current!, owner.data) && [
             "the label is not connected to a control",
             `<Field label="${label}"><FieldControl /></Field>, or <FieldControl render={<textarea />} /> for another element`,
           ],
@@ -167,7 +171,7 @@ export function Field(props: FieldProps): JSX.Element {
         name={name}
         disabled={disabled}
         invalid={invalid}
-        data-ouro="field"
+        data-ouro={owner.data}
         className={cn(rootClass, className)}
       >
         <FieldLabel className={hideLabel ? "sr-only" : undefined}>{label}</FieldLabel>

@@ -1,6 +1,8 @@
 import { toneFor } from "@/registry/ouro/lib/ouro/appearance-hints";
+import type { DevWarning } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 
-export { controlClass, descriptionClass, errorClass, fieldHint, labelClass, legendClass, rootClass };
+export { contractWarnings, controlClass, descriptionClass, errorClass, fieldHint, labelClass, legendClass, rootClass };
+export type { ContractGuesses };
 
 // Class strings and dev-message helpers shared by Field, Fieldset and the Field parts, apart
 // from the components so each component file exports only components (React Fast Refresh).
@@ -74,6 +76,38 @@ const controlClass =
  *
  * @internal
  */
-function fieldHint(token: string): string {
-  return toneFor(token) === "destructive" ? '<Field error="What is wrong">' : "style fields in your theme (--input, --ring, --radius)";
+function fieldHint(token: string, component = "Field"): string {
+  return toneFor(token) === "destructive" ? `<${component} error="What is wrong">` : "style fields in your theme (--input, --ring, --radius)";
+}
+
+/**
+ * The Field contract's guessed prop names, which a control built on Field declares as hint types.
+ *
+ * @internal
+ */
+interface ContractGuesses {
+  errorMessage?: unknown;
+  helperText?: unknown;
+  isInvalid?: unknown;
+  invalid?: unknown;
+  isRequired?: unknown;
+  isDisabled?: unknown;
+}
+
+/**
+ * The development messages for the contract's guessed props on a control built on Field,
+ * each naming the real prop. Development only.
+ *
+ * @internal
+ */
+function contractWarnings(component: string, guesses: ContractGuesses): DevWarning[] {
+  const { errorMessage, helperText, isInvalid, invalid, isRequired, isDisabled } = guesses;
+  return [
+    errorMessage !== undefined && ["errorMessage is not a prop", `<${component} error="${String(errorMessage)}">`],
+    helperText !== undefined && ["helperText is not a prop", `<${component} description="${String(helperText)}">`],
+    isInvalid !== undefined && ["isInvalid is not a prop", `<${component} error="What is wrong">`],
+    invalid !== undefined && ["invalid is not a prop", `<${component} error="What is wrong">`],
+    isRequired !== undefined && ["isRequired is not a prop", `<${component} required>`],
+    isDisabled !== undefined && ["isDisabled is not a prop", `<${component} disabled>`],
+  ];
 }

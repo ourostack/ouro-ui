@@ -43,6 +43,8 @@ const components = [
   { name: "field", folder: "field", stem: "field", title: "Field" },
   { name: "fieldset", folder: "field", stem: "fieldset", title: "Fieldset" },
   { name: "link", folder: "link", stem: "link", title: "Link" },
+  { name: "text-field", folder: "text-field", stem: "text-field", title: "TextField" },
+  { name: "text-area", folder: "text-field", stem: "text-area", title: "TextArea" },
 ];
 
 /** Registry files that test this repository itself and never ship. */

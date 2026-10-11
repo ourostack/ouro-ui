@@ -89,7 +89,7 @@ describe("landing page", () => {
 
 describe("docs", () => {
   it("has a page for every registry item at docs/<name>", () => {
-    const names = ["button", "text", "heading", "link", "field", "fieldset", "sheet", "dialog", "confirm-dialog"];
+    const names = ["button", "text", "heading", "link", "field", "fieldset", "text-field", "text-area", "sheet", "dialog", "confirm-dialog"];
     expect(docsItems.map((item) => item.name)).toEqual(names);
     for (const name of names) expect(routes.map((route) => route.path)).toContain(`/docs/${name}/`);
   });

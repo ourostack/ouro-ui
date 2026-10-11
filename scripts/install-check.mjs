@@ -33,6 +33,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import postcss from "postcss";
+import ts from "typescript";
 import { comments, hasClientDirective } from "./source-rules.mjs";
 
 const runtimeFiles = [
@@ -42,6 +43,8 @@ const runtimeFiles = [
   "src/components/ouro/dialog/confirm-dialog.tsx",
   "src/components/ouro/field/field-parts.tsx",
   "src/components/ouro/link/link.tsx",
+  "src/components/ouro/text-field/text-field.tsx",
+  "src/components/ouro/text-field/text-area-styles.ts",
   "src/lib/ouro/cn.ts",
   "src/lib/ouro/env.d.ts",
 ];
@@ -87,7 +90,9 @@ export function checkInstall(app, variant, stage) {
     );
     const needed = new Set();
     for (const path of runtimeSources) {
-      for (const [, specifier] of read(path).matchAll(/(?:\bfrom\s*|\bimport\s*)["']([^"']+)["']/g)) {
+      // The TypeScript parser, as scripts/registry.mts reads imports: dynamic imports count, and
+      // an import written in a comment or a string does not.
+      for (const { fileName: specifier } of ts.preProcessFile(read(path), true, true).importedFiles) {
         if (/^(\.|~\/|@\/|#)/.test(specifier)) continue;
         needed.add(specifier.startsWith("@") ? specifier.split("/").slice(0, 2).join("/") : specifier.split("/")[0]);
       }

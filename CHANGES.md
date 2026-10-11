@@ -1,3 +1,4 @@
 # Changes in this release
 
 - New: `Field`, `Fieldset` and `Link`. `Field` is the contract every form control takes (`label`, `hideLabel`, `description`, `error`, `required`, `disabled`, `name`), and its parts (`FieldRoot`, `FieldLabel`, `FieldDescription`, `FieldError`, `FieldControl`) are in `field-parts`. `Link` renders internal `href`s through `OuroProvider`'s `linkComponent`, the same path `Button` with `href` takes, which now lives in `lib/ouro/router-link.ts`.
+- New: `TextField` and `TextArea`, the first controls on the `Field` contract. `TextField` takes `type` (`text`, `email`, `password`, `tel`, `url`, `search`, `date`, `time`), which sets `inputMode` and `autoComplete`; a show/hide button for passwords; `startAdornment` and `endAdornment` in place of shadcn's InputGroup; and `clearable`. `TextArea` grows with its text from `rows` to `maxRows` with `autoGrow`.

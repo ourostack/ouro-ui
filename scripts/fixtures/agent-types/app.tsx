@@ -1,6 +1,6 @@
 // What agents write. Snippets s01-s23 are the review's probe of habits from shadcn/ui,
-// Radix, MUI and plain guessing, s24-s31 the remaining enum props (re-review 1), and s32-s42 the Field, Fieldset and Link habits; v01-v05 are the rest of shadcn's Button variants and
-// sizes; ok01-ok10 are valid code. Every snippet except the ok ones is a type error on
+// Radix, MUI and plain guessing, s24-s31 the remaining enum props (re-review 1), and s32-s42 the Field, Fieldset and Link habits, and s43-s50 the TextField and TextArea habits; v01-v05 are the rest of shadcn's Button variants and
+// sizes; ok01-ok12 are valid code. Every snippet except the ok ones is a type error on
 // purpose. scripts/agent-types.test.mjs runs `tsc` on this file and hovers its props
 // through the TypeScript language service, and test/agent-types.test.tsx renders the
 // snippets and reads the development messages. scripts/fixtures/agent-types/cases.ts
@@ -12,6 +12,8 @@ import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { FieldControl } from "@/registry/ouro/components/ouro/field/field-parts";
 import { Fieldset } from "@/registry/ouro/components/ouro/field/fieldset";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
+import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
+import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { DialogPopup, DialogPortal, DialogRoot } from "@/registry/ouro/components/ouro/dialog/dialog-parts";
 import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { SheetRoot } from "@/registry/ouro/components/ouro/sheet/sheet-parts";
@@ -66,6 +68,14 @@ export const s39 = <Fieldset label="Shipping address">Fields</Fieldset>;
 export const s40 = <Link to="/recipes">Recipes</Link>;
 export const s41 = <Link href="https://ouro.bot" isExternal>Ouro</Link>;
 export const s42 = <Link href="/recipes" tone="danger">Delete</Link>;
+export const s43 = <TextField label="Servings" type="number" />;
+export const s44 = <TextField label="Email" helperText="We never share it." />;
+export const s45 = <TextField label="Price" prefix="$" />;
+export const s46 = <TextField label="Notes" multiline />;
+export const s47 = <TextField label="Search" isClearable />;
+export const s48 = <TextArea label="Notes" minRows={2} />;
+export const s49 = <TextArea label="Notes" autoResize />;
+export const s50 = <TextField placeholder="Email" />;
 
 export const v01 = <Button loading tone="primary" variant="destructive">Delete</Button>;
 export const v02 = <Button variant="default">Save</Button>;
@@ -83,3 +93,5 @@ export const ok07 = <ConfirmDialog title="Delete?" confirmLabel="Delete" tone="d
 export const ok08 = <Field label="Email" name="email" required description="We never share it." error="Required."><FieldControl /></Field>;
 export const ok09 = <Fieldset legend="Shipping address" description="Where we send it." disabled>Fields</Fieldset>;
 export const ok10 = <Link href="https://ouro.bot" external tone="secondary">Ouro</Link>;
+export const ok11 = <TextField label="Email" type="email" name="email" required error="Required." clearable startAdornment="@" />;
+export const ok12 = <TextArea label="Notes" name="notes" description="Only you see these." autoGrow rows={2} maxRows={8} />;
