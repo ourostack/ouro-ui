@@ -14,9 +14,16 @@ import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-/** The note without its `# Upgrading from v0.1.0` title, which each place writes itself. */
+/**
+ * The line under the title that tells a reader of the raw file what `{{latestRelease}}` stands
+ * for. Each place that shows the note fills the placeholder, so it drops this line:
+ * noteBody here, site/src/release.ts and release.yml's sed.
+ */
+export const rawHint = /^> \*\*Reading this file on GitHub\?\*\*.*\n+/m;
+
+/** The note without its `# Upgrading from v0.1.0` title, which each place writes itself, or the raw-file hint. */
 export function noteBody(markdown) {
-  return markdown.replace(/^# .*\n+/, "").trimEnd();
+  return markdown.replace(/^# .*\n+/, "").replace(rawHint, "").trimEnd();
 }
 
 /** Each `#### <n>. <title>` step, with the lines of its `sh` code blocks. */

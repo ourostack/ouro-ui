@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { fillPlaceholder, latestRelease, PLACEHOLDER } from "./latest-release.mjs";
-import { localCommand, noteBody, steps } from "./upgrade-note.mjs";
+import { localCommand, noteBody, rawHint, steps } from "./upgrade-note.mjs";
 
 // UPGRADING.md is the one source of "Upgrading from v0.1.0". The README section, the
 // site's Updating page and the release notes are made from it, and the upgrade install
@@ -25,6 +25,15 @@ test("the note has steps 0 to 4, and steps 1 to 3 have commands", () => {
   for (const number of [1, 2, 3]) {
     assert.ok(steps(note).find((step) => step.number === number).commands.length > 0, `step ${number}`);
   }
+});
+
+test("the raw note says what {{latestRelease}} stands for, and each filled copy drops that line", () => {
+  const hint = note.match(rawHint);
+  assert.ok(hint && note.indexOf(hint[0]) === note.indexOf("\n\n") + 2, "UPGRADING.md needs the raw-file hint right under its title");
+  assert.ok(hint[0].includes(`Replace each \`${PLACEHOLDER}\``) && hint[0].includes("newest release tag"));
+  assert.ok(!noteBody(note).includes("Reading this file on GitHub"));
+  assert.ok(!read("README.md").includes("Reading this file on GitHub"));
+  assert.ok(read("site/src/release.ts").includes(rawHint.source), "site/src/release.ts must drop the hint with the same pattern");
 });
 
 test("the README section is the note, between its markers, with the newest release", () => {
@@ -50,6 +59,8 @@ test("the release notes are rendered from the note, with the release tag", () =>
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /^### Upgrading from v0\.1\.0\n/);
   assert.ok(!result.stdout.includes(PLACEHOLDER), `a ${PLACEHOLDER} placeholder is left`);
+  assert.ok(!result.stdout.includes("Reading this file on GitHub"), "the raw-file hint is left");
+  assert.match(result.stdout, /^### Upgrading from v0\.1\.0\n\nv0\.1\.0 installed/);
   for (const command of commands) assert.ok(result.stdout.includes(command.replaceAll(PLACEHOLDER, "v9.9.9")), command);
 });
 

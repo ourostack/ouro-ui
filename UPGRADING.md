@@ -1,5 +1,7 @@
 # Upgrading from v0.1.0
 
+> **Reading this file on GitHub?** Replace each `{{latestRelease}}` below with the newest release tag, the `#v…` ref in the README's install command. The README, the site's Updating page and the release notes show this note with the tag filled in.
+
 v0.1.0 installed each component with its tests, and v0.2.0 moves some shared helpers to new files, so update every Ouro component in one go. Run the commands in your app's root, the folder with `components.json`. They find your folders the way shadcn does, from the aliases in `components.json` and the `paths` in your tsconfig (`npx shadcn@latest info` shows them), so they work in a `src/` or an `app/` layout as written.
 
 #### What changed, by version

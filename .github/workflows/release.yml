@@ -120,8 +120,9 @@ jobs:
             echo
             # Remove this note once v0.1.0 is no longer in use.
             # UPGRADING.md is the note (README.md and the site copy it); its {{latestRelease}}
-            # placeholder gets this tag (scripts/latest-release.mjs).
-            sed -e '1s/^# /### /' -e "s/{{latestRelease}}/$TAG/g" UPGRADING.md
+            # placeholder gets this tag (scripts/latest-release.mjs), and the line that explains
+            # the placeholder to readers of the raw file goes (scripts/upgrade-note.mjs rawHint).
+            sed -e '1s/^# /### /' -e '/^> \*\*Reading this file on GitHub?\*\*/,/^$/d' -e "s/{{latestRelease}}/$TAG/g" UPGRADING.md
             echo
             echo 'Or through the `@ouro` namespace, which serves the newest release: this one, once main is prepared for the next release. Add it to `components.json` once:'
             echo
