@@ -470,7 +470,8 @@ export function rewriteDependencies(registry: Registry, to: (name: string) => st
 export function release(registry: Registry, version: string): Registry {
   if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error(`--release takes x.y.z, without the v (got ${version}).`);
   const { items, ...head } = rewriteDependencies(registry, (name) => `${REPO}/${name}#v${version}`);
-  return { ...head, version, items };
+  // The CLI prints each item's docs message on add, and nothing else names the version.
+  return { ...head, version, items: items.map((item) => ({ ...item, docs: `${item.docs} Ouro UI v${version}.` })) };
 }
 
 function main(argv: string[]): number {

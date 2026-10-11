@@ -309,7 +309,11 @@ test("--release pins every same-repo dependency to the release tag and records t
   assert.ok(released.items.find((entry) => entry.name === "sheet-tests").registryDependencies.includes("ourostack/ouro-ui/sheet#v0.1.0"));
   for (const entry of released.items) {
     for (const dependency of entry.registryDependencies ?? []) assert.match(dependency, /^ourostack\/ouro-ui\/[\w-]+#v0\.1\.0$/);
+    // Every add prints the version it installed; the CLI shows no other trace of it.
+    assert.ok(entry.docs.endsWith(" Ouro UI v0.1.0."), `${entry.name}: ${entry.docs.slice(-60)}`);
+    assert.equal(entry.docs, `${item(entry.name).docs} Ouro UI v0.1.0.`);
   }
+  for (const entry of registry.items) assert.doesNotMatch(entry.docs, /Ouro UI v\d/, `${entry.name} names a version on main`);
 
   // CI on the release branch: --check reads the version from the file and still catches drift.
   assert.equal(run("--check", "--out", out).status, 0);
