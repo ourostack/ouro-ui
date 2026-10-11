@@ -30,3 +30,26 @@ jobs:
       - run: pnpm test:scripts
       - run: pnpm check:package
       - run: pnpm build-storybook
+  visual:
+    # Compares screenshots with the committed baselines, on the image that produced them
+    # (visual-baselines.yml). Kept apart from `ci` so that job can follow ubuntu-latest.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm build
+      - run: pnpm test:visual
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-diff
+          path: |
+            src/__screenshots__/**/__diff_output__/
+            .vitest/attachments/
+          if-no-files-found: ignore

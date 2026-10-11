@@ -14,7 +14,9 @@ permissions:
   contents: read
 jobs:
   baselines:
-    runs-on: ubuntu-latest
+    # Pinned: the baselines are only valid for the image that rendered them. Keep this
+    # and the `visual` job in ci.yml on the same image.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
