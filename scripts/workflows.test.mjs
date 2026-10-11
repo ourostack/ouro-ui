@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { chmodSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -42,4 +44,47 @@ test("only release.yml, which pushes, keeps the checkout's credentials", () => {
 test("Dependabot proposes new action pins weekly", () => {
   const config = readFileSync(join(root, ".github/dependabot.yml"), "utf8");
   assert.match(config, /package-ecosystem: github-actions\n\s+directory: \/\n\s+schedule:\n\s+interval: weekly/);
+});
+
+const scheduled = readFileSync(join(dir, "scheduled-install.yml"), "utf8");
+const job = (name) => {
+  const start = scheduled.indexOf(`\n  ${name}:\n`);
+  assert.notEqual(start, -1, `scheduled-install.yml has no ${name} job`);
+  const next = scheduled.slice(start + 1).search(/\n {2}[\w-]+:\n/);
+  return scheduled.slice(start, next === -1 ? undefined : start + 1 + next);
+};
+
+test("Scheduled install fails when main's ouro.latestRelease is not GitHub's newest release", () => {
+  const latest = job("latest");
+  assert.match(latest, /gh api "repos\/\$REPO\/releases\/latest" --jq \.tag_name/);
+  assert.match(latest, /\[ "\$newest" = "\$TAG" \] \|\| \{ echo "::error::/);
+});
+
+test("Scheduled install reports any failure in one issue, with issues: write on that job only", () => {
+  const report = job("report");
+  assert.match(report, /needs: \[refs, latest, install\]\n\s+if: failure\(\)/);
+  assert.match(report, /permissions:\n\s+contents: read\n\s+issues: write/);
+  assert.match(report, /run: scripts\/scheduled-failure\.sh /);
+  assert.match(scheduled, /^permissions:\n {2}contents: read\njobs:/m);
+});
+
+test("scheduled-failure.sh opens the issue once, then comments on it", () => {
+  const bin = mkdtempSync(join(tmpdir(), "ouro-gh-"));
+  const log = join(bin, "calls.log");
+  // A stand-in gh: logs its arguments, and answers `issue list` with $OPEN (the jq result).
+  writeFileSync(join(bin, "gh"), `#!/usr/bin/env bash\nall="$*"\nprintf '%s\\n' "\${all//$'\\n'/ }" >> "${log}"\nif [ "$1 $2" = "issue list" ]; then printf '%s' "$OPEN"; fi\n`);
+  chmodSync(join(bin, "gh"), 0o755);
+  const run = (open) =>
+    spawnSync("bash", [join(root, "scripts/scheduled-failure.sh"), "https://github.com/o/r/actions/runs/1"], {
+      encoding: "utf8",
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, OPEN: open },
+    });
+  assert.equal(run("").status, 0);
+  assert.equal(run("42").status, 0);
+  const calls = readFileSync(log, "utf8").trim().split("\n");
+  assert.match(calls[0], /^issue list --state open --search in:title "Scheduled install failed"/);
+  assert.match(calls[1], /^issue create --title Scheduled install failed --body The weekly install of main and the newest release failed: https:\/\/github\.com\/o\/r\/actions\/runs\/1/);
+  assert.match(calls[2], /^issue list /);
+  assert.equal(calls[3], "issue comment 42 --body Failed again: https://github.com/o/r/actions/runs/1");
+  assert.equal(calls.length, 4);
 });
