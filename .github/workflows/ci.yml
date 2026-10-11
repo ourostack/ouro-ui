@@ -95,11 +95,13 @@ jobs:
     # (scripts/install-test.sh). shadcn: the app keeps the theme `shadcn init` wrote, and a
     # stock shadcn button builds beside Ouro's. ouro: ouro-theme comes from GitHub at this commit.
     # namespace: `shadcn add @ouro/dialog` from the registry Pages serves, built and served locally.
+    # next: a Next.js App Router app renders every component from a Server Component page and
+    # runs `next build`.
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        variant: [shadcn, ouro, namespace]
+        variant: [shadcn, ouro, namespace, next]
         preset: [nova]
         include:
           # Another shadcn preset than the README's, so its preset wording is verified.

@@ -6,7 +6,7 @@
 # the ouro-testing message prints) and the ouro-tests item, and runs the app's type check,
 # build, the shipped Vitest browser tests and the shipped Playwright specs.
 #
-#   scripts/install-test.sh <shadcn|ouro|github|namespace|upgrade> <app-dir> [ref]
+#   scripts/install-test.sh <shadcn|ouro|github|namespace|next|upgrade> <app-dir> [ref]
 #
 # shadcn: the app keeps the theme `shadcn init` wrote, and a stock shadcn button is added
 #         beside Ouro's; both must build.
@@ -21,6 +21,10 @@
 # namespace: the @ouro namespace as Pages serves it (pages.yml): the registry built with
 #         @ouro/<item> dependencies, served on localhost and registered in components.json,
 #         then `shadcn add @ouro/dialog`. Type check and build.
+# next:   a Next.js App Router app from create-next-app (TypeScript, Tailwind CSS v4, src/),
+#         `shadcn init` (which writes "rsc": true), every runtime item, and a Server Component
+#         page that renders every component; `next build` must pass and prerender it, and
+#         every installed file keeps its source's "use client".
 # upgrade: an app on v0.1.0 (dialog from GitHub at #v0.1.0, which brought button and sheet,
 #         with the v0.1.0 test setup and a test of its own, test/install-fixture-upgrade)
 #         runs UPGRADING.md's commands against this commit's registry. In an app/ layout
@@ -36,7 +40,7 @@
 # from those (scripts/registry.mts --deps). Release tags pin them (release.yml).
 set -euo pipefail
 
-usage="usage: install-test.sh <shadcn|ouro|github|namespace|upgrade> <app-dir> [ref]"
+usage="usage: install-test.sh <shadcn|ouro|github|namespace|next|upgrade> <app-dir> [ref]"
 variant=${1:?$usage}
 app=${2:?$usage}
 root=$(cd "$(dirname "$0")/.." && pwd)
@@ -46,6 +50,7 @@ shadcn=(npx --yes shadcn@4.21.1)
 # shadcn's presets (CI runs vega too), so the docs can say which presets are verified.
 preset=${OURO_PRESET:-nova}
 vitest=(npx --yes vitest@5.0.3)
+create_next_app=(npx --yes create-next-app@16.3.8)
 items=(button text heading sheet dialog confirm-dialog)
 
 # The runtime items add components only: no test, story or spec file, no test kit, no test
@@ -64,6 +69,80 @@ runtime_only() {
 mkdir -p "$app"
 app=$(cd "$app" && pwd)
 registry=$(mktemp -d)
+
+if [ "$variant" = next ]; then
+  echo "::group::Next.js App Router app"
+  # create-next-app accepts the empty folder made above.
+  "${create_next_app[@]}" "$app" --ts --tailwind --app --src-dir --import-alias "@/*" --use-npm --disable-git --yes
+  cd "$app"
+  "${shadcn[@]}" init --base base --preset "$preset" --yes --no-monorepo
+  node -e 'if (require("./components.json").rsc !== true) throw new Error("shadcn init did not set rsc: true")'
+  echo "::endgroup::"
+
+  echo "::group::Every component, runtime only"
+  node "$root/scripts/registry.mts" --out "$registry/registry.json" --deps "$registry/r/{name}.json"
+  "${shadcn[@]}" build "$registry/registry.json" --output "$registry/r" --cwd "$root"
+  items_json=()
+  for item in "${items[@]}"; do items_json+=("$registry/r/$item.json"); done
+  "${shadcn[@]}" add --yes "${items_json[@]}"
+  echo "::endgroup::"
+
+  echo "::group::Every component from a Server Component page"
+  # No "use client" here: app/page.tsx is a Server Component by default. Props cross to the
+  # client components, so they are serializable: elements, strings, and a server action for
+  # ConfirmDialog's onConfirm.
+  cat > src/app/page.tsx <<'PAGE'
+import { Button } from "@/components/ouro/button/button";
+import { ConfirmDialog } from "@/components/ouro/dialog/confirm-dialog";
+import { Dialog } from "@/components/ouro/dialog/dialog";
+import { Sheet } from "@/components/ouro/sheet/sheet";
+import { Heading } from "@/components/ouro/text/heading";
+import { Text } from "@/components/ouro/text/text";
+import { OuroProvider } from "@/lib/ouro/ouro-provider";
+
+async function deleteRecipe() {
+  "use server";
+}
+
+export default function Page() {
+  return (
+    <OuroProvider>
+      <main>
+        <Heading level={1}>Ouro server page</Heading>
+        <Text>Rendered by a Server Component.</Text>
+        <Button>Ouro button</Button>
+        <Button href="/recipes">Ouro link</Button>
+        <Dialog title="Edit recipe" trigger={<Button>Open dialog</Button>}>
+          <Text>Dialog body</Text>
+        </Dialog>
+        <Sheet title="Filters" trigger={<Button>Open sheet</Button>}>
+          <Text>Sheet body</Text>
+        </Sheet>
+        <ConfirmDialog
+          title="Delete recipe?"
+          confirmLabel="Delete"
+          tone="destructive"
+          onConfirm={deleteRecipe}
+          trigger={<Button tone="destructive">Delete</Button>}
+        />
+      </main>
+    </OuroProvider>
+  );
+}
+PAGE
+  echo "::endgroup::"
+
+  echo "::group::Type check, next build, and the install check"
+  npx tsc --noEmit
+  npx next build
+  html=.next/server/app/index.html
+  for text in "Ouro server page" "Rendered by a Server Component." "Ouro button" "Ouro link" "Open dialog" "Open sheet" "Delete"; do
+    grep -q "$text" "$html" || { echo "the prerendered page has no \"$text\""; exit 1; }
+  done
+  node "$root/scripts/install-check.mjs" "$app" next runtime
+  echo "::endgroup::"
+  exit 0
+fi
 
 echo "::group::Fixture app"
 cp -R "$root/test/install-fixture/." "$app/"

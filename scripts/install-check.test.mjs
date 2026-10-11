@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
-import { checkComments, checkInstall, checkLayerOverride, checkSources } from "./install-check.mjs";
+import { checkComments, checkDirectives, checkInstall, checkLayerOverride, checkSources } from "./install-check.mjs";
 
 // A real installed app is the install job's to build; these cases prove the check fails
 // on each kind of broken install, using a stand-in with a passing app's key files.
@@ -135,4 +135,37 @@ test("an --ouro-layer override passes only as the last declaration, in :root, ou
   ]);
   assert.deepEqual(checkLayerOverride(base + ".app { --ouro-layer: 60; }\n", "60"), ["the override is not in a :root rule"]);
   assert.deepEqual(checkLayerOverride(":root { --primary: red; }", "60"), ["no --ouro-layer declaration"]);
+});
+
+test("a Next.js app passes with the CSS file components.json names and the next build output", () => {
+  const dir = app("shadcn", undefined, "runtime");
+  const css = readFileSync(join(dir, "src/index.css"), "utf8");
+  mkdirSync(join(dir, "src/app"), { recursive: true });
+  writeFileSync(join(dir, "src/app/globals.css"), css);
+  writeFileSync(join(dir, "src/index.css"), "");
+  writeFileSync(join(dir, "components.json"), JSON.stringify({ tailwind: { css: "src/app/globals.css" } }));
+  mkdirSync(join(dir, ".next/static/chunks"), { recursive: true });
+  writeFileSync(join(dir, ".next/static/chunks/app.css"), readFileSync(join(dir, "dist/assets/index.css"), "utf8"));
+  assert.deepEqual(checkInstall(dir, "next", "runtime"), []);
+  writeFileSync(join(dir, ".next/static/chunks/app.css"), "");
+  assert.match(checkInstall(dir, "next", "runtime").join("\n"), /next build wrote no CSS/);
+  writeFileSync(join(dir, "src/app/globals.css"), "");
+  assert.match(checkInstall(dir, "next", "runtime").join("\n"), /src\/app\/globals\.css does not declare --success/);
+});
+
+test("an installed file that lost its source's \"use client\" fails", () => {
+  const root = join(dirname(new URL(import.meta.url).pathname), "..");
+  const dir = mkdtempSync(join(tmpdir(), "ouro-install-check-"));
+  const write = (file, text) => {
+    mkdirSync(dirname(join(dir, file)), { recursive: true });
+    writeFileSync(join(dir, file), text);
+  };
+  const source = readFileSync(join(root, "registry/ouro/components/ouro/button/button.tsx"), "utf8");
+  write("src/components/ouro/button/button.tsx", source);
+  write("src/lib/ouro/cn.ts", readFileSync(join(root, "registry/ouro/lib/ouro/cn.ts"), "utf8"));
+  assert.deepEqual(checkDirectives(dir, root), []);
+  write("src/components/ouro/button/button.tsx", source.replace(/^"use client";\n\n/, ""));
+  assert.deepEqual(checkDirectives(dir, root), [
+    'src/components/ouro/button/button.tsx lost "use client" from registry/ouro/components/ouro/button/button.tsx',
+  ]);
 });
