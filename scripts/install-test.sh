@@ -137,7 +137,7 @@ fi
 if [ "$variant" = namespace ]; then
   echo "::group::@ouro/dialog from the namespace, served locally"
   tag=$(node "$root/scripts/latest-release.mjs")
-  "$root/scripts/namespace.sh" "$registry/r" "$tag"
+  "$root/scripts/namespace.sh" "$registry/r" "$tag" "$registry/tag"
   for item in dialog sheet ouro-lib ouro-base; do
     node -e 'const i = require(process.argv[1]); if (!i.docs.endsWith(` Ouro UI ${process.argv[2]}.`)) throw new Error(`${i.name} does not name ${process.argv[2]}: ${i.docs.slice(-40)}`)' "$registry/r/$item.json" "$tag"
   done
@@ -163,8 +163,6 @@ if [ "$variant" = namespace ]; then
   done
   grep -q -- "--ouro-spring-duration" src/index.css || { echo "ouro-base did not reach src/index.css"; exit 1; }
   # What @ouro served is the release: every installed file equals the tag's source.
-  mkdir -p "$registry/tag"
-  git -C "$root" archive "$tag" | tar -x -C "$registry/tag"
   node "$root/scripts/install-check.mjs" --sources "$app" "$registry/tag"
   cat > src/App.tsx <<'EOF'
 import { Dialog } from "~/components/ouro/dialog/dialog";

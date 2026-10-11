@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -68,4 +68,27 @@ test("public docs give no unpinned install address", () => {
   const files = tracked("README.md", "docs/*.md", "site/public/*", "site/src/*.ts", "site/src/*.tsx", "package.json").filter((path) => !/\.test\.tsx?$/.test(path));
   const problems = files.flatMap((path) => unpinnedAddresses(readFileSync(join(root, path), "utf8")).map((address) => `${path}: ${address}`));
   assert.deepEqual(problems, [], "Pin the address to the newest release (#v<x.y.z>, or ${latestRelease} in the site) or use @ouro/<item>.");
+});
+
+test("the release commit names only its own tag: release.yml's release-branch commands, run on a copy", () => {
+  const release = readFileSync(join(root, ".github/workflows/release.yml"), "utf8");
+  const step = release.slice(release.indexOf("name: Push the release branch"));
+  const body = step.slice(step.indexOf('git switch -c "$BRANCH"\n') + 'git switch -c "$BRANCH"\n'.length, step.indexOf('git commit -am "Release $TAG"'));
+  assert.match(body, /node scripts\/latest-release\.mjs set "\$TAG"\n\s*pnpm run docs\n\s*node scripts\/registry\.mts --release "\$VERSION"/);
+  const copy = mkdtempSync(join(tmpdir(), "ouro-release-"));
+  for (const path of tracked("*")) {
+    mkdirSync(dirname(join(copy, path)), { recursive: true });
+    copyFileSync(join(root, path), join(copy, path));
+  }
+  symlinkSync(join(root, "node_modules"), join(copy, "node_modules"));
+  const previous = latestRelease();
+  const result = spawnSync("bash", ["-ec", body], { cwd: copy, encoding: "utf8", env: { ...process.env, TAG: "v9.9.9", VERSION: "9.9.9" } });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(latestRelease(copy), "v9.9.9");
+  const docs = ["README.md", "site/public/llms.txt", "package.json", "UPGRADING.md", ...tracked("docs/*.md", "site/src/*.ts", "site/src/*.tsx")];
+  const stale = docs.flatMap((path) => releaseMismatches(readFileSync(join(copy, path), "utf8"), "v9.9.9").map((problem) => `${path}:${problem}`));
+  assert.deepEqual(stale, [], `the release commit still names ${previous}`);
+  assert.ok(readFileSync(join(copy, "README.md"), "utf8").includes("ourostack/ouro-ui/dialog#v9.9.9"));
+  assert.ok(readFileSync(join(copy, "site/public/llms.txt"), "utf8").includes("ourostack/ouro-ui/dialog#v9.9.9"));
+  assert.match(readFileSync(join(copy, "registry.json"), "utf8"), /"ourostack\/ouro-ui\/sheet#v9\.9\.9"/);
 });
