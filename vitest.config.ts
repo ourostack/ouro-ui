@@ -4,91 +4,33 @@ import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
 import { fileURLToPath } from "node:url";
 import { commands } from "./registry/ouro/lib/ouro/testing/commands.ts";
+import { ouroTestProjects } from "./registry/ouro/lib/ouro/testing/vitest.ts";
 
 const visual = process.env["CI_VISUAL"] === "1";
 
-const shared = {
-  // app.css compiles the registry source with Tailwind, as an app that installed Ouro UI does.
+// The repository as its own app: app.css compiles the registry source with Tailwind,
+// and `@/` is the repo root, as in an app's components.json, so registry imports resolve.
+// The test projects are the ones the `ouro-testing` item ships to apps
+// (registry/ouro/lib/ouro/testing/vitest.ts), so the repo runs its tests the way apps do.
+const css = "./app.css";
+
+export default defineConfig({
   plugins: [react(), tailwindcss()],
-  // `@/` is the repo root, as in an app's components.json, so registry imports resolve here too.
   resolve: { alias: { "@": fileURLToPath(new URL(".", import.meta.url)) } },
   // Pre-bundle Base UI entry points up front. A dependency Vite discovers mid-run
   // triggers a re-optimization and reload, which can load React twice for one file.
   optimizeDeps: { include: ["@base-ui/react/alert-dialog", "@base-ui/react/button", "@base-ui/react/dialog", "@base-ui/react/drawer"] },
-};
-
-// Loads app.css, and fails any test that logs a React act() warning (see test/setup.ts).
-const setupFiles = ["./test/setup.ts"];
-
-const unitInclude = ["{registry,test}/**/*.test.{ts,tsx}"];
-const unitExclude = ["**/*.touch.test.{ts,tsx}", "**/*.visual.test.{ts,tsx}"];
-
-export default defineConfig({
   test: {
     passWithNoTests: true,
     coverage: {
       provider: "istanbul",
       include: ["registry/**/*.{ts,tsx}"],
-      exclude: ["**/*.stories.tsx", "registry/ouro/lib/ouro/testing/**", "**/*.test.{ts,tsx}", "**/*.test-d.ts", "**/*.d.ts"],
+      exclude: ["**/*.stories.tsx", "registry/ouro/lib/ouro/testing/**", "registry/ouro/e2e/**", "**/*.test.{ts,tsx}", "**/*.test-d.ts", "**/*.d.ts"],
       reporter: ["text", "lcov"],
       thresholds: { lines: 100, branches: 100, functions: 100, statements: 100 },
     },
     projects: [
-      {
-        ...shared,
-        test: {
-          name: "chromium",
-          setupFiles,
-          include: unitInclude,
-          exclude: unitExclude,
-          browser: {
-            enabled: true,
-            headless: true,
-            provider: playwright(),
-            instances: [{ browser: "chromium" }],
-            commands,
-          },
-        },
-      },
-      {
-        ...shared,
-        test: {
-          name: "webkit",
-          setupFiles,
-          include: unitInclude,
-          exclude: unitExclude,
-          browser: {
-            enabled: true,
-            headless: true,
-            provider: playwright(),
-            instances: [{ browser: "webkit" }],
-            commands,
-          },
-        },
-      },
-      {
-        // Coarse-pointer tests (touch targets, touch drags): Chromium emulating a phone.
-        ...shared,
-        test: {
-          name: "touch",
-          setupFiles,
-          include: ["registry/**/*.touch.test.{ts,tsx}"],
-          browser: {
-            enabled: true,
-            headless: true,
-            provider: playwright({
-              contextOptions: {
-                hasTouch: true,
-                isMobile: true,
-                viewport: { width: 390, height: 844 },
-              },
-            }),
-            instances: [{ browser: "chromium" }],
-            viewport: { width: 390, height: 844 },
-            commands,
-          },
-        },
-      },
+      ...ouroTestProjects({ css, include: ["{registry,test}/**/*.test.{ts,tsx}"] }),
       {
         // The landing page and docs site (site/), rendered at the widths it is built for. It
         // declares its own Vite setup, matching site/vite.config.ts, rather than sharing the
@@ -112,10 +54,10 @@ export default defineConfig({
       ...(visual
         ? [
             {
-              ...shared,
+              extends: true as const,
               test: {
                 name: "visual",
-                setupFiles,
+                setupFiles: [css, "./registry/ouro/lib/ouro/testing/setup.ts"],
                 include: ["test/**/*.visual.test.{ts,tsx}"],
                 browser: {
                   enabled: true,

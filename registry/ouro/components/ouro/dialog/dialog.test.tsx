@@ -1,4 +1,3 @@
-import appCss from "@/app.css?inline";
 import { createRef, StrictMode, useState, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -20,6 +19,7 @@ import {
   DialogViewport,
 } from "@/registry/ouro/components/ouro/dialog/dialog-parts";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pageCss } from "@/registry/ouro/lib/ouro/testing/page-css";
 
 // Runs in Chromium and WebKit.
 
@@ -476,7 +476,7 @@ describe("motion", () => {
 describe("iOS backdrop rule", () => {
   it("covers the visible screen on a page scrolled 2000px", async () => {
     const ios = document.createElement("style");
-    ios.textContent = withIosRules(appCss);
+    ios.textContent = withIosRules(pageCss());
     document.head.append(ios);
     mounted.push(ios);
     const tall = document.createElement("div");

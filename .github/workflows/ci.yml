@@ -48,3 +48,85 @@ jobs:
             test/__screenshots__/**/__diff_output__/
             .vitest/attachments/
           if-no-files-found: ignore
+  registry:
+    # registry.json is generated (scripts/registry.mts) and valid for the pinned shadcn CLI,
+    # both from the checkout and through the GitHub path at this commit.
+    runs-on: ubuntu-latest
+    env:
+      SHADCN: shadcn@4.21.1
+      REF: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      - run: pnpm registry --check
+      - run: npx --yes $SHADCN registry validate ./registry.json
+      - run: npx --yes $SHADCN registry validate "ourostack/ouro-ui#$REF"
+      - run: npx --yes $SHADCN build --output "$RUNNER_TEMP/r"
+  e2e:
+    # The end-to-end specs each item ships, against this repository's Storybook.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium webkit
+      - run: pnpm test:e2e
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: playwright-report/
+          if-no-files-found: ignore
+  install:
+    # Installs every item into a fresh Vite app with the pinned shadcn CLI and runs the
+    # app's type check, build, the shipped Vitest tests and the shipped Playwright specs
+    # (scripts/install-test.sh). shadcn: the app keeps the theme `shadcn init` wrote, and a
+    # stock shadcn button builds beside Ouro's. ouro: ouro-theme comes from GitHub at this commit.
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        theme: [shadcn, ouro]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      - run: scripts/install-test.sh ${{ matrix.theme }} "$RUNNER_TEMP/app" ${{ github.event.pull_request.head.sha || github.sha }}
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: install-${{ matrix.theme }}
+          path: |
+            ${{ runner.temp }}/app/src/index.css
+            ${{ runner.temp }}/app/components.json
+            ${{ runner.temp }}/app/package.json
+            ${{ runner.temp }}/app/playwright-report/
+          if-no-files-found: ignore
+  install-github:
+    # The install a user runs today: `shadcn add ourostack/ouro-ui/<item>` with no ref, so
+    # every item and its Ouro dependencies come from main. Runs after each push to main,
+    # once that commit's registry.json is on GitHub; type check and build.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      - run: scripts/install-test.sh github "$RUNNER_TEMP/app"

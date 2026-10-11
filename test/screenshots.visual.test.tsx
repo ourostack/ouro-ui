@@ -13,10 +13,10 @@ const subjects = [
   { name: "button-variants", Story: storyFiles.Button.TonesAndVariants },
   // Buttons on the page background, following the page's scheme.
   { name: "button-in-context", Story: storyFiles.Button.InContext },
-  { name: "text", Story: storyFiles.Text.RecipeCard },
+  { name: "text", Story: storyFiles.Heading.RecipeCard },
   { name: "sheet-open", Story: storyFiles.Sheet.WithDescription, open: true },
   { name: "dialog-open", Story: storyFiles.Dialog.WithFooter, open: true },
-  { name: "confirm-dialog-open", Story: storyFiles.Dialog.Confirm, open: true },
+  { name: "confirm-dialog-open", Story: storyFiles.ConfirmDialog.Destructive, open: true },
 ];
 
 const modes = [

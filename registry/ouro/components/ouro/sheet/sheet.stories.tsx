@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useState, type CSSProperties, type ReactNode } from "react";
-import { RedwoodActionSheet } from "@/stories/reference/RedwoodActionSheet";
+import { useState, type CSSProperties } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
 
@@ -153,50 +152,4 @@ export const Controlled: Story = {
       </div>
     );
   },
-};
-
-function Column({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div style={{ ...stack, justifyItems: "center" }}>
-      <span style={caption}>{label}</span>
-      {children}
-    </div>
-  );
-}
-
-/**
- * Ouro UI's Sheet (Base UI Drawer) next to RedwoodUI's ActionSheet (Motion drag),
- * with the same content. Open each on a phone and compare: the stretch when pulled
- * up, the backdrop lightening as it is dragged down, the spring back on release,
- * and dismissal with a flick.
- */
-export const FeelComparison: Story = {
-  name: "Feel comparison",
-  parameters: { layout: "fullscreen" },
-  render: () => (
-    <div style={{ ...row, justifyContent: "center", gap: 32, padding: "48px 16px" }}>
-      <Column label="Ouro UI">
-        <Sheet title="Save to cookbook" trigger={<Button data-feel="ouro">Open Ouro sheet</Button>}>
-          <CookbookList />
-        </Sheet>
-      </Column>
-      <Column label="RedwoodUI reference">
-        <RedwoodActionSheet
-          side="bottom"
-          size={340}
-          label="Save to cookbook"
-          openButton={
-            <Button data-feel="redwood" variant="soft">
-              Open Redwood sheet
-            </Button>
-          }
-        >
-          <div style={{ display: "grid", gap: 8, padding: "20px 20px 0" }}>
-            <h2 style={{ ...body, fontWeight: 600, fontSize: "18px", lineHeight: "24px" }}>Save to cookbook</h2>
-            <CookbookList />
-          </div>
-        </RedwoodActionSheet>
-      </Column>
-    </div>
-  ),
 };

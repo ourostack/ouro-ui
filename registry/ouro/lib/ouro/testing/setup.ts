@@ -1,9 +1,9 @@
-import "../app.css";
 import { afterEach, beforeEach } from "vitest";
 
-// Test output stays clean: any React act() warning fails the test that caused it.
-// Updates happen outside act by design (real browser events), so the act
-// environment is off except inside the `act` helper in test/act.ts.
+// Vitest setup for Ouro UI's browser tests: test output stays clean, so any React act()
+// warning fails the test that caused it. Updates happen outside act by design (real
+// browser events), so the act environment is off except inside the `act` helper
+// (testing/act.ts). The app's stylesheet is a separate setup file (testing/vitest.ts).
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = false;
 

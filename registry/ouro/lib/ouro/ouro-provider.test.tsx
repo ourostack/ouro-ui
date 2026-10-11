@@ -1,5 +1,4 @@
-import { MotionConfigContext } from "motion/react";
-import { useContext, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
@@ -62,18 +61,6 @@ describe("OuroProvider and useOuro", () => {
     );
     expect(container.querySelector("a[data-router]")).not.toBeNull();
     expect(received).toBe(container.querySelector("a"));
-  });
-
-  it("sets Motion's reducedMotion to user", async () => {
-    function Reader() {
-      return <output>{useContext(MotionConfigContext).reducedMotion}</output>;
-    }
-    const container = await mount(
-      <OuroProvider>
-        <Reader />
-      </OuroProvider>,
-    );
-    expect(container.querySelector("output")?.textContent).toBe("user");
   });
 
   it("renders on the server without a crash", () => {

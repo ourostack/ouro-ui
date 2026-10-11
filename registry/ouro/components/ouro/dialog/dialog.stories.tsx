@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState, type CSSProperties } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
-import { ConfirmDialog } from "@/registry/ouro/components/ouro/dialog/confirm-dialog";
 import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
 
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names).
@@ -152,48 +151,6 @@ export const Controlled: Story = {
           <p style={body}>Press Escape, tap outside or use the close button: each calls onOpenChange(false).</p>
         </Dialog>
       </div>
-    );
-  },
-};
-
-/** `ConfirmDialog`: Cancel has focus, an outside press does nothing, and it stays centered on phones. */
-export const Confirm: Story = {
-  render: () => (
-    <ConfirmDialog
-      title="Delete recipe?"
-      description="Shakshuka will be removed from every cookbook. This can't be undone."
-      confirmLabel="Delete"
-      tone="destructive"
-      onConfirm={() => new Promise((resolve) => setTimeout(resolve, 1200))}
-      trigger={
-        <Button tone="destructive" variant="soft">
-          Delete recipe
-        </Button>
-      }
-    />
-  ),
-};
-
-/** A rejected `onConfirm` keeps the confirmation open, so the user can retry or cancel. */
-export const ConfirmFailure: Story = {
-  name: "Confirm (failing action)",
-  render: function Render() {
-    const [error, setError] = useState<string>();
-    return (
-      <ConfirmDialog
-        title="Leave cookbook?"
-        description={error ?? "You can be invited back later."}
-        confirmLabel="Leave"
-        onConfirm={() =>
-          new Promise<void>((_, reject) => setTimeout(() => reject(new Error("You're offline.")), 800)).catch(
-            (failure: Error) => {
-              setError(`${failure.message} Try again.`);
-              throw failure;
-            },
-          )
-        }
-        trigger={<Button variant="outline">Leave cookbook</Button>}
-      />
     );
   },
 };

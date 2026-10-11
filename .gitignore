@@ -10,3 +10,5 @@ storybook-static/
 **/__screenshots__/**/*-darwin.png
 **/__screenshots__/**/*-win32.png
 .vitest/
+test-results/
+playwright-report/

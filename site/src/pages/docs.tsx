@@ -228,10 +228,13 @@ export function Updating(): JSX.Element {
           <Heading level={2} size="lg">
             1. Review the change
           </Heading>
-          <Text>See how the registry's current version differs from the files you have:</Text>
-          <Command command="npx shadcn add @ouro/sheet --diff" />
+          <Text>List the files the registry's current version would change. Each one marked overwrite differs from yours:</Text>
+          <Command command="npx shadcn add @ouro/sheet --dry-run" />
+          <Text>Then see the difference for each of those files by its path:</Text>
+          <Command command="npx shadcn add @ouro/sheet --diff src/components/ouro/sheet/sheet.tsx" />
           <Text size="sm" tone="muted">
-            Without the namespace, use <InlineCode>npx shadcn add ourostack/ouro-ui/sheet --diff</InlineCode>.
+            Without the namespace, use <InlineCode>ourostack/ouro-ui/sheet</InlineCode> in place of <InlineCode>@ouro/sheet</InlineCode>. A bare{" "}
+            <InlineCode>--diff</InlineCode> without a path can stop after the first few unchanged files, before the one you edited.
           </Text>
         </li>
         <li className="grid gap-3">
@@ -260,6 +263,12 @@ export function Updating(): JSX.Element {
           </Heading>
           <Text>
             Add a tag to install a release instead of the latest code: <InlineCode>npx shadcn add ourostack/ouro-ui/sheet#v0.1.0</InlineCode>.
+          </Text>
+          <Text size="sm" tone="muted">
+            Until release tags exist, a ref pins only the item you name: <InlineCode>#&lt;sha&gt;</InlineCode> or{" "}
+            <InlineCode>#&lt;branch&gt;</InlineCode> installs that item at the ref, but its Ouro dependencies (such as{" "}
+            <InlineCode>ouro-lib</InlineCode> and <InlineCode>button</InlineCode>) come from <InlineCode>main</InlineCode>. Release tags pin every
+            dependency to the same tag.
           </Text>
         </li>
       </ol>
