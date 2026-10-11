@@ -445,6 +445,26 @@ export function buildRegistry(root: string): Registry {
     }
     return seen;
   };
+  // The CLI installs devDependencies with `npm install --save-dev` (or the app's package
+  // manager's equivalent), which moves a package the app already has in `dependencies` into
+  // `devDependencies`, so a production install (`npm ci --omit=dev`) would lose it. A test
+  // item therefore never lists a package as a devDependency that a runtime item needs: one
+  // its registry dependencies already install is dropped, and any other is a dependency.
+  const packageOf = (spec: string) => spec.slice(0, spec.indexOf("@", 1));
+  const runtimePackages = new Set(
+    items.filter((item) => !item.name.endsWith("-tests") && item.name !== "ouro-testing").flatMap((item) => (item.dependencies ?? []).map(packageOf)),
+  );
+  for (const item of items) {
+    if (!item.devDependencies) continue;
+    const installed = new Set(
+      [item.name, ...installedWith(item.name)].flatMap((name) => (byName.get(name)?.dependencies ?? []).map(packageOf)),
+    );
+    const promoted = item.devDependencies.filter((spec) => !installed.has(packageOf(spec)) && runtimePackages.has(packageOf(spec)));
+    const devDependencies = item.devDependencies.filter((spec) => !installed.has(packageOf(spec)) && !runtimePackages.has(packageOf(spec)));
+    if (promoted.length > 0) item.dependencies = [...(item.dependencies ?? []), ...promoted].sort();
+    if (devDependencies.length > 0) item.devDependencies = devDependencies;
+    else delete item.devDependencies;
+  }
   for (const entry of components) {
     const item = byName.get(entry.name)!;
     const also = [...installedWith(entry.name)].sort().join(", ");

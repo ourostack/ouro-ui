@@ -8,6 +8,8 @@
 // runtime: only the component items were added, so the app must have no Ouro test,
 //          story, spec or test kit, and no test tooling in package.json.
 // tests:   the -tests items were added too, so their files must be there.
+// Both:    every package an installed runtime file imports is in package.json's dependencies,
+//          never only in devDependencies (where a -tests item's --save-dev install would move it).
 // next:    a Next.js App Router app: the CSS file is the one components.json names
 //          (src/app/globals.css), the build is `next build` (.next/static), and the app
 //          keeps the theme `shadcn init` wrote.
@@ -74,6 +76,31 @@ export function checkInstall(app, variant, stage) {
     const pkg = JSON.parse(read("package.json"));
     const tooling = Object.keys({ ...pkg.dependencies, ...pkg.devDependencies }).filter((name) => testTooling.test(name)).sort();
     if (tooling.length > 0) problems.push(`the runtime install added ${tooling.join(", ")} to package.json`);
+  }
+  // The CLI installs a -tests item's devDependencies with `--save-dev`, which moves a package
+  // the app already has in dependencies; a production install (`npm ci --omit=dev`) would then
+  // lack it. Every package a runtime file imports must stay in dependencies.
+  {
+    const pkg = JSON.parse(read("package.json"));
+    const runtimeSources = [...files("src/components/ouro"), ...files("src/lib/ouro")].filter(
+      (file) => /\.(ts|tsx)$/.test(file) && !testFile.test(file) && !file.startsWith("src/lib/ouro/testing/"),
+    );
+    const needed = new Set();
+    for (const path of runtimeSources) {
+      for (const [, specifier] of read(path).matchAll(/(?:\bfrom\s*|\bimport\s*)["']([^"']+)["']/g)) {
+        if (/^(\.|~\/|@\/|#)/.test(specifier)) continue;
+        needed.add(specifier.startsWith("@") ? specifier.split("/").slice(0, 2).join("/") : specifier.split("/")[0]);
+      }
+    }
+    for (const name of [...needed].sort()) {
+      if (!pkg.dependencies?.[name]) {
+        problems.push(
+          pkg.devDependencies?.[name]
+            ? `${name} moved to devDependencies, so a production install would lack it`
+            : `${name} is imported by an Ouro runtime file but is not in dependencies`,
+        );
+      }
+    }
   }
   if (existsSync(join(app, "src/components/ui/sheet.tsx"))) problems.push("an Ouro item landed in components/ui");
 

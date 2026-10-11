@@ -385,3 +385,30 @@ test("--from rewrites a released registry.json for the @ouro namespace, keeping 
   assert.ok(namespaced.items.every((entry) => entry.docs === undefined || entry.docs.endsWith(" Ouro UI v0.3.0.")));
   assert.equal(run("--from", released, "--out", join(dir, "bad.json")).status, 1, "--from without --deps fails");
 });
+
+test("no item lists a package as a devDependency that a runtime item, or anything it installs, needs", () => {
+  // The CLI installs devDependencies with --save-dev, which moves a package the app already has
+  // in dependencies; a production install would then lack it (scripts/install-check.mjs checks
+  // an installed app the same way).
+  const byName = new Map(registry.items.map((entry) => [entry.name, entry]));
+  const packageOf = (spec) => spec.slice(0, spec.indexOf("@", 1));
+  const closure = (name, seen = new Set()) => {
+    for (const dependency of byName.get(name)?.registryDependencies ?? []) {
+      const dep = dependency.replace(/^ourostack\/ouro-ui\//, "").replace(/#.*$/, "");
+      if (!seen.has(dep)) {
+        seen.add(dep);
+        closure(dep, seen);
+      }
+    }
+    return seen;
+  };
+  const runtime = registry.items.filter((entry) => !entry.name.endsWith("-tests") && entry.name !== "ouro-testing");
+  const runtimePackages = new Set(runtime.flatMap((entry) => (entry.dependencies ?? []).map(packageOf)));
+  assert.ok(runtimePackages.has("@base-ui/react"));
+  for (const entry of registry.items) {
+    const dev = (entry.devDependencies ?? []).map(packageOf);
+    const installed = new Set([entry.name, ...closure(entry.name)].flatMap((name) => (byName.get(name)?.dependencies ?? []).map(packageOf)));
+    assert.deepEqual(dev.filter((name) => installed.has(name)), [], `${entry.name}: a devDependency its own install already lists as a dependency`);
+    assert.deepEqual(dev.filter((name) => runtimePackages.has(name)), [], `${entry.name}: a devDependency that a runtime item needs`);
+  }
+});
