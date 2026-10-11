@@ -54,7 +54,11 @@ test("UPGRADING.md names no tag, only the placeholder, so each place that shows 
   assert.ok(note.includes(`#${PLACEHOLDER}`));
 });
 
-test("unpinnedAddresses finds an item address with no ref, outside sentences for contributors", () => {
+test("unpinnedAddresses finds an item address with no ref or a ref other than a release tag, outside sentences for contributors", () => {
+  assert.deepEqual(unpinnedAddresses("add ourostack/ouro-ui/dialog#main and ourostack/ouro-ui/sheet#4f2c1a9."), ["ourostack/ouro-ui/dialog#main", "ourostack/ouro-ui/sheet#4f2c1a9"]);
+  assert.deepEqual(unpinnedAddresses("add ourostack/ouro-ui/dialog#v0.3 ourostack/ouro-ui/sheet#"), ["ourostack/ouro-ui/dialog#v0.3", "ourostack/ouro-ui/sheet#"]);
+  assert.deepEqual(unpinnedAddresses("add ourostack/ouro-ui/${item.name}#${latestRelease} and ourostack/ouro-ui/dialog#{{latestRelease}}; end with ourostack/ouro-ui/sheet#v1.2.3."), []);
+  assert.deepEqual(unpinnedAddresses("To try unreleased code, which is for contributors, add ourostack/ouro-ui/dialog#main."), []);
   assert.deepEqual(unpinnedAddresses("npx shadcn@latest add ourostack/ouro-ui/dialog ourostack/ouro-ui/dialog-tests#v1.0.0"), ["ourostack/ouro-ui/dialog"]);
   assert.deepEqual(unpinnedAddresses("Update with `add ourostack/ouro-ui/<item> --dry-run`."), ["ourostack/ouro-ui/<item>"]);
   assert.deepEqual(unpinnedAddresses("add ourostack/ouro-ui/${item.name}"), ["ourostack/ouro-ui/${item.name}"]);

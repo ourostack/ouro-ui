@@ -135,6 +135,12 @@ it("the Sheet demo passes axe while open, at a phone width", async () => {
   expect(violations, describeViolations(violations)).toEqual([]);
 });
 
+it("the Updating page's note has the tag filled in and no raw-file hint", () => {
+  expect(upgrading).not.toContain("{{latestRelease}}");
+  expect(upgrading).not.toContain("Reading this file on GitHub");
+  expect(upgrading).toContain(`ourostack/ouro-ui/ouro-lib-tests#${latestRelease}`);
+});
+
 describe("head tags", () => {
   it("give every page Open Graph and Twitter tags with the 1200x630 og.png", async () => {
     const route = { path: "/docs/sheet/", title: "Sheet · Ouro UI", description: 'Install "sheet" & go' };
