@@ -2,6 +2,7 @@
   "$schema": "https://ui.shadcn.com/schema/registry.json",
   "name": "ouro",
   "homepage": "https://github.com/ourostack/ouro-ui",
+  "version": "0.2.0",
   "items": [
     {
       "name": "ouro-base",
@@ -300,8 +301,8 @@
         "@base-ui/react@^1.8.0"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/ouro-base",
-        "ourostack/ouro-ui/ouro-lib"
+        "ourostack/ouro-ui/ouro-base#v0.2.0",
+        "ourostack/ouro-ui/ouro-lib#v0.2.0"
       ],
       "files": [
         {
@@ -318,8 +319,8 @@
       "description": "Body text in the theme's type scale and colors.",
       "docs": "Body text in the theme's type scale and colors. Import: import { Text } from \"@/components/ouro/text/text\". Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/text",
       "registryDependencies": [
-        "ourostack/ouro-ui/ouro-base",
-        "ourostack/ouro-ui/ouro-lib"
+        "ourostack/ouro-ui/ouro-base#v0.2.0",
+        "ourostack/ouro-ui/ouro-lib#v0.2.0"
       ],
       "files": [
         {
@@ -341,9 +342,9 @@
       "description": "A section title, `<h1>` to `<h6>`, in the theme's foreground color.",
       "docs": "A section title, `<h1>` to `<h6>`, in the theme's foreground color. Import: import { Heading } from \"@/components/ouro/text/heading\". Also installed: ouro-base, ouro-lib, text. Docs: https://ourostack.github.io/ouro-ui/docs/heading",
       "registryDependencies": [
-        "ourostack/ouro-ui/ouro-base",
-        "ourostack/ouro-ui/ouro-lib",
-        "ourostack/ouro-ui/text"
+        "ourostack/ouro-ui/ouro-base#v0.2.0",
+        "ourostack/ouro-ui/ouro-lib#v0.2.0",
+        "ourostack/ouro-ui/text#v0.2.0"
       ],
       "files": [
         {
@@ -363,8 +364,8 @@
         "@base-ui/react@^1.8.0"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/ouro-base",
-        "ourostack/ouro-ui/ouro-lib"
+        "ourostack/ouro-ui/ouro-base#v0.2.0",
+        "ourostack/ouro-ui/ouro-lib#v0.2.0"
       ],
       "files": [
         {
@@ -394,9 +395,9 @@
         "@base-ui/react@^1.8.0"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/ouro-base",
-        "ourostack/ouro-ui/ouro-lib",
-        "ourostack/ouro-ui/sheet"
+        "ourostack/ouro-ui/ouro-base#v0.2.0",
+        "ourostack/ouro-ui/ouro-lib#v0.2.0",
+        "ourostack/ouro-ui/sheet#v0.2.0"
       ],
       "files": [
         {
@@ -423,10 +424,10 @@
       "description": "Asks the user to confirm an action, with Cancel focused first.",
       "docs": "Asks the user to confirm an action, with Cancel focused first. Import: import { ConfirmDialog } from \"@/components/ouro/dialog/confirm-dialog\". Also installed: button, dialog, ouro-base, ouro-lib, sheet. Docs: https://ourostack.github.io/ouro-ui/docs/confirm-dialog",
       "registryDependencies": [
-        "ourostack/ouro-ui/button",
-        "ourostack/ouro-ui/dialog",
-        "ourostack/ouro-ui/ouro-base",
-        "ourostack/ouro-ui/ouro-lib"
+        "ourostack/ouro-ui/button#v0.2.0",
+        "ourostack/ouro-ui/dialog#v0.2.0",
+        "ourostack/ouro-ui/ouro-base#v0.2.0",
+        "ourostack/ouro-ui/ouro-lib#v0.2.0"
       ],
       "files": [
         {
@@ -446,8 +447,8 @@
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/ouro-lib",
-        "ourostack/ouro-ui/ouro-testing"
+        "ourostack/ouro-ui/ouro-lib#v0.2.0",
+        "ourostack/ouro-ui/ouro-testing#v0.2.0"
       ],
       "files": [
         {
@@ -505,9 +506,9 @@
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/button",
-        "ourostack/ouro-ui/ouro-lib",
-        "ourostack/ouro-ui/ouro-testing"
+        "ourostack/ouro-ui/button#v0.2.0",
+        "ourostack/ouro-ui/ouro-lib#v0.2.0",
+        "ourostack/ouro-ui/ouro-testing#v0.2.0"
       ],
       "files": [
         {
@@ -550,8 +551,8 @@
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/ouro-testing",
-        "ourostack/ouro-ui/text"
+        "ourostack/ouro-ui/ouro-testing#v0.2.0",
+        "ourostack/ouro-ui/text#v0.2.0"
       ],
       "files": [
         {
@@ -589,10 +590,10 @@
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/button",
-        "ourostack/ouro-ui/heading",
-        "ourostack/ouro-ui/ouro-testing",
-        "ourostack/ouro-ui/text"
+        "ourostack/ouro-ui/button#v0.2.0",
+        "ourostack/ouro-ui/heading#v0.2.0",
+        "ourostack/ouro-ui/ouro-testing#v0.2.0",
+        "ourostack/ouro-ui/text#v0.2.0"
       ],
       "files": [
         {
@@ -630,9 +631,9 @@
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/button",
-        "ourostack/ouro-ui/ouro-testing",
-        "ourostack/ouro-ui/sheet"
+        "ourostack/ouro-ui/button#v0.2.0",
+        "ourostack/ouro-ui/ouro-testing#v0.2.0",
+        "ourostack/ouro-ui/sheet#v0.2.0"
       ],
       "files": [
         {
@@ -670,10 +671,10 @@
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/button",
-        "ourostack/ouro-ui/dialog",
-        "ourostack/ouro-ui/ouro-testing",
-        "ourostack/ouro-ui/sheet"
+        "ourostack/ouro-ui/button#v0.2.0",
+        "ourostack/ouro-ui/dialog#v0.2.0",
+        "ourostack/ouro-ui/ouro-testing#v0.2.0",
+        "ourostack/ouro-ui/sheet#v0.2.0"
       ],
       "files": [
         {
@@ -716,9 +717,9 @@
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
-        "ourostack/ouro-ui/button",
-        "ourostack/ouro-ui/confirm-dialog",
-        "ourostack/ouro-ui/ouro-testing"
+        "ourostack/ouro-ui/button#v0.2.0",
+        "ourostack/ouro-ui/confirm-dialog#v0.2.0",
+        "ourostack/ouro-ui/ouro-testing#v0.2.0"
       ],
       "files": [
         {
@@ -750,13 +751,13 @@
       "description": "Optional: every Ouro UI component with its tests, type tests, stories and Playwright spec, and the test kit. The whole suite in one command.",
       "docs": "Every Ouro UI component and its tests are installed. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs",
       "registryDependencies": [
-        "ourostack/ouro-ui/button-tests",
-        "ourostack/ouro-ui/confirm-dialog-tests",
-        "ourostack/ouro-ui/dialog-tests",
-        "ourostack/ouro-ui/heading-tests",
-        "ourostack/ouro-ui/ouro-lib-tests",
-        "ourostack/ouro-ui/sheet-tests",
-        "ourostack/ouro-ui/text-tests"
+        "ourostack/ouro-ui/button-tests#v0.2.0",
+        "ourostack/ouro-ui/confirm-dialog-tests#v0.2.0",
+        "ourostack/ouro-ui/dialog-tests#v0.2.0",
+        "ourostack/ouro-ui/heading-tests#v0.2.0",
+        "ourostack/ouro-ui/ouro-lib-tests#v0.2.0",
+        "ourostack/ouro-ui/sheet-tests#v0.2.0",
+        "ourostack/ouro-ui/text-tests#v0.2.0"
       ]
     }
   ]
