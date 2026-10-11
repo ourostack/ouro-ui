@@ -8,6 +8,14 @@
 
 @source "./registry";
 
+/*
+ * The app's font, as any app sets its own. This is the system stack Ouro UI's stories
+ * and screenshots have always used; the components inherit it.
+ */
+@theme {
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
 @layer base {
   body {
     @apply bg-background text-foreground;
