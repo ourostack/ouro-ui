@@ -44,6 +44,7 @@ export function checkPackage(cwd = root, overrides = {}) {
   for (const path of files) {
     // Stories import story-only code (stories/reference) that is not packed.
     if (/\.stories\./.test(path)) problems.push(`${path} is a story and must not be packed`);
+    if (path.includes("__screenshots__")) problems.push(`${path} is a screenshot baseline and must not be packed`);
   }
   for (const path of clientEntries) {
     let source;

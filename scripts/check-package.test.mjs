@@ -72,6 +72,11 @@ test("the check script accepts this package and rejects a broken one", async () 
   assert.ok(noDocs.some((problem) => problem.includes("dist/index.d.ts must open with the component catalog")));
 });
 
+test("npm pack ships no screenshot baselines", () => {
+  const screenshots = packedFiles().filter((path) => path.includes("__screenshots__"));
+  assert.deepEqual(screenshots, [], "baselines are test data, not package contents");
+});
+
 test("npm pack ships no stories", () => {
   const stories = packedFiles().filter((path) => /\.stories\./.test(path));
   assert.deepEqual(stories, [], "stories import story-only code that does not ship");
