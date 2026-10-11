@@ -115,11 +115,31 @@ function DialogDemo(): JSX.Element {
             <Button variant="outline" tone="secondary" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={() => setOpen(false)}>Rename</Button>
+            <Button type="submit" form="rename-recipe-form">
+              Rename
+            </Button>
           </>
         }
       >
-        <Text>Lemon ricotta pasta</Text>
+        <form
+          id="rename-recipe-form"
+          className="grid gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            setOpen(false);
+          }}
+        >
+          <label htmlFor="rename-recipe-name" className="text-sm font-medium">
+            Recipe name
+          </label>
+          <input
+            id="rename-recipe-name"
+            name="name"
+            type="text"
+            defaultValue="Lemon ricotta pasta"
+            className="h-11 w-full rounded-md border border-input bg-background px-3 text-base text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          />
+        </form>
       </Dialog>
       <Button onClick={() => setOpen(true)}>Rename recipe</Button>
       <Text size="sm" tone="muted" align="center">
