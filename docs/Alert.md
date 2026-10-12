@@ -36,7 +36,7 @@ Type: `AlertProps`.
 | `description` | `ReactNode` |  | More detail, or what to do next, under the title. |
 | `dismissLabel` | `string` | `"Dismiss"` | The close button's accessible name, for other languages. |
 | `icon` | `AlertIcon \| null` |  | The icon at the start, as a component: `icon={WifiOffIcon}`. Each tone has its own by default; `null` shows none. |
-| `onDismiss` | `(() => void)` |  | Shows a close button that calls this. Remove the alert from your state in it. |
+| `onDismiss` | `(() => void)` |  | Shows a close button that calls this. Remove the alert from your state in it. When the alert goes, keyboard focus moves to the next control after it, or to the one before it when nothing follows, so it is not lost to the page. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
 | `title` (required) | `ReactNode` |  | What happened, in a few words: "Recipe saved", "Couldn't save". Required, so every alert says what it is about. |
 | `tone` | `"primary" \| "secondary" \| "destructive" \| "success" \| "warning"` | `"secondary"` | Color role from the theme, which also sets how urgently screen readers hear it: `destructive` and `warning` are `role="alert"` (spoken at once), the others `role="status"` (spoken politely). `primary` is for information, `secondary` for a neutral note. shadcn's `variant="destructive"` is `tone="destructive"`. |

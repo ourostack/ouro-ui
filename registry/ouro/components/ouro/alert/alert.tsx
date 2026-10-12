@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComponentType, HTMLAttributes, JSX, ReactNode, Ref, SVGProps } from "react";
+import type { ComponentType, HTMLAttributes, JSX, MouseEvent, ReactNode, Ref, SVGProps } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { fontFor, toneFor } from "@/registry/ouro/lib/ouro/appearance-hints";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
@@ -37,7 +37,11 @@ export interface AlertOwnProps {
     | undefined;
   /** A control under the description, usually a small Button: `action={<Button size="sm">Retry</Button>}`. */
   action?: ReactNode;
-  /** Shows a close button that calls this. Remove the alert from your state in it. */
+  /**
+   * Shows a close button that calls this. Remove the alert from your state in it. When
+   * the alert goes, keyboard focus moves to the next control after it, or to the one
+   * before it when nothing follows, so it is not lost to the page.
+   */
   onDismiss?: (() => void) | undefined;
   /** The close button's accessible name, for other languages. @default "Dismiss" */
   dismissLabel?: string | undefined;
@@ -146,6 +150,21 @@ function CloseIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
       <path d="m5.5 5.5 9 9m0-9-9 9" />
     </Glyph>
   );
+}
+
+const focusable =
+  'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/**
+ * Where focus goes when an alert is dismissed: the next control after it, where the reader
+ * would continue, or else the last one before it.
+ */
+function focusTarget(alert: Element): HTMLElement | undefined {
+  const candidates = [...document.querySelectorAll<HTMLElement>(focusable)].filter(
+    (element) => !alert.contains(element) && element.getClientRects().length > 0,
+  );
+  const after = candidates.find((element) => alert.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING);
+  return after ?? candidates.filter((element) => alert.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_PRECEDING).at(-1);
 }
 
 function alertHint(token: string): string {
@@ -262,7 +281,15 @@ export function Alert(props: AlertProps): JSX.Element {
           tone="secondary"
           size="sm"
           aria-label={dismissLabel}
-          onClick={onDismiss}
+          onClick={(event: MouseEvent<HTMLButtonElement>) => {
+            const button = event.currentTarget;
+            const target = focusTarget(button.closest('[data-ouro="alert"]')!);
+            onDismiss();
+            // Once the app has removed the alert, the close button's focus would fall to <body>.
+            requestAnimationFrame(() => {
+              if (!button.isConnected && (document.activeElement === null || document.activeElement === document.body)) target?.focus();
+            });
+          }}
           className="-my-1.5 -me-2 w-(--ouro-button-h) px-0"
         >
           <CloseIcon aria-hidden="true" className="size-4" />

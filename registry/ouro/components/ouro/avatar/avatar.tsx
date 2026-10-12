@@ -3,13 +3,13 @@
 import { Avatar as BaseAvatar } from "@base-ui/react/avatar";
 import { Children, createContext, isValidElement, useContext, useState } from "react";
 import type { HTMLAttributes, JSX, ReactNode, Ref } from "react";
-import { radiusFor, sizeFor } from "@/registry/ouro/lib/ouro/appearance-hints";
+import { sizeFor } from "@/registry/ouro/lib/ouro/appearance-hints";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 
-/** Avatar sizes: 24, 32, 40, 48 and 64px. */
-export type AvatarSize = "xs" | "sm" | "md" | "lg" | "xl";
+/** Avatar sizes: 24, 32, 40, 48, 64, 72 and 112px. */
+export type AvatarSize = "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | "3xl";
 
 /** The props Avatar adds to the `<span>` attributes it passes through. */
 export interface AvatarOwnProps {
@@ -29,10 +29,11 @@ export interface AvatarOwnProps {
   /** The letters to show instead of the ones taken from `name`, such as "AdL". */
   initials?: string | undefined;
   /**
-   * 24, 32, 40, 48 or 64px. Inside an `AvatarGroup`, the group's size applies.
+   * 24, 32, 40, 48, 64, 72 or 112px (`2xl` and `3xl` for profile pages); the initials
+   * grow with it. Avatar is always a circle. Inside an `AvatarGroup`, the group's size applies.
    * @default "md"
    */
-  size?: AvatarSize | (string & { 'Use "xs", "sm", "md", "lg" or "xl"': never }) | undefined;
+  size?: AvatarSize | (string & { 'Use "xs", "sm", "md", "lg", "xl", "2xl" or "3xl"': never }) | undefined;
   /** Layout only: margins, grid placement (`ms-2`). Appearance classes warn in development; use `size`. */
   className?: string | undefined;
   ref?: Ref<HTMLSpanElement> | undefined;
@@ -62,7 +63,7 @@ export interface AvatarGroupOwnProps {
   /** What screen readers hear for the "+N" count, for other languages. @default (count) => `${count} more` */
   moreLabel?: ((count: number) => string) | undefined;
   /** The size of every avatar in the group, and of the count. @default "md" */
-  size?: AvatarSize | (string & { 'Use "xs", "sm", "md", "lg" or "xl"': never }) | undefined;
+  size?: AvatarSize | (string & { 'Use "xs", "sm", "md", "lg", "xl", "2xl" or "3xl"': never }) | undefined;
   /** Layout only: margins, grid placement (`mt-4`). Appearance classes warn in development. */
   className?: string | undefined;
   ref?: Ref<HTMLDivElement> | undefined;
@@ -78,6 +79,8 @@ const sizes = {
   md: "size-10 text-sm",
   lg: "size-12 text-base",
   xl: "size-16 text-xl",
+  "2xl": "size-18 text-2xl",
+  "3xl": "size-28 text-4xl",
 } as const;
 
 const sizeNames = Object.keys(sizes).map((name) => `"${name}"`).join(", ");
@@ -99,13 +102,13 @@ function checkSize(size: unknown): AvatarSize | undefined {
 /** The dev message for a size that is not one of Ouro UI's. */
 function sizeWarning(component: string, size: unknown): readonly [string, string] {
   const written = typeof size === "string" ? `size="${size}"` : `size={${String(size)}}`;
-  const fix = typeof size === "string" ? (sizeFor(`text-${size}`, ["xs", "sm", "md", "lg", "xl", "xl", "xl"]) ?? "md") : "md";
+  const fix = typeof size === "string" ? (sizeFor(`text-${size}`, ["xs", "sm", "md", "lg", "xl", "2xl", "3xl"]) ?? "md") : "md";
   return [`${written} is not a size; use ${sizeNames}`, `<${component} size="${fix}">`];
 }
 
 function avatarHint(token: string): string {
-  if (token.startsWith("rounded")) return radiusFor(token);
-  const size = sizeFor(token, ["xs", "sm", "md", "lg", "xl", "xl", "xl"]);
+  if (token.startsWith("rounded")) return `remove "${token}"; Avatar is always a circle`;
+  const size = sizeFor(token, ["xs", "sm", "md", "lg", "xl", "2xl", "3xl"]);
   if (size) return `size="${size}"`;
   return `remove "${token}"; Avatar colors its initials from the theme`;
 }
@@ -207,7 +210,7 @@ export function AvatarGroup(props: AvatarGroupProps): JSX.Element {
   const size = checkSize(sizeProp) ?? "md";
   const avatars = Children.toArray(children);
   const shown = max !== undefined && max >= 1 ? avatars.slice(0, max) : avatars;
-  const more = (total ?? avatars.length) - shown.length;
+  const more = Math.max(total ?? 0, avatars.length) - shown.length;
   useAppearanceClassNameCheck(
     "AvatarGroup",
     className,
@@ -220,6 +223,8 @@ export function AvatarGroup(props: AvatarGroupProps): JSX.Element {
     process.env.NODE_ENV !== "production"
       ? () => [
           max !== undefined && max < 1 && [`max={${max}} hides every avatar`, "<AvatarGroup max={3}>"],
+          total !== undefined &&
+            total < avatars.length && [`total={${total}} is less than the ${avatars.length} avatars passed`, `<AvatarGroup total={${avatars.length}}>`],
           sizeProp !== undefined && !checkSize(sizeProp) && sizeWarning("AvatarGroup", sizeProp),
           avatars.some((child) => !isValidElement(child)) && [
             "AvatarGroup holds Avatars",

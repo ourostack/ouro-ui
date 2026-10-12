@@ -9,9 +9,11 @@ import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 /** The props Kbd adds to the `<kbd>` attributes it passes through. */
 export interface KbdOwnProps {
   /**
-   * The keys to press together, in order, by name: `["mod", "k"]`. `mod` is ⌘ on Apple
-   * platforms and Ctrl elsewhere, for the usual app shortcut. Modifier names: `mod`,
-   * `cmd` (`meta`), `ctrl`, `alt` (`option`), `shift`. Other names: `enter`, `escape`,
+   * The keys to press together, by name: `["mod", "k"]`. `mod` is ⌘ on Apple platforms
+   * and Ctrl elsewhere, the portable choice for an app shortcut. Modifier names: `mod`,
+   * `cmd` (`meta`: ⌘ on Apple, Win on Windows, Ctrl on Linux and ChromeOS), `ctrl`, `alt`
+   * (`option`), `shift`. Modifiers show in the platform's order (⌃⌥⇧⌘ on Apple, Win+Ctrl+Alt+Shift
+   * elsewhere), then the other keys as given. Other names: `enter`, `escape`,
    * `tab`, `backspace`, `delete`, `space`, `up`, `down`, `left`, `right`. Any other
    * string shows as written, a single letter in capitals.
    */
@@ -29,7 +31,7 @@ export interface KbdOwnProps {
 /** Props for {@link Kbd}: its own props and the `<kbd>` attributes it passes through. */
 export type KbdProps = Omit<HTMLAttributes<HTMLElement>, keyof KbdOwnProps> & KbdOwnProps;
 
-type Platform = "apple" | "other" | "unknown";
+type Platform = "apple" | "windows" | "other" | "unknown";
 
 /**
  * Each named key as `[Apple glyph, Apple name, other label, other name]`. A name is
@@ -66,11 +68,30 @@ const aliases: Readonly<Record<string, string>> = {
   arrowright: "right",
 };
 
-/** True on macOS, iOS and iPadOS, from the modern API when the browser has it. */
+/**
+ * `apple` on macOS, iOS and iPadOS, `windows` on Windows (the only platform with a key
+ * labeled Win), and `other` on Linux, ChromeOS and the rest, from the platform string of
+ * the modern API when the browser has it.
+ */
 function detectPlatform(): Platform {
   const nav = navigator as Navigator & { userAgentData?: { platform?: string } };
   const name = nav.userAgentData?.platform ?? nav.platform;
-  return /mac|iphone|ipad|ipod|ios/i.test(name) ? "apple" : "other";
+  if (/mac|iphone|ipad|ipod|ios/i.test(name)) return "apple";
+  return /^win/i.test(name) ? "windows" : "other";
+}
+
+/**
+ * Where each modifier goes, so a shortcut reads as the platform writes it: Apple's menus
+ * use Control, Option, Shift, Command (⌃⌥⇧⌘); elsewhere it is Win, Ctrl, Alt, Shift. Other
+ * keys follow the modifiers in the order given.
+ */
+const appleOrder: Readonly<Record<string, number>> = { ctrl: 0, alt: 1, shift: 2, mod: 3, cmd: 3 };
+const otherOrder: Readonly<Record<string, number>> = { cmd: 0, mod: 1, ctrl: 1, alt: 2, shift: 3 };
+
+/** The canonical name of a key: an alias such as `option` becomes `alt`. */
+function keyId(key: string): string {
+  const lower = key.toLowerCase();
+  return Object.hasOwn(aliases, lower) ? aliases[lower]! : lower;
 }
 
 const subscribe = () => () => {};
@@ -81,8 +102,9 @@ const serverPlatform = (): Platform => "unknown";
 
 /** One key: its visible label, and a screen-reader name when the label is a symbol. */
 function label(key: string, platform: Platform): { text: string; name: string | undefined } {
-  const lower = key.toLowerCase();
-  const id = Object.hasOwn(aliases, lower) ? aliases[lower]! : lower;
+  const id = keyId(key);
+  // Only Windows has a Win key; on Linux and ChromeOS the app's command key is Ctrl.
+  if (id === "cmd" && platform !== "apple") return { text: platform === "windows" ? "Win" : "Ctrl", name: undefined };
   if (!Object.hasOwn(named, id)) return { text: key.length === 1 ? key.toUpperCase() : key, name: undefined };
   const [glyph, glyphName, text, textName] = named[id]!;
   return platform === "apple" ? { text: glyph, name: glyphName || undefined } : { text, name: textName };
@@ -139,11 +161,15 @@ export function Kbd(props: KbdProps): JSX.Element {
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
+  const apple = platform === "apple";
+  const order = apple ? appleOrder : otherOrder;
+  const rank = (key: string) => order[keyId(key)] ?? 4;
+  const ordered = [...keys].sort((a, b) => rank(a) - rank(b));
   return (
     <kbd
       {...rest}
       data-ouro="kbd"
-      data-platform={platform}
+      data-platform={apple ? "apple" : platform === "unknown" ? "unknown" : "other"}
       className={cn(
         "m-0 box-border inline-flex h-[1.6em] min-w-[1.6em] items-center justify-center gap-[0.15em] align-[0.1em] " +
           "rounded-sm border border-solid border-border bg-muted px-[0.35em] [font-family:inherit] text-[0.85em]/none font-medium " +
@@ -151,11 +177,11 @@ export function Kbd(props: KbdProps): JSX.Element {
         className,
       )}
     >
-      {keys.map((key, index) => {
+      {ordered.map((key, index) => {
         const { text, name } = label(key, platform);
         return (
           <Fragment key={index}>
-            {platform !== "apple" && index > 0 && "+"}
+            {!apple && index > 0 && "+"}
             <kbd className="m-0 [font:inherit]">
               {name ? (
                 <>

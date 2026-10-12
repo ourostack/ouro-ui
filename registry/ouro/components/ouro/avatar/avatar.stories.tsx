@@ -47,7 +47,7 @@ const meta = {
   parameters: { layout: "padded" },
   args: { name: "Ada Lovelace", src: people[0]!.src },
   argTypes: {
-    size: { control: "inline-radio", options: ["xs", "sm", "md", "lg", "xl"] },
+    size: { control: "inline-radio", options: ["xs", "sm", "md", "lg", "xl", "2xl", "3xl"] },
   },
 } satisfies Meta<typeof Avatar>;
 export default meta;
@@ -63,7 +63,7 @@ export const Sizes: Story = {
     <Surface>
       {[people[0]!, people[1]!].map((person) => (
         <div key={person.name} style={row}>
-          {(["xs", "sm", "md", "lg", "xl"] as const).map((size) => (
+          {(["xs", "sm", "md", "lg", "xl", "2xl", "3xl"] as const).map((size) => (
             <Avatar key={size} name={person.name} src={person.src} size={size} />
           ))}
         </div>

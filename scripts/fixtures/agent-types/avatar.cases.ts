@@ -1,6 +1,6 @@
 import { type AgentCase, notAssignable, hint } from "./shared.ts";
 
-const sizes = `AvatarSize | (string & { 'Use "xs", "sm", "md", "lg" or "xl"': never; }) | undefined`;
+const sizes = `AvatarSize | (string & { 'Use "xs", "sm", "md", "lg", "xl", "2xl" or "3xl"': never; }) | undefined`;
 const initials = '<Avatar name="Ada Lovelace" initials="AL" />';
 
 /** The avatar snippets in avatar.snippets.tsx that make mistakes, in file order. */
@@ -22,7 +22,7 @@ export const agentCases: AgentCase[] = [
     names: ["tsc", "dev"],
   },
   { id: "avatar03", habit: "a fallback prop", tsc: [hint("string", `Use ${initials}`)], dev: initials, names: ["tsc", "dev"] },
-  { id: "avatar04", habit: "a 2xl size", tsc: [notAssignable('"2xl"', sizes)], dev: '<Avatar size="xl">', names: ["tsc", "dev"] },
+  { id: "avatar04", habit: "a 4xl size", tsc: [notAssignable('"4xl"', sizes)], dev: '<Avatar size="3xl">', names: ["tsc", "dev"] },
 ];
 
 /** Valid avatar snippets: no type error, no development message, and hover on every prop. */

@@ -118,6 +118,10 @@ describe("Badge", () => {
       </Badge>,
     );
     expect((badge as HTMLButtonElement).disabled).toBe(true);
+    // data-disabled turns off the hover and press state layer (`not-data-disabled:`).
+    expect(badge.hasAttribute("data-disabled")).toBe(true);
+    await userEvent.click(badge, { force: true });
+    expect(onClick).not.toHaveBeenCalled();
   });
 
   it("renders a link with href through the provider's linkComponent", async () => {
@@ -175,6 +179,8 @@ describe("Badge development messages", () => {
     ["a danger tone", { tone: "danger" }, 'tone="danger" is not a tone', '<Badge tone="destructive">'],
     ["a color", { color: "red" }, "color is not a prop", '<Badge tone="destructive">'],
     ["asChild", { asChild: true }, "asChild is not a prop", '<Badge href="/path">'],
+    ["disabled on a static badge", { disabled: true }, "disabled does nothing on a Badge without onClick, because a static Badge is not a button", "<Badge onClick={…} disabled>"],
+    ["type on a static badge", { type: "submit" }, 'type="submit" does nothing on a Badge without onClick, because a static Badge is not a button', '<Button type="submit">'],
     ["a link with type", { href: "/x", type: "submit" }, 'a link has no type, so type="submit" is ignored', '<Badge onClick={…} type="submit"> without href'],
   ])("warns for %s with the fix", async (_name, extra, problem, fix) => {
     const props = { children: "Tag", ...extra } as unknown as Parameters<typeof Badge>[0];
@@ -183,6 +189,13 @@ describe("Badge development messages", () => {
     expect(badge.hasAttribute("color")).toBe(false);
     expect(badge.hasAttribute("aschild")).toBe(false);
     expect(badge.hasAttribute("type") && badge.tagName === "A").toBe(false);
+  });
+
+  it("keeps button attributes off a static badge", async () => {
+    const props = { disabled: true, type: "submit", name: "tag", value: "vegan", form: "filters", children: "Tag" } as unknown as Parameters<typeof Badge>[0];
+    const { badge } = await render(<Badge {...props} />);
+    expect(badge.tagName).toBe("SPAN");
+    for (const attribute of ["disabled", "type", "name", "value", "form"]) expect(badge.hasAttribute(attribute)).toBe(false);
   });
 
   it("renders the defaults for an unknown tone and variant", async () => {

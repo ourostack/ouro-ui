@@ -31,7 +31,7 @@ Type: `AvatarProps`.
 | `initials` | `string` |  | The letters to show instead of the ones taken from `name`, such as "AdL". |
 | `name` (required) | `string` |  | The person's or thing's name. Screen readers hear it, and the initials come from it (the first letters of the first and last words) until the image loads, or when it fails. Required, so no avatar is silent. |
 | `ref` | `Ref<HTMLSpanElement>` |  | Reaches the rendered element. |
-| `size` | `"sm" \| "md" \| "lg" \| "xl" \| "xs"` | `"md"` | 24, 32, 40, 48 or 64px. Inside an `AvatarGroup`, the group's size applies. |
+| `size` | `"sm" \| "md" \| "lg" \| "xl" \| "2xl" \| "xs" \| "3xl"` | `"md"` | 24, 32, 40, 48, 64, 72 or 112px (`2xl` and `3xl` for profile pages); the initials grow with it. Avatar is always a circle. Inside an `AvatarGroup`, the group's size applies. |
 | `src` | `string` |  | The image URL. Until it loads, and if it fails, the initials show. |
 
 ## Native attributes

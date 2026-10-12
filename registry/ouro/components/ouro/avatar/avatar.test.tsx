@@ -117,7 +117,7 @@ describe("Avatar", () => {
   });
 
   it("comes in sizes that grow in order, as circles", async () => {
-    const sizes = ["xs", "sm", "md", "lg", "xl"] as const;
+    const sizes = ["xs", "sm", "md", "lg", "xl", "2xl", "3xl"] as const;
     const { host } = await render(
       <>
         {sizes.map((size) => (
@@ -127,9 +127,12 @@ describe("Avatar", () => {
     );
     const avatars = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
     const widths = avatars.map((avatar) => avatar.getBoundingClientRect().width);
-    expect(widths).toEqual([24, 32, 40, 48, 64]);
+    expect(widths).toEqual([24, 32, 40, 48, 64, 72, 112]);
     const fonts = avatars.map((avatar) => parseFloat(getComputedStyle(avatar).fontSize));
     expect([...fonts].sort((a, b) => a - b)).toEqual(fonts);
+    // The initials keep roughly the same share of the circle at every size.
+    for (const index of widths.keys()) expect(fonts[index]! / widths[index]!).toBeGreaterThan(0.29);
+
     for (const avatar of avatars) expect(avatar.getBoundingClientRect().height).toBe(avatar.getBoundingClientRect().width);
     expect(getComputedStyle(avatars[0]!).borderRadius).not.toBe("0px");
   });
@@ -218,8 +221,8 @@ describe("Avatar development messages", () => {
   it.each([
     ["children", { children: "AL" }, "Avatar takes name and initials, not children", '<Avatar name="Ada Lovelace" initials="AL" />'],
     ["fallback", { fallback: "AL" }, "fallback is not a prop", '<Avatar name="Ada Lovelace" initials="AL" />'],
-    ["size", { size: "2xl" }, 'size="2xl" is not a size; use "xs", "sm", "md", "lg", "xl"', '<Avatar size="xl">'],
-    ["size", { size: 40 }, "size={40} is not a size; use \"xs\", \"sm\", \"md\", \"lg\", \"xl\"", '<Avatar size="md">'],
+    ["size", { size: "4xl" }, 'size="4xl" is not a size; use "xs", "sm", "md", "lg", "xl", "2xl", "3xl"', '<Avatar size="3xl">'],
+    ["a numeric size", { size: 40 }, "size={40} is not a size; use \"xs\", \"sm\", \"md\", \"lg\", \"xl\", \"2xl\", \"3xl\"", '<Avatar size="md">'],
   ])("warns for %s with the fix", async (_name, extra, problem, fix) => {
     const props = { name: "Ada Lovelace", ...extra } as unknown as Parameters<typeof Avatar>[0];
     const { avatar } = await render(<Avatar {...props} />);
@@ -237,8 +240,9 @@ describe("Avatar development messages", () => {
 
   it.each([
     ["max", { max: 0 }, "max={0} hides every avatar", "<AvatarGroup max={3}>"],
+    ["total", { total: 0, children: [<Avatar key="a" name="Ada Lovelace" />, <Avatar key="g" name="Grace Hopper" />] }, "total={0} is less than the 2 avatars passed", "<AvatarGroup total={2}>"],
     ["children", { children: "Ada" }, "AvatarGroup holds Avatars", '<AvatarGroup label="Cooks"><Avatar name="Ada Lovelace" /></AvatarGroup>'],
-    ["size", { size: "huge" }, 'size="huge" is not a size; use "xs", "sm", "md", "lg", "xl"', '<AvatarGroup size="md">'],
+    ["size", { size: "huge" }, 'size="huge" is not a size; use "xs", "sm", "md", "lg", "xl", "2xl", "3xl"', '<AvatarGroup size="md">'],
   ])("warns for an AvatarGroup %s with the fix", async (_name, extra, problem, fix) => {
     const props = { label: "Cooks", children: <Avatar name="Ada Lovelace" />, ...extra } as unknown as Parameters<typeof AvatarGroup>[0];
     await render(<AvatarGroup {...props} />);
@@ -246,7 +250,8 @@ describe("Avatar development messages", () => {
   });
 
   it.each([
-    ["rounded-md", ':root { --radius: 0.75rem }'],
+    ["rounded-md", 'remove "rounded-md"; Avatar is always a circle'],
+    ["rounded-none", 'remove "rounded-none"; Avatar is always a circle'],
     ["bg-blue-500", 'remove "bg-blue-500"; Avatar colors its initials from the theme'],
     ["text-lg", 'size="lg"'],
     ["size-12", ""],

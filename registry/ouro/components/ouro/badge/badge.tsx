@@ -161,7 +161,8 @@ function badgeHint(token: string): string {
 /**
  * A short label for a status, category or count: "Draft", "Vegan", "3". With `href` it
  * becomes a link and with `onClick` a button, with press feedback and a 44px touch
- * target on phones, the same way `Button` does.
+ * target on phones, the same way `Button` does. Without `onClick` or `href` a Badge is
+ * not a button: it is a static `<span>`, and `disabled` and `type` do nothing.
  *
  * Use `Button` instead for an action that needs a clear call to action, and `Alert` for
  * a message the reader must notice.
@@ -200,7 +201,8 @@ export function Badge(props: BadgeProps): JSX.Element {
     "Badge",
     process.env.NODE_ENV !== "production"
       ? () => {
-          const kind = rest as { href?: string; type?: string };
+          const kind = rest as { href?: string; type?: string; disabled?: boolean };
+          const isStatic = kind.href === undefined && onClick === undefined;
           return [
             tone !== toneProp && toneWarning("Badge", String(toneProp), Object.keys(looks.solid)),
             variant !== variantProp &&
@@ -211,6 +213,16 @@ export function Badge(props: BadgeProps): JSX.Element {
             asChild !== undefined && ["asChild is not a prop", '<Badge href="/path">'],
             kind.href !== undefined &&
               kind.type !== undefined && [`a link has no type, so type="${kind.type}" is ignored`, `<Badge onClick={…} type="${kind.type}"> without href`],
+            isStatic &&
+              kind.disabled !== undefined && [
+                "disabled does nothing on a Badge without onClick, because a static Badge is not a button",
+                "<Badge onClick={…} disabled>",
+              ],
+            isStatic &&
+              kind.type !== undefined && [
+                `type="${kind.type}" does nothing on a Badge without onClick, because a static Badge is not a button`,
+                `<Button type="${kind.type}">`,
+              ],
           ];
         }
       : /* istanbul ignore next @preserve -- production only */ undefined,
@@ -242,8 +254,10 @@ export function Badge(props: BadgeProps): JSX.Element {
       </BaseButton>
     );
   }
+  // A static Badge is a <span>, not a button: the button's own attributes are dropped.
+  const { name: _name, value: _value, form: _form, ...spanProps } = buttonProps;
   return (
-    <span {...(buttonProps as HTMLAttributes<HTMLSpanElement>)} ref={ref} data-ouro="badge" className={cn(base, look, className)}>
+    <span {...(spanProps as HTMLAttributes<HTMLSpanElement>)} ref={ref} data-ouro="badge" className={cn(base, look, className)}>
       {content}
     </span>
   );

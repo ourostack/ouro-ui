@@ -1,4 +1,4 @@
-import { type ReactNode, type SVGProps } from "react";
+import { useState, type ReactNode, type SVGProps } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -100,6 +100,57 @@ describe("Alert", () => {
     expect(onDismiss).toHaveBeenCalledTimes(1);
     await render(<Alert title="Guardado" onDismiss={onDismiss} dismissLabel="Cerrar" />);
     await expect.element(page.getByRole("button", { name: "Cerrar" })).toBeVisible();
+  });
+
+  it.each([
+    ["the next control after it", true, "Next"],
+    ["the control before it when nothing follows", false, "Before"],
+  ])("moves focus to %s when it is dismissed and removed", async (_name, withNext, target) => {
+    function Page() {
+      const [open, setOpen] = useState(true);
+      return (
+        <div>
+          <button type="button">Before</button>
+          {open && <Alert title="Saved" onDismiss={() => setOpen(false)} />}
+          {withNext && <button type="button">Next</button>}
+        </div>
+      );
+    }
+    await render(<Page />);
+    const dismiss = page.getByRole("button", { name: "Dismiss" });
+    await userEvent.click(dismiss);
+    await expect.poll(() => document.activeElement?.textContent).toBe(target);
+  });
+
+  it("lets focus fall back to the page when nothing else can take it", async () => {
+    function Lone() {
+      const [open, setOpen] = useState(true);
+      return open ? <Alert title="Saved" onDismiss={() => setOpen(false)} /> : <p>Gone</p>;
+    }
+    await render(<Lone />);
+    await userEvent.click(page.getByRole("button", { name: "Dismiss" }));
+    await expect.element(page.getByText("Gone")).toBeVisible();
+    await act(async () => {
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    });
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it("leaves focus alone when the app keeps the alert after dismiss", async () => {
+    const onDismiss = vi.fn();
+    await render(
+      <div>
+        <Alert title="Saved" onDismiss={onDismiss} />
+        <button type="button">Next</button>
+      </div>,
+    );
+    const dismiss = page.getByRole("button", { name: "Dismiss" });
+    await userEvent.click(dismiss);
+    expect(onDismiss).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    });
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Dismiss");
   });
 
   it("has no dismiss button without onDismiss", async () => {

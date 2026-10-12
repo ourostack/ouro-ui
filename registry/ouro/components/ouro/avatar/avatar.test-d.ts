@@ -14,7 +14,7 @@ expectTypeOf<ComponentProps<typeof AvatarGroup>>().toEqualTypeOf<AvatarGroupProp
 expectTypeOf<{ src: "/ada.jpg" }>().not.toExtend<AvatarProps>();
 expectTypeOf<{ name: "Ada"; children: "AL" }>().not.toExtend<AvatarProps>();
 expectTypeOf<{ name: "Ada"; fallback: "AL" }>().not.toExtend<AvatarProps>();
-expectTypeOf<{ name: "Ada"; size: "2xl" }>().not.toExtend<AvatarProps>();
+expectTypeOf<{ name: "Ada"; size: "4xl" }>().not.toExtend<AvatarProps>();
 expectTypeOf<{ name: "Ada"; size: 40 }>().not.toExtend<AvatarProps>();
 // AvatarGroup needs a label.
 expectTypeOf<{ children: null }>().not.toExtend<AvatarGroupProps>();

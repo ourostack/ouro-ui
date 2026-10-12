@@ -24,8 +24,8 @@ async function render(node: ReactNode) {
 }
 
 /** Pretends the browser runs on `platform`, through both the modern and the legacy API. */
-function onPlatform(platform: "macOS" | "iOS" | "Windows" | "Linux", legacy = true) {
-  const legacyName = { macOS: "MacIntel", iOS: "iPhone", Windows: "Win32", Linux: "Linux x86_64" }[platform];
+function onPlatform(platform: "macOS" | "iOS" | "Windows" | "Linux" | "Chrome OS", legacy = true) {
+  const legacyName = { macOS: "MacIntel", iOS: "iPhone", Windows: "Win32", Linux: "Linux x86_64", "Chrome OS": "Linux x86_64" }[platform];
   Object.defineProperty(navigator, "userAgentData", { configurable: true, value: legacy ? undefined : { platform } });
   Object.defineProperty(navigator, "platform", { configurable: true, value: legacyName });
 }
@@ -61,7 +61,7 @@ describe("Kbd", () => {
     const { kbd } = await render(<Kbd keys={["mod", "shift", "k"]} />);
     expect(kbd.tagName).toBe("KBD");
     expect(kbd.getAttribute("data-platform")).toBe("apple");
-    expect(visible(kbd)).toBe("⌘⇧K");
+    expect(visible(kbd)).toBe("⇧⌘K");
     expect(kbd.querySelectorAll(":scope > kbd")).toHaveLength(3);
   });
 
@@ -78,7 +78,7 @@ describe("Kbd", () => {
   it("names Apple glyphs for screen readers", async () => {
     onPlatform("macOS");
     const { kbd } = await render(<Kbd keys={["mod", "alt", "ctrl", "enter"]} />);
-    expect(kbd.textContent).toBe("⌘Command⌥Option⌃Control↩Return");
+    expect(kbd.textContent).toBe("⌃Control⌥Option⌘Command↩Return");
     for (const glyph of kbd.querySelectorAll("[data-glyph]")) expect(glyph.getAttribute("aria-hidden")).toBe("true");
   });
 
@@ -87,6 +87,7 @@ describe("Kbd", () => {
     [["cmd"], "⌘", "Win"],
     [["meta"], "⌘", "Win"],
     [["command"], "⌘", "Win"],
+    [["ctrl", "k"], "⌃K", "Ctrl+K"],
     [["ctrl"], "⌃", "Ctrl"],
     [["control"], "⌃", "Ctrl"],
     [["alt"], "⌥", "Alt"],
@@ -115,6 +116,28 @@ describe("Kbd", () => {
     onPlatform("Windows");
     const windows = await render(<Kbd keys={keys} />);
     expect(visible(windows.kbd)).toBe(other);
+  });
+
+  it.each([
+    ["Linux", false],
+    ["Linux", true],
+    ["Chrome OS", false],
+  ] as const)("shows cmd as Ctrl on %s (legacy API: %s), where there is no Windows key", async (platform, legacy) => {
+    onPlatform(platform, legacy);
+    const { kbd } = await render(<Kbd keys={["cmd", "k"]} />);
+    expect(visible(kbd)).toBe("Ctrl+K");
+  });
+
+  it("puts Apple modifiers in Apple's order, Control, Option, Shift, Command, before the key", async () => {
+    onPlatform("macOS");
+    const { kbd } = await render(<Kbd keys={["k", "mod", "shift", "alt", "ctrl"]} />);
+    expect(visible(kbd)).toBe("⌃⌥⇧⌘K");
+  });
+
+  it("puts other modifiers in Win, Ctrl, Alt, Shift order, before the key", async () => {
+    onPlatform("Windows");
+    const { kbd } = await render(<Kbd keys={["k", "shift", "alt", "mod", "cmd"]} />);
+    expect(visible(kbd)).toBe("Win+Ctrl+Alt+Shift+K");
   });
 
   it("renders the neutral form on the server and corrects it after hydration without a warning", async () => {

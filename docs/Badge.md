@@ -2,7 +2,7 @@
 
 # Badge
 
-A short label for a status, category or count: "Draft", "Vegan", "3". With `href` it becomes a link and with `onClick` a button, with press feedback and a 44px touch target on phones, the same way `Button` does.
+A short label for a status, category or count: "Draft", "Vegan", "3". With `href` it becomes a link and with `onClick` a button, with press feedback and a 44px touch target on phones, the same way `Button` does. Without `onClick` or `href` a Badge is not a button: it is a static `<span>`, and `disabled` and `type` do nothing.
 
 ```tsx
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
