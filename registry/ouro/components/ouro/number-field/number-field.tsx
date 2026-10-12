@@ -127,6 +127,7 @@ function Icon({ children }: { children: ReactNode }): JSX.Element {
  * Use `TextField` with `inputMode="numeric"` instead for digit codes such as a PIN or a ZIP
  * code, and `Slider` when an approximate value in a range is enough.
  *
+ * @group Forms
  * @see https://ourostack.github.io/ouro-ui/docs/number-field
  *
  * @example

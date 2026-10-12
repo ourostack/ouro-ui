@@ -145,6 +145,7 @@ function defaultThumbLabels(count: number): string[] {
  * Use `NumberField` instead when people need an exact number, and `RadioGroup` for a few
  * named choices.
  *
+ * @group Forms
  * @see https://ourostack.github.io/ouro-ui/docs/slider
  *
  * @example

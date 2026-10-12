@@ -263,6 +263,7 @@ const ChevronIcon = () => (
  * Use `Select` instead for a short list people don't need to search, and `TextField` for
  * free text with no suggestions.
  *
+ * @group Forms
  * @see https://ourostack.github.io/ouro-ui/docs/combobox
  *
  * @example
