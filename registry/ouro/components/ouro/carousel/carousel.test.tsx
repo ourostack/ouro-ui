@@ -68,6 +68,24 @@ function recordAnnouncements(prefix: string): { texts: string[]; stop: () => voi
   return { texts, stop: () => observer.disconnect() };
 }
 
+/**
+ * Presses `button` on each of the scroller's next `presses` scroll events, so the presses land
+ * while a smooth scroll is under way however slow the machine is. A second real click can
+ * arrive after the scroll has settled, which is a second change.
+ */
+function pressMidScroll(viewport: HTMLElement, button: HTMLButtonElement, presses = 1): Promise<void> {
+  return new Promise((resolve) => {
+    let left = presses;
+    const onScroll = () => {
+      button.click();
+      if (--left > 0) return;
+      viewport.removeEventListener("scroll", onScroll);
+      resolve();
+    };
+    viewport.addEventListener("scroll", onScroll);
+  });
+}
+
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(async () => {
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -465,14 +483,15 @@ describe("Carousel motion", () => {
       </Carousel>,
     );
     // Two presses before the first scroll ends: one change, to slide 3.
+    let midScroll = pressMidScroll(screen.viewport, screen.button("Next slide"));
     await userEvent.click(screen.button("Next slide"));
-    await userEvent.click(screen.button("Next slide"));
-    await expect.poll(() => onIndexChange.mock.calls, { timeout: 3000 }).toEqual([[2]]);
+    await midScroll;
+    await expect.poll(() => onIndexChange.mock.calls).toEqual([[2]]);
     // Three presses back wrap past the first slide to the last.
+    midScroll = pressMidScroll(screen.viewport, screen.button("Previous slide"), 2);
     await userEvent.click(screen.button("Previous slide"));
-    await userEvent.click(screen.button("Previous slide"));
-    await userEvent.click(screen.button("Previous slide"));
-    await expect.poll(() => onIndexChange.mock.calls, { timeout: 3000 }).toEqual([[2], [4]]);
+    await midScroll;
+    await expect.poll(() => onIndexChange.mock.calls).toEqual([[2], [4]]);
     // Nothing more arrives once the scroll is over.
     await new Promise((resolve) => setTimeout(resolve, 500));
     expect(onIndexChange.mock.calls).toEqual([[2], [4]]);
