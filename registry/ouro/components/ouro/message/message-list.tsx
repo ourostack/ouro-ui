@@ -154,18 +154,25 @@ export function MessageList(props: MessageListProps): JSX.Element {
   useLayoutEffect(() => {
     const scroller = scrollerRef.current!;
     const content = contentRef.current!;
-    let anchor: { node: Element; offset: number } | undefined;
+    // The messages in view, top first, with where each sits. The first one still in the page
+    // is held in place: the top one may itself have been replaced (a key change).
+    let anchors: { node: Element; offset: number }[] = [];
     const offsetOf = (node: Element) => node.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
     const keepAnchor = () => {
-      const viewTop = scroller.getBoundingClientRect().top;
-      const node = [...content.querySelectorAll('[data-ouro="message"]')].find((message) => message.getBoundingClientRect().bottom > viewTop);
-      anchor = node && { node, offset: offsetOf(node) };
+      const view = scroller.getBoundingClientRect();
+      anchors = [...content.querySelectorAll('[data-ouro="message"]')]
+        .filter((message) => {
+          const box = message.getBoundingClientRect();
+          return box.bottom > view.top && box.top < view.bottom;
+        })
+        .map((node) => ({ node, offset: offsetOf(node) }));
     };
     toBottom();
     keepAnchor();
     const follow = new ResizeObserver(() => {
+      const anchor = anchors.find(({ node }) => node.isConnected);
       if (pinned.current) toBottom();
-      else if (anchor?.node.isConnected) {
+      else if (anchor) {
         const moved = offsetOf(anchor.node) - anchor.offset;
         if (Math.abs(moved) >= 0.5) {
           scroller.scrollTop += moved;
@@ -194,16 +201,20 @@ export function MessageList(props: MessageListProps): JSX.Element {
   }, [toBottom]);
 
   // Announce each message from someone else once: when it is appended after the last
-  // message already seen, or, if it is streaming, when streaming ends. Messages are known by
-  // their element, which React replaces exactly when the key changes. Never announced: the
-  // first messages to fill the list (history), anything inserted above the last seen message
-  // (older history), and a message whose key changed in place (a temporary id swapped for the
-  // server's), which counts as the message it replaced.
+  // message already seen, when it replaces one with different text (a regenerated reply), or,
+  // if it is streaming, when streaming ends, including a message that streams again.
+  // Messages are known by their element, which React replaces exactly when the key changes.
+  // Never announced: the first messages to fill the list (history), anything inserted above
+  // the last seen message (older history), and a message whose key changed in place with the
+  // same text (a temporary id swapped for the server's).
   useEffect(() => {
     const content = contentRef.current!;
     const messages = () => [...content.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
     const busy = (message: Element) => message.getAttribute("aria-busy") === "true";
+    const textOf = (message: Element) => message.querySelector<HTMLElement>("[data-ouro-message-content]")!.innerText.trim();
     let known = messages();
+    // Each known message's text when last checked, to tell a key swap from a new reply.
+    let texts = new Map(known.map((message) => [message, textOf(message)]));
     // Messages to read once they stop streaming.
     let waiting = new Set(known.filter(busy));
     const check = () => {
@@ -212,18 +223,21 @@ export function MessageList(props: MessageListProps): JSX.Element {
       let last = now.length - 1;
       while (last >= 0 && !before.has(now[last]!)) last--;
       if (known.length > 0 && last >= 0) {
-        // Messages after the last one still here: the first few stand in for the ones that
-        // were there before (a key swap), and the rest are new.
+        // Messages after the last one still here replace the ones that were there before, and
+        // the rest are new. A replacement is the same message under a new key, so silent, only
+        // when it keeps the text and is not streaming; one replacing a message still waiting
+        // takes its place in the queue.
         const replaced = known.slice(known.indexOf(now[last]!) + 1);
         now.slice(last + 1).forEach((message, index) => {
           const old = replaced[index];
-          if (old === undefined || waiting.has(old)) waiting.add(message);
+          if (old === undefined || waiting.has(old) || texts.get(old) !== textOf(message)) waiting.add(message);
         });
-      } else if (known.length === 0) {
-        // The first messages are history, unless one is still streaming.
-        for (const message of now) if (busy(message)) waiting.add(message);
       }
+      // Anything streaming is read when it ends: the first messages' streaming reply, and a
+      // known message that starts streaming again.
+      for (const message of now) if (busy(message)) waiting.add(message);
       known = now;
+      texts = new Map(now.map((message) => [message, textOf(message)]));
       const fresh: string[] = [];
       const still = new Set<HTMLElement>();
       for (const message of now) {
@@ -234,7 +248,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
         }
         if (message.getAttribute("data-role") === "user") continue;
         const author = message.querySelector<HTMLElement>("[data-ouro-message-author]")!.innerText;
-        const text = message.querySelector<HTMLElement>("[data-ouro-message-content]")!.innerText.trim();
+        const text = textOf(message);
         fresh.push(labelFor.current(author, text));
       }
       waiting = still;

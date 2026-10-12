@@ -153,6 +153,19 @@ describe("MessageList", () => {
     await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
   });
 
+  it("keeps the reader's place when older history loads in the same update that changes the key of the message they are on", async () => {
+    const items = history(20, 10);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await wheel(scroller, -400);
+    const before = firstVisible(scroller);
+    const index = [...scroller.querySelectorAll('[data-ouro="message"]')].indexOf(before.message);
+    const swapped = items.map((item, at) => (at === index ? { ...item, id: `server-${item.id}` } : item));
+    await rerender(<Chat items={[...history(10), ...swapped]} />);
+    await settle(scroller);
+    const replacement = scroller.querySelectorAll('[data-ouro="message"]')[index + 10]!;
+    expect(Math.abs(replacement.getBoundingClientRect().top - before.top)).toBeLessThanOrEqual(1);
+  });
+
   it("follows again once the reader scrolls back down to the bottom", async () => {
     const items = history(20);
     const { scroller, rerender } = await render(<Chat items={items} />);
@@ -330,6 +343,54 @@ describe("MessageList", () => {
     await expect.poll(() => spoken.length).toBe(1);
     stop();
     expect(spoken).toEqual(["Ouro: Preheat the oven."]);
+  });
+
+  describe("a regenerated reply", () => {
+    const asked: Item[] = [...history(4), { id: 4, role: "user", text: "How long?" }];
+    const answered: Item[] = [...asked, { id: 5, role: "assistant", text: "An hour." }];
+
+    it("is announced once it finishes, when it streams in under a new key", async () => {
+      const { live, rerender } = await render(<Chat items={answered} />);
+      const { spoken, stop } = recordAnnouncements(live);
+      await rerender(<Chat items={[...asked, { id: 6, role: "assistant", text: "", streaming: true }]} />);
+      await rerender(<Chat items={[...asked, { id: 6, role: "assistant", text: "Two hours", streaming: true }]} />);
+      expect(spoken).toEqual([]);
+      await rerender(<Chat items={[...asked, { id: 6, role: "assistant", text: "Two hours." }]} />);
+      await expect.poll(() => spoken.length).toBe(1);
+      stop();
+      expect(spoken).toEqual(["Ouro: Two hours."]);
+    });
+
+    it("is announced when it replaces the last reply under a new key without streaming", async () => {
+      const { live, rerender } = await render(<Chat items={answered} />);
+      const { spoken, stop } = recordAnnouncements(live);
+      await rerender(<Chat items={[...asked, { id: 6, role: "assistant", text: "Two hours." }]} />);
+      await expect.poll(() => spoken.length).toBe(1);
+      stop();
+      expect(spoken).toEqual(["Ouro: Two hours."]);
+    });
+
+    it("is announced when it streams again in the same message, once it finishes", async () => {
+      const { live, rerender } = await render(<Chat items={answered} />);
+      const { spoken, stop } = recordAnnouncements(live);
+      await rerender(<Chat items={[...asked, { id: 5, role: "assistant", text: "", streaming: true }]} />);
+      await rerender(<Chat items={[...asked, { id: 5, role: "assistant", text: "Two", streaming: true }]} />);
+      expect(spoken).toEqual([]);
+      await rerender(<Chat items={[...asked, { id: 5, role: "assistant", text: "Two hours." }]} />);
+      await expect.poll(() => spoken.length).toBe(1);
+      stop();
+      expect(spoken).toEqual(["Ouro: Two hours."]);
+    });
+
+    it("is announced when it replaces a placeholder that was not streaming", async () => {
+      const { live, rerender } = await render(<Chat items={asked} />);
+      const { spoken, stop } = recordAnnouncements(live);
+      await rerender(<Chat items={[...asked, { id: "typing", role: "assistant", text: "…" }]} />);
+      await rerender(<Chat items={[...asked, { id: 9, role: "assistant", text: "An hour." }]} />);
+      await expect.poll(() => spoken.at(-1)).toBe("Ouro: An hour.");
+      stop();
+      expect(spoken).toEqual(["Ouro: …", "Ouro: An hour."]);
+    });
   });
 
   it("takes a translated announcement", async () => {
