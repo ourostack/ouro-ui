@@ -7,7 +7,6 @@ export {
   menuClass,
   rootClass,
   sideOf,
-  SLOP,
   stripClass,
   stripTones,
   trackClass,
@@ -20,9 +19,6 @@ export {
 
 /** A side of the row, in reading order: `leading` is the start edge, `trailing` the end edge. @internal */
 type SwipeSide = "leading" | "trailing";
-
-/** How far a finger moves, in px, before the gesture is read as a horizontal swipe or a vertical scroll. @internal */
-const SLOP = 10;
 
 /** The share of the row's width a swipe must pass for its release to run the primary action. @internal */
 const FULL_SWIPE = 0.6;
@@ -47,15 +43,14 @@ function sideOf(offset: number, rtl: boolean): SwipeSide {
 const rootClass = "group/swipe relative m-0 box-border min-w-0 touch-pan-y overflow-clip";
 
 /**
- * What slides: the content, with the actions attached to its two edges. The offset is the
- * `--ouro-swipe-x` variable, which the component writes. It springs to rest, except while
- * a finger drags it. With reduced motion it never animates: the position jumps.
+ * What slides: the content, with the actions attached to its two edges. The component
+ * writes its `transform` directly: under a finger it follows the finger, and on release a
+ * spring carries it to rest from where it is (`lib/ouro/spring`). No CSS transition, which
+ * a finger could not catch mid-way. `will-change` keeps it on its own layer for both.
  *
  * @internal
  */
-const trackClass =
-  "relative flex min-w-0 items-center [transform:translateX(var(--ouro-swipe-x,0px))] pointer-coarse:min-h-11 " +
-  "motion-safe:[transition:transform_var(--ouro-spring-duration)_var(--ouro-ease-spring)] group-data-dragging/swipe:[transition:none]";
+const trackClass = "relative flex min-w-0 items-center will-change-transform pointer-coarse:min-h-11";
 
 /** The row the app passes in. @internal */
 const contentClass = "min-w-0 flex-1";

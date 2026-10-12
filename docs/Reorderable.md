@@ -2,7 +2,7 @@
 
 # Reorderable
 
-A list the user puts in order: recipe steps, a queue, favorites. Each row has a drag handle, a 44px target on a touch screen. Dragging it moves the row, the other rows make room, and holding it near the top or bottom edge scrolls the list or the page. A touch that starts anywhere else on a row scrolls as usual.
+A list the user puts in order: recipe steps, a queue, favorites. Each row has a drag handle, a 44px target on a touch screen. Dragging it moves the row with the pointer, the other rows make room, and holding it near the top or bottom edge scrolls the list or the page. Let go and the row springs into its place from where it was, and it can be picked up again on the way. A touch that starts anywhere else on a row scrolls as usual.
 
 ```tsx
 import { Reorderable } from "@/registry/ouro/components/ouro/reorderable/reorderable";
@@ -22,7 +22,7 @@ import { Reorderable } from "@/registry/ouro/components/ouro/reorderable/reorder
 
 From the keyboard, focus a handle and press Space to pick the row up, the up and down arrow keys to move it, Space to drop it and Escape to cancel, which puts it back. Moving focus away drops it where it is. Every step is announced to screen readers with the row's position ("Sear the ribs moved. Position 3 of 7."), and each spoken string is a prop with an English default.
 
-The list shows the new order at once and keeps it; `onReorder` reports it, once per drop. With reduced motion the other rows jump out of the way instead of sliding.
+The list shows the new order at once and keeps it; `onReorder` reports it, once per drop. With reduced motion the other rows jump out of the way instead of sliding, and a dropped row is in its place at once.
 
 ## Use instead when
 

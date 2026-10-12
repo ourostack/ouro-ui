@@ -1,11 +1,8 @@
-export { contentClass, DRAG_SLOP, dropIndex, EDGE, edgeSpeed, fillLabel, handleClass, itemClass, listClass, MAX_SPEED, moveItem, rootClass, scrollParent };
+export { contentClass, dropIndex, EDGE, edgeSpeed, fillLabel, handleClass, itemClass, listClass, MAX_SPEED, moveItem, rootClass, scrollParent };
 
 // Class strings, values and helpers for Reorderable, apart from the component so its file
 // exports only components (React Fast Refresh). Class strings are literal so the app's
 // Tailwind finds them when it compiles.
-
-/** How far a pointer moves on a handle, in px, before the press becomes a drag. @internal */
-const DRAG_SLOP = 4;
 
 /** How near the scrolling area's top or bottom edge, in px, a dragging pointer starts to scroll it. @internal */
 const EDGE = 56;
@@ -23,7 +20,8 @@ const listClass = "group/reorder m-0 flex min-w-0 list-none flex-col p-0 data-dr
  * One row: the handle, then the content. It is at least 44px tall on a touch screen, so
  * the handles' touch targets never overlap. While another row is dragged it slides out of
  * the way (it jumps with reduced motion); the dragged row follows the pointer above the
- * others, and a row picked up from the keyboard is outlined.
+ * others, and a row picked up from the keyboard is outlined. A dropped row stays above
+ * the others while it springs into its place; the component writes each row's `transform`.
  *
  * @internal
  */
@@ -31,6 +29,7 @@ const itemClass =
   "relative m-0 flex min-w-0 list-none items-center gap-2 p-0 pointer-coarse:min-h-11 " +
   "motion-safe:group-data-dragging/reorder:[&:not([data-dragging])]:[transition:transform_var(--ouro-duration-base)_ease-out] " +
   "data-dragging:z-10 data-dragging:rounded-lg data-dragging:bg-background data-dragging:shadow-lg " +
+  "data-[ouro-settling=dropped]:z-10 data-[ouro-settling=dropped]:rounded-lg data-[ouro-settling=dropped]:bg-background " +
   "data-grabbed:rounded-lg data-grabbed:outline-2 data-grabbed:outline-ring data-grabbed:outline-solid";
 
 /** The row's content. No `touch-action`: a touch that starts here scrolls the page. @internal */
@@ -46,7 +45,7 @@ const handleClass =
   "press relative m-0 box-border inline-flex size-8 shrink-0 cursor-grab touch-none select-none items-center justify-center rounded-md border-0 " +
   "bg-transparent p-0 text-muted-foreground [-webkit-tap-highlight-color:transparent] " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
-  "hover:bg-accent hover:text-accent-foreground active:cursor-grabbing aria-pressed:bg-accent aria-pressed:text-accent-foreground " +
+  "pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground active:cursor-grabbing aria-pressed:bg-accent aria-pressed:text-accent-foreground " +
   "motion-safe:active:scale-(--ouro-press-scale) active:duration-(--ouro-duration-fast)";
 
 /**
@@ -69,8 +68,8 @@ function moveItem<T>(list: readonly T[], from: number, to: number): T[] {
 /**
  * Where the row dragged from `from` would land with its center at `center`: the number of
  * other rows it now sits after. It passes a row when its center reaches that row's center
- * (where the row rested when the drag began), from either side, so a row dragged to the
- * very end of the list lands last.
+ * (where the row rests), from either side, so a row dragged to the very end of the list
+ * lands last.
  *
  * @internal
  */

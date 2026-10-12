@@ -16,11 +16,12 @@ import {
 import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { rubberband, spring, type SpringHandle } from "@/registry/ouro/lib/ouro/spring";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDrag } from "@/registry/ouro/lib/ouro/use-drag";
 import {
   contentClass,
-  DRAG_SLOP,
   dropIndex,
   edgeSpeed,
   fillLabel,
@@ -95,6 +96,29 @@ export interface ReorderableProps {
 const itemsFix = 'items={[{ id: "1", label: "Sear the ribs", content: <Item title="Sear the ribs" /> }]}';
 const reorderFix = "onReorder={(ids) => save(ids)}";
 
+/** A pointer drag in progress. */
+interface Drag {
+  id: string;
+  /** Where the row was in the order when the drag began. */
+  from: number;
+  row: HTMLElement;
+  rows: HTMLElement[];
+  /** The center of each row's place, in the viewport, when the drag began. */
+  centers: number[];
+  /** How far a passed row moves to make room. */
+  shift: number;
+  maxScroll: number;
+  /** The pointer's place in the viewport, and how far it has moved from where it pressed. */
+  y: number;
+  moved: number;
+  /** How far the dragged row is from its place, and the place it would drop in. */
+  delta: number;
+  to: number;
+  frame: number;
+  place: () => void;
+  stop: () => void;
+}
+
 function GripIcon(): JSX.Element {
   return (
     <svg aria-hidden="true" viewBox="0 0 16 16" fill="currentColor" className="size-4">
@@ -110,9 +134,10 @@ function GripIcon(): JSX.Element {
 
 /**
  * A list the user puts in order: recipe steps, a queue, favorites. Each row has a drag
- * handle, a 44px target on a touch screen. Dragging it moves the row, the other rows make
- * room, and holding it near the top or bottom edge scrolls the list or the page. A touch
- * that starts anywhere else on a row scrolls as usual.
+ * handle, a 44px target on a touch screen. Dragging it moves the row with the pointer, the
+ * other rows make room, and holding it near the top or bottom edge scrolls the list or
+ * the page. Let go and the row springs into its place from where it was, and it can be
+ * picked up again on the way. A touch that starts anywhere else on a row scrolls as usual.
  *
  * From the keyboard, focus a handle and press Space to pick the row up, the up and down
  * arrow keys to move it, Space to drop it and Escape to cancel, which puts it back.
@@ -121,7 +146,8 @@ function GripIcon(): JSX.Element {
  * a prop with an English default.
  *
  * The list shows the new order at once and keeps it; `onReorder` reports it, once per
- * drop. With reduced motion the other rows jump out of the way instead of sliding.
+ * drop. With reduced motion the other rows jump out of the way instead of sliding, and a
+ * dropped row is in its place at once.
  *
  * Use `ItemGroup` instead for a list whose order the user does not change, and
  * `Resizable` to change sizes, not order.
@@ -205,16 +231,11 @@ export function Reorderable(props: ReorderableProps): JSX.Element {
 
   const instructionsId = useId();
   const listRef = useRef<HTMLOListElement>(null);
-  /** Stops a pointer drag in progress. */
-  const drag = useRef<(() => void) | undefined>(undefined);
+  /** The handle a pointer last pressed, and the drag it became. */
+  const pressed = useRef<string | null>(null);
+  const drag = useRef<Drag | undefined>(undefined);
   /** The row whose handle takes focus back after React moves its element, which drops focus. */
   const refocus = useRef<string | null>(null);
-  // The latest order and props for the listeners a drag attaches once.
-  const latest = useRef({ key, order, onReorder });
-  useLayoutEffect(() => {
-    latest.current = { key, order, onReorder };
-  });
-
   useLayoutEffect(() => {
     const id = refocus.current;
     if (id === null) return;
@@ -222,13 +243,78 @@ export function Reorderable(props: ReorderableProps): JSX.Element {
     listRef.current!.children[order.indexOf(id)]!.querySelector("button")!.focus();
   });
 
-  // After a drag, nothing stays displaced: the rows are in their new places in the list itself.
-  useLayoutEffect(() => {
-    if (dragging === null) listRef.current!.querySelectorAll<HTMLElement>(":scope > li").forEach((row) => row.style.removeProperty("transform"));
-  }, [dragging, state]);
+  /** The springs carrying rows to rest after a drop, by row element. */
+  const springs = useRef(new Map<HTMLElement, SpringHandle>());
+  /** Set by a drop for the layout effect that follows it: where each row was on screen, the dropped row and how it was let go. */
+  const dropped = useRef<{ tops: Map<HTMLElement, number>; row: HTMLElement; velocity: number; flick: boolean } | undefined>(undefined);
 
-  // A list unmounted mid-drag stops listening.
-  useEffect(() => () => drag.current?.(), []);
+  /** Puts a row `value` px below its place. Only that row's own `transform` changes. */
+  const shiftRow = (row: HTMLElement, value: number) => {
+    row.style.transform = value === 0 ? "" : `translateY(${value}px)`;
+  };
+  /** Marks a row, and the list, as at rest or not, for styles and for tests to wait on. */
+  const markSettling = (row: HTMLElement, handle: SpringHandle | undefined, mark = "") => {
+    if (handle) springs.current.set(row, handle);
+    else springs.current.delete(row);
+    row.toggleAttribute("data-ouro-settling", handle !== undefined);
+    if (handle) row.setAttribute("data-ouro-settling", mark);
+    listRef.current!.toggleAttribute("data-ouro-settling", springs.current.size > 0);
+  };
+  /** Stops a row's spring where it is and returns how far the row is from its place. */
+  const holdRow = (row: HTMLElement) => {
+    const handle = springs.current.get(row);
+    if (!handle) return 0;
+    const { value } = handle.stop();
+    markSettling(row, undefined);
+    shiftRow(row, value);
+    return value;
+  };
+  /** Springs a row from `from` px below its place into it, with the velocity it already has and a little bounce after a flick. */
+  const settleRow = (row: HTMLElement, from: number, velocity: number, flick: boolean, mark: "dropped" | "") => {
+    const handle = spring({
+      from,
+      to: 0,
+      velocity,
+      damping: flick ? 0.8 : 1,
+      onUpdate: (value) => shiftRow(row, value),
+      onRest: () => markSettling(row, undefined),
+    });
+    // With reduced motion the spring was a jump, and the row is in its place already.
+    if (!handle.running) return;
+    // Until the first frame the row stays where it was on screen.
+    shiftRow(row, from);
+    markSettling(row, handle, mark);
+  };
+
+  // After a drop the rows are in their new places in the list itself. Each one starts
+  // where it was on screen a moment ago and springs into its place. A list the app
+  // changed under the drag has nothing to spring from: its rows are simply there.
+  useLayoutEffect(() => {
+    const drop = dropped.current;
+    if (!drop) return;
+    dropped.current = undefined;
+    const rows = [...listRef.current!.children] as HTMLElement[];
+    for (const row of rows) {
+      holdRow(row);
+      shiftRow(row, 0);
+    }
+    for (const row of rows) {
+      const before = drop.tops.get(row);
+      const from = before === undefined ? 0 : before - row.getBoundingClientRect().top;
+      if (Math.abs(from) < 0.5) continue;
+      if (row === drop.row) settleRow(row, from, drop.velocity, drop.flick, "dropped");
+      else settleRow(row, from, 0, false, "");
+    }
+  });
+
+  // A list unmounted mid-drag or mid-settle stops listening and moving.
+  useEffect(() => {
+    const running = springs.current;
+    return () => {
+      drag.current?.stop();
+      for (const handle of running.values()) handle.stop();
+    };
+  }, []);
 
   const say = (template: string, id: string, index: number) => announce(fillLabel(template, byId.get(id)!.label, index + 1, total));
 
@@ -278,98 +364,131 @@ export function Reorderable(props: ReorderableProps): JSX.Element {
     if (grabbed?.id === id && refocus.current === null) drop(grabbed);
   };
 
-  const onPointerDown = (event: ReactPointerEvent<HTMLButtonElement>, id: string) => {
-    if (event.button !== 0 || !event.isPrimary || drag.current) return;
-    // Keep the press from selecting text or starting a native drag.
-    event.preventDefault();
-    if (grabbed) drop(grabbed);
-    const list = listRef.current!;
-    const rows = [...list.children] as HTMLElement[];
-    const rects = rows.map((row) => row.getBoundingClientRect());
-    const from = order.indexOf(id);
-    const own = rects[from]!;
-    const centers = rects.map((rect) => rect.top + rect.height / 2);
-    // Each passed row moves by the dragged row's height and the space between rows.
-    const shift = own.height + (rects.length > 1 ? rects[1]!.top - rects[0]!.bottom : 0);
-    const scroller = scrollParent(list);
-    const startScroll = scroller.scrollTop;
-    const pointer = event.pointerId;
-    const startY = event.clientY;
-    let y = startY;
-    let active = false;
-    let to = from;
-    let frame = 0;
+  /** Ends the drag: the rows spring to rest, and a drop in a new place is reported. */
+  const finish = (commit: boolean, velocity: number, flick: boolean) => {
+    const held = drag.current!;
+    held.stop();
+    setDragging(null);
+    const { id, from, row } = held;
+    const changed = order[from] !== id;
+    // The rows spring to rest from where they are on screen now.
+    dropped.current = { tops: new Map(changed ? [] : held.rows.map((other) => [other, other.getBoundingClientRect().top])), row, velocity, flick };
+    // The app changed the rows under the drag: there is nothing to report.
+    if (changed) return;
+    // A flick drops the row the way it was moving: half a row short of the next place is enough.
+    const to = commit && flick ? dropIndex(held.centers, from, held.centers[from]! + held.delta + (Math.sign(velocity) * held.shift) / 2) : held.to;
+    if (commit && to !== from) {
+      const next = moveItem(order, from, to);
+      setState({ key, order: next });
+      say(droppedLabel, id, to);
+      onReorder?.(next, { id, from, to });
+    } else say(commit ? droppedLabel : canceledLabel, id, from);
+  };
 
-    /** Puts the dragged row under the pointer, inside the list, and the rows it has passed out of its way. */
-    const place = () => {
-      const wanted = y - startY + scroller.scrollTop - startScroll;
-      const delta = Math.min(Math.max(wanted, rects[0]!.top - own.top), rects[rects.length - 1]!.bottom - own.bottom);
-      to = dropIndex(centers, from, centers[from]! + delta);
-      rows.forEach((row, index) => {
-        const offset = index === from ? delta : from < index && index <= to ? -shift : to <= index && index < from ? shift : 0;
-        row.style.transform = offset === 0 ? "" : `translateY(${offset}px)`;
+  const dragProps = useDrag({
+    axis: "y",
+    // The handle takes every touch (`touch-none`), so a sideways move is not a scroll.
+    crossAxis: "ignore",
+    onStart: ({ event }) => {
+      const id = pressed.current!;
+      const list = listRef.current!;
+      const rows = [...list.children] as HTMLElement[];
+      const from = order.indexOf(id);
+      const row = rows[from]!;
+      // Rows still springing into place stop where they are: the dragged one is caught
+      // there, and from here the drag places the others. Each row's place is where it is
+      // on screen, less what its spring still had it displaced by.
+      const rects = rows.map((other) => {
+        const displaced = holdRow(other);
+        const rect = other.getBoundingClientRect();
+        return { top: rect.top - displaced, bottom: rect.bottom - displaced, height: rect.height, displaced };
       });
-    };
-    /** Each frame: scrolls while the pointer is near the top or bottom edge of what scrolls. */
-    const tick = () => {
-      const box = scroller === document.documentElement ? { top: 0, bottom: innerHeight } : scroller.getBoundingClientRect();
-      const speed = edgeSpeed(y, box.top, box.bottom);
-      if (speed !== 0) {
-        scroller.scrollTop += speed;
-        place();
-      }
-      frame = requestAnimationFrame(tick);
-    };
-    const stop = () => {
-      removeEventListener("pointermove", move);
-      removeEventListener("pointerup", up);
-      removeEventListener("pointercancel", cancel);
-      document.removeEventListener("keydown", escape, true);
-      cancelAnimationFrame(frame);
-      drag.current = undefined;
-    };
-    const finish = (commit: boolean) => {
-      stop();
-      if (!active) return;
-      setDragging(null);
-      const now = latest.current;
-      // The app changed the rows under the drag: there is nothing to report.
-      if (now.order[from] !== id) return;
-      if (commit && to !== from) {
-        const next = moveItem(now.order, from, to);
-        setState({ key: now.key, order: next });
-        say(droppedLabel, id, to);
-        now.onReorder?.(next, { id, from, to });
-      } else say(commit ? droppedLabel : canceledLabel, id, from);
-    };
-    const move = (moved: PointerEvent) => {
-      if (moved.pointerId !== pointer) return;
-      y = moved.clientY;
-      if (!active) {
-        if (Math.abs(y - startY) < DRAG_SLOP) return;
-        active = true;
-        setDragging(id);
-        frame = requestAnimationFrame(tick);
-      }
-      place();
-    };
-    const up = (lifted: PointerEvent) => {
-      if (lifted.pointerId === pointer) finish(true);
-    };
-    const cancel = (cancelled: PointerEvent) => {
-      if (cancelled.pointerId === pointer) finish(false);
-    };
-    const escape = (pressed: KeyboardEvent) => {
-      if (pressed.key !== "Escape" || !active) return;
-      pressed.preventDefault();
-      pressed.stopPropagation();
-      finish(false);
-    };
-    addEventListener("pointermove", move);
-    addEventListener("pointerup", up);
-    addEventListener("pointercancel", cancel);
-    document.addEventListener("keydown", escape, true);
-    drag.current = stop;
+      const own = rects[from]!;
+      const first = rects[0]!;
+      const last = rects[rects.length - 1]!;
+      const scroller = scrollParent(list);
+      const escape = (pressedKey: KeyboardEvent) => {
+        if (pressedKey.key !== "Escape") return;
+        pressedKey.preventDefault();
+        pressedKey.stopPropagation();
+        finishRef.current(false, 0, false);
+      };
+      /** Each frame: scrolls while the pointer is near the top or bottom edge of what scrolls. */
+      const tick = () => {
+        const held = drag.current!;
+        const box = scroller === document.documentElement ? { top: 0, bottom: innerHeight } : scroller.getBoundingClientRect();
+        // Only as far as it could scroll when the drag began: a row pulled past the end of the list must not make more to scroll into.
+        const next = Math.min(Math.max(scroller.scrollTop + edgeSpeed(held.y, box.top, box.bottom), 0), held.maxScroll);
+        if (next !== scroller.scrollTop) {
+          scroller.scrollTop = next;
+          held.place();
+        }
+        held.frame = requestAnimationFrame(tick);
+      };
+      const held: Drag = {
+        id,
+        from,
+        row,
+        rows,
+        centers: rects.map((rect) => rect.top + rect.height / 2),
+        // Each passed row moves by the dragged row's height and the space between rows.
+        shift: own.height + (rects.length > 1 ? rects[1]!.top - first.bottom : 0),
+        maxScroll: scroller.scrollHeight - scroller.clientHeight,
+        y: event.clientY,
+        moved: 0,
+        delta: own.displaced,
+        to: from,
+        frame: requestAnimationFrame(tick),
+        /** Puts the dragged row under the pointer, where the pointer took hold of it, and the rows it has passed out of its way. */
+        place: () => {
+          const wanted = own.displaced + held.moved + scroller.scrollTop - startScroll;
+          // Past either end of the list the row resists instead of stopping dead.
+          const min = first.top - own.top;
+          const max = last.bottom - own.bottom;
+          const span = last.bottom - first.top;
+          held.delta = wanted < min ? min + rubberband(wanted - min, span) : wanted > max ? max + rubberband(wanted - max, span) : wanted;
+          held.to = dropIndex(held.centers, from, held.centers[from]! + held.delta);
+          rows.forEach((other, index) =>
+            shiftRow(other, index === from ? held.delta : from < index && index <= held.to ? -held.shift : held.to <= index && index < from ? held.shift : 0),
+          );
+        },
+        stop: () => {
+          document.removeEventListener("keydown", escape, true);
+          cancelAnimationFrame(held.frame);
+          drag.current = undefined;
+        },
+      };
+      const startScroll = scroller.scrollTop;
+      document.addEventListener("keydown", escape, true);
+      drag.current = held;
+      setDragging(id);
+    },
+    onMove: ({ delta, event }) => {
+      const held = drag.current;
+      // Escape ended the drag while the pointer was still down: its later moves are nobody's.
+      if (!held) return;
+      held.moved = delta;
+      held.y = event.clientY;
+      held.place();
+    },
+    onEnd: ({ velocity, flick, cancelled }) => {
+      if (drag.current) finish(!cancelled, cancelled ? 0 : velocity, !cancelled && flick);
+    },
+  });
+  // Escape is heard by a listener the drag attached once; it ends the drag with the latest render's rows.
+  const finishRef = useRef(finish);
+  useLayoutEffect(() => {
+    finishRef.current = finish;
+  });
+
+  const onPointerDown = (event: ReactPointerEvent<HTMLButtonElement>, id: string) => {
+    if (event.button === 0 && event.isPrimary && !drag.current) {
+      // Keep the press from selecting text or starting a native drag.
+      event.preventDefault();
+      if (grabbed) drop(grabbed);
+      pressed.current = id;
+    }
+    dragProps.onPointerDown(event);
   };
 
   return (
@@ -396,6 +515,9 @@ export function Reorderable(props: ReorderableProps): JSX.Element {
                 onKeyDown={(event) => onKeyDown(event, id)}
                 onBlur={(event) => onBlur(event, id)}
                 onPointerDown={(event) => onPointerDown(event, id)}
+                onPointerMove={dragProps.onPointerMove}
+                onPointerUp={dragProps.onPointerUp}
+                onPointerCancel={dragProps.onPointerCancel}
               >
                 <TouchTarget />
                 <GripIcon />

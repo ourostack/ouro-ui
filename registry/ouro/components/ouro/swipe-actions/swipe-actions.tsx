@@ -14,8 +14,10 @@ import {
 } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { rubberband, spring, type SpringHandle } from "@/registry/ouro/lib/ouro/spring";
 import { renamedTones, type ToneName } from "@/registry/ouro/lib/ouro/tones";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDrag } from "@/registry/ouro/lib/ouro/use-drag";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Menu } from "@/registry/ouro/components/ouro/menu/menu";
 import {
@@ -27,7 +29,6 @@ import {
   menuClass,
   rootClass,
   sideOf,
-  SLOP,
   stripClass,
   stripTones,
   trackClass,
@@ -89,12 +90,6 @@ const trailingFix = 'trailing={[{ label: "Delete", tone: "destructive", onClick:
 const leadingFix = 'leading={[{ label: "Pin", onClick: pin }]}';
 
 const toneOf = (action: SwipeAction): ToneName => (action.tone !== undefined && Object.hasOwn(actionTones, action.tone) ? (action.tone as ToneName) : "secondary");
-
-/** A swipe in progress. */
-interface Gesture {
-  /** Stops listening for the finger. */
-  stop: () => void;
-}
 
 function EllipsisIcon(): JSX.Element {
   return (
@@ -159,6 +154,11 @@ function Strip({
  * swipe past 60% of the row runs it on release, with no confirmation. So make a
  * destructive primary action undoable: delete, then offer Undo in a toast, as in the
  * example. When it cannot be undone, open a `ConfirmDialog` from `onClick` instead.
+ *
+ * The row follows the finger. A quick flick opens or closes it however short, by the
+ * direction it was moving at release; a slow release opens it past half the actions'
+ * width. A flick alone never runs an action: that takes the distance. The row springs to
+ * rest from where it was let go, and a new swipe can catch it on the way.
  *
  * A vertical swipe that starts on a row scrolls the page. A row that is a link follows it
  * on a tap, never on a swipe. One row is open at a time, and an open row closes on a tap
@@ -261,35 +261,69 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
   const contentRef = useRef<HTMLDivElement>(null);
   const leadingRef = useRef<HTMLDivElement>(null);
   const trailingRef = useRef<HTMLDivElement>(null);
-  const gesture = useRef<Gesture | undefined>(undefined);
   // Whether the last touch on the row was a swipe, whose click (if the browser sends one) is not a tap.
   const swiped = useRef(false);
-  // The latest props and state for the listeners a gesture attaches once.
-  const latest = useRef({ leading, trailing, open });
-  useLayoutEffect(() => {
-    latest.current = { leading, trailing, open };
-  });
+  // Where the track is, in px from closed, and the spring carrying it to rest.
+  const x = useRef(0);
+  const settling = useRef<SpringHandle | undefined>(undefined);
+  /** The swipe under a finger: where the track was when the finger took it, and where the finger has it now. */
+  const swipe = useRef({ base: 0, rtl: false, width: 0, reduce: false, offset: 0, full: false });
 
-  /** Brings the row to rest: open on a side, at that side's width, or closed. */
-  const settle = useCallback((side: SwipeSide | null) => {
-    const root = rootRef.current!;
-    const track = trackRef.current!;
-    root.removeAttribute("data-dragging");
-    root.removeAttribute("data-full");
-    const strip = side === "leading" ? leadingRef.current : side === "trailing" ? trailingRef.current : null;
-    if (side && strip) {
-      const rtl = getComputedStyle(root).direction === "rtl";
-      const sign = (side === "trailing") !== rtl ? -1 : 1;
-      track.style.setProperty("--ouro-swipe-x", `${sign * strip.getBoundingClientRect().width}px`);
-    } else {
-      track.style.removeProperty("--ouro-swipe-x");
-      // Focus on an action about to become inert moves to the actions button, not to the page.
-      if (root.querySelector("[data-ouro-swipe-actions-side] :focus")) {
+  /** Puts the track at `value`. Only the track's own `transform` changes, so nothing else restyles. */
+  const place = useCallback((value: number) => {
+    x.current = value;
+    trackRef.current!.style.transform = value === 0 ? "" : `translateX(${value}px)`;
+  }, []);
+
+  /** Stops the spring where it is, leaving the track there for a finger to take. */
+  const hold = useCallback(() => {
+    const running = settling.current;
+    if (!running) return;
+    settling.current = undefined;
+    rootRef.current!.removeAttribute("data-ouro-settling");
+    place(running.stop().value);
+  }, [place]);
+
+  /**
+   * Brings the row to rest: open on a side, at that side's width, or closed. It springs
+   * there from where it is, with the `velocity` the finger left it and a little bounce
+   * after a `flick`; with reduced motion the spring is a jump.
+   */
+  const settle = useCallback(
+    (side: SwipeSide | null, velocity = 0, flick = false) => {
+      const root = rootRef.current!;
+      hold();
+      root.removeAttribute("data-dragging");
+      root.removeAttribute("data-full");
+      const strip = side === "leading" ? leadingRef.current : side === "trailing" ? trailingRef.current : null;
+      let target = 0;
+      if (side && strip) {
+        const rtl = getComputedStyle(root).direction === "rtl";
+        target = ((side === "trailing") !== rtl ? -1 : 1) * strip.getBoundingClientRect().width;
+      } else if (root.querySelector("[data-ouro-swipe-actions-side] :focus")) {
+        // Focus on an action about to become inert moves to the actions button, not to the page.
         root.querySelector<HTMLElement>("[data-ouro-swipe-actions-menu] button")!.focus();
       }
-    }
-    setOpen(side && strip ? side : null);
-  }, []);
+      setOpen(side && strip ? side : null);
+      if (x.current === target) return;
+      const handle = spring({
+        from: x.current,
+        to: target,
+        velocity,
+        damping: flick ? 0.8 : 1,
+        onUpdate: place,
+        onRest: () => {
+          settling.current = undefined;
+          root.removeAttribute("data-ouro-settling");
+        },
+      });
+      if (handle.running) {
+        settling.current = handle;
+        root.setAttribute("data-ouro-settling", "");
+      }
+    },
+    [hold, place],
+  );
 
   // An open row closes on a press outside it, when anything else scrolls and on Escape.
   useEffect(() => {
@@ -323,78 +357,73 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
     if (open && (open === "leading" ? leading : trailing).length === 0) settle(open);
   });
 
-  // A row unmounted mid-swipe (its action removed it) stops listening.
-  useEffect(() => () => gesture.current?.stop(), []);
+  // A row unmounted while it springs to rest (its action removed it) stops moving.
+  useEffect(() => () => void settling.current?.stop(), []);
 
   const run = (action: SwipeAction) => {
     settle(null);
     action.onClick();
   };
 
-  const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    swiped.current = false;
-    // A mouse selects text and clicks; its way to the actions is the actions button.
-    if (event.pointerType === "mouse" || !event.isPrimary || gesture.current) return;
-    const root = rootRef.current!;
-    const track = trackRef.current!;
-    const pointer = event.pointerId;
-    const startX = event.clientX;
-    const startY = event.clientY;
-    const base = Number.parseFloat(track.style.getPropertyValue("--ouro-swipe-x")) || 0;
-    const rtl = getComputedStyle(root).direction === "rtl";
-    const width = root.getBoundingClientRect().width;
-    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    let locked = false;
-    let offset = base;
-    let full = false;
-
-    const actionsOn = (side: SwipeSide) => latest.current[side];
-    const stop = () => {
-      removeEventListener("pointermove", move);
-      removeEventListener("pointerup", up);
-      removeEventListener("pointercancel", cancel);
-      gesture.current = undefined;
-    };
-    const move = (moved: PointerEvent) => {
-      if (moved.pointerId !== pointer) return;
-      const dx = moved.clientX - startX;
-      const dy = moved.clientY - startY;
-      if (!locked) {
-        if (Math.abs(dx) < SLOP && Math.abs(dy) < SLOP) return;
-        // A vertical move is the page's scroll: the browser takes it (`touch-pan-y`).
-        if (Math.abs(dy) >= Math.abs(dx)) return stop();
-        locked = true;
-        swiped.current = true;
-        root.setAttribute("data-dragging", "");
+  const actionsOn = (side: SwipeSide) => (side === "leading" ? leading : trailing);
+  const drag = useDrag({
+    axis: "x",
+    onStart: ({ event }) => {
+      // A mouse selects text and clicks; its way to the actions is the actions button.
+      if (event.pointerType === "mouse") return false;
+      const root = rootRef.current!;
+      // A row still springing to rest is caught where it is.
+      hold();
+      swiped.current = true;
+      root.setAttribute("data-dragging", "");
+      swipe.current = {
+        base: x.current,
+        rtl: getComputedStyle(root).direction === "rtl",
+        width: root.getBoundingClientRect().width,
+        reduce: matchMedia("(prefers-reduced-motion: reduce)").matches,
+        offset: x.current,
+        full: false,
+      };
+      return true;
+    },
+    onMove: ({ delta }) => {
+      const now = swipe.current;
+      // The row moves with the finger, from where the finger took hold of it.
+      const wanted = now.base + delta;
+      const reach = Math.abs(wanted);
+      if (actionsOn(sideOf(wanted, now.rtl)).length === 0) {
+        // Nothing on this side: the row resists, and will spring back.
+        now.offset = rubberband(wanted, now.width);
+        now.full = false;
+      } else {
+        // Past the row's own width it resists too.
+        now.offset = reach <= now.width ? wanted : Math.sign(wanted) * (now.width + rubberband(reach - now.width, now.width));
+        now.full = reach >= now.width * FULL_SWIPE;
       }
-      const wanted = Math.min(Math.max(base + dx, -width), width);
-      // A side with no actions does not open.
-      offset = actionsOn(sideOf(wanted, rtl)).length > 0 ? wanted : 0;
-      full = Math.abs(offset) >= width * FULL_SWIPE;
-      root.toggleAttribute("data-full", full);
+      rootRef.current!.toggleAttribute("data-full", now.full);
       // With reduced motion the row stays put under the finger and jumps open on release.
-      if (!reduce) track.style.setProperty("--ouro-swipe-x", `${offset}px`);
-    };
-    const up = (lifted: PointerEvent) => {
-      if (lifted.pointerId !== pointer) return;
-      stop();
-      if (!locked) return;
+      if (!now.reduce) place(now.offset);
+    },
+    onEnd: ({ velocity, flick, cancelled }) => {
+      // The browser took the gesture: back to where the row was.
+      if (cancelled) return settle(open);
+      const { offset, full, rtl } = swipe.current;
       const side = sideOf(offset, rtl);
       const primary = actionsOn(side)[0];
-      if (full && primary) return run(primary);
-      const strip = side === "leading" ? leadingRef.current : trailingRef.current;
-      settle(strip && Math.abs(offset) > strip.getBoundingClientRect().width / 2 ? side : null);
-    };
-    const cancel = (cancelled: PointerEvent) => {
-      if (cancelled.pointerId !== pointer) return;
-      stop();
-      // The browser took the gesture: back to where the row was.
-      if (locked) settle(latest.current.open);
-    };
-    addEventListener("pointermove", move);
-    addEventListener("pointerup", up);
-    addEventListener("pointercancel", cancel);
-    gesture.current = { stop };
+      if (!primary) return settle(null, velocity, flick);
+      // Whether the finger was still moving the row further open when it lifted.
+      const opening = Math.sign(velocity) === Math.sign(offset);
+      // A full swipe runs the primary action, unless the finger was flicking the row back.
+      if (full && (opening || !flick)) return run(primary);
+      // A flick goes the way it was moving, however short. A slow release goes by distance.
+      const strip = side === "leading" ? leadingRef.current! : trailingRef.current!;
+      const opens = flick ? opening : Math.abs(offset) > strip.getBoundingClientRect().width / 2;
+      settle(opens ? side : null, velocity, flick);
+    },
+  });
+  const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    swiped.current = false;
+    drag.onPointerDown(event);
   };
 
   const onClickCapture = (event: ReactMouseEvent<HTMLDivElement>) => {
@@ -423,6 +452,9 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
       data-open={open ?? undefined}
       className={cn(rootClass, className)}
       onPointerDown={onPointerDown}
+      onPointerMove={drag.onPointerMove}
+      onPointerUp={drag.onPointerUp}
+      onPointerCancel={drag.onPointerCancel}
       onClickCapture={onClickCapture}
     >
       <div ref={trackRef} data-ouro-swipe-actions-track="" className={trackClass}>

@@ -39,6 +39,8 @@ import { SwipeActions } from "@/registry/ouro/components/ouro/swipe-actions/swip
 
 The first action of each side is its primary one: it sits at the outer edge, and a swipe past 60% of the row runs it on release, with no confirmation. So make a destructive primary action undoable: delete, then offer Undo in a toast, as in the example.
 
+The row follows the finger. A quick flick opens or closes it however short, by the direction it was moving at release; a slow release opens it past half the actions' width. A flick alone never runs an action: that takes the distance. The row springs to rest from where it was let go, and a new swipe can catch it on the way.
+
 A vertical swipe that starts on a row scrolls the page. A row that is a link follows it on a tap, never on a swipe. One row is open at a time, and an open row closes on a tap outside it, on a tap on the row, when the page scrolls and on Escape. `leading` and `trailing` follow the reading direction. With reduced motion nothing slides: the row jumps open and its actions fade in.
 
 ## Use instead when

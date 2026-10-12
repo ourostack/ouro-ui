@@ -237,6 +237,11 @@
           "target": "@lib/ouro/router-link.ts"
         },
         {
+          "path": "registry/ouro/lib/ouro/spring.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/spring.ts"
+        },
+        {
           "path": "registry/ouro/lib/ouro/stretched-link.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/stretched-link.ts"
@@ -270,6 +275,11 @@
           "path": "registry/ouro/lib/ouro/use-dev-warnings.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/use-dev-warnings.ts"
+        },
+        {
+          "path": "registry/ouro/lib/ouro/use-drag.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/use-drag.ts"
         },
         {
           "path": "registry/ouro/lib/ouro/use-field.ts",
@@ -1681,9 +1691,19 @@
           "target": "@lib/ouro/ouro-provider.test.tsx"
         },
         {
+          "path": "registry/ouro/lib/ouro/spring.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/spring.test.ts"
+        },
+        {
           "path": "registry/ouro/lib/ouro/use-command-shortcut.test.tsx",
           "type": "registry:lib",
           "target": "@lib/ouro/use-command-shortcut.test.tsx"
+        },
+        {
+          "path": "registry/ouro/lib/ouro/use-drag.test.tsx",
+          "type": "registry:lib",
+          "target": "@lib/ouro/use-drag.test.tsx"
         },
         {
           "path": "registry/ouro/lib/ouro/use-keyboard-scrollable.test.tsx",
@@ -3923,6 +3943,7 @@
       ],
       "registryDependencies": [
         "ourostack/ouro-ui/item",
+        "ourostack/ouro-ui/ouro-lib",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/reorderable"
       ],

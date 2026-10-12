@@ -5,10 +5,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { Item } from "@/registry/ouro/components/ouro/item/item";
 import { SwipeActions, type SwipeActionsProps } from "@/registry/ouro/components/ouro/swipe-actions/swipe-actions";
+import { rubberband } from "@/registry/ouro/lib/ouro/spring";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 // Real touch swipes are in swipe-actions.touch.test.tsx. Here the pointer events are
-// dispatched, so the same paths run in Chromium and WebKit, with a pen and a mouse too.
+// dispatched, so the same paths run in Chromium and WebKit, with a pen and a mouse too,
+// and each event carries a time the test sets, so a release is as fast or slow as it says.
 
 let root: Root | undefined;
 let host: HTMLElement;
@@ -60,30 +62,60 @@ function row(spies = calls(), props: Partial<SwipeActionsProps> = {}) {
   );
 }
 
+/** Rounds to hundredths of a px: a style serializes fewer decimals than a measured width has. */
+const hundredths = (value: number) => Math.round(value * 100) / 100;
 const track = (element: HTMLElement) => element.querySelector<HTMLElement>("[data-ouro-swipe-actions-track]")!;
 const content = (element: HTMLElement) => element.querySelector<HTMLElement>("[data-ouro-swipe-actions-content]")!;
 const strip = (element: HTMLElement, side: "leading" | "trailing") => element.querySelector<HTMLElement>(`[data-ouro-swipe-actions-side="${side}"]`);
 const action = (element: HTMLElement, name: string) =>
   [...element.querySelectorAll<HTMLButtonElement>("[data-ouro-swipe-actions-side] button")].find((button) => button.textContent === name)!;
 const menuButton = (element: HTMLElement) => element.querySelector<HTMLButtonElement>("[data-ouro-swipe-actions-menu] button")!;
-/** The offset the component set, in px. */
-const offset = (element: HTMLElement) => Number.parseFloat(track(element).style.getPropertyValue("--ouro-swipe-x")) || 0;
-const width = (element: HTMLElement, side: "leading" | "trailing") => strip(element, side)!.getBoundingClientRect().width;
+/** The offset the component set on the track, in px. */
+const offset = (element: HTMLElement) => hundredths(Number.parseFloat(/translateX\((.+)px\)/.exec(track(element).style.transform)?.[1] ?? "0"));
+/** Waits for the row to come to rest after a release. */
+const rest = (element: HTMLElement) => expect.poll(() => element.hasAttribute("data-ouro-settling")).toBe(false);
+const width = (element: HTMLElement, side: "leading" | "trailing") => hundredths(strip(element, side)!.getBoundingClientRect().width);
+
+/** The time the next dispatched event carries, in ms. */
+let clock = 1000;
+/** Lets `ms` pass before the next event: 16 is a finger still moving, 300 one that has rested. */
+const wait = (ms: number) => {
+  clock += ms;
+};
 
 /** Dispatches one pointer event, as a one-finger touch unless `init` says otherwise, and flushes React. */
 async function pointer(target: EventTarget, type: string, x: number, y: number, init: PointerEventInit = {}) {
   await act(async () => {
-    target.dispatchEvent(
-      new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 1, pointerType: "touch", isPrimary: true, clientX: x, clientY: y, ...init }),
-    );
+    const event = new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 1, pointerType: "touch", isPrimary: true, clientX: x, clientY: y, ...init });
+    Object.defineProperty(event, "timeStamp", { value: clock });
+    target.dispatchEvent(event);
   });
 }
 
-/** A swipe by `dx` from (200, 20) on the row's content: down, moves and (unless `hold`) up. */
-async function swipe(element: HTMLElement, dx: number, { hold = false, init = {} as PointerEventInit } = {}) {
+/**
+ * A swipe by `dx` from (200, 20) on the row's content: down, four moves 16ms apart and
+ * (unless `hold`) up. The finger rests before it lifts, so the distance decides, unless
+ * `flick`, when it lifts while moving. Waits for the row to come to rest.
+ */
+async function swipe(element: HTMLElement, dx: number, { hold = false, flick = false, init = {} as PointerEventInit } = {}) {
+  wait(1000);
   await pointer(content(element), "pointerdown", 200, 20, init);
-  for (let step = 1; step <= 4; step++) await pointer(window, "pointermove", 200 + (dx * step) / 4, 20, init);
-  if (!hold) await pointer(window, "pointerup", 200 + dx, 20, init);
+  for (let step = 1; step <= 4; step++) {
+    wait(16);
+    await pointer(window, "pointermove", 200 + (dx * step) / 4, 20, init);
+  }
+  if (hold) return;
+  wait(flick ? 16 : 300);
+  await pointer(window, "pointerup", 200 + dx, 20, init);
+  await rest(element);
+}
+
+/** Moves the held finger from `from` to `to` px left of where it began, in eight moves 16ms apart: longer than the 100ms a velocity is read over. */
+async function slide(from: number, to: number) {
+  for (let step = 1; step <= 8; step++) {
+    wait(16);
+    await pointer(window, "pointermove", 200 - (from + ((to - from) * step) / 8), 20);
+  }
 }
 
 /** A click as a pointer sends it (`detail` 1) or as the keyboard does (`detail` 0); returns whether its default was prevented. */
@@ -183,17 +215,17 @@ describe("SwipeActions", () => {
     const element = await render(row());
     await swipe(element, -120);
     expect(element.getAttribute("data-open")).toBe("trailing");
-    expect(offset(element)).toBe(-width(element, "trailing"));
+    await expect.poll(() => offset(element)).toBe(-width(element, "trailing"));
     expect(strip(element, "trailing")!.inert).toBe(false);
     expect(strip(element, "trailing")!.hasAttribute("data-open")).toBe(true);
     expect(element.hasAttribute("data-dragging")).toBe(false);
     // A small move while open leaves it open; a move back past half closes it.
     await swipe(element, 20);
     expect(element.getAttribute("data-open")).toBe("trailing");
-    expect(offset(element)).toBe(-width(element, "trailing"));
+    await expect.poll(() => offset(element)).toBe(-width(element, "trailing"));
     await swipe(element, 120);
     expect(element.hasAttribute("data-open")).toBe(false);
-    expect(offset(element)).toBe(0);
+    await expect.poll(() => offset(element)).toBe(0);
   });
 
   it("swipes with a pen, and never with a mouse", async () => {
@@ -203,25 +235,178 @@ describe("SwipeActions", () => {
     expect(element.hasAttribute("data-dragging")).toBe(false);
     await swipe(element, 90, { init: { pointerType: "pen" } });
     expect(element.getAttribute("data-open")).toBe("leading");
-    expect(offset(element)).toBe(width(element, "leading"));
+    await expect.poll(() => offset(element)).toBe(width(element, "leading"));
   });
 
   it("marks the row while a finger drags it and follows the finger", async () => {
     const element = await render(row());
     await swipe(element, -60, { hold: true });
     expect(element.hasAttribute("data-dragging")).toBe(true);
-    expect(offset(element)).toBe(-60);
+    // The transform is on the track itself, 1:1 with the finger, with no transition to lag behind it.
+    expect(track(element).style.transform).toBe("translateX(-60px)");
+    expect(track(element).style.getPropertyValue("--ouro-swipe-x")).toBe("");
     expect(getComputedStyle(track(element)).transitionDuration).toBe("0s");
-    // Past the row's own width it stops.
+    await pointer(window, "pointermove", 200 - 137, 20);
+    expect(offset(element)).toBe(-137);
+    // Past the row's own width it resists: 540px beyond moves it a part of that, not none.
     await pointer(window, "pointermove", 200 - 900, 20);
-    expect(offset(element)).toBe(-360);
+    expect(offset(element)).toBeCloseTo(-(360 + rubberband(540, 360)), 2);
+    expect(offset(element)).toBeLessThan(-360);
     expect(element.hasAttribute("data-full")).toBe(true);
     await pointer(window, "pointermove", 200 + 900, 20);
-    expect(offset(element)).toBe(360);
+    expect(offset(element)).toBeCloseTo(360 + rubberband(540, 360), 2);
     await pointer(window, "pointermove", 200, 20);
+    expect(offset(element)).toBe(0);
+    wait(300);
     await pointer(window, "pointerup", 200, 20);
     expect(element.hasAttribute("data-dragging")).toBe(false);
     expect(element.hasAttribute("data-full")).toBe(false);
+  });
+
+  it("opens on a short flick toward the actions and closes on a flick back, whatever the distance", async () => {
+    const element = await render(row());
+    // 24px, far short of half the actions' width, but the finger was still moving when it lifted.
+    await swipe(element, -24, { flick: true });
+    expect(element.getAttribute("data-open")).toBe("trailing");
+    expect(offset(element)).toBe(-width(element, "trailing"));
+    // The same 24px with a finger that rested first: the distance decides, and it stays as it was.
+    await swipe(element, 24);
+    expect(element.getAttribute("data-open")).toBe("trailing");
+    await swipe(element, 24, { flick: true });
+    expect(element.hasAttribute("data-open")).toBe(false);
+    expect(offset(element)).toBe(0);
+  });
+
+  it("goes by the direction the finger was moving at release, not by how far it had gone", async () => {
+    const element = await render(row());
+    // Out to 140px, well past half, then flicked back toward closed.
+    await swipe(element, -140, { hold: true });
+    await slide(140, 110);
+    wait(16);
+    await pointer(window, "pointerup", 200 - 110, 20);
+    expect(element.hasAttribute("data-open")).toBe(false);
+    await rest(element);
+    expect(offset(element)).toBe(0);
+  });
+
+  it("does not run the primary action when a full swipe is flicked back, and opens the side instead of nothing", async () => {
+    const spies = calls();
+    const element = await render(row(spies));
+    await swipe(element, -300, { hold: true });
+    expect(element.hasAttribute("data-full")).toBe(true);
+    await slide(300, 250);
+    expect(element.hasAttribute("data-full")).toBe(true);
+    wait(16);
+    await pointer(window, "pointerup", 200 - 250, 20);
+    expect(spies.remove).not.toHaveBeenCalled();
+    expect(element.hasAttribute("data-open")).toBe(false);
+    await rest(element);
+    // A flick never runs an action by itself either: a short fast one only opens the row.
+    await swipe(element, -40, { flick: true });
+    expect(spies.remove).not.toHaveBeenCalled();
+    expect(element.getAttribute("data-open")).toBe("trailing");
+  });
+
+  it("springs to rest from where the finger left it, past the target after a flick and never after a slow release", async () => {
+    const element = await render(row());
+    const open = -width(element, "trailing");
+    const seen: number[] = [];
+    const watch = new MutationObserver(() => seen.push(offset(element)));
+    watch.observe(track(element), { attributes: true, attributeFilter: ["style"] });
+    await swipe(element, -100, { flick: true });
+    // The flick's speed carried on into the spring: it passed the open position and came back to it.
+    expect(Math.min(...seen)).toBeLessThan(open - 1);
+    expect(seen.at(-1)).toBe(open);
+    // The first frame of the spring is near where the finger let go, not a jump to the end.
+    const released = seen.indexOf(-100);
+    expect(Math.abs(seen[released + 1]! - -100)).toBeLessThan(60);
+
+    seen.length = 0;
+    await swipe(element, 100);
+    watch.disconnect();
+    // A slow release closes without passing closed.
+    expect(Math.max(...seen)).toBeLessThanOrEqual(0);
+    expect(seen.at(-1)).toBe(0);
+    expect(seen.length).toBeGreaterThan(6);
+  });
+
+  it("can be caught by a new swipe while it springs to rest, and carries on from there", async () => {
+    const element = await render(row());
+    const open = -width(element, "trailing");
+    await swipe(element, -120, { hold: true });
+    wait(300);
+    await pointer(window, "pointerup", 80, 20);
+    expect(element.hasAttribute("data-ouro-settling")).toBe(true);
+    await expect.poll(() => offset(element)).toBeLessThan(-121);
+    // A press alone does not stop it: it may be a tap or the start of a scroll.
+    wait(1000);
+    await pointer(content(element), "pointerdown", 200, 20);
+    expect(element.hasAttribute("data-ouro-settling")).toBe(true);
+    // Once the press is a swipe, the row is the finger's again, from where it was caught.
+    wait(16);
+    await pointer(window, "pointermove", 188, 20);
+    expect(element.hasAttribute("data-ouro-settling")).toBe(false);
+    expect(element.hasAttribute("data-dragging")).toBe(true);
+    const caught = hundredths(offset(element) + 12);
+    expect(caught).toBeLessThan(-120);
+    expect(caught).toBeGreaterThanOrEqual(open);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    // Nothing but the finger moves it now, 1:1.
+    expect(offset(element)).toBe(hundredths(caught - 12));
+    wait(16);
+    await pointer(window, "pointermove", 180, 20);
+    expect(offset(element)).toBe(hundredths(caught - 20));
+    wait(300);
+    await pointer(window, "pointerup", 180, 20);
+    await rest(element);
+    expect(offset(element)).toBe(open);
+
+    // Mid-settle a tap, or a touch that turns into a scroll, leaves the row on its way.
+    for (const end of ["tap", "scroll"]) {
+      await swipe(element, 60, { hold: true });
+      wait(300);
+      await pointer(window, "pointerup", 260, 20);
+      expect(element.hasAttribute("data-ouro-settling")).toBe(true);
+      wait(1000);
+      await pointer(content(element), "pointerdown", 200, 20);
+      if (end === "tap") await pointer(window, "pointerup", 200, 20);
+      else await pointer(window, "pointermove", 202, 60);
+      expect(element.hasAttribute("data-ouro-settling"), end).toBe(true);
+      await rest(element);
+      expect(offset(element), end).toBe(open);
+      expect(element.getAttribute("data-open")).toBe("trailing");
+    }
+  });
+
+  it("captures the pointer once the swipe is the row's, not before", async () => {
+    const element = await render(row());
+    const capture = vi.spyOn(element, "setPointerCapture");
+    await pointer(content(element), "pointerdown", 200, 20);
+    await pointer(window, "pointermove", 194, 20);
+    expect(capture).not.toHaveBeenCalled();
+    await pointer(window, "pointermove", 180, 20);
+    expect(capture.mock.calls).toEqual([[1]]);
+    await pointer(window, "pointermove", 160, 20);
+    expect(capture).toHaveBeenCalledTimes(1);
+    wait(300);
+    await pointer(window, "pointerup", 160, 20);
+    // A vertical move, the page's scroll, captures nothing.
+    capture.mockClear();
+    await pointer(content(element), "pointerdown", 200, 20);
+    await pointer(window, "pointermove", 202, 60);
+    expect(capture).not.toHaveBeenCalled();
+  });
+
+  it("stops moving when it unmounts while it springs to rest", async () => {
+    const element = await render(row());
+    const cancelled = vi.spyOn(window, "cancelAnimationFrame");
+    await swipe(element, -120, { hold: true });
+    wait(300);
+    await pointer(window, "pointerup", 80, 20);
+    expect(element.hasAttribute("data-ouro-settling")).toBe(true);
+    await act(async () => root!.unmount());
+    root = undefined;
+    expect(cancelled).toHaveBeenCalled();
   });
 
   it("runs the primary action on a full swipe of either side", async () => {
@@ -231,7 +416,7 @@ describe("SwipeActions", () => {
     expect(spies.remove).toHaveBeenCalledTimes(1);
     expect(spies.archive).not.toHaveBeenCalled();
     expect(element.hasAttribute("data-open")).toBe(false);
-    expect(offset(element)).toBe(0);
+    await expect.poll(() => offset(element)).toBe(0);
     await swipe(element, 300);
     expect(spies.pin).toHaveBeenCalledTimes(1);
   });
@@ -240,11 +425,17 @@ describe("SwipeActions", () => {
     const spies = calls();
     const element = await render(row(spies, { leading: undefined }));
     await swipe(element, 300, { hold: true });
-    expect(offset(element)).toBe(0);
+    // The row gives a little, so the finger is not pushing on a wall, and it is never a full swipe.
+    expect(offset(element)).toBeCloseTo(rubberband(300, 360), 2);
+    expect(offset(element)).toBeLessThan(150);
     expect(element.hasAttribute("data-full")).toBe(false);
+    wait(16);
     await pointer(window, "pointerup", 500, 20);
     expect(element.hasAttribute("data-open")).toBe(false);
     expect(spies.remove).not.toHaveBeenCalled();
+    // It springs back to closed.
+    await rest(element);
+    expect(offset(element)).toBe(0);
   });
 
   it("reads the same gesture mirrored in a right-to-left page", async () => {
@@ -252,11 +443,11 @@ describe("SwipeActions", () => {
     const element = await render(row(spies, { leading: undefined }), "rtl");
     await swipe(element, 120);
     expect(element.getAttribute("data-open")).toBe("trailing");
-    expect(offset(element)).toBe(width(element, "trailing"));
+    await expect.poll(() => offset(element)).toBe(width(element, "trailing"));
     // Toward the end, where there are no actions, nothing opens.
     await swipe(element, -300);
     expect(element.hasAttribute("data-open")).toBe(false);
-    expect(offset(element)).toBe(0);
+    await expect.poll(() => offset(element)).toBe(0);
   });
 
   it("leaves a vertical move to the page and ignores what follows it", async () => {
@@ -270,7 +461,7 @@ describe("SwipeActions", () => {
     await pointer(window, "pointerup", 60, 60);
     expect(element.hasAttribute("data-dragging")).toBe(false);
     expect(element.hasAttribute("data-open")).toBe(false);
-    expect(offset(element)).toBe(0);
+    await expect.poll(() => offset(element)).toBe(0);
   });
 
   it("treats a press that barely moves as a tap", async () => {
@@ -291,15 +482,16 @@ describe("SwipeActions", () => {
 
     await pointer(content(element), "pointerdown", 200, 20);
     // A second press during the gesture does not restart it.
-    await pointer(content(element), "pointerdown", 400, 20, { pointerId: 2 });
+    await pointer(content(element), "pointerdown", 400, 20, { pointerId: 2, isPrimary: false });
     await pointer(window, "pointermove", 20, 20, { pointerId: 2 });
     expect(element.hasAttribute("data-dragging")).toBe(false);
     await pointer(window, "pointermove", 140, 20);
-    expect(offset(element)).toBe(-60);
+    await expect.poll(() => offset(element)).toBe(-60);
     await pointer(window, "pointerup", 140, 20, { pointerId: 2 });
     await pointer(window, "pointercancel", 140, 20, { pointerId: 2 });
     expect(element.hasAttribute("data-dragging")).toBe(true);
     await pointer(window, "pointermove", 80, 20);
+    wait(300);
     await pointer(window, "pointerup", 80, 20);
     expect(element.getAttribute("data-open")).toBe("trailing");
   });
@@ -309,20 +501,20 @@ describe("SwipeActions", () => {
     // Cancelled before it became a swipe: nothing to undo.
     await pointer(content(element), "pointerdown", 200, 20);
     await pointer(window, "pointercancel", 200, 20);
-    expect(offset(element)).toBe(0);
+    await expect.poll(() => offset(element)).toBe(0);
     // Cancelled mid-swipe from closed: closed.
     await swipe(element, -100, { hold: true });
     await pointer(window, "pointercancel", 100, 20);
     expect(element.hasAttribute("data-open")).toBe(false);
     expect(element.hasAttribute("data-dragging")).toBe(false);
-    expect(offset(element)).toBe(0);
+    await expect.poll(() => offset(element)).toBe(0);
     // Cancelled mid-swipe from open: open, at the side's width again.
     await swipe(element, -120);
     await swipe(element, 100, { hold: true });
-    expect(offset(element)).toBe(100 - width(element, "trailing"));
+    await expect.poll(() => offset(element)).toBe(hundredths(100 - width(element, "trailing")));
     await pointer(window, "pointercancel", 300, 20);
     expect(element.getAttribute("data-open")).toBe("trailing");
-    expect(offset(element)).toBe(-width(element, "trailing"));
+    await expect.poll(() => offset(element)).toBe(-width(element, "trailing"));
   });
 
   it("swallows the click that ends a swipe, once, and never a keyboard click", async () => {
@@ -349,7 +541,7 @@ describe("SwipeActions", () => {
     expect(element.getAttribute("data-open")).toBe("trailing");
     expect(await click(link, 1)).toEqual({ reached: false, prevented: true });
     expect(element.hasAttribute("data-open")).toBe(false);
-    expect(offset(element)).toBe(0);
+    await expect.poll(() => offset(element)).toBe(0);
 
     await swipe(element, -120);
     await pointer(content(element), "pointerdown", 200, 20);
@@ -386,7 +578,7 @@ describe("SwipeActions", () => {
     await userEvent.keyboard("{Escape}");
     await act(async () => {});
     expect(element.hasAttribute("data-open")).toBe(false);
-    expect(offset(element)).toBe(0);
+    await expect.poll(() => offset(element)).toBe(0);
     // Closed, Escape is the page's again.
     await userEvent.keyboard("{Escape}");
     document.removeEventListener("keydown", listener);
@@ -407,12 +599,13 @@ describe("SwipeActions", () => {
     expect(element.getAttribute("data-open")).toBe("trailing");
     await pointer(outside, "pointerdown", 10, 300, { pointerType: "mouse" });
     expect(element.hasAttribute("data-open")).toBe(false);
+    await rest(element);
 
     await swipe(element, -120);
     expect(element.getAttribute("data-open")).toBe("trailing");
     outside.scrollTop = 80;
     await expect.poll(() => element.hasAttribute("data-open")).toBe(false);
-    expect(offset(element)).toBe(0);
+    await expect.poll(() => offset(element)).toBe(0);
   });
 
   it("closes a side whose actions the app removes, and survives losing them mid-swipe", async () => {
@@ -422,7 +615,7 @@ describe("SwipeActions", () => {
     expect(element.getAttribute("data-open")).toBe("trailing");
     await render(row(spies, { trailing: [] }));
     expect(element.hasAttribute("data-open")).toBe(false);
-    expect(offset(element)).toBe(0);
+    await expect.poll(() => offset(element)).toBe(0);
     expect(strip(element, "trailing")).toBeNull();
 
     await render(row(spies));
@@ -432,7 +625,7 @@ describe("SwipeActions", () => {
     await pointer(window, "pointerup", -200, 20);
     expect(spies.remove).not.toHaveBeenCalled();
     expect(element.hasAttribute("data-open")).toBe(false);
-    expect(offset(element)).toBe(0);
+    await expect.poll(() => offset(element)).toBe(0);
   });
 
   it("stops listening when it unmounts mid-swipe", async () => {

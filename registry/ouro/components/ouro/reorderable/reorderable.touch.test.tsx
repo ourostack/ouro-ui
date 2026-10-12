@@ -10,6 +10,7 @@ import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 
 let root: Root | undefined;
 const nodes: Element[] = [];
+const cleanups: Array<() => void> = [];
 const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
 
 /** Waits until the page has stopped scrolling: two frames agree. */
@@ -25,11 +26,13 @@ async function pageAtRest() {
 }
 
 afterEach(async () => {
+  for (const cleanup of cleanups.splice(0)) cleanup();
   await commands.touchStep({ type: "touchEnd" });
   await pageAtRest();
   await act(async () => root?.unmount());
   for (const node of nodes.splice(0)) node.remove();
   scrollTo(0, 0);
+  await commands.emulateMedia({ reducedMotion: "no-preference" });
   await rotate(390, 844);
 });
 
@@ -102,9 +105,49 @@ describe("Reorderable on a phone", () => {
     expect(onReorder).toHaveBeenCalledWith(["step-2", "step-3", "step-1", "step-4", "step-5"], { id: "step-1", from: 0, to: 2 });
     expect(order(list).slice(0, 3)).toEqual(["Soften the onions", "Add the wine", "Sear the ribs"]);
     expect(scrollY).toBe(0);
-    // Nothing is left displaced.
-    for (const row of rows(list)) expect(row.style.transform).toBe("");
     expect(list.hasAttribute("data-dragging")).toBe(false);
+    // The rows spring into their places, and then nothing is left displaced.
+    await expect.poll(() => list.hasAttribute("data-ouro-settling")).toBe(false);
+    for (const row of rows(list)) expect(row.style.transform).toBe("");
+  });
+
+  it("springs the dropped row into its place from under the finger, frame by frame", async () => {
+    const { list, onReorder } = await renderSteps();
+    const dragged = rows(list)[0]!;
+    const height = dragged.getBoundingClientRect().height;
+    const [x, y] = middle(handle(list, "Sear the ribs"));
+    const seen: string[] = [];
+    try {
+      await commands.touchStep({ type: "touchStart", x, y });
+      for (let step = 1; step <= 8; step++) await commands.touchStep({ type: "touchMove", x, y: y + (height * 1.3 * step) / 8 });
+      await expect.poll(() => list.hasAttribute("data-dragging")).toBe(true);
+      const watch = new MutationObserver(() => seen.push(dragged.style.transform));
+      watch.observe(dragged, { attributes: true, attributeFilter: ["style"] });
+      cleanups.push(() => watch.disconnect());
+    } finally {
+      await commands.touchStep({ type: "touchEnd" });
+    }
+    await expect.poll(() => onReorder.mock.calls.length).toBe(1);
+    await expect.poll(() => list.hasAttribute("data-ouro-settling")).toBe(false);
+    // Several frames on the way to its place, the last exactly on it, with no CSS transition or animation doing it.
+    expect(seen.length).toBeGreaterThan(4);
+    expect(seen.at(-1)).toBe("");
+    expect(seen.slice(0, -1).every((transform) => /^translateY\(-?[\d.e-]+px\)$/.test(transform))).toBe(true);
+    expect(dragged.getAnimations().length).toBe(0);
+    expect(order(list).slice(0, 2)).toEqual(["Soften the onions", "Sear the ribs"]);
+  });
+
+  it("puts a dropped row in its place at once with reduced motion", async () => {
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    const { list, onReorder } = await renderSteps();
+    const [x, y] = middle(handle(list, "Sear the ribs"));
+    const [, target] = middle(rows(list)[1]!);
+    await commands.touchDrag({ from: [x, y], to: [x, target + 12], steps: 10 });
+    await expect.poll(() => onReorder.mock.calls.length).toBe(1);
+    // No spring: by the time the drop is reported, every row is where it belongs.
+    expect(list.hasAttribute("data-ouro-settling")).toBe(false);
+    for (const row of rows(list)) expect(row.style.transform).toBe("");
+    expect(order(list).slice(0, 2)).toEqual(["Soften the onions", "Sear the ribs"]);
   });
 
   it("lets a touch that starts on a row, outside its handle, scroll the page", async () => {

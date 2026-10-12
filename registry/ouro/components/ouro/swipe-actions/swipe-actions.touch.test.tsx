@@ -89,7 +89,7 @@ const stripWidth = (row: HTMLElement, side: "leading" | "trailing") => Math.roun
 
 /** Waits for the row to stop moving, then returns its offset. */
 async function settled(row: HTMLElement) {
-  await expect.poll(() => track(row).getAnimations({ subtree: true }).length).toBe(0);
+  await expect.poll(() => row.hasAttribute("data-ouro-settling") || track(row).getAnimations({ subtree: true }).length > 0).toBe(false);
   return offset(row);
 }
 
@@ -98,10 +98,28 @@ function middle(element: Element): [number, number] {
   return [rect.left + rect.width / 2, rect.top + rect.height / 2];
 }
 
-/** A one-finger swipe across the row's middle, by `dx` px, starting from its center. */
+/** A one-finger swipe across the row's middle, by `dx` px, starting from its center. The finger lifts while it is still moving: a flick. */
 async function swipe(row: HTMLElement, dx: number, dy = 0) {
   const [x, y] = middle(row);
   await commands.touchDrag({ from: [x, y], to: [x + dx, y + dy], steps: 10 });
+}
+
+/** Keeps the finger still until it has no velocity left: longer than the 100ms a release velocity is read over. */
+async function restFinger() {
+  const since = performance.now();
+  await expect.poll(() => performance.now() - since).toBeGreaterThan(150);
+}
+
+/** The same swipe with a finger that comes to rest before it lifts, so the distance decides. */
+async function slowSwipe(row: HTMLElement, dx: number) {
+  const [x, y] = middle(row);
+  try {
+    await commands.touchStep({ type: "touchStart", x, y });
+    for (let step = 1; step <= 10; step++) await commands.touchStep({ type: "touchMove", x: x + (dx * step) / 10, y });
+    await restFinger();
+  } finally {
+    await commands.touchStep({ type: "touchEnd" });
+  }
 }
 
 /** Whether a tap at (x, y) lands on `target`. */
@@ -154,15 +172,70 @@ describe("SwipeActions on a phone", () => {
     expect(Math.round(pin.getBoundingClientRect().left)).toBe(Math.round(row.getBoundingClientRect().left));
   });
 
-  it("springs back from a swipe shorter than half the actions", async () => {
+  it("springs back from a slow swipe shorter than half the actions, and opens on a flick just as short", async () => {
     const { rows, calls } = await renderList();
     const row = rows[1]!;
-    await swipe(row, -40);
+    await slowSwipe(row, -40);
     await act(async () => {});
     expect(row.hasAttribute("data-open")).toBe(false);
     expect(await settled(row)).toBe(0);
     expect(strip(row, "trailing").inert).toBe(true);
+    // The same 40px with the finger lifting mid-move: the flick opens the row.
+    await swipe(row, -40);
+    await expect.poll(() => row.getAttribute("data-open")).toBe("trailing");
+    expect(await settled(row)).toBe(-stripWidth(row, "trailing"));
+    // And a flick back closes it, although it has not come half way back.
+    await swipe(row, 40);
+    await expect.poll(() => row.hasAttribute("data-open")).toBe(false);
+    expect(await settled(row)).toBe(0);
     expect(calls.remove).not.toHaveBeenCalled();
+  });
+
+  it("writes the transform on the row's track and springs to rest without a CSS transition", async () => {
+    const { rows } = await renderList();
+    const row = rows[1]!;
+    const seen: number[] = [];
+    const watch = new MutationObserver(() => seen.push(offset(row)));
+    watch.observe(track(row), { attributes: true, attributeFilter: ["style"] });
+    cleanups.push(() => watch.disconnect());
+    await swipe(row, -100);
+    await expect.poll(() => row.getAttribute("data-open")).toBe("trailing");
+    const open = await settled(row);
+    expect(open).toBe(-stripWidth(row, "trailing"));
+    expect(track(row).style.transform).toMatch(/^translateX\(-[\d.]+px\)$/);
+    expect(getComputedStyle(track(row)).transitionDuration).toBe("0s");
+    expect(track(row).getAnimations().length).toBe(0);
+    // Many frames between the release and rest, the last exactly on the open position.
+    expect(seen.length).toBeGreaterThan(12);
+    expect(seen.at(-1)).toBe(open);
+    // The flick carried the row a little past open before it came back.
+    expect(Math.min(...seen)).toBeLessThan(open);
+  });
+
+  it("can be caught by a finger while it springs to rest", async () => {
+    const { rows } = await renderList();
+    const row = rows[1]!;
+    const [x, y] = middle(row);
+    await swipe(row, -100);
+    await expect.poll(() => row.hasAttribute("data-ouro-settling")).toBe(true);
+    try {
+      // A second swipe begins before the row has come to rest: the row is the finger's from where it was.
+      await commands.touchStep({ type: "touchStart", x, y });
+      for (let step = 1; step <= 4; step++) await commands.touchStep({ type: "touchMove", x: x + step * 5, y });
+      await expect.poll(() => row.hasAttribute("data-dragging")).toBe(true);
+      expect(row.hasAttribute("data-ouro-settling")).toBe(false);
+      const held = offset(row);
+      await frame();
+      await frame();
+      expect(offset(row)).toBe(held);
+      // And it follows the finger 1:1 from there.
+      for (let step = 5; step <= 8; step++) await commands.touchStep({ type: "touchMove", x: x + step * 5, y });
+      await expect.poll(() => Math.abs(offset(row) - (held + 20))).toBeLessThan(0.05);
+      await restFinger();
+    } finally {
+      await commands.touchStep({ type: "touchEnd" });
+    }
+    await settled(row);
   });
 
   it("commits the primary action with a full swipe, once, and closes the row", async () => {
@@ -201,6 +274,8 @@ describe("SwipeActions on a phone", () => {
       // The user changes their mind and drags back: releasing no longer commits.
       for (let step = 17; step >= 6; step--) await commands.touchStep({ type: "touchMove", x: x - step * 15, y });
       await expect.poll(() => row.hasAttribute("data-full")).toBe(false);
+      // The finger rests at 90px, past half the actions, so the row stays open.
+      await restFinger();
     } finally {
       await commands.touchStep({ type: "touchEnd" });
     }
@@ -222,7 +297,7 @@ describe("SwipeActions on a phone", () => {
     await settled(row);
     expect(location.hash).toBe("");
     // A short swipe that springs back is not a tap either.
-    await swipe(row, -30);
+    await slowSwipe(row, -30);
     await settled(row);
     expect(location.hash).toBe("");
     await commands.tap("#first-row [data-ouro-swipe-actions-content]");
