@@ -55,7 +55,10 @@ shadcn=(npx --yes shadcn@4.21.1)
 preset=${OURO_PRESET:-nova}
 vitest=(npx --yes vitest@5.0.3)
 create_next_app=(npx --yes create-next-app@16.3.8)
-items=(button text heading link field fieldset text-field text-area sheet dialog confirm-dialog)
+# Every component's runtime item (type registry:ui), in registry order, from this commit's registry.json.
+# shellcheck disable=SC2207 # item names have no spaces
+items=($(node -e 'for (const item of require(process.argv[1]).items) if (item.type === "registry:ui") console.log(item.name)' "$root/registry.json"))
+[ "${#items[@]}" -gt 0 ] || { echo "registry.json lists no component"; exit 1; }
 
 # The runtime items add components only: no test, story or spec file, no test kit, no test
 # tooling in package.json, and so nothing for a plain `vitest run` to find.
@@ -92,29 +95,39 @@ if [ "$variant" = next ]; then
   echo "::endgroup::"
 
   echo "::group::Every component from Server Components"
-  # test/install-fixture-next: app/layout.tsx and app/page.tsx are Server Components (no
-  # "use client"). The page renders every component and the Dialog, Sheet and Field parts with
-  # serializable props (elements, strings, a server action for ConfirmDialog's onConfirm). The
-  # layout wraps the app in app/providers.tsx, the client file the README gives Next.js apps
-  # for <OuroProvider linkComponent={Link}>, because next/link's Link can't cross from a Server
+  # test/install-fixture-next: app/layout.tsx, app/page.tsx and the sections in
+  # app/sections/<item>.tsx are Server Components (no "use client"). Each component's section
+  # renders it (and its parts) with serializable props (elements, strings, a server action for
+  # ConfirmDialog's onConfirm), and its `// expect: <pattern>` lines say what the prerendered
+  # page must hold (grep basic regular expressions). The page renders app/sections/index.ts,
+  # which this script writes from the section files. The layout wraps the app in
+  # app/providers.tsx, the client file the README gives Next.js apps for
+  # <OuroProvider linkComponent={Link}>, because next/link's Link can't cross from a Server
   # Component.
   cp -R "$root/test/install-fixture-next/." "$app/"
+  for item in "${items[@]}"; do
+    [ -f "src/app/sections/$item.tsx" ] || { echo "test/install-fixture-next/src/app/sections/$item.tsx is missing: every component renders from a Server Component section"; exit 1; }
+  done
+  node -e '
+    const fs = require("node:fs");
+    const names = fs.readdirSync("src/app/sections").filter((file) => file.endsWith(".tsx")).map((file) => file.slice(0, -4)).sort();
+    const imports = names.map((name, index) => `import Section${index} from "./${name}";`);
+    const list = names.map((name, index) => `  { name: "${name}", Section: Section${index} },`);
+    fs.writeFileSync("src/app/sections/index.ts", `${imports.join("\n")}\n\nexport const sections = [\n${list.join("\n")}\n];\n`);
+  '
   echo "::endgroup::"
 
   echo "::group::Type check, next build, and the install check"
   npx tsc --noEmit
   npx next build
   html=.next/server/app/index.html
-  for text in "Ouro server page" "Rendered by a Server Component." "Ouro button" "Ouro link" "Ouro text link" "Ouro external link" "opens in a new tab" "Ouro fieldset" "Grouped on the server." "Ouro field" "Field description" "Field error" "Ouro text field" "Text field description" "Show password" "Ouro text area" "Text area error" "Ouro parts field" "Open dialog" "Open sheet" "Delete" "Open parts dialog" "Open parts sheet"; do
-    grep -q "$text" "$html" || { echo "the prerendered page has no \"$text\""; exit 1; }
+  for section in src/app/sections/*.tsx; do
+    patterns=$(sed -n 's|^// expect: ||p' "$section")
+    [ -n "$patterns" ] || { echo "$section has no // expect: line"; exit 1; }
+    while IFS= read -r pattern; do
+      grep -q -- "$pattern" "$html" || { echo "the prerendered page has no \"$pattern\" ($section)"; exit 1; }
+    done <<<"$patterns"
   done
-  # Button's href rendered through OuroProvider's linkComponent, next/link.
-  grep -q 'href="/recipes"' "$html" || { echo "the prerendered page has no link to /recipes"; exit 1; }
-  # Link's href through the same linkComponent path, and Field's wiring in the server HTML.
-  grep -q 'href="/cookbooks"' "$html" || { echo "the prerendered page has no link to /cookbooks"; exit 1; }
-  grep -q 'aria-describedby="[^"]*-description [^"]*-error"' "$html" || { echo "the prerendered field has no aria-describedby"; exit 1; }
-  # TextField's description and text adornment ids, through Field, in the server HTML.
-  grep -q 'aria-describedby="[^"]*-description [^"]*-start"' "$html" || { echo "the prerendered text field has no aria-describedby"; exit 1; }
   node "$root/scripts/install-check.mjs" "$app" next runtime
   echo "::endgroup::"
   exit 0

@@ -67,6 +67,7 @@ function headingHint(token: string): string {
  * Use `Text` instead for body copy, and for a dialog or sheet title use its
  * `title` prop, which also labels it for assistive technology.
  *
+ * @group Text
  * @see https://ourostack.github.io/ouro-ui/docs/heading
  *
  * @example

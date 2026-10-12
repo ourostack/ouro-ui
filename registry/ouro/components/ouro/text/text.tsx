@@ -105,6 +105,7 @@ function textHint(token: string): string {
  * Use `Heading` instead for titles (it renders `<h1>`–`<h6>`). Inside a
  * `Button`, pass plain text as children; the button styles it.
  *
+ * @group Text
  * @see https://ourostack.github.io/ouro-ui/docs/text
  *
  * @example
