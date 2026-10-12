@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
@@ -110,9 +110,19 @@ function bin(dir: string, name: string): string {
   }
 }
 
-function run(command: string, args: string[], cwd: string) {
-  const result = spawnSync(command, args, { cwd, encoding: "utf8", env: { ...process.env, FORCE_COLOR: "0", NO_COLOR: "1" } });
-  return { ok: result.status === 0, output: `${result.stdout ?? ""}${result.stderr ?? ""}${result.error ? String(result.error) : ""}` };
+/**
+ * Runs a tool and collects its output. Asynchronous on purpose: a blocking call would stall
+ * every other score running in this process, and a stalled tap reads as a long press.
+ */
+function run(command: string, args: string[], cwd: string): Promise<{ ok: boolean; output: string }> {
+  return new Promise((done) => {
+    const child = spawn(command, args, { cwd, env: { ...process.env, FORCE_COLOR: "0", NO_COLOR: "1" } });
+    let output = "";
+    child.stdout.on("data", (chunk) => (output += chunk));
+    child.stderr.on("data", (chunk) => (output += chunk));
+    child.on("error", (error) => done({ ok: false, output: `${output}${String(error)}` }));
+    child.on("close", (code) => done({ ok: code === 0, output }));
+  });
 }
 
 const sha256 = (path: string) => createHash("sha256").update(readFileSync(path)).digest("hex");
@@ -134,11 +144,11 @@ function agentFiles(dir: string): string[] {
     .filter((path) => baseline[path] !== sha256(join(dir, path)));
 }
 
-function lint(dir: string) {
+async function lint(dir: string) {
   const files = agentFiles(dir);
   if (files.length === 0) return { pass: true, files, output: "No files of the agent's to lint." };
   const config = join(root, "scripts/fixtures/vite-oxlint/.oxlintrc.json");
-  const result = run(join(root, "node_modules/.bin/oxlint"), ["-c", config, "--format", "unix", "--no-ignore", ...files], dir);
+  const result = await run(join(root, "node_modules/.bin/oxlint"), ["-c", config, "--format", "unix", "--no-ignore", ...files], dir);
   const problems = result.output.split("\n").filter((line) => /^\S.*:\d+:\d+: /.test(line));
   return { pass: result.ok && problems.length === 0, files, output: tail(result.output) };
 }
@@ -305,20 +315,20 @@ export async function score({ arm, screen, dir: given, out: outGiven, log = () =
 
   if (existsSync(join(dir, "package-lock.json")) && !existsSync(join(dir, "node_modules"))) {
     log("npm ci");
-    const install = run("npm", ["ci", "--no-audit", "--no-fund"], dir);
+    const install = await run("npm", ["ci", "--no-audit", "--no-fund"], dir);
     if (!install.ok) throw new Error(`npm ci failed in ${dir}:\n${tail(install.output)}`);
   }
 
   log("fixtures");
   const fixtures = checkFixtures(dir, screen);
   log("tsc -b");
-  const tsc = run(bin(dir, "tsc"), ["-b", "--force"], dir);
+  const tsc = await run(bin(dir, "tsc"), ["-b", "--force"], dir);
   const typecheck = { pass: tsc.ok, output: tail(tsc.output) || "tsc -b passed." };
   log("oxlint");
-  const linted = lint(dir);
+  const linted = await lint(dir);
   log("vite build");
   const dist = mkdtempSync(join(tmpdir(), "agent-usability-dist-"));
-  const built = run(bin(dir, "vite"), ["build", "--outDir", dist, "--emptyOutDir", "--logLevel", "warn"], dir);
+  const built = await run(bin(dir, "vite"), ["build", "--outDir", dist, "--emptyOutDir", "--logLevel", "warn"], dir);
   const build = { pass: built.ok && existsSync(join(dist, "index.html")), output: tail(built.output) || "vite build passed." };
 
   const screenshots: string[] = [];

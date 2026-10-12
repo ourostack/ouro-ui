@@ -44,7 +44,8 @@ describe("a known-good screen scores full marks", { concurrency: 2 }, () => {
   for (const screen of screens) {
     test(`${screen}: 100`, async () => {
       const result = await score({ arm: "ouro", screen, dir: fixture(screen, screen), out: join(scratch, `${screen}-score`) });
-      assert.deepEqual(result.failures, [], JSON.stringify(result.failures, null, 2));
+      const errors = result.behavior.filter((check) => !check.pass).map((check) => `${check.id}: ${check.error}`);
+      assert.deepEqual(result.failures, [], [...result.failures, ...errors].join("\n"));
       assert.equal(result.points.score, 100);
       assert.equal(result.axe.length, 4);
       assert.ok(result.screenshots.length >= 4);

@@ -118,6 +118,9 @@ export const recipeList: ScreenChecks = {
           return rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : null;
         }, row);
         if (!box) throw new Error("no revealed Delete button");
+        // A person pauses between a swipe and a tap. Chromium on Linux drops the click of a tap
+        // that lands within a few hundred milliseconds of the swipe's end.
+        await page.waitForTimeout(600);
         await page.touchscreen.tap(box.x, box.y);
         await expect.poll(() => calls(page, "deleteRecipe"), { message: "deleteRecipe ran for the row" }).toEqual([["recipe-1"]]);
         await expect(title(page, first[0]!), "the row left the list").toHaveCount(0);
