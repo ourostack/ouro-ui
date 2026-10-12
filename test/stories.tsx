@@ -146,7 +146,8 @@ export interface Opener {
 /**
  * What opens an overlay in a story: the visible, enabled Base UI triggers (`aria-haspopup`) in
  * the scope, then, at the top level, the plain openers by accessible name and the shortcut. A
- * disabled trigger (a disabled Select in a states story) opens nothing, so it is left out.
+ * disabled trigger (a disabled Select in a states story) opens nothing, so it is left out, and so
+ * is one already expanded (Command's search input, whose inline list always shows).
  * Throws when a plain opener is missing.
  */
 export function overlayOpeners(
@@ -156,7 +157,7 @@ export function overlayOpeners(
   top = true,
 ): Opener[] {
   const roots = Array.isArray(scope) ? scope : [scope];
-  const triggers = [...new Set(roots.flatMap((root) => [...root.querySelectorAll<HTMLElement>('[aria-haspopup]:not([aria-haspopup="false"])')]))]
+  const triggers = [...new Set(roots.flatMap((root) => [...root.querySelectorAll<HTMLElement>('[aria-haspopup]:not([aria-haspopup="false"]):not([aria-expanded="true"])')]))]
     .filter((element) => !element.matches(':disabled, [aria-disabled="true"], [data-disabled]') && isVisible(element))
     .map((element) => ({ name: accessibleName(element), open: () => userEvent.click(element) }));
   if (!top) return triggers;
@@ -176,7 +177,14 @@ export async function settle(): Promise<void> {
     const running = document
       .getAnimations()
       .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity && animation.playState === "running");
-    if (running.length === 0) return;
+    if (running.length === 0) {
+      // Chart's marks animate with JavaScript (recharts), which getAnimations() cannot see; the plot marks it.
+      if (!document.querySelector("[data-ouro-chart-animating]")) return;
+      await vi.waitFor(() => {
+        if (document.querySelector("[data-ouro-chart-animating]")) throw new Error("a chart is still animating");
+      }, waitOptions);
+      continue;
+    }
     await Promise.all(running.map((animation) => animation.finished.catch(() => undefined)));
   }
   throw new Error("animations did not settle");

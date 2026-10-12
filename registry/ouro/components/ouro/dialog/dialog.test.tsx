@@ -1,4 +1,4 @@
-import { createRef, StrictMode, useState, type ReactNode } from "react";
+import { createRef, StrictMode, useState, type ReactElement, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -186,6 +186,19 @@ describe("Dialog server rendering", () => {
     expect(html).toContain(">o<");
     expect(html).not.toContain("data-ouro-presentation");
     expect(error).not.toHaveBeenCalled();
+  });
+
+  it("renders a trigger that a Server Component passed as a lazy wrapper", () => {
+    // What React's Flight client hands a client component for an element prop
+    // (https://github.com/facebook/react/issues/32392): no `type` and no `props`.
+    const fromServer = { $$typeof: Symbol.for("react.lazy"), _payload: <Button>o</Button>, _init: (payload: unknown) => payload } as unknown as ReactElement;
+    const html = renderToString(
+      <Dialog title="t" trigger={fromServer}>
+        x
+      </Dialog>,
+    );
+    expect(html).toContain(">o<");
+    expect(html).toContain('aria-haspopup="dialog"');
   });
 
   it.each([
