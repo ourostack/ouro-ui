@@ -10,7 +10,8 @@ export interface Check {
   covers: number[];
   viewport: Viewport;
   /**
-   * False for a check that a near-empty page passes, such as "doesn't scroll sideways". Such a
+   * False for a check that a near-empty page passes, such as "doesn't scroll sideways" or the
+   * app shell's skip link. Such a
    * check earns its share only when another check passes (formula.mts, rule 1).
    */
   gate?: false;

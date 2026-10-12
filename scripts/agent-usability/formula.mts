@@ -20,8 +20,9 @@
  *
  * 1. A screen that does nothing scores 0. Every point is earned only when at least one behavior
  *    check that exercises the task passes. A check that a near-empty page passes, such as "the
- *    page doesn't scroll sideways at 390px" (marked `gate: false`), doesn't count toward that,
- *    and earns its own share only once another check passes. So a page with one heading, or an
+ *    page doesn't scroll sideways at 390px" or the app shell's skip link (marked `gate: false`),
+ *    doesn't count toward that, and earns its own share only once another check passes. So a
+ *    page that does only the minimum, such as one heading, one heading and a skip link, or an
  *    untouched app, scores 0 however clean its code is.
  * 2. No behavior check counts when the app does not build, or when the agent changed the
  *    backend stand-in (src/api/). By rule 1 such a run scores 0.
@@ -43,7 +44,7 @@
 export const weights = { typecheck: 20, lint: 10, axe: 20, behavior: 50 } as const;
 
 /** Bump when the formula changes, so tables never mix scores from two formulas. */
-export const formulaVersion = 3;
+export const formulaVersion = 4;
 
 /** How many times each arm builds each screen. */
 export const runsPerCell = 3;

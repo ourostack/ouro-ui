@@ -103,6 +103,8 @@ export const appShell: ScreenChecks = {
       title: '"Skip to content" is the first Tab stop and moves focus to the main area',
       covers: [5],
       viewport: "desktop",
+      // A skip link and a heading pass it, so on its own it shows no work on the shell.
+      gate: false,
       async run(page) {
         await page.keyboard.press("Tab");
         await expect(page.getByRole("link", { name: /^skip to (main )?content$/i }), "the first Tab stop").toBeFocused();

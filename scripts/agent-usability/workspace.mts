@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isScreen, screensDir, type Screen } from "./screens.mts";
@@ -105,22 +105,29 @@ export const agentConfigDir = ".agent-config";
 
 /**
  * Puts the arm's original config files back, so a run is judged with the settings it was
- * given and a config edit neither helps nor costs. The agent's changed and added config files
- * move to .agent-config/, with changed.json listing them, as evidence. Returns that list. On a
- * second scoring, it reads the list instead, because the files are already restored.
+ * given and a config edit neither helps nor costs. It restores from the record every time,
+ * whatever is on disk, so a rescore gives the same result even if the run's files were
+ * reverted after an earlier scoring. The agent's changed and added config files move to
+ * .agent-config/, with changed.json listing them, as evidence; the first copy kept wins.
+ * Returns that list.
  */
 export function restoreConfig(dir: string, record: ArmRecord): string[] {
   const kept = join(dir, agentConfigDir);
   const list = join(kept, "changed.json");
-  if (existsSync(list)) return JSON.parse(readFileSync(list, "utf8"));
-  const changed = changedConfig(dir, record.config);
-  if (changed.length === 0) return [];
-  mkdirSync(kept, { recursive: true });
-  for (const path of changed) {
-    if (existsSync(join(dir, path))) renameSync(join(dir, path), join(kept, path));
-    if (path in record.configFiles) writeFileSync(join(dir, path), record.configFiles[path]!);
+  const before: string[] = existsSync(list) ? JSON.parse(readFileSync(list, "utf8")) : [];
+  const now = changedConfig(dir, record.config);
+  if (now.length > 0) {
+    mkdirSync(kept, { recursive: true });
+    for (const path of now) {
+      if (existsSync(join(dir, path))) {
+        if (existsSync(join(kept, path))) rmSync(join(dir, path));
+        else renameSync(join(dir, path), join(kept, path));
+      }
+      if (path in record.configFiles) writeFileSync(join(dir, path), record.configFiles[path]!);
+    }
   }
-  writeFileSync(list, `${JSON.stringify(changed, null, 2)}\n`);
+  const changed = [...new Set([...before, ...now])].sort();
+  if (changed.length > 0) writeFileSync(list, `${JSON.stringify(changed, null, 2)}\n`);
   const left = changedConfig(dir, record.config);
   if (left.length > 0) throw new Error(`could not restore the arm's config in ${dir}: ${left.join(", ")}`);
   return changed;

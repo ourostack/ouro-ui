@@ -98,7 +98,7 @@ describe("a broken copy of the confirm-delete screen loses exactly the expected 
     assert.equal(result.points.score, 100);
     const written = JSON.parse(readFileSync(join(scratch, "written-score/score.json"), "utf8"));
     assert.deepEqual(written.points, { typecheck: 20, lint: 10, axe: 20, behavior: 50, score: 100, max: 100 });
-    assert.equal(written.formulaVersion, 3);
+    assert.equal(written.formulaVersion, 4);
     assert.match(written.versions.axeCore, /^\d+\.\d+\.\d+/);
     assert.match(written.versions.chromium, /^\d+\./);
     if (existsSync(join(root, ".git"))) assert.match(written.versions.harness, /^[0-9a-f]{40}$/);
@@ -212,7 +212,7 @@ describe("one broken copy of every other screen loses exactly the checks it brea
   });
 });
 
-describe("a page with only its heading scores 0 on every screen", { concurrency: 2 }, () => {
+describe("a page that does only the minimum scores 0 on every screen", { concurrency: 2 }, () => {
   const headings = { "settings-form": "Account settings", "recipe-list": "My recipes", "command-palette": "Kitchen", "confirm-delete": "Cookbooks", "app-shell": "Home" };
   for (const screen of screens) {
     test(screen, async () => {
@@ -222,6 +222,13 @@ describe("a page with only its heading scores 0 on every screen", { concurrency:
       assert.deepEqual(result.points, { typecheck: 0, lint: 0, axe: 0, behavior: 0, score: 0, max: 100 });
     });
   }
+
+  test("app-shell with a heading and a skip link", async () => {
+    const page = '<a href="#main" onClick={(event) => {\n        event.preventDefault();\n        document.getElementById("main")?.focus();\n      }}>\n        Skip to content\n      </a>\n      <main id="main" tabIndex={-1}>\n        <h1>Home</h1>\n      </main>';
+    const result = await scoreOf("skip-link-only", "app-shell", () => `export function App() {\n  return (\n    <>\n      ${page}\n    </>\n  );\n}\n`);
+    assert.deepEqual(result.behavior.filter((check) => check.pass).map((check) => check.id).sort(), ["fits-a-phone", "skip-link"]);
+    assert.deepEqual(result.points, { typecheck: 0, lint: 0, axe: 0, behavior: 0, score: 0, max: 100 });
+  });
 });
 
 // One at a time: each test type checks an app while it sets up, which would starve the other's browser.
@@ -271,10 +278,14 @@ describe("an agent pays only for what it did, not for what the app started with"
     assert.equal(result.points.score, 100 - weights.typecheck);
     assert.match(readFileSync(join(dir, "tsconfig.app.json"), "utf8"), /"noUnusedLocals": true/);
     assert.match(readFileSync(join(dir, ".agent-config/tsconfig.app.json"), "utf8"), /"noUnusedLocals": false/);
-    // Scoring again reads the list of changes, because the files are already restored.
+    // Revert the scored run's config to the agent's, as a `git restore` of the run would, and
+    // score again: the original is restored again and the result is the same.
+    cpSync(join(dir, ".agent-config/tsconfig.app.json"), join(dir, "tsconfig.app.json"));
     const again = await score({ arm: "ouro", screen: "confirm-delete", dir, record: path, out: join(scratch, "config-again-score") });
     assert.deepEqual(again.checks.config.changed, ["tsconfig.app.json"]);
-    assert.equal(again.points.score, 100 - weights.typecheck);
+    assert.deepEqual(again.points, result.points);
+    assert.match(readFileSync(join(dir, "tsconfig.app.json"), "utf8"), /"noUnusedLocals": true/);
+    assert.match(readFileSync(join(dir, ".agent-config/tsconfig.app.json"), "utf8"), /"noUnusedLocals": false/);
   });
 
   test("a harmless config rewrite and an added config file cost nothing", async () => {
@@ -414,7 +425,7 @@ test("the results table lists every run, the median, the agent and each arm's pi
       JSON.stringify({
         arm,
         screen,
-        formulaVersion: 3,
+        formulaVersion: 4,
         versions: { harness: "0123456789abcdef0123456789abcdef01234567", axeCore: "4.12.0", chromium: "150.0.1" },
         points: { typecheck: 20, lint: 10, axe: 20, behavior: total - 50, score: total, max: 100 },
       }),
@@ -464,7 +475,7 @@ test("the results table lists every run, the median, the agent and each arm's pi
   assert.ok(lines.includes("| llms.txt (sha256) | abcdef012345 | abcdef012345 |"), table);
   assert.ok(lines.includes("| react | 19.3.0 | 19.3.0 |"), table);
   assert.ok(lines.includes("| Type errors before the agent ran | 1 | 0 |"), table);
-  assert.match(table, /Scored by harness commit 0123456789ab, axe-core 4\.12\.0, Chromium 150\.0\.1, formula 3 /);
+  assert.match(table, /Scored by harness commit 0123456789ab, axe-core 4\.12\.0, Chromium 150\.0\.1, formula 4 /);
 
   // With three runs of every screen for every arm, the means appear.
   for (const arm of arms) for (const screen of screens) for (const run of [1, 2, 3]) write(arm, screen, run, 60 + run * 10);
