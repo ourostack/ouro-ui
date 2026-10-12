@@ -16,6 +16,8 @@ const runtimeFiles = [
   "src/components/ouro/dialog/confirm-dialog.tsx",
   "src/components/ouro/field/field-parts.tsx",
   "src/components/ouro/link/link.tsx",
+  "src/components/ouro/text-field/text-field.tsx",
+  "src/components/ouro/text-field/text-area-styles.ts",
   "src/lib/ouro/cn.ts",
   "src/lib/ouro/env.d.ts",
 ];
@@ -67,7 +69,13 @@ test("a runtime install that brought tests, stories, specs, the test kit or test
 
 test("a runtime import whose package left dependencies fails", () => {
   const dir = app("shadcn");
-  writeFileSync(join(dir, "src/lib/ouro/cn.ts"), 'import { clsx } from "clsx";\nimport { Field } from "@base-ui/react/field";\nimport "./x";\n');
+  writeFileSync(
+    join(dir, "src/lib/ouro/cn.ts"),
+    'import { clsx } from "clsx";\nimport { Field } from "@base-ui/react/field";\nimport "./x";\n' +
+      // A dynamic import counts, and an import written in a comment or a string does not
+      // (the TypeScript parser, as scripts/registry.mts reads imports).
+      'const lazy = () => import("lazy-pkg");\n// import { a } from "commented-pkg";\nconst text = \'from "string-pkg"\';\n',
+  );
   writeFileSync(
     join(dir, "package.json"),
     JSON.stringify({ dependencies: { react: "^19.3.0" }, devDependencies: { "@base-ui/react": "^1.8.0", vitest: "^5.0.3" } }),
@@ -75,6 +83,8 @@ test("a runtime import whose package left dependencies fails", () => {
   const problems = checkInstall(dir, "shadcn", "tests").join("\n");
   assert.match(problems, /@base-ui\/react moved to devDependencies, so a production install would lack it/);
   assert.match(problems, /clsx is imported by an Ouro runtime file but is not in dependencies/);
+  assert.match(problems, /lazy-pkg is imported by an Ouro runtime file but is not in dependencies/);
+  assert.doesNotMatch(problems, /commented-pkg|string-pkg/);
   // A test file's imports do not count.
   assert.doesNotMatch(problems, /vitest/);
 });

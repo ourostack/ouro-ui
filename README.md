@@ -149,7 +149,7 @@ If your own code imports these helpers, change the import:
 Then type check and build your app. CI runs steps 1 to 3 on a v0.1.0 app, with these commands read from this file (`scripts/install-test.sh upgrade`).
 <!-- upgrade:end -->
 
-Items: `button`, `text`, `heading`, `link`, `field`, `fieldset`, `sheet`, `dialog`, `confirm-dialog`, plus `ouro-base` and `ouro-lib`, which every component brings, and the optional `ouro-theme`. Tests, all optional: `button-tests`, `text-tests`, `heading-tests`, `sheet-tests`, `dialog-tests`, `confirm-dialog-tests`, `link-tests`, `field-tests`, `fieldset-tests`, `ouro-lib-tests`, the test kit `ouro-testing` that they bring, and `ouro-tests`, which adds them all.
+Items: `button`, `text`, `heading`, `link`, `field`, `fieldset`, `text-field`, `text-area`, `sheet`, `dialog`, `confirm-dialog`, plus `ouro-base` and `ouro-lib`, which every component brings, and the optional `ouro-theme`. Tests, all optional: `button-tests`, `text-tests`, `heading-tests`, `sheet-tests`, `dialog-tests`, `confirm-dialog-tests`, `link-tests`, `field-tests`, `fieldset-tests`, `text-field-tests`, `text-area-tests`, `ouro-lib-tests`, the test kit `ouro-testing` that they bring, and `ouro-tests`, which adds them all.
 
 ## For agents
 
@@ -183,6 +183,8 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 - **Field** — A labeled form control: the label, an optional description, the control and its error, wired together with ids that match between the server and the browser. [Docs](docs/Field.md)
 - **Fieldset** — A titled group of related fields, such as an address, rendered as a `<fieldset>` named by its legend. [Docs](docs/Fieldset.md)
+- **TextArea** — A labeled multi-line text field on the Field contract, a native `<textarea>`: pass `label`, and `error` from your server action or client check. [Docs](docs/TextArea.md)
+- **TextField** — A labeled one-line text input on the Field contract: pass `label`, and `error` from your server action or client check. [Docs](docs/TextField.md)
 
 ### Overlays
 

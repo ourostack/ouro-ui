@@ -8,6 +8,8 @@ import linkDoc from "../../../docs/Link.md?raw";
 import partsDoc from "../../../docs/parts.md?raw";
 import sheetDoc from "../../../docs/Sheet.md?raw";
 import textDoc from "../../../docs/Text.md?raw";
+import textAreaDoc from "../../../docs/TextArea.md?raw";
+import textFieldDoc from "../../../docs/TextField.md?raw";
 
 /**
  * One docs page per registry item. `name` is the registry item name, so the page lives at
@@ -36,6 +38,14 @@ export const docsItems: DocsItem[] = [
   { name: "link", title: "Link", group: "Text", source: "registry/ouro/components/ouro/link/link.tsx", markdown: linkDoc },
   { name: "field", title: "Field", group: "Forms", source: "registry/ouro/components/ouro/field/field.tsx", markdown: fieldDoc, parts: "Field" },
   { name: "fieldset", title: "Fieldset", group: "Forms", source: "registry/ouro/components/ouro/field/fieldset.tsx", markdown: fieldsetDoc },
+  {
+    name: "text-field",
+    title: "TextField",
+    group: "Forms",
+    source: "registry/ouro/components/ouro/text-field/text-field.tsx",
+    markdown: textFieldDoc,
+  },
+  { name: "text-area", title: "TextArea", group: "Forms", source: "registry/ouro/components/ouro/text-field/text-area.tsx", markdown: textAreaDoc },
   { name: "sheet", title: "Sheet", group: "Overlays", source: "registry/ouro/components/ouro/sheet/sheet.tsx", markdown: sheetDoc, parts: "Sheet" },
   { name: "dialog", title: "Dialog", group: "Overlays", source: "registry/ouro/components/ouro/dialog/dialog.tsx", markdown: dialogDoc, parts: "Dialog" },
   {

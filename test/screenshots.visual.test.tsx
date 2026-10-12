@@ -20,6 +20,10 @@ const subjects = [
   { name: "field-states", Story: storyFiles.Field.States },
   { name: "fieldset", Story: storyFiles.Fieldset.Address },
   { name: "link", Story: storyFiles.Link.InContext },
+  { name: "text-field-types", Story: storyFiles.TextField.Types },
+  { name: "text-field-states", Story: storyFiles.TextField.States },
+  { name: "text-field-adornments", Story: storyFiles.TextField.Adornments },
+  { name: "text-area-states", Story: storyFiles.TextArea.States },
 ];
 
 const modes = [

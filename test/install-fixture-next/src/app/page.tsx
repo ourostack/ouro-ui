@@ -17,6 +17,8 @@ import { Field } from "@/components/ouro/field/field";
 import { FieldControl, FieldError, FieldLabel, FieldRoot } from "@/components/ouro/field/field-parts";
 import { Fieldset } from "@/components/ouro/field/fieldset";
 import { Link } from "@/components/ouro/link/link";
+import { TextArea } from "@/components/ouro/text-field/text-area";
+import { TextField } from "@/components/ouro/text-field/text-field";
 import { Sheet } from "@/components/ouro/sheet/sheet";
 import {
   SheetBackdrop,
@@ -52,6 +54,9 @@ export default function Page() {
           <FieldControl type="email" />
         </Field>
       </Fieldset>
+      <TextField label="Ouro text field" type="email" name="contact" description="Text field description" startAdornment="@" clearable defaultValue="ari" />
+      <TextField label="Ouro password" type="password" name="password" />
+      <TextArea label="Ouro text area" name="message" autoGrow rows={2} maxRows={6} error="Text area error" />
       <FieldRoot name="notes">
         <FieldLabel>Ouro parts field</FieldLabel>
         <FieldControl />

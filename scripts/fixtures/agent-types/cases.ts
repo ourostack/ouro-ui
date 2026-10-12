@@ -31,6 +31,7 @@ const variants =
   `(string & { 'From shadcn? Use tone="destructive" or tone="secondary". default is "solid"; ghost and link are "plain"': never; }) | "solid" | "soft" | "outline" | "plain" | undefined`;
 const sizes = `"sm" | "md" | "lg" | (string & { 'From shadcn? default is "md"; for icon, pass aria-label with the icon as children': never; }) | undefined`;
 const tones = `"primary" | "secondary" | "destructive" | "success" | "warning" | (string & { 'danger is "destructive"; accent is "primary"; neutral is "secondary"': never; }) | undefined`;
+const textFieldTypes = `"text" | "email" | "password" | "tel" | "url" | "search" | "date" | "time" | (string & { 'number is <NumberField>; digit codes: inputMode="numeric"': never; }) | undefined`;
 const align = `(string & { 'Use "start", "center" or "end": left is "start", right is "end"': never; })`;
 const sheetControl = "<Sheet open={open} onOpenChange={setOpen}>";
 const dialogControl = "<Dialog open={open} onOpenChange={setOpen}>";
@@ -206,6 +207,26 @@ export const agentCases: AgentCase[] = [
   { id: "s40", habit: "React Router's to", tsc: [hint("string", 'Use <Link href="/recipes">')], dev: '<Link href="/recipes">', names: ["tsc", "dev"] },
   { id: "s41", habit: "Chakra's isExternal", tsc: [hint("boolean", 'Use <Link href="https://..." external>')], dev: '<Link href="https://…" external>', names: ["tsc", "dev"] },
   { id: "s42", habit: "a danger tone on Link", tsc: [notAssignable('"danger"', tones)], dev: '<Link tone="destructive">', names: ["tsc", "dev"] },
+  {
+    id: "s43",
+    habit: "a number input",
+    tsc: [notAssignable('"number"', textFieldTypes)],
+    dev: '<NumberField label="Servings" />, or <TextField inputMode="numeric"> for digit codes',
+    names: ["tsc", "dev"],
+  },
+  { id: "s44", habit: "MUI's helperText on TextField", tsc: [hint("string", 'Use <TextField description="...">')], dev: '<TextField description="We never share it.">', names: ["tsc", "dev"] },
+  { id: "s45", habit: "a prefix prop", tsc: [hint("string", 'Use <TextField startAdornment="$">')], dev: '<TextField startAdornment="$">', names: ["tsc", "dev"] },
+  { id: "s46", habit: "MUI's multiline", tsc: [hint("boolean", 'Use <TextArea label="Notes" autoGrow />')], dev: '<TextArea label="Notes" autoGrow />', names: ["tsc", "dev"] },
+  { id: "s47", habit: "React Select's isClearable", tsc: [hint("boolean", "Use <TextField clearable>")], dev: "<TextField clearable>", names: ["tsc", "dev"] },
+  { id: "s48", habit: "MUI's minRows", tsc: [hint("number", "Use <TextArea autoGrow rows={2} maxRows={8}>")], dev: "<TextArea autoGrow rows={2} maxRows={8}>", names: ["tsc", "dev"] },
+  { id: "s49", habit: "an autoResize prop", tsc: [hint("boolean", "Use <TextArea autoGrow>")], dev: "<TextArea autoGrow>", names: ["tsc", "dev"] },
+  {
+    id: "s50",
+    habit: "a placeholder as the label",
+    tsc: [`error TS2741: Property 'label' is missing in type '{ placeholder: string; }' but required in type 'TextFieldOwnProps'.`],
+    dev: '<TextField label="Email" hideLabel> to hide a label you still need',
+    names: ["tsc", "dev"],
+  },
   { id: "v01", habit: "shadcn's destructive variant", tsc: [notAssignable('"destructive"', variants)], dev: '<Button tone="destructive">', names: ["tsc", "dev"] },
   { id: "v02", habit: "shadcn's default variant", tsc: [notAssignable('"default"', variants)], dev: "<Button>", names: ["tsc", "dev"] },
   { id: "v03", habit: "shadcn's secondary variant", tsc: [notAssignable('"secondary"', variants)], dev: '<Button tone="secondary">', names: ["tsc", "dev"] },
@@ -214,4 +235,4 @@ export const agentCases: AgentCase[] = [
 ];
 
 /** Valid snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets = ["ok01", "ok02", "ok03", "ok04", "ok05", "ok06", "ok07", "ok08", "ok09", "ok10"];
+export const validSnippets = ["ok01", "ok02", "ok03", "ok04", "ok05", "ok06", "ok07", "ok08", "ok09", "ok10", "ok11", "ok12"];

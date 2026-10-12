@@ -33,3 +33,28 @@ export const FieldContext = createContext<FieldContextValue | null>(null);
 export function useField(): FieldContextValue | null {
   return useContext(FieldContext);
 }
+
+/** The component a Field belongs to: its name in development messages and its `data-ouro` value. */
+export interface FieldOwner {
+  /** The component name development messages start with and show in each fix, such as `TextField`. */
+  name: string;
+  /** The root's `data-ouro` value, such as `text-field`. */
+  data: string;
+}
+
+/**
+ * The component a `Field` renders for. A control built on `Field` (TextField, TextArea)
+ * provides its own, so Field's messages and root name that control; `Field` alone is `Field`.
+ *
+ * @internal
+ */
+export const FieldOwnerContext = createContext<FieldOwner>({ name: "Field", data: "field" });
+
+/**
+ * The component the enclosing `Field` renders for.
+ *
+ * @internal
+ */
+export function useFieldOwner(): FieldOwner {
+  return useContext(FieldOwnerContext);
+}

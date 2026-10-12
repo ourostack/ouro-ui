@@ -12,6 +12,8 @@ import * as LinkStories from "@/registry/ouro/components/ouro/link/link.stories"
 import * as SheetStories from "@/registry/ouro/components/ouro/sheet/sheet.stories";
 import * as HeadingStories from "@/registry/ouro/components/ouro/text/heading.stories";
 import * as TextStories from "@/registry/ouro/components/ouro/text/text.stories";
+import * as TextAreaStories from "@/registry/ouro/components/ouro/text-field/text-area.stories";
+import * as TextFieldStories from "@/registry/ouro/components/ouro/text-field/text-field.stories";
 import * as SheetFeelStories from "@/stories/reference/sheet-feel.stories";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -36,6 +38,8 @@ export const storyFiles = {
   Sheet: composeStories(SheetStories),
   SheetFeel: composeStories(SheetFeelStories),
   Text: composeStories(TextStories),
+  TextArea: composeStories(TextAreaStories),
+  TextField: composeStories(TextFieldStories),
 };
 
 export interface StoryEntry {

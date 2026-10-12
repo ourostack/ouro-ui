@@ -1,6 +1,8 @@
 import { toneFor } from "@/registry/ouro/lib/ouro/appearance-hints";
+import type { DevWarning } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 
-export { controlClass, descriptionClass, errorClass, fieldHint, labelClass, legendClass, rootClass };
+export { contractWarnings, controlClass, descriptionClass, errorClass, fieldHint, labelClass, legendClass, rootClass };
+export type { ContractGuesses };
 
 // Class strings and dev-message helpers shared by Field, Fieldset and the Field parts, apart
 // from the components so each component file exports only components (React Fast Refresh).
@@ -53,15 +55,16 @@ const legendClass = "m-0 p-0 text-base leading-6 font-semibold text-foreground d
 
 /**
  * The text control: 44px tall with a 16px font on phones (iOS zooms into smaller text on
- * focus), stepping down to desktop density from the `sm` breakpoint. Its height is one
+ * focus), stepping down to desktop density from the `sm` breakpoint with a fine pointer, so a
+ * landscape phone keeps the phone size. Its height is one
  * unprefixed class that reads a variable, so an app's `h-*` replaces it at every width.
  *
  * @internal
  */
 const controlClass =
   "m-0 box-border block w-full min-w-0 h-(--ouro-control-h) px-3 py-0 " +
-  "[--ouro-control-h:calc(var(--spacing)*11)] sm:[--ouro-control-h:calc(var(--spacing)*9)] " +
-  "rounded-md border border-solid border-input bg-transparent text-base text-foreground sm:text-sm " +
+  "[--ouro-control-h:calc(var(--spacing)*11)] sm:pointer-fine:[--ouro-control-h:calc(var(--spacing)*9)] " +
+  "rounded-md border border-solid border-input bg-transparent text-base text-foreground sm:pointer-fine:text-sm " +
   "font-[inherit] placeholder:text-muted-foreground " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
   "transition-[border-color] duration-(--ouro-duration-fast) ease-out " +
@@ -74,6 +77,38 @@ const controlClass =
  *
  * @internal
  */
-function fieldHint(token: string): string {
-  return toneFor(token) === "destructive" ? '<Field error="What is wrong">' : "style fields in your theme (--input, --ring, --radius)";
+function fieldHint(token: string, component = "Field"): string {
+  return toneFor(token) === "destructive" ? `<${component} error="What is wrong">` : "style fields in your theme (--input, --ring, --radius)";
+}
+
+/**
+ * The Field contract's guessed prop names, which a control built on Field declares as hint types.
+ *
+ * @internal
+ */
+interface ContractGuesses {
+  errorMessage?: unknown;
+  helperText?: unknown;
+  isInvalid?: unknown;
+  invalid?: unknown;
+  isRequired?: unknown;
+  isDisabled?: unknown;
+}
+
+/**
+ * The development messages for the contract's guessed props on a control built on Field,
+ * each naming the real prop. Development only.
+ *
+ * @internal
+ */
+function contractWarnings(component: string, guesses: ContractGuesses): DevWarning[] {
+  const { errorMessage, helperText, isInvalid, invalid, isRequired, isDisabled } = guesses;
+  return [
+    errorMessage !== undefined && ["errorMessage is not a prop", `<${component} error="${String(errorMessage)}">`],
+    helperText !== undefined && ["helperText is not a prop", `<${component} description="${String(helperText)}">`],
+    isInvalid !== undefined && ["isInvalid is not a prop", `<${component} error="What is wrong">`],
+    invalid !== undefined && ["invalid is not a prop", `<${component} error="What is wrong">`],
+    isRequired !== undefined && ["isRequired is not a prop", `<${component} required>`],
+    isDisabled !== undefined && ["isDisabled is not a prop", `<${component} disabled>`],
+  ];
 }
