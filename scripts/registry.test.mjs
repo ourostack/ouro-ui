@@ -246,7 +246,8 @@ test("registryDependencies are the same-repo items each item imports, as full un
 
 test("npm dependencies are pinned to the ranges this repository tests", () => {
   assert.deepEqual(item("button").dependencies, ["@base-ui/react@^1.8.0"]);
-  assert.deepEqual(item("ouro-lib").dependencies, ["clsx@^2.1.1", "tailwind-merge@^3.7.0"]);
+  // OuroProvider groups tooltips with Base UI's Tooltip.Provider.
+  assert.deepEqual(item("ouro-lib").dependencies, ["@base-ui/react@^1.8.0", "clsx@^2.1.1", "tailwind-merge@^3.7.0"]);
   assert.ok(!JSON.stringify(registry).includes('"motion@'), "no item depends on motion");
   assert.equal(item("button").devDependencies, undefined);
   assert.deepEqual(item("ouro-testing").devDependencies, ["@playwright/test@^1.63.0", "@vitest/browser-playwright@^5.0.3", "playwright@^1.63.0", "vitest@^5.0.3"]);
