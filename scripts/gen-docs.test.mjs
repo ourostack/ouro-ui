@@ -172,9 +172,12 @@ test("the catalog is grouped by job in README", async () => {
 });
 
 test("no timestamps", () => {
+  // Example dates in code (Calendar's `value="2026-10-11"`) are not timestamps; prose must have none.
+  const prose = (text) => text.replace(/```[\s\S]*?```/g, "").replace(/`[^`\n]*`/g, "");
   for (const file of readdirSync(join(root, "docs"))) {
-    assert.doesNotMatch(doc(file), /\b20\d\d-\d\d-\d\d\b/, file);
+    assert.doesNotMatch(prose(doc(file)), /\b20\d\d-\d\d-\d\d\b/, file);
   }
+  assert.match(prose("Generated 2026-10-11."), /\b20\d\d-\d\d-\d\d\b/);
 });
 
 test("Sheet's usage names the import of every part it tells you to use", () => {

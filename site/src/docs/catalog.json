@@ -55,6 +55,18 @@
     "source": "registry/ouro/components/ouro/text-field/text-area.tsx"
   },
   {
+    "name": "calendar",
+    "title": "Calendar",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/calendar/calendar.tsx"
+  },
+  {
+    "name": "date-picker",
+    "title": "DatePicker",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/calendar/date-picker.tsx"
+  },
+  {
     "name": "sheet",
     "title": "Sheet",
     "group": "Overlays",

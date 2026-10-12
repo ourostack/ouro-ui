@@ -1,0 +1,389 @@
+"use client";
+
+import { useEffect, useRef, useState, type ChangeEvent, type JSX, type MouseEvent, type ReactNode, type Ref } from "react";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Calendar } from "@/registry/ouro/components/ouro/calendar/calendar";
+import { isIsoDate, isoWarning } from "@/registry/ouro/components/ouro/calendar/calendar-styles";
+import { formatDateInput, parseDateInput } from "@/registry/ouro/components/ouro/calendar/date-picker-styles";
+import { Field } from "@/registry/ouro/components/ouro/field/field";
+import { FieldControl } from "@/registry/ouro/components/ouro/field/field-parts";
+import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-styles";
+import {
+  PopoverClose,
+  PopoverPopupUnchecked,
+  PopoverPortal,
+  PopoverPositionerUnchecked,
+  PopoverRoot,
+  PopoverTitle,
+  PopoverTrigger,
+} from "@/registry/ouro/components/ouro/popover/popover-parts";
+import { endSlotClass, groupClass, inputClass } from "@/registry/ouro/components/ouro/text-field/text-field-styles";
+import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
+import { FieldOwnerContext } from "@/registry/ouro/lib/ouro/use-field";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
+
+/** Props for {@link DatePicker}. */
+export interface DatePickerProps {
+  /**
+   * What the date is for, shown above the field and read as its name. Required: every control
+   * needs a name. To hide it visually, keep it and add `hideLabel`.
+   */
+  label: string;
+  /** Hides the label visually; screen readers still read it as the field's name. */
+  hideLabel?: boolean | undefined;
+  /** Supporting text under the label, read after the label through `aria-describedby`. */
+  description?: ReactNode | undefined;
+  /**
+   * What is wrong, from your server action or client check. The message (or several, as a
+   * list) shows under the field, which gets `aria-invalid`. An empty string or array means valid.
+   */
+  error?: string | string[] | undefined;
+  /** A date must be given: the field gets `required` and `aria-required`, and the label a marker. */
+  required?: boolean | undefined;
+  /** Disables the field and its calendar button, and fades it. */
+  disabled?: boolean | undefined;
+  /** The form field name. The form submits the ISO date (`2026-10-11`) under it, or an empty string. */
+  name?: string | undefined;
+  /** The date as an ISO date (`"2026-10-11"`), or `""` for none. Pass it with `onValueChange` to control the field. */
+  value?: string | undefined;
+  /** The date at first, as an ISO date, when you do not control `value`. */
+  defaultValue?: string | undefined;
+  /** Called with the ISO date when the user picks or types a date, and with `""` when the field no longer holds one. */
+  onValueChange?: ((value: string) => void) | undefined;
+  /** The earliest date allowed, as an ISO date. Earlier days are unavailable in the calendar, and a typed one is invalid. */
+  min?: string | undefined;
+  /** The latest date allowed, as an ISO date. Later days are unavailable in the calendar, and a typed one is invalid. */
+  max?: string | undefined;
+  /**
+   * Marks single days unavailable: `isDateDisabled={(date) => booked.has(date)}`. It gets each
+   * day as an ISO date. Such a day, typed or picked in the phone's own picker, is invalid.
+   */
+  isDateDisabled?: ((date: string) => boolean) | undefined;
+  /**
+   * The BCP 47 locale for the calendar and the typed format: `"en-GB"` reads 11/10/2026 as
+   * 11 October and starts weeks on Monday. Pass your app's locale; the default is the same
+   * on the server and in the browser. Phones show their own picker in the phone's language.
+   * @default "en-US"
+   */
+  locale?: string | undefined;
+  /** An example of what to type, shown while the field is empty: `"MM/DD/YYYY"`. It is not a label. */
+  placeholder?: string | undefined;
+  /** The field shows its date but cannot be changed; its calendar button is disabled. */
+  readOnly?: boolean | undefined;
+  /**
+   * The label of the button that opens the calendar. Translate it with your app.
+   * @default "Choose date"
+   */
+  chooseDateLabel?: string | undefined;
+  /**
+   * The calendar's previous month button's label. Translate it with your app.
+   * @default "Previous month"
+   */
+  previousMonthLabel?: string | undefined;
+  /**
+   * The calendar's next month button's label. Translate it with your app.
+   * @default "Next month"
+   */
+  nextMonthLabel?: string | undefined;
+  /**
+   * The label of the calendar's close button, which only screen readers and the keyboard
+   * reach. Translate it with your app.
+   * @default "Close"
+   */
+  closeLabel?: string | undefined;
+  /**
+   * The browser's message for a typed date that is not a date, or is not allowed. Translate it with your app.
+   * @default "Enter a valid date."
+   */
+  invalidDateMessage?: string | undefined;
+  /**
+   * Layout only: margins, width, grid placement (`mt-4`, `col-span-2`). Appearance classes
+   * warn in development; style fields in your theme.
+   */
+  className?: string | undefined;
+  /** The input element. */
+  ref?: Ref<HTMLInputElement> | undefined;
+
+  /** Not a prop. Ouro UI uses `error`: `<DatePicker error="Required.">`. */
+  errorMessage?: { 'Use <DatePicker error="Required.">': never };
+  /** Not a prop. Ouro UI uses `description`: `<DatePicker description="...">`. */
+  helperText?: { 'Use <DatePicker description="...">': never };
+  /** Not a prop. `error` marks the field invalid: `<DatePicker error="What is wrong">`. */
+  isInvalid?: { 'Use <DatePicker error="What is wrong">': never };
+  /** Not a prop. `error` marks the field invalid: `<DatePicker error="What is wrong">`. */
+  invalid?: { 'Use <DatePicker error="What is wrong">': never };
+  /** Not a prop. Ouro UI uses `required`: `<DatePicker required>`. */
+  isRequired?: { 'Use <DatePicker required>': never };
+  /** Not a prop. Ouro UI uses `disabled`: `<DatePicker disabled>`. */
+  isDisabled?: { 'Use <DatePicker disabled>': never };
+  /** Not a prop. Ouro UI uses `onValueChange`, which gets the ISO date: `<DatePicker onValueChange={setDate}>`. */
+  onChange?: { 'Use onValueChange={setDate}; it gets the ISO date': never };
+  /** Not a prop. Ouro UI uses `value`: `<DatePicker value={date} onValueChange={setDate}>`. */
+  selected?: { 'Use value={date} onValueChange={setDate}': never };
+  /** Not a prop. Ouro UI uses `min`: `<DatePicker min="2026-10-11">`. */
+  minDate?: { 'Use min="2026-10-11"': never };
+  /** Not a prop. Ouro UI uses `max`: `<DatePicker max="2026-12-31">`. */
+  maxDate?: { 'Use max="2026-12-31"': never };
+  /** Not a prop. The locale sets the format: `<DatePicker locale="en-GB">`. */
+  dateFormat?: { 'The locale sets it: locale="en-GB"': never };
+  /** Not a prop. The locale sets the format: `<DatePicker locale="en-GB">`. */
+  format?: { 'The locale sets it: locale="en-GB"': never };
+}
+
+/** Field's messages and root name DatePicker. */
+const owner = { name: "DatePicker", data: "date-picker" };
+
+/** Whether an `error` prop holds a message. */
+const hasMessage = (error: string | string[] | undefined): boolean =>
+  (Array.isArray(error) ? error : [error]).some((message) => message !== undefined && message !== "");
+
+/**
+ * A labeled date field. With a mouse or trackpad it is a text box you can type the date into
+ * (in the locale's numbers, or ISO) with a button that opens a `Calendar` in a popover; on a
+ * touch screen it is the phone's own date picker (`<input type="date">`). Either way the
+ * value is an ISO date (`"2026-10-11"`) and the form submits it under `name`, as a native
+ * date input does.
+ *
+ * Use `Calendar` instead for a calendar always on the page or for a range of dates, and
+ * `TextField type="time"` for a time.
+ *
+ * @group Forms
+ * @see https://ourostack.github.io/ouro-ui/docs/date-picker
+ *
+ * @example
+ * <DatePicker label="Delivery date" name="delivery" min="2026-10-11" required error={errors?.delivery} />
+ * <DatePicker label="Birthday" value={birthday} onValueChange={setBirthday} locale="en-GB" />
+ */
+export function DatePicker(props: DatePickerProps): JSX.Element {
+  const {
+    label,
+    hideLabel,
+    description,
+    error,
+    required,
+    disabled,
+    name,
+    value,
+    defaultValue,
+    onValueChange,
+    min,
+    max,
+    isDateDisabled,
+    locale = "en-US",
+    placeholder,
+    readOnly,
+    chooseDateLabel = "Choose date",
+    previousMonthLabel,
+    nextMonthLabel,
+    closeLabel = "Close",
+    invalidDateMessage = "Enter a valid date.",
+    className,
+    ref,
+    // Guard props (hint types), dropped here so they never reach the DOM.
+    errorMessage,
+    helperText,
+    isInvalid,
+    invalid,
+    isRequired,
+    isDisabled,
+    onChange,
+    selected,
+    minDate,
+    maxDate,
+    dateFormat,
+    format,
+  } = props;
+
+  useDevWarnings(
+    "DatePicker",
+    process.env.NODE_ENV !== "production"
+      ? () => [
+          ...(
+            [
+              ["value", value],
+              ["defaultValue", defaultValue],
+              ["min", min],
+              ["max", max],
+            ] as const
+          ).map(([prop, given]) => given !== undefined && given !== "" && !isIsoDate(given) && isoWarning("DatePicker", prop, given)),
+          ...contractWarnings("DatePicker", { errorMessage, helperText, isInvalid, invalid, isRequired, isDisabled }),
+          onChange !== undefined && ["onChange is not a prop; onValueChange gets the ISO date", "<DatePicker onValueChange={setDate}>"],
+          selected !== undefined && ["selected is not a prop", "<DatePicker value={date} onValueChange={setDate}>"],
+          minDate !== undefined && ["minDate is not a prop", '<DatePicker min="2026-10-11">'],
+          maxDate !== undefined && ["maxDate is not a prop", '<DatePicker max="2026-12-31">'],
+          dateFormat !== undefined && ["dateFormat is not a prop; the locale sets the format", '<DatePicker locale="en-GB">'],
+          format !== undefined && ["format is not a prop; the locale sets the format", '<DatePicker locale="en-GB">'],
+        ]
+      : /* istanbul ignore next @preserve -- production only */ undefined,
+  );
+
+  // A touch screen gets the phone's own picker; the server renders the text box and calendar.
+  const touch = useMediaQuery("(pointer: coarse)", false);
+
+  // Values that are not ISO dates (a dev warning) count as no date.
+  const [own, setOwn] = useState(() => (isIsoDate(defaultValue) ? defaultValue : ""));
+  const controlled = value !== undefined;
+  const iso = controlled ? (isIsoDate(value) ? value : "") : own;
+  const commit = (next: string) => {
+    if (next === iso) return;
+    if (!controlled) setOwn(next);
+    onValueChange?.(next);
+  };
+
+  // What the text box shows. A new value from outside rewrites it, unless it already reads as that date.
+  const [text, setText] = useState(() => formatDateInput(iso, locale));
+  const [shown, setShown] = useState(`${iso} ${locale}`);
+  if (shown !== `${iso} ${locale}`) {
+    setShown(`${iso} ${locale}`);
+    if ((parseDateInput(text, locale) ?? "") !== iso) setText(formatDateInput(iso, locale));
+  }
+
+  const low = isIsoDate(min) ? min : undefined;
+  const high = isIsoDate(max) ? max : undefined;
+  const allowed = (date: string) => !(low && date < low) && !(high && date > high) && !isDateDisabled?.(date);
+
+  // The browser blocks the submit with this message while the field holds what is not an
+  // allowed date. The native input checks its own format, min and max.
+  const inputRef = useRef<HTMLInputElement>(null);
+  const typed = text.trim() === "" ? null : parseDateInput(text, locale);
+  const bad = touch ? iso !== "" && Boolean(isDateDisabled?.(iso)) : text.trim() !== "" && (typed === null || !allowed(typed));
+  useEffect(() => {
+    inputRef.current!.setCustomValidity(bad ? invalidDateMessage : "");
+  }, [bad, invalidDateMessage, touch]);
+
+  const onType = (event: ChangeEvent<HTMLInputElement>) => {
+    const next = event.currentTarget.value;
+    setText(next);
+    commit(parseDateInput(next, locale) ?? "");
+  };
+  // Leaving the box writes a typed date the locale's way: 10/11/26 becomes 10/11/2026.
+  const tidy = () => {
+    if (typed !== null) setText(formatDateInput(typed, locale));
+  };
+
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const calendarRef = useRef<HTMLDivElement>(null);
+  const pick = (date: string) => {
+    commit(date);
+    setText(formatDateInput(date, locale));
+    setOpen(false);
+  };
+
+  // Pressing the box outside the input focuses the input, as TextField does; the button keeps its own focus.
+  const focusInput = (event: MouseEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement;
+    if (target === inputRef.current || target.closest("button")) return;
+    event.preventDefault();
+    inputRef.current!.focus();
+  };
+
+  const setRef = useMergedRef(ref, inputRef);
+  const invalidNow = hasMessage(error) || undefined;
+
+  return (
+    <FieldOwnerContext.Provider value={owner}>
+      <Field
+        label={label}
+        hideLabel={hideLabel}
+        description={description}
+        error={error}
+        required={required}
+        disabled={disabled}
+        name={name}
+        className={className}
+      >
+        <div data-ouro-input-group="" className={groupClass} onMouseDown={focusInput}>
+          {touch ? (
+            <FieldControl
+              ref={setRef}
+              type="date"
+              value={iso}
+              min={low}
+              max={high}
+              readOnly={readOnly}
+              aria-invalid={invalidNow}
+              onChange={(event) => commit(event.currentTarget.value)}
+              render={(controlProps) => <input {...controlProps} className={inputClass} />}
+            />
+          ) : (
+            <>
+              {/* The text box submits nothing; the hidden input submits the ISO date, as the native input does. */}
+              <FieldControl
+                ref={setRef}
+                type="text"
+                value={text}
+                placeholder={placeholder}
+                readOnly={readOnly}
+                autoComplete="off"
+                spellCheck={false}
+                aria-invalid={invalidNow}
+                onChange={onType}
+                onBlur={tidy}
+                render={(controlProps) => <input {...controlProps} name={undefined} className={inputClass} />}
+              />
+              {name !== undefined && <input type="hidden" name={name} value={iso} disabled={disabled} />}
+              <span className={endSlotClass}>
+                <PopoverRoot open={open} onOpenChange={setOpen}>
+                  <PopoverTrigger
+                    ref={triggerRef}
+                    render={
+                      <Button
+                        variant="plain"
+                        tone="secondary"
+                        size="sm"
+                        aria-label={chooseDateLabel}
+                        disabled={disabled || readOnly}
+                        className="aspect-square px-0"
+                      >
+                        <svg
+                          aria-hidden="true"
+                          viewBox="0 0 16 16"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="size-4"
+                        >
+                          <rect x="2.5" y="3.5" width="11" height="10" rx="1.5" />
+                          <path d="M2.5 6.5h11M5.5 2v3M10.5 2v3" />
+                        </svg>
+                      </Button>
+                    }
+                  />
+                  <PopoverPortal>
+                    <PopoverPositionerUnchecked side="bottom" align="end">
+                      <PopoverPopupUnchecked
+                        className="w-auto"
+                        initialFocus={() => calendarRef.current!.querySelector<HTMLElement>('[data-ouro-day][tabindex="0"]')}
+                        // Safari does not focus a button on click, so name where focus goes back.
+                        finalFocus={triggerRef}
+                      >
+                        <PopoverTitle visuallyHidden>{label}</PopoverTitle>
+                        <Calendar
+                          ref={calendarRef}
+                          label={label}
+                          value={iso}
+                          onValueChange={pick}
+                          min={low}
+                          max={high}
+                          isDateDisabled={isDateDisabled}
+                          locale={locale}
+                          previousMonthLabel={previousMonthLabel}
+                          nextMonthLabel={nextMonthLabel}
+                        />
+                        <PopoverClose data-ouro-popover-close="">{closeLabel}</PopoverClose>
+                      </PopoverPopupUnchecked>
+                    </PopoverPositionerUnchecked>
+                  </PopoverPortal>
+                </PopoverRoot>
+              </span>
+            </>
+          )}
+        </div>
+      </Field>
+    </FieldOwnerContext.Provider>
+  );
+}
