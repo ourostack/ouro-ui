@@ -7,6 +7,7 @@ import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 import {
   alignWords,
   checkElement,
+  checkFlexClassName,
   checkGap,
   checkJustify,
   elementReset,
@@ -48,7 +49,9 @@ export interface StackOwnProps {
   as?: LayoutElement | (string & { 'Use div, section, ul, ol, nav, header, footer, main, aside, form or fieldset': never }) | undefined;
   /**
    * Layout only: margins, width, grid placement (`mt-4`, `max-w-md`). Appearance classes
-   * warn in development: a Stack has no look; use `Card` for a surface.
+   * warn in development: a Stack has no look; use `Card` for a surface. So do the flex
+   * classes the props own: use `gap`, `align` and `justify`, not `gap-*`, `items-*` or
+   * `justify-*`, and `<Row>`, not `flex-row`.
    */
   className?: string | undefined;
   /** The children, laid out top to bottom. */
@@ -106,6 +109,7 @@ export function Stack(props: StackProps): JSX.Element {
           gapWarning,
           justifyWarning,
           elementWarning,
+          ...checkFlexClassName("Stack", className, Object.keys(alignClasses)),
           alignProp !== undefined &&
             align !== alignProp && [
               `align="${String(alignProp)}" is not an alignment; use "start", "center", "end", "stretch"`,

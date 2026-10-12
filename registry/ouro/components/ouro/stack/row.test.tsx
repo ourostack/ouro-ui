@@ -155,6 +155,23 @@ describe("Row development messages", () => {
     );
   });
 
+  it.each([
+    ["gap-4", '"gap-4" sets the gap, which the gap prop owns', '<Row gap="md">'],
+    ["gap-x-2", '"gap-x-2" sets the gap, which the gap prop owns', '<Row gap="sm">'],
+    ["flex-col", '"flex-col" sets the direction, and Row is always horizontal', "<Stack>"],
+    ["max-sm:flex-col", '"max-sm:flex-col" sets the direction, and Row is always horizontal', '<Row stackBelow="sm">'],
+    ["max-md:flex-col", '"max-md:flex-col" sets the direction, and Row is always horizontal', '<Row stackBelow="md">'],
+    ["flex-row", '"flex-row" sets the direction, and Row is already horizontal', "<Row>"],
+    ["items-baseline", '"items-baseline" sets the alignment, which the align prop owns', '<Row align="baseline">'],
+    ["items-end", '"items-end" sets the alignment, which the align prop owns', '<Row align="end">'],
+    ["justify-end", '"justify-end" sets the justification, which the justify prop owns', '<Row justify="end">'],
+    ["justify-around", '"justify-around" sets the justification, which the justify prop owns', '<Row justify="between">'],
+    ["flex-wrap", '"flex-wrap" wraps the children, which the wrap prop owns', "<Row wrap>"],
+  ])("warns for the flex class %s with the prop that owns it", async (className, problem, fix) => {
+    await render(<Row className={className}>{boxes}</Row>);
+    expect(warn).toHaveBeenCalledWith(`[ouro-ui] Row: ${problem}. Fix: ${fix}.`);
+  });
+
   it("renders to a string without warnings", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const html = renderToString(<Row className="shadow-md">{boxes}</Row>);

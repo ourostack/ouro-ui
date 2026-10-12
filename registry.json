@@ -1569,6 +1569,7 @@
         "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/card",
         "ourostack/ouro-ui/heading",
+        "ourostack/ouro-ui/link",
         "ourostack/ouro-ui/ouro-lib",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/text"
@@ -1611,6 +1612,8 @@
       "registryDependencies": [
         "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/item",
+        "ourostack/ouro-ui/item-group",
+        "ourostack/ouro-ui/link",
         "ourostack/ouro-ui/ouro-lib",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/text"
@@ -1630,6 +1633,11 @@
           "path": "registry/ouro/components/ouro/item/item.test.tsx",
           "type": "registry:component",
           "target": "@components/ouro/item/item.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/item/item.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/item/item.touch.test.tsx"
         },
         {
           "path": "registry/ouro/e2e/ouro/item.spec.ts",

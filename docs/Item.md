@@ -36,6 +36,7 @@ Props every mode takes. Type: `ItemProps`.
 | `className` | `string` |  | Layout only: margins, grid placement (`mt-2`). Appearance classes warn in development; use `variant`. |
 | `description` | `ReactNode` |  | One or two lines under the title. Pass `<Text lines={2}>` to clamp a long one. |
 | `media` | `ReactNode` |  | Leading media: an `<img>` (cropped square), an `Avatar`, or an icon with `mediaSize="icon"`. Give an image `alt=""` when the title already names it. |
+| `mediaAbove` | `"sm" \| "md" \| "always"` |  | Below this breakpoint the media leaves the row and runs full width above the text, at 4:3, as a recipe list shows its photos on a phone; above it, it sits beside the text at `mediaSize`. `always` keeps it above at every width. |
 | `mediaSize` | `"sm" \| "md" \| "lg" \| "icon"` | `"sm"` | The media's size: `icon` puts an icon in a muted 40px tile (and hides it from screen readers); `sm` is 40px, `md` 64px, `lg` 112px for a recipe photo. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 | `size` | `"sm" \| "md"` | `"md"` | Row height: `md` has 12px above and below, `sm` 8px for dense lists. |
@@ -60,7 +61,7 @@ Not in this mode (typed `never`):
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `external` | `boolean` |  | Opens the link in a new tab, safely, and tells screen readers so. |
-| `href` (required) | `string` |  | Makes the whole row one link, with one tab stop, named by its title. Internal paths go through `OuroProvider`'s `linkComponent`, as with `Link`. |
+| `href` (required) | `string` |  | Makes the whole row one link, with one tab stop, named by its title. Internal paths go through `OuroProvider`'s `linkComponent`, as with `Link`. Controls anywhere in the row (a link in the description, a button in the media or the actions) stay their own tab stops and take their own clicks and taps. On a touch screen the row is at least 44px tall. |
 | `linkRef` | `Ref<HTMLAnchorElement>` |  | A ref to the link's `<a>`, to move focus to it. |
 
 ## Native attributes

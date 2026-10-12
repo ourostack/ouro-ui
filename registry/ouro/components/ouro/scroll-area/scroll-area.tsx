@@ -1,9 +1,10 @@
 "use client";
 
 import { ScrollArea as BaseScrollArea } from "@base-ui/react/scroll-area";
-import type { HTMLAttributes, JSX, ReactNode, Ref } from "react";
+import { type HTMLAttributes, type JSX, type ReactNode, type Ref, useEffect, useRef } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { devWarn } from "@/registry/ouro/lib/ouro/dev";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 
 /** Which way a ScrollArea scrolls. */
@@ -24,6 +25,13 @@ export interface ScrollAreaOwnProps {
    * take focus.
    */
   label?: string | undefined;
+  /**
+   * Keeps a scroll that reaches the area's end from scrolling the page behind it, for a
+   * chat thread or a list inside a dialog. Off by default, so a finger that runs out of a
+   * recipe's method keeps scrolling the page.
+   * @default false
+   */
+  contain?: boolean | undefined;
   /**
    * Layout: the area's height or maximum height, which it scrolls inside (`h-72`,
    * `max-h-80`), and its width and margins. Appearance classes warn in development.
@@ -56,6 +64,33 @@ const scrollbars = {
   horizontal: "h-2.5 flex-col pointer-coarse:h-1.5",
 } as const;
 
+const focusable = "a[href],button,input,select,textarea,summary,[tabindex]:not([tabindex='-1']),[contenteditable='true']";
+
+/**
+ * Warns when the viewport takes keyboard focus to scroll (Base UI makes it a tab stop once
+ * the content overflows) but has no name and nothing inside that could take focus instead.
+ * Development only.
+ */
+function useUnnamedRegionCheck(viewportRef: { current: HTMLDivElement | null }, label: string | undefined): void {
+  const key = useRef({});
+  useEffect(() => {
+    /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
+    if (process.env.NODE_ENV !== "production") {
+      const viewport = viewportRef.current;
+      if (!viewport || label) return;
+      const check = () => {
+        if (viewport.tabIndex === 0 && !viewport.querySelector(focusable)) {
+          devWarn("ScrollArea", "the area takes keyboard focus to scroll, and has no name", '<ScrollArea label="Method">', key.current);
+        }
+      };
+      check();
+      const observer = new MutationObserver(check);
+      observer.observe(viewport, { attributes: true, attributeFilter: ["tabindex"] });
+      return () => observer.disconnect();
+    }
+  }, [viewportRef, label]);
+}
+
 /**
  * A scrolling region with a slim scrollbar that matches the theme, inside a height you set.
  * It keeps the browser's own scrolling, so touch, the mouse wheel, the keyboard and
@@ -71,12 +106,14 @@ const scrollbars = {
  * <ScrollArea className="h-72" label="Method">
  *   {steps.map((step) => <Text key={step.id}>{step.text}</Text>)}
  * </ScrollArea>
- * <ScrollArea orientation="horizontal">
+ * <ScrollArea orientation="horizontal" label="Tags">
  *   <Row gap="sm">{tags.map((tag) => <Badge key={tag}>{tag}</Badge>)}</Row>
  * </ScrollArea>
  */
 export function ScrollArea(props: ScrollAreaProps): JSX.Element {
-  const { children, orientation: orientationProp = "vertical", label, className, type, maxHeight, height, ...rest } = props;
+  const { children, orientation: orientationProp = "vertical", label, contain, className, type, maxHeight, height, ...rest } = props;
+  const viewportRef = useRef<HTMLDivElement>(null);
+  useUnnamedRegionCheck(viewportRef, label);
   const orientation = (orientations as readonly string[]).includes(orientationProp) ? (orientationProp as ScrollAreaOrientation) : "vertical";
   useAppearanceClassNameCheck(
     "ScrollArea",
@@ -100,10 +137,14 @@ export function ScrollArea(props: ScrollAreaProps): JSX.Element {
   return (
     <BaseScrollArea.Root {...rest} data-ouro="scroll-area" className={cn("group/scroll-area relative flex min-h-0 min-w-0 flex-col overflow-hidden", className)}>
       <BaseScrollArea.Viewport
+        ref={viewportRef}
         data-scroll-viewport=""
         role={label ? "region" : undefined}
         aria-label={label}
-        className="min-h-0 flex-1 overscroll-contain rounded-[inherit] outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid"
+        className={cn(
+          "min-h-0 flex-1 rounded-[inherit] outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid",
+          contain && "overscroll-contain",
+        )}
       >
         <BaseScrollArea.Content>{children}</BaseScrollArea.Content>
       </BaseScrollArea.Viewport>

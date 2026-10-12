@@ -1,6 +1,19 @@
 import { toneFor } from "@/registry/ouro/lib/ouro/appearance-hints";
+import { baseOf } from "@/registry/ouro/lib/ouro/class-name-check";
 
-export { alignWords, gapClasses, justifyClasses, layoutElements, elementReset, checkGap, checkJustify, checkElement, layoutHint, layoutAlignHint };
+export {
+  alignWords,
+  gapClasses,
+  justifyClasses,
+  layoutElements,
+  elementReset,
+  checkGap,
+  checkJustify,
+  checkElement,
+  checkFlexClassName,
+  layoutHint,
+  layoutAlignHint,
+};
 export type { LayoutGap, LayoutJustify, LayoutElement };
 
 // Shared by Stack and Row, apart from the components so each component file exports only
@@ -149,4 +162,56 @@ function layoutHint(component: string): (token: string) => string {
  */
 function layoutAlignHint(component: string, prop: "align" | "justify"): string {
   return `<Text align="center"> on the text inside, or <${component} ${prop}="center"> to center the children`;
+}
+
+const justifyWords: Readonly<Record<string, LayoutJustify>> = {
+  start: "start",
+  normal: "start",
+  stretch: "start",
+  center: "center",
+  end: "end",
+  between: "between",
+  around: "between",
+  evenly: "between",
+};
+
+/**
+ * Dev messages for the flex classes a Stack or Row owns through its props (`gap-3`,
+ * `flex-row`, `items-center`, `justify-between`, `flex-wrap`), each with the prop to use.
+ * The class still applies, last, so these are messages, not errors. Development only.
+ *
+ * @internal
+ */
+function checkFlexClassName(component: "Stack" | "Row", className: string | undefined, alignments: readonly string[]): (readonly [string, string])[] {
+  const messages: (readonly [string, string])[] = [];
+  if (!className) return messages;
+  for (const token of className.split(/\s+/)) {
+    const base = baseOf(token);
+    const breakpoint = /^(?:max-)?(sm|md):/.exec(token)?.[1];
+    const gap = /^gap(?:-[xy])?-(.+)$/.exec(base);
+    if (gap) {
+      const step = Number(gap[1]);
+      messages.push([`"${token}" sets the gap, which the gap prop owns`, `<${component} gap="${Number.isFinite(step) ? nearestGap(step) : "md"}">`]);
+    } else if (base === "flex-row" || base === "flex-col") {
+      const vertical = base === "flex-col";
+      const already = vertical === (component === "Stack");
+      const stacks = breakpoint && (component === "Stack" ? !vertical : vertical);
+      messages.push([
+        `"${token}" sets the direction, and ${component} is ${already ? "already" : "always"} ${component === "Stack" ? "vertical" : "horizontal"}`,
+        stacks ? `<Row stackBelow="${breakpoint}">` : vertical ? "<Stack>" : "<Row>",
+      ]);
+    } else if (/^items-/.test(base)) {
+      const value = base.slice("items-".length);
+      messages.push([`"${token}" sets the alignment, which the align prop owns`, `<${component} align="${alignments.includes(value) ? value : "start"}">`]);
+    } else if (/^justify-(?!items-|self-)/.test(base)) {
+      const value = base.slice("justify-".length);
+      messages.push([`"${token}" sets the justification, which the justify prop owns`, `<${component} justify="${justifyWords[value] ?? "start"}">`]);
+    } else if (base === "flex-wrap" || base === "flex-wrap-reverse") {
+      messages.push([
+        component === "Row" ? `"${token}" wraps the children, which the wrap prop owns` : `"${token}" wraps the children, and a Stack is one column`,
+        "<Row wrap>",
+      ]);
+    }
+  }
+  return messages;
 }

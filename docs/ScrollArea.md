@@ -14,7 +14,7 @@ import { ScrollArea } from "@/registry/ouro/components/ouro/scroll-area/scroll-a
 <ScrollArea className="h-72" label="Method">
   {steps.map((step) => <Text key={step.id}>{step.text}</Text>)}
 </ScrollArea>
-<ScrollArea orientation="horizontal">
+<ScrollArea orientation="horizontal" label="Tags">
   <Row gap="sm">{tags.map((tag) => <Badge key={tag}>{tag}</Badge>)}</Row>
 </ScrollArea>
 ```
@@ -31,6 +31,7 @@ Type: `ScrollAreaProps`.
 | --- | --- | --- | --- |
 | `children` (required) | `ReactNode` |  | The content that scrolls. |
 | `className` | `string` |  | Layout: the area's height or maximum height, which it scrolls inside (`h-72`, `max-h-80`), and its width and margins. Appearance classes warn in development. |
+| `contain` | `boolean` | `false` | Keeps a scroll that reaches the area's end from scrolling the page behind it, for a chat thread or a list inside a dialog. Off by default, so a finger that runs out of a recipe's method keeps scrolling the page. |
 | `label` | `string` |  | Names the scrolling region for screen readers ("Method", "Order history"). A keyboard user can focus the region to scroll it, so give it a name when nothing else inside can take focus. |
 | `orientation` | `"vertical" \| "horizontal" \| "both"` | `"vertical"` | Which way the content scrolls. `horizontal` keeps a row of tags or cards on one line. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |

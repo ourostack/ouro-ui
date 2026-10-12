@@ -40,7 +40,8 @@ it("leaves touch scrolling to the browser: the scrollbar never takes a touch", a
   // The viewport is a native scroll container that pans with the finger.
   expect(getComputedStyle(viewport).overflowY).toBe("scroll");
   expect(getComputedStyle(viewport).touchAction).toBe("auto");
-  expect(getComputedStyle(viewport).overscrollBehaviorY).toBe("contain");
+  // It hands the scroll on to the page at its end, so it never traps a finger.
+  expect(getComputedStyle(viewport).overscrollBehaviorY).toBe("auto");
 
   // The custom scrollbar (touch-action: none, for mouse drags) lets touches through, so a
   // finger on the right edge still pans the viewport, and it is a thin indicator.

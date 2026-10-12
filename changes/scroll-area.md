@@ -1,1 +1,1 @@
-- New: `ScrollArea`, a scrolling region on Base UI with a slim themed scrollbar. It keeps native scrolling, and on a touch screen the scrollbar never takes a touch.
+- New: `ScrollArea`, a scrolling region on Base UI with a slim themed scrollbar. It keeps native scrolling, and on a touch screen the scrollbar never takes a touch. It hands the scroll on to the page at its end unless you set `contain`, and warns in development when it becomes a tab stop with no `label`.

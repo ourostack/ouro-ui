@@ -103,3 +103,44 @@ export const SizesAndVariants: Story = {
     </Page>
   ),
 };
+
+/** A cookbook tile with its share button over the cover: the button takes its own taps, and the rest of the tile opens the cookbook. */
+export const ShareOverCover: Story = {
+  render: () => (
+    <Page>
+      <Heading level={2}>Cookbooks</Heading>
+      <Card
+        href="#weeknight-dinners"
+        media={
+          <>
+            <AspectRatio ratio={4 / 3}>
+              <img src={cover("#f59e0b", "#b45309")} alt="" />
+            </AspectRatio>
+            <Button variant="soft" size="sm" className="absolute end-2 top-2" aria-label="Share Weeknight dinners">
+              <ShareIcon />
+            </Button>
+          </>
+        }
+        title="Weeknight dinners"
+        description="12 recipes"
+        style={{ maxWidth: 320 }}
+      />
+    </Page>
+  ),
+};
+
+/** A settings panel whose action drops under the title on a phone. */
+export const SettingsPanel: Story = {
+  render: () => (
+    <Page>
+      <Card
+        title="Passkeys"
+        description="Sign in with your face or fingerprint"
+        action={<Button variant="outline">Add a passkey</Button>}
+        stackBelow="sm"
+      >
+        <Text size="sm">Two passkeys: iPhone and MacBook.</Text>
+      </Card>
+    </Page>
+  ),
+};

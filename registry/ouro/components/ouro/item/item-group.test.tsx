@@ -159,6 +159,15 @@ describe("ItemGroup development messages", () => {
     for (const attribute of ["title", "items", "divided"]) expect(group.hasAttribute(attribute)).toBe(false);
   });
 
+  it("warns when an Item inside renders its own <li>", async () => {
+    await render(
+      <ItemGroup aria-label="x">
+        <Item as="li" title="A" />
+      </ItemGroup>,
+    );
+    expect(warn).toHaveBeenCalledWith('[ouro-ui] ItemGroup: <Item as="li"> puts a list item inside the list item ItemGroup already wraps each row in. Fix: <Item title="…"> without as.');
+  });
+
   it("warns when the list has no name", async () => {
     await render(
       <ItemGroup>

@@ -111,7 +111,7 @@ test("tsc reports exactly the expected errors, naming the fix where the case say
     assert.equal(actual.length, item.tsc.length, `${item.id}: ${actual.join("\n")}`);
     item.tsc.forEach((expected, index) => assertSameMessage(actual[index], expected, item.id));
   }
-  assert.equal(errors.size, agentCases.length);
+  assert.equal(errors.size, agentCases.filter((item) => item.tsc.length > 0).length);
 });
 
 test("hovering any prop shows its JSDoc, including on elements with a type error", () => {

@@ -1,1 +1,1 @@
-- New: `Stack` and `Row`, layout-only primitives with `gap` and `align` (and `justify`, Row's `wrap` and `stackBelow`), so agents stop hand-writing flex classes.
+- New: `Stack` and `Row`, layout-only primitives with `gap` and `align` (and `justify`, Row's `wrap` and `stackBelow`), so agents stop hand-writing flex classes. A `gap-*`, `items-*`, `justify-*`, `flex-row`, `flex-col` or `flex-wrap` class on either warns in development with the prop to use.

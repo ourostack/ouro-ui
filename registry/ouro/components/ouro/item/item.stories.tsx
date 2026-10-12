@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ReactNode } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Item } from "@/registry/ouro/components/ouro/item/item";
+import { ItemGroup } from "@/registry/ouro/components/ouro/item/item-group";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
 
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names).
@@ -76,6 +77,30 @@ export const InContext: Story = {
         stackBelow="sm"
       />
       <Item variant="outline" media={<BellIcon />} mediaSize="icon" title="Notifications" description="When a cook saves your recipe" size="sm" />
+    </Page>
+  ),
+};
+
+/** A recipe list: rows with the photo beside the text, and on a phone the photo full width above it. */
+export const RecipeList: Story = {
+  render: () => (
+    <Page>
+      <ItemGroup label="Recipes">
+        {[
+          { title: "Braised short ribs", time: "Four hours", colors: ["#f59e0b", "#7c2d12"] },
+          { title: "Lemon olive oil cake", time: "One hour", colors: ["#fde047", "#a16207"] },
+        ].map((recipe) => (
+          <Item
+            key={recipe.title}
+            href={`#${recipe.title.toLowerCase().replace(/ /g, "-")}`}
+            media={<img src={photo(recipe.colors[0]!, recipe.colors[1]!)} alt="" />}
+            mediaSize="lg"
+            mediaAbove="sm"
+            title={recipe.title}
+            description={recipe.time}
+          />
+        ))}
+      </ItemGroup>
     </Page>
   ),
 };

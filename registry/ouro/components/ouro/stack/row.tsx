@@ -7,6 +7,7 @@ import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 import {
   alignWords,
   checkElement,
+  checkFlexClassName,
   checkGap,
   checkJustify,
   elementReset,
@@ -57,7 +58,9 @@ export interface RowOwnProps {
   as?: LayoutElement | (string & { 'Use div, section, ul, ol, nav, header, footer, main, aside, form or fieldset': never }) | undefined;
   /**
    * Layout only: margins, width, grid placement (`mt-4`). Appearance classes warn in
-   * development: a Row has no look; use `Card` for a surface.
+   * development: a Row has no look; use `Card` for a surface. So do the flex classes the
+   * props own: use `gap`, `align`, `justify`, `wrap` and `stackBelow`, not `gap-*`,
+   * `items-*`, `justify-*`, `flex-wrap` or `max-sm:flex-col`.
    */
   className?: string | undefined;
   /** The children, laid out side by side in writing direction. */
@@ -145,6 +148,7 @@ export function Row(props: RowProps): JSX.Element {
           gapWarning,
           justifyWarning,
           elementWarning,
+          ...checkFlexClassName("Row", className, Object.keys(alignClasses)),
           alignProp !== undefined &&
             align !== alignProp && [
               `align="${String(alignProp)}" is not an alignment; use "start", "center", "end", "stretch", "baseline"`,

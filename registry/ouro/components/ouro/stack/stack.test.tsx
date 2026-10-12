@@ -171,6 +171,37 @@ describe("Stack development messages", () => {
     expect(warn.mock.calls[0]![0]).toContain(`Fix: ${fix}.`);
   });
 
+  it.each([
+    ["gap-3", '"gap-3" sets the gap, which the gap prop owns', '<Stack gap="md">'],
+    ["gap-2", '"gap-2" sets the gap, which the gap prop owns', '<Stack gap="sm">'],
+    ["gap-y-8", '"gap-y-8" sets the gap, which the gap prop owns', '<Stack gap="xl">'],
+    ["gap-x-1", '"gap-x-1" sets the gap, which the gap prop owns', '<Stack gap="xs">'],
+    ["gap-[10px]", '"gap-[10px]" sets the gap, which the gap prop owns', '<Stack gap="md">'],
+    ["flex-row", '"flex-row" sets the direction, and Stack is always vertical', "<Row>"],
+    ["sm:flex-row", '"sm:flex-row" sets the direction, and Stack is always vertical', '<Row stackBelow="sm">'],
+    ["md:flex-row", '"md:flex-row" sets the direction, and Stack is always vertical', '<Row stackBelow="md">'],
+    ["flex-col", '"flex-col" sets the direction, and Stack is already vertical', "<Stack>"],
+    ["items-center", '"items-center" sets the alignment, which the align prop owns', '<Stack align="center">'],
+    ["items-start", '"items-start" sets the alignment, which the align prop owns', '<Stack align="start">'],
+    ["items-baseline", '"items-baseline" sets the alignment, which the align prop owns', '<Stack align="start">'],
+    ["justify-between", '"justify-between" sets the justification, which the justify prop owns', '<Stack justify="between">'],
+    ["justify-evenly", '"justify-evenly" sets the justification, which the justify prop owns', '<Stack justify="between">'],
+    ["flex-wrap", '"flex-wrap" wraps the children, and a Stack is one column', "<Row wrap>"],
+  ])("warns for the flex class %s with the prop that owns it", async (className, problem, fix) => {
+    await render(<Stack className={`mt-4 ${className}`}>{boxes}</Stack>);
+    expect(warn).toHaveBeenCalledWith(`[ouro-ui] Stack: ${problem}. Fix: ${fix}.`);
+  });
+
+  it("names each flex class it finds", async () => {
+    await render(<Stack className="flex-row gap-3 items-center">{boxes}</Stack>);
+    expect(warn).toHaveBeenCalledTimes(3);
+  });
+
+  it.each(["justify-items-center", "justify-self-end", "self-center", "flex-1", "grow", "col-span-2"])("leaves the layout class %s alone", async (className) => {
+    await render(<Stack className={className}>{boxes}</Stack>);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it("renders to a string without warnings", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const html = renderToString(<Stack className="bg-red-500">{boxes}</Stack>);

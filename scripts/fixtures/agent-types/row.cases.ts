@@ -16,6 +16,13 @@ export const agentCases: AgentCase[] = [
   },
   { id: "row02", habit: "CSS's justifyContent as a prop", tsc: [hint("string", 'Use <Row justify="between">')], dev: '<Row justify="between">', names: ["tsc", "dev"] },
   { id: "row03", habit: "a column direction on Row", tsc: [notAssignable("string", `{ "Use <Stack> for a vertical layout": never; }`)], dev: "<Stack>", names: ["tsc", "dev"] },
+  ...(
+    [
+      ["row05", "a hand-written gap class", '<Row gap="sm">'],
+      ["row06", "max-sm:flex-col to stack a Row on a phone", '<Row stackBelow="sm">'],
+      ["row07", "flex-wrap in className", "<Row wrap>"],
+    ] as const
+  ).map(([id, habit, dev]): AgentCase => ({ id, habit, tsc: [], hover: { prop: "className", doc: "use `gap`, `align`" }, dev, names: ["hover", "dev"] })),
 ];
 
 /** Valid row snippets: no type error, no development message, and hover on every prop. */

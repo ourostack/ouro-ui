@@ -6,6 +6,7 @@ import { commands, page, userEvent } from "vitest/browser";
 import { AspectRatio } from "@/registry/ouro/components/ouro/aspect-ratio/aspect-ratio";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Card } from "@/registry/ouro/components/ouro/card/card";
+import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -31,6 +32,7 @@ beforeEach(() => {
 afterEach(async () => {
   vi.restoreAllMocks();
   await commands.emulateMedia({ reducedMotion: "no-preference" });
+  await page.viewport(1280, 800);
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));
   for (const node of mounted) node.remove();
   mounted = [];
@@ -128,6 +130,25 @@ describe("Card", () => {
     expect(body.getBoundingClientRect().left).toBe(card.getBoundingClientRect().left);
   });
 
+  it.each(["sm", "md"] as const)("drops the action under the title below %s with stackBelow", async (breakpoint) => {
+    await page.viewport(breakpoint === "sm" ? 390 : 700, 844);
+    await render(<Card title="Passkeys" description="Sign in with your face" action={<Button>Add</Button>} stackBelow={breakpoint} />);
+    const title = page.getByText("Passkeys").element().getBoundingClientRect();
+    const description = page.getByText("Sign in with your face").element().getBoundingClientRect();
+    const add = page.getByRole("button", { name: "Add" }).element();
+    expect(add.getBoundingClientRect().top).toBeGreaterThanOrEqual(description.bottom);
+    expect(Math.round(add.getBoundingClientRect().left)).toBe(Math.round(title.left));
+    await page.viewport(1280, 800);
+    await expect.poll(() => add.getBoundingClientRect().top < title.bottom).toBe(true);
+  });
+
+  it("keeps the action beside the title on a phone without stackBelow", async () => {
+    await page.viewport(390, 844);
+    await render(<Card title="Passkeys" action={<Button>Add</Button>} />);
+    const title = page.getByText("Passkeys").element().getBoundingClientRect();
+    expect(page.getByRole("button", { name: "Add" }).element().getBoundingClientRect().top).toBeLessThan(title.bottom);
+  });
+
   it("rounds plain media itself", async () => {
     const { card } = await render(
       <Card variant="plain" media={<img src={pixel} alt="" style={{ height: 40 }} />} title="Cover" />,
@@ -218,6 +239,46 @@ describe("Card with href", () => {
     expect(document.activeElement).toBe(cook);
   });
 
+  it("keeps every control in media and the body clickable on a phone, while the rest opens the card", async () => {
+    await page.viewport(390, 844);
+    const onShare = vi.fn();
+    const { card } = await render(
+      <Card
+        href="/cookbooks/1"
+        media={
+          <>
+            <AspectRatio ratio={4 / 3}>
+              <img src={pixel} alt="" data-cover="" />
+            </AspectRatio>
+            <Button className="absolute end-2 top-2" onClick={onShare}>
+              Share
+            </Button>
+          </>
+        }
+        title="Weeknight dinners"
+        description="12 recipes"
+      >
+        <p>
+          By <a href="/cooks/ari">Ari</a>, after <Link href="/cooks/sam">Sam</Link>
+        </p>
+      </Card>,
+    );
+    const cardLink = card.querySelector("[data-card-link]")!;
+    const share = page.getByRole("button", { name: "Share" }).element() as HTMLElement;
+    // The share button keeps its own position over the cover.
+    expect(getComputedStyle(share).position).toBe("absolute");
+    for (const control of [share, page.getByRole("link", { name: "Ari" }).element(), page.getByRole("link", { name: "Sam" }).element()]) {
+      const [x, y] = center(control);
+      expect(control.contains(document.elementFromPoint(x, y))).toBe(true);
+    }
+    await userEvent.click(share);
+    expect(onShare).toHaveBeenCalledTimes(1);
+    // The cover and the text around the links still open the card.
+    const [x, y] = center(card.querySelector("[data-cover]")!);
+    expect(document.elementFromPoint(x, y)).toBe(cardLink);
+    expect(getComputedStyle(cardLink).position).toBe("static");
+  });
+
   it("outlines the whole card when the link has keyboard focus", async () => {
     const { card } = await render(<Card href="/x" title="Go" />);
     expect(getComputedStyle(card).outlineStyle).toBe("none");
@@ -226,6 +287,11 @@ describe("Card with href", () => {
     before.focus();
     await userEvent.tab();
     expect(getComputedStyle(card).outlineStyle).toBe("solid");
+  });
+
+  it("keeps its focus outline inside the card, so a scrolling parent does not clip it", async () => {
+    const { card } = await render(<Card href="/x" title="Go" />);
+    expect(getComputedStyle(card).outlineOffset).toBe("-2px");
   });
 
   it("scales to --ouro-press-scale while pressed, and not with reduced motion", async () => {
@@ -292,6 +358,7 @@ describe("Card development messages", () => {
     ["size", { title: "x", size: "lg" }, 'size="lg" is not a size; use "md", "sm"', '<Card size="md">'],
     ["as", { title: "x", as: "a" }, 'as="a" is not an element Card renders; use "div", "article", "section", "li"', '<Card href="/path" title="…">'],
     ["as span", { title: "x", as: "span" }, 'as="span" is not an element Card renders; use "div", "article", "section", "li"', '<Card as="div">'],
+    ["stackBelow", { title: "x", stackBelow: "lg" }, 'stackBelow="lg" is not a breakpoint; use "sm", "md"', '<Card stackBelow="sm">'],
     ["headingLevel", { title: "x", headingLevel: 1 }, "headingLevel must be 2, 3, 4, 5 or 6, got 1", "<Card headingLevel={2}>"],
   ])("warns for %s with the fix", async (_name, props, problem, fix) => {
     const { card } = await render(<Card {...(props as unknown as Parameters<typeof Card>[0])} />);

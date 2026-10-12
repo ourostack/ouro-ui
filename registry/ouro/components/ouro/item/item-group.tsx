@@ -96,6 +96,10 @@ export function ItemGroup(props: ItemGroupProps): JSX.Element {
             "<ItemGroup>{rows.map((row) => <Item key={row.id} title={row.name} />)}</ItemGroup>",
           ],
           divided !== undefined && ["divided is not a prop", '<ItemGroup variant="divided">'],
+          rows.some((row) => isValidElement<{ as?: unknown }>(row) && row.props.as === "li") && [
+            '<Item as="li"> puts a list item inside the list item ItemGroup already wraps each row in',
+            '<Item title="…"> without as',
+          ],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );

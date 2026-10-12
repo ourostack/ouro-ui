@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Item } from "@/registry/ouro/components/ouro/item/item";
+import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -143,6 +144,70 @@ describe("Item", () => {
     expect(getComputedStyle(small).paddingTop).toBe("8px");
   });
 
+  it.each(["sm", "md"] as const)("puts the media above the text, full width at 4:3, below %s with mediaAbove", async (breakpoint) => {
+    await page.viewport(breakpoint === "sm" ? 390 : 700, 844);
+    const { item } = await render(
+      <Item href="/recipes/1" media={<img src={pixel} alt="" data-photo="" />} mediaSize="lg" mediaAbove={breakpoint} title="Braised short ribs" description="Four hours" />,
+    );
+    const media = item.querySelector("[data-photo]")!.parentElement!;
+    const title = page.getByText("Braised short ribs").element();
+    const box = media.getBoundingClientRect();
+    expect(Math.round(box.width)).toBe(Math.round(item.getBoundingClientRect().width));
+    expect(box.height).toBeCloseTo((box.width * 3) / 4, 0);
+    expect(title.getBoundingClientRect().top).toBeGreaterThanOrEqual(box.bottom);
+    expect(Math.round(title.getBoundingClientRect().left)).toBe(Math.round(box.left));
+    // At desktop width the photo sits beside the text again, at its own size.
+    await page.viewport(1280, 800);
+    await expect.poll(() => media.getBoundingClientRect().width).toBe(112);
+    expect(title.getBoundingClientRect().left).toBeGreaterThan(media.getBoundingClientRect().right);
+  });
+
+  it("always puts the media above the text with mediaAbove=always, with the actions beside the title", async () => {
+    const { item } = await render(
+      <Item media={<img src={pixel} alt="" data-photo="" />} mediaAbove="always" title="Ribs" actions={<Button>Save</Button>} />,
+    );
+    const media = item.querySelector("[data-photo]")!.parentElement!.getBoundingClientRect();
+    const title = page.getByText("Ribs").element().getBoundingClientRect();
+    const save = page.getByRole("button", { name: "Save" }).element().getBoundingClientRect();
+    expect(Math.round(media.width)).toBe(480);
+    expect(title.top).toBeGreaterThanOrEqual(media.bottom);
+    expect(save.top).toBeGreaterThanOrEqual(media.bottom);
+    expect(save.left).toBeGreaterThan(title.right);
+  });
+
+  it("stacks the media and the actions together with mediaAbove and stackBelow", async () => {
+    await page.viewport(390, 844);
+    const { item } = await render(
+      <Item media={<img src={pixel} alt="" data-photo="" />} mediaAbove="md" stackBelow="sm" title="Ribs" description="Four hours" actions={<Button>Save</Button>} />,
+    );
+    const mediaElement = item.querySelector("[data-photo]")!.parentElement!;
+    const title = page.getByText("Ribs").element();
+    const save = page.getByRole("button", { name: "Save" }).element();
+    expect(title.getBoundingClientRect().top).toBeGreaterThanOrEqual(mediaElement.getBoundingClientRect().bottom);
+    expect(save.getBoundingClientRect().top).toBeGreaterThanOrEqual(page.getByText("Four hours").element().getBoundingClientRect().bottom);
+    expect(Math.round(save.getBoundingClientRect().left)).toBe(Math.round(title.getBoundingClientRect().left));
+    // Between sm and md the photo is still above, and the actions are back beside the text.
+    await page.viewport(700, 844);
+    await expect.poll(() => save.getBoundingClientRect().top < title.getBoundingClientRect().bottom).toBe(true);
+    expect(title.getBoundingClientRect().top).toBeGreaterThanOrEqual(mediaElement.getBoundingClientRect().bottom);
+  });
+
+  it("stacks the actions beside media below md and the media above below sm", async () => {
+    await page.viewport(390, 844);
+    const { item } = await render(
+      <Item media={<img src={pixel} alt="" data-photo="" />} mediaAbove="sm" stackBelow="md" title="Ribs" actions={<Button>Save</Button>} />,
+    );
+    const media = item.querySelector("[data-photo]")!.parentElement!;
+    const title = page.getByText("Ribs").element();
+    const save = page.getByRole("button", { name: "Save" }).element();
+    expect(Math.round(save.getBoundingClientRect().left)).toBe(Math.round(title.getBoundingClientRect().left));
+    expect(title.getBoundingClientRect().top).toBeGreaterThanOrEqual(media.getBoundingClientRect().bottom);
+    await page.viewport(700, 844);
+    await expect.poll(() => title.getBoundingClientRect().left > media.getBoundingClientRect().right).toBe(true);
+    expect(Math.round(save.getBoundingClientRect().left)).toBe(Math.round(title.getBoundingClientRect().left));
+    expect(save.getBoundingClientRect().top).toBeGreaterThanOrEqual(title.getBoundingClientRect().bottom);
+  });
+
   it.each(["li", "article"] as const)("renders as %s", async (as) => {
     const { item } = await render(as === "li" ? <ul><Item as="li" title="x" /></ul> : <Item as={as} title="x" />);
     expect(item.tagName).toBe(as.toUpperCase());
@@ -190,6 +255,44 @@ describe("Item with href", () => {
     expect(document.activeElement).toBe(save);
   });
 
+  it("keeps links in the description and controls in the media clickable on a phone", async () => {
+    await page.viewport(390, 844);
+    const onPlay = vi.fn();
+    const { item } = await render(
+      <Item
+        href="/recipes/1"
+        media={
+          <span style={{ position: "relative", display: "block" }}>
+            <img src={pixel} alt="" data-photo="" />
+            <button type="button" style={{ position: "absolute", inset: 0, opacity: 0.5 }} onClick={onPlay}>
+              Play
+            </button>
+          </span>
+        }
+        mediaSize="lg"
+        title="Braised short ribs"
+        description={
+          <>
+            From <a href="/cookbooks/sunday">Sunday bakes</a> by <Link href="/cooks/ari">Ari</Link>
+          </>
+        }
+      />,
+    );
+    const link = item.querySelector("[data-item-link]")!;
+    for (const control of [
+      page.getByRole("link", { name: "Sunday bakes" }).element(),
+      page.getByRole("link", { name: "Ari" }).element(),
+      page.getByRole("button", { name: "Play" }).element(),
+    ]) {
+      const [x, y] = center(control);
+      expect(control.contains(document.elementFromPoint(x, y))).toBe(true);
+    }
+    await userEvent.click(page.getByRole("button", { name: "Play" }));
+    expect(onPlay).toHaveBeenCalledTimes(1);
+    const [x, y] = center(page.getByText("Braised short ribs").element());
+    expect(document.elementFromPoint(x, y)).toBe(link);
+  });
+
   it("rounds the link's hover layer with variant=outline", async () => {
     const { item } = await render(<Item href="/recipes/1" title="Ribs" variant="outline" />);
     expect(getComputedStyle(item.querySelector("a")!, "::after").borderTopLeftRadius).not.toBe("0px");
@@ -228,6 +331,9 @@ describe("Item development messages", () => {
     ["size", { size: "lg" }, 'size="lg" is not a size; use "md", "sm"', '<Item size="md">'],
     ["mediaSize", { mediaSize: "xl" }, 'mediaSize="xl" is not a media size; use "icon", "sm", "md", "lg"', '<Item mediaSize="lg">'],
     ["stackBelow", { stackBelow: "lg" }, 'stackBelow="lg" is not a breakpoint; use "sm", "md"', '<Item stackBelow="sm">'],
+    ["mediaAbove", { mediaAbove: "lg", media: "x" }, 'mediaAbove="lg" is not a breakpoint; use "always", "sm", "md"', '<Item mediaAbove="sm">'],
+    ["mediaAbove without media", { mediaAbove: "sm" }, "mediaAbove needs media", '<Item media={<img src="…" alt="" />} mediaAbove="sm">'],
+    ["mediaAbove with an icon", { mediaAbove: "sm", media: "x", mediaSize: "icon" }, "mediaAbove is for a photo, not an icon", '<Item media={<img src="…" alt="" />} mediaSize="lg" mediaAbove="sm">'],
     ["as", { as: "a" }, 'as="a" is not an element Item renders; use "div", "li", "article"', '<Item href="/path" title="…">'],
     ["as span", { as: "span" }, 'as="span" is not an element Item renders; use "div", "li", "article"', '<Item as="div">'],
   ])("warns for %s with the fix", async (_name, extra, problem, fix) => {

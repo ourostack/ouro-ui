@@ -15,8 +15,9 @@ export interface CardOwnProps {
   title?: ReactNode;
   /**
    * Makes the whole card one link, with one tab stop, named by its `title`. Internal paths
-   * go through `OuroProvider`'s `linkComponent`, as with `Link`. Controls in `action` and
-   * `footer` stay their own tab stops.
+   * go through `OuroProvider`'s `linkComponent`, as with `Link`. Controls in any slot (a
+   * share button over the `media`, a link in the body, a button in `action` or `footer`)
+   * stay their own tab stops and take their own clicks and taps.
    */
   href?: string | undefined;
   /** With `href`: opens the link in a new tab, safely, and tells screen readers so. */
@@ -39,6 +40,11 @@ export interface CardOwnProps {
   children?: ReactNode;
   /** A row at the bottom for buttons or a timestamp. With `href`, controls here stay their own tab stops. */
   footer?: ReactNode;
+  /**
+   * Below this breakpoint the `action` drops under the title and description, as in a
+   * settings panel on a phone. Without it the action stays beside the title at every width.
+   */
+  stackBelow?: "sm" | "md" | (string & { 'Use "sm" (640px) or "md" (768px)': never }) | undefined;
   /**
    * The title's heading level. Pick the level below the section the card sits in.
    * @default 3
@@ -104,12 +110,19 @@ const mediaPull = { outline: { md: "-mt-6", sm: "-mt-4" }, plain: { md: "rounded
 const stretchedLink =
   "text-inherit no-underline outline-none after:absolute after:inset-0 after:z-0 after:content-[''] " +
   "after:transition-colors after:duration-(--ouro-duration-fast) hover:after:bg-foreground/[0.03] active:after:bg-foreground/[0.06]";
-// Controls in the action and footer sit above the stretched link; text there stays part of it.
+// Every control in any slot (a share button over the cover, a link in the body) sits above
+// the stretched link, so it takes its own clicks; text and images around it open the card.
+// The selector is inside :where(), with no specificity, so a control's own `absolute` or
+// `z-*` class still wins.
 const raiseControls =
-  "[&_:is(a,button,input,select,textarea,label,[tabindex])]:relative [&_:is(a,button,input,select,textarea,label,[tabindex])]:z-10";
+  "[:where(&_:is(a,button,input,select,textarea,label,summary,[tabindex],[role=button]):not([data-card-link]))]:relative " +
+  "[:where(&_:is(a,button,input,select,textarea,label,summary,[tabindex],[role=button]):not([data-card-link]))]:z-10";
 const linkRoot =
-  "press cursor-pointer outline-ring outline-offset-2 has-[[data-card-link]:focus-visible]:outline-2 has-[[data-card-link]:focus-visible]:outline-solid " +
+  "press cursor-pointer outline-ring -outline-offset-2 has-[[data-card-link]:focus-visible]:outline-2 has-[[data-card-link]:focus-visible]:outline-solid " +
   "motion-safe:has-[[data-card-link]:active]:scale-(--ouro-press-scale)";
+
+// Below the breakpoint the header's action drops under the title, at the start.
+const headerStacked = { sm: "max-sm:flex-col max-sm:gap-3", md: "max-md:flex-col max-md:gap-3" } as const;
 
 function cardHint(token: string): string {
   if (token.startsWith("rounded")) return radiusFor(token);
@@ -149,6 +162,7 @@ export function Card(props: CardProps): JSX.Element {
     media,
     children,
     footer,
+    stackBelow: stackBelowProp,
     headingLevel = 3,
     variant: variantProp = "outline",
     size: sizeProp = "md",
@@ -166,6 +180,7 @@ export function Card(props: CardProps): JSX.Element {
   const size: "md" | "sm" = sizeProp === "sm" ? "sm" : "md";
   const element = (elements as readonly string[]).includes(asProp) ? (asProp as (typeof elements)[number]) : "div";
   const level = (levels as readonly unknown[]).includes(headingLevel) ? (headingLevel as (typeof levels)[number]) : 3;
+  const stackBelow: "sm" | "md" | undefined = stackBelowProp === "sm" ? "sm" : stackBelowProp === "md" ? "md" : undefined;
   const linked = href !== undefined && Boolean(title);
   useAppearanceClassNameCheck(
     "Card",
@@ -179,6 +194,8 @@ export function Card(props: CardProps): JSX.Element {
           href !== undefined && !title && ["href needs a title, which is the link's text", `<Card href="${href}" title="Weeknight dinners">`],
           variant !== variantProp && [`variant="${String(variantProp)}" is not a variant; use "outline", "plain"`, '<Card variant="outline">'],
           size !== sizeProp && [`size="${String(sizeProp)}" is not a size; use "md", "sm"`, '<Card size="md">'],
+          stackBelowProp !== undefined &&
+            stackBelow !== stackBelowProp && [`stackBelow="${String(stackBelowProp)}" is not a breakpoint; use "sm", "md"`, '<Card stackBelow="sm">'],
           element !== asProp && [
             `as="${String(asProp)}" is not an element Card renders; use ${elements.map((name) => `"${name}"`).join(", ")}`,
             asProp === "a" ? '<Card href="/path" title="…">' : '<Card as="div">',
@@ -223,12 +240,13 @@ export function Card(props: CardProps): JSX.Element {
         variants[variant],
         rootSizes[variant][size],
         linked && linkRoot,
+        linked && raiseControls,
         className,
       ),
     },
     media && <div className={cn("relative overflow-hidden", mediaPull[variant][size])}>{media}</div>,
     (heading || description || action) && (
-      <div className={cn("flex items-start gap-4", pad)}>
+      <div className={cn("flex items-start gap-4", stackBelow && headerStacked[stackBelow], pad)}>
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           {heading}
           {description && (
@@ -237,10 +255,10 @@ export function Card(props: CardProps): JSX.Element {
             </Text>
           )}
         </div>
-        {action && <div className={cn("flex shrink-0 items-center gap-2", raiseControls)}>{action}</div>}
+        {action && <div className="flex shrink-0 items-center gap-2">{action}</div>}
       </div>
     ),
     children && <div className={cn("min-w-0", pad)}>{children}</div>,
-    footer && <div className={cn("flex flex-wrap items-center gap-2", raiseControls, pad)}>{footer}</div>,
+    footer && <div className={cn("flex flex-wrap items-center gap-2", pad)}>{footer}</div>,
   );
 }

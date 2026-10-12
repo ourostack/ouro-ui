@@ -40,11 +40,12 @@ Type: `CardProps`.
 | `external` | `boolean` |  | With `href`: opens the link in a new tab, safely, and tells screen readers so. |
 | `footer` | `ReactNode` |  | A row at the bottom for buttons or a timestamp. With `href`, controls here stay their own tab stops. |
 | `headingLevel` | `2 \| 3 \| 4 \| 5 \| 6` | `3` | The title's heading level. Pick the level below the section the card sits in. |
-| `href` | `string` |  | Makes the whole card one link, with one tab stop, named by its `title`. Internal paths go through `OuroProvider`'s `linkComponent`, as with `Link`. Controls in `action` and `footer` stay their own tab stops. |
+| `href` | `string` |  | Makes the whole card one link, with one tab stop, named by its `title`. Internal paths go through `OuroProvider`'s `linkComponent`, as with `Link`. Controls in any slot (a share button over the `media`, a link in the body, a button in `action` or `footer`) stay their own tab stops and take their own clicks and taps. |
 | `linkRef` | `Ref<HTMLAnchorElement>` |  | With `href`: a ref to the link's `<a>`, to move focus to it (as a "Show more" does for the first new card). |
 | `media` | `ReactNode` |  | An image or video across the top, edge to edge: usually an `AspectRatio` around an `<img>`, so the card keeps its shape while the image loads. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 | `size` | `"sm" \| "md"` | `"md"` | Padding: `md` is 24px, `sm` 16px for dense grids. |
+| `stackBelow` | `"sm" \| "md"` |  | Below this breakpoint the `action` drops under the title and description, as in a settings panel on a phone. Without it the action stays beside the title at every width. |
 | `title` | `ReactNode` |  | The card's title, as a heading. With `href` it is the link's text, so a linked card needs one. |
 | `variant` | `"outline" \| "plain"` | `"outline"` | `outline` is a bordered surface in the theme's card colors; `plain` has no frame or padding, for a card's structure inside a surface of your own. |
 

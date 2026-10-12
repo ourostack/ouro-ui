@@ -23,6 +23,16 @@ export const agentCases: AgentCase[] = [
     dev: '<Stack align="start">',
     names: ["tsc", "dev"],
   },
+  ...(
+    [
+      ["stack06", "a hand-written gap class", '<Stack gap="md">'],
+      ["stack07", "flex-row to make a Stack horizontal", "<Row>"],
+      ["stack08", "items-center in className", '<Stack align="center">'],
+      ["stack09", "justify-between in className", '<Stack justify="between">'],
+    ] as const
+  ).map(
+    ([id, habit, dev]): AgentCase => ({ id, habit, tsc: [], hover: { prop: "className", doc: "use `gap`, `align`" }, dev, names: ["hover", "dev"] }),
+  ),
 ];
 
 /** Valid stack snippets: no type error, no development message, and hover on every prop. */

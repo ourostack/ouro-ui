@@ -4,4 +4,4 @@ import { ScrollArea } from "@/registry/ouro/components/ouro/scroll-area/scroll-a
 export const scrollArea01 = <ScrollArea type="always" className="h-72">Steps</ScrollArea>;
 export const scrollArea02 = <ScrollArea maxHeight={320}>Steps</ScrollArea>;
 export const scrollArea03 = <ScrollArea orientation="x">Tags</ScrollArea>;
-export const scrollArea04 = <ScrollArea className="h-72" label="Method" orientation="both">Steps</ScrollArea>;
+export const scrollArea04 = <ScrollArea className="h-72" label="Method" orientation="both" contain>Steps</ScrollArea>;

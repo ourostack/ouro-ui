@@ -124,10 +124,26 @@ describe("ScrollArea", () => {
     await expect.poll(() => viewport.tabIndex).toBe(-1);
   });
 
+  it("lets the page scroll on once the area reaches its end, unless contain is set", async () => {
+    const { viewport } = await render(
+      <ScrollArea className="h-40" label="Method">
+        {tall}
+      </ScrollArea>,
+    );
+    expect(getComputedStyle(viewport).overscrollBehaviorY).toBe("auto");
+    const { viewport: contained } = await render(
+      <ScrollArea className="h-40" label="Chat" contain>
+        {tall}
+      </ScrollArea>,
+    );
+    expect(getComputedStyle(contained).overscrollBehaviorY).toBe("contain");
+    expect(getComputedStyle(contained).overscrollBehaviorX).toBe("contain");
+  });
+
   it("passes attributes and a ref to the root, and lets layout classes win", async () => {
     let node: HTMLDivElement | null = null;
     const { area } = await render(
-      <ScrollArea id="method" className="mt-4 h-20 w-40" ref={(element) => void (node = element)}>
+      <ScrollArea id="method" label="Method" className="mt-4 h-20 w-40" ref={(element) => void (node = element)}>
         {tall}
       </ScrollArea>,
     );
@@ -150,6 +166,25 @@ describe("ScrollArea development messages", () => {
     const { area } = await render(<ScrollArea {...({ children: tall, className: "h-40", ...extra } as unknown as Parameters<typeof ScrollArea>[0])} />);
     expect(warn).toHaveBeenCalledWith(`[ouro-ui] ScrollArea: ${problem}. Fix: ${fix}.`);
     for (const attribute of ["type", "maxheight", "height"]) expect(area.hasAttribute(attribute)).toBe(false);
+  });
+
+  it("warns when the area takes keyboard focus to scroll but has no name", async () => {
+    const { viewport } = await render(<ScrollArea className="h-40">{tall}</ScrollArea>);
+    await expect.poll(() => viewport.tabIndex).toBe(0);
+    await expect
+      .poll(() => warn.mock.calls.map((call: unknown[]) => call[0]))
+      .toContain('[ouro-ui] ScrollArea: the area takes keyboard focus to scroll, and has no name. Fix: <ScrollArea label="Method">.');
+  });
+
+  it.each([
+    ["a label", 0, <ScrollArea className="h-40" label="Method">{tall}</ScrollArea>],
+    ["a focusable child", 0, <ScrollArea className="h-40"><a href="#top">Top</a>{tall}</ScrollArea>],
+    ["content that fits", -1, <ScrollArea className="h-40"><p>Short</p></ScrollArea>],
+  ] as const)("does not ask for a name with %s", async (_name, tabIndex, node) => {
+    const { viewport } = await render(node);
+    await expect.poll(() => viewport.tabIndex).toBe(tabIndex);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("scrolls vertically for an unknown orientation", async () => {
