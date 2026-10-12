@@ -4,6 +4,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Checkbox, type CheckboxProps } from "@/registry/ouro/components/ouro/checkbox/checkbox";
+import { Form } from "@/registry/ouro/components/ouro/form/form";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 const roots: Root[] = [];
@@ -152,6 +153,21 @@ describe("Checkbox", () => {
     );
     expect(box.getAttribute("aria-checked")).toBe("true");
     expect([...new FormData(form)]).toEqual([["all", "on"]]);
+  });
+
+  it("shows a Form error for its name without blocking the form, and drops it once toggled", async () => {
+    const { host, box } = await render(
+      <Form errors={{ terms: "Accept the terms." }}>
+        <Checkbox label="I accept the terms" name="terms" />
+      </Form>,
+    );
+    expect(box.getAttribute("aria-invalid")).toBe("true");
+    expect(textOf(box, describedBy(box))).toEqual(["Accept the terms."]);
+    // The error only shows: the form can still be sent again.
+    expect(host.querySelector("form")!.checkValidity()).toBe(true);
+    await userEvent.click(box);
+    await expect.poll(() => box.getAttribute("aria-invalid")).toBeNull();
+    expect(describedBy(box)).toEqual([]);
   });
 
   it("submits name=value with its form when checked, and nothing when not", async () => {

@@ -119,6 +119,7 @@ export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from,
   }
   const touch = (type: "touchStart" | "touchMove" | "touchEnd", [x, y]: [number, number]) =>
     session.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y, id: 1 }] });
+  await releaseFinger(page, session);
   await touch("touchStart", from);
   for (let step = 1; step <= steps; step++) {
     const t = step / steps;
@@ -160,7 +161,76 @@ export const tap: BrowserCommand<[selector: string]> = async (ctx, selector) => 
   await ctx.iframe.locator(selector).tap();
 };
 
-export const commands = { emulateMedia, drag, flick, pointerPress, tap, touchDrag };
+/** The top-level page's zoom (`visualViewport.scale`): 1 unless something zoomed the page. */
+export const pageZoom: BrowserCommand<[]> = async (ctx) =>
+  // Runs in the page; written without DOM types, which an app's config for this file may lack.
+  ctx.page.evaluate(() => (globalThis as { visualViewport?: { scale: number } | null }).visualViewport?.scale ?? 1);
+
+/** One CDP session for a Chromium page, or undefined in another browser. */
+async function chromiumSession(ctx: Parameters<BrowserCommand<[]>>[0]): Promise<CDPSession | undefined> {
+  const { page } = ctx;
+  if (ctx.provider.name !== "playwright" || page.context().browser()?.browserType().name() !== "chromium") return undefined;
+  let session = cdpSessions.get(page);
+  if (!session) {
+    session = await page.context().newCDPSession(page);
+    cdpSessions.set(page, session);
+  }
+  return session;
+}
+
+/**
+ * Sets the top-level page's zoom back to 1 (Chromium, through CDP; elsewhere it does nothing).
+ * In a phone context (`isMobile`), Chromium can zoom the page when the viewport rotates, and
+ * rotating back does not undo it; `rotate` in testing/rotate.ts calls this after each resize.
+ */
+export const resetPageZoom: BrowserCommand<[]> = async (ctx) => {
+  await (await chromiumSession(ctx))?.send("Emulation.setPageScaleFactor", { pageScaleFactor: 1 });
+};
+
+/** Zooms the top-level page to `scale` (Chromium only), for testing code that checks the zoom. */
+export const setPageZoom: BrowserCommand<[scale: number]> = async (ctx, scale) => {
+  const session = await chromiumSession(ctx);
+  if (!session) throw new Error("setPageZoom: CDP is Chromium only");
+  await session.send("Emulation.setPageScaleFactor", { pageScaleFactor: scale });
+};
+
+export type TouchStepOptions =
+  | {
+      /** `touchStart` puts the finger down and `touchMove` moves it. */
+      type: "touchStart" | "touchMove";
+      /** Where the finger is, relative to the top-level page. */
+      x: number;
+      y: number;
+    }
+  | { /** Lifts the finger. */ type: "touchEnd"; x?: number; y?: number };
+
+/** Pages with a `touchStep` finger still down. */
+const fingersDown = new WeakSet<object>();
+
+/** Lifts a finger `touchStep` left down, so the next gesture starts clean. */
+async function releaseFinger(page: object, session: CDPSession) {
+  if (!fingersDown.delete(page)) return;
+  await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+}
+
+/**
+ * One step of a one-finger gesture with real touch input (Chromium only, through CDP), for
+ * gestures `touchDrag` can't make: a finger that stops and stays down mid-swipe. The same
+ * finger stays down between calls until `touchEnd`. Lift it in a `finally`, so a failed
+ * assertion mid-gesture doesn't leave it down; a finger left down anyway is lifted before
+ * the next `touchStart` or `touchDrag`.
+ */
+export const touchStep: BrowserCommand<[TouchStepOptions]> = async (ctx, step) => {
+  const session = await chromiumSession(ctx);
+  if (!session) throw new Error("touchStep: CDP input is Chromium only");
+  const { page } = ctx;
+  if (step.type === "touchEnd") return releaseFinger(page, session);
+  if (step.type === "touchStart") await releaseFinger(page, session);
+  await session.send("Input.dispatchTouchEvent", { type: step.type, touchPoints: [{ x: step.x, y: step.y, id: 1 }] });
+  fingersDown.add(page);
+};
+
+export const commands = { emulateMedia, drag, flick, pageZoom, pointerPress, resetPageZoom, setPageZoom, tap, touchDrag, touchStep };
 
 declare module "vitest/browser" {
   interface BrowserCommands {
@@ -169,6 +239,10 @@ declare module "vitest/browser" {
     flick: (options: FlickOptions) => Promise<void>;
     tap: (selector: string) => Promise<void>;
     touchDrag: (options: TouchDragOptions) => Promise<void>;
+    touchStep: (options: TouchStepOptions) => Promise<void>;
     pointerPress: (options: PointerPressOptions) => Promise<void>;
+    pageZoom: () => Promise<number>;
+    resetPageZoom: () => Promise<void>;
+    setPageZoom: (scale: number) => Promise<void>;
   }
 }

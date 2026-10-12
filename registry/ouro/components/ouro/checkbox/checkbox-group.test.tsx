@@ -6,6 +6,7 @@ import { commands, page, userEvent } from "vitest/browser";
 import { Checkbox } from "@/registry/ouro/components/ouro/checkbox/checkbox";
 import { CheckboxGroup, type CheckboxGroupProps } from "@/registry/ouro/components/ouro/checkbox/checkbox-group";
 import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
+import { Form } from "@/registry/ouro/components/ouro/form/form";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 const roots: Root[] = [];
@@ -144,6 +145,20 @@ describe("CheckboxGroup", () => {
   it("marks the boxes invalid with error", async () => {
     const { boxes } = await render(<CheckboxGroup legend="Herbs" options={herbs} error="Pick at least one." />);
     for (const box of boxes) expect(box.getAttribute("aria-invalid")).toBe("true");
+  });
+
+  it("shows a Form error for its name on every box without blocking the form, and drops it once one is toggled", async () => {
+    const { host, group, boxes } = await render(
+      <Form errors={{ herbs: "Pick a herb we have." }}>
+        <CheckboxGroup legend="Herbs" name="herbs" options={herbs} />
+      </Form>,
+    );
+    expect(boxes.map((box) => box.getAttribute("aria-invalid"))).toEqual(["true", "true", "true"]);
+    expect(texts(document, group)).toEqual(["Pick a herb we have."]);
+    expect(host.querySelector("form")!.checkValidity()).toBe(true);
+    await userEvent.click(boxes[1]!);
+    await expect.poll(() => boxes.map((box) => box.getAttribute("aria-invalid"))).toEqual([null, null, null]);
+    expect(describedBy(group)).toEqual([]);
   });
 
   it("required marks the legend and blocks submit until a box is checked", async () => {

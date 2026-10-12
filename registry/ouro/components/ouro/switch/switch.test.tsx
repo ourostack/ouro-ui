@@ -4,6 +4,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Switch, type SwitchProps } from "@/registry/ouro/components/ouro/switch/switch";
+import { Form } from "@/registry/ouro/components/ouro/form/form";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 const roots: Root[] = [];
@@ -164,6 +165,22 @@ describe("Switch", () => {
     let element: HTMLElement | null = null;
     const { track } = await render(<Switch label="Wi-Fi" ref={(node) => void (element = node)} />);
     expect(element).toBe(track);
+  });
+});
+
+describe("Switch in a Form", () => {
+  it("shows a Form error for its name without blocking the form, and drops it once flipped", async () => {
+    const { host, track } = await render(
+      <Form errors={{ backups: "Backups must be on." }}>
+        <Switch label="Nightly backups" name="backups" />
+      </Form>,
+    );
+    expect(track.getAttribute("aria-invalid")).toBe("true");
+    expect(describedBy(track).map((id) => document.getElementById(id)?.textContent)).toEqual(["Backups must be on."]);
+    expect(host.querySelector("form")!.checkValidity()).toBe(true);
+    await userEvent.click(track);
+    await expect.poll(() => track.getAttribute("aria-invalid")).toBeNull();
+    expect(describedBy(track)).toEqual([]);
   });
 });
 

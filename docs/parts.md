@@ -41,6 +41,34 @@ Each part checks that it sits inside `<FieldRoot>`. Outside it, a part throws in
 | `FieldLabel` | The control's label. It points at the control by id, and a required field adds a marker that screen readers skip (they hear "required" from the control). Hide it visually with `className="sr-only"`. |
 | `FieldRoot` | The state owner of a field built from parts. It connects the label, description and error to the control, and passes `name`, `disabled` and `required` down. Use the `Field` component instead unless its props cannot express your layout; every Ouro form control is built on these parts. Parts link the description and error after hydration; use `Field` when the server HTML must carry them, or pass `id`s and `aria-describedby` yourself. |
 
+## Select parts
+
+Children of `<Select>`, for what its props cannot express.
+
+```tsx
+import {
+  SelectGroup,
+  SelectItem,
+} from "@/registry/ouro/components/ouro/select/select-parts";
+```
+
+### Required nesting
+
+```tsx
+<Select label="Produce" name="produce">
+  <SelectGroup label="Fruit">
+    <SelectItem value="apple">Apple</SelectItem>
+  </SelectGroup>
+</Select>
+```
+
+Each part checks that it sits inside `<Select>`. Outside it, a part throws in development with a message that shows this JSX shape.
+
+| Part | What it is |
+| --- | --- |
+| `SelectGroup` | A labeled group of `SelectItem`s. With `options`, pass a group as `{ label: "Fruit", options: [...] }` instead. |
+| `SelectItem` | One option in a `Select`, for options that need more than text (an icon, a color swatch). Pass `options` to `Select` instead when every option is text; it renders these for you. |
+
 ## Dialog parts
 
 The state owner of a centered dialog built from parts. Use the `Dialog` component instead unless its props cannot express your layout; `Dialog` also becomes a bottom sheet on phones, which parts do not.
@@ -196,3 +224,41 @@ Each part checks that it sits inside `<SheetRoot>`. Outside it, a part throws in
 | `SheetTitle` | The sheet's title, which names the dialog. Every sheet needs one. |
 | `SheetTrigger` | The button that opens the sheet. Pass your button as `render={<Button>Open</Button>}`. |
 | `SheetViewport` | The full-screen layer that positions the popup against its edge. |
+
+## Tabs parts
+
+The state owner of tabs built from parts. Use the `Tabs` component instead unless its `items` cannot express your layout, such as a tab that holds a badge next to its label or a panel shared by two tabs.
+
+```tsx
+import {
+  TabsIndicator,
+  TabsList,
+  TabsPanel,
+  TabsRoot,
+  TabsTab,
+} from "@/registry/ouro/components/ouro/tabs/tabs-parts";
+```
+
+### Required nesting
+
+```tsx
+<TabsRoot defaultValue="ingredients">
+  <TabsList aria-label="Recipe">
+    <TabsTab value="ingredients">Ingredients</TabsTab>
+    <TabsTab value="method">Method</TabsTab>
+    <TabsIndicator />
+  </TabsList>
+  <TabsPanel value="ingredients">…</TabsPanel>
+  <TabsPanel value="method">…</TabsPanel>
+</TabsRoot>
+```
+
+Each part checks that it sits inside `<TabsRoot>`. Outside it, a part throws in development with a message that shows this JSX shape.
+
+| Part | What it is |
+| --- | --- |
+| `TabsIndicator` | The line that slides to the selected tab. Put it last inside `TabsList`. |
+| `TabsList` | The row (or column) of tabs. Name it with `aria-label` when the page has more than one set of tabs. `activateOnFocus` selects a tab when the arrow keys focus it. A row that scrolls, on a phone, fades out on the side that hides more tabs. |
+| `TabsPanel` | The content shown while the tab with the same `value` is selected. |
+| `TabsRoot` | The state owner of tabs built from parts. Use the `Tabs` component instead unless its `items` cannot express your layout, such as a tab that holds a badge next to its label or a panel shared by two tabs. |
+| `TabsTab` | One tab, a button that shows the panel with the same `value`. |

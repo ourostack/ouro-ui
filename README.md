@@ -3,12 +3,12 @@
 Designed down to the last tap and the last prop. Interactions that feel right to the humans using them. Code that's obvious to the agents building with them.
 
 ```sh
-npx shadcn@latest search 'ourostack/ouro-ui#v0.5.0'     # list the items
-npx shadcn@latest view 'ourostack/ouro-ui/dialog#v0.5.0' # read one item
-npx shadcn@latest add ourostack/ouro-ui/dialog#v0.5.0    # install it
+npx shadcn@latest search 'ourostack/ouro-ui#v0.6.0'     # list the items
+npx shadcn@latest view 'ourostack/ouro-ui/dialog#v0.6.0' # read one item
+npx shadcn@latest add ourostack/ouro-ui/dialog#v0.6.0    # install it
 ```
 
-A GitHub source is `owner/repo#ref`; an item is `owner/repo/item#ref`. `@v0.5.0`, `github:` and `/tree/` URLs don't work. The same commands and the item list, for agents: [llms.txt](https://ourostack.github.io/ouro-ui/llms.txt).
+A GitHub source is `owner/repo#ref`; an item is `owner/repo/item#ref`. `@v0.6.0`, `github:` and `/tree/` URLs don't work. The same commands and the item list, for agents: [llms.txt](https://ourostack.github.io/ouro-ui/llms.txt).
 
 Ouro UI is copy-in source in the shadcn/ui registry format: the shadcn CLI copies each component into your app, and your app's own Tailwind CSS v4 compiles its classes. Like shadcn/ui's own items, a component item installs only the component's source; its tests are a separate, optional item. The components read shadcn's theme variables (`--primary`, `--background`, `--radius`…), so an app that already has a shadcn theme keeps it.
 
@@ -32,7 +32,7 @@ Ouro UI is alpha.
 ```sh
 # Existing Vite/Next app with Tailwind CSS v4 and an "@/*" path alias:
 npx shadcn@latest init --base base --preset nova --yes --no-monorepo
-npx shadcn@latest add ourostack/ouro-ui/dialog#v0.5.0
+npx shadcn@latest add ourostack/ouro-ui/dialog#v0.6.0
 ```
 
 - Pass `--base base`: Ouro UI is built on Base UI. Don't pass `-t`/`--template` in an existing app; it adds shadcn's `components/ui/button.tsx`.
@@ -79,14 +79,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
 ### Details
 
-- The CLI reads `registry.json` at this repository's root. A [release](https://github.com/ourostack/ouro-ui/releases) tag such as `#v0.5.0` installs the item and every Ouro dependency (`ouro-lib`, `button` and so on) at that tag. Without a ref, items come from `main`, which is for contributors: it can hold changes no release has yet. A `#<branch>` or `#<sha>` ref pins only the item you name; its Ouro dependencies come from `main`.
-- Or add the `@ouro` namespace to `components.json` once, `"registries": { "@ouro": "https://ourostack.github.io/ouro-ui/r/{name}.json" }`, and run `npx shadcn@latest add @ouro/dialog`. The namespace serves the newest release, the same code as `#v0.5.0`.
+- The CLI reads `registry.json` at this repository's root. A [release](https://github.com/ourostack/ouro-ui/releases) tag such as `#v0.6.0` installs the item and every Ouro dependency (`ouro-lib`, `button` and so on) at that tag. Without a ref, items come from `main`, which is for contributors: it can hold changes no release has yet. A `#<branch>` or `#<sha>` ref pins only the item you name; its Ouro dependencies come from `main`.
+- Or add the `@ouro` namespace to `components.json` once, `"registries": { "@ouro": "https://ourostack.github.io/ouro-ui/r/{name}.json" }`, and run `npx shadcn@latest add @ouro/dialog`. The namespace serves the newest release, the same code as `#v0.6.0`.
 - Components land in `components/ouro/<component>/`, beside shadcn's `components/ui/`, and the shared helpers in `lib/ouro/`. The base tokens (`ouro-base`) are added to your CSS with any component, and `ouro-lib` comes with any component too; you don't need to add either.
 - `init` is shadcn's: it writes `lib/utils.ts` and adds `cn`, `class-variance-authority`, `lucide-react` and `tw-animate-css`. Ouro UI doesn't use them; keep them for shadcn components. Ouro never writes to `components/ui/`, so don't pass `--overwrite` on a first install.
-- Tests are optional. Each component's Vitest browser tests, type tests, stories and Playwright spec are its `-tests` item, which also adds Vitest, Storybook and Playwright as devDependencies: `npx shadcn@latest add ourostack/ouro-ui/dialog#v0.5.0 ourostack/ouro-ui/dialog-tests#v0.5.0`. `ouro-tests` adds every component with all of its tests in one command. The install message of `ouro-testing` (the test kit the `-tests` items bring) lists the config files to add, then run `npx vitest run`.
+- Tests are optional. Each component's Vitest browser tests, type tests, stories and Playwright spec are its `-tests` item, which also adds Vitest, Storybook and Playwright as devDependencies: `npx shadcn@latest add ourostack/ouro-ui/dialog#v0.6.0 ourostack/ouro-ui/dialog-tests#v0.6.0`. `ouro-tests` adds every component with all of its tests in one command. The install message of `ouro-testing` (the test kit the `-tests` items bring) lists the config files to add, then run `npx vitest run`.
 - A `-tests` item sets Vitest, Storybook and Playwright to the versions its tests are verified on (Vitest `^5`): the shadcn CLI installs each devDependency's range with your package manager, which upgrades an older pin (npm installs the newest matching version even under a range such as `^4.1.0 || ^5.0.0`). The components need none of the `-tests` items, so an app that pins its test tools, for example to Vitest 4 for `@cloudflare/vitest-pool-workers`, can skip them. To add them and keep your pins, after `add`, restore every test-tool version you had pinned (`git diff package.json`): Vitest and its companions (`@vitest/*`), Playwright (`playwright`, `@playwright/test`) and Storybook (`storybook`, `@storybook/*`), at the exact versions you had, then reinstall. Ouro's tests then run on versions we don't verify.
-- For the Ouro look, add `ourostack/ouro-ui/ouro-theme#v0.5.0`. Skip it to keep your app's shadcn theme.
-- To update to the newest release, list the changed files with `npx shadcn@latest add ourostack/ouro-ui/<item>#v0.5.0 --dry-run` (or `@ouro/<item>`), review each one marked overwrite with `--diff <path>`, then add the item again at the same ref with `--overwrite` (with its `-tests` item if you have it: `add <item> <item>-tests --overwrite`) and reapply your edits. Coming from v0.1.0? Follow [Upgrading from v0.1.0](#upgrading-from-v010) instead.
+- For the Ouro look, add `ourostack/ouro-ui/ouro-theme#v0.6.0`. Skip it to keep your app's shadcn theme.
+- To update to the newest release, list the changed files with `npx shadcn@latest add ourostack/ouro-ui/<item>#v0.6.0 --dry-run` (or `@ouro/<item>`), review each one marked overwrite with `--diff <path>`, then add the item again at the same ref with `--overwrite` (with its `-tests` item if you have it: `add <item> <item>-tests --overwrite`) and reapply your edits. Coming from v0.1.0? Follow [Upgrading from v0.1.0](#upgrading-from-v010) instead.
 
 ### Upgrading from v0.1.0
 
@@ -111,10 +111,10 @@ Review the diff of your Tailwind CSS file too, the one `components.json` names i
 
 Update every Ouro component in your app, not only the items you typed: v0.1.0 added each component's dependencies too, so an app that added only `dialog` also has `button` and `sheet`. Each component is one `.tsx` file in your `components/ouro/` folder (`dialog/` holds `dialog` and `confirm-dialog`, and `text/` holds `text` and `heading`). Add each one as `<name>` and `<name>-tests`, plus `ouro-lib-tests`, in one command at the same ref, with `--overwrite` (without it the CLI stops to ask about each file). For the app that added only `dialog`, that is `button button-tests dialog dialog-tests sheet sheet-tests ouro-lib-tests`.
 
-This command finds the components, prints them and adds them. If it finds none, it stops before adding anything; run it in the folder with `components.json`. If you use the Ouro theme, add `ourostack/ouro-ui/ouro-theme#v0.5.0` to the `add` in it.
+This command finds the components, prints them and adds them. If it finds none, it stops before adding anything; run it in the folder with `components.json`. If you use the Ouro theme, add `ourostack/ouro-ui/ouro-theme#v0.6.0` to the `add` in it.
 
 ```sh
-( p() { npx shadcn@latest info --json | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).config.resolvedPaths.$1"; }; ouro="$(p components)/ouro"; items=$(find "$ouro" -name '*.tsx' ! -name '*-parts.tsx' ! -name '*.test.tsx' ! -name '*.stories.tsx' 2>/dev/null | sed -E 's|.*/(.*)\.tsx$|\1|' | sort); [ -n "$items" ] || { echo "No Ouro components in $ouro. Run this in the folder with components.json." >&2; exit 1; }; echo "Updating: $(echo "$items" | paste -sd " " -)"; npx shadcn@latest add $(echo "$items" | sed -E 's|.*|ourostack/ouro-ui/&#v0.5.0 ourostack/ouro-ui/&-tests#v0.5.0|') ourostack/ouro-ui/ouro-lib-tests#v0.5.0 --overwrite )
+( p() { npx shadcn@latest info --json | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).config.resolvedPaths.$1"; }; ouro="$(p components)/ouro"; items=$(find "$ouro" -name '*.tsx' ! -name '*-parts.tsx' ! -name '*.test.tsx' ! -name '*.stories.tsx' 2>/dev/null | sed -E 's|.*/(.*)\.tsx$|\1|' | sort); [ -n "$items" ] || { echo "No Ouro components in $ouro. Run this in the folder with components.json." >&2; exit 1; }; echo "Updating: $(echo "$items" | paste -sd " " -)"; npx shadcn@latest add $(echo "$items" | sed -E 's|.*|ourostack/ouro-ui/&#v0.6.0 ourostack/ouro-ui/&-tests#v0.6.0|') ourostack/ouro-ui/ouro-lib-tests#v0.6.0 --overwrite )
 ```
 
 This keeps the tests v0.1.0 installed, deletes none of your files and adds no component you didn't have. shadcn may print `Skipped N files: (files might be identical, use --overwrite to overwrite)` even with `--overwrite`: those files already equal the release's, so nothing was missed. The `-tests` items set Vitest, Storybook and Playwright in `package.json` to the versions Ouro tests against. After `add`, restore every test-tool version you had pinned (`git diff package.json`): Vitest and its companions, Playwright and Storybook. Ouro's tests may not run on older versions, which we don't verify.
@@ -191,9 +191,12 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **Field** — A labeled form control: the label, an optional description, the control and its error, wired together with ids that match between the server and the browser. [Docs](docs/Field.md)
 - **Fieldset** — A titled group of related fields, such as an address, rendered as a `<fieldset>` named by its legend. [Docs](docs/Fieldset.md)
 - **FileField** — A labeled file input with a drop zone, on the Field contract. [Docs](docs/FileField.md)
+- **Form** — A form that validates with the browser's own constraints (`required`, `type="email"`, `pattern`) and shows server errors on the matching fields. [Docs](docs/Form.md)
+- **NativeSelect** — A labeled native `<select>` on the Field contract: pass `label`, `options` (or `<option>` children) and `error`. [Docs](docs/NativeSelect.md)
 - **OtpField** — A one-time code entry on the Field contract: one slot per character, with focus that moves as the person types, a whole code pasted at once, and `autoComplete="one-time-code"` so phones offer the code from a text message. [Docs](docs/OtpField.md)
 - **Radio** — One choice in a `RadioGroup`, with its label to its right. [Docs](docs/Radio.md)
 - **RadioGroup** — A group of radios under one legend, on the Field contract, for picking exactly one choice: pass `legend`, and `options` (or `Radio` children). [Docs](docs/RadioGroup.md)
+- **Select** — A labeled list of choices on the Field contract: pass `label`, `options` (or `SelectItem` children) and `error` from your server action or client check. [Docs](docs/Select.md)
 - **Switch** — A labeled on/off switch on the Field contract, with the label to its right: pass `label`, and `checked` with `onCheckedChange` (or `defaultChecked`). [Docs](docs/Switch.md)
 - **TextArea** — A labeled multi-line text field on the Field contract, a native `<textarea>`: pass `label`, and `error` from your server action or client check. [Docs](docs/TextArea.md)
 - **TextField** — A labeled one-line text input on the Field contract: pass `label`, and `error` from your server action or client check. [Docs](docs/TextField.md)
@@ -202,6 +205,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 - **ConfirmDialog** — Asks the user to confirm an action, with Cancel focused first. [Docs](docs/ConfirmDialog.md)
 - **Dialog** — A dialog that presents itself for the screen: a centered dialog on wider screens and a bottom sheet you can drag away on phones (below 640px). [Docs](docs/Dialog.md)
+- **EditSheet** — Edits something in a form inside a dialog: the whole interaction, done right. [Docs](docs/EditSheet.md)
 - **HoverCard** — A preview of where a link goes, shown when a mouse rests on the link or the keyboard focuses it: a cook's profile, a recipe's summary. [Docs](docs/HoverCard.md)
 - **Popover** — A small non-modal panel beside its trigger, for a short form or a few choices: a share link, filters, a quick edit. [Docs](docs/Popover.md)
 - **Sheet** — A panel that slides in from an edge and is dragged back to dismiss: the mobile form of a dialog. [Docs](docs/Sheet.md)
@@ -221,21 +225,34 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **AvatarGroup** — Avatars stacked with a slight overlap, such as the cooks on a recipe, with a "+N" count after `max`. [Docs](docs/AvatarGroup.md)
 - **Badge** — A short label for a status, category or count: "Draft", "Vegan", "3". [Docs](docs/Badge.md)
 - **Card** — A surface that groups one thing's content: a media slot across the top, a title with a description and an action, a body, and a footer. [Docs](docs/Card.md)
+- **Carousel** — A row of slides the user swipes or steps through with Previous and Next buttons: recipe photos, a few featured cards. [Docs](docs/Carousel.md)
 - **Empty** — What a list, search or page shows when it has nothing in it: an icon, a title that says what is empty, a sentence on what to do, and the action that does it. [Docs](docs/Empty.md)
 - **Separator** — A thin line in the theme's border color between groups of content, horizontal or vertical. [Docs](docs/Separator.md)
 - **Skeleton** — A shimmering placeholder in the shape of content that is still loading. [Docs](docs/Skeleton.md)
 
 ### Lists
 
+- **Accordion** — A stack of titles that each open their own content, for FAQs and long settings pages. [Docs](docs/Accordion.md)
+- **Collapsible** — One section that opens and closes under its title, such as nutrition facts under a recipe. [Docs](docs/Collapsible.md)
 - **Item** — One row of a list: leading media, a title with a description, and trailing actions. [Docs](docs/Item.md)
 - **ItemGroup** — A list of `Item` rows, with an optional label that names it, lines between the rows, and what to show when it is empty. [Docs](docs/ItemGroup.md)
+- **ShowMore** — "Show more" for a long list or a long text. [Docs](docs/ShowMore.md)
 
 ### Layout
 
 - **AspectRatio** — A frame that keeps an image, video or map at a fixed shape while its width follows the layout, so the page does not jump when the media loads. [Docs](docs/AspectRatio.md)
+- **Resizable** — Panels side by side (or stacked) with a draggable handle between each pair: a file list beside an editor, a preview above a console. [Docs](docs/Resizable.md)
+- **ResizableHandle** — The draggable line between two panels in a `ResizablePanelGroup`, a focusable window splitter (`role="separator"`) for the panel before it. [Docs](docs/ResizableHandle.md)
+- **ResizablePanel** — One resizable area of a `Resizable` (or `ResizablePanelGroup`), sized in percent of the group. [Docs](docs/ResizablePanel.md)
+- **ResizablePanelGroup** — A group of panels with handles you place yourself, shadcn's shape: `ResizablePanel` and `ResizableHandle` elements as direct children. [Docs](docs/ResizablePanelGroup.md)
 - **Row** — Lays its children out side by side with an even gap, centered up and down. [Docs](docs/Row.md)
 - **ScrollArea** — A scrolling region with a slim scrollbar that matches the theme, inside a height you set. [Docs](docs/ScrollArea.md)
 - **Stack** — Lays its children out top to bottom with an even gap. [Docs](docs/Stack.md)
+
+### Navigation
+
+- **SegmentedControl** — An iOS-style segmented control: a row of equal segments with a raised thumb that slides to the checked one, for switching how one view shows its content in place, such as list or grid. [Docs](docs/SegmentedControl.md)
+- **Tabs** — Tabs that switch between panels in place: an accessible tab list with roving focus, arrow-key navigation, a line that slides to the selected tab with the theme spring, and 44px tabs on touch screens. [Docs](docs/Tabs.md)
 
 ### App setup
 
@@ -243,7 +260,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ### Parts
 
-- **Parts** — building blocks for Dialog, Field, Popover and Sheet, only for layouts the props cannot express. [Docs](docs/parts.md)
+- **Parts** — building blocks for Dialog, Field, Popover, Select, Sheet and Tabs, only for layouts the props cannot express. [Docs](docs/parts.md)
 <!-- catalog:end -->
 
 ## Theme

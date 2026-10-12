@@ -133,8 +133,8 @@ interface SlotsProps {
  */
 function Slots({ length, groupSize, slotLabel, onValueChange, onValueComplete, ref, ...rest }: SlotsProps): JSX.Element {
   const field = useField()!;
-  // The Field shares its invalid state, from OtpField's `error`.
-  const invalid = field.invalid === true;
+  // The Field's invalid state: OtpField's own error, or a Form's error for this name.
+  const invalid = field.invalid;
   const groups = groupSize && Number.isInteger(groupSize) && groupSize > 0 && groupSize < length ? groupSize : length;
   return (
     <OTPField.Root

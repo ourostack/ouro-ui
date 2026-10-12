@@ -12,19 +12,20 @@ import { createContext, useContext } from "react";
 export interface FieldContextValue {
   /** The field is required: the control gets `required` and `aria-required`, the label a marker. */
   required: boolean;
-  /**
-   * The field has an error (for a group's item, the group has one), for a control that sets
-   * `aria-invalid` itself. `FieldRoot` leaves it unset: Base UI sets it from validity.
-   */
-  invalid?: boolean | undefined;
   /** Ids of the description and error the field renders, for the control's `aria-describedby`. */
   describedBy: string | undefined;
   /**
-   * The id of the label (or a group's legend) a `Field` renders, for a control that is not a
-   * native input and names itself with `aria-labelledby` (a checkbox, a switch, a radio
-   * group). `FieldRoot` leaves it unset: Base UI links its parts after hydration.
+   * The field shows an error, from its `error` prop or its `Form`'s `errors`; for a group's
+   * item, the group's. A control that is not a `FieldControl` (Select's trigger, a checkbox,
+   * a switch, a radio) sets `aria-invalid` from it.
    */
-  labelId?: string | undefined;
+  invalid: boolean;
+  /**
+   * The label's (or a group's legend's) id, for a control that a `<label for>` cannot name
+   * (Select's trigger, a checkbox, a switch, a radio group) and that takes `aria-labelledby`.
+   * `undefined` in the parts, which leave the id to Base UI.
+   */
+  labelId: string | undefined;
   /**
    * Set by a `Field` whose control is a group of choices: its owner's `name`, such as
    * `RadioGroup`. A checkbox or radio `Field` inside it renders as one of the group's items.
@@ -69,6 +70,12 @@ export interface FieldOwner {
    * readers announce it.
    */
   requiredLabel?: string | undefined;
+  /**
+   * `false` when the control is not a form element a `<label for>` can click and name, such
+   * as Select's trigger button: the label renders as a `<div>` and the control takes
+   * `aria-labelledby` (Base UI's `nativeLabel={false}`).
+   */
+  nativeLabel?: false | undefined;
 }
 
 /**
@@ -86,4 +93,34 @@ export const FieldOwnerContext = createContext<FieldOwner>({ name: "Field", data
  */
 export function useFieldOwner(): FieldOwner {
   return useContext(FieldOwnerContext);
+}
+
+/** A form's server or client errors, by field name, as `Form` shares them with the fields inside it. */
+export interface FormErrorsValue {
+  /** The messages for each field name; a field shows its own when it has no `error` prop. */
+  errors: Readonly<Record<string, string | string[]>>;
+  /** Drops one field's message, once the user changes that field. */
+  clear: (name: string) => void;
+  /**
+   * Records that a field with this name is in the form, so its errors show on it and not at
+   * the top of the form. Returns the function that removes it again.
+   */
+  register: (name: string) => () => void;
+}
+
+/**
+ * The errors `Form` provides; `null` outside a `Form`. It is Ouro's own context, so a Field
+ * reads its message while rendering, and the server HTML links the message to the control.
+ *
+ * @internal
+ */
+export const FormErrorsContext = createContext<FormErrorsValue | null>(null);
+
+/**
+ * Reads the enclosing `Form`'s errors, or `null` outside one.
+ *
+ * @internal
+ */
+export function useFormErrors(): FormErrorsValue | null {
+  return useContext(FormErrorsContext);
 }

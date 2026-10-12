@@ -6,6 +6,7 @@ import { commands, page, userEvent } from "vitest/browser";
 import { Checkbox } from "@/registry/ouro/components/ouro/checkbox/checkbox";
 import { Radio, RadioGroup, type RadioGroupProps, type RadioProps } from "@/registry/ouro/components/ouro/radio-group/radio-group";
 import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
+import { Form } from "@/registry/ouro/components/ouro/form/form";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 const roots: Root[] = [];
@@ -181,6 +182,21 @@ describe("RadioGroup", () => {
     expect(form.checkValidity()).toBe(false);
     await userEvent.click(radios[0]!);
     expect(form.checkValidity()).toBe(true);
+  });
+
+  it("shows a Form error for its name without blocking the form, and drops it once a radio is picked", async () => {
+    const { host, radios } = await render(
+      <Form errors={{ size: "That size is sold out." }}>
+        <RadioGroup legend="Size" name="size" options={sizes} />
+      </Form>,
+    );
+    const group = host.querySelector<HTMLElement>('[role="radiogroup"]')!;
+    expect(radios[0]!.getAttribute("aria-invalid")).toBe("true");
+    expect(describedBy(group).map((id) => document.getElementById(id)?.textContent)).toEqual(["That size is sold out."]);
+    expect(host.querySelector("form")!.checkValidity()).toBe(true);
+    await userEvent.click(radios[1]!);
+    await expect.poll(() => radios[0]!.getAttribute("aria-invalid")).toBeNull();
+    expect(describedBy(group)).toEqual([]);
   });
 
   it("keeps an invalid radio's border red while hovered", async () => {

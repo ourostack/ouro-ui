@@ -1,0 +1,1 @@
+- New: `Accordion`, with `items` and `multiple` (which makes `value` a list), `headingLevel` for the titles' headings, panels that grow to their measured height with CSS, and closed content that the browser's page search finds and opens.

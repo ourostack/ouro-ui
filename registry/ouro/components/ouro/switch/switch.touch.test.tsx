@@ -1,16 +1,17 @@
 import type { ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, expect, it } from "vitest";
-import { commands, page } from "vitest/browser";
+import { commands } from "vitest/browser";
 import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 
 // Runs in the `touch` project: Chromium as a 390x844 phone with a coarse pointer.
 
 let root: Root | undefined;
 const nodes: Element[] = [];
 afterEach(async () => {
-  await page.viewport(390, 844);
+  await rotate(390, 844);
   await act(async () => root?.unmount());
   for (const node of nodes.splice(0)) node.remove();
 });
@@ -51,7 +52,7 @@ it("flips on a tap on the switch or the label", async () => {
 });
 
 it("keeps the phone size and 16px label on a landscape phone, past the sm breakpoint", async () => {
-  await page.viewport(844, 390);
+  await rotate(844, 390);
   const host = await render(<Switch label="Wi-Fi" />);
   expect(host.querySelector<HTMLElement>('[role="switch"]')!.getBoundingClientRect().height).toBe(24);
   expect(getComputedStyle(host.querySelector("label")!).fontSize).toBe("16px");
