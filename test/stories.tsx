@@ -43,11 +43,12 @@ for (const [path, module] of Object.entries(storyModules).sort(([a], [b]) => (pa
  *   (a controlled story opens from a plain button). Base UI triggers are found by their
  *   `aria-haspopup` attribute.
  * - `screenshot`: the story is a screenshot subject (test/screenshots.visual.test.tsx), under
- *   this baseline name, with its overlay open when `open` is set.
+ *   this baseline name, with its overlay open when `open` is set, or with its first control
+ *   focused from the keyboard when `focus` is set (which shows a Tooltip or HoverCard).
  */
 export interface OuroStoryParameters {
   plainOpeners?: string[];
-  screenshot?: { name: string; open?: boolean };
+  screenshot?: { name: string; open?: boolean; focus?: boolean };
 }
 
 type ComposedStory = ComponentType & { parameters?: OuroStoryParameters };

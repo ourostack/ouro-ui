@@ -92,6 +92,41 @@ export const flick: BrowserCommand<[FlickOptions]> = async (ctx, { from, to, ste
   await send("mouseReleased", to, durationMs, 0);
 };
 
+export interface TouchDragOptions {
+  /** Viewport coordinates where the finger touches down. */
+  from: [number, number];
+  /** Viewport coordinates where the finger lifts. */
+  to: [number, number];
+  /** Number of intermediate moves. */
+  steps: number;
+}
+
+/**
+ * A one-finger drag with real touch input (Chromium only, through CDP
+ * `Input.dispatchTouchEvent`), so the page sees `pointerType: "touch"` pointer events
+ * and touch events, as from a phone: a swipe to dismiss. Needs a context with
+ * `hasTouch`, as in the `touch` project. Coordinates are relative to the top-level page.
+ */
+export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from, to, steps }) => {
+  const { page } = ctx;
+  if (ctx.provider.name !== "playwright" || page.context().browser()?.browserType().name() !== "chromium") {
+    throw new Error("touchDrag: CDP input is Chromium only");
+  }
+  let session = cdpSessions.get(page);
+  if (!session) {
+    session = await page.context().newCDPSession(page);
+    cdpSessions.set(page, session);
+  }
+  const touch = (type: "touchStart" | "touchMove" | "touchEnd", [x, y]: [number, number]) =>
+    session.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y, id: 1 }] });
+  await touch("touchStart", from);
+  for (let step = 1; step <= steps; step++) {
+    const t = step / steps;
+    await touch("touchMove", [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t]);
+  }
+  await touch("touchEnd", to);
+};
+
 export interface PointerPressOptions {
   /** CSS selector of the element to press, inside the test iframe. Not needed for `up`. */
   selector?: string;
@@ -125,42 +160,6 @@ export const tap: BrowserCommand<[selector: string]> = async (ctx, selector) => 
   await ctx.iframe.locator(selector).tap();
 };
 
-export interface TouchDragOptions {
-  /** Viewport coordinates where the finger lands. */
-  from: [number, number];
-  /** Viewport coordinates where it lifts. */
-  to: [number, number];
-  /** Number of intermediate moves. */
-  steps: number;
-}
-
-/**
- * A one-finger drag with real touch events (Chromium only), through CDP
- * `Input.dispatchTouchEvent`, so the browser scrolls what is under the finger and
- * the page sees `touchstart`, `touchmove` and `pointerType: "touch"`. Use it to check
- * that a list inside a sheet scrolls rather than dragging the sheet. Needs a context
- * with `hasTouch`, as in the `touch` project.
- */
-export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from, to, steps }) => {
-  const { page } = ctx;
-  if (ctx.provider.name !== "playwright" || page.context().browser()?.browserType().name() !== "chromium") {
-    throw new Error("touchDrag: CDP input is Chromium only");
-  }
-  let session = cdpSessions.get(page);
-  if (!session) {
-    session = await page.context().newCDPSession(page);
-    cdpSessions.set(page, session);
-  }
-  const touch = (type: "touchStart" | "touchMove" | "touchEnd", points: Array<{ x: number; y: number }>) =>
-    session.send("Input.dispatchTouchEvent", { type, touchPoints: points });
-  await touch("touchStart", [{ x: from[0], y: from[1] }]);
-  for (let step = 1; step <= steps; step++) {
-    const t = step / steps;
-    await touch("touchMove", [{ x: from[0] + (to[0] - from[0]) * t, y: from[1] + (to[1] - from[1]) * t }]);
-  }
-  await touch("touchEnd", []);
-};
-
 export const commands = { emulateMedia, drag, flick, pointerPress, tap, touchDrag };
 
 declare module "vitest/browser" {
@@ -169,7 +168,7 @@ declare module "vitest/browser" {
     drag: (options: DragOptions) => Promise<void>;
     flick: (options: FlickOptions) => Promise<void>;
     tap: (selector: string) => Promise<void>;
-    pointerPress: (options: PointerPressOptions) => Promise<void>;
     touchDrag: (options: TouchDragOptions) => Promise<void>;
+    pointerPress: (options: PointerPressOptions) => Promise<void>;
   }
 }

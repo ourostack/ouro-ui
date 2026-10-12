@@ -11,7 +11,7 @@ import { endSlotClass, groupClass, inputClass } from "@/registry/ouro/components
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { FieldOwnerContext, useField } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
-import { useSheetPresentation } from "@/registry/ouro/lib/ouro/use-sheet-presentation";
+import { usePickerSheet } from "@/registry/ouro/lib/ouro/use-sheet-presentation";
 import {
   chipClass,
   chipRemoveClass,
@@ -347,7 +347,7 @@ export function Combobox(props: ComboboxProps): JSX.Element {
     removeLabel?: (label: string) => string;
     customValueLabel?: (text: string) => string;
   };
-  const sheet = useSheetPresentation();
+  const sheet = usePickerSheet();
   const custom = allowCustomValue && !multiple;
 
   useDevWarnings(
@@ -527,7 +527,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
       : options;
   const shown = (option: Option) => (option.custom ? option.value : option.label);
 
-  const sheet = useSheetPresentation();
+  const sheet = usePickerSheet();
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const report = onValueChange as ((value: string | string[] | null) => void) | undefined;
