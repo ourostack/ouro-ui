@@ -192,6 +192,22 @@ describe("Item", () => {
     expect(title.getBoundingClientRect().top).toBeGreaterThanOrEqual(mediaElement.getBoundingClientRect().bottom);
   });
 
+  it.each([
+    ["always", "sm", 390],
+    ["md", "md", 700],
+  ] as const)("stacks the actions under the text with mediaAbove=%s and stackBelow=%s", async (mediaAbove, stackBelow, width) => {
+    await page.viewport(width, 844);
+    const { item } = await render(
+      <Item media={<img src={pixel} alt="" data-photo="" />} mediaAbove={mediaAbove} stackBelow={stackBelow} title="Ribs" description="Four hours" actions={<Button>Save</Button>} />,
+    );
+    const media = item.querySelector("[data-photo]")!.parentElement!.getBoundingClientRect();
+    const title = page.getByText("Ribs").element().getBoundingClientRect();
+    const save = page.getByRole("button", { name: "Save" }).element().getBoundingClientRect();
+    expect(title.top).toBeGreaterThanOrEqual(media.bottom);
+    expect(save.top).toBeGreaterThanOrEqual(page.getByText("Four hours").element().getBoundingClientRect().bottom);
+    expect(Math.round(save.left)).toBe(Math.round(title.left));
+  });
+
   it("stacks the actions beside media below md and the media above below sm", async () => {
     await page.viewport(390, 844);
     const { item } = await render(

@@ -186,6 +186,7 @@ describe("Stack development messages", () => {
     ["items-baseline", '"items-baseline" sets the alignment, which the align prop owns', '<Stack align="start">'],
     ["justify-between", '"justify-between" sets the justification, which the justify prop owns', '<Stack justify="between">'],
     ["justify-evenly", '"justify-evenly" sets the justification, which the justify prop owns', '<Stack justify="between">'],
+    ["justify-baseline", '"justify-baseline" sets the justification, which the justify prop owns', '<Stack justify="start">'],
     ["flex-wrap", '"flex-wrap" wraps the children, and a Stack is one column', "<Row wrap>"],
   ])("warns for the flex class %s with the prop that owns it", async (className, problem, fix) => {
     await render(<Stack className={`mt-4 ${className}`}>{boxes}</Stack>);

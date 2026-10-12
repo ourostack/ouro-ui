@@ -76,7 +76,9 @@ describe("ScrollArea", () => {
     const { area, viewport } = await render(<ScrollArea className="h-40">{tall}</ScrollArea>);
     await expect.poll(() => area.querySelector('[data-orientation="vertical"]')).not.toBeNull();
     const scrollbar = area.querySelector<HTMLElement>('[data-orientation="vertical"]')!;
-    expect(getComputedStyle(scrollbar).opacity).toBe("0");
+    // The pointer may still rest where an earlier test's element was, so move it off first.
+    await userEvent.hover(document.body, { position: { x: 0, y: 0 } });
+    await expect.poll(() => getComputedStyle(scrollbar).opacity).toBe("0");
     await userEvent.hover(viewport);
     await expect.poll(() => getComputedStyle(scrollbar).opacity).toBe("1");
     const bar = scrollbar.getBoundingClientRect();
