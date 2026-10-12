@@ -1,0 +1,1 @@
+- The test kit has `commands.touchStep({ type, x, y })`, one step of a real one-finger touch gesture (Chromium only), for a finger held still mid-swipe.

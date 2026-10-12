@@ -1,5 +1,5 @@
 import { lazy, Suspense, type ReactNode } from "react";
-import { createRoot, type Root } from "react-dom/client";
+import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, userEvent } from "vitest/browser";
@@ -167,6 +167,18 @@ describe("Resizable handle (window splitter)", () => {
     expect(handle.getAttribute("aria-valuenow")).toBe("30");
   });
 
+  it("reports nothing for a key press that changes nothing", async () => {
+    const onLayout = vi.fn();
+    const screen = await render(<Editor onLayout={onLayout} autoSaveId="editor" />);
+    const setItem = vi.spyOn(Storage.prototype, "setItem");
+    screen.handles[0]!.focus();
+    await userEvent.keyboard("{End}{End}{End}{ArrowRight}");
+    expect(onLayout.mock.calls).toEqual([[[60, 40]]]);
+    expect(setItem).toHaveBeenCalledTimes(1);
+    await userEvent.keyboard("{Home}{ArrowLeft}{Home}");
+    expect(onLayout.mock.calls).toEqual([[[60, 40]], [[20, 80]]]);
+  });
+
   it("uses Up and Down in a vertical group", async () => {
     const screen = await render(<Editor orientation="vertical" />);
     const handle = screen.handles[0]!;
@@ -292,6 +304,50 @@ describe("Resizable autoSaveId", () => {
     const screen = await render(<Editor autoSaveId="editor" />);
     await act(async () => {});
     expect(screen.handles[0]!.getAttribute("aria-valuenow")).toBe("30");
+  });
+
+  it.each([
+    ["below the first panel's minSize", [5, 95], "20", [20, 80]],
+    ["above the first panel's maxSize", [90, 10], "60", [60, 40]],
+  ])("fits a saved layout %s into the panels' limits", async (_name, saved, now, sizes) => {
+    localStorage.setItem("ouro-resizable:editor", JSON.stringify(saved));
+    const onLayout = vi.fn();
+    const screen = await render(<Editor autoSaveId="editor" onLayout={onLayout} />);
+    const handle = screen.handles[0]!;
+    await expect.poll(() => handle.getAttribute("aria-valuenow")).toBe(now);
+    expect(Number(handle.getAttribute("aria-valuenow"))).toBeGreaterThanOrEqual(Number(handle.getAttribute("aria-valuemin")));
+    expect(Number(handle.getAttribute("aria-valuenow"))).toBeLessThanOrEqual(Number(handle.getAttribute("aria-valuemax")));
+    expect(widths(screen.panels)[0]).toBe(Math.round((399 * sizes[0]!) / 100));
+  });
+
+  it("hydrates server HTML at the default sizes, then applies the saved layout without a mismatch", async () => {
+    const html = renderToString(
+      <div style={{ width: 400, height: 200 }}>
+        <Editor autoSaveId="editor" />
+      </div>,
+    );
+    localStorage.setItem("ouro-resizable:editor", JSON.stringify([45, 55]));
+    const host = document.createElement("div");
+    host.innerHTML = html;
+    document.body.append(host);
+    mounted.push(host);
+    expect(host.querySelector('[role="separator"]')!.getAttribute("aria-valuenow")).toBe("30");
+    const error = vi.spyOn(console, "error");
+    const recoverable = vi.fn();
+    await act(async () => {
+      roots.push(
+        hydrateRoot(
+          host,
+          <div style={{ width: 400, height: 200 }}>
+            <Editor autoSaveId="editor" />
+          </div>,
+          { onRecoverableError: recoverable },
+        ),
+      );
+    });
+    await expect.poll(() => host.querySelector('[role="separator"]')!.getAttribute("aria-valuenow")).toBe("45");
+    expect(recoverable).not.toHaveBeenCalled();
+    expect(error).not.toHaveBeenCalled();
   });
 
   it("keeps working when storage throws", async () => {

@@ -160,7 +160,33 @@ export const tap: BrowserCommand<[selector: string]> = async (ctx, selector) => 
   await ctx.iframe.locator(selector).tap();
 };
 
-export const commands = { emulateMedia, drag, flick, pointerPress, tap, touchDrag };
+export interface TouchStepOptions {
+  /** `touchStart` puts the finger down, `touchMove` moves it and `touchEnd` lifts it. */
+  type: "touchStart" | "touchMove" | "touchEnd";
+  /** Where the finger is, relative to the top-level page. Ignored by `touchEnd`. */
+  x: number;
+  y: number;
+}
+
+/**
+ * One step of a one-finger gesture with real touch input (Chromium only, through CDP), for
+ * gestures `touchDrag` can't make: a finger that stops and stays down mid-swipe. The same
+ * finger stays down between calls until `touchEnd`.
+ */
+export const touchStep: BrowserCommand<[TouchStepOptions]> = async (ctx, { type, x, y }) => {
+  const { page } = ctx;
+  if (ctx.provider.name !== "playwright" || page.context().browser()?.browserType().name() !== "chromium") {
+    throw new Error("touchStep: CDP input is Chromium only");
+  }
+  let session = cdpSessions.get(page);
+  if (!session) {
+    session = await page.context().newCDPSession(page);
+    cdpSessions.set(page, session);
+  }
+  await session.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y, id: 1 }] });
+};
+
+export const commands = { emulateMedia, drag, flick, pointerPress, tap, touchDrag, touchStep };
 
 declare module "vitest/browser" {
   interface BrowserCommands {
@@ -169,6 +195,7 @@ declare module "vitest/browser" {
     flick: (options: FlickOptions) => Promise<void>;
     tap: (selector: string) => Promise<void>;
     touchDrag: (options: TouchDragOptions) => Promise<void>;
+    touchStep: (options: TouchStepOptions) => Promise<void>;
     pointerPress: (options: PointerPressOptions) => Promise<void>;
   }
 }

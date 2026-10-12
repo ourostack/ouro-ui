@@ -39,6 +39,10 @@ export interface CarouselProps {
    * number and `{total}` the number of slides. @default "Slide {n} of {total}"
    */
   slideLabel?: string | undefined;
+  /** What a screen reader calls the carousel, after its label: "Recipe photos, carousel". @default "carousel" */
+  roleDescription?: string | undefined;
+  /** What a screen reader calls each slide, after its name: "Slide 2 of 5, slide". @default "slide" */
+  slideRoleDescription?: string | undefined;
   /** Layout only: width and margins (`max-w-xl`, `mx-auto`). Appearance classes warn in development. */
   className?: string | undefined;
 
@@ -97,6 +101,8 @@ export function Carousel(props: CarouselProps): JSX.Element {
     previousLabel = "Previous slide",
     nextLabel = "Next slide",
     slideLabel = "Slide {n} of {total}",
+    roleDescription = "carousel",
+    slideRoleDescription = "slide",
     className,
     // Guard props (hint types), dropped here so they never reach the DOM.
     opts,
@@ -145,10 +151,12 @@ export function Carousel(props: CarouselProps): JSX.Element {
   // The settled index, and the slide a button press is heading to before the scroll settles.
   const settled = useRef(startIndex);
   const heading = useRef<number | undefined>(undefined);
+  const rootRef = useRef<HTMLElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const previousRef = useRef<HTMLButtonElement>(null);
   const nextRef = useRef<HTMLButtonElement>(null);
-  const refocus = useRef(false);
+  // What had focus when the position settled: a re-render may disable it or make it inert.
+  const focused = useRef<Element | null>(null);
   // The latest props for the scroll listener, which is attached once.
   const latest = useRef({ onIndexChange, slideLabel, total, lastIndex, loop });
   useLayoutEffect(() => {
@@ -172,42 +180,67 @@ export function Carousel(props: CarouselProps): JSX.Element {
   }, []);
 
   // The position follows the scroll, however it moved: a button, a swipe, a key. It
-  // settles when scrolling ends (`scrollend`, or a pause where that event is missing),
-  // so each change is reported and announced once, not for every slide passed on the way.
+  // settles when scrolling ends, so each change is reported and announced once, not for
+  // every slide passed on the way. Where `scrollend` is missing, a pause stands in for it,
+  // but not while a finger is down: a finger held still mid-swipe has not chosen a slide.
   useEffect(() => {
     const viewport = viewportRef.current!;
+    const fallback = !("onscrollend" in HTMLElement.prototype);
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let touching = false;
     const settle = () => {
       clearTimeout(timer);
       heading.current = undefined;
-      const { onIndexChange, slideLabel, total, lastIndex, loop } = latest.current;
+      const { onIndexChange, slideLabel, total, lastIndex } = latest.current;
       const next = Math.min(nearestSlide(viewport), lastIndex);
       if (next === settled.current) return;
-      // Next is about to be disabled under the user's focus: move focus to Previous once it is enabled.
-      refocus.current = !loop && next === lastIndex && document.activeElement === nextRef.current;
+      focused.current = document.activeElement;
       settled.current = next;
       setIndex(next);
       onIndexChange?.(next);
       announce(fillTemplate(slideLabel, next + 1, total));
     };
-    const onScroll = () => {
+    const wait = () => {
       clearTimeout(timer);
-      timer = setTimeout(settle, 150);
+      if (!touching) timer = setTimeout(settle, 150);
     };
-    viewport.addEventListener("scroll", onScroll, { passive: true });
-    viewport.addEventListener("scrollend", settle);
+    const onTouchStart = () => {
+      touching = true;
+      clearTimeout(timer);
+    };
+    const onTouchEnd = (event: TouchEvent) => {
+      touching = event.touches.length > 0;
+      wait();
+    };
+    if (fallback) {
+      viewport.addEventListener("scroll", wait, { passive: true });
+      viewport.addEventListener("touchstart", onTouchStart, { passive: true });
+      viewport.addEventListener("touchend", onTouchEnd, { passive: true });
+      viewport.addEventListener("touchcancel", onTouchEnd, { passive: true });
+    } else viewport.addEventListener("scrollend", settle);
     return () => {
       clearTimeout(timer);
-      viewport.removeEventListener("scroll", onScroll);
+      viewport.removeEventListener("scroll", wait);
+      viewport.removeEventListener("touchstart", onTouchStart);
+      viewport.removeEventListener("touchend", onTouchEnd);
+      viewport.removeEventListener("touchcancel", onTouchEnd);
       viewport.removeEventListener("scrollend", settle);
     };
   }, []);
 
-  useEffect(() => {
-    if (!refocus.current) return;
-    refocus.current = false;
-    previousRef.current!.focus();
-  }, [current]);
+  // Focus never falls to the page. A button disabled under focus hands it to the other
+  // button, or to the carousel when both are disabled; focus inside a slide that left
+  // the view (now inert) moves to the scroller. Runs before the browser drops the focus.
+  useLayoutEffect(() => {
+    const had = focused.current ?? document.activeElement!;
+    focused.current = null;
+    if (document.activeElement !== had && document.activeElement !== document.body) return;
+    const previous = previousRef.current!;
+    const next = nextRef.current!;
+    const button = had === previous ? next : had === next ? previous : undefined;
+    if (button && (had as HTMLButtonElement).disabled) (button.disabled ? rootRef.current! : button).focus();
+    else if (had.closest("[inert]") && viewportRef.current!.contains(had)) viewportRef.current!.focus();
+  });
 
   const go = (step: 1 | -1) => {
     const from = heading.current ?? current;
@@ -219,15 +252,24 @@ export function Carousel(props: CarouselProps): JSX.Element {
   };
 
   return (
-    <section data-ouro="carousel" aria-roledescription="carousel" aria-label={label} className={cn(rootClass, className)}>
+    <section
+      ref={rootRef}
+      data-ouro="carousel"
+      aria-roledescription={roleDescription}
+      aria-label={label}
+      tabIndex={-1}
+      className={cn(rootClass, className)}
+    >
       <div data-ouro-carousel-viewport="" ref={viewportRef} tabIndex={0} className={cn(viewportClass, slidesPerViewClass[perView])}>
         {slides.map((slide, position) => (
           <div
             key={position}
             data-ouro-carousel-slide=""
             role="group"
-            aria-roledescription="slide"
+            aria-roledescription={slideRoleDescription}
             aria-label={fillTemplate(slideLabel, position + 1, total)}
+            // Slides out of view are inert, so Tab and a screen reader's reading order skip them.
+            inert={position < current || position >= current + perView}
             className={slideClass}
           >
             {slide}

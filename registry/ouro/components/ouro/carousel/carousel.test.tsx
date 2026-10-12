@@ -2,7 +2,7 @@ import { type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { commands, userEvent } from "vitest/browser";
+import { commands, server, userEvent } from "vitest/browser";
 import { Carousel } from "@/registry/ouro/components/ouro/carousel/carousel";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -117,13 +117,75 @@ describe("Carousel structure", () => {
 
   it("names its buttons and slides with the labels it is given", async () => {
     const screen = await render(
-      <Carousel label="Fotos" previousLabel="Anterior" nextLabel="Siguiente" slideLabel="Foto {n} de {total}">
+      <Carousel
+        label="Fotos"
+        previousLabel="Anterior"
+        nextLabel="Siguiente"
+        slideLabel="Foto {n} de {total}"
+        roleDescription="carrusel"
+        slideRoleDescription="diapositiva"
+      >
         {photos(2)}
       </Carousel>,
     );
     expect(screen.button("Anterior")).toBeDefined();
     expect(screen.button("Siguiente")).toBeDefined();
     expect(screen.slides[1]!.getAttribute("aria-label")).toBe("Foto 2 de 2");
+    expect(screen.carousel.getAttribute("aria-roledescription")).toBe("carrusel");
+    expect(screen.slides.map((slide) => slide.getAttribute("aria-roledescription"))).toEqual(["diapositiva", "diapositiva"]);
+  });
+
+  /** Four slides, two per view, each with a button. */
+  const savers = () =>
+    Array.from({ length: 4 }, (_, index) => (
+      <div key={index}>
+        Photo {index + 1} <button>Save {index + 1}</button>
+      </div>
+    ));
+
+  it("makes the slides out of view inert, so focus and a screen reader skip them", async () => {
+    const screen = await render(
+      <Carousel label="Recipe photos" slidesPerView={2}>
+        {savers()}
+      </Carousel>,
+    );
+    expect(screen.slides.map((slide) => slide.inert)).toEqual([false, false, true, true]);
+    screen.slides[2]!.querySelector("button")!.focus();
+    expect(document.activeElement).not.toBe(screen.slides[2]!.querySelector("button"));
+    await userEvent.click(screen.button("Next slide"));
+    await expect.poll(() => screen.slides.map((slide) => slide.inert)).toEqual([true, false, false, true]);
+  });
+
+  // WebKit's Tab skips buttons unless the user turns on "Press Tab to highlight each item".
+  it.skipIf(server.browser !== "chromium")("keeps Tab from reaching a control in a slide out of view", async () => {
+    const screen = await render(
+      <Carousel label="Recipe photos" slidesPerView={2}>
+        {savers()}
+      </Carousel>,
+    );
+    screen.host.querySelector<HTMLButtonElement>("button")!.focus();
+    await userEvent.tab();
+    expect(document.activeElement?.textContent).toBe("Save 2");
+    // Slides 3 and 4 are skipped, and so is Previous, which is disabled.
+    await userEvent.tab();
+    expect(document.activeElement).toBe(screen.button("Next slide"));
+  });
+
+  it("moves focus out of a slide that leaves the view, so focus is not lost", async () => {
+    const screen = await render(
+      <Carousel label="Recipe photos">
+        {[1, 2, 3].map((n) => (
+          <div key={n}>
+            <button>Save {n}</button>
+          </div>
+        ))}
+      </Carousel>,
+    );
+    screen.host.querySelector<HTMLButtonElement>("button")!.focus();
+    // The arrow key scrolls the viewport, the focused button's scroll container.
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(() => screen.slides[0]!.inert).toBe(true);
+    expect(document.activeElement).toBe(screen.viewport);
   });
 });
 
@@ -175,6 +237,40 @@ describe("Carousel navigation", () => {
     await userEvent.click(next);
     await expect.poll(() => next.disabled).toBe(true);
     await expect.poll(() => document.activeElement).toBe(screen.button("Previous slide"));
+  });
+
+  it("moves focus to Next when Previous reaches the start, so focus is not lost", async () => {
+    const screen = await render(<Carousel label="Recipe photos">{photos(3)}</Carousel>);
+    const previous = screen.button("Previous slide");
+    await userEvent.click(screen.button("Next slide"));
+    await expect.poll(() => previous.disabled).toBe(false);
+    await userEvent.click(previous);
+    await expect.poll(() => previous.disabled).toBe(true);
+    await expect.poll(() => document.activeElement).toBe(screen.button("Next slide"));
+  });
+
+  it("moves focus to the carousel when both buttons become disabled", async () => {
+    const screen = await render(<Carousel label="Recipe photos">{photos(3)}</Carousel>);
+    screen.button("Next slide").focus();
+    await screen.rerender(<Carousel label="Recipe photos">{photos(1)}</Carousel>);
+    expect(screen.button("Next slide").disabled).toBe(true);
+    expect(screen.button("Previous slide").disabled).toBe(true);
+    expect(document.activeElement).toBe(screen.carousel);
+  });
+
+  it("leaves focus alone when the app has moved it elsewhere", async () => {
+    const outside = document.createElement("button");
+    document.body.append(outside);
+    mounted.push(outside);
+    // The app moves focus when the position changes, before Next is disabled.
+    const screen = await render(
+      <Carousel label="Recipe photos" onIndexChange={() => outside.focus()}>
+        {photos(2)}
+      </Carousel>,
+    );
+    await userEvent.click(screen.button("Next slide"));
+    await expect.poll(() => screen.button("Next slide").disabled).toBe(true);
+    expect(document.activeElement).toBe(outside);
   });
 
   it("wraps around at both ends with loop, and never disables a button", async () => {
@@ -288,6 +384,50 @@ describe("Carousel announcements", () => {
   });
 });
 
+describe("Carousel settling", () => {
+  /** Runs `body` as in a browser without the `scrollend` event, such as older Safari. */
+  async function withoutScrollEnd(body: () => Promise<void>) {
+    const descriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "onscrollend");
+    if (descriptor) delete (HTMLElement.prototype as { onscrollend?: unknown }).onscrollend;
+    try {
+      await body();
+    } finally {
+      if (descriptor) Object.defineProperty(HTMLElement.prototype, "onscrollend", descriptor);
+    }
+  }
+  const touch = (target: Element, type: string, touches = 0) =>
+    target.dispatchEvent(Object.assign(new Event(type), { touches: { length: touches } }));
+
+  it("settles after a pause without scrollend, but never while a finger is down", async () => {
+    await withoutScrollEnd(async () => {
+      const onIndexChange = vi.fn();
+      const screen = await render(
+        <Carousel label="Recipe photos" onIndexChange={onIndexChange}>
+          {photos()}
+        </Carousel>,
+      );
+      const to = (slide: number) =>
+        screen.viewport.scrollTo({ left: screen.slides[slide]!.offsetLeft - screen.slides[0]!.offsetLeft, behavior: "instant" });
+      // No finger: a pause after scrolling settles.
+      to(1);
+      await expect.poll(() => onIndexChange.mock.calls).toEqual([[1]]);
+      // A finger down: scrolling stops, but nothing settles until every finger is lifted.
+      touch(screen.viewport, "touchstart", 1);
+      to(2);
+      touch(screen.viewport, "touchstart", 2);
+      touch(screen.viewport, "touchend", 1);
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      expect(onIndexChange.mock.calls).toEqual([[1]]);
+      touch(screen.viewport, "touchend", 0);
+      await expect.poll(() => onIndexChange.mock.calls).toEqual([[1], [2]]);
+      touch(screen.viewport, "touchstart", 1);
+      to(3);
+      touch(screen.viewport, "touchcancel", 0);
+      await expect.poll(() => onIndexChange.mock.calls).toEqual([[1], [2], [3]]);
+    });
+  });
+});
+
 describe("Carousel motion", () => {
   it("jumps instantly with reduced motion", async () => {
     const screen = await render(<Carousel label="Recipe photos">{photos()}</Carousel>);
@@ -313,6 +453,31 @@ describe("Carousel motion", () => {
     // Pressing again goes on from the slide it is heading to.
     await userEvent.click(screen.button("Next slide"));
     expect((scrollTo.mock.calls[1]![0] as ScrollToOptions).left).toBeCloseTo(starts[2]!, 0);
+  });
+
+  it("announces once per change while scrolling smoothly, with presses mid-scroll and a loop wrap", async () => {
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+    const record = recordAnnouncements("Smooth");
+    const onIndexChange = vi.fn();
+    const screen = await render(
+      <Carousel label="Recipe photos" loop slideLabel="Smooth {n} of {total}" onIndexChange={onIndexChange}>
+        {photos()}
+      </Carousel>,
+    );
+    // Two presses before the first scroll ends: one change, to slide 3.
+    await userEvent.click(screen.button("Next slide"));
+    await userEvent.click(screen.button("Next slide"));
+    await expect.poll(() => onIndexChange.mock.calls, { timeout: 3000 }).toEqual([[2]]);
+    // Three presses back wrap past the first slide to the last.
+    await userEvent.click(screen.button("Previous slide"));
+    await userEvent.click(screen.button("Previous slide"));
+    await userEvent.click(screen.button("Previous slide"));
+    await expect.poll(() => onIndexChange.mock.calls, { timeout: 3000 }).toEqual([[2], [4]]);
+    // Nothing more arrives once the scroll is over.
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(onIndexChange.mock.calls).toEqual([[2], [4]]);
+    expect(record.texts).toEqual(["Smooth 3 of 5", "Smooth 5 of 5"]);
+    record.stop();
   });
 });
 

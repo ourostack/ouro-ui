@@ -131,7 +131,7 @@ const foundation = [
     name: "ouro-testing",
     title: "Ouro testing",
     description:
-      "Installed with every -tests item; you don't need to add it. The test kit Ouro UI's tests use: Vitest browser projects with the drag, flick, tap, touchDrag and emulateMedia commands, the act helper, axeExclude, and the end-to-end story helper.",
+      "Installed with every -tests item; you don't need to add it. The test kit Ouro UI's tests use: Vitest browser projects with the drag, flick, tap, touchDrag, touchStep and emulateMedia commands, the act helper, axeExclude, and the end-to-end story helper.",
     docs: testingDocs(),
   },
 ];

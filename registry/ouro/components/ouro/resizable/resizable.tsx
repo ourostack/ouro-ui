@@ -172,7 +172,7 @@ export function ResizableGroupFrame({
   );
   // `null` is the saved or default sizes; a layout for another number of panels is ignored.
   const [own, setOwn] = useState<number[] | null>(null);
-  const sizes = own?.length === panels.length ? own : (parseSaved(savedText, panels.length) ?? defaults);
+  const sizes = own?.length === panels.length ? own : (parseSaved(savedText, panels) ?? defaults);
   const [resizing, setResizing] = useState(false);
 
   const state: GroupState = {
@@ -392,7 +392,9 @@ export function ResizableHandle({ "aria-label": ariaLabel, withHandle }: Resizab
       restore.current = collapsed ? undefined : size;
     } else return;
     event.preventDefault();
-    commit(clampSize(sizes, index, target, panels));
+    const next = clampSize(sizes, index, target, panels);
+    // A press at a limit changes nothing, so it reports and saves nothing.
+    if (next[index] !== size) commit(next);
   };
 
   const coordinate = (event: PointerEvent) => (horizontal ? event.clientX : event.clientY);

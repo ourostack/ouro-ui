@@ -97,9 +97,36 @@ it("moves to the next slide with a horizontal swipe and reports it once", async 
   const pageY = scrollY;
   await commands.touchDrag({ from: [rect.right - 40, y], to: [rect.left + 40, y], steps: 12 });
   await expect.poll(() => onIndexChange.mock.calls).toEqual([[1]]);
+  // Still once after the momentum and any late settling are over.
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  expect(onIndexChange.mock.calls).toEqual([[1]]);
   expect(touches.prevented()).toBe(false);
   // The swipe moved the slides, not the page.
   expect(scrollY).toBe(pageY);
+});
+
+it("reports and announces nothing while a finger is held still mid-swipe", async () => {
+  const { viewport, onIndexChange } = await renderInPage();
+  const announcer = () => document.querySelector("[data-ouro-announcer]")?.textContent ?? "";
+  const before = announcer();
+  const rect = viewport.getBoundingClientRect();
+  const y = rect.top + rect.height / 2;
+  const start = rect.right - 20;
+  const distance = rect.width * 0.65;
+  const at = (fraction: number) => start - distance * fraction;
+  await commands.touchStep({ type: "touchStart", x: start, y });
+  for (let step = 1; step <= 10; step++) await commands.touchStep({ type: "touchMove", x: at(step / 10), y });
+  // The finger stops past the middle of the next slide and stays down.
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  expect(viewport.scrollLeft).toBeGreaterThan(rect.width / 2);
+  expect(onIndexChange).not.toHaveBeenCalled();
+  expect(announcer()).toBe(before);
+  // The user changes their mind, drags back and lifts the finger: the position never changed.
+  for (let step = 9; step >= 0; step--) await commands.touchStep({ type: "touchMove", x: at(step / 10), y });
+  await commands.touchStep({ type: "touchEnd", x: start, y });
+  await expect.poll(() => viewport.scrollLeft).toBe(0);
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  expect(onIndexChange).not.toHaveBeenCalled();
 });
 
 it.each([

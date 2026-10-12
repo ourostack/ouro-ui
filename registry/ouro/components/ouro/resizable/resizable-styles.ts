@@ -143,14 +143,31 @@ function readSavedText(autoSaveId: string | undefined): string | null {
   }
 }
 
-/** The saved layout for `count` panels, or `null` when the text is missing or is not one. @internal */
-function parseSaved(text: string | null, count: number): number[] | null {
+/**
+ * The saved layout for `panels`, or `null` when the text is missing or is not a layout for
+ * that many panels. A layout outside the panels' limits (saved before an app changed
+ * `minSize` or `maxSize`) is fitted into them: each size is clamped, and the difference
+ * goes to the panels that still have room, in order.
+ *
+ * @internal
+ */
+function parseSaved(text: string | null, panels: readonly PanelLimits[]): number[] | null {
+  let saved: unknown;
   try {
-    const saved: unknown = JSON.parse(text ?? "null");
-    return isSavedLayout(saved, count) ? saved : null;
+    saved = JSON.parse(text ?? "null");
   } catch {
     return null;
   }
+  if (!isSavedLayout(saved, panels.length)) return null;
+  const sizes = saved.map((size, index) => Math.min(Math.max(size, panels[index]!.minSize), panels[index]!.maxSize));
+  let rest = 100 - sizes.reduce((sum, size) => sum + size, 0);
+  sizes.forEach((size, index) => {
+    const room = rest > 0 ? panels[index]!.maxSize - size : panels[index]!.minSize - size;
+    const change = rest > 0 ? Math.min(rest, room) : Math.max(rest, room);
+    sizes[index] = size + change;
+    rest -= change;
+  });
+  return sizes;
 }
 
 /** Re-reads saved layouts when another tab saves one. @internal */

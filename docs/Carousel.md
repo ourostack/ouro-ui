@@ -37,7 +37,9 @@ Type: `CarouselProps`.
 | `nextLabel` | `string` | `"Next slide"` | The Next button's accessible name. |
 | `onIndexChange` | `((index: number) => void)` |  | Called with the index of the first visible slide when the user moves to another slide, once per change. |
 | `previousLabel` | `string` | `"Previous slide"` | The Previous button's accessible name. |
+| `roleDescription` | `string` | `"carousel"` | What a screen reader calls the carousel, after its label: "Recipe photos, carousel". |
 | `slideLabel` | `string` | `"Slide {n} of {total}"` | Names each slide and is announced when the position changes: `{n}` is the slide's number and `{total}` the number of slides. |
+| `slideRoleDescription` | `string` | `"slide"` | What a screen reader calls each slide, after its name: "Slide 2 of 5, slide". |
 | `slidesPerView` | `1 \| 2 \| 3` | `1` | How many slides show at once. |
 
 ## Don't use

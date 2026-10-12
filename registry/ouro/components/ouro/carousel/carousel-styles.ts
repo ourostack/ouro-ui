@@ -4,8 +4,9 @@ export { buttonsClass, fillTemplate, nearestSlide, rootClass, slideClass, slides
 // only components (React Fast Refresh). Class strings are literal so the app's Tailwind
 // finds them when it compiles.
 
-/** @internal */
-const rootClass = "m-0 grid min-w-0 gap-3";
+/** The region. It takes focus only when both buttons become disabled under focus. @internal */
+const rootClass =
+  "m-0 grid min-w-0 gap-3 outline-ring outline-offset-4 focus-visible:outline-2 focus-visible:outline-solid";
 
 /**
  * The scroller: native horizontal scrolling with mandatory snap points, so a swipe, a
