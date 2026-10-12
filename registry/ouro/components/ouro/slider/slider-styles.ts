@@ -1,4 +1,4 @@
-export { controlClass, indicatorClass, rootClass, thumbClass, trackClass, valueClass };
+export { controlClass, indicatorClass, rootClass, sampleClass, thumbClass, trackClass, valueClass };
 
 // Class strings for Slider, apart from the component so its file
 // exports only components (React Fast Refresh). Class strings are literal so the app's
@@ -63,6 +63,7 @@ const thumbClass =
  * @internal
  */
 const valueClass =
-  "m-0 grid shrink-0 justify-items-end text-sm leading-5 text-foreground tabular-nums whitespace-nowrap group-data-disabled/slider:text-muted-foreground " +
-  "before:invisible before:col-start-1 before:row-start-1 before:content-[attr(data-ouro-slider-low)] " +
-  "after:invisible after:col-start-1 after:row-start-1 after:content-[attr(data-ouro-slider-high)]";
+  "m-0 grid shrink-0 justify-items-end text-sm leading-5 text-foreground tabular-nums whitespace-nowrap group-data-disabled/slider:text-muted-foreground";
+
+/** A hidden sample of the widest value text, stacked under the value to hold its width. */
+const sampleClass = "invisible col-start-1 row-start-1 before:content-[attr(data-ouro-slider-sample)]";

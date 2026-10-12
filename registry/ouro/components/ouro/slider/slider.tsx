@@ -11,6 +11,7 @@ import {
   controlClass,
   indicatorClass,
   rootClass,
+  sampleClass,
   thumbClass,
   trackClass,
   valueClass,
@@ -299,17 +300,29 @@ function SliderControl({
     }
   });
   const { onValueChange, onValueCommitted, ...shared } = rootProps;
-  // The widest value text: each end's integer part with the step's decimals (Base UI's
-  // defaults are 0, 100 and a step of 1), formatted as the value is. Figures are tabular, so
-  // the most digits make the widest text.
+  // Samples of the widest value text, all reserved so the track keeps its length: each end's
+  // integer part with the step's decimals (Base UI's defaults are 0, 100 and a step of 1), plus
+  // values in each power of ten, since compact notation ("1.1K") can be wider than either end.
   const number = new Intl.NumberFormat(shared.locale, shared.format);
-  const decimals = (String(shared.step ?? 1).split(".")[1] ?? "").length;
-  const sample = (end: number) => {
+  const min = shared.min ?? 0;
+  const max = shared.max ?? 100;
+  const step = shared.step ?? 1;
+  const decimals = (String(step).split(".")[1] ?? "").length;
+  const withDecimals = (end: number) => {
     const whole = Math.trunc(end);
     return decimals === 0 ? end : Math.sign(end || 1) * (Math.abs(whole) + Number(`0.${"8".repeat(decimals)}`));
   };
-  const ends = [number.format(sample(shared.min ?? 0)), number.format(sample(shared.max ?? 100))];
-  const widest = isRange ? ends.map((end) => `${end} – ${end}`) : ends;
+  const values = [withDecimals(min), withDecimals(max)];
+  for (let power = 1; power <= Math.max(Math.abs(min), Math.abs(max)); power *= 10) {
+    for (const magnitude of [1.8 * power, 8.8 * power, 10 * power - step]) {
+      for (const value of [magnitude, -magnitude]) {
+        const snapped = min + Math.round((value - min) / step) * step;
+        if (snapped >= min && snapped <= max) values.push(snapped);
+      }
+    }
+  }
+  const texts = [...new Set(values.map((value) => number.format(value)))];
+  const samples = isRange ? texts.map((text) => `${text} – ${text}`) : texts;
   return (
     <BaseSlider.Root
       ref={rootRef}
@@ -324,12 +337,6 @@ function SliderControl({
       <BaseSlider.Control
         data-ouro-slider-control=""
         className={controlClass}
-        // A finger drives the slider through Base UI's touch events. Its pointer path would also
-        // capture the touch pointer, which keeps a vertical swipe from scrolling the page, so it
-        // is skipped for touch; a mouse or pen still uses it.
-        onPointerDown={(event) => {
-          if (event.pointerType === "touch") event.preventBaseUIHandler();
-        }}
       >
         <BaseSlider.Track className={trackClass}>
           <BaseSlider.Indicator data-ouro-slider-indicator="" className={indicatorClass} />
@@ -351,13 +358,17 @@ function SliderControl({
       {showValue && (
         <BaseSlider.Value
           data-ouro-slider-value=""
-          // The widest values, as hidden pseudo-elements, hold the width so the track keeps its
-          // length as the value changes; they stay out of the text and the accessibility tree.
-          data-ouro-slider-low={widest[0]}
-          data-ouro-slider-high={widest[1]}
           className={valueClass}
         >
-          {(formatted) => <span className="col-start-1 row-start-1">{formatted.join(" – ")}</span>}
+          {(formatted) => (
+            <>
+              <span className="col-start-1 row-start-1">{formatted.join(" – ")}</span>
+              {/* Empty, so they stay out of the text: each shows its sample as a hidden pseudo-element. */}
+              {samples.map((sample) => (
+                <span key={sample} aria-hidden="true" data-ouro-slider-sample={sample} className={sampleClass} />
+              ))}
+            </>
+          )}
         </BaseSlider.Value>
       )}
     </BaseSlider.Root>

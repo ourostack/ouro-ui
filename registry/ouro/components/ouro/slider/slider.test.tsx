@@ -186,6 +186,21 @@ describe("Slider", () => {
     expect(track()).toBe(atMin);
   });
 
+  it("keeps the track the same length with compact notation", async () => {
+    function Views({ value }: { value: number }) {
+      return <Slider label="Views" value={value} min={0} max={5000} step={10} showValue format={{ notation: "compact" }} />;
+    }
+    const { host, rerender } = await render(<Views value={0} />);
+    const track = () => host.querySelector<HTMLElement>("[data-ouro-slider-control]")!.getBoundingClientRect().width;
+    const shown = () => host.querySelector("[data-ouro-slider-value]")!.textContent;
+    const atMin = track();
+    for (const [value, text] of [[100, "100"], [1100, "1.1K"], [5000, "5K"]] as const) {
+      await rerender(<Views value={value} />);
+      expect(shown()).toBe(text);
+      expect(track()).toBe(atMin);
+    }
+  });
+
   it("forwards its ref to the first thumb's input", async () => {
     const ref = createRef<HTMLInputElement>();
     const { inputs } = await render(<Slider label="Volume" ref={ref} />);

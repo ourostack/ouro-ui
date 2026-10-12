@@ -73,12 +73,9 @@ it("hands a vertical finger drag over the slider to the page, without moving the
   const control = host.querySelector<HTMLElement>("[data-ouro-slider-control]")!;
   // pan-y lets the browser scroll the page on a vertical pan, and a sideways drag slide.
   expect(getComputedStyle(control).touchAction).toBe("pan-y");
-  // The page keeps the pan when nothing cancels the moves and no script captures the pointer.
-  // (A touch pointer is always captured implicitly to the element it lands on, and Chromium
-  // reports that as gotpointercapture too, so the check is on setPointerCapture calls.)
+  // The page scrolls, and nothing cancels the moves on the way.
   const moves: Array<{ type: string; prevented: boolean }> = [];
   const record = (event: Event) => moves.push({ type: event.type, prevented: event.defaultPrevented });
-  const capture = vi.spyOn(Element.prototype, "setPointerCapture");
   window.addEventListener("touchmove", record);
   window.addEventListener("pointermove", record);
   try {
@@ -86,12 +83,12 @@ it("hands a vertical finger drag over the slider to the page, without moving the
     const x = rect.left + rect.width / 2;
     const y = rect.top + rect.height / 2;
     await commands.touchDrag({ from: [x, y], to: [x, y - 150], steps: 10 });
+    await expect.poll(() => document.scrollingElement!.scrollTop).toBeGreaterThan(0);
   } finally {
     window.removeEventListener("touchmove", record);
     window.removeEventListener("pointermove", record);
   }
   expect(moves.some((move) => move.type === "touchmove")).toBe(true);
   expect(moves.filter((move) => move.prevented)).toEqual([]);
-  expect(capture).not.toHaveBeenCalled();
   expect(onValueChange.mock.calls.every(([value]) => value === 50)).toBe(true);
 });
