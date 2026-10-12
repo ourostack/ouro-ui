@@ -16,6 +16,6 @@ test("show more loads the next page and focuses its first item", async ({ page }
   await openStory(page, "lists-showmore--load-more");
   await page.getByRole("link", { name: "Show more" }).click();
   await expect(page.getByRole("link", { name: "Weeknight dal" })).toBeFocused();
-  await expect(page.getByRole("status")).toHaveText("Showing 6 recipes");
+  await expect(page.locator("[data-ouro-show-more-status]")).toHaveText("Showing 6 recipes");
   await expect(page).not.toHaveURL(/after=/);
 });
