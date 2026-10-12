@@ -145,6 +145,7 @@
       "description": "Installed with every component; you don't need to add it. Shared helpers every Ouro UI component uses, in lib/ouro: cn, dev messages, the className check, announce, OuroProvider and hooks.",
       "docs": "Ouro UI's helpers are in lib/ouro. OuroProvider is optional; it routes internal hrefs through your router's link. Docs: https://ourostack.github.io/ouro-ui/docs",
       "dependencies": [
+        "@base-ui/react@^1.8.0",
         "clsx@^2.1.1",
         "tailwind-merge@^3.7.0"
       ],
@@ -178,6 +179,16 @@
           "path": "registry/ouro/lib/ouro/env.d.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/env.d.ts"
+        },
+        {
+          "path": "registry/ouro/lib/ouro/floating.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/floating.ts"
+        },
+        {
+          "path": "registry/ouro/lib/ouro/last-input.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/last-input.ts"
         },
         {
           "path": "registry/ouro/lib/ouro/open-mode.ts",
@@ -238,6 +249,11 @@
           "path": "registry/ouro/lib/ouro/use-ouro.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/use-ouro.ts"
+        },
+        {
+          "path": "registry/ouro/lib/ouro/use-sheet-presentation.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/use-sheet-presentation.ts"
         }
       ]
     },
@@ -668,6 +684,80 @@
       ]
     },
     {
+      "name": "popover",
+      "type": "registry:ui",
+      "title": "Popover",
+      "description": "A small non-modal panel beside its trigger, for a short form or a few choices: a share link, filters, a quick edit.",
+      "docs": "A small non-modal panel beside its trigger, for a short form or a few choices: a share link, filters, a quick edit. Import: import { Popover } from \"@/components/ouro/popover/popover\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib, sheet. Docs: https://ourostack.github.io/ouro-ui/docs/popover.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib",
+        "ourostack/ouro-ui/sheet"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/popover/popover-parts.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/popover/popover-parts.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/popover/popover-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/popover/popover-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/popover/popover.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/popover/popover.tsx"
+        }
+      ]
+    },
+    {
+      "name": "tooltip",
+      "type": "registry:ui",
+      "title": "Tooltip",
+      "description": "A short label that appears beside its trigger on hover and keyboard focus, for an icon button's purpose or a control's shortcut.",
+      "docs": "A short label that appears beside its trigger on hover and keyboard focus, for an icon button's purpose or a control's shortcut. Import: import { Tooltip } from \"@/components/ouro/tooltip/tooltip\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/tooltip.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/tooltip/tooltip.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/tooltip/tooltip.tsx"
+        }
+      ]
+    },
+    {
+      "name": "hover-card",
+      "type": "registry:ui",
+      "title": "HoverCard",
+      "description": "A preview of where a link goes, shown when a mouse rests on the link or the keyboard focuses it: a cook's profile, a recipe's summary.",
+      "docs": "A preview of where a link goes, shown when a mouse rests on the link or the keyboard focuses it: a cook's profile, a recipe's summary. Import: import { HoverCard } from \"@/components/ouro/hover-card/hover-card\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/hover-card.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/hover-card/hover-card.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/hover-card/hover-card.tsx"
+        }
+      ]
+    },
+    {
       "name": "ouro-lib-tests",
       "type": "registry:item",
       "title": "Ouro lib tests",
@@ -705,6 +795,16 @@
           "path": "registry/ouro/lib/ouro/dev.test.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/dev.test.ts"
+        },
+        {
+          "path": "registry/ouro/lib/ouro/floating.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/floating.test.ts"
+        },
+        {
+          "path": "registry/ouro/lib/ouro/last-input.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/last-input.test.ts"
         },
         {
           "path": "registry/ouro/lib/ouro/ouro-provider.test.tsx",
@@ -1396,6 +1496,145 @@
       ]
     },
     {
+      "name": "popover-tests",
+      "type": "registry:item",
+      "title": "Popover tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for popover, with the test tooling as devDependencies. Add it beside popover: add popover popover-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "popover's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/popover.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/dialog",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/popover",
+        "ourostack/ouro-ui/text-field",
+        "ourostack/ouro-ui/tooltip"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/popover/popover.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/popover/popover.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/popover/popover.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/popover/popover.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/popover/popover.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/popover/popover.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/popover/popover.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/popover/popover.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/popover.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/popover.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "tooltip-tests",
+      "type": "registry:item",
+      "title": "Tooltip tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for tooltip, with the test tooling as devDependencies. Add it beside tooltip: add tooltip tooltip-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "tooltip's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/tooltip.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/ouro-lib",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/tooltip"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/tooltip/tooltip.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/tooltip/tooltip.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/tooltip/tooltip.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/tooltip/tooltip.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/tooltip/tooltip.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/tooltip/tooltip.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/tooltip/tooltip.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/tooltip/tooltip.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/tooltip.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/tooltip.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "hover-card-tests",
+      "type": "registry:item",
+      "title": "HoverCard tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for hover-card, with the test tooling as devDependencies. Add it beside hover-card: add hover-card hover-card-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "hover-card's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/hover-card.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/hover-card",
+        "ourostack/ouro-ui/link",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/hover-card/hover-card.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/hover-card/hover-card.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/hover-card/hover-card.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/hover-card/hover-card.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/hover-card/hover-card.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/hover-card/hover-card.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/hover-card/hover-card.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/hover-card/hover-card.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/hover-card.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/hover-card.spec.ts"
+        }
+      ]
+    },
+    {
       "name": "ouro-tests",
       "type": "registry:item",
       "title": "Ouro tests",
@@ -1411,14 +1650,17 @@
         "ourostack/ouro-ui/field-tests",
         "ourostack/ouro-ui/fieldset-tests",
         "ourostack/ouro-ui/heading-tests",
+        "ourostack/ouro-ui/hover-card-tests",
         "ourostack/ouro-ui/kbd-tests",
         "ourostack/ouro-ui/link-tests",
         "ourostack/ouro-ui/ouro-lib-tests",
+        "ourostack/ouro-ui/popover-tests",
         "ourostack/ouro-ui/separator-tests",
         "ourostack/ouro-ui/sheet-tests",
         "ourostack/ouro-ui/text-area-tests",
         "ourostack/ouro-ui/text-field-tests",
-        "ourostack/ouro-ui/text-tests"
+        "ourostack/ouro-ui/text-tests",
+        "ourostack/ouro-ui/tooltip-tests"
       ]
     }
   ]
