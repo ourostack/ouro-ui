@@ -15,6 +15,7 @@ test("a scroll area scrolls with the wheel and the keyboard", async ({ page }) =
 });
 
 test("a horizontal scroll area keeps its row on one line", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   await openStory(page, "layout-scrollarea--in-context");
   const tags = page.getByRole("region", { name: "Tags" });
   expect(await tags.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true);
