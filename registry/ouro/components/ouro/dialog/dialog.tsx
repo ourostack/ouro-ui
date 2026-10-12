@@ -268,6 +268,63 @@ export function Dialog(props: DialogProps): JSX.Element {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
 
+  return (
+    <DialogFrame
+      title={title}
+      hideTitle={hideTitle}
+      closeLabel={closeLabel}
+      description={description}
+      presentation={presentation}
+      size={size}
+      footer={footer}
+      className={className}
+      trigger={trigger}
+      open={open}
+      onOpenChange={onOpenChange}
+    >
+      {children}
+    </DialogFrame>
+  );
+}
+
+/** Props for {@link DialogFrame}: a Dialog's props after its checks, with `trigger` and `open` allowed together. */
+export interface DialogFrameProps {
+  title: string;
+  hideTitle?: boolean | undefined;
+  closeLabel: string;
+  description?: ReactNode;
+  presentation: DialogPresentation;
+  size: DialogSize;
+  footer?: ReactNode;
+  children: ReactNode;
+  className?: string | undefined;
+  /** The opening element. May come with `open`, when a pattern such as `EditSheet` owns the state. */
+  trigger?: ReactElement | undefined;
+  open?: boolean | undefined;
+  onOpenChange?: ((open: boolean) => void) | undefined;
+}
+
+/**
+ * The dialog's markup and behavior, without prop checks: `Dialog` renders it after its own
+ * checks, and `EditSheet` renders it with a trigger and its own open state, so it can close
+ * the dialog when a save succeeds and still return focus to the trigger.
+ *
+ * @internal Shared with `EditSheet`; apps use `Dialog`.
+ */
+export function DialogFrame({
+  title,
+  hideTitle,
+  closeLabel,
+  description,
+  presentation,
+  size,
+  footer,
+  children,
+  className,
+  trigger,
+  open,
+  onOpenChange,
+}: DialogFrameProps): JSX.Element {
   // The Dialog owns the open state even with a trigger, so the dialog stays open
   // when a resize across 640px swaps the centered dialog for the sheet.
   const [ownOpen, setOwnOpen] = useState(false);
@@ -309,10 +366,10 @@ export function Dialog(props: DialogProps): JSX.Element {
   // Focus returns to the trigger on close, in either presentation.
   const finalFocus = trigger !== undefined ? { finalFocus: triggerRef } : {};
   // The centered dialog focuses itself after a touch or pen open, and the first
-  // control otherwise, as Base UI does with its own trigger. A controlled dialog
+  // control otherwise, as Base UI does with its own trigger. A dialog without a trigger
   // decides when it opens, from the last press on the page. (The sheet always
   // focuses itself, like a plain Sheet.)
-  const initialFocus = controlled
+  const initialFocus = trigger === undefined
     ? { initialFocus: () => (lastInput === "touch" || lastInput === "pen" ? popupRef.current : true) }
     : tapOpened
       ? { initialFocus: popupRef }

@@ -66,7 +66,8 @@ export type FieldRootProps = Omit<BaseField.Root.Props, "className"> & {
  */
 export function FieldRoot({ className, required, ...props }: FieldRootProps): JSX.Element {
   useLayoutClassName("FieldRoot", className);
-  const value = useMemo(() => ({ required: Boolean(required), describedBy: undefined }), [required]);
+  const invalid = Boolean(props.invalid);
+  const value = useMemo(() => ({ required: Boolean(required), describedBy: undefined, invalid, labelId: undefined }), [required, invalid]);
   return (
     <FieldContext.Provider value={value}>
       <BaseField.Root {...props} data-ouro="field" className={cn(rootClass, className)} />

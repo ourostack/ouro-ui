@@ -1,0 +1,358 @@
+import { useState, type ReactNode } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { renderToString } from "react-dom/server";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { page, userEvent } from "vitest/browser";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { EditSheet, type EditSheetProps } from "@/registry/ouro/components/ouro/form/edit-sheet";
+import type { FormErrors } from "@/registry/ouro/components/ouro/form/form";
+import { Select } from "@/registry/ouro/components/ouro/select/select";
+import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
+import { act } from "@/registry/ouro/lib/ouro/testing/act";
+
+// Runs in Chromium and WebKit.
+
+const FIX = "Pass trigger={<Button>…</Button>} for an uncontrolled edit sheet, or open and onOpenChange to control it.";
+
+const roots: Root[] = [];
+let mounted: Element[] = [];
+
+async function render(node: ReactNode) {
+  const host = document.createElement("div");
+  document.body.append(host);
+  mounted.push(host);
+  const root = createRoot(host);
+  roots.push(root);
+  await act(async () => root.render(node));
+  return host;
+}
+
+let warn: ReturnType<typeof vi.spyOn>;
+beforeEach(async () => {
+  await page.viewport(1280, 800);
+  warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+});
+afterEach(async () => {
+  vi.restoreAllMocks();
+  await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+  for (const node of mounted) node.remove();
+  mounted = [];
+});
+
+const popup = () => document.querySelector<HTMLElement>('[role="dialog"]');
+const trigger = () => document.querySelector<HTMLElement>("[data-edit-trigger]")!;
+const dialogButton = (name: string) => page.getByRole("dialog").getByRole("button", { name });
+const field = (name: string) => document.querySelector<HTMLInputElement>(`[role="dialog"] input[name="${name}"]`)!;
+/** The text of the elements an element's `aria-describedby` names. */
+const description = (element: Element) =>
+  (element.getAttribute("aria-describedby") ?? "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((id) => element.ownerDocument.getElementById(id)?.textContent ?? "");
+
+async function settled() {
+  await expect
+    .poll(
+      () => {
+        const element = popup();
+        return Boolean(element && !element.hasAttribute("data-starting-style") && element.getAnimations().length === 0);
+      },
+      { interval: 50 },
+    )
+    .toBe(true);
+}
+
+function Fields() {
+  return (
+    <>
+      <TextField label="Name" name="name" defaultValue="Pasta" required />
+      <TextField label="Servings" name="servings" defaultValue="4" description="How many it feeds." />
+    </>
+  );
+}
+
+async function open(props: Partial<EditSheetProps> = {}) {
+  await render(
+    <EditSheet title="Edit recipe" onSubmit={() => {}} trigger={<Button data-edit-trigger="">Edit</Button>} {...(props as object)}>
+      <Fields />
+    </EditSheet>,
+  );
+  await userEvent.click(trigger());
+  await settled();
+  return popup()!;
+}
+
+const deferred = <T,>() => {
+  let resolve!: (value: T) => void;
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+};
+
+describe("EditSheet", () => {
+  it("opens a dialog named by its title, with the fields in a form and Cancel and Save", async () => {
+    const dialog = await open({ description: "Change the name or servings." });
+    expect(dialog.getAttribute("aria-labelledby")).toBeTruthy();
+    await expect.element(page.getByRole("dialog", { name: "Edit recipe" })).toBeVisible();
+    const form = dialog.querySelector("form")!;
+    expect(form.getAttribute("data-ouro")).toBe("form");
+    expect(form.contains(field("name"))).toBe(true);
+    const save = dialogButton("Save").element() as HTMLButtonElement;
+    expect(save.type).toBe("submit");
+    expect(save.form).toBe(form);
+    await expect.element(dialogButton("Cancel")).toBeVisible();
+  });
+
+  it("submits the fields as FormData, closes and returns focus to the trigger", async () => {
+    const onSubmit = vi.fn();
+    await open({ onSubmit });
+    await userEvent.fill(page.getByRole("textbox", { name: "Name" }), "Pasta bake");
+    await userEvent.click(dialogButton("Save"));
+    expect(onSubmit).toHaveBeenCalledOnce();
+    const data = onSubmit.mock.calls[0]![0] as FormData;
+    expect(data.get("name")).toBe("Pasta bake");
+    expect(data.get("servings")).toBe("4");
+    await expect.poll(() => popup()).toBeNull();
+    await expect.poll(() => document.activeElement).toBe(trigger());
+  });
+
+  it("submits when Enter is pressed in a field", async () => {
+    const onSubmit = vi.fn();
+    await open({ onSubmit, submitLabel: "Save recipe" });
+    await userEvent.type(page.getByRole("textbox", { name: "Servings" }), "{Enter}");
+    expect(onSubmit).toHaveBeenCalledOnce();
+    await expect.poll(() => popup()).toBeNull();
+  });
+
+  it("takes the button labels as props", async () => {
+    await open({ submitLabel: "Save recipe", cancelLabel: "Keep editing" });
+    await expect.element(dialogButton("Save recipe")).toBeVisible();
+    await expect.element(dialogButton("Keep editing")).toBeVisible();
+  });
+
+  it("checks the fields with the browser's constraints before calling onSubmit", async () => {
+    const onSubmit = vi.fn();
+    await open({ onSubmit });
+    await userEvent.clear(page.getByRole("textbox", { name: "Name" }));
+    await userEvent.click(dialogButton("Save"));
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(field("name"));
+    expect(popup()).not.toBeNull();
+  });
+
+  it("puts returned errors on the matching fields, stays open and focuses the first", async () => {
+    await open({ onSubmit: () => ({ servings: "Use a whole number.", name: ["Too short.", "Taken."] }) });
+    await userEvent.click(dialogButton("Save"));
+    await expect.poll(() => field("name").getAttribute("aria-invalid")).toBe("true");
+    expect(description(field("servings"))).toEqual(["How many it feeds.", "Use a whole number."]);
+    await expect.poll(() => document.activeElement).toBe(field("name"));
+    expect(popup()!.hasAttribute("data-open")).toBe(true);
+  });
+
+  it("closes when the returned errors are empty", async () => {
+    await open({ onSubmit: () => ({}) });
+    await userEvent.click(dialogButton("Save"));
+    await expect.poll(() => popup()).toBeNull();
+  });
+
+  it("shows loading on Save while a promise is pending, then closes when it resolves", async () => {
+    const pending = deferred<void>();
+    await open({ onSubmit: () => pending.promise });
+    await userEvent.click(dialogButton("Save"));
+    await expect.poll(() => dialogButton("Save").element().getAttribute("aria-busy")).toBe("true");
+    expect(popup()!.hasAttribute("data-open")).toBe(true);
+    await act(async () => pending.resolve());
+    await expect.poll(() => popup()).toBeNull();
+    await expect.poll(() => document.activeElement).toBe(trigger());
+  });
+
+  it("shows errors from a promise, clears loading and stays open", async () => {
+    const pending = deferred<FormErrors>();
+    await open({ onSubmit: () => pending.promise });
+    await userEvent.click(dialogButton("Save"));
+    await act(async () => pending.resolve({ servings: "Use a whole number." }));
+    await expect.poll(() => field("servings").getAttribute("aria-invalid")).toBe("true");
+    expect(dialogButton("Save").element().hasAttribute("aria-busy")).toBe(false);
+    await expect.poll(() => document.activeElement).toBe(field("servings"));
+    // Fixing the field clears its error.
+    await userEvent.fill(page.getByRole("textbox", { name: "Servings" }), "6");
+    expect(field("servings").getAttribute("aria-invalid")).toBeNull();
+  });
+
+  it("ignores a second submit while the first is pending", async () => {
+    const pending = deferred<void>();
+    const onSubmit = vi.fn(() => pending.promise);
+    await open({ onSubmit });
+    await userEvent.click(dialogButton("Save"));
+    await expect.poll(() => dialogButton("Save").element().getAttribute("aria-busy")).toBe("true");
+    await act(async () => field("name").form!.requestSubmit());
+    expect(onSubmit).toHaveBeenCalledOnce();
+    await act(async () => pending.resolve());
+  });
+
+  it("stays open when the promise rejects, clears loading and warns with the error", async () => {
+    const pending = deferred<void>();
+    await open({ onSubmit: () => pending.promise });
+    await userEvent.click(dialogButton("Save"));
+    await act(async () => pending.reject(new Error("Network down")));
+    await expect.poll(() => dialogButton("Save").element().hasAttribute("aria-busy")).toBe(false);
+    expect(popup()!.hasAttribute("data-open")).toBe(true);
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] EditSheet: onSubmit rejected with "Network down", so the sheet stayed open. Fix: return the message as an error for a field: onSubmit={async (data) => (await save(data)).errors}.',
+    );
+  });
+
+  it("treats a synchronous throw like a rejection, and warns with a value that is not an Error", async () => {
+    await open({
+      onSubmit: () => {
+        throw "offline";
+      },
+    });
+    await userEvent.click(dialogButton("Save"));
+    await expect.poll(() => warn.mock.calls.length).toBe(1);
+    expect(String(warn.mock.calls[0]![0])).toContain('onSubmit rejected with "offline"');
+    expect(popup()!.hasAttribute("data-open")).toBe(true);
+  });
+
+  it("closes from Cancel without submitting, and ignores a save that settles later", async () => {
+    const pending = deferred<FormErrors>();
+    const onSubmit = vi.fn(() => pending.promise);
+    await open({ onSubmit });
+    await userEvent.click(dialogButton("Save"));
+    await userEvent.click(dialogButton("Cancel"));
+    await expect.poll(() => popup()).toBeNull();
+    await expect.poll(() => document.activeElement).toBe(trigger());
+    // Reopen: the late result neither closes it nor shows its errors, and nothing is loading.
+    await userEvent.click(trigger());
+    await settled();
+    await act(async () => pending.resolve({ name: "Taken." }));
+    expect(popup()!.hasAttribute("data-open")).toBe(true);
+    expect(field("name").getAttribute("aria-invalid")).toBeNull();
+    expect(dialogButton("Save").element().hasAttribute("aria-busy")).toBe(false);
+  });
+
+  it("ignores a rejection that settles after the user cancelled, but still warns", async () => {
+    const pending = deferred<void>();
+    await open({ onSubmit: () => pending.promise });
+    await userEvent.click(dialogButton("Save"));
+    await userEvent.click(dialogButton("Cancel"));
+    await expect.poll(() => popup()).toBeNull();
+    await act(async () => pending.reject(new Error("Network down")));
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] EditSheet: onSubmit rejected with "Network down" after the user had left that edit. Fix: return the message as an error for a field: onSubmit={async (data) => (await save(data)).errors}.',
+    );
+  });
+
+  it("starts each opening without the last opening's errors", async () => {
+    await open({ onSubmit: () => ({ name: "Taken." }) });
+    await userEvent.click(dialogButton("Save"));
+    await expect.poll(() => field("name").getAttribute("aria-invalid")).toBe("true");
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => popup()).toBeNull();
+    await userEvent.click(trigger());
+    await settled();
+    expect(field("name").getAttribute("aria-invalid")).toBeNull();
+  });
+
+  it("closes a controlled sheet through onOpenChange when the save succeeds", async () => {
+    const onOpenChange = vi.fn();
+    function Controlled() {
+      const [openState, setOpen] = useState(false);
+      return (
+        <>
+          <Button onClick={() => setOpen(true)}>Open</Button>
+          <EditSheet
+            title="Edit recipe"
+            open={openState}
+            onOpenChange={(next) => {
+              onOpenChange(next);
+              setOpen(next);
+            }}
+            onSubmit={() => {}}
+          >
+            <Fields />
+          </EditSheet>
+        </>
+      );
+    }
+    await render(<Controlled />);
+    await userEvent.click(page.getByRole("button", { name: "Open" }));
+    await settled();
+    await userEvent.click(dialogButton("Save"));
+    await expect.poll(() => popup()).toBeNull();
+    expect(onOpenChange.mock.calls).toEqual([[false]]);
+  });
+
+  it("is a bottom sheet on a phone, through Dialog", async () => {
+    await page.viewport(390, 844);
+    await open();
+    expect(popup()!.getAttribute("data-ouro-presentation")).toBe("sheet");
+    expect(popup()!.querySelector("form")).not.toBeNull();
+    await userEvent.click(dialogButton("Save"));
+    await expect.poll(() => popup()).toBeNull();
+  });
+
+  it("takes a Select whose list opens above the sheet, and submits its value", async () => {
+    const onSubmit = vi.fn();
+    await render(
+      <EditSheet title="Edit recipe" onSubmit={onSubmit} trigger={<Button data-edit-trigger="">Edit</Button>}>
+        <Select label="Course" name="course" options={[{ value: "main", label: "Main" }]} />
+      </EditSheet>,
+    );
+    await userEvent.click(trigger());
+    await settled();
+    await userEvent.click(page.getByRole("combobox", { name: "Course" }));
+    await userEvent.click(page.getByRole("option", { name: "Main" }));
+    await userEvent.click(dialogButton("Save"));
+    expect((onSubmit.mock.calls[0]![0] as FormData).get("course")).toBe("main");
+  });
+
+  it("renders on the server without throwing", () => {
+    expect(() =>
+      renderToString(
+        <EditSheet title="Edit recipe" onSubmit={() => {}} trigger={<Button>Edit</Button>}>
+          <Fields />
+        </EditSheet>,
+      ),
+    ).not.toThrow();
+  });
+});
+
+describe("EditSheet dev messages", () => {
+  it("throws the exact fix when neither trigger nor open is passed", () => {
+    const props = { title: "Edit recipe", onSubmit: () => {}, children: null } as unknown as EditSheetProps;
+    expect(() => renderToString(<EditSheet {...props} />)).toThrow(`[ouro-ui] EditSheet: needs trigger or open with onOpenChange. Fix: ${FIX}`);
+  });
+
+  it("warns once about guessed props and an empty title, and drops them from the DOM", async () => {
+    const props = {
+      title: "",
+      onSubmit: () => {},
+      trigger: <Button data-edit-trigger="">Edit</Button>,
+      onSave: () => {},
+      saveLabel: "Save",
+      submitText: "Save",
+      errors: { name: "Taken." },
+      isOpen: true,
+      onClose: () => {},
+      children: <Fields />,
+    } as unknown as EditSheetProps;
+    await render(<EditSheet {...props} />);
+    await userEvent.click(trigger());
+    await settled();
+    const messages = warn.mock.calls.map((call: unknown[]) => String(call[0]));
+    expect(messages).toEqual([
+      '[ouro-ui] EditSheet: title is required; it names the sheet for screen readers. Fix: <EditSheet title="Edit recipe">.',
+      "[ouro-ui] EditSheet: onSave is not a prop. Fix: <EditSheet onSubmit={(data) => save(data)}>.",
+      '[ouro-ui] EditSheet: saveLabel is not a prop. Fix: <EditSheet submitLabel="Save">.',
+      '[ouro-ui] EditSheet: submitText is not a prop. Fix: <EditSheet submitLabel="Save">.',
+      "[ouro-ui] EditSheet: errors is not a prop; return them from onSubmit. Fix: <EditSheet onSubmit={async (data) => (await save(data)).errors}>.",
+      "[ouro-ui] EditSheet: isOpen is not a prop. Fix: <EditSheet open={open} onOpenChange={setOpen}>.",
+      "[ouro-ui] EditSheet: onClose is not a prop. Fix: <EditSheet open={open} onOpenChange={setOpen}>.",
+    ]);
+    expect(popup()!.hasAttribute("onsave")).toBe(false);
+  });
+});

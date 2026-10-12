@@ -125,7 +125,43 @@ export const tap: BrowserCommand<[selector: string]> = async (ctx, selector) => 
   await ctx.iframe.locator(selector).tap();
 };
 
-export const commands = { emulateMedia, drag, flick, pointerPress, tap };
+export interface SwipeOptions {
+  /** Viewport coordinates where the finger touches down. */
+  from: [number, number];
+  /** Viewport coordinates where the finger lifts. */
+  to: [number, number];
+  /** Number of intermediate finger moves. */
+  steps: number;
+}
+
+/**
+ * A one-finger swipe with real touch input (Chromium only), through CDP
+ * `Input.dispatchTouchEvent`, so the browser scrolls what is under the finger the way a
+ * phone does, and fires `pointercancel` once the scroll takes over. Use it to check that a
+ * list scrolls under the thumb without choosing what the finger started on. Needs a context
+ * with `hasTouch`, as in the `touch` project.
+ */
+export const swipe: BrowserCommand<[SwipeOptions]> = async (ctx, { from, to, steps }) => {
+  const { page } = ctx;
+  if (ctx.provider.name !== "playwright" || page.context().browser()?.browserType().name() !== "chromium") {
+    throw new Error("swipe: CDP input is Chromium only");
+  }
+  let session = cdpSessions.get(page);
+  if (!session) {
+    session = await page.context().newCDPSession(page);
+    cdpSessions.set(page, session);
+  }
+  const touch = (type: "touchStart" | "touchMove" | "touchEnd", [x, y]: [number, number]) =>
+    session.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y }] });
+  await touch("touchStart", from);
+  for (let step = 1; step <= steps; step++) {
+    const t = step / steps;
+    await touch("touchMove", [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t]);
+  }
+  await touch("touchEnd", to);
+};
+
+export const commands = { emulateMedia, drag, flick, pointerPress, tap, swipe };
 
 declare module "vitest/browser" {
   interface BrowserCommands {
@@ -134,5 +170,6 @@ declare module "vitest/browser" {
     flick: (options: FlickOptions) => Promise<void>;
     tap: (selector: string) => Promise<void>;
     pointerPress: (options: PointerPressOptions) => Promise<void>;
+    swipe: (options: SwipeOptions) => Promise<void>;
   }
 }
