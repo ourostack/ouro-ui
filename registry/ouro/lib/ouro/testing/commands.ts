@@ -120,7 +120,8 @@ export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from,
   // A mobile page keeps the zoom from a turn to landscape after `page.viewport` turns it
   // back, and CDP touch points land in the zoomed page, so reset the zoom first.
   await session.send("Emulation.setPageScaleFactor", { pageScaleFactor: 1 });
-  await page.waitForFunction(() => window.visualViewport?.scale === 1, undefined, { timeout: 2000 });
+  // A string, since this file is type-checked without DOM types where it is installed.
+  await page.waitForFunction("visualViewport.scale === 1", undefined, { timeout: 2000 });
   const touch = (type: "touchStart" | "touchMove" | "touchEnd", [x, y]: [number, number]) =>
     session.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y, id: 1 }] });
   await touch("touchStart", from);
