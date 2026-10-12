@@ -183,6 +183,9 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 - **Field** — A labeled form control: the label, an optional description, the control and its error, wired together with ids that match between the server and the browser. [Docs](docs/Field.md)
 - **Fieldset** — A titled group of related fields, such as an address, rendered as a `<fieldset>` named by its legend. [Docs](docs/Fieldset.md)
+- **Form** — A form that validates with the browser's own constraints (`required`, `type="email"`, `pattern`) and shows server errors on the matching fields. [Docs](docs/Form.md)
+- **NativeSelect** — A labeled native `<select>` on the Field contract: pass `label`, `options` (or `<option>` children) and `error`. [Docs](docs/NativeSelect.md)
+- **Select** — A labeled list of choices on the Field contract: pass `label`, `options` (or `SelectItem` children) and `error` from your server action or client check. [Docs](docs/Select.md)
 - **TextArea** — A labeled multi-line text field on the Field contract, a native `<textarea>`: pass `label`, and `error` from your server action or client check. [Docs](docs/TextArea.md)
 - **TextField** — A labeled one-line text input on the Field contract: pass `label`, and `error` from your server action or client check. [Docs](docs/TextField.md)
 
@@ -190,6 +193,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 - **ConfirmDialog** — Asks the user to confirm an action, with Cancel focused first. [Docs](docs/ConfirmDialog.md)
 - **Dialog** — A dialog that presents itself for the screen: a centered dialog on wider screens and a bottom sheet you can drag away on phones (below 640px). [Docs](docs/Dialog.md)
+- **EditSheet** — Edits something in a form inside a dialog: the whole interaction, done right. [Docs](docs/EditSheet.md)
 - **Sheet** — A panel that slides in from an edge and is dragged back to dismiss: the mobile form of a dialog. [Docs](docs/Sheet.md)
 
 ### App setup
@@ -198,7 +202,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ### Parts
 
-- **Parts** — building blocks for Dialog, Field and Sheet, only for layouts the props cannot express. [Docs](docs/parts.md)
+- **Parts** — building blocks for Dialog, Field, Select and Sheet, only for layouts the props cannot express. [Docs](docs/parts.md)
 <!-- catalog:end -->
 
 ## Theme

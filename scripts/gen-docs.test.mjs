@@ -147,9 +147,11 @@ test("the catalog is grouped by job in README", () => {
   const readme = readFileSync(join(root, "README.md"), "utf8");
   const catalog = readme.split("<!-- catalog:start -->")[1].split("<!-- catalog:end -->")[0];
   assert.match(catalog, /### Actions\n\n- \*\*Button\*\* — A button, or a link styled as one\./);
-  assert.match(catalog, /### Overlays\n\n- \*\*ConfirmDialog\*\* — [^\n]+\n- \*\*Dialog\*\* — [^\n]+\n- \*\*Sheet\*\* — A panel that slides in/);
+  // In name order within a group; other components may sit between these.
+  const others = String.raw`(?:- [^\n]+\n)*`;
+  assert.match(catalog, new RegExp(String.raw`### Overlays\n\n- \*\*ConfirmDialog\*\* — [^\n]+\n${others}- \*\*Dialog\*\* — [^\n]+\n${others}- \*\*Sheet\*\* — A panel that slides in`));
   assert.match(catalog, /### Text\n\n- \*\*Heading\*\* — [^\n]+\n- \*\*Link\*\* — [^\n]+\n- \*\*Text\*\* — /);
-  assert.match(catalog, /### Forms\n\n- \*\*Field\*\* — [^\n]+\n- \*\*Fieldset\*\* — [^\n]+\n- \*\*TextArea\*\* — [^\n]+\n- \*\*TextField\*\* — /);
+  assert.match(catalog, new RegExp(String.raw`### Forms\n\n- \*\*Field\*\* — [^\n]+\n${others}- \*\*Fieldset\*\* — [^\n]+\n${others}- \*\*TextArea\*\* — [^\n]+\n${others}- \*\*TextField\*\* — `));
 });
 
 test("no timestamps", () => {

@@ -28,7 +28,7 @@ test("keeps the sheet open with the error on the field", async ({ page }) => {
 test.describe("on a phone", () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
-  test("presents as a bottom sheet", async ({ page }) => {
+  test("presents the edit sheet as a bottom sheet", async ({ page }) => {
     await openStory(page, "overlays-editsheet--playground");
     await page.getByRole("button", { name: "Edit" }).click();
     const sheet = page.getByRole("dialog", { name: "Edit recipe" });

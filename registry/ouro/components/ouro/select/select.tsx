@@ -90,25 +90,25 @@ export interface SelectBaseProps {
 
 /** A Select that picks one value: a `string`, or `null` while nothing is chosen. */
 export type SelectSingleProps = SelectBaseProps & {
-  /** Pick several values; the value becomes a `string[]`. */
+  /** Pick several values: the list stays open while the user chooses, and the value is a `string[]` instead of `string | null`. */
   multiple?: false | undefined;
-  /** The chosen value, when you control it; `null` for none. */
+  /** The chosen value, when you control it: a `string`, or `null` for none; with `multiple`, a `string[]`. */
   value?: string | null | undefined;
-  /** The value chosen at first, when the select keeps its own state. */
+  /** The value chosen at first, when the select keeps its own state: a `string` or `null`; with `multiple`, a `string[]`. */
   defaultValue?: string | null | undefined;
-  /** Called with the new value when the user chooses an option. */
+  /** Called with the new value when the user chooses an option: a `string` or `null`; with `multiple`, every chosen value as a `string[]`. */
   onValueChange?: ((value: string | null) => void) | undefined;
 };
 
 /** A Select that picks several values, as a `string[]`. */
 export type SelectMultipleProps = SelectBaseProps & {
-  /** Pick several values: the list stays open while the user chooses, and the value is a `string[]`. */
+  /** Pick several values: the list stays open while the user chooses, and the value is a `string[]` instead of `string | null`. */
   multiple: true;
-  /** The chosen values, when you control them. */
+  /** The chosen value, when you control it: a `string`, or `null` for none; with `multiple`, a `string[]`. */
   value?: string[] | undefined;
-  /** The values chosen at first, when the select keeps its own state. */
+  /** The value chosen at first, when the select keeps its own state: a `string` or `null`; with `multiple`, a `string[]`. */
   defaultValue?: string[] | undefined;
-  /** Called with every chosen value when the user picks or unpicks an option. */
+  /** Called with the new value when the user chooses an option: a `string` or `null`; with `multiple`, every chosen value as a `string[]`. */
   onValueChange?: ((value: string[]) => void) | undefined;
 };
 

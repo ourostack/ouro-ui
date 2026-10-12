@@ -568,6 +568,100 @@
       ]
     },
     {
+      "name": "form",
+      "type": "registry:ui",
+      "title": "Form",
+      "description": "A form that validates with the browser's own constraints (`required`, `type=\"email\"`, `pattern`) and shows server errors on the matching fields.",
+      "docs": "A form that validates with the browser's own constraints (`required`, `type=\"email\"`, `pattern`) and shows server errors on the matching fields. Import: import { Form } from \"@/components/ouro/form/form\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/form.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/form/form.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/form/form.tsx"
+        }
+      ]
+    },
+    {
+      "name": "edit-sheet",
+      "type": "registry:ui",
+      "title": "EditSheet",
+      "description": "Edits something in a form inside a dialog: the whole interaction, done right.",
+      "docs": "Edits something in a form inside a dialog: the whole interaction, done right. Import: import { EditSheet } from \"@/components/ouro/form/edit-sheet\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, dialog, form, ouro-base, ouro-lib, sheet. Docs: https://ourostack.github.io/ouro-ui/docs/edit-sheet.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/dialog",
+        "ourostack/ouro-ui/form",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib",
+        "ourostack/ouro-ui/sheet"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/form/edit-sheet.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/form/edit-sheet.tsx"
+        }
+      ]
+    },
+    {
+      "name": "select",
+      "type": "registry:ui",
+      "title": "Select",
+      "description": "A labeled list of choices on the Field contract: pass `label`, `options` (or `SelectItem` children) and `error` from your server action or client check.",
+      "docs": "A labeled list of choices on the Field contract: pass `label`, `options` (or `SelectItem` children) and `error` from your server action or client check. Import: import { Select } from \"@/components/ouro/select/select\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: field, ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/select.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/select/select-parts.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/select/select-parts.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/select/select-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/select/select-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/select/select.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/select/select.tsx"
+        }
+      ]
+    },
+    {
+      "name": "native-select",
+      "type": "registry:ui",
+      "title": "NativeSelect",
+      "description": "A labeled native `<select>` on the Field contract: pass `label`, `options` (or `<option>` children) and `error`.",
+      "docs": "A labeled native `<select>` on the Field contract: pass `label`, `options` (or `<option>` children) and `error`. Import: import { NativeSelect } from \"@/components/ouro/select/native-select\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: field, ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/native-select.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/select/native-select.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/select/native-select.tsx"
+        }
+      ]
+    },
+    {
       "name": "ouro-lib-tests",
       "type": "registry:item",
       "title": "Ouro lib tests",
@@ -1091,6 +1185,179 @@
       ]
     },
     {
+      "name": "form-tests",
+      "type": "registry:item",
+      "title": "Form tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for form, with the test tooling as devDependencies. Add it beside form: add form form-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "form's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/form.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/form",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/select",
+        "ourostack/ouro-ui/text-area",
+        "ourostack/ouro-ui/text-field"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/form/form.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/form/form.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/form/form.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/form/form.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/form/form.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/form/form.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/form.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/form.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "edit-sheet-tests",
+      "type": "registry:item",
+      "title": "EditSheet tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for edit-sheet, with the test tooling as devDependencies. Add it beside edit-sheet: add edit-sheet edit-sheet-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "edit-sheet's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/edit-sheet.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/edit-sheet",
+        "ourostack/ouro-ui/form",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/select",
+        "ourostack/ouro-ui/text-field"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/form/edit-sheet.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/form/edit-sheet.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/form/edit-sheet.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/form/edit-sheet.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/form/edit-sheet.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/form/edit-sheet.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/edit-sheet.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/edit-sheet.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "select-tests",
+      "type": "registry:item",
+      "title": "Select tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for select, with the test tooling as devDependencies. Add it beside select: add select select-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "select's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/select.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/form",
+        "ourostack/ouro-ui/native-select",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/select"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/select/select.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/select/select.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/select/select.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/select/select.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/select/select.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/select/select.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/select/select.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/select/select.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/select.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/select.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "native-select-tests",
+      "type": "registry:item",
+      "title": "NativeSelect tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for native-select, with the test tooling as devDependencies. Add it beside native-select: add native-select native-select-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "native-select's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/native-select.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/form",
+        "ourostack/ouro-ui/native-select",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/select/native-select.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/select/native-select.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/select/native-select.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/select/native-select.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/select/native-select.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/select/native-select.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/native-select.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/native-select.spec.ts"
+        }
+      ]
+    },
+    {
       "name": "ouro-tests",
       "type": "registry:item",
       "title": "Ouro tests",
@@ -1100,11 +1367,15 @@
         "ourostack/ouro-ui/button-tests",
         "ourostack/ouro-ui/confirm-dialog-tests",
         "ourostack/ouro-ui/dialog-tests",
+        "ourostack/ouro-ui/edit-sheet-tests",
         "ourostack/ouro-ui/field-tests",
         "ourostack/ouro-ui/fieldset-tests",
+        "ourostack/ouro-ui/form-tests",
         "ourostack/ouro-ui/heading-tests",
         "ourostack/ouro-ui/link-tests",
+        "ourostack/ouro-ui/native-select-tests",
         "ourostack/ouro-ui/ouro-lib-tests",
+        "ourostack/ouro-ui/select-tests",
         "ourostack/ouro-ui/sheet-tests",
         "ourostack/ouro-ui/text-area-tests",
         "ourostack/ouro-ui/text-field-tests",
