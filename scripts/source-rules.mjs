@@ -47,6 +47,7 @@ export const pureFiles = new Set([
   "registry/ouro/components/ouro/text-field/text-area-styles.ts",
   "registry/ouro/components/ouro/text-field/text-field-styles.ts",
   "registry/ouro/components/ouro/text/text-styles.ts",
+  "registry/ouro/components/ouro/toast/toaster-styles.ts",
   "registry/ouro/lib/ouro/touch-target.tsx",
 ]);
 

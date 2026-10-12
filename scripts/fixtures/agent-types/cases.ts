@@ -32,6 +32,7 @@ const variants =
 const sizes = `"sm" | "md" | "lg" | (string & { 'From shadcn? default is "md"; for icon, pass aria-label with the icon as children': never; }) | undefined`;
 const tones = `"primary" | "secondary" | "destructive" | "success" | "warning" | (string & { 'danger is "destructive"; accent is "primary"; neutral is "secondary"': never; }) | undefined`;
 const textFieldTypes = `"text" | "email" | "password" | "tel" | "url" | "search" | "date" | "time" | (string & { 'number is <NumberField>; digit codes: inputMode="numeric"': never; }) | undefined`;
+const spinnerSizes = `"sm" | "md" | "lg" | (string & { 'Use "sm", "md" or "lg"': never; }) | undefined`;
 const align = `(string & { 'Use "start", "center" or "end": left is "start", right is "end"': never; })`;
 const sheetControl = "<Sheet open={open} onOpenChange={setOpen}>";
 const dialogControl = "<Dialog open={open} onOpenChange={setOpen}>";
@@ -227,6 +228,18 @@ export const agentCases: AgentCase[] = [
     dev: '<TextField label="Email" hideLabel> to hide a label you still need',
     names: ["tsc", "dev"],
   },
+  { id: "s51", habit: "Sonner's position on Toaster", tsc: [hint("string", "Not a prop: toasts show at the bottom. Use <Toaster />")], dev: "<Toaster />", names: ["tsc", "dev"] },
+  { id: "s52", habit: "Sonner's richColors", tsc: [hint("boolean", 'Use toast("Saved", { tone: "success" })')], dev: 'toast("Saved", { tone: "success" })', names: ["tsc", "dev"] },
+  { id: "s53", habit: "an xl spinner", tsc: [notAssignable('"xl"', spinnerSizes)], dev: '<Spinner size="md">', names: ["tsc", "dev"] },
+  { id: "s54", habit: "an indeterminate flag", tsc: [hint("boolean", "Use <Progress value={null}>")], dev: "<Progress value={null}>", names: ["tsc", "dev"] },
+  {
+    id: "s55",
+    habit: "a progress bar with no label",
+    tsc: [`error TS2741: Property 'label' is missing in type '{ value: number; }' but required in type 'ProgressProps'.`],
+    names: ["tsc"],
+  },
+  { id: "s56", habit: "MUI's Skeleton variant", tsc: [hint("string", 'Use <Skeleton shape="circle">')], dev: '<Skeleton shape="circle">', names: ["tsc", "dev"] },
+  { id: "s57", habit: "MUI's Skeleton width", tsc: [hint("number", 'Use <Skeleton className="w-32">')], dev: '<Skeleton className="w-[120px]">', names: ["tsc", "dev"] },
   { id: "v01", habit: "shadcn's destructive variant", tsc: [notAssignable('"destructive"', variants)], dev: '<Button tone="destructive">', names: ["tsc", "dev"] },
   { id: "v02", habit: "shadcn's default variant", tsc: [notAssignable('"default"', variants)], dev: "<Button>", names: ["tsc", "dev"] },
   { id: "v03", habit: "shadcn's secondary variant", tsc: [notAssignable('"secondary"', variants)], dev: '<Button tone="secondary">', names: ["tsc", "dev"] },
@@ -235,4 +248,4 @@ export const agentCases: AgentCase[] = [
 ];
 
 /** Valid snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets = ["ok01", "ok02", "ok03", "ok04", "ok05", "ok06", "ok07", "ok08", "ok09", "ok10", "ok11", "ok12"];
+export const validSnippets = ["ok01", "ok02", "ok03", "ok04", "ok05", "ok06", "ok07", "ok08", "ok09", "ok10", "ok11", "ok12", "ok13", "ok14", "ok15", "ok16"];

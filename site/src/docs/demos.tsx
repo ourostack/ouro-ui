@@ -6,11 +6,16 @@ import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { FieldControl } from "@/registry/ouro/components/ouro/field/field-parts";
 import { Fieldset } from "@/registry/ouro/components/ouro/field/fieldset";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
+import { Progress } from "@/registry/ouro/components/ouro/progress/progress";
 import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
+import { Skeleton } from "@/registry/ouro/components/ouro/skeleton/skeleton";
+import { Spinner } from "@/registry/ouro/components/ouro/spinner/spinner";
 import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
+import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
+import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { CheckIcon, PlusIcon } from "../components/icons";
 
 // The live demo at the top of each docs page: the component as an app would use it,
@@ -250,6 +255,65 @@ function ConfirmDialogDemo(): JSX.Element {
   );
 }
 
+function ToasterDemo(): JSX.Element {
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-3">
+      <Button onClick={() => toast("Recipe saved", { tone: "success", description: "Find it in your cookbook." })}>Save recipe</Button>
+      <Button
+        tone="destructive"
+        variant="soft"
+        onClick={() => toast("Recipe deleted", { action: { label: "Undo", onClick: () => toast("Recipe restored", { tone: "success" }) } })}
+      >
+        Delete recipe
+      </Button>
+      <Toaster />
+    </div>
+  );
+}
+
+function SpinnerDemo(): JSX.Element {
+  return (
+    <div className="flex items-center gap-6">
+      <Spinner size="sm" />
+      <Spinner tone="primary" label="Loading recipes" />
+      <Spinner size="lg" tone="secondary" />
+    </div>
+  );
+}
+
+function ProgressDemo(): JSX.Element {
+  const [value, setValue] = useState(40);
+  return (
+    <div className="grid w-full max-w-sm gap-6">
+      <Progress label="Uploading photos" value={value} showValue />
+      <Progress label="Importing recipes" value={null} />
+      <div className="flex gap-3">
+        <Button size="sm" variant="outline" tone="secondary" onClick={() => setValue((current) => Math.max(0, current - 20))}>
+          Less
+        </Button>
+        <Button size="sm" variant="outline" tone="secondary" onClick={() => setValue((current) => Math.min(100, current + 20))}>
+          More
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function SkeletonDemo(): JSX.Element {
+  return (
+    <div aria-busy="true" aria-label="Loading recipe" role="group" className="grid w-full max-w-sm gap-3">
+      <div className="flex items-center gap-3">
+        <Skeleton shape="circle" />
+        <div className="grid flex-1 gap-2">
+          <Skeleton shape="text" className="w-1/2" />
+          <Skeleton shape="text" className="w-1/3" />
+        </div>
+      </div>
+      <Skeleton className="h-32" />
+    </div>
+  );
+}
+
 export const demos: Record<string, () => JSX.Element> = {
   button: ButtonDemo,
   text: TextDemo,
@@ -262,4 +326,8 @@ export const demos: Record<string, () => JSX.Element> = {
   sheet: SheetDemo,
   dialog: DialogDemo,
   "confirm-dialog": ConfirmDialogDemo,
+  toaster: ToasterDemo,
+  spinner: SpinnerDemo,
+  progress: ProgressDemo,
+  skeleton: SkeletonDemo,
 };

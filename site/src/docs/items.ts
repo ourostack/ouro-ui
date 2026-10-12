@@ -6,10 +6,15 @@ import fieldsetDoc from "../../../docs/Fieldset.md?raw";
 import headingDoc from "../../../docs/Heading.md?raw";
 import linkDoc from "../../../docs/Link.md?raw";
 import partsDoc from "../../../docs/parts.md?raw";
+import progressDoc from "../../../docs/Progress.md?raw";
 import sheetDoc from "../../../docs/Sheet.md?raw";
+import skeletonDoc from "../../../docs/Skeleton.md?raw";
+import spinnerDoc from "../../../docs/Spinner.md?raw";
 import textDoc from "../../../docs/Text.md?raw";
 import textAreaDoc from "../../../docs/TextArea.md?raw";
 import textFieldDoc from "../../../docs/TextField.md?raw";
+import toastDoc from "../../../docs/toast.md?raw";
+import toasterDoc from "../../../docs/Toaster.md?raw";
 
 /**
  * One docs page per registry item. `name` is the registry item name, so the page lives at
@@ -22,7 +27,7 @@ export interface DocsItem {
   /** The component's export name. */
   title: string;
   /** Catalog group, as in the README catalog. */
-  group: "Actions" | "Text" | "Forms" | "Overlays";
+  group: "Actions" | "Text" | "Forms" | "Overlays" | "Feedback" | "Display";
   /** The registry source file, from the repo root. */
   source: string;
   /** docs/<title>.md, generated. */
@@ -55,7 +60,29 @@ export const docsItems: DocsItem[] = [
     source: "registry/ouro/components/ouro/dialog/confirm-dialog.tsx",
     markdown: confirmDialogDoc,
   },
+  {
+    name: "toaster",
+    title: "Toaster",
+    group: "Feedback",
+    source: "registry/ouro/components/ouro/toast/toaster.tsx",
+    markdown: `${toasterDoc}\n${functionSection(toastDoc)}`,
+  },
+  { name: "spinner", title: "Spinner", group: "Feedback", source: "registry/ouro/components/ouro/spinner/spinner.tsx", markdown: spinnerDoc },
+  { name: "progress", title: "Progress", group: "Feedback", source: "registry/ouro/components/ouro/progress/progress.tsx", markdown: progressDoc },
+  { name: "skeleton", title: "Skeleton", group: "Display", source: "registry/ouro/components/ouro/skeleton/skeleton.tsx", markdown: skeletonDoc },
 ];
+
+/**
+ * A function's generated page (docs/toast.md) as one section of its component's page: its
+ * title becomes a `##` heading with the call's parentheses, and its own sections step down
+ * a level, so the Toaster page documents `toast()` too.
+ */
+function functionSection(markdown: string): string {
+  return markdown
+    .replace(/<!--[\s\S]*?-->\n*/g, "")
+    .replace(/^## /gm, "### ")
+    .replace(/^# (\w+)$/m, "## $1()");
+}
 
 /** The `## <family> parts` section of docs/parts.md, without its heading. */
 export function partsSection(family: "Sheet" | "Dialog" | "Field"): string {

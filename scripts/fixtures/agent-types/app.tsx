@@ -1,6 +1,6 @@
 // What agents write. Snippets s01-s23 are the review's probe of habits from shadcn/ui,
-// Radix, MUI and plain guessing, s24-s31 the remaining enum props (re-review 1), and s32-s42 the Field, Fieldset and Link habits, and s43-s50 the TextField and TextArea habits; v01-v05 are the rest of shadcn's Button variants and
-// sizes; ok01-ok12 are valid code. Every snippet except the ok ones is a type error on
+// Radix, MUI and plain guessing, s24-s31 the remaining enum props (re-review 1), and s32-s42 the Field, Fieldset and Link habits, s43-s50 the TextField and TextArea habits, and s51-s57 the Toaster, Spinner, Progress and Skeleton habits; v01-v05 are the rest of shadcn's Button variants and
+// sizes; ok01-ok16 are valid code. Every snippet except the ok ones is a type error on
 // purpose. scripts/agent-types.test.mjs runs `tsc` on this file and hovers its props
 // through the TypeScript language service, and test/agent-types.test.tsx renders the
 // snippets and reads the development messages. scripts/fixtures/agent-types/cases.ts
@@ -12,6 +12,10 @@ import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { FieldControl } from "@/registry/ouro/components/ouro/field/field-parts";
 import { Fieldset } from "@/registry/ouro/components/ouro/field/fieldset";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
+import { Progress } from "@/registry/ouro/components/ouro/progress/progress";
+import { Skeleton } from "@/registry/ouro/components/ouro/skeleton/skeleton";
+import { Spinner } from "@/registry/ouro/components/ouro/spinner/spinner";
+import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
 import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { DialogPopup, DialogPortal, DialogRoot } from "@/registry/ouro/components/ouro/dialog/dialog-parts";
@@ -76,6 +80,13 @@ export const s47 = <TextField label="Search" isClearable />;
 export const s48 = <TextArea label="Notes" minRows={2} />;
 export const s49 = <TextArea label="Notes" autoResize />;
 export const s50 = <TextField placeholder="Email" />;
+export const s51 = <Toaster position="top-center" />;
+export const s52 = <Toaster richColors />;
+export const s53 = <Spinner size="xl" />;
+export const s54 = <Progress label="Importing" value={null} indeterminate />;
+export const s55 = <Progress value={40} />;
+export const s56 = <Skeleton variant="circular" />;
+export const s57 = <Skeleton width={120} />;
 
 export const v01 = <Button loading tone="primary" variant="destructive">Delete</Button>;
 export const v02 = <Button variant="default">Save</Button>;
@@ -95,3 +106,7 @@ export const ok09 = <Fieldset legend="Shipping address" description="Where we se
 export const ok10 = <Link href="https://ouro.bot" external tone="secondary">Ouro</Link>;
 export const ok11 = <TextField label="Email" type="email" name="email" required error="Required." clearable startAdornment="@" />;
 export const ok12 = <TextArea label="Notes" name="notes" description="Only you see these." autoGrow rows={2} maxRows={8} />;
+export const ok13 = <Toaster label="Notifications" closeLabel="Dismiss" />;
+export const ok14 = <Spinner label="Loading recipes" size="lg" tone="primary" />;
+export const ok15 = <Progress label="Uploading" value={40} max={100} showValue tone="success" />;
+export const ok16 = <Skeleton shape="circle" className="size-12" />;

@@ -45,6 +45,10 @@ const components = [
   { name: "link", folder: "link", stem: "link", title: "Link" },
   { name: "text-field", folder: "text-field", stem: "text-field", title: "TextField" },
   { name: "text-area", folder: "text-field", stem: "text-area", title: "TextArea" },
+  { name: "toaster", folder: "toast", stem: "toaster", title: "Toaster" },
+  { name: "spinner", folder: "spinner", stem: "spinner", title: "Spinner" },
+  { name: "progress", folder: "progress", stem: "progress", title: "Progress" },
+  { name: "skeleton", folder: "skeleton", stem: "skeleton", title: "Skeleton" },
 ];
 
 /** Registry files that test this repository itself and never ship. */
@@ -121,7 +125,7 @@ const foundation = [
     title: "Ouro base",
     css: "registry/ouro/theme/ouro-base.css",
     description:
-      "Installed with every component; you don't need to add it. What every Ouro UI component needs in the app's CSS: success and warning colors, a destructive foreground, the motion tokens, the press utility, the spinner keyframes, and --ouro-layer, the z-index of sheets and dialogs (50; raise it in a :root rule of your own if your app has fixed bars above z-50).",
+      "Installed with every component; you don't need to add it. What every Ouro UI component needs in the app's CSS: success and warning colors, a destructive foreground, the motion tokens, the press utility, the keyframes for spinners, progress bars and skeletons, and --ouro-layer, the z-index of sheets and dialogs (50; raise it in a :root rule of your own if your app has fixed bars above z-50).",
     docs: "Ouro UI's base tokens are in your CSS. Your theme's values win: edit them like any shadcn variable.",
   },
   {
@@ -135,14 +139,14 @@ const foundation = [
     name: "ouro-lib",
     title: "Ouro lib",
     description:
-      "Installed with every component; you don't need to add it. Shared helpers every Ouro UI component uses, in lib/ouro: cn, dev messages, the className check, announce, OuroProvider and hooks.",
+      "Installed with every component; you don't need to add it. Shared helpers every Ouro UI component uses, in lib/ouro: cn, dev messages, the className check, announce, toast, OuroProvider and hooks.",
     docs: `Ouro UI's helpers are in lib/ouro. OuroProvider is optional; it routes internal hrefs through your router's link. Docs: ${DOCS_URL}`,
   },
   {
     name: "ouro-testing",
     title: "Ouro testing",
     description:
-      "Installed with every -tests item; you don't need to add it. The test kit Ouro UI's tests use: Vitest browser projects with the drag, flick, tap and emulateMedia commands, the act helper, axeExclude, and the end-to-end story helper.",
+      "Installed with every -tests item; you don't need to add it. The test kit Ouro UI's tests use: Vitest browser projects with the drag, flick, tap, touchDrag and emulateMedia commands, the act helper, axeExclude, and the end-to-end story helper.",
     docs: testingDocs(),
   },
 ];

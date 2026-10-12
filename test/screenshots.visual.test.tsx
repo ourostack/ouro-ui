@@ -24,6 +24,10 @@ const subjects = [
   { name: "text-field-states", Story: storyFiles.TextField.States },
   { name: "text-field-adornments", Story: storyFiles.TextField.Adornments },
   { name: "text-area-states", Story: storyFiles.TextArea.States },
+  { name: "toaster-stack", Story: storyFiles.Toaster.Stack },
+  { name: "spinner", Story: storyFiles.Spinner.SizesAndTones },
+  { name: "progress-states", Story: storyFiles.Progress.States },
+  { name: "skeleton-recipe-card", Story: storyFiles.Skeleton.RecipeCard },
 ];
 
 const modes = [

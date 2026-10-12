@@ -9,7 +9,11 @@ import * as DialogStories from "@/registry/ouro/components/ouro/dialog/dialog.st
 import * as FieldStories from "@/registry/ouro/components/ouro/field/field.stories";
 import * as FieldsetStories from "@/registry/ouro/components/ouro/field/fieldset.stories";
 import * as LinkStories from "@/registry/ouro/components/ouro/link/link.stories";
+import * as ProgressStories from "@/registry/ouro/components/ouro/progress/progress.stories";
 import * as SheetStories from "@/registry/ouro/components/ouro/sheet/sheet.stories";
+import * as SkeletonStories from "@/registry/ouro/components/ouro/skeleton/skeleton.stories";
+import * as SpinnerStories from "@/registry/ouro/components/ouro/spinner/spinner.stories";
+import * as ToasterStories from "@/registry/ouro/components/ouro/toast/toaster.stories";
 import * as HeadingStories from "@/registry/ouro/components/ouro/text/heading.stories";
 import * as TextStories from "@/registry/ouro/components/ouro/text/text.stories";
 import * as TextAreaStories from "@/registry/ouro/components/ouro/text-field/text-area.stories";
@@ -35,11 +39,15 @@ export const storyFiles = {
   Fieldset: composeStories(FieldsetStories),
   Heading: composeStories(HeadingStories),
   Link: composeStories(LinkStories),
+  Progress: composeStories(ProgressStories),
   Sheet: composeStories(SheetStories),
   SheetFeel: composeStories(SheetFeelStories),
+  Skeleton: composeStories(SkeletonStories),
+  Spinner: composeStories(SpinnerStories),
   Text: composeStories(TextStories),
   TextArea: composeStories(TextAreaStories),
   TextField: composeStories(TextFieldStories),
+  Toaster: composeStories(ToasterStories),
 };
 
 export interface StoryEntry {

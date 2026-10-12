@@ -32,10 +32,12 @@ const groups: Array<{ name: string; entries: string[] }> = [
   { name: "Text", entries: ["Heading", "Link", "Text"] },
   { name: "Forms", entries: ["Field", "Fieldset", "TextArea", "TextField"] },
   { name: "Overlays", entries: ["ConfirmDialog", "Dialog", "Sheet"] },
+  { name: "Feedback", entries: ["Progress", "Spinner", "Toaster", "toast"] },
+  { name: "Display", entries: ["Skeleton"] },
   { name: "App setup", entries: ["OuroProvider"] },
 ];
 /** Groups whose entries are components an app composes; each must say what to use instead. */
-const componentGroups = new Set(["Actions", "Text", "Forms", "Overlays"]);
+const componentGroups = new Set(["Actions", "Text", "Forms", "Overlays", "Feedback", "Display"]);
 
 /** The registry files whose exports are documented. A part file's parts are documented together on parts.md. */
 const componentFiles = [
@@ -50,6 +52,11 @@ const componentFiles = [
   "registry/ouro/components/ouro/dialog/confirm-dialog.tsx",
   "registry/ouro/components/ouro/dialog/dialog.tsx",
   "registry/ouro/components/ouro/sheet/sheet.tsx",
+  "registry/ouro/components/ouro/toast/toaster.tsx",
+  "registry/ouro/components/ouro/spinner/spinner.tsx",
+  "registry/ouro/components/ouro/progress/progress.tsx",
+  "registry/ouro/components/ouro/skeleton/skeleton.tsx",
+  "registry/ouro/lib/ouro/toast.ts",
   "registry/ouro/lib/ouro/ouro-provider.tsx",
 ];
 /** Part files, by the family their parts are named after. */

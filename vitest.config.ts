@@ -29,6 +29,8 @@ export default defineConfig({
       "@base-ui/react/field",
       "@base-ui/react/fieldset",
       "@base-ui/react/form",
+      "@base-ui/react/progress",
+      "@base-ui/react/toast",
     ],
   },
   test: {

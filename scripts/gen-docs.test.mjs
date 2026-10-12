@@ -51,7 +51,7 @@ test("generating is deterministic and matches the committed files", () => {
 
 test("there is one doc per component, plus parts", () => {
   const files = readdirSync(join(root, "docs")).sort();
-  for (const name of ["Button", "ConfirmDialog", "Dialog", "Field", "Fieldset", "Heading", "Link", "OuroProvider", "Sheet", "Text", "TextArea", "TextField", "parts"]) {
+  for (const name of ["Button", "ConfirmDialog", "Dialog", "Field", "Fieldset", "Heading", "Link", "OuroProvider", "Sheet", "Text", "TextArea", "TextField", "Progress", "Skeleton", "Spinner", "Toaster", "toast", "parts"]) {
     assert.ok(files.includes(`${name}.md`), `docs/${name}.md is missing`);
   }
 });
@@ -133,6 +133,8 @@ test("the catalog is grouped by job in README", () => {
   assert.match(catalog, /### Overlays\n\n- \*\*ConfirmDialog\*\* — [^\n]+\n- \*\*Dialog\*\* — [^\n]+\n- \*\*Sheet\*\* — A panel that slides in/);
   assert.match(catalog, /### Text\n\n- \*\*Heading\*\* — [^\n]+\n- \*\*Link\*\* — [^\n]+\n- \*\*Text\*\* — /);
   assert.match(catalog, /### Forms\n\n- \*\*Field\*\* — [^\n]+\n- \*\*Fieldset\*\* — [^\n]+\n- \*\*TextArea\*\* — [^\n]+\n- \*\*TextField\*\* — /);
+  assert.match(catalog, /### Feedback\n\n- \*\*Progress\*\* — [^\n]+\n- \*\*Spinner\*\* — [^\n]+\n- \*\*Toaster\*\* — [^\n]+\n- \*\*toast\*\* — /);
+  assert.match(catalog, /### Display\n\n- \*\*Skeleton\*\* — /);
 });
 
 test("no timestamps", () => {

@@ -54,6 +54,10 @@ test("the registry is named ouro and lists every item", () => {
       "link",
       "text-field",
       "text-area",
+      "toaster",
+      "spinner",
+      "progress",
+      "skeleton",
       "ouro-lib-tests",
       "button-tests",
       "text-tests",
@@ -66,12 +70,16 @@ test("the registry is named ouro and lists every item", () => {
       "link-tests",
       "text-field-tests",
       "text-area-tests",
+      "toaster-tests",
+      "spinner-tests",
+      "progress-tests",
+      "skeleton-tests",
       "ouro-tests",
     ],
   );
 });
 
-const components = ["button", "text", "heading", "sheet", "dialog", "confirm-dialog", "field", "fieldset", "link", "text-field", "text-area"];
+const components = ["button", "text", "heading", "sheet", "dialog", "confirm-dialog", "field", "fieldset", "link", "text-field", "text-area", "toaster", "spinner", "progress", "skeleton"];
 const runtimeItems = ["ouro-base", "ouro-theme", "ouro-lib", ...components];
 const testFile = /\.(test|touch\.test)\.tsx?$|\.test-d\.ts$|\.stories\.tsx$|\.spec\.ts$/;
 
@@ -266,7 +274,7 @@ test("each item has a one-line description and a docs message with its docs URL"
   }
   assert.match(item("ouro-testing").description, /^Installed with every -tests item; you don't need to add it\. /);
   assert.match(item("sheet-tests").docs, /https:\/\/ourostack\.github\.io\/ouro-ui\/docs\/sheet\.md$/);
-  for (const name of ["button", "text", "heading", "sheet", "dialog", "confirm-dialog", "field", "fieldset", "link", "text-field", "text-area"]) {
+  for (const name of ["button", "text", "heading", "sheet", "dialog", "confirm-dialog", "field", "fieldset", "link", "text-field", "text-area", "toaster", "spinner", "progress", "skeleton"]) {
     assert.ok(item(name).docs.endsWith(`Docs: https://ourostack.github.io/ouro-ui/docs/${name}.md`), name);
   }
   assert.match(item("ouro-testing").docs, /ouroTestProjects/);
@@ -367,7 +375,7 @@ test("site/public/llms.txt gives the init, search and add commands and lists eve
   assert.ok(llms.includes("npx shadcn@latest init --base base --preset nova --yes --no-monorepo"));
   assert.ok(llms.includes("npx shadcn@latest search 'ourostack/ouro-ui#v"));
   assert.ok(llms.includes("npx shadcn@latest add ourostack/ouro-ui/dialog#v"));
-  const components = ["button", "text", "heading", "sheet", "dialog", "confirm-dialog", "field", "fieldset", "link", "text-field", "text-area"];
+  const components = ["button", "text", "heading", "sheet", "dialog", "confirm-dialog", "field", "fieldset", "link", "text-field", "text-area", "toaster", "spinner", "progress", "skeleton"];
   for (const entry of registry.items) {
     // A component's line ends with its page's full Markdown URL, so an agent never composes one.
     const line = components.includes(entry.name)

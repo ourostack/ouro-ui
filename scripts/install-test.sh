@@ -55,7 +55,7 @@ shadcn=(npx --yes shadcn@4.21.1)
 preset=${OURO_PRESET:-nova}
 vitest=(npx --yes vitest@5.0.3)
 create_next_app=(npx --yes create-next-app@16.3.8)
-items=(button text heading link field fieldset text-field text-area sheet dialog confirm-dialog)
+items=(button text heading link field fieldset text-field text-area sheet dialog confirm-dialog toaster spinner progress skeleton)
 
 # The runtime items add components only: no test, story or spec file, no test kit, no test
 # tooling in package.json, and so nothing for a plain `vitest run` to find.
@@ -105,7 +105,7 @@ if [ "$variant" = next ]; then
   npx tsc --noEmit
   npx next build
   html=.next/server/app/index.html
-  for text in "Ouro server page" "Rendered by a Server Component." "Ouro button" "Ouro link" "Ouro text link" "Ouro external link" "opens in a new tab" "Ouro fieldset" "Grouped on the server." "Ouro field" "Field description" "Field error" "Ouro text field" "Text field description" "Show password" "Ouro text area" "Text area error" "Ouro parts field" "Open dialog" "Open sheet" "Delete" "Open parts dialog" "Open parts sheet"; do
+  for text in "Ouro server page" "Rendered by a Server Component." "Ouro button" "Ouro link" "Ouro text link" "Ouro external link" "opens in a new tab" "Ouro fieldset" "Grouped on the server." "Ouro field" "Field description" "Field error" "Ouro text field" "Text field description" "Show password" "Ouro text area" "Text area error" "Ouro spinner" "Ouro progress" "Ouro parts field" "Open dialog" "Open sheet" "Delete" "Open parts dialog" "Open parts sheet"; do
     grep -q "$text" "$html" || { echo "the prerendered page has no \"$text\""; exit 1; }
   done
   # Button's href rendered through OuroProvider's linkComponent, next/link.
@@ -115,6 +115,9 @@ if [ "$variant" = next ]; then
   grep -q 'aria-describedby="[^"]*-description [^"]*-error"' "$html" || { echo "the prerendered field has no aria-describedby"; exit 1; }
   # TextField's description and text adornment ids, through Field, in the server HTML.
   grep -q 'aria-describedby="[^"]*-description [^"]*-start"' "$html" || { echo "the prerendered text field has no aria-describedby"; exit 1; }
+  # Progress names its bar with its label in the server HTML, and Skeleton renders its shape.
+  grep -o '<div[^>]*role="progressbar"[^>]*>' "$html" | grep -q 'aria-labelledby="[^"]*-label"' || { echo "the prerendered progress bar is not labelled"; exit 1; }
+  grep -q 'data-ouro="skeleton"' "$html" || { echo "the prerendered page has no skeleton"; exit 1; }
   node "$root/scripts/install-check.mjs" "$app" next runtime
   echo "::endgroup::"
   exit 0
