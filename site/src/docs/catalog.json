@@ -73,6 +73,25 @@
     "source": "registry/ouro/components/ouro/text-field/text-area.tsx"
   },
   {
+    "name": "form",
+    "title": "Form",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/form/form.tsx"
+  },
+  {
+    "name": "select",
+    "title": "Select",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/select/select.tsx",
+    "parts": "Select"
+  },
+  {
+    "name": "native-select",
+    "title": "NativeSelect",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/select/native-select.tsx"
+  },
+  {
     "name": "otp-field",
     "title": "OtpField",
     "group": "Forms",
@@ -121,6 +140,12 @@
     "title": "ConfirmDialog",
     "group": "Overlays",
     "source": "registry/ouro/components/ouro/dialog/confirm-dialog.tsx"
+  },
+  {
+    "name": "edit-sheet",
+    "title": "EditSheet",
+    "group": "Overlays",
+    "source": "registry/ouro/components/ouro/form/edit-sheet.tsx"
   },
   {
     "name": "popover",

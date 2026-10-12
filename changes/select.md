@@ -1,0 +1,2 @@
+- New: `Select`, on Base UI Select (Catalyst's Listbox), with `options` or `SelectItem` and `SelectGroup` children, groups, `placeholder`, and `multiple`, which makes the value a `string[]`. Below `sm` on a coarse pointer its list opens as a bottom sheet. Its popup stacks at `--ouro-layer` plus 1000, so it opens above a Dialog or Sheet it sits in.
+- New: `NativeSelect`, a styled native `<select>` on the `Field` contract, with `options` (and groups) or `<option>` children and a `placeholder`.
