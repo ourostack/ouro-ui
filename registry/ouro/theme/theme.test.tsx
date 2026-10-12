@@ -147,7 +147,9 @@ describe("motion tokens", () => {
     expect(root().getPropertyValue("--ouro-ease-out").trim()).toBe("cubic-bezier(0.23, 1, 0.32, 1)");
     expect(root().getPropertyValue("--ouro-ease-in-out").trim()).toBe("cubic-bezier(0.77, 0, 0.175, 1)");
     expect(root().getPropertyValue("--ouro-ease-drawer").trim()).toBe("cubic-bezier(0.32, 0.72, 0, 1)");
-    expect(root().getPropertyValue("--ease-out").trim()).not.toBe("cubic-bezier(0.23, 1, 0.32, 1)");
+    // Tailwind's own `ease-out` class keeps Tailwind's curve in an app that installs the theme.
+    const tailwind = getComputedStyle(mount('<i class="ease-out"></i>').firstElementChild!);
+    expect(tailwind.transitionTimingFunction).toBe("cubic-bezier(0, 0, 0.2, 1)");
   });
 
   it("defines the durations: press 160ms, fast 150ms, base 200ms, slow 300ms, sheet 500ms", () => {

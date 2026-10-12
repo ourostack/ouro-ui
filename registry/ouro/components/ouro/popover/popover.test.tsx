@@ -478,6 +478,7 @@ describe("Popover motion", () => {
   it("grows from the trigger's side on the ease-out token and fades", async () => {
     const element = await openUncontrolled();
     expect(transitionOf(element, "transform")!.easing).toBe("cubic-bezier(0.23, 1, 0.32, 1)");
+    expect(transitionOf(element, "transform")!.duration).toBe("0.2s");
     expect(getComputedStyle(element).transformOrigin).not.toBe("");
     element.style.transition = "none";
     element.setAttribute("data-starting-style", "");
