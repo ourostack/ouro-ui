@@ -15,7 +15,7 @@ export interface KbdOwnProps {
    * `tab`, `backspace`, `delete`, `space`, `up`, `down`, `left`, `right`. Any other
    * string shows as written, a single letter in capitals.
    */
-  keys: readonly string[];
+  keys: readonly string[] | (string & { 'Use an array: keys={["mod", "k"]}': never });
   /** Layout only: margins (`ms-2`). Appearance classes warn in development; Kbd sizes itself to the surrounding text. */
   className?: string | undefined;
   ref?: Ref<HTMLElement> | undefined;
@@ -117,7 +117,7 @@ export function Kbd(props: KbdProps): JSX.Element {
   } = props;
   const platform = useSyncExternalStore(subscribe, detectPlatform, serverPlatform);
   // A string of keys (a type error) is split on "+", as the agent meant it.
-  const keys: readonly string[] = typeof keysProp === "string" ? (keysProp as string).split("+") : (keysProp ?? []);
+  const keys: readonly string[] = typeof keysProp === "string" ? keysProp.split("+") : (keysProp ?? []);
   useAppearanceClassNameCheck(
     "Kbd",
     className,

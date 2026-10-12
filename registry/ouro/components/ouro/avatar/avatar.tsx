@@ -11,8 +11,6 @@ import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 /** Avatar sizes: 24, 32, 40, 48 and 64px. */
 export type AvatarSize = "xs" | "sm" | "md" | "lg" | "xl";
 
-type SizeProp = AvatarSize | (string & { 'Use "xs", "sm", "md", "lg" or "xl"': never }) | undefined;
-
 /** The props Avatar adds to the `<span>` attributes it passes through. */
 export interface AvatarOwnProps {
   /**
@@ -34,7 +32,7 @@ export interface AvatarOwnProps {
    * 24, 32, 40, 48 or 64px. Inside an `AvatarGroup`, the group's size applies.
    * @default "md"
    */
-  size?: SizeProp;
+  size?: AvatarSize | (string & { 'Use "xs", "sm", "md", "lg" or "xl"': never }) | undefined;
   /** Layout only: margins, grid placement (`ms-2`). Appearance classes warn in development; use `size`. */
   className?: string | undefined;
   ref?: Ref<HTMLSpanElement> | undefined;
@@ -64,7 +62,7 @@ export interface AvatarGroupOwnProps {
   /** What screen readers hear for the "+N" count, for other languages. @default (count) => `${count} more` */
   moreLabel?: ((count: number) => string) | undefined;
   /** The size of every avatar in the group, and of the count. @default "md" */
-  size?: SizeProp;
+  size?: AvatarSize | (string & { 'Use "xs", "sm", "md", "lg" or "xl"': never }) | undefined;
   /** Layout only: margins, grid placement (`mt-4`). Appearance classes warn in development. */
   className?: string | undefined;
   ref?: Ref<HTMLDivElement> | undefined;
