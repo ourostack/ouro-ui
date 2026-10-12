@@ -162,6 +162,7 @@ function badgeHint(token: string): string {
  * Use `Button` instead for an action that needs a clear call to action, and `Alert` for
  * a message the reader must notice.
  *
+ * @group Display
  * @see https://ourostack.github.io/ouro-ui/docs/badge
  *
  * @example

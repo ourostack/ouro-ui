@@ -119,6 +119,7 @@ function avatarHint(token: string): string {
  *
  * Use `AvatarGroup` to stack several, and `Badge` for a status label that isn't a person.
  *
+ * @group Display
  * @see https://ourostack.github.io/ouro-ui/docs/avatar
  *
  * @example
@@ -195,6 +196,7 @@ export function Avatar(props: AvatarProps): JSX.Element {
  * Use a list of `Avatar`s with names beside them instead when readers need to see who
  * each person is.
  *
+ * @group Display
  * @see https://ourostack.github.io/ouro-ui/docs/avatar
  *
  * @example

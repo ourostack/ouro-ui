@@ -46,6 +46,7 @@ const orientations = {
  * Use spacing (margins or a gap) instead when whitespace alone separates the groups,
  * and a `Heading` when the next group needs a name.
  *
+ * @group Display
  * @see https://ourostack.github.io/ouro-ui/docs/separator
  *
  * @example

@@ -2,12 +2,17 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
 import baseCss from "@/registry/ouro/theme/ouro-base.css?raw";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { Alert } from "@/registry/ouro/components/ouro/alert/alert";
+import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
+import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text, type TextProps } from "@/registry/ouro/components/ouro/text/text";
 import stockCss from "./shadcn-stock.css?raw";
 
-// Every Button tone and variant, every Text tone and Heading keep their text at 4.5:1
+// Every Button tone and variant, every Text tone and Heading, every Badge tone and
+// variant, Alert's title and description in each tone, Kbd and Avatar's initials keep their text at 4.5:1
 // or more in light and dark, under two themes:
 //
 // - "stock shadcn": the variables `shadcn init` writes (test/shadcn-stock.css, copied
@@ -20,6 +25,7 @@ import stockCss from "./shadcn-stock.css?raw";
 
 const tones = ["primary", "secondary", "destructive", "success", "warning"] as const;
 const variants = ["solid", "soft", "outline", "plain"] as const;
+const badgeVariants = ["solid", "soft", "outline"] as const;
 const textTones = ["default", "muted", "primary", "secondary", "destructive", "success", "warning"] as const;
 
 /** A stylesheet's `:root` and `.dark` blocks, rescoped to `[data-theme-probe]`. */
@@ -113,6 +119,23 @@ async function render(css: string, surface: "background" | "popover") {
         <Heading level={2} data-probe="Heading">
           Recipes
         </Heading>
+        {badgeVariants.flatMap((variant) =>
+          tones.map((tone) => (
+            <Badge key={`badge-${variant}-${tone}`} variant={variant} tone={tone} data-probe={`Badge ${variant} ${tone}`}>
+              Vegan
+            </Badge>
+          )),
+        )}
+        {tones.map((tone) => (
+          <Alert
+            key={`alert-${tone}`}
+            tone={tone}
+            title={<span data-probe={`Alert ${tone} title`}>Saved</span>}
+            description={<span data-probe={`Alert ${tone} description`}>In your cookbook.</span>}
+          />
+        ))}
+        <Kbd keys={["mod", "k"]} data-probe="Kbd" />
+        <Avatar name="Ada Lovelace" data-probe="Avatar" />
       </>,
     ),
   );
@@ -126,7 +149,7 @@ for (const [name, css] of Object.entries(themes)) {
         document.documentElement.classList.toggle("dark", scheme === "dark");
         const host = await render(css, surface);
         const found = ratios(host);
-        expect(found).toHaveLength(variants.length * tones.length + textTones.length + 1);
+        expect(found).toHaveLength(variants.length * tones.length + textTones.length + 1 + badgeVariants.length * tones.length + tones.length * 2 + 2);
         const failures = found.filter(([, value]) => value < 4.5).map(([label, value]) => `${label}: ${value.toFixed(2)}`);
         expect(failures).toEqual([]);
       });

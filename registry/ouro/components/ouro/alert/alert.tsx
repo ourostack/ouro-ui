@@ -172,6 +172,7 @@ function toneFromSeverity(value: unknown): ToneName {
  * Use `Toast` instead for a brief message that disappears by itself, `ConfirmDialog` to
  * ask before a destructive action, and `Field`'s `error` for a message about one field.
  *
+ * @group Display
  * @see https://ourostack.github.io/ouro-ui/docs/alert
  *
  * @example
