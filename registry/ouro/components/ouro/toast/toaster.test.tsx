@@ -440,6 +440,44 @@ describe("toast()", () => {
     await expect.poll(() => titles()).toEqual(["Synced", "Also failed", "Couldn't save"]);
   });
 
+  /** Shows three kept toasts, runs `queue` while they show, then frees all three slots and returns what showed next. */
+  async function waitingOrder(queue: () => void): Promise<Array<string | null>> {
+    await render(<Toaster />);
+    const ids: string[] = [];
+    await act(async () => {
+      for (const n of [1, 2, 3]) ids.push(toast(`Kept ${n}`, { duration: 0 }));
+      queue();
+    });
+    await expect.poll(() => titles()).toEqual(["Kept 3", "Kept 2", "Kept 1"]);
+    await act(async () => {
+      for (const id of ids) toast.dismiss(id);
+    });
+    await expect.poll(() => titles().filter((title) => !title!.startsWith("Kept"))).toHaveLength(3);
+    return titles().reverse();
+  }
+
+  it("moves a waiting toast replaced to a tone that is no longer destructive to the end of the destructive ones", async () => {
+    const shown = await waitingOrder(() => {
+      toast("D1", { id: "d1", tone: "destructive", duration: 0 });
+      toast("D2", { tone: "destructive", duration: 0 });
+      toast("N", { duration: 0 });
+      toast("D1 resolved", { id: "d1", tone: "success", duration: 0 });
+      toast("D3", { tone: "destructive", duration: 0 });
+    });
+    // Oldest first: D2 and D3 lead, then the replaced toast, then the others.
+    expect(shown).toEqual(["D2", "D3", "D1 resolved"]);
+  });
+
+  it("moves a waiting toast replaced to a destructive tone ahead of the others", async () => {
+    const shown = await waitingOrder(() => {
+      toast("N0", { duration: 0 });
+      toast("N1", { id: "n1", duration: 0 });
+      toast("N2", { duration: 0 });
+      toast("N1 failed", { id: "n1", tone: "destructive", duration: 0 });
+    });
+    expect(shown).toEqual(["N1 failed", "N0", "N2"]);
+  });
+
   it("warns once when more than ten toasts are waiting, and keeps them all", async () => {
     await render(<Toaster />);
     const ids: string[] = [];

@@ -97,6 +97,9 @@ export function Toaster(props: ToasterProps): JSX.Element | null {
   );
 }
 
+/** Whether a toast waits ahead of the others: a destructive one. */
+const urgent = (record: ToastRecord) => record.tone === "destructive";
+
 /** How many toasts show at once; later ones wait in the Toaster's queue. */
 const VISIBLE = 3;
 /** How many toasts may wait before development warns that the app sends too many. There is no cap. */
@@ -157,13 +160,18 @@ function Connect({ onActive }: { onActive: (active: boolean) => void }): null {
     const { disconnect, active } = connectToaster({
       add: (record) => {
         const { queue } = state.current;
+        const waiting = queue.find((item) => item.id === record.id);
         if (shown.has(record.id)) show(record);
-        else if (queue.some((item) => item.id === record.id)) state.current.queue = queue.map((item) => (item.id === record.id ? record : item));
+        else if (waiting && urgent(waiting) === urgent(record)) state.current.queue = queue.map((item) => (item.id === record.id ? record : item));
         else {
-          // A destructive toast waits ahead of the others, after any destructive ones already
-          // waiting; it never pushes out a toast that is showing.
-          const at = record.tone === "destructive" ? queue.filter((item) => item.tone === "destructive").length : queue.length;
-          state.current.queue = [...queue.slice(0, at), record, ...queue.slice(at)];
+          // Destructive toasts wait ahead of the others, first in first out among themselves;
+          // they never push out a toast that is showing. A waiting toast replaced with a tone
+          // that changes its group moves to the end of the destructive ones.
+          const rest = queue.filter((item) => item.id !== record.id);
+          const firstOther = rest.findIndex((item) => !urgent(item));
+          const end = firstOther === -1 ? rest.length : firstOther;
+          const at = urgent(record) || waiting ? end : rest.length;
+          state.current.queue = [...rest.slice(0, at), record, ...rest.slice(at)];
           next();
           /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
           if (process.env.NODE_ENV !== "production" && state.current.queue.length > MAX_WAITING_HINT) {
