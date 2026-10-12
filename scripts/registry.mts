@@ -131,7 +131,7 @@ const foundation = [
     name: "ouro-testing",
     title: "Ouro testing",
     description:
-      "Installed with every -tests item; you don't need to add it. The test kit Ouro UI's tests use: Vitest browser projects with the drag, flick, tap, touchDrag, touchStep, pointerPress, emulateMedia, pageZoom, resetPageZoom and setPageZoom commands, the rotate helper (which turns the phone viewport and resets Chromium's zoom; the ouro-touch project fails a test that leaves the page zoomed), the act helper, axeExclude, and the end-to-end story helper.",
+      "Installed with every -tests item; you don't need to add it. The test kit Ouro UI's tests use: Vitest browser projects with the drag, flick, tap, touchDrag, touchStep, pointerPress, emulateMedia, pageZoom, resetPageZoom, setPageZoom and restoreTouch commands, the rotate helper (which turns the phone viewport and resets Chromium's zoom; the ouro-touch project fails a test that leaves the page zoomed), the act helper, axeExclude, and the end-to-end story helper.",
     docs: testingDocs(),
   },
 ];
