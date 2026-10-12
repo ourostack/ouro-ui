@@ -86,6 +86,9 @@ jobs:
           node scripts/latest-release.mjs set "$TAG"
           pnpm run docs
           node scripts/registry.mts --release "$VERSION"
+          # The tag holds this release's changes, assembled from changes/*.md; main keeps the fragments only.
+          node scripts/changes.mjs assemble changes > CHANGES.md
+          git add CHANGES.md
           git commit -am "Release $TAG"
           git push --force origin "$BRANCH"
       - if: steps.check.outputs.new == 'true'
@@ -115,8 +118,9 @@ jobs:
             echo
             echo "The tests, stories and specs are optional, one item per component: \`npx shadcn@latest add ourostack/ouro-ui/dialog#$TAG ourostack/ouro-ui/dialog-tests#$TAG\`, or \`ourostack/ouro-ui/ouro-tests#$TAG\` for all of them. List every item with \`npx shadcn@latest search 'ourostack/ouro-ui#$TAG'\`."
             echo
-            # changes/*.md list what this release changes in behaviour ("Check the changes").
-            node scripts/changes.mjs assemble changes | sed -e '1s/^# /### /'
+            # CHANGES.md, assembled on the release commit from changes/*.md, lists what this
+            # release changes in behaviour ("Check the changes").
+            sed -e '1s/^# /### /' CHANGES.md
             echo
             # Remove this note once v0.1.0 is no longer in use.
             # UPGRADING.md is the note (README.md and the site copy it); its {{latestRelease}}
@@ -153,7 +157,7 @@ jobs:
           # release stays for the next. If this step fails, the release stands; open the PR by
           # hand ("Check the changes" stops the next release until the fragments are deleted).
           git switch -c "$NEXT_BRANCH" "$MAIN_SHA"
-          git rm -r --quiet -- changes
+          git rm --quiet -- 'changes/*.md'
           node scripts/latest-release.mjs set "$TAG"
           pnpm run docs
           git commit -am "Prepare main for the next release"

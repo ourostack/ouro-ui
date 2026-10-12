@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { HEADING, assemble, changesProblem, listed } from "./changes.mjs";
+import { HEADING, assemble, changesProblem, fragmentProblems, listed } from "./changes.mjs";
 
 // changes/*.md hold one release's behaviour changes, one fragment per change, so parallel
 // pull requests never edit the same file. release.yml assembles them into the notes' "Changes
@@ -104,8 +104,22 @@ test("release.yml checks the changes against the last release before it pushes a
   assert.ok(check.start < step("Push the release branch").start);
   assert.match(check.body, /gh release view .*--json body/);
   assert.match(check.body, /node scripts\/changes\.mjs check changes /);
-  assert.match(step("Tag and publish the release").body, /node scripts\/changes\.mjs assemble changes \| sed -e '1s\/\^# \/### \/'/);
-  assert.doesNotMatch(release, /CHANGES\.md/);
+  // The release commit, and so the tag, holds the assembled CHANGES.md; the notes print it.
+  assert.match(step("Push the release branch").body, /node scripts\/changes\.mjs assemble changes > CHANGES\.md\n\s*git add CHANGES\.md\n\s*git commit -am "Release \$TAG"/);
+  assert.match(step("Tag and publish the release").body, /sed -e '1s\/\^# \/### \/' CHANGES\.md/);
+  // Main keeps fragments only: no other step writes CHANGES.md.
+  for (const name of ["Check the changes", "Prepare main for the next release"]) assert.doesNotMatch(step(name).body, /CHANGES\.md/, name);
+});
+
+test("`check` fails on a fragment line that is not a top-level change, naming the file and line", () => {
+  const notes = join(mkdtempSync(join(tmpdir(), "changes-")), "notes.md");
+  writeFileSync(notes, "");
+  const dir = fragments({ "ok.md": "- Fine.\n\n", "wrapped.md": "- Wrapped bullet that\n  continues here.\n  - sub item\n" });
+  assert.deepEqual(fragmentProblems(dir), ["changes/wrapped.md:2:   continues here.", "changes/wrapped.md:3:   - sub item"]);
+  const result = run("check", dir, notes);
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /^::error::Each changes\/ fragment line is one change.*changes\/wrapped\.md:2: {3}continues here\./);
+  assert.deepEqual(fragmentProblems(fragments({ "ok.md": "- Fine.\n" })), []);
 });
 
 test("release.yml opens the PR that prepares main after the release is published, and approves its held CI", () => {
@@ -113,7 +127,7 @@ test("release.yml opens the PR that prepares main after the release is published
   assert.ok(reset.start > step("Tag and publish the release").start);
   assert.match(reset.body, /git switch -c "\$NEXT_BRANCH" "\$MAIN_SHA"/);
   // The fragments this release used, and only those: the branch starts at the released main commit.
-  assert.match(reset.body, /git rm -r --quiet -- changes/);
+  assert.match(reset.body, /git rm --quiet -- 'changes\/\*\.md'/);
   // The same PR makes the tag the newest release, and regenerates the docs that name it.
   assert.match(reset.body, /node scripts\/latest-release\.mjs set "\$TAG"\n\s*pnpm run docs\n\s*git commit -am "Prepare main for the next release"/);
   assert.match(reset.body, /gh pr create --base main --head "\$NEXT_BRANCH" --title "Prepare main for the next release"/);
@@ -199,4 +213,44 @@ test("the approval step survives a failed dispatch and a failed first poll", () 
   assert.equal(flaky.result.status, 0, flaky.result.stderr);
   assert.equal(flaky.calls.filter((c) => c.startsWith("run list")).length, 2);
   assert.match(flaky.calls.join("\n"), /runs\/77\/approve/);
+});
+
+test("preparing main deletes the fragments the release used and keeps one added to main during the release", () => {
+  // The step's own lines, from switching to the branch through `git rm`, run in a scratch repository.
+  const body = step("Prepare main for the next release").body;
+  const from = body.indexOf('          git switch -c "$NEXT_BRANCH" "$MAIN_SHA"');
+  const to = body.indexOf("\n", body.indexOf("git rm "));
+  assert.ok(from !== -1 && to > from);
+  const lines = body.slice(from, to).replace(/^ {10}/gm, "");
+  const repo = mkdtempSync(join(tmpdir(), "ouro-race-"));
+  const git = (...args) => {
+    const result = spawnSync("git", args, { cwd: repo, encoding: "utf8" });
+    assert.equal(result.status, 0, `git ${args.join(" ")}: ${result.stderr}`);
+    return result.stdout.trim();
+  };
+  git("init", "-q", "-b", "main");
+  git("config", "user.email", "test@example.com");
+  git("config", "user.name", "Test");
+  mkdirSync(join(repo, "changes"));
+  writeFileSync(join(repo, "changes/a.md"), "- A.\n");
+  writeFileSync(join(repo, "changes/b.md"), "- B.\n");
+  writeFileSync(join(repo, "changes/.keep"), "");
+  git("add", "-A");
+  git("commit", "-qm", "released");
+  const mainSha = git("rev-parse", "HEAD");
+  // Main moves on during the release.
+  writeFileSync(join(repo, "changes/late.md"), "- Late.\n");
+  git("add", "-A");
+  git("commit", "-qm", "late change");
+  const result = spawnSync("bash", ["-eo", "pipefail", "-c", lines], {
+    cwd: repo,
+    encoding: "utf8",
+    env: { ...process.env, NEXT_BRANCH: "prepare/after-v1.2.3", MAIN_SHA: mainSha },
+  });
+  assert.equal(result.status, 0, result.stderr);
+  git("commit", "-qm", "Prepare main for the next release");
+  git("switch", "-q", "main");
+  git("merge", "-q", "--no-edit", "prepare/after-v1.2.3");
+  assert.deepEqual(git("ls-files", "changes").split("\n"), ["changes/.keep", "changes/late.md"]);
+  assert.equal(assemble(join(repo, "changes")), `${HEADING}\n\n- Late.\n`);
 });

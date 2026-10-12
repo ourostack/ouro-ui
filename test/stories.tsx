@@ -20,12 +20,21 @@ const storyModules = import.meta.glob<Parameters<typeof composeStories>[0]>(["..
 /** `text-field` to `TextField`. */
 const pascal = (stem: string) => stem.replace(/(^|-)([a-z])/g, (_, _dash: string, letter: string) => letter.toUpperCase());
 
+/** A story file's key: its file name in PascalCase. */
+function pascalName(path: string): string {
+  return pascal(path.replace(/^.*\/([\w-]+)\.stories\.tsx$/, "$1"));
+}
+
 /** Every story file, composed, by its file name in PascalCase (`SheetFeel` is stories/reference/sheet-feel.stories.tsx). */
-export const storyFiles: Record<string, Record<string, ComposedStory>> = Object.fromEntries(
-  Object.entries(storyModules)
-    .map(([path, module]) => [pascal(path.replace(/^.*\/([\w-]+)\.stories\.tsx$/, "$1")), composeStories(module) as Record<string, ComposedStory>] as const)
-    .sort(([a], [b]) => (a < b ? -1 : 1)),
-);
+export const storyFiles: Record<string, Record<string, ComposedStory>> = {};
+const storyPaths = new Map<string, string>();
+for (const [path, module] of Object.entries(storyModules).sort(([a], [b]) => (pascalName(a) < pascalName(b) ? -1 : 1))) {
+  const key = pascalName(path);
+  // Story ids are `File/Story`, so two files with the same name would collide.
+  if (storyPaths.has(key)) throw new Error(`${path} and ${storyPaths.get(key)} are both ${key} stories: rename one file`);
+  storyPaths.set(key, path);
+  storyFiles[key] = composeStories(module) as Record<string, ComposedStory>;
+}
 
 /**
  * What the shared tests read from a story's `parameters`:

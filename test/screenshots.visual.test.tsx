@@ -14,9 +14,19 @@ const subjects = stories.flatMap(({ id, Story, parameters }) =>
   parameters.screenshot ? [{ name: parameters.screenshot.name, id, Story, open: parameters.screenshot.open ?? false }] : [],
 );
 
-it("names each screenshot subject once", () => {
+/** The committed Linux baselines' subject names: `<name>-<mode>-<width>-chromium-linux.png`. */
+const baselineNames = new Set(
+  Object.keys(import.meta.glob("./__screenshots__/screenshots.visual.test.tsx/*-linux.png")).map((path) =>
+    path.replace(/^.*\/(.+)-(light|dark|reduced-motion)-\d+-chromium-linux\.png$/, "$1"),
+  ),
+);
+
+it("names each screenshot subject once, and every committed baseline has a subject", () => {
   expect(subjects.length).toBeGreaterThan(0);
   expect(new Set(subjects.map((subject) => subject.name)).size).toBe(subjects.length);
+  // A story that loses its `screenshot` parameter would otherwise leave its baselines unchecked.
+  const names = new Set(subjects.map((subject) => subject.name));
+  expect([...baselineNames].filter((name) => !names.has(name))).toEqual([]);
 });
 
 const modes = [

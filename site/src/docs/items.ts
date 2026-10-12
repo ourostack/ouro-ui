@@ -1,3 +1,4 @@
+import type { CatalogGroup } from "../../../scripts/catalog-groups.mts";
 import partsDoc from "../../../docs/parts.md?raw";
 import catalog from "./catalog.json";
 
@@ -12,7 +13,7 @@ export interface DocsItem {
   /** The component's export name. */
   title: string;
   /** Catalog group, as in the README catalog. */
-  group: "Actions" | "Text" | "Forms" | "Overlays";
+  group: CatalogGroup;
   /** The registry source file, from the repo root. */
   source: string;
   /** docs/<title>.md, generated. */

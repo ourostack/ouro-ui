@@ -8,10 +8,14 @@
 //
 //   node scripts/changes.mjs check <changes dir> <last release notes>
 //
-// fails (a GitHub ::error:: line, exit 1) when the fragments list no change, or when a change
+// fails (a GitHub ::error:: line, exit 1) when a fragment holds a line that is not a top-level
+// `- ` item (one line per change; anything else would not reach the notes), when the
+// fragments list no change, or when a change
 // they list is already in the last release's notes, which means the PR that deletes the
-// released fragments was never merged. release.yml runs it before it pushes anything, and
-// after a release its "Prepare main for the next release" PR deletes the fragments it used.
+// released fragments was never merged. release.yml runs it before it pushes anything, writes
+// the assembled section to CHANGES.md on the release commit (so the tag holds it; main keeps
+// fragments only), and after a release its "Prepare main for the next release" PR deletes the
+// fragments it used.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -29,6 +33,19 @@ export function assemble(dir) {
   const files = existsSync(dir) ? readdirSync(dir).filter((file) => file.endsWith(".md")).sort() : [];
   const lines = files.flatMap((file) => listed(readFileSync(join(dir, file), "utf8")));
   return lines.length === 0 ? `${HEADING}\n` : `${HEADING}\n\n${lines.join("\n")}\n`;
+}
+
+/**
+ * Lines a fragment holds that are not a change: every non-blank line must be a top-level `- `
+ * item, one line per change, because only those reach the release notes. As `file:line: text`.
+ */
+export function fragmentProblems(dir) {
+  const files = existsSync(dir) ? readdirSync(dir).filter((file) => file.endsWith(".md")).sort() : [];
+  return files.flatMap((file) =>
+    readFileSync(join(dir, file), "utf8")
+      .split("\n")
+      .flatMap((line, index) => (line.trim() === "" || line.startsWith("- ") ? [] : [`changes/${file}:${index + 1}: ${line}`])),
+  );
 }
 
 /** Why the changes cannot be released as they are, or null. */
@@ -52,7 +69,11 @@ export function changesProblem(markdown, lastNotes) {
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const [mode, dir, notes] = process.argv.slice(2);
   if (mode === "check" && dir && notes) {
-    const problem = changesProblem(assemble(dir), readFileSync(notes, "utf8"));
+    const stray = fragmentProblems(dir);
+    const problem =
+      stray.length > 0
+        ? `Each changes/ fragment line is one change: a top-level \`- \` line, with no wrapped lines, sub-items or other text. Fix: ${stray.join(" | ")}`
+        : changesProblem(assemble(dir), readFileSync(notes, "utf8"));
     if (problem) {
       console.log(`::error::${problem}`);
       process.exit(1);

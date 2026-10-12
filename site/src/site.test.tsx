@@ -12,6 +12,7 @@ import { AGENTS_COMING_SOON, HERO_SUBLINE, HERO_TITLE, SHADCN_LINE } from "./cop
 import readme from "../../README.md?raw";
 import llms from "../public/llms.txt?raw";
 import registry from "../../registry.json";
+import { groupOrder } from "../../scripts/catalog-groups.mts";
 
 // The site's contract (Task 11): the hero says exactly what it should, the live Sheet
 // opens, every page passes axe in light and dark at a phone and a desktop width, nothing
@@ -94,7 +95,8 @@ describe("docs", () => {
     expect(names).toEqual(expect.arrayContaining(["button", "text", "heading", "link", "field", "fieldset", "text-field", "text-area", "sheet", "dialog", "confirm-dialog"]));
     expect(docsItems.map((item) => item.name).sort()).toEqual([...names].sort());
     // By catalog group, in registry order within a group.
-    const groups = ["Actions", "Text", "Forms", "Overlays"];
+    const groups: readonly string[] = groupOrder;
+    for (const item of docsItems) expect(groups, item.name).toContain(item.group);
     expect(docsItems.map((item) => groups.indexOf(item.group))).toEqual(docsItems.map((item) => groups.indexOf(item.group)).sort((a, b) => a - b));
     for (const name of names) expect(routes.map((route) => route.path)).toContain(`/docs/${name}/`);
   });
