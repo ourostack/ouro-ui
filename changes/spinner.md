@@ -1,0 +1,1 @@
+- New: `Spinner` (`size`, `label`, `tone`), a loading status with a hidden label. Under reduced motion it pulses its opacity instead of spinning.

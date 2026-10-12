@@ -1,0 +1,1 @@
+- New: `Progress`, a labeled progress bar: determinate with a number `value`, or indeterminate with `value={null}`, which screen readers hear as `indeterminateText` ("Loading" by default); a required `label`. Under reduced motion the indeterminate bar pulses instead of sliding.

@@ -106,6 +106,33 @@
     "source": "registry/ouro/components/ouro/command/command.tsx"
   },
   {
+    "name": "toaster",
+    "title": "Toaster",
+    "group": "Feedback",
+    "source": "registry/ouro/components/ouro/toast/toaster.tsx",
+    "functions": [
+      "toast"
+    ]
+  },
+  {
+    "name": "spinner",
+    "title": "Spinner",
+    "group": "Feedback",
+    "source": "registry/ouro/components/ouro/spinner/spinner.tsx"
+  },
+  {
+    "name": "progress",
+    "title": "Progress",
+    "group": "Feedback",
+    "source": "registry/ouro/components/ouro/progress/progress.tsx"
+  },
+  {
+    "name": "skeleton",
+    "title": "Skeleton",
+    "group": "Display",
+    "source": "registry/ouro/components/ouro/skeleton/skeleton.tsx"
+  },
+  {
     "name": "avatar",
     "title": "Avatar",
     "group": "Display",
