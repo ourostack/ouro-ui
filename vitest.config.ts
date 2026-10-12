@@ -23,6 +23,7 @@ export default defineConfig({
     include: [
       "@base-ui/react/alert-dialog",
       "@base-ui/react/autocomplete",
+      "@base-ui/react/avatar",
       "@base-ui/react/button",
       "@base-ui/react/checkbox",
       "@base-ui/react/combobox",
@@ -33,6 +34,7 @@ export default defineConfig({
       "@base-ui/react/form",
       "@base-ui/react/number-field",
       "@base-ui/react/slider",
+      "@base-ui/react/separator",
     ],
   },
   test: {
