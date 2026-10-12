@@ -84,16 +84,30 @@ export interface CommandBaseProps {
   /** Layout only, applied to the dialog panel: margins (`mt-8`). Appearance classes warn in development. */
   className?: string | undefined;
   /**
-   * For results from a server: called with the search text on every change. The palette
-   * then stops filtering `items` itself and shows them as they are, so keep the last results
-   * in `items` until new ones arrive. `signal` aborts when a newer query replaces this one
-   * or the palette closes: pass it to `fetch`, or drop the response when `signal.aborted`,
-   * so a slow earlier response never overwrites a newer one. The app owns the request.
+   * For results from a server: called with the search text on every change, and with the
+   * current text (`""` at each opening) whenever the palette opens or swaps between dialog
+   * and sheet. The palette then stops filtering `items` itself and shows them as they are,
+   * so keep the last results in `items` until new ones arrive. `signal` aborts when a newer
+   * query replaces this one or the palette closes: pass it to `fetch`, or drop the response
+   * when `signal.aborted`, so a slow earlier response never overwrites a newer one. The app
+   * owns the request, and must set `loading` back to false when the request fails or its
+   * signal aborts, or "Searching…" stays up.
+   *
+   * @example
+   * onQueryChange={(query, { signal }) => {
+   *   setLoading(true);
+   *   signal.addEventListener("abort", () => setLoading(false));
+   *   fetch(`/api/search?q=${encodeURIComponent(query)}`, { signal })
+   *     .then((response) => response.json())
+   *     .then((results) => { setResults(results); setLoading(false); })
+   *     .catch(() => { if (!signal.aborted) setLoading(false); });
+   * }}
    */
   onQueryChange?: ((query: string, context: { signal: AbortSignal }) => void) | undefined;
   /**
    * Whether results are on their way: shows `loadingLabel` beside the input, announces it
-   * politely once while the palette is open, and holds back the empty state.
+   * politely for the first load of each opening (not again while typing goes on), and holds
+   * back the empty state. Set it back to false when the request fails or aborts.
    */
   loading?: boolean | undefined;
   /** What shows, and is announced, while `loading`. @default "Searching…" */
@@ -174,6 +188,13 @@ function SearchIcon(): JSX.Element {
       <path d="m10.5 10.5 3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
+}
+
+/** Runs `run` once when it mounts. */
+function OnMount({ run }: { run: () => void }): null {
+  const ref = useRef(run);
+  useEffect(() => ref.current(), []);
+  return null;
 }
 
 /**
@@ -293,8 +314,12 @@ export function Command(props: CommandProps): JSX.Element {
   // Focus returns to the trigger on close; Safari does not focus a button on click.
   const finalFocus = trigger !== undefined ? { finalFocus: triggerRef } : {};
 
-  // Whether "Searching…" was announced in this opening of the palette.
-  const [announced, setAnnounced] = useState(false);
+  // The search text: empty at each opening, and kept across the swap between dialog and sheet.
+  const [query, setQuery] = useState("");
+  if (!isOpenNow && query !== "") setQuery("");
+  // "Searching…" is announced for the first load of each opening only, and then cleared,
+  // so typing on while results load is not announced again.
+  const [announcement, setAnnouncement] = useState<"idle" | "on" | "done">("idle");
   // The latest search's controller: a newer query, or closing, aborts it.
   const searchRef = useRef<AbortController | null>(null);
   const search = (query: string) => {
@@ -308,8 +333,9 @@ export function Command(props: CommandProps): JSX.Element {
   }, [isOpenNow]);
   useEffect(() => () => searchRef.current?.abort(), []);
   // Adjusted while rendering, as React suggests for state that follows props.
-  if (loading && isOpenNow && !announced) setAnnounced(true);
-  if (!isOpenNow && announced) setAnnounced(false);
+  if (loading && isOpenNow && announcement === "idle") setAnnouncement("on");
+  if (!loading && announcement === "on") setAnnouncement("done");
+  if (!isOpenNow && announcement !== "idle") setAnnouncement("idle");
 
   const run = (item: CommandItem) => {
     setOpen(false);
@@ -324,9 +350,15 @@ export function Command(props: CommandProps): JSX.Element {
       autoHighlight="always"
       keepHighlight
       // A server search filters on the server: the items are already the results.
-      filter={onQueryChange ? null : (item: CommandItem, query: string) => matchesQuery(item.label, item.keywords, query)}
-      {...(onQueryChange ? { onValueChange: (query: string) => search(query) } : {})}
+      filter={onQueryChange ? null : (item: CommandItem, text: string) => matchesQuery(item.label, item.keywords, text)}
+      value={query}
+      onValueChange={(next: string) => {
+        setQuery(next);
+        if (onQueryChange) search(next);
+      }}
     >
+      {/* Each mount (an opening, or the swap between dialog and sheet) asks for the current query's results. */}
+      {onQueryChange && <OnMount run={() => search(query)} />}
       <div data-ouro="command" className="flex min-h-0 flex-1 flex-col">
         <div data-ouro-command-search="" className={inSheet ? commandSheetSearchClass : commandSearchClass}>
           <SearchIcon />
@@ -336,9 +368,9 @@ export function Command(props: CommandProps): JSX.Element {
               {loadingLabel}
             </span>
           )}
-          {/* Set once per opening, so typing on while results load is not announced again. */}
+
           <span data-ouro-command-status="" role="status" aria-live="polite" className="sr-only">
-            {announced ? loadingLabel : ""}
+            {announcement === "on" ? loadingLabel : ""}
           </span>
         </div>
         <div data-ouro-command-list="" className={inSheet ? commandSheetListClass : commandListClass}>

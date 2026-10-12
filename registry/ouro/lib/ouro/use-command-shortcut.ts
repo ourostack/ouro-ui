@@ -35,7 +35,15 @@ function matches(event: KeyboardEvent, keys: readonly string[]): boolean {
     else if (modifier) wanted[modifier] = true;
     else key = name.toLowerCase();
   }
-  if (event.metaKey !== wanted.meta || event.ctrlKey !== wanted.ctrl || event.altKey !== wanted.alt || event.shiftKey !== wanted.shift) {
+  // A character such as ? needs Shift on most layouts, so for one Shift is part of the
+  // character, not a modifier to match: "?" and "shift+?" both fire on Shift+/.
+  const character = key.length === 1 && !/^[a-z\d]$/.test(key);
+  if (
+    event.metaKey !== wanted.meta ||
+    event.ctrlKey !== wanted.ctrl ||
+    event.altKey !== wanted.alt ||
+    (!character && event.shiftKey !== wanted.shift)
+  ) {
     return false;
   }
   if (/^[a-z]$/.test(key)) return event.code === `Key${key.toUpperCase()}`;
@@ -57,7 +65,8 @@ function isEditable(target: EventTarget | null): boolean {
  * combination is prevented. It never fires while an input method is composing text. In a
  * text field (an input, a textarea, a select or a contenteditable element) it fires only
  * when it includes `mod`, `meta`/`cmd` or `ctrl`, so `"/"` never takes a typed character
- * and `"mod+k"` still opens the palette from a field.
+ * and `"mod+k"` still opens the palette from a field. A character that needs Shift, such
+ * as `"?"`, matches by the character typed, so `"?"` and `"shift+?"` both fire on Shift+/.
  *
  * @example
  * const [open, setOpen] = useCommandShortcut("mod+k");

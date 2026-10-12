@@ -1,6 +1,6 @@
 export { ariaKeyShortcuts };
 
-/** Kbd's key names, as `aria-keyshortcuts` spells them. `mod` is listed both ways. */
+/** Kbd's key names, as `aria-keyshortcuts` spells them (UI Events key values). `mod` is listed both ways. */
 const names: Readonly<Record<string, readonly string[]>> = {
   mod: ["Control", "Meta"],
   cmd: ["Meta"],
@@ -11,6 +11,21 @@ const names: Readonly<Record<string, readonly string[]>> = {
   alt: ["Alt"],
   option: ["Alt"],
   shift: ["Shift"],
+  up: ["ArrowUp"],
+  down: ["ArrowDown"],
+  left: ["ArrowLeft"],
+  right: ["ArrowRight"],
+  arrowup: ["ArrowUp"],
+  arrowdown: ["ArrowDown"],
+  arrowleft: ["ArrowLeft"],
+  arrowright: ["ArrowRight"],
+  esc: ["Escape"],
+  escape: ["Escape"],
+  enter: ["Enter"],
+  return: ["Enter"],
+  del: ["Delete"],
+  delete: ["Delete"],
+  space: ["Space"],
 };
 
 /**

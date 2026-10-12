@@ -297,47 +297,64 @@ describe("Command presentation", () => {
   });
 });
 
-/** A search the test answers by hand, in any order: `answer("ab", ["Abba"])`. */
+/** A search the test answers by hand, in any order: `answer("ab", ["Abba"])`, or `fail("ab")`. */
 function fakeServer() {
-  const pending = new Map<string, (labels: string[]) => void>();
+  const pending = new Map<string, { resolve: (labels: string[]) => void; reject: (error: Error) => void }>();
   const asked: string[] = [];
+  const settle = async (run: () => void) => {
+    await act(async () => {
+      run();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+  };
   return {
     asked,
     search: (query: string) =>
-      new Promise<string[]>((resolve) => {
+      new Promise<string[]>((resolve, reject) => {
         asked.push(query);
-        pending.set(query, resolve);
+        pending.set(query, { resolve, reject });
       }),
-    answer: async (query: string, labels: string[]) => {
-      await act(async () => {
-        pending.get(query)!(labels);
-        await Promise.resolve();
-      });
-    },
+    answer: (query: string, labels: string[]) => settle(() => pending.get(query)!.resolve(labels)),
+    fail: (query: string) => settle(() => pending.get(query)!.reject(new Error("offline"))),
   };
 }
 
-/** How an app wires Command to a server search: the signal drops a response that a newer query replaced. */
+/**
+ * How an app wires Command to a server search: the signal drops a response that a newer
+ * query replaced, and loading clears when the request fails or its signal aborts.
+ */
 function ServerPalette({ server, onSelect = () => {} }: { server: ReturnType<typeof fakeServer>; onSelect?: () => void }) {
   const [open, setOpen] = useState(true);
   const [labels, setLabels] = useState(["Shakshuka", "Salad"]);
   const [loading, setLoading] = useState(false);
   return (
-    <Command
-      title="Recipe search"
-      open={open}
-      onOpenChange={setOpen}
-      loading={loading}
-      items={[{ label: "Recipes", items: labels.map((label) => ({ label, onSelect })) }]}
-      onQueryChange={(query, { signal }) => {
-        setLoading(true);
-        void server.search(query).then((next) => {
-          if (signal.aborted) return;
-          setLabels(next);
-          setLoading(false);
-        });
-      }}
-    />
+    <>
+      <button type="button" data-testid="reopen" onClick={() => setOpen(true)}>
+        Reopen
+      </button>
+      <Command
+        title="Recipe search"
+        open={open}
+        onOpenChange={setOpen}
+        loading={loading}
+        items={[{ label: "Recipes", items: labels.map((label) => ({ label, onSelect })) }]}
+        onQueryChange={(query, { signal }) => {
+          setLoading(true);
+          signal.addEventListener("abort", () => setLoading(false));
+          server.search(query).then(
+            (next) => {
+              if (signal.aborted) return;
+              setLabels(next);
+              setLoading(false);
+            },
+            () => {
+              if (!signal.aborted) setLoading(false);
+            },
+          );
+        }}
+      />
+    </>
   );
 }
 
@@ -349,7 +366,8 @@ describe("Command server search", () => {
     await render(<ServerPalette server={server} />);
     await settled();
     await userEvent.type(input(), "zz");
-    expect(server.asked).toEqual(["z", "zz"]);
+    // Opening asks for the empty query's results; then each keystroke asks again.
+    expect(server.asked).toEqual(["", "z", "zz"]);
     // Nothing matches "zz" on the client, but the server owns the results: the stale ones stay.
     expect(options()).toEqual(["Shakshuka", "Salad"]);
     expect(document.body.textContent).not.toContain("No results");
@@ -373,19 +391,22 @@ describe("Command server search", () => {
     await render(<ServerPalette server={server} />);
     await settled();
     expect(status().getAttribute("aria-live")).toBe("polite");
-    expect(status().textContent).toBe("");
+    // The opening's search for "" is the one announcement.
+    await expect.poll(() => status().textContent).toBe("Searching…");
+    await server.answer("", ["Shakshuka", "Salad"]);
+    await expect.poll(() => status().textContent).toBe("");
     const changes: string[] = [];
     const observer = new MutationObserver(() => changes.push(status().textContent ?? ""));
     observer.observe(status(), { childList: true, characterData: true, subtree: true });
     await userEvent.type(input(), "xyz");
-    await expect.poll(() => status().textContent).toBe("Searching…");
     await server.answer("x", []);
     await server.answer("xy", []);
     expect(document.body.textContent).not.toContain("No results");
     await server.answer("xyz", []);
     await expect.poll(() => document.body.textContent).toContain("No results");
     observer.disconnect();
-    expect(changes.filter((text) => text === "Searching…")).toHaveLength(1);
+    expect(changes).toEqual([]);
+    expect(status().textContent).toBe("");
   });
 
   it("takes a translated loading label, and aborts the last search when the palette closes", async () => {
@@ -410,6 +431,62 @@ describe("Command server search", () => {
     await act(async () => roots[0]!.render(palette(true)));
     await settled();
     await expect.poll(() => status().textContent).toBe("Searching…");
+  });
+
+  const loadingShown = () => document.querySelector("[data-ouro-command-loading]") !== null;
+
+  it("asks again for the empty query when reopened after closing mid-search, leaving no stale results or loading", async () => {
+    const server = fakeServer();
+    await render(<ServerPalette server={server} />);
+    await settled();
+    await server.answer("", ["Shakshuka", "Salad"]);
+    await userEvent.type(input(), "pa");
+    await server.answer("pa", ["Pasta", "Paella"]);
+    await expect.poll(options).toEqual(["Pasta", "Paella"]);
+    await userEvent.type(input(), "x");
+    expect(loadingShown()).toBe(true);
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(popup).toBeNull();
+    await userEvent.click(page.getByTestId("reopen"));
+    await settled();
+    expect((input().element() as HTMLInputElement).value).toBe("");
+    expect(server.asked.at(-1)).toBe("");
+    await server.answer("", ["Shakshuka", "Salad"]);
+    await expect.poll(options).toEqual(["Shakshuka", "Salad"]);
+    expect(loadingShown()).toBe(false);
+    // The answer to "pax", from before the close, never lands.
+    await server.answer("pax", ["Paxlava"]);
+    expect(options()).toEqual(["Shakshuka", "Salad"]);
+  });
+
+  it("clears loading when a search fails, and then shows the empty state if nothing matches", async () => {
+    const server = fakeServer();
+    await render(<ServerPalette server={server} />);
+    await settled();
+    await userEvent.type(input(), "q");
+    expect(loadingShown()).toBe(true);
+    await server.fail("q");
+    await expect.poll(loadingShown).toBe(false);
+    expect(options()).toEqual(["Shakshuka", "Salad"]);
+  });
+
+  it("asks again for the current query when the palette switches between dialog and sheet across 640px", async () => {
+    const server = fakeServer();
+    await render(<ServerPalette server={server} />);
+    await settled();
+    await userEvent.type(input(), "pa");
+    await server.answer("pa", ["Pasta"]);
+    await expect.poll(options).toEqual(["Pasta"]);
+    const asked = server.asked.length;
+    await page.viewport(390, 844);
+    await expect.poll(() => popup()?.getAttribute("data-ouro-presentation")).toBe("sheet");
+    // The sheet keeps the search text and asks for its results again.
+    await expect.poll(() => server.asked.length).toBeGreaterThan(asked);
+    expect(server.asked.at(-1)).toBe("pa");
+    expect((input().element() as HTMLInputElement).value).toBe("pa");
+    await server.answer("pa", ["Pasta", "Paella"]);
+    await expect.poll(options).toEqual(["Pasta", "Paella"]);
+    expect(loadingShown()).toBe(false);
   });
 
   it("keeps the phone sheet's search input still while server results change", async () => {

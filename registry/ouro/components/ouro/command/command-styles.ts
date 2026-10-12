@@ -44,7 +44,7 @@ const commandInputClass =
  *
  * @internal
  */
-const commandLoadingClass = "shrink-0 text-xs leading-4 text-muted-foreground motion-safe:animate-pulse";
+const commandLoadingClass = "shrink-0 text-xs leading-4 text-muted-foreground";
 
 /**
  * The results: a fixed height in the dialog, so the dialog keeps its size (and the input its

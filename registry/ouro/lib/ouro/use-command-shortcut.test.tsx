@@ -145,6 +145,29 @@ describe("useCommandShortcut", () => {
     expect(state()).toBe("closed");
   });
 
+  it("matches a character that needs Shift, such as ?, by the character typed", async () => {
+    const plain = await mount("?");
+    expect(await press({ key: "?", code: "Slash", shiftKey: true })).toBe(true);
+    expect(plain()).toBe("open");
+    await act(() => root!.unmount());
+    host!.remove();
+    const shifted = await mount("shift+?");
+    await press({ key: "?", code: "Slash", shiftKey: true });
+    expect(shifted()).toBe("open");
+    // Shift still counts for a named key: shift+enter is not enter.
+    await act(() => root!.unmount());
+    host!.remove();
+    const enter = await mount("enter");
+    await press({ key: "Enter", code: "Enter", shiftKey: true });
+    expect(enter()).toBe("closed");
+  });
+
+  it("fires on ? typed for real outside a field", async () => {
+    const state = await mount("?");
+    await userEvent.keyboard("{Shift>}?{/Shift}");
+    expect(state()).toBe("open");
+  });
+
   it("renders closed on the server", () => {
     expect(renderToString(<Probe />)).toBe("<output>closed</output>");
   });

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
 import { Command, type CommandEntry } from "@/registry/ouro/components/ouro/command/command";
@@ -77,4 +77,51 @@ export const Shortcut: Story = {
 /** What shows when nothing matches: `emptyLabel`. */
 export const Empty: Story = {
   args: { items: [], emptyLabel: "No commands yet" },
+};
+
+const recipes = ["Shakshuka", "Pasta al limone", "Paella", "Pad thai", "Lentil soup", "Banana bread", "Baklava", "Saag paneer"];
+
+/** A stand-in for a server: answers after a delay, slower for shorter queries, and fails on "fail". */
+function searchRecipes(query: string, signal: AbortSignal): Promise<string[]> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(
+      () => (query === "fail" ? reject(new Error("offline")) : resolve(recipes.filter((name) => name.toLowerCase().includes(query.toLowerCase())))),
+      900 - Math.min(query.length, 6) * 120,
+    );
+    signal.addEventListener("abort", () => clearTimeout(timer));
+  });
+}
+
+/**
+ * Results from a server: `onQueryChange` runs the search, and its `signal` aborts the one a
+ * newer query replaces. `loading` clears when a search answers, fails ("fail") or aborts.
+ */
+export const ServerSearch: Story = {
+  render: function Render(args) {
+    const [results, setResults] = useState<string[]>([]);
+    const [loading, setLoading] = useState(false);
+    return (
+      <Command
+        title={args.title}
+        trigger={<Button variant="outline" tone="secondary">Search recipes…</Button>}
+        placeholder="Search recipes…"
+        loading={loading}
+        items={results.map((name) => ({ label: name, onSelect: noop }))}
+        onQueryChange={(query, { signal }) => {
+          setLoading(true);
+          signal.addEventListener("abort", () => setLoading(false));
+          searchRecipes(query, signal).then(
+            (next) => {
+              if (signal.aborted) return;
+              setResults(next);
+              setLoading(false);
+            },
+            () => {
+              if (!signal.aborted) setLoading(false);
+            },
+          );
+        }}
+      />
+    );
+  },
 };
