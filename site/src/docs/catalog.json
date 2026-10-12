@@ -205,6 +205,12 @@
     "source": "registry/ouro/components/ouro/empty/empty.tsx"
   },
   {
+    "name": "carousel",
+    "title": "Carousel",
+    "group": "Display",
+    "source": "registry/ouro/components/ouro/carousel/carousel.tsx"
+  },
+  {
     "name": "accordion",
     "title": "Accordion",
     "group": "Lists",
@@ -257,6 +263,12 @@
     "title": "Row",
     "group": "Layout",
     "source": "registry/ouro/components/ouro/stack/row.tsx"
+  },
+  {
+    "name": "resizable",
+    "title": "Resizable",
+    "group": "Layout",
+    "source": "registry/ouro/components/ouro/resizable/resizable.tsx"
   },
   {
     "name": "tabs",
