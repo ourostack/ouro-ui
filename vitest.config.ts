@@ -33,6 +33,7 @@ export default defineConfig({
       "@base-ui/react/popover",
       "@base-ui/react/preview-card",
       "@base-ui/react/progress",
+      "@base-ui/react/scroll-area",
       "@base-ui/react/separator",
       "@base-ui/react/toast",
       "@base-ui/react/tooltip",
