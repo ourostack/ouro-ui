@@ -24,6 +24,12 @@
     "source": "registry/ouro/components/ouro/link/link.tsx"
   },
   {
+    "name": "kbd",
+    "title": "Kbd",
+    "group": "Text",
+    "source": "registry/ouro/components/ouro/kbd/kbd.tsx"
+  },
+  {
     "name": "field",
     "title": "Field",
     "group": "Forms",
@@ -67,6 +73,30 @@
     "title": "ConfirmDialog",
     "group": "Overlays",
     "source": "registry/ouro/components/ouro/dialog/confirm-dialog.tsx"
+  },
+  {
+    "name": "avatar",
+    "title": "Avatar",
+    "group": "Display",
+    "source": "registry/ouro/components/ouro/avatar/avatar.tsx"
+  },
+  {
+    "name": "badge",
+    "title": "Badge",
+    "group": "Display",
+    "source": "registry/ouro/components/ouro/badge/badge.tsx"
+  },
+  {
+    "name": "alert",
+    "title": "Alert",
+    "group": "Display",
+    "source": "registry/ouro/components/ouro/alert/alert.tsx"
+  },
+  {
+    "name": "separator",
+    "title": "Separator",
+    "group": "Display",
+    "source": "registry/ouro/components/ouro/separator/separator.tsx"
   },
   {
     "name": "accordion",

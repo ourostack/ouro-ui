@@ -1,0 +1,1 @@
+- New: `Alert`, an inline banner with a required `title`, `description`, `tone`, `action`, `icon` and `onDismiss` (with `dismissLabel`). Destructive and warning alerts are `role="alert"`; the others `role="status"`.

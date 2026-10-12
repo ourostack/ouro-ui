@@ -22,6 +22,7 @@ export default defineConfig({
   optimizeDeps: {
     include: [
       "@base-ui/react/alert-dialog",
+      "@base-ui/react/avatar",
       "@base-ui/react/button",
       "@base-ui/react/checkbox",
       "@base-ui/react/dialog",
@@ -34,6 +35,7 @@ export default defineConfig({
       "@base-ui/react/tabs",
       "@base-ui/react/toggle",
       "@base-ui/react/toggle-group",
+      "@base-ui/react/separator",
     ],
   },
   test: {
