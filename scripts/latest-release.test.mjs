@@ -85,6 +85,10 @@ test("the release commit names only its own tag: release.yml's release-branch co
     copyFileSync(join(root, path), join(copy, path));
   }
   symlinkSync(join(root, "node_modules"), join(copy, "node_modules"));
+  // main holds no fragments right after a release's "Prepare main" PR deletes them, so the
+  // copy gets its own: this test checks the release step, not what is waiting to ship.
+  mkdirSync(join(copy, "changes"), { recursive: true });
+  writeFileSync(join(copy, "changes", "release-test-fixture.md"), "- A change for this test's release.\n");
   const previous = latestRelease();
   // The copy is no git repository: a stand-in git records the step's `git add`.
   const bin = mkdtempSync(join(tmpdir(), "ouro-release-bin-"));
@@ -93,7 +97,8 @@ test("the release commit names only its own tag: release.yml's release-branch co
   const result = spawnSync("bash", ["-ec", body], { cwd: copy, encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, TAG: "v9.9.9", VERSION: "9.9.9" } });
   assert.equal(result.status, 0, result.stderr);
   // The release commit holds this release's changes, assembled from changes/*.md.
-  assert.match(readFileSync(join(copy, "CHANGES.md"), "utf8"), /^# Changes in this release\n\n- /);
+  assert.match(readFileSync(join(copy, "CHANGES.md"), "utf8"), /^# Changes in this release\n\n- [^\n]*\n/);
+  assert.match(readFileSync(join(copy, "CHANGES.md"), "utf8"), /^- A change for this test's release\.$/m);
   assert.equal(readFileSync(join(bin, "calls.log"), "utf8"), "add CHANGES.md\n");
   assert.equal(latestRelease(copy), "v9.9.9");
   const docs = ["README.md", "site/public/llms.txt", "package.json", "UPGRADING.md", ...tracked("docs/*.md", "site/src/*.ts", "site/src/*.tsx")];
