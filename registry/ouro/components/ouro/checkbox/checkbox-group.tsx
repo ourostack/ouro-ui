@@ -39,8 +39,10 @@ export interface CheckboxGroupOwnProps {
    */
   error?: string | string[] | undefined;
   /**
-   * At least one box must be checked to submit the form: the legend gets a marker, and the
-   * browser shows `requiredMessage` until one is checked.
+   * At least one box must be checked to submit the form: the legend gets a marker (and
+   * " (required)" for screen readers), and the browser shows `requiredMessage` until one is
+   * checked. HTML has no native "at least one" rule for checkboxes, so this check runs only
+   * once the page has hydrated: your server action must still check it.
    */
   required?: boolean | undefined;
   /** What the browser says when `required` and nothing is checked. Translate it here. @default "Choose at least one." */
@@ -104,7 +106,7 @@ export type CheckboxGroupProps = CheckboxGroupOwnProps &
   );
 
 /** Field's messages and root name CheckboxGroup, and use the label as the group's legend. */
-const owner = { name: "CheckboxGroup", data: "checkbox-group", layout: "group" } as const;
+const owner = { name: "CheckboxGroup", data: "checkbox-group", layout: "group", requiredInLegend: true } as const;
 
 /** The group, inside the Field: it takes its name and description ids from the field. */
 function Choices(props: {
@@ -219,6 +221,7 @@ export function CheckboxGroup(props: CheckboxGroupProps): JSX.Element {
           label !== undefined && ["label is not a prop; a group is named by its legend", `<CheckboxGroup legend="${String(label)}">`],
           onChange !== undefined && ["onChange is not a prop; onValueChange gets the checked values", "<CheckboxGroup onValueChange={(values) => setValues(values)}>"],
           items !== undefined && ["items is not a prop", '<CheckboxGroup options={[{ value: "basil", label: "Basil" }]}>'],
+          value !== undefined && !onValueChange && ["value without onValueChange never changes", "<CheckboxGroup value={values} onValueChange={setValues}>, or defaultValue"],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );

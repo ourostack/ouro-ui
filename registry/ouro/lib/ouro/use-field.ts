@@ -26,8 +26,8 @@ export interface FieldContextValue {
    */
   labelId?: string | undefined;
   /**
-   * Set by a `Field` whose control is a group of choices (its owner's `data`, such as
-   * `radio-group`). A checkbox or radio `Field` inside it renders as one of the group's items.
+   * Set by a `Field` whose control is a group of choices: its owner's `name`, such as
+   * `RadioGroup`. A checkbox or radio `Field` inside it renders as one of the group's items.
    */
   group?: string | undefined;
 }
@@ -63,6 +63,11 @@ export interface FieldOwner {
    * `<label>`, and the control is the group.
    */
   layout?: "stack" | "inline" | "group" | undefined;
+  /**
+   * For a group whose control cannot carry `aria-required` (a checkbox group): a required
+   * field adds visually hidden " (required)" to its legend, so screen readers announce it.
+   */
+  requiredInLegend?: boolean | undefined;
 }
 
 /**

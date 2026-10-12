@@ -1253,7 +1253,8 @@
       "registryDependencies": [
         "ourostack/ouro-ui/checkbox",
         "ourostack/ouro-ui/checkbox-group",
-        "ourostack/ouro-ui/ouro-testing"
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/switch"
       ],
       "files": [
         {
@@ -1298,7 +1299,8 @@
       "registryDependencies": [
         "ourostack/ouro-ui/checkbox",
         "ourostack/ouro-ui/ouro-testing",
-        "ourostack/ouro-ui/radio-group"
+        "ourostack/ouro-ui/radio-group",
+        "ourostack/ouro-ui/switch"
       ],
       "files": [
         {

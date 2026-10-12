@@ -131,6 +131,29 @@ describe("Checkbox", () => {
     expect(box.getAttribute("aria-checked")).toBe("false");
   });
 
+  it("submits an indeterminate box only once the app checks it", async () => {
+    const onCheckedChange = vi.fn();
+    const { host, box, rerender } = await render(
+      <form>
+        <Checkbox label="All herbs" name="all" indeterminate checked={false} onCheckedChange={onCheckedChange} />
+      </form>,
+    );
+    const form = host.querySelector("form")!;
+    expect([...new FormData(form)]).toEqual([]);
+    await userEvent.click(box);
+    // Controlled: the click asks the app, and nothing submits until the app checks the box.
+    expect(onCheckedChange).toHaveBeenCalledWith(true);
+    expect(box.getAttribute("aria-checked")).toBe("mixed");
+    expect([...new FormData(form)]).toEqual([]);
+    await rerender(
+      <form>
+        <Checkbox label="All herbs" name="all" checked onCheckedChange={onCheckedChange} />
+      </form>,
+    );
+    expect(box.getAttribute("aria-checked")).toBe("true");
+    expect([...new FormData(form)]).toEqual([["all", "on"]]);
+  });
+
   it("submits name=value with its form when checked, and nothing when not", async () => {
     const { host, box } = await render(
       <form>
@@ -313,6 +336,13 @@ describe("Checkbox development messages", () => {
     expect(messages()).toContain('[ouro-ui] Checkbox: label is empty, so the control has no name. Fix: <Checkbox label="Email" hideLabel> to hide a label you still need.');
     expect(messages()).toContain('[ouro-ui] Checkbox: "bg-red-500" sets appearance, and className is for layout only. Fix: <Checkbox error="What is wrong">.');
     expect(root.classList.contains("mt-4")).toBe(true);
+  });
+
+  it("warns when indeterminate has no onCheckedChange to clear it", async () => {
+    await render(<Checkbox label="All herbs" indeterminate />);
+    expect(messages()).toEqual([
+      "[ouro-ui] Checkbox: indeterminate without onCheckedChange stays mixed after a click while the box submits as checked. Fix: <Checkbox indeterminate={some} checked={all} onCheckedChange={toggleAll}>.",
+    ]);
   });
 
   it("warns when checked has no onCheckedChange", async () => {

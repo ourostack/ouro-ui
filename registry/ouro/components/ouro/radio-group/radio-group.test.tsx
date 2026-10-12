@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Checkbox } from "@/registry/ouro/components/ouro/checkbox/checkbox";
 import { Radio, RadioGroup, type RadioGroupProps, type RadioProps } from "@/registry/ouro/components/ouro/radio-group/radio-group";
+import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 const roots: Root[] = [];
@@ -284,6 +285,30 @@ describe("RadioGroup development messages", () => {
       '[ouro-ui] Radio: name belongs on the RadioGroup. Fix: <RadioGroup name="size">.',
       "[ouro-ui] Radio: checked is not a prop; the group's value picks the radio. Fix: <RadioGroup value=\"small\">.",
     ]);
+  });
+
+  it("warns when value has no onValueChange", async () => {
+    await render(<RadioGroup legend="Size" options={sizes} value="small" />);
+    expect(messages()).toEqual([
+      "[ouro-ui] RadioGroup: value without onValueChange never changes. Fix: <RadioGroup value={value} onValueChange={setValue}>, or defaultValue.",
+    ]);
+  });
+
+  it("throws with the fix for a Switch inside the group", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    await expect(
+      render(
+        <RadioGroup legend="Size">
+          <Switch label="Small" />
+        </RadioGroup>,
+      ),
+    ).rejects.toThrow('[ouro-ui] Switch: a RadioGroup takes Radio choices. Fix: <Radio value="small" label="Small" />, or put the Switch outside the group.');
+    error.mockRestore();
+  });
+
+  it("does not add required words to its legend; the radiogroup carries aria-required", async () => {
+    await render(<RadioGroup legend="Size" options={sizes} required />);
+    await expect.element(page.getByRole("radiogroup", { name: "Size" })).toBeInTheDocument();
   });
 
   it("names RadioGroup and the legend for an empty legend", async () => {

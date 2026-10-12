@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Checkbox } from "@/registry/ouro/components/ouro/checkbox/checkbox";
 import { CheckboxGroup, type CheckboxGroupProps } from "@/registry/ouro/components/ouro/checkbox/checkbox-group";
+import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 const roots: Root[] = [];
@@ -162,6 +163,14 @@ describe("CheckboxGroup", () => {
     expect(form.checkValidity()).toBe(false);
   });
 
+  it("announces required in the group's name, since no box carries aria-required", async () => {
+    await render(<CheckboxGroup legend="Herbs" name="herbs" options={herbs} required />);
+    await expect.element(page.getByRole("group", { name: "Herbs (required)" })).toBeInTheDocument();
+    // Only screen readers get the words; the asterisk is what shows.
+    const words = document.querySelector("[data-ouro-legend] .sr-only")!;
+    expect(words.textContent).toBe(" (required)");
+  });
+
   it("translates the required message with requiredMessage", async () => {
     const { host } = await render(
       <form>
@@ -225,6 +234,27 @@ describe("CheckboxGroup development messages", () => {
     ]);
   });
 
+  it("warns when value has no onValueChange", async () => {
+    await render(<CheckboxGroup legend="Herbs" options={herbs} value={["basil"]} />);
+    expect(messages()).toEqual([
+      "[ouro-ui] CheckboxGroup: value without onValueChange never changes. Fix: <CheckboxGroup value={values} onValueChange={setValues}>, or defaultValue.",
+    ]);
+  });
+
+  it("throws with the fix for a Switch inside the group", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    await expect(
+      render(
+        <CheckboxGroup legend="Notify me">
+          <Switch label="Comments" />
+        </CheckboxGroup>,
+      ),
+    ).rejects.toThrow(
+      '[ouro-ui] Switch: a CheckboxGroup takes Checkbox choices. Fix: <Checkbox value="comments" label="Comments" />, or put the Switch outside the group.',
+    );
+    error.mockRestore();
+  });
+
   it("has no messages for valid props", async () => {
     await render(
       <CheckboxGroup legend="Herbs" hideLegend name="herbs" description="Any." error="Pick one." required disabled defaultValue={["basil"]} options={herbs} className="mt-4" />,
@@ -256,6 +286,14 @@ describe("CheckboxGroup on the server", () => {
       expect(doc.querySelector(`label[for="${input.id}"]`)).not.toBeNull();
     }
     expect(error).not.toHaveBeenCalled();
+  });
+
+  it("announces required in the group's name in the server HTML", async () => {
+    const host = document.createElement("div");
+    host.innerHTML = renderToString(<CheckboxGroup legend="Herbs" name="herbs" options={herbs} required />);
+    document.body.append(host);
+    mounted.push(host);
+    await expect.element(page.getByRole("group", { name: "Herbs (required)" })).toBeInTheDocument();
   });
 
   it("hydrates with the same ids and no hydration warning", async () => {

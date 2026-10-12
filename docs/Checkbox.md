@@ -32,7 +32,7 @@ Type: `CheckboxProps`.
 | `disabled` | `boolean` |  | Disables the checkbox and fades it. |
 | `error` | `string \| string[]` |  | What is wrong, from your server action or client check, shown under the label; the box gets `aria-invalid`. An empty string or array means valid. In a `CheckboxGroup`, pass it to the group. |
 | `hideLabel` | `boolean` |  | Hides the label visually; screen readers still read it as the checkbox's name. |
-| `indeterminate` | `boolean` |  | Shows a dash and announces "mixed": neither checked nor unchecked, as a "select all" box does when some of its items are checked. Set it from your state; checking clears nothing. |
+| `indeterminate` | `boolean` |  | Shows a dash and announces "mixed": neither checked nor unchecked, as a "select all" box does when some of its items are checked. It is controlled: a click does not clear it, so clear it in `onCheckedChange`, as in `<Checkbox indeterminate={some} checked={all} onCheckedChange={toggleAll}>`. The box submits only while `checked`. |
 | `label` (required) | `string` |  | What checking it means, shown to the right of the box and read as its name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. |
 | `name` | `string` |  | The form field name it submits under when checked. In a `CheckboxGroup`, the group's `name` applies. |
 | `onCheckedChange` | `((checked: boolean) => void)` |  | Called with the new state when it is checked or unchecked. |

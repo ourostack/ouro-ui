@@ -4,6 +4,7 @@ import { Switch as BaseSwitch } from "@base-ui/react/switch";
 import type { JSX, ReactNode, Ref } from "react";
 import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-styles";
+import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { FieldOwnerContext, useField } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
@@ -143,6 +144,17 @@ export function Switch(props: SwitchProps): JSX.Element {
     isRequired,
     isDisabled,
   } = props;
+  const group = useField()?.group;
+  if (group !== undefined) {
+    const choice = group === "RadioGroup" ? "Radio" : "Checkbox";
+    devThrow(
+      "Switch",
+      `a ${group} takes ${choice} choices`,
+      process.env.NODE_ENV !== "production"
+        ? `<${choice} value="${String(label).toLowerCase()}" label="${label}" />, or put the Switch outside the group`
+        : /* istanbul ignore next @preserve -- production only */ "",
+    );
+  }
 
   useDevWarnings(
     "Switch",

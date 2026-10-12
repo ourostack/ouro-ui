@@ -283,6 +283,7 @@ export function RadioGroup(props: RadioGroupProps): JSX.Element {
           label !== undefined && ["label is not a prop; a group is named by its legend", `<RadioGroup legend="${String(label)}">`],
           onChange !== undefined && ["onChange is not a prop; onValueChange gets the chosen value", "<RadioGroup onValueChange={(value) => setValue(value)}>"],
           items !== undefined && ["items is not a prop", '<RadioGroup options={[{ value: "small", label: "Small" }]}>'],
+          value !== undefined && !onValueChange && ["value without onValueChange never changes", "<RadioGroup value={value} onValueChange={setValue}>, or defaultValue"],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );

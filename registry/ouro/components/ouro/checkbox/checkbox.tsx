@@ -49,7 +49,10 @@ export interface CheckboxProps {
   onCheckedChange?: ((checked: boolean) => void) | undefined;
   /**
    * Shows a dash and announces "mixed": neither checked nor unchecked, as a "select all" box
-   * does when some of its items are checked. Set it from your state; checking clears nothing.
+   * does when some of its items are checked. It is controlled: a click does not clear it, so
+   * clear it in `onCheckedChange`, as in
+   * `<Checkbox indeterminate={some} checked={all} onCheckedChange={toggleAll}>`. The box
+   * submits only while `checked`.
    */
   indeterminate?: boolean | undefined;
   /** Shows the state but ignores clicks and keys, unlike `disabled`, which also fades it. */
@@ -188,6 +191,12 @@ export function Checkbox(props: CheckboxProps): JSX.Element {
           defaultValue !== undefined && ["defaultValue is not a prop; a checkbox starts checked with defaultChecked", "<Checkbox defaultChecked>"],
           group !== undefined && value === undefined && [`a checkbox in a ${group} needs a value`, `<Checkbox value="basil" label="${label}" />`],
           checked !== undefined && !onCheckedChange && !readOnly && ["checked without onCheckedChange never changes", "<Checkbox checked={checked} onCheckedChange={setChecked}>, or defaultChecked"],
+          indeterminate &&
+            !onCheckedChange &&
+            !readOnly && [
+            "indeterminate without onCheckedChange stays mixed after a click while the box submits as checked",
+            "<Checkbox indeterminate={some} checked={all} onCheckedChange={toggleAll}>",
+          ],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
