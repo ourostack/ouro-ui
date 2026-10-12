@@ -1,7 +1,7 @@
 "use client";
 
 import { Field as BaseField } from "@base-ui/react/field";
-import { useCallback, useId, useMemo, useRef, type JSX, type ReactNode } from "react";
+import { useCallback, useId, useMemo, useRef, type JSX, type ReactElement, type ReactNode } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { FieldContext, FieldOwnerContext, useFieldOwner } from "@/registry/ouro/lib/ouro/use-field";
@@ -64,6 +64,14 @@ export interface FieldProps {
   placeholder?: { 'Use label="Email"; a placeholder example goes on the control': never };
 }
 
+/** Field's own arrangement: the label, then the rest. */
+const defaultFrame = (label: ReactElement, rest: ReactNode): ReactNode => (
+  <>
+    {label}
+    {rest}
+  </>
+);
+
 /** The owner a plain Field has, restored for the Field's own children. */
 const fieldOwner = { name: "Field", data: "field" };
 
@@ -73,12 +81,15 @@ function messagesOf(error: string | string[] | undefined): string[] {
   return [...new Set(Array.isArray(error) ? error : [error])].filter((message) => message !== "");
 }
 
-/** The label is connected when its `for` names an element inside the field. Development only. */
+/**
+ * The label is connected when its `for` names an element inside the field, or when an element
+ * inside the field names it in `aria-labelledby` (a range slider's group). Development only.
+ */
 function labelConnected(root: HTMLElement, data: string): boolean {
-  const target = root.querySelector("label")?.htmlFor;
-  /* istanbul ignore next @preserve -- Field always renders a label with a for */
-  if (!target) return false;
-  return root.ownerDocument.getElementById(target)?.closest(`[data-ouro="${data}"]`) === root;
+  const label = root.querySelector("label")!;
+  const inside = (element: Element | null) => element?.closest(`[data-ouro="${data}"]`) === root;
+  if (label.htmlFor && inside(root.ownerDocument.getElementById(label.htmlFor))) return true;
+  return [...root.querySelectorAll(`[aria-labelledby~="${CSS.escape(label.id)}"]`)].some(inside);
 }
 
 /**
@@ -176,24 +187,28 @@ export function Field(props: FieldProps): JSX.Element {
         data-ouro={owner.data}
         className={cn(rootClass, className)}
       >
-        <FieldLabel className={hideLabel ? "sr-only" : undefined}>{label}</FieldLabel>
-        {hasDescription && <FieldDescription id={descriptionId}>{description}</FieldDescription>}
-        {/* The owner names this Field only: a plain Field inside (in an adornment's popover) is a Field. */}
-        <FieldOwnerContext.Provider value={fieldOwner}>{children}</FieldOwnerContext.Provider>
-        {invalid ? (
-          <FieldError id={errorId} match>
-            {messages.length > 1 ? (
-              <ul>
-                {messages.map((message) => (
-                  <li key={message}>{message}</li>
-                ))}
-              </ul>
+        {(owner.frame ?? defaultFrame)(
+          <FieldLabel className={hideLabel ? "sr-only" : undefined}>{label}</FieldLabel>,
+          <>
+            {hasDescription && <FieldDescription id={descriptionId}>{description}</FieldDescription>}
+            {/* The owner names this Field only: a plain Field inside (in an adornment's popover) is a Field. */}
+            <FieldOwnerContext.Provider value={fieldOwner}>{children}</FieldOwnerContext.Provider>
+            {invalid ? (
+              <FieldError id={errorId} match>
+                {messages.length > 1 ? (
+                  <ul>
+                    {messages.map((message) => (
+                      <li key={message}>{message}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  messages[0]
+                )}
+              </FieldError>
             ) : (
-              messages[0]
+              <FieldError id={errorId} />
             )}
-          </FieldError>
-        ) : (
-          <FieldError id={errorId} />
+          </>,
         )}
       </BaseField.Root>
     </FieldContext.Provider>
