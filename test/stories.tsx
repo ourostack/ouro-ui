@@ -39,15 +39,18 @@ for (const [path, module] of Object.entries(storyModules).sort(([a], [b]) => (pa
 /**
  * What the shared tests read from a story's `parameters`:
  *
- * - `plainOpeners`: the labels of buttons that open an overlay but are not Base UI triggers
- *   (a controlled story opens from a plain button). Base UI triggers are found by their
+ * - `plainOpeners`: the accessible names of buttons that open an overlay but are not Base UI
+ *   triggers (a controlled story opens from a plain button). Base UI triggers are found by their
  *   `aria-haspopup` attribute.
+ * - `openShortcut`: the keys that open an overlay no button opens, in `userEvent.keyboard`
+ *   syntax (`"{Meta>}k{/Meta}"` holds Meta while pressing K).
  * - `screenshot`: the story is a screenshot subject (test/screenshots.visual.test.tsx), under
  *   this baseline name, with its overlay open when `open` is set, or with its first control
  *   focused from the keyboard when `focus` is set (which shows a Tooltip or HoverCard).
  */
 export interface OuroStoryParameters {
   plainOpeners?: string[];
+  openShortcut?: string;
   screenshot?: { name: string; open?: boolean; focus?: boolean };
 }
 
@@ -105,16 +108,65 @@ export async function cleanupStories(): Promise<void> {
   setScheme("light");
 }
 
-/** The elements that open an overlay in a story: enabled Base UI triggers, then the plain openers. */
-export function overlayOpeners(id: string, host: HTMLElement): HTMLElement[] {
-  // A disabled trigger (a disabled Select in a states story) opens nothing.
-  const triggers = [...host.querySelectorAll<HTMLElement>("[aria-haspopup]")].filter((trigger) => !trigger.matches(":disabled, [data-disabled]"));
-  const plain = (story(id).parameters?.plainOpeners ?? []).map((label) => {
-    const button = [...host.querySelectorAll<HTMLElement>("button")].find((item) => item.textContent === label);
-    if (!button) throw new Error(`${id}: no button labeled "${label}"`);
-    return button;
+/** Whether an element is rendered and visible (not `display: none` or `visibility: hidden`). */
+export function isVisible(element: Element): boolean {
+  return element.checkVisibility({ visibilityProperty: true });
+}
+
+/** The text of the elements an `aria-labelledby` list names. */
+function labelledBy(element: Element): string {
+  const ids = element.getAttribute("aria-labelledby")?.split(/\s+/).filter(Boolean) ?? [];
+  return ids
+    .map((id) => element.ownerDocument.getElementById(id)?.textContent?.trim() ?? "")
+    .filter(Boolean)
+    .join(" ");
+}
+
+/** An element's accessible name, as far as these tests need it. */
+export function accessibleName(element: HTMLElement): string {
+  return (
+    labelledBy(element) ||
+    element.getAttribute("aria-label")?.trim() ||
+    (element as HTMLInputElement).labels?.[0]?.textContent?.trim() ||
+    element.getAttribute("placeholder")?.trim() ||
+    element.getAttribute("name") ||
+    element.textContent?.trim() ||
+    element.getAttribute("title") ||
+    ""
+  );
+}
+
+/** Something that opens an overlay: a trigger or plain button to click, or a shortcut to press. */
+export interface Opener {
+  /** The trigger's accessible name, or the shortcut's keys. */
+  name: string;
+  open: () => Promise<void>;
+}
+
+/**
+ * What opens an overlay in a story: the visible, enabled Base UI triggers (`aria-haspopup`) in
+ * the scope, then, at the top level, the plain openers by accessible name and the shortcut. A
+ * disabled trigger (a disabled Select in a states story) opens nothing, so it is left out.
+ * Throws when a plain opener is missing.
+ */
+export function overlayOpeners(
+  id: string,
+  scope: HTMLElement | ParentNode[],
+  parameters: OuroStoryParameters = story(id).parameters ?? {},
+  top = true,
+): Opener[] {
+  const roots = Array.isArray(scope) ? scope : [scope];
+  const triggers = [...new Set(roots.flatMap((root) => [...root.querySelectorAll<HTMLElement>('[aria-haspopup]:not([aria-haspopup="false"])')]))]
+    .filter((element) => !element.matches(':disabled, [aria-disabled="true"], [data-disabled]') && isVisible(element))
+    .map((element) => ({ name: accessibleName(element), open: () => userEvent.click(element) }));
+  if (!top) return triggers;
+  const plain = (parameters.plainOpeners ?? []).map((label) => {
+    const button = roots.flatMap((root) => [...root.querySelectorAll<HTMLElement>("button")]).find((item) => accessibleName(item) === label);
+    if (!button) throw new Error(`${id}: no button named "${label}" (parameters.plainOpeners)`);
+    return { name: label, open: () => userEvent.click(button) };
   });
-  return [...triggers, ...plain];
+  const shortcut = parameters.openShortcut;
+  return [...triggers, ...plain, ...(shortcut ? [{ name: shortcut, open: () => userEvent.keyboard(shortcut) }] : [])];
 }
 
 /** Resolves once every finite animation and transition in the document has finished. */
@@ -138,11 +190,11 @@ export function openPopup(): HTMLElement | null {
   return document.querySelector<HTMLElement>('[role="dialog"][data-open], [role="alertdialog"][data-open], [data-ouro="select-popup"][data-open]');
 }
 
-/** Clicks an opener and waits for its overlay to finish opening. */
-export async function openOverlay(opener: HTMLElement): Promise<HTMLElement> {
-  await userEvent.click(opener);
+/** Uses an opener and waits for its overlay to finish opening. */
+export async function openOverlay(opener: Opener): Promise<HTMLElement> {
+  await opener.open();
   await vi.waitFor(() => {
-    if (!openPopup()) throw new Error(`clicking "${opener.textContent}" opened no overlay`);
+    if (!openPopup()) throw new Error(`opening "${opener.name}" opened no overlay`);
   }, waitOptions);
   const popup = openPopup()!;
   await settle();

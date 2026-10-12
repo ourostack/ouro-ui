@@ -84,7 +84,7 @@ describe.each([
       for (const opener of overlayOpeners(id, host)) {
         await openOverlay(opener);
         const open = await scan();
-        if (open.length > 0) found.push(`with "${opener.textContent}" open:\n${describeViolations(open)}`);
+        if (open.length > 0) found.push(`with "${opener.name}" open:\n${describeViolations(open)}`);
         await closeOverlay();
       }
       expect(found.join("\n\n")).toBe("");
