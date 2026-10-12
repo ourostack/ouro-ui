@@ -212,6 +212,11 @@
           "target": "@lib/ouro/last-input.ts"
         },
         {
+          "path": "registry/ouro/lib/ouro/lazy-element.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/lazy-element.ts"
+        },
+        {
           "path": "registry/ouro/lib/ouro/open-mode.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/open-mode.ts"
@@ -1664,6 +1669,11 @@
           "path": "registry/ouro/lib/ouro/last-input.test.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/last-input.test.ts"
+        },
+        {
+          "path": "registry/ouro/lib/ouro/lazy-element.test.tsx",
+          "type": "registry:lib",
+          "target": "@lib/ouro/lazy-element.test.tsx"
         },
         {
           "path": "registry/ouro/lib/ouro/ouro-provider.test.tsx",

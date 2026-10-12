@@ -1,5 +1,5 @@
 import axe from "axe-core";
-import { useState, type ReactNode } from "react";
+import { useState, type ReactElement, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -203,6 +203,19 @@ describe("Command", () => {
       expect(result.violations.map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target).join(", ")}`)).toEqual([]);
     }
     document.documentElement.classList.remove("dark");
+  });
+});
+
+describe("Command with a trigger from a Server Component", () => {
+  it("opens from a trigger handed over as a lazy wrapper", async () => {
+    // What React's server-component client passes while the trigger's module is loading.
+    const wrapper = { $$typeof: Symbol.for("react.lazy"), _payload: null, _init: () => <Button>Search</Button> } as unknown as ReactElement;
+    await render(<Command title="Command palette" trigger={wrapper} items={entries()} />);
+    expect(trigger().textContent).toBe("Search");
+    expect(trigger().getAttribute("aria-haspopup")).toBe("dialog");
+    await userEvent.click(trigger());
+    await settled();
+    expect(trigger().getAttribute("aria-expanded")).toBe("true");
   });
 });
 

@@ -12,6 +12,7 @@ import {
   type Ref,
 } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
+import { unwrapLazyElement } from "@/registry/ouro/lib/ouro/lazy-element";
 import { checkOpenMode } from "@/registry/ouro/lib/ouro/open-mode";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
@@ -328,11 +329,13 @@ export function DialogFrame({
   // software keyboard); the cloned trigger records it here instead.
   const [lastPointer, setLastPointer] = useState<string>();
   const [tapOpened, setTapOpened] = useState(false);
-  const triggerProps = (trigger?.props ?? {}) as TriggerProps;
+  // A trigger from a Server Component can arrive wrapped; its props are read from the element itself.
+  const triggerElement = unwrapLazyElement(trigger as ReactElement<TriggerProps> | undefined);
+  const triggerProps = triggerElement?.props ?? ({} as TriggerProps);
   const mergedTriggerRef = useMergedRef(triggerProps.ref, triggerRef);
   const triggerNode =
-    trigger !== undefined &&
-    cloneElement(trigger as ReactElement<TriggerProps>, {
+    triggerElement !== undefined &&
+    cloneElement(triggerElement, {
       ref: mergedTriggerRef,
       onPointerDown: (event: PointerEvent<HTMLElement>) => {
         triggerProps.onPointerDown?.(event);
