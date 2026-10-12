@@ -168,19 +168,40 @@ describe("Switch", () => {
 });
 
 describe("Switch look and motion", () => {
-  it.each(["light", "dark"] as const)("gives the off track 3:1 contrast against the page in %s mode", async (scheme) => {
-    document.documentElement.classList.toggle("dark", scheme === "dark");
-    try {
-      const { track } = await render(<Switch label="Wi-Fi" />);
-      await settled(track);
-      const page = rgb(themeColor("--background"));
-      const style = getComputedStyle(track);
-      // The track has no border, so its fill is the boundary WCAG 1.4.11 asks to stand out.
-      expect(style.borderTopWidth).toBe("0px");
-      expect(contrast(rgb(style.backgroundColor, `rgb(${page.join(",")})`), page)).toBeGreaterThanOrEqual(3);
-    } finally {
-      document.documentElement.classList.remove("dark");
+  it("tells on from off without hue, with an off outline at 3:1 against the page, in light and dark", async () => {
+    const measured: Record<string, number[]> = {};
+    for (const scheme of ["light", "dark"] as const) {
+      document.documentElement.classList.toggle("dark", scheme === "dark");
+      try {
+        const { host } = await render(
+          <>
+            <Switch label="Off" />
+            <Switch label="On" defaultChecked />
+          </>,
+        );
+        const [off, on] = [...host.querySelectorAll<HTMLElement>('[role="switch"]')];
+        const [offThumb, onThumb] = [...host.querySelectorAll<HTMLElement>("[data-ouro-switch-thumb]")];
+        await Promise.all([settled(off!), settled(on!), settled(offThumb!), settled(onThumb!)]);
+        const page = rgb(themeColor("--background"));
+        const over = `rgb(${page.join(",")})`;
+        const offStyle = getComputedStyle(off!);
+        // Off is an outline: its border is the boundary WCAG 1.4.11 asks to stand out.
+        expect(Number.parseFloat(offStyle.borderTopWidth)).toBeGreaterThan(0);
+        expect(contrast(rgb(offStyle.borderTopColor, over), page)).toBeGreaterThanOrEqual(3);
+        // On is a solid fill that differs from the off fill by lightness, not only hue.
+        const offFill = rgb(offStyle.backgroundColor, over);
+        const onFill = rgb(getComputedStyle(on!).backgroundColor, over);
+        expect(contrast(onFill, offFill)).toBeGreaterThanOrEqual(3);
+        // And the thumbs differ too.
+        expect(rgb(getComputedStyle(offThumb!).backgroundColor, over)).not.toEqual(rgb(getComputedStyle(onThumb!).backgroundColor, over));
+        measured[scheme] = page;
+      } finally {
+        document.documentElement.classList.remove("dark");
+      }
+      await act(async () => roots.splice(0).forEach((root) => root.unmount()));
     }
+    // The dark run measured the dark theme, not the light one twice.
+    expect(measured.dark).not.toEqual(measured.light);
   });
 
   it("fills the track with the primary color and moves the thumb to the end when on", async () => {

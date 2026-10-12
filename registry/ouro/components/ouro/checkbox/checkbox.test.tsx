@@ -351,6 +351,11 @@ describe("Checkbox development messages", () => {
     ]);
   });
 
+  it("does not warn about indeterminate on a disabled box, which cannot be clicked", async () => {
+    await render(<Checkbox label="All herbs" indeterminate disabled />);
+    expect(messages()).toEqual([]);
+  });
+
   it("warns when checked has no onCheckedChange", async () => {
     await render(<Checkbox label="Basil" checked />);
     expect(messages()).toEqual([

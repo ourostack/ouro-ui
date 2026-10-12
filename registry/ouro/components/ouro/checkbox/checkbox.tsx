@@ -193,7 +193,8 @@ export function Checkbox(props: CheckboxProps): JSX.Element {
           checked !== undefined && !onCheckedChange && !readOnly && ["checked without onCheckedChange never changes", "<Checkbox checked={checked} onCheckedChange={setChecked}>, or defaultChecked"],
           indeterminate &&
             !onCheckedChange &&
-            !readOnly && [
+            !readOnly &&
+            !disabled && [
             "indeterminate without onCheckedChange stays mixed after a click while the box submits as checked",
             "<Checkbox indeterminate={some} checked={all} onCheckedChange={toggleAll}>",
           ],
