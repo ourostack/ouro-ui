@@ -5,6 +5,7 @@ import { commands, page } from "vitest/browser";
 import { NativeSelect } from "@/registry/ouro/components/ouro/select/native-select";
 import { Select } from "@/registry/ouro/components/ouro/select/select";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 
 // Runs in the `touch` project: Chromium as a 390x844 phone with a coarse pointer
 // (Review Focus 3: pickers are usable with one thumb).
@@ -12,7 +13,7 @@ import { act } from "@/registry/ouro/lib/ouro/testing/act";
 let root: Root | undefined;
 const nodes: Element[] = [];
 afterEach(async () => {
-  await page.viewport(390, 844);
+  await rotate(390, 844);
   await commands.emulateMedia({ reducedMotion: "no-preference" });
   await act(async () => root?.unmount());
   for (const node of nodes.splice(0)) node.remove();
@@ -119,7 +120,7 @@ it("slides the sheet with transform, and only fades it with reduced motion", asy
 });
 
 it("keeps 44px controls and 16px text on a landscape phone, where the list opens by the trigger", async () => {
-  await page.viewport(844, 390);
+  await rotate(844, 390);
   const host = await render(
     <>
       <Select label="Ingredient" options={ingredients.slice(0, 5)} />

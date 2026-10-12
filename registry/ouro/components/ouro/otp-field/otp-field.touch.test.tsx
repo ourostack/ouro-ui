@@ -1,16 +1,17 @@
 import type { ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, expect, it } from "vitest";
-import { commands, page } from "vitest/browser";
+import { commands } from "vitest/browser";
 import { OtpField } from "@/registry/ouro/components/ouro/otp-field/otp-field";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 
 // Runs in the `touch` project: Chromium as a 390x844 phone with a coarse pointer.
 
 let root: Root | undefined;
 const nodes: Element[] = [];
 afterEach(async () => {
-  await page.viewport(390, 844);
+  await rotate(390, 844);
   await act(async () => root?.unmount());
   for (const node of nodes.splice(0)) node.remove();
 });
@@ -37,7 +38,7 @@ it("fits six 44px slots with 16px text on a 390px phone", async () => {
 });
 
 it("keeps 44px slots and 16px text on a landscape phone, past the sm breakpoint", async () => {
-  await page.viewport(844, 390);
+  await rotate(844, 390);
   const host = await render(<OtpField label="Code" />);
   const slot = host.querySelector<HTMLInputElement>("input[data-ouro-otp-slot]")!;
   expect(slot.getBoundingClientRect().height).toBe(44);
