@@ -438,9 +438,13 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
                   <EllipsisIcon />
                 </Button>
               }
+              // Opening the menu closes a side the row had open: the menu is now the way to the actions.
+              onOpenChange={(menuOpen) => {
+                if (menuOpen) settle(null);
+              }}
               items={all.map((action) => ({
                 label: action.label,
-                onClick: () => run(action),
+                onClick: action.onClick,
                 tone: toneOf(action) === "destructive" ? ("destructive" as const) : undefined,
               }))}
             />

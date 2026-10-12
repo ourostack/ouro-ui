@@ -1,0 +1,40 @@
+import { expect, test } from "@playwright/test";
+import { openStory } from "./story";
+
+test("reorders with the keyboard: Space picks a row up, the arrows move it, Space drops it, Escape puts it back", async ({ page }) => {
+  await openStory(page, "lists-reorderable--in-context");
+  const handles = page.locator("[data-ouro-reorderable-handle]");
+  const saved = page.getByTestId("saved-order");
+  await expect(saved).toHaveText("Saved order: sear, soften, wine, braise");
+  const sear = page.getByRole("button", { name: "Reorder Sear the ribs" });
+  await sear.focus();
+  await page.keyboard.press("Space");
+  await expect(sear).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowDown");
+  await expect(sear).toBeFocused();
+  await expect(page.locator("[data-ouro-announcer]")).toHaveText("Sear the ribs moved. Position 3 of 4.");
+  await page.keyboard.press("Space");
+  await expect(sear).toHaveAttribute("aria-pressed", "false");
+  await expect(saved).toHaveText("Saved order: soften, wine, sear, braise");
+  await expect(handles.nth(2)).toHaveAttribute("aria-label", "Reorder Sear the ribs");
+
+  await page.keyboard.press("Space");
+  await page.keyboard.press("ArrowUp");
+  await page.keyboard.press("Escape");
+  await expect(handles.nth(2)).toHaveAttribute("aria-label", "Reorder Sear the ribs");
+  await expect(saved).toHaveText("Saved order: soften, wine, sear, braise");
+});
+
+test("reorders with a drag on the handle", async ({ page }) => {
+  await openStory(page, "lists-reorderable--in-context");
+  const handles = page.locator("[data-ouro-reorderable-handle]");
+  const from = (await page.getByRole("button", { name: "Reorder Braise" }).boundingBox())!;
+  const to = (await handles.first().boundingBox())!;
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2 - 4, { steps: 8 });
+  await page.mouse.up();
+  await expect(handles.first()).toHaveAttribute("aria-label", "Reorder Braise");
+  await expect(page.getByTestId("saved-order")).toHaveText("Saved order: braise, sear, soften, wine");
+});

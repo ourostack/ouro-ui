@@ -130,8 +130,12 @@ describe("SwipeActions", () => {
   it("gives every action to the keyboard through the actions menu, leading first", async () => {
     const spies = calls();
     const element = await render(row(spies));
+    // A side left open by a swipe closes when the menu opens.
+    await swipe(element, -120);
+    expect(element.getAttribute("data-open")).toBe("trailing");
     menuButton(element).focus();
     await userEvent.keyboard("{Enter}");
+    await expect.poll(() => element.hasAttribute("data-open")).toBe(false);
     await expect.element(page.getByRole("menu")).toBeVisible();
     const items = [...document.querySelectorAll('[role="menuitem"]')].map((item) => item.textContent);
     expect(items.slice(0, 3)).toEqual(["Pin", "Delete", "Archive"]);

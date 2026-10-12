@@ -1517,6 +1517,54 @@
       ]
     },
     {
+      "name": "swipe-actions",
+      "type": "registry:ui",
+      "title": "SwipeActions",
+      "description": "A list row with actions beside it that a horizontal swipe reveals: swipe toward the start for the `trailing` actions (Delete, Archive), toward the end for the `leading` ones (Pin).",
+      "docs": "A list row with actions beside it that a horizontal swipe reveals: swipe toward the start for the `trailing` actions (Delete, Archive), toward the end for the `leading` ones (Pin). Import: import { SwipeActions } from \"@/components/ouro/swipe-actions/swipe-actions\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, kbd, menu, ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/swipe-actions.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/menu",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/swipe-actions/swipe-actions-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/swipe-actions/swipe-actions-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/swipe-actions/swipe-actions.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/swipe-actions/swipe-actions.tsx"
+        }
+      ]
+    },
+    {
+      "name": "reorderable",
+      "type": "registry:ui",
+      "title": "Reorderable",
+      "description": "A list the user puts in order: recipe steps, a queue, favorites.",
+      "docs": "A list the user puts in order: recipe steps, a queue, favorites. Import: import { Reorderable } from \"@/components/ouro/reorderable/reorderable\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/reorderable.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/reorderable/reorderable-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/reorderable/reorderable-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/reorderable/reorderable.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/reorderable/reorderable.tsx"
+        }
+      ]
+    },
+    {
       "name": "carousel",
       "type": "registry:ui",
       "title": "Carousel",
@@ -3804,6 +3852,99 @@
       ]
     },
     {
+      "name": "swipe-actions-tests",
+      "type": "registry:item",
+      "title": "SwipeActions tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for swipe-actions, with the test tooling as devDependencies. Add it beside swipe-actions: add swipe-actions swipe-actions-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "swipe-actions's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/swipe-actions.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/item",
+        "ourostack/ouro-ui/item-group",
+        "ourostack/ouro-ui/ouro-lib",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/swipe-actions",
+        "ourostack/ouro-ui/toaster"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/swipe-actions/swipe-actions.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/swipe-actions/swipe-actions.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/swipe-actions/swipe-actions.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/swipe-actions/swipe-actions.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/swipe-actions/swipe-actions.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/swipe-actions/swipe-actions.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/swipe-actions/swipe-actions.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/swipe-actions/swipe-actions.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/swipe-actions.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/swipe-actions.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "reorderable-tests",
+      "type": "registry:item",
+      "title": "Reorderable tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for reorderable, with the test tooling as devDependencies. Add it beside reorderable: add reorderable reorderable-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "reorderable's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/reorderable.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/item",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/reorderable"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/reorderable/reorderable.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/reorderable/reorderable.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/reorderable/reorderable.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/reorderable/reorderable.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/reorderable/reorderable.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/reorderable/reorderable.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/reorderable/reorderable.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/reorderable/reorderable.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/reorderable.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/reorderable.spec.ts"
+        }
+      ]
+    },
+    {
       "name": "carousel-tests",
       "type": "registry:item",
       "title": "Carousel tests",
@@ -3931,6 +4072,7 @@
         "ourostack/ouro-ui/ouro-lib-tests",
         "ourostack/ouro-ui/popover-tests",
         "ourostack/ouro-ui/progress-tests",
+        "ourostack/ouro-ui/reorderable-tests",
         "ourostack/ouro-ui/resizable-tests",
         "ourostack/ouro-ui/row-tests",
         "ourostack/ouro-ui/scroll-area-tests",
@@ -3942,6 +4084,7 @@
         "ourostack/ouro-ui/skeleton-tests",
         "ourostack/ouro-ui/spinner-tests",
         "ourostack/ouro-ui/stack-tests",
+        "ourostack/ouro-ui/swipe-actions-tests",
         "ourostack/ouro-ui/table-tests",
         "ourostack/ouro-ui/tabs-tests",
         "ourostack/ouro-ui/text-area-tests",

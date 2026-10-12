@@ -245,7 +245,9 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **Collapsible** — One section that opens and closes under its title, such as nutrition facts under a recipe. [Docs](docs/Collapsible.md)
 - **Item** — One row of a list: leading media, a title with a description, and trailing actions. [Docs](docs/Item.md)
 - **ItemGroup** — A list of `Item` rows, with an optional label that names it, lines between the rows, and what to show when it is empty. [Docs](docs/ItemGroup.md)
+- **Reorderable** — A list the user puts in order: recipe steps, a queue, favorites. [Docs](docs/Reorderable.md)
 - **ShowMore** — "Show more" for a long list or a long text. [Docs](docs/ShowMore.md)
+- **SwipeActions** — A list row with actions beside it that a horizontal swipe reveals: swipe toward the start for the `trailing` actions (Delete, Archive), toward the end for the `leading` ones (Pin). [Docs](docs/SwipeActions.md)
 
 ### Layout
 

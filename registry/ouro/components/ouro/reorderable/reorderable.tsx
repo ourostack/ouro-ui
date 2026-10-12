@@ -224,7 +224,7 @@ export function Reorderable(props: ReorderableProps): JSX.Element {
 
   // After a drag, nothing stays displaced: the rows are in their new places in the list itself.
   useLayoutEffect(() => {
-    if (dragging === null) for (const row of listRef.current!.children) (row as HTMLElement).style.transform = "";
+    if (dragging === null) listRef.current!.querySelectorAll<HTMLElement>(":scope > li").forEach((row) => row.style.removeProperty("transform"));
   }, [dragging, state]);
 
   // A list unmounted mid-drag stops listening.
