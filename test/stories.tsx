@@ -176,7 +176,14 @@ export async function settle(): Promise<void> {
     const running = document
       .getAnimations()
       .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity && animation.playState === "running");
-    if (running.length === 0) return;
+    if (running.length === 0) {
+      // Chart's marks animate with JavaScript (recharts), which getAnimations() cannot see; the plot marks it.
+      if (!document.querySelector("[data-ouro-chart-animating]")) return;
+      await vi.waitFor(() => {
+        if (document.querySelector("[data-ouro-chart-animating]")) throw new Error("a chart is still animating");
+      }, waitOptions);
+      continue;
+    }
     await Promise.all(running.map((animation) => animation.finished.catch(() => undefined)));
   }
   throw new Error("animations did not settle");

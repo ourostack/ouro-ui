@@ -165,6 +165,8 @@ export function testNames(path, text) {
       const factory = ts.isPropertyAccessExpression(node.expression) && /^(skipIf|runIf|each|for|extend)$/.test(node.expression.name.text);
       if (root && !factory && (suiteCalls.has(root) || aliases.has(root))) {
         const callee = node.expression.getText(source);
+        // Playwright's `test.skip(condition, reason)` (and fixme, fail, slow) marks the enclosing tests; only a string title makes a test.
+        if (/\.(skip|fixme|fail|slow)$/.test(callee) && !ts.isStringLiteralLike(node.arguments[0]) && !ts.isTemplateExpression(node.arguments[0])) return;
         const isSuite = /(^|\.)(describe|suite)\b/.test(callee);
         const named = [...scope, title(node.arguments[0])];
         if (isSuite) {

@@ -110,6 +110,18 @@
     "source": "registry/ouro/components/ouro/color-field/color-field.tsx"
   },
   {
+    "name": "calendar",
+    "title": "Calendar",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/calendar/calendar.tsx"
+  },
+  {
+    "name": "date-picker",
+    "title": "DatePicker",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/calendar/date-picker.tsx"
+  },
+  {
     "name": "sheet",
     "title": "Sheet",
     "group": "Overlays",
@@ -308,5 +320,29 @@
     "group": "Data",
     "source": "registry/ouro/components/ouro/table/table.tsx",
     "parts": "Table"
+  },
+  {
+    "name": "chart",
+    "title": "Chart",
+    "group": "Data",
+    "source": "registry/ouro/components/ouro/chart/chart.tsx"
+  },
+  {
+    "name": "message",
+    "title": "Message",
+    "group": "Chat",
+    "source": "registry/ouro/components/ouro/message/message.tsx"
+  },
+  {
+    "name": "message-list",
+    "title": "MessageList",
+    "group": "Chat",
+    "source": "registry/ouro/components/ouro/message/message-list.tsx"
+  },
+  {
+    "name": "attachment",
+    "title": "Attachment",
+    "group": "Chat",
+    "source": "registry/ouro/components/ouro/message/attachment.tsx"
   }
 ]
