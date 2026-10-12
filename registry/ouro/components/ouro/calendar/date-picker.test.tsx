@@ -144,7 +144,6 @@ describe("DatePicker", () => {
       expect(onValueChange).toHaveBeenCalledWith("2026-10-12");
       await expect.poll(() => popup()).toBeNull();
       expect(input.value).toBe("10/12/2026");
-      // Safari does not focus a button on click: finalFocus names it.
       expect(document.activeElement).toBe(trigger());
     });
 
@@ -154,6 +153,16 @@ describe("DatePicker", () => {
       await userEvent.click(day("2026-10-20"));
       await expect.poll(() => popup()).toBeNull();
       expect(input.value).toBe("10/20/2026");
+      expect(document.activeElement).toBe(trigger());
+    });
+
+    it("returns focus to the button when the button never had focus, as after a click in Safari", async () => {
+      const { input } = await render(<DatePicker label="Delivery date" defaultValue="2026-10-11" />);
+      await act(async () => input.focus());
+      await act(async () => trigger().click());
+      await settled();
+      await userEvent.click(day("2026-10-20"));
+      await expect.poll(() => popup()).toBeNull();
       expect(document.activeElement).toBe(trigger());
     });
 
@@ -236,6 +245,51 @@ describe("DatePicker", () => {
       expect(input.validity.valid).toBe(true);
       await userEvent.clear(input);
       expect(input.validity.valid).toBe(true);
+    });
+
+    it("never reports a typed date outside min and max, and shows the out-of-range message", async () => {
+      const onValueChange = vi.fn();
+      const { host, input } = await render(
+        <form>
+          <DatePicker label="Date" name="date" min="2026-10-05" max="2026-10-31" isDateDisabled={(date) => date === "2026-10-13"} onValueChange={onValueChange} />
+        </form>,
+      );
+      const form = host.querySelector("form")!;
+      await userEvent.type(input, "10/01/2026");
+      expect(input.validationMessage).toBe("Enter a date in the allowed range.");
+      expect(onValueChange.mock.calls.flat()).not.toContain("2026-10-01");
+      expect(submitted(form)).toEqual({ date: "" });
+      await userEvent.tab();
+      expect(input.value).toBe("10/01/2026");
+      await userEvent.clear(input);
+      await userEvent.type(input, "11/02/2026");
+      expect(input.validationMessage).toBe("Enter a date in the allowed range.");
+      await userEvent.clear(input);
+      await userEvent.type(input, "10/13/2026");
+      expect(input.validationMessage).toBe("Enter a valid date.");
+      expect(onValueChange.mock.calls.flat()).toEqual([]);
+      await userEvent.clear(input);
+      await userEvent.type(input, "10/14/2026");
+      expect(onValueChange).toHaveBeenLastCalledWith("2026-10-14");
+    });
+
+    it("translates the out-of-range message", async () => {
+      const { input } = await render(<DatePicker label="Datum" min="2026-10-05" outOfRangeMessage="Datum außerhalb des Bereichs." />);
+      await userEvent.type(input, "10/01/2026");
+      expect(input.validationMessage).toBe("Datum außerhalb des Bereichs.");
+    });
+
+    it("reads a two-digit year as the year within 50 years of today", async () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date(2026, 9, 12, 12));
+      expect(parseDateInput("03/04/85", "en-US")).toBe("1985-03-04");
+      expect(parseDateInput("03/04/76", "en-US")).toBe("1976-03-04");
+      expect(parseDateInput("03/04/75", "en-US")).toBe("2075-03-04");
+      expect(parseDateInput("03/04/30", "en-US")).toBe("2030-03-04");
+      vi.setSystemTime(new Date(2090, 0, 1, 12));
+      expect(parseDateInput("03/04/85", "en-US")).toBe("2085-03-04");
+      expect(parseDateInput("03/04/30", "en-US")).toBe("2130-03-04");
+      vi.useRealTimers();
     });
 
     it("leaves a half-typed date alone on blur", async () => {
@@ -350,6 +404,14 @@ describe("DatePicker", () => {
         input.dispatchEvent(new Event("input", { bubbles: true }));
       });
       expect(onValueChange).toHaveBeenCalledWith("2026-10-12");
+    });
+
+    it("links the description and error to the native input", async () => {
+      stubTouch();
+      const { host, input } = await render(<DatePicker label="Date" description="Weekdays only." error="Pick a date." />);
+      expect(input.type).toBe("date");
+      expect(describedBy(input).map((id) => host.querySelector(`#${CSS.escape(id)}`)!.textContent)).toEqual(["Weekdays only.", "Pick a date."]);
+      expect(input.getAttribute("aria-invalid")).toBe("true");
     });
 
     it("marks a day isDateDisabled names invalid", async () => {

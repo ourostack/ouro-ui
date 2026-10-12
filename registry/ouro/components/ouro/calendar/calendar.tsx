@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState, type JSX, type KeyboardEvent, type ReactNode, type Ref } from "react";
+import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type JSX, type KeyboardEvent, type ReactNode, type Ref } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
@@ -91,14 +91,21 @@ export type CalendarValue<Range extends boolean> = Range extends true ? DateRang
 
 /**
  * Props for {@link Calendar}. `range` sets the mode: without it the value is one ISO date,
- * with it a `{ start, end }` range.
+ * with it a `{ start, end }` range. A wrapper component should take `CalendarProps<false>` or
+ * `CalendarProps<true>`; `ComponentProps<typeof Calendar>` loses the link between `range` and `value`.
  */
 export type CalendarProps<Range extends boolean = false> = CalendarBaseProps & {
-  /** Picks a range: the first press sets the start, the second the end. Without it the calendar picks one day. */
+  /**
+   * Picks a range: the first press sets the start, the second the end, and Escape drops a
+   * start. A range never spans an unavailable day: the preview and the end stop at the last
+   * available day before it, so a stay cannot include a booked night. Without `range` the
+   * calendar picks one day.
+   */
   range?: Range | undefined;
   /**
-   * The picked day as an ISO date (`"2026-10-11"`, `""` for none), or with `range` the picked
-   * `{ start, end }` (`null` for none). Pass it with `onValueChange` to control the calendar.
+   * The picked day as an ISO date (`"2026-10-11"`, `""` for none). With `range` it is the
+   * picked `{ start, end }` instead (`null` for none), and passing `{ start, end }` without
+   * `range` is a type error. Pass it with `onValueChange` to control the calendar.
    */
   value?: (Range extends true ? DateRange | null : string) | undefined;
   /** What is picked at first, when you do not control `value`: an ISO date, or with `range` a `{ start, end }`. */
@@ -106,6 +113,11 @@ export type CalendarProps<Range extends boolean = false> = CalendarBaseProps & {
   /** Called when the user picks: with the ISO date, or with `range` the `{ start, end }` in order once both ends are picked. */
   onValueChange?: ((value: CalendarValue<Range>) => void) | undefined;
 };
+
+/** Today never changes while a page is open in a way the calendar must follow at once, so there is nothing to subscribe to. */
+const noSubscription = () => () => {};
+/** The server does not know the user's zone, so it knows no today. */
+const serverToday = (): string | null => null;
 
 /** Arrow keys move by these many days, in a left-to-right layout. */
 const steps: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
@@ -241,15 +253,22 @@ export function Calendar<Range extends boolean = false>(props: CalendarProps<Ran
   const clamp = (iso: string) => (low && iso < low ? low : high && iso > high ? high : iso);
   const unavailable = (iso: string) => (low !== undefined && iso < low) || (high !== undefined && iso > high) || Boolean(isDateDisabled?.(iso));
 
-  const [today] = useState(todayIso);
-  // The day with the Tab stop; the month on show is its month.
-  const [focused, setFocused] = useState(() => clamp(isIsoDate(defaultMonth) ? monthStart(defaultMonth) : (picked?.start ?? today)));
+  // Today in the browser's zone. The server and hydration see `null`, so the server HTML marks
+  // no day as today and hydration matches wherever the server runs; the browser then fills it in.
+  const today = useSyncExternalStore(noSubscription, todayIso, serverToday);
+  // The day with the Tab stop; the month on show is its month. Without a value or
+  // `defaultMonth` it is today, so the server renders an empty month until hydration.
+  const [chosen, setFocused] = useState<string | null>(() => {
+    const start = isIsoDate(defaultMonth) ? monthStart(defaultMonth) : picked?.start;
+    return start === undefined ? null : clamp(start);
+  });
+  const focused = chosen ?? (today === null ? null : clamp(today));
   // A new value from the app shows its month.
   const pickedStart = picked?.start;
   const [shownStart, setShownStart] = useState(pickedStart);
   if (pickedStart !== shownStart) {
     setShownStart(pickedStart);
-    if (pickedStart !== undefined && monthStart(pickedStart) !== monthStart(focused)) setFocused(pickedStart);
+    if (pickedStart !== undefined && (focused === null || monthStart(pickedStart) !== monthStart(focused))) setFocused(pickedStart);
   }
 
   // A range's first press waits here for the second; the day under the pointer or focus previews the end.
@@ -271,13 +290,12 @@ export function Calendar<Range extends boolean = false>(props: CalendarProps<Ran
   );
   const utc = (iso: string) => new Date(`${iso}T00:00:00Z`);
 
-  const month = monthStart(focused);
-  const weeks = monthGrid(month, firstDay);
+  const month = focused === null ? null : monthStart(focused);
+  const weeks = month === null ? [] : monthGrid(month, firstDay);
   // 2023-01-01 was a Sunday: the header's days, from the first day of the week.
   const weekdays = Array.from({ length: 7 }, (_, index) => utc(addDays("2023-01-01", (firstDay + index) % 7)));
-  const nextMonth = addMonths(month, 1);
-  const canGoBack = !low || addDays(month, -1) >= low;
-  const canGoForward = !high || nextMonth <= high;
+  const canGoBack = month !== null && (!low || addDays(month, -1) >= low);
+  const canGoForward = month !== null && (!high || addMonths(month, 1) <= high);
 
   const id = useId();
   const titleId = `${id}-title`;
@@ -293,10 +311,20 @@ export function Calendar<Range extends boolean = false>(props: CalendarProps<Ran
   // The month buttons move the Tab stop a month. A button the move disables would drop
   // focus to the page, so focus goes to the day instead.
   const turn = (count: number) => {
-    const next = clamp(addMonths(focused, count));
+    const next = clamp(addMonths(focused!, count));
     const shownMonth = monthStart(next);
     if (count < 0 ? low && addDays(shownMonth, -1) < low : high && addMonths(shownMonth, 1) > high) moveFocus.current = true;
     setFocused(next);
+  };
+
+  // A range never spans an unavailable day: from its start, it reaches toward `to` only up
+  // to the day before the first unavailable one.
+  const reach = (from: string, to: string) => {
+    const step = to >= from ? 1 : -1;
+    for (let day = from; day !== to; day = addDays(day, step)) {
+      if (unavailable(addDays(day, step))) return day;
+    }
+    return to;
   };
 
   const pick = (iso: string) => {
@@ -312,7 +340,7 @@ export function Calendar<Range extends boolean = false>(props: CalendarProps<Ran
       setPreview(iso);
       return;
     }
-    const next = ordered(anchor, iso);
+    const next = ordered(anchor, reach(anchor, iso));
     setAnchor(null);
     setPreview(null);
     if (!controlled) setOwn(next);
@@ -320,6 +348,13 @@ export function Calendar<Range extends boolean = false>(props: CalendarProps<Ran
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLTableElement>) => {
+    if (event.key === "Escape" && anchor !== null) {
+      // Escape drops a range's pending start; with none, it is left to an enclosing popover.
+      event.preventDefault();
+      setAnchor(null);
+      setPreview(null);
+      return;
+    }
     const day = (event.target as HTMLElement).dataset.ouroDay!;
     const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
     let next: string | undefined;
@@ -335,7 +370,7 @@ export function Calendar<Range extends boolean = false>(props: CalendarProps<Ran
     if (next === undefined) return;
     event.preventDefault();
     const target = clamp(next);
-    if (anchor !== null) setPreview(target);
+    if (anchor !== null) setPreview(reach(anchor, target));
     moveFocus.current = true;
     setFocused(target);
   };
@@ -357,7 +392,7 @@ export function Calendar<Range extends boolean = false>(props: CalendarProps<Ran
           </Chevron>
         </Button>
         <h2 id={titleId} aria-live="polite" className="m-0 text-sm leading-5 font-medium text-foreground">
-          {formats.title.format(utc(month))}
+          {month === null ? null : formats.title.format(utc(month))}
         </h2>
         <Button
           variant="plain"
@@ -412,8 +447,8 @@ export function Calendar<Range extends boolean = false>(props: CalendarProps<Ran
                       {...(inside ? { "data-in-range": "" } : {})}
                       className={dayClass}
                       onClick={() => pick(day)}
-                      onPointerEnter={() => anchor !== null && setPreview(day)}
-                      onFocus={() => anchor !== null && setPreview(day)}
+                      onPointerEnter={() => anchor !== null && setPreview(reach(anchor, day))}
+                      onFocus={() => anchor !== null && setPreview(reach(anchor, day))}
                     >
                       {formats.day.format(utc(day))}
                     </button>

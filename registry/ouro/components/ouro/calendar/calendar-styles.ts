@@ -105,11 +105,14 @@ function todayIso(): string {
 }
 
 // Where Intl.Locale has no week information (Firefox), the regions whose week starts on
-// Sunday or Saturday, from CLDR's weekData; every other region starts on Monday.
+// Sunday, Saturday or Friday, from CLDR's weekData; every other region starts on Monday.
 const sundayRegions = new Set(
   "AG AS BD BR BS BT BW BZ CA CN CO DM DO ET GT GU HK HN ID IL IN JM JP KE KH KR LA MH MM MO MT MX MZ NI NP PA PE PH PK PR PT PY SA SG SV TH TT TW UM US VE VI WS YE ZA ZW".split(" "),
 );
 const saturdayRegions = new Set("AE AF BH DJ DZ EG IQ IR JO KW LY OM QA SD SY".split(" "));
+const fridayRegions = new Set(["MV"]);
+/** The `-u-fw-` day keys, in `Date.getUTCDay()` order. */
+const weekdayKeys = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
 /** What Intl.Locale says about weeks, in browsers that have it. */
 type WeekLocale = Intl.Locale & { getWeekInfo?: () => { firstDay: number }; weekInfo?: { firstDay: number } };
@@ -124,9 +127,12 @@ function firstDayOfWeek(locale: string): number {
   const intl = new Intl.Locale(locale) as WeekLocale;
   const info = intl.getWeekInfo?.() ?? intl.weekInfo;
   if (info) return info.firstDay % 7;
+  // A `-u-fw-` extension names the day outright; without week information, read it here.
+  const named = /-u(?:-[a-z0-9]{2,8})*?-fw-(sun|mon|tue|wed|thu|fri|sat)\b/i.exec(locale);
+  if (named) return weekdayKeys.indexOf(named[1]!.toLowerCase());
   // Likely-subtags always add a region ("und" maximizes to en-Latn-US).
   const region = intl.maximize().region!;
-  return sundayRegions.has(region) ? 0 : saturdayRegions.has(region) ? 6 : 1;
+  return sundayRegions.has(region) ? 0 : saturdayRegions.has(region) ? 6 : fridayRegions.has(region) ? 5 : 1;
 }
 
 /**

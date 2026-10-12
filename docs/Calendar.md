@@ -37,9 +37,9 @@ Type: `CalendarProps<Range>`.
 | `nextMonthLabel` | `string` | `"Next month"` | The next month button's label. Translate it with your app. |
 | `onValueChange` | `((value: CalendarValue<Range>) => void)` |  | Called when the user picks: with the ISO date, or with `range` the `{ start, end }` in order once both ends are picked. |
 | `previousMonthLabel` | `string` | `"Previous month"` | The previous month button's label. Translate it with your app. |
-| `range` | `Range` |  | Picks a range: the first press sets the start, the second the end. Without it the calendar picks one day. |
+| `range` | `Range` |  | Picks a range: the first press sets the start, the second the end, and Escape drops a start. A range never spans an unavailable day: the preview and the end stop at the last available day before it, so a stay cannot include a booked night. Without `range` the calendar picks one day. |
 | `ref` | `Ref<HTMLDivElement>` |  | The calendar's root element. |
-| `value` | `(Range extends true ? DateRange \| null : string)` |  | The picked day as an ISO date (`"2026-10-11"`, `""` for none), or with `range` the picked `{ start, end }` (`null` for none). Pass it with `onValueChange` to control the calendar. |
+| `value` | `(Range extends true ? DateRange \| null : string)` |  | The picked day as an ISO date (`"2026-10-11"`, `""` for none). With `range` it is the picked `{ start, end }` instead (`null` for none), and passing `{ start, end }` without `range` is a type error. Pass it with `onValueChange` to control the calendar. |
 
 ## Don't use
 

@@ -2,7 +2,7 @@
 
 # DatePicker
 
-A labeled date field. With a mouse or trackpad it is a text box you can type the date into (in the locale's numbers, or ISO) with a button that opens a `Calendar` in a popover; on a touch screen it is the phone's own date picker (`<input type="date">`). Either way the value is an ISO date (`"2026-10-11"`) and the form submits it under `name`, as a native date input does.
+A labeled date field. With a mouse or trackpad it is a text box you can type the date into (in the locale's numbers, or ISO; a two-digit year is the one within 50 years of today) with a button that opens a `Calendar` in a popover; on a touch screen it is the phone's own date picker (`<input type="date">`). Either way the value is an ISO date (`"2026-10-11"`) and the form submits it under `name`, as a native date input does.
 
 ```tsx
 import { DatePicker } from "@/registry/ouro/components/ouro/calendar/date-picker";
@@ -33,7 +33,7 @@ Type: `DatePickerProps`.
 | `disabled` | `boolean` |  | Disables the field and its calendar button, and fades it. |
 | `error` | `string \| string[]` |  | What is wrong, from your server action or client check. The message (or several, as a list) shows under the field, which gets `aria-invalid`. An empty string or array means valid. |
 | `hideLabel` | `boolean` |  | Hides the label visually; screen readers still read it as the field's name. |
-| `invalidDateMessage` | `string` | `"Enter a valid date."` | The browser's message for a typed date that is not a date, or is not allowed. Translate it with your app. |
+| `invalidDateMessage` | `string` | `"Enter a valid date."` | The browser's message for typed text that is not a date, or a date `isDateDisabled` names. Translate it with your app. |
 | `isDateDisabled` | `((date: string) => boolean)` |  | Marks single days unavailable: `isDateDisabled={(date) => booked.has(date)}`. It gets each day as an ISO date. Such a day, typed or picked in the phone's own picker, is invalid. |
 | `label` (required) | `string` |  | What the date is for, shown above the field and read as its name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. |
 | `locale` | `string` | `"en-US"` | The BCP 47 locale for the calendar and the typed format: `"en-GB"` reads 11/10/2026 as 11 October and starts weeks on Monday. Pass your app's locale; the default is the same on the server and in the browser. Phones show their own picker in the phone's language. |
@@ -41,7 +41,8 @@ Type: `DatePickerProps`.
 | `min` | `string` |  | The earliest date allowed, as an ISO date. Earlier days are unavailable in the calendar, and a typed one is invalid. |
 | `name` | `string` |  | The form field name. The form submits the ISO date (`2026-10-11`) under it, or an empty string. |
 | `nextMonthLabel` | `string` | `"Next month"` | The calendar's next month button's label. Translate it with your app. |
-| `onValueChange` | `((value: string) => void)` |  | Called with the ISO date when the user picks or types a date, and with `""` when the field no longer holds one. |
+| `onValueChange` | `((value: string) => void)` |  | Called with the ISO date when the user picks or types an allowed date, and with `""` when the field no longer holds one. A typed date before `min`, after `max` or named by `isDateDisabled` is not a value: it reports `""`, and the field shows why and blocks the submit. |
+| `outOfRangeMessage` | `string` | `"Enter a date in the allowed range."` | The browser's message for a typed date before `min` or after `max`. Translate it with your app. |
 | `placeholder` | `string` |  | An example of what to type, shown while the field is empty: `"MM/DD/YYYY"`. It is not a label. |
 | `previousMonthLabel` | `string` | `"Previous month"` | The calendar's previous month button's label. Translate it with your app. |
 | `readOnly` | `boolean` |  | The field shows its date but cannot be changed; its calendar button is disabled. |

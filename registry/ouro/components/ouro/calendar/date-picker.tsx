@@ -49,7 +49,11 @@ export interface DatePickerProps {
   value?: string | undefined;
   /** The date at first, as an ISO date, when you do not control `value`. */
   defaultValue?: string | undefined;
-  /** Called with the ISO date when the user picks or types a date, and with `""` when the field no longer holds one. */
+  /**
+   * Called with the ISO date when the user picks or types an allowed date, and with `""` when
+   * the field no longer holds one. A typed date before `min`, after `max` or named by
+   * `isDateDisabled` is not a value: it reports `""`, and the field shows why and blocks the submit.
+   */
   onValueChange?: ((value: string) => void) | undefined;
   /** The earliest date allowed, as an ISO date. Earlier days are unavailable in the calendar, and a typed one is invalid. */
   min?: string | undefined;
@@ -93,10 +97,15 @@ export interface DatePickerProps {
    */
   closeLabel?: string | undefined;
   /**
-   * The browser's message for a typed date that is not a date, or is not allowed. Translate it with your app.
+   * The browser's message for typed text that is not a date, or a date `isDateDisabled` names. Translate it with your app.
    * @default "Enter a valid date."
    */
   invalidDateMessage?: string | undefined;
+  /**
+   * The browser's message for a typed date before `min` or after `max`. Translate it with your app.
+   * @default "Enter a date in the allowed range."
+   */
+  outOfRangeMessage?: string | undefined;
   /**
    * Layout only: margins, width, grid placement (`mt-4`, `col-span-2`). Appearance classes
    * warn in development; style fields in your theme.
@@ -134,13 +143,9 @@ export interface DatePickerProps {
 /** Field's messages and root name DatePicker. */
 const owner = { name: "DatePicker", data: "date-picker" };
 
-/** Whether an `error` prop holds a message. */
-const hasMessage = (error: string | string[] | undefined): boolean =>
-  (Array.isArray(error) ? error : [error]).some((message) => message !== undefined && message !== "");
-
 /**
  * A labeled date field. With a mouse or trackpad it is a text box you can type the date into
- * (in the locale's numbers, or ISO) with a button that opens a `Calendar` in a popover; on a
+ * (in the locale's numbers, or ISO; a two-digit year is the one within 50 years of today) with a button that opens a `Calendar` in a popover; on a
  * touch screen it is the phone's own date picker (`<input type="date">`). Either way the
  * value is an ISO date (`"2026-10-11"`) and the form submits it under `name`, as a native
  * date input does.
@@ -178,6 +183,7 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
     nextMonthLabel,
     closeLabel = "Close",
     invalidDateMessage = "Enter a valid date.",
+    outOfRangeMessage = "Enter a date in the allowed range.",
     className,
     ref,
     // Guard props (hint types), dropped here so they never reach the DOM.
@@ -231,31 +237,41 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
     onValueChange?.(next);
   };
 
-  // What the text box shows. A new value from outside rewrites it, unless it already reads as that date.
+  const low = isIsoDate(min) ? min : undefined;
+  const high = isIsoDate(max) ? max : undefined;
+  const inRange = (date: string) => !(low && date < low) && !(high && date > high);
+  /** The value a typed text stands for: its date when it is an allowed one, else `""`. */
+  const valueOf = (typedText: string) => {
+    const date = parseDateInput(typedText, locale);
+    return date !== null && inRange(date) && !isDateDisabled?.(date) ? date : "";
+  };
+
+  // What the text box shows. A new value from outside rewrites it, unless it already stands for that value.
   const [text, setText] = useState(() => formatDateInput(iso, locale));
   const [shown, setShown] = useState(`${iso} ${locale}`);
   if (shown !== `${iso} ${locale}`) {
     setShown(`${iso} ${locale}`);
-    if ((parseDateInput(text, locale) ?? "") !== iso) setText(formatDateInput(iso, locale));
+    if (valueOf(text) !== iso) setText(formatDateInput(iso, locale));
   }
 
-  const low = isIsoDate(min) ? min : undefined;
-  const high = isIsoDate(max) ? max : undefined;
-  const allowed = (date: string) => !(low && date < low) && !(high && date > high) && !isDateDisabled?.(date);
-
-  // The browser blocks the submit with this message while the field holds what is not an
+  // The browser blocks the submit with a message while the field holds what is not an
   // allowed date. The native input checks its own format, min and max.
   const inputRef = useRef<HTMLInputElement>(null);
   const typed = text.trim() === "" ? null : parseDateInput(text, locale);
-  const bad = touch ? iso !== "" && Boolean(isDateDisabled?.(iso)) : text.trim() !== "" && (typed === null || !allowed(typed));
+  const problem = touch
+    ? iso !== "" && isDateDisabled?.(iso) && invalidDateMessage
+    : text.trim() !== "" && (typed === null || isDateDisabled?.(typed) ? invalidDateMessage : !inRange(typed) && outOfRangeMessage);
+  const message = problem || "";
   useEffect(() => {
-    inputRef.current!.setCustomValidity(bad ? invalidDateMessage : "");
-  }, [bad, invalidDateMessage, touch]);
+    inputRef.current!.setCustomValidity(message);
+  }, [message, touch]);
 
+  // A typed date outside min and max, or one isDateDisabled names, is not a value: the field
+  // reports `""` and shows why, as the browser blocks the submit.
   const onType = (event: ChangeEvent<HTMLInputElement>) => {
     const next = event.currentTarget.value;
     setText(next);
-    commit(parseDateInput(next, locale) ?? "");
+    commit(valueOf(next));
   };
   // Leaving the box writes a typed date the locale's way: 10/11/26 becomes 10/11/2026.
   const tidy = () => {
@@ -263,7 +279,6 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
   };
 
   const [open, setOpen] = useState(false);
-  const triggerRef = useRef<HTMLButtonElement>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
   const pick = (date: string) => {
     commit(date);
@@ -280,7 +295,6 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
   };
 
   const setRef = useMergedRef(ref, inputRef);
-  const invalidNow = hasMessage(error) || undefined;
 
   return (
     <FieldOwnerContext.Provider value={owner}>
@@ -303,7 +317,6 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
               min={low}
               max={high}
               readOnly={readOnly}
-              aria-invalid={invalidNow}
               onChange={(event) => commit(event.currentTarget.value)}
               render={(controlProps) => <input {...controlProps} className={inputClass} />}
             />
@@ -318,8 +331,7 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
                 readOnly={readOnly}
                 autoComplete="off"
                 spellCheck={false}
-                aria-invalid={invalidNow}
-                onChange={onType}
+                  onChange={onType}
                 onBlur={tidy}
                 render={(controlProps) => <input {...controlProps} name={undefined} className={inputClass} />}
               />
@@ -327,7 +339,6 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
               <span className={endSlotClass}>
                 <PopoverRoot open={open} onOpenChange={setOpen}>
                   <PopoverTrigger
-                    ref={triggerRef}
                     render={
                       <Button
                         variant="plain"
@@ -358,8 +369,6 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
                       <PopoverPopupUnchecked
                         className="w-auto"
                         initialFocus={() => calendarRef.current!.querySelector<HTMLElement>('[data-ouro-day][tabindex="0"]')}
-                        // Safari does not focus a button on click, so name where focus goes back.
-                        finalFocus={triggerRef}
                       >
                         <PopoverTitle visuallyHidden>{label}</PopoverTitle>
                         <Calendar

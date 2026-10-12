@@ -9,6 +9,13 @@ function numeric(locale: string): Intl.DateTimeFormat {
   return new Intl.DateTimeFormat(locale, { year: "numeric", month: "2-digit", day: "2-digit", numberingSystem: "latn", timeZone: "UTC" });
 }
 
+/** The year ending in two typed digits that lies from 50 years before this year to 49 after it. */
+function fullYear(twoDigits: number): number {
+  const earliest = new Date().getFullYear() - 50;
+  const year = Math.floor(earliest / 100) * 100 + twoDigits;
+  return year < earliest ? year + 100 : year;
+}
+
 /**
  * An ISO date as the locale writes it in numbers (`"2026-10-11"` is `"10/11/2026"` in
  * en-US), or `""` for no date.
@@ -21,7 +28,8 @@ function formatDateInput(iso: string, locale: string): string {
 
 /**
  * What the user typed as an ISO date, or `null` when it is not a real date. It reads the
- * locale's order of day, month and year with any separators, a two-digit year as 20xx, and
+ * locale's order of day, month and year with any separators, a two-digit year as the year
+ * ending in those digits within 50 years of today (in 2026, 85 is 1985 and 30 is 2030), and
  * an ISO date as it is.
  *
  * @internal
@@ -38,7 +46,7 @@ function parseDateInput(text: string, locale: string): string | null {
         .filter((type) => type === "year" || type === "month" || type === "day");
   const parts: Record<string, number> = {};
   order.forEach((type, index) => (parts[type] = Number(numbers[index])));
-  const year = numbers[order.indexOf("year")]!.length <= 2 ? 2000 + parts.year! : parts.year!;
+  const year = numbers[order.indexOf("year")]!.length <= 2 ? fullYear(parts.year!) : parts.year!;
   const { month, day } = parts as { month: number; day: number };
   const date = new Date(0);
   date.setUTCFullYear(year, month - 1, day);

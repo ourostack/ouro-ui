@@ -114,6 +114,9 @@ describe("Calendar", () => {
         expect(firstDayOfWeek("fa-AF")).toBe(6);
         expect(firstDayOfWeek("und")).toBe(0);
         expect(firstDayOfWeek("es-419")).toBe(1);
+        expect(firstDayOfWeek("en-US-u-fw-mon")).toBe(1);
+        expect(firstDayOfWeek("en-GB-u-ca-gregory-fw-sun")).toBe(0);
+        expect(firstDayOfWeek("dv-MV")).toBe(5);
       } finally {
         for (const [key, descriptor] of saved) {
           if (descriptor) Object.defineProperty(proto, key, descriptor);
@@ -147,6 +150,26 @@ describe("Calendar", () => {
       expect(document.activeElement).toBe(day("2026-10-12"));
       await press("{End}");
       expect(document.activeElement).toBe(day("2026-10-18"));
+    });
+
+    it("goes to the week's ends in a Saturday-first locale", async () => {
+      await focusCalendar({ defaultValue: "2026-10-14", locale: "ar-EG" });
+      // October 2026 starts on a Thursday: five blank cells lead in a Saturday-first week.
+      expect(document.querySelector("tbody tr")!.querySelectorAll("td:not(:has(button))")).toHaveLength(5);
+      await press("{Home}");
+      expect(document.activeElement).toBe(day("2026-10-10"));
+      await press("{End}");
+      expect(document.activeElement).toBe(day("2026-10-16"));
+    });
+
+    it("moves across a year boundary with the arrows", async () => {
+      await focusCalendar({ defaultValue: "2026-12-31" });
+      await press("{ArrowRight}");
+      expect(title()).toBe("January 2027");
+      expect(document.activeElement).toBe(day("2027-01-01"));
+      await press("{ArrowUp}");
+      expect(title()).toBe("December 2026");
+      expect(document.activeElement).toBe(day("2026-12-25"));
     });
 
     it("turns months with Page Up and Page Down, and years with Shift", async () => {
@@ -333,6 +356,38 @@ describe("Calendar", () => {
       expect(onValueChange).toHaveBeenLastCalledWith({ start: "2026-10-01", end: "2026-10-08" });
     });
 
+    it("never spans an unavailable day: the preview and the end stop before the first booked night", async () => {
+      const booked = new Set(["2026-10-15", "2026-10-11"]);
+      const onValueChange = vi.fn();
+      await render(<Calendar label="Stay" range defaultMonth="2026-10-01" isDateDisabled={(date) => booked.has(date)} onValueChange={onValueChange} />);
+      await userEvent.click(day("2026-10-13"));
+      await userEvent.hover(day("2026-10-17"));
+      expect(day("2026-10-14").hasAttribute("data-selected")).toBe(true);
+      for (const iso of ["2026-10-15", "2026-10-16", "2026-10-17"]) {
+        expect(day(iso).hasAttribute("data-in-range") || day(iso).hasAttribute("data-selected")).toBe(false);
+      }
+      await userEvent.click(day("2026-10-17"));
+      expect(onValueChange).toHaveBeenLastCalledWith({ start: "2026-10-13", end: "2026-10-14" });
+      // Backwards too: from the 17th toward the 9th stops after the booked 15th.
+      await userEvent.click(day("2026-10-17"));
+      await userEvent.click(day("2026-10-09"));
+      expect(onValueChange).toHaveBeenLastCalledWith({ start: "2026-10-16", end: "2026-10-17" });
+      expect(onValueChange.mock.calls.every(([range]) => !(range.start <= "2026-10-15" && range.end >= "2026-10-15"))).toBe(true);
+    });
+
+    it("cancels a pending start with Escape", async () => {
+      const onValueChange = vi.fn();
+      await render(<Calendar label="Trip" range defaultMonth="2026-10-01" onValueChange={onValueChange} />);
+      await userEvent.click(day("2026-10-14"));
+      expect(day("2026-10-14").hasAttribute("data-selected")).toBe(true);
+      await press("{Escape}");
+      expect(document.querySelectorAll("[data-selected]")).toHaveLength(0);
+      await userEvent.click(day("2026-10-20"));
+      expect(onValueChange).not.toHaveBeenCalled();
+      await userEvent.click(day("2026-10-21"));
+      expect(onValueChange).toHaveBeenLastCalledWith({ start: "2026-10-20", end: "2026-10-21" });
+    });
+
     it("follows a controlled range and puts reversed ends in order", async () => {
       await render(<Calendar label="Trip" range value={{ start: "2026-10-20", end: "2026-10-18" }} />);
       expect(day("2026-10-18").hasAttribute("data-selected")).toBe(true);
@@ -419,6 +474,57 @@ describe("Calendar", () => {
     });
     expect(recoverable).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
+  });
+
+  describe("today across hydration", () => {
+    /** Renders on the "server" at one time and hydrates at another, as a server in another zone would. */
+    async function hydrateAcross(node: ReactNode, server: Date, client: Date) {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(server);
+      const html = renderToString(node);
+      vi.setSystemTime(client);
+      const host = document.createElement("div");
+      host.innerHTML = html;
+      document.body.append(host);
+      mounted.push(host);
+      const error = vi.spyOn(console, "error").mockImplementation(() => {});
+      const recoverable = vi.fn();
+      await act(async () => {
+        roots.push(hydrateRoot(host, node, { onRecoverableError: recoverable }));
+      });
+      return { html, host, error, recoverable };
+    }
+
+    it("renders no today on the server, and the browser fills in its own after hydration", async () => {
+      const { html, error, recoverable } = await hydrateAcross(<Calendar label="Delivery date" />, new Date(2026, 9, 13, 1), new Date(2026, 9, 12, 18));
+      expect(html).not.toContain("aria-current");
+      expect(recoverable).not.toHaveBeenCalled();
+      expect(error).not.toHaveBeenCalled();
+      expect(document.querySelector('[aria-current="date"]')!.getAttribute("data-ouro-day")).toBe("2026-10-12");
+      expect(stop().dataset.ouroDay).toBe("2026-10-12");
+    });
+
+    it("hydrates across a month boundary on the browser's month", async () => {
+      const { error, recoverable } = await hydrateAcross(<Calendar label="Delivery date" />, new Date(2026, 10, 1, 1), new Date(2026, 9, 31, 18));
+      expect(recoverable).not.toHaveBeenCalled();
+      expect(error).not.toHaveBeenCalled();
+      expect(title()).toBe("October 2026");
+      expect(document.querySelector('[aria-current="date"]')!.getAttribute("data-ouro-day")).toBe("2026-10-31");
+    });
+
+    it("keeps a value's month on the server, and marks today after hydration", async () => {
+      const { html, error, recoverable } = await hydrateAcross(
+        <Calendar label="Delivery date" defaultValue="2026-10-20" />,
+        new Date(2026, 9, 13, 1),
+        new Date(2026, 9, 12, 18),
+      );
+      expect(html).toContain("October 2026");
+      expect(html).not.toContain("aria-current");
+      expect(recoverable).not.toHaveBeenCalled();
+      expect(error).not.toHaveBeenCalled();
+      expect(document.querySelector('[aria-current="date"]')!.getAttribute("data-ouro-day")).toBe("2026-10-12");
+      expect(stop().dataset.ouroDay).toBe("2026-10-20");
+    });
   });
 
   it("lets app layout classes win on the root, and gives days 36px with a fine pointer", async () => {

@@ -76,3 +76,27 @@ export const Controlled: Story = {
     );
   },
 };
+
+/** In a form: the submit shows the FormData, the ISO date under `name` on either path. */
+export const InForm: Story = {
+  render: function Render() {
+    const [sent, setSent] = useState("");
+    return (
+      <Surface>
+        <form
+          style={{ display: "grid", gap: 16 }}
+          onSubmit={(event) => {
+            event.preventDefault();
+            setSent(JSON.stringify(Object.fromEntries(new FormData(event.currentTarget))));
+          }}
+        >
+          <DatePicker label="Delivery date" name="delivery" defaultValue="2026-03-07" />
+          <button type="submit" style={{ justifySelf: "start" }}>
+            Submit
+          </button>
+        </form>
+        <output style={caption}>{sent}</output>
+      </Surface>
+    );
+  },
+};
