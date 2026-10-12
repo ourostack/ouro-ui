@@ -117,6 +117,10 @@ export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from,
     session = await page.context().newCDPSession(page);
     cdpSessions.set(page, session);
   }
+  // Earlier tests can leave the phone page zoomed in (a page scale of 4.7 was seen), and touch
+  // points are in the zoomed viewport's pixels, so the finger would land elsewhere. Reset the
+  // zoom first.
+  await session.send("Emulation.setPageScaleFactor", { pageScaleFactor: 1 });
   const touch = (type: "touchStart" | "touchMove" | "touchEnd", [x, y]: [number, number]) =>
     session.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y, id: 1 }] });
   await touch("touchStart", from);
