@@ -35,7 +35,7 @@ Type: `ChartProps<Row>`.
 | `config` (required) | `ChartConfig<Row>` |  | The series to draw, by their key in each row, with their labels and tones. |
 | `data` (required) | `readonly Row[]` |  | The rows to draw, one per category (a month, a recipe). |
 | `description` | `ReactNode` |  | A line under the title, such as the period: "January to June". |
-| `formatValue` | `((value: number, series: string) => string)` | `"1,250"` | Writes a value for the axis, the tooltip and the table, for other languages or units. |
+| `formatValue` | `((value: number, series: string) => string)` | `"1,250"` | Writes a value for the axis, the tooltip and the table, for other languages or units. `series` is the value's key in `config`, and `""` for the y axis, which all series share. |
 | `hideTitle` | `boolean` |  | Hides the title visually; screen readers still hear it. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 | `showTable` | `boolean` |  | Shows the data table under the chart. It is always there for screen readers. |

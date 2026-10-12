@@ -65,7 +65,10 @@ interface Spoken {
  * While the reader is at the bottom it follows new messages and streaming text; once they
  * scroll up, nothing moves their view, and a "Jump to latest" button appears. Each new
  * message from someone else is read to screen readers once, politely: a streamed reply
- * when it finishes. Scrolling is never announced.
+ * when it finishes. History is never announced: the first messages to fill the list,
+ * older messages loaded above, and a message whose `key` changes in place (a temporary id
+ * swapped for the server's). Older messages loaded above a scrolled-up reader leave the
+ * message they are reading where it was. Scrolling is never announced.
  *
  * Give it a height (`className="h-96"`, or `flex-1` in a column), since it scrolls inside it.
  *
@@ -145,12 +148,31 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // Open at the newest message, then follow growth (new messages, streaming text, images
   // loading, the keyboard resizing the list) only while pinned. Layout effect and resize
   // observer callbacks run before paint, so the view never flashes off the bottom.
+  // While unpinned, the message at the top of the view stays where it is, so older history
+  // loading above it never moves the reader. This replaces the browser's scroll anchoring,
+  // which is off: Chrome's adjustment read as the reader scrolling up, and Safari has none.
   useLayoutEffect(() => {
     const scroller = scrollerRef.current!;
     const content = contentRef.current!;
+    let anchor: { node: Element; offset: number } | undefined;
+    const offsetOf = (node: Element) => node.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+    const keepAnchor = () => {
+      const viewTop = scroller.getBoundingClientRect().top;
+      const node = [...content.querySelectorAll('[data-ouro="message"]')].find((message) => message.getBoundingClientRect().bottom > viewTop);
+      anchor = node && { node, offset: offsetOf(node) };
+    };
     toBottom();
+    keepAnchor();
     const follow = new ResizeObserver(() => {
       if (pinned.current) toBottom();
+      else if (anchor?.node.isConnected) {
+        const moved = offsetOf(anchor.node) - anchor.offset;
+        if (Math.abs(moved) >= 0.5) {
+          scroller.scrollTop += moved;
+          lastTop.current = scroller.scrollTop;
+        }
+      }
+      keepAnchor();
     });
     follow.observe(content);
     follow.observe(scroller);
@@ -161,6 +183,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (top < lastTop.current - 0.5 && distance > 1) pinned.current = false;
       else if (distance <= AT_BOTTOM) pinned.current = true;
       lastTop.current = top;
+      keepAnchor();
       setShowJump(!pinned.current);
     };
     scroller.addEventListener("scroll", onScroll, { passive: true });
@@ -170,28 +193,62 @@ export function MessageList(props: MessageListProps): JSX.Element {
     };
   }, [toBottom]);
 
-  // Announce each message from someone else once: when it appears, or, if it is
-  // streaming, when streaming ends. The history present at mount is not announced.
+  // Announce each message from someone else once: when it is appended after the last
+  // message already seen, or, if it is streaming, when streaming ends. Messages are known by
+  // their element, which React replaces exactly when the key changes. Never announced: the
+  // first messages to fill the list (history), anything inserted above the last seen message
+  // (older history), and a message whose key changed in place (a temporary id swapped for the
+  // server's), which counts as the message it replaced.
   useEffect(() => {
     const content = contentRef.current!;
-    const seen = new WeakSet<Element>();
-    const messages = () => content.querySelectorAll<HTMLElement>('[data-ouro="message"]');
-    for (const message of messages()) if (message.getAttribute("aria-busy") !== "true") seen.add(message);
+    const messages = () => [...content.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    const busy = (message: Element) => message.getAttribute("aria-busy") === "true";
+    let known = messages();
+    // Messages to read once they stop streaming.
+    let waiting = new Set(known.filter(busy));
     const check = () => {
+      const now = messages();
+      const before = new Set(known);
+      let last = now.length - 1;
+      while (last >= 0 && !before.has(now[last]!)) last--;
+      if (known.length > 0 && last >= 0) {
+        // Messages after the last one still here: the first few stand in for the ones that
+        // were there before (a key swap), and the rest are new.
+        const replaced = known.slice(known.indexOf(now[last]!) + 1);
+        now.slice(last + 1).forEach((message, index) => {
+          const old = replaced[index];
+          if (old === undefined || waiting.has(old)) waiting.add(message);
+        });
+      } else if (known.length === 0) {
+        // The first messages are history, unless one is still streaming.
+        for (const message of now) if (busy(message)) waiting.add(message);
+      }
+      known = now;
       const fresh: string[] = [];
-      for (const message of messages()) {
-        if (seen.has(message) || message.getAttribute("aria-busy") === "true") continue;
-        seen.add(message);
+      const still = new Set<HTMLElement>();
+      for (const message of now) {
+        if (!waiting.has(message)) continue;
+        if (busy(message)) {
+          still.add(message);
+          continue;
+        }
         if (message.getAttribute("data-role") === "user") continue;
         const author = message.querySelector<HTMLElement>("[data-ouro-message-author]")!.innerText;
         const text = message.querySelector<HTMLElement>("[data-ouro-message-content]")!.innerText.trim();
         fresh.push(labelFor.current(author, text));
       }
+      waiting = still;
       if (fresh.length === 0) return;
       setSpoken((previous) => [...previous, ...fresh.map((text) => ({ id: nextId.current++, text }))].slice(-KEEP_SPOKEN));
     };
-    const observer = new MutationObserver(check);
-    observer.observe(content, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["aria-busy"] });
+    // Only messages coming and going, and streaming ending, matter; each streamed token
+    // changes text, which is skipped without a scan.
+    const matters = (record: MutationRecord) =>
+      record.type === "attributes" || [...record.addedNodes, ...record.removedNodes].some((node) => node instanceof Element && (node.matches('[data-ouro="message"]') || node.querySelector('[data-ouro="message"]') !== null));
+    const observer = new MutationObserver((records) => {
+      if (records.some(matters)) check();
+    });
+    observer.observe(content, { childList: true, subtree: true, attributes: true, attributeFilter: ["aria-busy"] });
     return () => observer.disconnect();
   }, []);
 
@@ -204,8 +261,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
 
   return (
     <div {...rest} data-ouro="message-list" className={cn("relative m-0 box-border flex min-h-0 flex-col", className)}>
-      {/* No scroll anchoring: the browser's adjustment would read as the reader scrolling up and
-          unpin the list, and Safari has none, so this keeps both engines the same. */}
+      {/* No browser scroll anchoring; the layout effect above keeps the reader's place instead. */}
       <div
         ref={setScroller}
         role="region"

@@ -68,7 +68,11 @@ export interface ChartOwnProps<Row extends object = Record<string, unknown>> {
    * and `<ChartLegend />` inside it.
    */
   children?: ReactNode;
-  /** Writes a value for the axis, the tooltip and the table, for other languages or units. @default "1,250" */
+  /**
+   * Writes a value for the axis, the tooltip and the table, for other languages or units.
+   * `series` is the value's key in `config`, and `""` for the y axis, which all series share.
+   * @default "1,250"
+   */
   formatValue?: ((value: number, series: string) => string) | undefined;
   /**
    * What screen readers hear about the chart after its title, for other languages.
@@ -175,7 +179,14 @@ function chartWarnings(props: ChartProps<Record<string, unknown>>, series: Serie
  *
  * Pass `type` for bars, lines or areas, one per series in `config`. For anything else, pass
  * a recharts chart as children with `<ChartTooltip />` and `<ChartLegend />` inside it, as in
- * shadcn's charts; it draws with `var(--color-<key>)`. Built on recharts.
+ * shadcn's charts; it draws with `var(--color-<key>)`.
+ *
+ * Built on recharts, which adds about 120 KB gzip (about 420 KB minified, measured with
+ * esbuild) to the page that renders it. Load it with `next/dynamic` or `React.lazy` when
+ * the chart is below the fold.
+ *
+ * Colors come from the theme's `--chart-1` to `--chart-5`, which must reach 3:1 against the
+ * background for the marks to be seen; Ouro's theme does in light and dark.
  *
  * Use `Progress` instead for one value out of a total, and a table alone when readers
  * need exact figures more than the shape of the data.
@@ -415,8 +426,12 @@ function TooltipContent({ active, payload, label }: { active: boolean; payload: 
   });
   if (!active || entries.length === 0) return null;
   return (
+    // A polite live region (recharts' own card is assertive), so a screen reader in the plot
+    // hears each point the arrow keys reach.
     <div
       data-ouro-chart-tooltip=""
+      role="status"
+      aria-live="polite"
       className="grid min-w-32 gap-1.5 rounded-lg border border-solid border-border bg-popover px-2.5 py-1.5 text-xs text-popover-foreground shadow-lg"
     >
       <div className="font-medium">{String(label ?? "")}</div>

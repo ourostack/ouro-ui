@@ -3,7 +3,6 @@
 import type { HTMLAttributes, JSX, Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 
 /** The props Attachment adds to the `<div>` attributes it passes through. */
@@ -113,6 +112,7 @@ export function Attachment(props: AttachmentProps): JSX.Element {
             `${onDelete !== undefined ? "onDelete" : "onDismiss"} is not a prop`,
             '<Attachment name="menu.pdf" onRemove={remove} />',
           ],
+          download !== undefined && href === undefined && ["download needs href, the file to download", '<Attachment name="menu.pdf" href="/menu.pdf" download />'],
           size !== undefined && !validSize(size) && [`size={${String(size)}} is not a byte count`, '<Attachment name="menu.pdf" size={file.size} />'],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
@@ -121,7 +121,7 @@ export function Attachment(props: AttachmentProps): JSX.Element {
   const body = (
     <>
       <FileIcon image={image} />
-      <span data-ouro-attachment-name="" className="min-w-0 flex-1 truncate font-medium">
+      <span data-ouro-attachment-name="" title={name} className="min-w-0 flex-1 truncate font-medium">
         {name}
       </span>
       {validSize(size) && (
@@ -168,13 +168,12 @@ export function Attachment(props: AttachmentProps): JSX.Element {
           aria-label={removeLabel(name)}
           onClick={onRemove}
           className={cn(
-            "press relative m-0 me-1.5 box-border inline-flex size-7 shrink-0 items-center justify-center rounded-md border-0 bg-transparent p-0",
+            "press relative m-0 box-border inline-flex size-11 shrink-0 pointer-fine:me-1.5 pointer-fine:size-7 items-center justify-center rounded-md border-0 bg-transparent p-0",
             "cursor-pointer text-muted-foreground touch-manipulation hover:bg-accent hover:text-accent-foreground",
             "motion-safe:active:scale-(--ouro-press-scale) active:duration-(--ouro-duration-fast)",
             focusRing,
           )}
         >
-          <TouchTarget />
           <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="size-4">
             <path d="M4 4l8 8M12 4l-8 8" />
           </svg>

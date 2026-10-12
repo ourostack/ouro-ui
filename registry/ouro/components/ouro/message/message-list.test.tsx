@@ -33,18 +33,25 @@ async function render(node: ReactNode) {
 }
 
 interface Item {
-  id: number;
+  id: number | string;
   role: "user" | "assistant";
   text: string;
   streaming?: boolean;
 }
 
-const history = (count: number): Item[] =>
-  Array.from({ length: count }, (_, index) => ({
-    id: index,
-    role: index % 2 ? "assistant" : "user",
-    text: `Message ${index}: ${"step ".repeat(12)}`,
+const history = (count: number, from = 0): Item[] =>
+  Array.from({ length: count }, (_, offset) => ({
+    id: from + offset,
+    role: (from + offset) % 2 ? "assistant" : "user",
+    text: `Message ${from + offset}: ${"step ".repeat(12)}`,
   }));
+
+/** The first message whose top is inside the list's view, and where that top is. */
+function firstVisible(scroller: HTMLElement): { message: Element; top: number } {
+  const viewTop = scroller.getBoundingClientRect().top;
+  const message = [...scroller.querySelectorAll('[data-ouro="message"]')].find((node) => node.getBoundingClientRect().top >= viewTop)!;
+  return { message, top: message.getBoundingClientRect().top };
+}
 
 function Chat({ items, label = "Conversation", ...rest }: { items: Item[]; label?: string; jumpLabel?: string; newMessageLabel?: (author: string, text: string) => string }) {
   return (
@@ -239,6 +246,90 @@ describe("MessageList", () => {
     await expect.poll(() => spoken.length).toBe(2);
     stop();
     expect(spoken).toEqual(["Ouro: First.", "Ouro: Second."]);
+  });
+
+  it("never announces the first messages that fill an empty list, such as history fetched after mount", async () => {
+    const { live, rerender } = await render(<Chat items={[]} />);
+    const { spoken, stop } = recordAnnouncements(live);
+    await rerender(<Chat items={history(20)} />);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    expect(spoken).toEqual([]);
+    await rerender(<Chat items={[...history(20), { id: 20, role: "assistant", text: "Preheat the oven." }]} />);
+    await expect.poll(() => spoken.length).toBe(1);
+    stop();
+    expect(spoken).toEqual(["Ouro: Preheat the oven."]);
+  });
+
+  it("never announces older history loaded above, and keeps the reader's place while it loads", async () => {
+    const items = history(20, 10);
+    const { scroller, live, rerender } = await render(<Chat items={items} />);
+    const { spoken, stop } = recordAnnouncements(live);
+    await wheel(scroller, -400);
+    const before = firstVisible(scroller);
+    await rerender(<Chat items={[...history(10), ...items]} />);
+    await settle(scroller);
+    expect(spoken).toEqual([]);
+    // The message the reader was on has not moved.
+    expect(Math.abs(before.message.getBoundingClientRect().top - before.top)).toBeLessThanOrEqual(1);
+    expect(firstVisible(scroller).message).toBe(before.message);
+    await expect.element(page.getByRole("button", { name: "Jump to latest" })).toBeVisible();
+    // A reply after that is still new.
+    await rerender(<Chat items={[...history(10), ...items, { id: 30, role: "assistant", text: "Preheat the oven." }]} />);
+    await expect.poll(() => spoken.length).toBe(1);
+    stop();
+    expect(spoken).toEqual(["Ouro: Preheat the oven."]);
+  });
+
+  it("says nothing when a message's key changes but it stays in place, as when a temporary id becomes the server's", async () => {
+    const items = history(4);
+    const { live, rerender } = await render(<Chat items={items} />);
+    const { spoken, stop } = recordAnnouncements(live);
+    const reply = { id: "temp", role: "assistant" as const, text: "Preheat the oven." };
+    await rerender(<Chat items={[...items, reply]} />);
+    await expect.poll(() => spoken.length).toBe(1);
+    await rerender(<Chat items={[...items, { ...reply, id: "server-9" }]} />);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    // A swap and a new reply together: only the reply is new.
+    await rerender(<Chat items={[...items, { ...reply, id: "server-10" }, { id: "temp-2", role: "assistant", text: "Then rest it." }]} />);
+    await expect.poll(() => spoken.length).toBe(2);
+    stop();
+    expect(spoken).toEqual(["Ouro: Preheat the oven.", "Ouro: Then rest it."]);
+  });
+
+  it("announces a streaming reply once when its key changes mid-stream, when it finishes", async () => {
+    const items = history(2);
+    const { live, rerender } = await render(<Chat items={items} />);
+    const { spoken, stop } = recordAnnouncements(live);
+    await rerender(<Chat items={[...items, { id: "temp", role: "assistant", text: "Rest", streaming: true }]} />);
+    await rerender(<Chat items={[...items, { id: "server-2", role: "assistant", text: "Rest it", streaming: true }]} />);
+    expect(spoken).toEqual([]);
+    await rerender(<Chat items={[...items, { id: "server-2", role: "assistant", text: "Rest it." }]} />);
+    await expect.poll(() => spoken.length).toBe(1);
+    stop();
+    expect(spoken).toEqual(["Ouro: Rest it."]);
+  });
+
+  it("announces a reply still streaming in the first messages to fill an empty list, once it finishes", async () => {
+    const { live, rerender } = await render(<Chat items={[]} />);
+    const { spoken, stop } = recordAnnouncements(live);
+    await rerender(<Chat items={[...history(4), { id: 4, role: "assistant", text: "Rest", streaming: true }]} />);
+    await rerender(<Chat items={[...history(4), { id: 4, role: "assistant", text: "Rest it." }]} />);
+    await expect.poll(() => spoken.length).toBe(1);
+    stop();
+    expect(spoken).toEqual(["Ouro: Rest it."]);
+  });
+
+  it("says nothing when the whole conversation is replaced, such as opening another one", async () => {
+    const { scroller, live, rerender } = await render(<Chat items={history(20)} />);
+    const { spoken, stop } = recordAnnouncements(live);
+    await wheel(scroller, -400);
+    await rerender(<Chat items={history(20, 100)} />);
+    await settle(scroller);
+    expect(spoken).toEqual([]);
+    await rerender(<Chat items={[...history(20, 100), { id: 120, role: "assistant", text: "Preheat the oven." }]} />);
+    await expect.poll(() => spoken.length).toBe(1);
+    stop();
+    expect(spoken).toEqual(["Ouro: Preheat the oven."]);
   });
 
   it("takes a translated announcement", async () => {

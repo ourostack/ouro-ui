@@ -115,6 +115,8 @@ describe("Attachment", () => {
     const name = host.querySelector<HTMLElement>("[data-ouro-attachment-name]")!;
     expect(name.scrollWidth).toBeGreaterThan(name.clientWidth);
     expect(getComputedStyle(name).textOverflow).toBe("ellipsis");
+    // A pointer user can still read the whole name.
+    expect(name.title).toBe(`${"very-long-file-name-".repeat(10)}.pdf`);
   });
 
   it("renders in server HTML and hydrates without a warning", async () => {
@@ -153,6 +155,7 @@ describe("Attachment development messages", () => {
     ["url", { url: "/menu.pdf" }, "url is not a prop", '<Attachment name="menu.pdf" href="/menu.pdf" />'],
     ["onDelete", { onDelete: () => {} }, "onDelete is not a prop", '<Attachment name="menu.pdf" onRemove={remove} />'],
     ["a negative size", { size: -1 }, "size={-1} is not a byte count", '<Attachment name="menu.pdf" size={file.size} />'],
+    ["download without href", { download: true }, "download needs href, the file to download", '<Attachment name="menu.pdf" href="/menu.pdf" download />'],
   ])("warns for %s with the fix", async (_name, extra, problem, fix) => {
     const props = { name: "menu.pdf", ...extra } as unknown as Parameters<typeof Attachment>[0];
     const { attachment } = await render(<Attachment {...props} />);

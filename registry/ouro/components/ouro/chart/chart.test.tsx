@@ -49,6 +49,23 @@ function resolved(expression: string, within: Element = document.body): string {
   return color;
 }
 
+/** The WCAG contrast ratio of two CSS colors, read back as sRGB pixels from a canvas. */
+function contrast(first: string, second: string): number {
+  const context = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!;
+  const luminance = (color: string) => {
+    context.clearRect(0, 0, 1, 1);
+    context.fillStyle = color;
+    context.fillRect(0, 0, 1, 1);
+    const [r, g, b] = [...context.getImageData(0, 0, 1, 1).data].map((channel) => {
+      const c = channel / 255;
+      return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+  };
+  const [light, dark] = [luminance(first), luminance(second)].sort((a, b) => b - a);
+  return (light! + 0.05) / (dark! + 0.05);
+}
+
 const bars = (chart: HTMLElement, series: string) =>
   [...chart.querySelectorAll<SVGPathElement>(`.ouro-chart-series-${series} .recharts-bar-rectangle path`)];
 
@@ -156,6 +173,14 @@ describe("Chart", () => {
     expect(fillOf("cooked")).not.toBe(light);
   });
 
+  it.each(["light", "dark"])("draws every chart token at 3:1 or more against the %s background and card", (mode) => {
+    document.documentElement.classList.toggle("dark", mode === "dark");
+    for (const surface of ["var(--background)", "var(--card)"])
+      for (const index of [1, 2, 3, 4, 5]) {
+        expect.soft(contrast(resolved(`var(--chart-${index})`), resolved(surface)), `--chart-${index} on ${surface}`).toBeGreaterThanOrEqual(3);
+      }
+  });
+
   it("maps tones to theme tokens and gives series without one the chart tokens in order", async () => {
     const { chart } = await render(
       <Chart
@@ -245,8 +270,13 @@ describe("Chart", () => {
     // Focus shows the first point; the arrow keys move along.
     const tooltip = () => chart.querySelector<HTMLElement>("[data-ouro-chart-tooltip]");
     await expect.poll(() => tooltip()?.textContent).toBe("JanuaryRecipes cooked12Recipes saved4");
+    // The card is a polite live region that stays in place, so a screen reader hears each point.
+    const status = page.getByRole("status").element();
+    expect(status).toBe(tooltip());
+    expect(status.getAttribute("aria-live")).toBe("polite");
     await userEvent.keyboard("{ArrowRight}");
-    await expect.poll(() => tooltip()?.textContent).toBe("FebruaryRecipes cooked18Recipes saved9");
+    await expect.poll(() => status.textContent).toBe("FebruaryRecipes cooked18Recipes saved9");
+    expect(tooltip()).toBe(status);
     const markers = [...tooltip()!.querySelectorAll("[data-ouro-chart-marker]")].map((marker) => marker.getAttribute("data-ouro-chart-marker"));
     expect(new Set(markers).size).toBe(2);
   });

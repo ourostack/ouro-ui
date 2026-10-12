@@ -45,3 +45,12 @@ it.each([
   expect(hasTouchTarget(remove)).toBe(true);
   expect(getComputedStyle(attachment).fontSize).toBe("16px");
 });
+
+it("keeps the remove button's target off the link, so a tap on the link's edge opens the file", async () => {
+  const attachment = await render();
+  const link = attachment.querySelector("a")!;
+  const remove = attachment.querySelector("button")!;
+  const edge = link.getBoundingClientRect();
+  expect(link.contains(document.elementFromPoint(edge.right - 1, edge.top + edge.height / 2))).toBe(true);
+  expect(remove.getBoundingClientRect().left).toBeGreaterThanOrEqual(edge.right);
+});

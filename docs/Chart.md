@@ -21,7 +21,11 @@ import { Chart } from "@/registry/ouro/components/ouro/chart/chart";
 
 ## Usage
 
-Pass `type` for bars, lines or areas, one per series in `config`. For anything else, pass a recharts chart as children with `<ChartTooltip />` and `<ChartLegend />` inside it, as in shadcn's charts; it draws with `var(--color-<key>)`. Built on recharts.
+Pass `type` for bars, lines or areas, one per series in `config`. For anything else, pass a recharts chart as children with `<ChartTooltip />` and `<ChartLegend />` inside it, as in shadcn's charts; it draws with `var(--color-<key>)`.
+
+Built on recharts, which adds about 120 KB gzip (about 420 KB minified, measured with esbuild) to the page that renders it. Load it with `next/dynamic` or `React.lazy` when the chart is below the fold.
+
+Colors come from the theme's `--chart-1` to `--chart-5`, which must reach 3:1 against the background for the marks to be seen; Ouro's theme does in light and dark.
 
 ## Use instead when
 
@@ -39,7 +43,7 @@ Type: `ChartProps<Row>`.
 | `config` (required) | `ChartConfig<Row>` |  | The series to draw, by their key in each row, with their labels and tones. |
 | `data` (required) | `readonly Row[]` |  | The rows to draw, one per category (a month, a recipe). |
 | `description` | `ReactNode` |  | A line under the title, such as the period: "January to June". |
-| `formatValue` | `((value: number, series: string) => string)` | `"1,250"` | Writes a value for the axis, the tooltip and the table, for other languages or units. |
+| `formatValue` | `((value: number, series: string) => string)` | `"1,250"` | Writes a value for the axis, the tooltip and the table, for other languages or units. `series` is the value's key in `config`, and `""` for the y axis, which all series share. |
 | `hideTitle` | `boolean` |  | Hides the title visually; screen readers still hear it. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 | `showTable` | `boolean` |  | Shows the data table under the chart. It is always there for screen readers. |

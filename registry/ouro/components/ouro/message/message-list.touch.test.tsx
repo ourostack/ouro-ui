@@ -118,3 +118,74 @@ it("keeps 16px message text on a landscape phone", async () => {
   await expect.element(jumpButton()).toBeVisible();
   expect(getComputedStyle(jumpButton().element()).fontSize).toBe("16px");
 });
+
+interface Item {
+  id: string;
+  role: "user" | "assistant";
+  text: string;
+}
+const make = (from: number, count: number): Item[] =>
+  Array.from({ length: count }, (_, offset) => ({
+    id: `m${from + offset}`,
+    role: (from + offset) % 2 ? "assistant" : "user",
+    text: `Message ${from + offset}: ${"knead ".repeat(14)}`,
+  }));
+
+/** A phone chat screen: the list fills the space above a composer, and the on-screen keyboard shrinks `height`. */
+function PhoneChat({ items, height }: { items: Item[]; height: number }) {
+  return (
+    <div style={{ height, display: "flex", flexDirection: "column" }}>
+      <MessageList label="Conversation" className="flex-1">
+        {items.map((item) => (
+          <Message key={item.id} role={item.role} name={item.role === "user" ? "Ada" : "Ouro"}>
+            {item.text}
+          </Message>
+        ))}
+      </MessageList>
+      <input aria-label="Message" style={{ height: 44, fontSize: 16 }} />
+    </div>
+  );
+}
+const KEYBOARD = 336;
+
+it("stays at the bottom when the on-screen keyboard opens, and follows a new message", async () => {
+  const items = make(0, 24);
+  const { scroller, rerender } = await render(<PhoneChat items={items} height={800} />);
+  expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+  await rerender(<PhoneChat items={items} height={800 - KEYBOARD} />);
+  await settle(scroller);
+  expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+  await rerender(<PhoneChat items={[...items, ...make(24, 1)]} height={800 - KEYBOARD} />);
+  await settle(scroller);
+  expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+});
+
+it("keeps a scrolled-up reader's place while the keyboard opens and closes and messages arrive", async () => {
+  const items = make(0, 24);
+  const { scroller, rerender } = await render(<PhoneChat items={items} height={800} />);
+  await swipe(scroller, 250);
+  const top = scroller.scrollTop;
+  await rerender(<PhoneChat items={items} height={800 - KEYBOARD} />);
+  await settle(scroller);
+  expect(scroller.scrollTop).toBe(top);
+  await rerender(<PhoneChat items={[...items, ...make(24, 2)]} height={800 - KEYBOARD} />);
+  await settle(scroller);
+  expect(scroller.scrollTop).toBe(top);
+  await rerender(<PhoneChat items={[...items, ...make(24, 2)]} height={800} />);
+  await settle(scroller);
+  expect(scroller.scrollTop).toBe(top);
+  await expect.element(jumpButton()).toBeVisible();
+});
+
+it("keeps the message a scrolled-up reader is on in place when older history loads above it", async () => {
+  const items = make(10, 20);
+  const { scroller, rerender } = await render(<PhoneChat items={items} height={800} />);
+  await swipe(scroller, 250);
+  const viewTop = scroller.getBoundingClientRect().top;
+  const first = [...scroller.querySelectorAll('[data-ouro="message"]')].find((node) => node.getBoundingClientRect().top >= viewTop)!;
+  const before = first.getBoundingClientRect().top;
+  await rerender(<PhoneChat items={[...make(0, 10), ...items]} height={800} />);
+  await settle(scroller);
+  expect(Math.abs(first.getBoundingClientRect().top - before)).toBeLessThanOrEqual(1);
+  await expect.element(jumpButton()).toBeVisible();
+});
