@@ -58,6 +58,17 @@ describe("AuthLayout", () => {
     expect(card.textContent).toContain("The form");
   });
 
+  it("renders a div with as, inside a page that has its own main landmark", async () => {
+    const { root } = await render(
+      <AuthLayout as="div" title="Sign in">
+        <p>The form</p>
+      </AuthLayout>,
+    );
+    expect(root.tagName).toBe("DIV");
+    expect(document.querySelector("main")).toBeNull();
+    await expect.element(page.getByRole("heading", { level: 1, name: "Sign in" })).toBeVisible();
+  });
+
   it("centers the card on the screen", async () => {
     const { root, card } = await render(
       <AuthLayout title="Sign in">

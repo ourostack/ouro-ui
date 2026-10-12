@@ -117,7 +117,15 @@ describe("NavigationMenu", () => {
     await expect.element(page.getByRole("link", { name: /Drafts/ })).toBeVisible();
     // While the pointer rests on the first button, Base UI keeps a path to its panel clear by
     // blocking pointer events around it, so move without Playwright's hit-target check.
-    await userEvent.hover(page.getByRole("button", { name: "Cookbooks" }), { force: true });
+    // The first move onto the second button lifts the block, and a browser may not report the
+    // pointer as over the button until it moves again, as a hand does. So move until it opens.
+    let x = 4;
+    await expect
+      .poll(async () => {
+        await userEvent.hover(page.getByRole("button", { name: "Cookbooks" }), { force: true, position: { x: (x += 2), y: 10 } });
+        return page.getByRole("link", { name: "Shared with you" }).elements().length;
+      })
+      .toBe(1);
     await expect.element(page.getByRole("link", { name: "Shared with you" })).toBeVisible();
     await expect.poll(() => page.getByRole("link", { name: /Drafts/ }).elements().length).toBe(0);
   });

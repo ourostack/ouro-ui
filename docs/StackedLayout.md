@@ -30,6 +30,7 @@ Type: `StackedLayoutProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
+| `as` | `"div" \| "main"` | `"main"` | The element around the page. Pass `"div"` when the layout renders inside a page that already has a `<main>`, since a document has one. |
 | `bleed` | `boolean` |  | Removes the column and its padding, for content that runs edge to edge (a map, a cover photo). |
 | `children` (required) | `ReactNode` |  | The page. It renders inside the page's `<main>`, in a centered column up to 72rem wide. |
 | `className` | `string` |  | Layout only: height and margins (`min-h-96`). Appearance classes warn in development. |

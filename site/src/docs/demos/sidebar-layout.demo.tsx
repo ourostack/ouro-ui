@@ -5,12 +5,14 @@ import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
 
 // The live demo at the top of docs/sidebar-layout/: the component as an app would use it, with its props, nothing else.
+// It renders as a div here because this docs page has its own main landmark.
 // The layout fills the screen in an app; here a short frame holds it.
 
 export default function SidebarLayoutDemo(): JSX.Element {
   return (
     <div className="h-96 w-full overflow-auto">
       <SidebarLayout
+        as="div"
         className="min-h-96"
         sidebar={
           <div className="h-96">

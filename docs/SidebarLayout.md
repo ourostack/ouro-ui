@@ -33,6 +33,7 @@ Type: `SidebarLayoutProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
+| `as` | `"div" \| "main"` | `"main"` | The element around the page. Pass `"div"` when the layout renders inside a page that already has a `<main>`, since a document has one. |
 | `bleed` | `boolean` |  | Removes the padding around the page, for content that runs edge to edge (a map, a cover photo). |
 | `children` (required) | `ReactNode` |  | The page. It renders inside the page's `<main>`. |
 | `className` | `string` |  | Layout only: height and margins (`min-h-96`). Appearance classes warn in development. |

@@ -6,11 +6,13 @@ import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 
 // The live demo at the top of docs/auth-layout/: the component as an app would use it, with its props, nothing else.
+// It renders as a div here because this docs page has its own main landmark.
 // The layout fills the screen in an app; here a shorter frame holds it.
 
 export default function AuthLayoutDemo(): JSX.Element {
   return (
     <AuthLayout
+      as="div"
       className="min-h-[34rem] w-full"
       title="Sign in"
       description="Welcome back to your kitchen."

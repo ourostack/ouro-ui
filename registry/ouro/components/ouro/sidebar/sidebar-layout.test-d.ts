@@ -13,5 +13,8 @@ expectTypeOf<{ children: "Page" }>().not.toExtend<SidebarLayoutProps>();
 expectTypeOf<{ sidebar: "x" }>().not.toExtend<SidebarLayoutProps>();
 expectTypeOf<{ sidebar: "x"; children: "Page"; navbar: "x" }>().not.toExtend<SidebarLayoutProps>();
 
+// The page's element is main or div.
+expectTypeOf<{ sidebar: "x"; children: "Page"; as: "div" }>().toExtend<SidebarLayoutProps>();
+expectTypeOf<{ sidebar: "x"; children: "Page"; as: "section" }>().not.toExtend<SidebarLayoutProps>();
 // @ts-expect-error sidebar is required.
 createElement(SidebarLayout, { children: "Page" });

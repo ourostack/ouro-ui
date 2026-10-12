@@ -33,6 +33,7 @@ Type: `AuthLayoutProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
+| `as` | `"div" \| "main"` | `"main"` | The element the layout renders. Pass `"div"` when the layout renders inside a page that already has a `<main>`, since a document has one. |
 | `brand` | `ReactNode` |  | Your logo or product name, above the title. Link it to the home page. |
 | `children` (required) | `ReactNode` |  | The form: fields and the submit button, usually a `Form`. |
 | `className` | `string` |  | Layout only: margins and height (`min-h-96`). Appearance classes warn in development. |

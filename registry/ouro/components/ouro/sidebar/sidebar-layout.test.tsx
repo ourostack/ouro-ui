@@ -99,6 +99,19 @@ describe("SidebarLayout", () => {
     history.replaceState(null, "", location.pathname + location.search);
   });
 
+  it("renders the page in a div with as, inside a page that has its own main landmark", async () => {
+    await render(
+      <SidebarLayout as="div" sidebar={sidebar}>
+        Page content
+      </SidebarLayout>,
+    );
+    expect(document.querySelector("main")).toBeNull();
+    const target = document.getElementById(page.getByRole("link", { name: "Skip to content" }).element().getAttribute("href")!.slice(1))!;
+    expect(target.tagName).toBe("DIV");
+    expect(target.textContent).toBe("Page content");
+    expect(target.tabIndex).toBe(-1);
+  });
+
   it("takes the skip link's text as a prop", async () => {
     await render(
       <SidebarLayout sidebar={sidebar} skipLabel="Zum Inhalt">

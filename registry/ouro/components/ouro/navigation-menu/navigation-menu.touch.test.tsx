@@ -10,10 +10,13 @@ import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 // Runs in the `touch` project: Chromium as a 390x844 phone with a coarse pointer.
 
 let root: Root | undefined;
+/** The links the test followed, in order. */
+const followed: string[] = [];
 const nodes: Element[] = [];
 afterEach(async () => {
   await act(async () => root?.unmount());
   for (const node of nodes.splice(0)) node.remove();
+  followed.length = 0;
   await rotate(390, 844);
 });
 
@@ -22,6 +25,7 @@ const StayLink: OuroLinkComponent = ({ onClick, ...props }: ComponentProps<OuroL
     {...props}
     onClick={(event) => {
       event.preventDefault();
+      followed.push(props.href);
       onClick?.(event);
     }}
   />
@@ -77,12 +81,14 @@ describe("NavigationMenu on a phone", () => {
     await render(<NavigationMenu label="Main" items={items} />);
     await commands.tap('[data-ouro="navigation-menu"] button');
     await expect.element(page.getByRole("link", { name: /Browse/ })).toBeVisible();
+    await expect.element(page.getByRole("button", { name: "Recipes" })).toHaveAttribute("aria-expanded", "true");
     await expect.poll(() => document.getAnimations().length).toBe(0);
     const popup = document.querySelector<HTMLElement>('[data-ouro="navigation-menu-popup"]')!;
     expect(popup.getBoundingClientRect().left).toBeGreaterThanOrEqual(0);
     expect(popup.getBoundingClientRect().right).toBeLessThanOrEqual(390);
     expectTouchSize([...popup.querySelectorAll("a")], 2);
     await commands.tap('[data-ouro="navigation-menu-popup"] a[href="/recipes/import"]');
+    await expect.poll(() => followed).toEqual(["/recipes/import"]);
     await expect.poll(() => document.querySelector('[data-ouro="navigation-menu-popup"]')).toBeNull();
   });
 });

@@ -11,6 +11,12 @@ export interface StackedLayoutProps {
   navbar: ReactNode;
   /** The page. It renders inside the page's `<main>`, in a centered column up to 72rem wide. */
   children: ReactNode;
+  /**
+   * The element around the page. Pass `"div"` when the layout renders inside a page that
+   * already has a `<main>`, since a document has one.
+   * @default "main"
+   */
+  as?: "main" | "div" | undefined;
   /** A line at the bottom of the page: links, a copyright. It sits at the bottom of the screen on a short page. */
   footer?: ReactNode;
   /** Removes the column and its padding, for content that runs edge to edge (a map, a cover photo). */
@@ -56,6 +62,7 @@ export function StackedLayout(props: StackedLayoutProps): JSX.Element {
   const {
     navbar,
     children,
+    as,
     footer,
     bleed,
     skipLabel = "Skip to content",
@@ -86,8 +93,9 @@ export function StackedLayout(props: StackedLayoutProps): JSX.Element {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   const mainId = useId();
+  const Page = as === "div" ? "div" : "main";
   // The link's address moves focus by itself in most browsers; the handler makes it certain.
-  const main = useRef<HTMLElement>(null);
+  const main = useRef<HTMLDivElement>(null);
   return (
     <div ref={ref} data-ouro="stacked-layout" className={cn("relative flex min-h-dvh flex-col bg-background text-foreground", className)}>
       <a href={`#${mainId}`} onClick={() => main.current!.focus()} className={skip}>
@@ -96,9 +104,9 @@ export function StackedLayout(props: StackedLayoutProps): JSX.Element {
       <div data-ouro-stacked-layout-navbar="" className="sticky top-0 z-10">
         {navbar}
       </div>
-      <main ref={main} id={mainId} tabIndex={-1} className={cn("box-border w-full min-w-0 flex-1 outline-none", !bleed && "mx-auto max-w-6xl p-4 sm:p-6")}>
+      <Page ref={main} id={mainId} tabIndex={-1} className={cn("box-border w-full min-w-0 flex-1 outline-none", !bleed && "mx-auto max-w-6xl p-4 sm:p-6")}>
         {children}
-      </main>
+      </Page>
       {footer !== undefined && (
         <footer className="box-border border-0 border-t border-solid border-border px-4 py-6 text-base pointer-fine:text-sm text-muted-foreground sm:px-6">
           {footer}

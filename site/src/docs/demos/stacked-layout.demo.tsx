@@ -5,12 +5,14 @@ import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
 
 // The live demo at the top of docs/stacked-layout/: the component as an app would use it, with its props, nothing else.
+// It renders as a div here because this docs page has its own main landmark.
 // The layout fills the screen in an app; here a short frame holds it.
 
 export default function StackedLayoutDemo(): JSX.Element {
   return (
     <div className="h-80 w-full overflow-auto">
       <StackedLayout
+        as="div"
         className="min-h-80"
         navbar={
           <Navbar

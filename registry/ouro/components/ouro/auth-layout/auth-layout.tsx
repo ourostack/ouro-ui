@@ -20,6 +20,12 @@ export interface AuthLayoutOwnProps {
   children: ReactNode;
   /** A line under the card, such as the link to the other form: "No account? Sign up". */
   footer?: ReactNode;
+  /**
+   * The element the layout renders. Pass `"div"` when the layout renders inside a page that
+   * already has a `<main>`, since a document has one.
+   * @default "main"
+   */
+  as?: "main" | "div" | undefined;
   /** Layout only: margins and height (`min-h-96`). Appearance classes warn in development. */
   className?: string | undefined;
   ref?: Ref<HTMLElement> | undefined;
@@ -62,6 +68,7 @@ export function AuthLayout(props: AuthLayoutProps): JSX.Element {
     brand,
     children,
     footer,
+    as,
     className,
     // Guard props (hint types), dropped here so they never reach the DOM.
     logo,
@@ -87,8 +94,10 @@ export function AuthLayout(props: AuthLayoutProps): JSX.Element {
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
+  // Typed as "main" for the ref, which is an HTMLElement either way.
+  const Root = (as === "div" ? "div" : "main") as "main";
   return (
-    <main
+    <Root
       {...rest}
       data-ouro="auth-layout"
       className={cn(
@@ -110,6 +119,6 @@ export function AuthLayout(props: AuthLayoutProps): JSX.Element {
         </div>
       </Card>
       {footer !== undefined && <div className="w-full max-w-sm text-center text-base pointer-fine:text-sm text-muted-foreground">{footer}</div>}
-    </main>
+    </Root>
   );
 }

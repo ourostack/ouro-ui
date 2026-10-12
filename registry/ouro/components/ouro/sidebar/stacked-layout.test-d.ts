@@ -14,5 +14,8 @@ expectTypeOf<{ navbar: "x" }>().not.toExtend<StackedLayoutProps>();
 expectTypeOf<{ navbar: "x"; children: "Page"; sidebar: "x" }>().not.toExtend<StackedLayoutProps>();
 expectTypeOf<{ navbar: "x"; children: "Page"; header: "x" }>().not.toExtend<StackedLayoutProps>();
 
+// The page's element is main or div.
+expectTypeOf<{ navbar: "x"; children: "Page"; as: "div" }>().toExtend<StackedLayoutProps>();
+expectTypeOf<{ navbar: "x"; children: "Page"; as: "section" }>().not.toExtend<StackedLayoutProps>();
 // @ts-expect-error navbar is required.
 createElement(StackedLayout, { children: "Page" });

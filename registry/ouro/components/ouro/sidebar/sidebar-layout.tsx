@@ -16,6 +16,12 @@ export interface SidebarLayoutProps {
   header?: ReactNode;
   /** The page. It renders inside the page's `<main>`. */
   children: ReactNode;
+  /**
+   * The element around the page. Pass `"div"` when the layout renders inside a page that
+   * already has a `<main>`, since a document has one.
+   * @default "main"
+   */
+  as?: "main" | "div" | undefined;
   /** Removes the padding around the page, for content that runs edge to edge (a map, a cover photo). */
   bleed?: boolean | undefined;
   /** The text of the link that skips the sidebar, shown when it has keyboard focus. @default "Skip to content" */
@@ -71,6 +77,7 @@ export function SidebarLayout(props: SidebarLayoutProps): JSX.Element {
     sidebar,
     header,
     children,
+    as,
     bleed,
     skipLabel = "Skip to content",
     className,
@@ -98,8 +105,9 @@ export function SidebarLayout(props: SidebarLayoutProps): JSX.Element {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   const mainId = useId();
+  const Page = as === "div" ? "div" : "main";
   // The link's address moves focus by itself in most browsers; the handler makes it certain.
-  const main = useRef<HTMLElement>(null);
+  const main = useRef<HTMLDivElement>(null);
   return (
     <div
       ref={ref}
@@ -116,14 +124,14 @@ export function SidebarLayout(props: SidebarLayoutProps): JSX.Element {
       <div data-ouro-sidebar-layout-header="" className={cn(headerCell, header !== undefined ? "min-h-14" : "sm:hidden")}>
         {header}
       </div>
-      <main
+      <Page
         ref={main}
         id={mainId}
         tabIndex={-1}
         className={cn("col-span-2 row-start-2 box-border min-w-0 outline-none sm:col-span-1 sm:col-start-2", !bleed && "p-4 sm:p-6")}
       >
         {children}
-      </main>
+      </Page>
     </div>
   );
 }

@@ -15,5 +15,8 @@ expectTypeOf<{ title: "Sign in"; children: "Form"; logo: "x" }>().not.toExtend<A
 expectTypeOf<{ title: "Sign in"; children: "Form"; heading: "x" }>().not.toExtend<AuthLayoutProps>();
 expectTypeOf<{ title: "Sign in"; children: "Form"; subtitle: "x" }>().not.toExtend<AuthLayoutProps>();
 
+// The page's element is main or div.
+expectTypeOf<{ title: "Sign in"; children: "Form"; as: "div" }>().toExtend<AuthLayoutProps>();
+expectTypeOf<{ title: "Sign in"; children: "Form"; as: "section" }>().not.toExtend<AuthLayoutProps>();
 // @ts-expect-error title is required.
 createElement(AuthLayout, { children: "Form" });
