@@ -392,6 +392,13 @@ describe("ShowMore from an empty list", () => {
         />
       );
     }
+    // The list's name at the moment focus lands on it.
+    const namedAtFocus: (string | null)[] = [];
+    const onFocus = (event: FocusEvent) => {
+      const target = event.target as HTMLElement;
+      if (target.getAttribute("role") === "list") namedAtFocus.push(target.getAttribute("aria-label"));
+    };
+    document.addEventListener("focusin", onFocus);
     try {
       const { host, button } = await render(<EmptyForever />);
       await userEvent.click(button!);
@@ -400,13 +407,16 @@ describe("ShowMore from an empty list", () => {
       expect(host.querySelector('[data-ouro="show-more"]')).not.toBeNull();
       expect(host.querySelector("[data-ouro-show-more-toggle]")).toBeNull();
       expect(errors).toEqual([]);
-      // Focus never falls to the page: it moves to the empty list, which is named by the status.
+      // Focus never falls to the page: it moves to the empty list, already named when it lands.
       const list = host.querySelector<HTMLElement>('[role="list"]')!;
       expect(document.activeElement).toBe(list);
+      expect(namedAtFocus).toEqual(["No more items"]);
       expect(list.getAttribute("tabindex")).toBe("-1");
+      expect(list.hasAttribute("aria-labelledby")).toBe(false);
       await expect.element(page.getByRole("list", { name: "No more items" })).toBeInTheDocument();
     } finally {
       window.removeEventListener("error", onError);
+      document.removeEventListener("focusin", onFocus);
       error.mockRestore();
     }
   });
@@ -526,6 +536,36 @@ describe("ShowMore announcements", () => {
     expect(document.activeElement).not.toBe(document.body);
     // The list is not focusable while it has items.
     expect(host.querySelector('[role="list"]')!.hasAttribute("tabindex")).toBe(false);
+  });
+
+  it("names an empty list only when there is no more to load, never with a stale status", async () => {
+    let search!: (items: string[], hasMore: boolean) => void;
+    function Results() {
+      const [state, setState] = useState({ items: recipes.slice(0, 3), hasMore: true });
+      useEffect(() => {
+        search = (items, hasMore) => setState({ items, hasMore });
+      }, []);
+      return (
+        <ShowMore
+          items={state.items}
+          hasMore={state.hasMore}
+          onShowMore={() => setState({ items: recipes.slice(0, 6), hasMore: true })}
+        />
+      );
+    }
+    const { host, button } = await render(<Results />);
+    await userEvent.click(button!);
+    await expect.poll(() => host.querySelector("[data-ouro-show-more-status]")!.textContent).toBe("Showing 6 items");
+    const list = () => host.querySelector<HTMLElement>('[role="list"]')!;
+    // A new search finds nothing, but more may still load: the list is unnamed and not focusable.
+    await act(async () => search([], true));
+    expect(list().hasAttribute("aria-label")).toBe(false);
+    expect(list().hasAttribute("aria-labelledby")).toBe(false);
+    expect(list().hasAttribute("tabindex")).toBe(false);
+    // Nothing more to load: the empty list is named for that, not "Showing 6 items".
+    await act(async () => search([], false));
+    expect(list().getAttribute("aria-label")).toBe("No more items");
+    expect(list().getAttribute("tabindex")).toBe("-1");
   });
 
   it("has no status region outside load mode", async () => {

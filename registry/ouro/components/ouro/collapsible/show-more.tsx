@@ -1,6 +1,6 @@
 "use client";
 
-import { isValidElement, useEffect, useId, useRef, useState, type CSSProperties, type JSX, type MouseEvent, type ReactNode, type Ref } from "react";
+import { isValidElement, useEffect, useRef, useState, type CSSProperties, type JSX, type MouseEvent, type ReactNode, type Ref } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
@@ -301,7 +301,7 @@ function ShowMoreList(props: (ShowMoreItemsProps | ShowMoreLoadProps) & { showMo
     const arrive = (row: Element | undefined, message: string) => {
       stop();
       // The button is gone. An empty list whose load found nothing has no row, so focus moves
-      // to the list itself (focusable and named by the status while empty), never to the page.
+      // to the list itself (focusable and named by noMoreLabel while empty), never to the page.
       if (row) focusRow(row);
       else listRef.current!.focus();
       if (load) setStatus(message);
@@ -345,9 +345,9 @@ function ShowMoreList(props: (ShowMoreItemsProps | ShowMoreLoadProps) & { showMo
   };
 
   const List = ordered ? "ol" : "ul";
-  const statusId = useId();
-  // An empty list in load mode can take focus when the last load finds nothing.
-  const emptyLoad = load !== undefined && items.length === 0;
+  // An empty list with nothing more to load takes focus when the last load finds nothing, so it
+  // is named for that already when focus lands.
+  const emptyEnd = load !== undefined && items.length === 0 && !load.hasMore;
   const button = !hasButton ? null : load ? (
     <Button
       ref={buttonRef as Ref<HTMLAnchorElement & HTMLButtonElement>}
@@ -373,9 +373,9 @@ function ShowMoreList(props: (ShowMoreItemsProps | ShowMoreLoadProps) & { showMo
       <List
         ref={listRef}
         role="list"
-        tabIndex={emptyLoad ? -1 : undefined}
-        aria-labelledby={emptyLoad ? statusId : undefined}
-        className={cn(listClass, emptyLoad && "outline-none")}
+        tabIndex={emptyEnd ? -1 : undefined}
+        aria-label={emptyEnd ? noMoreLabel : undefined}
+        className={cn(listClass, emptyEnd && "outline-none")}
       >
         {visible.map((item, index) => (
           <li
@@ -393,7 +393,7 @@ function ShowMoreList(props: (ShowMoreItemsProps | ShowMoreLoadProps) & { showMo
       {button}
       {/* Stays mounted after the last page, so the last count is still read. */}
       {load && (
-        <p id={statusId} role="status" data-ouro-show-more-status="" className="sr-only">
+        <p role="status" data-ouro-show-more-status="" className="sr-only">
           {status}
         </p>
       )}

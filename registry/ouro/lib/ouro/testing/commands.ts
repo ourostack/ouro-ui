@@ -165,23 +165,35 @@ export const pageZoom: BrowserCommand<[]> = async (ctx) =>
   // Runs in the page; written without DOM types, which an app's config for this file may lack.
   ctx.page.evaluate(() => (globalThis as { visualViewport?: { scale: number } | null }).visualViewport?.scale ?? 1);
 
+/** One CDP session for a Chromium page, or undefined in another browser. */
+async function chromiumSession(ctx: Parameters<BrowserCommand<[]>>[0]): Promise<CDPSession | undefined> {
+  const { page } = ctx;
+  if (ctx.provider.name !== "playwright" || page.context().browser()?.browserType().name() !== "chromium") return undefined;
+  let session = cdpSessions.get(page);
+  if (!session) {
+    session = await page.context().newCDPSession(page);
+    cdpSessions.set(page, session);
+  }
+  return session;
+}
+
 /**
  * Sets the top-level page's zoom back to 1 (Chromium, through CDP; elsewhere it does nothing).
  * In a phone context (`isMobile`), Chromium can zoom the page when the viewport rotates, and
  * rotating back does not undo it; `rotate` in testing/rotate.ts calls this after each resize.
  */
 export const resetPageZoom: BrowserCommand<[]> = async (ctx) => {
-  const { page } = ctx;
-  if (ctx.provider.name !== "playwright" || page.context().browser()?.browserType().name() !== "chromium") return;
-  let session = cdpSessions.get(page);
-  if (!session) {
-    session = await page.context().newCDPSession(page);
-    cdpSessions.set(page, session);
-  }
-  await session.send("Emulation.setPageScaleFactor", { pageScaleFactor: 1 });
+  await (await chromiumSession(ctx))?.send("Emulation.setPageScaleFactor", { pageScaleFactor: 1 });
 };
 
-export const commands = { emulateMedia, drag, flick, pageZoom, pointerPress, resetPageZoom, tap, touchDrag };
+/** Zooms the top-level page to `scale` (Chromium only), for testing code that checks the zoom. */
+export const setPageZoom: BrowserCommand<[scale: number]> = async (ctx, scale) => {
+  const session = await chromiumSession(ctx);
+  if (!session) throw new Error("setPageZoom: CDP is Chromium only");
+  await session.send("Emulation.setPageScaleFactor", { pageScaleFactor: scale });
+};
+
+export const commands = { emulateMedia, drag, flick, pageZoom, pointerPress, resetPageZoom, setPageZoom, tap, touchDrag };
 
 declare module "vitest/browser" {
   interface BrowserCommands {
@@ -193,5 +205,6 @@ declare module "vitest/browser" {
     pointerPress: (options: PointerPressOptions) => Promise<void>;
     pageZoom: () => Promise<number>;
     resetPageZoom: () => Promise<void>;
+    setPageZoom: (scale: number) => Promise<void>;
   }
 }
