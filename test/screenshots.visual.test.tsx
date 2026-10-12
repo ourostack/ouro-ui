@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { commands, page } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { cleanupStories, openOverlay, overlayOpeners, renderStory, setScheme, settle, stories } from "./stories.tsx";
 
 // Screenshot baselines (spec §8): light, dark and reduced motion, at 390px and
@@ -11,7 +11,9 @@ import { cleanupStories, openOverlay, overlayOpeners, renderStory, setScheme, se
 // Each subject is a story whose parameters name it (`parameters: { screenshot: { name, open } }`, see
 // test/stories.tsx), so a component adds its screenshots in its own story file.
 const subjects = stories.flatMap(({ id, Story, parameters }) =>
-  parameters.screenshot ? [{ name: parameters.screenshot.name, id, Story, open: parameters.screenshot.open ?? false }] : [],
+  parameters.screenshot
+    ? [{ name: parameters.screenshot.name, id, Story, open: parameters.screenshot.open ?? false, focus: parameters.screenshot.focus ?? false }]
+    : [],
 );
 
 /** The committed Linux baselines' subject names: `<name>-<mode>-<width>-chromium-linux.png`. */
@@ -55,7 +57,7 @@ afterEach(async () => {
 
 describe.each(widths)("at $width px", ({ width, height }) => {
   describe.each(modes)("$name", (mode) => {
-    it.each(subjects)("$name", async ({ name, id, Story, open }) => {
+    it.each(subjects)("$name", async ({ name, id, Story, open, focus }) => {
       await page.viewport(width, height);
       await commands.emulateMedia({ reducedMotion: mode.reducedMotion });
       setScheme(mode.scheme);
@@ -68,6 +70,12 @@ describe.each(widths)("at $width px", ({ width, height }) => {
         // Move focus off the opened overlay's first control, so the focus ring
         // (which follows the input type) never decides the image.
         (document.activeElement as HTMLElement | null)?.blur();
+        await settle();
+      }
+      if (focus) {
+        // Tab to the story's first control: a keyboard focus shows a Tooltip or HoverCard.
+        await userEvent.keyboard("{Tab}");
+        await expect.poll(() => document.querySelector("[data-open]")).not.toBeNull();
         await settle();
       }
       await expect(page).toMatchScreenshot(`${name}-${mode.name}-${width}`, {
