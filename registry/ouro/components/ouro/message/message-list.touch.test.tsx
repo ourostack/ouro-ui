@@ -5,6 +5,7 @@ import { commands, page } from "vitest/browser";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 
 // Runs in the `touch` project: Chromium as a 390x844 phone with a coarse pointer.
 
@@ -13,7 +14,7 @@ const nodes: Element[] = [];
 afterEach(async () => {
   await act(async () => root?.unmount());
   for (const node of nodes.splice(0)) node.remove();
-  await page.viewport(390, 844);
+  await rotate(390, 844);
 });
 
 async function render(node: ReactNode) {
@@ -109,7 +110,7 @@ it("follows new messages again after the reader swipes back to the bottom", asyn
 });
 
 it("keeps 16px message text on a landscape phone", async () => {
-  await page.viewport(844, 390);
+  await rotate(844, 390);
   const { scroller } = await render(<Chat items={texts(10)} />);
   const message = scroller.querySelector<HTMLElement>('[data-ouro="message"]')!;
   expect(getComputedStyle(message).fontSize).toBe("16px");

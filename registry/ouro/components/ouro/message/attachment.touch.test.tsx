@@ -1,8 +1,8 @@
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, expect, it } from "vitest";
-import { page } from "vitest/browser";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 
 // Runs in the `touch` project: Chromium as a 390x844 phone with a coarse pointer.
 
@@ -11,7 +11,7 @@ const nodes: Element[] = [];
 afterEach(async () => {
   await act(async () => root?.unmount());
   for (const node of nodes.splice(0)) node.remove();
-  await page.viewport(390, 844);
+  await rotate(390, 844);
 });
 
 async function render() {
@@ -37,7 +37,7 @@ it.each([
   ["portrait", 390, 844],
   ["landscape", 844, 390],
 ])("gives the link and the remove button 44px targets and 16px text on a %s phone", async (_name, width, height) => {
-  await page.viewport(width, height);
+  await rotate(width, height);
   const attachment = await render();
   const link = attachment.querySelector("a")!;
   const remove = attachment.querySelector("button")!;
