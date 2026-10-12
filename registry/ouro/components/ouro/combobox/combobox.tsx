@@ -499,7 +499,15 @@ function ComboboxControl(props: ControlProps): JSX.Element {
   const field = useField()!;
   // The input's text: for the "nothing matched" line and the row that keeps typed text.
   const [text, setText] = useState("");
-  const options = useMemo(() => items.map(toOption), [items]);
+  // With allowCustomValue the text is the value, so an item's label is what it submits, as in
+  // the popup (Autocomplete), whatever its `value`.
+  const options = useMemo(
+    () => items.map((item) => {
+      const option = toOption(item);
+      return custom ? { ...option, value: option.label } : option;
+    }),
+    [items, custom],
+  );
   // Every item seen so far, so a picked value keeps its label when search results change.
   // A map kept for the component's life (state that is never set), added to as items arrive.
   const [known] = useState(() => new Map<string, Option>());

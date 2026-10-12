@@ -280,6 +280,10 @@ function SliderControl({
 }): JSX.Element {
   const field = useField()!;
   const { onValueChange, onValueCommitted, ...shared } = rootProps;
+  // The value text at either end, which bound its width (Base UI's defaults are 0 and 100).
+  const number = new Intl.NumberFormat(shared.locale, shared.format);
+  const ends = [number.format(shared.min ?? 0), number.format(shared.max ?? 100)];
+  const widest = isRange ? ends.map((end) => `${end} – ${end}`) : ends;
   return (
     <BaseSlider.Root
       {...shared}
@@ -308,8 +312,15 @@ function SliderControl({
         </BaseSlider.Track>
       </BaseSlider.Control>
       {showValue && (
-        <BaseSlider.Value data-ouro-slider-value="" className={valueClass}>
-          {(formatted) => formatted.join(" – ")}
+        <BaseSlider.Value
+          data-ouro-slider-value=""
+          // The widest values, as hidden pseudo-elements, hold the width so the track keeps its
+          // length as the value changes; they stay out of the text and the accessibility tree.
+          data-ouro-slider-low={widest[0]}
+          data-ouro-slider-high={widest[1]}
+          className={valueClass}
+        >
+          {(formatted) => <span className="col-start-1 row-start-1">{formatted.join(" – ")}</span>}
         </BaseSlider.Value>
       )}
     </BaseSlider.Root>

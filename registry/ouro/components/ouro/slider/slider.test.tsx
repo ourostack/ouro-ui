@@ -157,6 +157,19 @@ describe("Slider", () => {
     expect(tip.getAttribute("aria-valuetext")).toBe("15%");
   });
 
+  it("keeps the track the same length as the shown value changes, by reserving the widest value", async () => {
+    function Price({ value }: { value: number }) {
+      return <Slider label="Price" value={value} min={0} max={1000} showValue format={{ style: "currency", currency: "USD" }} />;
+    }
+    const { host, rerender } = await render(<Price value={0} />);
+    const track = () => host.querySelector<HTMLElement>("[data-ouro-slider-control]")!.getBoundingClientRect().width;
+    const atMin = track();
+    expect(host.querySelector("[data-ouro-slider-value]")!.textContent).toContain("$0.00");
+    await rerender(<Price value={1000} />);
+    expect(host.querySelector("[data-ouro-slider-value]")!.textContent).toContain("$1,000.00");
+    expect(track()).toBe(atMin);
+  });
+
   it("forwards its ref to the first thumb's input", async () => {
     const ref = createRef<HTMLInputElement>();
     const { inputs } = await render(<Slider label="Volume" ref={ref} />);

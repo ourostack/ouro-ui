@@ -266,6 +266,57 @@ describe("Combobox on a phone", () => {
     expect(host.querySelector(TRIGGER)!.textContent).toContain("Any cuisine");
   });
 
+  it("submits the same text with allowCustomValue on a phone sheet as in the popup, for object items", async () => {
+    const cuisines = [
+      { value: "it", label: "Italian" },
+      { value: "th", label: "Thai" },
+    ];
+    /** Picks Thai, then types Georgian, and returns the form values after each. */
+    async function run(layout: "popup" | "sheet") {
+      await page.viewport(layout === "popup" ? 844 : 390, layout === "popup" ? 390 : 844);
+      const onValueChange = vi.fn();
+      const host = await render(
+        <form>
+          <Combobox label="Cuisine" name="cuisine" allowCustomValue items={cuisines} onValueChange={onValueChange} />
+        </form>,
+      );
+      const form = host.querySelector("form")!;
+      const field = () =>
+        layout === "sheet" ? sheet()!.querySelector<HTMLInputElement>('input[role="combobox"]')! : host.querySelector<HTMLInputElement>('input[role="combobox"]')!;
+      const openAndType = async (text: string) => {
+        if (layout === "sheet") {
+          await commands.tap(TRIGGER);
+          await opened();
+          await commands.tap('[data-ouro="sheet"] input[role="combobox"]');
+        } else {
+          await commands.tap('input[role="combobox"]');
+        }
+        await userEvent.clear(field());
+        await userEvent.type(field(), text);
+      };
+      await openAndType("Tha");
+      await expect.poll(() => document.querySelectorAll('[role="option"]').length).toBeGreaterThan(0);
+      await userEvent.click(page.getByRole("option", { name: "Thai" }));
+      await expect.poll(sheet).toBeNull();
+      const picked = [new FormData(form).get("cuisine"), onValueChange.mock.lastCall?.[0]];
+      await openAndType("Georgian");
+      if (layout === "sheet") {
+        await commands.tap('[role="option"]:nth-child(1)');
+        await expect.poll(sheet).toBeNull();
+      } else {
+        field().blur();
+      }
+      const typed = [new FormData(form).get("cuisine"), onValueChange.mock.lastCall?.[0]];
+      await act(async () => root?.unmount());
+      root = undefined;
+      return { picked, typed };
+    }
+    const popup = await run("popup");
+    const phone = await run("sheet");
+    expect(popup).toEqual({ picked: ["Thai", "Thai"], typed: ["Georgian", "Georgian"] });
+    expect(phone).toEqual(popup);
+  });
+
   it("translates the row that keeps the typed text", async () => {
     await render(<Combobox label="Küche" allowCustomValue items={[]} customValueLabel={(text) => `„${text}“ verwenden`} />);
     await commands.tap(TRIGGER);

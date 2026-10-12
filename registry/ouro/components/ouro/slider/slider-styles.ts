@@ -56,10 +56,13 @@ const thumbClass =
   "group-data-invalid/slider:border-destructive data-disabled:cursor-not-allowed";
 
 /**
- * The formatted value at the end of the row, in tabular figures so it does not jump. When
+ * The formatted value at the end of the row, in tabular figures, as wide as the widest value
+ * (hidden pseudo-elements with the ends' text hold the width) so the track keeps its length. When
  * disabled it turns the muted color rather than fading, so it keeps a readable contrast.
  *
  * @internal
  */
 const valueClass =
-  "m-0 shrink-0 text-sm leading-5 text-foreground tabular-nums whitespace-nowrap group-data-disabled/slider:text-muted-foreground";
+  "m-0 grid shrink-0 justify-items-end text-sm leading-5 text-foreground tabular-nums whitespace-nowrap group-data-disabled/slider:text-muted-foreground " +
+  "before:invisible before:col-start-1 before:row-start-1 before:content-[attr(data-ouro-slider-low)] " +
+  "after:invisible after:col-start-1 after:row-start-1 after:content-[attr(data-ouro-slider-high)]";
