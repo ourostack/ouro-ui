@@ -81,6 +81,9 @@ const mounted: Element[] = [];
  */
 export function setScheme(scheme: "light" | "dark"): void {
   document.documentElement.classList.toggle("dark", scheme === "dark");
+  // Resolve styles now: WebKit otherwise styles a native <select> rendered next, and its
+  // ancestors, with the previous scheme's variables.
+  void getComputedStyle(document.documentElement).color;
 }
 
 /** Renders a story into the page. */
@@ -104,7 +107,8 @@ export async function cleanupStories(): Promise<void> {
 
 /** The elements that open an overlay in a story: enabled Base UI triggers, then the plain openers. */
 export function overlayOpeners(id: string, host: HTMLElement): HTMLElement[] {
-  const triggers = [...host.querySelectorAll<HTMLElement>("[aria-haspopup]:not(:disabled)")];
+  // A disabled trigger (a disabled Select in a states story) opens nothing.
+  const triggers = [...host.querySelectorAll<HTMLElement>("[aria-haspopup]")].filter((trigger) => !trigger.matches(":disabled, [data-disabled]"));
   const plain = (story(id).parameters?.plainOpeners ?? []).map((label) => {
     const button = [...host.querySelectorAll<HTMLElement>("button")].find((item) => item.textContent === label);
     if (!button) throw new Error(`${id}: no button labeled "${label}"`);
@@ -131,7 +135,9 @@ const waitOptions = { timeout: 10_000, interval: 20 };
 
 /** The open overlay's popup (Dialog, ConfirmDialog or Sheet, in either presentation, or a list's popup). */
 export function openPopup(): HTMLElement | null {
-  return document.querySelector<HTMLElement>('[role="dialog"][data-open], [role="alertdialog"][data-open], [data-open]:has([role="listbox"])');
+  return document.querySelector<HTMLElement>(
+    '[role="dialog"][data-open], [role="alertdialog"][data-open], [data-ouro="select-popup"][data-open], [data-open]:has([role="listbox"])',
+  );
 }
 
 /** Clicks an opener and waits for its overlay to finish opening. */

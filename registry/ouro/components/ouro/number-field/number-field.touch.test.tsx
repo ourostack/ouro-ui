@@ -1,16 +1,17 @@
 import type { ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, expect, it, vi } from "vitest";
-import { commands, page } from "vitest/browser";
+import { commands } from "vitest/browser";
 import { NumberField } from "@/registry/ouro/components/ouro/number-field/number-field";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 
 // Runs in the `touch` project: Chromium as a 390x844 phone with a coarse pointer.
 
 let root: Root | undefined;
 const nodes: Element[] = [];
 afterEach(async () => {
-  await page.viewport(390, 844);
+  await rotate(390, 844);
   await act(async () => root?.unmount());
   for (const node of nodes.splice(0)) node.remove();
 });
@@ -30,7 +31,7 @@ it("is 44px tall with 16px text, and its steppers have a 44px hit area, also on 
     [390, 844],
     [844, 390],
   ] as const) {
-    await page.viewport(width, height);
+    await rotate(width, height);
     const host = await render(<NumberField label="Servings" defaultValue={4} />);
     const group = host.querySelector<HTMLElement>("[data-ouro-number-field-group]")!;
     expect(group.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);

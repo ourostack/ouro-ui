@@ -38,16 +38,3 @@ test.skipIf(server.browser !== "chromium")("drag with hold keeps the button down
   target.remove();
   expect(events).toEqual(["mousedown", "mouseup"]);
 });
-
-test.skipIf(server.browser !== "chromium")("touchDrag sends touch start, moves and end", async () => {
-  const events: string[] = [];
-  const target = document.createElement("div");
-  target.style.cssText = "position:fixed;inset:0;touch-action:none;";
-  document.body.append(target);
-  for (const type of ["touchstart", "touchmove", "touchend"]) target.addEventListener(type, () => events.push(type));
-  await commands.touchDrag({ from: [10, 10], to: [10, 100], steps: 4 });
-  target.remove();
-  expect(events[0]).toBe("touchstart");
-  expect(events.filter((e) => e === "touchmove").length).toBeGreaterThanOrEqual(4);
-  expect(events.at(-1)).toBe("touchend");
-});

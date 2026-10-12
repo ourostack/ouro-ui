@@ -1,10 +1,10 @@
 "use client";
 
 import { Field as BaseField } from "@base-ui/react/field";
-import { useCallback, useId, useMemo, useRef, type JSX, type ReactElement, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, type FormEvent, type JSX, type ReactElement, type ReactNode } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { FieldContext, FieldOwnerContext, useFieldOwner } from "@/registry/ouro/lib/ouro/use-field";
+import { FieldContext, FieldOwnerContext, useFieldOwner, useFormErrors } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 import { FieldDescription, FieldError, FieldLabel } from "@/registry/ouro/components/ouro/field/field-parts";
 import { fieldHint, rootClass } from "@/registry/ouro/components/ouro/field/field-styles";
@@ -26,7 +26,8 @@ export interface FieldProps {
   /**
    * What is wrong, from your server action or client check. A message (or several, as a
    * list, each shown once) shows under the control, which gets `aria-invalid` and points at the message
-   * with `aria-describedby`. An empty string or array means valid.
+   * with `aria-describedby`. An empty string or array means valid. It only shows: it never
+   * blocks the next submit of the form around it.
    */
   error?: string | string[] | undefined;
   /** The control must be filled: it gets `required` and `aria-required`, and the label a marker. */
@@ -34,8 +35,8 @@ export interface FieldProps {
   /** Disables the control and fades the field. */
   disabled?: boolean | undefined;
   /**
-   * The form field name the control submits under. A Base UI `Form`'s `errors` for this
-   * name show here without an `error` prop.
+   * The form field name the control submits under. A `Form`'s `errors` for this name show
+   * here when there is no `error` prop, and go away once the user changes the control.
    */
   name?: string | undefined;
   /** The control: `<FieldControl />`, or `<FieldControl render={<textarea />} />` for another element. */
@@ -83,13 +84,17 @@ function messagesOf(error: string | string[] | undefined): string[] {
 
 /**
  * The label is connected when its `for` names an element inside the field, or when an element
- * inside the field names it in `aria-labelledby` (a range slider's group). Development only.
+ * inside the field names it in `aria-labelledby`: a range Slider's group names the label
+ * element's own id, and a label that is not a `<label>` (Select's) is named by `labelId`.
+ * Development only.
  */
-function labelConnected(root: HTMLElement, data: string): boolean {
-  const label = root.querySelector("label")!;
+function labelConnected(root: HTMLElement, data: string, labelId: string, nativeLabel: boolean): boolean {
+  const label = root.querySelector("label");
   const inside = (element: Element | null) => element?.closest(`[data-ouro="${data}"]`) === root;
-  if (label.htmlFor && inside(root.ownerDocument.getElementById(label.htmlFor))) return true;
-  return [...root.querySelectorAll(`[aria-labelledby~="${CSS.escape(label.id)}"]`)].some(inside);
+  if (nativeLabel && label?.htmlFor && inside(root.ownerDocument.getElementById(label.htmlFor))) return true;
+  return [label?.id ?? labelId, labelId].some((id) =>
+    [...root.querySelectorAll(`[aria-labelledby~="${CSS.escape(id)}"]`)].some(inside),
+  );
 }
 
 /**
@@ -98,7 +103,10 @@ function labelConnected(root: HTMLElement, data: string): boolean {
  * control takes these props and is built on the same parts.
  *
  * Pass `error` straight from a server action or a client check: it shows the message and
- * sets `aria-invalid`. The control is `FieldControl`, from `field-parts`. Use `Fieldset` instead to group several controls under one legend,
+ * sets `aria-invalid`. The error only shows: it never blocks the form's next submit, so the
+ * user can always send the form again (only the browser's own checks, such as `required`,
+ * block). Inside a `Form`, a field with a `name` shows the form's error for that name when
+ * it has no `error` of its own. The control is `FieldControl`, from `field-parts`. Use `Fieldset` instead to group several controls under one legend,
  * and the `FieldRoot` parts when the label, control and error need another layout.
  *
  * @group Forms
@@ -133,13 +141,32 @@ export function Field(props: FieldProps): JSX.Element {
   const id = useId();
   // A control built on Field (TextField) names itself in the messages and the root.
   const owner = useFieldOwner();
-  const messages = messagesOf(error);
+  const nativeLabel = owner.nativeLabel !== false;
+  // A Form's error for this name shows when the field has no `error` of its own. Reading it
+  // here, while rendering, puts the message id in the server HTML's aria-describedby.
+  const form = useFormErrors();
+  const formError = error === undefined && name !== undefined ? form?.errors[name] : undefined;
+  const messages = messagesOf(error ?? formError);
   const invalid = messages.length > 0;
   const hasDescription = description !== undefined && description !== null && description !== false && description !== "";
   const descriptionId = `${id}-description`;
   const errorId = `${id}-error`;
+  const labelId = `${id}-label`;
   const describedBy = [hasDescription && descriptionId, invalid && errorId].filter(Boolean).join(" ") || undefined;
-  const value = useMemo(() => ({ required: Boolean(required), describedBy }), [required, describedBy]);
+  const value = useMemo(
+    () => ({ required: Boolean(required), describedBy, invalid, labelId }),
+    [required, describedBy, invalid, labelId],
+  );
+  // Changing the control drops its Form error, as Base UI's Form drops its own copy. Every
+  // control's change event bubbles here; a control without one (Select) clears it itself.
+  const clearFormError = (event: FormEvent<HTMLDivElement>) => {
+    if (formError === undefined || (event.target as HTMLElement).closest(`[data-ouro="${owner.data}"]`) !== event.currentTarget) return;
+    form!.clear(name!);
+  };
+
+  // The field claims its name in the Form, so the Form shows its errors here, not at the top.
+  const register = form?.register;
+  useEffect(() => (register && name !== undefined ? register(name) : undefined), [register, name]);
 
   // The dev checks run after render, when the root is in the page and the control has
   // registered its id with the label.
@@ -159,7 +186,7 @@ export function Field(props: FieldProps): JSX.Element {
             `label is ${label === "" ? "empty" : "missing"}, so the control has no name`,
             `<${owner.name} label="Email" hideLabel> to hide a label you still need`,
           ],
-          !labelConnected(rootRef.current!, owner.data) && [
+          !labelConnected(rootRef.current!, owner.data, labelId, nativeLabel) && [
             "the label is not connected to a control",
             `<Field label="${label}"><FieldControl /></Field>, or <FieldControl render={<textarea />} /> for another element`,
           ],
@@ -180,16 +207,25 @@ export function Field(props: FieldProps): JSX.Element {
 
   return (
     <FieldContext.Provider value={value}>
+      {/* `invalid` stays Ouro's: Base UI would count it as a failed check and block the
+          form's next submit. Its own checks (`required`, `type`) still mark and block. */}
       <BaseField.Root
         ref={rootRef}
         name={name}
         disabled={disabled}
-        invalid={invalid}
+        {...(invalid ? { "data-invalid": "" } : {})}
         data-ouro={owner.data}
         className={cn(rootClass, className)}
+        onChange={clearFormError}
       >
         {(owner.frame ?? defaultFrame)(
-          <FieldLabel className={hideLabel ? "sr-only" : undefined}>{label}</FieldLabel>,
+          <FieldLabel
+            id={labelId}
+            className={hideLabel ? "sr-only" : undefined}
+            {...(nativeLabel ? {} : { nativeLabel: false, render: <div /> })}
+          >
+            {label}
+          </FieldLabel>,
           <>
             {hasDescription && <FieldDescription id={descriptionId}>{description}</FieldDescription>}
             {/* The owner names this Field only: a plain Field inside (in an adornment's popover) is a Field. */}

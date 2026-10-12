@@ -454,8 +454,9 @@ function componentPage(page: Page, symbol: ts.Symbol, partFamilies: Set<string>)
     }
   }
   if (partFamilies.has(page.name)) {
+    const hasRoot = exportsOf(partFiles[page.name]!).some((symbol) => symbol.getName() === `${page.name}Root`);
     sections.push(
-      `## Parts\n\nWhen these props cannot express your layout, build it from the parts in \`${importPath(partFiles[page.name]!)}\`. See [parts.md](parts.md#${page.name.toLowerCase()}-parts) for the required nesting.`,
+      `## Parts\n\n${hasRoot ? "When these props cannot express your layout, build it from" : "For what these props cannot express, pass as children"} the parts in \`${importPath(partFiles[page.name]!)}\`. See [parts.md](parts.md#${page.name.toLowerCase()}-parts) for the required nesting.`,
     );
   }
   sections.push(typesSection(texts, new Set([page.name])));
@@ -492,10 +493,12 @@ function partsPage(families: string[]): string {
     const members = exportsOf(partFiles[family]!)
       .filter((symbol) => symbol.declarations?.some(ts.isFunctionDeclaration) && symbol.getName().startsWith(family))
       .sort((a, b) => a.getName().localeCompare(b.getName(), "en"));
+    // A family with a root (`DialogRoot`) rebuilds the component; one without (`SelectItem`)
+    // goes inside the component itself as children, and its first part's example shows how.
     const rootPart = members.find((symbol) => symbol.getName() === `${family}Root`);
-    if (!rootPart) throw new Error(`parts: ${family} has no ${family}Root`);
-    const rootDoc = describe(rootPart);
-    if (!rootDoc.example) throw new Error(`${family}Root has no @example showing the required nesting.`);
+    const root = rootPart ? `${family}Root` : family;
+    const rootDoc = describe(rootPart ?? members[0]!);
+    if (!rootDoc.example) throw new Error(`${rootDoc.name} has no @example showing the required nesting.`);
     const rows = members.map((symbol) => {
       const text = paragraphs(docText(symbol.getDocumentationComment(checker))).join(" ").replace(/^Part: /, "");
       return `| \`${symbol.getName()}\` | ${cell(text.charAt(0).toUpperCase() + text.slice(1))} |`;
@@ -503,11 +506,11 @@ function partsPage(families: string[]): string {
     sections.push(
       [
         `## ${family} parts`,
-        rootDoc.purpose.replace(/^Part: /, "").replace(/^./, (first) => first.toUpperCase()),
+        rootPart ? rootDoc.purpose.replace(/^Part: /, "").replace(/^./, (first) => first.toUpperCase()) : `Children of \`<${family}>\`, for what its props cannot express.`,
         `\`\`\`tsx\nimport {\n${members.map((symbol) => `  ${symbol.getName()},`).join("\n")}\n} from "${importPath(partFiles[family]!)}";\n\`\`\``,
         `### Required nesting`,
         `\`\`\`tsx\n${rootDoc.example}\n\`\`\``,
-        `Each part checks that it sits inside \`<${family}Root>\`. Outside it, a part throws in development with a message that shows this JSX shape.`,
+        `Each part checks that it sits inside \`<${root}>\`. Outside it, a part throws in development with a message that shows this JSX shape.`,
         `| Part | What it is |\n| --- | --- |\n${rows.join("\n")}`,
       ].join("\n\n"),
     );

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Combobox } from "@/registry/ouro/components/ouro/combobox/combobox";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 
 // Runs in the `touch` project: Chromium as a 390x844 phone with a coarse pointer.
 
@@ -19,7 +20,7 @@ afterEach(async () => {
   vi.restoreAllMocks();
   await act(async () => root?.unmount());
   for (const node of nodes.splice(0)) node.remove();
-  await page.viewport(390, 844);
+  await rotate(390, 844);
 });
 
 async function render(node: ReactNode) {
@@ -127,7 +128,7 @@ describe("Combobox on a phone", () => {
   });
 
   it("keeps the popup on a landscape phone, past the sm breakpoint", async () => {
-    await page.viewport(844, 390);
+    await rotate(844, 390);
     const host = await render(<Combobox label="Herb" items={herbs} />);
     expect(host.querySelector(TRIGGER)).toBeNull();
     const input = host.querySelector<HTMLInputElement>('input[role="combobox"]')!;
@@ -273,7 +274,7 @@ describe("Combobox on a phone", () => {
     ];
     /** Picks Thai, then types Georgian, and returns the form values after each. */
     async function run(layout: "popup" | "sheet") {
-      await page.viewport(layout === "popup" ? 844 : 390, layout === "popup" ? 390 : 844);
+      await rotate(layout === "popup" ? 844 : 390, layout === "popup" ? 390 : 844);
       const onValueChange = vi.fn();
       const host = await render(
         <form>
@@ -327,7 +328,7 @@ describe("Combobox on a phone", () => {
   });
 
   it("gives chip remove buttons a 44px hit area", async () => {
-    await page.viewport(844, 390);
+    await rotate(844, 390);
     const host = await render(<Combobox label="Herbs" multiple items={herbs} defaultValue={["Basil"]} />);
     const remove = host.querySelector<HTMLElement>('button[aria-label="Remove Basil"]')!;
     const rect = remove.getBoundingClientRect();
