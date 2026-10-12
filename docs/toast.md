@@ -18,7 +18,7 @@ toast("Couldn't save", { tone: "destructive", description: "Check your connectio
 
 ## Usage
 
-A toast called before the Toaster mounts waits for it. Up to three show at once, the newest in front; later ones wait their turn, and each one's countdown starts when it shows. Hovering or focusing them (or pressing F6) pauses the countdown, and a swipe down or sideways dismisses one. A toast with an `action` stays until it is dismissed unless you pass a `duration`.
+A toast called before the Toaster mounts waits for it. Up to three show at once, the newest in front; later ones wait their turn, a `destructive` toast ahead of the others, and each one's countdown starts when it shows. Hovering or focusing them (or pressing F6) pauses the countdown, and a swipe down or sideways dismisses one. A toast with an `action` stays until it is dismissed unless you pass a `duration`.
 
 ## Use instead when
 

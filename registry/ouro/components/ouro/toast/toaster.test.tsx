@@ -422,6 +422,40 @@ describe("toast()", () => {
     expect(toastNamed("Never shown")).toBeUndefined();
   });
 
+  it("moves a destructive toast ahead of other waiting toasts, without pushing out a shown one", async () => {
+    await render(<Toaster />);
+    const ids: string[] = [];
+    await act(async () => {
+      for (const n of [1, 2, 3]) ids.push(toast(`Undo ${n}`, { action: { label: "Undo", onClick: () => {} } }));
+      toast("Synced", { tone: "primary", duration: 0 });
+      toast("Couldn't save", { tone: "destructive", duration: 0 });
+      toast("Also failed", { tone: "destructive", duration: 0 });
+    });
+    await expect.poll(() => titles()).toEqual(["Undo 3", "Undo 2", "Undo 1"]);
+    await act(async () => toast.dismiss(ids[0]));
+    await expect.poll(() => titles()).toEqual(["Couldn't save", "Undo 3", "Undo 2"]);
+    await act(async () => toast.dismiss(ids[1]));
+    await expect.poll(() => titles()).toEqual(["Also failed", "Couldn't save", "Undo 3"]);
+    await act(async () => toast.dismiss(ids[2]));
+    await expect.poll(() => titles()).toEqual(["Synced", "Also failed", "Couldn't save"]);
+  });
+
+  it("warns once when more than ten toasts are waiting, and keeps them all", async () => {
+    await render(<Toaster />);
+    const ids: string[] = [];
+    await act(async () => {
+      for (let n = 1; n <= 16; n++) ids.push(toast(`Toast ${n}`, { duration: 0 }));
+    });
+    expect(warnings()).toEqual([
+      '[ouro-ui] Toaster: more than 10 toasts are waiting to show. Fix: send fewer toasts, or update one in place with toast("…", { id }).',
+    ]);
+    // No cap: the last one still shows once the others are dismissed.
+    await act(async () => {
+      for (const id of ids.slice(0, 13)) toast.dismiss(id);
+    });
+    await expect.poll(() => titles()).toEqual(["Toast 16", "Toast 15", "Toast 14"]);
+  });
+
   it("replaces a waiting toast that has the same id, in its place in the queue", async () => {
     await render(<Toaster />);
     const ids: string[] = [];

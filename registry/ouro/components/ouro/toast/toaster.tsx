@@ -47,7 +47,7 @@ export interface ToasterProps {
  * once, at the root of your app, inside `OuroProvider` if you use one, or alone. Every
  * Ouro UI install has `toast`. Toasts stack at the
  * bottom of the screen, full width on phones; up to three show, and later ones wait their
- * turn. They pause while the pointer is over them or a toast has focus, F6 moves focus to
+ * turn, a `destructive` toast ahead of the others. They pause while the pointer is over them or a toast has focus, F6 moves focus to
  * them, newest first, and a swipe down or sideways dismisses one. Each toast is read to
  * screen readers once: politely through this region, and a `destructive` toast
  * assertively, so it interrupts.
@@ -99,6 +99,8 @@ export function Toaster(props: ToasterProps): JSX.Element | null {
 
 /** How many toasts show at once; later ones wait in the Toaster's queue. */
 const VISIBLE = 3;
+/** How many toasts may wait before development warns that the app sends too many. There is no cap. */
+const MAX_WAITING_HINT = 10;
 
 /**
  * Connects this Toaster to `toast()`. Up to three toasts are in Base UI's manager at a time;
@@ -158,8 +160,20 @@ function Connect({ onActive }: { onActive: (active: boolean) => void }): null {
         if (shown.has(record.id)) show(record);
         else if (queue.some((item) => item.id === record.id)) state.current.queue = queue.map((item) => (item.id === record.id ? record : item));
         else {
-          state.current.queue = [...queue, record];
+          // A destructive toast waits ahead of the others, after any destructive ones already
+          // waiting; it never pushes out a toast that is showing.
+          const at = record.tone === "destructive" ? queue.filter((item) => item.tone === "destructive").length : queue.length;
+          state.current.queue = [...queue.slice(0, at), record, ...queue.slice(at)];
           next();
+          /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
+          if (process.env.NODE_ENV !== "production" && state.current.queue.length > MAX_WAITING_HINT) {
+            devWarn(
+              "Toaster",
+              `more than ${MAX_WAITING_HINT} toasts are waiting to show`,
+              'send fewer toasts, or update one in place with toast("…", { id })',
+              key.current,
+            );
+          }
         }
       },
       close: (id) => {
