@@ -161,7 +161,9 @@ export const tap: BrowserCommand<[selector: string]> = async (ctx, selector) => 
 };
 
 /** The top-level page's zoom (`visualViewport.scale`): 1 unless something zoomed the page. */
-export const pageZoom: BrowserCommand<[]> = async (ctx) => ctx.page.evaluate(() => window.visualViewport?.scale ?? 1);
+export const pageZoom: BrowserCommand<[]> = async (ctx) =>
+  // Runs in the page; written without DOM types, which an app's config for this file may lack.
+  ctx.page.evaluate(() => (globalThis as { visualViewport?: { scale: number } | null }).visualViewport?.scale ?? 1);
 
 /**
  * Sets the top-level page's zoom back to 1 (Chromium, through CDP; elsewhere it does nothing).
