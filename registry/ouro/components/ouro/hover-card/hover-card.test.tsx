@@ -66,7 +66,8 @@ describe("HoverCard", () => {
     expect(element.textContent).toBe("Cooks mostly Persian food. 42 recipes.");
     const box = element.getBoundingClientRect();
     const anchor = link().getBoundingClientRect();
-    expect(Math.round(box.top - anchor.bottom)).toBe(8);
+    // An inline link's bottom edge can be fractional, and the popup lands on a whole pixel.
+    expect(Math.abs(box.top - anchor.bottom - 8)).toBeLessThanOrEqual(1);
     expect(box.width).toBe(288);
     await userEvent.unhover(link());
     await expect.poll(() => card()).toBeNull();
