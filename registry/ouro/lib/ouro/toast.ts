@@ -32,9 +32,12 @@ export interface ToastOptions {
   /** A button in the toast, such as Undo: `{ label: "Undo", onClick: undo }`. Pressing it dismisses the toast. */
   action?: ToastAction | undefined;
   /**
-   * How long the toast stays, in milliseconds. Hovering or focusing the toasts pauses
-   * the countdown. `0` or `Infinity` keeps it until it is dismissed.
-   * @default 5000
+   * How long the toast stays once it shows, in milliseconds. Hovering or focusing the
+   * toasts pauses the countdown. `0` or `Infinity` keeps it until it is dismissed.
+   *
+   * A toast with an `action` stays until it is dismissed unless you pass a duration: a
+   * timed Undo can run out before a keyboard or screen reader user reaches it (WCAG 2.2.1).
+   * @default 5000, or until dismissed with an action
    */
   duration?: number | undefined;
   /** An id of your own. A toast with the id of one still showing replaces it in place. */
@@ -73,6 +76,8 @@ export interface ToastRecord {
 export interface ToasterSink {
   add(record: ToastRecord): void;
   close(id?: string): void;
+  /** Called when this Toaster starts showing toasts: at once, or when the one before it unmounts. */
+  activate(): void;
 }
 
 const tones: readonly ToneName[] = ["primary", "secondary", "destructive", "success", "warning"];
@@ -83,8 +88,11 @@ const renamed: Readonly<Record<string, ToneName>> = { error: "destructive", dang
 const MAX_PENDING = 20;
 /** How long a toast may wait for a Toaster before development warns that none is mounted. */
 const MISSING_TOASTER_MS = 1000;
+/** How long a toast with no action stays, in milliseconds. */
+const DEFAULT_DURATION = 5000;
 
-let sink: ToasterSink | undefined;
+/** The mounted Toasters, in mount order. The first shows toasts; the others wait to take over. */
+let sinks: ToasterSink[] = [];
 let pending: ToastRecord[] = [];
 let count = 0;
 let missingCheck: ReturnType<typeof setTimeout> | undefined;
@@ -96,8 +104,10 @@ let missingCheck: ReturnType<typeof setTimeout> | undefined;
  * id; `toast.dismiss(id)` closes it, and `toast.dismiss()` closes them all.
  *
  * A toast called before the Toaster mounts waits for it. Up to three show at once, the
- * newest in front; hovering or focusing them (or pressing F6) pauses the countdown, and a
- * swipe down or sideways dismisses one.
+ * newest in front; later ones wait their turn, and each one's countdown starts when it
+ * shows. Hovering or focusing them (or pressing F6) pauses the countdown, and a swipe down
+ * or sideways dismisses one. A toast with an `action` stays until it is dismissed unless
+ * you pass a `duration`.
  *
  * Use `Alert` instead when the message must stay on the page, such as a form's errors,
  * and `Dialog` when the user must answer before going on.
@@ -111,7 +121,11 @@ let missingCheck: ReturnType<typeof setTimeout> | undefined;
  * toast("Couldn't save", { tone: "destructive", description: "Check your connection." });
  */
 export function toast(message: string, options: ToastOptions = {}): string {
-  const { tone: toneOption = "secondary", description, action, duration = 5000, id = `ouro-toast-${++count}` } = options;
+  const { tone: toneOption = "secondary", description, action, duration: durationOption, id = `ouro-toast-${++count}` } = options;
+  // A timed Undo can run out before a keyboard or screen reader user reaches it (WCAG 2.2.1).
+  const fallback = action ? 0 : DEFAULT_DURATION;
+  const valid = durationOption !== undefined && (durationOption === Infinity || (Number.isFinite(durationOption) && durationOption >= 0));
+  const duration = valid ? durationOption : fallback;
   const tone = tones.includes(toneOption as ToneName) ? (toneOption as ToneName) : "secondary";
   /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
   if (process.env.NODE_ENV !== "production") {
@@ -123,6 +137,13 @@ export function toast(message: string, options: ToastOptions = {}): string {
     }
     for (const key of ["type", "variant"] as const) {
       if (bad[key] !== undefined) devWarn("toast", `${key} is not an option`, `toast("…", { tone: "${toneFix(bad[key])}" })`);
+    }
+    if (durationOption !== undefined && !valid) {
+      devWarn(
+        "toast",
+        `duration: ${String(durationOption)} is not a duration; use milliseconds, or 0 to keep the toast`,
+        `toast("…", { duration: ${DEFAULT_DURATION} })`,
+      );
     }
     if (bad.timeout !== undefined) devWarn("toast", "timeout is not an option", `toast("…", { duration: ${String(bad.timeout)} })`);
     if (bad.title !== undefined) devWarn("toast", "title is not an option; the message is the first argument", `toast(${JSON.stringify(String(bad.title))})`);
@@ -137,8 +158,9 @@ export function toast(message: string, options: ToastOptions = {}): string {
     tone,
     description,
     action,
-    timeout: duration === Infinity || duration < 0 ? 0 : duration,
+    timeout: duration === Infinity ? 0 : duration,
   };
+  const sink = sinks[0];
   if (sink) {
     sink.add(record);
   } else {
@@ -161,7 +183,7 @@ function scheduleMissingCheck(): void {
   missingCheck = setTimeout(() => {
     missingCheck = undefined;
     const first = pending[0];
-    if (!sink && first) {
+    if (sinks.length === 0 && first) {
       devWarn("toast", `no <Toaster /> is mounted, so "${first.message}" is not shown`, "render <Toaster /> once, at the root of your app");
     }
   }, MISSING_TOASTER_MS);
@@ -171,6 +193,7 @@ function scheduleMissingCheck(): void {
  * Closes the toast with this id, or every toast with no id.
  */
 toast.dismiss = function dismiss(id?: string): void {
+  const sink = sinks[0];
   if (sink) sink.close(id);
   else pending = id === undefined ? [] : pending.filter((item) => item.id !== id);
 };
@@ -194,19 +217,31 @@ toast.warning = sonnerAlias("warning", "warning") as unknown as { 'Use toast("Ca
 toast.info = sonnerAlias("info", "primary") as unknown as { 'Use toast("Heads up", { tone: "primary" })': never };
 
 /**
- * Connects a mounted Toaster: toasts that waited for it show now, and later ones go to
- * it. Returns the disconnect function, or `undefined` when another Toaster is already
- * connected (only one shows toasts, so each is announced once).
+ * Connects a mounted Toaster. The first one connected shows toasts: those that waited for
+ * it, and every later one. Another waits, and takes over when the ones before it
+ * disconnect (only one shows toasts, so each is announced once). Returns the disconnect
+ * function and whether this Toaster is the one showing toasts.
  *
  * @internal
  */
-export function connectToaster(next: ToasterSink): (() => void) | undefined {
-  if (sink) return undefined;
-  sink = next;
+export function connectToaster(next: ToasterSink): { disconnect: () => void; active: boolean } {
+  sinks = [...sinks, next];
+  const active = sinks[0] === next;
+  if (active) activate(next);
+  return {
+    active,
+    disconnect: () => {
+      const wasActive = sinks[0] === next;
+      sinks = sinks.filter((item) => item !== next);
+      const following = sinks[0];
+      if (wasActive && following) activate(following);
+    },
+  };
+}
+
+function activate(next: ToasterSink): void {
+  next.activate();
   const waiting = pending;
   pending = [];
   for (const record of waiting) next.add(record);
-  return () => {
-    sink = undefined;
-  };
 }

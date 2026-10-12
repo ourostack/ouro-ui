@@ -42,6 +42,34 @@ async function show(message: string, options?: ToastOptions) {
   return item;
 }
 
+/** The toasts' messages, in page order. */
+const titles = () => toasts().map((item) => item.querySelector("[data-ouro-toast-title]")!.textContent);
+
+/** Records the text each live region exposes as it changes; text inside aria-hidden is not exposed. */
+function watchAnnouncements() {
+  const liveSelector = '[aria-live]:not([aria-live="off"]), [role="status"], [role="alert"], [role="log"]';
+  const changes: Array<{ region: Element; text: string }> = [];
+  const exposed = (node: Node) => {
+    const element = node instanceof Element ? node : node.parentElement;
+    return !element?.closest('[aria-hidden="true"]');
+  };
+  const observer = new MutationObserver((records) => {
+    for (const record of records) {
+      const target = record.target instanceof Element ? record.target : record.target.parentElement;
+      const nodes = record.type === "characterData" ? [record.target] : [...record.addedNodes];
+      for (const node of nodes) {
+        // Text added inside a live region, or a live region added with its text.
+        const region = target?.closest(liveSelector) ?? (node instanceof Element ? (node.matches(liveSelector) ? node : node.querySelector(liveSelector)) : null);
+        const text = exposed(node) ? (node.textContent ?? "") : "";
+        if (region && text) changes.push({ region, text });
+      }
+    }
+  });
+  observer.observe(document.body, { subtree: true, childList: true, characterData: true });
+  const matching = (message: string) => changes.filter((change) => change.text.includes(message));
+  return { changes, matching, count: (message: string) => matching(message).length, stop: () => observer.disconnect() };
+}
+
 /** Waits until the toast is gone from the page. */
 const gone = (message: string) => expect.poll(() => toastNamed(message)).toBeUndefined();
 
@@ -52,9 +80,20 @@ async function elapse(ms: number) {
 }
 
 let warn: ReturnType<typeof vi.spyOn>;
-beforeEach(() => {
+beforeEach(async () => {
+  // A pointer left where an earlier test pressed a toast would hover new ones and pause them.
+  await moveMouseAway();
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 });
+
+/** Moves the pointer to the top corner of the page, away from the toasts. */
+async function moveMouseAway() {
+  const corner = document.createElement("div");
+  Object.assign(corner.style, { position: "fixed", top: "0", left: "0", width: "8px", height: "8px" });
+  document.body.append(corner);
+  await userEvent.hover(corner);
+  corner.remove();
+}
 afterEach(async () => {
   await act(async () => toast.dismiss());
   vi.restoreAllMocks();
@@ -111,19 +150,20 @@ describe("Toaster", () => {
     ]);
   });
 
-  it("shows toasts in one Toaster only, and warns when a second is rendered", async () => {
-    await render(
-      <>
-        <Toaster />
-        <Toaster />
-      </>,
-    );
+  it("shows toasts in one Toaster only, warns when a second is rendered, and lets the second take over when the first unmounts", async () => {
+    const first = await render(<Toaster label="First" />);
+    await render(<Toaster label="Second" />);
     expect(document.querySelectorAll('[data-ouro="toaster"]')).toHaveLength(1);
-    await show("Saved");
+    expect(viewport()!.getAttribute("aria-label")).toBe("First");
+    await show("Saved", { duration: 0 });
     expect(toasts()).toHaveLength(1);
     expect(warnings()).toContain(
-      "[ouro-ui] Toaster: another <Toaster /> is already mounted, so this one shows nothing. Fix: render <Toaster /> once, at the root of your app.",
+      "[ouro-ui] Toaster: another <Toaster /> is already mounted, so this one shows toasts only after that one unmounts. Fix: render <Toaster /> once, at the root of your app.",
     );
+    await first.unmount();
+    await expect.poll(() => viewport()?.getAttribute("aria-label")).toBe("Second");
+    await show("Saved again", { duration: 0 });
+    expect(document.querySelectorAll('[data-ouro="toaster"]')).toHaveLength(1);
   });
 
   it("hands toasts to the next Toaster after the first unmounts", async () => {
@@ -167,11 +207,14 @@ describe("toast()", () => {
     for (const tone of ["secondary", "primary", "success", "warning", "destructive"] as const) {
       const item = await show(`A ${tone} toast`, { tone, duration: 0 });
       expect(item.getAttribute("data-tone")).toBe(tone);
-      icons[tone] = item.querySelector("[data-ouro-toast-icon]") !== null;
+      const icon = item.querySelector("[data-ouro-toast-icon]");
+      icons[tone] = icon !== null;
+      if (icon) expect(icon.getAttribute("aria-hidden")).toBe("true");
+      // Three show at once; make room for the next.
+      await act(async () => toast.dismiss());
+      await gone(`A ${tone} toast`);
     }
     expect(icons).toEqual({ secondary: false, primary: true, success: true, warning: true, destructive: true });
-    const success = toastNamed("A success toast")!.querySelector("[data-ouro-toast-icon]")!;
-    expect(success.getAttribute("aria-hidden")).toBe("true");
   });
 
   it("defaults to secondary, and an unknown tone renders secondary and warns with the tone to use", async () => {
@@ -196,10 +239,16 @@ describe("toast()", () => {
       { timeout: 8000 },
       { title: "Saved" },
     ] as unknown as ToastOptions[];
-    for (const [index, options] of guessed.entries()) await show(`Guess ${index}`, options);
+    for (const [index, options] of guessed.entries()) {
+      await show(`Guess ${index}`, options);
+      // Three show at once; make room for the next.
+      await act(async () => toast.dismiss());
+      await gone(`Guess ${index}`);
+    }
     const shortcuts = toast as unknown as Record<"success" | "error" | "warning" | "info", (message: string, options?: ToastOptions) => string>;
+    let saved = "";
     await act(async () => {
-      shortcuts.success("Saved");
+      saved = shortcuts.success("Saved");
       shortcuts.error("Failed");
       shortcuts.warning("Careful");
       shortcuts.info("Heads up", { description: "More" });
@@ -216,7 +265,9 @@ describe("toast()", () => {
       '[ouro-ui] toast: toast.warning is not a function. Fix: toast("Careful", { tone: "warning" }).',
       '[ouro-ui] toast: toast.info is not a function. Fix: toast("Heads up", { tone: "primary" }).',
     ]);
-    expect(toastNamed("Heads up")!.getAttribute("data-tone")).toBe("primary");
+    // The fourth waits for a slot.
+    await act(async () => toast.dismiss(saved));
+    await expect.poll(() => toastNamed("Heads up")?.getAttribute("data-tone")).toBe("primary");
   });
 
   it("runs the action, then dismisses the toast", async () => {
@@ -263,6 +314,35 @@ describe("toast()", () => {
     expect(toasts()).toHaveLength(1);
   });
 
+  it("keeps a toast that has an action until it is dismissed, unless duration is given", async () => {
+    await render(<Toaster />);
+    await act(async () => {
+      toast("Recipe deleted", { action: { label: "Undo", onClick: () => {} } });
+      toast("Brief undo", { duration: 100, action: { label: "Undo", onClick: () => {} } });
+      toast("Plain");
+    });
+    await gone("Brief undo");
+    // A toast with no action goes after the default 5s; the one with an action stays.
+    await expect.poll(() => toastNamed("Plain"), { timeout: 9000 }).toBeUndefined();
+    await elapse(300);
+    expect(showing("Recipe deleted")).toBe(true);
+  });
+
+  it("warns for a negative or NaN duration and uses the default", async () => {
+    await render(<Toaster />);
+    await act(async () => {
+      toast("Negative", { duration: -1 });
+      toast("Not a number", { duration: Number.NaN });
+    });
+    expect(warnings()).toEqual([
+      '[ouro-ui] toast: duration: -1 is not a duration; use milliseconds, or 0 to keep the toast. Fix: toast("…", { duration: 5000 }).',
+      '[ouro-ui] toast: duration: NaN is not a duration; use milliseconds, or 0 to keep the toast. Fix: toast("…", { duration: 5000 }).',
+    ]);
+    await expect.poll(() => showing("Negative")).toBe(true);
+    await expect.poll(() => toastNamed("Negative"), { timeout: 8000 }).toBeUndefined();
+    await expect.poll(() => toastNamed("Not a number"), { timeout: 2000 }).toBeUndefined();
+  });
+
   it("dismisses itself after duration; 0 and Infinity keep it", async () => {
     await render(<Toaster />);
     await act(async () => {
@@ -275,22 +355,87 @@ describe("toast()", () => {
     expect(showing("Kept") && showing("Kept forever")).toBe(true);
   });
 
-  it("queues: up to three show, and older ones wait, inert, until a slot frees", async () => {
+  it("queues: up to three show, and later ones wait, out of the page, until a slot frees", async () => {
     await render(<Toaster />);
     const ids: string[] = [];
     await act(async () => {
-      for (const n of [1, 2, 3, 4]) ids.push(toast(`Toast ${n}`, { duration: 0 }));
+      for (const n of [1, 2, 3, 4, 5]) ids.push(toast(`Toast ${n}`, { duration: 0 }));
     });
-    await expect.poll(() => toasts().length).toBe(4);
-    const limited = () => toasts().filter((item) => item.hasAttribute("data-limited"));
-    expect(limited().map((item) => item.querySelector("[data-ouro-toast-title]")!.textContent)).toEqual(["Toast 1"]);
-    expect(toastNamed("Toast 1")!.inert).toBe(true);
-    await act(async () => toast.dismiss(ids[3]));
-    await gone("Toast 4");
-    await expect.poll(() => limited().length).toBe(0);
+    await expect.poll(() => titles()).toEqual(["Toast 3", "Toast 2", "Toast 1"]);
+    expect(toasts().some((item) => item.inert || item.hasAttribute("data-limited"))).toBe(false);
+    await act(async () => toast.dismiss(ids[1]));
+    await expect.poll(() => titles()).toEqual(["Toast 4", "Toast 3", "Toast 1"]);
+    await act(async () => toast.dismiss(ids[0]));
+    await expect.poll(() => titles()).toEqual(["Toast 5", "Toast 4", "Toast 3"]);
   });
 
-  it("puts toasts in the page in the order they were added, so a screen reader reads them in that order", async () => {
+  it("starts a waiting toast's countdown only when it shows, so it shows for its full duration and is announced once", async () => {
+    await render(<Toaster />);
+    const ids: string[] = [];
+    await act(async () => {
+      for (const n of [1, 2, 3]) ids.push(toast(`Kept ${n}`, { duration: 0 }));
+    });
+    const announced = watchAnnouncements();
+    await act(async () => {
+      toast("Timed", { duration: 1500 });
+    });
+    // Longer than its duration: it is still waiting, unseen and unspoken, not expired.
+    await elapse(2000);
+    expect(toastNamed("Timed")).toBeUndefined();
+    expect(announced.count("Timed")).toBe(0);
+    await act(async () => toast.dismiss(ids[0]));
+    await expect.poll(() => showing("Timed")).toBe(true);
+    const shownAt = performance.now();
+    await gone("Timed");
+    expect(performance.now() - shownAt).toBeGreaterThanOrEqual(1400);
+    expect(announced.count("Timed")).toBe(1);
+    announced.stop();
+  });
+
+  it("shows a timed toast for its full duration when three newer ones arrive, then shows the next", async () => {
+    await render(<Toaster />);
+    await show("Timed first", { duration: 1500 });
+    const shownAt = performance.now();
+    await act(async () => {
+      for (const n of [2, 3, 4]) toast(`Toast ${n}`, { duration: 0 });
+    });
+    await expect.poll(() => titles()).toEqual(["Toast 3", "Toast 2", "Timed first"]);
+    await gone("Timed first");
+    expect(performance.now() - shownAt).toBeGreaterThanOrEqual(1400);
+    await expect.poll(() => titles()).toEqual(["Toast 4", "Toast 3", "Toast 2"]);
+  });
+
+  it("dismisses a waiting toast by id, so it never shows", async () => {
+    await render(<Toaster />);
+    const ids: string[] = [];
+    let waiting = "";
+    await act(async () => {
+      for (const n of [1, 2, 3]) ids.push(toast(`Kept ${n}`, { duration: 0 }));
+      waiting = toast("Never shown", { duration: 0 });
+      toast("Shown later", { duration: 0 });
+    });
+    await act(async () => toast.dismiss(waiting));
+    await act(async () => toast.dismiss(ids[0]));
+    await expect.poll(() => titles()).toEqual(["Shown later", "Kept 3", "Kept 2"]);
+    await act(async () => toast.dismiss(ids[1]));
+    await expect.poll(() => titles()).toEqual(["Shown later", "Kept 3"]);
+    expect(toastNamed("Never shown")).toBeUndefined();
+  });
+
+  it("replaces a waiting toast that has the same id, in its place in the queue", async () => {
+    await render(<Toaster />);
+    const ids: string[] = [];
+    await act(async () => {
+      for (const n of [1, 2, 3]) ids.push(toast(`Kept ${n}`, { duration: 0 }));
+      toast("Uploading", { id: "upload", duration: 0 });
+      toast("Next", { duration: 0 });
+      toast("Uploaded", { id: "upload", duration: 0 });
+    });
+    await act(async () => toast.dismiss(ids[0]));
+    await expect.poll(() => titles()).toEqual(["Uploaded", "Kept 3", "Kept 2"]);
+  });
+
+  it("puts the newest toast first in the page, where F6 then Tab reaches it, then each older one", async () => {
     await render(<Toaster />);
     await act(async () => {
       toast("First", { duration: 0 });
@@ -300,53 +445,47 @@ describe("toast()", () => {
       toast("Third", { duration: 0 });
     });
     await expect.poll(() => toasts().length).toBe(3);
-    expect(toasts().map((item) => item.querySelector("[data-ouro-toast-title]")!.textContent)).toEqual(["First", "Second", "Third"]);
+    expect(titles()).toEqual(["Third", "Second", "First"]);
     // The newest is in front.
     expect(Number(getComputedStyle(toastNamed("Third")!).zIndex)).toBeGreaterThan(Number(getComputedStyle(toastNamed("First")!).zIndex));
   });
 
-  it("is announced once, through the Notifications region only (Review Focus 5)", async () => {
+  it("is announced once: politely through the Notifications region, and a destructive toast assertively (Review Focus 5)", async () => {
     await render(<Toaster />);
-    const liveSelector = '[aria-live]:not([aria-live="off"]), [role="status"], [role="alert"], [role="log"]';
-    const changes: Array<{ region: Element; text: string }> = [];
-    const observer = new MutationObserver((records) => {
-      for (const record of records) {
-        const target = record.target instanceof Element ? record.target : record.target.parentElement;
-        const region = target?.closest(liveSelector);
-        if (!region) continue;
-        const text =
-          record.type === "characterData"
-            ? (record.target.textContent ?? "")
-            : [...record.addedNodes].map((node) => node.textContent ?? "").join("");
-        if (text) changes.push({ region, text });
-      }
-    });
-    observer.observe(document.body, { subtree: true, childList: true, characterData: true });
+    const announced = watchAnnouncements();
     await act(async () => {
       toast("Recipe saved", { tone: "success", description: "In your cookbook." });
-      toast("Couldn't sync", { tone: "destructive", action: { label: "Retry", onClick: () => {} } });
     });
-    await expect.poll(() => toasts().length).toBe(2);
+    await act(async () => {
+      toast("Photo added", { tone: "primary" });
+    });
+    await act(async () => {
+      toast("Couldn't sync", { tone: "destructive", description: "Check your connection.", action: { label: "Retry", onClick: () => {} } });
+    });
+    await expect.poll(() => toasts().length).toBe(3);
     // Let height measurement and the enter transition run, which must not repeat the text.
     await elapse(400);
-    observer.disconnect();
-    const count = (message: string) => changes.filter((change) => change.text.includes(message));
-    expect(count("Recipe saved")).toHaveLength(1);
-    expect(count("Couldn't sync")).toHaveLength(1);
-    for (const change of changes) expect(change.region).toBe(viewport());
+    announced.stop();
+    expect(announced.count("Recipe saved")).toBe(1);
+    expect(announced.count("Photo added")).toBe(1);
+    expect(announced.matching("Recipe saved")[0]!.region).toBe(viewport());
+    expect(announced.matching("Photo added")[0]!.region).toBe(viewport());
+    // The destructive toast is spoken once, through an alert, and hidden from the polite region.
+    expect(announced.count("Couldn't sync")).toBe(1);
+    expect(announced.matching("Couldn't sync")[0]!.region.getAttribute("role")).toBe("alert");
+    expect(toastNamed("Couldn't sync")!.getAttribute("aria-hidden")).toBe("true");
     expect(document.querySelector("[data-ouro-announcer]")?.textContent ?? "").toBe("");
-    // Spoken in the order they were added.
-    expect(changes.map((change) => change.text).findIndex((text) => text.includes("Recipe saved"))).toBeLessThan(
-      changes.map((change) => change.text).findIndex((text) => text.includes("Couldn't sync")),
-    );
+    // Polite toasts are spoken in the order they were added.
+    const texts = announced.changes.map((change) => change.text);
+    expect(texts.findIndex((text) => text.includes("Recipe saved"))).toBeLessThan(texts.findIndex((text) => text.includes("Photo added")));
   });
 
   it("waits for the Toaster when called before it mounts", async () => {
     let early = "";
     await act(async () => {
       early = toast("Early", { duration: 0 });
-      toast("Early and gone", { duration: 0 });
-      toast.dismiss("Early and gone");
+      const gone = toast("Early and gone", { duration: 0 });
+      toast.dismiss(gone);
     });
     toast("Early and replaced", { id: "dup", duration: 0 });
     toast("Early, replacing", { id: "dup", duration: 0 });
@@ -355,6 +494,7 @@ describe("toast()", () => {
     await expect.poll(() => showing("Early")).toBe(true);
     expect(showing("Early, replacing")).toBe(true);
     expect(toastNamed("Early and replaced")).toBeUndefined();
+    expect(toastNamed("Early and gone")).toBeUndefined();
     await act(async () => toast.dismiss("ouro-toast-unknown"));
     // The check for a missing Toaster runs later, and finds this one.
     await elapse(1200);
@@ -364,9 +504,8 @@ describe("toast()", () => {
   it("drops waiting toasts with toast.dismiss() and keeps only the newest twenty", async () => {
     for (let n = 1; n <= 22; n++) toast(`Waiting ${n}`, { duration: 0 });
     await render(<Toaster />);
-    await expect.poll(() => toasts().length).toBe(20);
-    expect(toastNamed("Waiting 1")).toBeUndefined();
-    expect(toastNamed("Waiting 2")).toBeUndefined();
+    // The oldest two were dropped; the next three show, and the other fifteen wait their turn.
+    await expect.poll(() => titles()).toEqual(["Waiting 5", "Waiting 4", "Waiting 3"]);
     await act(async () => toast.dismiss());
     await expect.poll(() => toasts().length).toBe(0);
     roots.splice(0).forEach((root) => root.unmount());
@@ -384,6 +523,34 @@ describe("toast()", () => {
       .poll(() => warnings())
       .toEqual(['[ouro-ui] toast: no <Toaster /> is mounted, so "Nobody sees this" is not shown. Fix: render <Toaster /> once, at the root of your app.']);
     toast.dismiss();
+  });
+});
+
+describe("keyboard", () => {
+  it("reaches and runs the oldest toast's action with F6, then Tab", async () => {
+    await render(
+      <>
+        <button type="button">Before</button>
+        <Toaster />
+      </>,
+    );
+    const undo = vi.fn();
+    for (const name of ["A", "B", "C"]) {
+      await show(name, { action: { label: `Undo ${name}`, onClick: name === "A" ? undo : () => {} } });
+    }
+    await userEvent.click(page.getByRole("button", { name: "Before" }));
+    await userEvent.keyboard("{F6}");
+    await expect.poll(() => viewport()!.contains(document.activeElement)).toBe(true);
+    const reached: string[] = [];
+    for (let presses = 0; presses < 12 && document.activeElement?.textContent !== "Undo A"; presses++) {
+      await userEvent.keyboard("{Tab}");
+      reached.push(document.activeElement?.textContent ?? "");
+    }
+    expect(document.activeElement?.textContent).toBe("Undo A");
+    expect(reached.filter((text) => text.startsWith("Undo "))).toEqual(["Undo C", "Undo B", "Undo A"]);
+    await userEvent.keyboard("{Enter}");
+    expect(undo).toHaveBeenCalledTimes(1);
+    await gone("A");
   });
 });
 

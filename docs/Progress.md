@@ -29,6 +29,7 @@ Type: `ProgressProps`.
 | `format` | `Intl.NumberFormatOptions` |  | How the value is written, for `showValue` and screen readers: `{ style: "unit", unit: "megabyte" }`. |
 | `hideLabel` | `boolean` |  | Hides the label visually; screen readers still use it. |
 | `id` | `string` |  | The progress bar's id, for `aria-describedby` or `aria-controls` elsewhere on the page. |
+| `indeterminateText` | `string` | `"Loading"` | What screen readers say for the value while it is `null`, that the work is under way. Translate it with the rest of your interface. |
 | `label` (required) | `string` |  | What is in progress: "Uploading photos". It names the bar for screen readers. |
 | `max` | `number` | `100` | The value at the end of the bar, when the work is done. |
 | `min` | `number` | `0` | The value at the start of the bar. |

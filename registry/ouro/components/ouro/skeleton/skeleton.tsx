@@ -36,7 +36,7 @@ export type SkeletonProps = Omit<HTMLAttributes<HTMLDivElement>, keyof SkeletonO
 // and dark themes alike.
 const base =
   "block bg-muted bg-[linear-gradient(90deg,transparent_25%,color-mix(in_oklab,var(--muted-foreground)_12%,transparent)_50%,transparent_75%)] " +
-  "bg-size-[200%_100%] bg-no-repeat animate-[ouro-shimmer_1.6s_linear_infinite] motion-reduce:animate-[ouro-pulse_1.6s_ease-in-out_infinite]";
+  "bg-size-[200%_100%] bg-no-repeat animate-[ouro-shimmer_1.6s_linear_infinite] motion-reduce:animate-[ouro-pulse_1.6s_ease-in-out_infinite] motion-reduce:bg-none";
 
 const shapes = {
   rect: "h-4 w-full rounded-md",
@@ -59,7 +59,7 @@ function sizeClass(prefix: "w" | "h", value: unknown): string {
 /**
  * A shimmering placeholder in the shape of content that is still loading. Screen readers
  * skip it, so mark the region that is loading with `aria-busy` while it shows. With reduced
- * motion it pulses instead of shimmering.
+ * motion it is a flat fill that pulses instead of shimmering.
  *
  * Use `Spinner` instead for a wait with no layout to hold, and `Progress` when you know how
  * far along the work is.

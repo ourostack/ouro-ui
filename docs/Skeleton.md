@@ -2,7 +2,7 @@
 
 # Skeleton
 
-A shimmering placeholder in the shape of content that is still loading. Screen readers skip it, so mark the region that is loading with `aria-busy` while it shows. With reduced motion it pulses instead of shimmering.
+A shimmering placeholder in the shape of content that is still loading. Screen readers skip it, so mark the region that is loading with `aria-busy` while it shows. With reduced motion it is a flat fill that pulses instead of shimmering.
 
 ```tsx
 import { Skeleton } from "@/registry/ouro/components/ouro/skeleton/skeleton";

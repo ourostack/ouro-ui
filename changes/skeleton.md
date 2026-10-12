@@ -1,1 +1,1 @@
-- New: `Skeleton` (`shape`: `rect`, `text`, `circle`), a placeholder hidden from screen readers. Under reduced motion it pulses its opacity instead of shimmering.
+- New: `Skeleton` (`shape`: `rect`, `text`, `circle`), a placeholder hidden from screen readers. Under reduced motion it is a flat fill that pulses its opacity instead of shimmering.

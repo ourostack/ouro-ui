@@ -25,6 +25,12 @@ export interface ProgressProps {
   min?: number | undefined;
   /** The value at the end of the bar, when the work is done. @default 100 */
   max?: number | undefined;
+  /**
+   * What screen readers say for the value while it is `null`, that the work is under way.
+   * Translate it with the rest of your interface.
+   * @default "Loading"
+   */
+  indeterminateText?: string | undefined;
   /** How the value is written, for `showValue` and screen readers: `{ style: "unit", unit: "megabyte" }`. */
   format?: Intl.NumberFormatOptions | undefined;
   /**
@@ -95,6 +101,7 @@ export function Progress(props: ProgressProps): JSX.Element {
     min,
     max,
     format,
+    indeterminateText = "Loading",
     tone: toneProp = "primary",
     className,
     id,
@@ -138,6 +145,7 @@ export function Progress(props: ProgressProps): JSX.Element {
       {...(max !== undefined && { max })}
       {...(format !== undefined && { format })}
       aria-labelledby={labelId}
+      getAriaValueText={(formatted, current) => (current === null ? indeterminateText : formatted)}
       data-ouro="progress"
       className={cn("grid w-full gap-1.5", className)}
     >

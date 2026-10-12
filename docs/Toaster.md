@@ -2,7 +2,7 @@
 
 # Toaster
 
-Shows the toasts you send with `toast("Saved")` from `@/lib/ouro/toast`: render it once, at the root of your app, inside `OuroProvider` if you use one, or alone. Every Ouro UI install has `toast`. Toasts stack at the bottom of the screen, full width on phones; they pause while the pointer is over them or a toast has focus, F6 moves focus to them, and a swipe down or sideways dismisses one. Each toast is read to screen readers once, politely, through this region.
+Shows the toasts you send with `toast("Saved")` from `@/lib/ouro/toast`: render it once, at the root of your app, inside `OuroProvider` if you use one, or alone. Every Ouro UI install has `toast`. Toasts stack at the bottom of the screen, full width on phones; up to three show, and later ones wait their turn. They pause while the pointer is over them or a toast has focus, F6 moves focus to them, newest first, and a swipe down or sideways dismisses one. Each toast is read to screen readers once: politely through this region, and a `destructive` toast assertively, so it interrupts.
 
 ```tsx
 import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
@@ -18,6 +18,10 @@ import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
 // Anywhere in the app:
 toast("Recipe saved", { tone: "success" });
 ```
+
+## Usage
+
+Render one Toaster. A second one warns in development and shows nothing until the first unmounts, then takes over.
 
 ## Use instead when
 

@@ -101,6 +101,15 @@ describe("Progress", () => {
     expect(indicator.getBoundingClientRect().width).toBe(indicator.parentElement!.getBoundingClientRect().width);
   });
 
+  it("says the bar is under way when indeterminate, in words you can translate with indeterminateText", async () => {
+    const { bar, rerender } = await render(<Progress label="Loading" value={null} />);
+    expect(bar.getAttribute("aria-valuetext")).toBe("Loading");
+    await rerender(<Progress label="Chargement" value={null} indeterminateText="En cours" />);
+    expect(bar.getAttribute("aria-valuetext")).toBe("En cours");
+    await rerender(<Progress label="Chargement" value={40} indeterminateText="En cours" />);
+    expect(bar.getAttribute("aria-valuetext")).toBe("40%");
+  });
+
   it("animates a change in value only when motion is allowed", async () => {
     const { indicator } = await render(<Progress label="Uploading" value={20} />);
     expect(getComputedStyle(indicator).transitionProperty).toBe("width");

@@ -18,7 +18,7 @@ toast("Couldn't save", { tone: "destructive", description: "Check your connectio
 
 ## Usage
 
-A toast called before the Toaster mounts waits for it. Up to three show at once, the newest in front; hovering or focusing them (or pressing F6) pauses the countdown, and a swipe down or sideways dismisses one.
+A toast called before the Toaster mounts waits for it. Up to three show at once, the newest in front; later ones wait their turn, and each one's countdown starts when it shows. Hovering or focusing them (or pressing F6) pauses the countdown, and a swipe down or sideways dismisses one. A toast with an `action` stays until it is dismissed unless you pass a `duration`.
 
 ## Use instead when
 
@@ -76,9 +76,12 @@ interface ToastOptions {
   /** A button in the toast, such as Undo: `{ label: "Undo", onClick: undo }`. Pressing it dismisses the toast. */
   action?: ToastAction | undefined;
   /**
-   * How long the toast stays, in milliseconds. Hovering or focusing the toasts pauses
-   * the countdown. `0` or `Infinity` keeps it until it is dismissed.
-   * @default 5000
+   * How long the toast stays once it shows, in milliseconds. Hovering or focusing the
+   * toasts pauses the countdown. `0` or `Infinity` keeps it until it is dismissed.
+   *
+   * A toast with an `action` stays until it is dismissed unless you pass a duration: a
+   * timed Undo can run out before a keyboard or screen reader user reaches it (WCAG 2.2.1).
+   * @default 5000, or until dismissed with an action
    */
   duration?: number | undefined;
   /** An id of your own. A toast with the id of one still showing replaces it in place. */

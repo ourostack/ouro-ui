@@ -71,8 +71,11 @@ describe("Skeleton", () => {
   it("shimmers, and pulses its opacity instead with reduced motion", async () => {
     const skeleton = await render(<Skeleton />);
     expect(getComputedStyle(skeleton).animationName).toBe("ouro-shimmer");
+    expect(getComputedStyle(skeleton).backgroundImage).toContain("gradient");
     await commands.emulateMedia({ reducedMotion: "reduce" });
     expect(getComputedStyle(skeleton).animationName).toBe("ouro-pulse");
+    // A flat fill: no band left lighter on one side.
+    expect(getComputedStyle(skeleton).backgroundImage).toBe("none");
   });
 
   it("passes attributes through and renders on the server", async () => {

@@ -26,11 +26,13 @@ test("the Undo action runs and dismisses its toast", async ({ page }) => {
 
 test("F6 moves focus to the toasts, and Escape closes the focused one", async ({ page }) => {
   await openStory(page, "feedback-toast--stack");
-  await expect(page.getByRole("dialog")).toHaveCount(3);
+  // The front toast is destructive: an alertdialog, hidden from screen readers until focused, since an alert speaks it.
+  const toasts = page.locator('[data-ouro="toast"]');
+  await expect(toasts).toHaveCount(3);
   await page.keyboard.press("F6");
   await page.keyboard.press("Tab");
   const focused = page.locator('[data-ouro="toast"]:focus');
   await expect(focused).toHaveCount(1);
   await page.keyboard.press("Escape");
-  await expect(page.getByRole("dialog")).toHaveCount(2);
+  await expect(toasts).toHaveCount(2);
 });
