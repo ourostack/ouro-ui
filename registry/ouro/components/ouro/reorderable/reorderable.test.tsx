@@ -736,29 +736,41 @@ describe("Reorderable", () => {
       const element = await render(<Reorderable label="Steps" items={steps(many)} onReorder={onReorder} className="h-60 overflow-auto" />);
       const scroller = element.parentElement!;
       expect(scroller.scrollHeight).toBeGreaterThan(scroller.clientHeight);
+      const end = scroller.scrollHeight - scroller.clientHeight;
       const box = scroller.getBoundingClientRect();
       const [x, y] = middle(handle("Step 1"));
+      // The list scrolls a little each frame; the test steps the frames, so it does not wait on the machine.
+      freeze();
       await pointer(handle("Step 1"), "pointerdown", x, y);
       await pointer(window, "pointermove", x, y + 40);
       // In the middle of the list nothing scrolls.
-      await act(async () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      frames!.step(16);
+      frames!.step(16);
       expect(scroller.scrollTop).toBe(0);
       await pointer(window, "pointermove", x, box.bottom - 6);
-      await expect.poll(() => scroller.scrollTop).toBe(scroller.scrollHeight - scroller.clientHeight);
+      frames!.step(16);
+      // One frame scrolls part of the way, not all of it.
+      expect(scroller.scrollTop).toBeGreaterThan(0);
+      expect(scroller.scrollTop).toBeLessThan(end);
+      frames!.until(() => scroller.scrollTop === end);
       // The row came along: it is still under the pointer, at the end of the list.
       const dragged = rows(element)[0]!.getBoundingClientRect();
       expect(dragged.bottom).toBeGreaterThan(box.bottom - 60);
       expect(dragged.top).toBeLessThan(box.bottom);
       await pointer(window, "pointermove", x, box.top + 6);
-      await expect.poll(() => scroller.scrollTop).toBe(0);
+      frames!.until(() => scroller.scrollTop === 0);
       await pointer(window, "pointermove", x, box.bottom - 6);
-      await expect.poll(() => scroller.scrollTop).toBe(scroller.scrollHeight - scroller.clientHeight);
+      frames!.until(() => scroller.scrollTop === end);
+      // At the end it stays there: it cannot scroll into room the dragged row would make.
+      frames!.step(16);
+      expect(scroller.scrollTop).toBe(end);
       await pointer(window, "pointerup", x, box.bottom - 6);
       expect(onReorder.mock.calls).toEqual([[[...many.slice(1), "Step 1"].map((name) => name.toLowerCase()), { id: "step 1", from: 0, to: 11 }]]);
       // Dropped, the list stops scrolling.
-      const rest = scroller.scrollTop;
-      await act(async () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-      expect(scroller.scrollTop).toBe(rest);
+      frames!.step(16);
+      frames!.step(16);
+      expect(scroller.scrollTop).toBe(end);
+      await rest(element);
     });
 
     chromiumOnly("reorders with a real mouse drag on the handle", async () => {
