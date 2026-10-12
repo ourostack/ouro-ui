@@ -32,7 +32,7 @@ Type: `RowProps`.
 | `as` | `"form" \| "div" \| "aside" \| "fieldset" \| "footer" \| "header" \| "main" \| "nav" \| "ol" \| "section" \| "ul"` | `"div"` | The element to render. A `ul` or `ol` loses its bullets and indent, a `fieldset` its border. |
 | `children` | `ReactNode` |  | The children, laid out side by side in writing direction. |
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-4`). Appearance classes warn in development: a Row has no look; use `Card` for a surface. |
-| `gap` | `"sm" \| "md" \| "lg" \| "xl" \| "none" \| "xs"` | `"sm"` | Space between the children: `xs` 4px, `sm` 8px, `md` 16px, `lg` 24px, `xl` 32px. |
+| `gap` | `"sm" \| "md" \| "lg" \| "xl" \| "xs" \| "none"` | `"sm"` | Space between the children: `xs` 4px, `sm` 8px, `md` 16px, `lg` 24px, `xl` 32px. |
 | `justify` | `"start" \| "center" \| "end" \| "between"` | `"start"` | Where the children sit along the Row. `between` puts the first at the start and the last at the end, as in a toolbar with a title and actions. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 | `stackBelow` | `"sm" \| "md"` |  | Below this breakpoint the children stack top to bottom at full width, as a settings row whose actions drop under its text on a phone. `sm` is 640px, `md` 768px. |

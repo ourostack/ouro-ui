@@ -32,7 +32,7 @@ Type: `StackProps`.
 | `as` | `"form" \| "div" \| "aside" \| "fieldset" \| "footer" \| "header" \| "main" \| "nav" \| "ol" \| "section" \| "ul"` | `"div"` | The element to render. A `ul` or `ol` loses its bullets and indent, a `fieldset` its border. |
 | `children` | `ReactNode` |  | The children, laid out top to bottom. |
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-4`, `max-w-md`). Appearance classes warn in development: a Stack has no look; use `Card` for a surface. |
-| `gap` | `"sm" \| "md" \| "lg" \| "xl" \| "none" \| "xs"` | `"md"` | Space between the children: `xs` 4px, `sm` 8px, `md` 16px, `lg` 24px, `xl` 32px. |
+| `gap` | `"sm" \| "md" \| "lg" \| "xl" \| "xs" \| "none"` | `"md"` | Space between the children: `xs` 4px, `sm` 8px, `md` 16px, `lg` 24px, `xl` 32px. |
 | `justify` | `"start" \| "center" \| "end" \| "between"` | `"start"` | Where the children sit down the Stack, when it is taller than they are. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 

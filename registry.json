@@ -568,6 +568,106 @@
       ]
     },
     {
+      "name": "avatar",
+      "type": "registry:ui",
+      "title": "Avatar",
+      "description": "A person's picture, or their initials until it loads or when it fails.",
+      "docs": "A person's picture, or their initials until it loads or when it fails. Import: import { Avatar } from \"@/components/ouro/avatar/avatar\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/avatar.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/avatar/avatar.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/avatar/avatar.tsx"
+        }
+      ]
+    },
+    {
+      "name": "badge",
+      "type": "registry:ui",
+      "title": "Badge",
+      "description": "A short label for a status, category or count: \"Draft\", \"Vegan\", \"3\".",
+      "docs": "A short label for a status, category or count: \"Draft\", \"Vegan\", \"3\". Import: import { Badge } from \"@/components/ouro/badge/badge\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/badge.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/badge/badge.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/badge/badge.tsx"
+        }
+      ]
+    },
+    {
+      "name": "alert",
+      "type": "registry:ui",
+      "title": "Alert",
+      "description": "An inline message in the page: something saved, something failed, something to know before going on.",
+      "docs": "An inline message in the page: something saved, something failed, something to know before going on. Import: import { Alert } from \"@/components/ouro/alert/alert\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/alert.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/alert/alert.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/alert/alert.tsx"
+        }
+      ]
+    },
+    {
+      "name": "separator",
+      "type": "registry:ui",
+      "title": "Separator",
+      "description": "A thin line in the theme's border color between groups of content, horizontal or vertical.",
+      "docs": "A thin line in the theme's border color between groups of content, horizontal or vertical. Import: import { Separator } from \"@/components/ouro/separator/separator\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/separator.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/separator/separator.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/separator/separator.tsx"
+        }
+      ]
+    },
+    {
+      "name": "kbd",
+      "type": "registry:ui",
+      "title": "Kbd",
+      "description": "A keyboard shortcut, in the reader's platform's notation: `keys={[\"mod\", \"k\"]}` shows ⌘K on a Mac, iPhone or iPad and Ctrl+K elsewhere.",
+      "docs": "A keyboard shortcut, in the reader's platform's notation: `keys={[\"mod\", \"k\"]}` shows ⌘K on a Mac, iPhone or iPad and Ctrl+K elsewhere. Import: import { Kbd } from \"@/components/ouro/kbd/kbd\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/kbd.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/kbd/kbd.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/kbd/kbd.tsx"
+        }
+      ]
+    },
+    {
       "name": "card",
       "type": "registry:ui",
       "title": "Card",
@@ -1248,6 +1348,211 @@
       ]
     },
     {
+      "name": "avatar-tests",
+      "type": "registry:item",
+      "title": "Avatar tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for avatar, with the test tooling as devDependencies. Add it beside avatar: add avatar avatar-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "avatar's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/avatar.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/avatar",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/avatar/avatar.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/avatar/avatar.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/avatar/avatar.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/avatar/avatar.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/avatar/avatar.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/avatar/avatar.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/avatar.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/avatar.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "badge-tests",
+      "type": "registry:item",
+      "title": "Badge tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for badge, with the test tooling as devDependencies. Add it beside badge: add badge badge-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "badge's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/badge.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/badge",
+        "ourostack/ouro-ui/ouro-lib",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/badge/badge.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/badge/badge.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/badge/badge.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/badge/badge.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/badge/badge.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/badge/badge.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/badge/badge.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/badge/badge.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/badge.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/badge.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "alert-tests",
+      "type": "registry:item",
+      "title": "Alert tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for alert, with the test tooling as devDependencies. Add it beside alert: add alert alert-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "alert's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/alert.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/alert",
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/alert/alert.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/alert/alert.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/alert/alert.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/alert/alert.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/alert/alert.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/alert/alert.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/alert.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/alert.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "separator-tests",
+      "type": "registry:item",
+      "title": "Separator tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for separator, with the test tooling as devDependencies. Add it beside separator: add separator separator-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "separator's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/separator.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/separator",
+        "ourostack/ouro-ui/text"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/separator/separator.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/separator/separator.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/separator/separator.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/separator/separator.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/separator/separator.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/separator/separator.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/separator.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/separator.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "kbd-tests",
+      "type": "registry:item",
+      "title": "Kbd tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for kbd, with the test tooling as devDependencies. Add it beside kbd: add kbd kbd-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "kbd's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/kbd.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/kbd",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/text"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/kbd/kbd.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/kbd/kbd.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/kbd/kbd.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/kbd/kbd.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/kbd/kbd.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/kbd/kbd.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/kbd.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/kbd.spec.ts"
+        }
+      ]
+    },
+    {
       "name": "card-tests",
       "type": "registry:item",
       "title": "Card tests",
@@ -1591,7 +1896,10 @@
       "description": "Optional: every Ouro UI component with its tests, type tests, stories and Playwright spec, and the test kit. The whole suite in one command. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
       "docs": "Every Ouro UI component and its tests are installed. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs",
       "registryDependencies": [
+        "ourostack/ouro-ui/alert-tests",
         "ourostack/ouro-ui/aspect-ratio-tests",
+        "ourostack/ouro-ui/avatar-tests",
+        "ourostack/ouro-ui/badge-tests",
         "ourostack/ouro-ui/button-tests",
         "ourostack/ouro-ui/card-tests",
         "ourostack/ouro-ui/confirm-dialog-tests",
@@ -1602,10 +1910,12 @@
         "ourostack/ouro-ui/heading-tests",
         "ourostack/ouro-ui/item-group-tests",
         "ourostack/ouro-ui/item-tests",
+        "ourostack/ouro-ui/kbd-tests",
         "ourostack/ouro-ui/link-tests",
         "ourostack/ouro-ui/ouro-lib-tests",
         "ourostack/ouro-ui/row-tests",
         "ourostack/ouro-ui/scroll-area-tests",
+        "ourostack/ouro-ui/separator-tests",
         "ourostack/ouro-ui/sheet-tests",
         "ourostack/ouro-ui/stack-tests",
         "ourostack/ouro-ui/text-area-tests",

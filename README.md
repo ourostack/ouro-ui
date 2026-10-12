@@ -176,6 +176,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 ### Text
 
 - **Heading** — A section title, `<h1>` to `<h6>`, in the theme's foreground color. [Docs](docs/Heading.md)
+- **Kbd** — A keyboard shortcut, in the reader's platform's notation: `keys={["mod", "k"]}` shows ⌘K on a Mac, iPhone or iPad and Ctrl+K elsewhere. [Docs](docs/Kbd.md)
 - **Link** — A text link that navigates through your router. [Docs](docs/Link.md)
 - **Text** — Body text in the theme's type scale and colors. [Docs](docs/Text.md)
 
@@ -194,8 +195,13 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ### Display
 
+- **Alert** — An inline message in the page: something saved, something failed, something to know before going on. [Docs](docs/Alert.md)
+- **Avatar** — A person's picture, or their initials until it loads or when it fails. [Docs](docs/Avatar.md)
+- **AvatarGroup** — Avatars stacked with a slight overlap, such as the cooks on a recipe, with a "+N" count after `max`. [Docs](docs/AvatarGroup.md)
+- **Badge** — A short label for a status, category or count: "Draft", "Vegan", "3". [Docs](docs/Badge.md)
 - **Card** — A surface that groups one thing's content: a media slot across the top, a title with a description and an action, a body, and a footer. [Docs](docs/Card.md)
 - **Empty** — What a list, search or page shows when it has nothing in it: an icon, a title that says what is empty, a sentence on what to do, and the action that does it. [Docs](docs/Empty.md)
+- **Separator** — A thin line in the theme's border color between groups of content, horizontal or vertical. [Docs](docs/Separator.md)
 
 ### Lists
 
