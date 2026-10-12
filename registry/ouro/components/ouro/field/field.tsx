@@ -4,10 +4,10 @@ import { Field as BaseField } from "@base-ui/react/field";
 import { useCallback, useId, useMemo, useRef, type JSX, type ReactNode } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { FieldContext, FieldOwnerContext, useFieldOwner } from "@/registry/ouro/lib/ouro/use-field";
+import { FieldContext, FieldOwnerContext, useField, useFieldOwner } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 import { FieldDescription, FieldError, FieldLabel } from "@/registry/ouro/components/ouro/field/field-parts";
-import { fieldHint, rootClass } from "@/registry/ouro/components/ouro/field/field-styles";
+import { fieldHint, inlineRootClass, labelClass, rootClass } from "@/registry/ouro/components/ouro/field/field-styles";
 
 /**
  * The props every Ouro form control takes, with these exact names: a required `label`,
@@ -121,13 +121,29 @@ export function Field(props: FieldProps): JSX.Element {
   const id = useId();
   // A control built on Field (TextField) names itself in the messages and the root.
   const owner = useFieldOwner();
-  const messages = messagesOf(error);
+  const layout = owner.layout ?? "stack";
+  // A checkbox or radio inside a CheckboxGroup or RadioGroup is one of the group's items: it
+  // takes the group's name, validity and error, and has none of its own.
+  const parent = useField();
+  const group = parent?.group;
+  const item = layout === "inline" && group !== undefined;
+  const messages = item ? [] : messagesOf(error);
   const invalid = messages.length > 0;
   const hasDescription = description !== undefined && description !== null && description !== false && description !== "";
+  const labelId = `${id}-label`;
   const descriptionId = `${id}-description`;
   const errorId = `${id}-error`;
-  const describedBy = [hasDescription && descriptionId, invalid && errorId].filter(Boolean).join(" ") || undefined;
-  const value = useMemo(() => ({ required: Boolean(required), describedBy }), [required, describedBy]);
+  // An item is also described by its group's description and error, as Base UI links them
+  // after hydration, so the server HTML matches.
+  const describedBy =
+    [hasDescription && descriptionId, invalid && errorId, item && parent!.describedBy].filter(Boolean).join(" ") || undefined;
+  const invalidHere = item ? Boolean(parent!.invalid) : invalid;
+  const requiredHere = Boolean(required) && !item;
+  const ownGroup = layout === "group" ? owner.name : undefined;
+  const value = useMemo(
+    () => ({ required: requiredHere, invalid: invalidHere, describedBy, labelId, group: ownGroup }),
+    [requiredHere, invalidHere, describedBy, labelId, ownGroup],
+  );
 
   // The dev checks run after render, when the root is in the page and the control has
   // registered its id with the label.
@@ -143,11 +159,12 @@ export function Field(props: FieldProps): JSX.Element {
     owner.name,
     process.env.NODE_ENV !== "production"
       ? () => [
-          !label && [
-            `label is ${label === "" ? "empty" : "missing"}, so the control has no name`,
-            `<${owner.name} label="Email" hideLabel> to hide a label you still need`,
-          ],
-          !labelConnected(rootRef.current!, owner.data) && [
+          !label &&
+            (layout === "group"
+              ? [`legend is ${label === "" ? "empty" : "missing"}, so the group has no name`, `<${owner.name} legend="Toppings" hideLegend> to hide a legend you still need`]
+              : [`label is ${label === "" ? "empty" : "missing"}, so the control has no name`, `<${owner.name} label="Email" hideLabel> to hide a label you still need`]),
+          layout !== "group" &&
+            !labelConnected(rootRef.current!, owner.data) && [
             "the label is not connected to a control",
             `<Field label="${label}"><FieldControl /></Field>, or <FieldControl render={<textarea />} /> for another element`,
           ],
@@ -162,40 +179,72 @@ export function Field(props: FieldProps): JSX.Element {
             "placeholder is not a label",
             '<Field label="Email"><FieldControl placeholder="you@example.com" /></Field>',
           ],
+          item && name !== undefined && [`name belongs on the ${group}`, `<${group} name="${name}">`],
+          item && error !== undefined && [`error belongs on the ${group}, which shows it once for every choice`, `<${group} error="What is wrong">`],
+          item && required !== undefined && [`required belongs on the ${group}`, `<${group} required>`],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
 
+  const legend =
+    layout === "group" ? (
+      // A group's name: not a <label>, because a group has no one element to focus.
+      <div id={labelId} data-ouro-legend="" data-disabled={disabled ? "" : undefined} className={cn(labelClass, hideLabel && "sr-only")}>
+        {label}
+        {required && (
+          <span aria-hidden="true" data-ouro-required="" className="ms-0.5 text-destructive">
+            *
+          </span>
+        )}
+      </div>
+    ) : (
+      <FieldLabel id={labelId} className={cn(layout === "inline" && "col-start-2", hideLabel && "sr-only")}>
+        {label}
+      </FieldLabel>
+    );
+  // An inline control comes first, so it reads before its label, and sits to its left.
+  const control = <FieldOwnerContext.Provider value={fieldOwner}>{children}</FieldOwnerContext.Provider>;
+  const parts = (
+    <>
+      {layout === "inline" && control}
+      {legend}
+      {hasDescription && (
+        <FieldDescription id={descriptionId} className={layout === "inline" ? "col-start-2" : undefined}>
+          {description}
+        </FieldDescription>
+      )}
+      {/* The owner names this Field only: a plain Field inside (in an adornment's popover) is a Field. */}
+      {layout !== "inline" && control}
+    </>
+  );
+  const rootClassName = cn(layout === "inline" ? inlineRootClass : rootClass, className);
+
   return (
     <FieldContext.Provider value={value}>
-      <BaseField.Root
-        ref={rootRef}
-        name={name}
-        disabled={disabled}
-        invalid={invalid}
-        data-ouro={owner.data}
-        className={cn(rootClass, className)}
-      >
-        <FieldLabel className={hideLabel ? "sr-only" : undefined}>{label}</FieldLabel>
-        {hasDescription && <FieldDescription id={descriptionId}>{description}</FieldDescription>}
-        {/* The owner names this Field only: a plain Field inside (in an adornment's popover) is a Field. */}
-        <FieldOwnerContext.Provider value={fieldOwner}>{children}</FieldOwnerContext.Provider>
-        {invalid ? (
-          <FieldError id={errorId} match>
-            {messages.length > 1 ? (
-              <ul>
-                {messages.map((message) => (
-                  <li key={message}>{message}</li>
-                ))}
-              </ul>
-            ) : (
-              messages[0]
-            )}
-          </FieldError>
-        ) : (
-          <FieldError id={errorId} />
-        )}
-      </BaseField.Root>
+      {item ? (
+        <BaseField.Item ref={rootRef} disabled={disabled} data-ouro={owner.data} className={rootClassName}>
+          {parts}
+        </BaseField.Item>
+      ) : (
+        <BaseField.Root ref={rootRef} name={name} disabled={disabled} invalid={invalid} data-ouro={owner.data} className={rootClassName}>
+          {parts}
+          {invalid ? (
+            <FieldError id={errorId} match className={layout === "inline" ? "col-start-2" : undefined}>
+              {messages.length > 1 ? (
+                <ul>
+                  {messages.map((message) => (
+                    <li key={message}>{message}</li>
+                  ))}
+                </ul>
+              ) : (
+                messages[0]
+              )}
+            </FieldError>
+          ) : (
+            <FieldError id={errorId} className={layout === "inline" ? "col-start-2" : undefined} />
+          )}
+        </BaseField.Root>
+      )}
     </FieldContext.Provider>
   );
 }

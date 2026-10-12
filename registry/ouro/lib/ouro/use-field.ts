@@ -12,8 +12,24 @@ import { createContext, useContext } from "react";
 export interface FieldContextValue {
   /** The field is required: the control gets `required` and `aria-required`, the label a marker. */
   required: boolean;
+  /**
+   * The field has an error (for a group's item, the group has one), for a control that sets
+   * `aria-invalid` itself. `FieldRoot` leaves it unset: Base UI sets it from validity.
+   */
+  invalid?: boolean | undefined;
   /** Ids of the description and error the field renders, for the control's `aria-describedby`. */
   describedBy: string | undefined;
+  /**
+   * The id of the label (or a group's legend) a `Field` renders, for a control that is not a
+   * native input and names itself with `aria-labelledby` (a checkbox, a switch, a radio
+   * group). `FieldRoot` leaves it unset: Base UI links its parts after hydration.
+   */
+  labelId?: string | undefined;
+  /**
+   * Set by a `Field` whose control is a group of choices (its owner's `data`, such as
+   * `radio-group`). A checkbox or radio `Field` inside it renders as one of the group's items.
+   */
+  group?: string | undefined;
 }
 
 /**
@@ -40,6 +56,13 @@ export interface FieldOwner {
   name: string;
   /** The root's `data-ouro` value, such as `text-field`. */
   data: string;
+  /**
+   * How the field lays out its parts. `stack` (the default) puts the label above the
+   * control. `inline` puts the control first with the label to its right, as a checkbox or
+   * switch does. `group` names a group of choices: the label is the group's legend, not a
+   * `<label>`, and the control is the group.
+   */
+  layout?: "stack" | "inline" | "group" | undefined;
 }
 
 /**
