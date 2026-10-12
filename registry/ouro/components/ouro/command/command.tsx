@@ -1,7 +1,7 @@
 "use client";
 
 import { Autocomplete } from "@base-ui/react/autocomplete";
-import { cloneElement, useEffect, useMemo, useRef, useState, type JSX, type MouseEvent, type ReactElement, type Ref } from "react";
+import { cloneElement, useEffect, useLayoutEffect, useMemo, useRef, useState, type JSX, type MouseEvent, type ReactElement, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { floatingHint } from "@/registry/ouro/lib/ouro/floating";
 import { lastInput } from "@/registry/ouro/lib/ouro/last-input";
@@ -190,13 +190,6 @@ function SearchIcon(): JSX.Element {
   );
 }
 
-/** Runs `run` once when it mounts. */
-function OnMount({ run }: { run: () => void }): null {
-  const ref = useRef(run);
-  useEffect(() => ref.current(), []);
-  return null;
-}
-
 /**
  * A command palette: a searchable list of every action in the app, in a dialog. Typing
  * filters the commands by label and keywords (ignoring case and accents), the arrow keys
@@ -314,9 +307,14 @@ export function Command(props: CommandProps): JSX.Element {
   // Focus returns to the trigger on close; Safari does not focus a button on click.
   const finalFocus = trigger !== undefined ? { finalFocus: triggerRef } : {};
 
-  // The search text: empty at each opening, and kept across the swap between dialog and sheet.
+  // The search text: emptied when the palette opens (not when it closes, so a closing
+  // palette keeps showing what it showed), and kept across the swap between dialog and sheet.
   const [query, setQuery] = useState("");
-  if (!isOpenNow && query !== "") setQuery("");
+  const [wasOpen, setWasOpen] = useState(false);
+  if (isOpenNow !== wasOpen) {
+    setWasOpen(isOpenNow);
+    if (isOpenNow) setQuery("");
+  }
   // "Searching…" is announced for the first load of each opening only, and then cleared,
   // so typing on while results load is not announced again.
   const [announcement, setAnnouncement] = useState<"idle" | "on" | "done">("idle");
@@ -332,6 +330,15 @@ export function Command(props: CommandProps): JSX.Element {
     if (!isOpenNow) searchRef.current?.abort();
   }, [isOpenNow]);
   useEffect(() => () => searchRef.current?.abort(), []);
+  // Opening (also when it cancels a close still animating) asks for the empty query's
+  // results, and the swap between dialog and sheet asks again for the current text.
+  const searchCurrent = useRef<(() => void) | null>(null);
+  useLayoutEffect(() => {
+    searchCurrent.current = onQueryChange ? () => search(query) : null;
+  });
+  useEffect(() => {
+    if (isOpenNow) searchCurrent.current?.();
+  }, [isOpenNow, sheet]);
   // Adjusted while rendering, as React suggests for state that follows props.
   if (loading && isOpenNow && announcement === "idle") setAnnouncement("on");
   if (!loading && announcement === "on") setAnnouncement("done");
@@ -357,8 +364,6 @@ export function Command(props: CommandProps): JSX.Element {
         if (onQueryChange) search(next);
       }}
     >
-      {/* Each mount (an opening, or the swap between dialog and sheet) asks for the current query's results. */}
-      {onQueryChange && <OnMount run={() => search(query)} />}
       <div data-ouro="command" className="flex min-h-0 flex-1 flex-col">
         <div data-ouro-command-search="" className={inSheet ? commandSheetSearchClass : commandSearchClass}>
           <SearchIcon />

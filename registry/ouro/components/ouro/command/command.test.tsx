@@ -459,6 +459,33 @@ describe("Command server search", () => {
     expect(options()).toEqual(["Shakshuka", "Salad"]);
   });
 
+  it("asks for the empty query when reopened before the close animation ends", async () => {
+    const server = fakeServer();
+    await render(<ServerPalette server={server} />);
+    await settled();
+    await server.answer("", ["Shakshuka", "Salad"]);
+    await userEvent.type(input(), "pa");
+    await server.answer("pa", ["Pasta", "Paella"]);
+    await expect.poll(options).toEqual(["Pasta", "Paella"]);
+    await userEvent.type(input(), "x");
+    await userEvent.keyboard("{Escape}");
+    // Reopen at once, while the palette is still fading out.
+    // A real click would wait for the backdrop to go, so the button is clicked directly, as ⌘K would toggle it.
+    expect(popup()?.hasAttribute("data-ending-style")).toBe(true);
+    const fading = popup();
+    await act(async () => (page.getByTestId("reopen").element() as HTMLElement).click());
+    // The same palette comes back: it was never unmounted.
+    expect(popup()).toBe(fading);
+    await expect.poll(() => popup()?.hasAttribute("data-ending-style")).toBe(false);
+    expect((input().element() as HTMLInputElement).value).toBe("");
+    await expect.poll(() => server.asked.at(-1)).toBe("");
+    await server.answer("", ["Shakshuka", "Salad"]);
+    await expect.poll(options).toEqual(["Shakshuka", "Salad"]);
+    expect(loadingShown()).toBe(false);
+    await server.answer("pax", ["Paxlava"]);
+    expect(options()).toEqual(["Shakshuka", "Salad"]);
+  });
+
   it("clears loading when a search fails, and then shows the empty state if nothing matches", async () => {
     const server = fakeServer();
     await render(<ServerPalette server={server} />);
@@ -503,6 +530,34 @@ describe("Command server search", () => {
     await server.answer("pq", []);
     await expect.poll(() => options().length).toBe(0);
     expect((input().element() as HTMLElement).getBoundingClientRect().top).toBe(top);
+  });
+});
+
+describe("Command closing", () => {
+  it("keeps showing what it showed while it fades out after a command runs", async () => {
+    await openPalette();
+    await userEvent.type(input(), "swi");
+    await expect.poll(options).toEqual(["Switch theme"]);
+    await userEvent.keyboard("{Enter}");
+    expect(actions.theme).toHaveBeenCalledOnce();
+    const seen = new Set<number>();
+    while (popup()) {
+      seen.add(document.querySelectorAll('[role="option"]').length);
+      expect((input().query() as HTMLInputElement | null)?.value ?? "swi").toBe("swi");
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    }
+    expect([...seen]).toEqual([1]);
+  });
+
+  it("starts empty, with every command, when opened again", async () => {
+    await openPalette();
+    await userEvent.type(input(), "swi");
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(popup).toBeNull();
+    await userEvent.click(trigger());
+    await settled();
+    expect((input().element() as HTMLInputElement).value).toBe("");
+    expect(options()).toEqual(["New recipe", "Import from a link", "Switch theme", "Sign out"]);
   });
 });
 
