@@ -153,7 +153,8 @@ export const swipe: BrowserCommand<[SwipeOptions]> = async (ctx, { from, to, ste
   }
   // The test page is an iframe, offset (and on some runners scaled) inside the page CDP drives.
   const frame = await ctx.iframe.owner().boundingBox();
-  const width = await ctx.iframe.locator(":root").evaluate(() => innerWidth);
+  // An expression string, so this Node-side file needs no DOM types.
+  const width = Number(await (await ctx.frame()).evaluate("innerWidth"));
   const scale = frame ? frame.width / width : 1;
   const toPage = ([x, y]: [number, number]) => ({ x: (frame?.x ?? 0) + x * scale, y: (frame?.y ?? 0) + y * scale });
   const touch = (type: "touchStart" | "touchMove" | "touchEnd", point: [number, number]) =>
