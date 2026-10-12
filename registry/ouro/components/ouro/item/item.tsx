@@ -4,6 +4,7 @@ import { createElement, type HTMLAttributes, type JSX, type ReactNode, type Ref 
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { RouterLink, safeRel } from "@/registry/ouro/lib/ouro/router-link";
+import { raiseControlsClass, stretchedLinkClass } from "@/registry/ouro/lib/ouro/stretched-link";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 
 /** How big an Item's media is: an `icon` in a muted 40px tile, or an image at 40, 64 or 112px. */
@@ -134,23 +135,12 @@ const stacked = {
   },
 } as const;
 
-// With href, the title's link stretches over the row through its ::after; the actions sit above it.
-// The layer is z-1, so positioned content that is not a control (a ScrollArea, an
-// AspectRatio) stays under it; raised controls are z-10.
-const stretchedLink =
-  "text-inherit no-underline outline-none after:absolute after:inset-0 after:z-1 after:content-[''] " +
-  "after:transition-colors after:duration-(--ouro-duration-fast) hover:after:bg-foreground/[0.03] active:after:bg-foreground/[0.06]";
+// With href, the title's link stretches over the row (`stretchedLinkClass`) and every
+// control in the row sits above it (`raiseControlsClass`), as in Card and Table.
 // A linked row is a full touch target on a coarse pointer, at either size.
 const linkRoot =
   "press cursor-pointer outline-ring -outline-offset-2 has-[[data-item-link]:focus-visible]:outline-2 has-[[data-item-link]:focus-visible]:outline-solid " +
   "pointer-coarse:min-h-11";
-// Every control in the row (a link in the description, a button in the media or the
-// actions) sits above the stretched link. Inside :where(), with no specificity, so a
-// control's own `absolute` or `z-*` class still wins. An element that takes focus only
-// from code (tabindex="-1") stays under the link.
-const raiseControls =
-  "[:where(&_:is(a,button,input,select,textarea,label,summary,[tabindex]:not([tabindex='-1']),[role=button]):not([data-item-link]))]:relative " +
-  "[:where(&_:is(a,button,input,select,textarea,label,summary,[tabindex]:not([tabindex='-1']),[role=button]):not([data-item-link]))]:z-10";
 
 // With mediaAbove, below the breakpoint the media takes its own full-width row at 4:3 and
 // the columns drop the media's; `always` does so at every width.
@@ -290,6 +280,7 @@ export function Item(props: ItemProps): JSX.Element {
     {
       ...rest,
       "data-ouro": "item",
+      "data-linked": linked ? "" : undefined,
       className: cn(
         "relative isolate m-0 grid min-w-0 list-none items-center gap-x-4 gap-y-2",
         columns[hasMedia][actions ? "actions" : "none"],
@@ -298,7 +289,7 @@ export function Item(props: ItemProps): JSX.Element {
         variants[variant],
         sizes[size],
         linked && linkRoot,
-        linked && raiseControls,
+        linked && raiseControlsClass,
         className,
       ),
     },
@@ -316,7 +307,8 @@ export function Item(props: ItemProps): JSX.Element {
             target={external ? "_blank" : undefined}
             rel={external ? safeRel(undefined) : undefined}
             data-item-link=""
-            className={cn(stretchedLink, variant === "outline" && "after:rounded-xl")}
+            data-stretched-link=""
+            className={cn(stretchedLinkClass, variant === "outline" && "after:rounded-xl")}
           >
             {title}
             {external && <span className="sr-only"> (opens in a new tab)</span>}

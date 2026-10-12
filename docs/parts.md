@@ -262,3 +262,50 @@ Each part checks that it sits inside `<TabsRoot>`. Outside it, a part throws in 
 | `TabsPanel` | The content shown while the tab with the same `value` is selected. |
 | `TabsRoot` | The state owner of tabs built from parts. Use the `Tabs` component instead unless its `items` cannot express your layout, such as a tab that holds a badge next to its label or a panel shared by two tabs. |
 | `TabsTab` | One tab, a button that shows the panel with the same `value`. |
+
+## Table parts
+
+The root of a table built from parts, with its caption and its scrolling region. `Table` takes the same parts as children (`<Table caption="Pantry">…</Table>`), so use it instead unless you are composing parts of your own; `Table` also builds the whole table from `columns` and `rows`.
+
+```tsx
+import {
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRoot,
+  TableRow,
+} from "@/registry/ouro/components/ouro/table/table-parts";
+```
+
+### Required nesting
+
+```tsx
+<TableRoot caption="Pantry">
+  <TableHeader>
+    <TableRow>
+      <TableHead>Item</TableHead>
+      <TableHead align="end">Qty</TableHead>
+    </TableRow>
+  </TableHeader>
+  <TableBody>
+    <TableRow href="/pantry/flour">
+      <TableCell rowHeader>Flour</TableCell>
+      <TableCell align="end">2 kg</TableCell>
+    </TableRow>
+  </TableBody>
+</TableRoot>
+```
+
+Each part checks that it sits inside `<TableRoot>`. Outside it, a part throws in development with a message that shows this JSX shape.
+
+| Part | What it is |
+| --- | --- |
+| `TableBody` | The table's body rows (`<tbody>`). |
+| `TableCell` | A cell (`<td>`), or the row's header with `rowHeader` (`<th scope="row">`). |
+| `TableFooter` | Summary rows under the body (`<tfoot>`), such as a total, with a line above them. |
+| `TableHead` | A column header (`<th scope="col">`) in a `TableHeader` row. |
+| `TableHeader` | The table's header rows (`<thead>`), holding a `TableRow` of `TableHead` cells. With `stickyHeader` on the Table, they stay at the top while the rows scroll. |
+| `TableRoot` | The root of a table built from parts, with its caption and its scrolling region. `Table` takes the same parts as children (`<Table caption="Pantry">…</Table>`), so use it instead unless you are composing parts of your own; `Table` also builds the whole table from `columns` and `rows`. |
+| `TableRow` | One row (`<tr>`). With `href` a body row is one link, held by its row header cell. |
