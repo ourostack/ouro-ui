@@ -143,5 +143,17 @@
     "title": "Separator",
     "group": "Display",
     "source": "registry/ouro/components/ouro/separator/separator.tsx"
+  },
+  {
+    "name": "carousel",
+    "title": "Carousel",
+    "group": "Display",
+    "source": "registry/ouro/components/ouro/carousel/carousel.tsx"
+  },
+  {
+    "name": "resizable",
+    "title": "Resizable",
+    "group": "Layout",
+    "source": "registry/ouro/components/ouro/resizable/resizable.tsx"
   }
 ]

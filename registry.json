@@ -862,6 +862,53 @@
       ]
     },
     {
+      "name": "carousel",
+      "type": "registry:ui",
+      "title": "Carousel",
+      "description": "A row of slides the user swipes or steps through with Previous and Next buttons: recipe photos, a few featured cards.",
+      "docs": "A row of slides the user swipes or steps through with Previous and Next buttons: recipe photos, a few featured cards. Import: import { Carousel } from \"@/components/ouro/carousel/carousel\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/carousel.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/carousel/carousel-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/carousel/carousel-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/carousel/carousel.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/carousel/carousel.tsx"
+        }
+      ]
+    },
+    {
+      "name": "resizable",
+      "type": "registry:ui",
+      "title": "Resizable",
+      "description": "Panels side by side (or stacked) with a draggable handle between each pair: a file list beside an editor, a preview above a console.",
+      "docs": "Panels side by side (or stacked) with a draggable handle between each pair: a file list beside an editor, a preview above a console. Import: import { Resizable } from \"@/components/ouro/resizable/resizable\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/resizable.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/resizable/resizable-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/resizable/resizable-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/resizable/resizable.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/resizable/resizable.tsx"
+        }
+      ]
+    },
+    {
       "name": "ouro-lib-tests",
       "type": "registry:item",
       "title": "Ouro lib tests",
@@ -1902,6 +1949,94 @@
       ]
     },
     {
+      "name": "carousel-tests",
+      "type": "registry:item",
+      "title": "Carousel tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for carousel, with the test tooling as devDependencies. Add it beside carousel: add carousel carousel-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "carousel's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/carousel.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/carousel",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/carousel/carousel.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/carousel/carousel.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/carousel/carousel.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/carousel/carousel.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/carousel/carousel.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/carousel/carousel.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/carousel/carousel.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/carousel/carousel.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/carousel.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/carousel.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "resizable-tests",
+      "type": "registry:item",
+      "title": "Resizable tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for resizable, with the test tooling as devDependencies. Add it beside resizable: add resizable resizable-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "resizable's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/resizable.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/resizable"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/resizable/resizable.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/resizable/resizable.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/resizable/resizable.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/resizable/resizable.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/resizable/resizable.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/resizable/resizable.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/resizable/resizable.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/resizable/resizable.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/resizable.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/resizable.spec.ts"
+        }
+      ]
+    },
+    {
       "name": "ouro-tests",
       "type": "registry:item",
       "title": "Ouro tests",
@@ -1912,6 +2047,7 @@
         "ourostack/ouro-ui/avatar-tests",
         "ourostack/ouro-ui/badge-tests",
         "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/carousel-tests",
         "ourostack/ouro-ui/confirm-dialog-tests",
         "ourostack/ouro-ui/dialog-tests",
         "ourostack/ouro-ui/field-tests",
@@ -1923,6 +2059,7 @@
         "ourostack/ouro-ui/ouro-lib-tests",
         "ourostack/ouro-ui/popover-tests",
         "ourostack/ouro-ui/progress-tests",
+        "ourostack/ouro-ui/resizable-tests",
         "ourostack/ouro-ui/separator-tests",
         "ourostack/ouro-ui/sheet-tests",
         "ourostack/ouro-ui/skeleton-tests",

@@ -1,0 +1,1 @@
+- New: `Resizable` and `ResizablePanel`, with `ResizablePanelGroup` and `ResizableHandle` as parts: panels sized in percent with window-splitter handles (`role="separator"`) that work with a mouse, touch (a 44px hit area) and the keyboard (arrow keys, Home, End, Enter), and `autoSaveId`, which keeps the layout in localStorage and ignores storage that is unavailable.
