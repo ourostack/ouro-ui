@@ -11,9 +11,12 @@ test("swipe scrolls what is under the finger with real touch input", async () =>
   scroller.style.cssText = "position:fixed;inset:0;overflow-y:auto;";
   scroller.innerHTML = '<div style="height:3000px"></div>';
   document.body.append(scroller);
+  scroller.setAttribute("data-scroller", "");
+  // A tap first, as in the Select sheet test: on Linux CI, a swipe that was the page's first
+  // touch input did not scroll.
+  await commands.tap("[data-scroller]");
   const events: string[] = [];
   scroller.addEventListener("pointerdown", (event) => events.push(event.pointerType));
-  // Let the compositor see the new scroller before the finger lands, as a user would.
   await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   await commands.swipe({ from: [200, 600], to: [200, 200], steps: 8 });
   await expect.poll(() => scroller.scrollTop).toBeGreaterThan(100);
