@@ -2,6 +2,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Command } from "@/registry/ouro/components/ouro/command/command";
 
@@ -12,7 +13,7 @@ const nodes: Element[] = [];
 afterEach(async () => {
   await act(() => root?.unmount());
   for (const node of nodes.splice(0)) node.remove();
-  await page.viewport(390, 844);
+  await rotate(390, 844);
 });
 
 const popup = () => document.querySelector<HTMLElement>("[data-ouro-presentation]");

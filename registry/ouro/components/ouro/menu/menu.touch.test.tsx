@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 import { commands, page } from "vitest/browser";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 import { pageCss } from "@/registry/ouro/lib/ouro/testing/page-css";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Menu, MenuBar, MenuItem, MenuSub } from "@/registry/ouro/components/ouro/menu/menu";
@@ -14,7 +15,7 @@ const nodes: Element[] = [];
 afterEach(async () => {
   await act(() => root?.unmount());
   for (const node of nodes.splice(0)) node.remove();
-  await page.viewport(390, 844);
+  await rotate(390, 844);
 });
 
 const menu = () => document.querySelector<HTMLElement>('[data-ouro="menu"]');
@@ -68,7 +69,7 @@ describe("Menu on a phone", () => {
   });
 
   it("keeps 44px items in a landscape phone, where the width is above 640px", async () => {
-    await page.viewport(844, 390);
+    await rotate(844, 390);
     await mount(
       <Menu trigger={<Button>Actions</Button>}>
         <MenuItem>Edit</MenuItem>
