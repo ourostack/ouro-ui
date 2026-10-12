@@ -159,7 +159,8 @@ async function openFromKeyboard(element: HTMLElement): Promise<void> {
  * What opens an overlay in a story: the visible, enabled Base UI triggers (`aria-haspopup`) in
  * the scope (clicked, or opened from the keyboard when clipped to a pixel for screen readers,
  * as SwipeActions' actions button is on a phone), then, at the top level, the plain openers by accessible name and the shortcut. A
- * disabled trigger (a disabled Select in a states story) opens nothing, so it is left out.
+ * disabled trigger (a disabled Select in a states story) opens nothing, so it is left out, and so
+ * is one whose popup is already open (Command's search input, whose list is open with its dialog).
  * Throws when a plain opener is missing.
  */
 export function overlayOpeners(
@@ -170,7 +171,7 @@ export function overlayOpeners(
 ): Opener[] {
   const roots = Array.isArray(scope) ? scope : [scope];
   const triggers = [...new Set(roots.flatMap((root) => [...root.querySelectorAll<HTMLElement>('[aria-haspopup]:not([aria-haspopup="false"])')]))]
-    .filter((element) => !element.matches(':disabled, [aria-disabled="true"], [data-disabled]') && isVisible(element))
+    .filter((element) => !element.matches(':disabled, [aria-disabled="true"], [data-disabled], [aria-expanded="true"]') && isVisible(element))
     .map((element) => ({ name: accessibleName(element), open: () => (clipped(element) ? openFromKeyboard(element) : userEvent.click(element)) }));
   if (!top) return triggers;
   const plain = (parameters.plainOpeners ?? []).map((label) => {
