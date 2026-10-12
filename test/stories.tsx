@@ -8,7 +8,11 @@ import * as ConfirmDialogStories from "@/registry/ouro/components/ouro/dialog/co
 import * as DialogStories from "@/registry/ouro/components/ouro/dialog/dialog.stories";
 import * as FieldStories from "@/registry/ouro/components/ouro/field/field.stories";
 import * as FieldsetStories from "@/registry/ouro/components/ouro/field/fieldset.stories";
+import * as EditSheetStories from "@/registry/ouro/components/ouro/form/edit-sheet.stories";
+import * as FormStories from "@/registry/ouro/components/ouro/form/form.stories";
 import * as LinkStories from "@/registry/ouro/components/ouro/link/link.stories";
+import * as NativeSelectStories from "@/registry/ouro/components/ouro/select/native-select.stories";
+import * as SelectStories from "@/registry/ouro/components/ouro/select/select.stories";
 import * as SheetStories from "@/registry/ouro/components/ouro/sheet/sheet.stories";
 import * as HeadingStories from "@/registry/ouro/components/ouro/text/heading.stories";
 import * as TextStories from "@/registry/ouro/components/ouro/text/text.stories";
@@ -31,10 +35,14 @@ export const storyFiles = {
   Button: composeStories(ButtonStories),
   ConfirmDialog: composeStories(ConfirmDialogStories),
   Dialog: composeStories(DialogStories),
+  EditSheet: composeStories(EditSheetStories),
   Field: composeStories(FieldStories),
   Fieldset: composeStories(FieldsetStories),
+  Form: composeStories(FormStories),
   Heading: composeStories(HeadingStories),
   Link: composeStories(LinkStories),
+  NativeSelect: composeStories(NativeSelectStories),
+  Select: composeStories(SelectStories),
   Sheet: composeStories(SheetStories),
   SheetFeel: composeStories(SheetFeelStories),
   Text: composeStories(TextStories),
@@ -59,6 +67,7 @@ export const stories: StoryEntry[] = Object.entries(storyFiles).flatMap(([file, 
  */
 const plainOpeners: Record<string, string[]> = {
   "Dialog/Controlled": ["Open"],
+  "EditSheet/Controlled": ["Open"],
   "Sheet/Controlled": ["Open"],
 };
 
@@ -92,9 +101,10 @@ export async function cleanupStories(): Promise<void> {
   setScheme("light");
 }
 
-/** The elements that open an overlay in a story: Base UI triggers, then the plain openers. */
+/** The elements that open an overlay in a story: enabled Base UI triggers, then the plain openers. */
 export function overlayOpeners(id: string, host: HTMLElement): HTMLElement[] {
-  const triggers = [...host.querySelectorAll<HTMLElement>("[aria-haspopup]")];
+  // A disabled trigger (a disabled Select in a states story) opens nothing.
+  const triggers = [...host.querySelectorAll<HTMLElement>("[aria-haspopup]")].filter((trigger) => !trigger.matches(":disabled, [data-disabled]"));
   const plain = (plainOpeners[id] ?? []).map((label) => {
     const button = [...host.querySelectorAll<HTMLElement>("button")].find((item) => item.textContent === label);
     if (!button) throw new Error(`${id}: no button labeled "${label}"`);
@@ -119,9 +129,9 @@ export async function settle(): Promise<void> {
 /** How long an overlay may take to open or close on a loaded CI runner. */
 const waitOptions = { timeout: 10_000, interval: 20 };
 
-/** The open overlay's popup (Dialog, ConfirmDialog or Sheet, in either presentation). */
+/** The open overlay's popup (Dialog, ConfirmDialog or Sheet, in either presentation, or Select's list). */
 export function openPopup(): HTMLElement | null {
-  return document.querySelector<HTMLElement>('[role="dialog"][data-open], [role="alertdialog"][data-open]');
+  return document.querySelector<HTMLElement>('[role="dialog"][data-open], [role="alertdialog"][data-open], [data-ouro="select-popup"][data-open]');
 }
 
 /** Clicks an opener and waits for its overlay to finish opening. */

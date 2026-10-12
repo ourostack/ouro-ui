@@ -95,6 +95,7 @@ const hasErrors = (result: EditSheetResult): result is FormErrors => Boolean(res
  * Use `Form` instead for a form on the page, `Dialog` for a dialog that is not a form, and
  * `ConfirmDialog` to confirm one action.
  *
+ * @group Overlays
  * @see https://ourostack.github.io/ouro-ui/docs/edit-sheet
  *
  * @example

@@ -235,6 +235,7 @@ function SelectControl({
  * text on phones, such as countries), `RadioGroup` for two to five choices that should all
  * show, and `Combobox` when the user needs to type to filter.
  *
+ * @group Forms
  * @see https://ourostack.github.io/ouro-ui/docs/select
  *
  * @example

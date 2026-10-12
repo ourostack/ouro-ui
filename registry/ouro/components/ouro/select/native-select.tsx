@@ -140,6 +140,7 @@ function ChevronIcon(): JSX.Element {
  * Use `Select` instead for a styled list (icons, groups with headings, several values with
  * `multiple`), and `RadioGroup` for two to five choices that should all show.
  *
+ * @group Forms
  * @see https://ourostack.github.io/ouro-ui/docs/native-select
  *
  * @example

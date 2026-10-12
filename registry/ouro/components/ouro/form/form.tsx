@@ -44,6 +44,7 @@ const EMPTY: FormErrors = {};
  * Use `EditSheet` instead for a form in a dialog that saves and closes, and a plain
  * `<form>` when nothing needs validating.
  *
+ * @group Forms
  * @see https://ourostack.github.io/ouro-ui/docs/form
  *
  * @example
