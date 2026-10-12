@@ -188,6 +188,19 @@ describe("Dialog server rendering", () => {
     expect(error).not.toHaveBeenCalled();
   });
 
+  it("renders a trigger that a Server Component passed as a lazy wrapper", () => {
+    // What React's Flight client hands a client component for an element prop
+    // (https://github.com/facebook/react/issues/32392): no `type` and no `props`.
+    const fromServer = { $$typeof: Symbol.for("react.lazy"), _payload: <Button>o</Button>, _init: (payload: unknown) => payload } as unknown as ReactElement;
+    const html = renderToString(
+      <Dialog title="t" trigger={fromServer}>
+        x
+      </Dialog>,
+    );
+    expect(html).toContain(">o<");
+    expect(html).toContain('aria-haspopup="dialog"');
+  });
+
   it.each([
     ["uncontrolled", () => <Dialog title="t" trigger={<Button>o</Button>}>x</Dialog>],
     ["closed and controlled", () => <Dialog title="t" open={false} onOpenChange={() => {}}>x</Dialog>],

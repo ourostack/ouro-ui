@@ -1,1 +1,1 @@
-- `Dialog` (and `EditSheet`, which is built on it) no longer fails with "Element type is invalid" when a Server Component passes its `trigger`: React can hand that element over as a lazy wrapper, and the dialog now unwraps it before adding the trigger's props.
+- A Dialog whose `trigger` comes from a Server Component no longer fails `next build` with "Element type is invalid" when React hands the trigger over as a lazy wrapper.

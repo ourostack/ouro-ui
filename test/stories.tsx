@@ -158,9 +158,10 @@ async function openFromKeyboard(element: HTMLElement): Promise<void> {
 /**
  * What opens an overlay in a story: the visible, enabled Base UI triggers (`aria-haspopup`) in
  * the scope (clicked, or opened from the keyboard when clipped to a pixel for screen readers,
- * as SwipeActions' actions button is on a phone), then, at the top level, the plain openers by accessible name and the shortcut. A
- * disabled trigger (a disabled Select in a states story) opens nothing, so it is left out, and so
- * is one whose popup is already open (Command's search input, whose list is open with its dialog).
+ * as SwipeActions' actions button is on a phone), then, at the top level, the plain openers by
+ * accessible name and the shortcut. A disabled trigger (a disabled Select in a states story)
+ * opens nothing, so it is left out, and so is one already expanded (Command's search input,
+ * whose inline list always shows).
  * Throws when a plain opener is missing.
  */
 export function overlayOpeners(
@@ -170,8 +171,8 @@ export function overlayOpeners(
   top = true,
 ): Opener[] {
   const roots = Array.isArray(scope) ? scope : [scope];
-  const triggers = [...new Set(roots.flatMap((root) => [...root.querySelectorAll<HTMLElement>('[aria-haspopup]:not([aria-haspopup="false"])')]))]
-    .filter((element) => !element.matches(':disabled, [aria-disabled="true"], [data-disabled], [aria-expanded="true"]') && isVisible(element))
+  const triggers = [...new Set(roots.flatMap((root) => [...root.querySelectorAll<HTMLElement>('[aria-haspopup]:not([aria-haspopup="false"]):not([aria-expanded="true"])')]))]
+    .filter((element) => !element.matches(':disabled, [aria-disabled="true"], [data-disabled]') && isVisible(element))
     .map((element) => ({ name: accessibleName(element), open: () => (clipped(element) ? openFromKeyboard(element) : userEvent.click(element)) }));
   if (!top) return triggers;
   const plain = (parameters.plainOpeners ?? []).map((label) => {
@@ -190,7 +191,14 @@ export async function settle(): Promise<void> {
     const running = document
       .getAnimations()
       .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity && animation.playState === "running");
-    if (running.length === 0) return;
+    if (running.length === 0) {
+      // Chart's marks animate with JavaScript (recharts), which getAnimations() cannot see; the plot marks it.
+      if (!document.querySelector("[data-ouro-chart-animating]")) return;
+      await vi.waitFor(() => {
+        if (document.querySelector("[data-ouro-chart-animating]")) throw new Error("a chart is still animating");
+      }, waitOptions);
+      continue;
+    }
     await Promise.all(running.map((animation) => animation.finished.catch(() => undefined)));
   }
   throw new Error("animations did not settle");

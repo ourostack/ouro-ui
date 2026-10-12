@@ -597,6 +597,15 @@ describe("Command server rendering", () => {
     expect(html).not.toContain("data-ouro-presentation");
     expect(error).not.toHaveBeenCalled();
   });
+
+  it("renders a trigger that a Server Component passed as a lazy wrapper", () => {
+    // What React's Flight client hands a client component for an element prop
+    // (https://github.com/facebook/react/issues/32392): no `type` and no `props`.
+    const fromServer = { $$typeof: Symbol.for("react.lazy"), _payload: <Button>Search</Button>, _init: (payload: unknown) => payload } as unknown as ReactElement;
+    const html = renderToString(<Command title="Command palette" trigger={fromServer} items={entries()} />);
+    expect(html).toContain(">Search<");
+    expect(html).toContain('aria-haspopup="dialog"');
+  });
 });
 
 describe("Command dev messages", () => {

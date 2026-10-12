@@ -93,6 +93,15 @@ for (const scheme of ["light", "dark"] as const) {
       }
     });
 
+    // Chart series are graphics, which need 3:1 against what they are drawn on.
+    it.each([1, 2, 3, 4, 5])("chart-%i is at least 3:1 on the page and a card", (index) => {
+      surfaces();
+      for (const surface of ["background", "card"]) {
+        const behind = toRgb(color(surface));
+        expect(ratio(toRgb(color(`chart-${index}`), behind), behind)).toBeGreaterThanOrEqual(3);
+      }
+    });
+
     it.each([
       ["foreground", "background"],
       ["popover-foreground", "popover"],

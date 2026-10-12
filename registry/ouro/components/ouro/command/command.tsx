@@ -7,9 +7,9 @@ import { floatingHint } from "@/registry/ouro/lib/ouro/floating";
 import { lastInput } from "@/registry/ouro/lib/ouro/last-input";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { ariaKeyShortcuts } from "@/registry/ouro/lib/ouro/key-shortcuts";
-import { unwrapLazyElement } from "@/registry/ouro/lib/ouro/lazy-element";
 import { checkOpenMode } from "@/registry/ouro/lib/ouro/open-mode";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
+import { serverElement } from "@/registry/ouro/lib/ouro/server-element";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 import { useSheetPresentation } from "@/registry/ouro/lib/ouro/use-sheet-presentation";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
@@ -292,13 +292,13 @@ export function Command(props: CommandProps): JSX.Element {
 
   const triggerRef = useRef<HTMLElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
-  // A trigger from a Server Component can arrive wrapped; its props are read from the element itself.
-  const triggerElement = unwrapLazyElement(trigger as ReactElement<TriggerProps> | undefined);
-  const triggerProps = triggerElement?.props ?? ({} as TriggerProps);
+  // A Server Component's trigger can arrive as a lazy wrapper; resolve it before cloning.
+  const triggerElement = serverElement(trigger);
+  const triggerProps = (triggerElement?.props ?? {}) as TriggerProps;
   const mergedTriggerRef = useMergedRef(triggerProps.ref, triggerRef);
   const triggerNode =
-    triggerElement !== undefined &&
-    cloneElement(triggerElement, {
+    trigger !== undefined &&
+    cloneElement(triggerElement as ReactElement<TriggerProps>, {
       ref: mergedTriggerRef,
       onClick: (event: MouseEvent<HTMLElement>) => {
         triggerProps.onClick?.(event);
