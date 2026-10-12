@@ -236,9 +236,9 @@ describe("SwipeActions on a phone", () => {
       for (let step = 1; step <= 4; step++) await commands.touchStep({ type: "touchMove", x: x + step * 5, y });
       await expect.poll(() => row.hasAttribute("data-dragging")).toBe(true);
       expect(row.hasAttribute("data-ouro-settling")).toBe(false);
+      // It was taken from where the spring had it, and moves the finger's 20px from there once the last move arrives.
+      await expect.poll(() => Math.abs(offset(row) - (flying + 20))).toBeLessThan(0.05);
       const held = offset(row);
-      // It was taken from where the spring had it, and has moved the finger's 20px from there.
-      expect(Math.abs(held - (flying + 20))).toBeLessThan(0.05);
       frames.step(32);
       expect(offset(row)).toBe(held);
       frames.release();
