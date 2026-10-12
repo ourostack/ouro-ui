@@ -189,8 +189,9 @@ export function Field(props: FieldProps): JSX.Element {
 
   const legend =
     layout === "group" ? (
-      // A group's name: not a <label>, because a group has no one element to focus.
-      <div id={labelId} data-ouro-legend="" data-disabled={disabled ? "" : undefined} className={cn(labelClass, hideLabel && "sr-only")}>
+      // A group's name: not a <label>, because a group has no one element to focus. It names a
+      // section rather than a control, so it keeps full contrast when the group is disabled.
+      <div id={labelId} data-ouro-legend="" className={cn(labelClass, hideLabel && "sr-only")}>
         {label}
         {required && (
           <span aria-hidden="true" data-ouro-required="" className="ms-0.5 text-destructive">

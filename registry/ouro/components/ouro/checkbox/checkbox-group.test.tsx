@@ -135,8 +135,9 @@ describe("CheckboxGroup", () => {
   it("disables every box with disabled", async () => {
     const { boxes, root } = await render(<CheckboxGroup legend="Herbs" options={herbs} disabled />);
     for (const box of boxes) expect(box.hasAttribute("data-disabled")).toBe(true);
+    // The legend names a section, not a control, so it keeps full contrast; the boxes fade.
     const legend = root.querySelector<HTMLElement>("[data-ouro-legend]")!;
-    expect(getComputedStyle(legend).opacity).toBe("0.5");
+    expect(getComputedStyle(legend).opacity).toBe("1");
   });
 
   it("marks the boxes invalid with error", async () => {
