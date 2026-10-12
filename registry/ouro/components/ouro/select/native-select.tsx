@@ -111,7 +111,7 @@ const selectClass =
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
   "transition-[border-color] duration-(--ouro-duration-fast) ease-out " +
   "hover:not-disabled:border-ring/60 aria-invalid:border-destructive disabled:cursor-not-allowed disabled:opacity-50 " +
-  "dark:bg-input/30 [&:has(option[value='']:checked)]:text-muted-foreground [&_option]:text-foreground";
+  "dark:bg-input/30 [&:has(option[value='']:checked)]:text-muted-foreground [&_option]:bg-popover [&_option]:text-popover-foreground dark:scheme-dark";
 
 /** The chevron at the end of the box, drawn in the muted text color; presses go to the select. */
 function ChevronIcon(): JSX.Element {

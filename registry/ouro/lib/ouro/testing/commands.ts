@@ -126,9 +126,9 @@ export const tap: BrowserCommand<[selector: string]> = async (ctx, selector) => 
 };
 
 export interface SwipeOptions {
-  /** Viewport coordinates where the finger touches down. */
+  /** Where the finger touches down, in the test page's coordinates (`getBoundingClientRect`). */
   from: [number, number];
-  /** Viewport coordinates where the finger lifts. */
+  /** Where the finger lifts, in the test page's coordinates. */
   to: [number, number];
   /** Number of intermediate finger moves. */
   steps: number;
@@ -151,8 +151,13 @@ export const swipe: BrowserCommand<[SwipeOptions]> = async (ctx, { from, to, ste
     session = await page.context().newCDPSession(page);
     cdpSessions.set(page, session);
   }
-  const touch = (type: "touchStart" | "touchMove" | "touchEnd", [x, y]: [number, number]) =>
-    session.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y }] });
+  // The test page is an iframe, offset (and on some runners scaled) inside the page CDP drives.
+  const frame = await ctx.iframe.owner().boundingBox();
+  const width = await ctx.iframe.locator(":root").evaluate(() => innerWidth);
+  const scale = frame ? frame.width / width : 1;
+  const toPage = ([x, y]: [number, number]) => ({ x: (frame?.x ?? 0) + x * scale, y: (frame?.y ?? 0) + y * scale });
+  const touch = (type: "touchStart" | "touchMove" | "touchEnd", point: [number, number]) =>
+    session.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [toPage(point)] });
   await touch("touchStart", from);
   for (let step = 1; step <= steps; step++) {
     const t = step / steps;

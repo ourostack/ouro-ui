@@ -80,6 +80,9 @@ const mounted: Element[] = [];
  */
 export function setScheme(scheme: "light" | "dark"): void {
   document.documentElement.classList.toggle("dark", scheme === "dark");
+  // Resolve styles now: WebKit otherwise styles a native <select> rendered next, and its
+  // ancestors, with the previous scheme's variables.
+  void getComputedStyle(document.documentElement).color;
 }
 
 /** Renders a story into the page. */
