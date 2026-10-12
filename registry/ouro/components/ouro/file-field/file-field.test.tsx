@@ -3,6 +3,7 @@ import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
+import { Form } from "@base-ui/react/form";
 import { FileField, type FileFieldProps } from "@/registry/ouro/components/ouro/file-field/file-field";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -250,6 +251,41 @@ describe("FileField", () => {
       expect(messages(host, input)).toEqual(["Choose a photo.", "notes.txt: type"]);
       await drop(zone, [image()]);
       expect(messages(host, input)).toEqual(["Choose a photo."]);
+    });
+
+    it("in a polite status region, mounted before the rejection and emptied by the next valid pick", async () => {
+      const { root, input } = await render(<FileField label="Photo" accept="image/*" error="Choose a photo." />);
+      // One live region, there from the first render, so the message is announced once: the
+      // field's own error is not live.
+      const live = root.querySelectorAll('[role="status"], [role="alert"], [role="log"], [aria-live]');
+      expect(live).toHaveLength(1);
+      const status = live[0]!;
+      expect(status.getAttribute("role")).toBe("status");
+      expect(status.textContent).toBe("");
+      await choose(input, [text("notes.txt")]);
+      expect(root.querySelector('[role="status"]')).toBe(status);
+      expect(status.textContent).toBe("notes.txt is not an accepted file type.");
+      // It shows where the field's errors show: under the field, in the error style.
+      expect(getComputedStyle(status).position).not.toBe("absolute");
+      const appError = [...root.querySelectorAll("div")].find((element) => element.textContent === "Choose a photo.")!;
+      expect(getComputedStyle(status).color).toBe(getComputedStyle(appError).color);
+      await choose(input, [image()]);
+      expect(root.querySelector('[role="status"]')).toBe(status);
+      expect(status.textContent).toBe("");
+      expect(getComputedStyle(status).position).toBe("absolute");
+    });
+
+    it("next to a Form's error for its name, which it does not hide", async () => {
+      const { host, input, zone } = await render(
+        <Form errors={{ photo: "Server says no." }}>
+          <FileField label="Photo" name="photo" accept="image/*" />
+        </Form>,
+      );
+      expect(host.textContent).toContain("Server says no.");
+      await drop(zone, [text("notes.txt")]);
+      expect(host.textContent).toContain("Server says no.");
+      expect(host.textContent).toContain("notes.txt is not an accepted file type.");
+      expect(input.getAttribute("aria-invalid")).toBe("true");
     });
 
     it("and drops the message when a file is removed or the form resets", async () => {

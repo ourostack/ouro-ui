@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type DragEvent, type JSX, type ReactNode, type Ref } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type DragEvent, type JSX, type ReactNode, type Ref } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { FieldControl } from "@/registry/ouro/components/ouro/field/field-parts";
-import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-styles";
+import { contractWarnings, errorClass } from "@/registry/ouro/components/ouro/field/field-styles";
+import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { FieldOwnerContext } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
@@ -73,7 +74,9 @@ export interface FileFieldProps {
   onReject?: ((rejections: FileRejection[]) => void) | undefined;
   /**
    * The message under the field for each file that was left out, until the next choice takes
-   * every file. Translate it with your app.
+   * every file, a removal or a form reset. It is announced to screen readers as a status, and
+   * shows next to `error` and a Form's error for this name, never instead of them. Translate it
+   * with your app.
    * @default (rejection) => "notes.heic is not an accepted file type.", "big.png is larger than 5 MB." or "Only one file can be added, so b.png was left out."
    */
   rejectMessage?: ((rejection: FileRejection) => string) | undefined;
@@ -166,11 +169,6 @@ function defaultRejectMessage({ file, reason }: FileRejection, maxSize: number |
   if (reason === "type") return `${file.name} is not an accepted file type.`;
   if (reason === "size") return `${file.name} is larger than ${formatSize(maxSize!)}.`;
   return `Only one file can be added, so ${file.name} was left out.`;
-}
-
-/** An `error` prop as a list of messages. */
-function messagesOf(error: string | string[] | undefined): string[] {
-  return error === undefined ? [] : ([] as string[]).concat(error);
 }
 
 /** Puts files in the input, so the form submits exactly the listed ones. */
@@ -267,6 +265,8 @@ export function FileField(props: FileFieldProps): JSX.Element {
   const [dragging, setDragging] = useState(false);
   // Why the last choice or drop left files out, shown under the field.
   const [rejections, setRejections] = useState<readonly string[]>([]);
+  const statusId = useId();
+  const rejecting = rejections.length > 0;
 
   // A form reset empties the input; empty the list and its messages with it.
   useEffect(() => {
@@ -336,7 +336,7 @@ export function FileField(props: FileFieldProps): JSX.Element {
         label={label}
         hideLabel={hideLabel}
         description={description}
-        error={rejections.length > 0 ? [...messagesOf(error), ...rejections] : error}
+        error={error}
         required={required}
         disabled={disabled}
         name={name}
@@ -367,6 +367,7 @@ export function FileField(props: FileFieldProps): JSX.Element {
             multiple={multiple}
             capture={capture}
             onChange={(event) => take([...event.currentTarget.files!])}
+            {...(rejecting ? { "aria-invalid": true, "aria-describedby": statusId } : {})}
             render={(controlProps) => <input {...controlProps} type="file" className="sr-only" />}
           />
         </label>
@@ -410,6 +411,21 @@ export function FileField(props: FileFieldProps): JSX.Element {
             })}
           </ul>
         )}
+        {/* Why files were left out: a polite status region from the first render, so screen
+            readers announce the message once when it appears; hidden while empty. It stays apart
+            from Field's error, so `error` and a Form's error still show. */}
+        <div id={statusId} role="status" data-ouro-file-rejections="" className={cn(errorClass, !rejecting && "sr-only")}>
+          {rejections.length > 1 ? (
+            <ul className="m-0 list-none p-0">
+              {rejections.map((message, index) => (
+                // Two files can share a name, and so a message.
+                <li key={`${index}:${message}`}>{message}</li>
+              ))}
+            </ul>
+          ) : (
+            rejections[0]
+          )}
+        </div>
       </Field>
     </FieldOwnerContext.Provider>
   );
