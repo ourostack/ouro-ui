@@ -1,7 +1,7 @@
 "use client";
 
 import { Field as BaseField } from "@base-ui/react/field";
-import { useCallback, useId, useMemo, useRef, type FormEvent, type JSX, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, type FormEvent, type JSX, type ReactNode } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { FieldContext, FieldOwnerContext, useFieldOwner, useFormErrors } from "@/registry/ouro/lib/ouro/use-field";
@@ -26,7 +26,8 @@ export interface FieldProps {
   /**
    * What is wrong, from your server action or client check. A message (or several, as a
    * list, each shown once) shows under the control, which gets `aria-invalid` and points at the message
-   * with `aria-describedby`. An empty string or array means valid.
+   * with `aria-describedby`. An empty string or array means valid. It only shows: it never
+   * blocks the next submit of the form around it.
    */
   error?: string | string[] | undefined;
   /** The control must be filled: it gets `required` and `aria-required`, and the label a marker. */
@@ -93,7 +94,10 @@ function labelConnected(root: HTMLElement, data: string, labelId: string, native
  * control takes these props and is built on the same parts.
  *
  * Pass `error` straight from a server action or a client check: it shows the message and
- * sets `aria-invalid`. The control is `FieldControl`, from `field-parts`. Use `Fieldset` instead to group several controls under one legend,
+ * sets `aria-invalid`. The error only shows: it never blocks the form's next submit, so the
+ * user can always send the form again (only the browser's own checks, such as `required`,
+ * block). Inside a `Form`, a field with a `name` shows the form's error for that name when
+ * it has no `error` of its own. The control is `FieldControl`, from `field-parts`. Use `Fieldset` instead to group several controls under one legend,
  * and the `FieldRoot` parts when the label, control and error need another layout.
  *
  * @group Forms
@@ -151,6 +155,10 @@ export function Field(props: FieldProps): JSX.Element {
     form!.clear(name!);
   };
 
+  // The field claims its name in the Form, so the Form shows its errors here, not at the top.
+  const register = form?.register;
+  useEffect(() => (register && name !== undefined ? register(name) : undefined), [register, name]);
+
   // The dev checks run after render, when the root is in the page and the control has
   // registered its id with the label.
   const rootRef = useRef<HTMLDivElement>(null);
@@ -190,11 +198,13 @@ export function Field(props: FieldProps): JSX.Element {
 
   return (
     <FieldContext.Provider value={value}>
+      {/* `invalid` stays Ouro's: Base UI would count it as a failed check and block the
+          form's next submit. Its own checks (`required`, `type`) still mark and block. */}
       <BaseField.Root
         ref={rootRef}
         name={name}
         disabled={disabled}
-        invalid={invalid}
+        {...(invalid ? { "data-invalid": "" } : {})}
         data-ouro={owner.data}
         className={cn(rootClass, className)}
         onChange={clearFormError}

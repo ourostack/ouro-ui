@@ -145,6 +145,7 @@ export function FieldControl({ className, required, ...props }: FieldControlProp
       required={isRequired}
       aria-required={isRequired || undefined}
       aria-describedby={describedBy}
+      {...(field.invalid ? { "aria-invalid": true } : {})}
       className={cn(controlClass, className)}
     />
   );

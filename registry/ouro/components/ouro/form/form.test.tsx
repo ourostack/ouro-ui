@@ -6,6 +6,7 @@ import { page, userEvent } from "vitest/browser";
 import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { FieldControl } from "@/registry/ouro/components/ouro/field/field-parts";
 import { Form, type FormErrors } from "@/registry/ouro/components/ouro/form/form";
+import { Select } from "@/registry/ouro/components/ouro/select/select";
 import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -234,7 +235,9 @@ describe("Form", () => {
     const save = page.getByRole("button", { name: "Save" });
     await userEvent.click(save);
     await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
-    expect(document.activeElement).toBe(save.element());
+    // No field took focus (WebKit does not focus a clicked button, so focus may be on the page).
+    expect(document.activeElement?.matches("input, textarea, [role='alert']")).toBe(false);
+    expect(save.element()).toBeTruthy();
   });
 
   it("does not move focus when the user clears an error while typing", async () => {
@@ -244,6 +247,207 @@ describe("Form", () => {
     await userEvent.fill(page.getByRole("textbox", { name: "Email" }), "new@example.com");
     expect(document.activeElement).toBe(input("email"));
     expect(input("bio").getAttribute("aria-invalid")).toBe("true");
+  });
+});
+
+describe("Form errors are display-only (review fix round 1, finding 1)", () => {
+  it("resubmits after the user fixes a field whose own error prop came from the action", async () => {
+    const sent = vi.fn();
+    function Page() {
+      const [actionData, setActionData] = useState<{ errors?: FormErrors } | undefined>({ errors: { email: "Taken." } });
+      return (
+        <Form
+          method="post"
+          onSubmit={(event: FormEvent<HTMLFormElement>) => {
+            event.preventDefault();
+            sent(new FormData(event.currentTarget).get("email"));
+            setActionData(undefined);
+          }}
+        >
+          <TextField label="Email" name="email" error={actionData?.errors?.email as string | undefined} defaultValue="old@example.com" />
+          <button type="submit">Save</button>
+        </Form>
+      );
+    }
+    await render(<Page />);
+    await userEvent.fill(page.getByRole("textbox", { name: "Email" }), "new@example.com");
+    await userEvent.click(page.getByRole("button", { name: "Save" }));
+    expect(sent).toHaveBeenCalledWith("new@example.com");
+  });
+
+  it("resubmits a TextField after a server error, with the field unchanged", async () => {
+    const sent = vi.fn();
+    const { input } = await render(<ActionPage result={{ email: "Try again." }} onSent={sent} />);
+    await userEvent.click(page.getByRole("button", { name: "Save" }));
+    await expect.poll(() => input("email").getAttribute("aria-invalid")).toBe("true");
+    await userEvent.click(page.getByRole("button", { name: "Save" }));
+    expect(sent).toHaveBeenCalledTimes(2);
+  });
+
+  it("resubmits a Select after a server error, with the select unchanged", async () => {
+    const sent = vi.fn();
+    function Page() {
+      const [errors, setErrors] = useState<FormErrors | undefined>();
+      return (
+        <Form
+          errors={errors}
+          onSubmit={(event: FormEvent<HTMLFormElement>) => {
+            event.preventDefault();
+            sent(new FormData(event.currentTarget).get("course"));
+            setTimeout(() => setErrors({ course: "That course is full." }));
+          }}
+        >
+          <Select label="Course" name="course" defaultValue="main" options={[{ value: "main", label: "Main" }, { value: "side", label: "Side" }]} />
+          <button type="submit">Save</button>
+        </Form>
+      );
+    }
+    const { host } = await render(<Page />);
+    await userEvent.click(page.getByRole("button", { name: "Save" }));
+    await expect.poll(() => host.querySelector('[role="combobox"]')!.getAttribute("aria-invalid")).toBe("true");
+    await userEvent.click(page.getByRole("button", { name: "Save" }));
+    expect(sent.mock.calls).toEqual([["main"], ["main"]]);
+  });
+
+  it("still blocks a submit on the browser's own constraints", async () => {
+    const sent = vi.fn((event: FormEvent) => event.preventDefault());
+    const { input } = await render(
+      <Form errors={{ name: "Taken." }} onSubmit={sent}>
+        <TextField label="Name" name="name" defaultValue="Ari" />
+        <TextField label="Email" name="email" required />
+        <button type="submit">Save</button>
+      </Form>,
+    );
+    await userEvent.click(page.getByRole("button", { name: "Save" }));
+    expect(sent).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(input("email"));
+  });
+});
+
+describe("Form submits only itself (review fix round 1, finding 2)", () => {
+  it("stops its submit event from reaching a Form around it in the React tree", async () => {
+    const outer = vi.fn((event: FormEvent) => event.preventDefault());
+    const inner = vi.fn((event: FormEvent) => event.preventDefault());
+    const { createPortal } = await import("react-dom");
+    const target = document.createElement("div");
+    document.body.append(target);
+    mounted.push(target);
+    await render(
+      <Form onSubmit={outer}>
+        <TextField label="Title" name="title" defaultValue="Soup" />
+        {createPortal(
+          <Form onSubmit={inner}>
+            <TextField label="Qty" name="qty" defaultValue="1" />
+            <button type="submit">Save qty</button>
+          </Form>,
+          target,
+        )}
+      </Form>,
+    );
+    await userEvent.click(page.getByRole("button", { name: "Save qty" }));
+    expect(inner).toHaveBeenCalledOnce();
+    expect(outer).not.toHaveBeenCalled();
+  });
+});
+
+describe("Form-level messages (review fix round 1, finding 3)", () => {
+  it("shows a form error and keys no field claims in an alert at the top of the form", async () => {
+    const { host, form } = await render(
+      <Form errors={{ form: "The server is down.", emial: "Typo key.", email: "Taken." }}>
+        <TextField label="Email" name="email" />
+      </Form>,
+    );
+    const alert = host.querySelector<HTMLElement>('[role="alert"]')!;
+    expect(alert).not.toBeNull();
+    expect(form.firstElementChild).toBe(alert);
+    await expect.poll(() => alert.textContent).toBe("The server is down.Typo key.");
+    // The field's own error shows on the field only.
+    expect(alert.textContent).not.toContain("Taken.");
+  });
+
+  it("renders no alert without form-level errors", async () => {
+    const { host } = await render(
+      <Form errors={{ email: "Taken." }}>
+        <TextField label="Email" name="email" />
+      </Form>,
+    );
+    expect(host.querySelector('[role="alert"]')!.textContent).toBe("");
+  });
+
+  it("focuses the alert when errors arrive and no field has one", async () => {
+    const { host } = await render(<ActionPage result={{ form: "The server is down." }} />);
+    await userEvent.click(page.getByRole("button", { name: "Save" }));
+    await expect.poll(() => document.activeElement).toBe(host.querySelector('[role="alert"]'));
+  });
+
+  it("lists several form-level messages and shows nothing for an empty one", async () => {
+    const { host } = await render(
+      <Form errors={{ form: ["The server is down.", "Try again later."], name: "" }}>
+        <TextField label="Email" name="email" />
+      </Form>,
+    );
+    await expect.poll(() => host.querySelector('[role="alert"]')!.textContent).toBe("The server is down.Try again later.");
+  });
+
+  it("moves focus only when errors arrive that something shows", async () => {
+    const { rerender } = await render(
+      <Form>
+        <TextField label="Email" name="email" />
+      </Form>,
+    );
+    const before = document.activeElement;
+    // An empty message shows nowhere, so focus stays.
+    await rerender(
+      <Form errors={{ email: "" }}>
+        <TextField label="Email" name="email" />
+      </Form>,
+    );
+    expect(document.activeElement).toBe(before);
+    await rerender(
+      <Form errors={undefined}>
+        <TextField label="Email" name="email" />
+      </Form>,
+    );
+    expect(document.activeElement).toBe(before);
+  });
+
+  it("keeps a name claimed while any field with it remains", async () => {
+    function Tags({ both }: { both: boolean }) {
+      return (
+        <Form errors={{ tag: "Pick a tag." }}>
+          <TextField label="Tag" name="tag" />
+          {both && <TextField label="Another tag" name="tag" />}
+        </Form>
+      );
+    }
+    const { host, rerender } = await render(<Tags both />);
+    await rerender(<Tags both={false} />);
+    await act(async () => {});
+    expect(host.querySelector('[role="alert"]')!.textContent).toBe("");
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("warns in development about a key no field claims, naming the fields there are", async () => {
+    await render(
+      <Form errors={{ emial: "Typo key.", form: "Shown at the top." }}>
+        <TextField label="Email" name="email" />
+        <TextField label="Name" name="name" />
+      </Form>,
+    );
+    await expect.poll(() => warn.mock.calls.length).toBe(1);
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] Form: errors has "emial", which no field in the form is named, so it shows at the top of the form. Fix: use a field\'s name (email, name), or "form" for a message about the whole form.',
+    );
+  });
+
+  it("puts the form error in the server HTML", () => {
+    const html = renderToString(
+      <Form errors={{ form: "The server is down." }}>
+        <TextField label="Email" name="email" />
+      </Form>,
+    );
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    expect(doc.querySelector('[role="alert"]')!.textContent).toBe("The server is down.");
   });
 });
 

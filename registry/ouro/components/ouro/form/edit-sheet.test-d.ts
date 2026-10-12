@@ -21,6 +21,10 @@ expectTypeOf<{
   submitLabel: "Save recipe";
   cancelLabel: "Abbrechen";
   closeLabel: "Schließen";
+  failureMessage: "Speichern fehlgeschlagen.";
+  discardMessage: "Änderungen verwerfen?";
+  discardLabel: "Verwerfen";
+  keepEditingLabel: "Weiter bearbeiten";
   className: "mt-4";
 }>().toExtend<EditSheetProps>();
 createElement(EditSheet, { title: "Edit recipe", trigger, onSubmit: async () => {}, children: "Fields" });

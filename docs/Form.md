@@ -2,7 +2,7 @@
 
 # Form
 
-A form that validates with the browser's own constraints (`required`, `type="email"`, `pattern`) and shows server errors on the matching fields. Pass `errors` straight from your action; each message lands on the field with that `name`, and after a submit focus moves to the first invalid field. It renders a `<form>`, so `action` and `method` pass through; to submit through React Router, render its `Form`: `render={<RouterForm />}`.
+A form that validates with the browser's own constraints (`required`, `type="email"`, `pattern`) and shows server errors on the matching fields. Pass `errors` straight from your action; each message lands on the field with that `name`, and focus moves to the first field with an error. Server errors only show: unlike the browser's checks they never block the next submit, so the user can always send the form again. A Form submits only itself: its submit event stops there, so a Form in a sheet inside another Form never submits the outer one. It renders a `<form>`, so `action` and `method` pass through; to submit through React Router, render its `Form`: `render={<RouterForm />}`.
 
 ```tsx
 import { Form } from "@/registry/ouro/components/ouro/form/form";
@@ -30,7 +30,7 @@ Type: `FormProps`.
 | --- | --- | --- | --- |
 | `children` (required) | `ReactNode` |  | The fields and the submit button. |
 | `className` | `string` |  | Layout only: margins, width, grid placement. Fields stack with a gap by default; appearance classes warn in development. |
-| `errors` | `FormErrors \| null` |  | Errors by field name, usually from your server action: `errors={actionData?.errors}`. Each one shows on the field with that `name`, which gets `aria-invalid` and links the message, in the server HTML too. A field's own `error` prop wins over it, and a message goes away once the user changes that field. After a submit, focus moves to the first invalid field in the page. |
+| `errors` | `FormErrors \| null` |  | Errors by field name, usually from your server action: `errors={actionData?.errors}`. Each one shows on the field with that `name`, which gets `aria-invalid` and links the message, in the server HTML too. A field's own `error` prop wins over it, and a message goes away once the user changes that field. When new errors arrive, focus moves to the first field with one, in page order. The `form` key, and any key no field is named, shows in an alert at the top of the form instead. These errors only show: they never block the next submit, so the user can always send the form again (a server error may be fixed by changing another field, or by trying again). The browser's own checks (`required`, `type="email"`) still block a submit. |
 
 ## Native attributes
 

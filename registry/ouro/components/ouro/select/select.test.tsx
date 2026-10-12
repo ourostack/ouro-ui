@@ -3,7 +3,8 @@ import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
-import { Form } from "@/registry/ouro/components/ouro/form/form";
+import { Form, type FormErrors } from "@/registry/ouro/components/ouro/form/form";
+import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { Select, type SelectProps } from "@/registry/ouro/components/ouro/select/select";
 import { SelectGroup, SelectItem } from "@/registry/ouro/components/ouro/select/select-parts";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -272,6 +273,36 @@ describe("Select", () => {
     await open(trigger);
     await userEvent.click(option("Starter"));
     expect(trigger.textContent).toBe("Starter");
+  });
+});
+
+describe("Select in a Form with server errors (review fix round 1, finding 7)", () => {
+  it("gets focus when the errors arrive, and drops its error once the user picks another option", async () => {
+    function Page() {
+      const [errors, setErrors] = useState<FormErrors | undefined>();
+      return (
+        <Form
+          errors={errors}
+          onSubmit={(event: FormEvent<HTMLFormElement>) => {
+            event.preventDefault();
+            setTimeout(() => setErrors({ name: "Too short.", course: "That course is full." }));
+          }}
+        >
+          <Select label="Course" name="course" defaultValue="main" options={[{ value: "main", label: "Main" }, { value: "side", label: "Side" }]} />
+          <TextField label="Name" name="name" defaultValue="x" />
+          <button type="submit">Save</button>
+        </Form>
+      );
+    }
+    await render(<Page />);
+    await userEvent.click(page.getByRole("button", { name: "Save" }));
+    const trigger = document.querySelector<HTMLElement>('[role="combobox"]')!;
+    // The Select comes first in the page, so it gets focus though the action listed Name first.
+    await expect.poll(() => document.activeElement).toBe(trigger);
+    expect(trigger.getAttribute("aria-invalid")).toBe("true");
+    await userEvent.click(page.getByRole("combobox", { name: "Course" }));
+    await userEvent.click(page.getByRole("option", { name: "Side" }));
+    await expect.poll(() => trigger.getAttribute("aria-invalid")).toBeNull();
   });
 });
 

@@ -81,6 +81,11 @@ export interface FormErrorsValue {
   errors: Readonly<Record<string, string | string[]>>;
   /** Drops one field's message, once the user changes that field. */
   clear: (name: string) => void;
+  /**
+   * Records that a field with this name is in the form, so its errors show on it and not at
+   * the top of the form. Returns the function that removes it again.
+   */
+  register: (name: string) => () => void;
 }
 
 /**

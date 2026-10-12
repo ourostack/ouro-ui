@@ -1,11 +1,11 @@
-import { useState, type ReactNode } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { commands, page, server, userEvent } from "vitest/browser";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { EditSheet, type EditSheetProps } from "@/registry/ouro/components/ouro/form/edit-sheet";
-import type { FormErrors } from "@/registry/ouro/components/ouro/form/form";
+import { Form, type FormErrors } from "@/registry/ouro/components/ouro/form/form";
 import { Select } from "@/registry/ouro/components/ouro/select/select";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -217,16 +217,29 @@ describe("EditSheet", () => {
     expect(popup()!.hasAttribute("data-open")).toBe(true);
   });
 
-  it("closes from Cancel without submitting, and ignores a save that settles later", async () => {
+  it("ignores a save that settles after the app closed the sheet", async () => {
     const pending = deferred<FormErrors>();
-    const onSubmit = vi.fn(() => pending.promise);
-    await open({ onSubmit });
+    // The app closes the sheet itself, from a button outside it.
+    function Controlled() {
+      const [openState, setOpen] = useState(false);
+      return (
+        <>
+          <Button onClick={() => setOpen(true)}>Open</Button>
+          <button type="button" data-app-close="" onClick={() => setOpen(false)} />
+          <EditSheet title="Edit recipe" open={openState} onOpenChange={setOpen} onSubmit={() => pending.promise}>
+            <Fields />
+          </EditSheet>
+        </>
+      );
+    }
+    await render(<Controlled />);
+    await userEvent.click(page.getByRole("button", { name: "Open" }));
+    await settled();
     await userEvent.click(dialogButton("Save"));
-    await userEvent.click(dialogButton("Cancel"));
+    await act(async () => document.querySelector<HTMLElement>("[data-app-close]")!.click());
     await expect.poll(() => popup()).toBeNull();
-    await expect.poll(() => document.activeElement).toBe(trigger());
     // Reopen: the late result neither closes it nor shows its errors, and nothing is loading.
-    await userEvent.click(trigger());
+    await userEvent.click(page.getByRole("button", { name: "Open" }));
     await settled();
     await act(async () => pending.resolve({ name: "Taken." }));
     expect(popup()!.hasAttribute("data-open")).toBe(true);
@@ -234,11 +247,23 @@ describe("EditSheet", () => {
     expect(dialogButton("Save").element().hasAttribute("aria-busy")).toBe(false);
   });
 
-  it("ignores a rejection that settles after the user cancelled, but still warns", async () => {
+  it("ignores a rejection that settles after the app closed the sheet, but still warns", async () => {
     const pending = deferred<void>();
-    await open({ onSubmit: () => pending.promise });
+    function Controlled() {
+      const [openState, setOpen] = useState(true);
+      return (
+        <>
+          <button type="button" data-app-close="" onClick={() => setOpen(false)} />
+          <EditSheet title="Edit recipe" open={openState} onOpenChange={setOpen} onSubmit={() => pending.promise}>
+            <Fields />
+          </EditSheet>
+        </>
+      );
+    }
+    await render(<Controlled />);
+    await settled();
     await userEvent.click(dialogButton("Save"));
-    await userEvent.click(dialogButton("Cancel"));
+    await act(async () => document.querySelector<HTMLElement>("[data-app-close]")!.click());
     await expect.poll(() => popup()).toBeNull();
     await act(async () => pending.reject(new Error("Network down")));
     expect(warn).toHaveBeenCalledWith(
@@ -318,6 +343,188 @@ describe("EditSheet", () => {
         </EditSheet>,
       ),
     ).not.toThrow();
+  });
+});
+
+describe("EditSheet in a page Form (review fix round 1, finding 2)", () => {
+  it("saves without submitting the page Form it sits in", async () => {
+    const outer = vi.fn((event: FormEvent) => event.preventDefault());
+    const inner = vi.fn();
+    await render(
+      <Form onSubmit={outer}>
+        <TextField label="Title" name="title" required />
+        <EditSheet title="Edit ingredient" trigger={<Button data-edit-trigger="">Edit</Button>} onSubmit={inner}>
+          <TextField label="Qty" name="qty" defaultValue="1" />
+        </EditSheet>
+      </Form>,
+    );
+    await userEvent.click(trigger());
+    await settled();
+    await userEvent.click(dialogButton("Save"));
+    await expect.poll(() => popup()).toBeNull();
+    expect(inner).toHaveBeenCalledOnce();
+    expect(outer).not.toHaveBeenCalled();
+    // Focus went back to the trigger, not to the page form's empty required field.
+    expect(document.activeElement).toBe(trigger());
+  });
+});
+
+describe("EditSheet failures outside a field (review fix round 1, finding 3)", () => {
+  const alert = () => popup()!.querySelector<HTMLElement>('[role="alert"]')!;
+
+  it("shows the failure message in an alert and focuses it when onSubmit rejects", async () => {
+    await open({ onSubmit: () => Promise.reject(new Error("Network down")) });
+    await userEvent.click(dialogButton("Save"));
+    await expect.poll(() => alert().textContent).toBe("Couldn't save. Try again.");
+    expect(document.activeElement).toBe(alert());
+    expect(popup()!.hasAttribute("data-open")).toBe(true);
+  });
+
+  it("takes the failure message as a prop, and shows it when onSubmit throws", async () => {
+    await open({
+      failureMessage: "Speichern fehlgeschlagen.",
+      onSubmit: () => {
+        throw new Error("offline");
+      },
+    });
+    await userEvent.click(dialogButton("Save"));
+    await expect.poll(() => alert().textContent).toBe("Speichern fehlgeschlagen.");
+  });
+
+  it("shows a returned error that matches no field in the alert, and warns", async () => {
+    await open({ onSubmit: () => ({ form: "The server is down.", nmae: "Typo key." }) });
+    await userEvent.click(dialogButton("Save"));
+    await expect.poll(() => alert().textContent).toBe("The server is down.Typo key.");
+    expect(popup()!.hasAttribute("data-open")).toBe(true);
+    await expect.poll(() => warn.mock.calls.map((call: unknown[]) => String(call[0])).join("\n")).toContain('errors has "nmae"');
+  });
+});
+
+describe("EditSheet with unsaved edits (review fix round 1, rulings 4 and 5)", () => {
+  const confirmRow = () => popup()?.querySelector<HTMLElement>('[data-ouro="edit-sheet-discard"]') ?? null;
+
+  it("closes at once from Escape and Cancel when nothing changed", async () => {
+    await open();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => popup()).toBeNull();
+    await userEvent.click(trigger());
+    await settled();
+    await userEvent.click(dialogButton("Cancel"));
+    await expect.poll(() => popup()).toBeNull();
+  });
+
+  it("asks before Escape discards edits, inside the sheet, and keeps editing on request", async () => {
+    await open();
+    await userEvent.fill(page.getByRole("textbox", { name: "Name" }), "Soup");
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(confirmRow).not.toBeNull();
+    expect(popup()!.hasAttribute("data-open")).toBe(true);
+    expect(document.querySelectorAll('[role="dialog"], [role="alertdialog"]').length).toBe(1);
+    expect(confirmRow()!.textContent).toContain("Discard your changes?");
+    // Focus goes to the safe choice.
+    expect(document.activeElement).toBe(dialogButton("Keep editing").element());
+    await userEvent.click(dialogButton("Keep editing"));
+    await expect.poll(confirmRow).toBeNull();
+    expect(field("name").value).toBe("Soup");
+    expect(popup()!.hasAttribute("data-open")).toBe(true);
+  });
+
+  it("goes back to the form when Escape is pressed while it asks", async () => {
+    await open();
+    await userEvent.fill(page.getByRole("textbox", { name: "Name" }), "Soup");
+    await userEvent.click(dialogButton("Cancel"));
+    await expect.poll(confirmRow).not.toBeNull();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(confirmRow).toBeNull();
+    expect(popup()!.hasAttribute("data-open")).toBe(true);
+    expect(field("name").value).toBe("Soup");
+  });
+
+  it("counts an untouched file input as unchanged", async () => {
+    await render(
+      <EditSheet title="Edit recipe" onSubmit={() => {}} trigger={<Button data-edit-trigger="">Edit</Button>}>
+        <TextField label="Name" name="name" defaultValue="Pasta" />
+        <input type="file" name="photo" aria-label="Photo" />
+      </EditSheet>,
+    );
+    await userEvent.click(trigger());
+    await settled();
+    await userEvent.click(dialogButton("Cancel"));
+    await expect.poll(() => popup()).toBeNull();
+  });
+
+  it("discards edits from Cancel after confirming, and returns focus to the trigger", async () => {
+    const onSubmit = vi.fn();
+    await open({ onSubmit });
+    await userEvent.fill(page.getByRole("textbox", { name: "Servings" }), "6");
+    await userEvent.click(dialogButton("Cancel"));
+    await expect.poll(confirmRow).not.toBeNull();
+    await userEvent.click(dialogButton("Discard"));
+    await expect.poll(() => popup()).toBeNull();
+    await expect.poll(() => document.activeElement).toBe(trigger());
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("asks before a tap outside discards edits", async () => {
+    await open();
+    await userEvent.fill(page.getByRole("textbox", { name: "Name" }), "Soup");
+    await page.elementLocator(document.body).click({ position: { x: 10, y: 10 } });
+    await expect.poll(confirmRow).not.toBeNull();
+    expect(popup()!.hasAttribute("data-open")).toBe(true);
+  });
+
+  it("counts a changed Select as an edit", async () => {
+    await render(
+      <EditSheet title="Edit recipe" onSubmit={() => {}} trigger={<Button data-edit-trigger="">Edit</Button>}>
+        <Select label="Course" name="course" defaultValue="main" options={[{ value: "main", label: "Main" }, { value: "side", label: "Side" }]} />
+      </EditSheet>,
+    );
+    await userEvent.click(trigger());
+    await settled();
+    await userEvent.click(page.getByRole("combobox", { name: "Course" }));
+    await userEvent.click(page.getByRole("option", { name: "Side" }));
+    await userEvent.click(dialogButton("Cancel"));
+    await expect.poll(confirmRow).not.toBeNull();
+  });
+
+  it("takes the confirmation's labels as props", async () => {
+    await open({ discardMessage: "Änderungen verwerfen?", discardLabel: "Verwerfen", keepEditingLabel: "Weiter bearbeiten" });
+    await userEvent.fill(page.getByRole("textbox", { name: "Name" }), "Suppe");
+    await userEvent.click(dialogButton("Cancel"));
+    await expect.poll(confirmRow).not.toBeNull();
+    expect(confirmRow()!.textContent).toContain("Änderungen verwerfen?");
+    await userEvent.click(dialogButton("Verwerfen"));
+    await expect.poll(() => popup()).toBeNull();
+  });
+
+  it.skipIf(server.browser !== "chromium")("asks before a swipe down on the phone sheet discards edits, and stays open", async () => {
+    await page.viewport(390, 844);
+    await open();
+    await userEvent.fill(page.getByRole("textbox", { name: "Name" }), "Soup");
+    (document.activeElement as HTMLElement).blur();
+    const rect = popup()!.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    await commands.drag({ from: [x, rect.top + 10], to: [x, rect.top + 10 + rect.height * 0.8], steps: 12, durationMs: 600 });
+    await expect.poll(confirmRow).not.toBeNull();
+    expect(popup()!.hasAttribute("data-open")).toBe(true);
+    // The sheet springs back to rest at the bottom edge, with the edits, and asking did not
+    // scroll it out of place.
+    await expect.poll(() => getComputedStyle(popup()!).transform).toBe("matrix(1, 0, 0, 1, 0, 0)");
+    await expect.poll(() => Math.round(popup()!.getBoundingClientRect().bottom)).toBe(844);
+    expect(field("name").value).toBe("Soup");
+  });
+
+  it("disables Cancel and ignores Escape while a save is pending", async () => {
+    const pending = deferred<void>();
+    await open({ onSubmit: () => pending.promise });
+    await userEvent.click(dialogButton("Save"));
+    expect(dialogButton("Save").element().getAttribute("aria-busy")).toBe("true");
+    expect(dialogButton("Cancel").element().hasAttribute("disabled")).toBe(true);
+    await userEvent.keyboard("{Escape}");
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 50)));
+    expect(popup()!.hasAttribute("data-open")).toBe(true);
+    await act(async () => pending.resolve());
+    await expect.poll(() => popup()).toBeNull();
   });
 });
 

@@ -2,7 +2,7 @@
 
 # EditSheet
 
-Edits something in a form inside a dialog: the whole interaction, done right. It opens from `trigger` as a centered dialog, or a bottom sheet on phones, with your fields, Cancel and a save button. Saving runs the browser's checks, then `onSubmit` with the fields as `FormData`; a promise shows `loading` on the save button and keeps the sheet open. Errors it returns land on the matching fields, with focus on the first; success closes the sheet and returns focus to the trigger.
+Edits something in a form inside a dialog: the whole interaction, done right. It opens from `trigger` as a centered dialog, or a bottom sheet on phones, with your fields, Cancel and a save button. Saving runs the browser's checks, then `onSubmit` with the fields as `FormData`; a promise shows `loading` on the save button and keeps the sheet open (it cannot be dismissed meanwhile). Errors it returns land on the matching fields, with focus on the first; a failed save shows `failureMessage` at the top of the form; success closes the sheet and returns focus to the trigger. Dismissing it after changing a field (Escape, a tap outside, a swipe down, Cancel) asks inside the sheet before the edits are lost.
 
 ```tsx
 import { EditSheet } from "@/registry/ouro/components/ouro/form/edit-sheet";
@@ -36,8 +36,12 @@ Props every mode takes. Type: `EditSheetProps`.
 | `className` | `string` |  | Layout only, applied to the panel: margins (`mt-4`). Your classes win over Ouro UI's. Appearance classes warn in development. |
 | `closeLabel` | `string` | `"Close"` | The label of the close button in the corner. Translate it with your app. |
 | `description` | `ReactNode` |  | A short line under the title, read out when the sheet opens. |
+| `discardLabel` | `string` | `"Discard"` | The button that discards the edits and closes the sheet. |
+| `discardMessage` | `string` | `"Discard your changes?"` | The question the sheet asks, in place of its buttons, when the user dismisses it (Escape, a tap outside, a swipe down, Cancel or the close button) after changing a field. Translate it with your app. |
+| `failureMessage` | `string` | `"Couldn't save. Try again."` | What the sheet shows, at the top of the form, when `onSubmit` rejects or throws. Translate it with your app. |
 | `hideTitle` | `boolean` |  | Hides the title visually. It still names the sheet for screen readers. |
-| `onSubmit` (required) | `(data: FormData) => EditSheetResult \| Promise<EditSheetResult>` |  | Saves the form. It gets the fields as `FormData`, after the browser's own checks (`required`, `type="email"`) pass. Return nothing to close the sheet and return focus to the trigger, or errors by field name (`{ name: "That name is taken." }`) to keep it open with each message on its field and focus on the first. Return a promise to show `loading` on the save button until it settles. If it rejects (or throws), the sheet stays open; Cancel and Escape still close it, and a result that arrives later is ignored. |
+| `keepEditingLabel` | `string` | `"Keep editing"` | The button that goes back to the form with the edits kept; it takes focus. |
+| `onSubmit` (required) | `(data: FormData) => EditSheetResult \| Promise<EditSheetResult>` |  | Saves the form. It gets the fields as `FormData`, after the browser's own checks (`required`, `type="email"`) pass. Return nothing to close the sheet and return focus to the trigger, or errors by field name (`{ name: "That name is taken." }`) to keep it open with each message on its field and focus on the first; a `form` key, or a key no field is named, shows in an alert at the top of the form. Return a promise to show `loading` on the save button until it settles; meanwhile Cancel is disabled and the sheet cannot be dismissed. If it rejects (or throws), the sheet stays open with `failureMessage`. |
 | `submitLabel` | `string` | `"Save"` | The save button's label: the action, such as `"Save recipe"`. Translate it with your app. |
 | `title` (required) | `string` |  | Names the sheet for screen readers and shows at its top: `title="Edit recipe"`. Hide it with `hideTitle`. |
 
@@ -51,7 +55,7 @@ A controlled EditSheet: you own `open` and update it in `onOpenChange`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `onOpenChange` (required) | `(open: boolean) => void` |  | Called with `false` when the user cancels or dismisses the sheet, and when a save succeeds. |
+| `onOpenChange` (required) | `(open: boolean) => void` |  | Called with `false` when the user cancels or dismisses the sheet (after confirming, with edits), and when a save succeeds. |
 | `open` (required) | `boolean` |  | Whether the sheet is open. |
 
 Not in this mode (typed `never`):

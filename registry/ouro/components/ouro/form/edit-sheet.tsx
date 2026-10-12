@@ -25,9 +25,10 @@ export interface EditSheetBaseProps {
    * Saves the form. It gets the fields as `FormData`, after the browser's own checks
    * (`required`, `type="email"`) pass. Return nothing to close the sheet and return focus to
    * the trigger, or errors by field name (`{ name: "That name is taken." }`) to keep it open
-   * with each message on its field and focus on the first. Return a promise to show
-   * `loading` on the save button until it settles. If it rejects (or throws), the sheet stays
-   * open; Cancel and Escape still close it, and a result that arrives later is ignored.
+   * with each message on its field and focus on the first; a `form` key, or a key no field
+   * is named, shows in an alert at the top of the form. Return a promise to show `loading`
+   * on the save button until it settles; meanwhile Cancel is disabled and the sheet cannot
+   * be dismissed. If it rejects (or throws), the sheet stays open with `failureMessage`.
    */
   onSubmit: (data: FormData) => EditSheetResult | Promise<EditSheetResult>;
   /** The save button's label: the action, such as `"Save recipe"`. Translate it with your app. @default "Save" */
@@ -36,6 +37,18 @@ export interface EditSheetBaseProps {
   cancelLabel?: string | undefined;
   /** The label of the close button in the corner. Translate it with your app. @default "Close" */
   closeLabel?: string | undefined;
+  /** What the sheet shows, at the top of the form, when `onSubmit` rejects or throws. Translate it with your app. @default "Couldn't save. Try again." */
+  failureMessage?: string | undefined;
+  /**
+   * The question the sheet asks, in place of its buttons, when the user dismisses it (Escape,
+   * a tap outside, a swipe down, Cancel or the close button) after changing a field.
+   * Translate it with your app. @default "Discard your changes?"
+   */
+  discardMessage?: string | undefined;
+  /** The button that discards the edits and closes the sheet. @default "Discard" */
+  discardLabel?: string | undefined;
+  /** The button that goes back to the form with the edits kept; it takes focus. @default "Keep editing" */
+  keepEditingLabel?: string | undefined;
   /** The fields: `TextField`, `Select` and other controls with a `name`. */
   children: ReactNode;
   /**
@@ -72,7 +85,7 @@ export type EditSheetWithTriggerProps = EditSheetBaseProps & {
 export type EditSheetControlledProps = EditSheetBaseProps & {
   /** Whether the sheet is open. */
   open: boolean;
-  /** Called with `false` when the user cancels or dismisses the sheet, and when a save succeeds. */
+  /** Called with `false` when the user cancels or dismisses the sheet (after confirming, with edits), and when a save succeeds. */
   onOpenChange: (open: boolean) => void;
   /** Not with `open`. Remove `open` and `onOpenChange` to let a trigger open the sheet. */
   trigger?: never;
@@ -81,6 +94,16 @@ export type EditSheetControlledProps = EditSheetBaseProps & {
 /** Props for {@link EditSheet}: either `trigger`, or `open` with `onOpenChange`. */
 export type EditSheetProps = EditSheetWithTriggerProps | EditSheetControlledProps;
 
+/** The form's fields as text, to compare with how they were when the sheet opened. */
+const serialize = (form: HTMLFormElement) =>
+  [...new FormData(form)].map(([name, value]) => `${name}=${typeof value === "string" ? value : value.name}`).join("&");
+
+/**
+ * The confirmation that takes the buttons' place: the question, then Keep editing and
+ * Discard, wrapping on a narrow sheet.
+ */
+const discardClass = "flex w-full flex-wrap items-center justify-end gap-2";
+
 /** Whether `onSubmit` returned errors to show, rather than nothing or an empty object. */
 const hasErrors = (result: EditSheetResult): result is FormErrors => Boolean(result) && Object.keys(result!).length > 0;
 
@@ -88,9 +111,11 @@ const hasErrors = (result: EditSheetResult): result is FormErrors => Boolean(res
  * Edits something in a form inside a dialog: the whole interaction, done right. It opens
  * from `trigger` as a centered dialog, or a bottom sheet on phones, with your fields, Cancel
  * and a save button. Saving runs the browser's checks, then `onSubmit` with the fields as
- * `FormData`; a promise shows `loading` on the save button and keeps the sheet open. Errors
- * it returns land on the matching fields, with focus on the first; success closes the sheet
- * and returns focus to the trigger.
+ * `FormData`; a promise shows `loading` on the save button and keeps the sheet open (it
+ * cannot be dismissed meanwhile). Errors it returns land on the matching fields, with focus
+ * on the first; a failed save shows `failureMessage` at the top of the form; success closes
+ * the sheet and returns focus to the trigger. Dismissing it after changing a field (Escape,
+ * a tap outside, a swipe down, Cancel) asks inside the sheet before the edits are lost.
  *
  * Use `Form` instead for a form on the page, `Dialog` for a dialog that is not a form, and
  * `ConfirmDialog` to confirm one action.
@@ -117,6 +142,10 @@ export function EditSheet(props: EditSheetProps): JSX.Element {
     submitLabel = "Save",
     cancelLabel = "Cancel",
     closeLabel = "Close",
+    failureMessage = "Couldn't save. Try again.",
+    discardMessage = "Discard your changes?",
+    discardLabel = "Discard",
+    keepEditingLabel = "Keep editing",
     children,
     className,
     trigger,
@@ -171,13 +200,29 @@ export function EditSheet(props: EditSheetProps): JSX.Element {
   const shown = controlled ? open : ownOpen;
   const [errors, setErrors] = useState<FormErrors | undefined>();
   const [pending, setPending] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   // Each opening starts clean, however it opened (the app may set `open` itself).
   const [wasShown, setWasShown] = useState(shown);
   if (shown !== wasShown) {
     setWasShown(shown);
     setErrors(undefined);
     setPending(false);
+    setConfirming(false);
   }
+  // The fields as the sheet opened, to tell whether the user changed any (a Select's value
+  // is in its hidden input, so every control counts).
+  const initial = useRef<string | undefined>(undefined);
+  const formRef = (form: HTMLFormElement | null) => {
+    initial.current = form ? serialize(form) : undefined;
+  };
+  const edited = () => {
+    const form = document.getElementById(formId) as HTMLFormElement | null;
+    return form !== null && serialize(form) !== initial.current;
+  };
+  const keepRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (confirming) keepRef.current!.focus({ preventScroll: true });
+  }, [confirming]);
   // Each open and close bumps the attempt, so a save that settles after the user left
   // (Cancel, Escape) neither closes nor marks a sheet they have since reopened.
   const attempt = useRef(0);
@@ -189,6 +234,19 @@ export function EditSheet(props: EditSheetProps): JSX.Element {
   const setOpen = (next: boolean) => {
     if (controlled) onOpenChange!(next);
     else setOwnOpen(next);
+  };
+
+  // A dismissal (Escape, a tap outside, a swipe, Cancel, the close button) does nothing while
+  // a save runs, asks first when a field changed, and goes back to the form while asking.
+  const dismiss = () => {
+    if (pending) return;
+    if (confirming) setConfirming(false);
+    else if (edited()) setConfirming(true);
+    else setOpen(false);
+  };
+  const onFrameOpenChange = (next: boolean) => {
+    if (next) setOpen(true);
+    else dismiss();
   };
 
   // Nothing (or no errors) closes the sheet; errors stay on the fields, focus on the first.
@@ -221,7 +279,10 @@ export function EditSheet(props: EditSheetProps): JSX.Element {
       },
       (error: unknown) => {
         const stale = attempt.current !== current;
-        if (!stale) setPending(false);
+        if (!stale) {
+          setPending(false);
+          setErrors({ form: failureMessage });
+        }
         /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
         if (process.env.NODE_ENV !== "production") {
           const message = error instanceof Error ? error.message : String(error);
@@ -247,19 +308,33 @@ export function EditSheet(props: EditSheetProps): JSX.Element {
       className={className}
       trigger={trigger}
       open={shown}
-      onOpenChange={setOpen}
+      onOpenChange={onFrameOpenChange}
       footer={
-        <>
-          <Button variant="outline" tone="secondary" onClick={() => setOpen(false)}>
-            {cancelLabel}
-          </Button>
-          <Button type="submit" form={formId} loading={pending}>
-            {submitLabel}
-          </Button>
-        </>
+        confirming ? (
+          <div data-ouro="edit-sheet-discard" role="group" aria-labelledby={`${formId}-discard`} className={discardClass}>
+            <p id={`${formId}-discard`} role="alert" className="m-0 me-auto text-sm leading-5 font-medium text-foreground">
+              {discardMessage}
+            </p>
+            <Button ref={keepRef} variant="outline" tone="secondary" onClick={() => setConfirming(false)}>
+              {keepEditingLabel}
+            </Button>
+            <Button tone="destructive" onClick={() => setOpen(false)}>
+              {discardLabel}
+            </Button>
+          </div>
+        ) : (
+          <>
+            <Button variant="outline" tone="secondary" disabled={pending} onClick={dismiss}>
+              {cancelLabel}
+            </Button>
+            <Button type="submit" form={formId} loading={pending}>
+              {submitLabel}
+            </Button>
+          </>
+        )
       }
     >
-      <Form id={formId} errors={errors} onSubmit={submit}>
+      <Form ref={formRef} id={formId} errors={errors} onSubmit={submit}>
         {children}
       </Form>
     </DialogFrame>
