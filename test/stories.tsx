@@ -101,9 +101,9 @@ export async function cleanupStories(): Promise<void> {
   setScheme("light");
 }
 
-/** The elements that open an overlay in a story: Base UI triggers, then the plain openers. */
+/** The elements that open an overlay in a story: enabled Base UI triggers, then the plain openers. */
 export function overlayOpeners(id: string, host: HTMLElement): HTMLElement[] {
-  const triggers = [...host.querySelectorAll<HTMLElement>("[aria-haspopup]")];
+  const triggers = [...host.querySelectorAll<HTMLElement>("[aria-haspopup]:not(:disabled)")];
   const plain = (story(id).parameters?.plainOpeners ?? []).map((label) => {
     const button = [...host.querySelectorAll<HTMLElement>("button")].find((item) => item.textContent === label);
     if (!button) throw new Error(`${id}: no button labeled "${label}"`);
@@ -128,9 +128,9 @@ export async function settle(): Promise<void> {
 /** How long an overlay may take to open or close on a loaded CI runner. */
 const waitOptions = { timeout: 10_000, interval: 20 };
 
-/** The open overlay's popup (Dialog, ConfirmDialog or Sheet, in either presentation). */
+/** The open overlay's popup (Dialog, ConfirmDialog or Sheet, in either presentation, or a list's popup). */
 export function openPopup(): HTMLElement | null {
-  return document.querySelector<HTMLElement>('[role="dialog"][data-open], [role="alertdialog"][data-open]');
+  return document.querySelector<HTMLElement>('[role="dialog"][data-open], [role="alertdialog"][data-open], [data-open]:has([role="listbox"])');
 }
 
 /** Clicks an opener and waits for its overlay to finish opening. */

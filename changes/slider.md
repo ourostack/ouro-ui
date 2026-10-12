@@ -1,0 +1,2 @@
+- New: `Slider`, on the `Field` contract. It takes one value, or an array for a range with a thumb per value; it names each thumb after the label ("Minimum, Price", translated with `thumbLabels`), and shows the formatted value with `showValue`. Its thumbs keep a 44px hit area on touch screens.
+- New in the testing kit: `commands.touchDrag` drags a finger in Chromium, for touch scrolling and sliders.

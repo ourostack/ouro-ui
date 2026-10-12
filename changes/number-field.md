@@ -1,0 +1,1 @@
+- New: `NumberField`, a number input on the `Field` contract. It formats with `format` and `locale` (currency, percent, units), steps with its Decrease and Increase buttons and the arrow keys within `min` and `max`, and scrubs when the label is dragged sideways with a mouse. `decrementLabel` and `incrementLabel` translate the button names.

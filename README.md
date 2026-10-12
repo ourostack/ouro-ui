@@ -181,8 +181,11 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ### Forms
 
+- **Combobox** — A text input that filters a list of items as people type, on the Field contract: pass `label`, `items`, and `error` from your server action or client check. [Docs](docs/Combobox.md)
 - **Field** — A labeled form control: the label, an optional description, the control and its error, wired together with ids that match between the server and the browser. [Docs](docs/Field.md)
 - **Fieldset** — A titled group of related fields, such as an address, rendered as a `<fieldset>` named by its legend. [Docs](docs/Fieldset.md)
+- **NumberField** — A labeled number input on the Field contract: pass `label`, and `error` from your server action or client check. [Docs](docs/NumberField.md)
+- **Slider** — A labeled slider on the Field contract: pass `label`, and a `defaultValue` (or `value` with `onValueChange`). [Docs](docs/Slider.md)
 - **TextArea** — A labeled multi-line text field on the Field contract, a native `<textarea>`: pass `label`, and `error` from your server action or client check. [Docs](docs/TextArea.md)
 - **TextField** — A labeled one-line text input on the Field contract: pass `label`, and `error` from your server action or client check. [Docs](docs/TextField.md)
 

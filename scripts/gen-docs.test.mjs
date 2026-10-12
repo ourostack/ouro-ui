@@ -149,7 +149,8 @@ test("the catalog is grouped by job in README", () => {
   assert.match(catalog, /### Actions\n\n- \*\*Button\*\* — A button, or a link styled as one\./);
   assert.match(catalog, /### Overlays\n\n- \*\*ConfirmDialog\*\* — [^\n]+\n- \*\*Dialog\*\* — [^\n]+\n- \*\*Sheet\*\* — A panel that slides in/);
   assert.match(catalog, /### Text\n\n- \*\*Heading\*\* — [^\n]+\n- \*\*Link\*\* — [^\n]+\n- \*\*Text\*\* — /);
-  assert.match(catalog, /### Forms\n\n- \*\*Field\*\* — [^\n]+\n- \*\*Fieldset\*\* — [^\n]+\n- \*\*TextArea\*\* — [^\n]+\n- \*\*TextField\*\* — /);
+  // Forms grows with each control, so this checks the alphabetical order of a few, not adjacency.
+  assert.match(catalog, /### Forms\n\n(- [^\n]+\n)*- \*\*Field\*\* — [^\n]+\n- \*\*Fieldset\*\* — [^\n]+\n(- [^\n]+\n)*- \*\*TextArea\*\* — [^\n]+\n- \*\*TextField\*\* — /);
 });
 
 test("no timestamps", () => {

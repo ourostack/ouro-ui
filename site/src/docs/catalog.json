@@ -49,6 +49,24 @@
     "source": "registry/ouro/components/ouro/text-field/text-area.tsx"
   },
   {
+    "name": "number-field",
+    "title": "NumberField",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/number-field/number-field.tsx"
+  },
+  {
+    "name": "slider",
+    "title": "Slider",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/slider/slider.tsx"
+  },
+  {
+    "name": "combobox",
+    "title": "Combobox",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/combobox/combobox.tsx"
+  },
+  {
     "name": "sheet",
     "title": "Sheet",
     "group": "Overlays",
