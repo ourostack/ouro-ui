@@ -8,18 +8,18 @@ In an existing Vite or Next.js app with Tailwind CSS v4 and an "@/*" path alias,
 
 ```sh
 npx shadcn@latest init --base base --preset nova --yes --no-monorepo
-npx shadcn@latest search 'ourostack/ouro-ui#v0.5.0'      # list the items
-npx shadcn@latest view 'ourostack/ouro-ui/dialog#v0.5.0'  # read one item
-npx shadcn@latest add ourostack/ouro-ui/dialog#v0.5.0     # install it
+npx shadcn@latest search 'ourostack/ouro-ui#v0.6.0'      # list the items
+npx shadcn@latest view 'ourostack/ouro-ui/dialog#v0.6.0'  # read one item
+npx shadcn@latest add ourostack/ouro-ui/dialog#v0.6.0     # install it
 ```
 
 - A new Vite app needs @tailwindcss/vite, @import "tailwindcss";, a Vite @ alias, and "paths": { "@/*": ["./src/*"] } in both tsconfig.json and tsconfig.app.json (no baseUrl on TypeScript 6) before init: shadcn reads the root file, and tsc -b builds the app one.
 - --preset nova lets init run without prompts. It sets shadcn's starting theme, font and icons, which Ouro components read like any shadcn theme. The install test runs nova and vega; other presets are untested.
-- A GitHub source is owner/repo#ref; an item is owner/repo/item#ref. @v0.5.0, github: and /tree/ URLs do not work.
-- A release tag (#v0.5.0) installs the item and every Ouro dependency at that tag. Without a ref, items come from main, which is for contributors and can hold unreleased changes; use a release tag or @ouro.
+- A GitHub source is owner/repo#ref; an item is owner/repo/item#ref. @v0.6.0, github: and /tree/ URLs do not work.
+- A release tag (#v0.6.0) installs the item and every Ouro dependency at that tag. Without a ref, items come from main, which is for contributors and can hold unreleased changes; use a release tag or @ouro.
 - Components land in components/ouro/<component>/ and helpers in lib/ouro/. Ouro UI never writes to components/ui/, so do not pass --overwrite on a first install.
-- Tests are optional: add <item>-tests beside the item (npx shadcn@latest add ourostack/ouro-ui/dialog#v0.5.0 ourostack/ouro-ui/dialog-tests#v0.5.0), or ouro-tests for all of them. The ouro-testing install message lists the config files to add.
-- The @ouro namespace serves the newest release (the same code as #v0.5.0): add "registries": { "@ouro": "https://ourostack.github.io/ouro-ui/r/{name}.json" } to components.json, then npx shadcn@latest add @ouro/dialog.
+- Tests are optional: add <item>-tests beside the item (npx shadcn@latest add ourostack/ouro-ui/dialog#v0.6.0 ourostack/ouro-ui/dialog-tests#v0.6.0), or ouro-tests for all of them. The ouro-testing install message lists the config files to add.
+- The @ouro namespace serves the newest release (the same code as #v0.6.0): add "registries": { "@ouro": "https://ourostack.github.io/ouro-ui/r/{name}.json" } to components.json, then npx shadcn@latest add @ouro/dialog.
 
 ## Items
 
