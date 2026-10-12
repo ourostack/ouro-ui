@@ -57,6 +57,7 @@ export const AutoGrow: Story = {
 
 /** Plain, described and required, invalid, and disabled. */
 export const States: Story = {
+  parameters: { screenshot: { name: "text-area-states" } },
   render: () => (
     <Surface>
       <TextArea label="Method" name="method" defaultValue={"Boil the pasta.\nStir in the ricotta and lemon."} />

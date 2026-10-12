@@ -1,4 +1,2 @@
-# Changes in this release
-
 - New: `TextField` and `TextArea`, the first controls on the `Field` contract. `TextField` takes `type` (`text`, `email`, `password`, `tel`, `url`, `search`, `date`, `time`), which sets `inputMode` and `autoComplete`; a show/hide button for passwords; `startAdornment` and `endAdornment` in place of shadcn's InputGroup; and `clearable`, with `showPasswordLabel` and `clearLabel` to translate the button labels. `TextArea` grows with its text from `rows` to `maxRows` with `autoGrow`.
 - Text controls (`FieldControl`, `TextField`, `TextArea`) step down to the 36px desktop height and 14px text from the `sm` breakpoint only with a fine pointer, so a landscape phone or a touch tablet keeps 44px and 16px text, and iOS does not zoom on focus.

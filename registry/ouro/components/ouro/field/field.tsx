@@ -90,6 +90,7 @@ function labelConnected(root: HTMLElement, data: string): boolean {
  * sets `aria-invalid`. The control is `FieldControl`, from `field-parts`. Use `Fieldset` instead to group several controls under one legend,
  * and the `FieldRoot` parts when the label, control and error need another layout.
  *
+ * @group Forms
  * @see https://ourostack.github.io/ouro-ui/docs/field
  *
  * @example

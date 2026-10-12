@@ -1,7 +1,7 @@
 import axe from "axe-core";
 import { afterEach, expect, it } from "vitest";
 import { axeExclude } from "@/registry/ouro/lib/ouro/testing/axe";
-import { cleanupStories, renderStory, storyFiles } from "./stories.tsx";
+import { cleanupStories, renderStory, story } from "./stories.tsx";
 
 // Runs in the `touch` project: Chromium as a 390x844 phone with a coarse pointer, where
 // each Button renders its 44px touch target. axe must be able to check every label's
@@ -13,7 +13,7 @@ afterEach(async () => {
 
 it("leaves no Button label's contrast unchecked on a coarse pointer", async () => {
   expect(matchMedia("(pointer: coarse)").matches).toBe(true);
-  await renderStory(storyFiles.Button.TonesAndVariants);
+  await renderStory(story("Button/TonesAndVariants"));
   const result = await axe.run(
     { include: [document.documentElement], exclude: axeExclude.map((selector) => [selector]) },
     { resultTypes: ["incomplete"], runOnly: ["color-contrast"] },

@@ -270,6 +270,7 @@ const preventDefault = (event: MouseEvent) => event.preventDefault();
  * Use `href` to navigate (it renders a link); use `type="submit"` in a form.
  * Use `Text` with an `<a>` instead when a link sits inside running text.
  *
+ * @group Actions
  * @see https://ourostack.github.io/ouro-ui/docs/button
  *
  * @example
