@@ -41,6 +41,34 @@ Each part checks that it sits inside `<FieldRoot>`. Outside it, a part throws in
 | `FieldLabel` | The control's label. It points at the control by id, and a required field adds a marker that screen readers skip (they hear "required" from the control). Hide it visually with `className="sr-only"`. |
 | `FieldRoot` | The state owner of a field built from parts. It connects the label, description and error to the control, and passes `name`, `disabled` and `required` down. Use the `Field` component instead unless its props cannot express your layout; every Ouro form control is built on these parts. Parts link the description and error after hydration; use `Field` when the server HTML must carry them, or pass `id`s and `aria-describedby` yourself. |
 
+## Select parts
+
+Children of `<Select>`, for what its props cannot express.
+
+```tsx
+import {
+  SelectGroup,
+  SelectItem,
+} from "@/registry/ouro/components/ouro/select/select-parts";
+```
+
+### Required nesting
+
+```tsx
+<Select label="Produce" name="produce">
+  <SelectGroup label="Fruit">
+    <SelectItem value="apple">Apple</SelectItem>
+  </SelectGroup>
+</Select>
+```
+
+Each part checks that it sits inside `<Select>`. Outside it, a part throws in development with a message that shows this JSX shape.
+
+| Part | What it is |
+| --- | --- |
+| `SelectGroup` | A labeled group of `SelectItem`s. With `options`, pass a group as `{ label: "Fruit", options: [...] }` instead. |
+| `SelectItem` | One option in a `Select`, for options that need more than text (an icon, a color swatch). Pass `options` to `Select` instead when every option is text; it renders these for you. |
+
 ## Dialog parts
 
 The state owner of a centered dialog built from parts. Use the `Dialog` component instead unless its props cannot express your layout; `Dialog` also becomes a bottom sheet on phones, which parts do not.
