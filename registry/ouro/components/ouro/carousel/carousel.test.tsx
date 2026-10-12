@@ -155,10 +155,11 @@ describe("Carousel navigation", () => {
   it("moves focus to Previous when Next reaches the end, so focus is not lost", async () => {
     const screen = await render(<Carousel label="Recipe photos">{photos(2)}</Carousel>);
     const next = screen.button("Next slide");
+    // The click focuses Next; once the scroll settles on the last slide, Next is disabled
+    // and focus is on Previous (it may already be by the time the click resolves).
     await userEvent.click(next);
-    expect(document.activeElement).toBe(next);
     await expect.poll(() => next.disabled).toBe(true);
-    expect(document.activeElement).toBe(screen.button("Previous slide"));
+    await expect.poll(() => document.activeElement).toBe(screen.button("Previous slide"));
   });
 
   it("wraps around at both ends with loop, and never disables a button", async () => {

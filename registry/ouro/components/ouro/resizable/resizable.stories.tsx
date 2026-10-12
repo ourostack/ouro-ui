@@ -92,7 +92,7 @@ export const Parts: Story = {
         <ResizablePanel label="Recipe" defaultSize={60}>
           <Pane title="Recipe" />
         </ResizablePanel>
-        <ResizableHandle label="Resize the recipe and the shopping list" />
+        <ResizableHandle aria-label="Resize the recipe and the shopping list" />
         <ResizablePanel label="Shopping list">
           <Pane title="Shopping list" />
         </ResizablePanel>

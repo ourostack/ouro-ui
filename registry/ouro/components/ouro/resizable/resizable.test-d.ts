@@ -18,7 +18,7 @@ expectTypeOf<ComponentProps<typeof Resizable>>().toEqualTypeOf<ResizableProps>()
 expectTypeOf<ComponentProps<typeof ResizablePanelGroup>>().toEqualTypeOf<ResizablePanelGroupProps>();
 expectTypeOf<ComponentProps<typeof ResizableHandle>>().toEqualTypeOf<ResizableHandleProps>();
 expectTypeOf<{ label: "Files"; defaultSize: 25; minSize: 15; maxSize: 50; id: "files"; className: "p-4"; children: "Body" }>().toExtend<ResizablePanelProps>();
-expectTypeOf<{ label: "Resize the preview" }>().toExtend<ResizableHandleProps>();
+expectTypeOf<{ "aria-label": "Resize the preview" }>().toExtend<ResizableHandleProps>();
 
 // A panel needs a label; it names the handle after it.
 expectTypeOf<{ defaultSize: 50 }>().not.toExtend<ResizablePanelProps>();

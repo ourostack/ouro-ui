@@ -12,7 +12,7 @@ import { ResizableHandle } from "@/registry/ouro/components/ouro/resizable/resiz
 
 ```tsx
 <ResizableHandle />
-<ResizableHandle label="Resize the preview" />
+<ResizableHandle aria-label="Resize the preview" />
 ```
 
 ## Use instead when
@@ -25,7 +25,7 @@ Type: `ResizableHandleProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `label` | `string` | `"Resize {panel}"` | The handle's accessible name; `{panel}` is the label of the panel before it. |
+| `aria-label` | `string` |  | This handle's accessible name, in place of the group's `handleLabel` ("Resize Files"). |
 
 ## Don't use
 

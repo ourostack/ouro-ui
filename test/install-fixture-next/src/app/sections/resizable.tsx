@@ -16,9 +16,9 @@ export default function ResizableSection() {
         </Resizable>
       </div>
       <div style={{ height: 120 }}>
-        <ResizablePanelGroup orientation="vertical">
+        <ResizablePanelGroup orientation="vertical" handleLabel="Drag {panel}">
           <ResizablePanel label="Preview">Preview</ResizablePanel>
-          <ResizableHandle label="Drag {panel}" />
+          <ResizableHandle />
           <ResizablePanel label="Console">Console</ResizablePanel>
         </ResizablePanelGroup>
       </div>

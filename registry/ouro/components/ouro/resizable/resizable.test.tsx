@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -334,15 +334,40 @@ describe("Resizable autoSaveId", () => {
 describe("Resizable parts", () => {
   it("builds the same splitter from ResizablePanelGroup and ResizableHandle", async () => {
     const screen = await render(
-      <ResizablePanelGroup orientation="vertical">
+      <ResizablePanelGroup orientation="vertical" handleLabel="Drag {panel}">
         <ResizablePanel label="Preview" defaultSize={60}>Preview</ResizablePanel>
-        <ResizableHandle label="Drag {panel}" />
+        <ResizableHandle />
         <ResizablePanel label="Console">Console</ResizablePanel>
+        <ResizableHandle aria-label="Resize the console and the log" />
+        <ResizablePanel label="Log">Log</ResizablePanel>
       </ResizablePanelGroup>,
+      { height: 202 },
     );
-    expect(heights(screen.panels)).toEqual([119, 80]);
-    expect(screen.handles[0]!.getAttribute("aria-label")).toBe("Drag Preview");
+    expect(heights(screen.panels)).toEqual([120, 40, 40]);
+    expect(screen.handles.map((handle) => handle.getAttribute("aria-label"))).toEqual(["Drag Preview", "Resize the console and the log"]);
     expect(screen.handles[0]!.getAttribute("aria-valuenow")).toBe("60");
+  });
+
+  it("tells panels from handles by their props when the element type is a lazy reference, as across a Server Component boundary", async () => {
+    // A Server Component's client elements can reach the group with a lazy type.
+    const LazyPanel = lazy(async () => ({ default: ResizablePanel }));
+    const LazyHandle = lazy(async () => ({ default: ResizableHandle }));
+    const screen = await render(
+      <Suspense fallback="Loading">
+        <ResizablePanelGroup>
+          <LazyPanel label="Files" defaultSize={30}>
+            Files
+          </LazyPanel>
+          <LazyHandle />
+          <LazyPanel label="Editor">Editor</LazyPanel>
+        </ResizablePanelGroup>
+      </Suspense>,
+    );
+    await expect.poll(() => screen.handles.length).toBe(1);
+    expect(screen.handles[0]!.getAttribute("aria-label")).toBe("Resize Files");
+    expect(screen.handles[0]!.getAttribute("aria-valuenow")).toBe("30");
+    expect(widths(screen.panels)).toEqual([120, 279]);
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("keeps an app's own panel id for aria-controls", async () => {

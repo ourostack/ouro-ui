@@ -47,6 +47,7 @@ const panelFix = '<ResizablePanelGroup><ResizablePanel label="Files">…</Resiza
 
 interface GroupState {
   orientation: ResizableOrientation;
+  handleLabel: string;
   sizes: number[];
   panels: PanelLimits[];
   labels: string[];
@@ -75,6 +76,8 @@ export interface ResizableGroupProps {
   autoSaveId?: string | undefined;
   /** Called with every panel's size, in percent, when the user finishes a drag or presses a key on a handle. */
   onLayout?: ((sizes: number[]) => void) | undefined;
+  /** Each handle's accessible name; `{panel}` is the label of the panel before it. @default "Resize {panel}" */
+  handleLabel?: string | undefined;
   /** Layout only: the group fills its container; give it a size (`h-96`) or margins. Appearance classes warn in development. */
   className?: string | undefined;
 
@@ -88,8 +91,14 @@ export interface ResizablePanelGroupProps extends ResizableGroupProps {
   children: ReactNode;
 }
 
-const isPanel = (child: unknown): child is ReactElement<ResizablePanelProps> => isValidElement(child) && child.type === ResizablePanel;
-const isHandle = (child: unknown): child is ReactElement<ResizableHandleProps> => isValidElement(child) && child.type === ResizableHandle;
+// Children are told apart by their props, not only by their type: across a Server Component
+// boundary a client component's element can arrive with a lazy type that is not the
+// component itself. A panel always has its string `label`; a handle never has one.
+const isPanel = (child: unknown): child is ReactElement<ResizablePanelProps> =>
+  isValidElement(child) &&
+  (child.type === ResizablePanel || (child.type !== ResizableHandle && typeof (child.props as { label?: unknown }).label === "string"));
+/** A child that is surely neither a panel nor a handle: text or an HTML element. Any other element counts as a handle. */
+const isStray = (child: unknown) => !isValidElement(child) || typeof child.type === "string";
 
 /**
  * The group behind `Resizable` and `ResizablePanelGroup`; `owner` names it in dev messages.
@@ -101,6 +110,7 @@ export function ResizableGroupFrame({
   orientation: orientationProp = "horizontal",
   autoSaveId,
   onLayout,
+  handleLabel = "Resize {panel}",
   className,
   children,
   direction,
@@ -141,7 +151,7 @@ export function ResizableGroupFrame({
             `the defaultSize values add up to ${definedSum}, not 100`,
             '<ResizablePanel label="…" defaultSize={30}> and leave one panel without defaultSize to take the rest',
           ],
-          items.some((child) => !isPanel(child) && !isHandle(child)) && [
+          items.some(isStray) && [
             "its children must be ResizablePanel and ResizableHandle elements",
             "move other content inside a <ResizablePanel>",
           ],
@@ -167,6 +177,7 @@ export function ResizableGroupFrame({
 
   const state: GroupState = {
     orientation,
+    handleLabel,
     sizes,
     panels,
     labels,
@@ -191,7 +202,7 @@ export function ResizableGroupFrame({
     const index = isPanel(child)
       ? panelIndex
       : // A handle needs a panel before and after it.
-        panelIndex >= 0 && items.slice(position + 1).some(isPanel)
+        !isStray(child) && panelIndex >= 0 && items.slice(position + 1).some(isPanel)
         ? panelIndex
         : -1;
     return (
@@ -228,7 +239,7 @@ export function ResizableGroupFrame({
  * @example
  * <ResizablePanelGroup orientation="vertical" autoSaveId="preview">
  *   <ResizablePanel label="Preview" defaultSize={60}>…</ResizablePanel>
- *   <ResizableHandle label="Resize the preview" />
+ *   <ResizableHandle aria-label="Resize the preview" />
  *   <ResizablePanel label="Console">…</ResizablePanel>
  * </ResizablePanelGroup>
  */
@@ -310,8 +321,8 @@ export function ResizablePanel(props: ResizablePanelProps): JSX.Element {
 
 /** Props for {@link ResizableHandle}. */
 export interface ResizableHandleProps {
-  /** The handle's accessible name; `{panel}` is the label of the panel before it. @default "Resize {panel}" */
-  label?: string | undefined;
+  /** This handle's accessible name, in place of the group's `handleLabel` ("Resize Files"). */
+  "aria-label"?: string | undefined;
 
   /** Not a prop. The handle always shows its grip: `<ResizableHandle />`. */
   withHandle?: { 'The handle always shows its grip; remove withHandle': never };
@@ -331,9 +342,9 @@ export interface ResizableHandleProps {
  *
  * @example
  * <ResizableHandle />
- * <ResizableHandle label="Resize the preview" />
+ * <ResizableHandle aria-label="Resize the preview" />
  */
-export function ResizableHandle({ label = "Resize {panel}", withHandle }: ResizableHandleProps): JSX.Element | null {
+export function ResizableHandle({ "aria-label": ariaLabel, withHandle }: ResizableHandleProps): JSX.Element | null {
   const group = useContext(GroupContext);
   const index = useContext(ItemContext);
   if (!group || index === undefined) {
@@ -360,7 +371,7 @@ export function ResizableHandle({ label = "Resize {panel}", withHandle }: Resiza
   const drag = useRef<{ start: number; sizes: number[]; pixels: number; latest: number[] } | undefined>(undefined);
   if (index < 0) return null;
 
-  const { orientation, sizes, panels, labels, ids, preview, commit, setResizing } = group;
+  const { orientation, sizes, panels, labels, ids, handleLabel, preview, commit, setResizing } = group;
   const horizontal = orientation === "horizontal";
   const size = sizes[index]!;
   const range = limits(sizes, index, panels);
@@ -426,7 +437,7 @@ export function ResizableHandle({ label = "Resize {panel}", withHandle }: Resiza
       role="separator"
       tabIndex={0}
       aria-orientation={horizontal ? "vertical" : "horizontal"}
-      aria-label={label.replaceAll("{panel}", labels[index] ?? "")}
+      aria-label={ariaLabel ?? handleLabel.replaceAll("{panel}", labels[index] ?? "")}
       aria-valuenow={Math.round(size)}
       aria-valuemin={Math.round(range.min)}
       aria-valuemax={Math.round(range.max)}
@@ -451,8 +462,6 @@ export function ResizableHandle({ label = "Resize {panel}", withHandle }: Resiza
 export interface ResizableProps extends ResizableGroupProps {
   /** Two or more `ResizablePanel` elements, as direct children. A handle goes between each pair. */
   children: ReactNode;
-  /** Each handle's accessible name; `{panel}` is the label of the panel before it. @default "Resize {panel}" */
-  handleLabel?: string | undefined;
 }
 
 /**
@@ -478,24 +487,27 @@ export interface ResizableProps extends ResizableGroupProps {
  *   </ResizablePanel>
  * </Resizable>
  */
-export function Resizable({ handleLabel, children, ...props }: ResizableProps): JSX.Element {
+export function Resizable({ children, ...props }: ResizableProps): JSX.Element {
   const items = Children.toArray(children);
+  // Every child is a panel; a handle the app added by mistake is dropped (it is recognised
+  // when its type is the component itself).
+  const isHandleElement = (child: unknown) => isValidElement(child) && child.type === ResizableHandle;
   useDevWarnings(
     "Resizable",
     process.env.NODE_ENV !== "production"
       ? () => [
-          items.some(isHandle) && [
+          items.some(isHandleElement) && [
             "Resizable adds the handles itself",
             "remove <ResizableHandle />, or use <ResizablePanelGroup> to place handles yourself",
           ],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
-  const panels = items.filter((child) => !isHandle(child));
+  const panels = items.filter((child) => !isHandleElement(child));
   return (
     <ResizableGroupFrame {...props} owner="Resizable">
       {panels.flatMap((panel, index) =>
-        index === 0 ? [panel] : [<ResizableHandle key={`ouro-handle-${index}`} label={handleLabel} />, panel],
+        index === 0 ? [panel] : [<ResizableHandle key={`ouro-handle-${index}`} />, panel],
       )}
     </ResizableGroupFrame>
   );

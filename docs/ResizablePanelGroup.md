@@ -13,7 +13,7 @@ import { ResizablePanelGroup } from "@/registry/ouro/components/ouro/resizable/r
 ```tsx
 <ResizablePanelGroup orientation="vertical" autoSaveId="preview">
   <ResizablePanel label="Preview" defaultSize={60}>…</ResizablePanel>
-  <ResizableHandle label="Resize the preview" />
+  <ResizableHandle aria-label="Resize the preview" />
   <ResizablePanel label="Console">…</ResizablePanel>
 </ResizablePanelGroup>
 ```
@@ -31,6 +31,7 @@ Type: `ResizablePanelGroupProps`.
 | `autoSaveId` | `string` |  | Saves the layout in localStorage under this id and restores it on the next visit, after hydration (the server renders the default sizes). Storage that is unavailable or full is ignored. |
 | `children` (required) | `ReactNode` |  | `ResizablePanel` elements with a `ResizableHandle` between each pair, as direct children. |
 | `className` | `string` |  | Layout only: the group fills its container; give it a size (`h-96`) or margins. Appearance classes warn in development. |
+| `handleLabel` | `string` | `"Resize {panel}"` | Each handle's accessible name; `{panel}` is the label of the panel before it. |
 | `onLayout` | `((sizes: number[]) => void)` |  | Called with every panel's size, in percent, when the user finishes a drag or presses a key on a handle. |
 | `orientation` | `"vertical" \| "horizontal"` | `"horizontal"` | `horizontal` puts the panels side by side; `vertical` stacks them (give the group a height). |
 
