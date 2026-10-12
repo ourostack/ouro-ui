@@ -1,0 +1,385 @@
+"use client";
+
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  type CSSProperties,
+  type HTMLAttributes,
+  type JSX,
+  type ReactNode,
+  type Ref,
+  type TdHTMLAttributes,
+  type ThHTMLAttributes,
+} from "react";
+import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
+import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { devThrow, devWarn } from "@/registry/ouro/lib/ouro/dev";
+import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { RouterLink } from "@/registry/ouro/lib/ouro/router-link";
+import { raiseControlsClass, stretchedLinkClass } from "@/registry/ouro/lib/ouro/stretched-link";
+import { ScrollArea } from "@/registry/ouro/components/ouro/scroll-area/scroll-area";
+import {
+  alignClasses,
+  cellBase,
+  cellPad,
+  headCell,
+  rowLinkClass,
+  sectionCell,
+  stickyHead,
+  wrapClass,
+  type TableAlign,
+} from "@/registry/ouro/components/ouro/table/table-styles";
+
+export type { TableAlign } from "@/registry/ouro/components/ouro/table/table-styles";
+
+interface TableState {
+  dense: boolean;
+  striped: boolean;
+  stickyHeader: boolean;
+}
+type Section = "head" | "body" | "foot";
+interface RowState {
+  section: Section;
+  href: string | undefined;
+}
+
+const TableContext = createContext<TableState | null>(null);
+const SectionContext = createContext<Section | null>(null);
+const RowContext = createContext<RowState | null>(null);
+
+const shapes = {
+  TableHeader: '<Table caption="…"><TableHeader>…</TableHeader></Table>',
+  TableBody: '<Table caption="…"><TableBody>…</TableBody></Table>',
+  TableFooter: '<Table caption="…"><TableFooter>…</TableFooter></Table>',
+  TableRow: '<Table caption="…"><TableBody><TableRow>…</TableRow></TableBody></Table>',
+  TableHead: '<Table caption="…"><TableHeader><TableRow><TableHead>…</TableHead></TableRow></TableHeader></Table>',
+  TableCell: '<Table caption="…"><TableBody><TableRow><TableCell>…</TableCell></TableRow></TableBody></Table>',
+} as const;
+
+/** Throws in development, with the JSX the part belongs in, unless its parent is there. */
+function misplaced(part: keyof typeof shapes, parent: string): never {
+  return devThrow(
+    part,
+    `must be rendered inside <${parent}>`,
+    process.env.NODE_ENV !== "production" ? shapes[part] : /* istanbul ignore next @preserve -- production only */ "",
+  );
+}
+
+function useTable(part: keyof typeof shapes): TableState {
+  const table = useContext(TableContext);
+  return table ?? misplaced(part, "Table");
+}
+
+const alignHint = (part: string) =>
+  process.env.NODE_ENV !== "production" ? `<${part} align="end">` : /* istanbul ignore next @preserve -- production only */ undefined;
+const cellHint = () =>
+  process.env.NODE_ENV !== "production" ? "<Table striped> or <Table dense>; Table sets the look of its cells" : /* istanbul ignore next @preserve -- production only */ "";
+
+/** Props for {@link TableRoot}. */
+export interface TableRootProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
+  caption: string;
+  hideCaption?: boolean | undefined;
+  striped?: boolean | undefined;
+  dense?: boolean | undefined;
+  stickyHeader?: boolean | undefined;
+  children?: ReactNode;
+  className?: string | undefined;
+  style?: CSSProperties | undefined;
+  tableRef?: Ref<HTMLTableElement> | undefined;
+}
+
+/**
+ * The frame every Table renders: the caption, a ScrollArea that scrolls the table sideways
+ * (and down, inside a height), and the `<table>`.
+ *
+ * @internal Table renders it; apps use `Table`.
+ * @example
+ * <TableRoot caption="Recipes"><TableBody>…</TableBody></TableRoot>
+ */
+export function TableRoot(props: TableRootProps): JSX.Element {
+  const { caption, hideCaption, striped, dense, stickyHeader, children, className, tableRef, ...rest } = props;
+  return (
+    <TableContext.Provider value={{ dense: Boolean(dense), striped: Boolean(striped), stickyHeader: Boolean(stickyHeader) }}>
+      <div {...rest} data-ouro="table" className={cn("flex min-w-0 flex-col gap-3", className)}>
+        {!hideCaption && (
+          <div aria-hidden data-table-caption="" className="text-sm font-medium text-muted-foreground">
+            {caption}
+          </div>
+        )}
+        <ScrollArea orientation="both" label={caption} className="min-h-0 flex-1">
+          <table ref={tableRef} className="w-full border-separate border-spacing-0 text-base text-foreground pointer-fine:text-sm">
+            <caption className="sr-only">{caption}</caption>
+            {children}
+          </table>
+        </ScrollArea>
+      </div>
+    </TableContext.Provider>
+  );
+}
+
+/** Props for {@link TableHeader}, {@link TableBody} and {@link TableFooter}. */
+export interface TableSectionProps extends HTMLAttributes<HTMLTableSectionElement> {
+  /** Layout only. Appearance classes warn in development. */
+  className?: string | undefined;
+  ref?: Ref<HTMLTableSectionElement> | undefined;
+}
+
+function TableSection(props: TableSectionProps & { part: "TableHeader" | "TableBody" | "TableFooter"; kind: Section }): JSX.Element {
+  const { part, kind, className, ...rest } = props;
+  useTable(part);
+  useAppearanceClassNameCheck(part, className, cellHint());
+  const Element = kind === "head" ? "thead" : kind === "body" ? "tbody" : "tfoot";
+  return (
+    <SectionContext.Provider value={kind}>
+      <Element {...rest} className={cn(className)} />
+    </SectionContext.Provider>
+  );
+}
+
+/**
+ * Part: the table's header rows (`<thead>`), holding a `TableRow` of `TableHead` cells.
+ * With `stickyHeader` on the Table, they stay at the top while the rows scroll.
+ *
+ * @group Data
+ * @example
+ * <TableHeader>
+ *   <TableRow>
+ *     <TableHead>Recipe</TableHead>
+ *     <TableHead align="end">Serves</TableHead>
+ *   </TableRow>
+ * </TableHeader>
+ */
+export function TableHeader(props: TableSectionProps): JSX.Element {
+  return <TableSection {...props} part="TableHeader" kind="head" />;
+}
+
+/**
+ * Part: the table's body rows (`<tbody>`).
+ *
+ * @group Data
+ * @example
+ * <TableBody>
+ *   <TableRow href="/recipes/ribs">
+ *     <TableCell rowHeader>Braised short ribs</TableCell>
+ *     <TableCell align="end">6</TableCell>
+ *   </TableRow>
+ * </TableBody>
+ */
+export function TableBody(props: TableSectionProps): JSX.Element {
+  return <TableSection {...props} part="TableBody" kind="body" />;
+}
+
+/**
+ * Part: summary rows under the body (`<tfoot>`), such as a total, with a line above them.
+ *
+ * @group Data
+ * @example
+ * <TableFooter>
+ *   <TableRow>
+ *     <TableCell rowHeader>Total</TableCell>
+ *     <TableCell align="end">3 kg</TableCell>
+ *   </TableRow>
+ * </TableFooter>
+ */
+export function TableFooter(props: TableSectionProps): JSX.Element {
+  return <TableSection {...props} part="TableFooter" kind="foot" />;
+}
+
+/** Props for {@link TableRow}. */
+export interface TableRowProps extends HTMLAttributes<HTMLTableRowElement> {
+  /**
+   * Makes the whole body row one link, with one tab stop, named by its row header cell
+   * (`<TableCell rowHeader>`), which holds the link. Internal paths go through
+   * `OuroProvider`'s `linkComponent`. Buttons, links and inputs in other cells stay their
+   * own tab stops and take their own clicks and taps. On a touch screen the row is at least
+   * 44px tall.
+   */
+  href?: string | undefined;
+  /** Layout only. Appearance classes warn in development; use the Table's `striped`. */
+  className?: string | undefined;
+  ref?: Ref<HTMLTableRowElement> | undefined;
+}
+
+/**
+ * Part: one row (`<tr>`). With `href` a body row is one link, held by its row header cell.
+ *
+ * @group Data
+ * @example
+ * <TableRow href="/recipes/ribs">
+ *   <TableCell rowHeader>Braised short ribs</TableCell>
+ *   <TableCell>4 h</TableCell>
+ * </TableRow>
+ */
+export function TableRow(props: TableRowProps): JSX.Element {
+  const { href, className, ref, children, ...rest } = props;
+  const table = useTable("TableRow");
+  const kind = useContext(SectionContext) ?? misplaced("TableRow", "TableBody");
+  const own = useRef<HTMLTableRowElement>(null);
+  const merged = useMergedRef(ref, own);
+  useAppearanceClassNameCheck(
+    "TableRow",
+    className,
+    process.env.NODE_ENV !== "production" ? "<Table striped>" : /* istanbul ignore next @preserve -- production only */ "",
+  );
+  const linked = href !== undefined && kind === "body";
+  useEffect(() => {
+    /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
+    if (process.env.NODE_ENV !== "production") {
+      const row = own.current;
+      if (!linked || !row || row.querySelector("[data-stretched-link]")) return;
+      const text = row.cells[0]?.textContent || "…";
+      devWarn(
+        "TableRow",
+        "href needs a row header cell, which holds the link and names it",
+        `<TableRow href="${href}"><TableCell rowHeader>${text}</TableCell>…</TableRow>`,
+        own,
+      );
+    }
+  });
+  return (
+    <RowContext.Provider value={{ section: kind, href: linked ? href : undefined }}>
+      <tr
+        {...rest}
+        ref={merged}
+        data-linked={linked ? "" : undefined}
+        className={cn(
+          table.striped && kind === "body" && "even:bg-muted/50",
+          linked && "relative isolate cursor-pointer pointer-coarse:h-11",
+          linked && raiseControlsClass,
+          className,
+        )}
+      >
+        {children}
+      </tr>
+    </RowContext.Provider>
+  );
+}
+
+/** The props TableHead and TableCell share. */
+interface CellOwnProps {
+  /**
+   * How the content lines up: `end` for numbers and amounts, `center` for a status mark.
+   * @default "start"
+   */
+  align?: TableAlign | (string & { 'Use "start", "center" or "end": right is "end"': never }) | undefined;
+  /** Lets long text wrap onto more lines, at least 192px wide, instead of widening the table. */
+  wrap?: boolean | undefined;
+  /** Layout only: a width (`w-32`). Appearance classes warn in development; alignment is `align`. */
+  className?: string | undefined;
+}
+
+function alignOf(align: string | undefined): TableAlign {
+  return align === "center" || align === "end" ? align : "start";
+}
+
+/** Warns in development when `align` is not one of ours; the cell aligns to the start. */
+function useAlignCheck(part: string, align: string | undefined): void {
+  useDevWarnings(
+    part,
+    process.env.NODE_ENV !== "production"
+      ? () => [
+          align !== undefined &&
+            alignOf(align) !== align && [
+              `align="${align}" is not an alignment; use "start", "center", "end"`,
+              `<${part} align="${align === "left" ? "start" : "end"}">`,
+            ],
+        ]
+      : /* istanbul ignore next @preserve -- production only */ undefined,
+  );
+}
+
+/** Props for {@link TableHead}. */
+export interface TableHeadProps extends Omit<ThHTMLAttributes<HTMLTableCellElement>, "align">, CellOwnProps {
+  /** The column's name. Keep it even for a column of buttons, and hide it with `hideHeader`. */
+  children: ReactNode;
+  /** Hides the header visually and keeps it for screen readers, for a column of actions. */
+  hideHeader?: boolean | undefined;
+  ref?: Ref<HTMLTableCellElement> | undefined;
+}
+
+/**
+ * Part: a column header (`<th scope="col">`) in a `TableHeader` row.
+ *
+ * @group Data
+ * @example
+ * <TableHead align="end">Serves</TableHead>
+ * <TableHead hideHeader>Actions</TableHead>
+ */
+export function TableHead(props: TableHeadProps): JSX.Element {
+  const { align, hideHeader, wrap, className, children, ...rest } = props;
+  const table = useTable("TableHead");
+  const row = useContext(RowContext) ?? misplaced("TableHead", "TableRow");
+  useAppearanceClassNameCheck("TableHead", className, cellHint(), alignHint("TableHead"));
+  useAlignCheck("TableHead", align);
+  return (
+    <th
+      scope="col"
+      {...rest}
+      className={cn(
+        cellBase,
+        headCell,
+        cellPad[table.dense ? "dense" : "md"],
+        alignClasses[alignOf(align)],
+        sectionCell[row.section],
+        wrap && wrapClass,
+        table.stickyHeader && row.section === "head" && stickyHead,
+        className,
+      )}
+    >
+      {hideHeader ? <span className="sr-only">{children}</span> : children}
+    </th>
+  );
+}
+
+/** Props for {@link TableCell}. */
+export interface TableCellProps extends Omit<TdHTMLAttributes<HTMLTableCellElement>, "align">, CellOwnProps {
+  /**
+   * Makes this cell the row's header (`<th scope="row">`): what the row is, such as a
+   * recipe's name. In a row with `href` it holds the link, so its text names the link.
+   */
+  rowHeader?: boolean | undefined;
+  ref?: Ref<HTMLTableCellElement> | undefined;
+}
+
+/**
+ * Part: a cell (`<td>`), or the row's header with `rowHeader` (`<th scope="row">`).
+ *
+ * @group Data
+ * @example
+ * <TableCell rowHeader>Braised short ribs</TableCell>
+ * <TableCell align="end">6</TableCell>
+ */
+export function TableCell(props: TableCellProps): JSX.Element {
+  const { rowHeader, align, wrap, className, children, ...rest } = props;
+  const table = useTable("TableCell");
+  const row = useContext(RowContext) ?? misplaced("TableCell", "TableRow");
+  useAppearanceClassNameCheck("TableCell", className, cellHint(), alignHint("TableCell"));
+  useAlignCheck("TableCell", align);
+  const Element = rowHeader ? "th" : "td";
+  return (
+    <Element
+      scope={rowHeader ? "row" : undefined}
+      {...rest}
+      className={cn(
+        cellBase,
+        cellPad[table.dense ? "dense" : "md"],
+        alignClasses[alignOf(align)],
+        sectionCell[row.section],
+        rowHeader && "font-medium",
+        wrap && wrapClass,
+        className,
+      )}
+    >
+      {rowHeader && row.href !== undefined ? (
+        <RouterLink href={row.href} data-table-row-link="" data-stretched-link="" className={cn(stretchedLinkClass, rowLinkClass)}>
+          {children}
+        </RouterLink>
+      ) : (
+        children
+      )}
+    </Element>
+  );
+}
