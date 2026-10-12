@@ -11,8 +11,9 @@ Build the account settings page. People use it to change how they appear to othe
 ## Acceptance
 
 1. The form has these fields, in this order, each with a visible label: "Display name" (text), "Email" (email), "Username" (text), "Bio" (several lines, with the hint "Up to 160 characters."), "Time zone" (a choice from `timeZones`) and a checkbox "Email me product news". Once the settings load, the fields show them.
-2. A "Save changes" button sends the form with `saveSettings`. While the request runs, the button shows that it is saving, and the form can't be sent a second time, by clicking or by pressing Enter.
-3. When the server returns errors, each message shows under its own field, the field is marked invalid for assistive technology and its message is read with it, and focus moves to the first field with an error.
+2. A "Save changes" button sends the form with `saveSettings`. While the request runs, the button is disabled or marked busy (`aria-busy="true"`), and the form can't be sent a second time, by clicking or by pressing Enter.
+3. When the server returns errors, each message shows directly under its own field. The field is marked invalid (`aria-invalid="true"`) and names the message as its description or its error message (`aria-describedby` or `aria-errormessage`), so a screen reader reads the message with the field. Focus moves to the first field with an error.
 4. Correcting a field and saving again clears the messages the server no longer returns.
-5. After a successful save, the message "Settings saved" appears and is announced to screen readers.
-6. The page works with a keyboard alone, reads well at 390px and 1280px wide, and looks right in light and dark mode.
+5. After a successful save, the message "Settings saved" appears inside a live region (a status or alert role, an `output` element, or `aria-live`), so screen readers announce it.
+6. At 390px wide the page does not scroll sideways.
+7. An automated accessibility scan (axe-core's WCAG 2 A and AA rules) finds no violation at 390px and 1280px wide, in light and dark mode, on the form as it loads and on the form showing server errors.

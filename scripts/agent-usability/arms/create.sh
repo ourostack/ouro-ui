@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Creates the app a fresh agent gets for one arm of the agent-usability test: the install
-# test's bare Vite app (test/install-fixture), `shadcn init` with the README's preset, and
+# test's bare Vite app (test/install-fixture) with shadcn's own `@/` alias and a stock Vite
+# app's oxlint setup, `shadcn init` with the README's preset, and
 #
 #   shadcn:       every shadcn/ui component (`shadcn add --all`) and shadcn's llms.txt.
 #   shadcn-skill: the same, plus shadcn's official skill, `npx skills add shadcn/ui`, pinned
@@ -16,7 +17,9 @@
 # OURO_REF (default: package.json ouro.latestRelease) and SHADCN_SKILL_REF pick the versions.
 # shadcn's own components and llms.txt come from ui.shadcn.com and can't be pinned, so the
 # script records the hash of what it got. Everything is recorded in
-# <app-dir>/.agent-usability/arm.json, with the hash of every file the app starts with.
+# <app-dir>/.agent-usability/arm.json, with the hash of every file the app starts with and
+# what `tsc -b` and oxlint find in it before any agent runs. The scorer charges an agent only
+# for what is not in that baseline, so the script changes none of a library's code.
 set -euo pipefail
 
 usage="usage: create.sh <shadcn|shadcn-skill|ouro> <app-dir>"
@@ -29,6 +32,7 @@ shadcn=(npx --yes shadcn@4.21.1)
 skills=(npx --yes skills@1.7.0)
 skill_ref=${SHADCN_SKILL_REF:-993eb2c3151997ce08a49635c10fd8c8ef3713c7}
 ouro_ref=${OURO_REF:-$(node "$root/scripts/latest-release.mjs")}
+oxlint=$(node -p 'require(process.argv[1]).devDependencies.oxlint' "$root/package.json")
 preset=nova
 
 if [ -e "$app" ] && [ -n "$(ls -A "$app")" ]; then echo "$app is not empty"; exit 1; fi
@@ -43,16 +47,22 @@ node -e '
   const fs = require("node:fs");
   const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
   pkg.name = "cooking-app";
-  pkg.scripts = { dev: "vite", build: "tsc -b && vite build" };
+  pkg.scripts = { dev: "vite", build: "tsc -b && vite build", lint: "oxlint src" };
   fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
 '
 perl -pi -e 's{<title>.*</title>}{<title>Cooking app</title>}' index.html
+# shadcn's templates and docs import from "@/", so the app does too.
+perl -pi -e 's{"~/\*"}{"\@/*"}g' tsconfig.json tsconfig.app.json
+perl -pi -e 's{alias: \{ "~":}{alias: \{ "\@":}' vite.config.ts
+grep -q '"@/\*"' tsconfig.app.json && grep -q '"@":' vite.config.ts || { echo "the @/ alias was not set"; exit 1; }
+cp "$root/scripts/fixtures/vite-oxlint/.oxlintrc.json" .oxlintrc.json
 cat >src/App.tsx <<'EOF'
 export function App() {
   return <main>The screen goes here.</main>;
 }
 EOF
 npm install --no-audit --no-fund
+npm install --no-audit --no-fund --save-dev --save-exact "oxlint@$oxlint"
 "${shadcn[@]}" init --base base --preset "$preset" --yes --no-monorepo
 echo "::endgroup::"
 
@@ -87,14 +97,14 @@ if [ "$arm" = shadcn-skill ]; then
   echo "::endgroup::"
 fi
 
-echo "::group::Type check, build and record"
-# The app must build. A type error the library itself ships is recorded, not fixed: the agent
-# meets it as any user would (shadcn's scroll-area.tsx has an unused React import, 2026-10-12).
-npx vite build
-baseline_tsc=$(npx tsc -b 2>&1) && baseline_pass=true || baseline_pass=false
-echo "$baseline_tsc"
+echo "::group::Build and record"
+# The app must build. What the type check and the linter find in the untouched app is
+# recorded as the arm's baseline (workspace.mts arm-manifest), not fixed: on 2026-10-12
+# shadcn's scroll-area.tsx had an unused React import, which fails `tsc -b` under shadcn's own
+# template settings.
+npx vite build --outDir "$(mktemp -d)"
 info=$(node -e '
-  const [arm, shadcn, preset, ouroRef, llms, skill, tscPass, tscOutput] = process.argv.slice(1);
+  const [arm, shadcn, preset, ouroRef, llms, skill] = process.argv.slice(1);
   const crypto = require("node:crypto");
   const fs = require("node:fs");
   const lock = require("./package-lock.json").packages;
@@ -107,10 +117,9 @@ info=$(node -e '
     ouroRef: arm === "ouro" ? ouroRef : null,
     llmsTxt: { url: llms, sha256: crypto.createHash("sha256").update(fs.readFileSync("llms.txt")).digest("hex") },
     skill: JSON.parse(skill),
-    baselineTypecheck: { pass: tscPass === "true", output: tscOutput },
-    packages: Object.fromEntries(["react", "@base-ui/react", "tailwindcss", "typescript", "vite"].map((name) => [name, version(name)])),
+    packages: Object.fromEntries(["react", "@base-ui/react", "tailwindcss", "typescript", "vite", "oxlint"].map((name) => [name, version(name)])),
   }));
-' "$arm" "${shadcn[2]#shadcn@}" "$preset" "$ouro_ref" "$llms" "$skill" "$baseline_pass" "$baseline_tsc")
+' "$arm" "${shadcn[2]#shadcn@}" "$preset" "$ouro_ref" "$llms" "$skill")
 node "$root/scripts/agent-usability/workspace.mts" arm-manifest "$app" "$arm" "$info"
 echo "::endgroup::"
 echo "Created the $arm arm in $app"

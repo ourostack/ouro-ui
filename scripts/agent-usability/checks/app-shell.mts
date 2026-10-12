@@ -1,5 +1,5 @@
 import { expect, type Page } from "@playwright/test";
-import { calls, control, expectFocusWithin, looksAndFit, reachable, type ScreenChecks } from "./helpers.mts";
+import { axeScan, calls, control, expectFocusWithin, fitsPhone, reachable, type ScreenChecks } from "./helpers.mts";
 
 const pages = [
   ["Home", "#/"],
@@ -20,14 +20,17 @@ async function openMenu(page: Page) {
   await expect.poll(() => reachable(anyLink(page, "Settings")), { message: "Open navigation shows the links" }).toBe(1);
 }
 
+// Any heading: the level the task asks for is judged by the checks, not by the wait.
+const ready = (page: Page) => expect(page.getByRole("heading").filter({ visible: true }).first()).toBeVisible({ timeout: 10_000 });
+
 export const appShell: ScreenChecks = {
-  ready: (page) => expect(page.getByRole("heading", { level: 1 }).filter({ visible: true }).first()).toBeVisible({ timeout: 10_000 }),
+  ready,
   states: [{ name: "navigation-open", viewport: "phone", reach: openMenu }],
-  judgedElsewhere: { 6: looksAndFit },
+  judgedElsewhere: { 7: axeScan },
   checks: [
     {
       id: "desktop-navigation",
-      title: 'At 1280px a navigation landmark labelled "Main" lists the five pages, and the main area is headed by the page',
+      title: 'At 1280px a navigation landmark labelled "Main" lists the five pages, and the one main landmark has the page as its level 1 heading',
       covers: [1],
       viewport: "desktop",
       async run(page) {
@@ -38,8 +41,8 @@ export const appShell: ScreenChecks = {
           await expect(link, `the ${name} link`).toBeVisible();
           await expect(link).toHaveAttribute("href", new RegExp(`${hash.replace(/[#/]/g, "\\$&")}$`));
         }
-        await expect(page.getByRole("main")).toBeVisible();
-        await expect(heading(page, "Home")).toBeVisible();
+        await expect(page.getByRole("main"), "one main landmark").toHaveCount(1);
+        await expect(page.getByRole("main").getByRole("heading", { level: 1, name: "Home", exact: true }), "the main area's level 1 heading names the page").toBeVisible();
       },
     },
     {
@@ -107,5 +110,6 @@ export const appShell: ScreenChecks = {
         await expectFocusWithin(page.getByRole("main"), "focus moves to the main area");
       },
     },
+    fitsPhone(6),
   ],
 };

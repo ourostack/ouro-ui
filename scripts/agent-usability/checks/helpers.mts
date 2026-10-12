@@ -12,7 +12,7 @@ export interface Check {
   run(page: Page): Promise<void>;
 }
 
-/** A state the axe scan and the screenshots also cover, besides the first render. */
+/** A state the accessibility scan also covers, besides the first render. The task names it. */
 export interface State {
   name: string;
   /** Only at this viewport; both when left out. */
@@ -31,7 +31,7 @@ export interface ScreenChecks {
 
 export type Viewport = "phone" | "desktop";
 
-export const looksAndFit = "axe and the screenshots, at 390px and 1280px in light and dark mode";
+export const axeScan = "the accessibility scan, which earns the axe points";
 
 export interface FakeApiCall {
   fn: string;
@@ -59,38 +59,42 @@ export function control(scope: Page | Locator, name: string | RegExp): Locator {
   return scope.getByRole("button", { name }).or(scope.getByRole("link", { name })).filter({ visible: true }).first();
 }
 
-/** Disabled, aria-disabled or aria-busy, on the element or an ancestor. */
-async function pending(handle: ElementHandle<Element>): Promise<boolean> {
-  return handle.evaluate((element) =>
-    Boolean(element.closest(":disabled, [aria-disabled='true'], [aria-busy='true']")),
-  );
+/**
+ * Starts watching for the busy state the tasks ask for while a request runs: the control (or
+ * an ancestor, such as a disabled fieldset) is disabled, aria-disabled or aria-busy. With
+ * `scope`, any button in it other than Cancel counts, for a library that swaps the button.
+ * Call it before the press, so a short busy state is not missed, and await the result after.
+ */
+export async function watchBusy(handle: ElementHandle<Element>, scope?: Locator): Promise<() => Promise<void>> {
+  const root = scope ? await scope.elementHandle() : null;
+  await handle.evaluate((element, within) => {
+    const busy = ":disabled, [aria-disabled='true'], [aria-busy='true']";
+    const state: { seen: boolean } = { seen: false };
+    (window as unknown as { __busy: { seen: boolean } }).__busy = state;
+    const look = () => {
+      if (element.closest(busy)) state.seen = true;
+      const buttons = within ? [...within.querySelectorAll("button, [role='button']")] : [];
+      if (buttons.some((button) => !/cancel/i.test(button.textContent ?? "") && button.matches(busy))) state.seen = true;
+    };
+    new MutationObserver(look).observe(document.documentElement, { attributes: true, childList: true, subtree: true });
+  }, root);
+  return async () => {
+    await expect
+      .poll(() => handle.evaluate(() => (window as unknown as { __busy: { seen: boolean } }).__busy.seen), {
+        message: "the control is disabled or marked busy while the request runs",
+        timeout: 2000,
+      })
+      .toBe(true);
+  };
 }
 
-/** Fails unless the control shows it is busy (disabled, aria-disabled or aria-busy) soon after it was pressed. */
-export async function expectBusy(handle: ElementHandle<Element>, scope?: Locator): Promise<void> {
-  await expect
-    .poll(
-      async () =>
-        (await pending(handle)) ||
-        (scope
-          ? await scope.evaluate((root) =>
-              [...root.querySelectorAll("button, [role='button']")].some(
-                (button) => !/cancel/i.test(button.textContent ?? "") && button.matches(":disabled, [aria-disabled='true'], [aria-busy='true']"),
-              ),
-            )
-          : false),
-      { message: "the control shows that the request is running", timeout: 500, intervals: [20] },
-    )
-    .toBe(true);
-}
-
-/** True when some element holding `text` sits in a live region (aria-live, status, alert or log). */
+/** Fails unless some element holding `text` sits in a live region: aria-live, a status, alert or log role, or an output element. */
 export async function expectAnnounced(page: Page, text: string): Promise<void> {
   await expect
     .poll(
       () =>
         page.evaluate((wanted) => {
-          const live = "[aria-live='polite'], [aria-live='assertive'], [role='status'], [role='alert'], [role='log']";
+          const live = "[aria-live='polite'], [aria-live='assertive'], [role='status'], [role='alert'], [role='log'], output";
           return [...document.querySelectorAll("body *")].some(
             (element) => (element.textContent ?? "").includes(wanted) && (element as Element).closest(live) !== null,
           );
@@ -98,6 +102,23 @@ export async function expectAnnounced(page: Page, text: string): Promise<void> {
       { message: `"${text}" is in a live region` },
     )
     .toBe(true);
+}
+
+/** Fails unless the field is marked invalid and names the message as its description or its error message. */
+export async function expectInvalidWith(field: Locator, message: RegExp): Promise<void> {
+  await expect(field).toHaveAttribute("aria-invalid", "true");
+  await expect
+    .poll(
+      () =>
+        field.evaluate((element) =>
+          ["aria-describedby", "aria-errormessage"]
+            .flatMap((attribute) => (element.getAttribute(attribute) ?? "").split(/\s+/))
+            .map((id) => (id ? (document.getElementById(id)?.textContent ?? "") : ""))
+            .join(" "),
+        ),
+      { message: `the field's description or error message reads ${message}` },
+    )
+    .toMatch(message);
 }
 
 /** How many of the locator's elements a person could tap: in the viewport and not covered. */
@@ -118,7 +139,12 @@ export function reachable(locator: Locator, band?: { top: number; bottom: number
   );
 }
 
-/** A one-finger drag through Chrome's touch input, which sends touch and pointer events. */
+/**
+ * A one-finger drag through Chrome's touch input, which sends touch and pointer events. The
+ * finger stops before it lifts, as when a person drags a row open. A finger lifted at speed
+ * starts a fling, and Chromium treats a tap during a fling as "stop the fling": it sends no
+ * click.
+ */
 export async function swipe(page: Page, from: [number, number], to: [number, number], steps = 12): Promise<void> {
   const session = await page.context().newCDPSession(page);
   const touch = (type: "touchStart" | "touchMove" | "touchEnd", [x, y]: [number, number]) =>
@@ -129,8 +155,53 @@ export async function swipe(page: Page, from: [number, number], to: [number, num
     await touch("touchMove", [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t]);
     await page.waitForTimeout(16);
   }
+  for (let frame = 0; frame < 10; frame++) {
+    await touch("touchMove", to);
+    await page.waitForTimeout(16);
+  }
   await touch("touchEnd", to);
   await session.detach();
+}
+
+/** Resolves once nothing on the page is animating and the element has not moved for three frames. */
+export async function atRest(locator: Locator): Promise<void> {
+  const still = await locator.evaluate(
+    (element) =>
+      new Promise<boolean>((done) => {
+        const deadline = performance.now() + 5000;
+        let last = "";
+        let same = 0;
+        const frame = () => {
+          const box = element.getBoundingClientRect();
+          const now = `${box.x},${box.y},${box.width},${box.height}`;
+          const moving = document.getAnimations().some((animation) => animation.playState === "running" && animation.effect?.getComputedTiming().iterations !== Infinity);
+          same = now === last && !moving ? same + 1 : 0;
+          last = now;
+          if (same >= 3) done(true);
+          else if (performance.now() > deadline) done(false);
+          else requestAnimationFrame(frame);
+        };
+        frame();
+      }),
+  );
+  if (!still) throw new Error("the row did not come to rest within 5 seconds");
+}
+
+/** The check each screen shares: at 390px wide the page does not scroll sideways. */
+export function fitsPhone(covers: number): Check {
+  return {
+    id: "fits-a-phone",
+    title: "At 390px wide the page does not scroll sideways",
+    covers: [covers],
+    viewport: "phone",
+    async run(page) {
+      const overflow = await page.evaluate(() => {
+        const root = document.scrollingElement ?? document.documentElement;
+        return root.scrollWidth - root.clientWidth;
+      });
+      expect(overflow, "pixels the page can scroll sideways").toBeLessThanOrEqual(1);
+    },
+  };
 }
 
 /** Fails unless focus is on, or inside, the element. */

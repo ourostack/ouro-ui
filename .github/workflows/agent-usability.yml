@@ -1,11 +1,12 @@
 name: Agent usability
 # Scores the screens fresh agents built with shadcn/ui, shadcn/ui with its skill, and Ouro HX
-# (scripts/agent-usability/README.md): tsc, lint, axe, screenshots and each screen's behavior
-# checks against the agent output committed under scripts/agent-usability/runs/<date>/. The
-# agents themselves run elsewhere, because they cost model calls; this workflow makes none.
-# It is not a required check: it never runs on pull requests, and low scores are results,
-# not failures. The results table and every screen's summary go into the job summary, and
-# the scores and screenshots into the agent-usability artifact.
+# (scripts/agent-usability/README.md): tsc, lint, axe and each screen's behavior checks against
+# the agent output committed under scripts/agent-usability/runs/<date>/. The agents themselves
+# run elsewhere, because they cost model calls; this workflow makes none. It is not a required
+# check: it never runs on pull requests, and low scores are results, not failures. It fails
+# only when the scorer can't score a run or can't make the table. The results table and every
+# run's summary go into the job summary, and the scores and screenshots (evidence only) into
+# the agent-usability artifact.
 on:
   workflow_dispatch:
     inputs:
@@ -34,10 +35,14 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - env:
           DATE: ${{ inputs.date }}
-        run: node scripts/agent-usability/score-runs.mts "$DATE" | tee -a "$GITHUB_STEP_SUMMARY"
+        shell: bash
+        # pipefail, so the step fails when the scorer does and not only when tee does.
+        run: |
+          set -o pipefail
+          node scripts/agent-usability/score-runs.mts "$DATE" | tee -a "$GITHUB_STEP_SUMMARY"
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: agent-usability
-          path: scripts/agent-usability/runs/*/*/*/score/
+          path: scripts/agent-usability/runs/*/*/*/*/score/
           if-no-files-found: ignore

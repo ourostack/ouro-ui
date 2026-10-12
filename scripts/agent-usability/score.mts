@@ -1,5 +1,3 @@
-import { spawn } from "node:child_process";
-import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import { createRequire } from "node:module";
@@ -13,15 +11,21 @@ import type { Viewport } from "./checks/helpers.mts";
 import { formatPoints, formulaVersion, points, weights, type Points } from "./formula.mts";
 import { armNames, isArm, type Arm } from "./prompt.mts";
 import { isScreen, type Screen } from "./screens.mts";
-import { armRecord, expectedFixtures, listFiles } from "./workspace.mts";
+import { bin, describeFinding, lintFindings, newFindings, run, typeFindings, type Finding, type StaticResult } from "./static.mts";
+import { changedConfig, changedScreenFiles, readArmRecord } from "./workspace.mts";
 
-//   node scripts/agent-usability/score.mts <arm> <screen> <app-dir> [--out <dir>]
+//   node scripts/agent-usability/score.mts <arm> <screen> <app-dir> [--arm-record <arm.json>] [--out <dir>]
 //
 // Scores one agent-built screen with no model calls: tsc, oxlint, a Vite build, axe at 390px
-// and 1280px in light and dark mode (with screenshots), and the screen's behavior checks
-// (checks/<screen>.mts) in Chromium. Writes score.json and summary.md to --out (default
-// <app-dir>/score) and prints the summary. The formula is formula.mts. When the app has a
-// package-lock.json and no node_modules, it runs `npm ci` first.
+// and 1280px in light and dark mode, and the screen's behavior checks (checks/<screen>.mts) in
+// Chromium. Writes score.json, summary.md and screenshots (evidence only) to --out (default
+// <app-dir>/score) and prints the summary. The formula is formula.mts.
+//
+// --arm-record is the arm's record from arms/create.sh: the baseline the type check and the
+// linter are compared with, and the config files the agent may not change. Give the copy the
+// agent never saw (<arm-app>/.agent-usability/arm.json, or runs/<date>/arms/<arm>.json).
+// Without it nothing is excused and the config files are not checked.
+// When the app has a package-lock.json and no node_modules, it runs `npm ci` first.
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "../..");
@@ -37,6 +41,9 @@ type Theme = (typeof themes)[number];
 /** Base UI's focus guards, left out of every scan as in Ouro's own tests (lib/ouro/testing/axe.ts). */
 const axeExclude = ["[data-base-ui-focus-guard]"];
 
+/** The axe-core rules that earn or cost points: WCAG 2.0, 2.1 and 2.2 at levels A and AA. */
+const wcagTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
+
 export interface Violation {
   id: string;
   impact: string | null;
@@ -45,13 +52,26 @@ export interface Violation {
   targets: string[];
 }
 
+/** A static check's result against the arm's baseline. */
+export interface StaticCheck {
+  pass: boolean;
+  /** The findings the agent is charged for. */
+  new: Finding[];
+  /** How many findings the baseline excused. */
+  excused: number;
+  output: string;
+}
+
 export interface AxeConfig {
   viewport: Viewport;
   width: number;
   theme: Theme;
   pass: boolean;
   states: { name: string; reached: boolean; error?: string }[];
+  /** WCAG A and AA violations, which cost the configuration its points. */
   violations: Violation[];
+  /** axe-core's other findings (its best-practice rules), listed and not scored. */
+  advisories: Violation[];
 }
 
 export interface BehaviorResult {
@@ -68,14 +88,22 @@ export interface ScoreResult {
   screen: Screen;
   scoredAt: string;
   formulaVersion: number;
+  /** What scored it, so a table can say exactly what its numbers came from. */
+  versions: { harness: string | null; node: string; axeCore: string; playwright: string; chromium: string | null };
+  /** The arm record the baseline came from, or null when none was given. */
+  armRecord: string | null;
   checks: {
-    typecheck: { pass: boolean; output: string };
-    lint: { pass: boolean; files: string[]; output: string };
+    typecheck: StaticCheck;
+    lint: StaticCheck;
     build: { pass: boolean; output: string };
+    /** The backend stand-in, src/api/. */
     fixtures: { pass: boolean; changed: string[] };
+    /** The app's configuration files. */
+    config: { pass: boolean; changed: string[] };
   };
   axe: AxeConfig[];
   behavior: BehaviorResult[];
+  /** Evidence for people; they earn nothing. */
   screenshots: string[];
   points: Points;
   /** One line for every lost point. */
@@ -87,6 +115,8 @@ export interface ScoreOptions {
   screen: Screen;
   dir: string;
   out?: string;
+  /** The arm's record (arm.json), from outside the agent's reach. */
+  record?: string;
   log?: (line: string) => void;
 }
 
@@ -101,56 +131,10 @@ function brief(error: unknown): string {
   return [lines[0] ?? "failed", locator && !lines[0]?.includes(locator) ? `(${locator})` : ""].filter(Boolean).join(" ");
 }
 
-/** The app's own copy of a tool: node_modules/.bin/<name> in the app or a folder above it. */
-function bin(dir: string, name: string): string {
-  for (let current = dir; ; current = dirname(current)) {
-    const candidate = join(current, "node_modules/.bin", name);
-    if (existsSync(candidate)) return candidate;
-    if (dirname(current) === current) throw new Error(`no ${name} in ${dir} or above it; install the app first`);
-  }
-}
-
-/**
- * Runs a tool and collects its output. Asynchronous on purpose: a blocking call would stall
- * every other score running in this process, and a stalled tap reads as a long press.
- */
-function run(command: string, args: string[], cwd: string): Promise<{ ok: boolean; output: string }> {
-  return new Promise((done) => {
-    const child = spawn(command, args, { cwd, env: { ...process.env, FORCE_COLOR: "0", NO_COLOR: "1" } });
-    let output = "";
-    child.stdout.on("data", (chunk) => (output += chunk));
-    child.stderr.on("data", (chunk) => (output += chunk));
-    child.on("error", (error) => done({ ok: false, output: `${output}${String(error)}` }));
-    child.on("close", (code) => done({ ok: code === 0, output }));
-  });
-}
-
-const sha256 = (path: string) => createHash("sha256").update(readFileSync(path)).digest("hex");
-
-function checkFixtures(dir: string, screen: Screen) {
-  const expected = expectedFixtures(dir, screen);
-  const changed = Object.entries(expected)
-    .filter(([path, hash]) => !existsSync(join(dir, path)) || sha256(join(dir, path)) !== hash)
-    .map(([path]) => path);
-  return { pass: changed.length === 0, changed };
-}
-
-/** The agent's source: src/ files that are new or changed since the arm was made, without src/api. */
-function agentFiles(dir: string): string[] {
-  const baseline = armRecord(dir)?.files ?? {};
-  return listFiles(join(dir, "src"))
-    .map((path) => `src/${path}`)
-    .filter((path) => /\.(ts|tsx|js|jsx|mts|mjs)$/.test(path) && !path.endsWith(".d.ts") && !path.startsWith("src/api/"))
-    .filter((path) => baseline[path] !== sha256(join(dir, path)));
-}
-
-async function lint(dir: string) {
-  const files = agentFiles(dir);
-  if (files.length === 0) return { pass: true, files, output: "No files of the agent's to lint." };
-  const config = join(root, "scripts/fixtures/vite-oxlint/.oxlintrc.json");
-  const result = await run(join(root, "node_modules/.bin/oxlint"), ["-c", config, "--format", "unix", "--no-ignore", ...files], dir);
-  const problems = result.output.split("\n").filter((line) => /^\S.*:\d+:\d+: /.test(line));
-  return { pass: result.ok && problems.length === 0, files, output: tail(result.output) };
+/** A static check's findings without the ones the arm started with. */
+function charge(result: StaticResult, baseline: Finding[], clean: string): StaticCheck {
+  const fresh = newFindings(result.findings, baseline);
+  return { pass: fresh.length === 0, new: fresh, excused: result.findings.length - fresh.length, output: tail(result.output) || clean };
 }
 
 const types: Record<string, string> = {
@@ -201,14 +185,23 @@ async function newPage(browser: Browser, url: string, viewport: Viewport, theme:
 
 const axeSource = readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
 
-async function scan(page: Page, state: string): Promise<Violation[]> {
+/**
+ * One axe-core run with its default rules. WCAG A and AA violations are scored. The rest are
+ * best-practice rules such as `region`, which a correct menu rendered in a portal on the body
+ * breaks, so they are listed and cost nothing.
+ */
+async function scan(page: Page, state: string): Promise<{ violations: Violation[]; advisories: Violation[] }> {
   await page.addScriptTag({ content: axeSource });
   const violations = await page.evaluate(async (exclude) => {
-    const axe = (window as unknown as { axe: { run: (context: unknown, options: unknown) => Promise<{ violations: { id: string; impact: string | null; help: string; nodes: { target: string[] }[] }[] }> } }).axe;
+    const axe = (window as unknown as { axe: { run: (context: unknown, options: unknown) => Promise<{ violations: { id: string; impact: string | null; help: string; tags: string[]; nodes: { target: string[] }[] }[] }> } }).axe;
     const result = await axe.run({ exclude: exclude.map((selector) => [selector]) }, { resultTypes: ["violations"] });
-    return result.violations.map((violation) => ({ id: violation.id, impact: violation.impact, help: violation.help, targets: violation.nodes.map((node) => node.target.join(" ")) }));
+    return result.violations.map((violation) => ({ id: violation.id, impact: violation.impact, help: violation.help, tags: violation.tags, targets: violation.nodes.map((node) => node.target.join(" ")) }));
   }, axeExclude);
-  return violations.map((violation) => ({ ...violation, state }));
+  const found = violations.map(({ tags, ...violation }) => ({ violation: { ...violation, state }, scored: tags.some((tag) => wcagTags.includes(tag)) }));
+  return {
+    violations: found.filter((entry) => entry.scored).map((entry) => entry.violation),
+    advisories: found.filter((entry) => !entry.scored).map((entry) => entry.violation),
+  };
 }
 
 async function withTimeout<T>(promise: Promise<T>, ms: number, what: string): Promise<T> {
@@ -228,9 +221,14 @@ async function axeConfigs(browser: Browser, url: string, screen: Screen, out: st
   const configs: AxeConfig[] = [];
   for (const viewport of ["phone", "desktop"] as const) {
     for (const theme of themes) {
-      const config: AxeConfig = { viewport, width: viewports[viewport].viewport!.width, theme, pass: false, states: [], violations: [] };
+      const config: AxeConfig = { viewport, width: viewports[viewport].viewport!.width, theme, pass: false, states: [], violations: [], advisories: [] };
       const all = [{ name: "initial", reach: async () => undefined }, ...states.filter((state) => !state.viewport || state.viewport === viewport)];
       for (const state of all) {
+        // A screen that never loaded can't reach a later state; don't wait for each one.
+        if (config.states[0]?.reached === false) {
+          config.states.push({ name: state.name, reached: false, error: "the screen never loaded" });
+          continue;
+        }
         const { context, page } = await newPage(browser, url, viewport, theme);
         try {
           await withTimeout(
@@ -249,7 +247,11 @@ async function axeConfigs(browser: Browser, url: string, screen: Screen, out: st
         const shot = `screenshots/${config.width}-${theme}-${state.name}.png`;
         await page.screenshot({ path: join(out, shot), fullPage: true }).catch(() => undefined);
         screenshots.push(shot);
-        if (config.states.at(-1)!.reached) config.violations.push(...(await scan(page, state.name)));
+        if (config.states.at(-1)!.reached) {
+          const found = await scan(page, state.name);
+          config.violations.push(...found.violations);
+          config.advisories.push(...found.advisories);
+        }
         await context.close();
       }
       config.pass = config.states.every((state) => state.reached) && config.violations.length === 0;
@@ -284,48 +286,56 @@ async function behaviors(browser: Browser, url: string, screen: Screen): Promise
   return results;
 }
 
-function failures(result: Omit<ScoreResult, "failures" | "points">): string[] {
+function failures(result: Omit<ScoreResult, "failures" | "points">, earned: Points): string[] {
   const lines: string[] = [];
-  const { typecheck, lint, build, fixtures } = result.checks;
-  if (!typecheck.pass) lines.push(`typecheck: tsc -b failed (-${weights.typecheck})`);
-  if (!lint.pass) lines.push(`lint: oxlint reported problems in the agent's files (-${weights.lint})`);
-  if (!build.pass) lines.push("build: vite build failed, so axe and the behavior checks could not run");
-  if (!fixtures.pass) lines.push(`fixtures: the agent changed ${fixtures.changed.join(", ")}, so axe and the behavior checks don't count`);
+  const { typecheck, lint, build, fixtures, config } = result.checks;
+  if (!build.pass) lines.push("build: vite build failed, so no behavior check counts");
+  if (!fixtures.pass) lines.push(`backend stand-in: the agent changed ${fixtures.changed.join(", ")}, so no behavior check counts`);
+  if (!config.pass) lines.push(`configuration: the agent changed ${config.changed.join(", ")}, so no behavior check counts`);
+  if (earned.behavior === 0) lines.push(`nothing works: no behavior check passed and counted, so the typecheck, lint and axe points are not earned (-${weights.typecheck + weights.lint + weights.axe})`);
+  for (const [name, check] of [["typecheck", typecheck], ["lint", lint]] as const) {
+    if (!check.pass) lines.push(`${name}: ${check.new.length} new ${check.new.length === 1 ? "error" : "errors"}, the first in ${describeFinding(check.new[0]!)} (-${weights[name]})`);
+  }
   const perConfig = weights.axe / Math.max(result.axe.length, 1);
-  for (const config of result.axe.filter((config) => !config.pass)) {
+  for (const axeConfig of result.axe.filter((candidate) => !candidate.pass)) {
     const reasons = [
-      ...config.states.filter((state) => !state.reached).map((state) => `${state.name} not reached: ${state.error}`),
-      ...config.violations.map((violation) => `${violation.id} in ${violation.state} (${violation.targets.slice(0, 3).join(", ")})`),
+      ...axeConfig.states.filter((state) => !state.reached).map((state) => `${state.name} not reached: ${state.error}`),
+      ...axeConfig.violations.map((violation) => `${violation.id} in ${violation.state} (${violation.targets.slice(0, 3).join(", ")})`),
     ];
-    lines.push(`axe ${config.width}px ${config.theme}: ${reasons.join("; ") || "not run"} (-${formatPoints(perConfig)})`);
+    lines.push(`axe ${axeConfig.width}px ${axeConfig.theme}: ${reasons.join("; ") || "not run"} (-${formatPoints(perConfig)})`);
   }
   const perCheck = weights.behavior / Math.max(result.behavior.length, 1);
-  for (const check of result.behavior.filter((check) => !check.pass)) {
+  for (const check of result.behavior.filter((candidate) => !candidate.pass)) {
     lines.push(`behavior ${check.id}: ${brief(check.error ?? "")} (-${formatPoints(perCheck)})`);
   }
   return lines;
 }
 
-export async function score({ arm, screen, dir: given, out: outGiven, log = () => undefined }: ScoreOptions): Promise<ScoreResult> {
+const version = (name: string): string => JSON.parse(readFileSync(require.resolve(`${name}/package.json`), "utf8")).version;
+
+export async function score({ arm, screen, dir: given, out: outGiven, record: recordPath, log = () => undefined }: ScoreOptions): Promise<ScoreResult> {
   const dir = resolve(given);
   const out = resolve(outGiven ?? join(dir, "score"));
   mkdirSync(join(out, "screenshots"), { recursive: true });
-  const record = armRecord(dir);
-  if (record && record.arm !== arm) throw new Error(`${dir} was made for the ${record.arm} arm, not ${arm}`);
+  const record = recordPath ? readArmRecord(resolve(recordPath)) : undefined;
+  if (record && record.arm !== arm) throw new Error(`${recordPath} is the record of the ${record.arm} arm, not ${arm}`);
 
   if (existsSync(join(dir, "package-lock.json")) && !existsSync(join(dir, "node_modules"))) {
+    // Without install scripts: this is code an agent wrote, and the build needs none.
     log("npm ci");
-    const install = await run("npm", ["ci", "--no-audit", "--no-fund"], dir);
+    const install = await run("npm", ["ci", "--ignore-scripts", "--no-audit", "--no-fund"], dir);
     if (!install.ok) throw new Error(`npm ci failed in ${dir}:\n${tail(install.output)}`);
   }
 
-  log("fixtures");
-  const fixtures = checkFixtures(dir, screen);
+  log("protected files");
+  const changedApi = changedScreenFiles(dir, screen);
+  const fixtures = { pass: changedApi.length === 0, changed: changedApi };
+  const changed = record ? changedConfig(dir, record.config) : [];
+  const config = { pass: changed.length === 0, changed };
   log("tsc -b");
-  const tsc = await run(bin(dir, "tsc"), ["-b", "--force"], dir);
-  const typecheck = { pass: tsc.ok, output: tail(tsc.output) || "tsc -b passed." };
+  const typecheck = charge(await typeFindings(dir), record?.baseline.typecheck ?? [], "tsc -b reported no error.");
   log("oxlint");
-  const linted = await lint(dir);
+  const lint = charge(await lintFindings(dir), record?.baseline.lint ?? [], "oxlint reported no error.");
   log("vite build");
   const dist = mkdtempSync(join(tmpdir(), "agent-usability-dist-"));
   const built = await run(bin(dir, "vite"), ["build", "--outDir", dist, "--emptyOutDir", "--logLevel", "warn"], dir);
@@ -335,48 +345,55 @@ export async function score({ arm, screen, dir: given, out: outGiven, log = () =
   const { checks } = checksFor(screen);
   let axe: AxeConfig[];
   let behavior: BehaviorResult[];
+  let chromiumVersion: string | null = null;
   if (build.pass) {
     const { server, url } = await serve(dist);
     const browser = await chromium.launch();
+    chromiumVersion = browser.version();
     expect.configure({ timeout: 5000 });
     try {
       log("axe and screenshots");
       axe = await axeConfigs(browser, url, screen, out, screenshots);
       log("behavior checks");
-      behavior = await behaviors(browser, url, screen);
+      const dead = axe.every((axeConfig) => axeConfig.states[0]?.reached === false);
+      // Every check starts by waiting for the screen. When it loaded in none of the four
+      // configurations, that wait has already failed four times.
+      behavior = dead
+        ? checks.map((check) => ({ id: check.id, title: check.title, covers: check.covers, viewport: check.viewport, pass: false, error: `the screen never loaded: ${axe[0]!.states[0]!.error}` }))
+        : await behaviors(browser, url, screen);
     } finally {
       await browser.close();
       server.close();
     }
   } else {
     axe = (["phone", "desktop"] as const).flatMap((viewport) =>
-      themes.map((theme) => ({ viewport, width: viewports[viewport].viewport!.width, theme, pass: false, states: [], violations: [] })),
+      themes.map((theme) => ({ viewport, width: viewports[viewport].viewport!.width, theme, pass: false, states: [], violations: [], advisories: [] })),
     );
     behavior = checks.map((check) => ({ id: check.id, title: check.title, covers: check.covers, viewport: check.viewport, pass: false, error: "the app did not build" }));
   }
   rmSync(dist, { recursive: true, force: true });
 
-  const counted = build.pass && fixtures.pass;
+  const harness = await run("git", ["-C", root, "rev-parse", "HEAD"], root);
+  const counted = build.pass && fixtures.pass && config.pass;
   const partial: Omit<ScoreResult, "failures" | "points"> = {
     arm,
     screen,
     scoredAt: new Date().toISOString(),
     formulaVersion,
-    checks: { typecheck, lint: linted, build, fixtures },
+    versions: { harness: harness.ok ? harness.stdout.trim() : null, node: process.version, axeCore: version("axe-core"), playwright: version("playwright"), chromium: chromiumVersion },
+    armRecord: recordPath ?? null,
+    checks: { typecheck, lint, build, fixtures, config },
     axe,
     behavior,
     screenshots,
   };
-  const result: ScoreResult = {
-    ...partial,
-    points: points({
-      typecheck: typecheck.pass,
-      lint: linted.pass,
-      axe: axe.map((config) => counted && config.pass),
-      behavior: behavior.map((check) => counted && check.pass),
-    }),
-    failures: failures(partial),
-  };
+  const earned = points({
+    typecheck: typecheck.pass,
+    lint: lint.pass,
+    axe: axe.map((axeConfig) => axeConfig.pass),
+    behavior: behavior.map((check) => counted && check.pass),
+  });
+  const result: ScoreResult = { ...partial, points: earned, failures: failures(partial, earned) };
   writeFileSync(join(out, "score.json"), `${JSON.stringify(result, null, 2)}\n`);
   writeFileSync(join(out, "summary.md"), summary(result, relative(dir, out) || "."));
   return result;
@@ -387,6 +404,7 @@ const mark = (pass: boolean) => (pass ? "pass" : "**fail**");
 /** The markdown summary of one score. */
 export function summary(result: ScoreResult, outPath = "score"): string {
   const { points: p } = result;
+  const advisories = [...new Set(result.axe.flatMap((config) => config.advisories.map((advisory) => `${advisory.id} in ${advisory.state}`)))];
   const lines = [
     `## ${result.screen}, ${armNames[result.arm]}: ${formatPoints(p.score)}/${p.max}`,
     "",
@@ -396,6 +414,9 @@ export function summary(result: ScoreResult, outPath = "score"): string {
     "",
     result.failures.length === 0 ? "Every check passed." : result.failures.map((line) => `- ${line}`).join("\n"),
     "",
+    `Problems the app had before the agent ran, which cost nothing: ${result.checks.typecheck.excused} type errors, ${result.checks.lint.excused} lint errors.`,
+    ...(advisories.length > 0 ? [`axe-core's best-practice findings, which cost nothing: ${advisories.join(", ")}.`] : []),
+    "",
     "| Behavior check | Acceptance items | Viewport | Result |",
     "| --- | --- | --- | --- |",
     ...result.behavior.map((check) => `| ${check.title} | ${check.covers.join(", ")} | ${check.viewport} | ${mark(check.pass)} |`),
@@ -404,7 +425,7 @@ export function summary(result: ScoreResult, outPath = "score"): string {
     "| --- | --- |",
     ...result.axe.map((config) => `| ${config.width}px ${config.theme} | ${mark(config.pass)} |`),
     "",
-    `Screenshots: ${result.screenshots.length} in ${outPath}/screenshots.`,
+    `Screenshots, as evidence only: ${result.screenshots.length} in ${outPath}/screenshots.`,
     "",
   ];
   return lines.join("\n");
@@ -412,13 +433,17 @@ export function summary(result: ScoreResult, outPath = "score"): string {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const args = process.argv.slice(2);
-  const outIndex = args.indexOf("--out");
-  const out = outIndex === -1 ? undefined : args.splice(outIndex, 2)[1];
+  const option = (name: string) => {
+    const index = args.indexOf(name);
+    return index === -1 ? undefined : args.splice(index, 2)[1];
+  };
+  const out = option("--out");
+  const record = option("--arm-record");
   const [arm, screen, dir] = args;
   if (!arm || !isArm(arm) || !screen || !isScreen(screen) || !dir) {
-    console.error("usage: score.mts <shadcn|shadcn-skill|ouro> <screen> <app-dir> [--out <dir>]");
+    console.error("usage: score.mts <shadcn|shadcn-skill|ouro> <screen> <app-dir> [--arm-record <arm.json>] [--out <dir>]");
     process.exit(1);
   }
-  const result = await score({ arm, screen, dir, ...(out ? { out } : {}), log: (line) => console.error(`[score] ${line}`) });
+  const result = await score({ arm, screen, dir, ...(out ? { out } : {}), ...(record ? { record } : {}), log: (line) => console.error(`[score] ${line}`) });
   process.stdout.write(summary(result));
 }

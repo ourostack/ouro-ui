@@ -1,5 +1,5 @@
 import { expect, type Page } from "@playwright/test";
-import { calls, control, expectFocusWithin, looksAndFit, openDialog, type ScreenChecks } from "./helpers.mts";
+import { axeScan, calls, control, expectFocusWithin, fitsPhone, openDialog, type ScreenChecks } from "./helpers.mts";
 
 const opener = (page: Page) => control(page, /^search commands/i);
 const palette = (page: Page) => openDialog(page);
@@ -24,10 +24,12 @@ async function expectSearchFocused(page: Page) {
     .toBe(true);
 }
 
+const ready = (page: Page) => expect(opener(page)).toBeVisible({ timeout: 10_000 });
+
 export const commandPalette: ScreenChecks = {
-  ready: (page) => expect(opener(page)).toBeVisible({ timeout: 10_000 }),
+  ready,
   states: [{ name: "palette-open", reach: (page) => openFromButton(page).then(() => undefined) }],
-  judgedElsewhere: { 7: looksAndFit },
+  judgedElsewhere: { 8: axeScan },
   checks: [
     {
       id: "button-opens-with-search-focused",
@@ -115,5 +117,6 @@ export const commandPalette: ScreenChecks = {
         expect(await calls(page, "runCommand")).toEqual([]);
       },
     },
+    fitsPhone(7),
   ],
 };

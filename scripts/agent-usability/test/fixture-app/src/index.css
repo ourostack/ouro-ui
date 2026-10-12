@@ -271,3 +271,16 @@ body {
     position: static;
   }
 }
+
+.menu-popup {
+  display: flex;
+  flex-direction: column;
+  min-width: 10rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--background);
+}
+
+.menu-item[data-highlighted] {
+  background: var(--border);
+}

@@ -1,5 +1,5 @@
 import { expect, type Locator, type Page } from "@playwright/test";
-import { calls, control, expectAnnounced, expectUnavailable, looksAndFit, reachable, swipe, type ScreenChecks } from "./helpers.mts";
+import { atRest, axeScan, calls, control, expectAnnounced, expectUnavailable, fitsPhone, reachable, swipe, type ScreenChecks } from "./helpers.mts";
 
 // The first titles of src/api/recipes.ts, in list order: page 1 is 1-10, page 2 starts at 11,
 // and page 5 holds 41-47.
@@ -30,31 +30,54 @@ async function band(page: Page, text: string) {
   return { y, top: y - 36, bottom: y + 36 };
 }
 
+const ready = (page: Page) => expect(title(page, first[0]!).first()).toBeVisible({ timeout: 10_000 });
+
 const action = (page: Page, name: "archive" | "delete") => page.getByRole("button", { name: new RegExp(`^${name}\\b`, "i") });
+
+/** The swipe the task describes: about half the row's width, from near the right edge. */
+const swipeEnds = (page: Page, y: number): [[number, number], [number, number]] => {
+  const width = page.viewportSize()!.width;
+  return [[width - 24, y], [width * 0.45, y]];
+};
 
 async function swipeOpen(page: Page, text: string) {
   const row = await band(page, text);
-  const width = page.viewportSize()!.width;
+  const [from, to] = swipeEnds(page, row.y);
   expect(await reachable(action(page, "delete"), row), "Delete is hidden before the swipe").toBe(0);
-  await swipe(page, [width - 24, row.y], [width * 0.25, row.y]);
+  await swipe(page, from, to);
   await expect.poll(() => reachable(action(page, "delete"), row), { message: "swiping left reveals Delete" }).toBe(1);
   await expect.poll(() => reachable(action(page, "archive"), row), { message: "swiping left reveals Archive" }).toBe(1);
+  await expect(title(page, text).first(), "the swipe only reveals the actions; the row stays").toBeVisible();
+  await atRest(title(page, text).first());
   return row;
 }
 
+/** Opens the row's actions menu with the keyboard and waits for focus to move into it. */
 async function openActions(page: Page, text: string) {
   const button = control(page, `Actions for ${text}`);
   await button.focus();
   await page.keyboard.press("Enter");
   const menu = page.getByRole("menu").filter({ visible: true }).first();
-  await expect(menu, "Enter opens a menu").toBeVisible();
+  await expect(menu, "Enter opens an element with the menu role").toBeVisible();
+  await expect.poll(() => menu.evaluate((element) => element.contains(document.activeElement)), { message: "focus moves into the menu" }).toBe(true);
   return menu;
 }
 
+/**
+ * The menu item the keyboard is on, in either ARIA menu pattern: the item has focus, or the
+ * menu has focus and names the item with aria-activedescendant.
+ */
+const currentItem = (page: Page) =>
+  page.evaluate(() => {
+    const active = document.activeElement;
+    const item = active?.getAttribute("role")?.startsWith("menuitem") ? active : document.getElementById(active?.getAttribute("aria-activedescendant") ?? "");
+    return item?.textContent?.trim() ?? "";
+  });
+
 export const recipeList: ScreenChecks = {
-  ready: (page) => expect(title(page, first[0]!).first()).toBeVisible({ timeout: 10_000 }),
+  ready,
   states: [{ name: "actions-menu-open", reach: (page) => openActions(page, first[0]!).then(() => undefined) }],
-  judgedElsewhere: { 6: `the loading state by the screenshots; the rest by ${looksAndFit}` },
+  judgedElsewhere: { 7: axeScan },
   checks: [
     {
       id: "ten-per-page",
@@ -96,9 +119,11 @@ export const recipeList: ScreenChecks = {
       viewport: "phone",
       async run(page) {
         const row = await swipeOpen(page, first[0]!);
-        const width = page.viewportSize()!.width;
-        await swipe(page, [width * 0.25, row.y], [width - 24, row.y]);
+        // From the row's left end, which is still the row and not its revealed actions.
+        await swipe(page, [24, row.y], [page.viewportSize()!.width * 0.55, row.y]);
         await expect.poll(() => reachable(action(page, "delete"), row), { message: "swiping back hides Delete" }).toBe(0);
+        expect(await calls(page, "deleteRecipe"), "swiping deleted nothing").toEqual([]);
+        expect(await calls(page, "archiveRecipe"), "swiping archived nothing").toEqual([]);
       },
     },
     {
@@ -118,9 +143,6 @@ export const recipeList: ScreenChecks = {
           return rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : null;
         }, row);
         if (!box) throw new Error("no revealed Delete button");
-        // A person pauses between a swipe and a tap. Chromium on Linux drops the click of a tap
-        // that lands within a few hundred milliseconds of the swipe's end.
-        await page.waitForTimeout(600);
         await page.touchscreen.tap(box.x, box.y);
         await expect.poll(() => calls(page, "deleteRecipe"), { message: "deleteRecipe ran for the row" }).toEqual([["recipe-1"]]);
         await expect(title(page, first[0]!), "the row left the list").toHaveCount(0);
@@ -134,7 +156,6 @@ export const recipeList: ScreenChecks = {
       viewport: "desktop",
       async run(page) {
         const menu = await openActions(page, first[1]!);
-        await expect.poll(() => menu.evaluate((element) => element.contains(document.activeElement)), { message: "focus moves into the menu" }).toBe(true);
         await expect(menu.getByRole("menuitem", { name: /^delete\b/i })).toBeVisible();
         await menu.getByRole("menuitem", { name: /^archive\b/i }).click();
         await expect.poll(() => calls(page, "archiveRecipe"), { message: "archiveRecipe ran for the row" }).toEqual([["recipe-2"]]);
@@ -149,15 +170,13 @@ export const recipeList: ScreenChecks = {
       viewport: "desktop",
       async run(page) {
         await openActions(page, first[2]!);
-        for (let presses = 0; presses < 4; presses++) {
-          const focused = await page.evaluate(() => document.activeElement?.textContent?.trim() ?? "");
-          if (/^delete\b/i.test(focused)) break;
-          await page.keyboard.press("ArrowDown");
-        }
+        for (let presses = 0; presses < 4 && !/^delete\b/i.test(await currentItem(page)); presses++) await page.keyboard.press("ArrowDown");
+        expect(await currentItem(page), "the arrow keys reach Delete").toMatch(/^delete\b/i);
         await page.keyboard.press("Enter");
         await expect.poll(() => calls(page, "deleteRecipe"), { message: "Enter on Delete deletes the recipe" }).toEqual([["recipe-3"]]);
         await expect(title(page, first[2]!)).toHaveCount(0);
       },
     },
+    fitsPhone(6),
   ],
 };

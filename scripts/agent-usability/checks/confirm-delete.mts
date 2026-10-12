@@ -1,5 +1,5 @@
 import { expect, type Page } from "@playwright/test";
-import { calls, control, expectAnnounced, expectBusy, looksAndFit, openDialog, type ScreenChecks } from "./helpers.mts";
+import { axeScan, calls, control, expectAnnounced, fitsPhone, openDialog, watchBusy, type ScreenChecks } from "./helpers.mts";
 
 const trigger = (page: Page, name: string) => control(page, `Delete ${name}`);
 
@@ -9,10 +9,12 @@ async function open(page: Page, name: string) {
   return openDialog(page);
 }
 
+const ready = (page: Page) => expect(trigger(page, "Weeknight dinners")).toBeVisible({ timeout: 10_000 });
+
 export const confirmDelete: ScreenChecks = {
-  ready: (page) => expect(trigger(page, "Weeknight dinners")).toBeVisible({ timeout: 10_000 }),
+  ready,
   states: [{ name: "dialog-open", reach: (page) => open(page, "Weeknight dinners").then(() => undefined) }],
-  judgedElsewhere: { 6: looksAndFit },
+  judgedElsewhere: { 7: axeScan },
   checks: [
     {
       id: "dialog-names-the-cookbook",
@@ -57,15 +59,16 @@ export const confirmDelete: ScreenChecks = {
     },
     {
       id: "deletes-once-and-announces",
-      title: "Delete cookbook deletes once, shows it is working, closes, removes the cookbook and announces it",
+      title: "Delete cookbook deletes once, is disabled or marked busy meanwhile, closes, removes the cookbook and announces it",
       covers: [4],
       viewport: "desktop",
       async run(page) {
         const dialog = await open(page, "Weeknight dinners");
         const confirm = await control(dialog, /^delete cookbook$/i).elementHandle();
         if (!confirm) throw new Error("no Delete cookbook button");
+        const busy = await watchBusy(confirm, dialog);
         await confirm.click();
-        await expectBusy(confirm, dialog);
+        await busy();
         await confirm.evaluate((button) => (button as HTMLElement).click());
         await expect(openDialog(page), "the dialog closes after the delete").toBeHidden({ timeout: 5000 });
         expect(await calls(page, "deleteCookbook"), "deleteCookbook ran once, for this cookbook").toEqual([["weeknight"]]);
@@ -86,5 +89,6 @@ export const confirmDelete: ScreenChecks = {
         await expect(page.getByRole("button", { name: "Delete Holiday baking", includeHidden: true })).toHaveCount(1);
       },
     },
+    fitsPhone(6),
   ],
 };

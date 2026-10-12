@@ -1,5 +1,5 @@
 import { expect, type Page } from "@playwright/test";
-import { calls, control, expectAnnounced, expectBusy, field, looksAndFit, type ScreenChecks } from "./helpers.mts";
+import { axeScan, calls, control, expectAnnounced, expectInvalidWith, field, fitsPhone, watchBusy, type ScreenChecks } from "./helpers.mts";
 
 const taken = "That email is already used by another account.";
 const save = (page: Page) => control(page, /^save changes$/i);
@@ -19,8 +19,10 @@ async function expectUnder(page: Page, label: string, message: string) {
   expect(text.y, `"${message}" is close to the ${label} field`).toBeLessThanOrEqual(control.y + control.height + 120);
 }
 
+const ready = (page: Page) => expect(field(page, "Display name")).toHaveValue("Ada Lovelace", { timeout: 10_000 });
+
 export const settingsForm: ScreenChecks = {
-  ready: (page) => expect(field(page, "Display name")).toHaveValue("Ada Lovelace", { timeout: 10_000 }),
+  ready,
   states: [
     {
       name: "server-errors",
@@ -32,7 +34,7 @@ export const settingsForm: ScreenChecks = {
       },
     },
   ],
-  judgedElsewhere: { 6: looksAndFit },
+  judgedElsewhere: { 7: axeScan },
   checks: [
     {
       id: "fields-labelled-in-order",
@@ -59,15 +61,16 @@ export const settingsForm: ScreenChecks = {
     },
     {
       id: "saves-once",
-      title: "While saving, the button shows it and the form can't be sent again by click or Enter",
+      title: "While saving, the button is disabled or marked busy and the form can't be sent again by click or Enter",
       covers: [2],
       viewport: "desktop",
       async run(page) {
         await field(page, "Email").fill("ada@example.org");
         const button = await save(page).elementHandle();
         if (!button) throw new Error("no Save changes button");
+        const busy = await watchBusy(button);
         await button.click();
-        await expectBusy(button);
+        await busy();
         await button.evaluate((element) => (element as HTMLElement).click());
         await field(page, "Display name").press("Enter");
         await expect(page.getByText("Settings saved").first()).toBeVisible({ timeout: 5000 });
@@ -83,8 +86,7 @@ export const settingsForm: ScreenChecks = {
         await field(page, "Email").fill("taken@example.com");
         await saveAndWait(page);
         await expect(page.getByText(taken).first()).toBeVisible();
-        await expect(field(page, "Email")).toHaveAttribute("aria-invalid", "true");
-        await expect(field(page, "Email")).toHaveAccessibleDescription(/already used by another account/);
+        await expectInvalidWith(field(page, "Email"), /already used by another account/);
         await expect(field(page, "Email")).toBeFocused();
         await expectUnder(page, "Email", taken);
       },
@@ -98,9 +100,8 @@ export const settingsForm: ScreenChecks = {
         await field(page, "Username").fill("Ada L");
         await field(page, "Email").fill("taken@example.com");
         await saveAndWait(page);
-        await expect(field(page, "Username")).toHaveAttribute("aria-invalid", "true");
-        await expect(field(page, "Username")).toHaveAccessibleDescription(/3 to 20 lowercase/);
-        await expect(field(page, "Email")).toHaveAttribute("aria-invalid", "true");
+        await expectInvalidWith(field(page, "Username"), /3 to 20 lowercase/);
+        await expectInvalidWith(field(page, "Email"), /already used by another account/);
         await expect(field(page, "Email"), "focus is on Email, the first field with an error").toBeFocused();
         await expectUnder(page, "Username", "Use 3 to 20 lowercase letters, numbers or dashes.");
       },
@@ -133,5 +134,6 @@ export const settingsForm: ScreenChecks = {
         await expectAnnounced(page, "Settings saved");
       },
     },
+    fitsPhone(6),
   ],
 };

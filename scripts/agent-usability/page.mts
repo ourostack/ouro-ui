@@ -9,7 +9,9 @@ import { resultsTable } from "./table.mts";
 // because it needs real scores: once the controller has scored all three arms, write the
 // page's prose here (what shadcn's skill teaches, https://ui.shadcn.com/docs/skills.md, and
 // where Ouro HX puts each thing instead: required props, hint types and dev messages) and
-// wire this into the docs. Until then it renders only the results table under the title.
+// wire this into the docs. Say there that the five screens come from Ouro HX's own catalog plan and that
+// shadcn/ui ships no swipe row, and show each check's result, not only the totals. Until then
+// it renders only the results (table.mts) under the title.
 
 export function whyNoSkillPage(runsDir: string): string {
   return [
