@@ -446,6 +446,118 @@ describe("Carousel settling", () => {
   });
 });
 
+describe("Carousel settling without scrollend", () => {
+  it("announces once when the page stalls mid-scroll, after the scroll reaches its slide", async () => {
+    const descriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "onscrollend");
+    if (descriptor) delete (HTMLElement.prototype as { onscrollend?: unknown }).onscrollend;
+    const record = recordAnnouncements("Stalled");
+    try {
+      await commands.emulateMedia({ reducedMotion: "no-preference" });
+      const onIndexChange = vi.fn();
+      const screen = await render(
+        <Carousel label="Recipe photos" slideLabel="Stalled {n} of {total}" onIndexChange={onIndexChange}>
+          {photos()}
+        </Carousel>,
+      );
+      const starts = screen.slides.map((slide) => slide.offsetLeft - screen.slides[0]!.offsetLeft);
+      // The page's main thread stalls for longer than the pause that stands in for scrollend,
+      // once, while the scroll to the third slide is passing the second.
+      let stalled = false;
+      const stall = () => {
+        if (stalled || screen.viewport.scrollLeft < starts[1]! * 0.9) return;
+        stalled = true;
+        const until = performance.now() + 400;
+        while (performance.now() < until);
+      };
+      screen.viewport.addEventListener("scroll", stall);
+      const midScroll = pressMidScroll(screen.viewport, screen.button("Next slide"));
+      await userEvent.click(screen.button("Next slide"));
+      await midScroll;
+      await expect.poll(() => onIndexChange.mock.calls).toEqual([[2]]);
+      expect(stalled).toBe(true);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      expect(onIndexChange.mock.calls).toEqual([[2]]);
+      expect(record.texts).toEqual(["Stalled 3 of 5"]);
+    } finally {
+      record.stop();
+      if (descriptor) Object.defineProperty(HTMLElement.prototype, "onscrollend", descriptor);
+    }
+  });
+});
+
+describe("Carousel settling without scrollend, late scroll events", () => {
+  it("keeps waiting while the position still moves, though its scroll events arrive late", async () => {
+    const descriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "onscrollend");
+    if (descriptor) delete (HTMLElement.prototype as { onscrollend?: unknown }).onscrollend;
+    try {
+      const onIndexChange = vi.fn();
+      const screen = await render(
+        <Carousel label="Recipe photos" onIndexChange={onIndexChange}>
+          {photos()}
+        </Carousel>,
+      );
+      const starts = screen.slides.map((slide) => slide.offsetLeft - screen.slides[0]!.offsetLeft);
+      // A busy page: the scroll moves every frame for 600ms, but after the first scroll event
+      // the carousel sees none until the end, so its pause runs out while the scroll is
+      // passing the second slide. Snapping is off so the scroll can stop between slides.
+      screen.viewport.style.scrollSnapType = "none";
+      let seen = 0;
+      let swallow = true;
+      const late = (event: Event) => {
+        if (swallow && seen++ > 0) event.stopPropagation();
+      };
+      screen.host.addEventListener("scroll", late, true);
+      const start = performance.now();
+      await new Promise<void>((resolve) => {
+        const step = () => {
+          const t = Math.min(1, (performance.now() - start) / 600);
+          screen.viewport.scrollTo({ left: starts[2]! * t, behavior: "instant" });
+          if (t < 1) requestAnimationFrame(step);
+          else resolve();
+        };
+        step();
+      });
+      swallow = false;
+      screen.viewport.dispatchEvent(new Event("scroll"));
+      await expect.poll(() => onIndexChange.mock.calls).toEqual([[2]]);
+      screen.host.removeEventListener("scroll", late, true);
+    } finally {
+      if (descriptor) Object.defineProperty(HTMLElement.prototype, "onscrollend", descriptor);
+    }
+  });
+});
+
+describe("Carousel settling without scrollend, interrupted", () => {
+  it("settles where the scroll stops when the user scrolls elsewhere before a press's slide", async () => {
+    const descriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "onscrollend");
+    if (descriptor) delete (HTMLElement.prototype as { onscrollend?: unknown }).onscrollend;
+    try {
+      await commands.emulateMedia({ reducedMotion: "no-preference" });
+      const onIndexChange = vi.fn();
+      const screen = await render(
+        <Carousel label="Recipe photos" onIndexChange={onIndexChange}>
+          {photos()}
+        </Carousel>,
+      );
+      const starts = screen.slides.map((slide) => slide.offsetLeft - screen.slides[0]!.offsetLeft);
+      // Next heads for the second slide; mid-scroll, the user jumps to the fourth.
+      const jumped = new Promise<void>((resolve) => {
+        const onScroll = () => {
+          screen.viewport.removeEventListener("scroll", onScroll);
+          screen.viewport.scrollTo({ left: starts[3]!, behavior: "instant" });
+          resolve();
+        };
+        screen.viewport.addEventListener("scroll", onScroll);
+      });
+      await userEvent.click(screen.button("Next slide"));
+      await jumped;
+      await expect.poll(() => onIndexChange.mock.calls).toEqual([[3]]);
+    } finally {
+      if (descriptor) Object.defineProperty(HTMLElement.prototype, "onscrollend", descriptor);
+    }
+  });
+});
+
 describe("Carousel motion", () => {
   it("jumps instantly with reduced motion", async () => {
     const screen = await render(<Carousel label="Recipe photos">{photos()}</Carousel>);
