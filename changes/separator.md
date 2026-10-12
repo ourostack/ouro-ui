@@ -1,1 +1,0 @@
-- New: `Separator`, on Base UI, horizontal or vertical, and `decorative` to hide it from screen readers.
