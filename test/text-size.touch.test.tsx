@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 import siteCss from "../site/src/styles.css?inline";
-import { cleanupStories, renderStory, settle, stories } from "./stories.tsx";
+import { accessibleName, cleanupStories, isVisible, overlayOpeners, renderStory, settle, stories, type Opener, type OuroStoryParameters } from "./stories.tsx";
 
 // Runs in the `touch` project: Chromium as a phone with a coarse pointer. iOS Safari zooms the
 // page when a text control under 16px takes focus, and does not zoom back; Chromium's emulation
@@ -11,11 +11,11 @@ import { cleanupStories, renderStory, settle, stories } from "./stories.tsx";
 // every story and every docs demo, in portrait and in landscape (where `sm` applies but the
 // pointer is still coarse).
 //
-// Each subject is scanned closed, then with each overlay open, recursively to `maxDepth`: every
-// `aria-haspopup` trigger (dialog, listbox, menu and the rest), every button a story names in
-// `parameters.plainOpeners`, and the keys a story names in `parameters.openShortcut` (a
-// `userEvent.keyboard` string, for an overlay that only a shortcut opens). Each overlay path
-// renders the subject afresh. Stories render with app.css only, as an installed app does; demos
+// Each subject is scanned closed, then with each overlay open, recursively to `maxDepth`, through
+// the openers the story tests use (`overlayOpeners` in test/stories.tsx): every `aria-haspopup`
+// trigger (dialog, listbox, menu and the rest), every button a story names in
+// `parameters.plainOpeners`, and the keys a story names in `parameters.openShortcut`. An opener
+// deeper than `maxDepth` fails the test. Each overlay path renders the subject afresh. Stories render with app.css only, as an installed app does; demos
 // also get the site's stylesheet, as the docs site renders them.
 //
 // Out of scope: controls that appear only after typing, after stepping through a flow (a wizard's
@@ -38,26 +38,6 @@ const knownViolations: Record<string, string> = {};
 
 const fix = "Fix: give the control a 16px font on coarse pointers (for example `text-base sm:pointer-fine:text-sm`).";
 
-/** The text of the elements an `aria-labelledby` list names. */
-function labelledBy(element: Element): string {
-  const ids = element.getAttribute("aria-labelledby")?.split(/\s+/).filter(Boolean) ?? [];
-  return ids.map((id) => document.getElementById(id)?.textContent?.trim() ?? "").filter(Boolean).join(" ");
-}
-
-/** An element's accessible name, as far as these tests need it. */
-function accessibleName(element: HTMLElement): string {
-  return (
-    labelledBy(element) ||
-    element.getAttribute("aria-label")?.trim() ||
-    (element as HTMLInputElement).labels?.[0]?.textContent?.trim() ||
-    element.getAttribute("placeholder")?.trim() ||
-    element.getAttribute("name") ||
-    element.textContent?.trim() ||
-    element.getAttribute("title") ||
-    ""
-  );
-}
-
 /** `input[type=email] "Email"`: the control, as a failure names it. */
 function describeControl(control: HTMLElement): string {
   const tag = control.tagName.toLowerCase();
@@ -73,74 +53,54 @@ function describeControl(control: HTMLElement): string {
   return `${tag}${kind}${name ? ` "${name}"` : ""}`;
 }
 
+/** Whether a tap cannot land on the control: no pointer events, transparent, or a box of 1px or less. */
+function untappable(control: HTMLElement): boolean {
+  const style = getComputedStyle(control);
+  const box = control.getBoundingClientRect();
+  return style.pointerEvents === "none" || parseFloat(style.opacity) === 0 || (box.width <= 1 && box.height <= 1);
+}
+
 /** Every text-entry control under the roots that is under 16px, or focusable inside `aria-hidden`, as failure lines. */
 function smallControls(where: string, roots: ParentNode[] = [document]): string[] {
-  return roots
-    .flatMap((root) => [...root.querySelectorAll<HTMLElement>(textEntry)])
-    .flatMap((control) => {
-      // Not rendered, or not reachable at all.
-      if (control.closest("[inert]") || !control.checkVisibility()) return [];
-      if (control.closest('[aria-hidden="true"]')) {
-        // Base UI's hidden form inputs: aria-hidden and out of the tab order, so nobody focuses them.
-        if (control.tabIndex < 0) return [];
+  const controls = new Set(roots.flatMap((root) => [...root.querySelectorAll<HTMLElement>(textEntry)]));
+  return [...controls].flatMap((control) => {
+    // Not rendered, not visible, or not reachable at all.
+    if (control.closest("[inert]") || !isVisible(control)) return [];
+    if (control.closest('[aria-hidden="true"]')) {
+      if (control.tabIndex >= 0) {
         return [
           `${where}: ${describeControl(control)} is focusable inside aria-hidden, an accessibility bug: a person can focus it but a screen reader skips it. Fix: remove aria-hidden, or take the control out of the tab order.`,
         ];
       }
-      const size = getComputedStyle(control).fontSize;
-      return parseFloat(size) < 16 ? [`${where}: ${describeControl(control)} is ${size}, under 16px, so iOS Safari zooms on focus. ${fix}`] : [];
-    });
+      // Base UI's hidden form input (visuallyHiddenInput): aria-hidden, out of the tab order and
+      // a 1px clipped box, so neither Tab nor a tap focuses it. A visible one still takes a tap.
+      if (untappable(control)) return [];
+    }
+    const size = getComputedStyle(control).fontSize;
+    return parseFloat(size) < 16 ? [`${where}: ${describeControl(control)} is ${size}, under 16px, so iOS Safari zooms on focus. ${fix}`] : [];
+  });
 }
 
 interface Subject {
   id: string;
   Subject: ComponentType;
-  plainOpeners: string[];
-  openShortcut?: string | undefined;
+  parameters: OuroStoryParameters;
   demo: boolean;
 }
 
 /** Every docs demo: site/src/docs/demos/**\/<name>.demo.tsx, by name. */
 const demoModules = import.meta.glob<{ default: ComponentType }>("../site/src/docs/demos/**/*.demo.tsx", { eager: true });
 
-const storySubjects: Subject[] = stories.map(({ id, Story, parameters }) => ({
-  id,
-  Subject: Story,
-  plainOpeners: parameters.plainOpeners ?? [],
-  openShortcut: (parameters as { openShortcut?: string }).openShortcut,
-  demo: false,
-}));
+const storySubjects: Subject[] = stories.map(({ id, Story, parameters }) => ({ id, Subject: Story, parameters, demo: false }));
 const demoSubjects: Subject[] = Object.entries(demoModules).map(([path, module]) => ({
   id: `demo/${path.replace(/^.*\/demos\/(.+)\.demo\.tsx$/, "$1")}`,
   Subject: module.default,
-  plainOpeners: [],
+  parameters: {},
   demo: true,
 }));
 const subjects = [...storySubjects, ...demoSubjects];
 
-interface Opener {
-  name: string;
-  open: () => Promise<void>;
-}
-
-/** The openers in a scope: `aria-haspopup` triggers, and at the top level the plain openers and the shortcut. */
-function openersIn(subject: Subject, scope: ParentNode[], top: boolean): Opener[] {
-  const triggers = scope
-    .flatMap((root) => [...root.querySelectorAll<HTMLElement>('[aria-haspopup]:not([aria-haspopup="false"])')])
-    .filter((element) => !element.matches(':disabled, [aria-disabled="true"]') && element.checkVisibility())
-    .map((element) => ({ name: accessibleName(element), open: () => userEvent.click(element) }));
-  if (!top) return triggers;
-  const host = scope[0] as HTMLElement;
-  const plain = subject.plainOpeners.map((label) => {
-    const button = [...host.querySelectorAll<HTMLElement>("button")].find((item) => accessibleName(item) === label);
-    if (!button) throw new Error(`${subject.id}: no button named "${label}" (parameters.plainOpeners)`);
-    return { name: label, open: () => userEvent.click(button) };
-  });
-  const shortcut = subject.openShortcut;
-  return [...triggers, ...plain, ...(shortcut ? [{ name: shortcut, open: () => userEvent.keyboard(shortcut) }] : [])];
-}
-
-const visiblePopups = () => [...document.querySelectorAll<HTMLElement>(popupSelector)].filter((popup) => popup.checkVisibility());
+const visiblePopups = () => [...document.querySelectorAll<HTMLElement>(popupSelector)].filter(isVisible);
 
 /** Opens an overlay and returns the popups it added. */
 async function openVia(opener: Opener, where: string): Promise<HTMLElement[]> {
@@ -155,7 +115,8 @@ async function openVia(opener: Opener, where: string): Promise<HTMLElement[]> {
     { timeout: 10_000, interval: 20 },
   );
   await settle();
-  return added;
+  // A popup that opened inside another one (a listbox in a dialog) is scanned with its parent.
+  return added.filter((popup) => !added.some((other) => other !== popup && other.contains(popup)));
 }
 
 /**
@@ -163,7 +124,7 @@ async function openVia(opener: Opener, where: string): Promise<HTMLElement[]> {
  * leaves it. Popups the subject shows on its own (a story's toasts) stay.
  */
 async function closeAll(where: string, opened: HTMLElement[]): Promise<void> {
-  const stillOpen = () => opened.filter((popup) => popup.isConnected && popup.checkVisibility()).length;
+  const stillOpen = () => opened.filter((popup) => popup.isConnected && isVisible(popup)).length;
   for (let round = 0; round < maxDepth + 2 && stillOpen() > 0; round++) {
     const open = stillOpen();
     await userEvent.keyboard("{Escape}");
@@ -180,9 +141,9 @@ async function closeAll(where: string, opened: HTMLElement[]): Promise<void> {
 /**
  * Renders the subject, opens the overlays along `path` (an opener index per level) and scans what
  * the last one showed: the whole page at the top, the new popups below it. Then does the same for
- * each opener in what it showed, to `maxDepth`.
+ * each opener in what it showed, `depth` levels deep, and fails on an opener below that.
  */
-async function scan(subject: Subject, path: number[] = []): Promise<string[]> {
+async function scan(subject: Subject, path: number[] = [], depth = maxDepth): Promise<string[]> {
   const style = subject.demo ? Object.assign(document.createElement("style"), { textContent: siteCss }) : undefined;
   if (style) document.head.append(style);
   try {
@@ -192,17 +153,21 @@ async function scan(subject: Subject, path: number[] = []): Promise<string[]> {
     let where = subject.id;
     const opened: HTMLElement[] = [];
     for (const [level, index] of path.entries()) {
-      const opener = openersIn(subject, scope, level === 0)[index]!;
+      const opener = overlayOpeners(subject.id, scope, subject.parameters, level === 0)[index]!;
       const added = await openVia(opener, where);
       opened.push(...added);
       scope = added;
       where += ` with "${opener.name}" open`;
     }
     const found = smallControls(where, path.length === 0 ? [document] : scope);
-    const children = path.length < maxDepth ? openersIn(subject, scope, path.length === 0).length : 0;
+    const children = overlayOpeners(subject.id, scope, subject.parameters, path.length === 0);
     await closeAll(where, opened);
     await cleanupStories();
-    for (let index = 0; index < children; index++) found.push(...(await scan(subject, [...path, index])));
+    if (path.length === depth && children.length > 0) {
+      const names = children.map((opener) => `"${opener.name}"`).join(", ");
+      throw new Error(`${where} has an overlay opener (${names}) deeper than the scan opens (${depth} levels): raise maxDepth`);
+    }
+    for (let index = 0; index < children.length; index++) found.push(...(await scan(subject, [...path, index], depth)));
     return found;
   } finally {
     style?.remove();
@@ -218,6 +183,12 @@ it("finds stories, demos and the text-entry controls in TextField's", async () =
   expect(matchMedia("(pointer: coarse)").matches).toBe(true);
   expect(storySubjects.length).toBeGreaterThan(0);
   expect(demoSubjects.length).toBeGreaterThan(0);
+  // The demos' stylesheet went through Tailwind: no raw at-rules are left, the site's own token
+  // is there, and the utilities the demos use are generated. (Every class a demo uses today also
+  // appears in registry/, so no class proves the site's `@source` alone.)
+  expect(siteCss).not.toMatch(/@import|@source|@apply/);
+  expect(siteCss).toContain("--site-code");
+  expect(siteCss).toMatch(/\.grid\s*\{\s*display:\s*grid/);
   for (const id of ["TextField/Playground", "demo/text-field"]) {
     const subject = subjects.find((entry) => entry.id === id);
     expect(subject, id).toBeDefined();
@@ -228,6 +199,19 @@ it("finds stories, demos and the text-entry controls in TextField's", async () =
 });
 
 const px14 = { fontSize: "14px" } as const;
+/** Base UI's `visuallyHiddenInput` style (@base-ui/utils), at 14px. */
+const baseUiHiddenInput = {
+  clipPath: "inset(50%)",
+  overflow: "hidden",
+  whiteSpace: "nowrap",
+  border: 0,
+  padding: 0,
+  width: 1,
+  height: 1,
+  margin: -1,
+  position: "absolute",
+  fontSize: "14px",
+} as const;
 const srOnly = {
   position: "absolute",
   width: 1,
@@ -271,7 +255,12 @@ describe("the 16px detector", () => {
     expect(smallControls("fixture")).toEqual([expect.stringMatching(/^fixture: input\[type=text\] "Name" is focusable inside aria-hidden, an accessibility bug/)]);
   });
 
-  it("skips inert, display:none and unfocusable aria-hidden controls, and non-text inputs", async () => {
+  it("reports a visible aria-hidden input out of the tab order, because a tap still focuses it", async () => {
+    await renderStory(() => <input aria-hidden="true" tabIndex={-1} aria-label="Mirror" style={px14} />);
+    expect(smallControls("fixture")).toEqual([expect.stringMatching(/^fixture: input\[type=text\] "Mirror" is 14px, under 16px/)]);
+  });
+
+  it("skips inert, display:none, visibility:hidden and Base UI's hidden form input, and non-text inputs", async () => {
     await renderStory(() => (
       <>
         <div inert>
@@ -280,7 +269,10 @@ describe("the 16px detector", () => {
         <div style={{ display: "none" }}>
           <input aria-label="Not displayed" style={px14} />
         </div>
-        <input aria-hidden="true" tabIndex={-1} aria-label="Form value" style={px14} />
+        <input aria-hidden="true" tabIndex={-1} aria-label="Form value" style={baseUiHiddenInput} />
+        <div style={{ visibility: "hidden" }}>
+          <input aria-label="Kept mounted, hidden" style={px14} />
+        </div>
         {["checkbox", "radio", "range", "color", "file", "button", "submit", "reset", "image", "hidden"].map((type) => (
           <input key={type} type={type} aria-label={type} style={px14} />
         ))}
@@ -330,15 +322,58 @@ describe("the 16px detector", () => {
         </>
       );
     }
-    const subject: Subject = { id: "Fixture/Nested", Subject: Nested, plainOpeners: [], openShortcut: "{Meta>}k{/Meta}", demo: false };
+    const subject: Subject = { id: "Fixture/Nested", Subject: Nested, parameters: { openShortcut: "{Meta>}k{/Meta}" }, demo: false };
     expect((await scan(subject)).map((line) => line.replace(/ is 14px.*$/, ""))).toEqual([
       'Fixture/Nested with "Outer" open with "Choose unit" open: input[type=text] "Filter units"',
       'Fixture/Nested with "{Meta>}k{/Meta}" open: input[type=text] "Command"',
     ]);
   });
 
+  it("finds a plain opener by its accessible name, as the story tests do", async () => {
+    const host = await renderStory(() => <button aria-label="Edit recipe">Edit</button>);
+    expect(overlayOpeners("Fixture/Plain", host, { plainOpeners: ["Edit recipe"] }).map((opener) => opener.name)).toEqual(["Edit recipe"]);
+    expect(() => overlayOpeners("Fixture/Plain", host, { plainOpeners: ["Edit"] })).toThrow('Fixture/Plain: no button named "Edit" (parameters.plainOpeners)');
+  });
+
+  it("scans a popup nested in another popup that opens with it once", async () => {
+    function Nested() {
+      const [open, setOpen] = useState(false);
+      useEffect(() => {
+        const onKey = (event: KeyboardEvent) => event.key === "Escape" && setOpen(false);
+        document.addEventListener("keydown", onKey);
+        return () => document.removeEventListener("keydown", onKey);
+      }, []);
+      return (
+        <>
+          <button aria-haspopup="dialog" onClick={() => setOpen(true)}>
+            Edit
+          </button>
+          {open && (
+            <div role="dialog" aria-label="Edit">
+              <div role="listbox" aria-label="Units">
+                <input aria-label="Filter" style={px14} />
+              </div>
+            </div>
+          )}
+        </>
+      );
+    }
+    const subject: Subject = { id: "Fixture/Inner", Subject: Nested, parameters: {}, demo: false };
+    expect((await scan(subject)).map((line) => line.replace(/ is 14px.*$/, ""))).toEqual(['Fixture/Inner with "Edit" open: input[type=text] "Filter"']);
+  });
+
+  it("fails when an overlay deeper than the scan's depth has an opener", async () => {
+    const Deep = () => (
+      <>
+        <button aria-haspopup="dialog">One</button>
+      </>
+    );
+    const subject: Subject = { id: "Fixture/Deep", Subject: Deep, parameters: {}, demo: false };
+    await expect(scan(subject, [], 0)).rejects.toThrow('Fixture/Deep has an overlay opener ("One") deeper than the scan opens (0 levels): raise maxDepth');
+  });
+
   it("names the story when an opener shows nothing", async () => {
-    const subject: Subject = { id: "Fixture/Dead", Subject: () => <button aria-haspopup="dialog">Nothing</button>, plainOpeners: [], demo: false };
+    const subject: Subject = { id: "Fixture/Dead", Subject: () => <button aria-haspopup="dialog">Nothing</button>, parameters: {}, demo: false };
     await expect(scan(subject)).rejects.toThrow('Fixture/Dead: opening "Nothing" showed no dialog, listbox or menu');
   });
 });
