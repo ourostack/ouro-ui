@@ -261,6 +261,34 @@ describe("MessageList", () => {
     expect(spoken).toEqual(["Ouro: First.", "Ouro: Second."]);
   });
 
+  it("announces nothing for the messages it mounts with", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const spoken: string[] = [];
+    // Watch the live region from its creation, so a message announced on mount would be seen.
+    const observer = new MutationObserver(() => {
+      const live = host.querySelector("[data-ouro-message-list-live]");
+      if (live?.textContent) spoken.push(live.textContent);
+    });
+    observer.observe(host, { childList: true, subtree: true, characterData: true });
+    const root = createRoot(host);
+    roots.push(root);
+    await act(async () => root.render(<Chat items={[...history(5), { id: 5, role: "assistant", text: "Rest it.", streaming: false }]} />));
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    observer.disconnect();
+    expect(spoken).toEqual([]);
+  });
+
+  it("announces a first reply that arrives in a list that mounted empty", async () => {
+    const { live, rerender } = await render(<Chat items={[]} />);
+    const { spoken, stop } = recordAnnouncements(live);
+    await rerender(<Chat items={[{ id: 0, role: "assistant", text: "Hi, I'm Ouro." }]} />);
+    await expect.poll(() => spoken.length).toBe(1);
+    stop();
+    expect(spoken).toEqual(["Ouro: Hi, I'm Ouro."]);
+  });
+
   it("never announces the first messages that fill an empty list, such as history fetched after mount", async () => {
     const { live, rerender } = await render(<Chat items={[]} />);
     const { spoken, stop } = recordAnnouncements(live);

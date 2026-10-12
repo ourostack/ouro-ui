@@ -65,8 +65,9 @@ interface Spoken {
  * While the reader is at the bottom it follows new messages and streaming text; once they
  * scroll up, nothing moves their view, and a "Jump to latest" button appears. Each new
  * message from someone else is read to screen readers once, politely: a streamed reply
- * when it finishes. History is never announced: the first messages to fill the list,
- * older messages loaded above, and a message whose `key` changes in place (a temporary id
+ * when it finishes, and a first reply in a list that mounted empty. History is never
+ * announced: the messages it mounts with, several messages filling an empty list at once
+ * (history fetched after mount), older messages loaded above, and a message whose `key` changes in place (a temporary id
  * swapped for the server's). Older messages loaded above a scrolled-up reader leave the
  * message they are reading where it was. Scrolling is never announced.
  *
@@ -204,7 +205,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // message already seen, when it replaces one with different text (a regenerated reply), or,
   // if it is streaming, when streaming ends, including a message that streams again.
   // Messages are known by their element, which React replaces exactly when the key changes.
-  // Never announced: the first messages to fill the list (history), anything inserted above
+  // Never announced: the messages present on mount, several messages filling an empty list
+  // at once (history fetched after mount; a single one is a first reply), anything inserted above
   // the last seen message (older history), and a message whose key changed in place with the
   // same text (a temporary id swapped for the server's).
   useEffect(() => {
@@ -232,6 +234,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
           const old = replaced[index];
           if (old === undefined || waiting.has(old) || texts.get(old) !== textOf(message)) waiting.add(message);
         });
+      } else if (known.length === 0 && now.length === 1) {
+        // One message into an empty list is a first reply or greeting. Several at once are
+        // history fetched after mount.
+        waiting.add(now[0]!);
       }
       // Anything streaming is read when it ends: the first messages' streaming reply, and a
       // known message that starts streaming again.
