@@ -282,7 +282,7 @@
       "name": "ouro-testing",
       "type": "registry:lib",
       "title": "Ouro testing",
-      "description": "Installed with every -tests item; you don't need to add it. The test kit Ouro UI's tests use: Vitest browser projects with the drag, flick, tap, touchDrag, touchStep and emulateMedia commands, the act helper, axeExclude, and the end-to-end story helper.",
+      "description": "Installed with every -tests item; you don't need to add it. The test kit Ouro UI's tests use: Vitest browser projects with the drag, flick, tap, touchDrag, touchStep, pointerPress, emulateMedia, pageZoom, resetPageZoom and setPageZoom commands, the rotate helper (which turns the phone viewport and resets Chromium's zoom; the ouro-touch project fails a test that leaves the page zoomed), the act helper, axeExclude, and the end-to-end story helper.",
       "docs": "The -tests items install Ouro UI's tests beside each component. To run the Vitest browser tests, add vitest.config.ts (use your components.json tailwind.css path for css), then run npx playwright install chromium webkit and npx vitest run:\n--- vitest.config.ts\nimport { defineConfig, mergeConfig } from \"vitest/config\";\nimport viteConfig from \"./vite.config.ts\";\nimport { ouroTestProjects } from \"./src/lib/ouro/testing/vitest.ts\";\n\nexport default mergeConfig(viteConfig, defineConfig({ test: { projects: ouroTestProjects({ css: \"./src/index.css\" }) } }));\n\nThe end-to-end specs in e2e/ouro open the Ouro stories in a Storybook. If your app has none, add these two files (use your stylesheet in preview.ts):\n--- .storybook/main.ts\nexport default { stories: [\"../src/**/*.stories.@(ts|tsx)\"], framework: \"@storybook/react-vite\" };\n--- .storybook/preview.ts\nimport \"../src/index.css\";\n\nIf your app has no Playwright config, add this one, which starts that Storybook and runs Chromium and WebKit:\n--- playwright.config.ts\nimport { defineConfig, devices } from \"@playwright/test\";\n\n// Starts the app's Storybook, where Ouro UI's specs (e2e/ouro) open their stories.\nexport default defineConfig({\n  testDir: \"e2e\",\n  projects: [\n    { name: \"chromium\", use: { ...devices[\"Desktop Chrome\"] } },\n    { name: \"webkit\", use: { ...devices[\"Desktop Safari\"] } },\n  ],\n  webServer: {\n    command: \"npx storybook dev -p 6006 --ci --no-open\",\n    url: \"http://localhost:6006/iframe.html\",\n    reuseExistingServer: !process.env[\"CI\"],\n    timeout: 180_000,\n  },\n});\n\nThen run npx playwright test e2e/ouro. With a Playwright config of your own, start Storybook with npx storybook dev -p 6006 and run OURO_E2E_URL=http://localhost:6006 npx playwright test e2e/ouro.\nDocs: https://ourostack.github.io/ouro-ui/docs",
       "devDependencies": [
         "@playwright/test@^1.63.0",
@@ -327,9 +327,24 @@
           "target": "@lib/ouro/testing/page-css.ts"
         },
         {
+          "path": "registry/ouro/lib/ouro/testing/rotate.touch.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/testing/rotate.touch.test.ts"
+        },
+        {
+          "path": "registry/ouro/lib/ouro/testing/rotate.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/testing/rotate.ts"
+        },
+        {
           "path": "registry/ouro/lib/ouro/testing/setup.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/testing/setup.ts"
+        },
+        {
+          "path": "registry/ouro/lib/ouro/testing/touch-setup.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/testing/touch-setup.ts"
         },
         {
           "path": "registry/ouro/lib/ouro/testing/vitest.ts",
@@ -858,6 +873,135 @@
           "path": "registry/ouro/components/ouro/hover-card/hover-card.tsx",
           "type": "registry:ui",
           "target": "@components/ouro/hover-card/hover-card.tsx"
+        }
+      ]
+    },
+    {
+      "name": "tabs",
+      "type": "registry:ui",
+      "title": "Tabs",
+      "description": "Tabs that switch between panels in place: an accessible tab list with roving focus, arrow-key navigation, a line that slides to the selected tab with the theme spring, and 44px tabs on touch screens.",
+      "docs": "Tabs that switch between panels in place: an accessible tab list with roving focus, arrow-key navigation, a line that slides to the selected tab with the theme spring, and 44px tabs on touch screens. Import: import { Tabs } from \"@/components/ouro/tabs/tabs\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/tabs.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/tabs/tabs-parts.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/tabs/tabs-parts.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/tabs/tabs-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/tabs/tabs-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/tabs/tabs.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/tabs/tabs.tsx"
+        }
+      ]
+    },
+    {
+      "name": "segmented-control",
+      "type": "registry:ui",
+      "title": "SegmentedControl",
+      "description": "An iOS-style segmented control: a row of equal segments with a raised thumb that slides to the checked one, for switching how one view shows its content in place, such as list or grid.",
+      "docs": "An iOS-style segmented control: a row of equal segments with a raised thumb that slides to the checked one, for switching how one view shows its content in place, such as list or grid. Import: import { SegmentedControl } from \"@/components/ouro/segmented-control/segmented-control\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/segmented-control.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/segmented-control/segmented-control-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/segmented-control/segmented-control-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/segmented-control/segmented-control.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/segmented-control/segmented-control.tsx"
+        }
+      ]
+    },
+    {
+      "name": "accordion",
+      "type": "registry:ui",
+      "title": "Accordion",
+      "description": "A stack of titles that each open their own content, for FAQs and long settings pages.",
+      "docs": "A stack of titles that each open their own content, for FAQs and long settings pages. Import: import { Accordion } from \"@/components/ouro/accordion/accordion\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/accordion.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/accordion/accordion-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/accordion/accordion-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/accordion/accordion.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/accordion/accordion.tsx"
+        }
+      ]
+    },
+    {
+      "name": "collapsible",
+      "type": "registry:ui",
+      "title": "Collapsible",
+      "description": "One section that opens and closes under its title, such as nutrition facts under a recipe.",
+      "docs": "One section that opens and closes under its title, such as nutrition facts under a recipe. Import: import { Collapsible } from \"@/components/ouro/collapsible/collapsible\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/collapsible.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/collapsible/collapsible-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/collapsible/collapsible-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/collapsible/collapsible.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/collapsible/collapsible.tsx"
+        }
+      ]
+    },
+    {
+      "name": "show-more",
+      "type": "registry:ui",
+      "title": "ShowMore",
+      "description": "\"Show more\" for a long list or a long text.",
+      "docs": "\"Show more\" for a long list or a long text. Import: import { ShowMore } from \"@/components/ouro/collapsible/show-more\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, collapsible, ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/show-more.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/collapsible",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/collapsible/show-more.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/collapsible/show-more.tsx"
         }
       ]
     },
@@ -2248,6 +2392,228 @@
       ]
     },
     {
+      "name": "tabs-tests",
+      "type": "registry:item",
+      "title": "Tabs tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for tabs, with the test tooling as devDependencies. Add it beside tabs: add tabs tabs-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "tabs's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/tabs.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/tabs",
+        "ourostack/ouro-ui/text"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/tabs/tabs.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/tabs/tabs.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/tabs/tabs.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/tabs/tabs.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/tabs/tabs.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/tabs/tabs.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/tabs/tabs.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/tabs/tabs.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/tabs.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/tabs.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "segmented-control-tests",
+      "type": "registry:item",
+      "title": "SegmentedControl tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for segmented-control, with the test tooling as devDependencies. Add it beside segmented-control: add segmented-control segmented-control-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "segmented-control's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/segmented-control.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/segmented-control",
+        "ourostack/ouro-ui/text"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/segmented-control/segmented-control.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/segmented-control/segmented-control.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/segmented-control/segmented-control.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/segmented-control/segmented-control.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/segmented-control/segmented-control.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/segmented-control/segmented-control.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/segmented-control/segmented-control.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/segmented-control.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/segmented-control.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "accordion-tests",
+      "type": "registry:item",
+      "title": "Accordion tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for accordion, with the test tooling as devDependencies. Add it beside accordion: add accordion accordion-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "accordion's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/accordion.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/accordion",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/text"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/accordion/accordion.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/accordion/accordion.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/accordion/accordion.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/accordion/accordion.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/accordion/accordion.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/accordion/accordion.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/accordion/accordion.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/accordion/accordion.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/accordion.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/accordion.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "collapsible-tests",
+      "type": "registry:item",
+      "title": "Collapsible tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for collapsible, with the test tooling as devDependencies. Add it beside collapsible: add collapsible collapsible-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "collapsible's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/collapsible.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/collapsible",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/show-more",
+        "ourostack/ouro-ui/text"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/collapsible/collapsible.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/collapsible/collapsible.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/collapsible/collapsible.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/collapsible/collapsible.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/collapsible/collapsible.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/collapsible/collapsible.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/collapsible/collapsible.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/collapsible/collapsible.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/collapsible.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/collapsible.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "show-more-tests",
+      "type": "registry:item",
+      "title": "ShowMore tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for show-more, with the test tooling as devDependencies. Add it beside show-more: add show-more show-more-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "show-more's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/show-more.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/link",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/show-more",
+        "ourostack/ouro-ui/text"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/collapsible/show-more.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/collapsible/show-more.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/collapsible/show-more.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/collapsible/show-more.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/collapsible/show-more.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/collapsible/show-more.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/show-more.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/show-more.spec.ts"
+        }
+      ]
+    },
+    {
       "name": "card-tests",
       "type": "registry:item",
       "title": "Card tests",
@@ -2946,6 +3312,7 @@
       "description": "Optional: every Ouro UI component with its tests, type tests, stories and Playwright spec, and the test kit. The whole suite in one command. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
       "docs": "Every Ouro UI component and its tests are installed. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs",
       "registryDependencies": [
+        "ourostack/ouro-ui/accordion-tests",
         "ourostack/ouro-ui/alert-tests",
         "ourostack/ouro-ui/aspect-ratio-tests",
         "ourostack/ouro-ui/avatar-tests",
@@ -2954,6 +3321,7 @@
         "ourostack/ouro-ui/button-tests",
         "ourostack/ouro-ui/card-tests",
         "ourostack/ouro-ui/carousel-tests",
+        "ourostack/ouro-ui/collapsible-tests",
         "ourostack/ouro-ui/color-field-tests",
         "ourostack/ouro-ui/confirm-dialog-tests",
         "ourostack/ouro-ui/dialog-tests",
@@ -2974,11 +3342,14 @@
         "ourostack/ouro-ui/resizable-tests",
         "ourostack/ouro-ui/row-tests",
         "ourostack/ouro-ui/scroll-area-tests",
+        "ourostack/ouro-ui/segmented-control-tests",
         "ourostack/ouro-ui/separator-tests",
         "ourostack/ouro-ui/sheet-tests",
+        "ourostack/ouro-ui/show-more-tests",
         "ourostack/ouro-ui/skeleton-tests",
         "ourostack/ouro-ui/spinner-tests",
         "ourostack/ouro-ui/stack-tests",
+        "ourostack/ouro-ui/tabs-tests",
         "ourostack/ouro-ui/text-area-tests",
         "ourostack/ouro-ui/text-field-tests",
         "ourostack/ouro-ui/text-tests",

@@ -1,8 +1,9 @@
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, expect, it, vi } from "vitest";
-import { commands, page } from "vitest/browser";
+import { commands } from "vitest/browser";
 import { Carousel } from "@/registry/ouro/components/ouro/carousel/carousel";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 
 // Runs in the `touch` project: Chromium as a 390x844 phone with a coarse pointer.
 
@@ -29,7 +30,7 @@ afterEach(async () => {
   await act(async () => root?.unmount());
   for (const node of nodes.splice(0)) node.remove();
   scrollTo(0, 0);
-  await page.viewport(390, 844);
+  await rotate(390, 844);
 });
 
 /** A carousel between two tall blocks, so the page itself can scroll. */
@@ -137,7 +138,7 @@ it.each([
   ["portrait", 390, 844],
   ["landscape", 844, 390],
 ])("gives Previous and Next 44px touch targets in %s", async (_name, width, height) => {
-  await page.viewport(width, height);
+  await rotate(width, height);
   const { host } = await renderInPage();
   const buttons = [...host.querySelectorAll<HTMLButtonElement>("[data-ouro-carousel-buttons] button")];
   expect(buttons.map((button) => button.getAttribute("aria-label"))).toEqual(["Previous slide", "Next slide"]);
