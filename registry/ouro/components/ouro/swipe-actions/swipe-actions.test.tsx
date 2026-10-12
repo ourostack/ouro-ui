@@ -240,8 +240,11 @@ describe("SwipeActions", () => {
 
   it("marks the row while a finger drags it and follows the finger", async () => {
     const element = await render(row());
+    // At rest the row has no layer of its own; it gets one while it moves.
+    expect(getComputedStyle(track(element)).willChange).toBe("auto");
     await swipe(element, -60, { hold: true });
     expect(element.hasAttribute("data-dragging")).toBe(true);
+    expect(getComputedStyle(track(element)).willChange).toBe("transform");
     // The transform is on the track itself, 1:1 with the finger, with no transition to lag behind it.
     expect(track(element).style.transform).toBe("translateX(-60px)");
     expect(track(element).style.getPropertyValue("--ouro-swipe-x")).toBe("");
@@ -337,6 +340,7 @@ describe("SwipeActions", () => {
     wait(300);
     await pointer(window, "pointerup", 80, 20);
     expect(element.hasAttribute("data-ouro-settling")).toBe(true);
+    expect(getComputedStyle(track(element)).willChange).toBe("transform");
     await expect.poll(() => offset(element)).toBeLessThan(-121);
     // A press alone does not stop it: it may be a tap or the start of a scroll.
     wait(1000);

@@ -46,11 +46,12 @@ const rootClass = "group/swipe relative m-0 box-border min-w-0 touch-pan-y overf
  * What slides: the content, with the actions attached to its two edges. The component
  * writes its `transform` directly: under a finger it follows the finger, and on release a
  * spring carries it to rest from where it is (`lib/ouro/spring`). No CSS transition, which
- * a finger could not catch mid-way. `will-change` keeps it on its own layer for both.
+ * a finger could not catch mid-way. It is on its own layer only while it moves: a layer
+ * for every row of a long list at rest would cost memory and soften the row's text.
  *
  * @internal
  */
-const trackClass = "relative flex min-w-0 items-center will-change-transform pointer-coarse:min-h-11";
+const trackClass = "relative flex min-w-0 items-center group-data-[dragging]/swipe:will-change-transform group-data-[ouro-settling]/swipe:will-change-transform pointer-coarse:min-h-11";
 
 /** The row the app passes in. @internal */
 const contentClass = "min-w-0 flex-1";
