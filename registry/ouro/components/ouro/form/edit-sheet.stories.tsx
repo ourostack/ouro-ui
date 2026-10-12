@@ -50,12 +50,16 @@ export const Playground: Story = {
   parameters: { screenshot: { name: "edit-sheet-open", open: true } },
 };
 
-/** Opened by the app, with its own labels. */
+/**
+ * Opened by the app, with its own labels and a controlled field. Discard resets the field's
+ * state in `onDiscard`, since the sheet cannot reset a value the app owns.
+ */
 export const Controlled: Story = {
   parameters: { plainOpeners: ["Open"] },
   args: { trigger: undefined } as never,
   render: function Render() {
     const [open, setOpen] = useState(false);
+    const [name, setName] = useState("Weeknights");
     return (
       <>
         <Button onClick={() => setOpen(true)}>Open</Button>
@@ -66,8 +70,9 @@ export const Controlled: Story = {
           open={open}
           onOpenChange={setOpen}
           onSubmit={save}
+          onDiscard={() => setName("Weeknights")}
         >
-          <TextField label="Name" name="name" defaultValue="Weeknights" required />
+          <TextField label="Name" name="name" value={name} onValueChange={setName} required />
         </EditSheet>
       </>
     );

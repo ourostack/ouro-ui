@@ -60,6 +60,15 @@ export interface EditSheetBaseProps {
   discardLabel?: string | undefined;
   /** The button that goes back to the form with the edits kept; it takes focus. @default "Keep editing" */
   keepEditingLabel?: string | undefined;
+  /**
+   * Called when the user confirms Discard, before the sheet closes. With controlled fields
+   * (`value` and `onValueChange`), reset your state here: the sheet cannot reset values it
+   * does not own, so they would come back on the next opening:
+   * `<TextField name="name" value={name} onValueChange={setName} />` with
+   * `onDiscard={() => setName(recipe.name)}`. Not called for a save, or a dismissal with
+   * nothing changed.
+   */
+  onDiscard?: (() => void) | undefined;
   /** The fields: `TextField`, `Select` and other controls with a `name`. */
   children: ReactNode;
   /**
@@ -127,6 +136,8 @@ const hasErrors = (result: EditSheetResult): result is FormErrors => Boolean(res
  * on the first; a failed save shows `failureMessage` at the top of the form; success closes
  * the sheet and returns focus to the trigger. Dismissing it after changing a field (Escape,
  * a tap outside, a swipe down, Cancel) asks inside the sheet before the edits are lost.
+ * With controlled fields, reset your state in `onDiscard`, or the discarded values come back
+ * on the next opening.
  *
  * Use `Form` instead for a form on the page, `Dialog` for a dialog that is not a form, and
  * `ConfirmDialog` to confirm one action.
@@ -157,6 +168,7 @@ export function EditSheet(props: EditSheetProps): JSX.Element {
     discardMessage = "Discard your changes?",
     discardLabel = "Discard",
     keepEditingLabel = "Keep editing",
+    onDiscard,
     children,
     className,
     trigger,
@@ -340,7 +352,13 @@ export function EditSheet(props: EditSheetProps): JSX.Element {
             <Button ref={keepRef} variant="outline" tone="secondary" onClick={() => setConfirming(false)}>
               {keepEditingLabel}
             </Button>
-            <Button tone="destructive" onClick={() => setOpen(false)}>
+            <Button
+              tone="destructive"
+              onClick={() => {
+                onDiscard?.();
+                setOpen(false);
+              }}
+            >
               {discardLabel}
             </Button>
           </div>

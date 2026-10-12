@@ -624,6 +624,56 @@ describe("EditSheet's discard guard keeps the opening's values (review fix round
     expect((onSubmit.mock.calls[0]![0] as FormData).get("name")).toBe("Soup");
   });
 
+  it("calls onDiscard when the user discards, so an app resets its controlled fields", async () => {
+    const onDiscard = vi.fn();
+    function Reset() {
+      const [name, setName] = useState("Soup");
+      return (
+        <EditSheet title="Edit" trigger={<Button data-edit-trigger="">Edit</Button>} onSubmit={() => {}} onDiscard={() => (onDiscard(), setName("Soup"))}>
+          <TextField label="Name" name="name" value={name} onValueChange={setName} />
+        </EditSheet>
+      );
+    }
+    await render(<Reset />);
+    await userEvent.click(trigger());
+    await settled();
+    await userEvent.fill(nameBox(), "Stew");
+    await userEvent.click(dialogButton("Cancel"));
+    await expect.poll(confirmRow).not.toBeNull();
+    // Keep editing is not a discard.
+    await userEvent.click(dialogButton("Keep editing"));
+    expect(onDiscard).not.toHaveBeenCalled();
+    await userEvent.click(dialogButton("Cancel"));
+    await userEvent.click(dialogButton("Discard"));
+    await expect.poll(() => popup()).toBeNull();
+    expect(onDiscard).toHaveBeenCalledTimes(1);
+    // The next opening starts from the reset value, and a clean Cancel closes without asking.
+    await userEvent.click(trigger());
+    await settled();
+    expect(field("name").value).toBe("Soup");
+    await userEvent.click(dialogButton("Cancel"));
+    await expect.poll(() => popup()).toBeNull();
+  });
+
+  it("does not call onDiscard when nothing changed or the save succeeds", async () => {
+    const onDiscard = vi.fn();
+    await render(
+      <EditSheet title="Edit" trigger={<Button data-edit-trigger="">Edit</Button>} onSubmit={() => {}} onDiscard={onDiscard}>
+        <TextField label="Name" name="name" defaultValue="Soup" />
+      </EditSheet>,
+    );
+    await userEvent.click(trigger());
+    await settled();
+    await userEvent.click(dialogButton("Cancel"));
+    await expect.poll(() => popup()).toBeNull();
+    await userEvent.click(trigger());
+    await settled();
+    await userEvent.fill(nameBox(), "Stew");
+    await userEvent.click(dialogButton("Save"));
+    await expect.poll(() => popup()).toBeNull();
+    expect(onDiscard).not.toHaveBeenCalled();
+  });
+
   it("keeps the opening's values when a resize swaps the dialog for the sheet", async () => {
     await render(<Controlled onSubmit={() => {}} />);
     await userEvent.click(trigger());

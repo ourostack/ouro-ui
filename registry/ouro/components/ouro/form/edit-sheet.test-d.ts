@@ -25,6 +25,7 @@ expectTypeOf<{
   discardMessage: "Änderungen verwerfen?";
   discardLabel: "Verwerfen";
   keepEditingLabel: "Weiter bearbeiten";
+  onDiscard: () => void;
   className: "mt-4";
 }>().toExtend<EditSheetProps>();
 createElement(EditSheet, { title: "Edit recipe", trigger, onSubmit: async () => {}, children: "Fields" });
