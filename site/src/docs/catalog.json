@@ -157,6 +157,12 @@
     "source": "registry/ouro/components/ouro/empty/empty.tsx"
   },
   {
+    "name": "description-list",
+    "title": "DescriptionList",
+    "group": "Display",
+    "source": "registry/ouro/components/ouro/description-list/description-list.tsx"
+  },
+  {
     "name": "item",
     "title": "Item",
     "group": "Lists",
@@ -191,5 +197,12 @@
     "title": "Row",
     "group": "Layout",
     "source": "registry/ouro/components/ouro/stack/row.tsx"
+  },
+  {
+    "name": "table",
+    "title": "Table",
+    "group": "Data",
+    "source": "registry/ouro/components/ouro/table/table.tsx",
+    "parts": "Table"
   }
 ]

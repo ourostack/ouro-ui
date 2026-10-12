@@ -109,7 +109,7 @@ describe("DescriptionList", () => {
 
 describe("DescriptionList development messages", () => {
   it.each([
-    ["data", { data: items }, "data is not a prop", "<DescriptionList items={[{ term: …, details: … }]}>"],
+    ["data", { data: items, items: undefined }, "data is not a prop", "<DescriptionList items={[{ term: …, details: … }]}>"],
     ["children", { children: "x" }, "children are not rendered; the list comes from items", '<DescriptionList items={[{ term: "Prep time", details: "20 minutes" }]}>'],
     ["stackBelow", { stackBelow: "lg" }, 'stackBelow="lg" is not a breakpoint; use "sm", "md"', '<DescriptionList stackBelow="sm">'],
   ])("warns for %s with the fix", async (_name, extra, problem, fix) => {
@@ -125,6 +125,17 @@ describe("DescriptionList development messages", () => {
     const { list } = await render(<DescriptionList {...({ items: [item] } as unknown as Parameters<typeof DescriptionList>[0])} />);
     expect(warn).toHaveBeenCalledWith(`[ouro-ui] DescriptionList: ${problem}. Fix: ${fix}.`);
     expect(list.textContent).toBe("Prep time20 minutes");
+  });
+
+  it("renders an empty list and names the fix without items", async () => {
+    const { list } = await render(<DescriptionList {...({} as unknown as Parameters<typeof DescriptionList>[0])} />);
+    expect(list.children).toHaveLength(0);
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] DescriptionList: items is required; it holds the pairs. Fix: <DescriptionList items={[{ term: "Prep time", details: "20 minutes" }]}>.',
+    );
+    warn.mockClear();
+    await render(<DescriptionList {...({ data: items } as unknown as Parameters<typeof DescriptionList>[0])} />);
+    expect(warn).toHaveBeenCalledTimes(1);
   });
 
   it("stacks below sm for an unknown breakpoint", async () => {

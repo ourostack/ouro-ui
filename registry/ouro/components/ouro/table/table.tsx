@@ -3,7 +3,7 @@
 import { type CSSProperties, type HTMLAttributes, type JSX, type Key, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { useDevWarnings, type DevWarning } from "@/registry/ouro/lib/ouro/use-dev-warnings";
-import { TableBody, TableCell, TableHead, TableHeader, TableRoot, TableRow, type TableAlign } from "@/registry/ouro/components/ouro/table/table-parts";
+import { TableBody, TableCell, TableHead, TableFrame, TableHeader, TableRow, type TableAlign } from "@/registry/ouro/components/ouro/table/table-parts";
 
 /** The keys of `Row` whose values are assignable to `Value`. */
 export type TableKeysOf<Row, Value> = { [K in keyof Row]-?: Row[K] extends Value ? K : never }[keyof Row] & string;
@@ -165,10 +165,10 @@ function hasHeight(className: string | undefined, style: CSSProperties | undefin
   return (className ?? "").split(/\s+/).some((token) => /^(max-)?h-/.test(token.slice(token.lastIndexOf(":") + 1)));
 }
 
-function columnWarnings(columns: readonly TableColumnBase[]): DevWarning[] {
+function columnWarnings(columns: readonly (TableColumnBase & { key: string })[]): DevWarning[] {
   const seen = new Set<string>();
   return columns.flatMap((column): DevWarning[] => {
-    const { key } = column as { key: string };
+    const { key } = column;
     const duplicate = seen.has(key);
     seen.add(key);
     return [
@@ -315,7 +315,7 @@ export function Table<Row extends object = Record<string, unknown>>(props: Table
       </>
     );
   return (
-    <TableRoot
+    <TableFrame
       {...rest}
       caption={caption}
       hideCaption={hideCaption}
@@ -327,6 +327,6 @@ export function Table<Row extends object = Record<string, unknown>>(props: Table
       tableRef={ref}
     >
       {body}
-    </TableRoot>
+    </TableFrame>
   );
 }

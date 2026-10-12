@@ -87,7 +87,8 @@ function itemWarnings(items: readonly DescriptionListItem[]): DevWarning[] {
  * />
  */
 export function DescriptionList(props: DescriptionListProps): JSX.Element {
-  const { items, stackBelow: stackBelowProp = "sm", className, data, children, ...rest } = props;
+  const { items: itemsProp, stackBelow: stackBelowProp = "sm", className, data, children, ...rest } = props;
+  const items = itemsProp ?? [];
   const stackBelow = stackBelowProp === "md" ? "md" : "sm";
   useAppearanceClassNameCheck(
     "DescriptionList",
@@ -101,6 +102,8 @@ export function DescriptionList(props: DescriptionListProps): JSX.Element {
     process.env.NODE_ENV !== "production"
       ? () => [
           data !== undefined && ["data is not a prop", "<DescriptionList items={[{ term: …, details: … }]}>"],
+          itemsProp === undefined &&
+            data === undefined && ["items is required; it holds the pairs", '<DescriptionList items={[{ term: "Prep time", details: "20 minutes" }]}>'],
           children !== undefined && [
             "children are not rendered; the list comes from items",
             '<DescriptionList items={[{ term: "Prep time", details: "20 minutes" }]}>',

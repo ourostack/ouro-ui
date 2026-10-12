@@ -78,8 +78,8 @@ const alignHint = (part: string) =>
 const cellHint = () =>
   process.env.NODE_ENV !== "production" ? "<Table striped> or <Table dense>; Table sets the look of its cells" : /* istanbul ignore next @preserve -- production only */ "";
 
-/** Props for {@link TableRoot}. */
-export interface TableRootProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
+/** Props for {@link TableFrame}. */
+export interface TableFrameProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
   caption: string;
   hideCaption?: boolean | undefined;
   striped?: boolean | undefined;
@@ -92,14 +92,14 @@ export interface TableRootProps extends Omit<HTMLAttributes<HTMLDivElement>, "ch
 }
 
 /**
- * The frame every Table renders: the caption, a ScrollArea that scrolls the table sideways
- * (and down, inside a height), and the `<table>`.
+ * The frame Table and TableRoot render: the caption, a ScrollArea that scrolls the table
+ * sideways (and down, inside a height), and the `<table>`.
  *
- * @internal Table renders it; apps use `Table`.
+ * @internal Table and TableRoot render it.
  * @example
- * <TableRoot caption="Recipes"><TableBody>…</TableBody></TableRoot>
+ * <TableFrame caption="Recipes"><TableBody>…</TableBody></TableFrame>
  */
-export function TableRoot(props: TableRootProps): JSX.Element {
+export function TableFrame(props: TableFrameProps): JSX.Element {
   const { caption, hideCaption, striped, dense, stickyHeader, children, className, tableRef, ...rest } = props;
   return (
     <TableContext.Provider value={{ dense: Boolean(dense), striped: Boolean(striped), stickyHeader: Boolean(stickyHeader) }}>
@@ -118,6 +118,65 @@ export function TableRoot(props: TableRootProps): JSX.Element {
       </div>
     </TableContext.Provider>
   );
+}
+
+/** Props for {@link TableRoot}. */
+export interface TableRootProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "title"> {
+  /** What the table shows. It names the table and its scrolling region, and shows above it unless `hideCaption`. */
+  caption: string;
+  /** Hides the caption visually and keeps it as the table's name. */
+  hideCaption?: boolean | undefined;
+  /** Shades every other body row. */
+  striped?: boolean | undefined;
+  /** Tighter cells, for many rows. */
+  dense?: boolean | undefined;
+  /** Keeps the header row at the top while the rows scroll, inside the height you give it (`className="max-h-96"`). */
+  stickyHeader?: boolean | undefined;
+  /** `TableHeader`, `TableBody` and `TableFooter`. */
+  children: ReactNode;
+  /** Layout: margins, width and the height the table scrolls inside. Appearance classes warn in development. */
+  className?: string | undefined;
+  /** A ref to the `<table>` element. */
+  ref?: Ref<HTMLTableElement> | undefined;
+}
+
+/**
+ * Part: the root of a table built from parts, with its caption and its scrolling region.
+ * `Table` takes the same parts as children (`<Table caption="Pantry">…</Table>`), so use
+ * it instead unless you are composing parts of your own; `Table` also builds the whole
+ * table from `columns` and `rows`.
+ *
+ * @group Data
+ * @example
+ * <TableRoot caption="Pantry">
+ *   <TableHeader>
+ *     <TableRow>
+ *       <TableHead>Item</TableHead>
+ *       <TableHead align="end">Qty</TableHead>
+ *     </TableRow>
+ *   </TableHeader>
+ *   <TableBody>
+ *     <TableRow href="/pantry/flour">
+ *       <TableCell rowHeader>Flour</TableCell>
+ *       <TableCell align="end">2 kg</TableCell>
+ *     </TableRow>
+ *   </TableBody>
+ * </TableRoot>
+ */
+export function TableRoot(props: TableRootProps): JSX.Element {
+  const { ref, className, ...rest } = props;
+  useAppearanceClassNameCheck(
+    "TableRoot",
+    className,
+    process.env.NODE_ENV !== "production" ? "put the table inside a <Card> for a frame" : /* istanbul ignore next @preserve -- production only */ "",
+  );
+  useDevWarnings(
+    "TableRoot",
+    process.env.NODE_ENV !== "production"
+      ? () => [!props.caption && ["caption is required; it names the table", '<TableRoot caption="Pantry">, with hideCaption when a heading already shows it']]
+      : /* istanbul ignore next @preserve -- production only */ undefined,
+  );
+  return <TableFrame {...rest} className={className} tableRef={ref} />;
 }
 
 /** Props for {@link TableHeader}, {@link TableBody} and {@link TableFooter}. */

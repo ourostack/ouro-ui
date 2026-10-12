@@ -6,7 +6,7 @@ import { page, userEvent } from "vitest/browser";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Item } from "@/registry/ouro/components/ouro/item/item";
 import { Table } from "@/registry/ouro/components/ouro/table/table";
-import { TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/registry/ouro/components/ouro/table/table-parts";
+import { TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRoot, TableRow } from "@/registry/ouro/components/ouro/table/table-parts";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -426,6 +426,25 @@ describe("Table parts", () => {
   ])("throws in development when %s is in the Table but outside its parent", async (part, node, parent) => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     expect(() => renderToString(node)).toThrow(`[ouro-ui] ${part}: must be rendered inside ${parent}`);
+  });
+
+  it("builds a table in TableRoot, with its own checks", async () => {
+    let element: HTMLTableElement | null = null;
+    const { table } = await render(
+      <TableRoot caption="Pantry" dense className="mt-4 bg-muted" ref={(node) => void (element = node)}>
+        <TableBody>
+          <TableRow>
+            <TableCell rowHeader>Flour</TableCell>
+          </TableRow>
+        </TableBody>
+      </TableRoot>,
+    );
+    await expect.element(page.getByRole("table", { name: "Pantry" })).toBeVisible();
+    expect(element).toBe(table.querySelector("table"));
+    expect(getComputedStyle(table).marginTop).toBe("16px");
+    expect(warn).toHaveBeenCalledWith('[ouro-ui] TableRoot: "bg-muted" sets appearance, and className is for layout only. Fix: put the table inside a <Card> for a frame.');
+    await render(<TableRoot {...({ children: null } as unknown as Parameters<typeof TableRoot>[0])} />);
+    expect(warn).toHaveBeenCalledWith('[ouro-ui] TableRoot: caption is required; it names the table. Fix: <TableRoot caption="Pantry">, with hideCaption when a heading already shows it.');
   });
 
   it("warns for a linked row with no cells, with a placeholder in the fix", async () => {
