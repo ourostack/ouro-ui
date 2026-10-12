@@ -12,7 +12,7 @@ import { formatPoints, formulaVersion, points, weights, type Points } from "./fo
 import { armNames, isArm, type Arm } from "./prompt.mts";
 import { isScreen, type Screen } from "./screens.mts";
 import { bin, describeFinding, lintFindings, newFindings, run, typeFindings, type Finding, type StaticResult } from "./static.mts";
-import { changedConfig, changedScreenFiles, readArmRecord } from "./workspace.mts";
+import { agentConfigDir, changedScreenFiles, readArmRecord, restoreConfig } from "./workspace.mts";
 
 //   node scripts/agent-usability/score.mts <arm> <screen> <app-dir> [--arm-record <arm.json>] [--out <dir>]
 //
@@ -22,9 +22,10 @@ import { changedConfig, changedScreenFiles, readArmRecord } from "./workspace.mt
 // <app-dir>/score) and prints the summary. The formula is formula.mts.
 //
 // --arm-record is the arm's record from arms/create.sh: the baseline the type check and the
-// linter are compared with, and the config files the agent may not change. Give the copy the
-// agent never saw (<arm-app>/.agent-usability/arm.json, or runs/<date>/arms/<arm>.json).
-// Without it nothing is excused and the config files are not checked.
+// linter are compared with, and the original config files, which the scorer puts back before
+// it scores (the agent's versions move to <app-dir>/.agent-config/). Give the copy the agent
+// never saw (<arm-app>/.agent-usability/arm.json, or runs/<date>/arms/<arm>.json). Without
+// it nothing is excused and the config is scored as the agent left it.
 // When the app has a package-lock.json and no node_modules, it runs `npm ci` first.
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -79,6 +80,8 @@ export interface BehaviorResult {
   title: string;
   covers: number[];
   viewport: Viewport;
+  /** False for a check a near-empty page passes (formula.mts, rule 1). */
+  gate: boolean;
   pass: boolean;
   error?: string;
 }
@@ -98,8 +101,8 @@ export interface ScoreResult {
     build: { pass: boolean; output: string };
     /** The backend stand-in, src/api/. */
     fixtures: { pass: boolean; changed: string[] };
-    /** The app's configuration files. */
-    config: { pass: boolean; changed: string[] };
+    /** The config files the agent changed. They cost nothing: the run is scored with the originals. */
+    config: { changed: string[] };
   };
   axe: AxeConfig[];
   behavior: BehaviorResult[];
@@ -266,7 +269,7 @@ async function behaviors(browser: Browser, url: string, screen: Screen): Promise
   const results: BehaviorResult[] = [];
   for (const check of checks) {
     const { context, page } = await newPage(browser, url, check.viewport, "light");
-    const result: BehaviorResult = { id: check.id, title: check.title, covers: check.covers, viewport: check.viewport, pass: false };
+    const result: BehaviorResult = { id: check.id, title: check.title, covers: check.covers, viewport: check.viewport, gate: check.gate !== false, pass: false };
     try {
       await withTimeout(
         (async () => {
@@ -291,8 +294,8 @@ function failures(result: Omit<ScoreResult, "failures" | "points">, earned: Poin
   const { typecheck, lint, build, fixtures, config } = result.checks;
   if (!build.pass) lines.push("build: vite build failed, so no behavior check counts");
   if (!fixtures.pass) lines.push(`backend stand-in: the agent changed ${fixtures.changed.join(", ")}, so no behavior check counts`);
-  if (!config.pass) lines.push(`configuration: the agent changed ${config.changed.join(", ")}, so no behavior check counts`);
-  if (earned.behavior === 0) lines.push(`nothing works: no behavior check passed and counted, so the typecheck, lint and axe points are not earned (-${weights.typecheck + weights.lint + weights.axe})`);
+  if (config.changed.length > 0) lines.push(`configuration: the agent changed ${config.changed.join(", ")}; scored with the arm's originals, which costs nothing (the agent's files are in ${agentConfigDir}/)`);
+  if (earned.score === 0) lines.push("nothing works: no behavior check that exercises the task passed and counted, so no point is earned");
   for (const [name, check] of [["typecheck", typecheck], ["lint", lint]] as const) {
     if (!check.pass) lines.push(`${name}: ${check.new.length} new ${check.new.length === 1 ? "error" : "errors"}, the first in ${describeFinding(check.new[0]!)} (-${weights[name]})`);
   }
@@ -320,6 +323,10 @@ export async function score({ arm, screen, dir: given, out: outGiven, record: re
   const record = recordPath ? readArmRecord(resolve(recordPath)) : undefined;
   if (record && record.arm !== arm) throw new Error(`${recordPath} is the record of the ${record.arm} arm, not ${arm}`);
 
+  // Before anything reads them, so the install, the type check, the linter and the build all
+  // run with the config the arm was made with.
+  const config = { changed: record ? restoreConfig(dir, record) : [] };
+
   if (existsSync(join(dir, "package-lock.json")) && !existsSync(join(dir, "node_modules"))) {
     // Without install scripts: this is code an agent wrote, and the build needs none.
     log("npm ci");
@@ -330,8 +337,6 @@ export async function score({ arm, screen, dir: given, out: outGiven, record: re
   log("protected files");
   const changedApi = changedScreenFiles(dir, screen);
   const fixtures = { pass: changedApi.length === 0, changed: changedApi };
-  const changed = record ? changedConfig(dir, record.config) : [];
-  const config = { pass: changed.length === 0, changed };
   log("tsc -b");
   const typecheck = charge(await typeFindings(dir), record?.baseline.typecheck ?? [], "tsc -b reported no error.");
   log("oxlint");
@@ -359,7 +364,7 @@ export async function score({ arm, screen, dir: given, out: outGiven, record: re
       // Every check starts by waiting for the screen. When it loaded in none of the four
       // configurations, that wait has already failed four times.
       behavior = dead
-        ? checks.map((check) => ({ id: check.id, title: check.title, covers: check.covers, viewport: check.viewport, pass: false, error: `the screen never loaded: ${axe[0]!.states[0]!.error}` }))
+        ? checks.map((check) => ({ id: check.id, title: check.title, covers: check.covers, viewport: check.viewport, gate: check.gate !== false, pass: false, error: `the screen never loaded: ${axe[0]!.states[0]!.error}` }))
         : await behaviors(browser, url, screen);
     } finally {
       await browser.close();
@@ -369,12 +374,12 @@ export async function score({ arm, screen, dir: given, out: outGiven, record: re
     axe = (["phone", "desktop"] as const).flatMap((viewport) =>
       themes.map((theme) => ({ viewport, width: viewports[viewport].viewport!.width, theme, pass: false, states: [], violations: [], advisories: [] })),
     );
-    behavior = checks.map((check) => ({ id: check.id, title: check.title, covers: check.covers, viewport: check.viewport, pass: false, error: "the app did not build" }));
+    behavior = checks.map((check) => ({ id: check.id, title: check.title, covers: check.covers, viewport: check.viewport, gate: check.gate !== false, pass: false, error: "the app did not build" }));
   }
   rmSync(dist, { recursive: true, force: true });
 
   const harness = await run("git", ["-C", root, "rev-parse", "HEAD"], root);
-  const counted = build.pass && fixtures.pass && config.pass;
+  const counted = build.pass && fixtures.pass;
   const partial: Omit<ScoreResult, "failures" | "points"> = {
     arm,
     screen,
@@ -392,6 +397,7 @@ export async function score({ arm, screen, dir: given, out: outGiven, record: re
     lint: lint.pass,
     axe: axe.map((axeConfig) => axeConfig.pass),
     behavior: behavior.map((check) => counted && check.pass),
+    gates: behavior.map((check) => check.gate),
   });
   const result: ScoreResult = { ...partial, points: earned, failures: failures(partial, earned) };
   writeFileSync(join(out, "score.json"), `${JSON.stringify(result, null, 2)}\n`);

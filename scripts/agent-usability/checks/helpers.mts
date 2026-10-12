@@ -9,6 +9,11 @@ export interface Check {
   title: string;
   covers: number[];
   viewport: Viewport;
+  /**
+   * False for a check that a near-empty page passes, such as "doesn't scroll sideways". Such a
+   * check earns its share only when another check passes (formula.mts, rule 1).
+   */
+  gate?: false;
   run(page: Page): Promise<void>;
 }
 
@@ -194,6 +199,7 @@ export function fitsPhone(covers: number): Check {
     title: "At 390px wide the page does not scroll sideways",
     covers: [covers],
     viewport: "phone",
+    gate: false,
     async run(page) {
       const overflow = await page.evaluate(() => {
         const root = document.scrollingElement ?? document.documentElement;

@@ -67,7 +67,7 @@ Run every command from the repository root, on one machine, with one model for e
    - **The same access.** Every agent may read every file in its app and may read the web. The prompt says so in the same words for every arm, because each arm's `llms.txt` is an index of links to web docs.
    - **No help.** Don't answer its questions or correct its work.
 
-   The skill arm's skill is in `.claude/skills/`, which safe mode does not load, so that arm's setup line tells the agent to read it. After the run, confirm it did: `grep -c 'skills/shadcn/SKILL.md' "$WORK/$DATE/transcripts/shadcn-skill-$screen-$run.jsonl"` must not be 0. Keep the transcripts; read one before you publish or commit it, because it holds local paths.
+   The skill arm's skill is in `.claude/skills/`, which safe mode does not load, so that arm's setup line tells the agent to read it. After the run, confirm it did: `grep -c 'skills/shadcn/SKILL.md' "$WORK/$DATE/transcripts/shadcn-skill-$screen-$run.jsonl"` must not be 0. The skill tells the agent to run `npx shadcn@latest`, which is not pinned (4.21.2 on 2026-10-12, while the arm was made with 4.21.1), so record which versions ran: `grep -oh 'shadcn@[0-9][0-9.]*' "$WORK/$DATE"/transcripts/shadcn-skill-*.jsonl | sort | uniq -c`. Keep the transcripts; read one before you publish or commit it, because it holds local paths.
 
 5. **Collect what each agent left** into the repository:
 
@@ -77,7 +77,7 @@ Run every command from the repository root, on one machine, with one model for e
 
    This copies the app, without `node_modules`, build output, `llms.txt` or the skill, to `runs/$DATE/$arm/$screen/$run/`, and the arm's record, from the arm app the agent never saw, to `runs/$DATE/arms/$arm.json`.
 
-6. **Write `scripts/agent-usability/runs/$DATE/run.md`.** The table prints it and fails without the first three lines:
+6. **Write `scripts/agent-usability/runs/$DATE/run.md`.** The table prints it and fails without the first three lines, and without the skill-arm CLI line when the skill arm has runs:
 
    ```markdown
    - Model: <the exact model id>
@@ -85,6 +85,7 @@ Run every command from the repository root, on one machine, with one model for e
    - Agent: <`claude --version`>, started with the command in scripts/agent-usability/README.md
    - Web access: yes, for every arm
    - Skill read by every skill-arm agent: <yes, or which runs did not>
+   - shadcn CLI the skill-arm agents ran: <every version in the transcripts, or none>
    - Anything that went wrong: <none, or what>
    ```
 
@@ -117,7 +118,7 @@ You are a product engineer on a cooking app. Build the screen described below in
 - Work only inside <workspace>. The screen is the whole app: render it from `App` in src/App.tsx, and put any new files under src/.
 - Build it with the component library the app already has installed. Its docs index is llms.txt in the app root. You may read any file in the app, and you may read the web, for example the pages llms.txt links to.
 - src/api/ stands in for the backend. Use it as it is and don't change it.
-- Don't add npm packages and don't change the app's configuration: package.json, package-lock.json, components.json, vite.config.ts, .oxlintrc.json and the tsconfig files.
+- Don't add npm packages and don't change the app's configuration: package.json, package-lock.json, components.json, vite.config.ts, .oxlintrc.json and the tsconfig files. The script puts the original configuration back before it judges the app, so changes to it have no effect.
 - The app turns on dark mode with the `dark` class on the html element. The screen must work in light and dark mode.
 - Before you finish, run `npm run build` and `npm run lint` in <workspace> and fix every error they report.
 - When you are done, reply with a short summary of what you built.
@@ -129,7 +130,7 @@ A script judges the result, not a person. It checks four things:
 - Accessibility: the scan named in the task's last acceptance item.
 - Behavior: a browser test of the other acceptance items. It finds elements the way a screen reader does, by role, accessible name, label and text, so use the labels and texts the task gives, exactly.
 
-A screen where nothing works scores nothing, however clean its code is. So does one whose app does not build, or whose src/api/ or configuration files were changed.
+A screen where nothing works scores nothing, however clean its code is. So does one whose app does not build with the original configuration, or whose src/api/ files were changed.
 ```
 
 `prompt.mts` is the source; `score.test.mjs` fails if this section drifts from it.
@@ -140,7 +141,7 @@ A screen where nothing works scores nothing, however clean its code is. So does 
 
 - **Everything it checks is in the prompt or the task.** The tasks give each requirement in behavior or accessibility terms (`aria-invalid="true"`, a live region, the `menu` role), never as a component. When a check changes, change the task text with it.
 - **The baseline.** `arms/create.sh` records what `tsc -b` and oxlint find in an arm before any agent runs. The scorer charges a run only for findings that are not in that record, matched by file, rule and message. On 2026-10-12 `shadcn add --all` installed a `scroll-area.tsx` with an unused `React` import, an error under shadcn's own Vite template settings, so both shadcn arms start with one type error that costs them nothing. The results table prints each arm's baseline counts.
-- **Each arm is checked with the settings it was created with.** `tsc` and oxlint read the app's own `tsconfig` files and `.oxlintrc.json` (a stock Vite app's config). The agent may not change those, `package.json`, the lockfile, `vite.config.ts` or `components.json`: the prompt says so, and a run that does scores 0, as one that changes `src/api/` does.
+- **Each arm is checked with the settings it was created with.** Before it scores a run, the scorer puts the arm's original config files back: `package.json`, the lockfile, `components.json`, `vite.config.ts`, `.oxlintrc.json` (a stock Vite app's config) and the `tsconfig` files. The agent's versions move to `.agent-config/` in the run folder and are listed in the summary. A config edit neither helps nor costs, so loosening `tsconfig` hides no type error, and a package the agent added breaks the build only if the code imports it. A changed `src/api/` file still scores the run 0, because changing the backend is a different kind of cheating.
 - **Lint** counts errors only. Warnings are advice.
 - **Axe** runs axe-core once per state and scores its WCAG 2 A and AA rules. Its best-practice rules, such as `region`, are listed in the summary and cost nothing: a correct menu from either library renders in a portal outside every landmark and would break `region`. It scans the first render and one more state per screen, which each task names. Base UI's focus guards are left out, as in Ouro's own tests.
 - **Behavior checks** live in `checks/<screen>.mts`. They find elements by role, accessible name, label and text, so they hold for any library. Each names the acceptance items it proves; a test fails when an item has neither a check nor a note saying what judges it.
@@ -148,7 +149,7 @@ A screen where nothing works scores nothing, however clean its code is. So does 
 - **Screenshots are evidence only.** They earn nothing. If a person rates them for the docs page, hide the arm's name first.
 - **Freeze the checks before a run.** Don't change a check or a task between the first agent and the last score, and never to fit a component Ouro HX ships later.
 
-`score.test.mjs` (part of `pnpm test:scripts`) proves the scorer. A known-good version of every screen (`test/screens/`, plain React) scores 100, and so does a recipe list whose menu renders in a portal. Copies with one fault each lose exactly the expected points: a type error, a lint error, an axe violation in every configuration, a contrast failure in dark mode only, a state that can't be reached, a failing behavior on every screen, a build failure, a changed backend or config file, and a screen that does nothing. It also proves that the baseline excuses a library's own errors and nothing else.
+`score.test.mjs` (part of `pnpm test:scripts`) proves the scorer. A known-good version of every screen (`test/screens/`, plain React) scores 100, and so does a recipe list whose menu renders in a portal. Copies with one fault each lose exactly the expected points: a type error, a lint error, an axe violation in every configuration, a contrast failure in dark mode only, a state that can't be reached, a failing behavior on every screen, a build failure, a changed backend file, a screen that does nothing, a one-heading version of every screen, and a broken menu in a portal. It also proves that the baseline excuses a library's own errors and nothing else, that a `tsconfig` loosened to hide a type error still loses the type points, and that a harmless config rewrite costs nothing.
 
 ## What the arms pin, and what they can't
 

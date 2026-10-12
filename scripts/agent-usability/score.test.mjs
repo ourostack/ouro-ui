@@ -79,6 +79,17 @@ describe("a known-good screen scores full marks", { concurrency: 2 }, () => {
     const advisories = result.axe.map((config) => [...new Set(config.advisories.filter((advisory) => advisory.state === "actions-menu-open").map((advisory) => advisory.id))]);
     assert.deepEqual(advisories, [["region"], ["region"], ["region"], ["region"]]);
   });
+
+  test("recipe-list with a broken menu in a portal still loses the axe points", async () => {
+    const result = await scoreOf("broken-portal-menu", "recipe-list", withLibraryMenu, "src/App.tsx", {
+      "src/ActionsMenu.tsx": readFileSync(join(here, "test/screens/actions-menu.broken-portal.tsx"), "utf8"),
+    });
+    for (const config of result.axe) {
+      assert.ok(config.states.every((state) => state.reached), JSON.stringify(config.states));
+      assert.ok(config.violations.some((violation) => violation.id === "aria-required-children" && violation.state === "actions-menu-open"), JSON.stringify(config.violations));
+    }
+    assert.equal(result.points.axe, 0);
+  });
 });
 
 describe("a broken copy of the confirm-delete screen loses exactly the expected points", { concurrency: 2 }, () => {
@@ -87,7 +98,7 @@ describe("a broken copy of the confirm-delete screen loses exactly the expected 
     assert.equal(result.points.score, 100);
     const written = JSON.parse(readFileSync(join(scratch, "written-score/score.json"), "utf8"));
     assert.deepEqual(written.points, { typecheck: 20, lint: 10, axe: 20, behavior: 50, score: 100, max: 100 });
-    assert.equal(written.formulaVersion, 2);
+    assert.equal(written.formulaVersion, 3);
     assert.match(written.versions.axeCore, /^\d+\.\d+\.\d+/);
     assert.match(written.versions.chromium, /^\d+\./);
     if (existsSync(join(root, ".git"))) assert.match(written.versions.harness, /^[0-9a-f]{40}$/);
@@ -123,8 +134,9 @@ describe("a broken copy of the confirm-delete screen loses exactly the expected 
     const result = await run("no-dialog", (source) => source.replace("dialog.current?.showModal();", ""));
     for (const config of result.axe) assert.deepEqual(config.states.map((state) => [state.name, state.reached]), [["initial", true], ["dialog-open", false]]);
     assert.equal(result.points.axe, 0);
+    // Only the sideways-scroll check passes, which a near-empty page passes too, so nothing is earned.
     assert.deepEqual(result.behavior.filter((check) => check.pass).map((check) => check.id), ["fits-a-phone"]);
-    near(result.points.score, weights.typecheck + weights.lint + share("confirm-delete", 1));
+    assert.equal(result.points.score, 0);
   });
 
   test("a failing behavior loses exactly its share of the behavior points", async () => {
@@ -200,6 +212,18 @@ describe("one broken copy of every other screen loses exactly the checks it brea
   });
 });
 
+describe("a page with only its heading scores 0 on every screen", { concurrency: 2 }, () => {
+  const headings = { "settings-form": "Account settings", "recipe-list": "My recipes", "command-palette": "Kitchen", "confirm-delete": "Cookbooks", "app-shell": "Home" };
+  for (const screen of screens) {
+    test(screen, async () => {
+      const result = await scoreOf(`heading-only-${screen}`, screen, () => `export function App() {\n  return (\n    <main>\n      <h1>${headings[screen]}</h1>\n    </main>\n  );\n}\n`);
+      assert.equal(result.checks.typecheck.pass, true);
+      assert.equal(result.checks.lint.pass, true);
+      assert.deepEqual(result.points, { typecheck: 0, lint: 0, axe: 0, behavior: 0, score: 0, max: 100 });
+    });
+  }
+});
+
 // One at a time: each test type checks an app while it sets up, which would starve the other's browser.
 describe("an agent pays only for what it did, not for what the app started with", () => {
   // A "library" file with one type error (an unused import) and one lint error, as an arm
@@ -218,7 +242,7 @@ describe("an agent pays only for what it did, not for what the app started with"
     assert.deepEqual(record.baseline.lint.map((finding) => finding.file), ["src/library.tsx"]);
     // The agent's edit moves every line, and a reformatted package.json changes no setting.
     edit(dir, "src/library.tsx", (source) => `// Changed by the agent.\n\n${source}`);
-    edit(dir, "package.json", (source) => JSON.stringify(JSON.parse(source)));
+    edit(dir, "package.json", (source) => JSON.stringify(Object.fromEntries(Object.entries(JSON.parse(source)).reverse())));
     const result = await score({ arm: "ouro", screen: "confirm-delete", dir, record: path, out: join(scratch, "baseline-score") });
     assert.deepEqual(result.failures, []);
     assert.equal(result.points.score, 100);
@@ -237,13 +261,30 @@ describe("an agent pays only for what it did, not for what the app started with"
     assert.equal(result.points.score, 100 - weights.typecheck);
   });
 
-  test("changing a config file scores 0, as changing the backend stand-in does", async () => {
+  test("a tsconfig loosened to hide a type error still loses the type points, because the original is restored", async () => {
     const { dir, path } = await arm("config");
+    edit(dir, "src/App.tsx", (source) => `${source}\nconst unusedByTheAgent = 1;\n`);
     edit(dir, "tsconfig.app.json", (source) => source.replace('"noUnusedLocals": true', '"noUnusedLocals": false'));
     const result = await score({ arm: "ouro", screen: "confirm-delete", dir, record: path, out: join(scratch, "config-score") });
     assert.deepEqual(result.checks.config.changed, ["tsconfig.app.json"]);
-    assert.equal(result.points.score, 0);
-    assert.match(result.failures.join("\n"), /configuration: the agent changed tsconfig\.app\.json/);
+    assert.deepEqual(result.checks.typecheck.new.map((finding) => [finding.file, finding.rule]), [["src/App.tsx", "TS6133"]]);
+    assert.equal(result.points.score, 100 - weights.typecheck);
+    assert.match(readFileSync(join(dir, "tsconfig.app.json"), "utf8"), /"noUnusedLocals": true/);
+    assert.match(readFileSync(join(dir, ".agent-config/tsconfig.app.json"), "utf8"), /"noUnusedLocals": false/);
+    // Scoring again reads the list of changes, because the files are already restored.
+    const again = await score({ arm: "ouro", screen: "confirm-delete", dir, record: path, out: join(scratch, "config-again-score") });
+    assert.deepEqual(again.checks.config.changed, ["tsconfig.app.json"]);
+    assert.equal(again.points.score, 100 - weights.typecheck);
+  });
+
+  test("a harmless config rewrite and an added config file cost nothing", async () => {
+    const { dir, path } = await arm("config-harmless");
+    edit(dir, "vite.config.ts", (source) => `${source}\n// Reformatted by the agent.\n`);
+    writeFileSync(join(dir, "tsconfig.extra.json"), "{}\n");
+    const result = await score({ arm: "ouro", screen: "confirm-delete", dir, record: path, out: join(scratch, "config-harmless-score") });
+    assert.deepEqual(result.checks.config.changed, ["tsconfig.extra.json", "vite.config.ts"]);
+    assert.equal(result.points.score, 100);
+    assert.equal(existsSync(join(dir, "tsconfig.extra.json")), false);
   });
 
   test("the workspace hides the arm's record, and collecting keeps a copy the agent never saw", async () => {
@@ -272,19 +313,21 @@ test("findings match the baseline by file, rule and message, never by line, and 
   assert.deepEqual(newFindings([], [unused]), []);
 });
 
-test("config files are compared by their settings, and an added one is a change", () => {
+test("config files are compared by their settings, whatever the key order, and an added one is a change", () => {
   const dir = join(scratch, "config-hashes");
   cpSync(join(here, "test/fixture-app"), dir, { recursive: true });
   const recorded = configHashes(dir);
   assert.deepEqual(Object.keys(recorded), ["package.json", "tsconfig.app.json", "tsconfig.json", "tsconfig.node.json", "vite.config.ts"]);
   assert.deepEqual(changedConfig(dir, recorded), []);
+  writeFileSync(join(dir, "tsconfig.json"), JSON.stringify(Object.fromEntries(Object.entries(JSON.parse(readFileSync(join(dir, "tsconfig.json"), "utf8"))).reverse()), null, 4));
+  assert.deepEqual(changedConfig(dir, recorded), [], "reordered keys are the same settings");
   writeFileSync(join(dir, "tsconfig.extra.json"), "{}");
   writeFileSync(join(dir, "vite.config.ts"), `${readFileSync(join(dir, "vite.config.ts"), "utf8")}\n// changed\n`);
   assert.deepEqual(changedConfig(dir, recorded), ["tsconfig.extra.json", "vite.config.ts"]);
 });
 
-test("the formula adds each part's share, and gives nothing for clean code when no behavior passes", () => {
-  assert.deepEqual(points({ typecheck: true, lint: false, axe: [true, true, false, true], behavior: [true, false] }), {
+test("the formula adds each part's share, and gives nothing when no check that exercises the task passes", () => {
+  assert.deepEqual(points({ typecheck: true, lint: false, axe: [true, true, false, true], behavior: [true, false], gates: [true, true] }), {
     typecheck: 20,
     lint: 0,
     axe: 15,
@@ -292,7 +335,10 @@ test("the formula adds each part's share, and gives nothing for clean code when 
     score: 60,
     max: 100,
   });
-  assert.deepEqual(points({ typecheck: true, lint: true, axe: [true, true, true, true], behavior: [false, false] }), {
+  // A passing check that a near-empty page also passes unlocks nothing and earns nothing alone.
+  assert.equal(points({ typecheck: true, lint: true, axe: [true, true, true, true], behavior: [false, true], gates: [true, false] }).score, 0);
+  assert.equal(points({ typecheck: true, lint: true, axe: [true, true, true, true], behavior: [true, true], gates: [true, false] }).score, 100);
+  assert.deepEqual(points({ typecheck: true, lint: true, axe: [true, true, true, true], behavior: [false, false], gates: [true, true] }), {
     typecheck: 0,
     lint: 0,
     axe: 0,
@@ -368,7 +414,7 @@ test("the results table lists every run, the median, the agent and each arm's pi
       JSON.stringify({
         arm,
         screen,
-        formulaVersion: 2,
+        formulaVersion: 3,
         versions: { harness: "0123456789abcdef0123456789abcdef01234567", axeCore: "4.12.0", chromium: "150.0.1" },
         points: { typecheck: 20, lint: 10, axe: 20, behavior: total - 50, score: total, max: 100 },
       }),
@@ -388,6 +434,7 @@ test("the results table lists every run, the median, the agent and each arm's pi
         packages: { react: "19.3.0" },
         files: { "src/a.tsx": "00" },
         config: {},
+        configFiles: {},
         baseline: { typecheck: [], lint: [] },
         ...extra,
       }),
@@ -417,11 +464,13 @@ test("the results table lists every run, the median, the agent and each arm's pi
   assert.ok(lines.includes("| llms.txt (sha256) | abcdef012345 | abcdef012345 |"), table);
   assert.ok(lines.includes("| react | 19.3.0 | 19.3.0 |"), table);
   assert.ok(lines.includes("| Type errors before the agent ran | 1 | 0 |"), table);
-  assert.match(table, /Scored by harness commit 0123456789ab, axe-core 4\.12\.0, Chromium 150\.0\.1, formula 2 /);
+  assert.match(table, /Scored by harness commit 0123456789ab, axe-core 4\.12\.0, Chromium 150\.0\.1, formula 3 /);
 
   // With three runs of every screen for every arm, the means appear.
   for (const arm of arms) for (const screen of screens) for (const run of [1, 2, 3]) write(arm, screen, run, 60 + run * 10);
   record("shadcn-skill", {});
+  assert.throws(() => resultsTable(dir), /no "- shadcn CLI the skill-arm agents ran: \.\.\." line/);
+  writeFileSync(join(dir, "run.md"), "- Model: some-model\n- Effort: high\n- Agent: claude 2.1.296, safe mode\n- shadcn CLI the skill-arm agents ran: 4.21.2\n");
   const full = resultsTable(dir);
   assert.ok(full.split("\n").includes("| Mean of the five medians | 80 | 80 | 80 |"), full);
   assert.ok(full.split("\n").includes("| Ouro HX | 20 | 10 | 20 | 30 |"), full);

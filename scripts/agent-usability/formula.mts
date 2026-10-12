@@ -18,12 +18,18 @@
  *
  * Two rules sit on top:
  *
- * 1. A screen that does nothing scores 0. The typecheck, lint and axe points are earned only
- *    when at least one behavior check passes, so an untouched app earns nothing for being
- *    clean.
+ * 1. A screen that does nothing scores 0. Every point is earned only when at least one behavior
+ *    check that exercises the task passes. A check that a near-empty page passes, such as "the
+ *    page doesn't scroll sideways at 390px" (marked `gate: false`), doesn't count toward that,
+ *    and earns its own share only once another check passes. So a page with one heading, or an
+ *    untouched app, scores 0 however clean its code is.
  * 2. No behavior check counts when the app does not build, or when the agent changed the
- *    backend stand-in (src/api/) or a configuration file (package.json, the lockfile, the
- *    tsconfig files, the lint, Vite and components configs). By rule 1 such a run scores 0.
+ *    backend stand-in (src/api/). By rule 1 such a run scores 0.
+ *
+ * Every run is scored with the arm's original configuration files (package.json, the lockfile,
+ * the tsconfig files, the lint, Vite and components configs): the scorer puts them back first.
+ * A config edit neither helps nor costs; a package the agent added breaks the build only if the
+ * code imports it.
  *
  * "Already had" is the arm's baseline: what the type check and the linter found when
  * arms/create.sh made the app. A finding matches a baseline entry by file, rule and message,
@@ -37,7 +43,7 @@
 export const weights = { typecheck: 20, lint: 10, axe: 20, behavior: 50 } as const;
 
 /** Bump when the formula changes, so tables never mix scores from two formulas. */
-export const formulaVersion = 2;
+export const formulaVersion = 3;
 
 /** How many times each arm builds each screen. */
 export const runsPerCell = 3;
@@ -52,6 +58,8 @@ export interface Outcome {
   axe: boolean[];
   /** One entry per behavior check: true when it passed and counts (rule 2). */
   behavior: boolean[];
+  /** One entry per behavior check: false for a check that a near-empty page passes (rule 1). */
+  gates: boolean[];
 }
 
 export interface Points {
@@ -67,12 +75,12 @@ const share = (weight: number, passed: boolean[]): number =>
   passed.length === 0 ? 0 : (weight * passed.filter(Boolean).length) / passed.length;
 
 export function points(outcome: Outcome): Points {
-  const works = outcome.behavior.some(Boolean);
+  const works = outcome.behavior.some((passed, index) => passed && outcome.gates[index] !== false);
   const earned = {
     typecheck: works && outcome.typecheck ? weights.typecheck : 0,
     lint: works && outcome.lint ? weights.lint : 0,
     axe: works ? share(weights.axe, outcome.axe) : 0,
-    behavior: share(weights.behavior, outcome.behavior),
+    behavior: works ? share(weights.behavior, outcome.behavior) : 0,
   };
   const max = weights.typecheck + weights.lint + weights.axe + weights.behavior;
   return { ...earned, score: earned.typecheck + earned.lint + earned.axe + earned.behavior, max };

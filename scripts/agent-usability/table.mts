@@ -10,7 +10,7 @@ import { readArmRecord, type ArmRecord } from "./workspace.mts";
 //
 // The results the docs page shows, read from <arm>/<screen>/<run>/score/score.json under the
 // folder: every run's score and the median per arm and screen, then what produced them (the
-// agent, from run.md, and each arm's pinned versions and baseline, from arms/<arm>.json).
+// agent, from run.md, with the shadcn CLI the skill-arm agents ran, and each arm's pinned versions and baseline, from arms/<arm>.json).
 // --write also saves it as results.md there. It fails when run.md does not name the model, or
 // when an arm with runs has no record, because a table nobody can trace is worth nothing.
 
@@ -56,11 +56,11 @@ function cell(runs: Scored[]): string {
 }
 
 /** What run.md must say about the agents. The README has the template. */
-function runNotes(root: string): string {
+function runNotes(root: string, skillRan: boolean): string {
   const path = join(root, "run.md");
   if (!existsSync(path)) throw new Error(`${path} is missing: it names the model, the effort and the command every agent was started with`);
   const text = readFileSync(path, "utf8").trim();
-  for (const field of ["Model", "Effort", "Agent"]) {
+  for (const field of ["Model", "Effort", "Agent", ...(skillRan ? ["shadcn CLI the skill-arm agents ran"] : [])]) {
     if (!new RegExp(`^- ${field}: \\S`, "m").test(text)) throw new Error(`${path} has no "- ${field}: ..." line`);
   }
   return text;
@@ -88,9 +88,9 @@ function versions(root: string, ran: Arm[], all: Scored[]): string[] {
 }
 
 export function resultsTable(root: string): string {
-  const notes = runNotes(root);
   const scores = arms.map((arm) => screens.map((screen) => read(root, arm, screen)));
   const ran = arms.filter((_, index) => scores[index]!.some((runs) => runs.length > 0));
+  const notes = runNotes(root, ran.includes("shadcn-skill"));
   const complete = scores.every((column) => column.every((runs) => runs.length === runsPerCell));
   const lines = [
     notes,
