@@ -3,7 +3,10 @@ import type { Locator, Page } from "@playwright/test";
 /**
  * Opens one Storybook story on its own, by story id (for example
  * `"overlays-sheet--playground"`), and waits for it to render and for the app's web fonts
- * to load, so text no longer changes width under a spec that measures. The Storybook comes from
+ * to load, so text no longer changes width under a spec that measures. A font first used by
+ * content that appears later (an opened menu, a heavier weight) loads later: before measuring
+ * such content, wait again with `await page.evaluate(() => document.fonts.ready.then(() => {}))`.
+ * The Storybook comes from
  * the `OURO_E2E_URL` environment variable, default `http://localhost:6006`: the
  * Storybook that shows the Ouro UI stories installed in this app, compiled with the
  * app's own Tailwind and theme.

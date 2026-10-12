@@ -108,6 +108,16 @@ it("moves to the next slide with a horizontal swipe and reports it once", async 
   expect(scrollY).toBe(pageY);
 });
 
+it("lets a fast flick carry past the next slide, as the platform does, and reports it once", async () => {
+  const { viewport, onIndexChange } = await renderInPage();
+  const rect = viewport.getBoundingClientRect();
+  const y = rect.top + rect.height / 2;
+  await commands.touchDrag({ from: [rect.right - 40, y], to: [rect.left + 40, y], steps: 12, durationMs: 30 });
+  await expect.poll(() => onIndexChange.mock.calls).toEqual([[2]]);
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  expect(onIndexChange.mock.calls).toEqual([[2]]);
+});
+
 it("reports and announces nothing while a finger is held still mid-swipe", async () => {
   const { viewport, onIndexChange } = await renderInPage();
   const announcer = () => document.querySelector("[data-ouro-announcer]")?.textContent ?? "";
