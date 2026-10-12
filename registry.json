@@ -1001,6 +1001,163 @@
       ]
     },
     {
+      "name": "card",
+      "type": "registry:ui",
+      "title": "Card",
+      "description": "A surface that groups one thing's content: a media slot across the top, a title with a description and an action, a body, and a footer.",
+      "docs": "A surface that groups one thing's content: a media slot across the top, a title with a description and an action, a body, and a footer. Import: import { Card } from \"@/components/ouro/card/card\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: heading, ouro-base, ouro-lib, text. Docs: https://ourostack.github.io/ouro-ui/docs/card.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/heading",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib",
+        "ourostack/ouro-ui/text"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/card/card.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/card/card.tsx"
+        }
+      ]
+    },
+    {
+      "name": "item",
+      "type": "registry:ui",
+      "title": "Item",
+      "description": "One row of a list: leading media, a title with a description, and trailing actions.",
+      "docs": "One row of a list: leading media, a title with a description, and trailing actions. Import: import { Item } from \"@/components/ouro/item/item\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/item.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/item/item.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/item/item.tsx"
+        }
+      ]
+    },
+    {
+      "name": "item-group",
+      "type": "registry:ui",
+      "title": "ItemGroup",
+      "description": "A list of `Item` rows, with an optional label that names it, lines between the rows, and what to show when it is empty.",
+      "docs": "A list of `Item` rows, with an optional label that names it, lines between the rows, and what to show when it is empty. Import: import { ItemGroup } from \"@/components/ouro/item/item-group\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/item-group.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/item/item-group.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/item/item-group.tsx"
+        }
+      ]
+    },
+    {
+      "name": "empty",
+      "type": "registry:ui",
+      "title": "Empty",
+      "description": "What a list, search or page shows when it has nothing in it: an icon, a title that says what is empty, a sentence on what to do, and the action that does it.",
+      "docs": "What a list, search or page shows when it has nothing in it: an icon, a title that says what is empty, a sentence on what to do, and the action that does it. Import: import { Empty } from \"@/components/ouro/empty/empty\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: heading, ouro-base, ouro-lib, text. Docs: https://ourostack.github.io/ouro-ui/docs/empty.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/heading",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib",
+        "ourostack/ouro-ui/text"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/empty/empty.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/empty/empty.tsx"
+        }
+      ]
+    },
+    {
+      "name": "scroll-area",
+      "type": "registry:ui",
+      "title": "ScrollArea",
+      "description": "A scrolling region with a slim scrollbar that matches the theme, inside a height you set.",
+      "docs": "A scrolling region with a slim scrollbar that matches the theme, inside a height you set. Import: import { ScrollArea } from \"@/components/ouro/scroll-area/scroll-area\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/scroll-area.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/scroll-area/scroll-area.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/scroll-area/scroll-area.tsx"
+        }
+      ]
+    },
+    {
+      "name": "aspect-ratio",
+      "type": "registry:ui",
+      "title": "AspectRatio",
+      "description": "A frame that keeps an image, video or map at a fixed shape while its width follows the layout, so the page does not jump when the media loads.",
+      "docs": "A frame that keeps an image, video or map at a fixed shape while its width follows the layout, so the page does not jump when the media loads. Import: import { AspectRatio } from \"@/components/ouro/aspect-ratio/aspect-ratio\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/aspect-ratio.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/aspect-ratio/aspect-ratio.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/aspect-ratio/aspect-ratio.tsx"
+        }
+      ]
+    },
+    {
+      "name": "stack",
+      "type": "registry:ui",
+      "title": "Stack",
+      "description": "Lays its children out top to bottom with an even gap.",
+      "docs": "Lays its children out top to bottom with an even gap. Import: import { Stack } from \"@/components/ouro/stack/stack\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/stack.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/stack/stack-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/stack/stack-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/stack/stack.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/stack/stack.tsx"
+        }
+      ]
+    },
+    {
+      "name": "row",
+      "type": "registry:ui",
+      "title": "Row",
+      "description": "Lays its children out side by side with an even gap, centered up and down.",
+      "docs": "Lays its children out side by side with an even gap, centered up and down. Import: import { Row } from \"@/components/ouro/stack/row\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib, stack. Docs: https://ourostack.github.io/ouro-ui/docs/row.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib",
+        "ourostack/ouro-ui/stack"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/stack/row.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/stack/row.tsx"
+        }
+      ]
+    },
+    {
       "name": "ouro-lib-tests",
       "type": "registry:item",
       "title": "Ouro lib tests",
@@ -2263,6 +2420,353 @@
       ]
     },
     {
+      "name": "card-tests",
+      "type": "registry:item",
+      "title": "Card tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for card, with the test tooling as devDependencies. Add it beside card: add card card-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "card's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/card.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/aspect-ratio",
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/card",
+        "ourostack/ouro-ui/heading",
+        "ourostack/ouro-ui/item",
+        "ourostack/ouro-ui/link",
+        "ourostack/ouro-ui/ouro-lib",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/scroll-area",
+        "ourostack/ouro-ui/text"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/card/card.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/card/card.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/card/card.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/card/card.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/card/card.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/card/card.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/card.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/card.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "item-tests",
+      "type": "registry:item",
+      "title": "Item tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for item, with the test tooling as devDependencies. Add it beside item: add item item-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "item's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/item.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/item",
+        "ourostack/ouro-ui/item-group",
+        "ourostack/ouro-ui/link",
+        "ourostack/ouro-ui/ouro-lib",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/text"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/item/item.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/item/item.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/item/item.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/item/item.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/item/item.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/item/item.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/item/item.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/item/item.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/item.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/item.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "item-group-tests",
+      "type": "registry:item",
+      "title": "ItemGroup tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for item-group, with the test tooling as devDependencies. Add it beside item-group: add item-group item-group-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "item-group's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/item-group.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/item",
+        "ourostack/ouro-ui/item-group",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/item/item-group.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/item/item-group.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/item/item-group.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/item/item-group.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/item/item-group.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/item/item-group.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/item-group.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/item-group.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "empty-tests",
+      "type": "registry:item",
+      "title": "Empty tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for empty, with the test tooling as devDependencies. Add it beside empty: add empty empty-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "empty's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/empty.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/empty",
+        "ourostack/ouro-ui/heading",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/empty/empty.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/empty/empty.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/empty/empty.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/empty/empty.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/empty/empty.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/empty/empty.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/empty.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/empty.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "scroll-area-tests",
+      "type": "registry:item",
+      "title": "ScrollArea tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for scroll-area, with the test tooling as devDependencies. Add it beside scroll-area: add scroll-area scroll-area-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "scroll-area's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/scroll-area.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/scroll-area",
+        "ourostack/ouro-ui/text"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/scroll-area/scroll-area.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/scroll-area/scroll-area.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/scroll-area/scroll-area.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/scroll-area/scroll-area.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/scroll-area/scroll-area.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/scroll-area/scroll-area.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/scroll-area/scroll-area.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/scroll-area/scroll-area.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/scroll-area.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/scroll-area.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "aspect-ratio-tests",
+      "type": "registry:item",
+      "title": "AspectRatio tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for aspect-ratio, with the test tooling as devDependencies. Add it beside aspect-ratio: add aspect-ratio aspect-ratio-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "aspect-ratio's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/aspect-ratio.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/aspect-ratio",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/aspect-ratio/aspect-ratio.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/aspect-ratio/aspect-ratio.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/aspect-ratio/aspect-ratio.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/aspect-ratio/aspect-ratio.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/aspect-ratio/aspect-ratio.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/aspect-ratio/aspect-ratio.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/aspect-ratio.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/aspect-ratio.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "stack-tests",
+      "type": "registry:item",
+      "title": "Stack tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for stack, with the test tooling as devDependencies. Add it beside stack: add stack stack-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "stack's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/stack.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/heading",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/stack",
+        "ourostack/ouro-ui/text"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/stack/stack.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/stack/stack.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/stack/stack.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/stack/stack.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/stack/stack.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/stack/stack.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/stack.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/stack.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "row-tests",
+      "type": "registry:item",
+      "title": "Row tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for row, with the test tooling as devDependencies. Add it beside row: add row row-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "row's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/row.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/heading",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/row",
+        "ourostack/ouro-ui/stack",
+        "ourostack/ouro-ui/text"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/stack/row.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/stack/row.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/stack/row.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/stack/row.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/stack/row.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/stack/row.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/row.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/row.spec.ts"
+        }
+      ]
+    },
+    {
       "name": "ouro-tests",
       "type": "registry:item",
       "title": "Ouro tests",
@@ -2271,27 +2775,35 @@
       "registryDependencies": [
         "ourostack/ouro-ui/accordion-tests",
         "ourostack/ouro-ui/alert-tests",
+        "ourostack/ouro-ui/aspect-ratio-tests",
         "ourostack/ouro-ui/avatar-tests",
         "ourostack/ouro-ui/badge-tests",
         "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/card-tests",
         "ourostack/ouro-ui/collapsible-tests",
         "ourostack/ouro-ui/confirm-dialog-tests",
         "ourostack/ouro-ui/dialog-tests",
+        "ourostack/ouro-ui/empty-tests",
         "ourostack/ouro-ui/field-tests",
         "ourostack/ouro-ui/fieldset-tests",
         "ourostack/ouro-ui/heading-tests",
         "ourostack/ouro-ui/hover-card-tests",
+        "ourostack/ouro-ui/item-group-tests",
+        "ourostack/ouro-ui/item-tests",
         "ourostack/ouro-ui/kbd-tests",
         "ourostack/ouro-ui/link-tests",
         "ourostack/ouro-ui/ouro-lib-tests",
         "ourostack/ouro-ui/popover-tests",
         "ourostack/ouro-ui/progress-tests",
+        "ourostack/ouro-ui/row-tests",
+        "ourostack/ouro-ui/scroll-area-tests",
         "ourostack/ouro-ui/segmented-control-tests",
         "ourostack/ouro-ui/separator-tests",
         "ourostack/ouro-ui/sheet-tests",
         "ourostack/ouro-ui/show-more-tests",
         "ourostack/ouro-ui/skeleton-tests",
         "ourostack/ouro-ui/spinner-tests",
+        "ourostack/ouro-ui/stack-tests",
         "ourostack/ouro-ui/tabs-tests",
         "ourostack/ouro-ui/text-area-tests",
         "ourostack/ouro-ui/text-field-tests",
