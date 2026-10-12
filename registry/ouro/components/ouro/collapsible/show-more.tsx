@@ -52,6 +52,8 @@ export type ShowMoreLinesProps = ShowMoreBaseProps & {
   /** Only with `onShowMore`. */
   loadedLabel?: never;
   /** Only with `onShowMore`. */
+  noMoreLabel?: never;
+  /** Only with `onShowMore`. */
   href?: never;
 };
 
@@ -87,6 +89,8 @@ export type ShowMoreItemsProps = ShowMoreListProps & {
   /** Only with `onShowMore`. */
   loadedLabel?: never;
   /** Only with `onShowMore`. */
+  noMoreLabel?: never;
+  /** Only with `onShowMore`. */
   href?: never;
 };
 
@@ -106,6 +110,8 @@ export type ShowMoreLoadProps = ShowMoreListProps & {
    * @default (count) => `Showing ${count} items`
    */
   loadedLabel?: ((count: number) => string) | undefined;
+  /** What screen readers hear when a page comes back empty and there is no more. Translate it here. @default "No more items" */
+  noMoreLabel?: string | undefined;
   /**
    * The next page's URL, so the button is a link that works before JavaScript loads. With
    * JavaScript, pressing it calls `onShowMore` instead.
@@ -129,6 +135,15 @@ const FOCUSABLE =
 /** Focuses the first focusable thing in a row, or the row itself. */
 function focusRow(row: Element): void {
   (row.querySelector<HTMLElement>(FOCUSABLE) ?? (row as HTMLElement)).focus();
+}
+
+/**
+ * What stays the same for an item across renders: an element's key, or a text or number item
+ * itself. An element without a key is a new object every render, so it has none (null).
+ */
+function identity(item: ReactNode): unknown {
+  if (isValidElement(item)) return item.key;
+  return item;
 }
 
 const isCount = (value: unknown): value is number => typeof value === "number" && Number.isInteger(value) && value > 0;
@@ -251,8 +266,10 @@ function ShowMoreList(props: (ShowMoreItemsProps | ShowMoreLoadProps) & { showMo
   const [expanded, setExpanded] = useState(false);
   // Rows from this index on are newly shown: they fade in.
   const [freshFrom, setFreshFrom] = useState<number | null>(null);
-  // The index of the first row the last press asked for, until focus has moved there.
+  // The index of the first row the last press asked for, until focus has moved there, and the
+  // first item when it was asked: a different first item means a new list, not the next page.
   const pending = useRef<number | null>(null);
+  const pendingFirst = useRef<unknown>(undefined);
   const listRef = useRef<HTMLUListElement & HTMLOListElement>(null);
   const buttonRef = useRef<HTMLElement>(null);
   const loading = load?.loading === true;
@@ -264,6 +281,7 @@ function ShowMoreList(props: (ShowMoreItemsProps | ShowMoreLoadProps) & { showMo
   // Whether `loading` was true since the last press, so a load that ends with no new items is noticed.
   const loaded = useRef(false);
   const loadedLabel = load?.loadedLabel ?? ((shown: number) => `Showing ${shown} items`);
+  const noMoreLabel = load?.noMoreLabel ?? "No more items";
 
   useEffect(() => {
     const from = pending.current;
@@ -277,20 +295,23 @@ function ShowMoreList(props: (ShowMoreItemsProps | ShowMoreLoadProps) & { showMo
       pending.current = null;
       loaded.current = false;
     };
-    const arrive = (row: Element) => {
+    const arrive = (row: Element, message: string) => {
       stop();
       focusRow(row);
-      if (load) setStatus(loadedLabel(rows.length));
+      if (load) setStatus(message);
     };
-    if (rows.length > from) {
-      arrive(rows[from]!);
-    } else if (rows.length < from || (hasButton && loaded.current)) {
-      // The list was replaced by a shorter one (a new search), or the load ended with no new
-      // items (it failed): stop waiting, so a later change to the list never moves focus.
+    if (identity(items[0]) !== pendingFirst.current || rows.length < from) {
+      // The list was replaced (a new first item, or fewer items: a new search). Stop waiting,
+      // so a later change to the list never moves focus.
       stop();
+    } else if (rows.length > from) {
+      arrive(rows[from]!, loadedLabel(rows.length));
     } else if (!hasButton) {
       // The last page came back empty and the button is gone: keep focus in the list.
-      arrive(rows[rows.length - 1]!);
+      arrive(rows[rows.length - 1]!, noMoreLabel);
+    } else if (loaded.current) {
+      // The load ended with no new items (it failed): stop waiting, as above.
+      stop();
     }
   });
 
@@ -298,6 +319,7 @@ function ShowMoreList(props: (ShowMoreItemsProps | ShowMoreLoadProps) & { showMo
     if (load) {
       event.preventDefault();
       pending.current = items.length;
+      pendingFirst.current = identity(items[0]);
       loaded.current = false;
       setFreshFrom(items.length);
       load.onShowMore();
@@ -308,6 +330,7 @@ function ShowMoreList(props: (ShowMoreItemsProps | ShowMoreLoadProps) & { showMo
       requestAnimationFrame(() => buttonRef.current?.scrollIntoView({ block: "nearest" }));
     } else {
       pending.current = count;
+      pendingFirst.current = identity(items[0]);
       setFreshFrom(count);
       setExpanded(true);
     }

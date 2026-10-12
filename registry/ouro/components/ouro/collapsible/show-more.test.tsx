@@ -257,21 +257,27 @@ describe("ShowMore loading more", () => {
 });
 
 describe("ShowMore focus after a load that adds nothing", () => {
-  type Api = { setCount: (count: number) => void; setLoading: (loading: boolean) => void; setHasMore: (hasMore: boolean) => void };
+  type Api = {
+    setQuery: (query: string) => void;
+    setCount: (count: number) => void;
+    setLoading: (loading: boolean) => void;
+    setHasMore: (hasMore: boolean) => void;
+  };
   let api!: Api;
   function Search({ useLoading = true }: { useLoading?: boolean }) {
+    const [query, setQuery] = useState("a");
     const [count, setCount] = useState(3);
     const [loading, setLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
     useEffect(() => {
-      api = { setCount, setLoading, setHasMore };
+      api = { setQuery, setCount, setLoading, setHasMore };
     }, []);
     return (
       <div>
         <input aria-label="Search recipes" />
         <ShowMore
           items={Array.from({ length: count }, (_, index) => (
-            <a key={index} href={`#${index}`}>
+            <a key={`${query}${index}`} href={`#${index}`}>
               Row {index}
             </a>
           ))}
@@ -297,6 +303,21 @@ describe("ShowMore focus after a load that adds nothing", () => {
     });
     expect(document.activeElement).toBe(input);
     await act(async () => api.setCount(6));
+    expect(document.activeElement).toBe(input);
+  });
+
+  it("stops waiting when the list is replaced by a longer one, without a loading prop", async () => {
+    const { host, button } = await render(<Search useLoading={false} />);
+    await userEvent.click(button!);
+    const input = host.querySelector("input")!;
+    input.focus();
+    // A new search answers before the page does, with more rows than were shown.
+    await act(async () => {
+      api.setQuery("b");
+      api.setCount(6);
+    });
+    expect(document.activeElement).toBe(input);
+    await act(async () => api.setCount(9));
     expect(document.activeElement).toBe(input);
   });
 
@@ -341,16 +362,46 @@ describe("ShowMore announcements", () => {
     expect(region.isConnected).toBe(true);
   });
 
-  it("takes the words from loadedLabel, and says the count when the last page is empty", async () => {
-    function Empty() {
-      const [hasMore, setHasMore] = useState(true);
+  it("takes the words from loadedLabel", async () => {
+    const { host, button } = await render(<Loading />);
+    await userEvent.click(button!);
+    await act(async () => finishLoad());
+    await expect.poll(() => host.querySelector("[data-ouro-show-more-status]")!.textContent).toBe("Showing 6 items");
+    function Labelled() {
+      const [count, setCount] = useState(2);
       return (
-        <ShowMore items={["A", "B"]} hasMore={hasMore} onShowMore={() => setHasMore(false)} loadedLabel={(count) => `Showing ${count} recipes`} />
+        <ShowMore items={recipes.slice(0, count)} hasMore={count < 4} onShowMore={() => setCount(4)} loadedLabel={(shown) => `Showing ${shown} recipes`} />
       );
     }
-    const { host, button } = await render(<Empty />);
+    const labelled = await render(<Labelled />);
+    await userEvent.click(labelled.button!);
+    await expect.poll(() => labelled.host.querySelector("[data-ouro-show-more-status]")!.textContent).toBe("Showing 4 recipes");
+  });
+
+  it("says there are no more items when a later page comes back empty, in the words of noMoreLabel", async () => {
+    function EmptyLast({ noMoreLabel }: { noMoreLabel?: string }) {
+      const [count, setCount] = useState(2);
+      const [hasMore, setHasMore] = useState(true);
+      return (
+        <ShowMore
+          items={recipes.slice(0, count)}
+          hasMore={hasMore}
+          noMoreLabel={noMoreLabel}
+          onShowMore={() => (count === 2 ? setCount(4) : setHasMore(false))}
+        />
+      );
+    }
+    const { host, button } = await render(<EmptyLast />);
+    const said = spoken(host);
     await userEvent.click(button!);
-    await expect.poll(() => host.querySelector("[data-ouro-show-more-status]")!.textContent).toBe("Showing 2 recipes");
+    await expect.poll(() => said).toEqual(["Showing 4 items"]);
+    await userEvent.click(host.querySelector<HTMLElement>("[data-ouro-show-more-toggle]")!);
+    await expect.poll(() => said).toEqual(["Showing 4 items", "No more items"]);
+    expect(document.activeElement).toBe(host.querySelectorAll("li")[3]);
+    const custom = await render(<EmptyLast noMoreLabel="Keine weiteren Rezepte" />);
+    await userEvent.click(custom.button!);
+    await userEvent.click(custom.host.querySelector<HTMLElement>("[data-ouro-show-more-toggle]")!);
+    await expect.poll(() => custom.host.querySelector("[data-ouro-show-more-status]")!.textContent).toBe("Keine weiteren Rezepte");
   });
 
   it("has no status region outside load mode", async () => {

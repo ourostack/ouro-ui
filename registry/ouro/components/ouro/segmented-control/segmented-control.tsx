@@ -47,7 +47,7 @@ export interface SegmentedControlProps {
   disabled?: boolean | undefined;
   /** Stretches the control to the width of its container, with the segments sharing it equally. */
   fullWidth?: boolean | undefined;
-  /** Submits the checked segment's value under this name with the form it sits in. */
+  /** Submits the checked segment's value under this name with the form it sits in, unless the control is `disabled`. */
   name?: string | undefined;
   /** Layout only: margins, grid placement (`mt-4`). Appearance classes warn in development. */
   className?: string | undefined;
@@ -183,6 +183,10 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
         onKeyDownCapture={(event) => {
           arrowed.current = /^(Arrow|Home$|End$)/.test(event.key);
         }}
+        onBlurCapture={(event) => {
+          // Focus leaving the group (by pointer, say) ends the arrow key's move.
+          if (!event.currentTarget.contains(event.relatedTarget)) arrowed.current = false;
+        }}
         disabled={disabled}
         className={cn(groupClass, fullWidth && "grid w-full")}
       >
@@ -209,7 +213,7 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
           </Toggle>
         ))}
       </ToggleGroup>
-      {name !== undefined && <input type="hidden" name={name} value={selected ?? ""} />}
+      {name !== undefined && <input type="hidden" name={name} value={selected ?? ""} disabled={disabled} />}
     </div>
   );
 }

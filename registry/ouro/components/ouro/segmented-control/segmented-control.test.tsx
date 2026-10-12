@@ -133,6 +133,27 @@ describe("SegmentedControl", () => {
     expect(onValueChange).toHaveBeenCalledTimes(3);
   });
 
+  it("never reports the checked value again, even after an arrow key that moves nowhere", async () => {
+    const onValueChange = vi.fn();
+    const only = [items[0]!, { ...items[1]!, disabled: true }, { ...items[2]!, disabled: true }];
+    const { segments } = await render(
+      <>
+        <SegmentedControl label="View" items={only} onValueChange={onValueChange} />
+        <button>After</button>
+      </>,
+    );
+    await userEvent.tab();
+    expect(document.activeElement).toBe(segments[0]);
+    // The only enabled segment: the arrow key keeps focus where it is.
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(segments[0]);
+    // Leave with the pointer, so no key clears the arrow, then come back with the keyboard.
+    await userEvent.click(page.getByRole("button", { name: "After" }));
+    await userEvent.tab({ shift: true });
+    expect(document.activeElement).toBe(segments[0]);
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
   it("skips a disabled segment with the arrow keys", async () => {
     const { segments } = await render(<SegmentedControl label="View" items={[items[0]!, { ...items[1]!, disabled: true }, items[2]!]} />);
     await userEvent.tab();
@@ -164,6 +185,13 @@ describe("SegmentedControl", () => {
       </form>,
     );
     expect(new FormData(empty.host.querySelector("form")!).get("view")).toBe("");
+    // A disabled control submits nothing, as a disabled native control does.
+    const disabled = await render(
+      <form>
+        <SegmentedControl label="View" name="view" items={items} defaultValue="grid" disabled />
+      </form>,
+    );
+    expect([...new FormData(disabled.host.querySelector("form")!).keys()]).toEqual([]);
   });
 
   it("gives every segment the same width", async () => {
