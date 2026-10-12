@@ -9,6 +9,8 @@ test("a press shows a toast that is announced politely and can be dismissed", as
   const toast = region.getByRole("dialog", { name: "Recipe saved" });
   await expect(toast).toBeVisible();
   await expect(toast).toContainText("Find it in your cookbook.");
+  // Base UI hides the close button from screen readers until the stack expands on hover or focus.
+  await toast.hover();
   await toast.getByRole("button", { name: "Dismiss" }).click();
   await expect(toast).toHaveCount(0);
 });
