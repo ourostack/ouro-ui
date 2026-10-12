@@ -123,7 +123,8 @@ export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from,
   // test (4.7x was seen), so these layout coordinates would miss. Undo the zoom first and
   // let a frame apply it.
   await session.send("Emulation.setPageScaleFactor", { pageScaleFactor: 1 });
-  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)));
+  // A string, since this file is type checked without the DOM library in apps.
+  await page.evaluate("new Promise((resolve) => requestAnimationFrame(resolve))");
   await touch("touchStart", from);
   for (let step = 1; step <= steps; step++) {
     const t = step / steps;
