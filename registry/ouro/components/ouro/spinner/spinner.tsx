@@ -68,6 +68,7 @@ function spinnerHint(token: string): string {
  * know how far along the work is, and `Skeleton` to hold the place of content that is
  * loading.
  *
+ * @group Feedback
  * @see https://ourostack.github.io/ouro-ui/docs/spinner
  *
  * @example

@@ -38,6 +38,7 @@ export const Playground: Story = {};
 
 /** A recipe card while it loads: an avatar, two lines of text and a photo. */
 export const RecipeCard: Story = {
+  parameters: { screenshot: { name: "skeleton-recipe-card" } },
   render: () => (
     <Surface>
       <div aria-busy="true" aria-label="Loading recipe" role="group" style={{ display: "grid", gap: 16 }}>

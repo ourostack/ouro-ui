@@ -79,6 +79,7 @@ const indicatorClass =
  * Use `Spinner` instead for a short wait with no measurable progress, and `Skeleton` to
  * hold the place of content that is loading.
  *
+ * @group Feedback
  * @see https://ourostack.github.io/ouro-ui/docs/progress
  *
  * @example

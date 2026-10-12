@@ -19,8 +19,6 @@ import {
 // Runs in Chromium and WebKit, at a phone width and a desktop width, so both
 // of Dialog's presentations are scanned.
 
-const storyModules = import.meta.glob(["../registry/**/*.stories.tsx", "../stories/**/*.stories.tsx"]);
-
 /** axe's result as readable lines: rule, impact, help and the offending selectors. */
 function describeViolations(violations: axe.Result[]): string {
   return violations
@@ -59,9 +57,12 @@ afterEach(async () => {
   await cleanupStories();
 });
 
-it("covers every story file", () => {
-  const files = Object.keys(storyModules).map((path) => path.replace(/^.*\/([\w-]+)\.stories\.tsx$/, "$1").replaceAll("-", ""));
-  expect(Object.keys(storyFiles).map((name) => name.toLowerCase()).sort()).toEqual(files.sort());
+it("covers every story file, each with stories", () => {
+  // test/stories.tsx finds the files by glob; the reference stories and Button must be among them.
+  expect(Object.keys(storyFiles)).toEqual(expect.arrayContaining(["Button", "SheetFeel"]));
+  for (const [file, composed] of Object.entries(storyFiles)) expect(Object.keys(composed).length, file).toBeGreaterThan(0);
+  // Every plain opener a story names is a button in that story (overlayOpeners throws otherwise).
+  expect(stories.filter((entry) => entry.parameters.plainOpeners).map((entry) => entry.id)).toEqual(expect.arrayContaining(["Dialog/Controlled", "Sheet/Controlled"]));
 });
 
 describe.each([

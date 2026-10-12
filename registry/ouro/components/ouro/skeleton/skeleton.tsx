@@ -64,6 +64,7 @@ function sizeClass(prefix: "w" | "h", value: unknown): string {
  * Use `Spinner` instead for a wait with no layout to hold, and `Progress` when you know how
  * far along the work is.
  *
+ * @group Display
  * @see https://ourostack.github.io/ouro-ui/docs/skeleton
  *
  * @example

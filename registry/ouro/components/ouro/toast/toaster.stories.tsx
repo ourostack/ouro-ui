@@ -97,6 +97,7 @@ function ShowOnMount() {
 
 /** Three toasts, stacked: the newest in front and the older ones peeking above it. They stay until dismissed. */
 export const Stack: Story = {
+  parameters: { screenshot: { name: "toaster-stack" } },
   render: (args) => (
     <Surface>
       <span style={{ color: "var(--muted-foreground)" }}>Hover the toasts to fan them out.</span>

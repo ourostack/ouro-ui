@@ -102,6 +102,7 @@ let missingCheck: ReturnType<typeof setTimeout> | undefined;
  * Use `Alert` instead when the message must stay on the page, such as a form's errors,
  * and `Dialog` when the user must answer before going on.
  *
+ * @group Feedback
  * @see https://ourostack.github.io/ouro-ui/docs/toaster
  *
  * @example

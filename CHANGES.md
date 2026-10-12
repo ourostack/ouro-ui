@@ -1,7 +1,0 @@
-# Changes in this release
-
-- New: `TextField` and `TextArea`, the first controls on the `Field` contract. `TextField` takes `type` (`text`, `email`, `password`, `tel`, `url`, `search`, `date`, `time`), which sets `inputMode` and `autoComplete`; a show/hide button for passwords; `startAdornment` and `endAdornment` in place of shadcn's InputGroup; and `clearable`, with `showPasswordLabel` and `clearLabel` to translate the button labels. `TextArea` grows with its text from `rows` to `maxRows` with `autoGrow`.
-- Text controls (`FieldControl`, `TextField`, `TextArea`) step down to the 36px desktop height and 14px text from the `sm` breakpoint only with a fine pointer, so a landscape phone or a touch tablet keeps 44px and 16px text, and iOS does not zoom on focus.
-- New: `Toaster` and `toast()`. Render `<Toaster />` once, then call `toast("Saved", { tone, description, action, duration })` from anywhere (`toast` is in `lib/ouro/toast`, installed with every component). Toasts queue (three at a time), pause on hover and focus, dismiss with a swipe, and are announced once, through the Toaster's polite region.
-- New: `Spinner` (`size`, `label`, `tone`), `Progress` (determinate, or indeterminate with `value={null}`; a required `label`) and `Skeleton` (`shape`: `rect`, `text`, `circle`). Under reduced motion each pulses its opacity instead of moving.
-- `ouro-base` adds the `ouro-progress` and `ouro-shimmer` keyframes. The `ouro-testing` kit adds a `touchDrag` command for real touch swipes in Chromium.

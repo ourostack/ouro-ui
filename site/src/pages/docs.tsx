@@ -5,6 +5,7 @@ import { agentExamples } from "../agents/examples";
 import { CodeBlock, Command, InlineCode } from "../components/code";
 import { DocsShell } from "../components/layout";
 import { demos } from "../docs/demos";
+import { groupOrder } from "../../../scripts/catalog-groups.mts";
 import { docsItems, GITHUB, installedPaths, partsSection, summary, type DocsItem } from "../docs/items";
 import { inline, Markdown, parse, type Block } from "../docs/markdown";
 import { href } from "../routes";
@@ -98,7 +99,8 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
 }
 
 export function DocsIndex(): JSX.Element {
-  const groups = ["Actions", "Text", "Forms", "Overlays", "Feedback", "Display"] as const;
+  // Every catalog group that has a component, in catalog order.
+  const groups = groupOrder.filter((group) => docsItems.some((item) => item.group === group));
   const card =
     "group grid h-full gap-1.5 rounded-xl border border-border p-4 no-underline outline-ring transition-colors hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-offset-2";
   return (

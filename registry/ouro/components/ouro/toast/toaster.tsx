@@ -53,6 +53,7 @@ export interface ToasterProps {
  * Use `Alert` instead for a message that stays on the page, and `Dialog` when the user
  * must answer before going on.
  *
+ * @group Feedback
  * @see https://ourostack.github.io/ouro-ui/docs/toaster
  *
  * @example

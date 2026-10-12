@@ -1,0 +1,2 @@
+- New: `Toaster` and `toast()`. Render `<Toaster />` once, then call `toast("Saved", { tone, description, action, duration })` from anywhere (`toast` is in `lib/ouro/toast`, installed with every component). Toasts queue (three at a time), pause on hover and focus, dismiss with a swipe, and are announced once, through the Toaster's polite region.
+- `ouro-base` adds the `ouro-progress` and `ouro-shimmer` keyframes. The `ouro-testing` kit adds a `touchDrag` command for real touch swipes in Chromium.

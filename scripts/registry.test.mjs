@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { readComponents } from "./components.mts";
 import { buildRegistry, cssToItem, itemForFile, rewriteDependencies, testingSetup } from "./registry.mts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -33,53 +34,54 @@ test("--check fails when registry.json is stale, and names the fix", () => {
   assert.match(result.stderr, /stale.*pnpm registry/s);
 });
 
+/** The components, in registry order, from each folder's component.json. */
+const components = readComponents(root).map((entry) => entry.name);
+/** The components this repository had when the manifests replaced the script's list: their order never changes. */
+const firstComponents = ["button", "text", "heading", "sheet", "dialog", "confirm-dialog", "field", "fieldset", "link", "text-field", "text-area"];
+
+test("the components come from each folder's component.json, in order, with the first ones in their original order", () => {
+  assert.deepEqual(
+    readComponents(root).slice(0, 3),
+    [
+      { name: "button", folder: "button", stem: "button", title: "Button" },
+      { name: "text", folder: "text", stem: "text", title: "Text" },
+      { name: "heading", folder: "text", stem: "heading", title: "Heading" },
+    ],
+  );
+  assert.deepEqual(components.filter((name) => firstComponents.includes(name)), firstComponents);
+  assert.equal(readComponents(root).find((entry) => entry.name === "confirm-dialog").title, "ConfirmDialog");
+});
+
+test("a component folder without a valid component.json fails with the fix", () => {
+  const copy = mkdtempSync(join(tmpdir(), "ouro-components-"));
+  cpSync(join(root, "registry"), join(copy, "registry"), { recursive: true });
+  const manifest = join(copy, "registry/ouro/components/ouro/link/component.json");
+  writeFileSync(manifest, JSON.stringify({ order: 60, components: ["link", "missing"] }));
+  assert.throws(() => readComponents(copy), /link\/component\.json lists missing, but missing\.tsx is not in the folder/);
+  writeFileSync(manifest, JSON.stringify({ components: ["link"] }));
+  assert.throws(() => readComponents(copy), /needs a numeric "order"/);
+  cpSync(join(copy, "registry/ouro/components/ouro/link"), join(copy, "registry/ouro/components/ouro/badge"), { recursive: true });
+  writeFileSync(join(copy, "registry/ouro/components/ouro/badge/component.json"), JSON.stringify({ order: 60, components: ["link"] }));
+  writeFileSync(manifest, JSON.stringify({ order: 60, components: ["link"] }));
+  // Equal orders sort by folder name.
+  assert.deepEqual(readComponents(copy).filter((entry) => entry.name === "link").map((entry) => entry.folder), ["badge", "link"]);
+});
+
 test("the registry is named ouro and lists every item", () => {
   assert.equal(registry.name, "ouro");
   assert.equal(registry.homepage, "https://ourostack.github.io/ouro-ui/");
-  assert.deepEqual(
-    registry.items.map((entry) => entry.name),
-    [
-      "ouro-base",
-      "ouro-theme",
-      "ouro-lib",
-      "ouro-testing",
-      "button",
-      "text",
-      "heading",
-      "sheet",
-      "dialog",
-      "confirm-dialog",
-      "field",
-      "fieldset",
-      "link",
-      "text-field",
-      "text-area",
-      "toaster",
-      "spinner",
-      "progress",
-      "skeleton",
-      "ouro-lib-tests",
-      "button-tests",
-      "text-tests",
-      "heading-tests",
-      "sheet-tests",
-      "dialog-tests",
-      "confirm-dialog-tests",
-      "field-tests",
-      "fieldset-tests",
-      "link-tests",
-      "text-field-tests",
-      "text-area-tests",
-      "toaster-tests",
-      "spinner-tests",
-      "progress-tests",
-      "skeleton-tests",
-      "ouro-tests",
-    ],
-  );
+  assert.deepEqual(registry.items.map((entry) => entry.name), [
+    "ouro-base",
+    "ouro-theme",
+    "ouro-lib",
+    "ouro-testing",
+    ...components,
+    "ouro-lib-tests",
+    ...components.map((name) => `${name}-tests`),
+    "ouro-tests",
+  ]);
 });
 
-const components = ["button", "text", "heading", "sheet", "dialog", "confirm-dialog", "field", "fieldset", "link", "text-field", "text-area", "toaster", "spinner", "progress", "skeleton"];
 const runtimeItems = ["ouro-base", "ouro-theme", "ouro-lib", ...components];
 const testFile = /\.(test|touch\.test)\.tsx?$|\.test-d\.ts$|\.stories\.tsx$|\.spec\.ts$/;
 
@@ -274,7 +276,7 @@ test("each item has a one-line description and a docs message with its docs URL"
   }
   assert.match(item("ouro-testing").description, /^Installed with every -tests item; you don't need to add it\. /);
   assert.match(item("sheet-tests").docs, /https:\/\/ourostack\.github\.io\/ouro-ui\/docs\/sheet\.md$/);
-  for (const name of ["button", "text", "heading", "sheet", "dialog", "confirm-dialog", "field", "fieldset", "link", "text-field", "text-area", "toaster", "spinner", "progress", "skeleton"]) {
+  for (const name of components) {
     assert.ok(item(name).docs.endsWith(`Docs: https://ourostack.github.io/ouro-ui/docs/${name}.md`), name);
   }
   assert.match(item("ouro-testing").docs, /ouroTestProjects/);
@@ -375,13 +377,12 @@ test("site/public/llms.txt gives the init, search and add commands and lists eve
   assert.ok(llms.includes("npx shadcn@latest init --base base --preset nova --yes --no-monorepo"));
   assert.ok(llms.includes("npx shadcn@latest search 'ourostack/ouro-ui#v"));
   assert.ok(llms.includes("npx shadcn@latest add ourostack/ouro-ui/dialog#v"));
-  const components = ["button", "text", "heading", "sheet", "dialog", "confirm-dialog", "field", "fieldset", "link", "text-field", "text-area", "toaster", "spinner", "progress", "skeleton"];
   for (const entry of registry.items) {
     // A component's line ends with its page's full Markdown URL, so an agent never composes one.
     const line = components.includes(entry.name)
       ? `- \`${entry.name}\`: ${entry.description} Docs: https://ourostack.github.io/ouro-ui/docs/${entry.name}.md\n`
       : `- \`${entry.name}\`: ${entry.description}\n`;
-    assert.ok(llms.includes(line), `llms.txt lists ${entry.name} with its registry description; update site/public/llms.txt`);
+    assert.ok(llms.includes(line), `llms.txt lists ${entry.name} with its registry description; run pnpm registry`);
   }
   assert.ok(llms.includes("https://ourostack.github.io/ouro-ui/docs/parts.md"), "llms.txt links parts.md");
 });

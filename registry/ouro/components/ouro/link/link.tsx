@@ -79,6 +79,7 @@ function linkHint(token: string): string {
  * Use `Button` with `href` instead when the link is the main action and should look like a
  * button. Inside running text, put the Link in a `Text`.
  *
+ * @group Text
  * @see https://ourostack.github.io/ouro-ui/docs/link
  *
  * @example

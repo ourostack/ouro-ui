@@ -28,28 +28,13 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import postcss from "postcss";
 import ts from "typescript";
+import { componentsDir, MANIFEST, readComponents } from "./components.mts";
 
 const REPO = "ourostack/ouro-ui";
 const DOCS_URL = "https://ourostack.github.io/ouro-ui/docs";
 
-/** Components: item name, folder under registry/ouro/components/ouro/, file stem, docs page. */
-const components = [
-  { name: "button", folder: "button", stem: "button", title: "Button" },
-  { name: "text", folder: "text", stem: "text", title: "Text" },
-  { name: "heading", folder: "text", stem: "heading", title: "Heading" },
-  { name: "sheet", folder: "sheet", stem: "sheet", title: "Sheet" },
-  { name: "dialog", folder: "dialog", stem: "dialog", title: "Dialog" },
-  { name: "confirm-dialog", folder: "dialog", stem: "confirm-dialog", title: "ConfirmDialog" },
-  { name: "field", folder: "field", stem: "field", title: "Field" },
-  { name: "fieldset", folder: "field", stem: "fieldset", title: "Fieldset" },
-  { name: "link", folder: "link", stem: "link", title: "Link" },
-  { name: "text-field", folder: "text-field", stem: "text-field", title: "TextField" },
-  { name: "text-area", folder: "text-field", stem: "text-area", title: "TextArea" },
-  { name: "toaster", folder: "toast", stem: "toaster", title: "Toaster" },
-  { name: "spinner", folder: "spinner", stem: "spinner", title: "Spinner" },
-  { name: "progress", folder: "progress", stem: "progress", title: "Progress" },
-  { name: "skeleton", folder: "skeleton", stem: "skeleton", title: "Skeleton" },
-];
+/** Components, from each folder's component.json (scripts/components.mts): item name, folder, file stem, export name. */
+const components = readComponents();
 
 /** Registry files that test this repository itself and never ship. */
 const repoOnly = new Set(["registry/ouro/theme/theme.test.tsx"]);
@@ -184,7 +169,6 @@ export interface Registry {
   items: RegistryItem[];
 }
 
-const componentsDir = "registry/ouro/components/ouro/";
 const libDir = "registry/ouro/lib/ouro/";
 const testingDir = "registry/ouro/lib/ouro/testing/";
 const e2eDir = "registry/ouro/e2e/ouro/";
@@ -317,7 +301,7 @@ function resolveRegistryImport(specifier: string, files: string[]): string {
 
 function listFiles(root: string): string[] {
   return (readdirSync(join(root, "registry"), { recursive: true, withFileTypes: true }) as import("node:fs").Dirent[])
-    .filter((entry) => entry.isFile() && entry.name !== ".DS_Store")
+    .filter((entry) => entry.isFile() && entry.name !== ".DS_Store" && entry.name !== MANIFEST)
     .map((entry) => relative(root, join(entry.parentPath, entry.name)).split("\\").join("/"))
     .sort();
 }
@@ -511,6 +495,16 @@ export function release(registry: Registry, version: string): Registry {
   return { ...head, version, items: items.map((item) => ({ ...item, docs: `${item.docs} Ouro UI v${version}.` })) };
 }
 
+/** site/public/llms.txt with its "## Items" list made from the registry: every item, and each component's docs page. */
+export function withLlmsItems(llms: string, registry: Registry): string {
+  const names = new Set(components.map((entry) => entry.name));
+  const lines = registry.items.map(
+    (item) => `- \`${item.name}\`: ${item.description}${names.has(item.name) ? ` Docs: ${DOCS_URL}/${item.name}.md` : ""}`,
+  );
+  if (!/\n## Items\n\n[\s\S]*?\n\n## /.test(llms)) throw new Error("site/public/llms.txt needs an ## Items section followed by another ## section.");
+  return llms.replace(/(\n## Items\n\n)[\s\S]*?(\n\n## )/, (_, head: string, tail: string) => `${head}${lines.join("\n")}${tail}`);
+}
+
 function main(argv: string[]): number {
   const root = join(dirname(fileURLToPath(import.meta.url)), "..");
   const flag = (name: string) => {
@@ -551,6 +545,10 @@ function main(argv: string[]): number {
     return 1;
   }
   const text = `${JSON.stringify(registry, null, 2)}\n`;
+  // The repository's own registry.json also lists its items in site/public/llms.txt.
+  const llmsPath = join(root, "site/public/llms.txt");
+  const llms = flag("--out") === undefined && from === undefined && deps === undefined ? readFileSync(llmsPath, "utf8") : undefined;
+  const llmsText = llms === undefined ? undefined : withLlmsItems(llms, buildRegistry(root));
   if (check) {
     const onMain = process.env["GITHUB_REF"] === "refs/heads/main" || process.env["GITHUB_BASE_REF"] === "main";
     if (onMain && (version || /"ourostack\/ouro-ui\/[\w-]+#v/.test(current))) {
@@ -561,10 +559,15 @@ function main(argv: string[]): number {
       process.stderr.write(`${relative(process.cwd(), out)} is stale. Run pnpm registry and commit the result.\n`);
       return 1;
     }
+    if (llmsText !== undefined && llmsText !== llms) {
+      process.stderr.write("site/public/llms.txt lists stale items. Run pnpm registry and commit the result.\n");
+      return 1;
+    }
     process.stdout.write("registry.json is up to date.\n");
     return 0;
   }
   writeFileSync(out, text);
+  if (llmsText !== undefined) writeFileSync(llmsPath, llmsText);
   return 0;
 }
 

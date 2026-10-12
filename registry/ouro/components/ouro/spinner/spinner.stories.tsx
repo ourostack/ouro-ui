@@ -43,6 +43,7 @@ export const Playground: Story = {};
 
 /** Sizes and tones. Without a tone the spinner takes the text color around it. */
 export const SizesAndTones: Story = {
+  parameters: { screenshot: { name: "spinner" } },
   render: () => (
     <Surface>
       <div style={row}>

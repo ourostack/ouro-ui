@@ -1,20 +1,6 @@
-import buttonDoc from "../../../docs/Button.md?raw";
-import confirmDialogDoc from "../../../docs/ConfirmDialog.md?raw";
-import dialogDoc from "../../../docs/Dialog.md?raw";
-import fieldDoc from "../../../docs/Field.md?raw";
-import fieldsetDoc from "../../../docs/Fieldset.md?raw";
-import headingDoc from "../../../docs/Heading.md?raw";
-import linkDoc from "../../../docs/Link.md?raw";
+import type { CatalogGroup } from "../../../scripts/catalog-groups.mts";
 import partsDoc from "../../../docs/parts.md?raw";
-import progressDoc from "../../../docs/Progress.md?raw";
-import sheetDoc from "../../../docs/Sheet.md?raw";
-import skeletonDoc from "../../../docs/Skeleton.md?raw";
-import spinnerDoc from "../../../docs/Spinner.md?raw";
-import textDoc from "../../../docs/Text.md?raw";
-import textAreaDoc from "../../../docs/TextArea.md?raw";
-import textFieldDoc from "../../../docs/TextField.md?raw";
-import toastDoc from "../../../docs/toast.md?raw";
-import toasterDoc from "../../../docs/Toaster.md?raw";
+import catalog from "./catalog.json";
 
 /**
  * One docs page per registry item. `name` is the registry item name, so the page lives at
@@ -27,50 +13,30 @@ export interface DocsItem {
   /** The component's export name. */
   title: string;
   /** Catalog group, as in the README catalog. */
-  group: "Actions" | "Text" | "Forms" | "Overlays" | "Feedback" | "Display";
+  group: CatalogGroup;
   /** The registry source file, from the repo root. */
   source: string;
   /** docs/<title>.md, generated. */
   markdown: string;
   /** The family in docs/parts.md whose nesting this page shows, if it has parts. */
-  parts?: "Sheet" | "Dialog" | "Field";
+  parts?: string;
+  /** Functions documented on this page too, after the component: `toast` on the Toaster page. */
+  functions?: string[];
 }
 
-export const docsItems: DocsItem[] = [
-  { name: "button", title: "Button", group: "Actions", source: "registry/ouro/components/ouro/button/button.tsx", markdown: buttonDoc },
-  { name: "text", title: "Text", group: "Text", source: "registry/ouro/components/ouro/text/text.tsx", markdown: textDoc },
-  { name: "heading", title: "Heading", group: "Text", source: "registry/ouro/components/ouro/text/heading.tsx", markdown: headingDoc },
-  { name: "link", title: "Link", group: "Text", source: "registry/ouro/components/ouro/link/link.tsx", markdown: linkDoc },
-  { name: "field", title: "Field", group: "Forms", source: "registry/ouro/components/ouro/field/field.tsx", markdown: fieldDoc, parts: "Field" },
-  { name: "fieldset", title: "Fieldset", group: "Forms", source: "registry/ouro/components/ouro/field/fieldset.tsx", markdown: fieldsetDoc },
-  {
-    name: "text-field",
-    title: "TextField",
-    group: "Forms",
-    source: "registry/ouro/components/ouro/text-field/text-field.tsx",
-    markdown: textFieldDoc,
-  },
-  { name: "text-area", title: "TextArea", group: "Forms", source: "registry/ouro/components/ouro/text-field/text-area.tsx", markdown: textAreaDoc },
-  { name: "sheet", title: "Sheet", group: "Overlays", source: "registry/ouro/components/ouro/sheet/sheet.tsx", markdown: sheetDoc, parts: "Sheet" },
-  { name: "dialog", title: "Dialog", group: "Overlays", source: "registry/ouro/components/ouro/dialog/dialog.tsx", markdown: dialogDoc, parts: "Dialog" },
-  {
-    name: "confirm-dialog",
-    title: "ConfirmDialog",
-    group: "Overlays",
-    source: "registry/ouro/components/ouro/dialog/confirm-dialog.tsx",
-    markdown: confirmDialogDoc,
-  },
-  {
-    name: "toaster",
-    title: "Toaster",
-    group: "Feedback",
-    source: "registry/ouro/components/ouro/toast/toaster.tsx",
-    markdown: `${toasterDoc}\n${functionSection(toastDoc)}`,
-  },
-  { name: "spinner", title: "Spinner", group: "Feedback", source: "registry/ouro/components/ouro/spinner/spinner.tsx", markdown: spinnerDoc },
-  { name: "progress", title: "Progress", group: "Feedback", source: "registry/ouro/components/ouro/progress/progress.tsx", markdown: progressDoc },
-  { name: "skeleton", title: "Skeleton", group: "Display", source: "registry/ouro/components/ouro/skeleton/skeleton.tsx", markdown: skeletonDoc },
-];
+/** docs/<Export>.md, generated, by export name. */
+const markdownFiles = import.meta.glob<string>("../../../docs/*.md", { query: "?raw", import: "default", eager: true });
+
+/** Every component's page, from site/src/docs/catalog.json, which `pnpm run docs` writes from the registry. */
+export const docsItems: DocsItem[] = (catalog as Array<Omit<DocsItem, "markdown">>).map((item) => {
+  const generated = (title: string) => {
+    const markdown = markdownFiles[`../../../docs/${title}.md`];
+    if (markdown === undefined) throw new Error(`docs/${title}.md is missing; run pnpm run docs.`);
+    return markdown;
+  };
+  const markdown = [generated(item.title), ...(item.functions ?? []).map((name) => functionSection(generated(name)))].join("\n");
+  return { ...item, markdown };
+});
 
 /**
  * A function's generated page (docs/toast.md) as one section of its component's page: its
@@ -85,7 +51,7 @@ function functionSection(markdown: string): string {
 }
 
 /** The `## <family> parts` section of docs/parts.md, without its heading. */
-export function partsSection(family: "Sheet" | "Dialog" | "Field"): string {
+export function partsSection(family: string): string {
   const start = partsDoc.indexOf(`## ${family} parts\n`);
   const body = partsDoc.slice(start).split("\n").slice(1).join("\n");
   const end = body.search(/^## /m);

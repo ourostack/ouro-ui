@@ -1,0 +1,1 @@
+- New: `Progress`, a labeled progress bar: determinate with a number `value`, or indeterminate with `value={null}`; a required `label`. Under reduced motion the indeterminate bar pulses instead of sliding.

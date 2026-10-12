@@ -42,6 +42,7 @@ export const Playground: Story = {};
 
 /** Determinate bars with their values, an indeterminate one, and one with a hidden label. */
 export const States: Story = {
+  parameters: { screenshot: { name: "progress-states" } },
   render: () => (
     <Surface>
       <Progress label="Uploading photos" value={40} showValue />

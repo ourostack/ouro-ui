@@ -114,6 +114,7 @@ export type ConfirmDialogProps = ConfirmDialogWithTriggerProps | ConfirmDialogCo
  * without a name so VoiceOver's cursor stays trapped. Exclude them:
  * `new AxeBuilder({ page }).exclude("[data-base-ui-focus-guard]")`.
  *
+ * @group Overlays
  * @see https://ourostack.github.io/ouro-ui/docs/confirm-dialog
  *
  * @example
