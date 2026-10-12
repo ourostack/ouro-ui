@@ -1,1 +1,0 @@
-- New: `Kbd`, a keyboard shortcut from `keys={["mod", "k"]}`: ⌘K on Apple platforms and Ctrl+K elsewhere, with modifiers in the platform's order (⌃⌥⇧⌘ on Apple) and spoken names for symbols. `cmd` is Win on Windows and Ctrl on Linux and ChromeOS. Server HTML shows the key names, and Apple devices switch to the glyphs after hydration.
