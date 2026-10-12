@@ -30,9 +30,12 @@ export default defineConfig({
       "@base-ui/react/field",
       "@base-ui/react/fieldset",
       "@base-ui/react/form",
+      "@base-ui/react/popover",
+      "@base-ui/react/preview-card",
       "@base-ui/react/progress",
       "@base-ui/react/separator",
       "@base-ui/react/toast",
+      "@base-ui/react/tooltip",
     ],
   },
   test: {

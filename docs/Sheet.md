@@ -45,7 +45,7 @@ Props every mode takes. Type: `SheetProps`.
 | `description` | `ReactNode` |  | A short line under the title, read out when the sheet opens. |
 | `footer` | `ReactNode` |  | The actions row, stacked full width on phones; primary action last. |
 | `hideTitle` | `boolean` |  | Hides the title visually. It still names the dialog for screen readers. |
-| `side` | `"bottom" \| "top" \| "left" \| "right"` | `"bottom"` | The edge the sheet slides in from and is dragged back to. |
+| `side` | `"top" \| "bottom" \| "left" \| "right"` | `"bottom"` | The edge the sheet slides in from and is dragged back to. |
 | `snapPoints` | `SheetSnapPoint[]` |  | Heights a bottom or top sheet rests at, smallest first: fractions of the viewport (`0.5`), `px` or `rem`. `snapPoints={[0.5, 1]}` opens at half height and drags up to full. Without snap points the sheet fits its content. |
 | `title` (required) | `string` |  | Names the sheet for screen readers and shows at its top. Always required; hide it with `hideTitle`. |
 
