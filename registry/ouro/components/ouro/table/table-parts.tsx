@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useId,
   useRef,
   type CSSProperties,
   type HTMLAttributes,
@@ -18,7 +19,7 @@ import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { devThrow, devWarn } from "@/registry/ouro/lib/ouro/dev";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
-import { RouterLink } from "@/registry/ouro/lib/ouro/router-link";
+import { RouterLink, safeRel } from "@/registry/ouro/lib/ouro/router-link";
 import { raiseControlsClass, stretchedLinkClass } from "@/registry/ouro/lib/ouro/stretched-link";
 import { ScrollArea } from "@/registry/ouro/components/ouro/scroll-area/scroll-area";
 import {
@@ -44,6 +45,10 @@ type Section = "head" | "body" | "foot";
 interface RowState {
   section: Section;
   href: string | undefined;
+  external: boolean;
+  externalLabel: string;
+  /** The first row header cell to render claims the row link, so a row has one link and one tab stop. */
+  claim: { owner?: string };
 }
 
 const TableContext = createContext<TableState | null>(null);
@@ -72,6 +77,9 @@ function useTable(part: keyof typeof shapes): TableState {
   const table = useContext(TableContext);
   return table ?? misplaced(part, "Table");
 }
+
+/** What a row link can't contain: anything that takes its own clicks or focus. */
+const interactive = "a,button,input,select,textarea,summary,[tabindex]:not([tabindex='-1']),[role=button]";
 
 const alignHint = (part: string) =>
   process.env.NODE_ENV !== "production" ? `<${part} align="end">` : /* istanbul ignore next @preserve -- production only */ undefined;
@@ -257,6 +265,13 @@ export interface TableRowProps extends HTMLAttributes<HTMLTableRowElement> {
    * 44px tall.
    */
   href?: string | undefined;
+  /** With `href`: opens the link in a new tab, safely, and tells screen readers so with `externalLabel`. */
+  external?: boolean | undefined;
+  /**
+   * What screen readers hear after the link's name when `external` opens it in a new tab.
+   * @default "(opens in a new tab)"
+   */
+  externalLabel?: string | undefined;
   /** Layout only. Appearance classes warn in development; use the Table's `striped`. */
   className?: string | undefined;
   ref?: Ref<HTMLTableRowElement> | undefined;
@@ -273,7 +288,7 @@ export interface TableRowProps extends HTMLAttributes<HTMLTableRowElement> {
  * </TableRow>
  */
 export function TableRow(props: TableRowProps): JSX.Element {
-  const { href, className, ref, children, ...rest } = props;
+  const { href, external, externalLabel = "(opens in a new tab)", className, ref, children, ...rest } = props;
   const table = useTable("TableRow");
   const kind = useContext(SectionContext) ?? misplaced("TableRow", "TableBody");
   const own = useRef<HTMLTableRowElement>(null);
@@ -288,18 +303,39 @@ export function TableRow(props: TableRowProps): JSX.Element {
     /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
     if (process.env.NODE_ENV !== "production") {
       const row = own.current;
-      if (!linked || !row || row.querySelector("[data-stretched-link]")) return;
-      const text = row.cells[0]?.textContent || "…";
-      devWarn(
-        "TableRow",
-        "href needs a row header cell, which holds the link and names it",
-        `<TableRow href="${href}"><TableCell rowHeader>${text}</TableCell>…</TableRow>`,
-        own,
-      );
+      /* istanbul ignore if @preserve -- the ref is set before effects run */
+      if (!row) return;
+      if (href !== undefined && !linked) {
+        devWarn("TableRow", "href works on body rows only", '<TableBody><TableRow href="…">…</TableRow></TableBody>', own);
+        return;
+      }
+      if (!linked) return;
+      const link = row.querySelector("[data-stretched-link]");
+      if (!link) {
+        const text = row.cells[0]?.textContent || "…";
+        devWarn(
+          "TableRow",
+          "href needs a row header cell, which holds the link and names it",
+          `<TableRow href="${href}"><TableCell rowHeader>${text}</TableCell>…</TableRow>`,
+          own,
+        );
+        return;
+      }
+      const nameFix = '{ key: "name", header: "Recipe", rowHeader: true }, or <TableCell rowHeader>Name</TableCell>';
+      const name = [...link.childNodes]
+        .filter((node) => !(node instanceof Element && node.hasAttribute("data-external-label")))
+        .map((node) => node.textContent)
+        .join("")
+        .trim();
+      if (link.querySelector(interactive)) devWarn("TableRow", "the row link holds a control, and a link can't contain one", nameFix, own);
+      else if (!name && !link.querySelector("img[alt]:not([alt=''])")) devWarn("TableRow", "the row link has no text to name it", nameFix, own);
+      if (row.querySelectorAll("th[scope=row]").length > 1) {
+        devWarn("TableRow", "two cells are row headers, and only the first holds the row link", "<TableCell rowHeader> on the name cell only", own);
+      }
     }
   });
   return (
-    <RowContext.Provider value={{ section: kind, href: linked ? href : undefined }}>
+    <RowContext.Provider value={{ section: kind, href: linked ? href : undefined, external: Boolean(external), externalLabel, claim: {} }}>
       <tr
         {...rest}
         ref={merged}
@@ -415,8 +451,12 @@ export function TableCell(props: TableCellProps): JSX.Element {
   const { rowHeader, align, wrap, className, children, ...rest } = props;
   const table = useTable("TableCell");
   const row = useContext(RowContext) ?? misplaced("TableCell", "TableRow");
+  const id = useId();
   useAppearanceClassNameCheck("TableCell", className, cellHint(), alignHint("TableCell"));
   useAlignCheck("TableCell", align);
+  // The first row header cell holds the row link; a second one stays plain (TableRow warns).
+  if (rowHeader && row.href !== undefined) row.claim.owner ??= id;
+  const holdsLink = rowHeader && row.href !== undefined && row.claim.owner === id;
   const Element = rowHeader ? "th" : "td";
   return (
     <Element
@@ -432,9 +472,22 @@ export function TableCell(props: TableCellProps): JSX.Element {
         className,
       )}
     >
-      {rowHeader && row.href !== undefined ? (
-        <RouterLink href={row.href} data-table-row-link="" data-stretched-link="" className={cn(stretchedLinkClass, rowLinkClass)}>
+      {holdsLink ? (
+        <RouterLink
+          href={row.href!}
+          target={row.external ? "_blank" : undefined}
+          rel={row.external ? safeRel(undefined) : undefined}
+          data-table-row-link=""
+          data-stretched-link=""
+          className={cn(stretchedLinkClass, rowLinkClass)}
+        >
           {children}
+          {row.external && (
+            <span data-external-label="" className="sr-only">
+              {" "}
+              {row.externalLabel}
+            </span>
+          )}
         </RouterLink>
       ) : (
         children

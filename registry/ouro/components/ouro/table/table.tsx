@@ -24,7 +24,8 @@ export interface TableColumnBase {
   align?: TableAlign | (string & { 'Use "start", "center" or "end": right is "end"': never }) | undefined;
   /**
    * Makes this column the rows' headers (`<th scope="row">`), what each row is. With
-   * `rowHref` its cell holds the row's link and names it. Without one, the first column is.
+   * `rowHref` its cell holds the row's link and names it. Without one, the first column with
+   * no `cell` renderer is, or else the first column.
    */
   rowHeader?: boolean | undefined;
   /** Lets long text wrap onto more lines, at least 192px wide, instead of widening the table. */
@@ -124,6 +125,13 @@ export interface TableDataProps<Row> {
    * touch screen a linked row is at least 44px tall.
    */
   rowHref?: TableKeysOf<Row, string | undefined> | ((row: Row) => string | undefined) | undefined;
+  /** Opens every row link in a new tab, safely, and tells screen readers so with `externalLabel`. */
+  rowExternal?: boolean | undefined;
+  /**
+   * What screen readers hear after a row link's name with `rowExternal`.
+   * @default "(opens in a new tab)"
+   */
+  externalLabel?: string | undefined;
   /**
    * What the body shows when there are no rows, in one cell across every column.
    * @default "Nothing here yet."
@@ -147,6 +155,10 @@ export interface TablePartsProps {
   rowHref?: never;
   /** Only without parts. */
   empty?: never;
+  /** Only without parts. Give a row `<TableRow href="…" external>`. */
+  rowExternal?: never;
+  /** Only without parts. Give a row `<TableRow externalLabel="…">`. */
+  externalLabel?: never;
 }
 
 /**
@@ -234,6 +246,8 @@ export function Table<Row extends object = Record<string, unknown>>(props: Table
     rows,
     rowKey,
     rowHref,
+    rowExternal,
+    externalLabel,
     empty = "Nothing here yet.",
     children,
     data,
@@ -265,7 +279,10 @@ export function Table<Row extends object = Record<string, unknown>>(props: Table
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   const list = rows ?? [];
-  const headerIndex = Math.max(0, columns?.findIndex((column) => column.rowHeader) ?? 0);
+  // The row header holds the row link and names it: the column marked rowHeader, or else the
+  // first that shows a field's value (a `cell` renderer is often a checkbox or a badge).
+  const marked = columns?.findIndex((column) => column.rowHeader) ?? -1;
+  const headerIndex = marked >= 0 ? marked : Math.max(0, columns?.findIndex((column) => !column.cell) ?? 0);
   const alignOf = (align: string | undefined) => (align !== undefined && aligns.includes(align) ? (align as TableAlign) : undefined);
   const body =
     columns === undefined ? (
@@ -301,7 +318,7 @@ export function Table<Row extends object = Record<string, unknown>>(props: Table
                       : index;
               const href = typeof rowHref === "function" ? rowHref(row) : rowHref !== undefined ? (fields[rowHref] as string | undefined) : undefined;
               return (
-                <TableRow key={key} href={href}>
+                <TableRow key={key} href={href} external={rowExternal} externalLabel={externalLabel}>
                   {columns.map((column, columnIndex) => (
                     <TableCell key={column.key} rowHeader={columnIndex === headerIndex} align={alignOf(column.align)} wrap={column.wrap}>
                       {column.cell ? column.cell(row, index) : (fields[column.key] as ReactNode)}

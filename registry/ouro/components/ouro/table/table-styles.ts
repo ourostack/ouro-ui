@@ -11,7 +11,9 @@ const alignClasses = { start: "text-start", center: "text-center", end: "text-en
 
 // Cells stay on one line, so a wide table scrolls sideways instead of squeezing its columns.
 const cellBase = "m-0 align-middle whitespace-nowrap border-b border-border font-normal";
-const wrapClass = "whitespace-normal min-w-48";
+// `anywhere` (not `break-word`) also lowers the cell's minimum width, so a long URL wraps
+// instead of widening the column.
+const wrapClass = "whitespace-normal wrap-anywhere min-w-48";
 const cellPad = { md: "px-4 py-3", dense: "px-3 py-1.5" } as const;
 
 const headCell = "font-medium text-muted-foreground";

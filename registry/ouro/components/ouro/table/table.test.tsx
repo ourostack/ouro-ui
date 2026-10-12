@@ -191,6 +191,17 @@ describe("Table", () => {
     expect(getComputedStyle(other!).whiteSpace).toBe("nowrap");
   });
 
+  it("breaks a long URL in a wrap column instead of widening it", async () => {
+    const url = "https://example.com/recipes/braisedshortribswithredwineandaverylongslugindeedthatneverbreaks";
+    const { table } = await render(
+      <Table caption="Links" columns={[{ key: "name", header: "Recipe" }, { key: "url", header: "Link", wrap: true }]} rows={[{ id: 1, name: "Ribs", url }]} />,
+      358,
+    );
+    const cell = table.querySelector("tbody td")!;
+    expect(cell.getBoundingClientRect().width).toBeLessThan(300);
+    expect(cell.scrollWidth).toBeLessThanOrEqual(cell.clientWidth);
+  });
+
   it("passes attributes to the root, the ref to the table, and lets layout classes win", async () => {
     let element: HTMLTableElement | null = null;
     const { table } = await render(
@@ -255,6 +266,7 @@ describe("Table scrolling", () => {
 
 describe("Table with rowHref", () => {
   it("makes each linked row one link named by its row header, with one tab stop, covering the row", async () => {
+    await page.viewport(1280, 800);
     const { table } = await render(
       <Table
         caption="Recipes"
@@ -282,6 +294,57 @@ describe("Table with rowHref", () => {
     expect(getComputedStyle(links[0]!, "::after").outlineStyle).toBe("solid");
     await userEvent.tab();
     expect(document.activeElement).toBe(links[1]);
+  });
+
+  it("puts the row link in the first column without a cell renderer, past a leading checkbox", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { table } = await render(
+      <Table
+        caption="Recipes"
+        columns={[
+          { key: "pick", header: "Pick", cell: (row) => <input type="checkbox" aria-label={`Pick ${row.name}`} /> },
+          { key: "name", header: "Recipe" },
+          { key: "time", header: "Time" },
+        ]}
+        rows={recipes.slice(0, 1)}
+        rowHref="href"
+      />,
+    );
+    const link = page.getByRole("link", { name: "Braised short ribs" }).element();
+    expect(link.closest("th")!.getAttribute("scope")).toBe("row");
+    expect(table.querySelector("a input")).toBeNull();
+    expect(page.getByRole("rowheader").elements().map((cell) => cell.textContent)).toEqual(["Braised short ribs"]);
+    const box = page.getByRole("checkbox").element();
+    const [x, y] = center(box);
+    expect(box.contains(document.elementFromPoint(x, y))).toBe(true);
+    expect(warn).not.toHaveBeenCalled();
+    expect(error).not.toHaveBeenCalled();
+  });
+
+  it("opens external row links in a new tab, safely, and says so with a translatable label", async () => {
+    const { table } = await render(
+      <>
+        <Table caption="Sites" columns={[{ key: "name", header: "Site" }]} rows={[{ id: 1, name: "Ouro", href: "https://ouro.bot" }]} rowHref="href" rowExternal />
+        <Table
+          caption="Sitios"
+          columns={[{ key: "name", header: "Sitio" }]}
+          rows={[{ id: 1, name: "Ouro", href: "https://ouro.bot" }]}
+          rowHref="href"
+          rowExternal
+          externalLabel="(se abre en una pestaña nueva)"
+        />
+      </>,
+    );
+    const link = table.querySelector("a")!;
+    expect(link.getAttribute("target")).toBe("_blank");
+    expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+    await expect.element(page.getByRole("link", { name: "Ouro (opens in a new tab)" })).toBeInTheDocument();
+    await expect.element(page.getByRole("link", { name: "Ouro (se abre en una pestaña nueva)" })).toBeInTheDocument();
+  });
+
+  it("keeps internal row links in the same tab", async () => {
+    const { table } = await render(<Table caption="Recipes" columns={[{ key: "name", header: "Recipe" }]} rows={recipes.slice(0, 1)} rowHref="href" />);
+    expect(table.querySelector("a")!.hasAttribute("target")).toBe(false);
   });
 
   it("takes rowHref as the name of a field, as a Server Component passes it", async () => {
@@ -445,6 +508,73 @@ describe("Table parts", () => {
     expect(warn).toHaveBeenCalledWith('[ouro-ui] TableRoot: "bg-muted" sets appearance, and className is for layout only. Fix: put the table inside a <Card> for a frame.');
     await render(<TableRoot {...({ children: null } as unknown as Parameters<typeof TableRoot>[0])} />);
     expect(warn).toHaveBeenCalledWith('[ouro-ui] TableRoot: caption is required; it names the table. Fix: <TableRoot caption="Pantry">, with hideCaption when a heading already shows it.');
+  });
+
+  it("warns when the row link would hold a control, or has no text to name it", async () => {
+    await render(
+      <Table caption="Pantry">
+        <TableBody>
+          <TableRow href="#flour">
+            <TableCell rowHeader>
+              <input type="checkbox" aria-label="Pick flour" />
+            </TableCell>
+            <TableCell>Flour</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>,
+    );
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] TableRow: the row link holds a control, and a link can\'t contain one. Fix: { key: "name", header: "Recipe", rowHeader: true }, or <TableCell rowHeader>Name</TableCell>.',
+    );
+    warn.mockClear();
+    await render(
+      <Table caption="Pantry">
+        <TableBody>
+          <TableRow href="#flour">
+            <TableCell rowHeader />
+            <TableCell>Flour</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>,
+    );
+    expect(warn).toHaveBeenCalledWith('[ouro-ui] TableRow: the row link has no text to name it. Fix: { key: "name", header: "Recipe", rowHeader: true }, or <TableCell rowHeader>Name</TableCell>.');
+  });
+
+  it("keeps one row link when two cells are row headers, and warns", async () => {
+    const { table } = await render(
+      <Table caption="Pantry">
+        <TableBody>
+          <TableRow href="#flour">
+            <TableCell rowHeader>Flour</TableCell>
+            <TableCell rowHeader>Baking</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>,
+    );
+    expect([...table.querySelectorAll("a")].map((link) => link.textContent)).toEqual(["Flour"]);
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] TableRow: two cells are row headers, and only the first holds the row link. Fix: <TableCell rowHeader> on the name cell only.',
+    );
+  });
+
+  it("warns that href works on body rows only", async () => {
+    const { table } = await render(
+      <Table caption="Pantry">
+        <TableHeader>
+          <TableRow href="#head">
+            <TableHead>Item</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableFooter>
+          <TableRow href="#foot">
+            <TableCell rowHeader>Total</TableCell>
+          </TableRow>
+        </TableFooter>
+      </Table>,
+    );
+    expect(table.querySelector("a")).toBeNull();
+    expect(warn).toHaveBeenCalledWith("[ouro-ui] TableRow: href works on body rows only. Fix: <TableBody><TableRow href=\"…\">…</TableRow></TableBody>.");
+    expect(warn).toHaveBeenCalledTimes(2);
   });
 
   it("warns for a linked row with no cells, with a placeholder in the fix", async () => {

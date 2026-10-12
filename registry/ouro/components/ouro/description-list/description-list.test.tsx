@@ -87,6 +87,22 @@ describe("DescriptionList", () => {
     expect(getComputedStyle(list.children[3]!).borderTopWidth).toBe("0px");
   });
 
+  it("breaks a long URL or email instead of widening the page on a phone", async () => {
+    await page.viewport(390, 844);
+    const { list } = await render(
+      <div style={{ padding: "0 16px" }}>
+        <DescriptionList
+          items={[
+            { term: "Website", details: "https://example.com/a/very/long/path/that/never/breaks/on/its/own/recipes/braised-short-ribs" },
+            { term: "averyveryverylongtermwithoutanyspacesatall", details: "averyveryverylongemailaddresswithnospaces@example.com" },
+          ]}
+        />
+      </div>,
+    );
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
+    for (const cell of list.children) expect(cell.scrollWidth).toBeLessThanOrEqual(cell.clientWidth);
+  });
+
   it("stacks until 768px with stackBelow=md", async () => {
     await page.viewport(700, 800);
     const { list: md } = await render(<DescriptionList items={items} stackBelow="md" />);

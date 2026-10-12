@@ -124,8 +124,8 @@ export function DescriptionList(props: DescriptionListProps): JSX.Element {
         const loose = item as unknown as { label?: ReactNode; value?: ReactNode; description?: ReactNode };
         return (
           <Fragment key={index}>
-            <dt className={cn("m-0 border-t border-border font-normal text-muted-foreground first:border-t-0", layout.term)}>{item.term ?? loose.label}</dt>
-            <dd className={cn("m-0 text-foreground", layout.details)}>{item.details ?? loose.value ?? loose.description}</dd>
+            <dt className={cn("m-0 border-t border-border font-normal text-muted-foreground wrap-break-word first:border-t-0", layout.term)}>{item.term ?? loose.label}</dt>
+            <dd className={cn("m-0 text-foreground wrap-break-word", layout.details)}>{item.details ?? loose.value ?? loose.description}</dd>
           </Fragment>
         );
       })}

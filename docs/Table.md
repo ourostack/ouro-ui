@@ -64,16 +64,20 @@ Not in this mode (typed `never`):
 
 - `columns`: Only without parts.
 - `empty`: Only without parts.
+- `externalLabel`: Only without parts. Give a row `<TableRow externalLabel="…">`.
+- `rowExternal`: Only without parts. Give a row `<TableRow href="…" external>`.
 - `rowHref`: Only without parts. Give a linked row `<TableRow href="…">`.
 - `rowKey`: Only without parts.
 - `rows`: Only without parts.
 
-### With `columns` and `rows` and `rowKey` and `rowHref` and `empty`
+### With `columns` and `rows` and `rowKey` and `rowHref` and `rowExternal` and `externalLabel` and `empty`
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `columns` (required) | `readonly TableColumn<NoInfer<Row>>[]` |  | The columns, in order: each one's `header`, `key` and optional `cell`. |
 | `empty` | `ReactNode` | `"Nothing here yet."` | What the body shows when there are no rows, in one cell across every column. |
+| `externalLabel` | `string` | `"(opens in a new tab)"` | What screen readers hear after a row link's name with `rowExternal`. |
+| `rowExternal` | `boolean` |  | Opens every row link in a new tab, safely, and tells screen readers so with `externalLabel`. |
 | `rowHref` | `TableKeysOf<Row, string \| undefined> \| ((row: Row) => string \| undefined)` |  | Makes each row one link, with one tab stop, named by its row header cell: a function that returns the row's path (or `undefined` for a row that is not a link), or the name of a field that holds it (`rowHref="href"`), which a Server Component can pass. Buttons, links and inputs in the cells stay their own tab stops and take their own taps. On a touch screen a linked row is at least 44px tall. |
 | `rowKey` | `TableKeysOf<Row, string \| number> \| ((row: Row, index: number) => Key)` |  | Each row's React key: the name of a field (`rowKey="slug"`) or a function. Without it, a row's `id` field, or else its position. |
 | `rows` (required) | `readonly Row[]` |  | The rows, in the order to show them. Table does not sort or page them. |
@@ -155,7 +159,8 @@ interface TableColumnBase {
   align?: TableAlign | (string & { 'Use "start", "center" or "end": right is "end"': never }) | undefined;
   /**
    * Makes this column the rows' headers (`<th scope="row">`), what each row is. With
-   * `rowHref` its cell holds the row's link and names it. Without one, the first column is.
+   * `rowHref` its cell holds the row's link and names it. Without one, the first column with
+   * no `cell` renderer is, or else the first column.
    */
   rowHeader?: boolean | undefined;
   /** Lets long text wrap onto more lines, at least 192px wide, instead of widening the table. */
