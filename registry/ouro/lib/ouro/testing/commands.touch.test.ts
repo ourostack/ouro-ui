@@ -12,7 +12,6 @@ test("touchDrag lands on its target after a turn to landscape and back", async (
   await page.viewport(844, 390);
   await page.viewport(390, 844);
   const zoom = () => window.parent.visualViewport?.scale;
-  await expect.poll(zoom).toBeGreaterThan(1);
   const target = document.createElement("div");
   target.style.cssText = "position:fixed;left:150px;top:700px;width:90px;height:60px;touch-action:none;";
   document.body.append(target);

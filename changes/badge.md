@@ -1,1 +1,0 @@
-- New: `Badge`, with `tone` and `variant` (`solid`, `soft`, `outline`; default `tone="secondary" variant="solid"`). With `href` it is a link through your router, with `onClick` a button (pass `aria-pressed` for a filter chip), each with a 44px touch target on coarse pointers.
