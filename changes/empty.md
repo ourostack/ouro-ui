@@ -1,0 +1,1 @@
+- New: `Empty`, the empty state for a list, search or page, with `icon`, `title`, `description` and `action`.

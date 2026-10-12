@@ -1,0 +1,1 @@
+- New: `Stack` and `Row`, layout-only primitives with `gap` and `align` (and `justify`, Row's `wrap` and `stackBelow`), so agents stop hand-writing flex classes.

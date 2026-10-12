@@ -1,0 +1,336 @@
+import { type ReactNode } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { renderToString } from "react-dom/server";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { commands, page, userEvent } from "vitest/browser";
+import { AspectRatio } from "@/registry/ouro/components/ouro/aspect-ratio/aspect-ratio";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Card } from "@/registry/ouro/components/ouro/card/card";
+import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
+import { act } from "@/registry/ouro/lib/ouro/testing/act";
+
+const roots: Root[] = [];
+let mounted: Element[] = [];
+
+async function render(node: ReactNode) {
+  const host = document.createElement("div");
+  host.style.width = "360px";
+  host.style.padding = "16px";
+  document.body.append(host);
+  mounted.push(host);
+  const root = createRoot(host);
+  roots.push(root);
+  await act(async () => root.render(node));
+  return { host, card: host.querySelector<HTMLElement>('[data-ouro="card"]')! };
+}
+
+let warn: ReturnType<typeof vi.spyOn>;
+beforeEach(() => {
+  warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+});
+afterEach(async () => {
+  vi.restoreAllMocks();
+  await commands.emulateMedia({ reducedMotion: "no-preference" });
+  await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+  for (const node of mounted) node.remove();
+  mounted = [];
+});
+
+const pixel = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
+const RouterLink: OuroLinkComponent = (props) => <a data-router="" {...props} />;
+
+function center(element: Element) {
+  const rect = element.getBoundingClientRect();
+  return [rect.left + rect.width / 2, rect.top + rect.height / 2] as const;
+}
+
+describe("Card", () => {
+  it("renders its slots in order: media, title as <h3>, description, action, body, footer", async () => {
+    const { card } = await render(
+      <Card
+        media={
+          <AspectRatio ratio={4 / 3}>
+            <img src={pixel} alt="" />
+          </AspectRatio>
+        }
+        title="Weeknight dinners"
+        description="12 recipes"
+        action={<Button variant="plain">Share</Button>}
+        footer={<Button>Open</Button>}
+      >
+        <p data-body="">Fast, one-pan dinners.</p>
+      </Card>,
+    );
+    expect(card.tagName).toBe("DIV");
+    await expect.element(page.getByRole("heading", { level: 3, name: "Weeknight dinners" })).toBeVisible();
+    const order = [
+      card.querySelector('[data-ouro="aspect-ratio"]')!,
+      page.getByRole("heading").element(),
+      page.getByText("12 recipes").element(),
+      page.getByRole("button", { name: "Share" }).element(),
+      card.querySelector("[data-body]")!,
+      page.getByRole("button", { name: "Open" }).element(),
+    ];
+    const tops = order.map((element) => Math.round(element.getBoundingClientRect().top));
+    expect(tops[0]).toBeLessThan(tops[1]!);
+    expect(tops[1]).toBeLessThan(tops[2]!);
+    expect(tops[2]).toBeLessThan(tops[4]!);
+    expect(tops[4]).toBeLessThan(tops[5]!);
+    // The action sits beside the title, at the end.
+    expect(order[3]!.getBoundingClientRect().left).toBeGreaterThan(order[1]!.getBoundingClientRect().right);
+    // Media runs edge to edge, from the card's top.
+    const media = order[0]!.getBoundingClientRect();
+    const box = card.getBoundingClientRect();
+    expect(media.width).toBe(box.width - 2);
+    expect(media.top).toBe(box.top + 1);
+  });
+
+  it("is a bordered surface in the card colors, with 24px padding", async () => {
+    const { card } = await render(
+      <Card title="Pantry">
+        <span data-body="">Flour, rice, beans.</span>
+      </Card>,
+    );
+    const style = getComputedStyle(card);
+    expect(style.borderTopWidth).toBe("1px");
+    expect(style.paddingTop).toBe("24px");
+    const probe = document.createElement("span");
+    probe.style.backgroundColor = "var(--card)";
+    document.body.append(probe);
+    mounted.push(probe);
+    expect(style.backgroundColor).toBe(getComputedStyle(probe).backgroundColor);
+    const body = card.querySelector("[data-body]")!;
+    expect(body.getBoundingClientRect().left - card.getBoundingClientRect().left).toBe(25);
+  });
+
+  it("is tighter with size=sm", async () => {
+    const { card } = await render(
+      <Card title="Pantry" size="sm">
+        <span data-body="">Flour</span>
+      </Card>,
+    );
+    expect(getComputedStyle(card).paddingTop).toBe("16px");
+    const body = card.querySelector("[data-body]")!;
+    expect(body.getBoundingClientRect().left - card.getBoundingClientRect().left).toBe(17);
+  });
+
+  it("has no frame or padding with variant=plain", async () => {
+    const { card } = await render(
+      <Card title="Passkeys" variant="plain">
+        Two passkeys
+      </Card>,
+    );
+    const style = getComputedStyle(card);
+    expect(style.borderTopWidth).toBe("0px");
+    expect(style.paddingTop).toBe("0px");
+    expect(style.backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    const body = page.getByText("Two passkeys").element();
+    expect(body.getBoundingClientRect().left).toBe(card.getBoundingClientRect().left);
+  });
+
+  it("rounds plain media itself", async () => {
+    const { card } = await render(
+      <Card variant="plain" media={<img src={pixel} alt="" style={{ height: 40 }} />} title="Cover" />,
+    );
+    const media = card.firstElementChild as HTMLElement;
+    expect(getComputedStyle(media).borderTopLeftRadius).not.toBe("0px");
+    expect(getComputedStyle(media).overflow).toBe("hidden");
+  });
+
+  it.each([2, 4, 5, 6] as const)("renders the title at headingLevel %i", async (level) => {
+    await render(<Card title="Pantry" headingLevel={level} />);
+    await expect.element(page.getByRole("heading", { level, name: "Pantry" })).toBeVisible();
+  });
+
+  it.each(["article", "section", "li"] as const)("renders as %s", async (as) => {
+    const { card } = await render(as === "li" ? <ul><Card as="li" title="x" /></ul> : <Card as={as} title="x" />);
+    expect(card.tagName).toBe(as.toUpperCase());
+  });
+
+  it("renders only the body without a title, description or action", async () => {
+    const { card } = await render(<Card>Just a body</Card>);
+    expect(card.querySelector("h3")).toBeNull();
+    expect(card.children).toHaveLength(1);
+  });
+
+  it("passes attributes and a ref through, and lets layout classes win", async () => {
+    let node: HTMLElement | null = null;
+    const { card } = await render(
+      <Card title="x" id="pantry" className="mt-4 w-48" ref={(element) => void (node = element)}>
+        y
+      </Card>,
+    );
+    expect(card.id).toBe("pantry");
+    expect(node).toBe(card);
+    expect(getComputedStyle(card).marginTop).toBe("16px");
+    expect(getComputedStyle(card).width).toBe("192px");
+    expect(warn).not.toHaveBeenCalled();
+  });
+});
+
+describe("Card with href", () => {
+  it("is one link named by its title, which covers the whole card", async () => {
+    const { card } = await render(
+      <Card href="/cookbooks/1" title="Weeknight dinners" description="12 recipes" footer={<span>Updated today</span>}>
+        <p data-body="">Fast dinners</p>
+      </Card>,
+    );
+    const links = card.querySelectorAll("a");
+    expect(links).toHaveLength(1);
+    const link = links[0]!;
+    expect(link.getAttribute("href")).toBe("/cookbooks/1");
+    await expect.element(page.getByRole("link", { name: "Weeknight dinners" })).toBeVisible();
+    // The link's hit area covers the description, the body and the footer.
+    for (const selector of ["[data-body]", "span"]) {
+      const [x, y] = center(card.querySelector(selector)!);
+      expect(document.elementFromPoint(x, y)).toBe(link);
+    }
+    const [x, y] = center(page.getByText("12 recipes").element());
+    expect(document.elementFromPoint(x, y)).toBe(link);
+    expect(getComputedStyle(card).cursor === "pointer" || getComputedStyle(link).cursor === "pointer").toBe(true);
+  });
+
+  it("keeps the action and footer controls on top, as their own tab stops", async () => {
+    const onShare = vi.fn();
+    const { card } = await render(
+      <Card href="/cookbooks/1" title="Weeknight dinners" action={<Button onClick={onShare}>Share</Button>} footer={<Button>Cook</Button>}>
+        Fast dinners
+      </Card>,
+    );
+    const share = page.getByRole("button", { name: "Share" }).element() as HTMLElement;
+    const cook = page.getByRole("button", { name: "Cook" }).element() as HTMLElement;
+    for (const button of [share, cook]) {
+      const [x, y] = center(button);
+      expect(button.contains(document.elementFromPoint(x, y))).toBe(true);
+    }
+    share.click();
+    expect(onShare).toHaveBeenCalledTimes(1);
+    // Tab order: the link, then the action, then the footer.
+    const before = document.createElement("button");
+    before.textContent = "before";
+    card.parentElement!.prepend(before);
+    before.focus();
+    await userEvent.tab();
+    expect(document.activeElement).toBe(card.querySelector("a"));
+    await userEvent.tab();
+    expect(document.activeElement).toBe(share);
+    await userEvent.tab();
+    expect(document.activeElement).toBe(cook);
+  });
+
+  it("outlines the whole card when the link has keyboard focus", async () => {
+    const { card } = await render(<Card href="/x" title="Go" />);
+    expect(getComputedStyle(card).outlineStyle).toBe("none");
+    const before = document.createElement("button");
+    card.parentElement!.prepend(before);
+    before.focus();
+    await userEvent.tab();
+    expect(getComputedStyle(card).outlineStyle).toBe("solid");
+  });
+
+  it("scales to --ouro-press-scale while pressed, and not with reduced motion", async () => {
+    async function pressedScale(card: HTMLElement) {
+      await commands.pointerPress({ selector: "[data-press-probe]", action: "down" });
+      try {
+        let last = "";
+        await expect
+          .poll(() => {
+            const scale = getComputedStyle(card).scale;
+            const still = scale === last && card.getAnimations().length === 0;
+            last = scale;
+            return still;
+          }, { interval: 50 })
+          .toBe(true);
+        return last;
+      } finally {
+        await commands.pointerPress({ action: "up" });
+      }
+    }
+    const { card } = await render(
+      <Card href="#pressed" title="Press" data-press-probe="">
+        Body
+      </Card>,
+    );
+    expect(getComputedStyle(card).scale).toBe("none");
+    expect(await pressedScale(card)).toBe("0.97");
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    expect(await pressedScale(card)).toBe("none");
+  });
+
+  it("renders the provider's linkComponent and forwards linkRef to the anchor", async () => {
+    let anchor: HTMLAnchorElement | null = null;
+    const { card } = await render(
+      <OuroProvider linkComponent={RouterLink}>
+        <Card href="/cookbooks/1" title="Dinners" linkRef={(node) => void (anchor = node)} />
+      </OuroProvider>,
+    );
+    const link = card.querySelector("a")!;
+    expect(link.hasAttribute("data-router")).toBe(true);
+    expect(anchor).toBe(link);
+  });
+
+  it("opens in a new tab with external, and says so", async () => {
+    const { card } = await render(<Card href="https://ouro.bot" external title="Ouro" />);
+    const link = card.querySelector("a")!;
+    expect(link.getAttribute("target")).toBe("_blank");
+    expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+    await expect.element(page.getByRole("link", { name: "Ouro (opens in a new tab)" })).toBeVisible();
+  });
+});
+
+describe("Card development messages", () => {
+  it.each([
+    ["href without title", { href: "/x" }, "href needs a title, which is the link's text", '<Card href="/x" title="Weeknight dinners">'],
+    ["subtitle", { title: "x", subtitle: "12 recipes" }, "subtitle is not a prop", '<Card description="12 recipes">'],
+    ["image", { title: "x", image: "/a.jpg" }, "image is not a prop", "<Card media={<AspectRatio ratio={4 / 3}><img src=… alt=\"\" /></AspectRatio>}>"],
+    ["header", { title: "x", header: "y" }, "header is not a prop", '<Card title="…" description="…" action={…}>'],
+    ["actions", { title: "x", actions: "y" }, "actions is not a prop", "<Card action={<Button>…</Button>}> beside the title, or footer={…} below"],
+    ["to", { title: "x", to: "/x" }, "to is not a prop", '<Card href="/x" title="…">'],
+    ["to object", { title: "x", to: { pathname: "/x" } }, "to is not a prop", '<Card href="/path" title="…">'],
+    ["asChild", { title: "x", asChild: true }, "asChild is not a prop", '<Card href="/path" title="…">'],
+    ["variant", { title: "x", variant: "elevated" }, 'variant="elevated" is not a variant; use "outline", "plain"', '<Card variant="outline">'],
+    ["size", { title: "x", size: "lg" }, 'size="lg" is not a size; use "md", "sm"', '<Card size="md">'],
+    ["as", { title: "x", as: "a" }, 'as="a" is not an element Card renders; use "div", "article", "section", "li"', '<Card href="/path" title="…">'],
+    ["as span", { title: "x", as: "span" }, 'as="span" is not an element Card renders; use "div", "article", "section", "li"', '<Card as="div">'],
+    ["headingLevel", { title: "x", headingLevel: 1 }, "headingLevel must be 2, 3, 4, 5 or 6, got 1", "<Card headingLevel={2}>"],
+  ])("warns for %s with the fix", async (_name, props, problem, fix) => {
+    const { card } = await render(<Card {...(props as unknown as Parameters<typeof Card>[0])} />);
+    expect(warn).toHaveBeenCalledWith(`[ouro-ui] Card: ${problem}. Fix: ${fix}.`);
+    for (const attribute of ["subtitle", "image", "header", "actions", "to", "aschild"]) expect(card.hasAttribute(attribute)).toBe(false);
+  });
+
+  it("renders the defaults for unknown values", async () => {
+    const { card } = await render(
+      <Card {...({ title: "x", variant: "elevated", size: "lg", as: "span", headingLevel: 9 } as unknown as Parameters<typeof Card>[0])} />,
+    );
+    expect(card.tagName).toBe("DIV");
+    expect(getComputedStyle(card).borderTopWidth).toBe("1px");
+    expect(getComputedStyle(card).paddingTop).toBe("24px");
+    expect(card.querySelector("h3")).not.toBeNull();
+  });
+
+  it.each([
+    ["bg-white", '<Card variant="plain"> inside your own surface, or the theme\'s --card color'],
+    ["rounded-none", ":root { --radius: 0px }"],
+    ["shadow-lg", '<Card variant="plain"> inside your own surface, or the theme\'s --card color'],
+  ])("checks the className %s", async (className, fix) => {
+    await render(<Card title="x" className={className} />);
+    expect(warn).toHaveBeenCalledWith(`[ouro-ui] Card: "${className}" sets appearance, and className is for layout only. Fix: ${fix}.`);
+  });
+
+  it("renders to a string without warnings", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const html = renderToString(
+      <>
+        <Card title="Dinners" description="12 recipes" className="bg-red-500">
+          Body
+        </Card>
+        <Card href="/x" title="Linked" />
+      </>,
+    );
+    expect(html).toContain('data-ouro="card"');
+    expect(html).toContain('href="/x"');
+    expect(warn).not.toHaveBeenCalled();
+    expect(error).not.toHaveBeenCalled();
+  });
+});

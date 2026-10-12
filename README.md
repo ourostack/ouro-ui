@@ -192,6 +192,23 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **Dialog** — A dialog that presents itself for the screen: a centered dialog on wider screens and a bottom sheet you can drag away on phones (below 640px). [Docs](docs/Dialog.md)
 - **Sheet** — A panel that slides in from an edge and is dragged back to dismiss: the mobile form of a dialog. [Docs](docs/Sheet.md)
 
+### Display
+
+- **Card** — A surface that groups one thing's content: a media slot across the top, a title with a description and an action, a body, and a footer. [Docs](docs/Card.md)
+- **Empty** — What a list, search or page shows when it has nothing in it: an icon, a title that says what is empty, a sentence on what to do, and the action that does it. [Docs](docs/Empty.md)
+
+### Lists
+
+- **Item** — One row of a list: leading media, a title with a description, and trailing actions. [Docs](docs/Item.md)
+- **ItemGroup** — A list of `Item` rows, with an optional label that names it, lines between the rows, and what to show when it is empty. [Docs](docs/ItemGroup.md)
+
+### Layout
+
+- **AspectRatio** — A frame that keeps an image, video or map at a fixed shape while its width follows the layout, so the page does not jump when the media loads. [Docs](docs/AspectRatio.md)
+- **Row** — Lays its children out side by side with an even gap, centered up and down. [Docs](docs/Row.md)
+- **ScrollArea** — A scrolling region with a slim scrollbar that matches the theme, inside a height you set. [Docs](docs/ScrollArea.md)
+- **Stack** — Lays its children out top to bottom with an even gap. [Docs](docs/Stack.md)
+
 ### App setup
 
 - **OuroProvider** — Optional app-level provider that routes internal `href`s through your router's link. [Docs](docs/OuroProvider.md)

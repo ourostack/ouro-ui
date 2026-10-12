@@ -1,0 +1,1 @@
+- New: `Card`, a surface with `title`, `description`, `action`, `media`, a body and `footer`. With `href` the whole card is one link with one tab stop, named by its title, and the controls in `action` and `footer` stay their own tab stops.

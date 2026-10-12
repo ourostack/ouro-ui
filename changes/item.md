@@ -1,0 +1,1 @@
+- New: `Item` and `ItemGroup`. `Item` is a list row with `media`, `title`, `description` and `actions`; with `href` the whole row is one link and its actions stay their own tab stops, and `stackBelow="sm"` drops the actions under the text on a phone. `ItemGroup` makes the rows a list named by its `label`, with lines between them and an `empty` message.

@@ -1,0 +1,1 @@
+- New: `ScrollArea`, a scrolling region on Base UI with a slim themed scrollbar. It keeps native scrolling, and on a touch screen the scrollbar never takes a touch.
