@@ -98,18 +98,19 @@ const floatingPortalClass = "relative isolate z-(--ouro-layer)";
 
 /**
  * Opens with a scale from 0.96 and a fade, from the side of the trigger it grows out of
- * (`--transform-origin`), on the theme spring; closes with a quick scale and fade. Reduced
- * motion keeps only the fade.
+ * (`--transform-origin`), on the ease-out token; a component sets `--ouro-floating-duration`
+ * to change the length (200ms by default). Closes in the fast duration. Reduced motion
+ * keeps only the fade.
  *
  * @internal
  */
 const floatingMotionClass =
   "origin-(--transform-origin) " +
-  "[transition:transform_var(--ouro-spring-duration)_var(--ouro-ease-spring),opacity_var(--ouro-duration-base)_ease-out] " +
+  "[transition:transform_var(--ouro-floating-duration,var(--ouro-duration-base))_var(--ouro-ease-out),opacity_var(--ouro-floating-duration,var(--ouro-duration-base))_var(--ouro-ease-out)] " +
   "data-starting-style:[transform:scale(0.96)] data-starting-style:opacity-0 " +
   "data-ending-style:[transform:scale(0.96)] data-ending-style:opacity-0 " +
-  "data-ending-style:duration-(--ouro-duration-fast) data-ending-style:ease-in " +
-  "motion-reduce:[transition:opacity_var(--ouro-duration-base)_ease-out] " +
+  "data-ending-style:duration-(--ouro-duration-fast) " +
+  "motion-reduce:[transition:opacity_var(--ouro-duration-base)_var(--ouro-ease-out)] " +
   "motion-reduce:data-starting-style:[transform:none] motion-reduce:data-ending-style:[transform:none]";
 
 /**
