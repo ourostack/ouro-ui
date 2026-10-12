@@ -91,7 +91,8 @@ describe.each([
       for (const opener of overlayOpeners(id, host)) {
         const popup = await openOverlay(opener);
         const open = await scan(popup.matches('[role="dialog"], [role="alertdialog"]') ? undefined : popup);
-        if (open.length > 0) found.push(`with "${opener.textContent}" open:\n${describeViolations(open)}`);
+        if (open.length > 0) found.push(`with "${opener.name}" open:
+${describeViolations(open)}`);
         await closeOverlay();
       }
       expect(found.join("\n\n")).toBe("");
