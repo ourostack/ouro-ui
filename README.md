@@ -254,7 +254,17 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ### Data
 
+- **Chart** — A chart drawn in the theme's colors, which people can use without seeing it: a figure named by its `title`, a summary for screen readers, and a table of every value (visible with `showTable`). [Docs](docs/Chart.md)
+- **ChartContainer** — shadcn's name for `Chart`: the same component with the same props, so code ported from shadcn's chart docs finds it. [Docs](docs/ChartContainer.md)
+- **ChartLegend** — The legend for a recharts chart inside `Chart`: each series' marker shape and label from the chart's `config`, under the plot. [Docs](docs/ChartLegend.md)
+- **ChartTooltip** — The tooltip for a recharts chart inside `Chart`: the category, then each series' marker, label and value from the chart's `config`, in the theme's popover colors. [Docs](docs/ChartTooltip.md)
 - **Table** — A data table: a caption, column headers, and rows, from `columns` and `rows` or from parts. [Docs](docs/Table.md)
+
+### Chat
+
+- **Attachment** — A file attached to a chat message, or waiting to be sent with one: its icon, name and size. [Docs](docs/Attachment.md)
+- **Message** — One message in a chat: who wrote it, their avatar and what they wrote, with any attachments under it. [Docs](docs/Message.md)
+- **MessageList** — A conversation: `Message`s in a scrolling, labeled region that opens at the newest one. [Docs](docs/MessageList.md)
 
 ### App setup
 

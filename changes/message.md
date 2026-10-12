@@ -1,0 +1,1 @@
+- New: `Message`, one chat message with `role` (`user`, `assistant`, `system`), a required author `name`, an `avatar` (Avatar's initials without a picture), `attachments`, and `streaming`, which marks a reply still being written.
