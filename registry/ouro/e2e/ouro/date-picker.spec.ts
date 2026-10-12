@@ -28,7 +28,7 @@ test.describe("with a mouse", () => {
   });
 });
 
-test.describe("on a phone", () => {
+test.describe("DatePicker on a phone", () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
   // Chromium reports a coarse pointer for a touch phone; desktop WebKit does not emulate one.
   test.skip(({ browserName }) => browserName !== "chromium", "coarse pointer emulation is Chromium's");
