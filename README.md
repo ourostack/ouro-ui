@@ -172,6 +172,9 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 ### Actions
 
 - **Button** — A button, or a link styled as one. [Docs](docs/Button.md)
+- **ButtonGroup** — Related buttons joined into one control, such as Previous, a page number and Next, or a split button. [Docs](docs/ButtonGroup.md)
+- **Toggle** — A button that stays pressed until it is pressed again, such as Bold in a text toolbar. [Docs](docs/Toggle.md)
+- **ToggleGroup** — A row of related toggles that share one value, such as text alignment or bold, italic and underline in a toolbar. [Docs](docs/ToggleGroup.md)
 
 ### Text
 
@@ -184,8 +187,11 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 - **Checkbox** — A labeled checkbox on the Field contract, with the label to its right: pass `label`, and `checked` with `onCheckedChange` (or `defaultChecked`). [Docs](docs/Checkbox.md)
 - **CheckboxGroup** — A group of checkboxes under one legend, on the Field contract, for picking any number of choices: pass `legend`, and `options` (or `Checkbox` children). [Docs](docs/CheckboxGroup.md)
+- **ColorField** — A color on the Field contract: a swatch that opens the system color picker, next to the same color as hex text, kept in step both ways. [Docs](docs/ColorField.md)
 - **Field** — A labeled form control: the label, an optional description, the control and its error, wired together with ids that match between the server and the browser. [Docs](docs/Field.md)
 - **Fieldset** — A titled group of related fields, such as an address, rendered as a `<fieldset>` named by its legend. [Docs](docs/Fieldset.md)
+- **FileField** — A labeled file input with a drop zone, on the Field contract. [Docs](docs/FileField.md)
+- **OtpField** — A one-time code entry on the Field contract: one slot per character, with focus that moves as the person types, a whole code pasted at once, and `autoComplete="one-time-code"` so phones offer the code from a text message. [Docs](docs/OtpField.md)
 - **Radio** — One choice in a `RadioGroup`, with its label to its right. [Docs](docs/Radio.md)
 - **RadioGroup** — A group of radios under one legend, on the Field contract, for picking exactly one choice: pass `legend`, and `options` (or `Radio` children). [Docs](docs/RadioGroup.md)
 - **Switch** — A labeled on/off switch on the Field contract, with the label to its right: pass `label`, and `checked` with `onCheckedChange` (or `defaultChecked`). [Docs](docs/Switch.md)
