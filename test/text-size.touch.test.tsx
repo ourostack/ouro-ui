@@ -1,6 +1,7 @@
 import { useEffect, useState, type ComponentType } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { userEvent } from "vitest/browser";
+import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 import siteCss from "../site/src/styles.css?inline";
 import { cleanupStories, renderStory, settle, stories } from "./stories.tsx";
 
@@ -210,7 +211,7 @@ async function scan(subject: Subject, path: number[] = []): Promise<string[]> {
 
 afterEach(async () => {
   await cleanupStories();
-  await page.viewport(390, 844);
+  await rotate(390, 844);
 });
 
 it("finds stories, demos and the text-entry controls in TextField's", async () => {
@@ -349,7 +350,7 @@ describe.each([
   for (const subject of subjects) {
     const test = subject.id in knownViolations ? it.fails : it;
     test(`${subject.id} has no text-entry control under 16px, closed or with any overlay open`, async () => {
-      await page.viewport(width, height);
+      await rotate(width, height);
       expect([innerWidth, innerHeight]).toEqual([width, height]);
       expect(matchMedia("(pointer: coarse)").matches).toBe(true);
       expect((await scan(subject)).join("\n")).toBe("");
