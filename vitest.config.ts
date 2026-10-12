@@ -21,11 +21,13 @@ export default defineConfig({
   // triggers a re-optimization and reload, which can load React twice for one file.
   optimizeDeps: {
     include: [
+      "@base-ui/react/accordion",
       "@base-ui/react/alert-dialog",
       "@base-ui/react/autocomplete",
       "@base-ui/react/avatar",
       "@base-ui/react/button",
       "@base-ui/react/checkbox",
+      "@base-ui/react/collapsible",
       "@base-ui/react/context-menu",
       "@base-ui/react/dialog",
       "@base-ui/react/drawer",
@@ -40,6 +42,7 @@ export default defineConfig({
       "@base-ui/react/progress",
       "@base-ui/react/scroll-area",
       "@base-ui/react/separator",
+      "@base-ui/react/tabs",
       "@base-ui/react/toast",
       "@base-ui/react/toggle",
       "@base-ui/react/toggle-group",
