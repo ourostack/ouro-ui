@@ -40,15 +40,10 @@ export function hasClientDirective(path, text) {
  * context, no state), so a Server Component may import their values directly. Every other
  * file there needs "use client". Add a file here only when it can never need a hook.
  */
-export const pureFiles = new Set([
-  "registry/ouro/components/ouro/dialog/dialog-styles.ts",
-  "registry/ouro/components/ouro/field/field-styles.ts",
-  "registry/ouro/components/ouro/sheet/sheet-styles.ts",
-  "registry/ouro/components/ouro/text-field/text-area-styles.ts",
-  "registry/ouro/components/ouro/text-field/text-field-styles.ts",
-  "registry/ouro/components/ouro/text/text-styles.ts",
-  "registry/ouro/lib/ouro/touch-target.tsx",
-]);
+export const pureFiles = new Set(["registry/ouro/lib/ouro/touch-target.tsx"]);
+
+/** A component's `<stem>-styles.ts`: class strings and value lists, pure like `pureFiles`. */
+const stylesFile = /\/components\/ouro\/[^/]+\/[^/]+-styles\.ts$/;
 
 const hookNames = new Set(["use", "createContext"]);
 const isHookName = (name) => hookNames.has(name) || /^use[A-Z]/.test(name);
@@ -60,7 +55,7 @@ const isHookName = (name) => hookNames.has(name) || /^use[A-Z]/.test(name);
  * react under another name), calls `createContext`, or defines a class component.
  */
 export function needsClientDirective(path, text) {
-  if (/\/components\//.test(path) || /\/lib\/ouro\/[^/]+\.tsx$/.test(path)) return !pureFiles.has(path);
+  if ((/\/components\//.test(path) && !stylesFile.test(path)) || /\/lib\/ouro\/[^/]+\.tsx$/.test(path)) return !pureFiles.has(path);
   const source = parse(path, text);
   // Local names bound to react's hooks: `import { useEffect as effect } from "react"`,
   // and namespace or default imports (`React.use(...)`).

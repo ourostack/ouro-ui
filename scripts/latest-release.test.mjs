@@ -41,7 +41,7 @@ test("every #vX.Y.Z or @vX.Y.Z literal in the docs names package.json's ouro.lat
   const tag = latestRelease();
   // The public docs. AGENTS.md is for contributors and names old tags on purpose (the upgrade test).
   const files = [
-    ...tracked("README.md", "CHANGES.md", "package.json", "docs/*.md", "site/public/*", "site/src/*.ts", "site/src/*.tsx", "site/index.html"),
+    ...tracked("README.md", "changes/*.md", "package.json", "docs/*.md", "site/public/*", "site/src/*.ts", "site/src/*.tsx", "site/index.html"),
   ];
   assert.ok(files.length > 20);
   const problems = files.flatMap((path) => releaseMismatches(readFileSync(join(root, path), "utf8"), tag).map((problem) => `${path}:${problem}`));

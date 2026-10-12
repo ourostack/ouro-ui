@@ -1,21 +1,30 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { NEXT, changesProblem, listed } from "./changes.mjs";
+import { HEADING, assemble, changesProblem, listed } from "./changes.mjs";
 
-// CHANGES.md holds one release's behaviour changes. release.yml refuses to release when it
-// lists none, or when it still lists the last release's, and after a release it opens a PR
-// that starts the file again.
+// changes/*.md hold one release's behaviour changes, one fragment per change, so parallel
+// pull requests never edit the same file. release.yml assembles them into the notes' "Changes
+// in this release" section, refuses to release when there are none, or when one is still in
+// the last release's notes, and after a release opens a PR that deletes the fragments it used.
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const release = readFileSync(join(root, ".github/workflows/release.yml"), "utf8");
 const script = join(root, "scripts/changes.mjs");
 
+const NEXT = `${HEADING}\n`;
 const changes = `${NEXT}\nRe-add your Ouro items.\n\n- Sheets stack at --ouro-layer.\n- ConfirmDialog resets on reopen.\n`;
+/** A changes/ folder with these fragments. */
+const fragments = (files) => {
+  const dir = join(mkdtempSync(join(tmpdir(), "changes-")), "changes");
+  mkdirSync(dir);
+  for (const [name, text] of Object.entries(files)) writeFileSync(join(dir, name), text);
+  return dir;
+};
 const lastNotes = "Install an item.\n\n### Changes in this release\n\n- Sheets stack at --ouro-layer.\n";
 
 test("listed() returns the change lines and nothing else", () => {
@@ -24,8 +33,15 @@ test("listed() returns the change lines and nothing else", () => {
   assert.deepEqual(listed(""), []);
 });
 
-test("the started file is the heading the release notes turn into a section", () => {
-  assert.equal(NEXT, "# Changes in this release\n");
+test("the heading is the one the release notes turn into a section", () => {
+  assert.equal(HEADING, "# Changes in this release");
+});
+
+test("assemble() lists every fragment's change lines under the heading, by file name", () => {
+  const dir = fragments({ "sheet-layer.md": "- Sheets stack at --ouro-layer.\n", "a-confirm.md": "Context for reviewers.\n\n- ConfirmDialog resets on reopen.\n- And a second line.\n", "notes.txt": "- not a fragment\n" });
+  assert.equal(assemble(dir), `${HEADING}\n\n- ConfirmDialog resets on reopen.\n- And a second line.\n- Sheets stack at --ouro-layer.\n`);
+  assert.equal(assemble(join(dir, "missing")), NEXT);
+  assert.equal(assemble(fragments({})), NEXT);
 });
 
 test("a file that lists no change is a problem, whether it is empty or only the heading", () => {
@@ -49,31 +65,25 @@ test("new changes pass, with or without a last release", () => {
 const run = (...args) => spawnSync(process.execPath, [script, ...args], { encoding: "utf8" });
 
 test("`check` exits 1 with a GitHub error for a problem, and 0 otherwise", () => {
-  const dir = mkdtempSync(join(tmpdir(), "changes-"));
-  const file = join(dir, "CHANGES.md");
-  const notes = join(dir, "notes.md");
+  const notes = join(mkdtempSync(join(tmpdir(), "changes-")), "notes.md");
   writeFileSync(notes, lastNotes);
 
-  writeFileSync(file, NEXT);
-  let result = run("check", file, notes);
+  let result = run("check", fragments({}), notes);
   assert.equal(result.status, 1);
-  assert.match(result.stdout, /^::error::CHANGES\.md lists no change/);
+  assert.match(result.stdout, /^::error::changes\/ lists no change/);
 
-  writeFileSync(file, changes);
-  result = run("check", file, notes);
+  result = run("check", fragments({ "layer.md": "- Sheets stack at --ouro-layer.\n", "new.md": "- Something new.\n" }), notes);
   assert.equal(result.status, 1);
-  assert.match(result.stdout, /^::error::CHANGES\.md still lists/);
+  assert.match(result.stdout, /^::error::changes\/ still lists/);
 
-  writeFileSync(file, `${NEXT}\n- Something new.\n`);
-  result = run("check", file, notes);
+  result = run("check", fragments({ "new.md": "- Something new.\n" }), notes);
   assert.equal(result.status, 0, result.stdout + result.stderr);
 });
 
-test("`reset` starts the file again", () => {
-  const file = join(mkdtempSync(join(tmpdir(), "changes-")), "CHANGES.md");
-  writeFileSync(file, changes);
-  assert.equal(run("reset", file).status, 0);
-  assert.equal(readFileSync(file, "utf8"), NEXT);
+test("`assemble` prints the section the release notes show", () => {
+  const result = run("assemble", fragments({ "new.md": "- Something new.\n" }));
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, `${HEADING}\n\n- Something new.\n`);
 });
 
 test("an unknown mode exits with the usage", () => {
@@ -89,18 +99,21 @@ const step = (name) => {
   return { start, body: release.slice(start, next === -1 ? undefined : next) };
 };
 
-test("release.yml checks CHANGES.md against the last release before it pushes anything", () => {
-  const check = step("Check CHANGES.md");
+test("release.yml checks the changes against the last release before it pushes anything, and prints them in the notes", () => {
+  const check = step("Check the changes");
   assert.ok(check.start < step("Push the release branch").start);
   assert.match(check.body, /gh release view .*--json body/);
-  assert.match(check.body, /node scripts\/changes\.mjs check CHANGES\.md /);
+  assert.match(check.body, /node scripts\/changes\.mjs check changes /);
+  assert.match(step("Tag and publish the release").body, /node scripts\/changes\.mjs assemble changes \| sed -e '1s\/\^# \/### \/'/);
+  assert.doesNotMatch(release, /CHANGES\.md/);
 });
 
 test("release.yml opens the PR that prepares main after the release is published, and approves its held CI", () => {
   const reset = step("Prepare main for the next release");
   assert.ok(reset.start > step("Tag and publish the release").start);
   assert.match(reset.body, /git switch -c "\$NEXT_BRANCH" "\$MAIN_SHA"/);
-  assert.match(reset.body, /node scripts\/changes\.mjs reset CHANGES\.md/);
+  // The fragments this release used, and only those: the branch starts at the released main commit.
+  assert.match(reset.body, /git rm -r --quiet -- changes/);
   // The same PR makes the tag the newest release, and regenerates the docs that name it.
   assert.match(reset.body, /node scripts\/latest-release\.mjs set "\$TAG"\n\s*pnpm run docs\n\s*git commit -am "Prepare main for the next release"/);
   assert.match(reset.body, /gh pr create --base main --head "\$NEXT_BRANCH" --title "Prepare main for the next release"/);

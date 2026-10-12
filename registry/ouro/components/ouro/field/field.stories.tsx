@@ -53,6 +53,7 @@ export const Playground: Story = {};
 
 /** Each state a field can be in: plain, described, required, invalid with one or several messages, and disabled. */
 export const States: Story = {
+  parameters: { screenshot: { name: "field-states" } },
   render: () => (
     <Surface>
       <Field label="Recipe name" name="name">

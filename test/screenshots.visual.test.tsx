@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page } from "vitest/browser";
-import { cleanupStories, openOverlay, overlayOpeners, renderStory, setScheme, settle, storyFiles } from "./stories.tsx";
+import { cleanupStories, openOverlay, overlayOpeners, renderStory, setScheme, settle, stories } from "./stories.tsx";
 
 // Screenshot baselines (spec §8): light, dark and reduced motion, at 390px and
 // 1280px. Runs only in the `visual` project (CI_VISUAL=1), in Chromium on
@@ -8,23 +8,16 @@ import { cleanupStories, openOverlay, overlayOpeners, renderStory, setScheme, se
 // `visual-baselines.yml` workflow regenerates them with `--update`. Dark is
 // shadcn's `.dark` class on <html>.
 
-const subjects = [
-  // Every tone and variant, in forced light and dark panels side by side.
-  { name: "button-variants", Story: storyFiles.Button.TonesAndVariants },
-  // Buttons on the page background, following the page's scheme.
-  { name: "button-in-context", Story: storyFiles.Button.InContext },
-  { name: "text", Story: storyFiles.Heading.RecipeCard },
-  { name: "sheet-open", Story: storyFiles.Sheet.WithDescription, open: true },
-  { name: "dialog-open", Story: storyFiles.Dialog.WithFooter, open: true },
-  { name: "confirm-dialog-open", Story: storyFiles.ConfirmDialog.Destructive, open: true },
-  { name: "field-states", Story: storyFiles.Field.States },
-  { name: "fieldset", Story: storyFiles.Fieldset.Address },
-  { name: "link", Story: storyFiles.Link.InContext },
-  { name: "text-field-types", Story: storyFiles.TextField.Types },
-  { name: "text-field-states", Story: storyFiles.TextField.States },
-  { name: "text-field-adornments", Story: storyFiles.TextField.Adornments },
-  { name: "text-area-states", Story: storyFiles.TextArea.States },
-];
+// Each subject is a story whose parameters name it (`parameters: { screenshot: { name, open } }`, see
+// test/stories.tsx), so a component adds its screenshots in its own story file.
+const subjects = stories.flatMap(({ id, Story, parameters }) =>
+  parameters.screenshot ? [{ name: parameters.screenshot.name, id, Story, open: parameters.screenshot.open ?? false }] : [],
+);
+
+it("names each screenshot subject once", () => {
+  expect(subjects.length).toBeGreaterThan(0);
+  expect(new Set(subjects.map((subject) => subject.name)).size).toBe(subjects.length);
+});
 
 const modes = [
   { name: "light", scheme: "light", reducedMotion: "no-preference" },
@@ -52,7 +45,7 @@ afterEach(async () => {
 
 describe.each(widths)("at $width px", ({ width, height }) => {
   describe.each(modes)("$name", (mode) => {
-    it.each(subjects)("$name", async ({ name, Story, open }) => {
+    it.each(subjects)("$name", async ({ name, id, Story, open }) => {
       await page.viewport(width, height);
       await commands.emulateMedia({ reducedMotion: mode.reducedMotion });
       setScheme(mode.scheme);
@@ -60,7 +53,7 @@ describe.each(widths)("at $width px", ({ width, height }) => {
       await document.fonts.ready;
       await settle();
       if (open) {
-        const [opener] = overlayOpeners(name, host);
+        const [opener] = overlayOpeners(id, host);
         await openOverlay(opener!);
         // Move focus off the opened overlay's first control, so the focus ring
         // (which follows the input type) never decides the image.

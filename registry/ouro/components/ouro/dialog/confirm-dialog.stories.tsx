@@ -29,7 +29,9 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 /** Cancel has focus, an outside press does nothing, and it stays centered on phones. Delete shows the busy state while `onConfirm` runs. */
-export const Destructive: Story = {};
+export const Destructive: Story = {
+  parameters: { screenshot: { name: "confirm-dialog-open", open: true } },
+};
 
 /** A rejected `onConfirm` keeps the confirmation open, so the user can retry or cancel. */
 export const FailingAction: Story = {

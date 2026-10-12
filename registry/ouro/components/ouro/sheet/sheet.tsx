@@ -111,6 +111,7 @@ export type SheetProps = SheetWithTriggerProps | SheetControlledProps;
  * without a name so VoiceOver's cursor stays trapped. Exclude them:
  * `new AxeBuilder({ page }).exclude("[data-base-ui-focus-guard]")`.
  *
+ * @group Overlays
  * @see https://ourostack.github.io/ouro-ui/docs/sheet
  *
  * @example
