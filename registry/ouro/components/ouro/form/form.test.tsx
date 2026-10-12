@@ -40,6 +40,14 @@ const describedBy = (element: Element) => (element.getAttribute("aria-describedb
 /** The text of the elements an element's `aria-describedby` names. */
 const description = (element: Element) => describedBy(element).map((id) => element.ownerDocument.getElementById(id)?.textContent ?? "");
 
+/**
+ * Waits until a field's message has finished fading out and left the form. The message keeps
+ * its space while it fades, so what is below it moves up when it goes; a click that presses
+ * before the move and releases after it lands on two elements and clicks neither.
+ */
+const messageGone = (form: Element) =>
+  expect.poll(() => form.querySelector('[aria-invalid="true"]') === null && form.querySelector("[data-ending-style]") === null).toBe(true);
+
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -117,6 +125,7 @@ describe("Form", () => {
     await userEvent.click(page.getByRole("button", { name: "Save" }));
     expect(routerSubmit).not.toHaveBeenCalled();
     await userEvent.fill(page.getByRole("textbox", { name: "Name" }), "Pasta");
+    await messageGone(form);
     await userEvent.click(page.getByRole("button", { name: "Save" }));
     expect(routerSubmit).toHaveBeenCalledWith("Pasta");
   });

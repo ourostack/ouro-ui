@@ -183,13 +183,22 @@ export function Carousel(props: CarouselProps): JSX.Element {
   // settles when scrolling ends, so each change is reported and announced once, not for
   // every slide passed on the way. Where `scrollend` is missing, a pause stands in for it,
   // but not while a finger is down: a finger held still mid-swipe has not chosen a slide.
+  // A pause is not proof the scroll is over (a busy page delays scroll events past it), so
+  // it settles only when the position then holds still for two frames and, after a button
+  // press, has reached the slide the press is heading to.
   useEffect(() => {
     const viewport = viewportRef.current!;
     const fallback = !("onscrollend" in HTMLElement.prototype);
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let frame: number | undefined;
     let touching = false;
-    const settle = () => {
+    const stopWaiting = () => {
       clearTimeout(timer);
+      if (frame !== undefined) cancelAnimationFrame(frame);
+      frame = undefined;
+    };
+    const settle = () => {
+      stopWaiting();
       heading.current = undefined;
       const { onIndexChange, slideLabel, total, lastIndex } = latest.current;
       const next = Math.min(nearestSlide(viewport), lastIndex);
@@ -200,13 +209,31 @@ export function Carousel(props: CarouselProps): JSX.Element {
       onIndexChange?.(next);
       announce(fillTemplate(slideLabel, next + 1, total));
     };
+    // After a pause: settle if the position holds for two frames, else keep waiting. A press's
+    // target not reached once the scroll has stopped (the user scrolled elsewhere) is dropped,
+    // so the next pause settles wherever the scroll is.
+    const check = () => {
+      const left = viewport.scrollLeft;
+      frame = requestAnimationFrame(() => {
+        frame = requestAnimationFrame(() => {
+          frame = undefined;
+          if (viewport.scrollLeft !== left) return wait();
+          const target = heading.current;
+          if (target !== undefined && Math.min(nearestSlide(viewport), latest.current.lastIndex) !== target) {
+            heading.current = undefined;
+            return wait();
+          }
+          settle();
+        });
+      });
+    };
     const wait = () => {
-      clearTimeout(timer);
-      if (!touching) timer = setTimeout(settle, 150);
+      stopWaiting();
+      if (!touching) timer = setTimeout(check, 150);
     };
     const onTouchStart = () => {
       touching = true;
-      clearTimeout(timer);
+      stopWaiting();
     };
     const onTouchEnd = (event: TouchEvent) => {
       touching = event.touches.length > 0;
@@ -219,7 +246,7 @@ export function Carousel(props: CarouselProps): JSX.Element {
       viewport.addEventListener("touchcancel", onTouchEnd, { passive: true });
     } else viewport.addEventListener("scrollend", settle);
     return () => {
-      clearTimeout(timer);
+      stopWaiting();
       viewport.removeEventListener("scroll", wait);
       viewport.removeEventListener("touchstart", onTouchStart);
       viewport.removeEventListener("touchend", onTouchEnd);

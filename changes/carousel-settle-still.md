@@ -1,0 +1,1 @@
+- `Carousel` in a browser without the `scrollend` event (older Safari) reports and announces a change only once the scroll has held still for two frames and, after a Previous or Next press, has reached that press's slide. A busy page could make it report the slide it was passing, then the one it stopped on.
