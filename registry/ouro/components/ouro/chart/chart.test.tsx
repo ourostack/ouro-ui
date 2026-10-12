@@ -268,6 +268,16 @@ describe("Chart", () => {
     }
   });
 
+  it("marks the plot while its marks animate, so a screenshot can wait for them", async () => {
+    const { chart } = await render(<Chart type="line" title="Cooking" data={rows} categoryKey="month" config={config} />);
+    const plot = chart.querySelector("[data-ouro-chart-plot]")!;
+    await expect.poll(() => plot.hasAttribute("data-ouro-chart-animating")).toBe(true);
+    await expect.poll(() => plot.hasAttribute("data-ouro-chart-animating")).toBe(false);
+    const curve = chart.querySelector<SVGPathElement>(".recharts-line-curve")!;
+    // Drawn in full: no dash gap left from the line's draw-in.
+    expect(curve.getAttribute("stroke-dasharray") ?? "").not.toMatch(/^0px/);
+  });
+
   it("takes a recharts chart as children, giving it the data, the name and the theme", async () => {
     const { chart } = await render(
       <Chart title="Cooking trend" data={rows} categoryKey="month" config={config}>

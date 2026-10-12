@@ -1,6 +1,6 @@
 "use client";
 
-import { Children, cloneElement, createContext, isValidElement, useContext, useId } from "react";
+import { Children, cloneElement, createContext, isValidElement, useContext, useId, useRef } from "react";
 import type { CSSProperties, HTMLAttributes, JSX, ReactElement, ReactNode, Ref } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
@@ -229,11 +229,22 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
   const state: ChartState = { byKey: new Map(series.map((item) => [item.key, item])), formatValue };
   const colors = Object.fromEntries(series.map((item) => [`--color-${item.key}`, item.color])) as CSSProperties;
   const plotProps = { "aria-label": title, "aria-describedby": summaryId };
+  // recharts animates with JavaScript, which document.getAnimations() cannot see, so the plot
+  // says when its marks are moving (screenshot tests wait for it). Set on the element, not in
+  // state, so the chart does not re-render mid-animation.
+  // Tracked per series, so a restarted animation counts once.
+  const plotRef = useRef<HTMLDivElement>(null);
+  const moving = useRef(new Set<string>());
+  const onAnimation = (key: string, running: boolean) => {
+    if (running) moving.current.add(key);
+    else moving.current.delete(key);
+    plotRef.current?.toggleAttribute("data-ouro-chart-animating", moving.current.size > 0);
+  };
   const child = Children.toArray(children).find(isValidElement) as ReactElement<{ data?: unknown }> | undefined;
   const plot = child ? (
     cloneElement(child, { data: child.props.data ?? data, ...plotProps })
   ) : (
-    <SeriesChart type={type} data={rows} categoryKey={categoryKey} series={series} formatValue={formatValue} plotProps={plotProps} />
+    <SeriesChart type={type} data={rows} categoryKey={categoryKey} series={series} formatValue={formatValue} plotProps={plotProps} onAnimation={onAnimation} />
   );
   return (
     <figure
@@ -245,7 +256,7 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
     >
       <figcaption className={hideTitle ? "sr-only" : "text-base font-semibold pointer-fine:text-sm"}>{title}</figcaption>
       {description !== undefined && <p className="-mt-2 mb-0 text-sm text-muted-foreground">{description}</p>}
-      <div data-ouro-chart-plot="" className={plotClass}>
+      <div ref={plotRef} data-ouro-chart-plot="" className={plotClass}>
         <ChartContext value={state}>
           <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 1, height: 1 }}>
             {plot}
@@ -320,13 +331,20 @@ interface SeriesChartProps {
   series: Series[];
   formatValue: (value: number, series: string) => string;
   plotProps: Record<string, string>;
+  onAnimation: (key: string, running: boolean) => void;
 }
 
 /** The chart `type` draws: a grid, both axes, the tooltip, the legend for two or more series, and one mark per series. */
-function SeriesChart({ type, data, categoryKey, series, formatValue, plotProps }: SeriesChartProps): JSX.Element {
+function SeriesChart({ type, data, categoryKey, series, formatValue, plotProps, onAnimation }: SeriesChartProps): JSX.Element {
   const Plot = type === "line" ? LineChart : type === "area" ? AreaChart : BarChart;
   const marks = series.map((item) => {
-    const shared = { dataKey: item.key, name: item.label, className: `ouro-chart-series-${item.key}` };
+    const shared = {
+      dataKey: item.key,
+      name: item.label,
+      className: `ouro-chart-series-${item.key}`,
+      onAnimationStart: () => onAnimation(item.key, true),
+      onAnimationEnd: () => onAnimation(item.key, false),
+    };
     if (type === "bar") return <Bar key={item.key} {...shared} fill={`var(--color-${item.key})`} radius={4} />;
     const dot = (dotProps: DotProps) => <ShapeDot {...dotProps} series={item.key} shape={item.shape} />;
     if (type === "line") return <Line key={item.key} {...shared} type="monotone" stroke={`var(--color-${item.key})`} strokeWidth={2} dot={dot} activeDot={dot} />;
