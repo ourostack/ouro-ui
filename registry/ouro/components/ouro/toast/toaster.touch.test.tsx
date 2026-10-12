@@ -1,0 +1,89 @@
+import { createRoot, type Root } from "react-dom/client";
+import { afterEach, expect, it } from "vitest";
+import { commands, page } from "vitest/browser";
+import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
+import { toast } from "@/registry/ouro/lib/ouro/toast";
+import { act } from "@/registry/ouro/lib/ouro/testing/act";
+
+// Runs in the `touch` project: Chromium as a 390x844 phone with a coarse pointer.
+
+let root: Root | undefined;
+const nodes: Element[] = [];
+afterEach(async () => {
+  await act(async () => toast.dismiss());
+  await act(async () => root?.unmount());
+  for (const node of nodes.splice(0)) node.remove();
+  await page.viewport(390, 844);
+});
+
+async function renderToaster() {
+  const host = document.createElement("div");
+  document.body.append(host);
+  nodes.push(host);
+  root = createRoot(host);
+  await act(async () => root!.render(<Toaster />));
+}
+
+const toastNamed = (message: string) =>
+  [...document.querySelectorAll<HTMLElement>('[data-ouro="toast"]')].find(
+    (item) => item.querySelector("[data-ouro-toast-title]")?.textContent === message,
+  );
+
+async function show(message: string, options?: Parameters<typeof toast>[1]) {
+  await act(async () => {
+    toast(message, options);
+  });
+  await expect.poll(() => toastNamed(message)).toBeDefined();
+  const item = toastNamed(message)!;
+  await expect.poll(() => item.getAnimations().length).toBe(0);
+  return item;
+}
+
+/** Whether a tap at (x, y) lands on `target`. */
+const hits = (target: Element, x: number, y: number) => target.contains(document.elementFromPoint(x, y));
+
+it("spans the phone's width at the bottom, inside a 16px margin", async () => {
+  await renderToaster();
+  const rect = (await show("Saved", { duration: 0 })).getBoundingClientRect();
+  expect(rect.left).toBe(16);
+  expect(rect.right).toBe(innerWidth - 16);
+  expect(innerHeight - rect.bottom).toBeGreaterThanOrEqual(16);
+});
+
+it.each([
+  ["down", 0, 140],
+  ["right", 220, 0],
+  ["left", -220, 0],
+] as const)("dismisses with a real touch swipe %s", async (direction, dx, dy) => {
+  await renderToaster();
+  const message = `Swipe ${direction}`;
+  const rect = (await show(message, { duration: 0 })).getBoundingClientRect();
+  const x = rect.left + rect.width / 2;
+  const y = rect.top + rect.height / 2;
+  await commands.touchDrag({ from: [x, y], to: [x + dx, y + dy], steps: 10 });
+  await expect.poll(() => toastNamed(message)).toBeUndefined();
+});
+
+it("gives the dismiss and action buttons 44px touch targets", async () => {
+  await renderToaster();
+  const item = await show("Recipe deleted", { duration: 0, action: { label: "Undo", onClick: () => {} } });
+  for (const button of item.querySelectorAll("button")) {
+    const rect = button.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    expect(hits(button, cx, cy - 21) && hits(button, cx, cy + 21)).toBe(true);
+    expect(hits(button, cx - 21, cy) && hits(button, cx + 21, cy)).toBe(true);
+  }
+  // 16px text on the action, as for every control on a coarse pointer.
+  const undo = [...item.querySelectorAll("button")].find((button) => button.textContent === "Undo")!;
+  expect(getComputedStyle(undo).fontSize).toBe("16px");
+});
+
+it("keeps the phone layout and touch sizes on a landscape phone", async () => {
+  await page.viewport(844, 390);
+  await renderToaster();
+  const item = await show("Landscape", { duration: 0, action: { label: "Undo", onClick: () => {} } });
+  const undo = [...item.querySelectorAll("button")].find((button) => button.textContent === "Undo")!;
+  expect(getComputedStyle(undo).fontSize).toBe("16px");
+  expect(item.getBoundingClientRect().width).toBe(360);
+});
