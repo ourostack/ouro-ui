@@ -100,10 +100,10 @@ export interface TouchDragOptions {
   /** Number of intermediate moves. */
   steps: number;
   /**
-   * Time from touch-down to lift, as the page's event timestamps report it, in milliseconds,
-   * so a velocity check sees this speed however busy the machine is. Without it the events
-   * carry the time they were sent, and a loaded runner can space them out until a flick
-   * reads as a finger that rested.
+   * Time from touch down to lift, as the page's event timestamps report it, in milliseconds.
+   * Set it when the gesture's speed matters, as for a swipe over scroll snap points: the
+   * browser flings on from the speed at lift. Without it the speed is however fast the test
+   * machine sends the moves, which differs from run to run.
    */
   durationMs?: number;
 }
@@ -206,6 +206,16 @@ export const setPageZoom: BrowserCommand<[scale: number]> = async (ctx, scale) =
   await session.send("Emulation.setPageScaleFactor", { pageScaleFactor: scale });
 };
 
+/**
+ * Turns the page's touch emulation back on (Chromium, through CDP; elsewhere it does nothing).
+ * Chromium drops it, for the rest of the page's life, after a screenshot that reaches beyond
+ * the viewport, such as the one Vitest takes when a test fails on a tall page: the page then
+ * reports a fine pointer that can hover. The `ouro-touch` project calls this before every test.
+ */
+export const restoreTouch: BrowserCommand<[]> = async (ctx) => {
+  await (await chromiumSession(ctx))?.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 });
+};
+
 export type TouchStepOptions =
   | {
       /** `touchStart` puts the finger down and `touchMove` moves it. */
@@ -242,7 +252,7 @@ export const touchStep: BrowserCommand<[TouchStepOptions]> = async (ctx, step) =
   fingersDown.add(page);
 };
 
-export const commands = { emulateMedia, drag, flick, pageZoom, pointerPress, resetPageZoom, setPageZoom, tap, touchDrag, touchStep };
+export const commands = { emulateMedia, drag, flick, pageZoom, pointerPress, resetPageZoom, restoreTouch, setPageZoom, tap, touchDrag, touchStep };
 
 declare module "vitest/browser" {
   interface BrowserCommands {
@@ -255,6 +265,7 @@ declare module "vitest/browser" {
     pointerPress: (options: PointerPressOptions) => Promise<void>;
     pageZoom: () => Promise<number>;
     resetPageZoom: () => Promise<void>;
+    restoreTouch: () => Promise<void>;
     setPageZoom: (scale: number) => Promise<void>;
   }
 }

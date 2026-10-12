@@ -58,27 +58,6 @@ function watchStarts(): () => string[] {
   };
 }
 
-test("touchDrag stamps its events across durationMs, however long the machine takes to send them", async () => {
-  // A pad that takes the touch, so the browser does not cancel the pointer to scroll.
-  const pad = document.createElement("div");
-  Object.assign(pad.style, { position: "absolute", top: "0", left: "0", width: "300px", height: "200px", touchAction: "none" });
-  document.body.append(pad);
-  nodes.push(pad);
-  const seen: number[] = [];
-  const listener = (event: PointerEvent) => seen.push(event.timeStamp);
-  addEventListener("pointermove", listener, true);
-  try {
-    await commands.touchDrag({ from: [260, 100], to: [40, 100], steps: 10, durationMs: 400 });
-  } finally {
-    removeEventListener("pointermove", listener, true);
-  }
-  expect(seen.length).toBeGreaterThan(5);
-  // Ten moves 40ms apart: the spread of the page's timestamps is the duration asked for, to within a frame.
-  const spread = seen.at(-1)! - seen[0]!;
-  expect(spread).toBeGreaterThan(400 * ((seen.length - 2) / 10));
-  expect(spread).toBeLessThan(400 + 17);
-});
-
 test("lifts the finger in finally when a step throws mid-gesture, so the next touch works", async () => {
   const element = scroller();
   await expect(
@@ -115,4 +94,17 @@ test("lifts a finger a test left down before the next gesture starts", async () 
   await commands.touchStep({ type: "touchEnd" });
   expect(starts()).toEqual(["pointerdown", "touchstart"]);
   expect(element.scrollLeft).toBeGreaterThan(0);
+});
+
+test("touchDrag with durationMs spans exactly that long in the page's event timestamps", async () => {
+  scroller();
+  const stamps: Record<string, number> = {};
+  const listener = (event: Event) => (stamps[event.type] = event.timeStamp);
+  for (const type of ["touchstart", "touchend"]) addEventListener(type, listener, true);
+  try {
+    await commands.touchDrag({ from: [260, 100], to: [40, 100], steps: 10, durationMs: 300 });
+  } finally {
+    for (const type of ["touchstart", "touchend"]) removeEventListener(type, listener, true);
+  }
+  expect(stamps["touchend"]! - stamps["touchstart"]!).toBeCloseTo(300, 0);
 });

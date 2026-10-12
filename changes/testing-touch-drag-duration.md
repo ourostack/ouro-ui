@@ -1,1 +1,1 @@
-- The `ouro-testing` kit's `touchDrag` takes an optional `durationMs`, which stamps its touch events across that time as the page sees them, so a velocity check reads the same speed on a busy machine. Without it the events carry the time they were sent, as before.
+- `commands.touchDrag` takes `durationMs`, the time from touch down to lift as the page's event timestamps report it. Pass it when the result depends on the swipe's speed, as over scroll snap points, where a fast flick carries past the next slide.
