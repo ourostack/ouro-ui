@@ -10,6 +10,7 @@ test("terms sit above their details on a phone and beside them on a wide screen"
   await page.setViewportSize({ width: 1280, height: 800 });
   term = (await page.getByText("Prep time").boundingBox())!;
   details = (await page.getByText("20 minutes").boundingBox())!;
-  expect(details.x).toBeGreaterThan(term.x + term.width);
+  // The term fills its column, so the details start where it ends.
+  expect(details.x).toBeGreaterThanOrEqual(term.x + term.width);
   expect(Math.abs(details.y - term.y)).toBeLessThanOrEqual(1);
 });
