@@ -43,6 +43,9 @@ test("needsClientDirective requires the directive in every component and lib .ts
   assert.equal(needsClientDirective("registry/ouro/lib/ouro/ouro-provider.tsx", "export { OuroProvider };\n"), true);
   assert.equal(needsClientDirective("registry/ouro/lib/ouro/badge.tsx", "export const Badge = () => null;\n"), true);
   assert.equal(needsClientDirective("registry/ouro/components/ouro/sheet/sheet-styles.ts", "export const a = 'b';\n"), false);
+  // Every component's -styles.ts is pure by its name, unless it calls a hook.
+  assert.equal(needsClientDirective("registry/ouro/components/ouro/select/select-styles.ts", "export const a = 'b';\n"), false);
+  assert.equal(needsClientDirective("registry/ouro/components/ouro/select/select-styles.ts", "import { useId } from 'react';\nexport const a = () => useId();\n"), true);
   assert.equal(needsClientDirective("registry/ouro/lib/ouro/touch-target.tsx", "export function TouchTarget() { return null; }\n"), false);
 });
 

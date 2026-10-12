@@ -76,6 +76,7 @@ export const Display: Story = {
 
 /** Text, Heading and Button together: a recipe card. */
 export const RecipeCard: Story = {
+  parameters: { screenshot: { name: "text" } },
   render: () => (
     <Surface>
       <article style={{ display: "grid", gap: 12, maxWidth: 380 }}>

@@ -1,39 +1,65 @@
-// CHANGES.md lists one release's behaviour changes; release.yml prints it at the top of the
-// release notes. Two modes keep it to one release:
+// changes/*.md list one release's behaviour changes, one fragment file per change (any name,
+// holding `- ` lines), so pull requests that each add a change never edit the same file.
+// release.yml assembles them into the "Changes in this release" section of the release notes:
 //
-//   node scripts/changes.mjs check <CHANGES.md> <last release notes>
+//   node scripts/changes.mjs assemble <changes dir>
 //
-// fails (a GitHub ::error:: line, exit 1) when the file lists no change, or when a change it
-// lists is already in the last release's notes, which means the PR that starts the file
-// again was never merged. release.yml runs it before it pushes anything.
+// prints the section: the heading, then every fragment's `- ` lines, by file name.
 //
-//   node scripts/changes.mjs reset <CHANGES.md>
+//   node scripts/changes.mjs check <changes dir> <last release notes>
 //
-// starts the file again with only its heading. release.yml runs it after a release, on a
-// branch off the released main commit, and opens "Prepare main for the next release".
-import { readFileSync, writeFileSync } from "node:fs";
+// fails (a GitHub ::error:: line, exit 1) when a fragment holds a line that is not a top-level
+// `- ` item (one line per change; anything else would not reach the notes), when the
+// fragments list no change, or when a change
+// they list is already in the last release's notes, which means the PR that deletes the
+// released fragments was never merged. release.yml runs it before it pushes anything, writes
+// the assembled section to CHANGES.md on the release commit (so the tag holds it; main keeps
+// fragments only), and after a release its "Prepare main for the next release" PR deletes the
+// fragments it used.
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-/** The file after a reset: the heading release.yml turns into the notes' section heading. */
-export const NEXT = "# Changes in this release\n";
+/** The section heading release.yml turns into the notes' `###` heading. */
+export const HEADING = "# Changes in this release";
 
 /** The change lines: each top-level `- ` item. */
 export function listed(markdown) {
   return markdown.split("\n").filter((line) => line.startsWith("- "));
 }
 
-/** Why the file cannot be released as it is, or null. */
+/** The section the release notes show: the heading and every fragment's change lines, by file name. */
+export function assemble(dir) {
+  const files = existsSync(dir) ? readdirSync(dir).filter((file) => file.endsWith(".md")).sort() : [];
+  const lines = files.flatMap((file) => listed(readFileSync(join(dir, file), "utf8")));
+  return lines.length === 0 ? `${HEADING}\n` : `${HEADING}\n\n${lines.join("\n")}\n`;
+}
+
+/**
+ * Lines a fragment holds that are not a change: every non-blank line must be a top-level `- `
+ * item, one line per change, because only those reach the release notes. As `file:line: text`.
+ */
+export function fragmentProblems(dir) {
+  const files = existsSync(dir) ? readdirSync(dir).filter((file) => file.endsWith(".md")).sort() : [];
+  return files.flatMap((file) =>
+    readFileSync(join(dir, file), "utf8")
+      .split("\n")
+      .flatMap((line, index) => (line.trim() === "" || line.startsWith("- ") ? [] : [`changes/${file}:${index + 1}: ${line}`])),
+  );
+}
+
+/** Why the changes cannot be released as they are, or null. */
 export function changesProblem(markdown, lastNotes) {
   const lines = listed(markdown);
   if (lines.length === 0) {
-    return "CHANGES.md lists no change. Add a `- ` line for each change an app will see in this release, then run Release again.";
+    return "changes/ lists no change. Add a changes/<name>.md file with a `- ` line for each change an app will see in this release, then run Release again.";
   }
   const released = new Set(lastNotes.split("\n"));
   const stale = lines.filter((line) => released.has(line));
   if (stale.length > 0) {
     return [
-      "CHANGES.md still lists the last release's changes. Merge the open \"Prepare main for the next release\" PR",
-      "(or remove these lines yourself), list this release's changes, then run Release again:",
+      "changes/ still lists the last release's changes. Merge the open \"Prepare main for the next release\" PR",
+      "(or delete those fragments yourself), list this release's changes, then run Release again:",
       ...stale,
     ].join(" ");
   }
@@ -41,17 +67,21 @@ export function changesProblem(markdown, lastNotes) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const [mode, file, notes] = process.argv.slice(2);
-  if (mode === "check" && file && notes) {
-    const problem = changesProblem(readFileSync(file, "utf8"), readFileSync(notes, "utf8"));
+  const [mode, dir, notes] = process.argv.slice(2);
+  if (mode === "check" && dir && notes) {
+    const stray = fragmentProblems(dir);
+    const problem =
+      stray.length > 0
+        ? `Each changes/ fragment line is one change: a top-level \`- \` line, with no wrapped lines, sub-items or other text. Fix: ${stray.join(" | ")}`
+        : changesProblem(assemble(dir), readFileSync(notes, "utf8"));
     if (problem) {
       console.log(`::error::${problem}`);
       process.exit(1);
     }
-  } else if (mode === "reset" && file) {
-    writeFileSync(file, NEXT);
+  } else if (mode === "assemble" && dir) {
+    process.stdout.write(assemble(dir));
   } else {
-    console.error("usage: changes.mjs check <CHANGES.md> <last release notes> | reset <CHANGES.md>");
+    console.error("usage: changes.mjs check <changes dir> <last release notes> | assemble <changes dir>");
     process.exit(2);
   }
 }

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -36,6 +36,23 @@ test("--check fails on a doc for a component that no longer exists", () => {
   assert.match(result.stderr, /Gone\.md/);
 });
 
+test("an export with no @group, or an unknown one, fails the generator with the fix", () => {
+  // A copy of the repository's inputs, where Link's JSDoc loses its group.
+  const copy = mkdtempSync(join(tmpdir(), "ouro-docs-root-"));
+  for (const path of ["registry", "scripts", "docs", "site/public", "README.md", "UPGRADING.md", "package.json", "tsconfig.json"]) {
+    mkdirSync(dirname(join(copy, path)), { recursive: true });
+    cpSync(join(root, path), join(copy, path), { recursive: true });
+  }
+  symlinkSync(join(root, "node_modules"), join(copy, "node_modules"));
+  const link = join(copy, "registry/ouro/components/ouro/link/link.tsx");
+  const source = readFileSync(link, "utf8");
+  const generate = () => spawnSync("node", [join(copy, "scripts/gen-docs.mts"), "--check"], { cwd: copy, encoding: "utf8" });
+  writeFileSync(link, source.replace(" * @group Text\n", ""));
+  assert.match(generate().stderr, /Link is exported from registry\/ouro\/components\/ouro\/link\/link\.tsx but has no catalog group\. Add `@group/);
+  writeFileSync(link, source.replace(" * @group Text\n", " * @group Typography\n"));
+  assert.match(generate().stderr, /Link's @group Typography is not a catalog group/);
+});
+
 test("generating is deterministic and matches the committed files", () => {
   const out = mkdtempSync(join(tmpdir(), "ouro-docs-"));
   assert.equal(run("--out", out).status, 0);
@@ -44,7 +61,7 @@ test("generating is deterministic and matches the committed files", () => {
   for (const file of files) {
     assert.equal(readFileSync(join(out, "docs", file), "utf8"), doc(file), file);
   }
-  for (const file of ["README.md"]) {
+  for (const file of ["README.md", "site/src/docs/catalog.json"]) {
     assert.equal(readFileSync(join(out, file), "utf8"), readFileSync(join(root, file), "utf8"), file);
   }
 });

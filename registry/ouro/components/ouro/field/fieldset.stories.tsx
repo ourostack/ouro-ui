@@ -62,6 +62,7 @@ export const Playground: Story = {};
 
 /** A group with a description, and the same group disabled: every control inside is disabled at once. */
 export const Address: Story = {
+  parameters: { screenshot: { name: "fieldset" } },
   render: () => (
     <Surface>
       <Fieldset legend="Shipping address" description="Where we send your order.">

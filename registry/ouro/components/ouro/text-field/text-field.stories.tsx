@@ -58,6 +58,7 @@ export const Playground: Story = {};
 
 /** Each type sets the phone keyboard and autofill. Date and time open the OS picker. */
 export const Types: Story = {
+  parameters: { screenshot: { name: "text-field-types" } },
   render: () => (
     <Surface>
       <TextField label="Recipe name" name="name" defaultValue="Lemon ricotta pasta" />
@@ -74,6 +75,7 @@ export const Types: Story = {
 
 /** Text and icons inside the box, and the clear button. */
 export const Adornments: Story = {
+  parameters: { screenshot: { name: "text-field-adornments" } },
   render: () => (
     <Surface>
       <TextField label="Search recipes" hideLabel type="search" name="q" clearable startAdornment={<SearchIcon />} defaultValue="Pasta" />
@@ -85,6 +87,7 @@ export const Adornments: Story = {
 
 /** Described, required, invalid with one or several messages, and disabled. */
 export const States: Story = {
+  parameters: { screenshot: { name: "text-field-states" } },
   render: () => (
     <Surface>
       <TextField label="Email" type="email" name="email" required description="We send the shopping list here." placeholder="you@example.com" />
