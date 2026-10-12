@@ -223,8 +223,11 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ### Lists
 
+- **Accordion** — A stack of titles that each open their own content, for FAQs and long settings pages. [Docs](docs/Accordion.md)
+- **Collapsible** — One section that opens and closes under its title, such as nutrition facts under a recipe. [Docs](docs/Collapsible.md)
 - **Item** — One row of a list: leading media, a title with a description, and trailing actions. [Docs](docs/Item.md)
 - **ItemGroup** — A list of `Item` rows, with an optional label that names it, lines between the rows, and what to show when it is empty. [Docs](docs/ItemGroup.md)
+- **ShowMore** — "Show more" for a long list or a long text. [Docs](docs/ShowMore.md)
 
 ### Layout
 
@@ -232,6 +235,11 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **Row** — Lays its children out side by side with an even gap, centered up and down. [Docs](docs/Row.md)
 - **ScrollArea** — A scrolling region with a slim scrollbar that matches the theme, inside a height you set. [Docs](docs/ScrollArea.md)
 - **Stack** — Lays its children out top to bottom with an even gap. [Docs](docs/Stack.md)
+
+### Navigation
+
+- **SegmentedControl** — An iOS-style segmented control: a row of equal segments with a raised thumb that slides to the checked one, for switching how one view shows its content in place, such as list or grid. [Docs](docs/SegmentedControl.md)
+- **Tabs** — Tabs that switch between panels in place: an accessible tab list with roving focus, arrow-key navigation, a line that slides to the selected tab with the theme spring, and 44px tabs on touch screens. [Docs](docs/Tabs.md)
 
 ### Data
 
@@ -243,7 +251,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ### Parts
 
-- **Parts** — building blocks for Dialog, Field, Popover, Sheet and Table, only for layouts the props cannot express. [Docs](docs/parts.md)
+- **Parts** — building blocks for Dialog, Field, Popover, Sheet, Table and Tabs, only for layouts the props cannot express. [Docs](docs/parts.md)
 <!-- catalog:end -->
 
 ## Theme

@@ -1,15 +1,15 @@
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, expect, it } from "vitest";
-import { page } from "vitest/browser";
 import { Table } from "@/registry/ouro/components/ouro/table/table";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 
 // Runs in the `touch` project: Chromium as a 390x844 phone with a coarse pointer.
 
 let root: Root | undefined;
 const nodes: Element[] = [];
 afterEach(async () => {
-  await page.viewport(390, 844);
+  await rotate(390, 844);
   await act(async () => root?.unmount());
   for (const node of nodes.splice(0)) node.remove();
 });
@@ -23,7 +23,7 @@ it.each([
   ["portrait", 390, 844],
   ["landscape", 844, 390],
 ])("makes a linked row at least 44px tall in %s, dense too, and keeps 16px text", async (_name, width, height) => {
-  await page.viewport(width, height);
+  await rotate(width, height);
   expect(matchMedia("(pointer: coarse)").matches).toBe(true);
   const host = document.createElement("div");
   document.body.append(host);

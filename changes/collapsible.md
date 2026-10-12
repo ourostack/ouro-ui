@@ -1,0 +1,1 @@
+- New: `Collapsible`, one section that opens under its `title`.
