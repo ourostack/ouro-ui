@@ -1,7 +1,7 @@
 "use client";
 
 import { Accordion as BaseAccordion } from "@base-ui/react/accordion";
-import type { JSX, ReactNode, Ref } from "react";
+import { useSyncExternalStore, type JSX, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
@@ -93,6 +93,21 @@ function toList(value: string | null | readonly string[] | undefined): string[] 
   return typeof value === "string" ? [value] : [...value];
 }
 
+const noSubscribe = () => () => {};
+
+/**
+ * Whether the browser reveals `hidden="until-found"` content for its page search
+ * (Chromium does; WebKit does not, and would show the content). False on the server, so
+ * hydration matches, and closed content stays in the server HTML either way.
+ */
+function useUntilFound(): boolean {
+  return useSyncExternalStore(
+    noSubscribe,
+    () => "onbeforematch" in document.body,
+    () => false,
+  );
+}
+
 function Chevron(): JSX.Element {
   return (
     <svg
@@ -113,8 +128,8 @@ function Chevron(): JSX.Element {
 /**
  * A stack of titles that each open their own content, for FAQs and long settings pages. One
  * item opens at a time unless you pass `multiple`. Panels grow to their measured height with
- * CSS, titles sit inside headings, closed content is still found by the browser's page
- * search, and rows are 44px tall on touch screens.
+ * CSS, titles sit inside headings, closed content is in the server HTML and found by the
+ * page search of browsers that support `hidden="until-found"`, and rows are 44px tall on touch screens.
  *
  * Use `Collapsible` instead for a single section that opens and closes. Use `Tabs` instead
  * when exactly one section always shows and the titles fit in a row.
@@ -192,6 +207,7 @@ export function Accordion(props: AccordionProps): JSX.Element {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   const Heading = `h${level}` as const;
+  const untilFound = useUntilFound();
   return (
     <BaseAccordion.Root
       ref={ref}
@@ -207,7 +223,8 @@ export function Accordion(props: AccordionProps): JSX.Element {
           : undefined
       }
       disabled={disabled}
-      hiddenUntilFound
+      keepMounted
+      hiddenUntilFound={untilFound}
       data-ouro="accordion"
       className={cn(rootClass, className)}
     >

@@ -61,7 +61,11 @@ describe("Accordion", () => {
     expect(triggers.map((trigger) => trigger.textContent)).toEqual(items.map((item) => item.title));
     expect(triggers.every((trigger) => trigger.parentElement!.tagName === "H3")).toBe(true);
     expect(expanded(triggers)).toEqual(["false", "false", "false"]);
-    await expect.element(page.getByText("Three days in the fridge.")).not.toBeVisible();
+    // Closed panels stay mounted and hidden (until-found where supported), with no height.
+    for (const panel of root.querySelectorAll<HTMLElement>('[role="region"]')) {
+      expect(panel.hasAttribute("hidden")).toBe(true);
+      expect(panel.getBoundingClientRect().height).toBe(0);
+    }
   });
 
   it("sets the heading level with headingLevel", async () => {

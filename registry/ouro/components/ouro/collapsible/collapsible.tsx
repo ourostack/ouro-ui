@@ -1,7 +1,7 @@
 "use client";
 
 import { Collapsible as BaseCollapsible } from "@base-ui/react/collapsible";
-import type { JSX, ReactNode, Ref } from "react";
+import { useSyncExternalStore, type JSX, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
@@ -35,10 +35,26 @@ export interface CollapsibleProps {
   isOpen?: { 'Use <Collapsible open>': never };
 }
 
+const noSubscribe = () => () => {};
+
+/**
+ * Whether the browser reveals `hidden="until-found"` content for its page search
+ * (Chromium does; WebKit does not, and would show the content). False on the server, so
+ * hydration matches, and closed content stays in the server HTML either way.
+ */
+function useUntilFound(): boolean {
+  return useSyncExternalStore(
+    noSubscribe,
+    () => "onbeforematch" in document.body,
+    () => false,
+  );
+}
+
 /**
  * One section that opens and closes under its title, such as nutrition facts under a
- * recipe. The content grows to its measured height with CSS, the closed content is still
- * found by the browser's page search, and the title is a 44px row on touch screens.
+ * recipe. The content grows to its measured height with CSS, the closed content is in the
+ * server HTML and found by the page search of browsers that support `hidden="until-found"`,
+ * and the title is a 44px row on touch screens.
  *
  * Use `Accordion` instead for a stack of such sections. Use `ShowMore` instead to cut a long
  * list or text short behind a "Show more" button. Use `Dialog` or `Sheet` instead when the
@@ -87,6 +103,7 @@ export function Collapsible(props: CollapsibleProps): JSX.Element {
         }
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
+  const untilFound = useUntilFound();
   return (
     <BaseCollapsible.Root
       ref={ref}
@@ -112,7 +129,7 @@ export function Collapsible(props: CollapsibleProps): JSX.Element {
           <path d="m4 6 4 4 4-4" />
         </svg>
       </BaseCollapsible.Trigger>
-      <BaseCollapsible.Panel hiddenUntilFound data-ouro-collapsible-panel="" className={panelClass}>
+      <BaseCollapsible.Panel keepMounted hiddenUntilFound={untilFound} data-ouro-collapsible-panel="" className={panelClass}>
         <div className="pt-1 pb-2">{children}</div>
       </BaseCollapsible.Panel>
     </BaseCollapsible.Root>

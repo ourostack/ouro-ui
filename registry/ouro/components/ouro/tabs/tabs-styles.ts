@@ -93,4 +93,4 @@ const indicatorClass =
  */
 const panelClass =
   "min-w-0 flex-1 rounded-md outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
-  "transition-opacity duration-(--ouro-duration-base) ease-out data-starting-style:opacity-0";
+  "transition-opacity duration-(--ouro-duration-base) ease-out data-starting-style:opacity-0 data-ending-style:transition-none";

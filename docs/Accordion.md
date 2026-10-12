@@ -2,7 +2,7 @@
 
 # Accordion
 
-A stack of titles that each open their own content, for FAQs and long settings pages. One item opens at a time unless you pass `multiple`. Panels grow to their measured height with CSS, titles sit inside headings, closed content is still found by the browser's page search, and rows are 44px tall on touch screens.
+A stack of titles that each open their own content, for FAQs and long settings pages. One item opens at a time unless you pass `multiple`. Panels grow to their measured height with CSS, titles sit inside headings, closed content is in the server HTML and found by the page search of browsers that support `hidden="until-found"`, and rows are 44px tall on touch screens.
 
 ```tsx
 import { Accordion } from "@/registry/ouro/components/ouro/accordion/accordion";

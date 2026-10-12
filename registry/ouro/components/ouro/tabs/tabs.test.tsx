@@ -208,7 +208,7 @@ describe("Tabs", () => {
     expect(recoverable).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
     await userEvent.click(host.querySelectorAll<HTMLElement>('[role="tab"]')[2]!);
-    expect(host.querySelector('[role="tabpanel"]')!.textContent).toBe("Rest overnight");
+    await expect.poll(() => [...host.querySelectorAll('[role="tabpanel"]')].map((panel) => panel.textContent)).toEqual(["Rest overnight"]);
   });
 });
 

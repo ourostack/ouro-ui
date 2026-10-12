@@ -2,7 +2,7 @@
 
 # Collapsible
 
-One section that opens and closes under its title, such as nutrition facts under a recipe. The content grows to its measured height with CSS, the closed content is still found by the browser's page search, and the title is a 44px row on touch screens.
+One section that opens and closes under its title, such as nutrition facts under a recipe. The content grows to its measured height with CSS, the closed content is in the server HTML and found by the page search of browsers that support `hidden="until-found"`, and the title is a 44px row on touch screens.
 
 ```tsx
 import { Collapsible } from "@/registry/ouro/components/ouro/collapsible/collapsible";

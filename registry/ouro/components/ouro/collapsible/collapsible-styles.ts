@@ -64,7 +64,8 @@ const iconClass =
 /**
  * The panel: it grows from 0 to its measured height (Base UI's
  * `--collapsible-panel-height`) and shrinks back; with reduced motion it opens and closes at
- * once. Closed, it is `hidden="until-found"`, so the browser's page search finds and opens it.
+ * once. Closed, it stays mounted and hidden; where the browser supports `hidden="until-found"`,
+ * its page search finds and opens it.
  *
  * @internal
  */

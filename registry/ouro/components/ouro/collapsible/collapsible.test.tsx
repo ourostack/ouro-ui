@@ -57,7 +57,10 @@ describe("Collapsible", () => {
     expect(root.getAttribute("data-ouro")).toBe("collapsible");
     await expect.element(page.getByRole("button", { name: "Nutrition facts" })).toBeVisible();
     expect(trigger.getAttribute("aria-expanded")).toBe("false");
-    await expect.element(page.getByText("Calories 420, protein 18g")).not.toBeVisible();
+    // Closed, the panel stays mounted and hidden (until-found where supported), with no height.
+    const panel = root.querySelector<HTMLElement>("[data-ouro-collapsible-panel]")!;
+    expect(panel.hasAttribute("hidden")).toBe(true);
+    expect(panel.getBoundingClientRect().height).toBe(0);
   });
 
   it("opens and closes on press, and calls onOpenChange", async () => {
