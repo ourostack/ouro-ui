@@ -9,19 +9,20 @@ export { controlClass, indicatorClass, rootClass, thumbClass, trackClass, valueC
  *
  * @internal
  */
-const rootClass = "m-0 box-border flex w-full min-w-0 items-center gap-3 data-disabled:opacity-50";
+const rootClass = "m-0 box-border flex w-full min-w-0 items-center gap-3";
 
 /**
  * The area that takes presses: as tall as a control on phones (44px), so a press near the
  * track still lands, stepping down to desktop density with a fine pointer from `sm`. Its
- * inline padding is half a thumb, so a thumb at either end stays inside the field.
+ * inline padding is half a thumb, so a thumb at either end stays inside the field. It fades
+ * to half opacity when disabled.
  *
  * @internal
  */
 const controlClass =
   "relative box-border flex min-w-0 flex-1 items-center px-2.5 select-none touch-none cursor-pointer " +
   "h-(--ouro-slider-h) [--ouro-slider-h:calc(var(--spacing)*11)] sm:pointer-fine:[--ouro-slider-h:calc(var(--spacing)*6)] " +
-  "data-disabled:cursor-not-allowed";
+  "data-disabled:cursor-not-allowed data-disabled:opacity-50";
 
 /**
  * The rail the thumbs run on.
@@ -54,8 +55,10 @@ const thumbClass =
   "group-data-invalid/slider:border-destructive data-disabled:cursor-not-allowed";
 
 /**
- * The formatted value at the end of the row, in tabular figures so it does not jump.
+ * The formatted value at the end of the row, in tabular figures so it does not jump. When
+ * disabled it turns the muted color rather than fading, so it keeps a readable contrast.
  *
  * @internal
  */
-const valueClass = "m-0 shrink-0 text-sm leading-5 text-foreground tabular-nums whitespace-nowrap";
+const valueClass =
+  "m-0 shrink-0 text-sm leading-5 text-foreground tabular-nums whitespace-nowrap group-data-disabled/slider:text-muted-foreground";

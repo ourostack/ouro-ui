@@ -50,6 +50,7 @@ export const Playground: Story = {};
 
 /** One item, several items as chips, and free text with suggestions. */
 export const Modes: Story = {
+  parameters: { screenshot: { name: "combobox-modes" } },
   render: () => (
     <Surface>
       <Combobox label="Herb" name="herb" items={herbs} defaultValue="Dill" />
@@ -83,6 +84,7 @@ export const Search: Story = {
 
 /** Described, required, invalid and disabled. */
 export const States: Story = {
+  parameters: { screenshot: { name: "combobox-states" } },
   render: () => (
     <Surface>
       <Combobox label="Herb" name="herb" items={herbs} required description="For the green sauce." placeholder="Pick a herb" />

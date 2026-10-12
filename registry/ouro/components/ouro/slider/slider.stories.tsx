@@ -46,6 +46,7 @@ export const Playground: Story = {};
 
 /** A range has two thumbs; the value shows formatted for the locale. */
 export const Range: Story = {
+  parameters: { screenshot: { name: "slider-range" } },
   render: () => (
     <Surface>
       <Slider label="Price" name="price" defaultValue={[10, 40]} min={0} max={60} showValue format={{ style: "currency", currency: "USD", maximumFractionDigits: 0 }} />
@@ -57,6 +58,7 @@ export const Range: Story = {
 
 /** Described, invalid and disabled. */
 export const States: Story = {
+  parameters: { screenshot: { name: "slider-states" } },
   render: () => (
     <Surface>
       <Slider label="Spice level" name="spice" defaultValue={2} min={0} max={5} showValue description="0 is mild, 5 is very hot." />

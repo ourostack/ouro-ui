@@ -47,6 +47,7 @@ export const Playground: Story = {};
 
 /** Currency, percent and units, formatted for the locale, with steps that fit each. */
 export const Formats: Story = {
+  parameters: { screenshot: { name: "number-field-formats" } },
   render: () => (
     <Surface>
       <NumberField label="Price" name="price" defaultValue={4.5} min={0} step={0.5} format={{ style: "currency", currency: "USD" }} />
@@ -59,6 +60,7 @@ export const Formats: Story = {
 
 /** Described, required, invalid, read-only and disabled. */
 export const States: Story = {
+  parameters: { screenshot: { name: "number-field-states" } },
   render: () => (
     <Surface>
       <NumberField label="Servings" name="servings" required description="Scales the shopping list." defaultValue={4} min={1} />
