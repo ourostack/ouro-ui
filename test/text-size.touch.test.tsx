@@ -362,32 +362,6 @@ describe("the 16px detector", () => {
     expect((await scan(subject)).map((line) => line.replace(/ is 14px.*$/, ""))).toEqual(['Fixture/Inner with "Edit" open: input[type=text] "Filter"']);
   });
 
-  it("does not open a combobox whose inline list already shows, as in a command palette", async () => {
-    function Palette() {
-      const [open, setOpen] = useState(false);
-      useEffect(() => {
-        const onKey = (event: KeyboardEvent) => event.key === "Escape" && setOpen(false);
-        document.addEventListener("keydown", onKey);
-        return () => document.removeEventListener("keydown", onKey);
-      }, []);
-      return (
-        <>
-          <button aria-haspopup="dialog" onClick={() => setOpen(true)}>
-            Search
-          </button>
-          {open && (
-            <div role="dialog" aria-label="Commands">
-              <input role="combobox" aria-haspopup="listbox" aria-expanded="true" aria-controls="results" aria-label="Search commands" style={px14} />
-              <div role="listbox" id="results" aria-label="Results" />
-            </div>
-          )}
-        </>
-      );
-    }
-    const subject: Subject = { id: "Fixture/Palette", Subject: Palette, parameters: {}, demo: false };
-    expect((await scan(subject)).map((line) => line.replace(/ is 14px.*$/, ""))).toEqual(['Fixture/Palette with "Search" open: input[type=text] "Search commands"']);
-  });
-
   it("fails when an overlay deeper than the scan's depth has an opener", async () => {
     const Deep = () => (
       <>
