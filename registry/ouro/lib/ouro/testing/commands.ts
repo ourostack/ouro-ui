@@ -119,6 +119,9 @@ export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from,
   }
   const touch = (type: "touchStart" | "touchMove" | "touchEnd", [x, y]: [number, number]) =>
     session.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y, id: 1 }] });
+  // A mobile page keeps the zoom it took to fit a wider viewport (844x390 back to 390x844
+  // leaves it at 2.16x), which would scale every touch point, so reset it first.
+  await session.send("Emulation.setPageScaleFactor", { pageScaleFactor: 1 });
   await touch("touchStart", from);
   for (let step = 1; step <= steps; step++) {
     const t = step / steps;
