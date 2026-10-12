@@ -197,6 +197,11 @@
           "target": "@lib/ouro/dev.ts"
         },
         {
+          "path": "registry/ouro/lib/ouro/easing.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/easing.ts"
+        },
+        {
           "path": "registry/ouro/lib/ouro/env.d.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/env.d.ts"

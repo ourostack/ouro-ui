@@ -71,11 +71,11 @@ const bar =
 const link =
   "m-0 box-border items-center rounded-md px-3 font-medium text-muted-foreground no-underline select-none touch-manipulation " +
   "text-base pointer-fine:text-sm leading-5 [-webkit-tap-highlight-color:transparent] " +
-  "hover:bg-accent hover:text-accent-foreground aria-[current=page]:bg-accent aria-[current=page]:text-accent-foreground " +
+  "pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground aria-[current=page]:bg-accent aria-[current=page]:text-accent-foreground " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 const barLink = "press inline-flex h-11 min-w-11 pointer-fine:h-9 justify-center whitespace-nowrap motion-safe:active:scale-(--ouro-press-scale)";
 // In the sheet a link is a full-width row, which highlights while pressed instead of scaling.
-const sheetLink = "flex min-h-11 pointer-fine:min-h-9 py-2 transition-colors duration-(--ouro-duration-fast) ease-out active:bg-accent active:text-accent-foreground";
+const sheetLink = "flex min-h-11 pointer-fine:min-h-9 py-2 transition-colors duration-(--ouro-duration-fast) ease-[ease] active:bg-accent active:text-accent-foreground";
 
 const list = "m-0 flex list-none p-0";
 const example = '<Navbar label="Main" items={[{ label: "Recipes", href: "/recipes" }]}';

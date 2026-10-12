@@ -189,6 +189,38 @@ describe("NavigationMenu", () => {
     expect(html).toMatch(/<a[^>]*aria-current="page"[^>]*>Pricing<\/a>/);
   });
 
+  it("animates only opacity and scale when a pointer opens it, growing from its button", async () => {
+    await render(<NavigationMenu label="Main" items={items} />);
+    await userEvent.click(page.getByRole("button", { name: "Recipes" }));
+    await expect.poll(() => popup()).not.toBeNull();
+    // Base UI turns transitions off for a moment while it measures the panel, so wait.
+    await expect.poll(() => getComputedStyle(popup()!).transitionProperty).toBe("opacity, scale");
+    expect(getComputedStyle(popup()!).transitionTimingFunction).toContain("cubic-bezier(0.23, 1, 0.32, 1)");
+    expect(popup()!.className).toContain("origin-(--transform-origin)");
+    // The popup's box and place change at once between panels: layout does not animate.
+    expect(getComputedStyle(popup()!.parentElement!).transitionDuration).toBe("0s");
+  });
+
+  it("does not animate when the keyboard opens and closes it", async () => {
+    await render(<NavigationMenu label="Main" items={items} />);
+    const trigger = page.getByRole("button", { name: "Recipes" });
+    trigger.element().focus();
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => popup()).not.toBeNull();
+    expect(popup()!.hasAttribute("data-ouro-instant")).toBe(true);
+    await settled();
+    expect(getComputedStyle(popup()!).transitionProperty).toBe("none");
+    expect(getComputedStyle(trigger.element().querySelector("svg")!.parentElement!).transitionProperty).toBe("none");
+    expect(popup()!.getAnimations({ subtree: true }).length).toBe(0);
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => popup()).toBeNull();
+    // A pointer animates it again.
+    await userEvent.click(trigger);
+    await expect.poll(() => popup()).not.toBeNull();
+    expect(popup()!.hasAttribute("data-ouro-instant")).toBe(false);
+    await expect.poll(() => getComputedStyle(popup()!).transitionProperty).toBe("opacity, scale");
+  });
+
   it("fades without moving under reduced motion", async () => {
     await commands.emulateMedia({ reducedMotion: "reduce" });
     await render(<NavigationMenu label="Main" items={items} />);
@@ -199,7 +231,7 @@ describe("NavigationMenu", () => {
       const style = getComputedStyle(element);
       return /transform|scale|rotate|translate|width|height|top|left|all/.test(style.transitionProperty) && parseFloat(style.transitionDuration) > 0;
     };
-    expect(getComputedStyle(popup()!).transitionProperty).toBe("opacity");
+    await expect.poll(() => getComputedStyle(popup()!).transitionProperty).toBe("opacity");
     expect(moves(popup()!.parentElement!)).toBe(false);
     expect(moves(page.getByRole("button", { name: "Recipes" }).element().querySelector("svg")!.parentElement!)).toBe(false);
   });

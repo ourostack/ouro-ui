@@ -1,9 +1,10 @@
 "use client";
 
 import { NavigationMenu as BaseNavigationMenu } from "@base-ui/react/navigation-menu";
-import type { JSX, Ref } from "react";
+import { useState, type JSX, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { easeOut } from "@/registry/ouro/lib/ouro/easing";
 import { currentHref } from "@/registry/ouro/lib/ouro/current-path";
 import { floatingPortalClass } from "@/registry/ouro/lib/ouro/floating";
 import { RouterLink } from "@/registry/ouro/lib/ouro/router-link";
@@ -80,32 +81,40 @@ const rowItem =
   "press relative m-0 box-border inline-flex h-11 min-w-11 pointer-fine:h-9 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap " +
   "rounded-md border-0 bg-transparent px-3 font-[inherit] text-base pointer-fine:text-sm leading-5 font-medium text-muted-foreground no-underline " +
   "select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
-  "hover:bg-accent hover:text-accent-foreground data-popup-open:bg-accent data-popup-open:text-accent-foreground " +
+  "pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground data-popup-open:bg-accent data-popup-open:text-accent-foreground " +
   "aria-[current=page]:bg-accent aria-[current=page]:text-accent-foreground data-current:text-foreground " +
   "motion-safe:active:scale-(--ouro-press-scale) outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 
-// The chevron turns when its panel is open; with reduced motion it turns without a transition.
-const chevron = "inline-flex motion-safe:transition-[rotate] motion-safe:duration-(--ouro-duration-base) ease-out data-popup-open:rotate-180";
+// Opened or closed from the keyboard, nothing animates (`data-ouro-instant`).
+const instantly = "data-ouro-instant:transition-none";
 
-// The popup follows the open panel: it moves and resizes between panels with the theme's
-// base duration, and opens with a scale and fade. Reduced motion keeps only the fade.
-const positioner =
-  "box-border h-(--positioner-height) w-(--positioner-width) max-w-(--available-width) " +
-  "motion-safe:transition-[top,left,right,bottom] motion-safe:duration-(--ouro-duration-base) motion-safe:ease-out data-instant:transition-none";
-const popup =
+// The chevron turns when its panel is open; with reduced motion it turns without a transition.
+const chevron = cn("inline-flex motion-safe:transition-[rotate] motion-safe:duration-(--ouro-duration-base) data-popup-open:rotate-180", easeOut, instantly);
+
+// The popup follows the open panel. Its box and place change at once between panels, since
+// layout does not animate; it opens with a scale and fade from its button and closes faster.
+// Reduced motion keeps only the fade.
+const positioner = "box-border h-(--positioner-height) w-(--positioner-width) max-w-(--available-width)";
+const popup = cn(
   "relative box-border h-(--popup-height) w-(--popup-width) origin-(--transform-origin) rounded-lg bg-popover text-popover-foreground outline-none " +
   "[box-shadow:0_0_0_1px_color-mix(in_oklab,var(--border)_60%,transparent),0_8px_24px_rgb(0_0_0/0.14)] " +
-  "transition-opacity duration-(--ouro-duration-base) ease-out data-starting-style:opacity-0 data-ending-style:opacity-0 data-ending-style:duration-(--ouro-duration-fast) " +
-  "motion-safe:transition-[opacity,scale,width,height] motion-safe:data-starting-style:scale-96 motion-safe:data-ending-style:scale-96";
+  "transition-opacity duration-(--ouro-duration-base) data-starting-style:opacity-0 data-ending-style:opacity-0 data-ending-style:duration-(--ouro-duration-fast) " +
+    "motion-safe:transition-[opacity,scale] motion-safe:data-starting-style:scale-96 motion-safe:data-ending-style:scale-96",
+  easeOut,
+  instantly,
+);
 // A panel: nearly the screen's width on a phone, as wide as its links from 640px.
-const content =
+const content = cn(
   "box-border h-full w-[calc(100vw-2rem)] p-2 sm:w-max sm:min-w-64 sm:max-w-md " +
-  "transition-opacity duration-(--ouro-duration-base) ease-out data-starting-style:opacity-0 data-ending-style:opacity-0";
+    "transition-opacity duration-(--ouro-duration-base) data-starting-style:opacity-0 data-ending-style:opacity-0",
+  easeOut,
+  instantly,
+);
 // A link in a panel: a full-width row, which highlights while pressed instead of scaling.
 const panelLink =
   "m-0 box-border flex min-h-11 pointer-fine:min-h-9 flex-col justify-center gap-0.5 rounded-md px-3 py-2 text-base pointer-fine:text-sm leading-5 " +
   "text-popover-foreground no-underline select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
-  "transition-colors duration-(--ouro-duration-fast) ease-out hover:bg-accent hover:text-accent-foreground active:bg-accent active:text-accent-foreground " +
+  "transition-colors duration-(--ouro-duration-fast) ease-[ease] pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground active:bg-accent active:text-accent-foreground " +
   "aria-[current=page]:bg-accent aria-[current=page]:text-accent-foreground " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 
@@ -185,6 +194,8 @@ export function NavigationMenu(props: NavigationMenuProps): JSX.Element {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
 
+  const [instant, setInstant] = useState(false);
+
   // A link's own `current` wins; otherwise the path decides, across the row and the panels.
   const all = items.flatMap((item): ReadonlyArray<{ href: string; current?: boolean | undefined }> => item.links ?? [item]);
   const marked = all.some((link) => link.current)
@@ -196,20 +207,27 @@ export function NavigationMenu(props: NavigationMenuProps): JSX.Element {
   const isCurrent = (link: { href: string; current?: boolean | undefined }) => Boolean(link.current) || link.href === marked;
 
   return (
-    <BaseNavigationMenu.Root ref={ref} data-ouro="navigation-menu" aria-label={label} className={cn("min-w-0", className)}>
+    <BaseNavigationMenu.Root
+      ref={ref}
+      data-ouro="navigation-menu"
+      aria-label={label}
+      // A key press, or the click a key press makes (detail 0), opens and closes at once.
+      onValueChange={(_value, { event }) => setInstant(event.type === "keydown" || (event.type === "click" && (event as MouseEvent).detail === 0))}
+      className={cn("min-w-0", className)}
+    >
       <BaseNavigationMenu.List className="m-0 flex list-none flex-wrap items-center gap-1 p-0">
         {items.map((item, index) =>
           item.links !== undefined ? (
             <BaseNavigationMenu.Item key={index} value={index}>
               <BaseNavigationMenu.Trigger data-current={item.links.some(isCurrent) ? "" : undefined} className={rowItem}>
                 {item.label}
-                <BaseNavigationMenu.Icon className={chevron}>
+                <BaseNavigationMenu.Icon data-ouro-instant={instant ? "" : undefined} className={chevron}>
                   <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-3.5">
                     <path d="m4 6 4 4 4-4" />
                   </svg>
                 </BaseNavigationMenu.Icon>
               </BaseNavigationMenu.Trigger>
-              <BaseNavigationMenu.Content className={content}>
+              <BaseNavigationMenu.Content data-ouro-instant={instant ? "" : undefined} className={content}>
                 <ul className="m-0 grid list-none gap-1 p-0">
                   {item.links.map((link, position) => (
                     <li key={position}>
@@ -233,7 +251,7 @@ export function NavigationMenu(props: NavigationMenuProps): JSX.Element {
       </BaseNavigationMenu.List>
       <BaseNavigationMenu.Portal data-ouro="navigation-menu-portal" className={floatingPortalClass}>
         <BaseNavigationMenu.Positioner sideOffset={8} collisionPadding={16} className={positioner}>
-          <BaseNavigationMenu.Popup data-ouro="navigation-menu-popup" className={popup}>
+          <BaseNavigationMenu.Popup data-ouro="navigation-menu-popup" data-ouro-instant={instant ? "" : undefined} className={popup}>
             <BaseNavigationMenu.Viewport className="relative h-full w-full overflow-hidden rounded-[inherit]" />
           </BaseNavigationMenu.Popup>
         </BaseNavigationMenu.Positioner>

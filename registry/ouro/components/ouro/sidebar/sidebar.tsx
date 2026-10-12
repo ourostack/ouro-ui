@@ -90,19 +90,18 @@ export interface SidebarProps {
 // Class strings are literal so the app's Tailwind finds them when it compiles.
 
 // The column: 16rem, or a rail (a 44px target, its padding and the border) when collapsed. The
-// width animates only when motion is allowed.
+// width changes at once: layout does not animate.
 const column =
   "box-border flex h-full w-(--ouro-sidebar-w) flex-col overflow-hidden border-0 border-e border-solid border-border bg-background text-foreground " +
-  "[--ouro-sidebar-w:16rem] data-collapsed:[--ouro-sidebar-w:calc(3.75rem+1px)] " +
-  "motion-safe:transition-[width] motion-safe:duration-(--ouro-duration-base) motion-safe:ease-out max-sm:hidden";
+  "[--ouro-sidebar-w:16rem] data-collapsed:[--ouro-sidebar-w:calc(3.75rem+1px)] max-sm:hidden";
 
 // A row: 44px with 16px text on a coarse pointer at every width, 36px with 14px text with a
 // fine one. A full-width row highlights while pressed instead of scaling.
 const row =
   "relative m-0 box-border flex w-full min-h-11 pointer-fine:min-h-9 cursor-pointer items-center gap-3 rounded-md border-0 bg-transparent px-3 py-2 " +
   "text-start font-[inherit] text-base pointer-fine:text-sm leading-5 font-medium text-muted-foreground no-underline select-none touch-manipulation " +
-  "[-webkit-tap-highlight-color:transparent] transition-colors duration-(--ouro-duration-fast) ease-out " +
-  "hover:bg-accent hover:text-accent-foreground active:bg-accent active:text-accent-foreground " +
+  "[-webkit-tap-highlight-color:transparent] transition-colors duration-(--ouro-duration-fast) ease-[ease] " +
+  "pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground active:bg-accent active:text-accent-foreground " +
   "aria-[current=page]:bg-accent aria-[current=page]:text-accent-foreground " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 const railRow = "justify-center px-0";

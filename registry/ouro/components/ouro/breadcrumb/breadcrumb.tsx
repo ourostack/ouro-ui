@@ -53,12 +53,12 @@ export interface BreadcrumbProps {
 const text = "text-base pointer-fine:text-sm leading-5";
 const crumb =
   "inline-flex min-h-11 min-w-11 pointer-fine:min-h-0 pointer-fine:min-w-0 items-center rounded-xs text-muted-foreground no-underline " +
-  "decoration-current/40 underline-offset-4 transition-colors duration-(--ouro-duration-fast) ease-out hover:text-foreground hover:underline " +
+  "decoration-current/40 underline-offset-4 transition-colors duration-(--ouro-duration-fast) ease-[ease] pointer-fine:hover:text-foreground pointer-fine:hover:underline active:text-foreground " +
   "[-webkit-tap-highlight-color:transparent] outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 const more =
   "press m-0 box-border inline-flex h-11 min-w-11 pointer-fine:h-7 pointer-fine:min-w-7 cursor-pointer items-center justify-center " +
   "rounded-md border-0 bg-transparent p-0 font-[inherit] text-muted-foreground select-none touch-manipulation " +
-  "[-webkit-tap-highlight-color:transparent] hover:bg-accent hover:text-accent-foreground data-popup-open:bg-accent data-popup-open:text-accent-foreground " +
+  "[-webkit-tap-highlight-color:transparent] pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground data-popup-open:bg-accent data-popup-open:text-accent-foreground " +
   "motion-safe:active:scale-(--ouro-press-scale) outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 
 const row = "inline-flex min-w-0 items-center gap-x-1.5";

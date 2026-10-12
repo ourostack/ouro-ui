@@ -1,0 +1,10 @@
+// The library's three easing curves, as Tailwind classes. They are literals here, in one
+// place, until the theme has tokens for them (--ease-out, --ease-in-out, --ease-drawer).
+// Class strings are whole so the app's Tailwind finds them when it compiles.
+
+/** Enter and exit: a strong ease-out. */
+export const easeOut = "ease-[cubic-bezier(0.23,1,0.32,1)]";
+/** Movement on screen. */
+export const easeInOut = "ease-[cubic-bezier(0.77,0,0.175,1)]";
+/** Sheets and drawers. */
+export const easeDrawer = "ease-[cubic-bezier(0.32,0.72,0,1)]";

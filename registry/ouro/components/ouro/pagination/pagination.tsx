@@ -79,7 +79,7 @@ const cell =
   "rounded-md border-0 bg-transparent px-2 font-[inherit] text-base pointer-fine:text-sm leading-5 font-medium text-foreground no-underline " +
   "tabular-nums select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
-const live = "cursor-pointer hover:bg-accent hover:text-accent-foreground motion-safe:active:scale-(--ouro-press-scale)";
+const live = "cursor-pointer pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground motion-safe:active:scale-(--ouro-press-scale)";
 const currentCell = "aria-[current=page]:bg-secondary aria-[current=page]:text-secondary-foreground";
 const off = "cursor-not-allowed opacity-50";
 

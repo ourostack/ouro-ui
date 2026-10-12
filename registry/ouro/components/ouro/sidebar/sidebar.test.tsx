@@ -190,8 +190,7 @@ describe("Sidebar", () => {
     expect(page.getByRole("button", { name: "Collapse sidebar" }).query()).toBeNull();
   });
 
-  it("changes width without a transition under reduced motion", async () => {
-    await commands.emulateMedia({ reducedMotion: "reduce" });
+  it("changes width at once: layout does not animate", async () => {
     const { nav } = await render(<Sidebar label="Main" sections={sections} />);
     await userEvent.click(page.getByRole("button", { name: "Collapse sidebar" }));
     expect(nav!.getAnimations().filter((animation) => (animation as CSSTransition).transitionProperty === "width").length).toBe(0);
