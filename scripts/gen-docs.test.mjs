@@ -143,15 +143,32 @@ test("the parts doc shows the required nesting and every part", () => {
   assert.match(doc("Sheet.md"), /\[parts\.md\]\(parts\.md#sheet-parts\)/);
 });
 
-test("the catalog is grouped by job in README", () => {
+test("the catalog is grouped by job in README", async () => {
+  // Checks structure and membership, never which components sit next to each other, so
+  // parallel component PRs that add to the same group do not conflict here.
+  const { groupOrder, APP_SETUP } = await import("./catalog-groups.mts");
   const readme = readFileSync(join(root, "README.md"), "utf8");
   const catalog = readme.split("<!-- catalog:start -->")[1].split("<!-- catalog:end -->")[0];
-  assert.match(catalog, /### Actions\n\n- \*\*Button\*\* — A button, or a link styled as one\./);
-  // In name order within a group; other components may sit between these.
-  const others = String.raw`(?:- [^\n]+\n)*`;
-  assert.match(catalog, new RegExp(String.raw`### Overlays\n\n- \*\*ConfirmDialog\*\* — [^\n]+\n${others}- \*\*Dialog\*\* — [^\n]+\n${others}- \*\*Sheet\*\* — A panel that slides in`));
-  assert.match(catalog, new RegExp(String.raw`### Text\n\n- \*\*Heading\*\* — [^\n]+\n${others}- \*\*Kbd\*\* — [^\n]+\n${others}- \*\*Link\*\* — [^\n]+\n${others}- \*\*Text\*\* — `));
-  assert.match(catalog, new RegExp(String.raw`### Forms\n\n- \*\*Field\*\* — [^\n]+\n${others}- \*\*Fieldset\*\* — [^\n]+\n${others}- \*\*TextArea\*\* — [^\n]+\n${others}- \*\*TextField\*\* — `));
+  const sections = new Map(
+    catalog.split(/^### /m).slice(1).map((chunk) => {
+      const [heading, ...lines] = chunk.split("\n");
+      return [heading.trim(), lines.filter((line) => line.startsWith("- **")).map((line) => line.slice(4, line.indexOf("**", 4)))];
+    }),
+  );
+  const headings = [...sections.keys()];
+  const groups = headings.filter((heading) => groupOrder.includes(heading));
+  assert.deepEqual(groups, groupOrder.filter((group) => sections.has(group)), "component groups follow groupOrder");
+  assert.ok(headings.indexOf(APP_SETUP) > headings.indexOf(groups.at(-1)), "App setup follows the component groups");
+  for (const [heading, names] of sections) {
+    assert.ok(names.length > 0, `${heading} lists at least one component`);
+    assert.deepEqual(names, [...names].sort((a, b) => a.localeCompare(b, "en")), `${heading} is alphabetical`);
+  }
+  const member = (group, name) => assert.ok(sections.get(group)?.includes(name), `${name} is listed under ${group}`);
+  member("Actions", "Button");
+  member("Text", "Link");
+  member("Forms", "TextField");
+  member("Overlays", "Sheet");
+  assert.match(catalog, /- \*\*Button\*\* — A button, or a link styled as one\./);
 });
 
 test("no timestamps", () => {
