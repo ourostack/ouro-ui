@@ -97,6 +97,52 @@ Each part checks that it sits inside `<DialogRoot>`. Outside it, a part throws i
 | `DialogTrigger` | The button that opens the dialog. Pass your button as `render={<Button>Open</Button>}`. |
 | `DialogViewport` | The full-screen layer that centers the popup and keeps it clear of the screen edges. |
 
+## Popover parts
+
+The state owner of a popover built from parts. Use the `Popover` component instead unless its props cannot express your layout; `Popover` also becomes a bottom sheet on phones with `presentation="auto"`, which parts do not.
+
+```tsx
+import {
+  PopoverClose,
+  PopoverDescription,
+  PopoverPopup,
+  PopoverPortal,
+  PopoverPositioner,
+  PopoverRoot,
+  PopoverTitle,
+  PopoverTrigger,
+} from "@/registry/ouro/components/ouro/popover/popover-parts";
+```
+
+### Required nesting
+
+```tsx
+<PopoverRoot>
+  <PopoverTrigger render={<Button>Share</Button>} />
+  <PopoverPortal>
+    <PopoverPositioner side="bottom" align="start">
+      <PopoverPopup>
+        <PopoverTitle>Share recipe</PopoverTitle>
+        …
+      </PopoverPopup>
+    </PopoverPositioner>
+  </PopoverPortal>
+</PopoverRoot>
+```
+
+Each part checks that it sits inside `<PopoverRoot>`. Outside it, a part throws in development with a message that shows this JSX shape.
+
+| Part | What it is |
+| --- | --- |
+| `PopoverClose` | Closes the popover. Pass your button as `render={<Button>Done</Button>}`. With no `render` it is the screen-reader close button `Popover` uses: hidden until it has keyboard focus, so phone screen-reader users, who have no Escape key, can close it. |
+| `PopoverDescription` | A line under the title that describes the popover. |
+| `PopoverPopup` | The popover panel, 18rem wide (never wider than the screen allows) with 1rem of padding. It grows from the trigger with the theme spring and fades; reduced motion keeps only the fade. Put a `PopoverTitle` first: it names the popover. |
+| `PopoverPortal` | Moves the popover to the end of `<body>`, in its own stacking context at the `--ouro-layer` z-index (50 by default, from ouro-base.css), like Dialog and Sheet. Raise it in a `:root` rule of your own after the Ouro tokens: `:root { --ouro-layer: 60; }`. |
+| `PopoverPositioner` | Places the popover beside its trigger (or `anchor`), 8px away and at least 8px from the screen edges, and flips it to the other side when there is no room. |
+| `PopoverRoot` | The state owner of a popover built from parts. Use the `Popover` component instead unless its props cannot express your layout; `Popover` also becomes a bottom sheet on phones with `presentation="auto"`, which parts do not. |
+| `PopoverTitle` | The popover's title, which names it. Every popover needs one. |
+| `PopoverTrigger` | The button that opens and closes the popover. Pass your button as `render={<Button>Open</Button>}`. |
+
 ## Sheet parts
 
 The state owner of a sheet built from parts. Use the `Sheet` component instead unless its props cannot express your layout.
@@ -150,49 +196,3 @@ Each part checks that it sits inside `<SheetRoot>`. Outside it, a part throws in
 | `SheetTitle` | The sheet's title, which names the dialog. Every sheet needs one. |
 | `SheetTrigger` | The button that opens the sheet. Pass your button as `render={<Button>Open</Button>}`. |
 | `SheetViewport` | The full-screen layer that positions the popup against its edge. |
-
-## Popover parts
-
-The state owner of a popover built from parts. Use the `Popover` component instead unless its props cannot express your layout; `Popover` also becomes a bottom sheet on phones with `presentation="auto"`, which parts do not.
-
-```tsx
-import {
-  PopoverClose,
-  PopoverDescription,
-  PopoverPopup,
-  PopoverPortal,
-  PopoverPositioner,
-  PopoverRoot,
-  PopoverTitle,
-  PopoverTrigger,
-} from "@/registry/ouro/components/ouro/popover/popover-parts";
-```
-
-### Required nesting
-
-```tsx
-<PopoverRoot>
-  <PopoverTrigger render={<Button>Share</Button>} />
-  <PopoverPortal>
-    <PopoverPositioner side="bottom" align="start">
-      <PopoverPopup>
-        <PopoverTitle>Share recipe</PopoverTitle>
-        …
-      </PopoverPopup>
-    </PopoverPositioner>
-  </PopoverPortal>
-</PopoverRoot>
-```
-
-Each part checks that it sits inside `<PopoverRoot>`. Outside it, a part throws in development with a message that shows this JSX shape.
-
-| Part | What it is |
-| --- | --- |
-| `PopoverClose` | Closes the popover. Pass your button as `render={<Button>Done</Button>}`. With no `render` it is the screen-reader close button `Popover` uses: hidden until it has keyboard focus, so phone screen-reader users, who have no Escape key, can close it. |
-| `PopoverDescription` | A line under the title that describes the popover. |
-| `PopoverPopup` | The popover panel, 18rem wide (never wider than the screen allows) with 1rem of padding. It grows from the trigger with the theme spring and fades; reduced motion keeps only the fade. Put a `PopoverTitle` first: it names the popover. |
-| `PopoverPortal` | Moves the popover to the end of `<body>`, in its own stacking context at the `--ouro-layer` z-index (50 by default, from ouro-base.css), like Dialog and Sheet. Raise it in a `:root` rule of your own after the Ouro tokens: `:root { --ouro-layer: 60; }`. |
-| `PopoverPositioner` | Places the popover beside its trigger (or `anchor`), 8px away and at least 8px from the screen edges, and flips it to the other side when there is no room. |
-| `PopoverRoot` | The state owner of a popover built from parts. Use the `Popover` component instead unless its props cannot express your layout; `Popover` also becomes a bottom sheet on phones with `presentation="auto"`, which parts do not. |
-| `PopoverTitle` | The popover's title, which names it. Every popover needs one. |
-| `PopoverTrigger` | The button that opens and closes the popover. Pass your button as `render={<Button>Open</Button>}`. |

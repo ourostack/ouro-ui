@@ -46,7 +46,7 @@ export interface HoverCardProps {
   /** Not a prop. Ouro UI sets the delays: `<HoverCard trigger={…}>`. */
   closeDelay?: { "Ouro UI sets the delays": never };
   /** Not a prop. The preview is the children: `<HoverCard trigger={…}>…</HoverCard>`. */
-  content?: { "Use children: <HoverCard trigger={…}>…</HoverCard>": never };
+  content?: { "Use children: <HoverCard trigger={...}>...</HoverCard>": never };
   /** Not a prop. Ouro UI splits placement into `side` and `align`: `<HoverCard side="bottom" align="start">`. */
   placement?: { 'Use side="bottom" align="start"': never };
 }
@@ -62,6 +62,7 @@ export interface HoverCardProps {
  * It stacks above the page at `--ouro-layer`, a z-index of 50 by default (from
  * ouro-base.css), like Dialog and Sheet.
  *
+ * @group Overlays
  * @see https://ourostack.github.io/ouro-ui/docs/hover-card
  *
  * @example

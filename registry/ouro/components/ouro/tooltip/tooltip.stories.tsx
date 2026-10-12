@@ -43,7 +43,9 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 /** Hover or focus the icon button. The button has its own name, `aria-label`; the tooltip only shows it. */
-export const Playground: Story = {};
+export const Playground: Story = {
+  parameters: { screenshot: { name: "tooltip-open", focus: true } },
+};
 
 /** Inside `OuroProvider`, once one tooltip shows, its neighbours open instantly. */
 export const Toolbar: Story = {

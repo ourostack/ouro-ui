@@ -1,0 +1,90 @@
+[
+  {
+    "name": "button",
+    "title": "Button",
+    "group": "Actions",
+    "source": "registry/ouro/components/ouro/button/button.tsx"
+  },
+  {
+    "name": "text",
+    "title": "Text",
+    "group": "Text",
+    "source": "registry/ouro/components/ouro/text/text.tsx"
+  },
+  {
+    "name": "heading",
+    "title": "Heading",
+    "group": "Text",
+    "source": "registry/ouro/components/ouro/text/heading.tsx"
+  },
+  {
+    "name": "link",
+    "title": "Link",
+    "group": "Text",
+    "source": "registry/ouro/components/ouro/link/link.tsx"
+  },
+  {
+    "name": "field",
+    "title": "Field",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/field/field.tsx",
+    "parts": "Field"
+  },
+  {
+    "name": "fieldset",
+    "title": "Fieldset",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/field/fieldset.tsx"
+  },
+  {
+    "name": "text-field",
+    "title": "TextField",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/text-field/text-field.tsx"
+  },
+  {
+    "name": "text-area",
+    "title": "TextArea",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/text-field/text-area.tsx"
+  },
+  {
+    "name": "sheet",
+    "title": "Sheet",
+    "group": "Overlays",
+    "source": "registry/ouro/components/ouro/sheet/sheet.tsx",
+    "parts": "Sheet"
+  },
+  {
+    "name": "dialog",
+    "title": "Dialog",
+    "group": "Overlays",
+    "source": "registry/ouro/components/ouro/dialog/dialog.tsx",
+    "parts": "Dialog"
+  },
+  {
+    "name": "confirm-dialog",
+    "title": "ConfirmDialog",
+    "group": "Overlays",
+    "source": "registry/ouro/components/ouro/dialog/confirm-dialog.tsx"
+  },
+  {
+    "name": "popover",
+    "title": "Popover",
+    "group": "Overlays",
+    "source": "registry/ouro/components/ouro/popover/popover.tsx",
+    "parts": "Popover"
+  },
+  {
+    "name": "tooltip",
+    "title": "Tooltip",
+    "group": "Overlays",
+    "source": "registry/ouro/components/ouro/tooltip/tooltip.tsx"
+  },
+  {
+    "name": "hover-card",
+    "title": "HoverCard",
+    "group": "Overlays",
+    "source": "registry/ouro/components/ouro/hover-card/hover-card.tsx"
+  }
+]

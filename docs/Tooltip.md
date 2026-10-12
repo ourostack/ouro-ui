@@ -33,7 +33,7 @@ Type: `TooltipProps`.
 | `align` | `"start" \| "center" \| "end"` | `"center"` | How the tooltip lines up with the trigger along that side. |
 | `children` (required) | `ReactElement` |  | The trigger: one element that can take focus, usually a Button. It needs a name of its own; give an icon-only button `aria-label`. |
 | `content` (required) | `ReactNode` |  | A short label for the trigger, a few words: "Add to cookbook". It shows on hover and keyboard focus, never on touch, and screen readers don't read it, so it must never hold anything the user needs. |
-| `side` | `"bottom" \| "top" \| "left" \| "right"` | `"top"` | The side of the trigger the tooltip sits on; it flips when there is no room. |
+| `side` | `"top" \| "bottom" \| "left" \| "right"` | `"top"` | The side of the trigger the tooltip sits on; it flips when there is no room. |
 
 ## Don't use
 

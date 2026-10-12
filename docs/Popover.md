@@ -42,7 +42,7 @@ Props every mode takes. Type: `PopoverProps`.
 | `description` | `ReactNode` |  | A short line under the title, read out when the popover opens. |
 | `hideTitle` | `boolean` |  | Hides the title visually. It still names the popover for screen readers. |
 | `presentation` | `"popover" \| "auto" \| "sheet"` | `"popover"` | `popover` stays beside the trigger at every width. `auto` is a popover from the `sm` breakpoint (640px) up and a bottom sheet below it, for a popover with controls that would be fiddly on a phone. `sheet` is always a bottom sheet. The server renders the popover form and corrects it on hydration. |
-| `side` | `"bottom" \| "top" \| "left" \| "right"` | `"bottom"` | The side of the trigger the popover sits on; it flips when there is no room. |
+| `side` | `"top" \| "bottom" \| "left" \| "right"` | `"bottom"` | The side of the trigger the popover sits on; it flips when there is no room. |
 | `title` (required) | `string` |  | Names the popover for screen readers and shows at its top. Always required; hide it with `hideTitle`. |
 
 ## Modes

@@ -1,18 +1,6 @@
-import buttonDoc from "../../../docs/Button.md?raw";
-import confirmDialogDoc from "../../../docs/ConfirmDialog.md?raw";
-import dialogDoc from "../../../docs/Dialog.md?raw";
-import fieldDoc from "../../../docs/Field.md?raw";
-import fieldsetDoc from "../../../docs/Fieldset.md?raw";
-import headingDoc from "../../../docs/Heading.md?raw";
-import hoverCardDoc from "../../../docs/HoverCard.md?raw";
-import linkDoc from "../../../docs/Link.md?raw";
+import type { CatalogGroup } from "../../../scripts/catalog-groups.mts";
 import partsDoc from "../../../docs/parts.md?raw";
-import popoverDoc from "../../../docs/Popover.md?raw";
-import sheetDoc from "../../../docs/Sheet.md?raw";
-import textDoc from "../../../docs/Text.md?raw";
-import textAreaDoc from "../../../docs/TextArea.md?raw";
-import textFieldDoc from "../../../docs/TextField.md?raw";
-import tooltipDoc from "../../../docs/Tooltip.md?raw";
+import catalog from "./catalog.json";
 
 /**
  * One docs page per registry item. `name` is the registry item name, so the page lives at
@@ -25,52 +13,27 @@ export interface DocsItem {
   /** The component's export name. */
   title: string;
   /** Catalog group, as in the README catalog. */
-  group: "Actions" | "Text" | "Forms" | "Overlays";
+  group: CatalogGroup;
   /** The registry source file, from the repo root. */
   source: string;
   /** docs/<title>.md, generated. */
   markdown: string;
   /** The family in docs/parts.md whose nesting this page shows, if it has parts. */
-  parts?: "Sheet" | "Dialog" | "Field" | "Popover";
+  parts?: string;
 }
 
-export const docsItems: DocsItem[] = [
-  { name: "button", title: "Button", group: "Actions", source: "registry/ouro/components/ouro/button/button.tsx", markdown: buttonDoc },
-  { name: "text", title: "Text", group: "Text", source: "registry/ouro/components/ouro/text/text.tsx", markdown: textDoc },
-  { name: "heading", title: "Heading", group: "Text", source: "registry/ouro/components/ouro/text/heading.tsx", markdown: headingDoc },
-  { name: "link", title: "Link", group: "Text", source: "registry/ouro/components/ouro/link/link.tsx", markdown: linkDoc },
-  { name: "field", title: "Field", group: "Forms", source: "registry/ouro/components/ouro/field/field.tsx", markdown: fieldDoc, parts: "Field" },
-  { name: "fieldset", title: "Fieldset", group: "Forms", source: "registry/ouro/components/ouro/field/fieldset.tsx", markdown: fieldsetDoc },
-  {
-    name: "text-field",
-    title: "TextField",
-    group: "Forms",
-    source: "registry/ouro/components/ouro/text-field/text-field.tsx",
-    markdown: textFieldDoc,
-  },
-  { name: "text-area", title: "TextArea", group: "Forms", source: "registry/ouro/components/ouro/text-field/text-area.tsx", markdown: textAreaDoc },
-  { name: "sheet", title: "Sheet", group: "Overlays", source: "registry/ouro/components/ouro/sheet/sheet.tsx", markdown: sheetDoc, parts: "Sheet" },
-  { name: "dialog", title: "Dialog", group: "Overlays", source: "registry/ouro/components/ouro/dialog/dialog.tsx", markdown: dialogDoc, parts: "Dialog" },
-  {
-    name: "confirm-dialog",
-    title: "ConfirmDialog",
-    group: "Overlays",
-    source: "registry/ouro/components/ouro/dialog/confirm-dialog.tsx",
-    markdown: confirmDialogDoc,
-  },
-  { name: "popover", title: "Popover", group: "Overlays", source: "registry/ouro/components/ouro/popover/popover.tsx", markdown: popoverDoc, parts: "Popover" },
-  { name: "tooltip", title: "Tooltip", group: "Overlays", source: "registry/ouro/components/ouro/tooltip/tooltip.tsx", markdown: tooltipDoc },
-  {
-    name: "hover-card",
-    title: "HoverCard",
-    group: "Overlays",
-    source: "registry/ouro/components/ouro/hover-card/hover-card.tsx",
-    markdown: hoverCardDoc,
-  },
-];
+/** docs/<Export>.md, generated, by export name. */
+const markdownFiles = import.meta.glob<string>("../../../docs/*.md", { query: "?raw", import: "default", eager: true });
+
+/** Every component's page, from site/src/docs/catalog.json, which `pnpm run docs` writes from the registry. */
+export const docsItems: DocsItem[] = (catalog as Array<Omit<DocsItem, "markdown">>).map((item) => {
+  const markdown = markdownFiles[`../../../docs/${item.title}.md`];
+  if (markdown === undefined) throw new Error(`docs/${item.title}.md is missing; run pnpm run docs.`);
+  return { ...item, markdown };
+});
 
 /** The `## <family> parts` section of docs/parts.md, without its heading. */
-export function partsSection(family: "Sheet" | "Dialog" | "Field" | "Popover"): string {
+export function partsSection(family: string): string {
   const start = partsDoc.indexOf(`## ${family} parts\n`);
   const body = partsDoc.slice(start).split("\n").slice(1).join("\n");
   const end = body.search(/^## /m);

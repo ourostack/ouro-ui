@@ -36,13 +36,13 @@ export interface TooltipProps {
   align?: FloatingAlign | (string & { 'Use "start", "center" or "end": left is "start", right is "end"': never }) | undefined;
 
   /** Not a prop. The text is `content`: `<Tooltip content="Add to cookbook">`. */
-  title?: { 'Use <Tooltip content="…">': never };
+  title?: { 'Use <Tooltip content="...">': never };
   /** Not a prop. Ouro UI sets the delay, and `OuroProvider` groups tooltips so neighbours open instantly. */
   delayDuration?: { "Ouro UI sets the delay; wrap the app in <OuroProvider> to group tooltips": never };
   /** Not a prop. Ouro UI sets the delay, and `OuroProvider` groups tooltips so neighbours open instantly. */
   delay?: { "Ouro UI sets the delay; wrap the app in <OuroProvider> to group tooltips": never };
   /** Not a prop. The child is the trigger: `<Tooltip content="…"><Button>…</Button></Tooltip>`. */
-  asChild?: { 'The child is the trigger: <Tooltip content="…"><Button>…</Button></Tooltip>': never };
+  asChild?: { 'The child is the trigger: <Tooltip content="..."><Button>...</Button></Tooltip>': never };
   /** Not a prop. Ouro UI splits placement into `side` and `align`: `<Tooltip side="bottom" align="start">`. */
   placement?: { 'Use side="bottom" align="start"': never };
 }
@@ -75,6 +75,7 @@ function essential(detail: string): readonly [string, string] {
  * It stacks above the page at `--ouro-layer`, a z-index of 50 by default (from
  * ouro-base.css), like Dialog and Sheet.
  *
+ * @group Overlays
  * @see https://ourostack.github.io/ouro-ui/docs/tooltip
  *
  * @example

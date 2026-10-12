@@ -1,27 +1,43 @@
 // Spec §4.6: the type check and the editor's hover tell an agent the fix. Runs `tsc` and the
-// TypeScript language service on fixtures/agent-types/app.tsx, which makes the mistakes
-// agents make, and checks them against fixtures/agent-types/cases.ts. The development
+// TypeScript language service on fixtures/agent-types/<item>.snippets.tsx, which make the
+// mistakes agents make, and checks them against the matching <item>.cases.ts. The development
 // messages, the third channel, are checked in test/agent-types.test.tsx.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
-import { agentCases, validSnippets } from "./fixtures/agent-types/cases.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const fixtureDir = join(root, "scripts/fixtures/agent-types");
-const app = join(fixtureDir, "app.tsx");
-const lines = readFileSync(app, "utf8").split("\n");
 const tsc = createRequire(import.meta.url).resolve("typescript/bin/tsc");
 
-/** The 1-based line of `export const <id> =` in the fixture. */
+/** Each component's snippets file, its lines and its cases. */
+const fixtures = await Promise.all(
+  readdirSync(fixtureDir)
+    .filter((file) => file.endsWith(".snippets.tsx"))
+    .sort()
+    .map(async (file) => {
+      const name = file.replace(/\.snippets\.tsx$/, "");
+      const { agentCases, validSnippets } = await import(join(fixtureDir, `${name}.cases.ts`));
+      return { name, file: join(fixtureDir, file), lines: readFileSync(join(fixtureDir, file), "utf8").split("\n"), agentCases, validSnippets };
+    }),
+);
+const agentCases = fixtures.flatMap((fixture) => fixture.agentCases);
+const validSnippets = fixtures.flatMap((fixture) => fixture.validSnippets);
+/** The fixture that exports a snippet. */
+const fixtureOf = (id) => {
+  const found = fixtures.find((fixture) => fixture.lines.some((line) => line.startsWith(`export const ${id} =`)));
+  assert.ok(found, `no ${id} in the fixtures`);
+  return found;
+};
+
+/** The 1-based line of `export const <id> =` in its fixture. */
 function lineOf(id) {
-  const index = lines.findIndex((line) => line.startsWith(`export const ${id} =`));
-  assert.notEqual(index, -1, `no ${id} in the fixture`);
+  const index = fixtureOf(id).lines.findIndex((line) => line.startsWith(`export const ${id} =`));
   return index + 1;
 }
 
@@ -61,29 +77,37 @@ test("every snippet names the fix in at least one channel", () => {
     assert.equal(item.names.includes("dev"), item.dev !== undefined, `${item.id}: dev`);
     assert.equal(item.names.includes("hover"), item.hover !== undefined, `${item.id}: hover`);
   }
-  const ids = lines.flatMap((line) => /^export const (\w+) =/.exec(line)?.[1] ?? []);
-  assert.deepEqual(ids, [...agentCases.map((item) => item.id), ...validSnippets]);
+  for (const fixture of fixtures) {
+    const ids = fixture.lines.flatMap((line) => /^export const (\w+) =/.exec(line)?.[1] ?? []);
+    assert.deepEqual(ids, [...fixture.agentCases.map((item) => item.id), ...fixture.validSnippets], fixture.name);
+  }
+  const all = [...agentCases.map((item) => item.id), ...validSnippets];
+  assert.equal(new Set(all).size, all.length, "snippet ids are unique across the fixtures");
+  assert.ok(fixtures.length >= 11 && all.length >= 67, `found ${fixtures.length} fixtures and ${all.length} snippets`);
 });
 
 test("tsc reports exactly the expected errors, naming the fix where the case says so", () => {
   const result = spawnSync(process.execPath, [tsc, "-p", fixtureDir, "--pretty", "false"], { cwd: root, encoding: "utf8" });
   // Each error starts with `file(line,col): `; continuation lines are indented.
+  // Keyed by `<item>:<line>`.
   const errors = new Map();
   let last;
   for (const line of result.stdout.split("\n")) {
-    const match = /^scripts\/fixtures\/agent-types\/app\.tsx\((\d+),\d+\): (error TS\d+: .*)$/.exec(line);
+    const match = /^scripts\/fixtures\/agent-types\/([\w-]+)\.snippets\.tsx\((\d+),\d+\): (error TS\d+: .*)$/.exec(line);
     if (match) {
-      last = [...(errors.get(Number(match[1])) ?? []), match[2]];
-      errors.set(Number(match[1]), last);
+      const key = `${match[1]}:${match[2]}`;
+      last = [...(errors.get(key) ?? []), match[3]];
+      errors.set(key, last);
     } else if (line.startsWith(" ") && last) {
       last[last.length - 1] += `\n${line}`;
     } else {
       assert.equal(line, "", `unexpected tsc output: ${line}`);
     }
   }
-  for (const id of validSnippets) assert.equal(errors.get(lineOf(id)), undefined, `${id} is valid`);
+  const at = (id) => `${fixtureOf(id).name}:${lineOf(id)}`;
+  for (const id of validSnippets) assert.equal(errors.get(at(id)), undefined, `${id} is valid`);
   for (const item of agentCases) {
-    const actual = errors.get(lineOf(item.id)) ?? [];
+    const actual = errors.get(at(item.id)) ?? [];
     assert.equal(actual.length, item.tsc.length, `${item.id}: ${actual.join("\n")}`);
     item.tsc.forEach((expected, index) => assertSameMessage(actual[index], expected, item.id));
   }
@@ -114,9 +138,10 @@ test("hovering any prop shows its JSDoc, including on elements with a type error
     },
     ts.createDocumentRegistry(),
   );
-  const source = service.getProgram().getSourceFile(app);
   /** The hover JSDoc of each attribute on the snippet's outer element. */
   const hovers = (id) => {
+    const app = fixtureOf(id).file;
+    const source = service.getProgram().getSourceFile(app);
     const statement = source.statements.find(
       (node) => ts.isVariableStatement(node) && node.declarationList.declarations[0].name.getText(source) === id,
     );
@@ -144,7 +169,8 @@ test("hovering any prop shows its JSDoc, including on elements with a type error
 
   // A hint member accepts nothing, so completion offers only the real values.
   const line = lineOf("s01");
+  const { lines, file } = fixtureOf("s01");
   const offset = lines.slice(0, line - 1).join("\n").length + 1 + lines[line - 1].indexOf('"ghost"') + 1;
-  const completions = service.getCompletionsAtPosition(app, offset, {});
+  const completions = service.getCompletionsAtPosition(file, offset, {});
   assert.deepEqual(completions?.entries.map((entry) => entry.name).sort(), ["outline", "plain", "soft", "solid"]);
 });

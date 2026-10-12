@@ -47,7 +47,9 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 /** Beside its trigger at every width, flipping when there is no room. */
-export const Playground: Story = {};
+export const Playground: Story = {
+  parameters: { screenshot: { name: "popover-open", open: true } },
+};
 
 /** `presentation="auto"` turns a popover with fields into a bottom sheet below 640px. */
 export const AutoPresentation: Story = {
@@ -75,6 +77,7 @@ export const Sides: Story = {
 
 /** `open`, `onOpenChange` and `anchor` put it under your state, pointing at your own button. */
 export const Controlled: Story = {
+  parameters: { plainOpeners: ["Servings"] },
   render: function Render() {
     const [open, setOpen] = useState(false);
     const anchor = useRef<HTMLButtonElement>(null);

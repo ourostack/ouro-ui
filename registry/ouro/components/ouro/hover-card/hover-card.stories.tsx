@@ -43,6 +43,7 @@ export const Playground: Story = {};
 
 /** In running text, the card previews where the link goes. */
 export const InText: Story = {
+  parameters: { screenshot: { name: "hover-card-open", focus: true } },
   render: (args) => (
     <p style={{ ...body, maxWidth: 420 }}>
       This shakshuka comes from <HoverCard {...args} />, who adds preserved lemon at the end.

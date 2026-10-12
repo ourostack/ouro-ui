@@ -5,5 +5,5 @@
     "noEmit": true,
     "paths": { "@/*": ["../../../*"] }
   },
-  "include": ["app.tsx", "../../../registry/ouro/lib/ouro/env.d.ts"]
+  "include": ["*.snippets.tsx", "../../../registry/ouro/lib/ouro/env.d.ts"]
 }

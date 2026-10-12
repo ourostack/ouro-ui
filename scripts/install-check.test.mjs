@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -225,7 +225,11 @@ test("the README's Next.js files are the ones the Next.js install job builds", (
     assert.ok(readme.includes("```tsx\n" + text + "```"), `README.md does not show test/install-fixture-next/${file} verbatim`);
   }
   assert.match(readFileSync(join(root, "test/install-fixture-next/src/app/providers.tsx"), "utf8"), /^"use client";\n/);
-  for (const file of ["src/app/layout.tsx", "src/app/page.tsx"]) {
+  const sections = readdirSync(join(root, "test/install-fixture-next/src/app/sections")).map((file) => `src/app/sections/${file}`);
+  // One Server Component section per component (registry:ui item); the install test renders them all.
+  const components = JSON.parse(readFileSync(join(root, "registry.json"), "utf8")).items.filter((item) => item.type === "registry:ui");
+  assert.deepEqual(sections.filter((file) => file.endsWith(".tsx")).sort(), components.map((item) => `src/app/sections/${item.name}.tsx`).sort());
+  for (const file of ["src/app/layout.tsx", "src/app/page.tsx", ...sections]) {
     assert.doesNotMatch(readFileSync(join(root, "test/install-fixture-next", file), "utf8"), /"use client"/, `${file} must stay a Server Component`);
   }
 });

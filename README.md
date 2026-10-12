@@ -201,7 +201,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ### Parts
 
-- **Parts** — building blocks for Dialog, Field and Sheet, only for layouts the props cannot express. [Docs](docs/parts.md)
+- **Parts** — building blocks for Dialog, Field, Popover and Sheet, only for layouts the props cannot express. [Docs](docs/parts.md)
 <!-- catalog:end -->
 
 ## Theme

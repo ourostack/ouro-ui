@@ -72,7 +72,7 @@ export interface PopoverBaseProps {
   /** Not a prop. Ouro UI splits placement into `side` and `align`: `<Popover side="bottom" align="start">`. */
   placement?: { 'Use side="bottom" align="start"': never };
   /** Not a prop. The body is the children: `<Popover title="…" trigger={…}>…</Popover>`. */
-  content?: { 'Use children: <Popover title="…" trigger={…}>…</Popover>': never };
+  content?: { 'Use children: <Popover title="..." trigger={...}>...</Popover>': never };
 }
 
 /** An uncontrolled Popover: `trigger` opens and closes it, and it sits beside the trigger. */
@@ -125,6 +125,7 @@ export type PopoverProps = PopoverWithTriggerProps | PopoverControlledProps;
  * ouro-base.css), like Dialog and Sheet. Raise it in a `:root` rule of your own after
  * the Ouro tokens, outside any `@layer`: `:root { --ouro-layer: 60; }`.
  *
+ * @group Overlays
  * @see https://ourostack.github.io/ouro-ui/docs/popover
  *
  * @example
