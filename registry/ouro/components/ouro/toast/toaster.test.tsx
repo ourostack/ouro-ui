@@ -345,13 +345,25 @@ describe("toast()", () => {
 
   it("dismisses itself after duration; 0 and Infinity keep it", async () => {
     await render(<Toaster />);
-    await act(async () => {
-      toast("Kept", { duration: 0 });
-      toast("Kept forever", { duration: Infinity });
-      toast("Brief", { duration: 100 });
+    // A 100ms toast can come and go between two polls on a loaded runner, so an observer
+    // records it: its callback runs as a microtask after React inserts the toast, before
+    // the dismiss timer can fire.
+    let shown = false;
+    const observer = new MutationObserver(() => {
+      shown ||= showing("Brief");
     });
-    await expect.poll(() => showing("Brief")).toBe(true);
-    await gone("Brief");
+    observer.observe(document.body, { subtree: true, childList: true, attributes: true });
+    try {
+      await act(async () => {
+        toast("Kept", { duration: 0 });
+        toast("Kept forever", { duration: Infinity });
+        toast("Brief", { duration: 100 });
+      });
+      await gone("Brief");
+    } finally {
+      observer.disconnect();
+    }
+    expect(shown).toBe(true);
     expect(showing("Kept") && showing("Kept forever")).toBe(true);
   });
 
