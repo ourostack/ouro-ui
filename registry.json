@@ -282,7 +282,7 @@
       "name": "ouro-testing",
       "type": "registry:lib",
       "title": "Ouro testing",
-      "description": "Installed with every -tests item; you don't need to add it. The test kit Ouro UI's tests use: Vitest browser projects with the drag, flick, tap, touchDrag, pointerPress, emulateMedia, pageZoom, resetPageZoom and setPageZoom commands, the rotate helper (which turns the phone viewport and resets Chromium's zoom; the ouro-touch project fails a test that leaves the page zoomed), the act helper, axeExclude, and the end-to-end story helper.",
+      "description": "Installed with every -tests item; you don't need to add it. The test kit Ouro UI's tests use: Vitest browser projects with the drag, flick, tap, touchDrag, touchStep, pointerPress, emulateMedia, pageZoom, resetPageZoom and setPageZoom commands, the rotate helper (which turns the phone viewport and resets Chromium's zoom; the ouro-touch project fails a test that leaves the page zoomed), the act helper, axeExclude, and the end-to-end story helper.",
       "docs": "The -tests items install Ouro UI's tests beside each component. To run the Vitest browser tests, add vitest.config.ts (use your components.json tailwind.css path for css), then run npx playwright install chromium webkit and npx vitest run:\n--- vitest.config.ts\nimport { defineConfig, mergeConfig } from \"vitest/config\";\nimport viteConfig from \"./vite.config.ts\";\nimport { ouroTestProjects } from \"./src/lib/ouro/testing/vitest.ts\";\n\nexport default mergeConfig(viteConfig, defineConfig({ test: { projects: ouroTestProjects({ css: \"./src/index.css\" }) } }));\n\nThe end-to-end specs in e2e/ouro open the Ouro stories in a Storybook. If your app has none, add these two files (use your stylesheet in preview.ts):\n--- .storybook/main.ts\nexport default { stories: [\"../src/**/*.stories.@(ts|tsx)\"], framework: \"@storybook/react-vite\" };\n--- .storybook/preview.ts\nimport \"../src/index.css\";\n\nIf your app has no Playwright config, add this one, which starts that Storybook and runs Chromium and WebKit:\n--- playwright.config.ts\nimport { defineConfig, devices } from \"@playwright/test\";\n\n// Starts the app's Storybook, where Ouro UI's specs (e2e/ouro) open their stories.\nexport default defineConfig({\n  testDir: \"e2e\",\n  projects: [\n    { name: \"chromium\", use: { ...devices[\"Desktop Chrome\"] } },\n    { name: \"webkit\", use: { ...devices[\"Desktop Safari\"] } },\n  ],\n  webServer: {\n    command: \"npx storybook dev -p 6006 --ci --no-open\",\n    url: \"http://localhost:6006/iframe.html\",\n    reuseExistingServer: !process.env[\"CI\"],\n    timeout: 180_000,\n  },\n});\n\nThen run npx playwright test e2e/ouro. With a Playwright config of your own, start Storybook with npx storybook dev -p 6006 and run OURO_E2E_URL=http://localhost:6006 npx playwright test e2e/ouro.\nDocs: https://ourostack.github.io/ouro-ui/docs",
       "devDependencies": [
         "@playwright/test@^1.63.0",
@@ -1395,6 +1395,53 @@
           "path": "registry/ouro/components/ouro/color-field/color-field.tsx",
           "type": "registry:ui",
           "target": "@components/ouro/color-field/color-field.tsx"
+        }
+      ]
+    },
+    {
+      "name": "carousel",
+      "type": "registry:ui",
+      "title": "Carousel",
+      "description": "A row of slides the user swipes or steps through with Previous and Next buttons: recipe photos, a few featured cards.",
+      "docs": "A row of slides the user swipes or steps through with Previous and Next buttons: recipe photos, a few featured cards. Import: import { Carousel } from \"@/components/ouro/carousel/carousel\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/carousel.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/carousel/carousel-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/carousel/carousel-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/carousel/carousel.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/carousel/carousel.tsx"
+        }
+      ]
+    },
+    {
+      "name": "resizable",
+      "type": "registry:ui",
+      "title": "Resizable",
+      "description": "Panels side by side (or stacked) with a draggable handle between each pair: a file list beside an editor, a preview above a console.",
+      "docs": "Panels side by side (or stacked) with a draggable handle between each pair: a file list beside an editor, a preview above a console. Import: import { Resizable } from \"@/components/ouro/resizable/resizable\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/resizable.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/resizable/resizable-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/resizable/resizable-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/resizable/resizable.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/resizable/resizable.tsx"
         }
       ]
     },
@@ -3439,6 +3486,94 @@
       ]
     },
     {
+      "name": "carousel-tests",
+      "type": "registry:item",
+      "title": "Carousel tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for carousel, with the test tooling as devDependencies. Add it beside carousel: add carousel carousel-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "carousel's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/carousel.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/carousel",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/carousel/carousel.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/carousel/carousel.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/carousel/carousel.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/carousel/carousel.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/carousel/carousel.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/carousel/carousel.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/carousel/carousel.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/carousel/carousel.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/carousel.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/carousel.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "resizable-tests",
+      "type": "registry:item",
+      "title": "Resizable tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for resizable, with the test tooling as devDependencies. Add it beside resizable: add resizable resizable-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "resizable's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/resizable.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/resizable"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/resizable/resizable.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/resizable/resizable.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/resizable/resizable.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/resizable/resizable.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/resizable/resizable.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/resizable/resizable.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/resizable/resizable.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/resizable/resizable.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/resizable.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/resizable.spec.ts"
+        }
+      ]
+    },
+    {
       "name": "ouro-tests",
       "type": "registry:item",
       "title": "Ouro tests",
@@ -3453,6 +3588,7 @@
         "ourostack/ouro-ui/button-group-tests",
         "ourostack/ouro-ui/button-tests",
         "ourostack/ouro-ui/card-tests",
+        "ourostack/ouro-ui/carousel-tests",
         "ourostack/ouro-ui/collapsible-tests",
         "ourostack/ouro-ui/color-field-tests",
         "ourostack/ouro-ui/confirm-dialog-tests",
@@ -3474,6 +3610,7 @@
         "ourostack/ouro-ui/ouro-lib-tests",
         "ourostack/ouro-ui/popover-tests",
         "ourostack/ouro-ui/progress-tests",
+        "ourostack/ouro-ui/resizable-tests",
         "ourostack/ouro-ui/row-tests",
         "ourostack/ouro-ui/scroll-area-tests",
         "ourostack/ouro-ui/segmented-control-tests",
