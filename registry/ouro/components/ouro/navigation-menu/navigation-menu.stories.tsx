@@ -66,3 +66,51 @@ export const InContext: Story = {
     </Surface>
   ),
 };
+
+/** A panel with a featured card beside a two-column grid of links, and a panel of content alone. */
+export const Featured: Story = {
+  args: {
+    currentPath: undefined,
+    items: [
+      {
+        label: "Recipes",
+        columns: 2,
+        content: (
+          <a
+            href="/recipes/short-ribs"
+            style={{
+              display: "grid",
+              alignContent: "end",
+              gap: 4,
+              height: "100%",
+              minHeight: 160,
+              boxSizing: "border-box",
+              padding: 16,
+              borderRadius: "var(--radius)",
+              background: "var(--muted)",
+              color: "var(--foreground)",
+              textDecoration: "none",
+            }}
+          >
+            <strong>Short ribs of the week</strong>
+            <span style={{ color: "var(--muted-foreground)", fontSize: 14 }}>Braised for six hours.</span>
+          </a>
+        ),
+        links: [
+          { label: "Browse", href: "/recipes", description: "Everything you have saved." },
+          { label: "Drafts", href: "/recipes/drafts", description: "Recipes you have not finished." },
+          { label: "Import", href: "/recipes/import", description: "Bring one in from a link." },
+          { label: "Tags", href: "/recipes/tags", description: "Group them your way." },
+        ],
+      },
+      { label: "Help", content: <Text>Write to us any time at help@example.com.</Text> },
+      { label: "Pricing", href: "/pricing" },
+    ],
+  },
+  render: (args) => (
+    <Surface>
+      <NavigationMenu {...args} />
+      <Text>Hover or press Recipes to open its panel.</Text>
+    </Surface>
+  ),
+};

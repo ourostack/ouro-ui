@@ -33,4 +33,4 @@ export const agentCases: AgentCase[] = [
 ];
 
 /** Valid pagination snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["paginationOk01", "paginationOk02"];
+export const validSnippets: string[] = ["paginationOk01", "paginationOk02", "paginationOk03"];

@@ -7,3 +7,4 @@ export const navigationMenu01 = <NavigationMenu label="Main" items={items} orien
 export const navigationMenu02 = <NavigationMenu label="Main" items={items} pathname="/pricing" />;
 export const navigationMenu03 = <NavigationMenu label="Main" items={items}>Pricing</NavigationMenu>;
 export const navigationMenuOk01 = <NavigationMenu label="Main" items={items} currentPath="/pricing" />;
+export const navigationMenuOk02 = <NavigationMenu label="Main" items={[{ label: "Recipes", columns: 2, content: <a href="/featured">Short ribs</a>, links: [{ label: "Browse", href: "/recipes" }] }, { label: "Help", content: "Write to us any time." }]} />;

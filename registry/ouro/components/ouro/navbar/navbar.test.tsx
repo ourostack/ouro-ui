@@ -212,3 +212,76 @@ describe("Navbar", () => {
     expect(warn).toHaveBeenCalledWith('[ouro-ui] Navbar: label is required; it names the navigation for screen readers. Fix: <Navbar label="Main">.');
   });
 });
+
+describe("Navbar at tablet widths and with groups", () => {
+  const eight = ["Kitchen", "My recipes", "Cookbooks", "Shopping list", "Spoons", "Chefs", "Discover", "Kitchen Search"].map((label) => ({
+    label,
+    href: `/${label.toLowerCase().replaceAll(" ", "-")}`,
+  }));
+
+  it("collapses into the menu button whenever its links do not fit, from 640px up too", async () => {
+    await page.viewport(768, 800);
+    const { menuButton, bar } = await render(<Navbar label="Main" items={eight} />);
+    await expect.poll(() => getComputedStyle(menuButton).display).not.toBe("none");
+    expect(menuButton.getAttribute("aria-haspopup")).toBe("dialog");
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(768);
+    expect(bar.scrollWidth).toBeLessThanOrEqual(bar.clientWidth);
+    // The bar's links are out of the way and out of the tab order.
+    expect(page.getByRole("navigation", { name: "Main" }).query()).toBeNull();
+    await userEvent.click(menuButton);
+    const sheet = page.getByRole("dialog", { name: "Menu" });
+    await expect.element(sheet.getByRole("link", { name: "Kitchen Search" })).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => page.getByRole("dialog").elements().length).toBe(0);
+    // With room, the links come back and the button goes.
+    await page.viewport(1600, 800);
+    await expect.poll(() => getComputedStyle(menuButton).display).toBe("none");
+    await expect.element(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Kitchen Search" })).toBeVisible();
+  });
+
+  it("closes the sheet when the links come to fit", async () => {
+    await page.viewport(768, 800);
+    const { menuButton } = await render(<Navbar label="Main" items={eight} />);
+    await expect.poll(() => getComputedStyle(menuButton).display).not.toBe("none");
+    await userEvent.click(menuButton);
+    await expect.element(page.getByRole("dialog", { name: "Menu" })).toBeVisible();
+    await page.viewport(1600, 800);
+    await expect.poll(() => page.getByRole("dialog").elements().length).toBe(0);
+  });
+
+  const grouped = [
+    { label: "Recipes", links: [
+      { label: "Browse", href: "/recipes", description: "Everything you have saved." },
+      { label: "Drafts", href: "/recipes/drafts" },
+    ] },
+    { label: "Cookbooks", href: "/cookbooks" },
+  ];
+
+  it("opens a group of links as a panel in the bar", async () => {
+    await render(<Navbar label="Main" items={grouped} currentPath="/recipes/drafts" />);
+    const nav = page.getByRole("navigation", { name: "Main" });
+    await expect.element(nav.getByRole("link", { name: "Cookbooks" })).toBeVisible();
+    await userEvent.click(nav.getByRole("button", { name: "Recipes" }));
+    await expect.element(page.getByRole("link", { name: /Drafts/ })).toHaveAttribute("aria-current", "page");
+    await expect.element(page.getByText("Everything you have saved.")).toBeVisible();
+  });
+
+  it("lists a group of links under its name in the sheet", async () => {
+    await page.viewport(390, 844);
+    const { menuButton } = await render(<Navbar label="Main" items={grouped} currentPath="/recipes/drafts" />);
+    await userEvent.click(menuButton);
+    const sheet = page.getByRole("dialog", { name: "Menu" });
+    const group = sheet.getByRole("list", { name: "Recipes" });
+    await expect.element(group).toBeVisible();
+    expect(group.getByRole("link").elements().map((link) => link.textContent)).toEqual(["Browse", "Drafts"]);
+    await expect.element(group.getByRole("link", { name: "Drafts" })).toHaveAttribute("aria-current", "page");
+    await expect.element(sheet.getByRole("link", { name: "Cookbooks" })).toBeVisible();
+  });
+
+  it("puts a group's button and the bar's links in the server HTML", () => {
+    const html = renderToString(<Navbar label="Main" items={grouped} currentPath="/cookbooks" />);
+    expect(html).toMatch(/<button[^>]*>Recipes/);
+    expect(html).toMatch(/aria-current="page"[^>]*>Cookbooks</);
+  });
+});
+

@@ -7,3 +7,4 @@ export const pagination03 = <Pagination page={1} pageCount={12} href="?page={pag
 export const pagination04 = <Pagination page={1} pageCount={12} href="?page={page}" total={120} />;
 export const paginationOk01 = <Pagination page={2} pageCount={12} href="?page={page}" siblings={1} label="Pagination" previousLabel="Previous" nextLabel="Next" />;
 export const paginationOk02 = <Pagination page={2} pageCount={12} onPageChange={() => {}} pageLabel="Page {page}" summaryLabel="Page {page} of {pageCount}" />;
+export const paginationOk03 = <Pagination page={2} hasNextPage href="?page={page}" />;

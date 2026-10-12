@@ -281,8 +281,92 @@ describe("NavigationMenu", () => {
     await render(<NavigationMenu {...odd} />);
     expect(warn).toHaveBeenCalledWith('[ouro-ui] NavigationMenu: label is required; it names the navigation for screen readers. Fix: <NavigationMenu label="Main">.');
     expect(warn).toHaveBeenCalledWith(
-      '[ouro-ui] NavigationMenu: "Recipes" has both href and links, and renders as a panel. Fix: { label: "Recipes", links: [{ label: "All recipes", href: "/recipes" }, …] }.',
+      '[ouro-ui] NavigationMenu: "Recipes" has both href and a panel, and renders as a panel. Fix: { label: "Recipes", links: [{ label: "All recipes", href: "/recipes" }, …] }.',
     );
     await expect.element(page.getByRole("button", { name: "Recipes" })).toBeVisible();
   });
+
+  it("warns about a panel with no links and no content", async () => {
+    const empty = { label: "Main", items: [{ label: "Recipes" }] } as unknown as NavigationMenuProps;
+    await render(<NavigationMenu {...empty} />);
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] NavigationMenu: "Recipes" has no href, links or content. Fix: { label: "Recipes", href: "/…" } or { label: "Recipes", links: [{ label, href }] }.',
+    );
+  });
 });
+
+describe("NavigationMenu panels and easing", () => {
+  it("eases on the theme's --ouro-ease-out, with the curve as the fallback", async () => {
+    await render(<NavigationMenu label="Main" items={items} />);
+    await userEvent.click(page.getByRole("button", { name: "Recipes" }));
+    await expect.poll(() => getComputedStyle(popup()!).transitionProperty).toBe("opacity, scale");
+    expect(getComputedStyle(popup()!).transitionTimingFunction).toContain("cubic-bezier(0.23, 1, 0.32, 1)");
+    document.documentElement.style.setProperty("--ouro-ease-out", "linear");
+    try {
+      expect(getComputedStyle(popup()!).transitionTimingFunction).toContain("linear");
+    } finally {
+      document.documentElement.style.removeProperty("--ouro-ease-out");
+    }
+  });
+
+  const featured = [
+    {
+      label: "Recipes",
+      columns: 2 as const,
+      content: (
+        <a href="/featured" data-testid="featured">
+          Short ribs of the week
+        </a>
+      ),
+      links: [
+        { label: "Browse", href: "/recipes" },
+        { label: "Drafts", href: "/recipes/drafts" },
+        { label: "Import", href: "/recipes/import" },
+        { label: "Tags", href: "/recipes/tags" },
+      ],
+    },
+    { label: "Help", content: <p data-testid="help">Write to us any time.</p> },
+  ];
+
+  it("shows a panel's content beside its links, in two columns", async () => {
+    await render(<NavigationMenu label="Main" items={featured} />);
+    await userEvent.click(page.getByRole("button", { name: "Recipes" }));
+    await expect.element(page.getByTestId("featured")).toBeVisible();
+    const card = page.getByTestId("featured").element().getBoundingClientRect();
+    const browse = page.getByRole("link", { name: "Browse" }).element().getBoundingClientRect();
+    const drafts = page.getByRole("link", { name: "Drafts" }).element().getBoundingClientRect();
+    expect(card.right).toBeLessThanOrEqual(browse.left);
+    expect(drafts.top).toBe(browse.top);
+    expect(drafts.left).toBeGreaterThan(browse.right - 1);
+  });
+
+  it("closes when a link in the content is chosen", async () => {
+    await render(<NavigationMenu label="Main" items={featured} />);
+    await userEvent.click(page.getByRole("button", { name: "Recipes" }));
+    await expect.element(page.getByTestId("featured")).toBeVisible();
+    page.getByTestId("featured").element().addEventListener("click", (event) => event.preventDefault());
+    await userEvent.click(page.getByTestId("featured"));
+    await expect.poll(() => popup()).toBeNull();
+  });
+
+  it("opens a panel of content alone", async () => {
+    await render(<NavigationMenu label="Main" items={featured} />);
+    await userEvent.click(page.getByRole("button", { name: "Help" }));
+    await expect.element(page.getByTestId("help")).toBeVisible();
+    // A click on the content that is not a link leaves the panel open.
+    await userEvent.click(page.getByTestId("help"));
+    await expect.element(page.getByTestId("help")).toBeVisible();
+    expect(popup()).not.toBeNull();
+  });
+
+  it("stacks the content above the links on a phone", async () => {
+    await page.viewport(390, 844);
+    await render(<NavigationMenu label="Main" items={featured} />);
+    await userEvent.click(page.getByRole("button", { name: "Recipes" }));
+    await expect.element(page.getByTestId("featured")).toBeVisible();
+    await expect.poll(() => document.getAnimations().length).toBe(0);
+    expect(page.getByTestId("featured").element().getBoundingClientRect().bottom).toBeLessThanOrEqual(page.getByRole("link", { name: "Browse" }).element().getBoundingClientRect().top);
+    expect(popup()!.getBoundingClientRect().right).toBeLessThanOrEqual(390);
+  });
+});
+

@@ -62,3 +62,14 @@ function Paged() {
 export const Buttons: Story = {
   render: () => <Paged />,
 };
+
+/** Previous and Next only, for a list without a count of its rows: `hasNextPage` enables Next. */
+export const PreviousAndNext: Story = {
+  parameters: { screenshot: { name: "pagination-previous-next" } },
+  render: () => (
+    <Surface>
+      <Text>Recipes 21 to 30</Text>
+      <Pagination page={3} hasNextPage href="?page={page}" />
+    </Surface>
+  ),
+};

@@ -10,6 +10,7 @@ expectTypeOf<ComponentProps<typeof Breadcrumb>>().toEqualTypeOf<BreadcrumbProps>
 expectTypeOf<{ items: typeof items }>().toExtend<BreadcrumbProps>();
 expectTypeOf<{ items: typeof items; maxItems: 3; label: "Trail"; moreLabel: "More"; closeLabel: "Close"; className: "mb-4" }>().toExtend<BreadcrumbProps>();
 expectTypeOf<{ label: "Ribs" }>().toExtend<BreadcrumbItem>();
+expectTypeOf<{ label: "Home"; href: "/"; icon: "⌂" }>().toExtend<BreadcrumbItem>();
 
 // items is required, an item needs a label, and the guessed props name the fix.
 expectTypeOf<{ label: "Trail" }>().not.toExtend<BreadcrumbProps>();

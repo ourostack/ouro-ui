@@ -150,14 +150,13 @@ describe("Sidebar", () => {
     await expect.element(page.getByRole("link", { name: "Recipes" })).toBeVisible();
     await expect.element(page.getByRole("list", { name: "Library" })).toBeInTheDocument();
     const link = page.getByRole("link", { name: "Recipes" }).element();
-    expect(link.getAttribute("title")).toBe("Recipes");
+    expect(link.hasAttribute("title")).toBe(false);
     expect(link.scrollWidth).toBeLessThanOrEqual(link.clientWidth);
     // A link without an icon shows its first letter.
     expect(page.getByRole("link", { name: "Shopping list" }).element().querySelector('[aria-hidden="true"]')!.textContent).toBe("S");
     await userEvent.click(toggle);
     expect(onCollapsedChange).toHaveBeenLastCalledWith(false);
     await expect.poll(() => nav!.getBoundingClientRect().width).toBe(full);
-    expect(page.getByRole("link", { name: "Recipes" }).element().hasAttribute("title")).toBe(false);
   });
 
   it("starts collapsed with defaultCollapsed", async () => {
@@ -314,5 +313,128 @@ describe("Sidebar", () => {
     expect(warn).toHaveBeenCalledWith(
       "[ouro-ui] Sidebar: collapsed without onCollapsedChange cannot be toggled. Fix: <Sidebar collapsed={collapsed} onCollapsedChange={setCollapsed}> or defaultCollapsed.",
     );
+  });
+});
+
+describe("Sidebar items", () => {
+  it("names each rail link with a tooltip on hover and keyboard focus", async () => {
+    await render(<Sidebar label="Main" sections={sections} defaultCollapsed />);
+    await userEvent.hover(page.getByRole("link", { name: "Cookbooks" }));
+    await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')?.textContent).toBe("Cookbooks");
+    await userEvent.unhover(page.getByRole("link", { name: "Cookbooks" }));
+    await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')).toBeNull();
+    page.getByRole("link", { name: "Shopping list" }).element().focus();
+    await userEvent.keyboard("{Shift>}{Tab}{/Shift}{Tab}");
+    await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')?.textContent).toBe("Shopping list");
+  });
+
+  it("shows a badge after the label, read as part of the link's name, and keeps it in the name on the rail", async () => {
+    const { rerender } = await render(<Sidebar label="Main" sections={[{ items: [{ label: "Inbox", href: "/inbox", badge: 12 }] }]} />);
+    const link = page.getByRole("link", { name: "Inbox 12" });
+    await expect.element(link).toBeVisible();
+    const badge = link.element().querySelector<HTMLElement>("[data-ouro-sidebar-badge]")!;
+    expect(badge.textContent).toBe("12");
+    expect(badge.getBoundingClientRect().left).toBeGreaterThan(link.element().querySelector("span:not([data-ouro-sidebar-badge])")!.getBoundingClientRect().left);
+    await rerender(<Sidebar label="Main" sections={[{ items: [{ label: "Inbox", href: "/inbox", badge: 12 }] }]} collapsed onCollapsedChange={() => {}} />);
+    await expect.element(page.getByRole("link", { name: "Inbox 12" })).toBeInTheDocument();
+    expect(page.getByRole("link").element().querySelector<HTMLElement>("[data-ouro-sidebar-badge]")!.getBoundingClientRect().width).toBeLessThanOrEqual(1);
+  });
+
+  it("renders an item with onClick and no href as a button, in the column and in the drawer", async () => {
+    const onClick = vi.fn();
+    const withButton = [{ items: [{ label: "New chat", icon: <Icon />, onClick }, ...sections[0]!.items] }];
+    await render(<Sidebar label="Main" sections={withButton} />);
+    const button = page.getByRole("button", { name: "New chat" });
+    expect(button.element().tagName).toBe("BUTTON");
+    expect(button.element().getAttribute("type")).toBe("button");
+    await userEvent.click(button);
+    expect(onClick).toHaveBeenCalledTimes(1);
+    await page.viewport(390, 844);
+    await expect.poll(() => getComputedStyle(document.querySelector("[data-ouro-sidebar-menu]")!).display).not.toBe("none");
+    await userEvent.click(page.getByRole("button", { name: "Menu" }));
+    const sheet = page.getByRole("dialog", { name: "Menu" });
+    await expect.element(sheet).toBeVisible();
+    await userEvent.click(sheet.getByRole("button", { name: "New chat" }));
+    expect(onClick).toHaveBeenCalledTimes(2);
+    await expect.poll(() => page.getByRole("dialog").elements().length).toBe(0);
+  });
+
+  const nested = [
+    {
+      items: [
+        { label: "Home", href: "/", icon: <Icon /> },
+        {
+          label: "Settings",
+          icon: <Icon />,
+          items: [
+            { label: "Profile", href: "/settings/profile" },
+            { label: "Billing", href: "/settings/billing", badge: "New" },
+          ],
+        },
+      ],
+    },
+  ];
+
+  it("nests one level of items under a disclosure button", async () => {
+    await render(<Sidebar label="Main" sections={nested} />);
+    const toggle = page.getByRole("button", { name: "Settings" });
+    await expect.element(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(page.getByRole("link", { name: "Profile" }).query()).toBeNull();
+    await userEvent.click(toggle);
+    await expect.element(toggle).toHaveAttribute("aria-expanded", "true");
+    const group = document.getElementById(toggle.element().getAttribute("aria-controls")!)!;
+    expect(group.tagName).toBe("UL");
+    await expect.element(page.getByRole("link", { name: "Profile" })).toBeVisible();
+    await expect.element(page.getByRole("link", { name: "Billing New" })).toBeVisible();
+    // The children sit indented under their parent.
+    expect(page.getByRole("link", { name: "Profile" }).element().getBoundingClientRect().left).toBeGreaterThan(toggle.element().getBoundingClientRect().left);
+    await userEvent.click(toggle);
+    await expect.element(toggle).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("opens the group that holds the current page, and marks it", async () => {
+    await render(<Sidebar label="Main" sections={nested} currentPath="/settings/billing" />);
+    await expect.element(page.getByRole("button", { name: "Settings" })).toHaveAttribute("aria-expanded", "true");
+    await expect.element(page.getByRole("link", { name: "Billing New" })).toHaveAttribute("aria-current", "page");
+    expect(renderToString(<Sidebar label="Main" sections={nested} currentPath="/settings/billing" />)).toMatch(/aria-current="page"[^>]*>/);
+  });
+
+  it("marks a closed group that holds the current page", async () => {
+    await render(<Sidebar label="Main" sections={nested} currentPath="/settings/profile" />);
+    const toggle = page.getByRole("button", { name: "Settings" });
+    expect(toggle.element().hasAttribute("data-current")).toBe(false);
+    await userEvent.click(toggle);
+    await expect.element(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(toggle.element().hasAttribute("data-current")).toBe(true);
+  });
+
+  it("keeps a button item on the rail, named by its tooltip", async () => {
+    const onClick = vi.fn();
+    await render(<Sidebar label="Main" sections={[{ items: [{ label: "New chat", icon: <Icon />, onClick }] }]} defaultCollapsed />);
+    const button = page.getByRole("button", { name: "New chat" });
+    await userEvent.hover(button);
+    await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')?.textContent).toBe("New chat");
+    await userEvent.click(button);
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("expands the rail and opens the group when a collapsed group is chosen", async () => {
+    const onCollapsedChange = vi.fn();
+    await render(<Sidebar label="Main" sections={nested} defaultCollapsed onCollapsedChange={onCollapsedChange} />);
+    const toggle = page.getByRole("button", { name: "Settings" });
+    await expect.element(toggle).toHaveAttribute("aria-expanded", "false");
+    await userEvent.click(toggle);
+    expect(onCollapsedChange).toHaveBeenLastCalledWith(false);
+    await expect.element(toggle).toHaveAttribute("aria-expanded", "true");
+    await expect.element(page.getByRole("link", { name: "Profile" })).toBeVisible();
+  });
+
+  it("shows the nested items in the drawer", async () => {
+    await page.viewport(390, 844);
+    await render(<Sidebar label="Main" sections={nested} currentPath="/settings/profile" />);
+    await userEvent.click(page.getByRole("button", { name: "Menu" }));
+    const sheet = page.getByRole("dialog", { name: "Menu" });
+    await expect.element(sheet.getByRole("button", { name: "Settings" })).toHaveAttribute("aria-expanded", "true");
+    await expect.element(sheet.getByRole("link", { name: "Profile" })).toHaveAttribute("aria-current", "page");
   });
 });

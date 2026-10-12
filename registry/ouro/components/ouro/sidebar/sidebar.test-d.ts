@@ -23,6 +23,15 @@ expectTypeOf<{
 }>().toExtend<SidebarProps>();
 expectTypeOf<{ items: [] }>().toExtend<SidebarSection>();
 expectTypeOf<{ label: "Recipes"; href: "/recipes"; current: true }>().toExtend<SidebarItem>();
+// A badge, a button item, and one level of nested items.
+expectTypeOf<{ label: "Inbox"; href: "/inbox"; badge: 12 }>().toExtend<SidebarItem>();
+expectTypeOf<{ label: "New chat"; onClick: () => void }>().toExtend<SidebarItem>();
+expectTypeOf<{ label: "Recipes"; href: "/recipes"; onClick: () => void }>().toExtend<SidebarItem>();
+expectTypeOf<{ label: "Settings"; badge: "New"; items: [{ label: "Profile"; href: "/profile" }, { label: "Sign out"; onClick: () => void }] }>().toExtend<SidebarItem>();
+expectTypeOf<{ label: "New chat"; onClick: () => void; current: true }>().not.toExtend<SidebarItem>();
+expectTypeOf<{ label: "Settings"; href: "/settings"; items: [] }>().not.toExtend<SidebarItem>();
+expectTypeOf<{ label: "Settings"; onClick: () => void; items: [] }>().not.toExtend<SidebarItem>();
+expectTypeOf<{ label: "Settings"; items: [{ label: "Account"; items: [] }] }>().not.toExtend<SidebarItem>();
 
 // label and sections are required; an item needs an href; the guessed props name the fix.
 expectTypeOf<{ sections: typeof sections }>().not.toExtend<SidebarProps>();

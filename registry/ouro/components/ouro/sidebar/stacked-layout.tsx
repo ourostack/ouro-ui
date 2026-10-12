@@ -47,6 +47,9 @@ const skip =
  * scrolls, and the page below it in a centered column. It renders the page's `<main>`,
  * starts with a "Skip to content" link, and keeps its footer at the bottom of a short page.
  *
+ * The phone menu opens once JavaScript has loaded (after hydration), as in shadcn/ui and
+ * Catalyst; the links are in the server HTML from 640px up.
+ *
  * Use `SidebarLayout` instead when the navigation is a `Sidebar`. Use `AuthLayout` for the
  * sign-in pages.
  *

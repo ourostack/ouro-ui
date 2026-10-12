@@ -2,7 +2,7 @@
 
 # Sidebar
 
-The column of links down the side of an app, in sections, with the current page marked `aria-current="page"`. From 640px up it fills its container's height and collapses to a rail of icons with its own button; below 640px it is a menu button that opens the same links as a `Sheet` drawer. Links render through `OuroProvider`'s `linkComponent`, so your router navigates.
+The column of links down the side of an app, in sections, with the current page marked `aria-current="page"`. An item can carry a `badge` ("Inbox 12"), be a button (`onClick` without `href`), or hold one level of nested links (`items`). From 640px up it fills its container's height and collapses to a rail of icons with its own button, each named by a `Tooltip`; below 640px it is a menu button that opens the same links as a `Sheet` drawer. Links render through `OuroProvider`'s `linkComponent`, so your router navigates.
 
 ```tsx
 import { Sidebar } from "@/registry/ouro/components/ouro/sidebar/sidebar";
@@ -23,6 +23,8 @@ import { Sidebar } from "@/registry/ouro/components/ouro/sidebar/sidebar";
 ```
 
 ## Usage
+
+The phone menu opens once JavaScript has loaded (after hydration), as in shadcn/ui and Catalyst; the links are in the server HTML from 640px up.
 
 Put it in a `SidebarLayout`, which places it beside the page and in the phone's top bar.
 
@@ -70,27 +72,65 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ## Types
 
-### `SidebarItem`
+### `SidebarButtonItem`
 
-One link in a Sidebar.
+A button in a Sidebar, for an action rather than a page: "New chat", "Search" opening a `Command`.
 
 ```ts
-interface SidebarItem {
-  /** The link's text: "Recipes". It stays the link's name when the sidebar is collapsed. */
-  label: string;
+interface SidebarButtonItem extends SidebarItemBase {
+  /** What the button does. In the phone's drawer, the drawer closes first. */
+  onClick: (event: MouseEvent<HTMLElement>) => void;
+  /** Not with `onClick` alone. Give a link `href`; a button has none. */
+  href?: never;
+  /** Not on a button. Only a link can be the current page. */
+  current?: never;
+  /** Not on a button. Nested links go in an item without `onClick`: `{ label: "Settings", items: [...] }`. */
+  items?: never;
+}
+```
+
+### `SidebarGroupItem`
+
+An item with links nested under it, one level deep: a button that shows and hides them. It starts open when it holds the current page.
+
+```ts
+interface SidebarGroupItem extends SidebarItemBase {
+  /** The nested links and buttons. They do not nest further. */
+  items: readonly (SidebarLinkItem | SidebarButtonItem)[];
+  /** Not with `items`. To link the group's own page, make it the group's first item. */
+  href?: never;
+  /** Not with `items`; the group's button shows and hides them. */
+  onClick?: never;
+  /** Not on a group. One of its links is the current page. */
+  current?: never;
+}
+```
+
+### `SidebarItem`
+
+One item of a Sidebar: a link (`href`), a button (`onClick`), or links nested under a button (`items`).
+
+```ts
+type SidebarItem = SidebarLinkItem | SidebarButtonItem | SidebarGroupItem;
+```
+
+### `SidebarLinkItem`
+
+A link in a Sidebar.
+
+```ts
+interface SidebarLinkItem extends SidebarItemBase {
   /** Where it goes. Internal paths go through `OuroProvider`'s `linkComponent` (your router's link). */
   href: string;
-  /**
-   * An icon before the label, as an element: `icon: <BookIcon />`. It is hidden from screen
-   * readers. Collapsed, the sidebar shows only the icons; a link without one shows its
-   * first letter.
-   */
-  icon?: ReactNode;
   /**
    * Marks this link as the current page (`aria-current="page"`), when the Sidebar's
    * `currentPath` cannot tell: a link whose page lives at another path.
    */
   current?: boolean | undefined;
+  /** Called when the link is followed, before your router navigates. */
+  onClick?: ((event: MouseEvent<HTMLElement>) => void) | undefined;
+  /** Not with `href`. Nested links go in an item without `href`: `{ label: "Settings", items: [...] }`. */
+  items?: never;
 }
 ```
 
@@ -102,7 +142,7 @@ A group of links in a Sidebar, under an optional label.
 interface SidebarSection {
   /** The group's name, shown above its links: "Library". */
   label?: string | undefined;
-  /** The group's links, in order. */
+  /** The group's items, in order: links, buttons and nested links. */
   items: readonly SidebarItem[];
 }
 ```

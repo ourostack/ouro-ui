@@ -102,3 +102,32 @@ export const Collapsed: Story = {
     </Surface>
   ),
 };
+
+/** A badge after a label, a button that runs an action, and links nested one level under Settings, open because it holds the current page. */
+export const Items: Story = {
+  args: {
+    currentPath: "/settings/billing",
+    sections: [
+      {
+        items: [
+          { label: "New recipe", icon: <BookIcon />, onClick: () => {} },
+          { label: "Inbox", href: "/inbox", icon: <StackIcon />, badge: 12 },
+          {
+            label: "Settings",
+            icon: <StackIcon />,
+            items: [
+              { label: "Profile", href: "/settings/profile" },
+              { label: "Billing", href: "/settings/billing", badge: "New" },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  parameters: { screenshot: { name: "sidebar-items" } },
+  render: (args) => (
+    <Surface height={420}>
+      <Sidebar {...args} />
+    </Surface>
+  ),
+};

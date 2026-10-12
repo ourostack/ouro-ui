@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState, type JSX, type ReactNode, type Ref } from "react";
+import { useId, useRef, useState, type JSX, type MouseEvent, type ReactElement, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { currentHref } from "@/registry/ouro/lib/ouro/current-path";
@@ -9,31 +9,75 @@ import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { SheetFrame } from "@/registry/ouro/components/ouro/sheet/sheet";
+import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 
-/** One link in a Sidebar. */
-export interface SidebarItem {
-  /** The link's text: "Recipes". It stays the link's name when the sidebar is collapsed. */
+/** What every Sidebar item has: its text, an icon and a badge. */
+interface SidebarItemBase {
+  /** The item's text: "Recipes". It stays the item's name when the sidebar is collapsed. */
   label: string;
-  /** Where it goes. Internal paths go through `OuroProvider`'s `linkComponent` (your router's link). */
-  href: string;
   /**
    * An icon before the label, as an element: `icon: <BookIcon />`. It is hidden from screen
-   * readers. Collapsed, the sidebar shows only the icons; a link without one shows its
+   * readers. Collapsed, the sidebar shows only the icons; an item without one shows its
    * first letter.
    */
   icon?: ReactNode;
+  /**
+   * A short count or tag after the label: `badge: 12`, `badge: "New"`. It is read as part of
+   * the item's name, and hidden from sight when the sidebar is collapsed.
+   */
+  badge?: ReactNode;
+}
+
+/** A link in a Sidebar. */
+export interface SidebarLinkItem extends SidebarItemBase {
+  /** Where it goes. Internal paths go through `OuroProvider`'s `linkComponent` (your router's link). */
+  href: string;
   /**
    * Marks this link as the current page (`aria-current="page"`), when the Sidebar's
    * `currentPath` cannot tell: a link whose page lives at another path.
    */
   current?: boolean | undefined;
+  /** Called when the link is followed, before your router navigates. */
+  onClick?: ((event: MouseEvent<HTMLElement>) => void) | undefined;
+  /** Not with `href`. Nested links go in an item without `href`: `{ label: "Settings", items: [...] }`. */
+  items?: never;
 }
+
+/** A button in a Sidebar, for an action rather than a page: "New chat", "Search" opening a `Command`. */
+export interface SidebarButtonItem extends SidebarItemBase {
+  /** What the button does. In the phone's drawer, the drawer closes first. */
+  onClick: (event: MouseEvent<HTMLElement>) => void;
+  /** Not with `onClick` alone. Give a link `href`; a button has none. */
+  href?: never;
+  /** Not on a button. Only a link can be the current page. */
+  current?: never;
+  /** Not on a button. Nested links go in an item without `onClick`: `{ label: "Settings", items: [...] }`. */
+  items?: never;
+}
+
+/**
+ * An item with links nested under it, one level deep: a button that shows and hides them.
+ * It starts open when it holds the current page.
+ */
+export interface SidebarGroupItem extends SidebarItemBase {
+  /** The nested links and buttons. They do not nest further. */
+  items: readonly (SidebarLinkItem | SidebarButtonItem)[];
+  /** Not with `items`. To link the group's own page, make it the group's first item. */
+  href?: never;
+  /** Not with `items`; the group's button shows and hides them. */
+  onClick?: never;
+  /** Not on a group. One of its links is the current page. */
+  current?: never;
+}
+
+/** One item of a Sidebar: a link (`href`), a button (`onClick`), or links nested under a button (`items`). */
+export type SidebarItem = SidebarLinkItem | SidebarButtonItem | SidebarGroupItem;
 
 /** A group of links in a Sidebar, under an optional label. */
 export interface SidebarSection {
   /** The group's name, shown above its links: "Library". */
   label?: string | undefined;
-  /** The group's links, in order. */
+  /** The group's items, in order: links, buttons and nested links. */
   items: readonly SidebarItem[];
 }
 
@@ -95,6 +139,9 @@ const column =
   "box-border flex h-full w-(--ouro-sidebar-w) flex-col overflow-hidden border-0 border-e border-solid border-border bg-background text-foreground " +
   "[--ouro-sidebar-w:16rem] data-collapsed:[--ouro-sidebar-w:calc(3.75rem+1px)] max-sm:hidden";
 
+// A count or tag at the row's end.
+const badgeClass = "ms-auto shrink-0 rounded-sm bg-muted px-1.5 text-xs leading-5 font-medium text-muted-foreground tabular-nums";
+
 // A row: 44px with 16px text on a coarse pointer at every width, 36px with 14px text with a
 // fine one. A full-width row highlights while pressed instead of scaling.
 const row =
@@ -111,10 +158,14 @@ const example = '<Sidebar label="Main" sections={[{ items: [{ label: "Recipes", 
 
 /**
  * The column of links down the side of an app, in sections, with the current page marked
- * `aria-current="page"`. From 640px up it fills its container's height and collapses to a
- * rail of icons with its own button; below 640px it is a menu button that opens the same
- * links as a `Sheet` drawer. Links render through `OuroProvider`'s `linkComponent`, so your
- * router navigates.
+ * `aria-current="page"`. An item can carry a `badge` ("Inbox 12"), be a button (`onClick`
+ * without `href`), or hold one level of nested links (`items`). From 640px up it fills its
+ * container's height and collapses to a rail of icons with its own button, each named by a
+ * `Tooltip`; below 640px it is a menu button that opens the same links as a `Sheet`
+ * drawer. Links render through `OuroProvider`'s `linkComponent`, so your router navigates.
+ *
+ * The phone menu opens once JavaScript has loaded (after hydration), as in shadcn/ui and
+ * Catalyst; the links are in the server HTML from 640px up.
  *
  * Put it in a `SidebarLayout`, which places it beside the page and in the phone's top bar.
  * Use `Navbar` instead for a handful of links across the top, and `Tabs` for views of one
@@ -197,16 +248,83 @@ export function Sidebar(props: SidebarProps): JSX.Element {
     onCollapsedChange?.(!collapsed);
   };
 
-  // An item's own `current` wins; otherwise the path decides.
-  const all = sections.flatMap((section) => section.items);
+  // An item's own `current` wins; otherwise the path decides, across nested links too.
+  const links = sections.flatMap((section) =>
+    section.items.flatMap((item): readonly (SidebarLinkItem | SidebarButtonItem)[] => (item.items !== undefined ? item.items : [item])),
+  );
+  const all = links.filter((item): item is SidebarLinkItem => item.href !== undefined);
   const marked = all.some((item) => item.current)
     ? undefined
     : currentHref(
         all.map((item) => item.href),
         currentPath,
       );
+  const isCurrent = (item: SidebarLinkItem | SidebarButtonItem) => item.href !== undefined && (Boolean(item.current) || item.href === marked);
+
+  // Which groups are open, by place; a group holding the current page starts open.
+  const [opened, setOpened] = useState<Readonly<Record<string, boolean>>>({});
+  const isOpen = (key: string, group: SidebarGroupItem) => opened[key] ?? group.items.some(isCurrent);
 
   const id = useId();
+  /** One row's inside: icon (or the rail's letter), label and badge. */
+  const rowContent = (item: SidebarItem, rail: boolean) => (
+    <>
+      {(item.icon !== undefined || rail) && (
+        <span aria-hidden="true" className={iconSlot}>
+          {item.icon !== undefined ? item.icon : item.label.charAt(0).toUpperCase()}
+        </span>
+      )}
+      <span className={rail ? "sr-only" : "min-w-0 flex-1 truncate"}>{item.label}</span>
+      {item.badge !== undefined && (
+        <>
+          {" "}
+          <span data-ouro-sidebar-badge="" className={rail ? "sr-only" : badgeClass}>
+            {item.badge}
+          </span>
+        </>
+      )}
+    </>
+  );
+  /** A collapsed rail names each row with a tooltip, since only its icon shows. */
+  const tip = (rail: boolean, label: string, element: ReactElement) =>
+    rail ? (
+      <Tooltip content={label} side="right">
+        {element}
+      </Tooltip>
+    ) : (
+      element
+    );
+  /** A link or a button row. */
+  const leaf = (item: SidebarLinkItem | SidebarButtonItem, rail: boolean, onNavigate: (() => void) | undefined) =>
+    tip(
+      rail,
+      item.label,
+      item.href !== undefined ? (
+        <RouterLink
+          href={item.href}
+          aria-current={isCurrent(item) ? "page" : undefined}
+          onClick={(event) => {
+            onNavigate?.();
+            item.onClick?.(event);
+          }}
+          className={cn(row, rail && railRow)}
+        >
+          {rowContent(item, rail)}
+        </RouterLink>
+      ) : (
+        <button
+          type="button"
+          onClick={(event) => {
+            onNavigate?.();
+            item.onClick(event);
+          }}
+          className={cn(row, rail && railRow)}
+        >
+          {rowContent(item, rail)}
+        </button>
+      ),
+    );
+
   /** The sections as lists: in the column (`rail` when collapsed) or in the drawer. */
   const renderSections = (place: string, rail: boolean, onNavigate?: () => void) =>
     sections.map((section, index) => (
@@ -217,24 +335,58 @@ export function Sidebar(props: SidebarProps): JSX.Element {
           </p>
         )}
         <ul aria-labelledby={section.label !== undefined ? `${id}${place}${index}` : undefined} className={list}>
-          {section.items.map((item, position) => (
-            <li key={position}>
-              <RouterLink
-                href={item.href}
-                aria-current={item.current || item.href === marked ? "page" : undefined}
-                title={rail ? item.label : undefined}
-                onClick={onNavigate}
-                className={cn(row, rail && railRow)}
-              >
-                {(item.icon !== undefined || rail) && (
-                  <span aria-hidden="true" className={iconSlot}>
-                    {item.icon !== undefined ? item.icon : item.label.charAt(0).toUpperCase()}
-                  </span>
+          {section.items.map((item, position) => {
+            if (item.items === undefined) return <li key={position}>{leaf(item, rail, onNavigate)}</li>;
+            const key = `${index}-${position}`;
+            // On the rail a group is closed; choosing it expands the sidebar and opens it.
+            const open = !rail && isOpen(key, item);
+            const holdsCurrent = item.items.some(isCurrent);
+            return (
+              <li key={position}>
+                {tip(
+                  rail,
+                  item.label,
+                  <button
+                    type="button"
+                    aria-expanded={open}
+                    aria-controls={`${id}${place}${key}`}
+                    data-current={holdsCurrent && !open ? "" : undefined}
+                    onClick={() => {
+                      if (rail) {
+                        setOwn(false);
+                        onCollapsedChange?.(false);
+                      }
+                      setOpened({ ...opened, [key]: rail || !open });
+                    }}
+                    className={cn(row, "data-current:text-foreground", rail && railRow)}
+                  >
+                    {rowContent(item, rail)}
+                    {!rail && (
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className={cn("size-4 shrink-0 rtl:-scale-x-100", item.badge === undefined && "ms-auto", open && "rotate-90 rtl:-rotate-90")}
+                      >
+                        <path d="m6 4 4 4-4 4" />
+                      </svg>
+                    )}
+                  </button>,
                 )}
-                <span className={rail ? "sr-only" : "min-w-0 flex-1 truncate"}>{item.label}</span>
-              </RouterLink>
-            </li>
-          ))}
+                {open && (
+                  <ul id={`${id}${place}${key}`} className={cn(list, "ms-5 mt-1 border-0 border-s border-solid border-border ps-2")}>
+                    {item.items.map((child, at) => (
+                      <li key={at}>{leaf(child, false, onNavigate)}</li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </div>
     ));

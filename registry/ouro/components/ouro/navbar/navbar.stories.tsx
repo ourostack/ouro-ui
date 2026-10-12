@@ -67,3 +67,20 @@ export const InContext: Story = {
     </Surface>
   ),
 };
+
+/** A group of links opens a panel in the bar, and is listed under its name in the phone's sheet. */
+export const Groups: Story = {
+  args: {
+    currentPath: "/recipes/drafts",
+    items: [
+      {
+        label: "Recipes",
+        links: [
+          { label: "Browse", href: "/recipes", description: "Everything you have saved." },
+          { label: "Drafts", href: "/recipes/drafts", description: "Recipes you have not finished." },
+        ],
+      },
+      { label: "Cookbooks", href: "/cookbooks" },
+    ],
+  },
+};

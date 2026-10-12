@@ -58,6 +58,9 @@ const headerCell =
  * while the page scrolls, and a sticky top bar with the sidebar's menu button below 640px.
  * It renders the page's `<main>` and starts with a "Skip to content" link.
  *
+ * The phone menu opens once JavaScript has loaded (after hydration), as in shadcn/ui and
+ * Catalyst; the links are in the server HTML from 640px up.
+ *
  * Use `StackedLayout` instead when the navigation is a `Navbar` across the top. Use
  * `AuthLayout` for the sign-in pages.
  *

@@ -1,10 +1,9 @@
 "use client";
 
 import { NavigationMenu as BaseNavigationMenu } from "@base-ui/react/navigation-menu";
-import { useState, type JSX, type Ref } from "react";
+import { useState, type JSX, type MouseEvent as ReactMouseEvent, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { easeOut } from "@/registry/ouro/lib/ouro/easing";
 import { currentHref } from "@/registry/ouro/lib/ouro/current-path";
 import { floatingPortalClass } from "@/registry/ouro/lib/ouro/floating";
 import { RouterLink } from "@/registry/ouro/lib/ouro/router-link";
@@ -30,21 +29,49 @@ export interface NavigationMenuLinkItem {
   href: string;
   /** Marks this link as the current page, when the menu's `currentPath` cannot tell. */
   current?: boolean | undefined;
-  /** Not with `href`. An item is a link (`href`) or a panel of links (`links`). */
+  /** Not with `href`. An item is a link (`href`) or a panel (`links`, `content`). */
   links?: never;
+  /** Not with `href`. An item is a link (`href`) or a panel (`links`, `content`). */
+  content?: never;
 }
 
-/** A NavigationMenu item that opens a panel of links. */
-export interface NavigationMenuPanelItem {
+/** What every panel item has: its button's text, and how its links are laid out. */
+interface NavigationMenuPanelBase {
   /** The button's text: "Recipes". */
   label: string;
-  /** The links in the panel, each with an optional `description`. */
-  links: readonly NavigationMenuLink[];
-  /** Not with `links`. To link the section's own page, make it the panel's first link. */
+  /**
+   * The panel's links in one column or two, from 640px up; a phone always shows one.
+   * @default 1
+   */
+  columns?: 1 | 2 | (number & { "Use columns={1} or columns={2}": never }) | undefined;
+  /** Not with a panel. To link the section's own page, make it the panel's first link. */
   href?: never;
 }
 
-/** One item of a NavigationMenu: a link (`href`), or a button that opens a panel (`links`). */
+/**
+ * A NavigationMenu item that opens a panel: a list of `links`, with any `content` at its
+ * start, such as a featured `Card` beside a two-column grid of links. A panel needs one of
+ * the two.
+ */
+export type NavigationMenuPanelItem = NavigationMenuPanelBase &
+  (
+    | {
+        /** The links in the panel, each with an optional `description`. */
+        links: readonly NavigationMenuLink[];
+        /**
+         * Anything else in the panel, before its links (above them on a phone): a featured
+         * `Card`, an image, a line of text. A link in it closes the panel when it is followed.
+         */
+        content?: ReactNode;
+      }
+    | {
+        links?: undefined;
+        /** The panel's content, when it has no list of links. A link in it closes the panel when it is followed. */
+        content: ReactNode;
+      }
+  );
+
+/** One item of a NavigationMenu: a link (`href`), or a button that opens a panel (`links`, `content`). */
 export type NavigationMenuItem = NavigationMenuLinkItem | NavigationMenuPanelItem;
 
 /** Props for {@link NavigationMenu}. */
@@ -85,6 +112,9 @@ const rowItem =
   "aria-[current=page]:bg-accent aria-[current=page]:text-accent-foreground data-current:text-foreground " +
   "motion-safe:active:scale-(--ouro-press-scale) outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 
+// The theme's easing tokens, with the curve as the fallback until a theme defines them.
+const easeOut = "ease-[var(--ouro-ease-out,cubic-bezier(0.23,1,0.32,1))]";
+
 // Opened or closed from the keyboard, nothing animates (`data-ouro-instant`).
 const instantly = "data-ouro-instant:transition-none";
 
@@ -103,9 +133,10 @@ const popup = cn(
   easeOut,
   instantly,
 );
-// A panel: nearly the screen's width on a phone, as wide as its links from 640px.
-const content = cn(
-  "box-border h-full w-[calc(100vw-2rem)] p-2 sm:w-max sm:min-w-64 sm:max-w-md " +
+// A panel: nearly the screen's width on a phone, as wide as its links from 640px; wider with
+// content or two columns.
+const panel = cn(
+  "box-border h-full w-[calc(100vw-2rem)] p-2 sm:w-max sm:min-w-64 sm:max-w-md data-wide:sm:max-w-2xl " +
     "transition-opacity duration-(--ouro-duration-base) data-starting-style:opacity-0 data-ending-style:opacity-0",
   easeOut,
   instantly,
@@ -176,13 +207,14 @@ export function NavigationMenu(props: NavigationMenuProps): JSX.Element {
     process.env.NODE_ENV !== "production"
       ? () => {
           // The types rule this shape out; an untyped caller can still pass it.
-          const both = (items as ReadonlyArray<{ label: string; href?: string; links?: unknown }>).find(
-            (item) => item.links !== undefined && item.href !== undefined,
-          );
+          const loose = items as ReadonlyArray<{ label: string; href?: string; links?: unknown; content?: unknown }>;
+          const both = loose.find((item) => (item.links !== undefined || item.content !== undefined) && item.href !== undefined);
+          const empty = loose.find((item) => item.href === undefined && item.links === undefined && item.content === undefined);
           return [
             !label && ["label is required; it names the navigation for screen readers", '<NavigationMenu label="Main">'],
+            empty && [`"${empty.label}" has no href, links or content`, `{ label: "${empty.label}", href: "/…" } or { label: "${empty.label}", links: [{ label, href }] }`],
             both && [
-              `"${both.label}" has both href and links, and renders as a panel`,
+              `"${both.label}" has both href and a panel, and renders as a panel`,
               `{ label: "${both.label}", links: [{ label: "All ${both.label.toLowerCase()}", href: "${String(both.href)}" }, …] }`,
             ],
             links !== undefined && ["links is not a prop", example],
@@ -194,10 +226,42 @@ export function NavigationMenu(props: NavigationMenuProps): JSX.Element {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
 
+  return <NavigationMenuView label={label} items={items} currentPath={currentPath} className={className} ref={ref} />;
+}
+
+/** Props for {@link NavigationMenuView}: NavigationMenu's, and what Navbar needs to measure its row. */
+interface NavigationMenuViewProps {
+  label: string;
+  items: readonly NavigationMenuItem[];
+  currentPath?: string | undefined;
+  className?: string | undefined;
+  ref?: Ref<HTMLElement> | undefined;
+  /** Keeps the row on one line, so its list overflows when it does not fit. */
+  oneLine?: boolean | undefined;
+  /** The row's list, to measure. */
+  listRef?: Ref<HTMLUListElement> | undefined;
+}
+
+/** A panel item, by its `links` or `content`; an untyped item with `href` too is still a panel. */
+function isPanel(item: NavigationMenuItem): item is NavigationMenuPanelItem {
+  return item.links !== undefined || item.content !== undefined;
+}
+
+/**
+ * The NavigationMenu without its development checks: Navbar's row.
+ *
+ * @internal Shared by NavigationMenu and Navbar; apps use those.
+ */
+export function NavigationMenuView(props: NavigationMenuViewProps): JSX.Element {
+  const { label, items, currentPath, className, ref, oneLine, listRef } = props;
+  // Controlled, so a link in a panel's content can close it.
+  const [value, setValue] = useState<number | null>(null);
   const [instant, setInstant] = useState(false);
 
   // A link's own `current` wins; otherwise the path decides, across the row and the panels.
-  const all = items.flatMap((item): ReadonlyArray<{ href: string; current?: boolean | undefined }> => item.links ?? [item]);
+  const all = items.flatMap((item): ReadonlyArray<{ href: string; current?: boolean | undefined }> =>
+    isPanel(item) ? (item.links ?? []) : [item],
+  );
   const marked = all.some((link) => link.current)
     ? undefined
     : currentHref(
@@ -205,21 +269,28 @@ export function NavigationMenu(props: NavigationMenuProps): JSX.Element {
         currentPath,
       );
   const isCurrent = (link: { href: string; current?: boolean | undefined }) => Boolean(link.current) || link.href === marked;
+  const closeOnLink = (event: ReactMouseEvent) => {
+    if ((event.target as Element).closest("a[href]")) setValue(null);
+  };
 
   return (
     <BaseNavigationMenu.Root
       ref={ref}
       data-ouro="navigation-menu"
       aria-label={label}
-      // A key press, or the click a key press makes (detail 0), opens and closes at once.
-      onValueChange={(_value, { event }) => setInstant(event.type === "keydown" || (event.type === "click" && (event as MouseEvent).detail === 0))}
+      value={value}
+      onValueChange={(next, { event }) => {
+        // A key press, or the click a key press makes (detail 0), opens and closes at once.
+        setInstant(event.type === "keydown" || (event.type === "click" && (event as MouseEvent).detail === 0));
+        setValue(next as number | null);
+      }}
       className={cn("min-w-0", className)}
     >
-      <BaseNavigationMenu.List className="m-0 flex list-none flex-wrap items-center gap-1 p-0">
+      <BaseNavigationMenu.List ref={listRef} className={cn("m-0 flex list-none items-center gap-1 p-0", oneLine ? "flex-nowrap" : "flex-wrap")}>
         {items.map((item, index) =>
-          item.links !== undefined ? (
+          isPanel(item) ? (
             <BaseNavigationMenu.Item key={index} value={index}>
-              <BaseNavigationMenu.Trigger data-current={item.links.some(isCurrent) ? "" : undefined} className={rowItem}>
+              <BaseNavigationMenu.Trigger data-current={item.links?.some(isCurrent) ? "" : undefined} className={rowItem}>
                 {item.label}
                 <BaseNavigationMenu.Icon data-ouro-instant={instant ? "" : undefined} className={chevron}>
                   <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-3.5">
@@ -227,17 +298,31 @@ export function NavigationMenu(props: NavigationMenuProps): JSX.Element {
                   </svg>
                 </BaseNavigationMenu.Icon>
               </BaseNavigationMenu.Trigger>
-              <BaseNavigationMenu.Content data-ouro-instant={instant ? "" : undefined} className={content}>
-                <ul className="m-0 grid list-none gap-1 p-0">
-                  {item.links.map((link, position) => (
-                    <li key={position}>
-                      <BaseNavigationMenu.Link render={<RouterLink href={link.href} />} active={isCurrent(link)} closeOnClick className={panelLink}>
-                        <span className="font-medium">{link.label}</span>
-                        {link.description !== undefined && <span className="text-sm leading-5 text-muted-foreground">{link.description}</span>}
-                      </BaseNavigationMenu.Link>
-                    </li>
-                  ))}
-                </ul>
+              <BaseNavigationMenu.Content
+                data-ouro-instant={instant ? "" : undefined}
+                data-wide={item.content !== undefined || item.columns === 2 ? "" : undefined}
+                className={panel}
+              >
+                <div className={cn("grid gap-2", item.content !== undefined && item.links !== undefined && "sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)]")}>
+                  {item.content !== undefined && (
+                    // A link in the content closes the panel, as the list's links do.
+                    <div data-ouro-navigation-menu-content="" onClick={closeOnLink} className="min-w-0">
+                      {item.content}
+                    </div>
+                  )}
+                  {item.links !== undefined && (
+                    <ul className={cn("m-0 grid list-none gap-1 p-0", item.columns === 2 && "sm:grid-cols-2")}>
+                      {item.links.map((link, position) => (
+                        <li key={position}>
+                          <BaseNavigationMenu.Link render={<RouterLink href={link.href} />} active={isCurrent(link)} closeOnClick className={panelLink}>
+                            <span className="font-medium">{link.label}</span>
+                            {link.description !== undefined && <span className="text-sm leading-5 text-muted-foreground">{link.description}</span>}
+                          </BaseNavigationMenu.Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </BaseNavigationMenu.Content>
             </BaseNavigationMenu.Item>
           ) : (

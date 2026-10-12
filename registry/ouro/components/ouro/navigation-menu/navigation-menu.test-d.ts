@@ -16,6 +16,11 @@ expectTypeOf<{ label: "Main"; items: typeof items }>().toExtend<NavigationMenuPr
 expectTypeOf<{ label: "Main"; items: typeof items; currentPath: "/recipes"; className: "ms-4" }>().toExtend<NavigationMenuProps>();
 expectTypeOf<{ label: "Pricing"; href: "/pricing"; current: true }>().toExtend<NavigationMenuItem>();
 expectTypeOf<{ label: "Browse"; href: "/recipes"; description: "All of them" }>().toExtend<NavigationMenuLink>();
+// A panel holds links in one or two columns, content beside them, or content alone.
+expectTypeOf<{ label: "Recipes"; columns: 2; content: "Featured"; links: [{ label: "Browse"; href: "/recipes" }] }>().toExtend<NavigationMenuItem>();
+expectTypeOf<{ label: "Help"; content: "Write to us" }>().toExtend<NavigationMenuItem>();
+expectTypeOf<{ label: "Recipes"; columns: 3; links: [] }>().not.toExtend<NavigationMenuItem>();
+expectTypeOf<{ label: "Help"; href: "/help"; content: "Write to us" }>().not.toExtend<NavigationMenuItem>();
 
 // An item is a link or a panel, not both and not neither; a panel's link needs an href.
 expectTypeOf<{ label: "Recipes"; href: "/recipes"; links: [] }>().not.toExtend<NavigationMenuItem>();

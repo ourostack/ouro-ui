@@ -7,3 +7,4 @@ export const breadcrumb01 = <Breadcrumb items={items} separator="/" />;
 export const breadcrumb02 = <Breadcrumb items={items} links={items} />;
 export const breadcrumb03 = <Breadcrumb items={items}>Home</Breadcrumb>;
 export const breadcrumbOk01 = <Breadcrumb items={items} maxItems={3} label="Breadcrumb" moreLabel="More" closeLabel="Close" />;
+export const breadcrumbOk02 = <Breadcrumb items={[{ label: "Home", href: "/", icon: "⌂" }, { label: "Short ribs" }]} />;

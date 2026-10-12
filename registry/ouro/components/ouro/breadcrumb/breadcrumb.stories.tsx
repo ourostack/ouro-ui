@@ -61,3 +61,17 @@ export const InContext: Story = {
     </Surface>
   ),
 };
+
+function HomeIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2.5 7 8 2.5 13.5 7v6.5h-4v-4h-3v4h-4V7Z" />
+    </svg>
+  );
+}
+
+/** A crumb with an icon before its label. */
+export const Icons: Story = {
+  args: { items: [{ label: "Home", href: "#home", icon: <HomeIcon /> }, { label: "Recipes", href: "#recipes" }, { label: "Short ribs" }] },
+  parameters: { screenshot: { name: "breadcrumb-icons" } },
+};

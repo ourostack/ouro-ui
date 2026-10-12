@@ -1,1 +1,0 @@
-- lib/ouro gains `easing.ts`: the three easing curves (`easeOut`, `easeInOut`, `easeDrawer`) as classes, in one place until the theme has tokens for them.

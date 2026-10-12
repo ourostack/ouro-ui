@@ -7,12 +7,10 @@ import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { RouterLink } from "@/registry/ouro/lib/ouro/router-link";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 
-/** Props shared by both kinds of Pagination (`href` or `onPageChange` picks one). */
+/** Props shared by every kind of Pagination (`href` or `onPageChange`, `pageCount` or `hasNextPage`). */
 export interface PaginationBaseProps {
   /** The current page, counting from 1. */
   page: number;
-  /** How many pages there are. From a count of rows: `Math.ceil(total / pageSize)`. */
-  pageCount: number;
   /**
    * How many pages show on each side of the current one before a gap ("1 … 4 5 6 … 12" is
    * `1`). The list keeps the same number of cells on every page, so Next never moves.
@@ -48,6 +46,25 @@ export interface PaginationBaseProps {
   onChange?: { "Use <Pagination onPageChange={(page) => ...}>": never };
 }
 
+/** A Pagination that knows how many pages there are: Previous, the numbers with gaps, and Next. */
+export interface PaginationCountProps {
+  /** How many pages there are. From a count of rows: `Math.ceil(total / pageSize)`. */
+  pageCount: number;
+  /** Not with `pageCount`, which decides whether there is a next page. */
+  hasNextPage?: never;
+}
+
+/**
+ * A Pagination for a list without a count of its rows: Previous and Next only, as a query
+ * that fetches one row more than a page can tell (`hasNextPage: rows.length > pageSize`).
+ */
+export interface PaginationPagerProps {
+  /** Leave it out when the list has no count; pass it to show the page numbers. */
+  pageCount?: undefined;
+  /** Whether there is a page after this one, which enables Next. @default false */
+  hasNextPage?: boolean | undefined;
+}
+
 /** A Pagination of links: every page has its own address, so it works before JavaScript loads. */
 export type PaginationLinkProps = PaginationBaseProps & {
   /**
@@ -68,8 +85,11 @@ export type PaginationButtonProps = PaginationBaseProps & {
   href?: never;
 };
 
-/** Props for {@link Pagination}: `href` for links, or `onPageChange` for buttons. */
-export type PaginationProps = PaginationLinkProps | PaginationButtonProps;
+/**
+ * Props for {@link Pagination}: `href` for links or `onPageChange` for buttons, and
+ * `pageCount` for the numbers or `hasNextPage` for Previous and Next only.
+ */
+export type PaginationProps = (PaginationLinkProps | PaginationButtonProps) & (PaginationCountProps | PaginationPagerProps);
 
 // Class strings are literal so the app's Tailwind finds them when it compiles.
 
@@ -83,8 +103,9 @@ const live = "cursor-pointer pointer-fine:hover:bg-accent pointer-fine:hover:tex
 const currentCell = "aria-[current=page]:bg-secondary aria-[current=page]:text-secondary-foreground";
 const off = "cursor-not-allowed opacity-50";
 
-function fill(template: string, page: number, pageCount: number): string {
-  return template.replaceAll("{page}", String(page)).replaceAll("{pageCount}", String(pageCount));
+function fill(template: string, page: number, pageCount?: number): string {
+  const filled = template.replaceAll("{page}", String(page));
+  return pageCount === undefined ? filled : filled.replaceAll("{pageCount}", String(pageCount));
 }
 
 /**
@@ -114,6 +135,8 @@ function Chevron({ back }: { back?: boolean }): JSX.Element {
  * current page marked `aria-current="page"`. With `href` every page is a real link, so it
  * works with no JavaScript and through your router; with `onPageChange` the pages are
  * buttons. Below 640px the numbers give way to "Page 3 of 12" between Previous and Next.
+ * Without `pageCount`, for a list that is not counted, it shows Previous and Next only, and
+ * `hasNextPage` enables Next.
  *
  * Use `ShowMore` instead when the next rows should join the list in place. Use `Tabs` to
  * switch between a few named views.
@@ -124,11 +147,13 @@ function Chevron({ back }: { back?: boolean }): JSX.Element {
  * @example
  * <Pagination page={3} pageCount={12} href="/recipes?page={page}" />
  * <Pagination page={page} pageCount={12} onPageChange={setPage} />
+ * <Pagination page={page} hasNextPage={rows.length > pageSize} href="?page={page}" />
  */
 export function Pagination(props: PaginationProps): JSX.Element {
   const {
     page: pageProp,
     pageCount: pageCountProp,
+    hasNextPage,
     siblings = 1,
     label = "Pagination",
     previousLabel = "Previous",
@@ -146,6 +171,8 @@ export function Pagination(props: PaginationProps): JSX.Element {
     count,
     onChange,
   } = props as PaginationBaseProps & {
+    pageCount?: number;
+    hasNextPage?: boolean;
     href?: string | ((page: number) => string);
     onPageChange?: (page: number) => void;
   };
@@ -161,8 +188,10 @@ export function Pagination(props: PaginationProps): JSX.Element {
   }
 
   // A count or a page out of range (a bug in the caller) renders the nearest valid state and warns.
-  const pageCount = Math.max(1, Math.floor(pageCountProp));
-  const page = Math.min(Math.max(1, Math.floor(pageProp)), pageCount);
+  // Without a count, only Previous and Next show.
+  const pageCount = pageCountProp === undefined ? undefined : Math.max(1, Math.floor(pageCountProp));
+  const page = Math.min(Math.max(1, Math.floor(pageProp)), pageCount ?? Infinity);
+  const hasNext = pageCount === undefined ? Boolean(hasNextPage) : page < pageCount;
 
   useAppearanceClassNameCheck(
     "Pagination",
@@ -177,7 +206,15 @@ export function Pagination(props: PaginationProps): JSX.Element {
       ? () => [
           pageCount !== pageCountProp && [`pageCount={${pageCountProp}} is not a count of pages`, `<Pagination page={${page}} pageCount={${pageCount}}>`],
           pageCount === pageCountProp &&
-            page !== pageProp && [`page={${pageProp}} is outside 1 to ${pageCount}`, `<Pagination page={${page}} pageCount={${pageCount}}>`],
+            page !== pageProp && [
+              pageCount === undefined ? `page={${pageProp}} is not a page number` : `page={${pageProp}} is outside 1 to ${pageCount}`,
+              pageCount === undefined ? `<Pagination page={${page}}>` : `<Pagination page={${page}} pageCount={${pageCount}}>`,
+            ],
+          pageCount !== undefined &&
+            hasNextPage !== undefined && [
+              "hasNextPage is for a list without a page count; pageCount decides",
+              `<Pagination page={${page}} pageCount={${pageCount}}> or <Pagination page={${page}} hasNextPage>`,
+            ],
           typeof href === "string" &&
             !href.includes("{page}") && [
               `href="${href}" has no {page}, so every link goes to one address`,
@@ -230,12 +267,14 @@ export function Pagination(props: PaginationProps): JSX.Element {
             </>,
           )}
         </li>
+        {pageCount !== undefined && (
         <li className="sm:hidden">
           <span data-ouro-pagination-summary="" aria-current="page" className="px-2 text-base leading-5 text-muted-foreground tabular-nums">
             {fill(summaryLabel, page, pageCount)}
           </span>
         </li>
-        {cells(page, pageCount, Math.max(0, Math.floor(siblings))).map((target, index) =>
+        )}
+        {(pageCount === undefined ? [] : cells(page, pageCount, Math.max(0, Math.floor(siblings)))).map((target, index) =>
           target === 0 ? (
             <li key={`gap${index}`} className="max-sm:hidden">
               <span data-ouro-pagination-gap="" aria-hidden="true" className="inline-flex h-11 min-w-9 pointer-fine:h-9 items-center justify-center text-base text-muted-foreground select-none">
@@ -257,8 +296,8 @@ export function Pagination(props: PaginationProps): JSX.Element {
         <li>
           {control(
             page + 1,
-            page < pageCount,
-            { "data-ouro-pagination-next": "", rel: href !== undefined && page < pageCount ? "next" : undefined },
+            hasNext,
+            { "data-ouro-pagination-next": "", rel: href !== undefined && hasNext ? "next" : undefined },
             "px-3",
             <>
               {nextLabel}

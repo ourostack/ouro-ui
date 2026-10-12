@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type JSX, type ReactNode, type Ref } from "react";
+import { useEffect, useId, useRef, useState, type JSX, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { currentHref } from "@/registry/ouro/lib/ouro/current-path";
@@ -8,26 +8,47 @@ import { RouterLink } from "@/registry/ouro/lib/ouro/router-link";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { NavigationMenuView } from "@/registry/ouro/components/ouro/navigation-menu/navigation-menu";
 import { SheetFrame } from "@/registry/ouro/components/ouro/sheet/sheet";
 
-/** One link in a Navbar. */
-export interface NavbarItem {
+/** One link in a Navbar: in the bar, or in a group's panel. */
+export interface NavbarLink {
   /** The link's text: "Recipes". */
   label: string;
   /** Where it goes. Internal paths go through `OuroProvider`'s `linkComponent` (your router's link). */
   href: string;
+  /** In a group: a line under the label in the bar's panel, "Everything you have saved." */
+  description?: string | undefined;
   /**
    * Marks this link as the current page (`aria-current="page"`), when the Navbar's
    * `currentPath` cannot tell: a link whose page lives at another path.
    */
   current?: boolean | undefined;
+  /** Not with `href`. An item is a link (`href`) or a group of links (`links`). */
+  links?: never;
 }
+
+/** A group of links in a Navbar: a button that opens a panel in the bar, and a labelled group in the sheet. */
+export interface NavbarGroup {
+  /** The group's name, the button's text: "Recipes". */
+  label: string;
+  /** The group's links, each with an optional `description`. */
+  links: readonly NavbarLink[];
+  /** Not with `links`. To link the section's own page, make it the group's first link. */
+  href?: never;
+}
+
+/** One item of a Navbar: a link (`href`), or a group of links (`links`). */
+export type NavbarItem = NavbarLink | NavbarGroup;
 
 /** Props for {@link Navbar}. */
 export interface NavbarProps {
   /** Names the navigation for screen readers ("Main"). It is not shown. */
   label: string;
-  /** The links, in order. Keep to the app's few main sections; a phone lists them in a sheet. */
+  /**
+   * The links, in order, and groups of links (`{ label, links }`), which open a panel in the
+   * bar. When they do not fit, as on a phone, they move into a sheet.
+   */
   items: readonly NavbarItem[];
   /**
    * The path of the page being shown, from your router (`useLocation().pathname`, or
@@ -68,26 +89,30 @@ const bar =
 
 // A link: 44px with 16px text on a coarse pointer at every width, 36px with 14px text with a
 // fine one. The current page takes the accent surface.
-const link =
+const link_ =
   "m-0 box-border items-center rounded-md px-3 font-medium text-muted-foreground no-underline select-none touch-manipulation " +
   "text-base pointer-fine:text-sm leading-5 [-webkit-tap-highlight-color:transparent] " +
   "pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground aria-[current=page]:bg-accent aria-[current=page]:text-accent-foreground " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
-const barLink = "press inline-flex h-11 min-w-11 pointer-fine:h-9 justify-center whitespace-nowrap motion-safe:active:scale-(--ouro-press-scale)";
 // In the sheet a link is a full-width row, which highlights while pressed instead of scaling.
 const sheetLink = "flex min-h-11 pointer-fine:min-h-9 py-2 transition-colors duration-(--ouro-duration-fast) ease-[ease] active:bg-accent active:text-accent-foreground";
 
-const list = "m-0 flex list-none p-0";
+const list_ = "m-0 flex list-none p-0";
 const example = '<Navbar label="Main" items={[{ label: "Recipes", href: "/recipes" }]}';
 
 /**
  * The bar across the top of an app: your brand, the main links and a few controls, with
- * the current page marked `aria-current="page"`. Below 640px the links collapse behind a
- * menu button into a `Sheet` that slides in from the side; the brand and `actions` stay in
- * the bar. Links render through `OuroProvider`'s `linkComponent`, so your router navigates.
+ * the current page marked `aria-current="page"`. A group of links (`{ label, links }`)
+ * opens a panel, as in `NavigationMenu`. Whenever the links do not fit, below 640px and on
+ * a narrow tablet, they collapse behind a menu button into a `Sheet` that slides in from
+ * the side, with each group under its name; the brand and `actions` stay in the bar. Links
+ * render through `OuroProvider`'s `linkComponent`, so your router navigates.
+ *
+ * The phone menu opens once JavaScript has loaded (after hydration), as in shadcn/ui and
+ * Catalyst; the links are in the server HTML from 640px up.
  *
  * Use `Sidebar` instead for more than a handful of destinations, or sections of them. Use
- * `NavigationMenu` when a link opens a panel of further links, and `Tabs` for views of one
+ * `NavigationMenu` alone for a row of panels inside a page, and `Tabs` for views of one
  * page. `StackedLayout` puts a Navbar above the page.
  *
  * @group Navigation
@@ -142,33 +167,52 @@ export function Navbar(props: NavbarProps): JSX.Element {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
 
-  // The sheet exists only below the sm breakpoint; a screen that grows past it closes it.
+  // The links collapse into the sheet below the sm breakpoint, and wherever they do not fit
+  // the bar. Server HTML shows them from 640px up, until the client measures.
   const wide = useMediaQuery("(min-width: 640px)", true);
+  const [overflow, setOverflow] = useState(false);
+  const collapsed = !wide || overflow;
   const [open, setOpen] = useState(false);
   // Focus goes back to the menu button when the sheet closes, in every browser.
   const menuButton = useRef<HTMLButtonElement>(null);
-  if (wide && open) setOpen(false);
+  const slot = useRef<HTMLDivElement>(null);
+  const list = useRef<HTMLUListElement>(null);
+  if (!collapsed && open) setOpen(false);
 
-  // An item's own `current` wins; otherwise the path decides.
-  const marked = items.some((item) => item.current)
+  useEffect(() => {
+    const measure = () => {
+      // The room the links would have: the slot, and the menu button's place when it shows.
+      const button = menuButton.current!.offsetWidth;
+      setOverflow(list.current!.scrollWidth > slot.current!.clientWidth + (button > 0 ? button + 8 : 0));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(slot.current!);
+    observer.observe(list.current!);
+    return () => observer.disconnect();
+  }, []);
+
+  // An item's own `current` wins; otherwise the path decides, across the links and the groups.
+  const all = items.flatMap((item): ReadonlyArray<{ href: string; current?: boolean | undefined }> => (item.links !== undefined ? item.links : [item]));
+  const marked = all.some((link) => link.current)
     ? undefined
     : currentHref(
-        items.map((item) => item.href),
+        all.map((link) => link.href),
         currentPath,
       );
-  const renderLinks = (linkClass: string, onNavigate?: () => void) =>
-    items.map((item, index) => (
-      <li key={index}>
-        <RouterLink
-          href={item.href}
-          aria-current={item.current || item.href === marked ? "page" : undefined}
-          onClick={onNavigate}
-          className={cn(link, linkClass)}
-        >
-          {item.label}
-        </RouterLink>
-      </li>
-    ));
+  const id = useId();
+  const sheetLinkFor = (link: { label: string; href: string; current?: boolean | undefined }, key: number) => (
+    <li key={key}>
+      <RouterLink
+        href={link.href}
+        aria-current={link.current || link.href === marked ? "page" : undefined}
+        onClick={() => setOpen(false)}
+        className={cn(link_, sheetLink)}
+      >
+        {link.label}
+      </RouterLink>
+    </li>
+  );
 
   return (
     <header ref={ref} data-ouro="navbar" className={cn(bar, className)}>
@@ -178,24 +222,40 @@ export function Navbar(props: NavbarProps): JSX.Element {
         variant="plain"
         tone="secondary"
         aria-label={menuLabel}
-        // Only where the button shows: below the sm breakpoint it opens the sheet.
-        aria-haspopup={wide ? undefined : "dialog"}
+        // Only where the button shows: then it opens the sheet.
+        aria-haspopup={collapsed ? "dialog" : undefined}
         aria-expanded={open}
         onClick={() => setOpen(true)}
-        className="-ms-2 w-11 px-0 sm:hidden"
+        className={cn("-ms-2 w-11 px-0", !overflow && "sm:hidden")}
       >
         <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="size-5">
           <path d="M3 5.5h14M3 10h14M3 14.5h14" />
         </svg>
       </Button>
       {brand !== undefined && <div className="flex min-w-0 shrink-0 items-center">{brand}</div>}
-      <nav aria-label={label} className="min-w-0 max-sm:hidden">
-        <ul className={cn(list, "items-center gap-1")}>{renderLinks(barLink)}</ul>
-      </nav>
+      {/* The links' slot takes the room between the brand and the actions; hidden but measured when they do not fit. */}
+      <div ref={slot} data-ouro-navbar-links="" className={cn("min-w-0 flex-1 overflow-hidden max-sm:hidden", overflow && "invisible")}>
+        <NavigationMenuView label={label} items={items} currentPath={currentPath} oneLine listRef={list} />
+      </div>
       {actions !== undefined && <div className="ms-auto flex shrink-0 items-center gap-2">{actions}</div>}
       <SheetFrame title={menuLabel} closeLabel={closeLabel} side="left" open={open} onOpenChange={setOpen} finalFocus={menuButton}>
         <nav aria-label={label}>
-          <ul className={cn(list, "flex-col gap-1")}>{renderLinks(sheetLink, () => setOpen(false))}</ul>
+          <ul className={cn(list_, "flex-col gap-1")}>
+            {items.map((item, index) =>
+              item.links !== undefined ? (
+                <li key={index} className="grid gap-1 pt-3 first:pt-0">
+                  <p id={`${id}${index}`} className="m-0 px-3 py-1 text-xs leading-4 font-medium text-muted-foreground">
+                    {item.label}
+                  </p>
+                  <ul aria-labelledby={`${id}${index}`} className={cn(list_, "flex-col gap-1")}>
+                    {item.links.map(sheetLinkFor)}
+                  </ul>
+                </li>
+              ) : (
+                sheetLinkFor(item, index)
+              ),
+            )}
+          </ul>
         </nav>
       </SheetFrame>
     </header>

@@ -69,5 +69,10 @@ interface BreadcrumbItem {
    * item needs one except the last, the current page, which renders as text.
    */
   href?: string | undefined;
+  /**
+   * An icon before the label, as an element: `icon: <HomeIcon />`. It is hidden from
+   * screen readers, so the label still names the step.
+   */
+  icon?: ReactNode;
 }
 ```

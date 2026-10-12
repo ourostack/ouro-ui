@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, type JSX, type Ref } from "react";
+import { Fragment, type JSX, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { RouterLink } from "@/registry/ouro/lib/ouro/router-link";
@@ -16,6 +16,11 @@ export interface BreadcrumbItem {
    * item needs one except the last, the current page, which renders as text.
    */
   href?: string | undefined;
+  /**
+   * An icon before the label, as an element: `icon: <HomeIcon />`. It is hidden from
+   * screen readers, so the label still names the step.
+   */
+  icon?: ReactNode;
 }
 
 /** Props for {@link Breadcrumb}. */
@@ -148,6 +153,16 @@ export function Breadcrumb(props: BreadcrumbProps): JSX.Element {
   const hidden = collapsed ? items.slice(1, -tail) : [];
   const shown = collapsed ? [items[0]!, ...items.slice(-tail)] : items;
   const last = shown.length - 1;
+  const content = (item: BreadcrumbItem) => (
+    <>
+      {item.icon !== undefined && (
+        <span aria-hidden="true" className="me-1.5 inline-flex shrink-0 [&_svg]:size-4">
+          {item.icon}
+        </span>
+      )}
+      {item.label}
+    </>
+  );
 
   return (
     <nav ref={ref} data-ouro="breadcrumb" aria-label={label} className={cn("min-w-0", className)}>
@@ -173,16 +188,16 @@ export function Breadcrumb(props: BreadcrumbProps): JSX.Element {
             <li className={row}>
               {index > 0 && <Separator />}
               {index === last ? (
-                <span data-ouro-breadcrumb-item="" aria-current="page" className="font-medium text-foreground">
-                  {item.label}
+                <span data-ouro-breadcrumb-item="" aria-current="page" className="inline-flex items-center font-medium text-foreground">
+                  {content(item)}
                 </span>
               ) : item.href === undefined ? (
-                <span data-ouro-breadcrumb-item="" className="text-muted-foreground">
-                  {item.label}
+                <span data-ouro-breadcrumb-item="" className="inline-flex items-center text-muted-foreground">
+                  {content(item)}
                 </span>
               ) : (
                 <RouterLink data-ouro-breadcrumb-item="" href={item.href} className={crumb}>
-                  {item.label}
+                  {content(item)}
                 </RouterLink>
               )}
             </li>

@@ -22,4 +22,4 @@ export const agentCases: AgentCase[] = [
 ];
 
 /** Valid breadcrumb snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["breadcrumbOk01"];
+export const validSnippets: string[] = ["breadcrumbOk01", "breadcrumbOk02"];

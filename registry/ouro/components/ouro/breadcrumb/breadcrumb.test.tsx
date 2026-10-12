@@ -181,3 +181,24 @@ describe("Breadcrumb", () => {
     expect(messages).toContain('[ouro-ui] Breadcrumb: children are not rendered; the trail is data. Fix: <Breadcrumb items={[{ label: "Home", href: "/" }, { label: "Ribs" }]} />.');
   });
 });
+
+describe("Breadcrumb icons", () => {
+  it("shows a crumb's icon before its label, hidden from screen readers", async () => {
+    await render(
+      <Breadcrumb
+        items={[
+          { label: "Home", href: "/", icon: <svg data-testid="home-icon" viewBox="0 0 16 16" /> },
+          { label: "Short ribs", icon: <svg data-testid="page-icon" viewBox="0 0 16 16" /> },
+        ]}
+      />,
+    );
+    const home = page.getByRole("link", { name: "Home" });
+    await expect.element(home).toBeVisible();
+    const icon = page.getByTestId("home-icon").element();
+    expect(home.element().contains(icon)).toBe(true);
+    expect(icon.closest('[aria-hidden="true"]')).not.toBeNull();
+    expect(icon.getBoundingClientRect().right).toBeLessThanOrEqual(home.element().getBoundingClientRect().left + home.element().getBoundingClientRect().width / 2);
+    expect(page.getByText("Short ribs").element().closest("[aria-current]")!.contains(page.getByTestId("page-icon").element())).toBe(true);
+  });
+});
+

@@ -23,9 +23,14 @@ expectTypeOf<{
 // One way to change page: href or onPageChange, not neither and not both.
 expectTypeOf<{ page: 1; pageCount: 12 }>().not.toExtend<PaginationProps>();
 expectTypeOf<{ page: 1; pageCount: 12; href: "?page={page}"; onPageChange: (page: number) => void }>().not.toExtend<PaginationProps>();
-// page and pageCount are required, and the guessed props name the fix.
+// Without pageCount: Previous and Next only, with hasNextPage; not both pageCount and hasNextPage.
+expectTypeOf<{ page: 1; href: "?page={page}" }>().toExtend<PaginationProps>();
+expectTypeOf<{ page: 1; hasNextPage: true; href: "?page={page}" }>().toExtend<PaginationProps>();
+expectTypeOf<{ page: 1; hasNextPage: boolean; onPageChange: (page: number) => void }>().toExtend<PaginationProps>();
+expectTypeOf<{ page: 1; pageCount: 12; hasNextPage: true; href: "?page={page}" }>().not.toExtend<PaginationProps>();
+expectTypeOf<{ page: 1; hasNextPage: "yes"; href: "?page={page}" }>().not.toExtend<PaginationProps>();
+// page is required, and the guessed props name the fix.
 expectTypeOf<{ pageCount: 12; href: "?page={page}" }>().not.toExtend<PaginationProps>();
-expectTypeOf<{ page: 1; href: "?page={page}" }>().not.toExtend<PaginationProps>();
 expectTypeOf<{ page: 1; pageCount: 12; href: "?page={page}"; currentPage: 1 }>().not.toExtend<PaginationProps>();
 expectTypeOf<{ page: 1; pageCount: 12; href: "?page={page}"; totalPages: 12 }>().not.toExtend<PaginationProps>();
 expectTypeOf<{ page: 1; pageCount: 12; href: "?page={page}"; total: 120 }>().not.toExtend<PaginationProps>();

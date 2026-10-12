@@ -254,3 +254,51 @@ describe("Pagination", () => {
     expect(() => renderToString(<Pagination {...both} />)).toThrow("[ouro-ui] Pagination: takes href or onPageChange, not both.");
   });
 });
+
+describe("Pagination without a page count", () => {
+  it("renders Previous and Next only, with hasNextPage enabling Next", async () => {
+    const { nav } = await render(<Pagination page={2} hasNextPage href="?page={page}" />);
+    await expect.element(page.getByRole("link", { name: "Previous" })).toHaveAttribute("href", "?page=1");
+    await expect.element(page.getByRole("link", { name: "Next" })).toHaveAttribute("href", "?page=3");
+    expect(nav.querySelectorAll("[data-ouro-pagination-page]").length).toBe(0);
+    expect(nav.querySelector("[data-ouro-pagination-summary]")).toBeNull();
+    expect(nav.querySelector("[data-ouro-pagination-gap]")).toBeNull();
+  });
+
+  it("disables Next on the last page and Previous on the first", async () => {
+    const { nav } = await render(<Pagination page={1} href="?page={page}" />);
+    expect(page.getByRole("link").elements().length).toBe(0);
+    expect(nav.querySelector("[data-ouro-pagination-next]")!.getAttribute("aria-disabled")).toBe("true");
+    expect(nav.querySelector("[data-ouro-pagination-previous]")!.getAttribute("aria-disabled")).toBe("true");
+  });
+
+  it("pages in place with onPageChange", async () => {
+    const onPageChange = vi.fn();
+    await render(<Pagination page={3} hasNextPage onPageChange={onPageChange} />);
+    await userEvent.click(page.getByRole("button", { name: "Next" }));
+    await userEvent.click(page.getByRole("button", { name: "Previous" }));
+    expect(onPageChange.mock.calls).toEqual([[4], [2]]);
+  });
+
+  it("keeps Previous and Next apart on a phone", async () => {
+    await page.viewport(390, 844);
+    const { nav } = await render(<Pagination page={2} hasNextPage href="?page={page}" />);
+    const previous = nav.querySelector("[data-ouro-pagination-previous]")!.getBoundingClientRect();
+    const next = nav.querySelector("[data-ouro-pagination-next]")!.getBoundingClientRect();
+    expect(next.left - previous.right).toBeGreaterThan(100);
+  });
+
+  it("warns about a page that is not a page number, without a page count", async () => {
+    await render(<Pagination page={0} hasNextPage href="?page={page}" />);
+    expect(warn).toHaveBeenCalledWith("[ouro-ui] Pagination: page={0} is not a page number. Fix: <Pagination page={1}>.");
+    await expect.element(page.getByRole("link", { name: "Next" })).toHaveAttribute("href", "?page=2");
+  });
+
+  it("warns when pageCount and hasNextPage come together, and uses pageCount", async () => {
+    const both = { page: 2, pageCount: 2, hasNextPage: true, href: "?page={page}" } as unknown as PaginationProps;
+    const { nav } = await render(<Pagination {...both} />);
+    expect(warn).toHaveBeenCalledWith("[ouro-ui] Pagination: hasNextPage is for a list without a page count; pageCount decides. Fix: <Pagination page={2} pageCount={2}> or <Pagination page={2} hasNextPage>.");
+    expect(nav.querySelector("[data-ouro-pagination-next]")!.getAttribute("aria-disabled")).toBe("true");
+  });
+});
+

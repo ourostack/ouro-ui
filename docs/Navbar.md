@@ -2,7 +2,7 @@
 
 # Navbar
 
-The bar across the top of an app: your brand, the main links and a few controls, with the current page marked `aria-current="page"`. Below 640px the links collapse behind a menu button into a `Sheet` that slides in from the side; the brand and `actions` stay in the bar. Links render through `OuroProvider`'s `linkComponent`, so your router navigates.
+The bar across the top of an app: your brand, the main links and a few controls, with the current page marked `aria-current="page"`. A group of links (`{ label, links }`) opens a panel, as in `NavigationMenu`. Whenever the links do not fit, below 640px and on a narrow tablet, they collapse behind a menu button into a `Sheet` that slides in from the side, with each group under its name; the brand and `actions` stay in the bar. Links render through `OuroProvider`'s `linkComponent`, so your router navigates.
 
 ```tsx
 import { Navbar } from "@/registry/ouro/components/ouro/navbar/navbar";
@@ -25,7 +25,9 @@ import { Navbar } from "@/registry/ouro/components/ouro/navbar/navbar";
 
 ## Usage
 
-Use `NavigationMenu` when a link opens a panel of further links, and `Tabs` for views of one page. `StackedLayout` puts a Navbar above the page.
+The phone menu opens once JavaScript has loaded (after hydration), as in shadcn/ui and Catalyst; the links are in the server HTML from 640px up.
+
+Use `NavigationMenu` alone for a row of panels inside a page, and `Tabs` for views of one page. `StackedLayout` puts a Navbar above the page.
 
 ## Use instead when
 
@@ -42,7 +44,7 @@ Type: `NavbarProps`.
 | `className` | `string` |  | Layout only: margins, position (`sticky top-0`). Appearance classes warn in development. |
 | `closeLabel` | `string` | `"Close"` | The label of that sheet's close button. |
 | `currentPath` | `string` |  | The path of the page being shown, from your router (`useLocation().pathname`, or `usePathname()` in Next.js). The link to that path, or else the longest link above it (`/recipes` for `/recipes/12`), gets `aria-current="page"` and the current look. |
-| `items` (required) | `readonly NavbarItem[]` |  | The links, in order. Keep to the app's few main sections; a phone lists them in a sheet. |
+| `items` (required) | `readonly NavbarItem[]` |  | The links, in order, and groups of links (`{ label, links }`), which open a panel in the bar. When they do not fit, as on a phone, they move into a sheet. |
 | `label` (required) | `string` |  | Names the navigation for screen readers ("Main"). It is not shown. |
 | `menuLabel` | `string` | `"Menu"` | The name of the button that opens the links below 640px, and the title of the sheet it opens. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
@@ -66,20 +68,47 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ## Types
 
-### `NavbarItem`
+### `NavbarGroup`
 
-One link in a Navbar.
+A group of links in a Navbar: a button that opens a panel in the bar, and a labelled group in the sheet.
 
 ```ts
-interface NavbarItem {
+interface NavbarGroup {
+  /** The group's name, the button's text: "Recipes". */
+  label: string;
+  /** The group's links, each with an optional `description`. */
+  links: readonly NavbarLink[];
+  /** Not with `links`. To link the section's own page, make it the group's first link. */
+  href?: never;
+}
+```
+
+### `NavbarItem`
+
+One item of a Navbar: a link (`href`), or a group of links (`links`).
+
+```ts
+type NavbarItem = NavbarLink | NavbarGroup;
+```
+
+### `NavbarLink`
+
+One link in a Navbar: in the bar, or in a group's panel.
+
+```ts
+interface NavbarLink {
   /** The link's text: "Recipes". */
   label: string;
   /** Where it goes. Internal paths go through `OuroProvider`'s `linkComponent` (your router's link). */
   href: string;
+  /** In a group: a line under the label in the bar's panel, "Everything you have saved." */
+  description?: string | undefined;
   /**
    * Marks this link as the current page (`aria-current="page"`), when the Navbar's
    * `currentPath` cannot tell: a link whose page lives at another path.
    */
   current?: boolean | undefined;
+  /** Not with `href`. An item is a link (`href`) or a group of links (`links`). */
+  links?: never;
 }
 ```

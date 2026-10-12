@@ -29,4 +29,4 @@ export const agentCases: AgentCase[] = [
 ];
 
 /** Valid sidebar snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["sidebarOk01"];
+export const validSnippets: string[] = ["sidebarOk01", "sidebarOk02"];

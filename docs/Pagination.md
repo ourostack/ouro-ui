@@ -2,7 +2,7 @@
 
 # Pagination
 
-Page navigation for a long list: Previous, the page numbers with gaps, and Next, with the current page marked `aria-current="page"`. With `href` every page is a real link, so it works with no JavaScript and through your router; with `onPageChange` the pages are buttons. Below 640px the numbers give way to "Page 3 of 12" between Previous and Next.
+Page navigation for a long list: Previous, the page numbers with gaps, and Next, with the current page marked `aria-current="page"`. With `href` every page is a real link, so it works with no JavaScript and through your router; with `onPageChange` the pages are buttons. Below 640px the numbers give way to "Page 3 of 12" between Previous and Next. Without `pageCount`, for a list that is not counted, it shows Previous and Next only, and `hasNextPage` enables Next.
 
 ```tsx
 import { Pagination } from "@/registry/ouro/components/ouro/pagination/pagination";
@@ -13,6 +13,7 @@ import { Pagination } from "@/registry/ouro/components/ouro/pagination/paginatio
 ```tsx
 <Pagination page={3} pageCount={12} href="/recipes?page={page}" />
 <Pagination page={page} pageCount={12} onPageChange={setPage} />
+<Pagination page={page} hasNextPage={rows.length > pageSize} href="?page={page}" />
 ```
 
 ## Usage
@@ -33,7 +34,6 @@ Props every mode takes. Type: `PaginationProps`.
 | `label` | `string` | `"Pagination"` | Names the navigation for screen readers. |
 | `nextLabel` | `string` | `"Next"` | The text of the link to the page after. |
 | `page` (required) | `number` |  | The current page, counting from 1. |
-| `pageCount` (required) | `number` |  | How many pages there are. From a count of rows: `Math.ceil(total / pageSize)`. |
 | `pageLabel` | `string` | `"Page {page}"` | What a screen reader calls each page number; `{page}` is the number. |
 | `previousLabel` | `string` | `"Previous"` | The text of the link to the page before. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
@@ -44,29 +44,53 @@ Props every mode takes. Type: `PaginationProps`.
 
 `PaginationProps` is a union: pass the props of exactly one mode. Mixing them is a type error.
 
-### Button: `PaginationButtonProps`
-
-A Pagination of buttons, for a list that pages in place without changing the address.
+### With `href` and `hasNextPage`
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `onPageChange` (required) | `(page: number) => void` |  | Called with the page number when the person picks a page. Update `page` in it. |
-
-Not in this mode (typed `never`):
-
-- `href`: Not with `onPageChange`. Remove `onPageChange` to render links.
-
-### Link: `PaginationLinkProps`
-
-A Pagination of links: every page has its own address, so it works before JavaScript loads.
-
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
+| `hasNextPage` | `boolean` | `false` | Whether there is a page after this one, which enables Next. |
 | `href` (required) | `string \| ((page: number) => string)` |  | The address of a page: a string with `{page}` (`href="/recipes?page={page}"`, which a Server Component can pass) or a function (`href={(page) => `/recipes?page=${page}`}`). Internal paths go through `OuroProvider`'s `linkComponent`, so your router navigates. |
 
 Not in this mode (typed `never`):
 
 - `onPageChange`: Not with `href`. Remove `href` to render buttons that call `onPageChange`.
+- `pageCount`: Leave it out when the list has no count; pass it to show the page numbers.
+
+### With `href` and `pageCount`
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `href` (required) | `string \| ((page: number) => string)` |  | The address of a page: a string with `{page}` (`href="/recipes?page={page}"`, which a Server Component can pass) or a function (`href={(page) => `/recipes?page=${page}`}`). Internal paths go through `OuroProvider`'s `linkComponent`, so your router navigates. |
+| `pageCount` (required) | `number` |  | How many pages there are. From a count of rows: `Math.ceil(total / pageSize)`. |
+
+Not in this mode (typed `never`):
+
+- `hasNextPage`: Not with `pageCount`, which decides whether there is a next page.
+- `onPageChange`: Not with `href`. Remove `href` to render buttons that call `onPageChange`.
+
+### With `onPageChange` and `hasNextPage`
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `hasNextPage` | `boolean` | `false` | Whether there is a page after this one, which enables Next. |
+| `onPageChange` (required) | `(page: number) => void` |  | Called with the page number when the person picks a page. Update `page` in it. |
+
+Not in this mode (typed `never`):
+
+- `href`: Not with `onPageChange`. Remove `onPageChange` to render links.
+- `pageCount`: Leave it out when the list has no count; pass it to show the page numbers.
+
+### With `onPageChange` and `pageCount`
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `onPageChange` (required) | `(page: number) => void` |  | Called with the page number when the person picks a page. Update `page` in it. |
+| `pageCount` (required) | `number` |  | How many pages there are. From a count of rows: `Math.ceil(total / pageSize)`. |
+
+Not in this mode (typed `never`):
+
+- `hasNextPage`: Not with `pageCount`, which decides whether there is a next page.
+- `href`: Not with `onPageChange`. Remove `onPageChange` to render links.
 
 ## Don't use
 

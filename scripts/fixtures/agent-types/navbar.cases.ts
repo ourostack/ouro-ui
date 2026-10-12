@@ -23,4 +23,4 @@ export const agentCases: AgentCase[] = [
 ];
 
 /** Valid navbar snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["navbarOk01"];
+export const validSnippets: string[] = ["navbarOk01", "navbarOk02"];

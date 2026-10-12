@@ -30,4 +30,4 @@ export const agentCases: AgentCase[] = [
 ];
 
 /** Valid navigation-menu snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["navigationMenuOk01"];
+export const validSnippets: string[] = ["navigationMenuOk01", "navigationMenuOk02"];

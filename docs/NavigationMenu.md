@@ -68,7 +68,7 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ### `NavigationMenuItem`
 
-One item of a NavigationMenu: a link (`href`), or a button that opens a panel (`links`).
+One item of a NavigationMenu: a link (`href`), or a button that opens a panel (`links`, `content`).
 
 ```ts
 type NavigationMenuItem = NavigationMenuLinkItem | NavigationMenuPanelItem;
@@ -103,22 +103,33 @@ interface NavigationMenuLinkItem {
   href: string;
   /** Marks this link as the current page, when the menu's `currentPath` cannot tell. */
   current?: boolean | undefined;
-  /** Not with `href`. An item is a link (`href`) or a panel of links (`links`). */
+  /** Not with `href`. An item is a link (`href`) or a panel (`links`, `content`). */
   links?: never;
+  /** Not with `href`. An item is a link (`href`) or a panel (`links`, `content`). */
+  content?: never;
 }
 ```
 
 ### `NavigationMenuPanelItem`
 
-A NavigationMenu item that opens a panel of links.
+A NavigationMenu item that opens a panel: a list of `links`, with any `content` at its start, such as a featured `Card` beside a two-column grid of links. A panel needs one of the two.
 
 ```ts
-interface NavigationMenuPanelItem {
-  /** The button's text: "Recipes". */
-  label: string;
-  /** The links in the panel, each with an optional `description`. */
-  links: readonly NavigationMenuLink[];
-  /** Not with `links`. To link the section's own page, make it the panel's first link. */
-  href?: never;
-}
+type NavigationMenuPanelItem = NavigationMenuPanelBase &
+  (
+    | {
+        /** The links in the panel, each with an optional `description`. */
+        links: readonly NavigationMenuLink[];
+        /**
+         * Anything else in the panel, before its links (above them on a phone): a featured
+         * `Card`, an image, a line of text. A link in it closes the panel when it is followed.
+         */
+        content?: ReactNode;
+      }
+    | {
+        links?: undefined;
+        /** The panel's content, when it has no list of links. A link in it closes the panel when it is followed. */
+        content: ReactNode;
+      }
+  );
 ```
