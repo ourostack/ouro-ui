@@ -22,14 +22,18 @@ export default defineConfig({
   optimizeDeps: {
     include: [
       "@base-ui/react/alert-dialog",
+      "@base-ui/react/autocomplete",
       "@base-ui/react/avatar",
       "@base-ui/react/button",
       "@base-ui/react/checkbox",
+      "@base-ui/react/context-menu",
       "@base-ui/react/dialog",
       "@base-ui/react/drawer",
       "@base-ui/react/field",
       "@base-ui/react/fieldset",
       "@base-ui/react/form",
+      "@base-ui/react/menu",
+      "@base-ui/react/menubar",
       "@base-ui/react/popover",
       "@base-ui/react/preview-card",
       "@base-ui/react/separator",

@@ -131,7 +131,7 @@ const waitOptions = { timeout: 10_000, interval: 20 };
 
 /** The open overlay's popup (Dialog, ConfirmDialog or Sheet, in either presentation). */
 export function openPopup(): HTMLElement | null {
-  return document.querySelector<HTMLElement>('[role="dialog"][data-open], [role="alertdialog"][data-open]');
+  return document.querySelector<HTMLElement>('[role="dialog"][data-open], [role="alertdialog"][data-open], [role="menu"][data-open]');
 }
 
 /** Clicks an opener and waits for its overlay to finish opening. */

@@ -1,0 +1,1 @@
+- New: Menu, one API for a dropdown (`trigger`, a bottom sheet below 640px), a context menu (`contextTrigger`, right-click or long-press) and a `MenuBar`, with `items` data or `MenuItem`, `MenuCheckboxItem`, `MenuRadioGroup`, `MenuSub`, `MenuGroup` and `MenuSeparator` children; items take `shortcut`, `tone="destructive"` and `href`.

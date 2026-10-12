@@ -1,0 +1,1 @@
+- New: Command, a command palette in a Dialog (a full-height sheet below 640px) with search, groups, shortcuts and an empty state; `useCommandShortcut("mod+k")` in lib/ouro opens it from anywhere on the page.
