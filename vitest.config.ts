@@ -31,9 +31,12 @@ export default defineConfig({
       "@base-ui/react/fieldset",
       "@base-ui/react/form",
       "@base-ui/react/otp-field",
+      "@base-ui/react/popover",
+      "@base-ui/react/preview-card",
       "@base-ui/react/separator",
       "@base-ui/react/toggle",
       "@base-ui/react/toggle-group",
+      "@base-ui/react/tooltip",
     ],
   },
   test: {
