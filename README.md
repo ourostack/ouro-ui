@@ -176,6 +176,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 ### Text
 
 - **Heading** — A section title, `<h1>` to `<h6>`, in the theme's foreground color. [Docs](docs/Heading.md)
+- **Kbd** — A keyboard shortcut, in the reader's platform's notation: `keys={["mod", "k"]}` shows ⌘K on a Mac, iPhone or iPad and Ctrl+K elsewhere. [Docs](docs/Kbd.md)
 - **Link** — A text link that navigates through your router. [Docs](docs/Link.md)
 - **Text** — Body text in the theme's type scale and colors. [Docs](docs/Text.md)
 
@@ -201,6 +202,11 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ### Display
 
+- **Alert** — An inline message in the page: something saved, something failed, something to know before going on. [Docs](docs/Alert.md)
+- **Avatar** — A person's picture, or their initials until it loads or when it fails. [Docs](docs/Avatar.md)
+- **AvatarGroup** — Avatars stacked with a slight overlap, such as the cooks on a recipe, with a "+N" count after `max`. [Docs](docs/AvatarGroup.md)
+- **Badge** — A short label for a status, category or count: "Draft", "Vegan", "3". [Docs](docs/Badge.md)
+- **Separator** — A thin line in the theme's border color between groups of content, horizontal or vertical. [Docs](docs/Separator.md)
 - **Skeleton** — A shimmering placeholder in the shape of content that is still loading. [Docs](docs/Skeleton.md)
 
 ### App setup
@@ -216,7 +222,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 Two stylesheets ship with the components, as registry items that write into your app's CSS:
 
-- `ouro-base` (`registry/ouro/theme/ouro-base.css`) is required in every app, and every component installs it. It adds what shadcn's themes lack: `--success`, `--warning` and their foregrounds, and `--destructive-foreground`, with defaults that pass 4.5:1 on shadcn's stock themes; the motion tokens (`--ouro-spring-duration`, `--ouro-ease-spring` and the other `--ouro-*` values); the `press` transition; and the keyframes for spinners, progress bars and skeletons.
+- `ouro-base` (`registry/ouro/theme/ouro-base.css`) is required in every app, and every component installs it. It adds what shadcn's themes lack: `--success`, `--warning` and their foregrounds, and `--destructive-foreground`, with defaults that pass 4.5:1 on shadcn's stock themes; the motion tokens (`--ouro-spring-duration`, `--ouro-ease-spring` and the other `--ouro-*` values); the `press` transition; and the spinner keyframes.
 - `ouro-theme` (`registry/ouro/theme/ouro-theme.css`) is optional: the Ouro color look as a shadcn theme, light values on `:root` and dark values on `.dark`. An app that already has a shadcn theme keeps its own.
 
 Dark mode follows the `.dark` class, as in shadcn. To change a color, set its variable in your theme.
