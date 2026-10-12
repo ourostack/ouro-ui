@@ -77,8 +77,19 @@ describe("NavigationMenu on a phone", () => {
     }
   });
 
-  it("opens a panel on tap, inside the screen, with 44px links, and closes on a link", async () => {
+  it.each(Array.from({ length: 12 }, (_, n) => n))("DIAGNOSTIC %i: opens a panel on tap and closes on a link", async () => {
     await render(<NavigationMenu label="Main" items={items} />);
+    const log: string[] = [];
+    const start = performance.now();
+    const name = (node: EventTarget | null) =>
+      node instanceof Element ? `${node.tagName.toLowerCase()}${node.getAttribute("href") ?? ""}${node.closest("[data-ouro=navigation-menu-popup]") ? "@popup" : ""}:${(node.textContent ?? "").slice(0, 8)}` : String(node);
+    const note = (event: Event) =>
+      log.push(`${Math.round(performance.now() - start)} ${event.type} ${name(event.target)} ${(event as PointerEvent).pointerType ?? ""} d${(event as MouseEvent).detail} rel=${name((event as FocusEvent).relatedTarget ?? null)}`);
+    const types = ["pointerdown", "pointerup", "pointerover", "touchstart", "touchend", "mouseover", "mouseout", "mousedown", "mouseup", "click", "focusin", "focusout", "keydown"];
+    for (const type of types) document.addEventListener(type, note, true);
+    const trigger = document.querySelector('[data-ouro="navigation-menu"] button')!;
+    const observer = new MutationObserver(() => log.push(`${Math.round(performance.now() - start)} expanded=${trigger.getAttribute("aria-expanded")}`));
+    observer.observe(trigger, { attributes: true, attributeFilter: ["aria-expanded"] });
     await commands.tap('[data-ouro="navigation-menu"] button');
     await expect.element(page.getByRole("link", { name: /Browse/ })).toBeVisible();
     await expect.element(page.getByRole("button", { name: "Recipes" })).toHaveAttribute("aria-expanded", "true");
@@ -89,6 +100,9 @@ describe("NavigationMenu on a phone", () => {
     expectTouchSize([...popup.querySelectorAll("a")], 2);
     await commands.tap('[data-ouro="navigation-menu-popup"] a[href="/recipes/import"]');
     await expect.poll(() => followed).toEqual(["/recipes/import"]);
-    await expect.poll(() => document.querySelector('[data-ouro="navigation-menu-popup"]')).toBeNull();
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    for (const type of types) document.removeEventListener(type, note, true);
+    observer.disconnect();
+    expect(document.querySelector('[data-ouro="navigation-menu-popup"]') === null, log.join(" | ")).toBe(true);
   });
 });
