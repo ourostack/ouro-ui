@@ -5,11 +5,11 @@ name: Release
 # installs every Ouro dependency at that tag while main stays unpinned. CI runs on that
 # commit; when it passes, the commit is tagged, the GitHub release is created and the
 # branch is deleted (the tag keeps the commit). Because main never receives the release
-# commit, the run then opens "Prepare main for the next release" against main: it starts
-# CHANGES.md again and makes the tag the newest release (package.json ouro.latestRelease,
-# scripts/latest-release.mjs), which the docs, the site and the @ouro namespace follow once
-# it merges. The next release refuses to start while CHANGES.md lists no change or still
-# lists this release's (scripts/changes.mjs). Rerunning is safe: a released tag exits
+# commit, the run then opens "Prepare main for the next release" against main: it deletes
+# the change fragments this release used (changes/*.md) and makes the tag the newest release
+# (package.json ouro.latestRelease, scripts/latest-release.mjs), which the docs, the site and
+# the @ouro namespace follow once it merges. The next release refuses to start while changes/
+# lists no change or still lists this release's (scripts/changes.mjs). Rerunning is safe: a released tag exits
 # cleanly, a tag without a release fails with the fix, and a failed run deletes its
 # branch. Recovery: AGENTS.md, "Pages and releases".
 on:
@@ -20,7 +20,7 @@ on:
         required: true
 permissions:
   contents: write # push the release branch and the tag, create the release
-  actions: write # run CI on the release branch and the CHANGES.md branch
+  actions: write # run CI on the release branch and the branch that prepares main
   pull-requests: write # open the PR that prepares main for the next release
 concurrency:
   group: release
@@ -71,11 +71,11 @@ jobs:
       - if: steps.check.outputs.new == 'true'
         run: pnpm i --frozen-lockfile
       - if: steps.check.outputs.new == 'true'
-        name: Check CHANGES.md
+        name: Check the changes
         run: |
           # The newest release's notes, or nothing before the first release.
           gh release view --json body --jq .body > "$RUNNER_TEMP/last-notes.md" 2>/dev/null || : > "$RUNNER_TEMP/last-notes.md"
-          node scripts/changes.mjs check CHANGES.md "$RUNNER_TEMP/last-notes.md"
+          node scripts/changes.mjs check changes "$RUNNER_TEMP/last-notes.md"
       - if: steps.check.outputs.new == 'true'
         name: Push the release branch
         run: |
@@ -86,6 +86,9 @@ jobs:
           node scripts/latest-release.mjs set "$TAG"
           pnpm run docs
           node scripts/registry.mts --release "$VERSION"
+          # The tag holds this release's changes, assembled from changes/*.md; main keeps the fragments only.
+          node scripts/changes.mjs assemble changes > CHANGES.md
+          git add CHANGES.md
           git commit -am "Release $TAG"
           git push --force origin "$BRANCH"
       - if: steps.check.outputs.new == 'true'
@@ -115,7 +118,8 @@ jobs:
             echo
             echo "The tests, stories and specs are optional, one item per component: \`npx shadcn@latest add ourostack/ouro-ui/dialog#$TAG ourostack/ouro-ui/dialog-tests#$TAG\`, or \`ourostack/ouro-ui/ouro-tests#$TAG\` for all of them. List every item with \`npx shadcn@latest search 'ourostack/ouro-ui#$TAG'\`."
             echo
-            # CHANGES.md lists what this release changes in behaviour ("Check CHANGES.md").
+            # CHANGES.md, assembled on the release commit from changes/*.md, lists what this
+            # release changes in behaviour ("Check the changes").
             sed -e '1s/^# /### /' CHANGES.md
             echo
             # Remove this note once v0.1.0 is no longer in use.
@@ -145,21 +149,21 @@ jobs:
         env:
           NEXT_BRANCH: prepare/after-v${{ inputs.version }}
         run: |
-          # Main still lists this release's changes and names the previous release, because the
-          # release commit never reaches it. Start CHANGES.md again and make this tag the newest
-          # release (package.json ouro.latestRelease; `pnpm run docs` writes it into README.md,
-          # llms.txt and package.json), on a branch off the released main commit, so a line
-          # added to main's CHANGES.md during the release shows as a conflict instead of being
-          # dropped. If this step fails, the release stands; open the PR by hand ("Check
-          # CHANGES.md" stops the next release until main's CHANGES.md is started again).
+          # Main still holds this release's change fragments and names the previous release,
+          # because the release commit never reaches it. Delete the fragments and make this tag
+          # the newest release (package.json ouro.latestRelease; `pnpm run docs` writes it into
+          # README.md, llms.txt and package.json), on a branch off the released main commit, so
+          # only the fragments this release used are deleted and one added to main during the
+          # release stays for the next. If this step fails, the release stands; open the PR by
+          # hand ("Check the changes" stops the next release until the fragments are deleted).
           git switch -c "$NEXT_BRANCH" "$MAIN_SHA"
-          node scripts/changes.mjs reset CHANGES.md
+          git rm --quiet -- 'changes/*.md'
           node scripts/latest-release.mjs set "$TAG"
           pnpm run docs
           git commit -am "Prepare main for the next release"
           git push --force origin "$NEXT_BRANCH"
           gh pr create --base main --head "$NEXT_BRANCH" --title "Prepare main for the next release" \
-            --body "$TAG is released with these changes in its notes, so CHANGES.md starts again for the next release, and $TAG becomes the newest release: the README, the site, llms.txt and the @ouro namespace move to it when this merges. Merge this before adding the next release's changes."
+            --body "$TAG is released with these changes in its notes, so their fragments in changes/ are deleted for the next release, and $TAG becomes the newest release: the README, the site, llms.txt and the @ouro namespace move to it when this merges. Merge this before adding the next release's changes."
           # GitHub records a pull_request CI run for a PR a workflow opened with GITHUB_TOKEN,
           # but holds it (`action_required`) with no jobs, and the ruleset's required checks
           # count only pull_request-event checks, not a dispatched run. Approve the held run

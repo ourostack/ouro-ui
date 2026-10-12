@@ -168,6 +168,7 @@ function Icon({ children }: { children: ReactNode }): JSX.Element {
  * Use `TextArea` instead for several lines, `NumberField` for numbers, and `Field` with
  * `FieldControl` when the control is not a text input.
  *
+ * @group Forms
  * @see https://ourostack.github.io/ouro-ui/docs/text-field
  *
  * @example

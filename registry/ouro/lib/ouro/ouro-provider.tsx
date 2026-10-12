@@ -28,6 +28,7 @@ export interface OuroProviderProps {
  * and wrap the app in it from `app/layout.tsx`: a Server Component can't pass `Link`, a
  * function, to a client component. The README's "Next.js" section has both files.
  *
+ * @group App setup
  * @example
  * const RouterLink = (props: ComponentProps<OuroLinkComponent>) => <Link to={props.href} {...props} />;
  * <OuroProvider linkComponent={RouterLink}><App /></OuroProvider>
