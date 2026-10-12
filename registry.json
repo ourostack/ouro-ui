@@ -7,7 +7,7 @@
       "name": "ouro-base",
       "type": "registry:item",
       "title": "Ouro base",
-      "description": "Installed with every component; you don't need to add it. What every Ouro UI component needs in the app's CSS: success and warning colors, a destructive foreground, the motion tokens, the press utility, the spinner keyframes, and --ouro-layer, the z-index of sheets and dialogs (50; raise it in a :root rule of your own if your app has fixed bars above z-50).",
+      "description": "Installed with every component; you don't need to add it. What every Ouro UI component needs in the app's CSS: success and warning colors, a destructive foreground, the motion tokens, the press utility, the keyframes for spinners, progress bars and skeletons, and --ouro-layer, the z-index of sheets and dialogs (50; raise it in a :root rule of your own if your app has fixed bars above z-50).",
       "docs": "Ouro UI's base tokens are in your CSS. Your theme's values win: edit them like any shadcn variable.",
       "cssVars": {
         "light": {
@@ -58,6 +58,22 @@
         "@keyframes ouro-pulse": {
           "50%": {
             "opacity": "0.4"
+          }
+        },
+        "@keyframes ouro-progress": {
+          "from": {
+            "translate": "-100% 0"
+          },
+          "to": {
+            "translate": "300% 0"
+          }
+        },
+        "@keyframes ouro-shimmer": {
+          "from": {
+            "background-position": "100% 0"
+          },
+          "to": {
+            "background-position": "-100% 0"
           }
         }
       }
@@ -142,7 +158,7 @@
       "name": "ouro-lib",
       "type": "registry:lib",
       "title": "Ouro lib",
-      "description": "Installed with every component; you don't need to add it. Shared helpers every Ouro UI component uses, in lib/ouro: cn, dev messages, the className check, announce, OuroProvider and hooks.",
+      "description": "Installed with every component; you don't need to add it. Shared helpers every Ouro UI component uses, in lib/ouro: cn, dev messages, the className check, announce, toast, OuroProvider and hooks.",
       "docs": "Ouro UI's helpers are in lib/ouro. OuroProvider is optional; it routes internal hrefs through your router's link. Docs: https://ourostack.github.io/ouro-ui/docs",
       "dependencies": [
         "@base-ui/react@^1.8.0",
@@ -211,6 +227,11 @@
           "target": "@lib/ouro/router-link.ts"
         },
         {
+          "path": "registry/ouro/lib/ouro/toast.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/toast.ts"
+        },
+        {
           "path": "registry/ouro/lib/ouro/tones.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/tones.ts"
@@ -261,7 +282,7 @@
       "name": "ouro-testing",
       "type": "registry:lib",
       "title": "Ouro testing",
-      "description": "Installed with every -tests item; you don't need to add it. The test kit Ouro UI's tests use: Vitest browser projects with the drag, flick, tap and emulateMedia commands, the act helper, axeExclude, and the end-to-end story helper.",
+      "description": "Installed with every -tests item; you don't need to add it. The test kit Ouro UI's tests use: Vitest browser projects with the drag, flick, tap, touchDrag and emulateMedia commands, the act helper, axeExclude, and the end-to-end story helper.",
       "docs": "The -tests items install Ouro UI's tests beside each component. To run the Vitest browser tests, add vitest.config.ts (use your components.json tailwind.css path for css), then run npx playwright install chromium webkit and npx vitest run:\n--- vitest.config.ts\nimport { defineConfig, mergeConfig } from \"vitest/config\";\nimport viteConfig from \"./vite.config.ts\";\nimport { ouroTestProjects } from \"./src/lib/ouro/testing/vitest.ts\";\n\nexport default mergeConfig(viteConfig, defineConfig({ test: { projects: ouroTestProjects({ css: \"./src/index.css\" }) } }));\n\nThe end-to-end specs in e2e/ouro open the Ouro stories in a Storybook. If your app has none, add these two files (use your stylesheet in preview.ts):\n--- .storybook/main.ts\nexport default { stories: [\"../src/**/*.stories.@(ts|tsx)\"], framework: \"@storybook/react-vite\" };\n--- .storybook/preview.ts\nimport \"../src/index.css\";\n\nIf your app has no Playwright config, add this one, which starts that Storybook and runs Chromium and WebKit:\n--- playwright.config.ts\nimport { defineConfig, devices } from \"@playwright/test\";\n\n// Starts the app's Storybook, where Ouro UI's specs (e2e/ouro) open their stories.\nexport default defineConfig({\n  testDir: \"e2e\",\n  projects: [\n    { name: \"chromium\", use: { ...devices[\"Desktop Chrome\"] } },\n    { name: \"webkit\", use: { ...devices[\"Desktop Safari\"] } },\n  ],\n  webServer: {\n    command: \"npx storybook dev -p 6006 --ci --no-open\",\n    url: \"http://localhost:6006/iframe.html\",\n    reuseExistingServer: !process.env[\"CI\"],\n    timeout: 180_000,\n  },\n});\n\nThen run npx playwright test e2e/ouro. With a Playwright config of your own, start Storybook with npx storybook dev -p 6006 and run OURO_E2E_URL=http://localhost:6006 npx playwright test e2e/ouro.\nDocs: https://ourostack.github.io/ouro-ui/docs",
       "devDependencies": [
         "@playwright/test@^1.63.0",
@@ -674,6 +695,89 @@
           "path": "registry/ouro/components/ouro/select/native-select.tsx",
           "type": "registry:ui",
           "target": "@components/ouro/select/native-select.tsx"
+        }
+      ]
+    },
+    {
+      "name": "toaster",
+      "type": "registry:ui",
+      "title": "Toaster",
+      "description": "Shows the toasts you send with `toast(\"Saved\")` from `@/lib/ouro/toast`: render it once, at the root of your app, inside `OuroProvider` if you use one, or alone.",
+      "docs": "Shows the toasts you send with `toast(\"Saved\")` from `@/lib/ouro/toast`: render it once, at the root of your app, inside `OuroProvider` if you use one, or alone. Import: import { Toaster } from \"@/components/ouro/toast/toaster\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/toaster.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/toast/toaster-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/toast/toaster-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/toast/toaster.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/toast/toaster.tsx"
+        }
+      ]
+    },
+    {
+      "name": "spinner",
+      "type": "registry:ui",
+      "title": "Spinner",
+      "description": "A spinning ring that says something is loading.",
+      "docs": "A spinning ring that says something is loading. Import: import { Spinner } from \"@/components/ouro/spinner/spinner\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/spinner.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/spinner/spinner.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/spinner/spinner.tsx"
+        }
+      ]
+    },
+    {
+      "name": "progress",
+      "type": "registry:ui",
+      "title": "Progress",
+      "description": "A bar that shows how far along a task is, or that it is under way when you can't tell.",
+      "docs": "A bar that shows how far along a task is, or that it is under way when you can't tell. Import: import { Progress } from \"@/components/ouro/progress/progress\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/progress.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/progress/progress.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/progress/progress.tsx"
+        }
+      ]
+    },
+    {
+      "name": "skeleton",
+      "type": "registry:ui",
+      "title": "Skeleton",
+      "description": "A shimmering placeholder in the shape of content that is still loading.",
+      "docs": "A shimmering placeholder in the shape of content that is still loading. Import: import { Skeleton } from \"@/components/ouro/skeleton/skeleton\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/skeleton.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/skeleton/skeleton.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/skeleton/skeleton.tsx"
         }
       ]
     },
@@ -1559,6 +1663,169 @@
       ]
     },
     {
+      "name": "toaster-tests",
+      "type": "registry:item",
+      "title": "Toaster tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for toaster, with the test tooling as devDependencies. Add it beside toaster: add toaster toaster-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "toaster's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/toaster.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/ouro-lib",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/toaster"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/toast/toaster.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/toast/toaster.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/toast/toaster.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/toast/toaster.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/toast/toaster.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/toast/toaster.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/toast/toaster.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/toast/toaster.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/toaster.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/toaster.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "spinner-tests",
+      "type": "registry:item",
+      "title": "Spinner tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for spinner, with the test tooling as devDependencies. Add it beside spinner: add spinner spinner-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "spinner's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/spinner.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/spinner"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/spinner/spinner.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/spinner/spinner.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/spinner/spinner.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/spinner/spinner.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/spinner/spinner.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/spinner/spinner.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/spinner.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/spinner.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "progress-tests",
+      "type": "registry:item",
+      "title": "Progress tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for progress, with the test tooling as devDependencies. Add it beside progress: add progress progress-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "progress's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/progress.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/progress"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/progress/progress.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/progress/progress.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/progress/progress.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/progress/progress.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/progress/progress.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/progress/progress.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/progress.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/progress.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "skeleton-tests",
+      "type": "registry:item",
+      "title": "Skeleton tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for skeleton, with the test tooling as devDependencies. Add it beside skeleton: add skeleton skeleton-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "skeleton's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/skeleton.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/skeleton"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/skeleton/skeleton.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/skeleton/skeleton.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/skeleton/skeleton.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/skeleton/skeleton.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/skeleton/skeleton.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/skeleton/skeleton.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/skeleton.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/skeleton.spec.ts"
+        }
+      ]
+    },
+    {
       "name": "avatar-tests",
       "type": "registry:item",
       "title": "Avatar tests",
@@ -1926,12 +2193,16 @@
         "ourostack/ouro-ui/native-select-tests",
         "ourostack/ouro-ui/ouro-lib-tests",
         "ourostack/ouro-ui/popover-tests",
+        "ourostack/ouro-ui/progress-tests",
         "ourostack/ouro-ui/select-tests",
         "ourostack/ouro-ui/separator-tests",
         "ourostack/ouro-ui/sheet-tests",
+        "ourostack/ouro-ui/skeleton-tests",
+        "ourostack/ouro-ui/spinner-tests",
         "ourostack/ouro-ui/text-area-tests",
         "ourostack/ouro-ui/text-field-tests",
         "ourostack/ouro-ui/text-tests",
+        "ourostack/ouro-ui/toaster-tests",
         "ourostack/ouro-ui/tooltip-tests"
       ]
     }

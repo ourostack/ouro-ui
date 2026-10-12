@@ -92,6 +92,41 @@ export const flick: BrowserCommand<[FlickOptions]> = async (ctx, { from, to, ste
   await send("mouseReleased", to, durationMs, 0);
 };
 
+export interface TouchDragOptions {
+  /** Viewport coordinates where the finger touches down. */
+  from: [number, number];
+  /** Viewport coordinates where the finger lifts. */
+  to: [number, number];
+  /** Number of intermediate moves. */
+  steps: number;
+}
+
+/**
+ * A one-finger drag with real touch input (Chromium only, through CDP
+ * `Input.dispatchTouchEvent`), so the page sees `pointerType: "touch"` pointer events
+ * and touch events, as from a phone: a swipe to dismiss. Needs a context with
+ * `hasTouch`, as in the `touch` project. Coordinates are relative to the top-level page.
+ */
+export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from, to, steps }) => {
+  const { page } = ctx;
+  if (ctx.provider.name !== "playwright" || page.context().browser()?.browserType().name() !== "chromium") {
+    throw new Error("touchDrag: CDP input is Chromium only");
+  }
+  let session = cdpSessions.get(page);
+  if (!session) {
+    session = await page.context().newCDPSession(page);
+    cdpSessions.set(page, session);
+  }
+  const touch = (type: "touchStart" | "touchMove" | "touchEnd", [x, y]: [number, number]) =>
+    session.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y, id: 1 }] });
+  await touch("touchStart", from);
+  for (let step = 1; step <= steps; step++) {
+    const t = step / steps;
+    await touch("touchMove", [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t]);
+  }
+  await touch("touchEnd", to);
+};
+
 export interface PointerPressOptions {
   /** CSS selector of the element to press, inside the test iframe. Not needed for `up`. */
   selector?: string;
@@ -125,51 +160,7 @@ export const tap: BrowserCommand<[selector: string]> = async (ctx, selector) => 
   await ctx.iframe.locator(selector).tap();
 };
 
-export interface SwipeOptions {
-  /** Where the finger touches down, in the test page's coordinates (`getBoundingClientRect`). */
-  from: [number, number];
-  /** Where the finger lifts, in the test page's coordinates. */
-  to: [number, number];
-  /** Number of intermediate finger moves. */
-  steps: number;
-}
-
-/**
- * A one-finger swipe with real touch input (Chromium only), through CDP
- * `Input.dispatchTouchEvent`, so the browser scrolls what is under the finger the way a
- * phone does, and fires `pointercancel` once the scroll takes over. Use it to check that a
- * list scrolls under the thumb without choosing what the finger started on. Needs a context
- * with `hasTouch`, as in the `touch` project.
- */
-export const swipe: BrowserCommand<[SwipeOptions]> = async (ctx, { from, to, steps }) => {
-  const { page } = ctx;
-  if (ctx.provider.name !== "playwright" || page.context().browser()?.browserType().name() !== "chromium") {
-    throw new Error("swipe: CDP input is Chromium only");
-  }
-  let session = cdpSessions.get(page);
-  if (!session) {
-    session = await page.context().newCDPSession(page);
-    cdpSessions.set(page, session);
-  }
-  // The test page is an iframe, offset (and on some runners scaled) inside the page CDP drives.
-  const frame = await ctx.iframe.owner().boundingBox();
-  // An expression string, so this Node-side file needs no DOM types.
-  const width = Number(await (await ctx.frame()).evaluate("innerWidth"));
-  const scale = frame ? frame.width / width : 1;
-  const toPage = ([x, y]: [number, number]) => ({ x: (frame?.x ?? 0) + x * scale, y: (frame?.y ?? 0) + y * scale });
-  const touch = (type: "touchStart" | "touchMove" | "touchEnd", point: [number, number]) =>
-    session.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [toPage(point)] });
-  await touch("touchStart", from);
-  for (let step = 1; step <= steps; step++) {
-    const t = step / steps;
-    await touch("touchMove", [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t]);
-    // One move per frame, as a finger reports at 60Hz.
-    await page.waitForTimeout(16);
-  }
-  await touch("touchEnd", to);
-};
-
-export const commands = { emulateMedia, drag, flick, pointerPress, tap, swipe };
+export const commands = { emulateMedia, drag, flick, pointerPress, tap, touchDrag };
 
 declare module "vitest/browser" {
   interface BrowserCommands {
@@ -177,7 +168,7 @@ declare module "vitest/browser" {
     drag: (options: DragOptions) => Promise<void>;
     flick: (options: FlickOptions) => Promise<void>;
     tap: (selector: string) => Promise<void>;
+    touchDrag: (options: TouchDragOptions) => Promise<void>;
     pointerPress: (options: PointerPressOptions) => Promise<void>;
-    swipe: (options: SwipeOptions) => Promise<void>;
   }
 }

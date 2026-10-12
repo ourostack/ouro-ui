@@ -78,7 +78,7 @@ it("scrolls the list with a thumb without closing it or choosing", async () => {
   const box = list.getBoundingClientRect();
   const x = box.left + box.width / 2;
   // The finger starts on an option and lifts on another: a scroll, not a choice.
-  await commands.swipe({ from: [x, box.bottom - 30], to: [x, box.top + 30], steps: 10 });
+  await commands.touchDrag({ from: [x, box.bottom - 30], to: [x, box.top + 30], steps: 10 });
   await expect.poll(() => list.scrollTop).toBeGreaterThan(100);
   await act(async () => {});
   expect(isOpen()).toBe(true);

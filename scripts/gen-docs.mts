@@ -40,7 +40,11 @@ const componentGroups = new Set<string>(groupOrder);
 /** The components, in registry order, from each folder's component.json (scripts/components.mts). */
 const components = readComponents(root);
 /** The registry files whose exports are documented. A part file's parts are documented together on parts.md. */
-const componentFiles = [...components.map((entry) => `${componentsDir}${entry.folder}/${entry.stem}.tsx`), "registry/ouro/lib/ouro/ouro-provider.tsx"];
+const componentFiles = [
+  ...components.map((entry) => `${componentsDir}${entry.folder}/${entry.stem}.tsx`),
+  "registry/ouro/lib/ouro/ouro-provider.tsx",
+  "registry/ouro/lib/ouro/toast.ts",
+];
 /** Part files (`<folder>/<stem>-parts.tsx`), by the family their parts are named after (the stem in PascalCase). */
 const partFiles: Record<string, string> = Object.fromEntries(
   [...new Set(components.map((entry) => entry.folder))].flatMap((folder) =>
@@ -544,6 +548,14 @@ for (const page of pages) {
   outputs.set(`docs/${page.name}.md`, isComponent ? componentPage(page, symbol, new Set(partFamilies)) : functionPage(page, symbol));
 }
 outputs.set("docs/parts.md", partsPage(partFamilies));
+/**
+ * The functions a component's site page documents too: a lowercase export in a component
+ * group whose `@see` is that page, such as `toast` (lib/ouro/toast.ts) on docs/toaster.
+ */
+const pageFunctions = (item: string) =>
+  pages
+    .filter((page) => /^[a-z]/.test(page.name) && componentGroups.has(page.group) && (tag(symbols.get(page.name)!, "see") ?? "").endsWith(`/docs/${item}`))
+    .map((page) => page.name);
 // The site's docs pages (site/src/docs/items.ts): every component, by group, in registry order within a group.
 const groupOf = new Map(pages.map((page) => [page.name, page.group]));
 const siteItems = components
@@ -554,6 +566,7 @@ const siteItems = components
     group: groupOf.get(entry.title)!,
     source: `${componentsDir}${entry.folder}/${entry.stem}.tsx`,
     ...(partFiles[entry.title] ? { parts: entry.title } : {}),
+    ...(pageFunctions(entry.name).length > 0 ? { functions: pageFunctions(entry.name) } : {}),
   }))
   .sort((a, b) => catalogGroups.indexOf(a.group) - catalogGroups.indexOf(b.group));
 outputs.set("site/src/docs/catalog.json", `${JSON.stringify(siteItems, null, 2)}\n`);
