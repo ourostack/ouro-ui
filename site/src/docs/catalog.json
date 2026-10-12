@@ -99,6 +99,25 @@
     "source": "registry/ouro/components/ouro/dialog/confirm-dialog.tsx"
   },
   {
+    "name": "popover",
+    "title": "Popover",
+    "group": "Overlays",
+    "source": "registry/ouro/components/ouro/popover/popover.tsx",
+    "parts": "Popover"
+  },
+  {
+    "name": "tooltip",
+    "title": "Tooltip",
+    "group": "Overlays",
+    "source": "registry/ouro/components/ouro/tooltip/tooltip.tsx"
+  },
+  {
+    "name": "hover-card",
+    "title": "HoverCard",
+    "group": "Overlays",
+    "source": "registry/ouro/components/ouro/hover-card/hover-card.tsx"
+  },
+  {
     "name": "avatar",
     "title": "Avatar",
     "group": "Display",
