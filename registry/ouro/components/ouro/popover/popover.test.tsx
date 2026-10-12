@@ -4,6 +4,8 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
+import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import { Popover, type PopoverProps } from "@/registry/ouro/components/ouro/popover/popover";
 import {
   PopoverClose,
@@ -322,6 +324,22 @@ describe("controlled Popover", () => {
     await expect.poll(() => document.activeElement).toBe(popup());
   });
 
+  it("returns focus to anchor after a mouse open, as a popover and as a sheet", async () => {
+    // Safari does not focus a button on click, so focus must go back to anchor by name.
+    for (const width of [1280, 390]) {
+      await page.viewport(width, 800);
+      await render(<Controlled presentation="auto" />);
+      const toggle = page.getByRole("button", { name: "Filters" }).element() as HTMLElement;
+      await userEvent.click(toggle);
+      await settled();
+      expect(popup()!.getAttribute("data-ouro-presentation")).toBe(width === 390 ? "sheet" : "popover");
+      await userEvent.keyboard("{Escape}");
+      await expect.poll(() => popup()).toBeNull();
+      await expect.poll(() => document.activeElement).toBe(toggle);
+      await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    }
+  });
+
   it("presents as a sheet below 640px with presentation auto", async () => {
     await page.viewport(390, 844);
     await render(<Controlled presentation="auto" />);
@@ -330,6 +348,107 @@ describe("controlled Popover", () => {
     expect(popup()!.getAttribute("data-ouro-presentation")).toBe("sheet");
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => popup()).toBeNull();
+  });
+});
+
+describe("nested overlays", () => {
+  const tooltip = () => document.querySelector('[data-ouro="tooltip"]');
+  const popovers = () => document.querySelectorAll('[data-ouro="popover"]').length;
+
+  it("closes only a Popover inside a Dialog on Escape, and returns focus to its trigger", async () => {
+    await render(
+      <Dialog title="Edit" trigger={<Button>Edit</Button>}>
+        <Popover title="Share" trigger={<Button>Share</Button>}>
+          <input aria-label="Link" />
+        </Popover>
+      </Dialog>,
+    );
+    await userEvent.click(page.getByRole("button", { name: "Edit" }));
+    await expect.element(page.getByRole("dialog", { name: "Edit" })).toBeVisible();
+    await userEvent.click(page.getByRole("button", { name: "Share" }));
+    await settled();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => popoverPopup()).toBeNull();
+    expect(document.querySelector('[data-ouro="dialog"]')).not.toBeNull();
+    await expect.poll(() => document.activeElement?.textContent).toBe("Share");
+  });
+
+  it("closes only a Tooltip open inside a Popover on Escape", async () => {
+    await render(
+      <Popover title="Share" trigger={<Button>Share</Button>}>
+        <Tooltip content="Copy link">
+          <Button aria-label="Copy">C</Button>
+        </Tooltip>
+      </Popover>,
+    );
+    await userEvent.click(page.getByRole("button", { name: "Share" }));
+    await settled();
+    await userEvent.keyboard("{Tab}");
+    await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Copy");
+    await expect.poll(() => tooltip()).not.toBeNull();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => tooltip()).toBeNull();
+    await act(nextFrame);
+    expect(popoverPopup()).not.toBeNull();
+  });
+
+  it("keeps the outer Popover open on a press inside an inner one, and Escape closes only the inner", async () => {
+    await render(
+      <Popover title="Outer" trigger={<Button>Outer</Button>}>
+        <Popover title="Inner" trigger={<Button>Inner</Button>}>
+          Inner body
+        </Popover>
+      </Popover>,
+    );
+    await userEvent.click(page.getByRole("button", { name: "Outer" }));
+    await expect.element(page.getByRole("dialog", { name: "Outer" })).toBeVisible();
+    await userEvent.click(page.getByRole("button", { name: "Inner" }));
+    await expect.element(page.getByRole("dialog", { name: "Inner" })).toBeVisible();
+    await userEvent.click(page.getByText("Inner body"));
+    await act(nextFrame);
+    expect(popovers()).toBe(2);
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(popovers).toBe(1);
+    await expect.element(page.getByRole("dialog", { name: "Outer" })).toBeVisible();
+  });
+
+  it("opens from a trigger wrapped in a Tooltip, which still shows on hover", async () => {
+    await render(
+      <Popover
+        title="Share"
+        trigger={
+          <Tooltip content="Share recipe">
+            <Button aria-label="Share">S</Button>
+          </Tooltip>
+        }
+      >
+        Body
+      </Popover>,
+    );
+    const button = page.getByRole("button", { name: "Share" });
+    await userEvent.hover(button);
+    await expect.poll(() => tooltip()?.textContent).toBe("Share recipe");
+    await userEvent.click(button);
+    await settled();
+    expect(button.element().getAttribute("aria-expanded")).toBe("true");
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => popoverPopup()).toBeNull();
+    await userEvent.unhover(document.body);
+    expect(warnings()).toEqual([]);
+  });
+
+  it("warns with the fix when a Tooltip wraps a Popover, which takes no trigger props", async () => {
+    await render(
+      <Tooltip content="Share recipe">
+        <Popover title="Share" trigger={<Button aria-label="Share">S</Button>}>
+          Body
+        </Popover>
+      </Tooltip>,
+    );
+    expect(warnings()).toEqual([
+      '[ouro-ui] Tooltip: the trigger never received the tooltip\'s ref, so the tooltip cannot open; the child must pass its props and ref to an element, and Popover and Dialog do not. Fix: put the Tooltip inside the trigger: trigger={<Tooltip content="…"><Button …/></Tooltip>}.',
+    ]);
   });
 });
 

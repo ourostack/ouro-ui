@@ -14,6 +14,12 @@ import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 <Tooltip content="Add to cookbook">
   <Button aria-label="Save" variant="plain"><BookmarkIcon /></Button>
 </Tooltip>
+<Popover
+  title="Share recipe"
+  trigger={<Tooltip content="Share recipe"><Button aria-label="Share"><ShareIcon /></Button></Tooltip>}
+>
+  <TextField label="Link" defaultValue={url} readOnly />
+</Popover>
 ```
 
 ## Usage

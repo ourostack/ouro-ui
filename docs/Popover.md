@@ -21,7 +21,7 @@ import { Popover } from "@/registry/ouro/components/ouro/popover/popover";
 
 ## Usage
 
-Use `trigger` for a popover a button opens, or `open` with `onOpenChange` and `anchor` to control it.
+Use `trigger` for a popover a button opens, or `open` with `onOpenChange` and `anchor` to control it. To give the trigger a tooltip too, put the Tooltip inside `trigger`: `trigger={<Tooltip content="Share recipe"><Button aria-label="Share">…</Button></Tooltip>}`.
 
 It stacks above the page at `--ouro-layer`, a z-index of 50 by default (from ouro-base.css), like Dialog and Sheet. Raise it in a `:root` rule of your own after the Ouro tokens, outside any `@layer`: `:root { --ouro-layer: 60; }`.
 

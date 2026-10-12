@@ -26,8 +26,8 @@ test.describe("on a touch phone", () => {
   test("never opens from a tap", async ({ page }) => {
     await openStory(page, "overlays-tooltip--playground");
     await page.getByRole("button", { name: "Save" }).tap();
-    // A focus open is immediate, so the next frame would show it.
-    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)));
+    // A focus open is immediate, but a hover open waits for the delay (600ms): wait past it.
+    await page.waitForTimeout(1500);
     await expect(page.getByText("Add to cookbook")).toHaveCount(0);
   });
 });

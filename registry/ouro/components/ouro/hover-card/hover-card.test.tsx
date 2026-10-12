@@ -73,6 +73,19 @@ describe("HoverCard", () => {
     await expect.poll(() => card()).toBeNull();
   });
 
+  it("opens on mouse hover after a touch elsewhere, as on an iPad with a trackpad", async () => {
+    await render(
+      <>
+        <button type="button">Other</button>
+        <HoverCard trigger={<a href="#cooks/ari">Ari Mendelow</a>}>Preview</HoverCard>
+      </>,
+    );
+    const other = document.querySelector("button")!;
+    await act(() => other.dispatchEvent(new PointerEvent("pointerdown", { pointerType: "touch", bubbles: true })));
+    await userEvent.hover(link());
+    await shown();
+  });
+
   it("shows on keyboard focus", async () => {
     await renderCard();
     // Focus from the keyboard (WebKit's Tab skips links by default).

@@ -1,7 +1,7 @@
 "use client";
 
 import { Tooltip as BaseTooltip } from "@base-ui/react/tooltip";
-import { useCallback, useEffect, useRef, type JSX, type ReactElement, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, type JSX, type ReactElement, type ReactNode, type Ref } from "react";
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
 import {
   floatingAlign,
@@ -13,6 +13,7 @@ import {
   type FloatingSide,
 } from "@/registry/ouro/lib/ouro/floating";
 import { lastInput } from "@/registry/ouro/lib/ouro/last-input";
+import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 
 export type { FloatingAlign as TooltipAlign, FloatingSide as TooltipSide } from "@/registry/ouro/lib/ouro/floating";
@@ -51,7 +52,7 @@ export interface TooltipProps {
 const LABEL_LENGTH = 80;
 
 /** A link or control inside the content, which no one can reach: the tooltip closes when the pointer leaves the trigger for it. */
-const INTERACTIVE = "a[href], button, input, select, textarea, [tabindex]";
+const INTERACTIVE = 'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 /** The dev message for content that holds essential information. Development only. */
 function essential(detail: string): readonly [string, string] {
@@ -78,10 +79,20 @@ function essential(detail: string): readonly [string, string] {
  * @group Overlays
  * @see https://ourostack.github.io/ouro-ui/docs/tooltip
  *
+ * On a button that opens a Popover, Dialog or Menu, put the Tooltip inside that
+ * component's `trigger`, never around the component: the Tooltip passes the trigger
+ * props it receives on to its child.
+ *
  * @example
  * <Tooltip content="Add to cookbook">
  *   <Button aria-label="Save" variant="plain"><BookmarkIcon /></Button>
  * </Tooltip>
+ * <Popover
+ *   title="Share recipe"
+ *   trigger={<Tooltip content="Share recipe"><Button aria-label="Share"><ShareIcon /></Button></Tooltip>}
+ * >
+ *   <TextField label="Link" defaultValue={url} readOnly />
+ * </Popover>
  */
 export function Tooltip(props: TooltipProps): JSX.Element {
   const {
@@ -95,12 +106,16 @@ export function Tooltip(props: TooltipProps): JSX.Element {
     delay,
     asChild,
     placement,
-  } = props;
+    // Props and a ref from a parent trigger, such as Popover's `trigger`, go on to the child.
+    ref,
+    ...forwarded
+  } = props as TooltipProps & { ref?: Ref<HTMLButtonElement> };
 
   const side = floatingSide(sideProp, "top");
   const align = floatingAlign(alignProp);
   const key = useRef({});
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const mergedRef = useMergedRef(ref, triggerRef);
 
   useDevWarnings(
     "Tooltip",
@@ -133,8 +148,16 @@ export function Tooltip(props: TooltipProps): JSX.Element {
     /* istanbul ignore else @preserve -- the else path exists only in production bundles */
     if (process.env.NODE_ENV !== "production") {
       const element = triggerRef.current;
+      if (!element) {
+        devWarn(
+          "Tooltip",
+          "the trigger never received the tooltip's ref, so the tooltip cannot open; the child must pass its props and ref to an element, and Popover and Dialog do not",
+          'put the Tooltip inside the trigger: trigger={<Tooltip content="…"><Button …/></Tooltip>}',
+          key.current,
+        );
+        return;
+      }
       const named =
-        !element ||
         element.textContent!.trim() !== "" ||
         element.hasAttribute("aria-label") ||
         element.hasAttribute("aria-labelledby");
@@ -168,7 +191,7 @@ export function Tooltip(props: TooltipProps): JSX.Element {
         if (next && lastInput() === "touch") details.cancel();
       }}
     >
-      <BaseTooltip.Trigger render={children} ref={triggerRef} />
+      <BaseTooltip.Trigger {...forwarded} render={children} ref={mergedRef} />
       <BaseTooltip.Portal data-ouro="tooltip-portal" className={floatingPortalClass}>
         <BaseTooltip.Positioner side={side} align={align} sideOffset={6} collisionPadding={8} data-ouro="tooltip-positioner">
           <BaseTooltip.Popup

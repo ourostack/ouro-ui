@@ -33,7 +33,13 @@ it("never opens from a tap, and the tap still reaches the trigger", async () => 
   );
   for (let tap = 0; tap < 2; tap++) await commands.tap('[data-ouro="button"]');
   expect(onClick).toHaveBeenCalledTimes(2);
-  // A focus open is immediate (only a mouse hover waits), so a flush and a frame show it if it opened.
+  // A focus open is immediate, but a hover open waits for the delay: run the page's timers past it.
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  try {
+    await act(async () => vi.advanceTimersByTime(2000));
+  } finally {
+    vi.useRealTimers();
+  }
   await act(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
   expect(document.querySelector('[data-ouro="tooltip"]')).toBeNull();
 });

@@ -117,7 +117,8 @@ export type PopoverProps = PopoverWithTriggerProps | PopoverControlledProps;
  * room. With `presentation="auto"` it is a bottom sheet on phones (below 640px).
  *
  * Use `trigger` for a popover a button opens, or `open` with `onOpenChange` and `anchor`
- * to control it. Use `Tooltip` instead for a short label on hover or focus, `HoverCard`
+ * to control it. To give the trigger a tooltip too, put the Tooltip inside `trigger`:
+ * `trigger={<Tooltip content="Share recipe"><Button aria-label="Share">…</Button></Tooltip>}`. Use `Tooltip` instead for a short label on hover or focus, `HoverCard`
  * for a preview of a link, and `Dialog` when the task needs
  * the user's full attention.
  *
@@ -240,7 +241,11 @@ export function Popover(props: PopoverProps): JSX.Element {
             className={className}
             data-ouro-presentation="popover"
             {...(controlled
-              ? { initialFocus: () => (lastInput() === "touch" || lastInput() === "pen" ? popupRef.current : true) }
+              ? {
+                  initialFocus: () => (lastInput() === "touch" || lastInput() === "pen" ? popupRef.current : true),
+                  // Safari does not focus a button on click, so name where focus goes back.
+                  finalFocus: anchor,
+                }
               : {})}
           >
             {(!hideTitle || description !== undefined) ? (
@@ -272,7 +277,7 @@ export function Popover(props: PopoverProps): JSX.Element {
           open={isOpenNow}
           onOpenChange={setOpen}
           presentation="sheet"
-          {...(trigger !== undefined ? { finalFocus: triggerRef } : {})}
+          finalFocus={trigger !== undefined ? triggerRef : anchor}
         >
           {children}
         </SheetFrame>

@@ -68,7 +68,8 @@ describe("Tooltip", () => {
     expect(element.textContent).toBe("Add to cookbook");
     const box = element.getBoundingClientRect();
     const anchor = trigger().getBoundingClientRect();
-    expect(Math.round(anchor.top - box.bottom)).toBe(6);
+    // The trigger's edge can be fractional, and the tooltip lands on a whole pixel.
+    expect(Math.abs(anchor.top - box.bottom - 6)).toBeLessThanOrEqual(1);
     expect(Math.abs(box.left + box.width / 2 - (anchor.left + anchor.width / 2))).toBeLessThanOrEqual(1);
     await userEvent.unhover(trigger());
     await expect.poll(() => tooltip()).toBeNull();
@@ -104,6 +105,21 @@ describe("Tooltip", () => {
     trigger().blur();
     await userEvent.keyboard("{Shift}");
     await act(async () => trigger().focus());
+    await shown();
+  });
+
+  it("opens on mouse hover after a touch elsewhere, as on a laptop with a touchscreen", async () => {
+    await render(
+      <>
+        <button type="button">Other</button>
+        <Tooltip content="Add to cookbook">
+          <Button>Save</Button>
+        </Tooltip>
+      </>,
+    );
+    const other = page.getByRole("button", { name: "Other" }).element();
+    await act(() => other.dispatchEvent(new PointerEvent("pointerdown", { pointerType: "touch", bubbles: true })));
+    await userEvent.hover(trigger());
     await shown();
   });
 
@@ -189,6 +205,13 @@ describe("Tooltip dev messages", () => {
     await userEvent.hover(trigger());
     await shown();
     expect(warnings()).toEqual([essential("content holds a link or control, which no one can reach")]);
+  });
+
+  it("does not count an element with tabindex -1 as a control", async () => {
+    await renderTooltip({ content: <span tabIndex={-1}>Add</span> });
+    await userEvent.hover(trigger());
+    await shown();
+    expect(warnings()).toEqual([]);
   });
 
   it("warns when the trigger has no name of its own", async () => {

@@ -1194,9 +1194,11 @@
       ],
       "registryDependencies": [
         "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/dialog",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/popover",
-        "ourostack/ouro-ui/text-field"
+        "ourostack/ouro-ui/text-field",
+        "ourostack/ouro-ui/tooltip"
       ],
       "files": [
         {
