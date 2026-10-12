@@ -203,6 +203,16 @@ describe("RadioGroup", () => {
     expect(dot.getBoundingClientRect().width).toBeGreaterThan(0);
   });
 
+  it("fills the chosen radio with the primary color in dark mode too", async () => {
+    document.documentElement.classList.add("dark");
+    try {
+      const { radios } = await render(<RadioGroup legend="Size" options={sizes} defaultValue="small" />);
+      expect(getComputedStyle(radios[0]!).backgroundColor).toBe(themeColor("--primary"));
+    } finally {
+      document.documentElement.classList.remove("dark");
+    }
+  });
+
   it("presses in while the pointer is down, but not with reduced motion", async () => {
     const { radios } = await render(<RadioGroup legend="Size" options={sizes} />);
     await commands.pointerPress({ selector: '[data-ouro="radio"]:first-child [role="radio"]', action: "down" });

@@ -15,12 +15,12 @@ export { boxClass, dashClass, indicatorClass, tickClass };
  */
 const boxClass =
   "group press relative m-0 mt-0.5 box-border inline-flex size-5 shrink-0 items-center justify-center p-0 sm:pointer-fine:size-4 " +
-  "rounded-sm border border-solid border-input bg-transparent text-primary-foreground dark:bg-input/30 " +
+  "rounded-sm border border-solid border-muted-foreground bg-transparent text-primary-foreground dark:not-data-checked:not-data-indeterminate:bg-input/30 " +
   "data-checked:border-primary data-checked:bg-primary data-indeterminate:border-primary data-indeterminate:bg-primary " +
   "aria-invalid:border-destructive " +
   "cursor-default select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
-  "not-data-disabled:not-data-checked:not-data-indeterminate:hover:border-muted-foreground " +
+  "not-data-disabled:not-data-checked:not-data-indeterminate:hover:border-foreground " +
   "motion-safe:not-data-disabled:active:scale-(--ouro-press-scale) active:duration-(--ouro-duration-fast) active:ease-out " +
   "data-disabled:cursor-not-allowed data-disabled:opacity-50";
 

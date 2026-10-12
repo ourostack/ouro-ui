@@ -210,6 +210,21 @@ describe("Checkbox look", () => {
     expect(getComputedStyle(box).backgroundColor).toBe(themeColor("--primary"));
   });
 
+  it("fills with the primary color when checked or mixed in dark mode too", async () => {
+    document.documentElement.classList.add("dark");
+    try {
+      const { host } = await render(
+        <>
+          <Checkbox label="Basil" defaultChecked />
+          <Checkbox label="All herbs" indeterminate />
+        </>,
+      );
+      for (const box of host.querySelectorAll('[role="checkbox"]')) expect(getComputedStyle(box).backgroundColor).toBe(themeColor("--primary"));
+    } finally {
+      document.documentElement.classList.remove("dark");
+    }
+  });
+
   it("is 16px beside 14px text with a fine pointer from sm, centered on the label's first line", async () => {
     await page.viewport(1280, 800);
     const { box, label } = await render(<Checkbox label="Basil" />);
