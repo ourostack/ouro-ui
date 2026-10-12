@@ -166,6 +166,8 @@ describe("Combobox", () => {
 
 describe("Combobox async", () => {
   it("hands typing to onInputChange and shows the app's items unfiltered", async () => {
+    // The search answers when the test says so, so the loading state lasts as long as the checks need.
+    let answer = () => {};
     function Search() {
       const [results, setResults] = useState<string[]>([]);
       const [loading, setLoading] = useState(false);
@@ -176,10 +178,10 @@ describe("Combobox async", () => {
           loading={loading}
           onInputChange={(text) => {
             setLoading(true);
-            setTimeout(() => {
+            answer = () => {
               setResults(text ? [`${text} soup`, `${text} pie`] : []);
               setLoading(false);
-            }, 50);
+            };
           }}
         />
       );
@@ -189,6 +191,7 @@ describe("Combobox async", () => {
     await userEvent.type(input, "leek");
     await expect.element(page.getByText("Loading…")).toBeVisible();
     expect(popup()!.getAttribute("aria-busy")).toBe("true");
+    await act(async () => answer());
     // The app's items are shown as given: "leek pie" does not contain "leek soup" and both show.
     await expect.poll(options).toEqual(["leek soup", "leek pie"]);
     expect(popup()!.hasAttribute("aria-busy")).toBe(false);

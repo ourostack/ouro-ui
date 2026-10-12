@@ -2,7 +2,7 @@ import { createRef, useState, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { commands, page, server, userEvent } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import { NumberField, type NumberFieldProps } from "@/registry/ouro/components/ouro/number-field/number-field";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -185,14 +185,19 @@ describe("NumberField scrub", () => {
     expect(document.activeElement).toBe(input);
   });
 
-  // Drag tests run in Chromium only (AGENTS.md).
-  it.skipIf(server.browser !== "chromium")("changes the value when the label is dragged sideways", async () => {
+  it("changes the value when the label is dragged sideways", async () => {
+    // Scrubbing reads movementX under pointer lock, which a real automated mouse reports
+    // unreliably (the first move after the lock can jump by hundreds of pixels on CI). The
+    // events carry the movement themselves, so the steps are exact.
     const onValueChange = vi.fn();
     const { host } = await render(<NumberField label="Servings" defaultValue={4} onValueChange={onValueChange} />);
-    const rect = host.querySelector("label")!.getBoundingClientRect();
-    const [x, y] = [rect.left + rect.width / 2, rect.top + rect.height / 2];
-    await commands.drag({ from: [x, y], to: [x + 40, y], steps: 8, durationMs: 160 });
-    await expect.poll(() => onValueChange.mock.lastCall?.[0]).toBeGreaterThan(4);
+    const scrub = host.querySelector<HTMLElement>("[data-ouro-number-field-scrub]")!;
+    const pointer = (type: string, movementX = 0) =>
+      new PointerEvent(type, { bubbles: true, cancelable: true, pointerType: "mouse", button: 0, movementX });
+    await act(async () => scrub.dispatchEvent(pointer("pointerdown")));
+    for (let step = 0; step < 3; step++) await act(async () => window.dispatchEvent(pointer("pointermove", 4)));
+    await act(async () => window.dispatchEvent(pointer("pointerup")));
+    expect(onValueChange.mock.lastCall?.[0]).toBeGreaterThan(4);
   });
 });
 
