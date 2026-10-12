@@ -570,6 +570,8 @@ function ComboboxControl(props: ControlProps): JSX.Element {
       placeholder={placeholder}
       aria-describedby={sheet ? undefined : field.describedBy}
       {...(invalid && !sheet ? { "aria-invalid": true } : {})}
+      // In the sheet the list is inline and already shown, so the input opens no popup.
+      {...(sheet ? { "aria-haspopup": undefined } : {})}
       className={className}
     />
   );

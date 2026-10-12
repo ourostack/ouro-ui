@@ -357,3 +357,17 @@ describe("Combobox server error on a phone", () => {
     expect(sent!.get("herb")).toBe("Dill");
   });
 });
+
+describe("Combobox sheet search input", () => {
+  // Its list is inline and already showing, so the input names no popup to open; role=combobox
+  // still implies a listbox, and aria-controls points at the one on screen.
+  it("controls the shown list and claims no popup of its own", async () => {
+    await render(<Combobox label="Herb" items={herbs} />);
+    await commands.tap(TRIGGER);
+    const panel = await opened();
+    const input = panel.querySelector<HTMLInputElement>('input[role="combobox"]')!;
+    expect(input.getAttribute("aria-expanded")).toBe("true");
+    expect(document.getElementById(input.getAttribute("aria-controls")!)!.getAttribute("role")).toBe("listbox");
+    expect(input.hasAttribute("aria-haspopup")).toBe(false);
+  });
+});
