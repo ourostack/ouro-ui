@@ -1,0 +1,1 @@
+- New: `Navbar`, the bar across the top of an app, with `brand`, `items` and `actions`. The link for `currentPath` (your router's pathname), or the longest link above it, gets `aria-current="page"`. Below 640px the links collapse behind a menu button into a `Sheet` from the side; `menuLabel` and `closeLabel` name its controls.

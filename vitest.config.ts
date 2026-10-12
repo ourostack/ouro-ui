@@ -36,6 +36,7 @@ export default defineConfig({
       "@base-ui/react/form",
       "@base-ui/react/menu",
       "@base-ui/react/menubar",
+      "@base-ui/react/navigation-menu",
       "@base-ui/react/otp-field",
       "@base-ui/react/popover",
       "@base-ui/react/preview-card",

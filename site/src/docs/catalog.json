@@ -315,6 +315,54 @@
     "source": "registry/ouro/components/ouro/segmented-control/segmented-control.tsx"
   },
   {
+    "name": "navbar",
+    "title": "Navbar",
+    "group": "Navigation",
+    "source": "registry/ouro/components/ouro/navbar/navbar.tsx"
+  },
+  {
+    "name": "sidebar",
+    "title": "Sidebar",
+    "group": "Navigation",
+    "source": "registry/ouro/components/ouro/sidebar/sidebar.tsx"
+  },
+  {
+    "name": "sidebar-layout",
+    "title": "SidebarLayout",
+    "group": "Navigation",
+    "source": "registry/ouro/components/ouro/sidebar/sidebar-layout.tsx"
+  },
+  {
+    "name": "stacked-layout",
+    "title": "StackedLayout",
+    "group": "Navigation",
+    "source": "registry/ouro/components/ouro/sidebar/stacked-layout.tsx"
+  },
+  {
+    "name": "auth-layout",
+    "title": "AuthLayout",
+    "group": "Navigation",
+    "source": "registry/ouro/components/ouro/auth-layout/auth-layout.tsx"
+  },
+  {
+    "name": "breadcrumb",
+    "title": "Breadcrumb",
+    "group": "Navigation",
+    "source": "registry/ouro/components/ouro/breadcrumb/breadcrumb.tsx"
+  },
+  {
+    "name": "pagination",
+    "title": "Pagination",
+    "group": "Navigation",
+    "source": "registry/ouro/components/ouro/pagination/pagination.tsx"
+  },
+  {
+    "name": "navigation-menu",
+    "title": "NavigationMenu",
+    "group": "Navigation",
+    "source": "registry/ouro/components/ouro/navigation-menu/navigation-menu.tsx"
+  },
+  {
     "name": "table",
     "title": "Table",
     "group": "Data",
