@@ -1,5 +1,5 @@
 // The library's three easing curves, as Tailwind classes. They are literals here, in one
-// place, until the theme has tokens for them (--ease-out, --ease-in-out, --ease-drawer).
+// place, until the theme has tokens for them (`--ouro-ease-out`, `--ouro-ease-in-out`, `--ouro-ease-drawer`).
 // Class strings are whole so the app's Tailwind finds them when it compiles.
 
 /** Enter and exit: a strong ease-out. */
