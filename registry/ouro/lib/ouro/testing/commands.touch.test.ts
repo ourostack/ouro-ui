@@ -7,8 +7,8 @@ test("the touch project reports a coarse pointer at 390x844", () => {
 });
 
 test("swipe scrolls what is under the finger with real touch input", async () => {
-  // Shaped like the Select sheet's list, which this command scrolls on every runner: rows
-  // of text in a box that scrolls, swiped from near its bottom to near its top.
+  // Shaped like the Select sheet's list: rows of text in a box that scrolls, tapped first and
+  // then swiped from near its bottom to near its top.
   const scroller = document.createElement("div");
   scroller.setAttribute("data-scroller", "");
   scroller.style.cssText = "height:400px;overflow-y:auto;";
@@ -17,7 +17,8 @@ test("swipe scrolls what is under the finger with real touch input", async () =>
   await commands.tap("[data-scroller]");
   const events: string[] = [];
   scroller.addEventListener("pointerdown", (event) => events.push(event.pointerType));
-  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  // Wait out the double-tap window, so the swipe is not read as the second tap of a zoom gesture.
+  await new Promise((resolve) => setTimeout(resolve, 500));
   const box = scroller.getBoundingClientRect();
   const x = box.left + box.width / 2;
   await commands.swipe({ from: [x, box.bottom - 30], to: [x, box.top + 30], steps: 10 });
