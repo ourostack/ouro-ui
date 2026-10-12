@@ -797,6 +797,16 @@
           "target": "@lib/ouro/dev.test.ts"
         },
         {
+          "path": "registry/ouro/lib/ouro/floating.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/floating.test.ts"
+        },
+        {
+          "path": "registry/ouro/lib/ouro/last-input.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/last-input.test.ts"
+        },
+        {
           "path": "registry/ouro/lib/ouro/ouro-provider.test.tsx",
           "type": "registry:lib",
           "target": "@lib/ouro/ouro-provider.test.tsx"
