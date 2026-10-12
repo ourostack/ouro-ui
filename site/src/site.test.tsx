@@ -119,6 +119,14 @@ describe("docs", () => {
     }
   });
 
+  it("documents toast() on the Toaster page, after the component", async () => {
+    await renderPage("/docs/toaster/");
+    await expect.element(page.getByRole("heading", { name: "toast()", level: 2 })).toBeVisible();
+    const toaster = docsItems.find((item) => item.name === "toaster")!;
+    expect(toaster.markdown.indexOf("## toast()")).toBeGreaterThan(toaster.markdown.indexOf("# Toaster"));
+    expect(toaster.markdown).not.toMatch(/^# toast$/m);
+  });
+
   it("has the Switching from shadcn and Updating pages", async () => {
     await renderPage("/docs/switching-from-shadcn/");
     await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent("Switching from shadcn");
