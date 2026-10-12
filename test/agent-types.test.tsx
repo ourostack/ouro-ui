@@ -1,19 +1,24 @@
 // The development-message channel for the agent snippets in
-// scripts/fixtures/agent-types/app.tsx: each snippet's case (cases.ts) says the `Fix:`
-// that a console warning or a thrown error must name. The fixture is loaded through
-// `import.meta.glob`, which the type check does not follow, because its snippets are type
-// errors on purpose. scripts/agent-types.test.mjs checks the type check and hover channels.
+// scripts/fixtures/agent-types/<item>.snippets.tsx: each snippet's case (<item>.cases.ts) says
+// the `Fix:` that a console warning or a thrown error must name. The fixtures are loaded
+// through `import.meta.glob`, which the type check does not follow, because their snippets are
+// type errors on purpose. scripts/agent-types.test.mjs checks the type check and hover channels.
 import type { ReactElement } from "react";
 import { createRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
-import { agentCases, validSnippets } from "@/scripts/fixtures/agent-types/cases";
+import type { AgentCase } from "@/scripts/fixtures/agent-types/shared";
 
-const snippets = Object.values(import.meta.glob("../scripts/fixtures/agent-types/app.tsx", { eager: true }))[0] as Record<
-  string,
-  ReactElement
->;
+const snippets = Object.assign(
+  {},
+  ...Object.values(import.meta.glob("../scripts/fixtures/agent-types/*.snippets.tsx", { eager: true })),
+) as Record<string, ReactElement>;
+const caseFiles = Object.values(
+  import.meta.glob<{ agentCases: AgentCase[]; validSnippets: string[] }>("../scripts/fixtures/agent-types/*.cases.ts", { eager: true }),
+);
+const agentCases = caseFiles.flatMap((file) => file.agentCases);
+const validSnippets = caseFiles.flatMap((file) => file.validSnippets);
 
 /** What a snippet says in development: the error it throws on render, or its console warnings. */
 async function devMessages(element: ReactElement): Promise<string[]> {

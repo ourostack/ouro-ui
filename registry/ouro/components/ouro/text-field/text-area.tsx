@@ -95,6 +95,7 @@ const owner = { name: "TextArea", data: "text-area" };
  * Use `TextField` instead for one line, and `Field` with `FieldControl` for a control that
  * is not text.
  *
+ * @group Forms
  * @see https://ourostack.github.io/ouro-ui/docs/text-area
  *
  * @example

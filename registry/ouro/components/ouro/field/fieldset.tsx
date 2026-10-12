@@ -36,6 +36,7 @@ export interface FieldsetProps {
  * Use `Field` instead for a single control. A group of checkboxes or radios that make one
  * choice uses their group component, which takes the same `legend`.
  *
+ * @group Forms
  * @see https://ourostack.github.io/ouro-ui/docs/fieldset
  *
  * @example

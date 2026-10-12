@@ -3,18 +3,6 @@ import type { ComponentType } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { vi } from "vitest";
 import { userEvent } from "vitest/browser";
-import * as ButtonStories from "@/registry/ouro/components/ouro/button/button.stories";
-import * as ConfirmDialogStories from "@/registry/ouro/components/ouro/dialog/confirm-dialog.stories";
-import * as DialogStories from "@/registry/ouro/components/ouro/dialog/dialog.stories";
-import * as FieldStories from "@/registry/ouro/components/ouro/field/field.stories";
-import * as FieldsetStories from "@/registry/ouro/components/ouro/field/fieldset.stories";
-import * as LinkStories from "@/registry/ouro/components/ouro/link/link.stories";
-import * as SheetStories from "@/registry/ouro/components/ouro/sheet/sheet.stories";
-import * as HeadingStories from "@/registry/ouro/components/ouro/text/heading.stories";
-import * as TextStories from "@/registry/ouro/components/ouro/text/text.stories";
-import * as TextAreaStories from "@/registry/ouro/components/ouro/text-field/text-area.stories";
-import * as TextFieldStories from "@/registry/ouro/components/ouro/text-field/text-field.stories";
-import * as SheetFeelStories from "@/stories/reference/sheet-feel.stories";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 // Shared by the story accessibility test and the visual test. Stories render
@@ -26,41 +14,62 @@ import { act } from "@/registry/ouro/lib/ouro/testing/act";
 // the a11y addon's mode) configure Storybook's UI, which these tests do not render.
 setProjectAnnotations([]);
 
-/** Every story file, by component (`SheetFeel` is stories/reference/sheet-feel). A new `*.stories.tsx` must be added here (the test checks). */
-export const storyFiles = {
-  Button: composeStories(ButtonStories),
-  ConfirmDialog: composeStories(ConfirmDialogStories),
-  Dialog: composeStories(DialogStories),
-  Field: composeStories(FieldStories),
-  Fieldset: composeStories(FieldsetStories),
-  Heading: composeStories(HeadingStories),
-  Link: composeStories(LinkStories),
-  Sheet: composeStories(SheetStories),
-  SheetFeel: composeStories(SheetFeelStories),
-  Text: composeStories(TextStories),
-  TextArea: composeStories(TextAreaStories),
-  TextField: composeStories(TextFieldStories),
-};
+/** Every `*.stories.tsx` module, found by path: registry/ (the stories each item ships) and stories/ (repository-only references). */
+const storyModules = import.meta.glob<Parameters<typeof composeStories>[0]>(["../registry/**/*.stories.tsx", "../stories/**/*.stories.tsx"], { eager: true });
+
+/** `text-field` to `TextField`. */
+const pascal = (stem: string) => stem.replace(/(^|-)([a-z])/g, (_, _dash: string, letter: string) => letter.toUpperCase());
+
+/** A story file's key: its file name in PascalCase. */
+function pascalName(path: string): string {
+  return pascal(path.replace(/^.*\/([\w-]+)\.stories\.tsx$/, "$1"));
+}
+
+/** Every story file, composed, by its file name in PascalCase (`SheetFeel` is stories/reference/sheet-feel.stories.tsx). */
+export const storyFiles: Record<string, Record<string, ComposedStory>> = {};
+const storyPaths = new Map<string, string>();
+for (const [path, module] of Object.entries(storyModules).sort(([a], [b]) => (pascalName(a) < pascalName(b) ? -1 : 1))) {
+  const key = pascalName(path);
+  // Story ids are `File/Story`, so two files with the same name would collide.
+  if (storyPaths.has(key)) throw new Error(`${path} and ${storyPaths.get(key)} are both ${key} stories: rename one file`);
+  storyPaths.set(key, path);
+  storyFiles[key] = composeStories(module) as Record<string, ComposedStory>;
+}
+
+/**
+ * What the shared tests read from a story's `parameters`:
+ *
+ * - `plainOpeners`: the labels of buttons that open an overlay but are not Base UI triggers
+ *   (a controlled story opens from a plain button). Base UI triggers are found by their
+ *   `aria-haspopup` attribute.
+ * - `screenshot`: the story is a screenshot subject (test/screenshots.visual.test.tsx), under
+ *   this baseline name, with its overlay open when `open` is set.
+ */
+export interface OuroStoryParameters {
+  plainOpeners?: string[];
+  screenshot?: { name: string; open?: boolean };
+}
+
+type ComposedStory = ComponentType & { parameters?: OuroStoryParameters };
+
+/** One story, by `Component/StoryExport` id. Throws when there is none. */
+export function story(id: string): ComposedStory {
+  const [file = "", name = ""] = id.split("/");
+  const found = storyFiles[file]?.[name];
+  if (!found) throw new Error(`no story ${id}`);
+  return found;
+}
 
 export interface StoryEntry {
   /** `Component/StoryExport`, for test names. */
   id: string;
   Story: ComponentType;
+  parameters: OuroStoryParameters;
 }
 
 export const stories: StoryEntry[] = Object.entries(storyFiles).flatMap(([file, composed]) =>
-  Object.entries(composed).map(([name, Story]) => ({ id: `${file}/${name}`, Story: Story as ComponentType })),
+  Object.entries(composed).map(([name, Story]) => ({ id: `${file}/${name}`, Story, parameters: Story.parameters ?? {} })),
 );
-
-/**
- * Buttons that open an overlay but are not Base UI triggers (controlled
- * stories open from a plain button), by story id. Base UI triggers are found by
- * their `aria-haspopup` attribute.
- */
-const plainOpeners: Record<string, string[]> = {
-  "Dialog/Controlled": ["Open"],
-  "Sheet/Controlled": ["Open"],
-};
 
 const roots: Root[] = [];
 const mounted: Element[] = [];
@@ -95,7 +104,7 @@ export async function cleanupStories(): Promise<void> {
 /** The elements that open an overlay in a story: Base UI triggers, then the plain openers. */
 export function overlayOpeners(id: string, host: HTMLElement): HTMLElement[] {
   const triggers = [...host.querySelectorAll<HTMLElement>("[aria-haspopup]")];
-  const plain = (plainOpeners[id] ?? []).map((label) => {
+  const plain = (story(id).parameters?.plainOpeners ?? []).map((label) => {
     const button = [...host.querySelectorAll<HTMLElement>("button")].find((item) => item.textContent === label);
     if (!button) throw new Error(`${id}: no button labeled "${label}"`);
     return button;

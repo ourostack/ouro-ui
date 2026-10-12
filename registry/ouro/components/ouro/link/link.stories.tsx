@@ -43,6 +43,7 @@ export const Playground: Story = {};
 
 /** Links in running text, in navigation, and one that opens a new tab. */
 export const InContext: Story = {
+  parameters: { screenshot: { name: "link" } },
   render: () => (
     <Surface>
       <Text>
