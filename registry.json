@@ -1019,6 +1019,148 @@
       ]
     },
     {
+      "name": "toggle",
+      "type": "registry:ui",
+      "title": "Toggle",
+      "description": "A button that stays pressed until it is pressed again, such as Bold in a text toolbar.",
+      "docs": "A button that stays pressed until it is pressed again, such as Bold in a text toolbar. Import: import { Toggle } from \"@/components/ouro/toggle/toggle\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/toggle.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/toggle/toggle-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/toggle/toggle-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/toggle/toggle.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/toggle/toggle.tsx"
+        }
+      ]
+    },
+    {
+      "name": "toggle-group",
+      "type": "registry:ui",
+      "title": "ToggleGroup",
+      "description": "A row of related toggles that share one value, such as text alignment or bold, italic and underline in a toolbar.",
+      "docs": "A row of related toggles that share one value, such as text alignment or bold, italic and underline in a toolbar. Import: import { ToggleGroup } from \"@/components/ouro/toggle/toggle-group\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib, toggle. Docs: https://ourostack.github.io/ouro-ui/docs/toggle-group.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib",
+        "ourostack/ouro-ui/toggle"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/toggle/toggle-group.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/toggle/toggle-group.tsx"
+        }
+      ]
+    },
+    {
+      "name": "button-group",
+      "type": "registry:ui",
+      "title": "ButtonGroup",
+      "description": "Related buttons joined into one control, such as Previous, a page number and Next, or a split button.",
+      "docs": "Related buttons joined into one control, such as Previous, a page number and Next, or a split button. Import: import { ButtonGroup } from \"@/components/ouro/button-group/button-group\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/button-group.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/button-group/button-group.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/button-group/button-group.tsx"
+        }
+      ]
+    },
+    {
+      "name": "otp-field",
+      "type": "registry:ui",
+      "title": "OtpField",
+      "description": "A one-time code entry on the Field contract: one slot per character, with focus that moves as the person types, a whole code pasted at once, and `autoComplete=\"one-time-code\"` so phones offer the code from a text message.",
+      "docs": "A one-time code entry on the Field contract: one slot per character, with focus that moves as the person types, a whole code pasted at once, and `autoComplete=\"one-time-code\"` so phones offer the code from a text message. Import: import { OtpField } from \"@/components/ouro/otp-field/otp-field\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: field, ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/otp-field.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/otp-field/otp-field-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/otp-field/otp-field-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/otp-field/otp-field.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/otp-field/otp-field.tsx"
+        }
+      ]
+    },
+    {
+      "name": "file-field",
+      "type": "registry:ui",
+      "title": "FileField",
+      "description": "A labeled file input with a drop zone, on the Field contract.",
+      "docs": "A labeled file input with a drop zone, on the Field contract. Import: import { FileField } from \"@/components/ouro/file-field/file-field\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, field, ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/file-field.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/file-field/file-field-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/file-field/file-field-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/file-field/file-field.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/file-field/file-field.tsx"
+        }
+      ]
+    },
+    {
+      "name": "color-field",
+      "type": "registry:ui",
+      "title": "ColorField",
+      "description": "A color on the Field contract: a swatch that opens the system color picker, next to the same color as hex text, kept in step both ways.",
+      "docs": "A color on the Field contract: a swatch that opens the system color picker, next to the same color as hex text, kept in step both ways. Import: import { ColorField } from \"@/components/ouro/color-field/color-field\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: field, ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/color-field.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/color-field/color-field-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/color-field/color-field-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/color-field/color-field.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/color-field/color-field.tsx"
+        }
+      ]
+    },
+    {
       "name": "ouro-lib-tests",
       "type": "registry:item",
       "title": "Ouro lib tests",
@@ -2406,6 +2548,263 @@
       ]
     },
     {
+      "name": "toggle-tests",
+      "type": "registry:item",
+      "title": "Toggle tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for toggle, with the test tooling as devDependencies. Add it beside toggle: add toggle toggle-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "toggle's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/toggle.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/toggle",
+        "ourostack/ouro-ui/toggle-group"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/toggle/toggle.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/toggle/toggle.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/toggle/toggle.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/toggle/toggle.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/toggle/toggle.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/toggle/toggle.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/toggle/toggle.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/toggle/toggle.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/toggle.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/toggle.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "toggle-group-tests",
+      "type": "registry:item",
+      "title": "ToggleGroup tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for toggle-group, with the test tooling as devDependencies. Add it beside toggle-group: add toggle-group toggle-group-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "toggle-group's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/toggle-group.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/toggle-group"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/toggle/toggle-group.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/toggle/toggle-group.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/toggle/toggle-group.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/toggle/toggle-group.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/toggle/toggle-group.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/toggle/toggle-group.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/toggle-group.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/toggle-group.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "button-group-tests",
+      "type": "registry:item",
+      "title": "ButtonGroup tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for button-group, with the test tooling as devDependencies. Add it beside button-group: add button-group button-group-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "button-group's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/button-group.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/button-group",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/toggle"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/button-group/button-group.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/button-group/button-group.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/button-group/button-group.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/button-group/button-group.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/button-group/button-group.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/button-group/button-group.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/button-group.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/button-group.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "otp-field-tests",
+      "type": "registry:item",
+      "title": "OtpField tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for otp-field, with the test tooling as devDependencies. Add it beside otp-field: add otp-field otp-field-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "otp-field's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/otp-field.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/otp-field",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/otp-field/otp-field.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/otp-field/otp-field.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/otp-field/otp-field.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/otp-field/otp-field.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/otp-field/otp-field.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/otp-field/otp-field.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/otp-field/otp-field.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/otp-field/otp-field.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/otp-field.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/otp-field.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "file-field-tests",
+      "type": "registry:item",
+      "title": "FileField tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for file-field, with the test tooling as devDependencies. Add it beside file-field: add file-field file-field-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "file-field's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/file-field.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/file-field",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/file-field/file-field.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/file-field/file-field.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/file-field/file-field.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/file-field/file-field.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/file-field/file-field.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/file-field/file-field.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/file-field/file-field.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/file-field/file-field.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/file-field.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/file-field.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "color-field-tests",
+      "type": "registry:item",
+      "title": "ColorField tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for color-field, with the test tooling as devDependencies. Add it beside color-field: add color-field color-field-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "color-field's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/color-field.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/color-field",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/color-field/color-field.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/color-field/color-field.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/color-field/color-field.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/color-field/color-field.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/color-field/color-field.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/color-field/color-field.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/color-field/color-field.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/color-field/color-field.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/color-field.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/color-field.spec.ts"
+        }
+      ]
+    },
+    {
       "name": "ouro-tests",
       "type": "registry:item",
       "title": "Ouro tests",
@@ -2416,19 +2815,23 @@
         "ourostack/ouro-ui/aspect-ratio-tests",
         "ourostack/ouro-ui/avatar-tests",
         "ourostack/ouro-ui/badge-tests",
+        "ourostack/ouro-ui/button-group-tests",
         "ourostack/ouro-ui/button-tests",
         "ourostack/ouro-ui/card-tests",
+        "ourostack/ouro-ui/color-field-tests",
         "ourostack/ouro-ui/confirm-dialog-tests",
         "ourostack/ouro-ui/dialog-tests",
         "ourostack/ouro-ui/empty-tests",
         "ourostack/ouro-ui/field-tests",
         "ourostack/ouro-ui/fieldset-tests",
+        "ourostack/ouro-ui/file-field-tests",
         "ourostack/ouro-ui/heading-tests",
         "ourostack/ouro-ui/hover-card-tests",
         "ourostack/ouro-ui/item-group-tests",
         "ourostack/ouro-ui/item-tests",
         "ourostack/ouro-ui/kbd-tests",
         "ourostack/ouro-ui/link-tests",
+        "ourostack/ouro-ui/otp-field-tests",
         "ourostack/ouro-ui/ouro-lib-tests",
         "ourostack/ouro-ui/popover-tests",
         "ourostack/ouro-ui/progress-tests",
@@ -2443,6 +2846,8 @@
         "ourostack/ouro-ui/text-field-tests",
         "ourostack/ouro-ui/text-tests",
         "ourostack/ouro-ui/toaster-tests",
+        "ourostack/ouro-ui/toggle-group-tests",
+        "ourostack/ouro-ui/toggle-tests",
         "ourostack/ouro-ui/tooltip-tests"
       ]
     }
