@@ -1,6 +1,7 @@
 /**
  * What agents write, one pair of files per component: `<item>.snippets.tsx` exports the
- * snippets (every one except the valid ones is a type error on purpose), and
+ * snippets (every one except the valid ones is a mistake on purpose: a type error, or a
+ * `className` habit only the hover and the development message can name), and
  * `<item>.cases.ts` exports `agentCases`, for each such snippet in file order the habit behind
  * it and every channel that names the fix, with the text that channel must contain, and
  * `validSnippets`, the valid ones. Snippet ids are unique across the files; name a new

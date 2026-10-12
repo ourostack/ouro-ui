@@ -143,5 +143,53 @@
     "title": "Separator",
     "group": "Display",
     "source": "registry/ouro/components/ouro/separator/separator.tsx"
+  },
+  {
+    "name": "card",
+    "title": "Card",
+    "group": "Display",
+    "source": "registry/ouro/components/ouro/card/card.tsx"
+  },
+  {
+    "name": "empty",
+    "title": "Empty",
+    "group": "Display",
+    "source": "registry/ouro/components/ouro/empty/empty.tsx"
+  },
+  {
+    "name": "item",
+    "title": "Item",
+    "group": "Lists",
+    "source": "registry/ouro/components/ouro/item/item.tsx"
+  },
+  {
+    "name": "item-group",
+    "title": "ItemGroup",
+    "group": "Lists",
+    "source": "registry/ouro/components/ouro/item/item-group.tsx"
+  },
+  {
+    "name": "scroll-area",
+    "title": "ScrollArea",
+    "group": "Layout",
+    "source": "registry/ouro/components/ouro/scroll-area/scroll-area.tsx"
+  },
+  {
+    "name": "aspect-ratio",
+    "title": "AspectRatio",
+    "group": "Layout",
+    "source": "registry/ouro/components/ouro/aspect-ratio/aspect-ratio.tsx"
+  },
+  {
+    "name": "stack",
+    "title": "Stack",
+    "group": "Layout",
+    "source": "registry/ouro/components/ouro/stack/stack.tsx"
+  },
+  {
+    "name": "row",
+    "title": "Row",
+    "group": "Layout",
+    "source": "registry/ouro/components/ouro/stack/row.tsx"
   }
 ]
