@@ -1,0 +1,1 @@
+- New: `FileField`, a native file input in a drop zone on the `Field` contract, with a list of the chosen files (image thumbnails, remove buttons named with `removeLabel`), `accept`, `multiple` and `maxSize` filtering, and `onReject` for the files left out.

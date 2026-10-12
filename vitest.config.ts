@@ -29,6 +29,9 @@ export default defineConfig({
       "@base-ui/react/field",
       "@base-ui/react/fieldset",
       "@base-ui/react/form",
+      "@base-ui/react/otp-field",
+      "@base-ui/react/toggle",
+      "@base-ui/react/toggle-group",
     ],
   },
   test: {

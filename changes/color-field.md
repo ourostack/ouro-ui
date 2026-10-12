@@ -1,0 +1,1 @@
+- New: `ColorField`, a native color swatch and a hex text input kept in step on the `Field` contract; it takes short or long hex and always submits `#rrggbb`.

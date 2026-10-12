@@ -1,0 +1,406 @@
+import { createRef, type ReactNode } from "react";
+import { createRoot, hydrateRoot, type Root } from "react-dom/client";
+import { renderToString } from "react-dom/server";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { page, userEvent } from "vitest/browser";
+import { FileField, type FileFieldProps } from "@/registry/ouro/components/ouro/file-field/file-field";
+import { act } from "@/registry/ouro/lib/ouro/testing/act";
+
+const roots: Root[] = [];
+let mounted: Element[] = [];
+
+async function render(node: ReactNode) {
+  const host = document.createElement("div");
+  host.style.padding = "24px";
+  host.style.maxWidth = "420px";
+  document.body.append(host);
+  mounted.push(host);
+  const root = createRoot(host);
+  roots.push(root);
+  await act(async () => root.render(node));
+  return {
+    host,
+    rerender: (next: ReactNode) => act(async () => root.render(next)),
+    get root() {
+      return host.querySelector<HTMLElement>('[data-ouro="file-field"]')!;
+    },
+    get input() {
+      return host.querySelector<HTMLInputElement>('input[type="file"]')!;
+    },
+    get zone() {
+      return host.querySelector<HTMLElement>("[data-ouro-drop-zone]")!;
+    },
+    names() {
+      return [...host.querySelectorAll("[data-ouro-file-name]")].map((name) => name.textContent);
+    },
+  };
+}
+
+/** The ids an element's `aria-describedby` lists. */
+const describedBy = (element: Element) => (element.getAttribute("aria-describedby") ?? "").split(/\s+/).filter(Boolean);
+
+// A 1x1 PNG.
+const png = Uint8Array.from(
+  atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="),
+  (char) => char.charCodeAt(0),
+);
+const image = (name = "photo.png") => new File([png], name, { type: "image/png" });
+const text = (name = "notes.txt", size = 10) => new File(["x".repeat(size)], name, { type: "text/plain" });
+
+const transfer = (files: File[]) => {
+  const data = new DataTransfer();
+  for (const file of files) data.items.add(file);
+  return data;
+};
+
+/** Drops files on an element, as dragging them from the desktop does. */
+async function drop(target: HTMLElement, files: File[]) {
+  const data = transfer(files);
+  await act(async () => {
+    target.dispatchEvent(new DragEvent("dragenter", { dataTransfer: data, bubbles: true, cancelable: true }));
+    target.dispatchEvent(new DragEvent("dragover", { dataTransfer: data, bubbles: true, cancelable: true }));
+    target.dispatchEvent(new DragEvent("drop", { dataTransfer: data, bubbles: true, cancelable: true }));
+  });
+}
+
+/** Chooses files in the input, as the system file picker does. */
+async function choose(input: HTMLInputElement, files: File[]) {
+  await act(async () => {
+    input.files = transfer(files).files;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+}
+
+let warn: ReturnType<typeof vi.spyOn>;
+beforeEach(() => {
+  warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+});
+afterEach(async () => {
+  vi.restoreAllMocks();
+  await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+  for (const node of mounted) node.remove();
+  mounted = [];
+  await page.viewport(414, 896);
+});
+
+describe("FileField", () => {
+  it("is a labeled native file input inside a drop zone, on the Field contract", async () => {
+    const { root, input, zone } = await render(<FileField label="Recipe photo" name="photo" accept="image/*" />);
+    expect(root.getAttribute("data-ouro")).toBe("file-field");
+    expect(input.labels![0]!.textContent).toBe("Recipe photo");
+    expect(input.name).toBe("photo");
+    expect(input.accept).toBe("image/*");
+    expect(zone.contains(input)).toBe(true);
+    expect(zone.textContent).toContain("Drag a file here, or choose one");
+  });
+
+  it("takes chosen files and lists them, with a preview for images", async () => {
+    const onFilesChange = vi.fn();
+    const { host, input, names } = await render(<FileField label="Photo" onFilesChange={onFilesChange} />);
+    expect(names()).toEqual([]);
+    await choose(input, [image()]);
+    expect(onFilesChange).toHaveBeenLastCalledWith([expect.objectContaining({ name: "photo.png" })]);
+    expect([...host.querySelectorAll("[data-ouro-file-name]")].map((name) => name.textContent)).toEqual(["photo.png"]);
+    const preview = host.querySelector<HTMLImageElement>("img")!;
+    expect(preview.src).toMatch(/^blob:/);
+    expect(preview.alt).toBe("");
+    await expect.poll(() => preview.complete && preview.naturalWidth).toBe(1);
+  });
+
+  it("takes dropped files and puts them in the input, so the form submits them", async () => {
+    let submitted: File[] = [];
+    const { host, zone } = await render(
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          submitted = new FormData(event.currentTarget).getAll("attachments") as File[];
+        }}
+      >
+        <FileField label="Attachments" name="attachments" multiple />
+        <button type="submit">Send</button>
+      </form>,
+    );
+    await drop(zone, [text("a.txt"), text("b.txt")]);
+    expect([...host.querySelectorAll("[data-ouro-file-name]")].map((name) => name.textContent)).toEqual(["a.txt", "b.txt"]);
+    await userEvent.click(host.querySelector<HTMLButtonElement>('button[type="submit"]')!);
+    expect(submitted.map((file) => file.name)).toEqual(["a.txt", "b.txt"]);
+  });
+
+  it("highlights the zone while files are dragged over it", async () => {
+    const { zone } = await render(<FileField label="Photo" />);
+    const data = transfer([image()]);
+    await act(async () => {
+      zone.dispatchEvent(new DragEvent("dragenter", { dataTransfer: data, bubbles: true, cancelable: true }));
+    });
+    expect(zone.hasAttribute("data-dragging")).toBe(true);
+    await act(async () => {
+      zone.dispatchEvent(new DragEvent("dragleave", { dataTransfer: data, bubbles: true, relatedTarget: document.body }));
+    });
+    expect(zone.hasAttribute("data-dragging")).toBe(false);
+  });
+
+  it("keeps the highlight while the drag moves over the zone's own children", async () => {
+    const { zone } = await render(<FileField label="Photo" />);
+    const data = transfer([image()]);
+    await act(async () => {
+      zone.dispatchEvent(new DragEvent("dragenter", { dataTransfer: data, bubbles: true, cancelable: true }));
+      zone.dispatchEvent(new DragEvent("dragleave", { dataTransfer: data, bubbles: true, relatedTarget: zone.firstElementChild }));
+    });
+    expect(zone.hasAttribute("data-dragging")).toBe(true);
+  });
+
+  it("adds files to the list with multiple, and replaces the file without it", async () => {
+    const { input, rerender, host } = await render(<FileField label="Files" multiple />);
+    await choose(input, [text("a.txt")]);
+    await choose(input, [text("b.txt"), text("a.txt")]);
+    const names = () => [...host.querySelectorAll("[data-ouro-file-name]")].map((name) => name.textContent);
+    expect(names()).toEqual(["a.txt", "b.txt"]);
+    expect([...input.files!].map((file) => file.name)).toEqual(["a.txt", "b.txt"]);
+    await rerender(<FileField label="Files" />);
+    await choose(input, [text("c.txt")]);
+    expect(names()).toEqual(["c.txt"]);
+  });
+
+  it("rejects files that do not match accept or exceed maxSize, and reports them", async () => {
+    const onReject = vi.fn();
+    const onFilesChange = vi.fn();
+    const { input, zone, host } = await render(
+      <FileField label="Files" multiple accept=".txt,image/*" maxSize={80} onReject={onReject} onFilesChange={onFilesChange} />,
+    );
+    const pdf = new File(["%PDF"], "doc.pdf", { type: "application/pdf" });
+    const big = text("big.txt", 100);
+    await drop(zone, [text("ok.TXT"), pdf, big, image()]);
+    expect([...host.querySelectorAll("[data-ouro-file-name]")].map((name) => name.textContent)).toEqual(["ok.TXT", "photo.png"]);
+    expect(onReject).toHaveBeenLastCalledWith([
+      { file: pdf, reason: "type" },
+      { file: big, reason: "size" },
+    ]);
+    expect(onFilesChange).toHaveBeenLastCalledWith([expect.objectContaining({ name: "ok.TXT" }), expect.objectContaining({ name: "photo.png" })]);
+    // A file the picker let through anyway is taken out of the input too.
+    await choose(input, [big]);
+    expect([...input.files!].map((file) => file.name)).toEqual(["ok.TXT", "photo.png"]);
+    expect(onReject).toHaveBeenLastCalledWith([{ file: big, reason: "size" }]);
+  });
+
+  it("matches exact MIME types", async () => {
+    const onReject = vi.fn();
+    const { zone, names } = await render(<FileField label="Photo" accept="image/png" onReject={onReject} />);
+    await drop(zone, [new File(["x"], "a.jpg", { type: "image/jpeg" })]);
+    expect(onReject).toHaveBeenCalledWith([expect.objectContaining({ reason: "type" })]);
+    expect(names()).toEqual([]);
+  });
+
+  it("takes only the first of several dropped files without multiple", async () => {
+    const onReject = vi.fn();
+    const { zone, host } = await render(<FileField label="Photo" onReject={onReject} />);
+    const second = text("b.txt");
+    await drop(zone, [text("a.txt"), second]);
+    expect([...host.querySelectorAll("[data-ouro-file-name]")].map((name) => name.textContent)).toEqual(["a.txt"]);
+    expect(onReject).toHaveBeenCalledWith([{ file: second, reason: "count" }]);
+  });
+
+  it("removes a file with its button, and focus goes back to the input", async () => {
+    const onFilesChange = vi.fn();
+    const { input, zone, host } = await render(<FileField label="Files" multiple onFilesChange={onFilesChange} />);
+    await drop(zone, [text("a.txt"), text("b.txt")]);
+    const remove = host.querySelector<HTMLButtonElement>('button[aria-label="Remove a.txt"]')!;
+    expect(remove.type).toBe("button");
+    await userEvent.click(remove);
+    expect([...host.querySelectorAll("[data-ouro-file-name]")].map((name) => name.textContent)).toEqual(["b.txt"]);
+    expect([...input.files!].map((file) => file.name)).toEqual(["b.txt"]);
+    expect(onFilesChange).toHaveBeenLastCalledWith([expect.objectContaining({ name: "b.txt" })]);
+    expect(document.activeElement).toBe(input);
+  });
+
+  it("names the remove buttons and the prompt with removeLabel and prompt", async () => {
+    const { input, zone, host } = await render(<FileField label="Dateien" multiple prompt="Dateien hierher ziehen" removeLabel="Entfernen" />);
+    expect(zone.textContent).toContain("Dateien hierher ziehen");
+    await choose(input, [text("a.txt")]);
+    expect(host.querySelector('button[aria-label="Entfernen a.txt"]')).not.toBeNull();
+  });
+
+  /** Counts the clicks that reach the input (each opens the file picker), without opening it. */
+  function countPicks(input: HTMLInputElement) {
+    let picks = 0;
+    input.addEventListener("click", (event) => {
+      event.preventDefault();
+      picks++;
+    });
+    return () => picks;
+  }
+
+  it("opens the file picker when the zone is pressed, anywhere in it", async () => {
+    const { input, zone } = await render(<FileField label="Photo" />);
+    const picks = countPicks(input);
+    await userEvent.click(zone);
+    await userEvent.click(zone.querySelector("svg")!);
+    expect(picks()).toBe(2);
+    // The zone labels the input, but the input's name stays the field's label.
+    expect(document.getElementById(input.getAttribute("aria-labelledby")!)!.textContent).toBe("Photo");
+  });
+
+  it("does nothing when disabled", async () => {
+    const onFilesChange = vi.fn();
+    const { input, zone, names } = await render(<FileField label="Photo" disabled onFilesChange={onFilesChange} />);
+    expect(input.disabled).toBe(true);
+    const picks = countPicks(input);
+    await userEvent.click(zone, { force: true });
+    expect(picks()).toBe(0);
+    await drop(zone, [image()]);
+    expect(onFilesChange).not.toHaveBeenCalled();
+    expect(names()).toEqual([]);
+    expect(getComputedStyle(zone).opacity).toBe("0.5");
+  });
+
+  it("empties the list when the form resets", async () => {
+    const { host, input } = await render(
+      <form>
+        <FileField label="Photo" />
+        <button type="reset">Reset</button>
+      </form>,
+    );
+    await choose(input, [image()]);
+    expect(host.querySelectorAll("[data-ouro-file-name]")).toHaveLength(1);
+    await userEvent.click(host.querySelector<HTMLButtonElement>('button[type="reset"]')!);
+    await expect.poll(() => host.querySelectorAll("[data-ouro-file-name]").length).toBe(0);
+  });
+
+  it("shows each file's size", async () => {
+    const { input, host } = await render(<FileField label="File" />);
+    await choose(input, [text("a.txt", 2048)]);
+    expect(host.querySelector("[data-ouro-file-size]")!.textContent).toMatch(/2(\.0)?\s?kB/);
+  });
+
+  it("wires description, error, required and disabled through Field", async () => {
+    const { host, input, rerender } = await render(
+      <FileField label="Photo" description="PNG or JPG, up to 5 MB." error="Choose a photo." required />,
+    );
+    expect(describedBy(input).map((id) => host.querySelector(`#${CSS.escape(id)}`)!.textContent)).toEqual([
+      "PNG or JPG, up to 5 MB.",
+      "Choose a photo.",
+    ]);
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+    expect(input.required).toBe(true);
+    await rerender(<FileField label="Photo" disabled />);
+    expect(input.disabled).toBe(true);
+  });
+
+  it("outlines the zone while the input has keyboard focus", async () => {
+    const { zone } = await render(<FileField label="Photo" />);
+    document.body.focus();
+    await userEvent.tab();
+    await expect.poll(() => getComputedStyle(zone).outlineStyle).toBe("solid");
+  });
+
+  it("forwards its ref to the input and lets layout classes win on the root", async () => {
+    const ref = createRef<HTMLInputElement>();
+    const { input, root } = await render(<FileField label="Photo" ref={ref} className="mt-6" capture="environment" />);
+    expect(ref.current).toBe(input);
+    expect(input.getAttribute("capture")).toBe("environment");
+    expect(getComputedStyle(root).marginTop).toBe("24px");
+  });
+
+  it("is at least 44px tall on phones", async () => {
+    await page.viewport(390, 844);
+    const { zone } = await render(<FileField label="Photo" />);
+    expect(zone.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+  });
+});
+
+describe("FileField development messages", () => {
+  it.each([
+    ["maxFileSize", { maxFileSize: 100 }, "maxFileSize is not a prop", "<FileField maxSize={100}>"],
+    ["acceptedFileTypes", { acceptedFileTypes: ["image/png"] }, "acceptedFileTypes is not a prop", '<FileField accept="image/png">'],
+    ["onChange", { onChange: () => {} }, "onChange is not a prop", "<FileField onFilesChange={(files) => …}>"],
+    ["onDrop", { onDrop: () => {} }, "onDrop is not a prop; dropped files arrive in onFilesChange", "<FileField onFilesChange={(files) => …}>"],
+    ["helperText", { helperText: "Hint" }, "helperText is not a prop", '<FileField description="Hint">'],
+    ["isRequired", { isRequired: true }, "isRequired is not a prop", "<FileField required>"],
+  ])("warns for %s with the fix", async (name, extra, problem, fix) => {
+    const props = { label: "Files", ...extra } as unknown as FileFieldProps;
+    const { host } = await render(<FileField {...props} />);
+    expect(warn).toHaveBeenCalledWith(`[ouro-ui] FileField: ${problem}. Fix: ${fix}.`);
+    for (const element of host.querySelectorAll("*")) expect(element.hasAttribute(name.toLowerCase())).toBe(false);
+  });
+
+  it("warns for an accept entry that is neither an extension nor a type", async () => {
+    await render(<FileField label="Files" accept="pdf, .txt" />);
+    expect(warn).toHaveBeenCalledWith('[ouro-ui] FileField: accept lists "pdf", which is neither an extension nor a type. Fix: <FileField accept=".pdf, .txt">.');
+  });
+
+  it("warns for a maxSize that is not a positive number of bytes", async () => {
+    await render(<FileField label="Files" maxSize={0} />);
+    expect(warn).toHaveBeenCalledWith("[ouro-ui] FileField: maxSize={0} is not a positive number of bytes. Fix: <FileField maxSize={5 * 1024 * 1024}>.");
+  });
+
+  it("warns for a maxSize that reads as megabytes", async () => {
+    await render(<FileField label="Files" maxSize={5} />);
+    expect(warn).toHaveBeenCalledWith(
+      "[ouro-ui] FileField: maxSize={5} is 5 bytes; maxSize counts bytes. Fix: <FileField maxSize={5 * 1024 * 1024}> for 5 MB.",
+    );
+  });
+
+  it("names FileField in Field's messages", async () => {
+    await render(<FileField label="" className="border-red-500" />);
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] FileField: "border-red-500" sets appearance, and className is for layout only. Fix: <FileField error="What is wrong">.',
+    );
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] FileField: label is empty, so the control has no name. Fix: <FileField label="Email" hideLabel> to hide a label you still need.',
+    );
+  });
+
+  it("says nothing for a full, valid field", async () => {
+    await render(
+      <FileField
+        label="Photos"
+        name="photos"
+        multiple
+        accept="image/*,.heic"
+        maxSize={5 * 1024 * 1024}
+        required
+        description="Up to 5 MB each."
+        error="Add a photo."
+        hideLabel
+        className="mt-2"
+      />,
+    );
+    expect(warn).not.toHaveBeenCalled();
+  });
+});
+
+describe("FileField server rendering", () => {
+  const node = <FileField label="Photo" name="photo" accept="image/*" description="Up to 5 MB." error="Choose a photo." />;
+
+  it("renders the label, description and error ids on the server", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const doc = new DOMParser().parseFromString(renderToString(node), "text/html");
+    const input = doc.querySelector('input[type="file"]')!;
+    expect(doc.querySelector(`label[for="${input.id}"]`)!.textContent).toContain("Photo");
+    expect(describedBy(input).map((id) => doc.getElementById(id)!.textContent)).toEqual(["Up to 5 MB.", "Choose a photo."]);
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+    expect(error).not.toHaveBeenCalled();
+  });
+
+  it("hydrates with the same ids and no hydration warning", async () => {
+    const host = document.createElement("div");
+    host.innerHTML = renderToString(node);
+    document.body.append(host);
+    mounted.push(host);
+    const snapshot = () =>
+      [...host.querySelectorAll("*")].map((el) => [el.tagName, el.id, el.getAttribute("for"), el.getAttribute("aria-describedby")]);
+    const before = snapshot();
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const recoverable = vi.fn();
+    let root!: Root;
+    await act(async () => {
+      root = hydrateRoot(host, node, { onRecoverableError: recoverable });
+    });
+    roots.push(root);
+    expect(snapshot()).toEqual(before);
+    expect(recoverable).not.toHaveBeenCalled();
+    expect(error).not.toHaveBeenCalled();
+    await choose(host.querySelector('input[type="file"]')!, [image()]);
+    expect(host.querySelectorAll("[data-ouro-file-name]")).toHaveLength(1);
+  });
+});
