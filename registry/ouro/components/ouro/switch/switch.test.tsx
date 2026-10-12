@@ -4,7 +4,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Switch, type SwitchProps } from "@/registry/ouro/components/ouro/switch/switch";
-import { Form } from "@/registry/ouro/components/ouro/form/form";
+import { Form, type FormErrors } from "@/registry/ouro/components/ouro/form/form";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 const roots: Root[] = [];
@@ -78,6 +78,20 @@ function contrast(a: [number, number, number], b: [number, number, number]): num
 
 /** Waits until the thumb's running transitions settle, so its box is final. */
 const settled = (element: Element) => Promise.all(element.getAnimations().map((animation) => animation.finished.catch(() => {})));
+
+/** A Form whose errors arrive when "Fail" is clicked, as a server action's result does. */
+function Arriving({ errors, children }: { errors: FormErrors; children: ReactNode }) {
+  const [shown, setShown] = useState<FormErrors | undefined>();
+  return (
+    <Form errors={shown}>
+      <button type="button" onClick={() => setShown(errors)}>
+        Fail
+      </button>
+      {children}
+    </Form>
+  );
+}
+const fail = () => userEvent.click(page.getByRole("button", { name: "Fail" }));
 
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
@@ -181,6 +195,21 @@ describe("Switch in a Form", () => {
     await userEvent.click(track);
     await expect.poll(() => track.getAttribute("aria-invalid")).toBeNull();
     expect(describedBy(track)).toEqual([]);
+  });
+});
+
+describe("Switch focus when Form errors arrive", () => {
+  it("takes focus, unless it is disabled", async () => {
+    const { host } = await render(
+      <Arriving errors={{ offline: "Not available.", backups: "Backups must be on." }}>
+        <Switch label="Offline mode" name="offline" disabled />
+        <Switch label="Nightly backups" name="backups" />
+      </Arriving>,
+    );
+    await fail();
+    const [offline, backups] = [...host.querySelectorAll<HTMLElement>('[role="switch"]')];
+    expect(offline!.getAttribute("aria-invalid")).toBe("true");
+    await expect.poll(() => document.activeElement).toBe(backups);
   });
 });
 

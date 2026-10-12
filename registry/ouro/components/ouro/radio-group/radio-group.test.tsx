@@ -6,7 +6,7 @@ import { commands, page, userEvent } from "vitest/browser";
 import { Checkbox } from "@/registry/ouro/components/ouro/checkbox/checkbox";
 import { Radio, RadioGroup, type RadioGroupProps, type RadioProps } from "@/registry/ouro/components/ouro/radio-group/radio-group";
 import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
-import { Form } from "@/registry/ouro/components/ouro/form/form";
+import { Form, type FormErrors } from "@/registry/ouro/components/ouro/form/form";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 const roots: Root[] = [];
@@ -62,6 +62,20 @@ const sizes = [
   { value: "large", label: "Large", disabled: true },
   { value: "family", label: "Family" },
 ];
+
+/** A Form whose errors arrive when "Fail" is clicked, as a server action's result does. */
+function Arriving({ errors, children }: { errors: FormErrors; children: ReactNode }) {
+  const [shown, setShown] = useState<FormErrors | undefined>();
+  return (
+    <Form errors={shown}>
+      <button type="button" onClick={() => setShown(errors)}>
+        Fail
+      </button>
+      {children}
+    </Form>
+  );
+}
+const fail = () => userEvent.click(page.getByRole("button", { name: "Fail" }));
 
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
@@ -197,6 +211,47 @@ describe("RadioGroup", () => {
     await userEvent.click(radios[1]!);
     await expect.poll(() => radios[0]!.getAttribute("aria-invalid")).toBeNull();
     expect(describedBy(group)).toEqual([]);
+  });
+
+  it("focuses its first radio when its Form error arrives and none is picked", async () => {
+    const { radios } = await render(
+      <Arriving errors={{ size: "That size is sold out." }}>
+        <RadioGroup legend="Size" name="size" options={sizes} />
+      </Arriving>,
+    );
+    await fail();
+    await expect.poll(() => document.activeElement).toBe(radios[0]);
+  });
+
+  it("skips a disabled first radio when its Form error arrives", async () => {
+    const { radios } = await render(
+      <Arriving errors={{ size: "That size is sold out." }}>
+        <RadioGroup legend="Size" name="size" options={[{ value: "party", label: "Party", disabled: true }, ...sizes]} />
+      </Arriving>,
+    );
+    await fail();
+    expect(radios[0]!.getAttribute("aria-invalid")).toBe("true");
+    await expect.poll(() => document.activeElement).toBe(radios[1]);
+  });
+
+  it("focuses the picked radio, not the first, when its Form error arrives", async () => {
+    const { radios } = await render(
+      <Arriving errors={{ size: "That size is sold out." }}>
+        <RadioGroup legend="Size" name="size" defaultValue="family" options={sizes} />
+      </Arriving>,
+    );
+    await fail();
+    await expect.poll(() => document.activeElement).toBe(radios[3]);
+  });
+
+  it("focuses the first enabled radio when the picked one is disabled", async () => {
+    const { radios } = await render(
+      <Arriving errors={{ size: "That size is sold out." }}>
+        <RadioGroup legend="Size" name="size" defaultValue="large" options={sizes} />
+      </Arriving>,
+    );
+    await fail();
+    await expect.poll(() => document.activeElement).toBe(radios[0]);
   });
 
   it("keeps an invalid radio's border red while hovered", async () => {

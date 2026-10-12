@@ -4,7 +4,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Checkbox, type CheckboxProps } from "@/registry/ouro/components/ouro/checkbox/checkbox";
-import { Form } from "@/registry/ouro/components/ouro/form/form";
+import { Form, type FormErrors } from "@/registry/ouro/components/ouro/form/form";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 const roots: Root[] = [];
@@ -58,6 +58,20 @@ function pixel(color: string): string {
   context.fillRect(0, 0, 1, 1);
   return context.getImageData(0, 0, 1, 1).data.join(",");
 }
+
+/** A Form whose errors arrive when "Fail" is clicked, as a server action's result does. */
+function Arriving({ errors, children }: { errors: FormErrors; children: ReactNode }) {
+  const [shown, setShown] = useState<FormErrors | undefined>();
+  return (
+    <Form errors={shown}>
+      <button type="button" onClick={() => setShown(errors)}>
+        Fail
+      </button>
+      {children}
+    </Form>
+  );
+}
+const fail = () => userEvent.click(page.getByRole("button", { name: "Fail" }));
 
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
@@ -168,6 +182,20 @@ describe("Checkbox", () => {
     await userEvent.click(box);
     await expect.poll(() => box.getAttribute("aria-invalid")).toBeNull();
     expect(describedBy(box)).toEqual([]);
+  });
+
+  it("takes focus when its Form error arrives, unless it is disabled", async () => {
+    const { host } = await render(
+      <Arriving errors={{ locked: "Locked.", terms: "Accept the terms." }}>
+        <Checkbox label="Locked" name="locked" disabled />
+        <Checkbox label="I accept the terms" name="terms" />
+      </Arriving>,
+    );
+    await fail();
+    const [locked, terms] = [...host.querySelectorAll<HTMLElement>('[role="checkbox"]')];
+    expect(locked!.getAttribute("aria-invalid")).toBe("true");
+    // The disabled box cannot be changed, so focus goes to the first one that can.
+    await expect.poll(() => document.activeElement).toBe(terms);
   });
 
   it("submits name=value with its form when checked, and nothing when not", async () => {

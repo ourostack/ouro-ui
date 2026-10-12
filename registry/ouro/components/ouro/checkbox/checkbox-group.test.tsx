@@ -6,7 +6,7 @@ import { commands, page, userEvent } from "vitest/browser";
 import { Checkbox } from "@/registry/ouro/components/ouro/checkbox/checkbox";
 import { CheckboxGroup, type CheckboxGroupProps } from "@/registry/ouro/components/ouro/checkbox/checkbox-group";
 import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
-import { Form } from "@/registry/ouro/components/ouro/form/form";
+import { Form, type FormErrors } from "@/registry/ouro/components/ouro/form/form";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 const roots: Root[] = [];
@@ -44,6 +44,20 @@ const herbs = [
   { value: "mint", label: "Mint" },
   { value: "sage", label: "Sage", disabled: true },
 ];
+
+/** A Form whose errors arrive when "Fail" is clicked, as a server action's result does. */
+function Arriving({ errors, children }: { errors: FormErrors; children: ReactNode }) {
+  const [shown, setShown] = useState<FormErrors | undefined>();
+  return (
+    <Form errors={shown}>
+      <button type="button" onClick={() => setShown(errors)}>
+        Fail
+      </button>
+      {children}
+    </Form>
+  );
+}
+const fail = () => userEvent.click(page.getByRole("button", { name: "Fail" }));
 
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
@@ -159,6 +173,27 @@ describe("CheckboxGroup", () => {
     await userEvent.click(boxes[1]!);
     await expect.poll(() => boxes.map((box) => box.getAttribute("aria-invalid"))).toEqual([null, null, null]);
     expect(describedBy(group)).toEqual([]);
+  });
+
+  it("focuses its first box when its Form error arrives", async () => {
+    const { boxes } = await render(
+      <Arriving errors={{ herbs: "Pick a herb we have." }}>
+        <CheckboxGroup legend="Herbs" name="herbs" options={herbs} />
+      </Arriving>,
+    );
+    await fail();
+    await expect.poll(() => document.activeElement).toBe(boxes[0]);
+  });
+
+  it("skips a disabled first box when its Form error arrives", async () => {
+    const { boxes } = await render(
+      <Arriving errors={{ herbs: "Pick a herb we have." }}>
+        <CheckboxGroup legend="Herbs" name="herbs" options={[{ value: "dill", label: "Dill", disabled: true }, ...herbs]} />
+      </Arriving>,
+    );
+    await fail();
+    expect(boxes[0]!.getAttribute("aria-invalid")).toBe("true");
+    await expect.poll(() => document.activeElement).toBe(boxes[1]);
   });
 
   it("required marks the legend and blocks submit until a box is checked", async () => {
