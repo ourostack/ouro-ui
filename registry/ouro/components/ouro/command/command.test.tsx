@@ -481,6 +481,13 @@ describe("Command server search", () => {
     await server.answer("pa", ["Pasta", "Paella"]);
     await expect.poll(options).toEqual(["Pasta", "Paella"]);
     await userEvent.type(input(), "x");
+    // A slow fade-out, so the palette is still closing when it reopens, whatever the
+    // app's stylesheet or the runner's speed (an installed app may have no transition).
+    const slow = Object.assign(document.createElement("style"), {
+      textContent: "[data-ouro-presentation] { transition: opacity 3s linear !important } [data-ouro-presentation][data-ending-style] { opacity: 0 !important }",
+    });
+    document.head.append(slow);
+    mounted.push(slow);
     await userEvent.keyboard("{Escape}");
     // Reopen at once, while the palette is still fading out.
     // A real click would wait for the backdrop to go, so the button is clicked directly, as ⌘K would toggle it.
