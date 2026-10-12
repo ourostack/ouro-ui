@@ -359,8 +359,8 @@ describe("Form-level messages (review fix round 1, finding 3)", () => {
     );
     const alert = host.querySelector<HTMLElement>('[role="alert"]')!;
     expect(alert).not.toBeNull();
-    expect(alert.parentElement).toBe(form);
-    // Shown above the fields.
+    // First in the DOM, so reading order matches what the eye sees (review fix round 3, ruling 2).
+    expect(form.firstElementChild).toBe(alert);
     expect(alert.getBoundingClientRect().bottom).toBeLessThanOrEqual(host.querySelector("input")!.getBoundingClientRect().top);
     await expect.poll(() => alert.textContent).toBe("The server is down.Typo key.");
     // The field's own error shows on the field only.
@@ -453,40 +453,56 @@ describe("Form-level messages (review fix round 1, finding 3)", () => {
   });
 });
 
-describe("Form-level messages before hydration (review fix round 2, finding 2)", () => {
+describe("Form-level messages before hydration (review fix rounds 2 and 3)", () => {
+  const errors = { emial: "Typo key.", email: "Taken.", form: "The server is down." };
+  const alertOf = (html: string) => {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const form = doc.querySelector("form")!;
+    expect(form.firstElementChild!.getAttribute("role")).toBe("alert");
+    return [...form.firstElementChild!.querySelectorAll("p")].map((p) => p.textContent);
+  };
+
+  it("puts keys no field claims in the server HTML when the fields are written in the form", () => {
+    const html = renderToString(
+      <Form errors={errors}>
+        <div>
+          <TextField label="Email" name="email" />
+        </div>
+        <TextField label="Name" name="name" />
+      </Form>,
+    );
+    expect(alertOf(html)).toEqual(["The server is down.", "Typo key."]);
+  });
+
   function Wrapped() {
     return <TextField label="Email" name="email" />;
   }
-  const page_ = (
-    <Form errors={{ emial: "Typo key.", email: "Taken.", form: "The server is down." }}>
+  const wrappedPage = (
+    <Form errors={errors}>
       <Wrapped />
       <TextField label="Name" name="name" />
     </Form>
   );
 
-  it("puts keys no field claims in the server HTML, and leaves claimed keys on their fields", () => {
-    const html = renderToString(page_);
-    const doc = new DOMParser().parseFromString(html, "text/html");
-    const alert = doc.querySelector('[role="alert"]')!;
-    expect([...alert.querySelectorAll("p")].map((p) => p.textContent)).toEqual(["The server is down.", "Typo key."]);
-    expect(alert.textContent).not.toContain("Taken.");
+  it("shows only the form key on the server when a component may hide a field, so no error shows twice", () => {
+    expect(alertOf(renderToString(wrappedPage))).toEqual(["The server is down."]);
   });
 
-  it("hydrates that HTML with no mismatch and keeps the same messages", async () => {
+  it("hydrates that HTML with no mismatch, then shows the unclaimed key", async () => {
     const host = document.createElement("div");
-    host.innerHTML = renderToString(page_);
+    host.innerHTML = renderToString(wrappedPage);
     document.body.append(host);
     mounted.push(host);
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const recoverable = vi.fn();
     let root!: Root;
     await act(async () => {
-      root = hydrateRoot(host, page_, { onRecoverableError: recoverable });
+      root = hydrateRoot(host, wrappedPage, { onRecoverableError: recoverable });
     });
     roots.push(root);
     expect(recoverable).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
-    expect(host.querySelector('[role="alert"]')!.textContent).toBe("The server is down.Typo key.");
+    await expect.poll(() => host.querySelector('[role="alert"]')!.textContent).toBe("The server is down.Typo key.");
   });
 });
 

@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { openStory } from "./story";
 
 test("saves with loading, then closes and returns focus to the trigger", async ({ page }) => {
@@ -38,9 +38,16 @@ test.describe("on a phone", () => {
 
 test.describe("on a phone with the keyboard up", () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  test.skip(({ browserName }) => browserName === "firefox", "isMobile is not supported in Firefox");
 
-  test("keeps the focused field and the save button above the keyboard", async ({ page, browserName }) => {
-    test.skip(browserName === "firefox", "isMobile is not supported in Firefox");
+  const keyboard = 336;
+
+  /**
+   * Opens the sheet, focuses Serves with a tap and raises a stand-in software keyboard: a
+   * real one shrinks the visual viewport, not the layout viewport, and fires resize and
+   * scroll on it. Checks the field and Save sit above the keyboard.
+   */
+  async function editWithKeyboardUp(page: Page) {
     await openStory(page, "overlays-editsheet--playground");
     await page.getByRole("button", { name: "Edit" }).tap();
     const sheet = page.getByRole("dialog", { name: "Edit recipe" });
@@ -48,9 +55,6 @@ test.describe("on a phone with the keyboard up", () => {
     const serves = sheet.getByRole("textbox", { name: "Serves" });
     await serves.tap();
     await expect(serves).toBeFocused();
-    // A software keyboard shrinks the visual viewport, not the layout viewport, and fires
-    // resize and scroll on it; a browser without one can only stand in for it that way.
-    const keyboard = 336;
     await page.evaluate((height) => {
       const viewport = window.visualViewport!;
       Object.defineProperty(viewport, "height", { configurable: true, get: () => window.innerHeight - height });
@@ -65,18 +69,31 @@ test.describe("on a phone with the keyboard up", () => {
           .find(Boolean),
       );
     await expect.poll(inset).toBe(`${keyboard}px`);
-    const visibleBottom = 844 - keyboard;
-    const bottomOf = async (locator: typeof serves) => {
+    const bottomOf = async (locator: Locator) => {
       const box = (await locator.boundingBox())!;
       return box.y + box.height;
     };
     const save = sheet.getByRole("button", { name: "Save" });
-    await expect.poll(() => bottomOf(save)).toBeLessThanOrEqual(visibleBottom);
-    await expect.poll(() => bottomOf(serves)).toBeLessThanOrEqual(visibleBottom);
+    await expect.poll(() => bottomOf(save)).toBeLessThanOrEqual(844 - keyboard);
+    await expect.poll(() => bottomOf(serves)).toBeLessThanOrEqual(844 - keyboard);
     expect((await serves.boundingBox())!.y).toBeGreaterThanOrEqual(0);
     await serves.fill("6");
-    // Saves with the keyboard still up.
+    return { sheet, serves, save };
+  }
+
+  test("keeps the field and Save above the keyboard, and saves from a tap on Save", async ({ page }) => {
+    const { sheet, serves, save } = await editWithKeyboardUp(page);
+    await save.tap();
+    await expect(save).toHaveAttribute("aria-busy", "true");
+    // The field keeps focus, so the keyboard (and the inset) stay up until the save lands.
+    await expect(serves).toBeFocused();
+    await expect(sheet).toBeHidden();
+  });
+
+  test("saves from Enter in the field", async ({ page }) => {
+    const { sheet, serves, save } = await editWithKeyboardUp(page);
     await serves.press("Enter");
+    await expect(save).toHaveAttribute("aria-busy", "true");
     await expect(sheet).toBeHidden();
   });
 });

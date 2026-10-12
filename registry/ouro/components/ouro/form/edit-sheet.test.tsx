@@ -592,6 +592,21 @@ describe("EditSheet's discard guard keeps the opening's values (review fix round
     await expect.poll(() => popup()).toBeNull();
   });
 
+  it("starts clean when reopened before the close animation ends (round 3)", async () => {
+    await render(uncontrolled(() => {}));
+    await userEvent.click(trigger());
+    await settled();
+    const firstForm = popup()!.querySelector("form");
+    // Cancel, then reopen at once: Base UI keeps the same form mounted through the exit.
+    await act(async () => (dialogButton("Cancel").element() as HTMLButtonElement).click());
+    await act(async () => trigger().click());
+    await settled();
+    expect(popup()!.querySelector("form")).toBe(firstForm);
+    await userEvent.click(dialogButton("Cancel"));
+    await expect.poll(() => popup()).toBeNull();
+    expect(confirmRow()).toBeNull();
+  });
+
   it("keeps the opening's values when a resize swaps the dialog for the sheet", async () => {
     await render(<Controlled onSubmit={() => {}} />);
     await userEvent.click(trigger());
@@ -628,6 +643,32 @@ describe("EditSheet's close button while a save is pending (review fix round 2, 
     expect(popup()!.hasAttribute("data-open")).toBe(true);
     await act(async () => pending.resolve({ servings: "Use a whole number." }));
     await expect.poll(() => close().disabled).toBe(false);
+  });
+});
+
+describe("EditSheet's footer keeps focus in the field (review fix round 3, ruling 1)", () => {
+  it.each(["Save", "Cancel"])("cancels the mousedown on %s that would take focus, but not the pointerdown", async (name) => {
+    const onSubmit = vi.fn();
+    await open({ onSubmit });
+    const button = dialogButton(name).element();
+    const pointer = new PointerEvent("pointerdown", { bubbles: true, cancelable: true, pointerType: "touch" });
+    const mouse = new MouseEvent("mousedown", { bubbles: true, cancelable: true });
+    button.dispatchEvent(pointer);
+    button.dispatchEvent(mouse);
+    // A cancelled pointerdown would stop WebKit from sending the tap's click.
+    expect(pointer.defaultPrevented).toBe(false);
+    expect(mouse.defaultPrevented).toBe(true);
+  });
+
+  it("leaves focus in the field when Save is clicked, and saves", async () => {
+    const pending = deferred<void>();
+    await open({ onSubmit: () => pending.promise });
+    field("servings").focus();
+    await userEvent.click(dialogButton("Save"));
+    expect(dialogButton("Save").element().getAttribute("aria-busy")).toBe("true");
+    expect(document.activeElement).toBe(field("servings"));
+    await act(async () => pending.resolve());
+    await expect.poll(() => popup()).toBeNull();
   });
 });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type JSX, type ReactElement, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, type JSX, type MouseEvent, type ReactElement, type ReactNode } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
 import { checkOpenMode } from "@/registry/ouro/lib/ouro/open-mode";
@@ -9,6 +9,17 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { DialogFrame } from "@/registry/ouro/components/ouro/dialog/dialog";
 import { Form, type FormErrors } from "@/registry/ouro/components/ouro/form/form";
 import { sheetHint } from "@/registry/ouro/components/ouro/sheet/sheet-styles";
+
+/**
+ * Pressing Save or Cancel leaves focus in the field. On a phone, focus leaving the field
+ * drops the software keyboard and its inset, which moves the footer down before the click
+ * lands, so the tap would miss. A tap moves focus on its compatibility `mousedown`, so
+ * cancelling that is enough; cancelling `pointerdown` as well would stop WebKit from
+ * sending the click at all.
+ */
+const keepFieldFocus = {
+  onMouseDown: (event: MouseEvent<HTMLButtonElement>) => event.preventDefault(),
+};
 
 /** What `onSubmit` may return: nothing (saved), or errors by field name (not saved). */
 export type EditSheetResult = void | undefined | FormErrors;
@@ -210,18 +221,24 @@ export function EditSheet(props: EditSheetProps): JSX.Element {
     setConfirming(false);
   }
   // The fields as the sheet opened, to tell whether the user changed any (a Select's value
-  // is in its hidden input, so every control counts). Taken once per opening, when the form
-  // first mounts, so a render after an edit (a controlled field, a save that failed) keeps
+  // is in its hidden input, so every control counts). Taken once per opening, when the sheet
+  // opens or the form first mounts, so a render after an edit (a controlled field, a save that failed) keeps
   // the opening's values; a resize that swaps the dialog for the sheet mounts a new form
   // without retaking it. Closing clears it for the next opening.
   const initial = useRef<string | undefined>(undefined);
   const formRef = useCallback((form: HTMLFormElement | null) => {
     if (form && initial.current === undefined) initial.current = serialize(form);
   }, []);
-  useEffect(() => {
-    if (shown) return;
-    initial.current = undefined;
-  }, [shown]);
+  // Opening takes it from a form that is still mounted, as when the sheet reopens before its
+  // close animation ends; a form that mounts later takes it in `formRef`.
+  useLayoutEffect(() => {
+    if (!shown) {
+      initial.current = undefined;
+      return;
+    }
+    const form = document.getElementById(formId) as HTMLFormElement | null;
+    if (form && initial.current === undefined) initial.current = serialize(form);
+  }, [shown, formId]);
   const edited = () => {
     const form = document.getElementById(formId) as HTMLFormElement | null;
     return form !== null && serialize(form) !== initial.current;
@@ -332,10 +349,10 @@ export function EditSheet(props: EditSheetProps): JSX.Element {
           </div>
         ) : (
           <>
-            <Button variant="outline" tone="secondary" disabled={pending} onClick={dismiss}>
+            <Button variant="outline" tone="secondary" disabled={pending} onClick={dismiss} {...keepFieldFocus}>
               {cancelLabel}
             </Button>
-            <Button type="submit" form={formId} loading={pending}>
+            <Button type="submit" form={formId} loading={pending} {...keepFieldFocus}>
               {submitLabel}
             </Button>
           </>

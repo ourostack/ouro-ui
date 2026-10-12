@@ -156,7 +156,6 @@ export function Field(props: FieldProps): JSX.Element {
   };
 
   // The field claims its name in the Form, so the Form shows its errors here, not at the top.
-  if (name !== undefined) form?.claim(name);
   const register = form?.register;
   useEffect(() => (register && name !== undefined ? register(name) : undefined), [register, name]);
 
