@@ -135,8 +135,10 @@ const stacked = {
 } as const;
 
 // With href, the title's link stretches over the row through its ::after; the actions sit above it.
+// The layer is z-1, so positioned content that is not a control (a ScrollArea, an
+// AspectRatio) stays under it; raised controls are z-10.
 const stretchedLink =
-  "text-inherit no-underline outline-none after:absolute after:inset-0 after:z-0 after:content-[''] " +
+  "text-inherit no-underline outline-none after:absolute after:inset-0 after:z-1 after:content-[''] " +
   "after:transition-colors after:duration-(--ouro-duration-fast) hover:after:bg-foreground/[0.03] active:after:bg-foreground/[0.06]";
 // A linked row is a full touch target on a coarse pointer, at either size.
 const linkRoot =
@@ -144,10 +146,11 @@ const linkRoot =
   "pointer-coarse:min-h-11";
 // Every control in the row (a link in the description, a button in the media or the
 // actions) sits above the stretched link. Inside :where(), with no specificity, so a
-// control's own `absolute` or `z-*` class still wins.
+// control's own `absolute` or `z-*` class still wins. An element that takes focus only
+// from code (tabindex="-1") stays under the link.
 const raiseControls =
-  "[:where(&_:is(a,button,input,select,textarea,label,summary,[tabindex],[role=button]):not([data-item-link]))]:relative " +
-  "[:where(&_:is(a,button,input,select,textarea,label,summary,[tabindex],[role=button]):not([data-item-link]))]:z-10";
+  "[:where(&_:is(a,button,input,select,textarea,label,summary,[tabindex]:not([tabindex='-1']),[role=button]):not([data-item-link]))]:relative " +
+  "[:where(&_:is(a,button,input,select,textarea,label,summary,[tabindex]:not([tabindex='-1']),[role=button]):not([data-item-link]))]:z-10";
 
 // With mediaAbove, below the breakpoint the media takes its own full-width row at 4:3 and
 // the columns drop the media's; `always` does so at every width.

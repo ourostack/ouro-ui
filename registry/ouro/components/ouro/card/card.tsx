@@ -107,16 +107,20 @@ const mediaPull = { outline: { md: "-mt-6", sm: "-mt-4" }, plain: { md: "rounded
 
 // With href, the title's link stretches over the card through its ::after, so the whole
 // card is one link with one tab stop; the action and footer sit above it.
+// The layer is z-1, so positioned content that is not a control (a ScrollArea, an
+// AspectRatio) stays under it; raised controls are z-10.
 const stretchedLink =
-  "text-inherit no-underline outline-none after:absolute after:inset-0 after:z-0 after:content-[''] " +
+  "text-inherit no-underline outline-none after:absolute after:inset-0 after:z-1 after:content-[''] " +
   "after:transition-colors after:duration-(--ouro-duration-fast) hover:after:bg-foreground/[0.03] active:after:bg-foreground/[0.06]";
 // Every control in any slot (a share button over the cover, a link in the body) sits above
 // the stretched link, so it takes its own clicks; text and images around it open the card.
 // The selector is inside :where(), with no specificity, so a control's own `absolute` or
-// `z-*` class still wins.
+// `z-*` class still wins. An element that takes focus only from code (tabindex="-1", as a
+// ScrollArea that fits) stays under the link. A linked Item inside is raised whole, so its
+// own stretched link keeps covering its row.
 const raiseControls =
-  "[:where(&_:is(a,button,input,select,textarea,label,summary,[tabindex],[role=button]):not([data-card-link]))]:relative " +
-  "[:where(&_:is(a,button,input,select,textarea,label,summary,[tabindex],[role=button]):not([data-card-link]))]:z-10";
+  "[:where(&_:is(a,button,input,select,textarea,label,summary,[tabindex]:not([tabindex='-1']),[role=button],[data-ouro=item]:has([data-item-link])):not([data-card-link],[data-item-link]))]:relative " +
+  "[:where(&_:is(a,button,input,select,textarea,label,summary,[tabindex]:not([tabindex='-1']),[role=button],[data-ouro=item]:has([data-item-link])):not([data-card-link],[data-item-link]))]:z-10";
 const linkRoot =
   "press cursor-pointer outline-ring -outline-offset-2 has-[[data-card-link]:focus-visible]:outline-2 has-[[data-card-link]:focus-visible]:outline-solid " +
   "motion-safe:has-[[data-card-link]:active]:scale-(--ouro-press-scale)";

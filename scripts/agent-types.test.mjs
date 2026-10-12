@@ -76,6 +76,9 @@ test("every snippet names the fix in at least one channel", () => {
     assert.ok(item.names.length > 0, item.id);
     assert.equal(item.names.includes("dev"), item.dev !== undefined, `${item.id}: dev`);
     assert.equal(item.names.includes("hover"), item.hover !== undefined, `${item.id}: hover`);
+    // A case that says the compiler names the fix must expect a compiler error. A case may
+    // expect errors that don't name the fix (a plain "not assignable"), so this is one-way.
+    if (item.names.includes("tsc")) assert.ok(item.tsc.length > 0, `${item.id}: names tsc but expects no tsc error`);
   }
   for (const fixture of fixtures) {
     const ids = fixture.lines.flatMap((line) => /^export const (\w+) =/.exec(line)?.[1] ?? []);

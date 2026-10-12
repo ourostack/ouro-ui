@@ -6,7 +6,9 @@ import { commands, page, userEvent } from "vitest/browser";
 import { AspectRatio } from "@/registry/ouro/components/ouro/aspect-ratio/aspect-ratio";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Card } from "@/registry/ouro/components/ouro/card/card";
+import { Item } from "@/registry/ouro/components/ouro/item/item";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
+import { ScrollArea } from "@/registry/ouro/components/ouro/scroll-area/scroll-area";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -287,6 +289,51 @@ describe("Card with href", () => {
     before.focus();
     await userEvent.tab();
     expect(getComputedStyle(card).outlineStyle).toBe("solid");
+  });
+
+  it("opens the card from text in an element that only takes focus from code, such as a ScrollArea that fits", async () => {
+    const { card } = await render(
+      <Card href="/cookbooks/1" title="Weeknight dinners">
+        <ScrollArea className="h-40" label="Notes">
+          <p>Short notes</p>
+        </ScrollArea>
+        <div tabIndex={-1}>
+          <p>Focus target</p>
+        </div>
+      </Card>,
+    );
+    const viewport = card.querySelector<HTMLElement>("[data-scroll-viewport]")!;
+    await expect.poll(() => viewport.tabIndex).toBe(-1);
+    const link = card.querySelector("[data-card-link]")!;
+    for (const text of ["Short notes", "Focus target"]) {
+      const [x, y] = center(page.getByText(text).element());
+      expect(document.elementFromPoint(x, y)).toBe(link);
+    }
+  });
+
+  it("keeps a linked Item inside it a whole-row link to its own page, and the rest opens the card", async () => {
+    await page.viewport(390, 844);
+    const { card } = await render(
+      <Card href="#cookbook" title="Weeknight dinners" description="12 recipes">
+        <Item href="#ribs" title="Braised short ribs" description="Four hours, mostly hands-off" data-row="" />
+      </Card>,
+    );
+    const row = card.querySelector<HTMLElement>("[data-row]")!;
+    const itemLink = row.querySelector<HTMLAnchorElement>("[data-item-link]")!;
+    const box = row.getBoundingClientRect();
+    for (const [x, y] of [
+      center(page.getByText("Four hours, mostly hands-off").element()),
+      [box.left + 4, box.top + box.height / 2],
+      [box.right - 4, box.bottom - 4],
+    ] as const) {
+      expect(document.elementFromPoint(x, y)).toBe(itemLink);
+    }
+    const [x, y] = center(page.getByText("Four hours, mostly hands-off").element());
+    (document.elementFromPoint(x, y) as HTMLElement).click();
+    expect(location.hash).toBe("#ribs");
+    const [cx, cy] = center(page.getByText("12 recipes").element());
+    expect(document.elementFromPoint(cx, cy)).toBe(card.querySelector("[data-card-link]"));
+    history.replaceState(null, "", location.pathname + location.search);
   });
 
   it("keeps its focus outline inside the card, so a scrolling parent does not clip it", async () => {

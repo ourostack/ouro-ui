@@ -2075,9 +2075,11 @@
         "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/card",
         "ourostack/ouro-ui/heading",
+        "ourostack/ouro-ui/item",
         "ourostack/ouro-ui/link",
         "ourostack/ouro-ui/ouro-lib",
         "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/scroll-area",
         "ourostack/ouro-ui/text"
       ],
       "files": [

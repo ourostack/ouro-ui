@@ -309,6 +309,14 @@ describe("Item with href", () => {
     expect(document.elementFromPoint(x, y)).toBe(link);
   });
 
+  it("opens the row from text in an element that only takes focus from code", async () => {
+    const { item } = await render(
+      <Item href="/recipes/1" title="Ribs" description={<span tabIndex={-1}>Four hours</span>} />,
+    );
+    const [x, y] = center(page.getByText("Four hours").element());
+    expect(document.elementFromPoint(x, y)).toBe(item.querySelector("[data-item-link]"));
+  });
+
   it("rounds the link's hover layer with variant=outline", async () => {
     const { item } = await render(<Item href="/recipes/1" title="Ribs" variant="outline" />);
     expect(getComputedStyle(item.querySelector("a")!, "::after").borderTopLeftRadius).not.toBe("0px");
