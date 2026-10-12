@@ -26,7 +26,8 @@ test.describe("on a desktop", () => {
     const share = page.getByRole("menuitem", { name: "Share" });
     await share.focus();
     await page.keyboard.press("ArrowRight");
-    await expect(page.getByRole("menuitem", { name: "Copy link" })).toBeVisible();
+    // The submenu moves focus to its first item; ArrowLeft before that reaches the parent menu.
+    await expect(page.getByRole("menuitem", { name: "Copy link" })).toBeFocused();
     await page.keyboard.press("ArrowLeft");
     await expect(page.getByRole("menuitem", { name: "Copy link" })).toBeHidden();
     await expect(share).toBeFocused();
