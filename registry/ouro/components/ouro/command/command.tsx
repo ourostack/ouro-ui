@@ -1,7 +1,7 @@
 "use client";
 
 import { Autocomplete } from "@base-ui/react/autocomplete";
-import { cloneElement, useMemo, useRef, useState, type JSX, type MouseEvent, type ReactElement, type Ref } from "react";
+import { cloneElement, useEffect, useMemo, useRef, useState, type JSX, type MouseEvent, type ReactElement, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { floatingHint } from "@/registry/ouro/lib/ouro/floating";
 import { lastInput } from "@/registry/ouro/lib/ouro/last-input";
@@ -29,6 +29,7 @@ import {
   commandInputClass,
   commandItemClass,
   commandListClass,
+  commandLoadingClass,
   commandSearchClass,
   commandSheetListClass,
   commandSheetSearchClass,
@@ -82,6 +83,21 @@ export interface CommandBaseProps {
   closeLabel?: string | undefined;
   /** Layout only, applied to the dialog panel: margins (`mt-8`). Appearance classes warn in development. */
   className?: string | undefined;
+  /**
+   * For results from a server: called with the search text on every change. The palette
+   * then stops filtering `items` itself and shows them as they are, so keep the last results
+   * in `items` until new ones arrive. `signal` aborts when a newer query replaces this one
+   * or the palette closes: pass it to `fetch`, or drop the response when `signal.aborted`,
+   * so a slow earlier response never overwrites a newer one. The app owns the request.
+   */
+  onQueryChange?: ((query: string, context: { signal: AbortSignal }) => void) | undefined;
+  /**
+   * Whether results are on their way: shows `loadingLabel` beside the input, announces it
+   * politely once while the palette is open, and holds back the empty state.
+   */
+  loading?: boolean | undefined;
+  /** What shows, and is announced, while `loading`. @default "Searching…" */
+  loadingLabel?: string | undefined;
 
   /** Not a prop. Ouro UI uses `open` with `onOpenChange`: `<Command open={open} onOpenChange={setOpen}>`. */
   isOpen?: { "Use <Command open={open} onOpenChange={setOpen}>": never };
@@ -205,6 +221,9 @@ export function Command(props: CommandProps): JSX.Element {
     emptyLabel = "No results",
     closeLabel = "Close",
     className,
+    onQueryChange,
+    loading = false,
+    loadingLabel = "Searching…",
     trigger,
     open,
     onOpenChange,
@@ -274,6 +293,24 @@ export function Command(props: CommandProps): JSX.Element {
   // Focus returns to the trigger on close; Safari does not focus a button on click.
   const finalFocus = trigger !== undefined ? { finalFocus: triggerRef } : {};
 
+  // Whether "Searching…" was announced in this opening of the palette.
+  const [announced, setAnnounced] = useState(false);
+  // The latest search's controller: a newer query, or closing, aborts it.
+  const searchRef = useRef<AbortController | null>(null);
+  const search = (query: string) => {
+    searchRef.current?.abort();
+    const controller = new AbortController();
+    searchRef.current = controller;
+    onQueryChange!(query, { signal: controller.signal });
+  };
+  useEffect(() => {
+    if (!isOpenNow) searchRef.current?.abort();
+  }, [isOpenNow]);
+  useEffect(() => () => searchRef.current?.abort(), []);
+  // Adjusted while rendering, as React suggests for state that follows props.
+  if (loading && isOpenNow && !announced) setAnnounced(true);
+  if (!isOpenNow && announced) setAnnounced(false);
+
   const run = (item: CommandItem) => {
     setOpen(false);
     item.onSelect();
@@ -286,17 +323,26 @@ export function Command(props: CommandProps): JSX.Element {
       open
       autoHighlight="always"
       keepHighlight
-      filter={(item: CommandItem, query: string) => matchesQuery(item.label, item.keywords, query)}
+      // A server search filters on the server: the items are already the results.
+      filter={onQueryChange ? null : (item: CommandItem, query: string) => matchesQuery(item.label, item.keywords, query)}
+      {...(onQueryChange ? { onValueChange: (query: string) => search(query) } : {})}
     >
       <div data-ouro="command" className="flex min-h-0 flex-1 flex-col">
         <div data-ouro-command-search="" className={inSheet ? commandSheetSearchClass : commandSearchClass}>
           <SearchIcon />
           <Autocomplete.Input aria-label={searchLabel} placeholder={placeholder} className={commandInputClass} />
+          {loading && (
+            <span data-ouro-command-loading="" aria-hidden="true" className={commandLoadingClass}>
+              {loadingLabel}
+            </span>
+          )}
+          {/* Set once per opening, so typing on while results load is not announced again. */}
+          <span data-ouro-command-status="" role="status" aria-live="polite" className="sr-only">
+            {announced ? loadingLabel : ""}
+          </span>
         </div>
         <div data-ouro-command-list="" className={inSheet ? commandSheetListClass : commandListClass}>
-          <Autocomplete.Empty>
-            <div className={commandEmptyClass}>{emptyLabel}</div>
-          </Autocomplete.Empty>
+          <Autocomplete.Empty>{!loading && <div className={commandEmptyClass}>{emptyLabel}</div>}</Autocomplete.Empty>
           <Autocomplete.List className="outline-none">
             {(group: Group, index: number) => (
               <Autocomplete.Group key={group.label ?? `loose-${index}`} items={group.items} data-ouro-command-group="">

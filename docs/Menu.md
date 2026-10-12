@@ -38,6 +38,7 @@ Props every mode takes. Type: `MenuProps`.
 | --- | --- | --- | --- |
 | `children` | `ReactNode` |  | The entries as `MenuItem`, `MenuCheckboxItem`, `MenuRadioGroup`, `MenuGroup`, `MenuSub` and `MenuSeparator`. |
 | `className` | `string` |  | Layout only, applied to the menu panel: width (`w-64`; at least 12rem by default) and margins. The phone sheet keeps its full width. Appearance classes warn in development. |
+| `closeLabel` | `string` |  | The text of the item that ends the phone sheet and closes it, for screen-reader and switch users, who cannot swipe or tap the backdrop. Default "Close". |
 | `items` | `readonly MenuEntry[]` |  | The entries as data, in place of children: `items={[{ label: "Edit", onClick: edit }, { type: "separator" }]}`. |
 | `onOpenChange` | `((open: boolean) => void)` |  | Called when the menu opens or closes. |
 | `open` | `boolean` |  | Whether the menu is open, to control it; pass `onOpenChange` with it. |

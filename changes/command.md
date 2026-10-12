@@ -1,1 +1,2 @@
 - New: Command, a command palette in a Dialog (a full-height sheet below 640px) with search, groups, shortcuts and an empty state; `useCommandShortcut("mod+k")` in lib/ouro opens it from anywhere on the page.
+- Command: server-side search with `onQueryChange(query, { signal })`, whose signal aborts when a newer query replaces it, and `loading` with `loadingLabel` (default "Searching…"), announced once per opening; the empty state waits for loading to finish.

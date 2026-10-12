@@ -43,6 +43,9 @@ Props every mode takes. Type: `CommandProps`.
 | `closeLabel` | `string` | `"Close"` | The label of the close button, hidden until it has keyboard focus, so screen-reader users on phones (who have no Escape key) can always close the palette. |
 | `emptyLabel` | `string` | `"No results"` | What shows when nothing matches the search. |
 | `items` (required) | `readonly CommandEntry[]` |  | The commands: groups (`{ label: "Recipes", items: [...] }`), single commands, or both. |
+| `loading` | `boolean` |  | Whether results are on their way: shows `loadingLabel` beside the input, announces it politely once while the palette is open, and holds back the empty state. |
+| `loadingLabel` | `string` | `"Searching…"` | What shows, and is announced, while `loading`. |
+| `onQueryChange` | `((query: string, context: { signal: AbortSignal }) => void)` |  | For results from a server: called with the search text on every change. The palette then stops filtering `items` itself and shows them as they are, so keep the last results in `items` until new ones arrive. `signal` aborts when a newer query replaces this one or the palette closes: pass it to `fetch`, or drop the response when `signal.aborted`, so a slow earlier response never overwrites a newer one. The app owns the request. |
 | `placeholder` | `string` | `"Type a command or search…"` | The search input's placeholder. |
 | `searchLabel` | `string` | `"Search commands"` | The search input's label for screen readers. |
 | `title` (required) | `string` |  | Names the palette for screen readers; it is not shown. Always required. |

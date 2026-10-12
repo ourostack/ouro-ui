@@ -134,6 +134,11 @@ export interface MenuBaseProps {
    * margins. The phone sheet keeps its full width. Appearance classes warn in development.
    */
   className?: string | undefined;
+  /**
+   * The text of the item that ends the phone sheet and closes it, for screen-reader and
+   * switch users, who cannot swipe or tap the backdrop. Default "Close".
+   */
+  closeLabel?: string | undefined;
 
   /** Not a prop. Ouro UI uses `open` with `onOpenChange`: `<Menu open={open} onOpenChange={setOpen} trigger={…}>`. */
   isOpen?: { 'Use <Menu open={open} onOpenChange={setOpen} trigger={...}>': never };
@@ -304,6 +309,7 @@ function MenuSurface({
   className,
   children,
   finalFocus,
+  closeLabel,
 }: {
   sheet: boolean;
   context: boolean;
@@ -312,6 +318,8 @@ function MenuSurface({
   className?: string | undefined;
   children: ReactNode;
   finalFocus?: RefObject<HTMLElement | null> | undefined;
+  /** Set for a top-level menu: its phone sheet ends with a Close item. */
+  closeLabel?: string | undefined;
 }): JSX.Element {
   const Positioner = context ? ContextMenu.Positioner : BaseMenu.Positioner;
   return (
@@ -332,6 +340,14 @@ function MenuSurface({
           {...(finalFocus ? { finalFocus } : {})}
         >
           <MenuContext.Provider value={{ sheet }}>{children}</MenuContext.Provider>
+          {sheet && closeLabel !== undefined && (
+            <>
+              <BaseMenu.Separator className={menuSeparatorClass} />
+              <BaseMenu.Item data-ouro-menu-close="" className={menuItemClass}>
+                <span data-ouro-menu-label="">{closeLabel}</span>
+              </BaseMenu.Item>
+            </>
+          )}
         </BaseMenu.Popup>
       </Positioner>
     </BaseMenu.Portal>
@@ -378,6 +394,7 @@ export function Menu(props: MenuProps): JSX.Element {
     side: sideProp,
     align: alignProp,
     className,
+    closeLabel = "Close",
     open,
     onOpenChange,
     // Guard props (hint types), dropped here so they never reach the DOM.
@@ -474,7 +491,7 @@ export function Menu(props: MenuProps): JSX.Element {
         <BaseMenu.Trigger render={trigger} ref={triggerRef} />
       )}
       {/* Safari does not focus a button on click, so name where focus goes back. */}
-      <MenuSurface sheet={sheet} context={false} side={side} align={align} className={className} finalFocus={triggerRef}>
+      <MenuSurface sheet={sheet} context={false} side={side} align={align} className={className} finalFocus={triggerRef} closeLabel={closeLabel}>
         {body}
       </MenuSurface>
     </BaseMenu.Root>
@@ -858,7 +875,7 @@ export function MenuSub({ label, children, disabled, backLabel = "Back" }: MenuS
   const [open, setOpen] = useState(false);
   return (
     <BaseMenu.SubmenuRoot open={open} onOpenChange={setOpen} disabled={disabled}>
-      <BaseMenu.SubmenuTrigger className={menuItemClass} disabled={disabled}>
+      <BaseMenu.SubmenuTrigger className={menuItemClass} disabled={disabled} openOnHover={!sheet}>
         <span data-ouro-menu-label="" className="flex min-w-0 flex-1 items-center gap-2">
           {label}
         </span>

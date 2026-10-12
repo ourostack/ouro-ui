@@ -67,6 +67,23 @@ it.each([
   await expect.poll(() => toastNamed(message)).toBeUndefined();
 });
 
+it("dismisses with a swipe down on a page that scrolls, without scrolling it", async () => {
+  const tall = document.createElement("div");
+  tall.style.height = "3000px";
+  document.body.append(tall);
+  nodes.push(tall);
+  scrollTo(0, 400);
+  await renderToaster();
+  const item = await show("Swipe on a long page", { duration: 0 });
+  const rect = item.getBoundingClientRect();
+  const x = rect.left + rect.width / 2;
+  const y = rect.top + rect.height / 2;
+  await commands.touchDrag({ from: [x, y], to: [x, y + 140], steps: 10 });
+  await expect.poll(() => toastNamed("Swipe on a long page")).toBeUndefined();
+  expect(scrollY).toBe(400);
+  scrollTo(0, 0);
+});
+
 it("gives the dismiss and action buttons 44px touch targets", async () => {
   await renderToaster();
   const item = await show("Recipe deleted", { duration: 0, action: { label: "Undo", onClick: () => {} } });

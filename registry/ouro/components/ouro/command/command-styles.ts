@@ -5,6 +5,7 @@ export {
   commandInputClass,
   commandItemClass,
   commandListClass,
+  commandLoadingClass,
   commandSearchClass,
   commandSheetListClass,
   commandSheetSearchClass,
@@ -37,6 +38,13 @@ const commandSheetSearchClass =
  */
 const commandInputClass =
   "m-0 box-border h-12 min-w-0 flex-1 border-0 bg-transparent p-0 font-[inherit] text-base pointer-fine:text-sm text-popover-foreground outline-none placeholder:text-muted-foreground";
+
+/**
+ * "Searching…" at the end of the search row while results load; it never moves the input.
+ *
+ * @internal
+ */
+const commandLoadingClass = "shrink-0 text-xs leading-4 text-muted-foreground motion-safe:animate-pulse";
 
 /**
  * The results: a fixed height in the dialog, so the dialog keeps its size (and the input its

@@ -503,6 +503,53 @@ describe("Menu presentation", () => {
     await expect.poll(() => document.activeElement).toBe(trigger());
   });
 
+  it("ends the phone sheet with a Close item that screen-reader and switch users can reach, and closes on Escape", async () => {
+    await page.viewport(390, 844);
+    await render(
+      <Menu trigger={<Button>Actions</Button>} closeLabel="Fermer">
+        <MenuItem>Edit</MenuItem>
+      </Menu>,
+    );
+    await userEvent.click(trigger());
+    const element = await settled();
+    const entries = [...element.querySelectorAll<HTMLElement>('[role="menuitem"]')];
+    const close = entries.at(-1)!;
+    expect(close.textContent).toBe("Fermer");
+    expect(close.getBoundingClientRect().height).toBeGreaterThanOrEqual(32);
+    expect(getComputedStyle(close).visibility).toBe("visible");
+    await userEvent.click(close);
+    await expect.poll(menu).toBeNull();
+    await expect.poll(() => document.activeElement).toBe(trigger());
+    // Escape closes the sheet too, from the keyboard (and from VoiceOver's escape gesture, which sends it).
+    await userEvent.click(trigger());
+    await settled();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(menu).toBeNull();
+  });
+
+  it("labels the sheet's Close item Close by default, and has none beside its trigger", async () => {
+    await page.viewport(390, 844);
+    const { rerender } = await render(
+      <Menu trigger={<Button>Actions</Button>}>
+        <MenuItem>Edit</MenuItem>
+      </Menu>,
+    );
+    await userEvent.click(trigger());
+    await settled();
+    await expect.element(page.getByRole("menuitem", { name: "Close", exact: true })).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(menu).toBeNull();
+    await page.viewport(1280, 800);
+    await rerender(
+      <Menu trigger={<Button>Actions</Button>}>
+        <MenuItem>Edit</MenuItem>
+      </Menu>,
+    );
+    await userEvent.click(trigger());
+    await settled();
+    expect(menu()!.querySelector("[data-ouro-menu-close]")).toBeNull();
+  });
+
   it("labels the submenu's Back item Back by default", async () => {
     await page.viewport(390, 844);
     await render(

@@ -27,7 +27,9 @@ const viewportClass =
  * smaller; hovering or focusing the stack (`data-expanded`) fans them out. Base UI sets
  * `--toast-index`, `--toast-offset-y`, `--toast-height` and the swipe movement. With
  * reduced motion nothing slides or springs: toasts fade in and out where they are.
- * `touch-none` keeps a swipe on the toast from scrolling the page, which would cancel it.
+ * A toast swipes away downward as well as sideways, so it takes every touch gesture
+ * (`touch-none`, not `touch-pan-y`): otherwise a downward swipe on a scrollable page
+ * scrolls the page, and the browser cancels the swipe.
  *
  * @internal
  */

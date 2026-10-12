@@ -297,6 +297,138 @@ describe("Command presentation", () => {
   });
 });
 
+/** A search the test answers by hand, in any order: `answer("ab", ["Abba"])`. */
+function fakeServer() {
+  const pending = new Map<string, (labels: string[]) => void>();
+  const asked: string[] = [];
+  return {
+    asked,
+    search: (query: string) =>
+      new Promise<string[]>((resolve) => {
+        asked.push(query);
+        pending.set(query, resolve);
+      }),
+    answer: async (query: string, labels: string[]) => {
+      await act(async () => {
+        pending.get(query)!(labels);
+        await Promise.resolve();
+      });
+    },
+  };
+}
+
+/** How an app wires Command to a server search: the signal drops a response that a newer query replaced. */
+function ServerPalette({ server, onSelect = () => {} }: { server: ReturnType<typeof fakeServer>; onSelect?: () => void }) {
+  const [open, setOpen] = useState(true);
+  const [labels, setLabels] = useState(["Shakshuka", "Salad"]);
+  const [loading, setLoading] = useState(false);
+  return (
+    <Command
+      title="Recipe search"
+      open={open}
+      onOpenChange={setOpen}
+      loading={loading}
+      items={[{ label: "Recipes", items: labels.map((label) => ({ label, onSelect })) }]}
+      onQueryChange={(query, { signal }) => {
+        setLoading(true);
+        void server.search(query).then((next) => {
+          if (signal.aborted) return;
+          setLabels(next);
+          setLoading(false);
+        });
+      }}
+    />
+  );
+}
+
+describe("Command server search", () => {
+  const status = () => document.querySelector<HTMLElement>("[data-ouro-command-status]")!;
+
+  it("passes each query to onQueryChange, shows the app's results unfiltered, and keeps stale results while loading", async () => {
+    const server = fakeServer();
+    await render(<ServerPalette server={server} />);
+    await settled();
+    await userEvent.type(input(), "zz");
+    expect(server.asked).toEqual(["z", "zz"]);
+    // Nothing matches "zz" on the client, but the server owns the results: the stale ones stay.
+    expect(options()).toEqual(["Shakshuka", "Salad"]);
+    expect(document.body.textContent).not.toContain("No results");
+    await server.answer("zz", ["Pizza"]);
+    await expect.poll(options).toEqual(["Pizza"]);
+  });
+
+  it("drops a slow earlier response that arrives after a newer one", async () => {
+    const server = fakeServer();
+    await render(<ServerPalette server={server} />);
+    await settled();
+    await userEvent.type(input(), "ab");
+    await server.answer("ab", ["Abba cake"]);
+    await expect.poll(options).toEqual(["Abba cake"]);
+    await server.answer("a", ["Apple pie", "Avocado toast"]);
+    expect(options()).toEqual(["Abba cake"]);
+  });
+
+  it("says it is searching politely, once while typing goes on, and shows the empty state only after loading", async () => {
+    const server = fakeServer();
+    await render(<ServerPalette server={server} />);
+    await settled();
+    expect(status().getAttribute("aria-live")).toBe("polite");
+    expect(status().textContent).toBe("");
+    const changes: string[] = [];
+    const observer = new MutationObserver(() => changes.push(status().textContent ?? ""));
+    observer.observe(status(), { childList: true, characterData: true, subtree: true });
+    await userEvent.type(input(), "xyz");
+    await expect.poll(() => status().textContent).toBe("Searching…");
+    await server.answer("x", []);
+    await server.answer("xy", []);
+    expect(document.body.textContent).not.toContain("No results");
+    await server.answer("xyz", []);
+    await expect.poll(() => document.body.textContent).toContain("No results");
+    observer.disconnect();
+    expect(changes.filter((text) => text === "Searching…")).toHaveLength(1);
+  });
+
+  it("takes a translated loading label, and aborts the last search when the palette closes", async () => {
+    const signals: AbortSignal[] = [];
+    await render(
+      <Command title="Recherche" open onOpenChange={() => {}} loading loadingLabel="Recherche…" items={[]} onQueryChange={(_query, { signal }) => signals.push(signal)} />,
+    );
+    await settled();
+    await expect.poll(() => status().textContent).toBe("Recherche…");
+    await userEvent.type(input(), "a");
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    expect(signals.at(-1)!.aborted).toBe(true);
+  });
+
+  it("announces loading again after the palette closes and opens", async () => {
+    const palette = (open: boolean) => <Command title="Recipe search" open={open} onOpenChange={() => {}} loading items={[]} onQueryChange={() => {}} />;
+    await render(palette(true));
+    await settled();
+    await expect.poll(() => status().textContent).toBe("Searching…");
+    await act(async () => roots[0]!.render(palette(false)));
+    await expect.poll(popup).toBeNull();
+    await act(async () => roots[0]!.render(palette(true)));
+    await settled();
+    await expect.poll(() => status().textContent).toBe("Searching…");
+  });
+
+  it("keeps the phone sheet's search input still while server results change", async () => {
+    await page.viewport(390, 844);
+    const server = fakeServer();
+    await render(<ServerPalette server={server} />);
+    await settled();
+    const top = (input().element() as HTMLElement).getBoundingClientRect().top;
+    await userEvent.type(input(), "p");
+    await server.answer("p", Array.from({ length: 30 }, (_, index) => `Pasta ${index + 1}`));
+    await expect.poll(() => options().length).toBe(30);
+    expect((input().element() as HTMLElement).getBoundingClientRect().top).toBe(top);
+    await userEvent.type(input(), "q");
+    await server.answer("pq", []);
+    await expect.poll(() => options().length).toBe(0);
+    expect((input().element() as HTMLElement).getBoundingClientRect().top).toBe(top);
+  });
+});
+
 describe("Command duplicate labels", () => {
   it("renders two commands with the same label in one group without a key warning", async () => {
     const error = vi.spyOn(console, "error");
