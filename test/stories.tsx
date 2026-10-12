@@ -171,7 +171,7 @@ export function overlayOpeners(
   top = true,
 ): Opener[] {
   const roots = Array.isArray(scope) ? scope : [scope];
-  const triggers = [...new Set(roots.flatMap((root) => [...root.querySelectorAll<HTMLElement>('[aria-haspopup]:not([aria-haspopup="false"])')]))]
+  const triggers = [...new Set(roots.flatMap((root) => [...root.querySelectorAll<HTMLElement>('[aria-haspopup]:not([aria-haspopup="false"]):not([aria-expanded="true"])')]))]
     .filter((element) => !element.matches(':disabled, [aria-disabled="true"], [data-disabled]') && isVisible(element))
     .map((element) => ({ name: accessibleName(element), open: () => (clipped(element) ? openFromKeyboard(element) : userEvent.click(element)) }));
   if (!top) return triggers;
