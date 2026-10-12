@@ -52,6 +52,7 @@ export const Playground: Story = {};
 
 /** Between sections, and between actions in a row. */
 export const InContext: Story = {
+  parameters: { screenshot: { name: "separator" } },
   render: () => (
     <Surface>
       <Text>Brown the short ribs in batches, then set them aside.</Text>

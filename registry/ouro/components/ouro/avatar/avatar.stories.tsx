@@ -74,6 +74,7 @@ export const Sizes: Story = {
 
 /** A stacked group with a "+N" count, and an avatar beside a written name (`alt=""`, so the name is read once). */
 export const Group: Story = {
+  parameters: { screenshot: { name: "avatar-group" } },
   render: () => (
     <Surface>
       <AvatarGroup label="Cooks on this recipe" max={3}>

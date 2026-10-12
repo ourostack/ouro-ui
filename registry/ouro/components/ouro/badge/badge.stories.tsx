@@ -55,6 +55,7 @@ export const Playground: Story = {};
 
 /** Every tone in every variant. */
 export const Tones: Story = {
+  parameters: { screenshot: { name: "badge-tones" } },
   render: () => (
     <Surface>
       {variants.map((variant) => (

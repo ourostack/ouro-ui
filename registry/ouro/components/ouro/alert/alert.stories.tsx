@@ -52,6 +52,7 @@ const copy = {
 
 /** Every tone. Destructive and warning use `role="alert"`; the others `role="status"`. */
 export const Tones: Story = {
+  parameters: { screenshot: { name: "alert-tones" } },
   render: () => (
     <Surface>
       {tones.map((tone) => (

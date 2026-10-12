@@ -39,6 +39,7 @@ export const Playground: Story = {};
 
 /** Shortcuts in running text, at each text size. */
 export const InContext: Story = {
+  parameters: { screenshot: { name: "kbd" } },
   render: () => (
     <Surface>
       <Text>
