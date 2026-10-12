@@ -96,7 +96,9 @@ it("moves to the next slide with a horizontal swipe and reports it once", async 
   const rect = viewport.getBoundingClientRect();
   const y = rect.top + rect.height / 2;
   const pageY = scrollY;
-  await commands.touchDrag({ from: [rect.right - 40, y], to: [rect.left + 40, y], steps: 12 });
+  // A swipe at a set, unhurried speed: the browser flings on from the speed at lift, and a
+  // fast flick carries past the next slide to the one after.
+  await commands.touchDrag({ from: [rect.right - 40, y], to: [rect.left + 40, y], steps: 12, durationMs: 400 });
   await expect.poll(() => onIndexChange.mock.calls).toEqual([[1]]);
   // Still once after the momentum and any late settling are over.
   await new Promise((resolve) => setTimeout(resolve, 300));
