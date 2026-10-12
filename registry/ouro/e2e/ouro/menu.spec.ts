@@ -45,11 +45,19 @@ test.describe("on a desktop", () => {
     await expect(menu).toBeHidden();
   });
 
-  test("the menubar moves between menus with the arrow keys", async ({ page }) => {
+  test("the menubar moves between menus with the arrow keys, and on hover once one is open", async ({ page }) => {
     await openStory(page, "menus-menu--bar");
-    await page.getByRole("menuitem", { name: "File" }).click();
-    await expect(page.getByRole("menuitem", { name: /^New recipe/ })).toBeVisible();
+    const file = page.getByRole("menuitem", { name: "File", exact: true });
+    const edit = page.getByRole("menuitem", { name: "Edit", exact: true });
+    await file.focus();
     await page.keyboard.press("ArrowRight");
+    await expect(edit).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    await expect(page.getByRole("menuitem", { name: /^Undo/ })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await file.click();
+    await expect(page.getByRole("menuitem", { name: /^New recipe/ })).toBeVisible();
+    await edit.hover();
     await expect(page.getByRole("menuitem", { name: /^Undo/ })).toBeVisible();
   });
 });

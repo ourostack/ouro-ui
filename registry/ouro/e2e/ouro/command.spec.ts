@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { openStory } from "./story";
+import { openStory, settledBox } from "./story";
 
 test.describe("on a desktop", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
@@ -12,10 +12,10 @@ test.describe("on a desktop", () => {
     await expect(dialog).toBeVisible();
     const input = dialog.getByRole("combobox", { name: "Search commands" });
     await expect(input).toBeFocused();
-    const before = (await dialog.boundingBox())!;
+    const before = await settledBox(dialog);
     await input.fill("bak");
     await expect(dialog.getByRole("option")).toHaveCount(1);
-    expect((await dialog.boundingBox())!.height).toBe(before.height);
+    expect((await settledBox(dialog)).height).toBe(before.height);
     await page.keyboard.press("Enter");
     await expect(dialog).toBeHidden();
     await expect(trigger).toBeFocused();
@@ -45,10 +45,11 @@ test.describe("on a phone", () => {
     await openStory(page, "menus-command--playground");
     await page.getByRole("button", { name: "Search…" }).click();
     const input = page.getByRole("combobox", { name: "Search commands" });
-    await expect(input).toBeVisible();
-    const before = (await input.boundingBox())!.y;
+    const sheet = page.getByRole("dialog", { name: "Command palette" });
+    await settledBox(sheet);
+    const before = (await settledBox(input)).y;
     await input.fill("bak");
     await expect(page.getByRole("option")).toHaveCount(1);
-    expect((await input.boundingBox())!.y).toBe(before);
+    expect((await settledBox(input)).y).toBe(before);
   });
 });
