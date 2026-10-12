@@ -218,7 +218,8 @@ describe("Chart", () => {
   it("draws lines with a different point shape per series", async () => {
     const { chart } = await render(<Chart type="line" title="Cooking" data={rows} categoryKey="month" config={config} />);
     await drawn(chart);
-    await expect.poll(() => chart.querySelectorAll("[data-ouro-chart-dot]").length).toBe(6);
+    // The points themselves; a pointer left over the plot by an earlier test adds active dots elsewhere.
+    await expect.poll(() => chart.querySelectorAll(".recharts-line-dots [data-ouro-chart-dot]").length).toBe(6);
     const shapeOf = (series: string) => chart.querySelector(`[data-ouro-chart-dot][data-ouro-chart-series="${series}"]`)!.getAttribute("data-ouro-chart-dot");
     expect(shapeOf("cooked")).not.toBe(shapeOf("saved"));
   });
@@ -232,6 +233,13 @@ describe("Chart", () => {
   it("shows the tooltip from the keyboard: Tab to the plot, then the arrow keys", async () => {
     const { chart } = await render(<Chart title="Cooking" data={rows} categoryKey="month" config={config} />);
     await drawn(chart);
+    // A pointer resting over the plot (left there by an earlier test) holds the tooltip at its
+    // point, so park it in the page's corner, outside the chart.
+    const parking = document.createElement("div");
+    Object.assign(parking.style, { position: "fixed", top: "0", left: "0", width: "4px", height: "4px" });
+    document.body.append(parking);
+    mounted.push(parking);
+    await userEvent.hover(parking);
     await userEvent.keyboard("{Tab}");
     expect(document.activeElement).toBe(chart.querySelector(".recharts-surface"));
     // Focus shows the first point; the arrow keys move along.
