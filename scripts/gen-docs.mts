@@ -31,7 +31,7 @@ const groups: Array<{ name: string; entries: string[] }> = [
   { name: "Actions", entries: ["Button"] },
   { name: "Text", entries: ["Heading", "Link", "Text"] },
   { name: "Forms", entries: ["Field", "Fieldset", "TextArea", "TextField"] },
-  { name: "Overlays", entries: ["ConfirmDialog", "Dialog", "Sheet"] },
+  { name: "Overlays", entries: ["ConfirmDialog", "Dialog", "HoverCard", "Popover", "Sheet", "Tooltip"] },
   { name: "App setup", entries: ["OuroProvider"] },
 ];
 /** Groups whose entries are components an app composes; each must say what to use instead. */
@@ -50,12 +50,16 @@ const componentFiles = [
   "registry/ouro/components/ouro/dialog/confirm-dialog.tsx",
   "registry/ouro/components/ouro/dialog/dialog.tsx",
   "registry/ouro/components/ouro/sheet/sheet.tsx",
+  "registry/ouro/components/ouro/popover/popover.tsx",
+  "registry/ouro/components/ouro/tooltip/tooltip.tsx",
+  "registry/ouro/components/ouro/hover-card/hover-card.tsx",
   "registry/ouro/lib/ouro/ouro-provider.tsx",
 ];
 /** Part files, by the family their parts are named after. */
 const partFiles: Record<string, string> = {
   Dialog: "registry/ouro/components/ouro/dialog/dialog-parts.tsx",
   Field: "registry/ouro/components/ouro/field/field-parts.tsx",
+  Popover: "registry/ouro/components/ouro/popover/popover-parts.tsx",
   Sheet: "registry/ouro/components/ouro/sheet/sheet-parts.tsx",
 };
 /** The import path for a registry file, as written in the registry source. */

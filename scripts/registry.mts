@@ -45,6 +45,9 @@ const components = [
   { name: "link", folder: "link", stem: "link", title: "Link" },
   { name: "text-field", folder: "text-field", stem: "text-field", title: "TextField" },
   { name: "text-area", folder: "text-field", stem: "text-area", title: "TextArea" },
+  { name: "popover", folder: "popover", stem: "popover", title: "Popover" },
+  { name: "tooltip", folder: "tooltip", stem: "tooltip", title: "Tooltip" },
+  { name: "hover-card", folder: "hover-card", stem: "hover-card", title: "HoverCard" },
 ];
 
 /** Registry files that test this repository itself and never ship. */

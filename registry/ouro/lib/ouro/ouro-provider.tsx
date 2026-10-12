@@ -1,5 +1,6 @@
 "use client";
 
+import { Tooltip } from "@base-ui/react/tooltip";
 import { useMemo, type JSX, type ReactNode } from "react";
 import { DefaultLink, OuroContext, type OuroContextValue, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/use-ouro";
 
@@ -15,7 +16,8 @@ export interface OuroProviderProps {
 
 /**
  * Optional app-level provider that routes internal `href`s through your
- * router's link. Ouro UI components work without it: they honor reduced motion
+ * router's link and groups tooltips: once one `Tooltip` shows, its neighbours open
+ * instantly instead of each waiting its own delay. Ouro UI components work without it: they honor reduced motion
  * themselves, in CSS (`motion-reduce:` variants and `prefers-reduced-motion`
  * queries), and need no animation library. If your app animates with Motion,
  * wrap it in `<MotionConfig reducedMotion="user">` for the same behavior.
@@ -37,5 +39,9 @@ export function OuroProvider({ children, linkComponent }: OuroProviderProps): JS
     () => ({ linkComponent: linkComponent ?? DefaultLink }),
     [linkComponent],
   );
-  return <OuroContext.Provider value={value}>{children}</OuroContext.Provider>;
+  return (
+    <OuroContext.Provider value={value}>
+      <Tooltip.Provider>{children}</Tooltip.Provider>
+    </OuroContext.Provider>
+  );
 }

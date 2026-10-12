@@ -8,12 +8,15 @@ import * as ConfirmDialogStories from "@/registry/ouro/components/ouro/dialog/co
 import * as DialogStories from "@/registry/ouro/components/ouro/dialog/dialog.stories";
 import * as FieldStories from "@/registry/ouro/components/ouro/field/field.stories";
 import * as FieldsetStories from "@/registry/ouro/components/ouro/field/fieldset.stories";
+import * as HoverCardStories from "@/registry/ouro/components/ouro/hover-card/hover-card.stories";
 import * as LinkStories from "@/registry/ouro/components/ouro/link/link.stories";
+import * as PopoverStories from "@/registry/ouro/components/ouro/popover/popover.stories";
 import * as SheetStories from "@/registry/ouro/components/ouro/sheet/sheet.stories";
 import * as HeadingStories from "@/registry/ouro/components/ouro/text/heading.stories";
 import * as TextStories from "@/registry/ouro/components/ouro/text/text.stories";
 import * as TextAreaStories from "@/registry/ouro/components/ouro/text-field/text-area.stories";
 import * as TextFieldStories from "@/registry/ouro/components/ouro/text-field/text-field.stories";
+import * as TooltipStories from "@/registry/ouro/components/ouro/tooltip/tooltip.stories";
 import * as SheetFeelStories from "@/stories/reference/sheet-feel.stories";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -34,12 +37,15 @@ export const storyFiles = {
   Field: composeStories(FieldStories),
   Fieldset: composeStories(FieldsetStories),
   Heading: composeStories(HeadingStories),
+  HoverCard: composeStories(HoverCardStories),
   Link: composeStories(LinkStories),
+  Popover: composeStories(PopoverStories),
   Sheet: composeStories(SheetStories),
   SheetFeel: composeStories(SheetFeelStories),
   Text: composeStories(TextStories),
   TextArea: composeStories(TextAreaStories),
   TextField: composeStories(TextFieldStories),
+  Tooltip: composeStories(TooltipStories),
 };
 
 export interface StoryEntry {
@@ -59,6 +65,7 @@ export const stories: StoryEntry[] = Object.entries(storyFiles).flatMap(([file, 
  */
 const plainOpeners: Record<string, string[]> = {
   "Dialog/Controlled": ["Open"],
+  "Popover/Controlled": ["Servings"],
   "Sheet/Controlled": ["Open"],
 };
 
