@@ -22,7 +22,7 @@ export interface OuroTestOptions {
  * Vitest browser projects that run Ouro UI's tests in your app: one project per
  * browser, plus `ouro-touch` (Chromium as a 390x844 touch phone) for files named
  * `*.touch.test.tsx`. They register Ouro UI's browser commands (`drag`, `flick`, `tap`,
- * `touchDrag`, `emulateMedia`, `pointerPress`, `pageZoom`, `resetPageZoom`, `setPageZoom`)
+ * `touchDrag`, `touchStep`, `emulateMedia`, `pointerPress`, `pageZoom`, `resetPageZoom`, `setPageZoom`)
  * and the setup that fails a test on any React act() warning. In `ouro-touch`, a test that
  * leaves the page zoomed fails too; rotate the viewport with `rotate` from testing/rotate.ts.
  * Each project extends your root config, so your Vite plugins and aliases apply. Needs
