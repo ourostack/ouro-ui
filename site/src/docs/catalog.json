@@ -6,6 +6,24 @@
     "source": "registry/ouro/components/ouro/button/button.tsx"
   },
   {
+    "name": "toggle",
+    "title": "Toggle",
+    "group": "Actions",
+    "source": "registry/ouro/components/ouro/toggle/toggle.tsx"
+  },
+  {
+    "name": "toggle-group",
+    "title": "ToggleGroup",
+    "group": "Actions",
+    "source": "registry/ouro/components/ouro/toggle/toggle-group.tsx"
+  },
+  {
+    "name": "button-group",
+    "title": "ButtonGroup",
+    "group": "Actions",
+    "source": "registry/ouro/components/ouro/button-group/button-group.tsx"
+  },
+  {
     "name": "text",
     "title": "Text",
     "group": "Text",
@@ -53,6 +71,24 @@
     "title": "TextArea",
     "group": "Forms",
     "source": "registry/ouro/components/ouro/text-field/text-area.tsx"
+  },
+  {
+    "name": "otp-field",
+    "title": "OtpField",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/otp-field/otp-field.tsx"
+  },
+  {
+    "name": "file-field",
+    "title": "FileField",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/file-field/file-field.tsx"
+  },
+  {
+    "name": "color-field",
+    "title": "ColorField",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/color-field/color-field.tsx"
   },
   {
     "name": "calendar",

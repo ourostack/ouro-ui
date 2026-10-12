@@ -1,0 +1,1 @@
+- New: `ToggleGroup`, a labeled row of toggles from `items` with arrow-key focus; one at a time by default (`value` is a string or `null`), several with `multiple` (`value` is a list).

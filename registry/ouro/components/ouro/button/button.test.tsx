@@ -55,6 +55,25 @@ describe("button branch", () => {
     expect(button.textContent).toBe("Go");
   });
 
+  it("names its variant in data-variant, on buttons and links, so groups can style by look", async () => {
+    const { host } = await render(
+      <>
+        <Button>Solid</Button>
+        <Button variant="outline">Outline</Button>
+        <Button variant="plain" href="/recipes">
+          Plain link
+        </Button>
+        <Button variant={"default" as "solid"}>Unknown</Button>
+      </>,
+    );
+    expect([...host.querySelectorAll('[data-ouro="button"]')].map((button) => button.getAttribute("data-variant"))).toEqual([
+      "solid",
+      "outline",
+      "plain",
+      "solid",
+    ]);
+  });
+
   it("passes type, onClick and other button attributes through", async () => {
     const onClick = vi.fn();
     const { button } = await render(

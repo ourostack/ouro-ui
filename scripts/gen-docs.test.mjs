@@ -66,6 +66,17 @@ test("generating is deterministic and matches the committed files", () => {
   }
 });
 
+test("each mode of a union gets its own heading, so a reader can tell the modes apart", () => {
+  for (const file of readdirSync(join(root, "docs")).filter((name) => name.endsWith(".md"))) {
+    const modes = doc(file).split("\n## ").find((section) => section.startsWith("Modes\n"));
+    if (!modes) continue;
+    const headings = [...modes.matchAll(/^### (.+)$/gm)].map(([, heading]) => heading);
+    assert.equal(new Set(headings).size, headings.length, `${file} repeats a mode heading: ${headings.join(" | ")}`);
+  }
+  assert.match(doc("ToggleGroup.md"), /^### Single: `ToggleGroupSingleProps`$/m);
+  assert.match(doc("ToggleGroup.md"), /^### Multiple: `ToggleGroupMultipleProps`$/m);
+});
+
 test("there is one doc per component, plus parts", () => {
   const files = readdirSync(join(root, "docs")).sort();
   for (const name of ["Button", "ConfirmDialog", "Dialog", "Field", "Fieldset", "Heading", "Link", "OuroProvider", "Sheet", "Text", "TextArea", "TextField", "parts"]) {

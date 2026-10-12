@@ -1,0 +1,1 @@
+- New: `OtpField`, one-time code entry on the `Field` contract, built on Base UI OTP Field: one slot per character (`length`, default 6), paste of a whole code, `autoComplete="one-time-code"`, `validationType`, `groupSize`, `autoSubmit` and `slotLabel` to translate the slot names.
