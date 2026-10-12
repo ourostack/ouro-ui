@@ -400,6 +400,11 @@ describe("ShowMore from an empty list", () => {
       expect(host.querySelector('[data-ouro="show-more"]')).not.toBeNull();
       expect(host.querySelector("[data-ouro-show-more-toggle]")).toBeNull();
       expect(errors).toEqual([]);
+      // Focus never falls to the page: it moves to the empty list, which is named by the status.
+      const list = host.querySelector<HTMLElement>('[role="list"]')!;
+      expect(document.activeElement).toBe(list);
+      expect(list.getAttribute("tabindex")).toBe("-1");
+      await expect.element(page.getByRole("list", { name: "No more items" })).toBeInTheDocument();
     } finally {
       window.removeEventListener("error", onError);
       error.mockRestore();
@@ -487,6 +492,40 @@ describe("ShowMore announcements", () => {
     await userEvent.click(custom.button!);
     await userEvent.click(custom.host.querySelector<HTMLElement>("[data-ouro-show-more-toggle]")!);
     await expect.poll(() => custom.host.querySelector("[data-ouro-show-more-status]")!.textContent).toBe("Keine weiteren Rezepte");
+  });
+
+  it.each([
+    ["with", true],
+    ["without", false],
+  ])("moves focus to the last item and says no more once when a later page is empty, %s a loading prop", async (_name, useLoading) => {
+    function EmptyLater() {
+      const [done, setDone] = useState(false);
+      const [loading, setLoading] = useState(false);
+      return (
+        <ShowMore
+          items={recipes.slice(0, 3)}
+          hasMore={!done}
+          loading={useLoading ? loading : undefined}
+          onShowMore={() => {
+            if (!useLoading) return setDone(true);
+            setLoading(true);
+            finishLoad = () => {
+              setDone(true);
+              setLoading(false);
+            };
+          }}
+        />
+      );
+    }
+    const { host, button } = await render(<EmptyLater />);
+    const said = spoken(host);
+    await userEvent.click(button!);
+    if (useLoading) await act(async () => finishLoad());
+    await expect.poll(() => document.activeElement).toBe(host.querySelectorAll("li")[2]);
+    await expect.poll(() => said).toEqual(["No more items"]);
+    expect(document.activeElement).not.toBe(document.body);
+    // The list is not focusable while it has items.
+    expect(host.querySelector('[role="list"]')!.hasAttribute("tabindex")).toBe(false);
   });
 
   it("has no status region outside load mode", async () => {
