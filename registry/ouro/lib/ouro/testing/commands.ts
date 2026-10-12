@@ -160,7 +160,17 @@ export const tap: BrowserCommand<[selector: string]> = async (ctx, selector) => 
   await ctx.iframe.locator(selector).tap();
 };
 
-export const commands = { emulateMedia, drag, flick, pointerPress, tap, touchDrag };
+export const touchStep: BrowserCommand<[{ type: "touchStart" | "touchMove" | "touchEnd"; x: number; y: number }]> = async (ctx, { type, x, y }) => {
+  const { page } = ctx;
+  let session = cdpSessions.get(page);
+  if (!session) {
+    session = await page.context().newCDPSession(page);
+    cdpSessions.set(page, session);
+  }
+  await session.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y, id: 1 }] });
+};
+
+export const commands = { emulateMedia, drag, flick, pointerPress, tap, touchDrag, touchStep };
 
 declare module "vitest/browser" {
   interface BrowserCommands {
