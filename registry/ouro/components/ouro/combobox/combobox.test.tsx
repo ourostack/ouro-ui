@@ -221,6 +221,15 @@ describe("Combobox async", () => {
     expect(input.value).toBe("comté");
   });
 
+  it("waits for a search before saying nothing matched", async () => {
+    const { input } = await render(<Combobox label="Recipe" items={[]} onInputChange={() => {}} />);
+    await userEvent.click(input);
+    await expect.poll(popup).not.toBeNull();
+    expect(popup()!.textContent).not.toContain("No results");
+    await userEvent.type(input, "zz");
+    await expect.element(page.getByText("No results")).toBeVisible();
+  });
+
   it("translates the loading message", async () => {
     const { input } = await render(<Combobox label="Rezept" items={[]} loading loadingLabel="Lädt…" />);
     await userEvent.click(input);
@@ -301,6 +310,31 @@ describe("Combobox allowCustomValue", () => {
     await userEvent.click(input);
     await userEvent.type(input, "!");
     expect(host.querySelector("output")!.textContent).toBe("Thai!");
+  });
+
+  it("does not search again when a suggestion is picked", async () => {
+    const onInputChange = vi.fn();
+    const { input } = await render(<Combobox label="Cuisine" allowCustomValue items={["Thai", "Thali"]} onInputChange={onInputChange} />);
+    await userEvent.click(input);
+    await userEvent.type(input, "Tha");
+    const calls = onInputChange.mock.calls.length;
+    await userEvent.click(page.getByRole("option", { name: "Thali" }));
+    expect(input.value).toBe("Thali");
+    expect(onInputChange.mock.calls.length).toBe(calls);
+  });
+
+  it("waits for a search before saying nothing matched", async () => {
+    const { input } = await render(<Combobox label="Cuisine" allowCustomValue items={[]} onInputChange={() => {}} />);
+    await userEvent.click(input);
+    expect(document.body.textContent).not.toContain("No results");
+    await userEvent.type(input, "zz");
+    await expect.element(page.getByText("No results")).toBeVisible();
+  });
+
+  it("says nothing matched for a controlled search with no results", async () => {
+    const { input } = await render(<Combobox label="Cuisine" allowCustomValue items={[]} value="zz" onInputChange={() => {}} />);
+    await userEvent.click(input);
+    await expect.element(page.getByText("No results")).toBeVisible();
   });
 
   it("leaves filtering to onInputChange, which hears every keystroke", async () => {

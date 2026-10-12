@@ -135,10 +135,144 @@ describe("Combobox on a phone", () => {
     expect(host.querySelector<HTMLElement>("[data-ouro-input-group]")!.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
   });
 
-  it("keeps the input in the field with allowCustomValue, since the text is the value", async () => {
-    const host = await render(<Combobox label="Cuisine" allowCustomValue items={["Thai"]} />);
-    expect(host.querySelector(TRIGGER)).toBeNull();
-    expect(host.querySelector('input[role="combobox"]')).not.toBeNull();
+  it("clears a single pick with a clear button beside the field, by tap or from the keyboard", async () => {
+    const onValueChange = vi.fn();
+    const host = await render(
+      <form>
+        <Combobox label="Herb" name="herb" items={herbs} defaultValue="Dill" placeholder="Pick a herb" onValueChange={onValueChange} />
+      </form>,
+    );
+    const form = host.querySelector("form")!;
+    const clear = () => host.querySelector<HTMLButtonElement>('button[aria-label="Clear"]');
+    expect(clear()).not.toBeNull();
+    expect(clear()!.tabIndex).toBe(0);
+    expect(clear()!.closest("[aria-hidden]")).toBeNull();
+    // Its hit area is 44px, though the button is smaller.
+    const rect = clear()!.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    expect(document.elementFromPoint(cx, cy - 21)?.closest("button")).toBe(clear());
+    expect(document.elementFromPoint(cx, cy + 21)?.closest("button")).toBe(clear());
+    await commands.tap('button[aria-label="Clear"]');
+    expect(onValueChange).toHaveBeenLastCalledWith(null);
+    expect(new FormData(form).get("herb")).toBe("");
+    expect(host.querySelector(TRIGGER)!.textContent).toContain("Pick a herb");
+    expect(clear()).toBeNull();
+    expect(document.activeElement).toBe(host.querySelector(TRIGGER));
+    expect(sheet()).toBeNull();
+
+    // From the keyboard: Tab from the field's button reaches Clear, and Enter clears.
+    await commands.tap(TRIGGER);
+    await opened();
+    await commands.tap('[role="option"]:nth-child(2)');
+    await expect.poll(sheet).toBeNull();
+    expect(new FormData(form).get("herb")).toBe("Chives");
+    host.querySelector<HTMLElement>(TRIGGER)!.focus();
+    await userEvent.keyboard("{Tab}");
+    expect(document.activeElement).toBe(clear());
+    await userEvent.keyboard("{Enter}");
+    expect(new FormData(form).get("herb")).toBe("");
+  });
+
+  it("keeps the search input still while results filter and load", async () => {
+    await render(<Combobox label="Spice" items={many} />);
+    await commands.tap(TRIGGER);
+    const panel = await opened();
+    const input = panel.querySelector<HTMLInputElement>('input[role="combobox"]')!;
+    const top = input.getBoundingClientRect().top;
+    await commands.tap('[data-ouro="sheet"] input[role="combobox"]');
+    await userEvent.type(input, "Spice 39");
+    await expect.poll(() => panel.querySelectorAll('[role="option"]').length).toBe(1);
+    expect(input.getBoundingClientRect().top).toBe(top);
+    await userEvent.type(input, "9");
+    await expect.poll(() => panel.querySelectorAll('[role="option"]').length).toBe(0);
+    expect(input.getBoundingClientRect().top).toBe(top);
+  });
+
+  it("does not say No results before a search has been typed", async () => {
+    function Search() {
+      const [items, setItems] = useState<string[]>([]);
+      return <Combobox label="Recipe" items={items} onInputChange={(text) => setItems(text === "leek" ? ["Leek soup"] : [])} />;
+    }
+    await render(<Search />);
+    await commands.tap(TRIGGER);
+    const panel = await opened();
+    expect(panel.textContent).not.toContain("No results");
+    await commands.tap('[data-ouro="sheet"] input[role="combobox"]');
+    await userEvent.type(panel.querySelector("input")!, "zz");
+    await expect.poll(() => panel.textContent).toContain("No results");
+  });
+
+  it("uses the sheet with allowCustomValue too, with a row that keeps the typed text", async () => {
+    const onValueChange = vi.fn();
+    const host = await render(
+      <form>
+        <Combobox label="Cuisine" name="cuisine" allowCustomValue items={["Indian", "Thai"]} onValueChange={onValueChange} placeholder="Any cuisine" />
+      </form>,
+    );
+    expect(host.querySelector(TRIGGER)!.textContent).toContain("Any cuisine");
+    await commands.tap(TRIGGER);
+    const panel = await opened();
+    const input = panel.querySelector<HTMLInputElement>('input[role="combobox"]')!;
+    await commands.tap('[data-ouro="sheet"] input[role="combobox"]');
+    await userEvent.type(input, "Georgian");
+    await expect.poll(() => [...panel.querySelectorAll('[role="option"]')].map((option) => option.textContent)).toEqual(["Use “Georgian”"]);
+    await commands.tap('[role="option"]:nth-child(1)');
+    expect(onValueChange).toHaveBeenLastCalledWith("Georgian");
+    await expect.poll(sheet).toBeNull();
+    expect(host.querySelector(TRIGGER)!.textContent).toContain("Georgian");
+    expect(host.querySelector(TRIGGER)!.textContent).not.toContain("Use");
+    expect(new FormData(host.querySelector("form")!).get("cuisine")).toBe("Georgian");
+
+    // A suggestion picks as usual, and the row is not offered for text that is an item.
+    await commands.tap(TRIGGER);
+    await opened();
+    await userEvent.clear(sheet()!.querySelector("input")!);
+    await userEvent.type(sheet()!.querySelector("input")!, "Thai");
+    await expect.poll(() => [...sheet()!.querySelectorAll('[role="option"]')].map((option) => option.textContent)).toEqual(["Thai"]);
+    await commands.tap('[role="option"]:nth-child(1)');
+    expect(onValueChange).toHaveBeenLastCalledWith("Thai");
+  });
+
+  it("clears typed text to an empty string with allowCustomValue", async () => {
+    const onValueChange = vi.fn();
+    function Cuisine() {
+      const [value, setValue] = useState("");
+      return (
+        <Combobox
+          label="Cuisine"
+          allowCustomValue
+          items={["Thai"]}
+          value={value}
+          placeholder="Any cuisine"
+          onValueChange={(next) => {
+            onValueChange(next);
+            setValue(next);
+          }}
+        />
+      );
+    }
+    const host = await render(<Cuisine />);
+    expect(host.querySelector('button[aria-label="Clear"]')).toBeNull();
+    await commands.tap(TRIGGER);
+    const panel = await opened();
+    await commands.tap('[data-ouro="sheet"] input[role="combobox"]');
+    await userEvent.type(panel.querySelector("input")!, "Georgian");
+    await commands.tap('[role="option"]:nth-child(1)');
+    await expect.poll(sheet).toBeNull();
+    expect(host.querySelector(TRIGGER)!.textContent).toContain("Georgian");
+    await commands.tap('button[aria-label="Clear"]');
+    expect(onValueChange).toHaveBeenLastCalledWith("");
+    expect(host.querySelector(TRIGGER)!.textContent).toContain("Any cuisine");
+  });
+
+  it("translates the row that keeps the typed text", async () => {
+    await render(<Combobox label="Küche" allowCustomValue items={[]} customValueLabel={(text) => `„${text}“ verwenden`} />);
+    await commands.tap(TRIGGER);
+    const panel = await opened();
+    await commands.tap('[data-ouro="sheet"] input[role="combobox"]');
+    await userEvent.type(panel.querySelector("input")!, "Thai");
+    await expect.poll(() => panel.querySelector('[role="option"]')?.textContent).toBe("„Thai“ verwenden");
   });
 
   it("gives chip remove buttons a 44px hit area", async () => {

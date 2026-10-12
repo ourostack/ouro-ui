@@ -25,7 +25,7 @@ async function render(node: ReactNode) {
   return host;
 }
 
-it("is 44px tall with 16px text and 44px steppers, also on a landscape phone", async () => {
+it("is 44px tall with 16px text, and its steppers have a 44px hit area, also on a landscape phone", async () => {
   for (const [width, height] of [
     [390, 844],
     [844, 390],
@@ -35,8 +35,19 @@ it("is 44px tall with 16px text and 44px steppers, also on a landscape phone", a
     const group = host.querySelector<HTMLElement>("[data-ouro-number-field-group]")!;
     expect(group.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
     expect(parseFloat(getComputedStyle(host.querySelector("input")!).fontSize)).toBeGreaterThanOrEqual(16);
+    // Each stepper takes taps over at least 44x44px around its center.
     for (const button of host.querySelectorAll("button")) {
-      expect(button.getBoundingClientRect().width).toBeGreaterThanOrEqual(42);
+      const rect = button.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      for (const [dx, dy] of [
+        [0, -21.5],
+        [0, 21.5],
+        [-21.5, 0],
+        [21.5, 0],
+      ] as const) {
+        expect(document.elementFromPoint(cx + dx, cy + dy)?.closest("button"), `${button.getAttribute("aria-label")} ${dx},${dy}`).toBe(button);
+      }
     }
     await act(async () => root!.unmount());
   }

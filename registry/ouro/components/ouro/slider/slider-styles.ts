@@ -14,13 +14,14 @@ const rootClass = "m-0 box-border flex w-full min-w-0 items-center gap-3";
 /**
  * The area that takes presses: as tall as a control on phones (44px), so a press near the
  * track still lands, stepping down to desktop density with a fine pointer from `sm`. Its
- * inline padding is half a thumb, so a thumb at either end stays inside the field. It fades
+ * inline padding is half a thumb, so a thumb at either end stays inside the field. A vertical
+ * finger drag over it scrolls the page (`touch-action: pan-y`); a sideways one slides. It fades
  * to half opacity when disabled.
  *
  * @internal
  */
 const controlClass =
-  "relative box-border flex min-w-0 flex-1 items-center px-2.5 select-none touch-none cursor-pointer " +
+  "relative box-border flex min-w-0 flex-1 items-center px-2.5 select-none touch-pan-y cursor-pointer " +
   "h-(--ouro-slider-h) [--ouro-slider-h:calc(var(--spacing)*11)] sm:pointer-fine:[--ouro-slider-h:calc(var(--spacing)*6)] " +
   "data-disabled:cursor-not-allowed data-disabled:opacity-50";
 

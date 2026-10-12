@@ -62,3 +62,22 @@ it("follows a finger dragged along the track, and commits once on lift", async (
   await expect.poll(() => onValueCommitted.mock.calls.length).toBe(1);
   expect(onValueCommitted.mock.lastCall?.[0]).toBe(onValueChange.mock.lastCall?.[0]);
 });
+
+it("lets a vertical finger drag over the slider scroll the page, without moving the thumb", async () => {
+  const onValueChange = vi.fn();
+  const host = await render(
+    <div style={{ paddingBlock: "300px 2000px" }}>
+      <Slider label="Volume" defaultValue={50} onValueChange={onValueChange} />
+    </div>,
+  );
+  const control = host.querySelector<HTMLElement>("[data-ouro-slider-control]")!;
+  expect(getComputedStyle(control).touchAction).toBe("pan-y");
+  const rect = host.querySelector<HTMLElement>("[data-ouro-slider-thumb]")!.getBoundingClientRect();
+  const x = rect.left + rect.width / 2;
+  const y = rect.top + rect.height / 2;
+  const before = document.scrollingElement!.scrollTop;
+  await commands.touchDrag({ from: [x, y], to: [x, y - 200], steps: 12 });
+  await expect.poll(() => document.scrollingElement!.scrollTop).toBeGreaterThan(before + 50);
+  expect(onValueChange).not.toHaveBeenCalled();
+  expect(host.querySelector<HTMLInputElement>('input[type="range"]')!.value).toBe("50");
+});

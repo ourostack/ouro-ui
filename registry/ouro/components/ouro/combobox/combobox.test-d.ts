@@ -28,7 +28,16 @@ expectTypeOf<{
   className: "mt-4";
 }>().toExtend<ComboboxProps>();
 expectTypeOf<{ label: "Herbs"; items: string[]; multiple: true; defaultValue: ["Basil"]; onValueChange: (value: string[]) => void; removeLabel: (label: string) => string }>().toExtend<ComboboxProps>();
-expectTypeOf<{ label: "Cuisine"; items: string[]; allowCustomValue: true; value: "Thai"; onValueChange: (value: string) => void }>().toExtend<ComboboxProps>();
+expectTypeOf<{
+  label: "Cuisine";
+  items: string[];
+  allowCustomValue: true;
+  value: "Thai";
+  onValueChange: (value: string) => void;
+  customValueLabel: (text: string) => string;
+}>().toExtend<ComboboxProps>();
+// customValueLabel names the sheet's row for typed text, which only allowCustomValue has.
+expectTypeOf<{ label: "Herb"; items: string[]; customValueLabel: (text: string) => string }>().not.toExtend<ComboboxProps>();
 
 // The value's type follows the mode.
 expectTypeOf<{ label: "Herbs"; items: string[]; multiple: true; value: "Basil" }>().not.toExtend<ComboboxProps>();

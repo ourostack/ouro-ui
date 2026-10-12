@@ -2,7 +2,7 @@
 
 # NumberField
 
-A labeled number input on the Field contract: pass `label`, and `error` from your server action or client check. It parses what people type in their locale, shows the value with `format` (currency, percent, units), steps with its buttons and the arrow keys, and changes the value when the label is dragged sideways with a mouse. The steppers are 44px squares on phones. The form submits the plain number.
+A labeled number input on the Field contract: pass `label`, and `error` from your server action or client check. It parses what people type in their locale, shows the value with `format` (currency, percent, units), steps with its buttons and the arrow keys, and changes the value when the label is dragged sideways with a mouse. The steppers take taps over 44px on touch screens. The form submits the plain number.
 
 ```tsx
 import { NumberField } from "@/registry/ouro/components/ouro/number-field/number-field";
@@ -12,8 +12,12 @@ import { NumberField } from "@/registry/ouro/components/ouro/number-field/number
 
 ```tsx
 <NumberField label="Servings" name="servings" defaultValue={4} min={1} max={24} />
-<NumberField label="Price" name="price" format={{ style: "currency", currency: "USD" }} step={0.5} />
+<NumberField label="Price" name="price" min={0} format={{ style: "currency", currency: "USD" }} step={0.5} />
 ```
+
+## Usage
+
+It picks the phone keyboard itself: the keypad with a decimal separator when `min` is 0 or more and the field takes fractions (a fractional `step`, or a `format` with fraction digits, such as a currency), the digits-only keypad when `min` is 0 or more and it takes whole numbers, and the full keyboard when it takes negatives, since iOS's keypads have no minus key.
 
 ## Use instead when
 
@@ -38,7 +42,7 @@ Type: `NumberFieldProps`.
 | `largeStep` | `number` | `10` | The step for Page Up, Page Down and Shift with an arrow key. |
 | `locale` | `Intl.LocalesArgument` | the browser's | The locale for `format` and for parsing what people type. |
 | `max` | `number` |  | The highest value; the steppers stop there. |
-| `min` | `number` |  | The lowest value; the steppers stop there. |
+| `min` | `number` |  | The lowest value; the steppers stop there. A minimum of 0 or more also gives phones a number keypad: iOS's keypads have no minus key, so a field that takes negatives (no `min`, or a negative one) gets the full keyboard. |
 | `name` | `string` |  | The form field name the number submits under, as a plain number (`4.5`, not `$4.50`). |
 | `onValueChange` | `((value: number \| null) => void)` |  | Called with the new number as it changes, or `null` when the field is emptied. |
 | `onValueCommitted` | `((value: number \| null) => void)` |  | Called when the value settles: on blur after typing, when a stepper or scrub is released, and with each key press. Use it to save. |

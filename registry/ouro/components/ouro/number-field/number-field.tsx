@@ -7,6 +7,7 @@ import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-st
 import { FieldOwnerContext, useField } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
+import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { groupClass, inputClass, scrubClass, stepperClass } from "@/registry/ouro/components/ouro/number-field/number-field-styles";
 
 /** Props for {@link NumberField}. */
@@ -42,7 +43,11 @@ export interface NumberFieldProps {
   onValueChange?: ((value: number | null) => void) | undefined;
   /** Called when the value settles: on blur after typing, when a stepper or scrub is released, and with each key press. Use it to save. */
   onValueCommitted?: ((value: number | null) => void) | undefined;
-  /** The lowest value; the steppers stop there. */
+  /**
+   * The lowest value; the steppers stop there. A minimum of 0 or more also gives phones a
+   * number keypad: iOS's keypads have no minus key, so a field that takes negatives (no
+   * `min`, or a negative one) gets the full keyboard.
+   */
   min?: number | undefined;
   /** The highest value; the steppers stop there. */
   max?: number | undefined;
@@ -122,7 +127,12 @@ function Icon({ children }: { children: ReactNode }): JSX.Element {
  * action or client check. It parses what people type in their locale, shows the value with
  * `format` (currency, percent, units), steps with its buttons and the arrow keys, and changes
  * the value when the label is dragged sideways with a mouse.
- * The steppers are 44px squares on phones. The form submits the plain number.
+ * The steppers take taps over 44px on touch screens. The form submits the plain number.
+ *
+ * It picks the phone keyboard itself: the keypad with a decimal separator when `min` is 0 or
+ * more and the field takes fractions (a fractional `step`, or a `format` with fraction digits,
+ * such as a currency), the digits-only keypad when `min` is 0 or more and it takes whole
+ * numbers, and the full keyboard when it takes negatives, since iOS's keypads have no minus key.
  *
  * Use `TextField` with `inputMode="numeric"` instead for digit codes such as a PIN or a ZIP
  * code, and `Slider` when an approximate value in a range is enough.
@@ -132,7 +142,7 @@ function Icon({ children }: { children: ReactNode }): JSX.Element {
  *
  * @example
  * <NumberField label="Servings" name="servings" defaultValue={4} min={1} max={24} />
- * <NumberField label="Price" name="price" format={{ style: "currency", currency: "USD" }} step={0.5} />
+ * <NumberField label="Price" name="price" min={0} format={{ style: "currency", currency: "USD" }} step={0.5} />
  */
 export function NumberField(props: NumberFieldProps): JSX.Element {
   const {
@@ -248,6 +258,7 @@ export function NumberField(props: NumberFieldProps): JSX.Element {
       >
         <NumberFieldGroup
           inputRef={ref}
+          inputMode={phoneKeyboard(min, step, format, locale)}
           required={required}
           placeholder={placeholder}
           decrementLabel={decrementLabel}
@@ -258,15 +269,34 @@ export function NumberField(props: NumberFieldProps): JSX.Element {
   );
 }
 
+/**
+ * The phone keyboard for the field: `decimal` for fractions and `numeric` for whole numbers
+ * when nothing below 0 is allowed, and `text` otherwise, since iOS's number keypads have no
+ * minus key. Base UI's own choice depends on the platform, so the field sets it.
+ */
+function phoneKeyboard(
+  min: number | undefined,
+  step: number | undefined,
+  format: Intl.NumberFormatOptions | undefined,
+  locale: Intl.LocalesArgument | undefined,
+): "decimal" | "numeric" | "text" {
+  if (min === undefined || min < 0) return "text";
+  const fractionalStep = step !== undefined && !Number.isInteger(step);
+  const fractionalFormat = format !== undefined && new Intl.NumberFormat(locale, format).resolvedOptions().maximumFractionDigits! > 0;
+  return fractionalStep || fractionalFormat ? "decimal" : "numeric";
+}
+
 /** The steppers and the input, inside the Field, where they read its server-known description ids. */
 function NumberFieldGroup({
   inputRef,
+  inputMode,
   required,
   placeholder,
   decrementLabel,
   incrementLabel,
 }: {
   inputRef: Ref<HTMLInputElement> | undefined;
+  inputMode: "decimal" | "numeric" | "text";
   required: boolean | undefined;
   placeholder: string | undefined;
   decrementLabel: string;
@@ -276,18 +306,21 @@ function NumberFieldGroup({
   return (
     <BaseNumberField.Group data-ouro-number-field-group="" className={groupClass}>
       <BaseNumberField.Decrement aria-label={decrementLabel} className={stepperClass}>
+        <TouchTarget />
         <Icon>
           <path d="M3.5 8h9" />
         </Icon>
       </BaseNumberField.Decrement>
       <BaseNumberField.Input
         ref={inputRef}
+        inputMode={inputMode}
         placeholder={placeholder}
         aria-required={required || undefined}
         aria-describedby={field.describedBy}
         className={inputClass}
       />
       <BaseNumberField.Increment aria-label={incrementLabel} className={stepperClass}>
+        <TouchTarget />
         <Icon>
           <path d="M3.5 8h9M8 3.5v9" />
         </Icon>

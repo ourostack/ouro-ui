@@ -2,7 +2,7 @@
 
 # Combobox
 
-A text input that filters a list of items as people type, on the Field contract: pass `label`, `items`, and `error` from your server action or client check. It picks one item, several as chips with `multiple`, or accepts any text with `allowCustomValue`. Pass `onInputChange` and `loading` to search on your server. A clear button shows while there is a value. On a phone (below 640px with touch) it opens as a bottom sheet with the search input pinned at the top.
+A text input that filters a list of items as people type, on the Field contract: pass `label`, `items`, and `error` from your server action or client check. It picks one item, several as chips with `multiple`, or accepts any text with `allowCustomValue`. Pass `onInputChange` and `loading` to search on your server. A clear button shows while there is a value. On a phone (below 640px with touch) the field is a button that opens a full-height bottom sheet with the search input pinned at the top, and a clear button sits beside it. With `allowCustomValue` the sheet's first row keeps what was typed (`customValueLabel`). The sheet opens with focus on itself, not the search input, so the keyboard does not cover the list until people tap the search (as Base UI does for touch).
 
 ```tsx
 import { Combobox } from "@/registry/ouro/components/ouro/combobox/combobox";
@@ -56,9 +56,10 @@ A Combobox that accepts any text, suggesting matching items as people type.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `allowCustomValue` (required) | `true` |  | Accept any text: the value is what is in the input, and items are suggestions. |
+| `customValueLabel` | `((text: string) => string)` | (text) => `Use “${text}”` | The sheet's row (on a phone) that keeps what was typed, from the text. Translate it with your app. |
 | `defaultValue` | `string` |  | The text at first, when the field keeps its own. |
 | `multiple` | `false` |  | Not with `allowCustomValue`: it keeps one typed value. |
-| `onValueChange` | `((value: string) => void)` |  | Called with the text as people type or pick a suggestion. |
+| `onValueChange` | `((value: string) => void)` |  | Called with the text as people type or pick a suggestion. A suggestion puts its `label` in the input, and the text is the value, so an `{ value, label }` item submits its label. |
 | `value` | `string` |  | The text, when you control it. |
 
 Not in this mode (typed `never`):
@@ -78,6 +79,10 @@ A Combobox that picks several items, shown as chips in the input.
 | `removeLabel` | `((label: string) => string)` | (label) => `Remove ${label}` | The label of a chip's remove button, from the item's label. Translate it with your app. |
 | `value` | `string[]` |  | The picked items' values, when you control them. |
 
+Not in this mode (typed `never`):
+
+- `customValueLabel`: Only with `allowCustomValue`.
+
 ### Single: `ComboboxSingleProps`
 
 A Combobox that picks one item: its value, or `null` when nothing is picked.
@@ -92,6 +97,7 @@ A Combobox that picks one item: its value, or `null` when nothing is picked.
 
 Not in this mode (typed `never`):
 
+- `customValueLabel`: Only with `allowCustomValue`.
 - `removeLabel`: Only with `multiple`.
 
 ## Don't use

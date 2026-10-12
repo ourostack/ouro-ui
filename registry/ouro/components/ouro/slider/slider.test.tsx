@@ -88,6 +88,17 @@ describe("Slider", () => {
     expect(onValueCommitted).toHaveBeenLastCalledWith(6);
   });
 
+  it("takes large steps with Page Up, Page Down and Shift with an arrow", async () => {
+    const { inputs } = await render(<Slider label="Oven" defaultValue={180} min={100} max={250} step={5} largeStep={25} />);
+    inputs[0]!.focus();
+    await userEvent.keyboard("{PageUp}");
+    expect(inputs[0]!.value).toBe("205");
+    await userEvent.keyboard("{Shift>}{ArrowRight}{/Shift}");
+    expect(inputs[0]!.value).toBe("230");
+    await userEvent.keyboard("{PageDown}");
+    expect(inputs[0]!.value).toBe("205");
+  });
+
   it("follows a controlled value", async () => {
     function Controlled() {
       const [value, setValue] = useState(30);

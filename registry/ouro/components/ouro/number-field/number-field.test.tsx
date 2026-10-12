@@ -171,6 +171,49 @@ describe("NumberField", () => {
   });
 });
 
+describe("NumberField phone keyboard", () => {
+  // iOS's numeric keypads have no minus key, so a field that takes negatives gets the full
+  // keyboard; a field that takes fractions gets the keypad with a decimal separator.
+  it.each([
+    ["integers from 1", { min: 1 }, "numeric"],
+    ["integers from 0, formatted as a percent", { min: 0, format: { style: "percent" } as const }, "numeric"],
+    ["half steps from 0", { min: 0, step: 0.5 }, "decimal"],
+    ["a currency from 0", { min: 0, format: { style: "currency", currency: "USD" } as const }, "decimal"],
+    ["two fraction digits from 0", { min: 0, format: { maximumFractionDigits: 2 } }, "decimal"],
+    ["no minimum, so negatives", {}, "text"],
+    ["a negative minimum", { min: -10, step: 0.5 }, "text"],
+  ] as const)("asks for the right keyboard: %s", async (_name, props, mode) => {
+    const { input } = await render(<NumberField label="Amount" {...props} />);
+    expect(input.inputMode).toBe(mode);
+  });
+});
+
+describe("NumberField input", () => {
+  it("does not change with the mouse wheel, so scrolling the page is safe", async () => {
+    const onValueChange = vi.fn();
+    const { input } = await render(<NumberField label="Servings" defaultValue={4} onValueChange={onValueChange} />);
+    input.focus();
+    input.dispatchEvent(new WheelEvent("wheel", { deltaY: -100, bubbles: true, cancelable: true }));
+    input.dispatchEvent(new WheelEvent("wheel", { deltaY: 100, bubbles: true, cancelable: true }));
+    await act(async () => {});
+    expect(input.value).toBe("4");
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
+  it("reads typed text in its locale and submits a plain number", async () => {
+    const { input, host } = await render(
+      <form>
+        <NumberField label="Gewicht" name="kg" locale="de-DE" defaultValue={1} step={0.5} min={0} />
+      </form>,
+    );
+    await userEvent.clear(input);
+    await userEvent.type(input, "2,5");
+    await act(async () => input.blur());
+    expect(input.value).toBe("2,5");
+    expect(new FormData(host.querySelector("form")!).get("kg")).toBe("2.5");
+  });
+});
+
 describe("NumberField scrub", () => {
   it("makes the label a scrub area with a mouse", async () => {
     const { host, root } = await render(<NumberField label="Servings" defaultValue={4} />);
@@ -209,12 +252,12 @@ describe("NumberField looks", () => {
     expect(getComputedStyle(input).borderTopWidth).toBe("0px");
   });
 
-  it("uses a 16px font and 44px steppers on phones, stepping down with a mouse on wider screens", async () => {
+  it("uses a 16px font and a 44px box on narrow screens, stepping down with a mouse on wider screens", async () => {
+    // The steppers' 44px touch hit area is checked in number-field.touch.test.tsx.
     await page.viewport(390, 844);
-    const { input, group, button } = await render(<NumberField label="Servings" />);
+    const { input, group } = await render(<NumberField label="Servings" />);
     expect(parseFloat(getComputedStyle(input).fontSize)).toBeGreaterThanOrEqual(16);
     expect(group.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
-    expect(button("Increase").getBoundingClientRect().width).toBeGreaterThanOrEqual(42);
     await page.viewport(1280, 800);
     await expect.poll(() => group.getBoundingClientRect().height).toBeLessThan(44);
     expect(getComputedStyle(input).fontSize).toBe("14px");

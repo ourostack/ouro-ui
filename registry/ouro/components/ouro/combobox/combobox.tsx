@@ -21,6 +21,8 @@ import {
   itemClass,
   listClass,
   popupClass,
+  sheetClearClass,
+  sheetFieldClass,
   sheetInputClass,
   sheetListClass,
   statusClass,
@@ -148,6 +150,8 @@ export type ComboboxSingleProps = ComboboxBaseProps & {
   onValueChange?: ((value: string | null) => void) | undefined;
   /** Only with `multiple`. */
   removeLabel?: never;
+  /** Only with `allowCustomValue`. */
+  customValueLabel?: never;
 };
 
 /** A Combobox that picks several items, shown as chips in the input. */
@@ -167,6 +171,8 @@ export type ComboboxMultipleProps = ComboboxBaseProps & {
    * @default (label) => `Remove ${label}`
    */
   removeLabel?: ((label: string) => string) | undefined;
+  /** Only with `allowCustomValue`. */
+  customValueLabel?: never;
 };
 
 /** A Combobox that accepts any text, suggesting matching items as people type. */
@@ -179,8 +185,17 @@ export type ComboboxCustomProps = ComboboxBaseProps & {
   value?: string | undefined;
   /** The text at first, when the field keeps its own. */
   defaultValue?: string | undefined;
-  /** Called with the text as people type or pick a suggestion. */
+  /**
+   * Called with the text as people type or pick a suggestion. A suggestion puts its `label`
+   * in the input, and the text is the value, so an `{ value, label }` item submits its label.
+   */
   onValueChange?: ((value: string) => void) | undefined;
+  /**
+   * The sheet's row (on a phone) that keeps what was typed, from the text. Translate it with
+   * your app.
+   * @default (text) => `Use “${text}”`
+   */
+  customValueLabel?: ((text: string) => string) | undefined;
   /** Only with `multiple`. */
   removeLabel?: never;
 };
@@ -196,6 +211,8 @@ interface Option {
   value: string;
   label: string;
   disabled?: boolean | undefined;
+  /** The sheet's row that keeps the typed text (`allowCustomValue`): it shows `label` but picks `value`. */
+  custom?: boolean | undefined;
 }
 
 /** What the field shows inside it, from the props, for either way of picking. */
@@ -215,6 +232,9 @@ interface ControlProps {
   clearLabel: string;
   doneLabel: string;
   removeLabel: (label: string) => string;
+  customValueLabel: (text: string) => string;
+  /** `allowCustomValue` on a phone: one value, which may be typed text. */
+  custom: boolean;
   inputRef: Ref<HTMLInputElement> | undefined;
 }
 
@@ -257,8 +277,11 @@ const ChevronIcon = () => (
  * `label`, `items`, and `error` from your server action or client check. It picks one item,
  * several as chips with `multiple`, or accepts any text with `allowCustomValue`. Pass
  * `onInputChange` and `loading` to search on your server. A clear button shows while there
- * is a value. On a phone (below 640px with touch) it opens as a bottom sheet with the
- * search input pinned at the top.
+ * is a value. On a phone (below 640px with touch) the field is a button that opens a
+ * full-height bottom sheet with the search input pinned at the top, and a clear button sits
+ * beside it. With `allowCustomValue` the sheet's first row keeps what was typed
+ * (`customValueLabel`). The sheet opens with focus on itself, not the search input, so the
+ * keyboard does not cover the list until people tap the search (as Base UI does for touch).
  *
  * Use `Select` instead for a short list people don't need to search, and `TextField` for
  * free text with no suggestions.
@@ -297,6 +320,7 @@ export function Combobox(props: ComboboxProps): JSX.Element {
     defaultValue,
     onValueChange,
     removeLabel = (item: string) => `Remove ${item}`,
+    customValueLabel = (text: string) => `Use “${text}”`,
     // Guard props (hint types), dropped here so they never reach the DOM.
     errorMessage,
     helperText,
@@ -321,7 +345,10 @@ export function Combobox(props: ComboboxProps): JSX.Element {
     defaultValue?: unknown;
     onValueChange?: (value: never) => void;
     removeLabel?: (label: string) => string;
+    customValueLabel?: (text: string) => string;
   };
+  const sheet = useSheetPresentation();
+  const custom = allowCustomValue && !multiple;
 
   useDevWarnings(
     "Combobox",
@@ -363,6 +390,8 @@ export function Combobox(props: ComboboxProps): JSX.Element {
     clearLabel,
     doneLabel,
     removeLabel,
+    customValueLabel,
+    custom,
     inputRef: ref,
   };
 
@@ -378,7 +407,8 @@ export function Combobox(props: ComboboxProps): JSX.Element {
         name={name}
         className={className}
       >
-        {allowCustomValue && !multiple ? <AutocompleteControl {...control} /> : <ComboboxControl {...control} />}
+        {/* On a phone, allowCustomValue uses the sheet too, with a row that keeps the typed text. */}
+        {custom && !sheet ? <AutocompleteControl {...control} /> : <ComboboxControl {...control} />}
       </Field>
     </FieldOwnerContext.Provider>
   );
@@ -389,10 +419,13 @@ function ListBody({
   loading,
   loadingLabel,
   emptyLabel,
+  showEmpty,
   className,
   renderItem,
 }: {
   loading: boolean | undefined;
+  /** Whether "nothing matched" applies: not before a server search has been typed. */
+  showEmpty: boolean;
   loadingLabel: string;
   emptyLabel: string;
   className: string;
@@ -417,7 +450,7 @@ function ListBody({
           </>
         )}
       </BaseCombobox.Status>
-      <BaseCombobox.Empty className={emptyClass}>{!loading && emptyLabel}</BaseCombobox.Empty>
+      <BaseCombobox.Empty className={emptyClass}>{!loading && showEmpty && emptyLabel}</BaseCombobox.Empty>
       <BaseCombobox.List className={className}>{renderItem}</BaseCombobox.List>
     </>
   );
@@ -462,8 +495,10 @@ function EndButtons({ clearLabel }: { clearLabel: string }): JSX.Element {
 /** A Combobox that picks one item or several, on Base UI Combobox. */
 function ComboboxControl(props: ControlProps): JSX.Element {
   const { label, items, multiple, value, defaultValue, onValueChange, onInputChange, placeholder, required, loading } = props;
-  const { loadingLabel, emptyLabel, clearLabel, doneLabel, removeLabel, inputRef } = props;
+  const { loadingLabel, emptyLabel, clearLabel, doneLabel, removeLabel, customValueLabel, custom, inputRef } = props;
   const field = useField()!;
+  // The input's text: for the "nothing matched" line and the row that keeps typed text.
+  const [text, setText] = useState("");
   const options = useMemo(() => items.map(toOption), [items]);
   // Every item seen so far, so a picked value keeps its label when search results change.
   // A map kept for the component's life (state that is never set), added to as items arrive.
@@ -471,12 +506,24 @@ function ComboboxControl(props: ControlProps): JSX.Element {
   for (const option of options) known.set(option.value, option);
   const toSelected = (picked: string): Option => known.get(picked) ?? { value: picked, label: picked };
   const toBase = (picked: unknown) =>
-    multiple ? ((picked as string[] | undefined) ?? []).map(toSelected) : picked == null ? null : toSelected(picked as string);
+    multiple
+      ? ((picked as string[] | undefined) ?? []).map(toSelected)
+      : picked == null || (custom && picked === "")
+        ? null
+        : toSelected(picked as string);
+  // With allowCustomValue, typed text that is not an item gets a row of its own, first.
+  const typed = text.trim();
+  const listed =
+    custom && typed !== "" && !options.some((option) => option.label === typed)
+      ? [{ value: typed, label: customValueLabel(typed), custom: true }, ...options]
+      : options;
+  const shown = (option: Option) => (option.custom ? option.value : option.label);
 
   const sheet = useSheetPresentation();
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const report = onValueChange as ((value: string | string[] | null) => void) | undefined;
+  const showEmpty = !onInputChange || text !== "";
 
   const renderItem = (option: Option) => (
     <BaseCombobox.Item key={option.value} value={option} disabled={option.disabled} className={itemClass}>
@@ -489,7 +536,14 @@ function ComboboxControl(props: ControlProps): JSX.Element {
     </BaseCombobox.Item>
   );
   const body = (className: string) => (
-    <ListBody loading={loading} loadingLabel={loadingLabel} emptyLabel={emptyLabel} className={className} renderItem={renderItem} />
+    <ListBody
+      loading={loading}
+      loadingLabel={loadingLabel}
+      emptyLabel={emptyLabel}
+      showEmpty={showEmpty}
+      className={className}
+      renderItem={renderItem}
+    />
   );
 
   const input = (className: string, extra: { "aria-label"?: string } = {}) => (
@@ -504,18 +558,20 @@ function ComboboxControl(props: ControlProps): JSX.Element {
 
   return (
     <BaseCombobox.Root
-      items={options}
+      items={listed}
       multiple={multiple}
       isItemEqualToValue={(item: Option, picked: Option) => item.value === picked.value}
+      itemToStringLabel={shown}
       filter={onInputChange ? null : undefined}
-      onInputValueChange={(text, details) => {
-        if (details.reason !== "item-press") onInputChange?.(text);
+      onInputValueChange={(next, details) => {
+        setText(next);
+        if (details.reason !== "item-press") onInputChange?.(next);
       }}
       required={required}
       openOnInputClick
       {...(value !== undefined ? { value: toBase(value) } : { defaultValue: toBase(defaultValue) })}
       onValueChange={(next: Option | Option[] | null) =>
-        report?.(Array.isArray(next) ? next.map((option) => option.value) : (next?.value ?? null))
+        report?.(Array.isArray(next) ? next.map((option) => option.value) : (next?.value ?? (custom ? "" : null)))
       }
       {...(sheet
         ? {
@@ -530,7 +586,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
         : {})}
     >
       {sheet ? (
-        <>
+        <div data-ouro-combobox-field="" className={sheetFieldClass}>
           <BaseCombobox.Trigger
             ref={triggerRef}
             aria-describedby={field.describedBy}
@@ -541,16 +597,34 @@ function ComboboxControl(props: ControlProps): JSX.Element {
           >
             <BaseCombobox.Value placeholder={placeholder}>
               {(picked: Option | Option[] | null) => {
-                const labels = (Array.isArray(picked) ? picked : picked ? [picked] : []).map((option) => option.label);
+                const labels = (Array.isArray(picked) ? picked : picked ? [picked] : []).map(shown);
                 return <span>{labels.length > 0 ? labels.join(", ") : placeholder}</span>;
               }}
             </BaseCombobox.Value>
             <ChevronIcon />
           </BaseCombobox.Trigger>
+          {!multiple && (
+            // Beside the button, not in it: a button can't hold another. It is in the Tab order
+            // here, since the button, not an input, has focus; clearing puts focus back on the button.
+            <BaseCombobox.Clear
+              tabIndex={0}
+              data-ouro-combobox-clear=""
+              className={sheetClearClass}
+              onClick={() => triggerRef.current?.focus()}
+              render={
+                <Button variant="plain" tone="secondary" size="sm" aria-label={clearLabel} className="aspect-square px-0">
+                  <CrossIcon />
+                </Button>
+              }
+            />
+          )}
           <SheetFrame
             title={label}
             closeLabel={doneLabel}
             side="bottom"
+            // One tall snap point: the sheet keeps its height as results filter and load, so the
+            // search input stays where the thumb left it.
+            snapPoints={[1]}
             open={open}
             onOpenChange={setOpen}
             finalFocus={triggerRef}
@@ -569,7 +643,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
             </div>
             {body(sheetListClass)}
           </SheetFrame>
-        </>
+        </div>
       ) : (
         <>
           <BaseCombobox.InputGroup data-ouro-input-group="" className={multiple ? chipsGroupClass : groupClass}>
@@ -611,6 +685,7 @@ function AutocompleteControl(props: ControlProps): JSX.Element {
   const field = useField()!;
   const suggestions = useMemo(() => items.map((item) => toOption(item)), [items]);
   const report = onValueChange as ((value: string) => void) | undefined;
+  const [text, setText] = useState(() => ((value ?? defaultValue) as string | undefined) ?? "");
   return (
     <BaseAutocomplete.Root
       items={suggestions}
@@ -619,9 +694,11 @@ function AutocompleteControl(props: ControlProps): JSX.Element {
       required={required}
       openOnInputClick
       {...(value !== undefined ? { value: value as string } : { defaultValue: (defaultValue as string | undefined) ?? "" })}
-      onValueChange={(text) => {
-        report?.(text);
-        onInputChange?.(text);
+      onValueChange={(next, details) => {
+        setText(next);
+        report?.(next);
+        // A picked suggestion is not a new search.
+        if (details.reason !== "item-press") onInputChange?.(next);
       }}
     >
       <BaseAutocomplete.InputGroup data-ouro-input-group="" className={groupClass}>
@@ -633,6 +710,7 @@ function AutocompleteControl(props: ControlProps): JSX.Element {
           loading={loading}
           loadingLabel={loadingLabel}
           emptyLabel={emptyLabel}
+          showEmpty={!onInputChange || (value !== undefined ? (value as string) : text) !== ""}
           className={listClass}
           renderItem={(option) => (
             <BaseAutocomplete.Item key={option.value} value={option} disabled={option.disabled} className={itemClass}>

@@ -7,6 +7,8 @@ export {
   itemClass,
   listClass,
   popupClass,
+  sheetClearClass,
+  sheetFieldClass,
   sheetInputClass,
   sheetListClass,
   statusClass,
@@ -124,7 +126,23 @@ const triggerClass =
   "text-start text-base text-foreground font-[inherit] cursor-pointer [-webkit-tap-highlight-color:transparent] " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
   "aria-invalid:border-destructive disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30 " +
-  "data-placeholder:text-muted-foreground [&>span]:truncate [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground";
+  "data-placeholder:text-muted-foreground [&>span]:truncate [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground " +
+  "group-has-[[data-ouro-combobox-clear]]/combobox-field:[&>span]:me-10";
+
+/**
+ * The field on a phone: the button, with the clear button over its end, before the chevron.
+ *
+ * @internal
+ */
+const sheetFieldClass = "group/combobox-field relative min-w-0";
+
+/**
+ * The clear button on a phone, over the end of the field's button, left of the chevron. It
+ * keeps a 44px hit area (its `TouchTarget`).
+ *
+ * @internal
+ */
+const sheetClearClass = "absolute inset-y-0 end-9 my-auto";
 
 /**
  * The search input pinned at the top of the sheet.
