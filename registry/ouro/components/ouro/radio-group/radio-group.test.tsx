@@ -218,6 +218,8 @@ describe("RadioGroup", () => {
     await commands.pointerPress({ selector: '[data-ouro="radio"]:first-child [role="radio"]', action: "down" });
     expect(getComputedStyle(radios[0]!).scale).not.toBe("none");
     await commands.pointerPress({ selector: '[data-ouro="radio"]:first-child [role="radio"]', action: "up" });
+    // Let the release finish easing back before checking that a reduced-motion press does not scale.
+    await expect.poll(() => getComputedStyle(radios[0]!).scale).toBe("none");
     await commands.emulateMedia({ reducedMotion: "reduce" });
     await commands.pointerPress({ selector: '[data-ouro="radio"]:first-child [role="radio"]', action: "down" });
     expect(getComputedStyle(radios[0]!).scale).toBe("none");

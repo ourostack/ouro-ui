@@ -50,6 +50,14 @@ function themeColor(variable: string): string {
   return color;
 }
 
+/** A color as canvas pixels, so `oklch(...)` and the same color serialized as `oklab(...)` compare equal. */
+function pixel(color: string): string {
+  const context = document.createElement("canvas").getContext("2d")!;
+  context.fillStyle = color;
+  context.fillRect(0, 0, 1, 1);
+  return context.getImageData(0, 0, 1, 1).data.join(",");
+}
+
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -157,7 +165,8 @@ describe("Checkbox", () => {
     const { box } = await render(<Checkbox label="I accept the terms" description="You can read them first." error="Accept the terms to continue." />);
     expect(textOf(box, describedBy(box))).toEqual(["You can read them first.", "Accept the terms to continue."]);
     expect(box.getAttribute("aria-invalid")).toBe("true");
-    expect(getComputedStyle(box).borderTopColor).toBe(themeColor("--destructive"));
+    // Some installed themes serialize the border as oklab, and a theme may transition it in.
+    await expect.poll(() => pixel(getComputedStyle(box).borderTopColor)).toBe(pixel(themeColor("--destructive")));
     await expect
       .element(page.getByRole("checkbox", { name: "I accept the terms" }))
       .toHaveAccessibleDescription("You can read them first. Accept the terms to continue.");
@@ -256,6 +265,8 @@ describe("Checkbox look", () => {
     const box = document.querySelector<HTMLElement>('[role="checkbox"]')!;
     expect(getComputedStyle(box).scale).not.toBe("none");
     await commands.pointerPress({ selector: '[role="checkbox"]', action: "up" });
+    // Let the release finish easing back before checking that a reduced-motion press does not scale.
+    await expect.poll(() => getComputedStyle(box).scale).toBe("none");
     await commands.emulateMedia({ reducedMotion: "reduce" });
     await commands.pointerPress({ selector: '[role="checkbox"]', action: "down" });
     expect(getComputedStyle(box).scale).toBe("none");
