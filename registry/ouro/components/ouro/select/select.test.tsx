@@ -197,7 +197,12 @@ describe("Select", () => {
     trigger.focus();
     await userEvent.keyboard("{ArrowDown}");
     await expect.poll(() => popup()?.hasAttribute("data-open")).toBe(true);
+    // The list takes focus a moment after it opens. A key sent before that goes to the
+    // trigger, which does not move the highlight.
+    const highlighted = () => popup()!.querySelector("[data-highlighted]")?.textContent;
+    await expect.poll(() => popup()!.contains(document.activeElement) && highlighted()).toBe("Starter");
     await userEvent.keyboard("{ArrowDown}");
+    await expect.poll(highlighted).toBe("Main");
     await userEvent.keyboard("{Enter}");
     await expect.poll(() => trigger.textContent).toBe("Main");
   });
