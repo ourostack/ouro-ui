@@ -205,6 +205,24 @@
     "source": "registry/ouro/components/ouro/empty/empty.tsx"
   },
   {
+    "name": "accordion",
+    "title": "Accordion",
+    "group": "Lists",
+    "source": "registry/ouro/components/ouro/accordion/accordion.tsx"
+  },
+  {
+    "name": "collapsible",
+    "title": "Collapsible",
+    "group": "Lists",
+    "source": "registry/ouro/components/ouro/collapsible/collapsible.tsx"
+  },
+  {
+    "name": "show-more",
+    "title": "ShowMore",
+    "group": "Lists",
+    "source": "registry/ouro/components/ouro/collapsible/show-more.tsx"
+  },
+  {
     "name": "item",
     "title": "Item",
     "group": "Lists",
@@ -239,5 +257,18 @@
     "title": "Row",
     "group": "Layout",
     "source": "registry/ouro/components/ouro/stack/row.tsx"
+  },
+  {
+    "name": "tabs",
+    "title": "Tabs",
+    "group": "Navigation",
+    "source": "registry/ouro/components/ouro/tabs/tabs.tsx",
+    "parts": "Tabs"
+  },
+  {
+    "name": "segmented-control",
+    "title": "SegmentedControl",
+    "group": "Navigation",
+    "source": "registry/ouro/components/ouro/segmented-control/segmented-control.tsx"
   }
 ]

@@ -1,9 +1,10 @@
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, expect, it } from "vitest";
-import { commands, page } from "vitest/browser";
+import { commands } from "vitest/browser";
 import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 
 // Runs in the `touch` project: Chromium as a 390x844 phone with a coarse pointer.
 
@@ -13,7 +14,7 @@ afterEach(async () => {
   await act(async () => toast.dismiss());
   await act(async () => root?.unmount());
   for (const node of nodes.splice(0)) node.remove();
-  await page.viewport(390, 844);
+  await rotate(390, 844);
 });
 
 async function renderToaster() {
@@ -80,7 +81,7 @@ it("gives the dismiss and action buttons 44px touch targets", async () => {
 });
 
 it("keeps the phone layout and touch sizes on a landscape phone", async () => {
-  await page.viewport(844, 390);
+  await rotate(844, 390);
   await renderToaster();
   const item = await show("Landscape", { duration: 0, action: { label: "Undo", onClick: () => {} } });
   const undo = [...item.querySelectorAll("button")].find((button) => button.textContent === "Undo")!;

@@ -1,16 +1,17 @@
 import type { ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, expect, it } from "vitest";
-import { page } from "vitest/browser";
+
 import { ColorField } from "@/registry/ouro/components/ouro/color-field/color-field";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 
 // Runs in the `touch` project: Chromium as a 390x844 phone with a coarse pointer.
 
 let root: Root | undefined;
 const nodes: Element[] = [];
 afterEach(async () => {
-  await page.viewport(390, 844);
+  await rotate(390, 844);
   await act(async () => root?.unmount());
   for (const node of nodes.splice(0)) node.remove();
 });
@@ -43,7 +44,7 @@ it("gives the swatch a 44px hit area that opens the picker", async () => {
 });
 
 it("keeps a 44px box and 16px text on a landscape phone, past the sm breakpoint", async () => {
-  await page.viewport(844, 390);
+  await rotate(844, 390);
   const host = await render(<ColorField label="Color" />);
   expect(host.querySelector<HTMLElement>("[data-ouro-input-group]")!.getBoundingClientRect().height).toBe(44);
   expect(getComputedStyle(host.querySelector('input[type="text"]')!).fontSize).toBe("16px");

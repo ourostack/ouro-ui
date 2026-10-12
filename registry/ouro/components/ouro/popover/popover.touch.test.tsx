@@ -1,10 +1,11 @@
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
 import type { ReactNode } from "react";
-import { commands, page } from "vitest/browser";
+import { commands } from "vitest/browser";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Popover } from "@/registry/ouro/components/ouro/popover/popover";
+import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 
 // Runs in the `touch` project: Chromium as a 390x844 phone with a coarse pointer.
 
@@ -13,7 +14,7 @@ const nodes: Element[] = [];
 afterEach(async () => {
   await act(() => root?.unmount());
   for (const node of nodes.splice(0)) node.remove();
-  await page.viewport(390, 844);
+  await rotate(390, 844);
 });
 
 const popup = () => document.querySelector<HTMLElement>("[data-ouro-presentation]");
