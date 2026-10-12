@@ -1,7 +1,7 @@
 import { createRef, useState, type FormEvent, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Form, type FormErrors } from "@/registry/ouro/components/ouro/form/form";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
@@ -59,6 +59,32 @@ async function open(trigger: HTMLElement) {
   await expect.poll(() => popup()?.hasAttribute("data-open")).toBe(true);
 }
 
+/**
+ * Resizes the test frame and waits for the frame's resize event at that size. An open list
+ * that lines its item up with the trigger closes on any window resize, and WebKit can deliver
+ * the event well after the resize, into a later step or the next test.
+ */
+async function resizeTo(width: number, height: number) {
+  if (innerWidth === width && innerHeight === height) return;
+  const arrived = new Promise<void>((resolve) => {
+    const onResize = () => {
+      if (innerWidth !== width || innerHeight !== height) return;
+      removeEventListener("resize", onResize);
+      resolve();
+    };
+    addEventListener("resize", onResize);
+  });
+  await page.viewport(width, height);
+  await arrived;
+}
+
+// On a fresh page, WebKit can deliver the resize from the runner's first viewport setting
+// after the first test has opened a list, closing it. Resizing away and back here consumes it.
+beforeAll(async () => {
+  await resizeTo(innerWidth + 1, innerHeight);
+  await resizeTo(innerWidth - 1, innerHeight);
+});
+
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -68,7 +94,7 @@ afterEach(async () => {
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));
   for (const node of mounted) node.remove();
   mounted = [];
-  await page.viewport(414, 896);
+  await resizeTo(414, 896);
   await commands.emulateMedia({ reducedMotion: "no-preference" });
 });
 
@@ -197,7 +223,15 @@ describe("Select", () => {
     trigger.focus();
     await userEvent.keyboard("{ArrowDown}");
     await expect.poll(() => popup()?.hasAttribute("data-open")).toBe(true);
+    // The list takes focus a moment after it opens. A key sent before that goes to the
+    // trigger, which does not move the highlight. A closing list keeps focus and its highlight
+    // while it fades, so check that it is still open, not ending.
+    const highlighted = () => popup()!.querySelector("[data-highlighted]")?.textContent;
+    const ready = () =>
+      popup()!.hasAttribute("data-open") && !popup()!.hasAttribute("data-ending-style") && popup()!.contains(document.activeElement) && highlighted();
+    await expect.poll(ready).toBe("Starter");
     await userEvent.keyboard("{ArrowDown}");
+    await expect.poll(highlighted).toBe("Main");
     await userEvent.keyboard("{Enter}");
     await expect.poll(() => trigger.textContent).toBe("Main");
   });
@@ -229,7 +263,7 @@ describe("Select", () => {
   });
 
   it("is 36px tall with a fine pointer from sm up, with 32px options", async () => {
-    await page.viewport(1024, 768);
+    await resizeTo(1024, 768);
     const { trigger } = await render(<Select label="Course" options={courses} />);
     expect(trigger.getBoundingClientRect().height).toBe(36);
     await open(trigger);
