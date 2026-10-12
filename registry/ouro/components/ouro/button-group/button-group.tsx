@@ -32,18 +32,21 @@ export interface ButtonGroupProps {
 
 /**
  * The group's row. Its children join: only the outer corners stay round, neighbors overlap by
- * their 1px border so outline buttons share one line, and two neighbors without a border of
- * their own (solid, soft and plain buttons, which draw `border-transparent`) get a 1px
- * separator in their text color at 25%. The focused child is raised so its outline shows.
+ * their 1px border so outline buttons share one line, and two neighbors that name a look
+ * without a border (`data-variant` other than `outline`, which Button and Toggle set) get a
+ * 1px separator in their text color at 25%. The focused child is raised so its outline shows.
  */
 const groupClass =
   "relative isolate m-0 box-border inline-flex max-w-full items-stretch " +
   "[&>*]:m-0 [&>*]:rounded-none [&>*:first-child]:rounded-s-lg [&>*:last-child]:rounded-e-lg " +
   "[&>*:not(:first-child)]:-ms-px [&>*:focus-visible]:z-10 " +
-  "[&>.border-transparent+.border-transparent]:after:pointer-events-none [&>.border-transparent+.border-transparent]:after:absolute " +
-  "[&>.border-transparent+.border-transparent]:after:inset-y-0 [&>.border-transparent+.border-transparent]:after:-start-px " +
-  "[&>.border-transparent+.border-transparent]:after:w-px [&>.border-transparent+.border-transparent]:after:bg-current " +
-  "[&>.border-transparent+.border-transparent]:after:opacity-25";
+  "[&>[data-variant]:not([data-variant=outline])+[data-variant]:not([data-variant=outline])]:after:pointer-events-none " +
+  "[&>[data-variant]:not([data-variant=outline])+[data-variant]:not([data-variant=outline])]:after:absolute " +
+  "[&>[data-variant]:not([data-variant=outline])+[data-variant]:not([data-variant=outline])]:after:inset-y-0 " +
+  "[&>[data-variant]:not([data-variant=outline])+[data-variant]:not([data-variant=outline])]:after:-start-px " +
+  "[&>[data-variant]:not([data-variant=outline])+[data-variant]:not([data-variant=outline])]:after:w-px " +
+  "[&>[data-variant]:not([data-variant=outline])+[data-variant]:not([data-variant=outline])]:after:bg-current " +
+  "[&>[data-variant]:not([data-variant=outline])+[data-variant]:not([data-variant=outline])]:after:opacity-25";
 
 /**
  * Related buttons joined into one control, such as Previous, a page number and Next, or a

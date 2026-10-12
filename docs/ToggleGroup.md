@@ -48,16 +48,9 @@ Props every mode takes. Type: `ToggleGroupProps`.
 
 `ToggleGroupProps` is a union: pass the props of exactly one mode. Mixing them is a type error.
 
-### With `multiple` and `value` and `defaultValue` and `onValueChange`
+### Multiple: `ToggleGroupMultipleProps`
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `defaultValue` | `string \| null` | null | The toggle pressed first, when the group keeps its own state. |
-| `multiple` | `false` |  | Allows several toggles pressed at once, and makes the value a list. |
-| `onValueChange` | `((value: string \| null) => void)` |  | Called with the pressed toggle's value, or `null` when the pressed one is pressed again. |
-| `value` | `string \| null` |  | The pressed toggle's value, or `null` for none, when you control it. Pair it with `onValueChange`. |
-
-### With `multiple` and `value` and `defaultValue` and `onValueChange`
+With `multiple`, any number of toggles pressed: the value is a list of item values.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -65,6 +58,17 @@ Props every mode takes. Type: `ToggleGroupProps`.
 | `multiple` (required) | `true` |  | Allows several toggles pressed at once, and makes the value a list. |
 | `onValueChange` | `((value: string[]) => void)` |  | Called with the pressed toggles' values, in item order. |
 | `value` | `readonly string[]` |  | The pressed toggles' values, when you control them. Pair it with `onValueChange`. |
+
+### Single: `ToggleGroupSingleProps`
+
+One toggle pressed at a time, the default: the value is one item's value, or `null` for none.
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `defaultValue` | `string \| null` | null | The toggle pressed first, when the group keeps its own state. |
+| `multiple` | `false` |  | Allows several toggles pressed at once, and makes the value a list. |
+| `onValueChange` | `((value: string \| null) => void)` |  | Called with the pressed toggle's value, or `null` when the pressed one is pressed again. |
+| `value` | `string \| null` |  | The pressed toggle's value, or `null` for none, when you control it. Pair it with `onValueChange`. |
 
 ## Don't use
 

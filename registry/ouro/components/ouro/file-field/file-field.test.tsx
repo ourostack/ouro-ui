@@ -200,6 +200,103 @@ describe("FileField", () => {
     expect(onReject).toHaveBeenCalledWith([{ file: second, reason: "count" }]);
   });
 
+  describe("says why a file was left out, under the field", () => {
+    /** The messages the input points at, in order: each list item of a list, or the element's text. */
+    const messages = (host: HTMLElement, input: HTMLInputElement) =>
+      describedBy(input).flatMap((id) => {
+        const element = host.querySelector(`#${CSS.escape(id)}`)!;
+        const items = [...element.querySelectorAll("li")];
+        return items.length > 0 ? items.map((item) => item.textContent) : [element.textContent];
+      });
+
+    it("for a file that does not match accept", async () => {
+      const onReject = vi.fn();
+      const { host, input, zone } = await render(<FileField label="Photo" accept="image/*" onReject={onReject} />);
+      const notes = text("notes.txt");
+      await drop(zone, [notes]);
+      expect(messages(host, input)).toEqual(["notes.txt is not an accepted file type."]);
+      expect(input.getAttribute("aria-invalid")).toBe("true");
+      expect(onReject).toHaveBeenCalledWith([{ file: notes, reason: "type" }]);
+    });
+
+    it("for a file larger than maxSize, naming the limit", async () => {
+      const onReject = vi.fn();
+      const { host, input, zone } = await render(<FileField label="Photo" maxSize={5 * 1024 * 1024} onReject={onReject} />);
+      const big = new File([new Uint8Array(5 * 1024 * 1024 + 1)], "big.png", { type: "image/png" });
+      await drop(zone, [big]);
+      expect(messages(host, input)).toEqual(["big.png is larger than 5 MB."]);
+      expect(onReject).toHaveBeenCalledWith([{ file: big, reason: "size" }]);
+    });
+
+    it("for a second file without multiple", async () => {
+      const onReject = vi.fn();
+      const { host, input, zone } = await render(<FileField label="Photo" onReject={onReject} />);
+      const second = text("b.txt");
+      await drop(zone, [text("a.txt"), second]);
+      expect(messages(host, input)).toEqual(["Only one file can be added, so b.txt was left out."]);
+      expect(onReject).toHaveBeenCalledWith([{ file: second, reason: "count" }]);
+    });
+
+    it("next to the app's own error, in rejectMessage's words, until the next choice takes every file", async () => {
+      const { host, input, zone } = await render(
+        <FileField
+          label="Photo"
+          accept="image/*"
+          error="Choose a photo."
+          rejectMessage={(rejection) => `${rejection.file.name}: ${rejection.reason}`}
+        />,
+      );
+      await drop(zone, [text("notes.txt")]);
+      expect(messages(host, input)).toEqual(["Choose a photo.", "notes.txt: type"]);
+      await drop(zone, [image()]);
+      expect(messages(host, input)).toEqual(["Choose a photo."]);
+    });
+
+    it("and drops the message when a file is removed or the form resets", async () => {
+      const { host, input, zone } = await render(
+        <form>
+          <FileField label="Files" multiple accept="image/*" />
+          <button type="reset">Reset</button>
+        </form>,
+      );
+      await drop(zone, [image("a.png"), text("notes.txt")]);
+      expect(messages(host, input)).toEqual(["notes.txt is not an accepted file type."]);
+      await userEvent.click(host.querySelector<HTMLButtonElement>('button[aria-label="Remove a.png"]')!);
+      expect(input.hasAttribute("aria-invalid")).toBe(false);
+      await drop(zone, [text("notes.txt")]);
+      expect(input.getAttribute("aria-invalid")).toBe("true");
+      await userEvent.click(host.querySelector<HTMLButtonElement>('button[type="reset"]')!);
+      await expect.poll(() => input.hasAttribute("aria-invalid")).toBe(false);
+    });
+  });
+
+  it("releases each preview's object URL when its file is removed, and the rest when it unmounts", async () => {
+    const revoke = vi.spyOn(URL, "revokeObjectURL");
+    const { host, zone } = await render(<FileField label="Photos" multiple />);
+    await drop(zone, [image("a.png"), image("b.png")]);
+    const [a, b] = [...host.querySelectorAll("img")].map((img) => img.getAttribute("src"));
+    expect(a).toMatch(/^blob:/);
+    expect(b).toMatch(/^blob:/);
+    await userEvent.click(host.querySelector<HTMLButtonElement>('button[aria-label="Remove a.png"]')!);
+    expect(revoke.mock.calls.map(([url]) => url)).toEqual([a]);
+    await act(async () => roots.pop()!.unmount());
+    expect(revoke.mock.calls.map(([url]) => url)).toEqual([a, b]);
+  });
+
+  it("is not left invalid by a blocked submit once a file is dropped", async () => {
+    const { host, input, zone } = await render(
+      <form onSubmit={(event) => event.preventDefault()}>
+        <FileField label="Photo" name="photo" required />
+        <button type="submit">Send</button>
+      </form>,
+    );
+    await userEvent.click(host.querySelector<HTMLButtonElement>('button[type="submit"]')!);
+    expect(input.validity.valueMissing).toBe(true);
+    await drop(zone, [image()]);
+    expect(input.validity.valid).toBe(true);
+    await expect.poll(() => input.getAttribute("aria-invalid")).not.toBe("true");
+  });
+
   it("removes a file with its button, and focus goes back to the input", async () => {
     const onFilesChange = vi.fn();
     const { input, zone, host } = await render(<FileField label="Files" multiple onFilesChange={onFilesChange} />);

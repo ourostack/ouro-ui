@@ -1,4 +1,4 @@
-export { boxClass, hexOf, pickerClass, swatchClass, textClass, toHex };
+export { boxClass, hexOf, pickerClass, plainSwatchClass, supportsColorInput, swatchClass, textClass, toHex };
 
 // Class strings and helpers for ColorField, apart from the component so its file exports only
 // components (React Fast Refresh). Class strings are literal so the app's Tailwind finds them
@@ -52,6 +52,22 @@ const boxClass =
  * @internal
  */
 const swatchClass = "relative flex size-7 shrink-0 cursor-pointer sm:pointer-fine:size-6 has-[input:disabled]:cursor-not-allowed";
+
+/**
+ * The swatch where the browser has no color picker: the color, shown only, beside the hex text
+ * that takes it.
+ */
+const plainSwatchClass = "relative block size-7 shrink-0 rounded-sm border border-solid border-border sm:pointer-fine:size-6";
+
+/**
+ * Whether the browser has a color picker. One without it treats `type="color"` as text, so the
+ * type reads back as "text". On the server, assume it does; the client corrects it.
+ */
+function supportsColorInput(): boolean {
+  const probe = document.createElement("input");
+  probe.setAttribute("type", "color");
+  return probe.type === "color";
+}
 
 /**
  * The native color input drawn as a plain swatch: the browser's padding and border removed.

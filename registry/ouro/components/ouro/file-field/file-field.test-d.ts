@@ -19,11 +19,14 @@ expectTypeOf<{
   maxSize: 5242880;
   onFilesChange: (files: File[]) => void;
   onReject: (rejections: FileRejection[]) => void;
+  rejectMessage: (rejection: FileRejection) => string;
   capture: "environment";
   prompt: "Drop photos";
   removeLabel: "Remove";
   className: "mt-4";
 }>().toExtend<FileFieldProps>();
+// rejectMessage returns the message text.
+expectTypeOf<{ label: "Photo"; rejectMessage: (rejection: FileRejection) => number }>().not.toExtend<FileFieldProps>();
 expectTypeOf<FileRejection["reason"]>().toEqualTypeOf<"type" | "size" | "count">();
 
 // The label is required.

@@ -122,12 +122,25 @@ interface SlotsProps {
   slotLabel: (position: number, length: number) => string;
   autoComplete: string | undefined;
   readOnly: boolean | undefined;
+  /** OtpField's own `error` has a message. */
+  hasError: boolean;
   ref: Ref<HTMLDivElement> | undefined;
 }
 
-/** The slots, inside the Field, where they read its required state and server-known description ids. */
-function Slots({ length, groupSize, slotLabel, onValueChange, onValueComplete, ref, ...rest }: SlotsProps): JSX.Element {
+/**
+ * The slots, inside the Field, where they read its required state, invalid state and
+ * server-known description ids. The group and every slot get the ids, since a screen reader
+ * may land on any slot, and the invalid state is Ouro's own (Base UI's tracks only its own
+ * checks).
+ */
+function Slots({ length, groupSize, slotLabel, onValueChange, onValueComplete, hasError, ref, ...rest }: SlotsProps): JSX.Element {
   const field = useField()!;
+  // A Field that shares its invalid state (a Form's error for this name counts too) decides;
+  // otherwise OtpField's own error does.
+  const invalid =
+    "invalid" in field
+      ? /* istanbul ignore next @preserve -- runs once Field shares its invalid state (ourostack/ouro-ui#36) */ field.invalid === true
+      : hasError;
   const groups = groupSize && Number.isInteger(groupSize) && groupSize > 0 && groupSize < length ? groupSize : length;
   return (
     <OTPField.Root
@@ -146,6 +159,8 @@ function Slots({ length, groupSize, slotLabel, onValueChange, onValueComplete, r
           <OTPField.Input
             data-ouro-otp-slot=""
             aria-label={index === 0 ? undefined : slotLabel(index + 1, length)}
+            aria-describedby={field.describedBy}
+            {...(invalid ? { "aria-invalid": true } : {})}
             className={slotClass}
           />
         </Fragment>
@@ -256,6 +271,7 @@ export function OtpField(props: OtpFieldProps): JSX.Element {
           slotLabel={slotLabel}
           autoComplete={autoComplete}
           readOnly={readOnly}
+          hasError={Array.isArray(error) ? error.some((message) => message !== "") : Boolean(error)}
         />
       </Field>
     </FieldOwnerContext.Provider>

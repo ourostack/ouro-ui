@@ -2,7 +2,7 @@
 
 # FileField
 
-A labeled file input with a drop zone, on the Field contract. Files can be chosen with the system picker (or a phone's camera, with `capture`) or dropped on the zone; the chosen ones are listed with a thumbnail for images and a remove button, and they stay in the native input, so a plain form submits them. `accept`, `maxSize` and `multiple` filter what comes in, and `onReject` reports what was left out.
+A labeled file input with a drop zone, on the Field contract. Files can be chosen with the system picker (or a phone's camera, with `capture`) or dropped on the zone; the chosen ones are listed with a thumbnail for images and a remove button, and they stay in the native input, so a plain form submits them. `accept`, `maxSize` and `multiple` filter what comes in; a file that is left out gets a message under the field (`rejectMessage` translates it), and `onReject` reports it.
 
 ```tsx
 import { FileField } from "@/registry/ouro/components/ouro/file-field/file-field";
@@ -12,7 +12,7 @@ import { FileField } from "@/registry/ouro/components/ouro/file-field/file-field
 
 ```tsx
 <FileField label="Recipe photo" name="photo" accept="image/*" maxSize={5 * 1024 * 1024} error={errors?.photo} />
-<FileField label="Attachments" name="attachments" multiple onReject={(rejected) => setRejected(rejected)} />
+<FileField label="Attachments" name="attachments" multiple maxSize={10 * 1024 * 1024} onReject={(rejected) => logRejected(rejected)} />
 ```
 
 ## Use instead when
@@ -25,7 +25,7 @@ Type: `FileFieldProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `accept` | `string` |  | The files it takes, as the input's `accept`: extensions and MIME types, comma-separated (`".pdf,image/*"`). Dropped files that do not match are left out and reported to `onReject`. |
+| `accept` | `string` |  | The files it takes, as the input's `accept`: extensions and MIME types, comma-separated (`".pdf,image/*"`). Files that do not match are left out, with a message under the field, and reported to `onReject`. |
 | `capture` | `"user" \| "environment"` |  | Which camera a phone opens instead of the file picker: `environment` (back) or `user` (front). Pass it with `accept="image/*"`. |
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-4`). Appearance classes warn in development; style fields in your theme. |
 | `description` | `ReactNode` |  | Supporting text under the label ("PNG or JPG, up to 5 MB"), read through `aria-describedby`. |
@@ -33,13 +33,14 @@ Type: `FileFieldProps`.
 | `error` | `string \| string[]` |  | What is wrong, from your server action or client check. It shows under the field, and the input gets `aria-invalid`. An empty string or array means valid. |
 | `hideLabel` | `boolean` |  | Hides the label visually; screen readers still read it. |
 | `label` (required) | `string` |  | What the files are for ("Recipe photo"), shown above the drop zone and read as the input's name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. |
-| `maxSize` | `number` |  | The largest file it takes, in bytes: `5 * 1024 * 1024` for 5 MB. Larger files are left out and reported to `onReject`. |
+| `maxSize` | `number` |  | The largest file it takes, in bytes: `5 * 1024 * 1024` for 5 MB. Larger files are left out, with a message under the field, and reported to `onReject`. |
 | `multiple` | `boolean` |  | Takes several files; each new choice or drop adds to the list. Without it, a new file replaces the old one. |
 | `name` | `string` |  | The form field name the files submit under. |
 | `onFilesChange` | `((files: File[]) => void)` |  | Called with the chosen files whenever the list changes: a choice, a drop, or a removal. |
-| `onReject` | `((rejections: FileRejection[]) => void)` |  | Called with the files that were left out, and why. Show the reason with `error`. |
+| `onReject` | `((rejections: FileRejection[]) => void)` |  | Called with the files that were left out, and why. The field already says why under itself; use this to log or count them. |
 | `prompt` | `string` | `"Drag a file here, or choose one"` ("Drag files here, or choose them" with `multiple`) | The text in the drop zone. Translate it with your app. |
 | `ref` | `Ref<HTMLInputElement>` |  | The file input element. |
+| `rejectMessage` | `((rejection: FileRejection) => string)` | (rejection) => "notes.heic is not an accepted file type.", "big.png is larger than 5 MB." or "Only one file can be added, so b.png was left out." | The message under the field for each file that was left out, until the next choice takes every file. Translate it with your app. |
 | `removeLabel` | `string` | `"Remove"` | The start of each file's remove button name, followed by the file name. Translate it with your app. |
 | `required` | `boolean` |  | A file must be chosen before the form submits. |
 

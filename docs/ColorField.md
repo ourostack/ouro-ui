@@ -26,7 +26,7 @@ Type: `ColorFieldProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-4`). Appearance classes warn in development; style fields in your theme. |
-| `defaultValue` | `string` | `"#000000"` | The color the field starts with, as hex, when it keeps its own state. |
+| `defaultValue` | `string` | `"#000000"` | The color the field starts with, and goes back to when its form resets, as hex. |
 | `description` | `ReactNode` |  | Supporting text under the label, read through `aria-describedby`. |
 | `disabled` | `boolean` |  | Disables the swatch and the text, and fades the field. |
 | `error` | `string \| string[]` |  | What is wrong, from your server action or client check. It shows under the field, which gets `aria-invalid`. An empty string or array means valid. |
@@ -36,7 +36,7 @@ Type: `ColorFieldProps`.
 | `onValueChange` | `((hex: string) => void)` |  | Called with the color as `#rrggbb` when it is picked, or typed as a whole hex. |
 | `pickerLabel` | `string` | `"Pick a color"` | The name of the swatch that opens the system color picker. Translate it with your app. |
 | `ref` | `Ref<HTMLInputElement>` |  | The hex text input. |
-| `required` | `boolean` |  | The field must be filled: it gets `required` and `aria-required`, and the label a marker. |
+| `required` | `boolean` |  | Marks the field required: it gets `aria-required`, and the label a marker. A color always has a value, so it never blocks a submit, even with the text cleared. |
 | `value` | `string` |  | The color as hex (`#3366ff`, or short `#36f`), when you control it. Pair it with `onValueChange`. |
 
 ## Don't use

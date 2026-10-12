@@ -111,6 +111,32 @@ describe("OtpField", () => {
     expect(onValueComplete).toHaveBeenCalledWith("123456");
   });
 
+  it("takes a whole code that iOS autofill writes into the first slot", async () => {
+    const onValueComplete = vi.fn();
+    const { slots } = await render(<OtpField label="Code" onValueComplete={onValueComplete} />);
+    slots[0]!.focus();
+    await act(async () => {
+      // iOS fills a one-time code by replacing the first input's text with the whole code.
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(slots[0], "123456");
+      slots[0]!.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertReplacementText", data: "123456" }));
+    });
+    expect(valueOf(slots)).toBe("123456");
+    expect(onValueComplete).toHaveBeenCalledWith("123456");
+  });
+
+  it("steps back across slots with Backspace from an empty slot", async () => {
+    const { slots } = await render(<OtpField label="Code" />);
+    await userEvent.click(slots[0]!);
+    await userEvent.keyboard("123");
+    expect(document.activeElement).toBe(slots[3]);
+    await userEvent.keyboard("{Backspace}");
+    expect(valueOf(slots)).toBe("12");
+    expect(document.activeElement).toBe(slots[2]);
+    await userEvent.keyboard("{Backspace}{Backspace}");
+    expect(valueOf(slots)).toBe("");
+    expect(document.activeElement).toBe(slots[0]);
+  });
+
   it("accepts letters with validationType", async () => {
     const { slots } = await render(<OtpField label="Recovery code" validationType="alphanumeric" length={4} />);
     await userEvent.click(slots[0]!);
@@ -176,14 +202,26 @@ describe("OtpField", () => {
     const { host, group, slots, rerender } = await render(
       <OtpField label="Code" description="We sent it to your phone." error="That code has expired." required />,
     );
-    expect(describedBy(group).map((id) => host.querySelector(`#${CSS.escape(id)}`)!.textContent)).toEqual([
-      "We sent it to your phone.",
-      "That code has expired.",
-    ]);
-    expect(slots.every((slot) => slot.getAttribute("aria-invalid") === "true")).toBe(true);
+    // Every slot points at the description and the error, so a screen reader reads them on
+    // whichever slot it lands, and every slot is invalid.
+    for (const slot of slots) {
+      expect(describedBy(slot).map((id) => host.querySelector(`#${CSS.escape(id)}`)!.textContent)).toEqual([
+        "We sent it to your phone.",
+        "That code has expired.",
+      ]);
+      expect(slot.getAttribute("aria-invalid")).toBe("true");
+    }
+    expect(describedBy(group)).toEqual(describedBy(slots[0]!));
     expect(slots[0]!.required).toBe(true);
     await rerender(<OtpField label="Code" disabled />);
     expect(slots.every((slot) => slot.disabled)).toBe(true);
+  });
+
+  it("is invalid for a list of errors with a message, and valid for an empty list", async () => {
+    const { slots, rerender } = await render(<OtpField label="Code" length={4} error={["", "That code has expired."]} />);
+    expect(slots.every((slot) => slot.getAttribute("aria-invalid") === "true")).toBe(true);
+    await rerender(<OtpField label="Code" length={4} error={[""]} />);
+    expect(slots.some((slot) => slot.hasAttribute("aria-invalid"))).toBe(false);
   });
 
   it("forwards its ref to the group and lets layout classes win on the root", async () => {
@@ -288,11 +326,15 @@ describe("OtpField server rendering", () => {
   it("renders the label, description and error ids on the server", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const doc = new DOMParser().parseFromString(renderToString(node), "text/html");
-    const group = doc.querySelector('[role="group"]')!;
-    const first = doc.querySelector("input[data-ouro-otp-slot]")!;
+    const slots = [...doc.querySelectorAll("input[data-ouro-otp-slot]")];
+    const first = slots[0]!;
     expect(doc.querySelector(`label[for="${first.id}"]`)!.textContent).toContain("Code");
-    expect(describedBy(group).map((id) => doc.getElementById(id)!.textContent)).toEqual(["We sent it by text.", "That code has expired."]);
-    expect(first.getAttribute("aria-invalid")).toBe("true");
+    expect(slots).toHaveLength(4);
+    // A server error marks every slot invalid and points every slot at the messages.
+    for (const slot of slots) {
+      expect(describedBy(slot).map((id) => doc.getElementById(id)!.textContent)).toEqual(["We sent it by text.", "That code has expired."]);
+      expect(slot.getAttribute("aria-invalid")).toBe("true");
+    }
     expect(first.getAttribute("autocomplete")).toBe("one-time-code");
     expect(error).not.toHaveBeenCalled();
   });

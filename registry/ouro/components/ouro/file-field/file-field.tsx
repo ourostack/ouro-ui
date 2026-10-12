@@ -53,17 +53,30 @@ export interface FileFieldProps {
   name?: string | undefined;
   /**
    * The files it takes, as the input's `accept`: extensions and MIME types, comma-separated
-   * (`".pdf,image/*"`). Dropped files that do not match are left out and reported to `onReject`.
+   * (`".pdf,image/*"`). Files that do not match are left out, with a message under the field,
+   * and reported to `onReject`.
    */
   accept?: string | undefined;
   /** Takes several files; each new choice or drop adds to the list. Without it, a new file replaces the old one. */
   multiple?: boolean | undefined;
-  /** The largest file it takes, in bytes: `5 * 1024 * 1024` for 5 MB. Larger files are left out and reported to `onReject`. */
+  /**
+   * The largest file it takes, in bytes: `5 * 1024 * 1024` for 5 MB. Larger files are left out,
+   * with a message under the field, and reported to `onReject`.
+   */
   maxSize?: number | undefined;
   /** Called with the chosen files whenever the list changes: a choice, a drop, or a removal. */
   onFilesChange?: ((files: File[]) => void) | undefined;
-  /** Called with the files that were left out, and why. Show the reason with `error`. */
+  /**
+   * Called with the files that were left out, and why. The field already says why under
+   * itself; use this to log or count them.
+   */
   onReject?: ((rejections: FileRejection[]) => void) | undefined;
+  /**
+   * The message under the field for each file that was left out, until the next choice takes
+   * every file. Translate it with your app.
+   * @default (rejection) => "notes.heic is not an accepted file type.", "big.png is larger than 5 MB." or "Only one file can be added, so b.png was left out."
+   */
+  rejectMessage?: ((rejection: FileRejection) => string) | undefined;
   /**
    * Which camera a phone opens instead of the file picker: `environment` (back) or `user` (front).
    * Pass it with `accept="image/*"`.
@@ -148,6 +161,18 @@ function Thumbnail({ file }: { file: File }): JSX.Element {
   return <img ref={attach} alt="" className={previewClass} />;
 }
 
+/** The English message for a file that was left out. */
+function defaultRejectMessage({ file, reason }: FileRejection, maxSize: number | undefined): string {
+  if (reason === "type") return `${file.name} is not an accepted file type.`;
+  if (reason === "size") return `${file.name} is larger than ${formatSize(maxSize!)}.`;
+  return `Only one file can be added, so ${file.name} was left out.`;
+}
+
+/** An `error` prop as a list of messages. */
+function messagesOf(error: string | string[] | undefined): string[] {
+  return error === undefined ? [] : ([] as string[]).concat(error);
+}
+
 /** Puts files in the input, so the form submits exactly the listed ones. */
 function setInputFiles(input: HTMLInputElement, files: readonly File[]): void {
   const data = new DataTransfer();
@@ -160,7 +185,8 @@ function setInputFiles(input: HTMLInputElement, files: readonly File[]): void {
  * system picker (or a phone's camera, with `capture`) or dropped on the zone; the chosen ones
  * are listed with a thumbnail for images and a remove button, and they stay in the native
  * input, so a plain form submits them. `accept`, `maxSize` and `multiple` filter what comes
- * in, and `onReject` reports what was left out.
+ * in; a file that is left out gets a message under the field (`rejectMessage` translates it),
+ * and `onReject` reports it.
  *
  * Use `TextField type="url"` instead to take a link to a file, and an upload service's own
  * widget when files go straight to storage without a form.
@@ -170,7 +196,7 @@ function setInputFiles(input: HTMLInputElement, files: readonly File[]): void {
  *
  * @example
  * <FileField label="Recipe photo" name="photo" accept="image/*" maxSize={5 * 1024 * 1024} error={errors?.photo} />
- * <FileField label="Attachments" name="attachments" multiple onReject={(rejected) => setRejected(rejected)} />
+ * <FileField label="Attachments" name="attachments" multiple maxSize={10 * 1024 * 1024} onReject={(rejected) => logRejected(rejected)} />
  */
 export function FileField(props: FileFieldProps): JSX.Element {
   const {
@@ -186,6 +212,7 @@ export function FileField(props: FileFieldProps): JSX.Element {
     maxSize,
     onFilesChange,
     onReject,
+    rejectMessage,
     capture,
     prompt,
     removeLabel = "Remove",
@@ -238,12 +265,17 @@ export function FileField(props: FileFieldProps): JSX.Element {
   const setRef = useMergedRef(ref, inputRef);
   const [files, setFiles] = useState<readonly File[]>([]);
   const [dragging, setDragging] = useState(false);
+  // Why the last choice or drop left files out, shown under the field.
+  const [rejections, setRejections] = useState<readonly string[]>([]);
 
-  // A form reset empties the input; empty the list with it.
+  // A form reset empties the input; empty the list and its messages with it.
   useEffect(() => {
     const form = inputRef.current!.form;
     if (!form) return;
-    const onReset = () => setFiles([]);
+    const onReset = () => {
+      setFiles([]);
+      setRejections([]);
+    };
     form.addEventListener("reset", onReset);
     return () => form.removeEventListener("reset", onReset);
   }, []);
@@ -265,6 +297,7 @@ export function FileField(props: FileFieldProps): JSX.Element {
       else if (!multiple && accepted.length > 0) rejected.push({ file, reason: "count" });
       else accepted.push(file);
     }
+    setRejections(rejected.map((rejection) => (rejectMessage ? rejectMessage(rejection) : defaultRejectMessage(rejection, maxSize))));
     if (rejected.length > 0) onReject?.(rejected);
     if (accepted.length === 0) {
       // The picker put a rejected file in the input: put the listed ones back.
@@ -277,6 +310,7 @@ export function FileField(props: FileFieldProps): JSX.Element {
   };
 
   const remove = (file: File) => {
+    setRejections([]);
     commit(files.filter((listed) => listed !== file));
     inputRef.current!.focus();
   };
@@ -302,7 +336,7 @@ export function FileField(props: FileFieldProps): JSX.Element {
         label={label}
         hideLabel={hideLabel}
         description={description}
-        error={error}
+        error={rejections.length > 0 ? [...messagesOf(error), ...rejections] : error}
         required={required}
         disabled={disabled}
         name={name}

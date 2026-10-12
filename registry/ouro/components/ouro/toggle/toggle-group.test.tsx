@@ -72,6 +72,11 @@ describe("ToggleGroup", () => {
     expect(toggles.every((toggle) => toggle.type === "button")).toBe(true);
   });
 
+  it("names each toggle's variant in data-variant", async () => {
+    const { toggles } = await render(<ToggleGroup label="Alignment" items={align} variant="outline" />);
+    expect(toggles.map((toggle) => toggle.getAttribute("data-variant"))).toEqual(["outline", "outline", "outline"]);
+  });
+
   it("presses one item at a time and reports the value, or null when none is pressed", async () => {
     const onValueChange = vi.fn();
     const { toggles } = await render(<ToggleGroup label="Alignment" items={align} defaultValue="left" onValueChange={onValueChange} />);

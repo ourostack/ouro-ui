@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type JSX, type ReactNode, type Ref } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type JSX, type ReactNode, type Ref } from "react";
 import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { FieldControl } from "@/registry/ouro/components/ouro/field/field-parts";
 import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-styles";
@@ -8,7 +8,16 @@ import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { FieldOwnerContext, useField } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
-import { boxClass, hexOf, pickerClass, swatchClass, textClass, toHex } from "@/registry/ouro/components/ouro/color-field/color-field-styles";
+import {
+  boxClass,
+  hexOf,
+  pickerClass,
+  plainSwatchClass,
+  supportsColorInput,
+  swatchClass,
+  textClass,
+  toHex,
+} from "@/registry/ouro/components/ouro/color-field/color-field-styles";
 
 /** Props for {@link ColorField}. */
 export interface ColorFieldProps {
@@ -26,7 +35,10 @@ export interface ColorFieldProps {
    * gets `aria-invalid`. An empty string or array means valid.
    */
   error?: string | string[] | undefined;
-  /** The field must be filled: it gets `required` and `aria-required`, and the label a marker. */
+  /**
+   * Marks the field required: it gets `aria-required`, and the label a marker. A color always
+   * has a value, so it never blocks a submit, even with the text cleared.
+   */
   required?: boolean | undefined;
   /** Disables the swatch and the text, and fades the field. */
   disabled?: boolean | undefined;
@@ -34,7 +46,7 @@ export interface ColorFieldProps {
   name?: string | undefined;
   /** The color as hex (`#3366ff`, or short `#36f`), when you control it. Pair it with `onValueChange`. */
   value?: string | undefined;
-  /** The color the field starts with, as hex, when it keeps its own state. @default "#000000" */
+  /** The color the field starts with, and goes back to when its form resets, as hex. @default "#000000" */
   defaultValue?: string | undefined;
   /** Called with the color as `#rrggbb` when it is picked, or typed as a whole hex. */
   onValueChange?: ((hex: string) => void) | undefined;
@@ -79,15 +91,21 @@ const owner = { name: "ColorField", data: "color-field" };
 interface ControlProps {
   color: string;
   onPick: (hex: string) => void;
+  /** Puts the color back as the form resets, and gives the color it now has. */
+  onReset: () => string;
   pickerLabel: string;
   disabled: boolean | undefined;
   inputRef: Ref<HTMLInputElement>;
   textRef: { current: HTMLInputElement | null };
 }
 
+/** Nothing to subscribe to: whether the browser has a color picker never changes. */
+const subscribeNever = () => () => {};
+
 /** The swatch and the text, inside the Field, where they read its server-known description ids. */
-function Control({ color, onPick, pickerLabel, disabled, inputRef, textRef }: ControlProps): JSX.Element {
+function Control({ color, onPick, onReset, pickerLabel, disabled, inputRef, textRef }: ControlProps): JSX.Element {
   const field = useField()!;
+  const hasPicker = useSyncExternalStore(subscribeNever, supportsColorInput, () => true);
   // The text the person is typing; it follows the color whenever the color changes elsewhere.
   const [draft, setDraft] = useState(color);
   const [shown, setShown] = useState(color);
@@ -96,7 +114,8 @@ function Control({ color, onPick, pickerLabel, disabled, inputRef, textRef }: Co
     if (hexOf(draft) !== color) setDraft(color);
   }
 
-  // The form gets the color as #rrggbb, whatever the text says at that moment.
+  // The form gets the color as #rrggbb, whatever the text says at that moment, and a form
+  // reset puts the color and the text back.
   useEffect(() => {
     const form = textRef.current!.form;
     if (!form) return;
@@ -104,28 +123,39 @@ function Control({ color, onPick, pickerLabel, disabled, inputRef, textRef }: Co
       const input = textRef.current!;
       if (input.name && !input.disabled) event.formData.set(input.name, color);
     };
+    const onFormReset = () => setDraft(onReset());
     form.addEventListener("formdata", onFormData);
-    return () => form.removeEventListener("formdata", onFormData);
-  }, [textRef, color]);
+    form.addEventListener("reset", onFormReset);
+    return () => {
+      form.removeEventListener("formdata", onFormData);
+      form.removeEventListener("reset", onFormReset);
+    };
+  }, [textRef, color, onReset]);
 
   return (
     <div data-ouro-input-group="" className={boxClass}>
-      <label className={swatchClass}>
-        <TouchTarget />
-        <input
-          type="color"
-          value={color}
-          aria-label={pickerLabel}
-          aria-describedby={field.describedBy}
-          disabled={disabled}
-          onChange={(event) => {
-            const hex = hexOf(event.currentTarget.value)!;
-            setDraft(hex);
-            onPick(hex);
-          }}
-          className={pickerClass}
-        />
-      </label>
+      {hasPicker ? (
+        <label className={swatchClass}>
+          <TouchTarget />
+          <input
+            type="color"
+            value={color}
+            aria-label={pickerLabel}
+            aria-describedby={field.describedBy}
+            disabled={disabled}
+            onChange={(event) => {
+              // Only a browser with a picker renders it, and its value is always #rrggbb.
+              const hex = hexOf(event.currentTarget.value)!;
+              setDraft(hex);
+              onPick(hex);
+            }}
+            className={pickerClass}
+          />
+        </label>
+      ) : (
+        // Without a picker the swatch only shows the color; the hex text takes it.
+        <span aria-hidden="true" data-ouro-color-swatch="" className={plainSwatchClass} style={{ backgroundColor: color }} />
+      )}
       <FieldControl
         ref={inputRef}
         value={draft}
@@ -139,7 +169,9 @@ function Control({ color, onPick, pickerLabel, disabled, inputRef, textRef }: Co
         autoComplete="off"
         autoCapitalize="none"
         spellCheck={false}
-        render={(controlProps) => <input {...controlProps} type="text" className={textClass} />}
+        // A color always has a value (the form gets it from formdata), so the text is never
+        // natively required; aria-required and the label's marker still say it is.
+        render={(controlProps) => <input {...controlProps} type="text" required={false} className={textClass} />}
       />
     </div>
   );
@@ -208,6 +240,13 @@ export function ColorField(props: ColorFieldProps): JSX.Element {
     if (value === undefined) setOwn(hex);
     if (hex !== color) onValueChange?.(hex);
   };
+  // A form reset puts back defaultValue; a controlled color stays the app's.
+  const reset = () => {
+    if (value !== undefined) return color;
+    const initial = hexOf(defaultValue) ?? "#000000";
+    pick(initial);
+    return initial;
+  };
   const textRef = useRef<HTMLInputElement | null>(null);
   const setRef = useMergedRef(ref, textRef);
 
@@ -223,7 +262,7 @@ export function ColorField(props: ColorFieldProps): JSX.Element {
         name={name}
         className={className}
       >
-        <Control color={color} onPick={pick} pickerLabel={pickerLabel} disabled={disabled} inputRef={setRef} textRef={textRef} />
+        <Control color={color} onPick={pick} onReset={reset} pickerLabel={pickerLabel} disabled={disabled} inputRef={setRef} textRef={textRef} />
       </Field>
     </FieldOwnerContext.Provider>
   );

@@ -172,6 +172,7 @@ export function Toggle(props: ToggleProps): JSX.Element {
       disabled={disabled}
       aria-label={hideLabel ? label : rest["aria-label"]}
       data-ouro="toggle"
+      data-variant={variant}
       className={cn(toggleBase, sizes[size], looks[variant], iconOnly && squareClass, className)}
     >
       <TouchTarget />

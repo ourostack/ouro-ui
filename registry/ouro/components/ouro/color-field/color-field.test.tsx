@@ -136,6 +136,79 @@ describe("ColorField", () => {
     expect(submitted).toBe("#ff00aa");
   });
 
+  it("submits a required field whose text was cleared, with its color", async () => {
+    let submitted: FormDataEntryValue | null = null;
+    const { text } = await render(
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          submitted = new FormData(event.currentTarget).get("accent");
+        }}
+      >
+        <ColorField label="Accent" name="accent" defaultValue="#3366ff" required />
+        <button type="submit">Save</button>
+      </form>,
+    );
+    // Enter submits while the text is still empty (a click would tidy it on blur first).
+    await userEvent.clear(text);
+    await userEvent.keyboard("{Enter}");
+    expect(submitted).toBe("#3366ff");
+  });
+
+  it("goes back to defaultValue when the form resets", async () => {
+    const onValueChange = vi.fn();
+    const { text, picker, host } = await render(
+      <form>
+        <ColorField label="Accent" name="accent" defaultValue="#3366ff" onValueChange={onValueChange} />
+        <ColorField label="Border" name="border" />
+        <button type="reset">Reset</button>
+      </form>,
+    );
+    const border = host.querySelectorAll<HTMLInputElement>('input[type="color"]')[1]!;
+    await pick(border, "#00ff00");
+    await pick(picker, "#ff0000");
+    expect(text.value).toBe("#ff0000");
+    await userEvent.click(host.querySelector("button")!);
+    await expect.poll(() => text.value).toBe("#3366ff");
+    expect(picker.value).toBe("#3366ff");
+    expect(onValueChange).toHaveBeenLastCalledWith("#3366ff");
+    expect(new FormData(host.querySelector("form")!).get("accent")).toBe("#3366ff");
+    // Without defaultValue, it goes back to black.
+    expect(border.value).toBe("#000000");
+  });
+
+  it("leaves a controlled color to the app when the form resets", async () => {
+    const onValueChange = vi.fn();
+    const { text, host } = await render(
+      <form>
+        <ColorField label="Accent" value="#ff0000" onValueChange={onValueChange} />
+        <button type="reset">Reset</button>
+      </form>,
+    );
+    await userEvent.click(host.querySelector("button")!);
+    await expect.poll(() => text.value).toBe("#ff0000");
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
+  it("shows a plain swatch and keeps the hex text where the browser has no color picker", async () => {
+    // A browser without <input type="color"> reports the type as text.
+    const type = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "type")!;
+    vi.spyOn(HTMLInputElement.prototype, "type", "get").mockImplementation(function (this: HTMLInputElement) {
+      const attribute = this.getAttribute("type");
+      return attribute === "color" ? "text" : (type.get!.call(this) as string);
+    });
+    const onValueChange = vi.fn();
+    const { host, picker, text } = await render(<ColorField label="Accent" defaultValue="#3366ff" onValueChange={onValueChange} />);
+    expect(picker).toBeNull();
+    const swatch = host.querySelector<HTMLElement>("[data-ouro-color-swatch]")!;
+    expect(swatch.getAttribute("aria-hidden")).toBe("true");
+    expect(getComputedStyle(swatch).backgroundColor).toBe("rgb(51, 102, 255)");
+    await userEvent.clear(text);
+    await userEvent.type(text, "#ff0000");
+    expect(onValueChange).toHaveBeenLastCalledWith("#ff0000");
+    expect(getComputedStyle(swatch).backgroundColor).toBe("rgb(255, 0, 0)");
+  });
+
   it("adds nothing to the form data without a name, or while disabled", async () => {
     const { host } = await render(
       <form>
@@ -192,7 +265,10 @@ describe("ColorField", () => {
     ]);
     expect(describedBy(picker)).toEqual(describedBy(text));
     expect(text.getAttribute("aria-invalid")).toBe("true");
-    expect(text.required).toBe(true);
+    // A color always has a value, so required marks the field but never blocks the submit.
+    expect(text.getAttribute("aria-required")).toBe("true");
+    expect(text.required).toBe(false);
+    expect(host.querySelector("[data-ouro-required]")).not.toBeNull();
     await rerender(<ColorField label="Color" disabled />);
     expect(text.disabled).toBe(true);
     expect(picker.disabled).toBe(true);

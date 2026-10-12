@@ -66,6 +66,13 @@ describe("Toggle", () => {
     expect(onPressedChange).toHaveBeenLastCalledWith(false);
   });
 
+  it("names its variant in data-variant", async () => {
+    const { toggle, rerender } = await render(<Toggle label="Bold" />);
+    expect(toggle.getAttribute("data-variant")).toBe("plain");
+    await rerender(<Toggle label="Bold" variant="outline" />);
+    expect(toggle.getAttribute("data-variant")).toBe("outline");
+  });
+
   it("starts pressed with defaultPressed and follows a controlled pressed", async () => {
     function Controlled() {
       const [on, setOn] = useState(true);

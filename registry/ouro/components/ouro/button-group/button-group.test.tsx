@@ -96,6 +96,50 @@ describe("ButtonGroup", () => {
     expect(getComputedStyle(buttons[1]!, "::after").position).not.toBe("absolute");
   });
 
+  it("finds borderless neighbors by their data-variant, not by a border class", async () => {
+    const { host } = await render(
+      <>
+        <ButtonGroup label="By variant">
+          <button type="button" data-variant="soft" className="border border-solid border-[#888]">
+            A
+          </button>
+          <button type="button" data-variant="plain" className="border border-solid border-[#888]">
+            B
+          </button>
+        </ButtonGroup>
+        <ButtonGroup label="By class">
+          <button type="button" className="border border-solid border-transparent">
+            C
+          </button>
+          <button type="button" className="border border-solid border-transparent">
+            D
+          </button>
+        </ButtonGroup>
+      </>,
+    );
+    const [, b, , d] = [...host.querySelectorAll("button")];
+    expect(getComputedStyle(b!, "::after").position).toBe("absolute");
+    expect(getComputedStyle(d!, "::after").position).not.toBe("absolute");
+  });
+
+  it("draws a separator between plain toggles, and none between outline ones", async () => {
+    const { host } = await render(
+      <>
+        <ButtonGroup label="Plain">
+          <Toggle label="Bold" />
+          <Toggle label="Italic" />
+        </ButtonGroup>
+        <ButtonGroup label="Outline">
+          <Toggle label="Bold" variant="outline" />
+          <Toggle label="Italic" variant="outline" />
+        </ButtonGroup>
+      </>,
+    );
+    const toggles = [...host.querySelectorAll('[data-ouro="toggle"]')];
+    expect(getComputedStyle(toggles[1]!, "::after").position).toBe("absolute");
+    expect(getComputedStyle(toggles[3]!, "::after").position).not.toBe("absolute");
+  });
+
   it("raises the focused button, so its outline is not covered by a neighbor", async () => {
     const { buttons } = await render(three());
     document.body.focus();

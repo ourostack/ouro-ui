@@ -69,8 +69,8 @@ export interface ToggleGroupBaseProps {
   children?: { 'Use <ToggleGroup items={[{ value: "bold", label: "Bold" }]}>': never };
 }
 
-/** A {@link ToggleGroup} that presses one toggle at a time (the default). */
-export interface ToggleGroupSingleProps extends ToggleGroupBaseProps {
+/** One toggle pressed at a time, the default: the value is one item's value, or `null` for none. */
+export type ToggleGroupSingleProps = ToggleGroupBaseProps & {
   /** Allows several toggles pressed at once, and makes the value a list. */
   multiple?: false | undefined;
   /** The pressed toggle's value, or `null` for none, when you control it. Pair it with `onValueChange`. */
@@ -79,10 +79,10 @@ export interface ToggleGroupSingleProps extends ToggleGroupBaseProps {
   defaultValue?: string | null | undefined;
   /** Called with the pressed toggle's value, or `null` when the pressed one is pressed again. */
   onValueChange?: ((value: string | null) => void) | undefined;
-}
+};
 
-/** A {@link ToggleGroup} with `multiple`: any number of toggles pressed. */
-export interface ToggleGroupMultipleProps extends ToggleGroupBaseProps {
+/** With `multiple`, any number of toggles pressed: the value is a list of item values. */
+export type ToggleGroupMultipleProps = ToggleGroupBaseProps & {
   /** Allows several toggles pressed at once, and makes the value a list. */
   multiple: true;
   /** The pressed toggles' values, when you control them. Pair it with `onValueChange`. */
@@ -91,7 +91,7 @@ export interface ToggleGroupMultipleProps extends ToggleGroupBaseProps {
   defaultValue?: readonly string[] | undefined;
   /** Called with the pressed toggles' values, in item order. */
   onValueChange?: ((value: string[]) => void) | undefined;
-}
+};
 
 /** Props for {@link ToggleGroup}: `multiple` makes the value a list. */
 export type ToggleGroupProps = ToggleGroupSingleProps | ToggleGroupMultipleProps;
@@ -240,6 +240,7 @@ export function ToggleGroup(props: ToggleGroupProps): JSX.Element {
               disabled={itemDisabled}
               aria-label={iconOnlyItem ? itemLabel : undefined}
               data-ouro-toggle=""
+              data-variant={variant}
               className={cn(toggleBase, sizes[size], looks[variant], iconOnly && squareClass)}
             >
               <TouchTarget />
