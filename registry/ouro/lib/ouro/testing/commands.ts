@@ -119,6 +119,11 @@ export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from,
   }
   const touch = (type: "touchStart" | "touchMove" | "touchEnd", [x, y]: [number, number]) =>
     session.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y, id: 1 }] });
+  // The tab runs file after file, and a mobile page can stay zoomed in after an earlier
+  // test (4.7x was seen), so these layout coordinates would miss. Undo the zoom first and
+  // let a frame apply it.
+  await session.send("Emulation.setPageScaleFactor", { pageScaleFactor: 1 });
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)));
   await touch("touchStart", from);
   for (let step = 1; step <= steps; step++) {
     const t = step / steps;
