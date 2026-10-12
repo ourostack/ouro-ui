@@ -36,6 +36,7 @@ export default defineConfig({
       "@base-ui/react/separator",
       "@base-ui/react/toast",
       "@base-ui/react/tooltip",
+      "recharts",
     ],
   },
   test: {

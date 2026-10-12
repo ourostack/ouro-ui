@@ -1,0 +1,1 @@
+- New: `MessageList`, a labeled, scrolling conversation that opens at the newest message and follows new messages only while the reader is at the bottom; once they scroll up their view stays put and a "Jump to latest" button (`jumpLabel`) appears. Each new message from someone else is announced once, politely (`newMessageLabel`), and a streamed reply when it finishes.
