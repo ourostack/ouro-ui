@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckboxGroup as BaseCheckboxGroup } from "@base-ui/react/checkbox-group";
-import { useEffect, useRef, useState, type JSX, type ReactNode, type Ref } from "react";
+import { useEffect, useMemo, useRef, useState, type JSX, type ReactNode, type Ref } from "react";
 import { Checkbox } from "@/registry/ouro/components/ouro/checkbox/checkbox";
 import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { choicesClass, contractWarnings } from "@/registry/ouro/components/ouro/field/field-styles";
@@ -40,13 +40,18 @@ export interface CheckboxGroupOwnProps {
   error?: string | string[] | undefined;
   /**
    * At least one box must be checked to submit the form: the legend gets a marker (and
-   * " (required)" for screen readers), and the browser shows `requiredMessage` until one is
+   * `requiredLabel` for screen readers), and the browser shows `requiredMessage` until one is
    * checked. HTML has no native "at least one" rule for checkboxes, so this check runs only
    * once the page has hydrated: your server action must still check it.
    */
   required?: boolean | undefined;
   /** What the browser says when `required` and nothing is checked. Translate it here. @default "Choose at least one." */
   requiredMessage?: string | undefined;
+  /**
+   * What screen readers hear after the legend when `required`, since no box can carry
+   * `aria-required`; the asterisk is what shows. Translate it here. @default "(required)"
+   */
+  requiredLabel?: string | undefined;
   /** Disables every box and fades the group. */
   disabled?: boolean | undefined;
   /** The form field name every checked box submits under, once per checked value. */
@@ -106,7 +111,7 @@ export type CheckboxGroupProps = CheckboxGroupOwnProps &
   );
 
 /** Field's messages and root name CheckboxGroup, and use the label as the group's legend. */
-const owner = { name: "CheckboxGroup", data: "checkbox-group", layout: "group", requiredInLegend: true } as const;
+const owner = { name: "CheckboxGroup", data: "checkbox-group", layout: "group" } as const;
 
 /** The group, inside the Field: it takes its name and description ids from the field. */
 function Choices(props: {
@@ -183,6 +188,7 @@ export function CheckboxGroup(props: CheckboxGroupProps): JSX.Element {
     error,
     required,
     requiredMessage = "Choose at least one.",
+    requiredLabel = "(required)",
     disabled,
     name,
     value,
@@ -213,6 +219,8 @@ export function CheckboxGroup(props: CheckboxGroupProps): JSX.Element {
     );
   }
 
+  const groupOwner = useMemo(() => ({ ...owner, requiredLabel }), [requiredLabel]);
+
   useDevWarnings(
     "CheckboxGroup",
     process.env.NODE_ENV !== "production"
@@ -227,7 +235,7 @@ export function CheckboxGroup(props: CheckboxGroupProps): JSX.Element {
   );
 
   return (
-    <FieldOwnerContext.Provider value={owner}>
+    <FieldOwnerContext.Provider value={groupOwner}>
       <Field
         label={legend}
         hideLabel={hideLegend}

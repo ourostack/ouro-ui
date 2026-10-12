@@ -64,10 +64,11 @@ export interface FieldOwner {
    */
   layout?: "stack" | "inline" | "group" | undefined;
   /**
-   * For a group whose control cannot carry `aria-required` (a checkbox group): a required
-   * field adds visually hidden " (required)" to its legend, so screen readers announce it.
+   * For a group whose control cannot carry `aria-required` (a checkbox group): the words a
+   * required field adds, visually hidden, after its legend, such as `(required)`, so screen
+   * readers announce it.
    */
-  requiredInLegend?: boolean | undefined;
+  requiredLabel?: string | undefined;
 }
 
 /**

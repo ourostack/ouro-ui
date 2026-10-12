@@ -42,7 +42,8 @@ Props every mode takes. Type: `CheckboxGroupProps`.
 | `name` | `string` |  | The form field name every checked box submits under, once per checked value. |
 | `onValueChange` | `((value: string[]) => void)` |  | Called with every checked value, in the order they were checked, when one is checked or unchecked. |
 | `ref` | `Ref<HTMLDivElement>` |  | The group element, a `<div role="group">`. |
-| `required` | `boolean` |  | At least one box must be checked to submit the form: the legend gets a marker (and " (required)" for screen readers), and the browser shows `requiredMessage` until one is checked. HTML has no native "at least one" rule for checkboxes, so this check runs only once the page has hydrated: your server action must still check it. |
+| `required` | `boolean` |  | At least one box must be checked to submit the form: the legend gets a marker (and `requiredLabel` for screen readers), and the browser shows `requiredMessage` until one is checked. HTML has no native "at least one" rule for checkboxes, so this check runs only once the page has hydrated: your server action must still check it. |
+| `requiredLabel` | `string` | `"(required)"` | What screen readers hear after the legend when `required`, since no box can carry `aria-required`; the asterisk is what shows. Translate it here. |
 | `requiredMessage` | `string` | `"Choose at least one."` | What the browser says when `required` and nothing is checked. Translate it here. |
 | `value` | `string[]` |  | The checked values, for a controlled group; pair it with `onValueChange`. |
 

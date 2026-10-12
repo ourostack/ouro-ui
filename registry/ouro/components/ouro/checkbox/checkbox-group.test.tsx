@@ -171,6 +171,11 @@ describe("CheckboxGroup", () => {
     expect(words.textContent).toBe(" (required)");
   });
 
+  it("translates the required words with requiredLabel", async () => {
+    await render(<CheckboxGroup legend="Kräuter" name="herbs" options={herbs} required requiredLabel="(erforderlich)" />);
+    await expect.element(page.getByRole("group", { name: "Kräuter (erforderlich)" })).toBeInTheDocument();
+  });
+
   it("translates the required message with requiredMessage", async () => {
     const { host } = await render(
       <form>

@@ -51,6 +51,30 @@ function themeColor(variable: string): string {
   return color;
 }
 
+/** A color as sRGB 0-255 channels, composited over `under` when it is translucent. */
+function rgb(color: string, under = "white"): [number, number, number] {
+  const context = document.createElement("canvas").getContext("2d")!;
+  context.fillStyle = under;
+  context.fillRect(0, 0, 1, 1);
+  context.fillStyle = color;
+  context.fillRect(0, 0, 1, 1);
+  const [r, g, b] = context.getImageData(0, 0, 1, 1).data;
+  return [r!, g!, b!];
+}
+
+/** The WCAG contrast ratio of two opaque sRGB colors. */
+function contrast(a: [number, number, number], b: [number, number, number]): number {
+  const luminance = (channels: [number, number, number]) => {
+    const [r, g, b] = channels.map((channel) => {
+      const c = channel / 255;
+      return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+  };
+  const [light, dark] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (light! + 0.05) / (dark! + 0.05);
+}
+
 /** Waits until the thumb's running transitions settle, so its box is final. */
 const settled = (element: Element) => Promise.all(element.getAnimations().map((animation) => animation.finished.catch(() => {})));
 
@@ -144,6 +168,21 @@ describe("Switch", () => {
 });
 
 describe("Switch look and motion", () => {
+  it.each(["light", "dark"] as const)("gives the off track 3:1 contrast against the page in %s mode", async (scheme) => {
+    document.documentElement.classList.toggle("dark", scheme === "dark");
+    try {
+      const { track } = await render(<Switch label="Wi-Fi" />);
+      await settled(track);
+      const page = rgb(themeColor("--background"));
+      const style = getComputedStyle(track);
+      // The track has no border, so its fill is the boundary WCAG 1.4.11 asks to stand out.
+      expect(style.borderTopWidth).toBe("0px");
+      expect(contrast(rgb(style.backgroundColor, `rgb(${page.join(",")})`), page)).toBeGreaterThanOrEqual(3);
+    } finally {
+      document.documentElement.classList.remove("dark");
+    }
+  });
+
   it("fills the track with the primary color and moves the thumb to the end when on", async () => {
     const { track, thumb } = await render(<Switch label="Wi-Fi" />);
     const offLeft = thumb.getBoundingClientRect().left - track.getBoundingClientRect().left;

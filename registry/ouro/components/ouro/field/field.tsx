@@ -199,7 +199,7 @@ export function Field(props: FieldProps): JSX.Element {
           </span>
         )}
         {/* The asterisk is hidden; a group with no aria-required says "required" in words. */}
-        {required && owner.requiredInLegend && <span className="sr-only"> (required)</span>}
+        {required && owner.requiredLabel && <span className="sr-only"> {owner.requiredLabel}</span>}
       </div>
     ) : (
       <FieldLabel id={labelId} className={cn(layout === "inline" && "col-start-2", hideLabel && "sr-only")}>
