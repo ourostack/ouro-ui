@@ -114,16 +114,20 @@ it("reports and announces nothing while a finger is held still mid-swipe", async
   const start = rect.right - 20;
   const distance = rect.width * 0.65;
   const at = (fraction: number) => start - distance * fraction;
-  await commands.touchStep({ type: "touchStart", x: start, y });
-  for (let step = 1; step <= 10; step++) await commands.touchStep({ type: "touchMove", x: at(step / 10), y });
-  // The finger stops past the middle of the next slide and stays down.
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  expect(viewport.scrollLeft).toBeGreaterThan(rect.width / 2);
-  expect(onIndexChange).not.toHaveBeenCalled();
-  expect(announcer()).toBe(before);
-  // The user changes their mind, drags back and lifts the finger: the position never changed.
-  for (let step = 9; step >= 0; step--) await commands.touchStep({ type: "touchMove", x: at(step / 10), y });
-  await commands.touchStep({ type: "touchEnd", x: start, y });
+  // The finger is lifted in finally, so a failed assertion mid-gesture doesn't leave it down.
+  try {
+    await commands.touchStep({ type: "touchStart", x: start, y });
+    for (let step = 1; step <= 10; step++) await commands.touchStep({ type: "touchMove", x: at(step / 10), y });
+    // The finger stops past the middle of the next slide and stays down.
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(viewport.scrollLeft).toBeGreaterThan(rect.width / 2);
+    expect(onIndexChange).not.toHaveBeenCalled();
+    expect(announcer()).toBe(before);
+    // The user changes their mind, drags back and lifts the finger: the position never changed.
+    for (let step = 9; step >= 0; step--) await commands.touchStep({ type: "touchMove", x: at(step / 10), y });
+  } finally {
+    await commands.touchStep({ type: "touchEnd" });
+  }
   await expect.poll(() => viewport.scrollLeft).toBe(0);
   await new Promise((resolve) => setTimeout(resolve, 300));
   expect(onIndexChange).not.toHaveBeenCalled();
