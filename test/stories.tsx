@@ -143,9 +143,22 @@ export interface Opener {
   open: () => Promise<void>;
 }
 
+/** Whether a trigger is there for screen readers and the keyboard only: clipped to a pixel, so no tap or click can land on it. */
+function clipped(element: HTMLElement): boolean {
+  const box = (element.parentElement ?? element).getBoundingClientRect();
+  return element.getBoundingClientRect().width <= 1 || (box.width <= 1 && box.height <= 1);
+}
+
+/** Opens a trigger the way its only users do: focus, then Enter. */
+async function openFromKeyboard(element: HTMLElement): Promise<void> {
+  element.focus();
+  await userEvent.keyboard("{Enter}");
+}
+
 /**
  * What opens an overlay in a story: the visible, enabled Base UI triggers (`aria-haspopup`) in
- * the scope, then, at the top level, the plain openers by accessible name and the shortcut. A
+ * the scope (clicked, or opened from the keyboard when clipped to a pixel for screen readers,
+ * as SwipeActions' actions button is on a phone), then, at the top level, the plain openers by accessible name and the shortcut. A
  * disabled trigger (a disabled Select in a states story) opens nothing, so it is left out.
  * Throws when a plain opener is missing.
  */
@@ -158,7 +171,7 @@ export function overlayOpeners(
   const roots = Array.isArray(scope) ? scope : [scope];
   const triggers = [...new Set(roots.flatMap((root) => [...root.querySelectorAll<HTMLElement>('[aria-haspopup]:not([aria-haspopup="false"])')]))]
     .filter((element) => !element.matches(':disabled, [aria-disabled="true"], [data-disabled]') && isVisible(element))
-    .map((element) => ({ name: accessibleName(element), open: () => userEvent.click(element) }));
+    .map((element) => ({ name: accessibleName(element), open: () => (clipped(element) ? openFromKeyboard(element) : userEvent.click(element)) }));
   if (!top) return triggers;
   const plain = (parameters.plainOpeners ?? []).map((label) => {
     const button = roots.flatMap((root) => [...root.querySelectorAll<HTMLElement>("button")]).find((item) => accessibleName(item) === label);
