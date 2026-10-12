@@ -158,7 +158,10 @@ describe("ShowMore with items", () => {
   });
 });
 
-/** A list that loads three more recipes after each "Show more", up to `total`. */
+/** Finishes the pending load in a `Loading` list, as the server's answer would. */
+let finishLoad: () => void = () => {};
+
+/** A list that loads three more recipes after each "Show more", up to `total`, when the test calls `finishLoad`. */
 function Loading({ total = 9, onShowMore }: { total?: number; onShowMore?: () => void }) {
   const [count, setCount] = useState(3);
   const [loading, setLoading] = useState(false);
@@ -175,10 +178,10 @@ function Loading({ total = 9, onShowMore }: { total?: number; onShowMore?: () =>
       onShowMore={() => {
         onShowMore?.();
         setLoading(true);
-        setTimeout(() => {
+        finishLoad = () => {
           setCount((value) => Math.min(value + 3, total));
           setLoading(false);
-        }, 50);
+        };
       }}
     />
   );
@@ -199,6 +202,7 @@ describe("ShowMore loading more", () => {
     expect(onShowMore).toHaveBeenCalledTimes(1);
     expect(location.search).not.toContain("after");
     expect(button!.getAttribute("aria-busy")).toBe("true");
+    await act(async () => finishLoad());
     await expect.poll(() => host.querySelectorAll("li").length).toBe(6);
     await expect.poll(() => document.activeElement).toBe(host.querySelectorAll("li")[3]!.querySelector("a"));
     expect(button!.hasAttribute("aria-busy")).toBe(false);
@@ -207,6 +211,7 @@ describe("ShowMore loading more", () => {
   it("removes the button on the last page and moves focus to the first new item", async () => {
     const { host } = await render(<Loading total={5} />);
     await userEvent.click(host.querySelector<HTMLElement>("[data-ouro-show-more-toggle]")!);
+    await act(async () => finishLoad());
     await expect.poll(() => host.querySelectorAll("li").length).toBe(5);
     expect(host.querySelector("[data-ouro-show-more-toggle]")).toBeNull();
     await expect.poll(() => document.activeElement).toBe(host.querySelectorAll("li")[3]!.querySelector("a"));

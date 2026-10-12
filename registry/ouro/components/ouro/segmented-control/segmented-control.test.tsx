@@ -139,12 +139,13 @@ describe("SegmentedControl", () => {
     const r = await render(<SegmentedControl label="View" items={items} />);
     const thumb = r.thumb;
     const offset = (segment: HTMLElement) => Math.round(thumb.getBoundingClientRect().left - segment.getBoundingClientRect().left) + 0;
-    expect(offset(r.segments[0]!)).toBe(0);
+    // Within a pixel: the thumb's width is a fraction of the track, and WebKit rounds it.
+    expect(Math.abs(offset(r.segments[0]!))).toBeLessThanOrEqual(1);
     await userEvent.click(r.segments[2]!);
     await expect.poll(() => thumb.getAnimations().length).toBeGreaterThan(0);
     await settled(thumb);
-    expect(offset(r.segments[2]!)).toBe(0);
-    expect(Math.round(thumb.getBoundingClientRect().width)).toBe(Math.round(r.segments[2]!.getBoundingClientRect().width));
+    expect(Math.abs(offset(r.segments[2]!))).toBeLessThanOrEqual(1);
+    expect(Math.abs(thumb.getBoundingClientRect().width - r.segments[2]!.getBoundingClientRect().width)).toBeLessThanOrEqual(1);
   });
 
   it("moves the thumb without a transition under reduced motion", async () => {

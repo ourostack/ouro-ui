@@ -8,6 +8,7 @@ export default function AccordionDemo(): JSX.Element {
     <Accordion
       className="max-w-md"
       defaultValue="storage"
+      headingLevel={2}
       items={[
         { value: "storage", title: "How long does it keep?", content: "Three days in the fridge, in a covered container." },
         { value: "freeze", title: "Can I freeze it?", content: "Yes, for up to a month. Thaw it overnight in the fridge." },
