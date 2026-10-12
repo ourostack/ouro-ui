@@ -185,7 +185,9 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ### Forms
 
+- **Calendar** — A month grid to pick a day or a range of days, with the arrow keys or a press. [Docs](docs/Calendar.md)
 - **ColorField** — A color on the Field contract: a swatch that opens the system color picker, next to the same color as hex text, kept in step both ways. [Docs](docs/ColorField.md)
+- **DatePicker** — A labeled date field. [Docs](docs/DatePicker.md)
 - **Field** — A labeled form control: the label, an optional description, the control and its error, wired together with ids that match between the server and the browser. [Docs](docs/Field.md)
 - **Fieldset** — A titled group of related fields, such as an address, rendered as a `<fieldset>` named by its legend. [Docs](docs/Fieldset.md)
 - **FileField** — A labeled file input with a drop zone, on the Field contract. [Docs](docs/FileField.md)
