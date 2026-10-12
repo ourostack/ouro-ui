@@ -86,6 +86,11 @@ export interface FormErrorsValue {
    * the top of the form. Returns the function that removes it again.
    */
   register: (name: string) => () => void;
+  /**
+   * Records the name while the field renders, so the server HTML and the first client render
+   * already leave the field's errors off the top of the form. `register` takes over after mount.
+   */
+  claim: (name: string) => void;
 }
 
 /**

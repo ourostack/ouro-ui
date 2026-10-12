@@ -528,6 +528,109 @@ describe("EditSheet with unsaved edits (review fix round 1, rulings 4 and 5)", (
   });
 });
 
+describe("EditSheet's discard guard keeps the opening's values (review fix round 2, re-review finding)", () => {
+  const confirmRow = () => popup()?.querySelector<HTMLElement>('[data-ouro="edit-sheet-discard"]') ?? null;
+  const nameBox = () => page.getByRole("dialog").getByRole("textbox", { name: "Name" });
+
+  function Controlled({ onSubmit }: { onSubmit: EditSheetProps["onSubmit"] }) {
+    const [name, setName] = useState("Soup");
+    return (
+      <EditSheet title="Edit" trigger={<Button data-edit-trigger="">Edit</Button>} onSubmit={onSubmit}>
+        <TextField label="Name" name="name" value={name} onValueChange={setName} />
+      </EditSheet>
+    );
+  }
+  const uncontrolled = (onSubmit: EditSheetProps["onSubmit"]) => (
+    <EditSheet title="Edit" trigger={<Button data-edit-trigger="">Edit</Button>} onSubmit={onSubmit}>
+      <TextField label="Name" name="name" defaultValue="Soup" />
+    </EditSheet>
+  );
+
+  it("asks before Cancel discards an edit to a controlled field", async () => {
+    await render(<Controlled onSubmit={() => {}} />);
+    await userEvent.click(trigger());
+    await settled();
+    await userEvent.fill(nameBox(), "Stew");
+    expect(field("name").value).toBe("Stew");
+    await userEvent.click(dialogButton("Cancel"));
+    await expect.poll(confirmRow).not.toBeNull();
+  });
+
+  it("still asks after a save that returned errors", async () => {
+    await render(uncontrolled(() => ({ name: "Taken." })));
+    await userEvent.click(trigger());
+    await settled();
+    await userEvent.fill(nameBox(), "Stew");
+    await userEvent.click(dialogButton("Save"));
+    await expect.poll(() => popup()!.textContent).toContain("Taken.");
+    await userEvent.click(dialogButton("Cancel"));
+    await expect.poll(confirmRow).not.toBeNull();
+  });
+
+  it("still asks after a save that was rejected", async () => {
+    await render(uncontrolled(() => Promise.reject(new Error("down"))));
+    await userEvent.click(trigger());
+    await settled();
+    await userEvent.fill(nameBox(), "Stew");
+    await userEvent.click(dialogButton("Save"));
+    await expect.poll(() => popup()!.textContent).toContain("Couldn't save");
+    await userEvent.click(dialogButton("Cancel"));
+    await expect.poll(confirmRow).not.toBeNull();
+  });
+
+  it("starts the next opening clean after a successful save", async () => {
+    await render(<Controlled onSubmit={() => {}} />);
+    await userEvent.click(trigger());
+    await settled();
+    await userEvent.fill(nameBox(), "Stew");
+    await userEvent.click(dialogButton("Save"));
+    await expect.poll(() => popup()).toBeNull();
+    await userEvent.click(trigger());
+    await settled();
+    expect(field("name").value).toBe("Stew");
+    await userEvent.click(dialogButton("Cancel"));
+    await expect.poll(() => popup()).toBeNull();
+  });
+
+  it("keeps the opening's values when a resize swaps the dialog for the sheet", async () => {
+    await render(<Controlled onSubmit={() => {}} />);
+    await userEvent.click(trigger());
+    await settled();
+    await userEvent.fill(nameBox(), "Stew");
+    await page.viewport(390, 844);
+    await expect.poll(() => popup()?.getAttribute("data-ouro-presentation")).toBe("sheet");
+    await settled();
+    await userEvent.click(dialogButton("Cancel"));
+    await expect.poll(confirmRow).not.toBeNull();
+  });
+});
+
+describe("EditSheet's close button while a save is pending (review fix round 2, finding 1)", () => {
+  const close = () => popup()!.querySelector<HTMLButtonElement>("[data-ouro-dialog-close], [data-ouro-sheet-close]")!;
+
+  it.each([
+    ["centered dialog", 1280, 800],
+    ["phone sheet", 390, 844],
+  ] as const)("is disabled and looks it in the %s, then comes back after the save", async (_name, width, height) => {
+    await page.viewport(width, height);
+    const pending = deferred<FormErrors>();
+    await open({ onSubmit: () => pending.promise });
+    expect(close().disabled).toBe(false);
+    const enabledOpacity = getComputedStyle(close()).opacity;
+    await userEvent.click(dialogButton("Save"));
+    await expect.poll(() => close().disabled).toBe(true);
+    expect(close().hasAttribute("data-disabled")).toBe(true);
+    if (width > 640) {
+      expect(getComputedStyle(close()).opacity).not.toBe(enabledOpacity);
+      expect(getComputedStyle(close()).cursor).toBe("not-allowed");
+    }
+    await act(async () => close().click());
+    expect(popup()!.hasAttribute("data-open")).toBe(true);
+    await act(async () => pending.resolve({ servings: "Use a whole number." }));
+    await expect.poll(() => close().disabled).toBe(false);
+  });
+});
+
 describe("EditSheet dev messages", () => {
   it("throws the exact fix when neither trigger nor open is passed", () => {
     const props = { title: "Edit recipe", onSubmit: () => {}, children: null } as unknown as EditSheetProps;

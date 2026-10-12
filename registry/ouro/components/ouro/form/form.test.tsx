@@ -359,7 +359,9 @@ describe("Form-level messages (review fix round 1, finding 3)", () => {
     );
     const alert = host.querySelector<HTMLElement>('[role="alert"]')!;
     expect(alert).not.toBeNull();
-    expect(form.firstElementChild).toBe(alert);
+    expect(alert.parentElement).toBe(form);
+    // Shown above the fields.
+    expect(alert.getBoundingClientRect().bottom).toBeLessThanOrEqual(host.querySelector("input")!.getBoundingClientRect().top);
     await expect.poll(() => alert.textContent).toBe("The server is down.Typo key.");
     // The field's own error shows on the field only.
     expect(alert.textContent).not.toContain("Taken.");
@@ -448,6 +450,43 @@ describe("Form-level messages (review fix round 1, finding 3)", () => {
     );
     const doc = new DOMParser().parseFromString(html, "text/html");
     expect(doc.querySelector('[role="alert"]')!.textContent).toBe("The server is down.");
+  });
+});
+
+describe("Form-level messages before hydration (review fix round 2, finding 2)", () => {
+  function Wrapped() {
+    return <TextField label="Email" name="email" />;
+  }
+  const page_ = (
+    <Form errors={{ emial: "Typo key.", email: "Taken.", form: "The server is down." }}>
+      <Wrapped />
+      <TextField label="Name" name="name" />
+    </Form>
+  );
+
+  it("puts keys no field claims in the server HTML, and leaves claimed keys on their fields", () => {
+    const html = renderToString(page_);
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const alert = doc.querySelector('[role="alert"]')!;
+    expect([...alert.querySelectorAll("p")].map((p) => p.textContent)).toEqual(["The server is down.", "Typo key."]);
+    expect(alert.textContent).not.toContain("Taken.");
+  });
+
+  it("hydrates that HTML with no mismatch and keeps the same messages", async () => {
+    const host = document.createElement("div");
+    host.innerHTML = renderToString(page_);
+    document.body.append(host);
+    mounted.push(host);
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const recoverable = vi.fn();
+    let root!: Root;
+    await act(async () => {
+      root = hydrateRoot(host, page_, { onRecoverableError: recoverable });
+    });
+    roots.push(root);
+    expect(recoverable).not.toHaveBeenCalled();
+    expect(error).not.toHaveBeenCalled();
+    expect(host.querySelector('[role="alert"]')!.textContent).toBe("The server is down.Typo key.");
   });
 });
 

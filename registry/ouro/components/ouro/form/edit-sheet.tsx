@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type FormEvent, type JSX, type ReactElement, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type JSX, type ReactElement, type ReactNode } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
 import { checkOpenMode } from "@/registry/ouro/lib/ouro/open-mode";
@@ -210,11 +210,18 @@ export function EditSheet(props: EditSheetProps): JSX.Element {
     setConfirming(false);
   }
   // The fields as the sheet opened, to tell whether the user changed any (a Select's value
-  // is in its hidden input, so every control counts).
+  // is in its hidden input, so every control counts). Taken once per opening, when the form
+  // first mounts, so a render after an edit (a controlled field, a save that failed) keeps
+  // the opening's values; a resize that swaps the dialog for the sheet mounts a new form
+  // without retaking it. Closing clears it for the next opening.
   const initial = useRef<string | undefined>(undefined);
-  const formRef = (form: HTMLFormElement | null) => {
-    initial.current = form ? serialize(form) : undefined;
-  };
+  const formRef = useCallback((form: HTMLFormElement | null) => {
+    if (form && initial.current === undefined) initial.current = serialize(form);
+  }, []);
+  useEffect(() => {
+    if (shown) return;
+    initial.current = undefined;
+  }, [shown]);
   const edited = () => {
     const form = document.getElementById(formId) as HTMLFormElement | null;
     return form !== null && serialize(form) !== initial.current;
@@ -309,6 +316,7 @@ export function EditSheet(props: EditSheetProps): JSX.Element {
       trigger={trigger}
       open={shown}
       onOpenChange={onFrameOpenChange}
+      closeDisabled={pending}
       footer={
         confirming ? (
           <div data-ouro="edit-sheet-discard" role="group" aria-labelledby={`${formId}-discard`} className={discardClass}>

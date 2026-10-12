@@ -138,7 +138,7 @@ const closeClass =
   "absolute top-3 end-3 box-border inline-flex size-8 items-center justify-center m-0 p-0 border-0 rounded-lg " +
   "bg-transparent text-muted-foreground cursor-pointer [-webkit-tap-highlight-color:transparent] " +
   "[transition:background-color_var(--ouro-duration-fast)_ease-out,color_var(--ouro-duration-fast)_ease-out] " +
-  "hover:bg-accent hover:text-accent-foreground " +
+  "not-disabled:hover:bg-accent not-disabled:hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50 " +
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid [&>svg]:size-4";
 
 /** The close button's icon: a 16px cross in the text color. */
@@ -285,6 +285,8 @@ export interface DialogFrameProps {
   trigger?: ReactElement | undefined;
   open?: boolean | undefined;
   onOpenChange?: ((open: boolean) => void) | undefined;
+  /** Disables the close button, as `EditSheet` does while a save is pending. */
+  closeDisabled?: boolean | undefined;
 }
 
 /**
@@ -307,6 +309,7 @@ export function DialogFrame({
   trigger,
   open,
   onOpenChange,
+  closeDisabled,
 }: DialogFrameProps): JSX.Element {
   // The Dialog owns the open state even with a trigger, so the dialog stays open
   // when a resize across 640px swaps the centered dialog for the sheet.
@@ -371,6 +374,7 @@ export function DialogFrame({
       onOpenChange={setOpen}
       footer={footer}
       presentation="sheet"
+      closeDisabled={closeDisabled}
       {...finalFocus}
     >
       {children}
@@ -394,7 +398,7 @@ export function DialogFrame({
             </div>
             <DialogContent>{children}</DialogContent>
             {footer !== undefined && <DialogFooter>{footer}</DialogFooter>}
-            <DialogClose data-ouro-dialog-close="" aria-label={closeLabel} className={closeClass}>
+            <DialogClose data-ouro-dialog-close="" aria-label={closeLabel} disabled={closeDisabled} className={closeClass}>
               <TouchTarget />
               <CloseIcon />
             </DialogClose>

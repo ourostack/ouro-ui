@@ -1,7 +1,7 @@
 "use client";
 
 import { Form as BaseForm } from "@base-ui/react/form";
-import { useCallback, useEffect, useMemo, useRef, useState, type JSX, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type JSX, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
@@ -41,10 +41,12 @@ const EMPTY: FormErrors = {};
 
 /**
  * The message at the top of the form, for the `form` key and keys no field claims: the
- * destructive color, with an outline only while focused. Empty, it takes no space.
+ * destructive color, with an outline only while focused. It comes after the fields in the
+ * DOM, so the fields have claimed their names by the time it renders, and the first grid
+ * row puts it above them. Empty, it takes no space.
  */
 const formMessageClass =
-  "grid gap-1 text-sm leading-5 text-destructive outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid empty:absolute";
+  "row-start-1 grid gap-1 text-sm leading-5 text-destructive outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid empty:absolute";
 
 /** The key for a message about the whole form, shown at its top. */
 const FORM_KEY = "form";
@@ -114,8 +116,11 @@ export function Form(props: FormProps): JSX.Element {
     });
   }, []);
 
-  // The names of the fields in the form, which claim their errors. Fields register after
-  // they mount, so until then (and on the server) only the `form` key shows at the top.
+  // The names of the fields in the form, which claim their errors. Fields claim while they
+  // render (`rendered`, read by the message, which renders after them), so the server HTML
+  // and hydration agree, then register once mounted, which also notices fields that leave.
+  const rendered = useRef(new Set<string>());
+  const claim = useCallback((name: string) => void rendered.current.add(name), []);
   const names = useRef(new Map<string, number>());
   const [claims, setClaims] = useState<{ ready: boolean; names: string[] }>({ ready: false, names: [] });
   const sync = useCallback(() => setClaims({ ready: true, names: [...names.current.keys()] }), []);
@@ -133,12 +138,8 @@ export function Form(props: FormProps): JSX.Element {
     [sync],
   );
   useEffect(sync, [sync]);
-  const value = useMemo(() => ({ errors: errors ?? EMPTY, clear, register }), [errors, clear, register]);
-
-  const unclaimed = Object.keys(errors ?? EMPTY).filter((key) =>
-    claims.ready ? !claims.names.includes(key) : key === FORM_KEY,
-  );
-  const formMessages = unclaimed.flatMap((key) => messagesOf(errors![key]));
+  const value = useMemo(() => ({ errors: errors ?? EMPTY, clear, register, claim }), [errors, clear, register, claim]);
+  const isClaimed = (key: string) => key !== FORM_KEY && (claims.ready ? claims.names.includes(key) : rendered.current.has(key));
 
   useDevWarnings(
     "Form",
@@ -185,15 +186,37 @@ export function Form(props: FormProps): JSX.Element {
           fails and focuses the first such control. Ouro's errors never reach it, so they
           never block a submit. */}
       <BaseForm {...rest} onSubmit={submit} data-ouro="form" className={cn("m-0 grid min-w-0 gap-5", className)}>
-        <div ref={messageRef} role="alert" tabIndex={-1} data-ouro="form-message" className={formMessageClass}>
-          {formMessages.map((message) => (
-            <p key={message} className="m-0">
-              {message}
-            </p>
-          ))}
-        </div>
         {children}
+        <FormMessage ref={messageRef} errors={errors ?? EMPTY} isClaimed={isClaimed} />
       </BaseForm>
     </FormErrorsContext.Provider>
+  );
+}
+
+/**
+ * The message region. A component of its own, rendered after the form's children, so it
+ * reads the names they claimed during the same render.
+ */
+function FormMessage({
+  ref,
+  errors,
+  isClaimed,
+}: {
+  ref: Ref<HTMLDivElement>;
+  errors: FormErrors;
+  isClaimed: (key: string) => boolean;
+}): JSX.Element {
+  // The message about the whole form comes first, then the keys no field claims.
+  const keys = Object.keys(errors).filter((key) => !isClaimed(key));
+  const messages = [...keys.filter((key) => key === FORM_KEY), ...keys.filter((key) => key !== FORM_KEY)]
+    .flatMap((key) => messagesOf(errors[key]));
+  return (
+    <div ref={ref} role="alert" tabIndex={-1} data-ouro="form-message" className={formMessageClass}>
+      {messages.map((message) => (
+        <p key={message} className="m-0">
+          {message}
+        </p>
+      ))}
+    </div>
   );
 }

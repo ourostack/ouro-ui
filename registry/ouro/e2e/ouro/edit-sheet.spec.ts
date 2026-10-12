@@ -39,7 +39,7 @@ test.describe("on a phone", () => {
 test.describe("on a phone with the keyboard up", () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
 
-  test("keeps the focused field and the save button in view", async ({ page, browserName }) => {
+  test("keeps the focused field and the save button above the keyboard", async ({ page, browserName }) => {
     test.skip(browserName === "firefox", "isMobile is not supported in Firefox");
     await openStory(page, "overlays-editsheet--playground");
     await page.getByRole("button", { name: "Edit" }).tap();
@@ -48,12 +48,35 @@ test.describe("on a phone with the keyboard up", () => {
     const serves = sheet.getByRole("textbox", { name: "Serves" });
     await serves.tap();
     await expect(serves).toBeFocused();
-    // A software keyboard takes about 40% of a phone's height: the page has the rest.
-    await page.setViewportSize({ width: 390, height: 508 });
-    await expect(serves).toBeInViewport();
-    await expect(sheet.getByRole("button", { name: "Save" })).toBeInViewport();
+    // A software keyboard shrinks the visual viewport, not the layout viewport, and fires
+    // resize and scroll on it; a browser without one can only stand in for it that way.
+    const keyboard = 336;
+    await page.evaluate((height) => {
+      const viewport = window.visualViewport!;
+      Object.defineProperty(viewport, "height", { configurable: true, get: () => window.innerHeight - height });
+      Object.defineProperty(viewport, "offsetTop", { configurable: true, get: () => 0 });
+      viewport.dispatchEvent(new Event("resize"));
+      viewport.dispatchEvent(new Event("scroll"));
+    }, keyboard);
+    const inset = () =>
+      page.evaluate(() =>
+        [...document.querySelectorAll<HTMLElement>("*")]
+          .map((element) => element.style.getPropertyValue("--drawer-keyboard-inset"))
+          .find(Boolean),
+      );
+    await expect.poll(inset).toBe(`${keyboard}px`);
+    const visibleBottom = 844 - keyboard;
+    const bottomOf = async (locator: typeof serves) => {
+      const box = (await locator.boundingBox())!;
+      return box.y + box.height;
+    };
+    const save = sheet.getByRole("button", { name: "Save" });
+    await expect.poll(() => bottomOf(save)).toBeLessThanOrEqual(visibleBottom);
+    await expect.poll(() => bottomOf(serves)).toBeLessThanOrEqual(visibleBottom);
+    expect((await serves.boundingBox())!.y).toBeGreaterThanOrEqual(0);
     await serves.fill("6");
-    await sheet.getByRole("button", { name: "Save" }).tap();
+    // Saves with the keyboard still up.
+    await serves.press("Enter");
     await expect(sheet).toBeHidden();
   });
 });
