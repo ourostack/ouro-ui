@@ -170,6 +170,22 @@ describe("Slider", () => {
     expect(track()).toBe(atMin);
   });
 
+  it("keeps the track the same length for values with the step's decimals", async () => {
+    function Level({ value }: { value: number }) {
+      return <Slider label="Level" value={value} min={0} max={100} step={0.1} showValue />;
+    }
+    const { host, rerender } = await render(<Level value={0} />);
+    const track = () => host.querySelector<HTMLElement>("[data-ouro-slider-control]")!.getBoundingClientRect().width;
+    const shown = () => host.querySelector("[data-ouro-slider-value]")!.textContent;
+    const atMin = track();
+    await rerender(<Level value={33.3} />);
+    expect(shown()).toBe("33.3");
+    expect(track()).toBe(atMin);
+    await rerender(<Level value={100} />);
+    expect(shown()).toBe("100");
+    expect(track()).toBe(atMin);
+  });
+
   it("forwards its ref to the first thumb's input", async () => {
     const ref = createRef<HTMLInputElement>();
     const { inputs } = await render(<Slider label="Volume" ref={ref} />);

@@ -280,9 +280,16 @@ function SliderControl({
 }): JSX.Element {
   const field = useField()!;
   const { onValueChange, onValueCommitted, ...shared } = rootProps;
-  // The value text at either end, which bound its width (Base UI's defaults are 0 and 100).
+  // The widest value text: each end's integer part with the step's decimals (Base UI's
+  // defaults are 0, 100 and a step of 1), formatted as the value is. Figures are tabular, so
+  // the most digits make the widest text.
   const number = new Intl.NumberFormat(shared.locale, shared.format);
-  const ends = [number.format(shared.min ?? 0), number.format(shared.max ?? 100)];
+  const decimals = (String(shared.step ?? 1).split(".")[1] ?? "").length;
+  const sample = (end: number) => {
+    const whole = Math.trunc(end);
+    return decimals === 0 ? end : Math.sign(end || 1) * (Math.abs(whole) + Number(`0.${"8".repeat(decimals)}`));
+  };
+  const ends = [number.format(sample(shared.min ?? 0)), number.format(sample(shared.max ?? 100))];
   const widest = isRange ? ends.map((end) => `${end} – ${end}`) : ends;
   return (
     <BaseSlider.Root
@@ -293,7 +300,16 @@ function SliderControl({
       aria-describedby={field.describedBy}
       className={`group/slider ${rootClass}`}
     >
-      <BaseSlider.Control data-ouro-slider-control="" className={controlClass}>
+      <BaseSlider.Control
+        data-ouro-slider-control=""
+        className={controlClass}
+        // A finger drives the slider through Base UI's touch events. Its pointer path would also
+        // capture the touch pointer, which keeps a vertical swipe from scrolling the page, so it
+        // is skipped for touch; a mouse or pen still uses it.
+        onPointerDown={(event) => {
+          if (event.pointerType === "touch") event.preventBaseUIHandler();
+        }}
+      >
         <BaseSlider.Track className={trackClass}>
           <BaseSlider.Indicator data-ouro-slider-indicator="" className={indicatorClass} />
           {Array.from({ length: count }, (_, index) => (

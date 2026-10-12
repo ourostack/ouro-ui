@@ -63,7 +63,7 @@ it("follows a finger dragged along the track, and commits once on lift", async (
   expect(onValueCommitted.mock.lastCall?.[0]).toBe(onValueChange.mock.lastCall?.[0]);
 });
 
-it("hands a vertical finger drag over the slider to the page (pan-y), without moving the thumb", async () => {
+it("hands a vertical finger drag over the slider to the page, without moving the thumb", async () => {
   const onValueChange = vi.fn();
   const host = await render(
     <div style={{ paddingBlock: "300px 2000px" }}>
@@ -71,14 +71,27 @@ it("hands a vertical finger drag over the slider to the page (pan-y), without mo
     </div>,
   );
   const control = host.querySelector<HTMLElement>("[data-ouro-slider-control]")!;
+  // pan-y lets the browser scroll the page on a vertical pan, and a sideways drag slide.
   expect(getComputedStyle(control).touchAction).toBe("pan-y");
-  const rect = host.querySelector<HTMLElement>("[data-ouro-slider-thumb]")!.getBoundingClientRect();
-  const x = rect.left + rect.width / 2;
-  const y = rect.top + rect.height / 2;
-  // `touch-action: pan-y` is what hands a vertical pan to the page. Whether the page then
-  // scrolls depends on compositor timing that a CI runner does not reproduce reliably, so this
-  // checks the declaration and that the drag leaves the value alone, not the scroll offset.
-  await commands.touchDrag({ from: [x, y], to: [x, y - 200], steps: 12 });
+  // The page keeps the pan when nothing cancels the moves and no script captures the pointer.
+  // (A touch pointer is always captured implicitly to the element it lands on, and Chromium
+  // reports that as gotpointercapture too, so the check is on setPointerCapture calls.)
+  const moves: Array<{ type: string; prevented: boolean }> = [];
+  const record = (event: Event) => moves.push({ type: event.type, prevented: event.defaultPrevented });
+  const capture = vi.spyOn(Element.prototype, "setPointerCapture");
+  window.addEventListener("touchmove", record);
+  window.addEventListener("pointermove", record);
+  try {
+    const rect = host.querySelector<HTMLElement>("[data-ouro-slider-thumb]")!.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    await commands.touchDrag({ from: [x, y], to: [x, y - 150], steps: 10 });
+  } finally {
+    window.removeEventListener("touchmove", record);
+    window.removeEventListener("pointermove", record);
+  }
+  expect(moves.some((move) => move.type === "touchmove")).toBe(true);
+  expect(moves.filter((move) => move.prevented)).toEqual([]);
+  expect(capture).not.toHaveBeenCalled();
   expect(onValueChange.mock.calls.every(([value]) => value === 50)).toBe(true);
-  expect(host.querySelector<HTMLInputElement>('input[type="range"]')!.value).toBe("50");
 });
