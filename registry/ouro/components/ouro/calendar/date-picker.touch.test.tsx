@@ -1,16 +1,16 @@
 import type { ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, expect, it, vi } from "vitest";
-import { page } from "vitest/browser";
 import { DatePicker } from "@/registry/ouro/components/ouro/calendar/date-picker";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 
 // Runs in the `touch` project: Chromium as a 390x844 phone with a coarse pointer.
 
 let root: Root | undefined;
 const nodes: Element[] = [];
 afterEach(async () => {
-  await page.viewport(390, 844);
+  await rotate(390, 844);
   await act(async () => root?.unmount());
   for (const node of nodes.splice(0)) node.remove();
 });
@@ -43,7 +43,7 @@ it("uses the phone's own date picker on a touch screen, submitting the ISO date"
 });
 
 it("keeps the native picker, 16px text and a 44px box on a landscape phone, past the sm breakpoint", async () => {
-  await page.viewport(844, 390);
+  await rotate(844, 390);
   expect(matchMedia("(min-width: 640px)").matches).toBe(true);
   const host = await render(<DatePicker label="Delivery date" />);
   const input = host.querySelector("input")!;
