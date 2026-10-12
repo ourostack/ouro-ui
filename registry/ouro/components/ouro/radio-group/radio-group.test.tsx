@@ -47,6 +47,14 @@ function themeColor(variable: string): string {
   return color;
 }
 
+/** A color as canvas pixels, so `oklch(...)` and the same color serialized as `oklab(...)` compare equal. */
+function pixel(color: string): string {
+  const context = document.createElement("canvas").getContext("2d")!;
+  context.fillStyle = color;
+  context.fillRect(0, 0, 1, 1);
+  return context.getImageData(0, 0, 1, 1).data.join(",");
+}
+
 const sizes = [
   { value: "small", label: "Small", description: "Serves 2." },
   { value: "medium", label: "Medium" },
@@ -173,6 +181,12 @@ describe("RadioGroup", () => {
     expect(form.checkValidity()).toBe(false);
     await userEvent.click(radios[0]!);
     expect(form.checkValidity()).toBe(true);
+  });
+
+  it("keeps an invalid radio's border red while hovered", async () => {
+    const { radios } = await render(<RadioGroup legend="Size" options={sizes} error="Choose a size." />);
+    await userEvent.hover(radios[0]!);
+    await expect.poll(() => pixel(getComputedStyle(radios[0]!).borderTopColor)).toBe(pixel(themeColor("--destructive")));
   });
 
   it("disables every radio with disabled, and marks them invalid with error", async () => {

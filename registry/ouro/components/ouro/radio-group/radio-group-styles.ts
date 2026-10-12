@@ -20,7 +20,7 @@ const radioClass =
   "aria-invalid:border-destructive " +
   "cursor-default select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
-  "not-data-disabled:not-data-checked:hover:border-foreground " +
+  "not-aria-invalid:not-data-disabled:not-data-checked:hover:border-foreground " +
   "motion-safe:not-data-disabled:active:scale-(--ouro-press-scale) active:duration-(--ouro-duration-fast) active:ease-out " +
   "data-disabled:cursor-not-allowed data-disabled:opacity-50";
 

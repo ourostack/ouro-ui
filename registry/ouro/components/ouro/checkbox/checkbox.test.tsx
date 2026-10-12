@@ -195,6 +195,12 @@ describe("Checkbox", () => {
       .toHaveAccessibleDescription("You can read them first. Accept the terms to continue.");
   });
 
+  it("keeps an invalid box's border red while hovered", async () => {
+    const { box } = await render(<Checkbox label="I accept the terms" error="Accept the terms to continue." />);
+    await userEvent.hover(box);
+    await expect.poll(() => pixel(getComputedStyle(box).borderTopColor)).toBe(pixel(themeColor("--destructive")));
+  });
+
   it("puts the description and error under the label, not under the box", async () => {
     const { host, label } = await render(<Checkbox label="Terms" description="Read them first." error="Required." />);
     const description = [...host.querySelectorAll("p")].find((el) => el.textContent === "Read them first.")!;
