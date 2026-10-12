@@ -66,7 +66,7 @@ export interface CheckboxGroupOwnProps {
   /** Not a prop. A group is named by its `legend`: `<CheckboxGroup legend="Herbs">`. */
   label?: { 'Use <CheckboxGroup legend="Herbs">': never };
   /** Not a prop. Ouro UI uses `onValueChange`, which gets the checked values: `onValueChange={setValues}`. */
-  onChange?: { "Use onValueChange={(values) => …}": never };
+  onChange?: { 'Use onValueChange={setValues}': never };
   /** Not a prop. Ouro UI uses `options`: `options={[{ value: "basil", label: "Basil" }]}`. */
   items?: { 'Use options={[{ value: "basil", label: "Basil" }]}': never };
   /** Not a prop. Ouro UI uses `error`: `<CheckboxGroup error="Required.">`. */
@@ -78,9 +78,9 @@ export interface CheckboxGroupOwnProps {
   /** Not a prop. `error` marks the group invalid: `<CheckboxGroup error="What is wrong">`. */
   invalid?: { 'Use <CheckboxGroup error="What is wrong">': never };
   /** Not a prop. Ouro UI uses `required`: `<CheckboxGroup required>`. */
-  isRequired?: { "Use <CheckboxGroup required>": never };
+  isRequired?: { 'Use <CheckboxGroup required>': never };
   /** Not a prop. Ouro UI uses `disabled`: `<CheckboxGroup disabled>`. */
-  isDisabled?: { "Use <CheckboxGroup disabled>": never };
+  isDisabled?: { 'Use <CheckboxGroup disabled>': never };
 }
 
 /**
@@ -159,6 +159,7 @@ function Choices(props: {
  * Use `RadioGroup` instead when exactly one choice may be picked, `Checkbox` for a single
  * yes-or-no choice, and `Fieldset` to group different fields.
  *
+ * @group Forms
  * @see https://ourostack.github.io/ouro-ui/docs/checkbox-group
  *
  * @example

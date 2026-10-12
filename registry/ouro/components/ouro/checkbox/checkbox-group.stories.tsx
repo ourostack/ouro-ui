@@ -54,6 +54,7 @@ export const Playground: Story = {};
 
 /** Choices from `options`, with descriptions and one disabled choice. */
 export const Herbs: Story = {
+  parameters: { screenshot: { name: "checkbox-group-herbs" } },
   render: () => (
     <Surface>
       <CheckboxGroup legend="Herbs" name="herbs" description="Pick any you have fresh." options={herbs} defaultValue={["basil", "sage"]} />
@@ -63,6 +64,7 @@ export const Herbs: Story = {
 
 /** Required with an error, and the whole group disabled. */
 export const States: Story = {
+  parameters: { screenshot: { name: "checkbox-group-states" } },
   render: () => (
     <Surface>
       <CheckboxGroup legend="Diet" name="diet" required error="Pick at least one." options={[{ value: "vegetarian", label: "Vegetarian" }, { value: "vegan", label: "Vegan" }]} />

@@ -75,6 +75,7 @@ export const Playground: Story = {};
 
 /** Unchecked, checked, described, required with an error, and disabled. */
 export const States: Story = {
+  parameters: { screenshot: { name: "checkbox-states" } },
   render: () => (
     <Surface>
       <Checkbox label="Email me new recipes" name="newsletter" />

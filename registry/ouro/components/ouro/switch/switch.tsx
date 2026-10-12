@@ -50,11 +50,11 @@ export interface SwitchProps {
   ref?: Ref<HTMLElement> | undefined;
 
   /** Not a prop. Ouro UI uses `onCheckedChange`, which gets the new state: `onCheckedChange={setOn}`. */
-  onChange?: { "Use onCheckedChange={(checked) => …}": never };
+  onChange?: { 'Use onCheckedChange={setChecked}': never };
   /** Not a prop. Ouro UI uses `checked`: `<Switch checked={on}>`. */
-  isChecked?: { "Use <Switch checked={on}>": never };
+  isChecked?: { 'Use <Switch checked={on}>': never };
   /** Not a prop. A switch's starting state is `defaultChecked`: `<Switch defaultChecked>`. */
-  defaultValue?: { "Use <Switch defaultChecked>": never };
+  defaultValue?: { 'Use <Switch defaultChecked>': never };
   /** Not a prop. Ouro UI uses `error`: `<Switch error="Required.">`. */
   errorMessage?: { 'Use <Switch error="Required.">': never };
   /** Not a prop. Ouro UI uses `description`: `<Switch description="...">`. */
@@ -64,9 +64,9 @@ export interface SwitchProps {
   /** Not a prop. `error` marks the switch invalid: `<Switch error="What is wrong">`. */
   invalid?: { 'Use <Switch error="What is wrong">': never };
   /** Not a prop. Ouro UI uses `required`: `<Switch required>`. */
-  isRequired?: { "Use <Switch required>": never };
+  isRequired?: { 'Use <Switch required>': never };
   /** Not a prop. Ouro UI uses `disabled`: `<Switch disabled>`. */
-  isDisabled?: { "Use <Switch disabled>": never };
+  isDisabled?: { 'Use <Switch disabled>': never };
 }
 
 /** Field's messages and root name Switch, and put the switch before its label. */
@@ -109,6 +109,7 @@ function SwitchTrack(props: {
  * Use it for a setting that takes effect at once. Use `Checkbox` instead for a choice that
  * applies when a form is submitted, such as accepting terms.
  *
+ * @group Forms
  * @see https://ourostack.github.io/ouro-ui/docs/switch
  *
  * @example

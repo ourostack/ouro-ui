@@ -49,6 +49,30 @@
     "source": "registry/ouro/components/ouro/text-field/text-area.tsx"
   },
   {
+    "name": "checkbox",
+    "title": "Checkbox",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/checkbox/checkbox.tsx"
+  },
+  {
+    "name": "checkbox-group",
+    "title": "CheckboxGroup",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/checkbox/checkbox-group.tsx"
+  },
+  {
+    "name": "radio-group",
+    "title": "RadioGroup",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/radio-group/radio-group.tsx"
+  },
+  {
+    "name": "switch",
+    "title": "Switch",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/switch/switch.tsx"
+  },
+  {
     "name": "sheet",
     "title": "Sheet",
     "group": "Overlays",

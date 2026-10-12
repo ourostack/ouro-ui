@@ -67,6 +67,7 @@ export const Settings: Story = {
 
 /** Off, on, with an error, and disabled off and on. */
 export const States: Story = {
+  parameters: { screenshot: { name: "switch-states" } },
   render: () => (
     <Surface>
       <Switch label="Metric units" name="metric" />

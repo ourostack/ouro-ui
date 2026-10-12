@@ -63,13 +63,13 @@ export interface CheckboxProps {
   ref?: Ref<HTMLElement> | undefined;
 
   /** Not a prop. Ouro UI uses `onCheckedChange`, which gets the new state: `onCheckedChange={setChecked}`. */
-  onChange?: { "Use onCheckedChange={(checked) => …}": never };
+  onChange?: { 'Use onCheckedChange={setChecked}': never };
   /** Not a prop. Ouro UI uses `checked`: `<Checkbox checked={agreed}>`. */
-  isChecked?: { "Use <Checkbox checked={agreed}>": never };
+  isChecked?: { 'Use <Checkbox checked={agreed}>': never };
   /** Not a prop. Ouro UI uses `indeterminate`: `<Checkbox indeterminate>`. */
-  isIndeterminate?: { "Use <Checkbox indeterminate>": never };
+  isIndeterminate?: { 'Use <Checkbox indeterminate>': never };
   /** Not a prop. A checkbox's starting state is `defaultChecked`: `<Checkbox defaultChecked>`. */
-  defaultValue?: { "Use <Checkbox defaultChecked>": never };
+  defaultValue?: { 'Use <Checkbox defaultChecked>': never };
   /** Not a prop. Ouro UI uses `error`: `<Checkbox error="Required.">`. */
   errorMessage?: { 'Use <Checkbox error="Required.">': never };
   /** Not a prop. Ouro UI uses `description`: `<Checkbox description="...">`. */
@@ -79,9 +79,9 @@ export interface CheckboxProps {
   /** Not a prop. `error` marks the checkbox invalid: `<Checkbox error="What is wrong">`. */
   invalid?: { 'Use <Checkbox error="What is wrong">': never };
   /** Not a prop. Ouro UI uses `required`: `<Checkbox required>`. */
-  isRequired?: { "Use <Checkbox required>": never };
+  isRequired?: { 'Use <Checkbox required>': never };
   /** Not a prop. Ouro UI uses `disabled`: `<Checkbox disabled>`. */
-  isDisabled?: { "Use <Checkbox disabled>": never };
+  isDisabled?: { 'Use <Checkbox disabled>': never };
 }
 
 /** Field's messages and root name Checkbox, and put the box before its label. */
@@ -130,6 +130,7 @@ function CheckboxBox(props: {
  * Use `CheckboxGroup` instead for several choices under one legend that submit together,
  * `Switch` for a setting that applies at once, and `RadioGroup` when only one choice may be picked.
  *
+ * @group Forms
  * @see https://ourostack.github.io/ouro-ui/docs/checkbox
  *
  * @example

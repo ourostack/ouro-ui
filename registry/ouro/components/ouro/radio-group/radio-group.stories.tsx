@@ -54,6 +54,7 @@ export const Playground: Story = {};
 
 /** Choices from `options`, with descriptions and one disabled choice. The arrow keys move and pick. */
 export const Sizes: Story = {
+  parameters: { screenshot: { name: "radio-group-sizes" } },
   render: () => (
     <Surface>
       <RadioGroup legend="Size" name="size" description="How many people you're cooking for." options={sizes} defaultValue="medium" />
@@ -78,6 +79,7 @@ export const Horizontal: Story = {
 
 /** Required with an error, the whole group disabled, and `Radio` children. */
 export const States: Story = {
+  parameters: { screenshot: { name: "radio-group-states" } },
   render: () => (
     <Surface>
       <RadioGroup legend="Delivery" name="delivery" required error="Choose how you get your order." options={[{ value: "pickup", label: "Pick up" }, { value: "deliver", label: "Deliver" }]} />

@@ -64,7 +64,7 @@ export interface RadioGroupOwnProps {
   /** Not a prop. A group is named by its `legend`: `<RadioGroup legend="Size">`. */
   label?: { 'Use <RadioGroup legend="Size">': never };
   /** Not a prop. Ouro UI uses `onValueChange`, which gets the chosen value: `onValueChange={setSize}`. */
-  onChange?: { "Use onValueChange={(value) => …}": never };
+  onChange?: { 'Use onValueChange={setValue}': never };
   /** Not a prop. Ouro UI uses `options`: `options={[{ value: "small", label: "Small" }]}`. */
   items?: { 'Use options={[{ value: "small", label: "Small" }]}': never };
   /** Not a prop. Ouro UI uses `error`: `<RadioGroup error="Required.">`. */
@@ -76,9 +76,9 @@ export interface RadioGroupOwnProps {
   /** Not a prop. `error` marks the group invalid: `<RadioGroup error="What is wrong">`. */
   invalid?: { 'Use <RadioGroup error="What is wrong">': never };
   /** Not a prop. Ouro UI uses `required`: `<RadioGroup required>`. */
-  isRequired?: { "Use <RadioGroup required>": never };
+  isRequired?: { 'Use <RadioGroup required>': never };
   /** Not a prop. Ouro UI uses `disabled`: `<RadioGroup disabled>`. */
-  isDisabled?: { "Use <RadioGroup disabled>": never };
+  isDisabled?: { 'Use <RadioGroup disabled>': never };
 }
 
 /** Props for {@link RadioGroup}: the choices as `options`, or as `Radio` children, not both. */
@@ -152,6 +152,7 @@ function RadioCircle({ value, ref }: { value: string; ref: Ref<HTMLElement> | un
  *
  * Use `Checkbox` inside a `CheckboxGroup` instead when several choices may be picked.
  *
+ * @group Forms
  * @example
  * <RadioGroup legend="Size" name="size">
  *   <Radio value="small" label="Small" description="Serves 2." />
@@ -222,6 +223,7 @@ function Choices(props: {
  * Use `CheckboxGroup` instead when several choices may be picked, `Select` for a long list,
  * and `Switch` for on or off.
  *
+ * @group Forms
  * @see https://ourostack.github.io/ouro-ui/docs/radio-group
  *
  * @example
