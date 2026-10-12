@@ -51,8 +51,9 @@ export interface DatePickerProps {
   defaultValue?: string | undefined;
   /**
    * Called with the ISO date when the user picks or types an allowed date, and with `""` when
-   * the field no longer holds one. A typed date before `min`, after `max` or named by
-   * `isDateDisabled` is not a value: it reports `""`, and the field shows why and blocks the submit.
+   * the field no longer holds one. A date before `min`, after `max` or named by
+   * `isDateDisabled`, typed or chosen in the phone's own picker, is not a value: it reports
+   * `""`, and the field shows why and blocks the submit.
    */
   onValueChange?: ((value: string) => void) | undefined;
   /** The earliest date allowed, as an ISO date. Earlier days are unavailable in the calendar, and a typed one is invalid. */
@@ -240,26 +241,29 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
   const low = isIsoDate(min) ? min : undefined;
   const high = isIsoDate(max) ? max : undefined;
   const inRange = (date: string) => !(low && date < low) && !(high && date > high);
-  /** The value a typed text stands for: its date when it is an allowed one, else `""`. */
-  const valueOf = (typedText: string) => {
-    const date = parseDateInput(typedText, locale);
-    return date !== null && inRange(date) && !isDateDisabled?.(date) ? date : "";
-  };
+  /** The value a date stands for: itself when it is an allowed one, else `""`. */
+  const allowedOrEmpty = (date: string | null) => (date !== null && inRange(date) && !isDateDisabled?.(date) ? date : "");
+  /** The value a typed text stands for. */
+  const valueOf = (typedText: string) => allowedOrEmpty(parseDateInput(typedText, locale));
 
+  // What the phone's own picker shows: the date the user chose, which may not be an allowed one.
+  const [chosen, setChosen] = useState(iso);
   // What the text box shows. A new value from outside rewrites it, unless it already stands for that value.
   const [text, setText] = useState(() => formatDateInput(iso, locale));
   const [shown, setShown] = useState(`${iso} ${locale}`);
   if (shown !== `${iso} ${locale}`) {
     setShown(`${iso} ${locale}`);
     if (valueOf(text) !== iso) setText(formatDateInput(iso, locale));
+    if (allowedOrEmpty(isIsoDate(chosen) ? chosen : null) !== iso) setChosen(iso);
   }
 
   // The browser blocks the submit with a message while the field holds what is not an
-  // allowed date. The native input checks its own format, min and max.
+  // allowed date.
   const inputRef = useRef<HTMLInputElement>(null);
   const typed = text.trim() === "" ? null : parseDateInput(text, locale);
+  // Both paths give the same messages; the native input checks its own format.
   const problem = touch
-    ? iso !== "" && isDateDisabled?.(iso) && invalidDateMessage
+    ? isIsoDate(chosen) && (isDateDisabled?.(chosen) ? invalidDateMessage : !inRange(chosen) && outOfRangeMessage)
     : text.trim() !== "" && (typed === null || isDateDisabled?.(typed) ? invalidDateMessage : !inRange(typed) && outOfRangeMessage);
   const message = problem || "";
   useEffect(() => {
@@ -313,11 +317,15 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
             <FieldControl
               ref={setRef}
               type="date"
-              value={iso}
+              value={chosen}
               min={low}
               max={high}
               readOnly={readOnly}
-              onChange={(event) => commit(event.currentTarget.value)}
+              onChange={(event) => {
+                const next = event.currentTarget.value;
+                setChosen(next);
+                commit(allowedOrEmpty(isIsoDate(next) ? next : null));
+              }}
               render={(controlProps) => <input {...controlProps} className={inputClass} />}
             />
           ) : (
@@ -331,7 +339,7 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
                 readOnly={readOnly}
                 autoComplete="off"
                 spellCheck={false}
-                  onChange={onType}
+                onChange={onType}
                 onBlur={tidy}
                 render={(controlProps) => <input {...controlProps} name={undefined} className={inputClass} />}
               />

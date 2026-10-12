@@ -51,3 +51,46 @@ it("keeps the native picker, 16px text and a 44px box on a landscape phone, past
   expect(parseFloat(getComputedStyle(input).fontSize)).toBeGreaterThanOrEqual(16);
   expect(host.querySelector<HTMLElement>("[data-ouro-input-group]")!.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
 });
+
+/** Sets the native input's value as the phone's picker does. */
+async function choose(input: HTMLInputElement, value: string) {
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, value);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+}
+
+it("reports a disallowed date from the phone's picker as empty, with the same messages as the text box", async () => {
+  const calls: string[] = [];
+  const host = await render(
+    <form>
+      <DatePicker
+        label="Delivery date"
+        name="delivery"
+        min="2026-10-05"
+        max="2026-10-31"
+        isDateDisabled={(date) => date === "2026-10-13"}
+        onValueChange={(value) => calls.push(value)}
+      />
+    </form>,
+  );
+  const input = host.querySelector("input")!;
+  expect(input.type).toBe("date");
+  await choose(input, "2026-10-01");
+  expect(input.value).toBe("2026-10-01");
+  expect(input.validationMessage).toBe("Enter a date in the allowed range.");
+  await choose(input, "2026-10-13");
+  expect(input.value).toBe("2026-10-13");
+  expect(input.validationMessage).toBe("Enter a valid date.");
+  expect(calls).toEqual([]);
+  await choose(input, "2026-10-14");
+  expect(calls).toEqual(["2026-10-14"]);
+  expect(input.validity.valid).toBe(true);
+  await choose(input, "2026-10-01");
+  expect(calls).toEqual(["2026-10-14", ""]);
+  // Clearing the picker leaves no date and no message.
+  await choose(input, "2026-10-20");
+  await choose(input, "");
+  expect(calls).toEqual(["2026-10-14", "", "2026-10-20", ""]);
+  expect(input.validity.valid).toBe(true);
+});

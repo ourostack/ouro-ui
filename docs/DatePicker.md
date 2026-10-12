@@ -41,7 +41,7 @@ Type: `DatePickerProps`.
 | `min` | `string` |  | The earliest date allowed, as an ISO date. Earlier days are unavailable in the calendar, and a typed one is invalid. |
 | `name` | `string` |  | The form field name. The form submits the ISO date (`2026-10-11`) under it, or an empty string. |
 | `nextMonthLabel` | `string` | `"Next month"` | The calendar's next month button's label. Translate it with your app. |
-| `onValueChange` | `((value: string) => void)` |  | Called with the ISO date when the user picks or types an allowed date, and with `""` when the field no longer holds one. A typed date before `min`, after `max` or named by `isDateDisabled` is not a value: it reports `""`, and the field shows why and blocks the submit. |
+| `onValueChange` | `((value: string) => void)` |  | Called with the ISO date when the user picks or types an allowed date, and with `""` when the field no longer holds one. A date before `min`, after `max` or named by `isDateDisabled`, typed or chosen in the phone's own picker, is not a value: it reports `""`, and the field shows why and blocks the submit. |
 | `outOfRangeMessage` | `string` | `"Enter a date in the allowed range."` | The browser's message for a typed date before `min` or after `max`. Translate it with your app. |
 | `placeholder` | `string` |  | An example of what to type, shown while the field is empty: `"MM/DD/YYYY"`. It is not a label. |
 | `previousMonthLabel` | `string` | `"Previous month"` | The calendar's previous month button's label. Translate it with your app. |
