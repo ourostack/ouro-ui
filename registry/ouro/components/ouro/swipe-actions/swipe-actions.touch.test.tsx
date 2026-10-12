@@ -102,7 +102,8 @@ function middle(element: Element): [number, number] {
 /** A one-finger swipe across the row's middle, by `dx` px, starting from its center. The finger lifts while it is still moving: a flick. */
 async function swipe(row: HTMLElement, dx: number, dy = 0) {
   const [x, y] = middle(row);
-  await commands.touchDrag({ from: [x, y], to: [x + dx, y + dy], steps: 10 });
+  // 100ms from touch-down to lift, as the page's timestamps say: a flick, however busy the machine.
+  await commands.touchDrag({ from: [x, y], to: [x + dx, y + dy], steps: 10, durationMs: 100 });
 }
 
 /** Keeps the finger still until it has no velocity left: longer than the 100ms a release velocity is read over. */

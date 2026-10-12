@@ -99,6 +99,13 @@ export interface TouchDragOptions {
   to: [number, number];
   /** Number of intermediate moves. */
   steps: number;
+  /**
+   * Time from touch-down to lift, as the page's event timestamps report it, in milliseconds,
+   * so a velocity check sees this speed however busy the machine is. Without it the events
+   * carry the time they were sent, and a loaded runner can space them out until a flick
+   * reads as a finger that rested.
+   */
+  durationMs?: number;
 }
 
 /**
@@ -107,7 +114,7 @@ export interface TouchDragOptions {
  * and touch events, as from a phone: a swipe to dismiss. Needs a context with
  * `hasTouch`, as in the `touch` project. Coordinates are relative to the top-level page.
  */
-export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from, to, steps }) => {
+export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from, to, steps, durationMs }) => {
   const { page } = ctx;
   if (ctx.provider.name !== "playwright" || page.context().browser()?.browserType().name() !== "chromium") {
     throw new Error("touchDrag: CDP input is Chromium only");
@@ -117,15 +124,20 @@ export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from,
     session = await page.context().newCDPSession(page);
     cdpSessions.set(page, session);
   }
-  const touch = (type: "touchStart" | "touchMove" | "touchEnd", [x, y]: [number, number]) =>
-    session.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y, id: 1 }] });
+  const start = Date.now() / 1000;
+  const touch = (type: "touchStart" | "touchMove" | "touchEnd", [x, y]: [number, number], t: number) =>
+    session.send("Input.dispatchTouchEvent", {
+      type,
+      touchPoints: type === "touchEnd" ? [] : [{ x, y, id: 1 }],
+      ...(durationMs === undefined ? {} : { timestamp: start + (durationMs * t) / 1000 }),
+    });
   await releaseFinger(page, session);
-  await touch("touchStart", from);
+  await touch("touchStart", from, 0);
   for (let step = 1; step <= steps; step++) {
     const t = step / steps;
-    await touch("touchMove", [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t]);
+    await touch("touchMove", [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t], t);
   }
-  await touch("touchEnd", to);
+  await touch("touchEnd", to, 1);
 };
 
 export interface PointerPressOptions {
