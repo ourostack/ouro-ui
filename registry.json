@@ -327,9 +327,19 @@
           "target": "@lib/ouro/testing/page-css.ts"
         },
         {
+          "path": "registry/ouro/lib/ouro/testing/rotate.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/testing/rotate.ts"
+        },
+        {
           "path": "registry/ouro/lib/ouro/testing/setup.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/testing/setup.ts"
+        },
+        {
+          "path": "registry/ouro/lib/ouro/testing/touch-setup.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/testing/touch-setup.ts"
         },
         {
           "path": "registry/ouro/lib/ouro/testing/vitest.ts",

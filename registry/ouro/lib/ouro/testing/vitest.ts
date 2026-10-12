@@ -22,8 +22,9 @@ export interface OuroTestOptions {
  * Vitest browser projects that run Ouro UI's tests in your app: one project per
  * browser, plus `ouro-touch` (Chromium as a 390x844 touch phone) for files named
  * `*.touch.test.tsx`. They register Ouro UI's browser commands (`drag`, `flick`,
- * `tap`, `touchDrag`, `emulateMedia`, `pointerPress`) and the setup that fails a test on any
- * React act() warning. Each project extends your root config, so your Vite plugins
+ * `tap`, `touchDrag`, `emulateMedia`, `pointerPress`, `pageZoom`, `resetPageZoom`) and the
+ * setup that fails a test on any React act() warning; in `ouro-touch`, also on a test that
+ * leaves the page zoomed (rotate with `rotate` from testing/rotate.ts). Each project extends your root config, so your Vite plugins
  * and aliases apply. Needs Playwright's browsers: `npx playwright install chromium webkit`.
  *
  * @example
@@ -63,7 +64,7 @@ export function ouroTestProjects({
       extends: true as const,
       test: {
         name: "ouro-touch",
-        setupFiles,
+        setupFiles: [...setupFiles, fileURLToPath(new URL("./touch-setup.ts", import.meta.url))],
         expect: expectOptions,
         include: touchInclude,
         browser: {

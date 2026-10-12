@@ -365,6 +365,47 @@ describe("ShowMore from an empty list", () => {
     expect(host.querySelector("[data-ouro-show-more-status]")!.textContent).toBe("Showing 3 items");
   });
 
+  it.each([
+    ["with", true],
+    ["without", false],
+  ])("survives a first load that finds nothing, %s a loading prop", async (_name, useLoading) => {
+    const errors: unknown[] = [];
+    const onError = (event: ErrorEvent) => void errors.push(event.message);
+    window.addEventListener("error", onError);
+    const error = vi.spyOn(console, "error").mockImplementation((...args) => void errors.push(String(args[0])));
+    function EmptyForever() {
+      const [done, setDone] = useState(false);
+      const [loading, setLoading] = useState(false);
+      return (
+        <ShowMore
+          items={[]}
+          hasMore={!done}
+          loading={useLoading ? loading : undefined}
+          onShowMore={() => {
+            if (!useLoading) return setDone(true);
+            setLoading(true);
+            finishLoad = () => {
+              setDone(true);
+              setLoading(false);
+            };
+          }}
+        />
+      );
+    }
+    try {
+      const { host, button } = await render(<EmptyForever />);
+      await userEvent.click(button!);
+      if (useLoading) await act(async () => finishLoad());
+      await expect.poll(() => host.querySelector("[data-ouro-show-more-status]")?.textContent).toBe("No more items");
+      expect(host.querySelector('[data-ouro="show-more"]')).not.toBeNull();
+      expect(host.querySelector("[data-ouro-show-more-toggle]")).toBeNull();
+      expect(errors).toEqual([]);
+    } finally {
+      window.removeEventListener("error", onError);
+      error.mockRestore();
+    }
+  });
+
   it("focuses the first item without a loading prop too", async () => {
     function FromEmpty() {
       const [count, setCount] = useState(0);

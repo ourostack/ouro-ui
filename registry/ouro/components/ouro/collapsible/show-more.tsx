@@ -137,13 +137,13 @@ function focusRow(row: Element): void {
   (row.querySelector<HTMLElement>(FOCUSABLE) ?? (row as HTMLElement)).focus();
 }
 
+/** The first item of a list that was empty when "Show more" was pressed: any first page is new items. */
+const EMPTY = Symbol("empty");
+
 /**
  * What stays the same for an item across renders: an element's key, or a text or number item
  * itself. An element without a key is a new object every render, so it has none (null).
  */
-/** The first item of a list that was empty when "Show more" was pressed: any first page is new items. */
-const EMPTY = Symbol("empty");
-
 function identity(item: ReactNode): unknown {
   if (isValidElement(item)) return item.key;
   return item;
@@ -298,9 +298,10 @@ function ShowMoreList(props: (ShowMoreItemsProps | ShowMoreLoadProps) & { showMo
       pending.current = null;
       loaded.current = false;
     };
-    const arrive = (row: Element, message: string) => {
+    const arrive = (row: Element | undefined, message: string) => {
       stop();
-      focusRow(row);
+      // An empty list whose load found nothing has no row: focus stays where it was.
+      if (row) focusRow(row);
       if (load) setStatus(message);
     };
     const replaced = pendingFirst.current !== EMPTY && identity(items[0]) !== pendingFirst.current;
@@ -312,7 +313,7 @@ function ShowMoreList(props: (ShowMoreItemsProps | ShowMoreLoadProps) & { showMo
       arrive(rows[from]!, loadedLabel(rows.length));
     } else if (!hasButton) {
       // The last page came back empty and the button is gone: keep focus in the list.
-      arrive(rows[rows.length - 1]!, noMoreLabel);
+      arrive(rows[rows.length - 1], noMoreLabel);
     } else if (loaded.current) {
       // The load ended with no new items (it failed): stop waiting, as above.
       stop();

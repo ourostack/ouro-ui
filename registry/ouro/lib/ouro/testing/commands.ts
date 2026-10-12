@@ -117,10 +117,6 @@ export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from,
     session = await page.context().newCDPSession(page);
     cdpSessions.set(page, session);
   }
-  // Earlier tests can leave the phone page zoomed in (a page scale of 4.7 was seen), and touch
-  // points are in the zoomed viewport's pixels, so the finger would land elsewhere. Reset the
-  // zoom first.
-  await session.send("Emulation.setPageScaleFactor", { pageScaleFactor: 1 });
   const touch = (type: "touchStart" | "touchMove" | "touchEnd", [x, y]: [number, number]) =>
     session.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y, id: 1 }] });
   await touch("touchStart", from);
@@ -164,7 +160,26 @@ export const tap: BrowserCommand<[selector: string]> = async (ctx, selector) => 
   await ctx.iframe.locator(selector).tap();
 };
 
-export const commands = { emulateMedia, drag, flick, pointerPress, tap, touchDrag };
+/** The top-level page's zoom (`visualViewport.scale`): 1 unless something zoomed the page. */
+export const pageZoom: BrowserCommand<[]> = async (ctx) => ctx.page.evaluate(() => window.visualViewport?.scale ?? 1);
+
+/**
+ * Sets the top-level page's zoom back to 1 (Chromium, through CDP; elsewhere it does nothing).
+ * In a phone context (`isMobile`), Chromium can zoom the page when the viewport rotates, and
+ * rotating back does not undo it; `rotate` in testing/rotate.ts calls this after each resize.
+ */
+export const resetPageZoom: BrowserCommand<[]> = async (ctx) => {
+  const { page } = ctx;
+  if (ctx.provider.name !== "playwright" || page.context().browser()?.browserType().name() !== "chromium") return;
+  let session = cdpSessions.get(page);
+  if (!session) {
+    session = await page.context().newCDPSession(page);
+    cdpSessions.set(page, session);
+  }
+  await session.send("Emulation.setPageScaleFactor", { pageScaleFactor: 1 });
+};
+
+export const commands = { emulateMedia, drag, flick, pageZoom, pointerPress, resetPageZoom, tap, touchDrag };
 
 declare module "vitest/browser" {
   interface BrowserCommands {
@@ -174,5 +189,7 @@ declare module "vitest/browser" {
     tap: (selector: string) => Promise<void>;
     touchDrag: (options: TouchDragOptions) => Promise<void>;
     pointerPress: (options: PointerPressOptions) => Promise<void>;
+    pageZoom: () => Promise<number>;
+    resetPageZoom: () => Promise<void>;
   }
 }
