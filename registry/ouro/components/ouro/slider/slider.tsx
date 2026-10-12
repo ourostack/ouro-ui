@@ -1,7 +1,7 @@
 "use client";
 
 import { Slider as BaseSlider } from "@base-ui/react/slider";
-import { cloneElement, useId, useMemo, type JSX, type ReactElement, type ReactNode, type Ref } from "react";
+import { cloneElement, useId, useLayoutEffect, useMemo, useRef, type JSX, type ReactElement, type ReactNode, type Ref } from "react";
 import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-styles";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
@@ -230,6 +230,7 @@ export function Slider<Value extends SliderValue = number>(props: SliderProps<Va
           label={label}
           labelId={isRange ? labelId : undefined}
           isRange={isRange}
+          hasError={Array.isArray(error) ? error.some((message) => message !== "") : Boolean(error)}
           count={count}
           thumbLabels={thumbLabels}
           showValue={showValue}
@@ -262,6 +263,7 @@ function SliderControl({
   showValue,
   inputRef,
   rootProps,
+  hasError,
 }: {
   label: string;
   labelId: string | undefined;
@@ -270,6 +272,8 @@ function SliderControl({
   thumbLabels: readonly string[];
   showValue: boolean | undefined;
   inputRef: Ref<HTMLInputElement> | undefined;
+  /** The `error` prop has a message. */
+  hasError: boolean;
   rootProps: Pick<
     BaseSlider.Root.Props,
     "value" | "defaultValue" | "min" | "max" | "step" | "largeStep" | "format" | "locale"
@@ -279,6 +283,21 @@ function SliderControl({
   };
 }): JSX.Element {
   const field = useField()!;
+  // Ouro owns the invalid state: a Field that shares it (ourostack/ouro-ui#36) decides,
+  // otherwise the `error` prop does. Base UI's own invalid state is never the source.
+  const invalid =
+    "invalid" in field
+      ? /* istanbul ignore next @preserve -- runs once Field shares its invalid state (ourostack/ouro-ui#36) */ field.invalid === true
+      : hasError;
+  // Base UI builds each thumb's range input itself and takes aria-invalid only from its own
+  // checks, so Ouro's state goes on the inputs directly.
+  const rootRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    for (const input of rootRef.current!.querySelectorAll('input[type="range"]')) {
+      if (invalid) input.setAttribute("aria-invalid", "true");
+      else input.removeAttribute("aria-invalid");
+    }
+  });
   const { onValueChange, onValueCommitted, ...shared } = rootProps;
   // The widest value text: each end's integer part with the step's decimals (Base UI's
   // defaults are 0, 100 and a step of 1), formatted as the value is. Figures are tabular, so
@@ -293,7 +312,9 @@ function SliderControl({
   const widest = isRange ? ends.map((end) => `${end} – ${end}`) : ends;
   return (
     <BaseSlider.Root
+      ref={rootRef}
       {...shared}
+      {...(invalid ? { "data-ouro-invalid": "" } : {})}
       onValueChange={onValueChange && ((next) => onValueChange(next as number | number[]))}
       onValueCommitted={onValueCommitted && ((next) => onValueCommitted(next as number | number[]))}
       aria-labelledby={labelId}

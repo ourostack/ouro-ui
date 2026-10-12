@@ -337,3 +337,22 @@ describe("Combobox on a phone", () => {
     expect(document.elementFromPoint(cx, cy + 21)?.closest("button")).toBe(remove);
   });
 });
+
+describe("Combobox server error on a phone", () => {
+  it("marks the sheet's trigger invalid and keeps the form submittable", async () => {
+    let sent: FormData | null = null;
+    const host = await render(
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          sent = new FormData(event.currentTarget);
+        }}
+      >
+        <Combobox label="Herb" name="herb" items={herbs} error="Pick a herb." defaultValue="Dill" />
+      </form>,
+    );
+    expect(host.querySelector(TRIGGER)!.getAttribute("aria-invalid")).toBe("true");
+    await act(async () => host.querySelector("form")!.requestSubmit());
+    expect(sent!.get("herb")).toBe("Dill");
+  });
+});

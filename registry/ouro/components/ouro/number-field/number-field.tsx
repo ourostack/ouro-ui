@@ -259,6 +259,7 @@ export function NumberField(props: NumberFieldProps): JSX.Element {
         <NumberFieldGroup
           inputRef={ref}
           inputMode={phoneKeyboard(min, step, format, locale)}
+          hasError={Array.isArray(error) ? error.some((message) => message !== "") : Boolean(error)}
           required={required}
           placeholder={placeholder}
           decrementLabel={decrementLabel}
@@ -294,6 +295,7 @@ function NumberFieldGroup({
   placeholder,
   decrementLabel,
   incrementLabel,
+  hasError,
 }: {
   inputRef: Ref<HTMLInputElement> | undefined;
   inputMode: "decimal" | "numeric" | "text";
@@ -301,8 +303,16 @@ function NumberFieldGroup({
   placeholder: string | undefined;
   decrementLabel: string;
   incrementLabel: string;
+  /** The `error` prop has a message. */
+  hasError: boolean;
 }): JSX.Element {
   const field = useField()!;
+  // Ouro owns the invalid state: a Field that shares it (ourostack/ouro-ui#36) decides,
+  // otherwise the `error` prop does. Base UI's own invalid state is never the source.
+  const invalid =
+    "invalid" in field
+      ? /* istanbul ignore next @preserve -- runs once Field shares its invalid state (ourostack/ouro-ui#36) */ field.invalid === true
+      : hasError;
   return (
     <BaseNumberField.Group data-ouro-number-field-group="" className={groupClass}>
       <BaseNumberField.Decrement aria-label={decrementLabel} className={stepperClass}>
@@ -317,6 +327,7 @@ function NumberFieldGroup({
         placeholder={placeholder}
         aria-required={required || undefined}
         aria-describedby={field.describedBy}
+        {...(invalid ? { "aria-invalid": true } : {})}
         className={inputClass}
       />
       <BaseNumberField.Increment aria-label={incrementLabel} className={stepperClass}>

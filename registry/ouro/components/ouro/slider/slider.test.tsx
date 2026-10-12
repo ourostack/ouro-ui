@@ -286,7 +286,8 @@ describe("Slider server rendering", () => {
     const [heat, low, high] = [...doc.querySelectorAll('input[type="range"]')];
     expect(doc.querySelector(`label[for="${heat!.id}"]`)!.textContent).toBe("Heat");
     expect(describedBy(heat!).map((id) => doc.getElementById(id)!.textContent)).toEqual(["How spicy.", "Too hot."]);
-    expect(heat!.getAttribute("aria-invalid")).toBe("true");
+    // The thumb's input takes aria-invalid at hydration (Base UI builds it); the styles come from the root.
+    expect(heat!.closest("[data-ouro-invalid]")).not.toBeNull();
     for (const thumb of [low!, high!]) expect(describedBy(thumb).map((id) => doc.getElementById(id)!.textContent)).toEqual(["Per jar."]);
     expect(doc.querySelector("[data-ouro-slider-value]")!.textContent).toBe("50");
     expect(error).not.toHaveBeenCalled();
@@ -308,7 +309,40 @@ describe("Slider server rendering", () => {
     });
     roots.push(root);
     expect(snapshot()).toEqual(before);
+    expect(host.querySelector('input[type="range"]')!.getAttribute("aria-invalid")).toBe("true");
     expect(recoverable).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
+  });
+});
+
+describe("Slider server error", () => {
+  it.each([
+    [["Too much.", ""], "true"],
+    [["", ""], null],
+  ] as const)("reads an error list %j as invalid: %s", async (error, expected) => {
+    const view = await render(<Slider label="Price" defaultValue={[20, 80]} error={[...error]} />);
+    for (const control of view.inputs) expect(control.getAttribute("aria-invalid")).toBe(expected);
+  });
+
+  // The error is Ouro's own field state: the control gets aria-invalid from it, and Base UI
+  // never counts it as a failed check, so the form can be sent again to the server.
+  it("marks the control invalid and keeps the form submittable", async () => {
+    let sent: FormData | null = null;
+    const view = await render(
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          sent = new FormData(event.currentTarget);
+        }}
+      >
+        <Slider label="Price" name="price" error="Too much." defaultValue={[20, 80]} />
+      </form>,
+    );
+    const controls = view.inputs;
+    expect(controls.length).toBeGreaterThan(0);
+    for (const control of controls) expect(control.getAttribute("aria-invalid")).toBe("true");
+    await act(async () => view.host.querySelector("form")!.requestSubmit());
+    expect(sent).not.toBeNull();
+    expect(sent!.getAll("price")).toEqual(["20", "80"]);
   });
 });

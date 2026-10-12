@@ -39,7 +39,7 @@ const trackClass = "relative h-1.5 w-full rounded-full bg-muted select-none";
  * @internal
  */
 const indicatorClass =
-  "rounded-full bg-primary select-none group-data-invalid/slider:bg-destructive";
+  "rounded-full bg-primary select-none group-data-[ouro-invalid]/slider:bg-destructive";
 
 /**
  * A thumb: a 20px knob with a 44px hit area on a coarse pointer (its `TouchTarget`), an
@@ -53,7 +53,7 @@ const thumbClass =
   "outline-ring outline-offset-2 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-solid " +
   "[transition:scale_var(--ouro-spring-duration)_var(--ouro-ease-spring),border-color_var(--ouro-duration-fast)_ease-out] " +
   "motion-safe:data-dragging:scale-110 " +
-  "group-data-invalid/slider:border-destructive data-disabled:cursor-not-allowed";
+  "group-data-[ouro-invalid]/slider:border-destructive data-disabled:cursor-not-allowed";
 
 /**
  * The formatted value at the end of the row, in tabular figures, as wide as the widest value

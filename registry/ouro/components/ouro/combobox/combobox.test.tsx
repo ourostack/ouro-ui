@@ -477,3 +477,40 @@ describe("Combobox server rendering", () => {
     expect(error).not.toHaveBeenCalled();
   });
 });
+
+describe("Combobox server error", () => {
+  it("marks the custom-value input invalid too", async () => {
+    const view = await render(<Combobox label="Herb" items={herbs} allowCustomValue error="Pick a herb." />);
+    expect(view.input.getAttribute("aria-invalid")).toBe("true");
+  });
+
+  it.each([
+    [["Too much.", ""], "true"],
+    [["", ""], null],
+  ] as const)("reads an error list %j as invalid: %s", async (error, expected) => {
+    const view = await render(<Combobox label="Herb" items={herbs} error={[...error]} />);
+    for (const control of [view.input]) expect(control.getAttribute("aria-invalid")).toBe(expected);
+  });
+
+  // The error is Ouro's own field state: the control gets aria-invalid from it, and Base UI
+  // never counts it as a failed check, so the form can be sent again to the server.
+  it("marks the control invalid and keeps the form submittable", async () => {
+    let sent: FormData | null = null;
+    const view = await render(
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          sent = new FormData(event.currentTarget);
+        }}
+      >
+        <Combobox label="Herb" name="herb" items={herbs} error="Pick a herb." defaultValue="Dill" />
+      </form>,
+    );
+    const controls = [view.input];
+    expect(controls.length).toBeGreaterThan(0);
+    for (const control of controls) expect(control.getAttribute("aria-invalid")).toBe("true");
+    await act(async () => view.host.querySelector("form")!.requestSubmit());
+    expect(sent).not.toBeNull();
+    expect(sent!.get("herb")).toEqual("Dill");
+  });
+});

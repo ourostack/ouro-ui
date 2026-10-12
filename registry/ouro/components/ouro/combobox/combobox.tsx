@@ -236,6 +236,8 @@ interface ControlProps {
   /** `allowCustomValue` on a phone: one value, which may be typed text. */
   custom: boolean;
   inputRef: Ref<HTMLInputElement> | undefined;
+  /** The `error` prop has a message. */
+  hasError: boolean;
 }
 
 /** Field's messages and root name Combobox. */
@@ -393,6 +395,7 @@ export function Combobox(props: ComboboxProps): JSX.Element {
     customValueLabel,
     custom,
     inputRef: ref,
+    hasError: Array.isArray(error) ? error.some((message) => message !== "") : Boolean(error),
   };
 
   return (
@@ -495,8 +498,14 @@ function EndButtons({ clearLabel }: { clearLabel: string }): JSX.Element {
 /** A Combobox that picks one item or several, on Base UI Combobox. */
 function ComboboxControl(props: ControlProps): JSX.Element {
   const { label, items, multiple, value, defaultValue, onValueChange, onInputChange, placeholder, required, loading } = props;
-  const { loadingLabel, emptyLabel, clearLabel, doneLabel, removeLabel, customValueLabel, custom, inputRef } = props;
+  const { loadingLabel, emptyLabel, clearLabel, doneLabel, removeLabel, customValueLabel, custom, inputRef, hasError } = props;
   const field = useField()!;
+  // Ouro owns the invalid state: a Field that shares it (ourostack/ouro-ui#36) decides,
+  // otherwise the `error` prop does. Base UI's own invalid state is never the source.
+  const invalid =
+    "invalid" in field
+      ? /* istanbul ignore next @preserve -- runs once Field shares its invalid state (ourostack/ouro-ui#36) */ field.invalid === true
+      : hasError;
   // The input's text: for the "nothing matched" line and the row that keeps typed text.
   const [text, setText] = useState("");
   // With allowCustomValue the text is the value, so an item's label is what it submits, as in
@@ -560,6 +569,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
       ref={inputRef}
       placeholder={placeholder}
       aria-describedby={sheet ? undefined : field.describedBy}
+      {...(invalid && !sheet ? { "aria-invalid": true } : {})}
       className={className}
     />
   );
@@ -598,6 +608,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
           <BaseCombobox.Trigger
             ref={triggerRef}
             aria-describedby={field.describedBy}
+            {...(invalid ? { "aria-invalid": true } : {})}
             data-ouro-combobox-trigger=""
             className={triggerClass}
             // With an inline list there is no Base UI popup for the trigger to open: it opens the sheet.
@@ -689,8 +700,14 @@ function ComboboxControl(props: ControlProps): JSX.Element {
 /** A Combobox that accepts any text, on Base UI Autocomplete. */
 function AutocompleteControl(props: ControlProps): JSX.Element {
   const { items, value, defaultValue, onValueChange, onInputChange, placeholder, required, loading } = props;
-  const { loadingLabel, emptyLabel, clearLabel, inputRef } = props;
+  const { loadingLabel, emptyLabel, clearLabel, inputRef, hasError } = props;
   const field = useField()!;
+  // Ouro owns the invalid state: a Field that shares it (ourostack/ouro-ui#36) decides,
+  // otherwise the `error` prop does. Base UI's own invalid state is never the source.
+  const invalid =
+    "invalid" in field
+      ? /* istanbul ignore next @preserve -- runs once Field shares its invalid state (ourostack/ouro-ui#36) */ field.invalid === true
+      : hasError;
   const suggestions = useMemo(() => items.map((item) => toOption(item)), [items]);
   const report = onValueChange as ((value: string) => void) | undefined;
   const [text, setText] = useState(() => ((value ?? defaultValue) as string | undefined) ?? "");
@@ -710,7 +727,13 @@ function AutocompleteControl(props: ControlProps): JSX.Element {
       }}
     >
       <BaseAutocomplete.InputGroup data-ouro-input-group="" className={groupClass}>
-        <BaseAutocomplete.Input ref={inputRef} placeholder={placeholder} aria-describedby={field.describedBy} className={inputClass} />
+        <BaseAutocomplete.Input
+          ref={inputRef}
+          placeholder={placeholder}
+          aria-describedby={field.describedBy}
+          {...(invalid ? { "aria-invalid": true } : {})}
+          className={inputClass}
+        />
         <EndButtons clearLabel={clearLabel} />
       </BaseAutocomplete.InputGroup>
       <Popup loading={loading}>

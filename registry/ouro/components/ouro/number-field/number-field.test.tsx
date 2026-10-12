@@ -363,3 +363,35 @@ describe("NumberField server rendering", () => {
     expect(host.querySelector<HTMLInputElement>("input:not([aria-hidden])")!.value).toBe("5");
   });
 });
+
+describe("NumberField server error", () => {
+  it.each([
+    [["Too much.", ""], "true"],
+    [["", ""], null],
+  ] as const)("reads an error list %j as invalid: %s", async (error, expected) => {
+    const view = await render(<NumberField label="Servings" error={[...error]} />);
+    for (const control of [view.input]) expect(control.getAttribute("aria-invalid")).toBe(expected);
+  });
+
+  // The error is Ouro's own field state: the control gets aria-invalid from it, and Base UI
+  // never counts it as a failed check, so the form can be sent again to the server.
+  it("marks the control invalid and keeps the form submittable", async () => {
+    let sent: FormData | null = null;
+    const view = await render(
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          sent = new FormData(event.currentTarget);
+        }}
+      >
+        <NumberField label="Servings" name="servings" error="Enter at least 1." defaultValue={0} />
+      </form>,
+    );
+    const controls = [view.input];
+    expect(controls.length).toBeGreaterThan(0);
+    for (const control of controls) expect(control.getAttribute("aria-invalid")).toBe("true");
+    await act(async () => view.host.querySelector("form")!.requestSubmit());
+    expect(sent).not.toBeNull();
+    expect(sent!.get("servings")).toEqual("0");
+  });
+});
