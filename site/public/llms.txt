@@ -8,18 +8,18 @@ In an existing Vite or Next.js app with Tailwind CSS v4 and an "@/*" path alias,
 
 ```sh
 npx shadcn@latest init --base base --preset nova --yes --no-monorepo
-npx shadcn@latest search 'ourostack/ouro-ui#v0.5.0'      # list the items
-npx shadcn@latest view 'ourostack/ouro-ui/dialog#v0.5.0'  # read one item
-npx shadcn@latest add ourostack/ouro-ui/dialog#v0.5.0     # install it
+npx shadcn@latest search 'ourostack/ouro-ui#v0.6.0'      # list the items
+npx shadcn@latest view 'ourostack/ouro-ui/dialog#v0.6.0'  # read one item
+npx shadcn@latest add ourostack/ouro-ui/dialog#v0.6.0     # install it
 ```
 
 - A new Vite app needs @tailwindcss/vite, @import "tailwindcss";, a Vite @ alias, and "paths": { "@/*": ["./src/*"] } in both tsconfig.json and tsconfig.app.json (no baseUrl on TypeScript 6) before init: shadcn reads the root file, and tsc -b builds the app one.
 - --preset nova lets init run without prompts. It sets shadcn's starting theme, font and icons, which Ouro components read like any shadcn theme. The install test runs nova and vega; other presets are untested.
-- A GitHub source is owner/repo#ref; an item is owner/repo/item#ref. @v0.5.0, github: and /tree/ URLs do not work.
-- A release tag (#v0.5.0) installs the item and every Ouro dependency at that tag. Without a ref, items come from main, which is for contributors and can hold unreleased changes; use a release tag or @ouro.
+- A GitHub source is owner/repo#ref; an item is owner/repo/item#ref. @v0.6.0, github: and /tree/ URLs do not work.
+- A release tag (#v0.6.0) installs the item and every Ouro dependency at that tag. Without a ref, items come from main, which is for contributors and can hold unreleased changes; use a release tag or @ouro.
 - Components land in components/ouro/<component>/ and helpers in lib/ouro/. Ouro UI never writes to components/ui/, so do not pass --overwrite on a first install.
-- Tests are optional: add <item>-tests beside the item (npx shadcn@latest add ourostack/ouro-ui/dialog#v0.5.0 ourostack/ouro-ui/dialog-tests#v0.5.0), or ouro-tests for all of them. The ouro-testing install message lists the config files to add.
-- The @ouro namespace serves the newest release (the same code as #v0.5.0): add "registries": { "@ouro": "https://ourostack.github.io/ouro-ui/r/{name}.json" } to components.json, then npx shadcn@latest add @ouro/dialog.
+- Tests are optional: add <item>-tests beside the item (npx shadcn@latest add ourostack/ouro-ui/dialog#v0.6.0 ourostack/ouro-ui/dialog-tests#v0.6.0), or ouro-tests for all of them. The ouro-testing install message lists the config files to add.
+- The @ouro namespace serves the newest release (the same code as #v0.6.0): add "registries": { "@ouro": "https://ourostack.github.io/ouro-ui/r/{name}.json" } to components.json, then npx shadcn@latest add @ouro/dialog.
 
 ## Items
 
@@ -61,6 +61,12 @@ npx shadcn@latest add ourostack/ouro-ui/dialog#v0.5.0     # install it
 - `aspect-ratio`: A frame that keeps an image, video or map at a fixed shape while its width follows the layout, so the page does not jump when the media loads. Docs: https://ourostack.github.io/ouro-ui/docs/aspect-ratio.md
 - `stack`: Lays its children out top to bottom with an even gap. Docs: https://ourostack.github.io/ouro-ui/docs/stack.md
 - `row`: Lays its children out side by side with an even gap, centered up and down. Docs: https://ourostack.github.io/ouro-ui/docs/row.md
+- `toggle`: A button that stays pressed until it is pressed again, such as Bold in a text toolbar. Docs: https://ourostack.github.io/ouro-ui/docs/toggle.md
+- `toggle-group`: A row of related toggles that share one value, such as text alignment or bold, italic and underline in a toolbar. Docs: https://ourostack.github.io/ouro-ui/docs/toggle-group.md
+- `button-group`: Related buttons joined into one control, such as Previous, a page number and Next, or a split button. Docs: https://ourostack.github.io/ouro-ui/docs/button-group.md
+- `otp-field`: A one-time code entry on the Field contract: one slot per character, with focus that moves as the person types, a whole code pasted at once, and `autoComplete="one-time-code"` so phones offer the code from a text message. Docs: https://ourostack.github.io/ouro-ui/docs/otp-field.md
+- `file-field`: A labeled file input with a drop zone, on the Field contract. Docs: https://ourostack.github.io/ouro-ui/docs/file-field.md
+- `color-field`: A color on the Field contract: a swatch that opens the system color picker, next to the same color as hex text, kept in step both ways. Docs: https://ourostack.github.io/ouro-ui/docs/color-field.md
 - `ouro-lib-tests`: Optional: the Vitest browser tests for ouro-lib, with the test tooling as devDependencies. Add it beside ouro-lib: add ouro-lib ouro-lib-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.
 - `button-tests`: Optional: the Vitest browser tests, type tests, stories and Playwright spec for button, with the test tooling as devDependencies. Add it beside button: add button button-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.
 - `text-tests`: Optional: the Vitest browser tests, type tests, stories and Playwright spec for text, with the test tooling as devDependencies. Add it beside text: add text text-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.
@@ -96,6 +102,12 @@ npx shadcn@latest add ourostack/ouro-ui/dialog#v0.5.0     # install it
 - `aspect-ratio-tests`: Optional: the Vitest browser tests, type tests, stories and Playwright spec for aspect-ratio, with the test tooling as devDependencies. Add it beside aspect-ratio: add aspect-ratio aspect-ratio-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.
 - `stack-tests`: Optional: the Vitest browser tests, type tests, stories and Playwright spec for stack, with the test tooling as devDependencies. Add it beside stack: add stack stack-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.
 - `row-tests`: Optional: the Vitest browser tests, type tests, stories and Playwright spec for row, with the test tooling as devDependencies. Add it beside row: add row row-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.
+- `toggle-tests`: Optional: the Vitest browser tests, type tests, stories and Playwright spec for toggle, with the test tooling as devDependencies. Add it beside toggle: add toggle toggle-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.
+- `toggle-group-tests`: Optional: the Vitest browser tests, type tests, stories and Playwright spec for toggle-group, with the test tooling as devDependencies. Add it beside toggle-group: add toggle-group toggle-group-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.
+- `button-group-tests`: Optional: the Vitest browser tests, type tests, stories and Playwright spec for button-group, with the test tooling as devDependencies. Add it beside button-group: add button-group button-group-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.
+- `otp-field-tests`: Optional: the Vitest browser tests, type tests, stories and Playwright spec for otp-field, with the test tooling as devDependencies. Add it beside otp-field: add otp-field otp-field-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.
+- `file-field-tests`: Optional: the Vitest browser tests, type tests, stories and Playwright spec for file-field, with the test tooling as devDependencies. Add it beside file-field: add file-field file-field-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.
+- `color-field-tests`: Optional: the Vitest browser tests, type tests, stories and Playwright spec for color-field, with the test tooling as devDependencies. Add it beside color-field: add color-field color-field-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.
 - `ouro-tests`: Optional: every Ouro UI component with its tests, type tests, stories and Playwright spec, and the test kit. The whole suite in one command. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.
 
 ## Docs

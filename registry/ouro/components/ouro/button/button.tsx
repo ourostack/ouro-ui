@@ -380,6 +380,7 @@ export function Button(props: ButtonProps): JSX.Element {
         onAuxClick={loading ? preventDefault : anchorProps.onAuxClick}
         className={classes}
         data-ouro="button"
+        data-variant={variant}
         data-loading={loading ? "" : undefined}
         data-disabled={loading ? "" : undefined}
         aria-busy={loading || undefined}
@@ -402,6 +403,7 @@ export function Button(props: ButtonProps): JSX.Element {
       focusableWhenDisabled={Boolean(loading && !disabled)}
       className={classes}
       data-ouro="button"
+      data-variant={variant}
       data-loading={loading ? "" : undefined}
       aria-busy={loading || undefined}
     >
