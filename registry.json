@@ -227,6 +227,11 @@
           "target": "@lib/ouro/router-link.ts"
         },
         {
+          "path": "registry/ouro/lib/ouro/stretched-link.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/stretched-link.ts"
+        },
+        {
           "path": "registry/ouro/lib/ouro/toast.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/toast.ts"
@@ -1253,6 +1258,53 @@
           "path": "registry/ouro/components/ouro/stack/row.tsx",
           "type": "registry:ui",
           "target": "@components/ouro/stack/row.tsx"
+        }
+      ]
+    },
+    {
+      "name": "table",
+      "type": "registry:ui",
+      "title": "Table",
+      "description": "A data table: a caption, column headers, and rows, from `columns` and `rows` or from parts.",
+      "docs": "A data table: a caption, column headers, and rows, from `columns` and `rows` or from parts. Import: import { Table } from \"@/components/ouro/table/table\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib, scroll-area. Docs: https://ourostack.github.io/ouro-ui/docs/table.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib",
+        "ourostack/ouro-ui/scroll-area"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/table/table-parts.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/table/table-parts.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/table/table-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/table/table-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/table/table.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/table/table.tsx"
+        }
+      ]
+    },
+    {
+      "name": "description-list",
+      "type": "registry:ui",
+      "title": "DescriptionList",
+      "description": "One thing's details as pairs of a term and its value: a recipe's prep time and servings, an order's date and total, an account's email.",
+      "docs": "One thing's details as pairs of a term and its value: a recipe's prep time and servings, an order's date and total, an account's email. Import: import { DescriptionList } from \"@/components/ouro/description-list/description-list\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/description-list.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/description-list/description-list.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/description-list/description-list.tsx"
         }
       ]
     },
@@ -3281,6 +3333,100 @@
       ]
     },
     {
+      "name": "table-tests",
+      "type": "registry:item",
+      "title": "Table tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for table, with the test tooling as devDependencies. Add it beside table: add table table-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "table's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/table.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/badge",
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/item",
+        "ourostack/ouro-ui/ouro-lib",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/table"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/table/table.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/table/table.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/table/table.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/table/table.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/table/table.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/table/table.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/table/table.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/table/table.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/table.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/table.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "description-list-tests",
+      "type": "registry:item",
+      "title": "DescriptionList tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for description-list, with the test tooling as devDependencies. Add it beside description-list: add description-list description-list-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "description-list's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/description-list.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/badge",
+        "ourostack/ouro-ui/description-list",
+        "ourostack/ouro-ui/link",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/description-list/description-list.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/description-list/description-list.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/description-list/description-list.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/description-list/description-list.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/description-list/description-list.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/description-list/description-list.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/description-list/description-list.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/description-list/description-list.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/description-list.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/description-list.spec.ts"
+        }
+      ]
+    },
+    {
       "name": "toggle-tests",
       "type": "registry:item",
       "title": "Toggle tests",
@@ -3734,6 +3880,7 @@
         "ourostack/ouro-ui/color-field-tests",
         "ourostack/ouro-ui/confirm-dialog-tests",
         "ourostack/ouro-ui/date-picker-tests",
+        "ourostack/ouro-ui/description-list-tests",
         "ourostack/ouro-ui/dialog-tests",
         "ourostack/ouro-ui/edit-sheet-tests",
         "ourostack/ouro-ui/empty-tests",
@@ -3763,6 +3910,7 @@
         "ourostack/ouro-ui/skeleton-tests",
         "ourostack/ouro-ui/spinner-tests",
         "ourostack/ouro-ui/stack-tests",
+        "ourostack/ouro-ui/table-tests",
         "ourostack/ouro-ui/tabs-tests",
         "ourostack/ouro-ui/text-area-tests",
         "ourostack/ouro-ui/text-field-tests",

@@ -223,6 +223,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **Badge** — A short label for a status, category or count: "Draft", "Vegan", "3". [Docs](docs/Badge.md)
 - **Card** — A surface that groups one thing's content: a media slot across the top, a title with a description and an action, a body, and a footer. [Docs](docs/Card.md)
 - **Carousel** — A row of slides the user swipes or steps through with Previous and Next buttons: recipe photos, a few featured cards. [Docs](docs/Carousel.md)
+- **DescriptionList** — One thing's details as pairs of a term and its value: a recipe's prep time and servings, an order's date and total, an account's email. [Docs](docs/DescriptionList.md)
 - **Empty** — What a list, search or page shows when it has nothing in it: an icon, a title that says what is empty, a sentence on what to do, and the action that does it. [Docs](docs/Empty.md)
 - **Separator** — A thin line in the theme's border color between groups of content, horizontal or vertical. [Docs](docs/Separator.md)
 - **Skeleton** — A shimmering placeholder in the shape of content that is still loading. [Docs](docs/Skeleton.md)
@@ -251,13 +252,17 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **SegmentedControl** — An iOS-style segmented control: a row of equal segments with a raised thumb that slides to the checked one, for switching how one view shows its content in place, such as list or grid. [Docs](docs/SegmentedControl.md)
 - **Tabs** — Tabs that switch between panels in place: an accessible tab list with roving focus, arrow-key navigation, a line that slides to the selected tab with the theme spring, and 44px tabs on touch screens. [Docs](docs/Tabs.md)
 
+### Data
+
+- **Table** — A data table: a caption, column headers, and rows, from `columns` and `rows` or from parts. [Docs](docs/Table.md)
+
 ### App setup
 
 - **OuroProvider** — Optional app-level provider that routes internal `href`s through your router's link and groups tooltips: once one `Tooltip` shows, its neighbours open instantly instead of each waiting its own delay. [Docs](docs/OuroProvider.md)
 
 ### Parts
 
-- **Parts** — building blocks for Dialog, Field, Popover, Select, Sheet and Tabs, only for layouts the props cannot express. [Docs](docs/parts.md)
+- **Parts** — building blocks for Dialog, Field, Popover, Select, Sheet, Table and Tabs, only for layouts the props cannot express. [Docs](docs/parts.md)
 <!-- catalog:end -->
 
 ## Theme
