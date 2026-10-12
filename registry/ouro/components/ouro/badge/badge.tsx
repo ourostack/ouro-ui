@@ -1,7 +1,7 @@
 "use client";
 
 import { Button as BaseButton } from "@base-ui/react/button";
-import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ComponentType, HTMLAttributes, JSX, ReactNode, Ref, SVGProps } from "react";
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ComponentType, JSX, HTMLAttributes, MouseEventHandler, ReactNode, Ref, SVGProps } from "react";
 import { fontFor, radiusFor, toneFor } from "@/registry/ouro/lib/ouro/appearance-hints";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
@@ -41,6 +41,12 @@ export interface BadgeBaseProps {
     | "outline"
     | (string & { 'From shadcn? secondary and destructive are tones; default is tone="primary"; ghost is "soft"': never })
     | undefined;
+  /**
+   * Runs when the badge is pressed. Without `href` it makes the badge a `<button>`
+   * (pass `aria-pressed` too when it toggles a filter); with `href` it runs before the
+   * link navigates.
+   */
+  onClick?: MouseEventHandler<HTMLElement> | undefined;
   /** Icon before the label. Pass the component, not an element: `icon={CheckIcon}`. */
   icon?: BadgeIcon | undefined;
   /** The label: a word or two, or a count. */
@@ -54,46 +60,44 @@ export interface BadgeBaseProps {
   asChild?: { 'Use <Badge href="/path">': never };
 }
 
+/** The props only a link Badge takes: `href` and the anchor's own attributes (`target`, `rel`, `download`). */
+export type BadgeLinkModeProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, keyof HTMLAttributes<HTMLAnchorElement> | "type"> & {
+  /**
+   * Where the link goes. Internal paths render through `OuroProvider`'s
+   * `linkComponent` (your router's link); absolute URLs render as a plain `<a>`, and
+   * with `target="_blank"` always get `rel="noopener noreferrer"`.
+   */
+  href: string;
+  /** Links have no `type`. Remove `href` and pass `onClick` for a button. */
+  type?: never;
+  /** A link cannot be disabled. Remove `href` and pass `onClick` for a button. */
+  disabled?: never;
+  ref?: Ref<HTMLAnchorElement> | undefined;
+};
+
+/** The props only a Badge without `href` takes: the button's own attributes (`type`, `disabled`). */
+export type BadgeButtonModeProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, keyof HTMLAttributes<HTMLButtonElement> | "type"> & {
+  /** Not set: a static badge or, with `onClick`, a button. Pass `href` for a link. */
+  href?: never;
+  /** With `onClick`, the button's role in a form. @default "button" */
+  type?: "button" | "submit" | "reset" | undefined;
+  ref?: Ref<HTMLButtonElement & HTMLSpanElement> | undefined;
+};
+
+/** The HTML attributes every kind of Badge passes through, outside the mode union so the editor keeps their hover docs. */
+type BadgeCommonProps = Omit<HTMLAttributes<HTMLElement>, keyof BadgeBaseProps> & BadgeBaseProps;
+
 /** A Badge with `href`: a link that looks like a badge, such as a tag that opens its list. */
-export type BadgeLinkProps = BadgeBaseProps &
-  Omit<AnchorHTMLAttributes<HTMLAnchorElement>, keyof BadgeBaseProps | "type"> & {
-    /**
-     * Where the link goes. Internal paths render through `OuroProvider`'s
-     * `linkComponent` (your router's link); absolute URLs render as a plain `<a>`, and
-     * with `target="_blank"` always get `rel="noopener noreferrer"`.
-     */
-    href: string;
-    /** Links have no `type`. Remove `href` and pass `onClick` for a button. */
-    type?: never;
-    /** A link cannot be disabled. Remove `href` and pass `onClick` for a button. */
-    disabled?: never;
-    ref?: Ref<HTMLAnchorElement> | undefined;
-  };
+export type BadgeLinkProps = BadgeCommonProps & BadgeLinkModeProps;
 
-/** A Badge with `onClick`: a `<button>`, such as a filter chip. Pass `aria-pressed` for a toggle. */
-export type BadgeButtonProps = BadgeBaseProps &
-  Omit<ButtonHTMLAttributes<HTMLButtonElement>, keyof BadgeBaseProps | "type" | "onClick"> & {
-    /** Makes the badge a button. Pass `aria-pressed` too when it toggles a filter. */
-    onClick: NonNullable<ButtonHTMLAttributes<HTMLButtonElement>["onClick"]>;
-    /** Not set: a button badge. Pass `href` instead of `onClick` for a link. */
-    href?: never;
-    /** The button's role in a form. @default "button" */
-    type?: "button" | "submit" | "reset" | undefined;
-    ref?: Ref<HTMLButtonElement> | undefined;
-  };
-
-/** A Badge with neither `href` nor `onClick`: a static `<span>` label. */
-export type BadgeStaticProps = BadgeBaseProps &
-  Omit<HTMLAttributes<HTMLSpanElement>, keyof BadgeBaseProps | "onClick"> & {
-    /** Not set: a static badge. Pass `href` for a link. */
-    href?: never;
-    /** Not set: a static badge. Pass `onClick` for a button. */
-    onClick?: never;
-    ref?: Ref<HTMLSpanElement> | undefined;
-  };
+/**
+ * A Badge without `href`: a `<button>` when it has `onClick`, such as a filter chip (pass
+ * `aria-pressed` for a toggle), and otherwise a static `<span>` label.
+ */
+export type BadgeButtonProps = BadgeCommonProps & BadgeButtonModeProps;
 
 /** Props for {@link Badge}: `href` makes it a link, `onClick` a button, and neither a `<span>`. */
-export type BadgeProps = BadgeLinkProps | BadgeButtonProps | BadgeStaticProps;
+export type BadgeProps = BadgeCommonProps & (BadgeLinkModeProps | BadgeButtonModeProps);
 
 // Class strings are literal so the app's Tailwind finds them when it compiles.
 const base =
@@ -176,6 +180,7 @@ export function Badge(props: BadgeProps): JSX.Element {
     tone: toneProp = "secondary",
     variant: variantProp = "solid",
     icon: Icon,
+    onClick,
     children,
     className,
     // Guard props (hint types), dropped here so they never reach the DOM.
@@ -222,23 +227,23 @@ export function Badge(props: BadgeProps): JSX.Element {
   if (rest.href !== undefined) {
     const { type: _type, disabled: _disabled, ...anchorProps } = rest as Omit<BadgeLinkProps, keyof BadgeBaseProps>;
     return (
-      <RouterLink {...anchorProps} data-ouro="badge" className={cn(base, interactive, look, className)}>
+      <RouterLink {...anchorProps} onClick={onClick} data-ouro="badge" className={cn(base, interactive, look, className)}>
         <TouchTarget />
         {content}
       </RouterLink>
     );
   }
-  if (rest.onClick !== undefined) {
-    const { ref, type = "button", ...buttonProps } = rest as Omit<BadgeButtonProps, keyof BadgeBaseProps>;
+  const { ref, type = "button", disabled, ...buttonProps } = rest as Omit<BadgeButtonProps, keyof BadgeBaseProps>;
+  if (onClick !== undefined) {
     return (
-      <BaseButton {...buttonProps} ref={ref as Ref<HTMLElement> | undefined} type={type} data-ouro="badge" className={cn(base, interactive, look, className)}>
+      <BaseButton {...buttonProps} onClick={onClick} disabled={disabled} ref={ref as Ref<HTMLElement> | undefined} type={type} data-ouro="badge" className={cn(base, interactive, look, className)}>
         <TouchTarget />
         {content}
       </BaseButton>
     );
   }
   return (
-    <span {...(rest as Omit<BadgeStaticProps, keyof BadgeBaseProps>)} data-ouro="badge" className={cn(base, look, className)}>
+    <span {...(buttonProps as HTMLAttributes<HTMLSpanElement>)} ref={ref} data-ouro="badge" className={cn(base, look, className)}>
       {content}
     </span>
   );

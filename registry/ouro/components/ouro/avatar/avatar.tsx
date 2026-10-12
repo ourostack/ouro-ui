@@ -115,7 +115,7 @@ function avatarHint(token: string): string {
  * required: screen readers hear it, and the initials come from it. Built on Base UI's
  * Avatar, so server HTML holds the initials and the picture fades in once it loads.
  *
- * Use `AvatarGroup` to stack several, and `Badge` for a status label that isn't a person.
+ * Use `AvatarGroup` instead to stack several, and `Badge` for a status label that isn't a person.
  *
  * @group Display
  * @see https://ourostack.github.io/ouro-ui/docs/avatar
