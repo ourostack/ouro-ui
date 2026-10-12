@@ -1,4 +1,4 @@
-import { forwardRef, useState, type ComponentPropsWithRef, type FormEvent, type ReactNode } from "react";
+import { createContext, forwardRef, useState, type ComponentPropsWithRef, type FormEvent, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -453,56 +453,105 @@ describe("Form-level messages (review fix round 1, finding 3)", () => {
   });
 });
 
-describe("Form-level messages before hydration (review fix rounds 2 and 3)", () => {
-  const errors = { emial: "Typo key.", email: "Taken.", form: "The server is down." };
-  const alertOf = (html: string) => {
-    const doc = new DOMParser().parseFromString(html, "text/html");
-    const form = doc.querySelector("form")!;
-    expect(form.firstElementChild!.getAttribute("role")).toBe("alert");
-    return [...form.firstElementChild!.querySelectorAll("p")].map((p) => p.textContent);
-  };
-
-  it("puts keys no field claims in the server HTML when the fields are written in the form", () => {
-    const html = renderToString(
-      <Form errors={errors}>
-        <div>
-          <TextField label="Email" name="email" />
-        </div>
-        <TextField label="Name" name="name" />
-      </Form>,
+describe("Form-level messages before and after hydration (review fix round 4)", () => {
+  // The server and the first client render show only the `form` key at the top; keys no
+  // mounted field claims join it after hydration. So nothing shows twice, and the alert
+  // never claims a message that a field renders.
+  const Ctx = createContext(0);
+  function Section({ children }: { children: ReactNode }) {
+    return (
+      <div>
+        <TextField label="Email" name="email" />
+        {children}
+      </div>
     );
-    expect(alertOf(html)).toEqual(["The server is down.", "Typo key."]);
-  });
-
-  function Wrapped() {
-    return <TextField label="Email" name="email" />;
   }
-  const wrappedPage = (
-    <Form errors={errors}>
-      <Wrapped />
-      <TextField label="Name" name="name" />
-    </Form>
-  );
+  function AddressFields({ name }: { name: string }) {
+    return <TextField label="Street" name={`${name}.street`} />;
+  }
+  /** A panel that is closed, so its children are written but not rendered. */
+  function Closed({ children }: { children: ReactNode }) {
+    const open = false;
+    return open ? children : null;
+  }
+  const shapes: [string, FormErrors, ReactNode, string[]][] = [
+    [
+      "S1 a component with children that renders its own field",
+      { email: "Email err", form: "Top" },
+      <Section key="s1">
+        <TextField label="Name" name="name" />
+      </Section>,
+      [],
+    ],
+    [
+      "S2 a function child",
+      { email: "Email err", form: "Top" },
+      <Ctx.Consumer key="s2">{() => <TextField label="Email" name="email" />}</Ctx.Consumer>,
+      [],
+    ],
+    ["S3 a component with a name that renders other fields", { "ship.street": "Street err", form: "Top" }, <AddressFields key="s3" name="ship" />, []],
+    [
+      "S4 a field written but not rendered",
+      { x: "X err", form: "Top" },
+      <Closed key="s4">
+        <TextField label="X" name="x" />
+      </Closed>,
+      ["X err"],
+    ],
+    [
+      "S5 a childless component next to the fields, with a typo key",
+      { emial: "Typo err", form: "Top" },
+      <div key="s5">
+        <TextField label="Email" name="email" />
+        <hr />
+      </div>,
+      ["Typo err"],
+    ],
+    [
+      "S6 a named element that is not a field",
+      { intent: "Bad intent", form: "Top" },
+      <button key="s6" type="submit" name="intent" value="save">
+        Save
+      </button>,
+      ["Bad intent"],
+    ],
+  ];
+  const count = (text: string, message: string) => text.split(message).length - 1;
 
-  it("shows only the form key on the server when a component may hide a field, so no error shows twice", () => {
-    expect(alertOf(renderToString(wrappedPage))).toEqual(["The server is down."]);
-  });
+  describe.each(shapes)("%s", (_name, errors, children, unclaimed) => {
+    const node = <Form errors={errors}>{children}</Form>;
+    const fieldMessages = Object.entries(errors)
+      .filter(([key]) => key !== "form")
+      .map(([, message]) => message as string)
+      .filter((message) => !unclaimed.includes(message));
 
-  it("hydrates that HTML with no mismatch, then shows the unclaimed key", async () => {
-    const host = document.createElement("div");
-    host.innerHTML = renderToString(wrappedPage);
-    document.body.append(host);
-    mounted.push(host);
-    const error = vi.spyOn(console, "error").mockImplementation(() => {});
-    const recoverable = vi.fn();
-    let root!: Root;
-    await act(async () => {
-      root = hydrateRoot(host, wrappedPage, { onRecoverableError: recoverable });
+    it("shows only the form key at the top of the server HTML, and nothing twice", () => {
+      const doc = new DOMParser().parseFromString(renderToString(node), "text/html");
+      const alert = doc.querySelector("form")!.firstElementChild!;
+      expect(alert.getAttribute("role")).toBe("alert");
+      expect([...alert.querySelectorAll("p")].map((p) => p.textContent)).toEqual(["Top"]);
+      for (const message of Object.values(errors) as string[]) expect(count(doc.body.textContent!, message)).toBeLessThanOrEqual(1);
+      for (const message of fieldMessages) expect(count(doc.body.textContent!, message)).toBe(1);
     });
-    roots.push(root);
-    expect(recoverable).not.toHaveBeenCalled();
-    expect(error).not.toHaveBeenCalled();
-    await expect.poll(() => host.querySelector('[role="alert"]')!.textContent).toBe("The server is down.Typo key.");
+
+    it("hydrates with no mismatch, then shows every error exactly once", async () => {
+      const host = document.createElement("div");
+      host.innerHTML = renderToString(node);
+      document.body.append(host);
+      mounted.push(host);
+      const error = vi.spyOn(console, "error").mockImplementation(() => {});
+      const recoverable = vi.fn();
+      let root!: Root;
+      await act(async () => {
+        root = hydrateRoot(host, node, { onRecoverableError: recoverable });
+      });
+      roots.push(root);
+      expect(recoverable).not.toHaveBeenCalled();
+      expect(error).not.toHaveBeenCalled();
+      const alert = host.querySelector('[role="alert"]')!;
+      await expect.poll(() => [...alert.querySelectorAll("p")].map((p) => p.textContent)).toEqual(["Top", ...unclaimed]);
+      for (const message of Object.values(errors) as string[]) expect(count(host.textContent!, message)).toBe(1);
+    });
   });
 });
 

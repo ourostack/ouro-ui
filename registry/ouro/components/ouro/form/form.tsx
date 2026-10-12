@@ -1,7 +1,7 @@
 "use client";
 
 import { Form as BaseForm } from "@base-ui/react/form";
-import { isValidElement, useCallback, useEffect, useMemo, useRef, useState, type JSX, type ReactNode, type Ref } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type JSX, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
@@ -17,8 +17,9 @@ export type FormProps = Omit<BaseForm.Props, "className" | "errors" | "children"
    * Each one shows on the field with that `name`, which gets `aria-invalid` and links the
    * message, in the server HTML too. A field's own `error` prop wins over it, and a message
    * goes away once the user changes that field. When new errors arrive, focus moves to the
-   * first field with one, in page order. The `form` key, and any key no field is named,
-   * shows in an alert at the top of the form instead.
+   * first field with one, in page order. The `form` key shows in an alert at the top of
+   * the form, in the server HTML too; a key no rendered field is named joins it once the
+   * page hydrates.
    *
    * These errors only show: they never block the next submit, so the user can always send
    * the form again (a server error may be fixed by changing another field, or by trying
@@ -115,9 +116,9 @@ export function Form(props: FormProps): JSX.Element {
   }, []);
 
   // The names of the fields in the form, which claim their errors. Fields register once
-  // mounted. Before that (on the server and in hydration) the message reads the names
-  // written in the element tree; when a component may hide a field, only the `form` key
-  // shows, so no field's error appears twice.
+  // mounted, so the server and the first client render show only the `form` key at the
+  // top; keys no field claims (a typo, a field that is not rendered) join it after
+  // hydration. A message never shows twice.
   const names = useRef(new Map<string, number>());
   const [claims, setClaims] = useState<{ ready: boolean; names: string[] }>({ ready: false, names: [] });
   const sync = useCallback(() => setClaims({ ready: true, names: [...names.current.keys()] }), []);
@@ -136,9 +137,7 @@ export function Form(props: FormProps): JSX.Element {
   );
   useEffect(sync, [sync]);
   const value = useMemo(() => ({ errors: errors ?? EMPTY, clear, register }), [errors, clear, register]);
-  const written = claims.ready ? undefined : namesIn(children);
-  const showsAtTop = (key: string) =>
-    key === FORM_KEY || (written ? !written.hidden && !written.names.has(key) : !claims.names.includes(key));
+  const showsAtTop = (key: string) => key === FORM_KEY || (claims.ready && !claims.names.includes(key));
 
   useDevWarnings(
     "Form",
@@ -216,20 +215,4 @@ function FormMessage({
       ))}
     </div>
   );
-}
-
-/**
- * The field names written in an element tree (any element with a string `name`), and
- * whether a component without children may render fields the tree does not show.
- */
-function namesIn(node: ReactNode, found = { names: new Set<string>(), hidden: false }): { names: Set<string>; hidden: boolean } {
-  if (Array.isArray(node)) {
-    for (const child of node) namesIn(child, found);
-  } else if (isValidElement<{ name?: unknown; children?: ReactNode }>(node)) {
-    const { name, children } = node.props;
-    if (typeof name === "string") found.names.add(name);
-    if (children !== undefined) namesIn(children, found);
-    else if (typeof node.type !== "string" && typeof name !== "string") found.hidden = true;
-  }
-  return found;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, type JSX, type MouseEvent, type ReactElement, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type JSX, type MouseEvent, type ReactElement, type ReactNode } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
 import { checkOpenMode } from "@/registry/ouro/lib/ouro/open-mode";
@@ -214,31 +214,28 @@ export function EditSheet(props: EditSheetProps): JSX.Element {
   const [confirming, setConfirming] = useState(false);
   // Each opening starts clean, however it opened (the app may set `open` itself).
   const [wasShown, setWasShown] = useState(shown);
+  // Each opening gets a fresh form: Base UI keeps the old one mounted through the close
+  // animation, and a reopen inside it would otherwise keep an edit the user discarded.
+  const [opening, setOpening] = useState(0);
   if (shown !== wasShown) {
     setWasShown(shown);
+    if (shown) setOpening(opening + 1);
     setErrors(undefined);
     setPending(false);
     setConfirming(false);
   }
   // The fields as the sheet opened, to tell whether the user changed any (a Select's value
-  // is in its hidden input, so every control counts). Taken once per opening, when the sheet
-  // opens or the form first mounts, so a render after an edit (a controlled field, a save that failed) keeps
-  // the opening's values; a resize that swaps the dialog for the sheet mounts a new form
-  // without retaking it. Closing clears it for the next opening.
+  // is in its hidden input, so every control counts). Taken once per opening, when that
+  // opening's form first mounts, so a render after an edit (a controlled field, a save that
+  // failed) keeps the opening's values; a resize that swaps the dialog for the sheet mounts
+  // a new form without retaking it. Closing clears it for the next opening.
   const initial = useRef<string | undefined>(undefined);
   const formRef = useCallback((form: HTMLFormElement | null) => {
     if (form && initial.current === undefined) initial.current = serialize(form);
   }, []);
-  // Opening takes it from a form that is still mounted, as when the sheet reopens before its
-  // close animation ends; a form that mounts later takes it in `formRef`.
-  useLayoutEffect(() => {
-    if (!shown) {
-      initial.current = undefined;
-      return;
-    }
-    const form = document.getElementById(formId) as HTMLFormElement | null;
-    if (form && initial.current === undefined) initial.current = serialize(form);
-  }, [shown, formId]);
+  useEffect(() => {
+    if (!shown) initial.current = undefined;
+  }, [shown]);
   const edited = () => {
     const form = document.getElementById(formId) as HTMLFormElement | null;
     return form !== null && serialize(form) !== initial.current;
@@ -359,7 +356,7 @@ export function EditSheet(props: EditSheetProps): JSX.Element {
         )
       }
     >
-      <Form ref={formRef} id={formId} errors={errors} onSubmit={submit}>
+      <Form key={opening} ref={formRef} id={formId} errors={errors} onSubmit={submit}>
         {children}
       </Form>
     </DialogFrame>

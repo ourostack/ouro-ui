@@ -597,14 +597,31 @@ describe("EditSheet's discard guard keeps the opening's values (review fix round
     await userEvent.click(trigger());
     await settled();
     const firstForm = popup()!.querySelector("form");
-    // Cancel, then reopen at once: Base UI keeps the same form mounted through the exit.
+    // Cancel, then reopen at once: Base UI keeps the popup mounted through the exit, and the
+    // new opening gets a fresh form inside it.
     await act(async () => (dialogButton("Cancel").element() as HTMLButtonElement).click());
     await act(async () => trigger().click());
     await settled();
-    expect(popup()!.querySelector("form")).toBe(firstForm);
+    expect(popup()!.querySelector("form")).not.toBe(firstForm);
     await userEvent.click(dialogButton("Cancel"));
     await expect.poll(() => popup()).toBeNull();
     expect(confirmRow()).toBeNull();
+  });
+
+  it("drops a discarded edit when reopened before the close animation ends (round 4)", async () => {
+    const onSubmit = vi.fn();
+    await render(uncontrolled(onSubmit));
+    await userEvent.click(trigger());
+    await settled();
+    await userEvent.fill(nameBox(), "Stew");
+    await userEvent.click(dialogButton("Cancel"));
+    await expect.poll(confirmRow).not.toBeNull();
+    await act(async () => (dialogButton("Discard").element() as HTMLButtonElement).click());
+    await act(async () => trigger().click());
+    await settled();
+    expect(field("name").value).toBe("Soup");
+    await userEvent.click(dialogButton("Save"));
+    expect((onSubmit.mock.calls[0]![0] as FormData).get("name")).toBe("Soup");
   });
 
   it("keeps the opening's values when a resize swaps the dialog for the sheet", async () => {
