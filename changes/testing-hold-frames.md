@@ -1,0 +1,1 @@
+- The `ouro-testing` kit adds `holdFrames()` (testing/frames.ts), which holds `requestAnimationFrame` and `performance.now()` still so a test decides when a frame runs: `step(ms)`, `until(done)` and `release()`. Use it to look at a spring mid-flight, or to catch it with a pointer, without depending on how fast the machine is.

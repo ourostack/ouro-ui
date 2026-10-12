@@ -1,3 +1,6 @@
+export { nearest, project, rubberband, spring, springAt };
+export type { SpringHandle, SpringOptions, SpringState };
+
 // A spring and the gesture math that goes with it, for anything a finger moves. No
 // animation library: the spring is a formula, solved exactly for each frame, so it does
 // not depend on the frame rate. Positions are in px, velocities in px per millisecond
@@ -11,7 +14,7 @@
 //      A new drag calls `stop()` and carries on from the value it returns.
 
 /** What `spring` takes. */
-export interface SpringOptions {
+interface SpringOptions {
   /** The live value to start from: read it from the element, never from the logical target. */
   from: number;
   /** The value to settle on. */
@@ -38,13 +41,13 @@ export interface SpringOptions {
 }
 
 /** Where a spring is and how fast it is moving, in px and px/ms. */
-export interface SpringState {
+interface SpringState {
   value: number;
   velocity: number;
 }
 
 /** A spring started by `spring`. */
-export interface SpringHandle {
+interface SpringHandle {
   /** Stops at once and returns where the spring was, for a new drag or a new spring to start from. */
   stop(): SpringState;
   /** Moves the target and keeps the current value and velocity. */
@@ -61,7 +64,7 @@ const REST_VELOCITY = 0.01;
  * Where a spring that left `from` toward `to` at `velocity` (px/ms) is after `elapsed`
  * milliseconds. It is the exact solution, so any moment can be asked for in any order.
  */
-export function springAt(
+function springAt(
   from: number,
   to: number,
   velocity: number,
@@ -93,7 +96,7 @@ export function springAt(
  * with the velocity it is handed. With `prefers-reduced-motion: reduce` it jumps to `to`
  * and rests, before it returns.
  */
-export function spring({ from, to, velocity = 0, damping, response, onUpdate, onRest }: SpringOptions): SpringHandle {
+function spring({ from, to, velocity = 0, damping, response, onUpdate, onRest }: SpringOptions): SpringHandle {
   let start = performance.now();
   let frame = 0;
   let running = false;
@@ -144,7 +147,7 @@ export function spring({ from, to, velocity = 0, damping, response, onUpdate, on
  * Where a flick released at `position` with `velocity` (px/ms) would come to rest, as
  * scrolling does: `position + velocity * d / (1 - d)`. Snap to the place `nearest` it.
  */
-export function project(position: number, velocity: number, deceleration = 0.998): number {
+function project(position: number, velocity: number, deceleration = 0.998): number {
   return position + (velocity * deceleration) / (1 - deceleration);
 }
 
@@ -154,11 +157,11 @@ export function project(position: number, velocity: number, deceleration = 0.998
  * `(over * dimension * c) / (dimension + c * |over|)`, where `dimension` is the size of
  * what is dragged along that axis. The sign of `over` is kept.
  */
-export function rubberband(over: number, dimension: number, constant = 0.55): number {
+function rubberband(over: number, dimension: number, constant = 0.55): number {
   return (over * dimension * constant) / (dimension + constant * Math.abs(over));
 }
 
 /** The snap point nearest `value`; the first of two equally near. `value` itself when there are no points. */
-export function nearest(points: readonly number[], value: number): number {
+function nearest(points: readonly number[], value: number): number {
   return points.reduce((best, point) => (Math.abs(point - value) < Math.abs(best - value) ? point : best), points[0] ?? value);
 }

@@ -6,6 +6,7 @@ import { Item } from "@/registry/ouro/components/ouro/item/item";
 import { ItemGroup } from "@/registry/ouro/components/ouro/item/item-group";
 import { SwipeActions } from "@/registry/ouro/components/ouro/swipe-actions/swipe-actions";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { holdFrames } from "@/registry/ouro/lib/ouro/testing/frames";
 import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 
 // Runs in the `touch` project: Chromium as a 390x844 phone with a coarse pointer.
@@ -194,12 +195,17 @@ describe("SwipeActions on a phone", () => {
   it("writes the transform on the row's track and springs to rest without a CSS transition", async () => {
     const { rows } = await renderList();
     const row = rows[1]!;
-    const seen: number[] = [];
-    const watch = new MutationObserver(() => seen.push(offset(row)));
-    watch.observe(track(row), { attributes: true, attributeFilter: ["style"] });
-    cleanups.push(() => watch.disconnect());
+    // The spring's frames are the test's to step, so it is seen at every one of them on any machine.
+    const frames = holdFrames();
+    cleanups.push(() => frames.release());
     await swipe(row, -100);
     await expect.poll(() => row.getAttribute("data-open")).toBe("trailing");
+    const seen = [offset(row)];
+    while (row.hasAttribute("data-ouro-settling")) {
+      frames.step(16);
+      seen.push(offset(row));
+    }
+    frames.release();
     const open = await settled(row);
     expect(open).toBe(-stripWidth(row, "trailing"));
     expect(track(row).style.transform).toMatch(/^translateX\(-[\d.]+px\)$/);
@@ -216,8 +222,14 @@ describe("SwipeActions on a phone", () => {
     const { rows } = await renderList();
     const row = rows[1]!;
     const [x, y] = middle(row);
+    // Frames stand still, so the row is mid-spring for as long as the second touch takes to arrive.
+    const frames = holdFrames();
+    cleanups.push(() => frames.release());
     await swipe(row, -100);
     await expect.poll(() => row.hasAttribute("data-ouro-settling")).toBe(true);
+    for (let step = 0; step < 3; step++) frames.step(16);
+    const flying = offset(row);
+    expect(row.hasAttribute("data-ouro-settling")).toBe(true);
     try {
       // A second swipe begins before the row has come to rest: the row is the finger's from where it was.
       await commands.touchStep({ type: "touchStart", x, y });
@@ -225,9 +237,11 @@ describe("SwipeActions on a phone", () => {
       await expect.poll(() => row.hasAttribute("data-dragging")).toBe(true);
       expect(row.hasAttribute("data-ouro-settling")).toBe(false);
       const held = offset(row);
-      await frame();
-      await frame();
+      // It was taken from where the spring had it, and has moved the finger's 20px from there.
+      expect(Math.abs(held - (flying + 20))).toBeLessThan(0.05);
+      frames.step(32);
       expect(offset(row)).toBe(held);
+      frames.release();
       // And it follows the finger 1:1 from there.
       for (let step = 5; step <= 8; step++) await commands.touchStep({ type: "touchMove", x: x + step * 5, y });
       await expect.poll(() => Math.abs(offset(row) - (held + 20))).toBeLessThan(0.05);

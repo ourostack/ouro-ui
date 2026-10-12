@@ -7,6 +7,7 @@ import { Item } from "@/registry/ouro/components/ouro/item/item";
 import { SwipeActions, type SwipeActionsProps } from "@/registry/ouro/components/ouro/swipe-actions/swipe-actions";
 import { rubberband } from "@/registry/ouro/lib/ouro/spring";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { holdFrames, type HeldFrames } from "@/registry/ouro/lib/ouro/testing/frames";
 
 // Real touch swipes are in swipe-actions.touch.test.tsx. Here the pointer events are
 // dispatched, so the same paths run in Chromium and WebKit, with a pen and a mouse too,
@@ -22,7 +23,12 @@ beforeEach(() => {
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
   error = vi.spyOn(console, "error");
 });
+/** Animation frames, when a test holds them still to look at a spring mid-flight. */
+let frames: HeldFrames | undefined;
+const freeze = () => (frames ??= holdFrames());
 afterEach(async () => {
+  frames?.release();
+  frames = undefined;
   await act(async () => root?.unmount());
   root = undefined;
   for (const node of nodes.splice(0)) node.remove();
@@ -73,7 +79,13 @@ const menuButton = (element: HTMLElement) => element.querySelector<HTMLButtonEle
 /** The offset the component set on the track, in px. */
 const offset = (element: HTMLElement) => hundredths(Number.parseFloat(/translateX\((.+)px\)/.exec(track(element).style.transform)?.[1] ?? "0"));
 /** Waits for the row to come to rest after a release. */
-const rest = (element: HTMLElement) => expect.poll(() => element.hasAttribute("data-ouro-settling")).toBe(false);
+/** Brings every spring to rest: steps the frames a test holds and gives them back, or waits for real ones. */
+const rest = async (element: HTMLElement) => {
+  if (!frames) return expect.poll(() => element.hasAttribute("data-ouro-settling")).toBe(false);
+  frames.until(() => !element.hasAttribute("data-ouro-settling"));
+  frames.release();
+  frames = undefined;
+};
 const width = (element: HTMLElement, side: "leading" | "trailing") => hundredths(strip(element, side)!.getBoundingClientRect().width);
 
 /** The time the next dispatched event carries, in ms. */
@@ -106,6 +118,8 @@ async function swipe(element: HTMLElement, dx: number, { hold = false, flick = f
   }
   if (hold) return;
   wait(flick ? 16 : 300);
+  // The spring runs on frames the test steps, 16ms apart, so it settles the same on any machine.
+  freeze();
   await pointer(window, "pointerup", 200 + dx, 20, init);
   await rest(element);
 }
@@ -313,24 +327,36 @@ describe("SwipeActions", () => {
   it("springs to rest from where the finger left it, past the target after a flick and never after a slow release", async () => {
     const element = await render(row());
     const open = -width(element, "trailing");
-    const seen: number[] = [];
-    const watch = new MutationObserver(() => seen.push(offset(element)));
-    watch.observe(track(element), { attributes: true, attributeFilter: ["style"] });
-    await swipe(element, -100, { flick: true });
+    /** Lets go at `x` after `ms` and returns where the row is at each 16ms frame until it rests. */
+    const settle = async (x: number, ms: number) => {
+      wait(ms);
+      freeze();
+      await pointer(window, "pointerup", x, 20);
+      const seen = [offset(element)];
+      while (element.hasAttribute("data-ouro-settling")) {
+        frames!.step(16);
+        seen.push(offset(element));
+      }
+      await rest(element);
+      return seen;
+    };
+    await swipe(element, -100, { hold: true });
+    const flicked = await settle(100, 16);
+    // The spring starts where the finger let go, and its first frame is near there, not a jump to the end.
+    expect(flicked[0]).toBe(-100);
+    expect(Math.abs(flicked[1]! - -100)).toBeLessThan(60);
     // The flick's speed carried on into the spring: it passed the open position and came back to it.
-    expect(Math.min(...seen)).toBeLessThan(open - 1);
-    expect(seen.at(-1)).toBe(open);
-    // The first frame of the spring is near where the finger let go, not a jump to the end.
-    const released = seen.indexOf(-100);
-    expect(Math.abs(seen[released + 1]! - -100)).toBeLessThan(60);
+    expect(Math.min(...flicked)).toBeLessThan(open - 1);
+    expect(flicked.at(-1)).toBe(open);
 
-    seen.length = 0;
-    await swipe(element, 100);
-    watch.disconnect();
-    // A slow release closes without passing closed.
-    expect(Math.max(...seen)).toBeLessThanOrEqual(0);
-    expect(seen.at(-1)).toBe(0);
-    expect(seen.length).toBeGreaterThan(6);
+    await swipe(element, 100, { hold: true });
+    const placed = await settle(300, 300);
+    // A slow release closes without passing closed, one frame closer each time.
+    expect(placed[0]).toBe(hundredths(open + 100));
+    expect(Math.max(...placed)).toBeLessThanOrEqual(0);
+    for (let index = 1; index < placed.length; index++) expect(placed[index]!).toBeGreaterThanOrEqual(placed[index - 1]!);
+    expect(placed.at(-1)).toBe(0);
+    expect(placed.length).toBeGreaterThan(6);
   });
 
   it("can be caught by a new swipe while it springs to rest, and carries on from there", async () => {
@@ -338,10 +364,12 @@ describe("SwipeActions", () => {
     const open = -width(element, "trailing");
     await swipe(element, -120, { hold: true });
     wait(300);
+    freeze();
     await pointer(window, "pointerup", 80, 20);
     expect(element.hasAttribute("data-ouro-settling")).toBe(true);
     expect(getComputedStyle(track(element)).willChange).toBe("transform");
-    await expect.poll(() => offset(element)).toBeLessThan(-121);
+    frames!.until(() => offset(element) < -121);
+    expect(offset(element)).toBeGreaterThan(open);
     // A press alone does not stop it: it may be a tap or the start of a scroll.
     wait(1000);
     await pointer(content(element), "pointerdown", 200, 20);
@@ -354,8 +382,8 @@ describe("SwipeActions", () => {
     const caught = hundredths(offset(element) + 12);
     expect(caught).toBeLessThan(-120);
     expect(caught).toBeGreaterThanOrEqual(open);
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    // Nothing but the finger moves it now, 1:1.
+    frames!.step(32);
+    // Nothing but the finger moves it now, 1:1: no frame does.
     expect(offset(element)).toBe(hundredths(caught - 12));
     wait(16);
     await pointer(window, "pointermove", 180, 20);
@@ -369,7 +397,9 @@ describe("SwipeActions", () => {
     for (const end of ["tap", "scroll"]) {
       await swipe(element, 60, { hold: true });
       wait(300);
+      freeze();
       await pointer(window, "pointerup", 260, 20);
+      frames!.step(16);
       expect(element.hasAttribute("data-ouro-settling")).toBe(true);
       wait(1000);
       await pointer(content(element), "pointerdown", 200, 20);
@@ -403,6 +433,7 @@ describe("SwipeActions", () => {
 
   it("stops moving when it unmounts while it springs to rest", async () => {
     const element = await render(row());
+    freeze();
     const cancelled = vi.spyOn(window, "cancelAnimationFrame");
     await swipe(element, -120, { hold: true });
     wait(300);

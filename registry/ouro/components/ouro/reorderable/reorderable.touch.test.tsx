@@ -4,6 +4,7 @@ import { commands } from "vitest/browser";
 import { Item } from "@/registry/ouro/components/ouro/item/item";
 import { Reorderable } from "@/registry/ouro/components/ouro/reorderable/reorderable";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { holdFrames } from "@/registry/ouro/lib/ouro/testing/frames";
 import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 
 // Runs in the `touch` project: Chromium as a 390x844 phone with a coarse pointer.
@@ -116,21 +117,27 @@ describe("Reorderable on a phone", () => {
     const dragged = rows(list)[0]!;
     const height = dragged.getBoundingClientRect().height;
     const [x, y] = middle(handle(list, "Sear the ribs"));
-    const seen: string[] = [];
+    // The springs' frames are the test's to step, so the row is seen at every one of them on any machine.
+    const frames = holdFrames();
+    cleanups.push(() => frames.release());
     try {
       await commands.touchStep({ type: "touchStart", x, y });
       for (let step = 1; step <= 8; step++) await commands.touchStep({ type: "touchMove", x, y: y + (height * 1.3 * step) / 8 });
       await expect.poll(() => list.hasAttribute("data-dragging")).toBe(true);
-      const watch = new MutationObserver(() => seen.push(dragged.style.transform));
-      watch.observe(dragged, { attributes: true, attributeFilter: ["style"] });
-      cleanups.push(() => watch.disconnect());
     } finally {
       await commands.touchStep({ type: "touchEnd" });
     }
     await expect.poll(() => onReorder.mock.calls.length).toBe(1);
-    await expect.poll(() => list.hasAttribute("data-ouro-settling")).toBe(false);
-    // Several frames on the way to its place, the last exactly on it, with no CSS transition or animation doing it.
-    expect(seen.length).toBeGreaterThan(4);
+    const seen = [dragged.style.transform];
+    while (dragged.hasAttribute("data-ouro-settling")) {
+      frames.step(16);
+      seen.push(dragged.style.transform);
+    }
+    // The rows it passed come to rest too.
+    frames.until(() => !list.hasAttribute("data-ouro-settling"));
+    frames.release();
+    // Many frames on the way to its place, the last exactly on it, with no CSS transition or animation doing it.
+    expect(seen.length).toBeGreaterThan(8);
     expect(seen.at(-1)).toBe("");
     expect(seen.slice(0, -1).every((transform) => /^translateY\(-?[\d.e-]+px\)$/.test(transform))).toBe(true);
     expect(dragged.getAnimations().length).toBe(0);

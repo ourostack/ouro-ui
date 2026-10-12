@@ -7,6 +7,7 @@ import { Reorderable, type ReorderableProps } from "@/registry/ouro/components/o
 import { dropIndex, edgeSpeed, EDGE, MAX_SPEED, moveItem, scrollParent } from "@/registry/ouro/components/ouro/reorderable/reorderable-styles";
 import { rubberband } from "@/registry/ouro/lib/ouro/spring";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { holdFrames, type HeldFrames } from "@/registry/ouro/lib/ouro/testing/frames";
 
 // Touch drags are in reorderable.touch.test.tsx. Here the keyboard runs in Chromium and
 // WebKit, pointer events are dispatched so both run the drag paths, and a real mouse
@@ -24,7 +25,12 @@ beforeEach(() => {
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
   error = vi.spyOn(console, "error");
 });
+/** Animation frames, when a test holds them still to look at a spring mid-flight. */
+let frames: HeldFrames | undefined;
+const freeze = () => (frames ??= holdFrames());
 afterEach(async () => {
+  frames?.release();
+  frames = undefined;
   await commands.pointerPress({ action: "up" });
   await act(async () => root?.unmount());
   root = undefined;
@@ -106,8 +112,13 @@ async function dragBy(name: string, dy: number) {
 
 /** How far a row is from its place, in px, to a hundredth. */
 const shifted = (row: HTMLElement) => Math.round(Number.parseFloat(/translateY\((.+)px\)/.exec(row.style.transform)?.[1] ?? "0") * 100) / 100;
-/** Waits for every row to come to rest after a drop. */
-const rest = (element: HTMLElement) => expect.poll(() => element.hasAttribute("data-ouro-settling")).toBe(false);
+/** Brings every spring to rest: steps the frames a test holds and gives them back, or waits for real ones. */
+const rest = async (element: HTMLElement) => {
+  if (!frames) return expect.poll(() => element.hasAttribute("data-ouro-settling")).toBe(false);
+  frames.until(() => !element.hasAttribute("data-ouro-settling"));
+  frames.release();
+  frames = undefined;
+};
 
 describe("Reorderable", () => {
   it("renders a named list of rows, each with a handle that says how to use it", async () => {
@@ -142,8 +153,17 @@ describe("Reorderable", () => {
       expect(rows(element)[0]!.hasAttribute("data-grabbed")).toBe(true);
       await expect.poll(said).toBe("Sear picked up. Position 1 of 4.");
 
+      // A move from the keyboard does not animate: every row is in its place at once.
+      const still = () => {
+        expect(element.hasAttribute("data-ouro-settling")).toBe(false);
+        for (const row of rows(element)) {
+          expect(row.style.transform).toBe("");
+          expect(row.getAnimations().length).toBe(0);
+        }
+      };
       await press("{ArrowDown}");
       expect(order(element)).toEqual(["Soften", "Sear", "Deglaze", "Braise"]);
+      still();
       // Focus stays on the handle although its row moved in the page.
       expect(document.activeElement).toBe(handle("Sear"));
       expect(handle("Sear").getAttribute("aria-pressed")).toBe("true");
@@ -161,6 +181,7 @@ describe("Reorderable", () => {
       expect(handle("Sear").getAttribute("aria-pressed")).toBe("false");
       expect(rows(element)[1]!.hasAttribute("data-grabbed")).toBe(false);
       await expect.poll(said).toBe("Sear dropped. Position 2 of 4.");
+      still();
       expect(onReorder.mock.calls).toEqual([[["soften", "sear", "deglaze", "braise"], { id: "sear", from: 0, to: 1 }]]);
       expect(document.activeElement).toBe(handle("Sear"));
       // Dropped, the arrows are the page's again.
@@ -338,6 +359,7 @@ describe("Reorderable", () => {
       expect(third.style.transform).toBe("");
       expect(onReorder).not.toHaveBeenCalled();
       wait(300);
+      freeze();
       await pointer(window, "pointerup", x, y + near);
       expect(order(element)).toEqual(["Soften", "Sear", "Deglaze", "Braise"]);
       expect(onReorder.mock.calls).toEqual([[["soften", "sear", "deglaze", "braise"], { id: "sear", from: 0, to: 1 }]]);
@@ -407,6 +429,7 @@ describe("Reorderable", () => {
       const onReorder = vi.fn();
       const element = await render(list({ onReorder }));
       const [x, y] = await dragBy("Sear", 120);
+      freeze();
       await pointer(window, "pointercancel", x, y);
       expect(order(element)).toEqual(names);
       expect(element.hasAttribute("data-dragging")).toBe(false);
@@ -546,25 +569,35 @@ describe("Reorderable", () => {
       const height = rows(element)[0]!.getBoundingClientRect().height;
       const [x, y] = middle(handle("Sear"));
       const dragged = rows(element)[0]!;
-      const seen: number[] = [];
-      const watch = new MutationObserver(() => seen.push(shifted(dragged)));
       wait(1000);
       await pointer(handle("Sear"), "pointerdown", x, y);
       for (let step = 1; step <= 6; step++) {
         wait(16);
         await pointer(window, "pointermove", x, y + (height * 1.8 * step) / 6);
       }
-      watch.observe(dragged, { attributes: true, attributeFilter: ["style"] });
       wait(16);
+      freeze();
       await pointer(window, "pointerup", x, y + height * 1.8);
       // Dropped in the third place, 0.2 of a row short of it, still moving down fast.
       expect(order(element)).toEqual(["Soften", "Deglaze", "Sear", "Braise"]);
+      const passed = rows(element)[1]!;
+      // Where each is at every 16ms frame until all are at rest.
+      const seen = [shifted(dragged)];
+      const others = [shifted(passed)];
+      while (element.hasAttribute("data-ouro-settling")) {
+        frames!.step(16);
+        seen.push(shifted(dragged));
+        others.push(shifted(passed));
+      }
       await rest(element);
-      watch.disconnect();
       expect(seen[0]).toBeCloseTo(-height * 0.2, 1);
       // Its speed carried it past its place before it came back: the flick's little bounce.
       expect(Math.max(...seen)).toBeGreaterThan(0.5);
       expect(seen.at(-1)).toBe(0);
+      // A row it passed starts where it stood, a row lower, and closes in without passing its place.
+      expect(others[0]).toBe(height);
+      expect(Math.min(...others)).toBe(0);
+      for (let index = 1; index < others.length; index++) expect(others[index]!).toBeLessThanOrEqual(others[index - 1]!);
       expect(dragged.style.transform).toBe("");
       // No CSS transition moves any row once the drag is over.
       for (const row of rows(element)) expect(getComputedStyle(row).transitionDuration).toBe("0s");
@@ -576,10 +609,12 @@ describe("Reorderable", () => {
       const height = rows(element)[0]!.getBoundingClientRect().height;
       const dragged = rows(element)[0]!;
       const [x, y] = await dragBy("Sear", height * 1.6);
+      freeze();
       await pointer(window, "pointerup", x, y);
       expect(order(element)).toEqual(["Soften", "Sear", "Deglaze", "Braise"]);
       expect(element.hasAttribute("data-ouro-settling")).toBe(true);
-      await expect.poll(() => shifted(dragged)).toBeLessThan(height * 0.6 - 1);
+      frames!.until(() => shifted(dragged) < height * 0.6 - 1);
+      expect(shifted(dragged)).toBeGreaterThan(0);
       // A press on its handle mid-settle does not stop it; once the press is a drag, the row is caught where it is.
       const [hx, hy] = middle(handle("Sear"));
       wait(1000);
@@ -592,7 +627,8 @@ describe("Reorderable", () => {
       const caught = Math.round((shifted(dragged) - 12) * 100) / 100;
       expect(caught).toBeGreaterThanOrEqual(0);
       expect(caught).toBeLessThan(height * 0.6);
-      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      // No frame moves it now.
+      frames!.step(32);
       expect(shifted(dragged)).toBe(Math.round((caught + 12) * 100) / 100);
       // The drag goes on from there, 1:1 with the pointer.
       wait(16);
@@ -606,7 +642,9 @@ describe("Reorderable", () => {
 
       // A press and release without a drag leaves a settling row on its way.
       const [x2, y2] = await dragBy("Sear", height * 0.8);
+      freeze();
       await pointer(window, "pointerup", x2, y2);
+      frames!.step(16);
       expect(element.hasAttribute("data-ouro-settling")).toBe(true);
       const [hx2, hy2] = middle(handle("Sear"));
       wait(1000);
@@ -623,7 +661,10 @@ describe("Reorderable", () => {
       const element = await render(list({ onReorder }));
       const height = rows(element)[0]!.getBoundingClientRect().height;
       const [x, y] = await dragBy("Sear", height * 1.6);
+      freeze();
       await pointer(window, "pointerup", x, y);
+      frames!.step(16);
+      frames!.step(16);
       expect(element.hasAttribute("data-ouro-settling")).toBe(true);
       // Sear is still on its way to the second place when Braise is dragged up past it.
       const top = element.getBoundingClientRect().top;
@@ -642,6 +683,8 @@ describe("Reorderable", () => {
       await pointer(window, "pointerup", bx, by - height * 2.2);
       expect(order(element)).toEqual(["Soften", "Braise", "Sear", "Deglaze"]);
       await rest(element);
+      // Soften was caught mid-spring when the drag began and slid home with the rows making room, a CSS transition: wait for it too.
+      await Promise.all(element.getAnimations({ subtree: true }).map((animation) => animation.finished.catch(() => undefined)));
       expect(rows(element).map((row) => Math.round(row.getBoundingClientRect().top - top))).toEqual([0, 1, 2, 3].map((index) => Math.round(index * height)));
     });
 
