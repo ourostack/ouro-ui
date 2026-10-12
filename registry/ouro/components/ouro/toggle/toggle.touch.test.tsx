@@ -1,17 +1,18 @@
 import type { ReactNode, SVGProps } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, expect, it } from "vitest";
-import { page } from "vitest/browser";
+
 import { Toggle } from "@/registry/ouro/components/ouro/toggle/toggle";
 import { ToggleGroup } from "@/registry/ouro/components/ouro/toggle/toggle-group";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 
 // Runs in the `touch` project: Chromium as a 390x844 phone with a coarse pointer.
 
 let root: Root | undefined;
 const nodes: Element[] = [];
 afterEach(async () => {
-  await page.viewport(390, 844);
+  await rotate(390, 844);
   await act(async () => root?.unmount());
   for (const node of nodes.splice(0)) node.remove();
 });
@@ -49,7 +50,7 @@ it("gives a small toggle a 44px hit area", async () => {
 });
 
 it("keeps 44px toggles and 16px text on a landscape phone, past the sm breakpoint", async () => {
-  await page.viewport(844, 390);
+  await rotate(844, 390);
   expect(matchMedia("(min-width: 640px)").matches).toBe(true);
   const host = await render(
     <>

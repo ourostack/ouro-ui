@@ -196,3 +196,41 @@ Each part checks that it sits inside `<SheetRoot>`. Outside it, a part throws in
 | `SheetTitle` | The sheet's title, which names the dialog. Every sheet needs one. |
 | `SheetTrigger` | The button that opens the sheet. Pass your button as `render={<Button>Open</Button>}`. |
 | `SheetViewport` | The full-screen layer that positions the popup against its edge. |
+
+## Tabs parts
+
+The state owner of tabs built from parts. Use the `Tabs` component instead unless its `items` cannot express your layout, such as a tab that holds a badge next to its label or a panel shared by two tabs.
+
+```tsx
+import {
+  TabsIndicator,
+  TabsList,
+  TabsPanel,
+  TabsRoot,
+  TabsTab,
+} from "@/registry/ouro/components/ouro/tabs/tabs-parts";
+```
+
+### Required nesting
+
+```tsx
+<TabsRoot defaultValue="ingredients">
+  <TabsList aria-label="Recipe">
+    <TabsTab value="ingredients">Ingredients</TabsTab>
+    <TabsTab value="method">Method</TabsTab>
+    <TabsIndicator />
+  </TabsList>
+  <TabsPanel value="ingredients">…</TabsPanel>
+  <TabsPanel value="method">…</TabsPanel>
+</TabsRoot>
+```
+
+Each part checks that it sits inside `<TabsRoot>`. Outside it, a part throws in development with a message that shows this JSX shape.
+
+| Part | What it is |
+| --- | --- |
+| `TabsIndicator` | The line that slides to the selected tab. Put it last inside `TabsList`. |
+| `TabsList` | The row (or column) of tabs. Name it with `aria-label` when the page has more than one set of tabs. `activateOnFocus` selects a tab when the arrow keys focus it. A row that scrolls, on a phone, fades out on the side that hides more tabs. |
+| `TabsPanel` | The content shown while the tab with the same `value` is selected. |
+| `TabsRoot` | The state owner of tabs built from parts. Use the `Tabs` component instead unless its `items` cannot express your layout, such as a tab that holds a badge next to its label or a panel shared by two tabs. |
+| `TabsTab` | One tab, a button that shows the panel with the same `value`. |
