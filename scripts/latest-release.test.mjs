@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -86,8 +86,15 @@ test("the release commit names only its own tag: release.yml's release-branch co
   }
   symlinkSync(join(root, "node_modules"), join(copy, "node_modules"));
   const previous = latestRelease();
-  const result = spawnSync("bash", ["-ec", body], { cwd: copy, encoding: "utf8", env: { ...process.env, TAG: "v9.9.9", VERSION: "9.9.9" } });
+  // The copy is no git repository: a stand-in git records the step's `git add`.
+  const bin = mkdtempSync(join(tmpdir(), "ouro-release-bin-"));
+  writeFileSync(join(bin, "git"), `#!/usr/bin/env bash\necho "$*" >> "${join(bin, "calls.log")}"\n`);
+  chmodSync(join(bin, "git"), 0o755);
+  const result = spawnSync("bash", ["-ec", body], { cwd: copy, encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, TAG: "v9.9.9", VERSION: "9.9.9" } });
   assert.equal(result.status, 0, result.stderr);
+  // The release commit holds this release's changes, assembled from changes/*.md.
+  assert.match(readFileSync(join(copy, "CHANGES.md"), "utf8"), /^# Changes in this release\n\n- /);
+  assert.equal(readFileSync(join(bin, "calls.log"), "utf8"), "add CHANGES.md\n");
   assert.equal(latestRelease(copy), "v9.9.9");
   const docs = ["README.md", "site/public/llms.txt", "package.json", "UPGRADING.md", ...tracked("docs/*.md", "site/src/*.ts", "site/src/*.tsx")];
   const stale = docs.flatMap((path) => releaseMismatches(readFileSync(join(copy, path), "utf8"), "v9.9.9").map((problem) => `${path}:${problem}`));
