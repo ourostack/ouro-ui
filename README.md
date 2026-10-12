@@ -185,7 +185,9 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ### Forms
 
+- **Calendar** — A month grid to pick a day or a range of days, with the arrow keys or a press. [Docs](docs/Calendar.md)
 - **ColorField** — A color on the Field contract: a swatch that opens the system color picker, next to the same color as hex text, kept in step both ways. [Docs](docs/ColorField.md)
+- **DatePicker** — A labeled date field. [Docs](docs/DatePicker.md)
 - **Field** — A labeled form control: the label, an optional description, the control and its error, wired together with ids that match between the server and the browser. [Docs](docs/Field.md)
 - **Fieldset** — A titled group of related fields, such as an address, rendered as a `<fieldset>` named by its legend. [Docs](docs/Fieldset.md)
 - **FileField** — A labeled file input with a drop zone, on the Field contract. [Docs](docs/FileField.md)
@@ -265,7 +267,17 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ### Data
 
+- **Chart** — A chart drawn in the theme's colors, which people can use without seeing it: a figure named by its `title`, a summary for screen readers, and a table of every value (visible with `showTable`). [Docs](docs/Chart.md)
+- **ChartContainer** — shadcn's name for `Chart`: the same component with the same props, so code ported from shadcn's chart docs finds it. [Docs](docs/ChartContainer.md)
+- **ChartLegend** — The legend for a recharts chart inside `Chart`: each series' marker shape and label from the chart's `config`, under the plot. [Docs](docs/ChartLegend.md)
+- **ChartTooltip** — The tooltip for a recharts chart inside `Chart`: the category, then each series' marker, label and value from the chart's `config`, in the theme's popover colors. [Docs](docs/ChartTooltip.md)
 - **Table** — A data table: a caption, column headers, and rows, from `columns` and `rows` or from parts. [Docs](docs/Table.md)
+
+### Chat
+
+- **Attachment** — A file attached to a chat message, or waiting to be sent with one: its icon, name and size. [Docs](docs/Attachment.md)
+- **Message** — One message in a chat: who wrote it, their avatar and what they wrote, with any attachments under it. [Docs](docs/Message.md)
+- **MessageList** — A conversation: `Message`s in a scrolling, labeled region that opens at the newest one. [Docs](docs/MessageList.md)
 
 ### App setup
 

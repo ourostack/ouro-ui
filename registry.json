@@ -1522,6 +1522,58 @@
       ]
     },
     {
+      "name": "calendar",
+      "type": "registry:ui",
+      "title": "Calendar",
+      "description": "A month grid to pick a day or a range of days, with the arrow keys or a press.",
+      "docs": "A month grid to pick a day or a range of days, with the arrow keys or a press. Import: import { Calendar } from \"@/components/ouro/calendar/calendar\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/calendar.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/calendar/calendar-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/calendar/calendar-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/calendar/calendar.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/calendar/calendar.tsx"
+        }
+      ]
+    },
+    {
+      "name": "date-picker",
+      "type": "registry:ui",
+      "title": "DatePicker",
+      "description": "A labeled date field.",
+      "docs": "A labeled date field. Import: import { DatePicker } from \"@/components/ouro/calendar/date-picker\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, calendar, field, ouro-base, ouro-lib, popover, sheet, text-field. Docs: https://ourostack.github.io/ouro-ui/docs/date-picker.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/calendar",
+        "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib",
+        "ourostack/ouro-ui/popover",
+        "ourostack/ouro-ui/text-field"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/calendar/date-picker-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/calendar/date-picker-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/calendar/date-picker.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/calendar/date-picker.tsx"
+        }
+      ]
+    },
+    {
       "name": "carousel",
       "type": "registry:ui",
       "title": "Carousel",
@@ -1565,6 +1617,87 @@
           "path": "registry/ouro/components/ouro/resizable/resizable.tsx",
           "type": "registry:ui",
           "target": "@components/ouro/resizable/resizable.tsx"
+        }
+      ]
+    },
+    {
+      "name": "chart",
+      "type": "registry:ui",
+      "title": "Chart",
+      "description": "A chart drawn in the theme's colors, which people can use without seeing it: a figure named by its `title`, a summary for screen readers, and a table of every value (visible with `showTable`).",
+      "docs": "A chart drawn in the theme's colors, which people can use without seeing it: a figure named by its `title`, a summary for screen readers, and a table of every value (visible with `showTable`). Import: import { Chart } from \"@/components/ouro/chart/chart\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/chart.md",
+      "dependencies": [
+        "recharts@^3.10.1"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/chart/chart-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/chart/chart-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/chart/chart.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/chart/chart.tsx"
+        }
+      ]
+    },
+    {
+      "name": "message",
+      "type": "registry:ui",
+      "title": "Message",
+      "description": "One message in a chat: who wrote it, their avatar and what they wrote, with any attachments under it.",
+      "docs": "One message in a chat: who wrote it, their avatar and what they wrote, with any attachments under it. Import: import { Message } from \"@/components/ouro/message/message\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: avatar, ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/message.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/avatar",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/message/message.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/message/message.tsx"
+        }
+      ]
+    },
+    {
+      "name": "message-list",
+      "type": "registry:ui",
+      "title": "MessageList",
+      "description": "A conversation: `Message`s in a scrolling, labeled region that opens at the newest one.",
+      "docs": "A conversation: `Message`s in a scrolling, labeled region that opens at the newest one. Import: import { MessageList } from \"@/components/ouro/message/message-list\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/message-list.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/message/message-list.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/message/message-list.tsx"
+        }
+      ]
+    },
+    {
+      "name": "attachment",
+      "type": "registry:ui",
+      "title": "Attachment",
+      "description": "A file attached to a chat message, or waiting to be sent with one: its icon, name and size.",
+      "docs": "A file attached to a chat message, or waiting to be sent with one: its icon, name and size. Import: import { Attachment } from \"@/components/ouro/message/attachment\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/attachment.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/message/attachment.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/message/attachment.tsx"
         }
       ]
     },
@@ -3809,6 +3942,94 @@
       ]
     },
     {
+      "name": "calendar-tests",
+      "type": "registry:item",
+      "title": "Calendar tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for calendar, with the test tooling as devDependencies. Add it beside calendar: add calendar calendar-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "calendar's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/calendar.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/calendar",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/calendar/calendar.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/calendar/calendar.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/calendar/calendar.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/calendar/calendar.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/calendar/calendar.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/calendar/calendar.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/calendar/calendar.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/calendar/calendar.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/calendar.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/calendar.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "date-picker-tests",
+      "type": "registry:item",
+      "title": "DatePicker tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for date-picker, with the test tooling as devDependencies. Add it beside date-picker: add date-picker date-picker-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "date-picker's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/date-picker.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/date-picker",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/calendar/date-picker.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/calendar/date-picker.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/calendar/date-picker.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/calendar/date-picker.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/calendar/date-picker.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/calendar/date-picker.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/calendar/date-picker.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/calendar/date-picker.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/date-picker.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/date-picker.spec.ts"
+        }
+      ]
+    },
+    {
       "name": "carousel-tests",
       "type": "registry:item",
       "title": "Carousel tests",
@@ -3897,6 +4118,174 @@
       ]
     },
     {
+      "name": "chart-tests",
+      "type": "registry:item",
+      "title": "Chart tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for chart, with the test tooling as devDependencies. Add it beside chart: add chart chart-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "chart's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/chart.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/chart",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/chart/chart.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/chart/chart.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/chart/chart.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/chart/chart.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/chart/chart.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/chart/chart.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/chart.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/chart.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "message-tests",
+      "type": "registry:item",
+      "title": "Message tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for message, with the test tooling as devDependencies. Add it beside message: add message message-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "message's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/message.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/attachment",
+        "ourostack/ouro-ui/message",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/message/message.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/message/message.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/message/message.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/message/message.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/message/message.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/message/message.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/message.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/message.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "message-list-tests",
+      "type": "registry:item",
+      "title": "MessageList tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for message-list, with the test tooling as devDependencies. Add it beside message-list: add message-list message-list-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "message-list's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/message-list.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/message",
+        "ourostack/ouro-ui/message-list",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/message/message-list.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/message/message-list.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/message/message-list.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/message/message-list.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/message/message-list.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/message/message-list.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/message/message-list.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/message/message-list.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/message-list.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/message-list.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "attachment-tests",
+      "type": "registry:item",
+      "title": "Attachment tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for attachment, with the test tooling as devDependencies. Add it beside attachment: add attachment attachment-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "attachment's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/attachment.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/attachment",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/message/attachment.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/message/attachment.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/message/attachment.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/message/attachment.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/message/attachment.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/message/attachment.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/message/attachment.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/message/attachment.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/attachment.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/attachment.spec.ts"
+        }
+      ]
+    },
+    {
       "name": "ouro-tests",
       "type": "registry:item",
       "title": "Ouro tests",
@@ -3906,16 +4295,20 @@
         "ourostack/ouro-ui/accordion-tests",
         "ourostack/ouro-ui/alert-tests",
         "ourostack/ouro-ui/aspect-ratio-tests",
+        "ourostack/ouro-ui/attachment-tests",
         "ourostack/ouro-ui/avatar-tests",
         "ourostack/ouro-ui/badge-tests",
         "ourostack/ouro-ui/button-group-tests",
         "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/calendar-tests",
         "ourostack/ouro-ui/card-tests",
         "ourostack/ouro-ui/carousel-tests",
+        "ourostack/ouro-ui/chart-tests",
         "ourostack/ouro-ui/collapsible-tests",
         "ourostack/ouro-ui/color-field-tests",
         "ourostack/ouro-ui/command-tests",
         "ourostack/ouro-ui/confirm-dialog-tests",
+        "ourostack/ouro-ui/date-picker-tests",
         "ourostack/ouro-ui/description-list-tests",
         "ourostack/ouro-ui/dialog-tests",
         "ourostack/ouro-ui/edit-sheet-tests",
@@ -3931,6 +4324,8 @@
         "ourostack/ouro-ui/kbd-tests",
         "ourostack/ouro-ui/link-tests",
         "ourostack/ouro-ui/menu-tests",
+        "ourostack/ouro-ui/message-list-tests",
+        "ourostack/ouro-ui/message-tests",
         "ourostack/ouro-ui/native-select-tests",
         "ourostack/ouro-ui/otp-field-tests",
         "ourostack/ouro-ui/ouro-lib-tests",

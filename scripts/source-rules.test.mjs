@@ -117,6 +117,20 @@ test("testNames joins describe titles, follows aliases and each, and skips hooks
   ]);
 });
 
+test("testNames reads Playwright's test.skip, fixme, fail and slow with a condition as a condition, not a test", () => {
+  const text = `
+    test.describe("on a phone", () => {
+      test.skip(({ browserName }) => browserName !== "chromium", "coarse pointer emulation is Chromium's");
+      test.fixme(true, "flaky");
+      test.slow(isCI);
+      test.fail(({ isMobile }) => isMobile);
+      test.skip("skipped by title", async () => {});
+      test("opens", async () => {});
+    });
+  `;
+  assert.deepEqual(testNames("a.spec.ts", text), ["on a phone > skipped by title", "on a phone > opens"]);
+});
+
 test("duplicateTestNames reports a full name shared by two files or repeated in one", () => {
   const dialog = { path: "dialog.test.tsx", text: 'describe("iOS backdrop rule", () => { it("covers", () => {}); });' };
   const sheet = { path: "sheet.test.tsx", text: 'describe("iOS backdrop rule", () => { it("covers", () => {}); });' };
