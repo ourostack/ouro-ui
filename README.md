@@ -216,6 +216,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **AvatarGroup** — Avatars stacked with a slight overlap, such as the cooks on a recipe, with a "+N" count after `max`. [Docs](docs/AvatarGroup.md)
 - **Badge** — A short label for a status, category or count: "Draft", "Vegan", "3". [Docs](docs/Badge.md)
 - **Card** — A surface that groups one thing's content: a media slot across the top, a title with a description and an action, a body, and a footer. [Docs](docs/Card.md)
+- **Carousel** — A row of slides the user swipes or steps through with Previous and Next buttons: recipe photos, a few featured cards. [Docs](docs/Carousel.md)
 - **DescriptionList** — One thing's details as pairs of a term and its value: a recipe's prep time and servings, an order's date and total, an account's email. [Docs](docs/DescriptionList.md)
 - **Empty** — What a list, search or page shows when it has nothing in it: an icon, a title that says what is empty, a sentence on what to do, and the action that does it. [Docs](docs/Empty.md)
 - **Separator** — A thin line in the theme's border color between groups of content, horizontal or vertical. [Docs](docs/Separator.md)
@@ -232,6 +233,10 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 ### Layout
 
 - **AspectRatio** — A frame that keeps an image, video or map at a fixed shape while its width follows the layout, so the page does not jump when the media loads. [Docs](docs/AspectRatio.md)
+- **Resizable** — Panels side by side (or stacked) with a draggable handle between each pair: a file list beside an editor, a preview above a console. [Docs](docs/Resizable.md)
+- **ResizableHandle** — The draggable line between two panels in a `ResizablePanelGroup`, a focusable window splitter (`role="separator"`) for the panel before it. [Docs](docs/ResizableHandle.md)
+- **ResizablePanel** — One resizable area of a `Resizable` (or `ResizablePanelGroup`), sized in percent of the group. [Docs](docs/ResizablePanel.md)
+- **ResizablePanelGroup** — A group of panels with handles you place yourself, shadcn's shape: `ResizablePanel` and `ResizableHandle` elements as direct children. [Docs](docs/ResizablePanelGroup.md)
 - **Row** — Lays its children out side by side with an even gap, centered up and down. [Docs](docs/Row.md)
 - **ScrollArea** — A scrolling region with a slim scrollbar that matches the theme, inside a height you set. [Docs](docs/ScrollArea.md)
 - **Stack** — Lays its children out top to bottom with an even gap. [Docs](docs/Stack.md)
