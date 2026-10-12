@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { commands, page, userEvent } from "vitest/browser";
+import { commands, page, server, userEvent } from "vitest/browser";
 import { Accordion, type AccordionProps } from "@/registry/ouro/components/ouro/accordion/accordion";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -217,9 +217,24 @@ describe("Accordion", () => {
     expect(element!.getAttribute("data-ouro")).toBe("accordion");
   });
 
-  it("finds closed content with the browser's page search", async () => {
-    const { host } = await render(<Accordion items={items} />);
-    expect(host.textContent).toContain("Swap the butter for olive oil.");
+  it("lets the browser's page search find and open a closed item, and hides it plainly where until-found is unsupported", async () => {
+    const { host, triggers } = await render(<Accordion items={items} />);
+    const panel = host.querySelectorAll<HTMLElement>('[role="region"]')[2]!;
+    expect(panel.textContent).toBe("Swap the butter for olive oil.");
+    const supported = "onbeforematch" in document.body;
+    // Chromium has supported until-found since version 102, so there the check must take the first branch.
+    if (server.browser === "chromium") expect(supported).toBe(true);
+    if (supported) {
+      expect(panel.getAttribute("hidden")).toBe("until-found");
+      // What the browser fires when its page search matches hidden text.
+      await act(async () => panel.dispatchEvent(new Event("beforematch", { bubbles: true })));
+      await expect.poll(() => triggers[2]!.getAttribute("aria-expanded")).toBe("true");
+      expect(panel.hasAttribute("hidden")).toBe(false);
+    } else {
+      // Without until-found the browser would show the content, so the panel is plainly hidden.
+      expect(panel.getAttribute("hidden")).toBe("");
+      expect(panel.getBoundingClientRect().height).toBe(0);
+    }
   });
 
   it("links each trigger and panel in server HTML and hydrates without a mismatch", async () => {

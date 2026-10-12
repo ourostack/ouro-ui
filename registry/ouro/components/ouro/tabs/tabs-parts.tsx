@@ -1,10 +1,11 @@
 "use client";
 
 import { Tabs as BaseTabs } from "@base-ui/react/tabs";
-import { createContext, useContext, type JSX } from "react";
+import { createContext, useContext, useEffect, useRef, type JSX } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
+import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import {
   indicatorClass,
   listClass,
@@ -79,13 +80,51 @@ export function TabsRootUnchecked({ className, ...props }: TabsRootProps): JSX.E
 export type TabsListProps = Omit<BaseTabs.List.Props, "className"> & { className?: string | undefined };
 
 /**
- * Part: the row (or column) of tabs. Name it with `aria-label` when the page has more than
- * one set of tabs. `activateOnFocus` selects a tab when the arrow keys focus it.
+ * Marks which sides of a scrolling tab row hide more tabs, as `data-fade="left"`, `"right"` or
+ * `"both"`, so the row fades out on that edge. Physical sides, so the CSS needs no direction.
  */
-export function TabsList({ className, ...props }: TabsListProps): JSX.Element {
+function useEdgeFade(list: { current: HTMLElement | null }): void {
+  useEffect(() => {
+    const element = list.current!;
+    const update = () => {
+      const horizontal = element.getAttribute("aria-orientation") !== "vertical";
+      // In a right-to-left row, scrollLeft runs from 0 down to a negative number.
+      const scrolled = Math.abs(element.scrollLeft);
+      const before = horizontal && scrolled > 1;
+      const after = horizontal && scrolled + element.clientWidth < element.scrollWidth - 1;
+      const rtl = getComputedStyle(element).direction === "rtl";
+      const [left, right] = rtl ? [after, before] : [before, after];
+      const fade = left && right ? "both" : left ? "left" : right ? "right" : null;
+      if (fade) element.setAttribute("data-fade", fade);
+      else element.removeAttribute("data-fade");
+    };
+    update();
+    element.addEventListener("scroll", update, { passive: true });
+    const resize = new ResizeObserver(update);
+    resize.observe(element);
+    // The orientation can change, and tabs can come and go.
+    const mutation = new MutationObserver(update);
+    mutation.observe(element, { attributes: true, attributeFilter: ["aria-orientation"], childList: true });
+    return () => {
+      element.removeEventListener("scroll", update);
+      resize.disconnect();
+      mutation.disconnect();
+    };
+  }, [list]);
+}
+
+/**
+ * Part: the row (or column) of tabs. Name it with `aria-label` when the page has more than
+ * one set of tabs. `activateOnFocus` selects a tab when the arrow keys focus it. A row that
+ * scrolls, on a phone, fades out on the side that hides more tabs.
+ */
+export function TabsList({ className, ref, ...props }: TabsListProps): JSX.Element {
   useTabsPart("TabsList", '<TabsList aria-label="…">…</TabsList>');
   usePartClassName("TabsList", className);
-  return <BaseTabs.List {...props} className={cn(listClass, className)} />;
+  const own = useRef<HTMLDivElement>(null);
+  const merged = useMergedRef(ref, own);
+  useEdgeFade(own);
+  return <BaseTabs.List {...props} ref={merged} className={cn(listClass, className)} />;
 }
 
 /** Props for {@link TabsTab}. */

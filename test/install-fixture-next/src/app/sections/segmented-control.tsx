@@ -1,7 +1,7 @@
 import { SegmentedControl } from "@/components/ouro/segmented-control/segmented-control";
 
 // expect: Ouro segmented control
-// expect: aria-pressed="true"
+// expect: aria-checked="true"
 // The thumb's place comes from the pressed index, so the server HTML already has it.
 // expect: --ouro-segment-index:1
 export default function SegmentedControlSection() {

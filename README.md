@@ -209,7 +209,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ### Navigation
 
-- **SegmentedControl** — An iOS-style segmented control: a row of equal segments with a raised thumb that slides to the pressed one, for switching how one view shows its content in place, such as list or grid. [Docs](docs/SegmentedControl.md)
+- **SegmentedControl** — An iOS-style segmented control: a row of equal segments with a raised thumb that slides to the checked one, for switching how one view shows its content in place, such as list or grid. [Docs](docs/SegmentedControl.md)
 - **Tabs** — Tabs that switch between panels in place: an accessible tab list with roving focus, arrow-key navigation, a line that slides to the selected tab with the theme spring, and 44px tabs on touch screens. [Docs](docs/Tabs.md)
 
 ### App setup

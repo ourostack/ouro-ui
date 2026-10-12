@@ -6,3 +6,4 @@ const items = ["Recipe 1", "Recipe 2"];
 export const showMore01 = <ShowMore maxLines={3}>Long text</ShowMore>;
 export const showMore02 = <ShowMore items={items} limit={3} />;
 export const showMoreOk01 = <ShowMore items={items} initialCount={3} ordered showMoreLabel="More" showLessLabel="Less" />;
+export const showMoreOk02 = <ShowMore items={items} hasMore loading={false} onShowMore={() => {}} href="?after=2" loadingLabel="Loading" loadedLabel={(count) => `Showing ${count} recipes`} />;

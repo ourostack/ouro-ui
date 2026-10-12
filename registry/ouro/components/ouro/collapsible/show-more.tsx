@@ -50,6 +50,8 @@ export type ShowMoreLinesProps = ShowMoreBaseProps & {
   /** Only with `onShowMore`. */
   loadingLabel?: never;
   /** Only with `onShowMore`. */
+  loadedLabel?: never;
+  /** Only with `onShowMore`. */
   href?: never;
 };
 
@@ -83,6 +85,8 @@ export type ShowMoreItemsProps = ShowMoreListProps & {
   /** Only with `onShowMore`. */
   loadingLabel?: never;
   /** Only with `onShowMore`. */
+  loadedLabel?: never;
+  /** Only with `onShowMore`. */
   href?: never;
 };
 
@@ -96,6 +100,12 @@ export type ShowMoreLoadProps = ShowMoreListProps & {
   loading?: boolean | undefined;
   /** What screen readers hear when loading starts. Translate it here. @default "Loading" */
   loadingLabel?: string | undefined;
+  /**
+   * What screen readers hear after each page, from the number of items now shown. Name the
+   * items and translate it here: `(count) => \`Showing ${count} recipes\``.
+   * @default (count) => `Showing ${count} items`
+   */
+  loadedLabel?: ((count: number) => string) | undefined;
   /**
    * The next page's URL, so the button is a link that works before JavaScript loads. With
    * JavaScript, pressing it calls `onShowMore` instead.
@@ -127,7 +137,9 @@ const isCount = (value: unknown): value is number => typeof value === "number" &
  * "Show more" for a long list or a long text. It cuts a list to its first items, clamps text
  * to a number of lines, or grows a list a page at a time from the server, and moves focus to
  * the first newly shown item, so keyboard and screen reader users land on what they asked
- * for. The visible items are in the server HTML.
+ * for. A list that loads more also says how many items now show. The visible items are in
+ * the server HTML. ShowMore draws the list itself: put a border around the list on a wrapping
+ * element, and borders between rows on each item.
  *
  * Use `Collapsible` instead to hide a whole section behind its title. Use `Pagination`
  * instead when people need to jump to a page or share its URL.
@@ -247,17 +259,38 @@ function ShowMoreList(props: (ShowMoreItemsProps | ShowMoreLoadProps) & { showMo
   const visible = load || expanded ? items : items.slice(0, count);
   const hasButton = load ? load.hasMore : items.length > count;
 
+  // What the status region says after a page loads (load mode only).
+  const [status, setStatus] = useState("");
+  // Whether `loading` was true since the last press, so a load that ends with no new items is noticed.
+  const loaded = useRef(false);
+  const loadedLabel = load?.loadedLabel ?? ((shown: number) => `Showing ${shown} items`);
+
   useEffect(() => {
     const from = pending.current;
-    if (from === null || loading) return;
+    if (from === null) return;
+    if (loading) {
+      loaded.current = true;
+      return;
+    }
     const rows = listRef.current!.children;
-    if (rows.length > from) {
+    const stop = () => {
       pending.current = null;
-      focusRow(rows[from]!);
+      loaded.current = false;
+    };
+    const arrive = (row: Element) => {
+      stop();
+      focusRow(row);
+      if (load) setStatus(loadedLabel(rows.length));
+    };
+    if (rows.length > from) {
+      arrive(rows[from]!);
+    } else if (rows.length < from || (hasButton && loaded.current)) {
+      // The list was replaced by a shorter one (a new search), or the load ended with no new
+      // items (it failed): stop waiting, so a later change to the list never moves focus.
+      stop();
     } else if (!hasButton) {
       // The last page came back empty and the button is gone: keep focus in the list.
-      pending.current = null;
-      focusRow(rows[rows.length - 1]!);
+      arrive(rows[rows.length - 1]!);
     }
   });
 
@@ -265,6 +298,7 @@ function ShowMoreList(props: (ShowMoreItemsProps | ShowMoreLoadProps) & { showMo
     if (load) {
       event.preventDefault();
       pending.current = items.length;
+      loaded.current = false;
       setFreshFrom(items.length);
       load.onShowMore();
     } else if (expanded) {
@@ -317,6 +351,12 @@ function ShowMoreList(props: (ShowMoreItemsProps | ShowMoreLoadProps) & { showMo
         ))}
       </List>
       {button}
+      {/* Stays mounted after the last page, so the last count is still read. */}
+      {load && (
+        <p role="status" data-ouro-show-more-status="" className="sr-only">
+          {status}
+        </p>
+      )}
     </div>
   );
 }

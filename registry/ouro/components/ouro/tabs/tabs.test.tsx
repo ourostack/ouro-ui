@@ -41,6 +41,7 @@ beforeEach(async () => {
 });
 afterEach(async () => {
   vi.restoreAllMocks();
+  await page.viewport(414, 896);
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));
   for (const node of mounted) node.remove();
   mounted = [];
@@ -125,6 +126,7 @@ describe("Tabs", () => {
   });
 
   it("lays out vertically with orientation=\"vertical\" and moves with the up and down keys", async () => {
+    await page.viewport(1024, 768);
     const { root, tabs } = await render(<Tabs label="Recipe" items={items} orientation="vertical" />);
     const list = root.querySelector('[role="tablist"]')!;
     expect(list.getAttribute("aria-orientation")).toBe("vertical");
@@ -133,6 +135,52 @@ describe("Tabs", () => {
     tabs[0]!.focus();
     await userEvent.keyboard("{ArrowDown}");
     expect(tabs[1]!.getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("puts vertical tabs in a row above the panel on a narrow screen", async () => {
+    await page.viewport(1024, 768);
+    const { root, tabs } = await render(<Tabs label="Recipe" items={items} orientation="vertical" />);
+    const list = root.querySelector('[role="tablist"]')!;
+    expect(list.getAttribute("aria-orientation")).toBe("vertical");
+    await page.viewport(390, 844);
+    await expect.poll(() => list.getAttribute("data-orientation")).toBe("horizontal");
+    expect(list.getAttribute("aria-orientation")).not.toBe("vertical");
+    expect(root.getAttribute("data-orientation")).toBe("horizontal");
+    expect(tabs[1]!.getBoundingClientRect().top).toBe(tabs[0]!.getBoundingClientRect().top);
+    // The arrow keys follow the row.
+    tabs[0]!.focus();
+    await userEvent.keyboard("{ArrowRight}");
+    expect(tabs[1]!.getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("fades the edge of a tab row that scrolls, on the side with more tabs", async () => {
+    const many = Array.from({ length: 10 }, (_, index) => ({ value: `s${index}`, label: `Section ${index + 1}`, content: <p>Panel {index + 1}</p> }));
+    const { host, root } = await render(<Tabs label="Recipe" items={many} />);
+    host.style.width = "320px";
+    const list = root.querySelector<HTMLElement>('[role="tablist"]')!;
+    await expect.poll(() => list.getAttribute("data-fade")).toBe("right");
+    expect(getComputedStyle(list).maskImage).toMatch(/gradient/);
+    await act(async () => list.scrollTo({ left: 100 }));
+    await expect.poll(() => list.getAttribute("data-fade")).toBe("both");
+    await act(async () => list.scrollTo({ left: list.scrollWidth }));
+    await expect.poll(() => list.getAttribute("data-fade")).toBe("left");
+    // Once every tab fits, there is no fade.
+    host.style.maxWidth = "none";
+    host.style.width = "2000px";
+    await expect.poll(() => list.hasAttribute("data-fade")).toBe(false);
+    expect(getComputedStyle(list).maskImage).toBe("none");
+  });
+
+  it("fades the leading edge on the right in a right-to-left row", async () => {
+    const many = Array.from({ length: 10 }, (_, index) => ({ value: `s${index}`, label: `Section ${index + 1}`, content: <p>Panel {index + 1}</p> }));
+    const { host, root } = await render(
+      <div dir="rtl">
+        <Tabs label="Recipe" items={many} />
+      </div>,
+    );
+    host.style.width = "320px";
+    const list = root.querySelector<HTMLElement>('[role="tablist"]')!;
+    await expect.poll(() => list.getAttribute("data-fade")).toBe("left");
   });
 
   it("slides the indicator under the selected tab", async () => {

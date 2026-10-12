@@ -70,3 +70,35 @@ it("selects a tab on tap", async () => {
   await commands.tap('[role="tab"]:nth-child(2)');
   expect(host.querySelectorAll('[role="tab"]')[1]!.getAttribute("aria-selected")).toBe("true");
 });
+
+it("keeps the selected tab in view in a row that scrolls, with the indicator under it and an edge fade", async () => {
+  await page.viewport(390, 844);
+  const items = Array.from({ length: 8 }, (_, index) => ({ value: `s${index}`, label: `Section ${index + 1}`, content: `Panel ${index + 1}` }));
+  const host = await render(<Tabs label="Recipe" items={items} defaultValue="s7" />);
+  const list = host.querySelector<HTMLElement>('[role="tablist"]')!;
+  const tab = host.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')!;
+  expect(list.scrollWidth).toBeGreaterThan(list.clientWidth);
+  await expect.poll(() => list.scrollLeft).toBeGreaterThan(0);
+  const listBox = list.getBoundingClientRect();
+  const tabBox = tab.getBoundingClientRect();
+  expect(tabBox.left).toBeGreaterThanOrEqual(listBox.left - 1);
+  expect(tabBox.right).toBeLessThanOrEqual(listBox.right + 1);
+  const indicator = host.querySelector<HTMLElement>("[data-ouro-tabs-indicator]")!;
+  await expect.poll(() => Math.abs(indicator.getBoundingClientRect().left - tab.getBoundingClientRect().left)).toBeLessThanOrEqual(1);
+  await expect.poll(() => list.getAttribute("data-fade")).toMatch(/left|both/);
+});
+
+it("stacks vertical tabs in a row on a phone", async () => {
+  const host = await render(
+    <Tabs
+      label="Recipe"
+      orientation="vertical"
+      items={[
+        { value: "a", label: "Ingredients", content: "Panel A" },
+        { value: "b", label: "Method", content: "Panel B" },
+      ]}
+    />,
+  );
+  await page.viewport(390, 844);
+  await expect.poll(() => host.querySelector('[role="tablist"]')!.getAttribute("data-orientation")).toBe("horizontal");
+});

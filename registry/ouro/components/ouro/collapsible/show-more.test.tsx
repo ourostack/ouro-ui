@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -253,6 +253,109 @@ describe("ShowMore loading more", () => {
     // The busy button is disabled, so a real click never lands; a script click must not either.
     await act(async () => button!.click());
     expect(onShowMore).not.toHaveBeenCalled();
+  });
+});
+
+describe("ShowMore focus after a load that adds nothing", () => {
+  type Api = { setCount: (count: number) => void; setLoading: (loading: boolean) => void; setHasMore: (hasMore: boolean) => void };
+  let api!: Api;
+  function Search({ useLoading = true }: { useLoading?: boolean }) {
+    const [count, setCount] = useState(3);
+    const [loading, setLoading] = useState(false);
+    const [hasMore, setHasMore] = useState(true);
+    useEffect(() => {
+      api = { setCount, setLoading, setHasMore };
+    }, []);
+    return (
+      <div>
+        <input aria-label="Search recipes" />
+        <ShowMore
+          items={Array.from({ length: count }, (_, index) => (
+            <a key={index} href={`#${index}`}>
+              Row {index}
+            </a>
+          ))}
+          hasMore={hasMore}
+          loading={useLoading ? loading : undefined}
+          onShowMore={() => setLoading(true)}
+        />
+      </div>
+    );
+  }
+
+  it("stops waiting when a load ends with no new items, so a later change never steals focus", async () => {
+    const { host, button } = await render(<Search />);
+    await userEvent.click(button!);
+    // The load fails: loading ends and no items arrive.
+    await act(async () => api.setLoading(false));
+    const input = host.querySelector("input")!;
+    input.focus();
+    // A new search replaces the list with a short last page.
+    await act(async () => {
+      api.setHasMore(false);
+      api.setCount(2);
+    });
+    expect(document.activeElement).toBe(input);
+    await act(async () => api.setCount(6));
+    expect(document.activeElement).toBe(input);
+  });
+
+  it("stops waiting when the list is replaced by a shorter one, without a loading prop", async () => {
+    const { host, button } = await render(<Search useLoading={false} />);
+    await userEvent.click(button!);
+    const input = host.querySelector("input")!;
+    input.focus();
+    await act(async () => api.setCount(2));
+    await act(async () => api.setCount(6));
+    expect(document.activeElement).toBe(input);
+  });
+});
+
+describe("ShowMore announcements", () => {
+  /** Every non-empty text the status region takes, in order. */
+  function spoken(host: HTMLElement): string[] {
+    const region = host.querySelector<HTMLElement>("[data-ouro-show-more-status]")!;
+    const said: string[] = [];
+    new MutationObserver(() => {
+      if (region.textContent) said.push(region.textContent);
+    }).observe(region, { childList: true, characterData: true, subtree: true });
+    return said;
+  }
+
+  it("says how many items show after each page, through a polite status region", async () => {
+    const { host, button } = await render(<Loading />);
+    const region = host.querySelector<HTMLElement>("[data-ouro-show-more-status]")!;
+    expect(region.getAttribute("role")).toBe("status");
+    expect(region.textContent).toBe("");
+    // Visually hidden, but read.
+    expect(region.getBoundingClientRect().width).toBeLessThanOrEqual(1);
+    const said = spoken(host);
+    await userEvent.click(button!);
+    await act(async () => finishLoad());
+    await expect.poll(() => said).toEqual(["Showing 6 items"]);
+    await userEvent.click(host.querySelector<HTMLElement>("[data-ouro-show-more-toggle]")!);
+    await act(async () => finishLoad());
+    await expect.poll(() => said).toEqual(["Showing 6 items", "Showing 9 items"]);
+    // The region stays after the button goes, so the last count is still read.
+    expect(host.querySelector("[data-ouro-show-more-toggle]")).toBeNull();
+    expect(region.isConnected).toBe(true);
+  });
+
+  it("takes the words from loadedLabel, and says the count when the last page is empty", async () => {
+    function Empty() {
+      const [hasMore, setHasMore] = useState(true);
+      return (
+        <ShowMore items={["A", "B"]} hasMore={hasMore} onShowMore={() => setHasMore(false)} loadedLabel={(count) => `Showing ${count} recipes`} />
+      );
+    }
+    const { host, button } = await render(<Empty />);
+    await userEvent.click(button!);
+    await expect.poll(() => host.querySelector("[data-ouro-show-more-status]")!.textContent).toBe("Showing 2 recipes");
+  });
+
+  it("has no status region outside load mode", async () => {
+    const { host } = await render(<ShowMore items={recipes} />);
+    expect(host.querySelector("[data-ouro-show-more-status]")).toBeNull();
   });
 });
 

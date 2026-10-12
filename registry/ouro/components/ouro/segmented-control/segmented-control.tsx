@@ -2,7 +2,7 @@
 
 import { Toggle } from "@base-ui/react/toggle";
 import { ToggleGroup } from "@base-ui/react/toggle-group";
-import { useId, useState, type CSSProperties, type JSX, type Ref } from "react";
+import { useId, useRef, useState, type CSSProperties, type JSX, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
@@ -47,9 +47,11 @@ export interface SegmentedControlProps {
   disabled?: boolean | undefined;
   /** Stretches the control to the width of its container, with the segments sharing it equally. */
   fullWidth?: boolean | undefined;
+  /** Submits the checked segment's value under this name with the form it sits in. */
+  name?: string | undefined;
   /** Layout only: margins, grid placement (`mt-4`). Appearance classes warn in development. */
   className?: string | undefined;
-  /** Reaches the group element (`role="group"`). */
+  /** Reaches the group element (`role="radiogroup"`). */
   ref?: Ref<HTMLDivElement> | undefined;
 
   /** Not a prop. Ouro UI uses `items`: `<SegmentedControl items={[{ value, label }]}>`. */
@@ -70,9 +72,10 @@ function duplicateValue(items: readonly SegmentedControlItem[]): string | undefi
 
 /**
  * An iOS-style segmented control: a row of equal segments with a raised thumb that slides
- * to the pressed one, for switching how one view shows its content in place, such as list
- * or grid. Exactly one segment is pressed. It is a group of toggle buttons with arrow-key
- * focus, 44px tall on touch screens.
+ * to the checked one, for switching how one view shows its content in place, such as list
+ * or grid. Exactly one segment is checked. Screen readers hear a radio group, and the arrow
+ * keys check the next segment as they do for radio buttons. Segments are 44px tall on touch
+ * screens, and `name` submits the value with a form.
  *
  * Use `Tabs` instead when each choice shows different content with its own panel. Use links
  * in a `<nav>` instead when each choice is its own page. Use a `RadioGroup` instead for a
@@ -103,6 +106,7 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
     onValueChange,
     disabled,
     fullWidth,
+    name,
     className,
     ref,
     // Guard props (hint types), dropped here so they never reach the DOM.
@@ -147,7 +151,15 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
   const [own, setOwn] = useState(() => defaultValue ?? items.find((item) => !item.disabled)?.value);
   const selected = value !== undefined ? value : own;
   const index = items.findIndex((item) => item.value === selected);
+  const tabStop = index === -1 ? items.find((item) => !item.disabled)?.value : selected;
   const labelId = useId();
+  // Set while an arrow, Home or End key moves focus, so the segment it lands on gets checked,
+  // as a radio button does. Tab and pointer focus leave the value alone.
+  const arrowed = useRef(false);
+  const choose = (pressed: string) => {
+    setOwn(pressed);
+    onValueChange?.(pressed);
+  };
   const thumbStyle = {
     "--ouro-segment-count": items.length,
     "--ouro-segment-index": Math.max(index, 0),
@@ -160,26 +172,44 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
       </span>
       <ToggleGroup
         ref={ref}
+        role="radiogroup"
         aria-labelledby={labelId}
         value={selected === undefined ? [] : [selected]}
         onValueChange={(next) => {
-          // Single mode: pressing the pressed segment would leave none pressed. Keep it.
+          // Pressing the checked segment would leave none checked. Keep it.
           const [pressed] = next;
-          if (pressed === undefined) return;
-          setOwn(pressed);
-          onValueChange?.(pressed);
+          if (pressed !== undefined) choose(pressed);
+        }}
+        onKeyDownCapture={(event) => {
+          arrowed.current = /^(Arrow|Home$|End$)/.test(event.key);
         }}
         disabled={disabled}
         className={cn(groupClass, fullWidth && "grid w-full")}
       >
         <span aria-hidden="true" data-ouro-segment-thumb="" className={thumbClass} style={thumbStyle} />
         {items.map((item) => (
-          <Toggle key={item.value} value={item.value} disabled={item.disabled} data-ouro-segment="" className={segmentClass}>
+          <Toggle
+            key={item.value}
+            value={item.value}
+            disabled={item.disabled}
+            data-ouro-segment=""
+            className={segmentClass}
+            // A radio, not a toggle button: pressing the checked one does not uncheck it.
+            render={(segmentProps, state) => <button {...segmentProps} role="radio" aria-checked={state.pressed} aria-pressed={undefined} />}
+            // The checked segment is the one Tab lands on, as in a radio group.
+            tabIndex={item.value === tabStop ? 0 : -1}
+            onFocus={() => {
+              if (!arrowed.current) return;
+              arrowed.current = false;
+              choose(item.value);
+            }}
+          >
             <TouchTarget />
             <span className="relative min-w-0 truncate">{item.label}</span>
           </Toggle>
         ))}
       </ToggleGroup>
+      {name !== undefined && <input type="hidden" name={name} value={selected ?? ""} />}
     </div>
   );
 }

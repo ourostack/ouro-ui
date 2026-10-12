@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { commands, page, userEvent } from "vitest/browser";
+import { commands, page, server, userEvent } from "vitest/browser";
 import { Collapsible, type CollapsibleProps } from "@/registry/ouro/components/ouro/collapsible/collapsible";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -153,6 +153,30 @@ describe("Collapsible", () => {
     );
     expect(getComputedStyle(root).marginTop).toBe("16px");
     expect(element).toBe(root);
+  });
+
+  it("lets the browser's page search find and open it, and hides it plainly where until-found is unsupported", async () => {
+    const onOpenChange = vi.fn();
+    const r = await render(
+      <Collapsible title="Nutrition facts" onOpenChange={onOpenChange}>
+        {facts}
+      </Collapsible>,
+    );
+    expect(r.panel.textContent).toBe("Calories 420, protein 18g");
+    const supported = "onbeforematch" in document.body;
+    // Chromium has supported until-found since version 102, so there the check must take the first branch.
+    if (server.browser === "chromium") expect(supported).toBe(true);
+    if (supported) {
+      expect(r.panel.getAttribute("hidden")).toBe("until-found");
+      // What the browser fires when its page search matches hidden text.
+      await act(async () => r.panel.dispatchEvent(new Event("beforematch", { bubbles: true })));
+      await expect.poll(() => r.trigger.getAttribute("aria-expanded")).toBe("true");
+      expect(onOpenChange).toHaveBeenLastCalledWith(true);
+    } else {
+      // Without until-found the browser would show the content, so the panel is plainly hidden.
+      expect(r.panel.getAttribute("hidden")).toBe("");
+      expect(r.panel.getBoundingClientRect().height).toBe(0);
+    }
   });
 
   it("links the title and panel in server HTML and hydrates without a mismatch", async () => {

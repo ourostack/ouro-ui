@@ -44,7 +44,7 @@ npx shadcn@latest add ourostack/ouro-ui/dialog#v0.4.0     # install it
 - `separator`: A thin line in the theme's border color between groups of content, horizontal or vertical. Docs: https://ourostack.github.io/ouro-ui/docs/separator.md
 - `kbd`: A keyboard shortcut, in the reader's platform's notation: `keys={["mod", "k"]}` shows ⌘K on a Mac, iPhone or iPad and Ctrl+K elsewhere. Docs: https://ourostack.github.io/ouro-ui/docs/kbd.md
 - `tabs`: Tabs that switch between panels in place: an accessible tab list with roving focus, arrow-key navigation, a line that slides to the selected tab with the theme spring, and 44px tabs on touch screens. Docs: https://ourostack.github.io/ouro-ui/docs/tabs.md
-- `segmented-control`: An iOS-style segmented control: a row of equal segments with a raised thumb that slides to the pressed one, for switching how one view shows its content in place, such as list or grid. Docs: https://ourostack.github.io/ouro-ui/docs/segmented-control.md
+- `segmented-control`: An iOS-style segmented control: a row of equal segments with a raised thumb that slides to the checked one, for switching how one view shows its content in place, such as list or grid. Docs: https://ourostack.github.io/ouro-ui/docs/segmented-control.md
 - `accordion`: A stack of titles that each open their own content, for FAQs and long settings pages. Docs: https://ourostack.github.io/ouro-ui/docs/accordion.md
 - `collapsible`: One section that opens and closes under its title, such as nutrition facts under a recipe. Docs: https://ourostack.github.io/ouro-ui/docs/collapsible.md
 - `show-more`: "Show more" for a long list or a long text. Docs: https://ourostack.github.io/ouro-ui/docs/show-more.md

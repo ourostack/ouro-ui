@@ -2,7 +2,7 @@
 
 # ShowMore
 
-"Show more" for a long list or a long text. It cuts a list to its first items, clamps text to a number of lines, or grows a list a page at a time from the server, and moves focus to the first newly shown item, so keyboard and screen reader users land on what they asked for. The visible items are in the server HTML.
+"Show more" for a long list or a long text. It cuts a list to its first items, clamps text to a number of lines, or grows a list a page at a time from the server, and moves focus to the first newly shown item, so keyboard and screen reader users land on what they asked for. A list that loads more also says how many items now show. The visible items are in the server HTML. ShowMore draws the list itself: put a border around the list on a wrapping element, and borders between rows on each item.
 
 ```tsx
 import { ShowMore } from "@/registry/ouro/components/ouro/collapsible/show-more";
@@ -52,6 +52,7 @@ Not in this mode (typed `never`):
 - `hasMore`: Only with `onShowMore`.
 - `href`: Only with `onShowMore`.
 - `lines`: Text mode only: not with `items`.
+- `loadedLabel`: Only with `onShowMore`.
 - `loading`: Only with `onShowMore`.
 - `loadingLabel`: Only with `onShowMore`.
 - `onShowMore`: Only for a list that loads more: with `items`, without `initialCount` or `lines`.
@@ -72,6 +73,7 @@ Not in this mode (typed `never`):
 - `href`: Only with `onShowMore`.
 - `initialCount`: Only with `items` and no `onShowMore`.
 - `items`: List modes only: not with `lines`.
+- `loadedLabel`: Only with `onShowMore`.
 - `loading`: Only with `onShowMore`.
 - `loadingLabel`: Only with `onShowMore`.
 - `onShowMore`: Only for a list that loads more: with `items`, without `initialCount` or `lines`.
@@ -86,6 +88,7 @@ A list the server grows a page at a time: "Show more" asks for the next page and
 | `hasMore` (required) | `boolean` |  | Whether there is another page. Without one, the button goes away. |
 | `href` | `string` |  | The next page's URL, so the button is a link that works before JavaScript loads. With JavaScript, pressing it calls `onShowMore` instead. |
 | `items` (required) | `readonly ReactNode[]` |  | Every item, in order. Each renders in its own list item; give elements a `key`. With `onShowMore`, append each new page here. |
+| `loadedLabel` | `((count: number) => string)` | (count) => `Showing ${count} items` | What screen readers hear after each page, from the number of items now shown. Name the items and translate it here: `(count) => \`Showing ${count} recipes\``. |
 | `loading` | `boolean` |  | Shows the button as busy, and keeps it from asking twice. |
 | `loadingLabel` | `string` | `"Loading"` | What screen readers hear when loading starts. Translate it here. |
 | `onShowMore` (required) | `() => void` |  | Asks for the next page. The button is busy while `loading`, and focus moves to the first new item when it arrives. |

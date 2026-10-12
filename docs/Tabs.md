@@ -41,7 +41,7 @@ Type: `TabsProps`.
 | `items` (required) | `readonly TabsItem[]` |  | The tabs, in order, each with the panel it shows. |
 | `label` (required) | `string` |  | Names the tab list for screen readers ("Recipe sections"). It is not shown: the tabs' own labels are the visible text. |
 | `onValueChange` | `((value: string) => void)` |  | Called with the new tab's value when the person selects a tab. |
-| `orientation` | `"vertical" \| "horizontal"` | `"horizontal"` | `horizontal` puts the tabs in a row above the panel; `vertical` in a column beside it. The arrow keys follow: left and right in a row, up and down in a column. |
+| `orientation` | `"vertical" \| "horizontal"` | `"horizontal"` | `horizontal` puts the tabs in a row above the panel; `vertical` in a column beside it, from the `sm` breakpoint (640px) up, and in a row on a phone. The arrow keys follow: left and right in a row, up and down in a column. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
 | `value` | `string` |  | The selected tab's value, when you control it. Pair it with `onValueChange`. |
 

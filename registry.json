@@ -702,8 +702,8 @@
       "name": "segmented-control",
       "type": "registry:ui",
       "title": "SegmentedControl",
-      "description": "An iOS-style segmented control: a row of equal segments with a raised thumb that slides to the pressed one, for switching how one view shows its content in place, such as list or grid.",
-      "docs": "An iOS-style segmented control: a row of equal segments with a raised thumb that slides to the pressed one, for switching how one view shows its content in place, such as list or grid. Import: import { SegmentedControl } from \"@/components/ouro/segmented-control/segmented-control\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/segmented-control.md",
+      "description": "An iOS-style segmented control: a row of equal segments with a raised thumb that slides to the checked one, for switching how one view shows its content in place, such as list or grid.",
+      "docs": "An iOS-style segmented control: a row of equal segments with a raised thumb that slides to the checked one, for switching how one view shows its content in place, such as list or grid. Import: import { SegmentedControl } from \"@/components/ouro/segmented-control/segmented-control\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/segmented-control.md",
       "dependencies": [
         "@base-ui/react@^1.8.0"
       ],

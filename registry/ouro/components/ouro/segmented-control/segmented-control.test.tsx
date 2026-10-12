@@ -59,18 +59,21 @@ async function settled(element: Element) {
 }
 
 describe("SegmentedControl", () => {
-  it("renders a labelled group of toggle buttons with the first one pressed", async () => {
+  it("renders a labelled radio group with the first segment checked", async () => {
     const { root, segments } = await render(<SegmentedControl label="View" items={items} />);
     expect(root.getAttribute("data-ouro")).toBe("segmented-control");
-    await expect.element(page.getByRole("group", { name: "View" })).toBeVisible();
+    await expect.element(page.getByRole("radiogroup", { name: "View" })).toBeVisible();
     expect(segments.map((segment) => segment.textContent)).toEqual(["List", "Grid", "Map"]);
-    expect(segments.map((segment) => segment.getAttribute("aria-pressed"))).toEqual(["true", "false", "false"]);
+    expect(segments.map((segment) => segment.getAttribute("role"))).toEqual(["radio", "radio", "radio"]);
+    expect(segments.map((segment) => segment.getAttribute("aria-checked"))).toEqual(["true", "false", "false"]);
+    expect(segments.some((segment) => segment.hasAttribute("aria-pressed"))).toBe(false);
+    await expect.element(page.getByRole("radio", { name: "List" })).toBeChecked();
     await expect.element(page.getByText("View", { exact: true })).toBeVisible();
   });
 
   it("hides the label visually with hideLabel, and still names the group", async () => {
     const { host } = await render(<SegmentedControl label="View" hideLabel items={items} />);
-    await expect.element(page.getByRole("group", { name: "View" })).toBeInTheDocument();
+    await expect.element(page.getByRole("radiogroup", { name: "View" })).toBeInTheDocument();
     const label = [...host.querySelectorAll("span")].find((span) => span.textContent === "View")!;
     expect(label.getBoundingClientRect().width).toBeLessThanOrEqual(1);
   });
@@ -80,7 +83,7 @@ describe("SegmentedControl", () => {
     const { segments } = await render(<SegmentedControl label="View" items={items} onValueChange={onValueChange} />);
     await userEvent.click(segments[1]!);
     expect(onValueChange).toHaveBeenCalledWith("grid");
-    expect(segments.map((segment) => segment.getAttribute("aria-pressed"))).toEqual(["false", "true", "false"]);
+    expect(segments.map((segment) => segment.getAttribute("aria-checked"))).toEqual(["false", "true", "false"]);
   });
 
   it("keeps one segment pressed: pressing the pressed one again does nothing", async () => {
@@ -88,7 +91,7 @@ describe("SegmentedControl", () => {
     const { segments } = await render(<SegmentedControl label="View" items={items} onValueChange={onValueChange} />);
     await userEvent.click(segments[0]!);
     expect(onValueChange).not.toHaveBeenCalled();
-    expect(segments[0]!.getAttribute("aria-pressed")).toBe("true");
+    expect(segments[0]!.getAttribute("aria-checked")).toBe("true");
   });
 
   it("starts on defaultValue and follows a controlled value", async () => {
@@ -102,23 +105,65 @@ describe("SegmentedControl", () => {
       );
     }
     const { host, segments } = await render(<Controlled />);
-    expect(segments[2]!.getAttribute("aria-pressed")).toBe("true");
+    expect(segments[2]!.getAttribute("aria-checked")).toBe("true");
     await userEvent.click(segments[0]!);
     expect(host.querySelector("output")!.textContent).toBe("list");
-    expect(segments[0]!.getAttribute("aria-pressed")).toBe("true");
+    expect(segments[0]!.getAttribute("aria-checked")).toBe("true");
     const other = await render(<SegmentedControl label="Other" items={items} defaultValue="grid" />);
-    expect(other.segments[1]!.getAttribute("aria-pressed")).toBe("true");
+    expect(other.segments[1]!.getAttribute("aria-checked")).toBe("true");
   });
 
-  it("moves focus with the arrow keys and presses with Space", async () => {
-    const { segments } = await render(<SegmentedControl label="View" items={items} />);
+  it("selects with the arrow keys, as radio buttons do, and tabs to the checked segment", async () => {
+    const onValueChange = vi.fn();
+    const { segments } = await render(<SegmentedControl label="View" items={items} defaultValue="grid" onValueChange={onValueChange} />);
     await userEvent.tab();
-    expect(document.activeElement).toBe(segments[0]);
-    expect(getComputedStyle(segments[0]!).outlineStyle).toBe("solid");
-    await userEvent.keyboard("{ArrowRight}");
     expect(document.activeElement).toBe(segments[1]);
+    expect(onValueChange).not.toHaveBeenCalled();
+    expect(getComputedStyle(segments[1]!).outlineStyle).toBe("solid");
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(segments[2]);
+    expect(onValueChange).toHaveBeenLastCalledWith("map");
+    expect(segments.map((segment) => segment.getAttribute("aria-checked"))).toEqual(["false", "false", "true"]);
+    await userEvent.keyboard("{ArrowLeft}{ArrowLeft}");
+    expect(document.activeElement).toBe(segments[0]);
+    expect(segments[0]!.getAttribute("aria-checked")).toBe("true");
+    // Space on the checked segment keeps it checked.
     await userEvent.keyboard(" ");
-    expect(segments[1]!.getAttribute("aria-pressed")).toBe("true");
+    expect(segments[0]!.getAttribute("aria-checked")).toBe("true");
+    expect(onValueChange).toHaveBeenCalledTimes(3);
+  });
+
+  it("skips a disabled segment with the arrow keys", async () => {
+    const { segments } = await render(<SegmentedControl label="View" items={[items[0]!, { ...items[1]!, disabled: true }, items[2]!]} />);
+    await userEvent.tab();
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(segments[2]);
+    expect(segments[2]!.getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("submits the checked value with a form when given a name", async () => {
+    const { host, segments } = await render(
+      <form>
+        <SegmentedControl label="View" name="view" items={items} defaultValue="grid" />
+      </form>,
+    );
+    const form = host.querySelector("form")!;
+    expect(new FormData(form).get("view")).toBe("grid");
+    await userEvent.click(segments[2]!);
+    expect(new FormData(form).get("view")).toBe("map");
+    const unnamed = await render(
+      <form>
+        <SegmentedControl label="View" items={items} />
+      </form>,
+    );
+    expect([...new FormData(unnamed.host.querySelector("form")!).keys()]).toEqual([]);
+    // With nothing checked, the name submits an empty value.
+    const empty = await render(
+      <form>
+        <SegmentedControl label="View" name="view" items={items.map((item) => ({ ...item, disabled: true }))} />
+      </form>,
+    );
+    expect(new FormData(empty.host.querySelector("form")!).get("view")).toBe("");
   });
 
   it("gives every segment the same width", async () => {
@@ -131,7 +176,7 @@ describe("SegmentedControl", () => {
 
   it("stretches to its container with fullWidth", async () => {
     const { root, host } = await render(<SegmentedControl label="View" items={items} fullWidth hideLabel />);
-    const group = root.querySelector('[role="group"]')!;
+    const group = root.querySelector('[role="radiogroup"]')!;
     expect(Math.round(group.getBoundingClientRect().width)).toBe(Math.round(host.getBoundingClientRect().width - 48));
   });
 
@@ -177,7 +222,7 @@ describe("SegmentedControl", () => {
   it("forwards a ref to the group", async () => {
     let element: HTMLDivElement | null = null;
     await render(<SegmentedControl label="View" items={items} ref={(node) => void (element = node)} />);
-    expect(element!.getAttribute("role")).toBe("group");
+    expect(element!.getAttribute("role")).toBe("radiogroup");
   });
 
   it("keeps the label id and pressed state in server HTML and hydrates without a mismatch", async () => {
@@ -187,10 +232,10 @@ describe("SegmentedControl", () => {
     host.innerHTML = html;
     document.body.append(host);
     mounted.push(host);
-    const group = host.querySelector('[role="group"]')!;
+    const group = host.querySelector('[role="radiogroup"]')!;
     const labelId = group.getAttribute("aria-labelledby")!;
     expect(host.querySelector(`[id="${labelId}"]`)!.textContent).toBe("View");
-    expect(host.querySelector('[aria-pressed="true"]')!.textContent).toBe("Grid");
+    expect(host.querySelector('[aria-checked="true"]')!.textContent).toBe("Grid");
     const recoverable = vi.fn();
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     let root!: Root;
@@ -201,7 +246,7 @@ describe("SegmentedControl", () => {
     expect(recoverable).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
     await userEvent.click(host.querySelectorAll<HTMLElement>("[data-ouro-segment]")[2]!);
-    expect(host.querySelector('[aria-pressed="true"]')!.textContent).toBe("Map");
+    expect(host.querySelector('[aria-checked="true"]')!.textContent).toBe("Map");
   });
 });
 
@@ -230,7 +275,7 @@ describe("SegmentedControl development messages", () => {
 
   it("presses nothing when every segment is disabled", async () => {
     const { segments } = await render(<SegmentedControl label="View" items={items.map((item) => ({ ...item, disabled: true }))} />);
-    expect(segments.every((segment) => segment.getAttribute("aria-pressed") === "false")).toBe(true);
+    expect(segments.every((segment) => segment.getAttribute("aria-checked") === "false")).toBe(true);
   });
 
   it("throws for two items with one value", () => {

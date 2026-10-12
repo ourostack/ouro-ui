@@ -5,4 +5,4 @@ const items = [{ value: "list", label: "List" }];
 
 export const segmentedControl01 = <SegmentedControl label="View" options={items} items={items} />;
 export const segmentedControl02 = <SegmentedControl label="View" items={items} onChange={() => {}} />;
-export const segmentedControlOk01 = <SegmentedControl label="View" hideLabel items={items} defaultValue="list" fullWidth onValueChange={() => {}} />;
+export const segmentedControlOk01 = <SegmentedControl label="View" hideLabel items={items} defaultValue="list" fullWidth name="view" onValueChange={() => {}} />;

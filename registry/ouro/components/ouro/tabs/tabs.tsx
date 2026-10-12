@@ -4,6 +4,7 @@ import { useId, useState, type JSX, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
 import {
   TabsIndicator,
   TabsList,
@@ -49,8 +50,9 @@ export interface TabsProps {
   /** Called with the new tab's value when the person selects a tab. */
   onValueChange?: ((value: string) => void) | undefined;
   /**
-   * `horizontal` puts the tabs in a row above the panel; `vertical` in a column beside it.
-   * The arrow keys follow: left and right in a row, up and down in a column.
+   * `horizontal` puts the tabs in a row above the panel; `vertical` in a column beside it,
+   * from the `sm` breakpoint (640px) up, and in a row on a phone. The arrow keys follow:
+   * left and right in a row, up and down in a column.
    * @default "horizontal"
    */
   orientation?: TabsOrientation | (string & { 'Use "horizontal" or "vertical"': never }) | undefined;
@@ -165,6 +167,10 @@ export function Tabs(props: TabsProps): JSX.Element {
         }
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
+  // A column of tabs squeezes the panel on a phone: below the sm breakpoint it becomes a row.
+  // Wide in server HTML, so a desktop page does not shift.
+  const wide = useMediaQuery("(min-width: 640px)", true);
+  const shown = orientation === "vertical" && !wide ? "horizontal" : orientation;
   // Start on the first enabled tab, also in server HTML, where Base UI cannot see which tabs are disabled.
   const [own, setOwn] = useState(() => defaultValue ?? items.find((item) => !item.disabled)?.value ?? null);
   const selected = value !== undefined ? value : own;
@@ -175,7 +181,7 @@ export function Tabs(props: TabsProps): JSX.Element {
   return (
     <TabsRootUnchecked
       ref={ref}
-      orientation={orientation}
+      orientation={shown}
       value={selected}
       onValueChange={(next: string) => {
         setOwn(next);

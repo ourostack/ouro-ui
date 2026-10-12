@@ -44,6 +44,7 @@ const rootClass = "flex min-w-0 gap-4 data-[orientation=horizontal]:flex-col dat
 /**
  * The tab list. A hairline under the row (or beside the column) is an inset shadow, not a
  * border, so the row can scroll sideways on a narrow screen without clipping the indicator.
+ * While it scrolls, a mask fades the side that hides more tabs (`data-fade`, set by TabsList).
  *
  * @internal
  */
@@ -51,6 +52,9 @@ const listClass =
   "relative z-0 m-0 box-border flex shrink-0 p-0 " +
   "data-[orientation=horizontal]:overflow-x-auto data-[orientation=horizontal]:[scrollbar-width:none] " +
   "data-[orientation=horizontal]:shadow-[inset_0_-1px_0_0_var(--border)] " +
+  "data-[fade=right]:[mask-image:linear-gradient(to_right,#000_calc(100%-2rem),transparent)] " +
+  "data-[fade=left]:[mask-image:linear-gradient(to_left,#000_calc(100%-2rem),transparent)] " +
+  "data-[fade=both]:[mask-image:linear-gradient(to_right,transparent,#000_2rem,#000_calc(100%-2rem),transparent)] " +
   "data-[orientation=vertical]:flex-col data-[orientation=vertical]:shadow-[inset_-1px_0_0_0_var(--border)]";
 
 /**

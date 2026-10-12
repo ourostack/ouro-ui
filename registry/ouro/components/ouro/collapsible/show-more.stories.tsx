@@ -88,6 +88,7 @@ export const LoadMore: Story = {
           hasMore={count < titles.length}
           loading={loading}
           href={`?after=${count}`}
+          loadedLabel={(shown) => `Showing ${shown} recipes`}
           onShowMore={() => {
             setLoading(true);
             setTimeout(() => {

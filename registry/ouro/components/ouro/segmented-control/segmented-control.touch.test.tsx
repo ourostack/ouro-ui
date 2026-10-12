@@ -51,7 +51,7 @@ const items = [
 it("keeps 44px segments with 16px text on a phone, also in landscape", async () => {
   const host = await render(<SegmentedControl label="View" items={items} />);
   // The track is 44px; each segment inside it reaches 44px through its touch target.
-  await expectTouchSize(host, '[role="group"]');
+  await expectTouchSize(host, '[role="radiogroup"]');
   for (const segment of host.querySelectorAll<HTMLElement>("[data-ouro-segment]")) {
     const rect = segment.getBoundingClientRect();
     expect(rect.width).toBeGreaterThanOrEqual(44);
@@ -66,5 +66,5 @@ it("keeps 44px segments with 16px text on a phone, also in landscape", async () 
 it("presses a segment on tap", async () => {
   const host = await render(<SegmentedControl label="View" items={items} />);
   await commands.tap("[data-ouro-segment]:nth-of-type(2)");
-  expect(host.querySelectorAll("[data-ouro-segment]")[1]!.getAttribute("aria-pressed")).toBe("true");
+  expect(host.querySelectorAll("[data-ouro-segment]")[1]!.getAttribute("aria-checked")).toBe("true");
 });

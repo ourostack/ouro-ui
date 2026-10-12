@@ -2,7 +2,7 @@
 
 # SegmentedControl
 
-An iOS-style segmented control: a row of equal segments with a raised thumb that slides to the pressed one, for switching how one view shows its content in place, such as list or grid. Exactly one segment is pressed. It is a group of toggle buttons with arrow-key focus, 44px tall on touch screens.
+An iOS-style segmented control: a row of equal segments with a raised thumb that slides to the checked one, for switching how one view shows its content in place, such as list or grid. Exactly one segment is checked. Screen readers hear a radio group, and the arrow keys check the next segment as they do for radio buttons. Segments are 44px tall on touch screens, and `name` submits the value with a form.
 
 ```tsx
 import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-control/segmented-control";
@@ -42,8 +42,9 @@ Type: `SegmentedControlProps`.
 | `hideLabel` | `boolean` |  | Hides the label visually; it still names the control for screen readers. Most view switchers set it. |
 | `items` (required) | `readonly SegmentedControlItem[]` |  | The segments, in order. Two to five read best. |
 | `label` (required) | `string` |  | Names the choice ("View"). Shown above the control unless `hideLabel` is set; screen readers always hear it. |
+| `name` | `string` |  | Submits the checked segment's value under this name with the form it sits in. |
 | `onValueChange` | `((value: string) => void)` |  | Called with the new segment's value when the person presses a segment. Pressing the pressed one does nothing. |
-| `ref` | `Ref<HTMLDivElement>` |  | Reaches the group element (`role="group"`). |
+| `ref` | `Ref<HTMLDivElement>` |  | Reaches the group element (`role="radiogroup"`). |
 | `value` | `string` |  | The pressed segment's value, when you control it. Pair it with `onValueChange`. |
 
 ## Don't use
