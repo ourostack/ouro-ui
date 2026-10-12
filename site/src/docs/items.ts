@@ -20,6 +20,8 @@ export interface DocsItem {
   markdown: string;
   /** The family in docs/parts.md whose nesting this page shows, if it has parts. */
   parts?: string;
+  /** Functions documented on this page too, after the component: `toast` on the Toaster page. */
+  functions?: string[];
 }
 
 /** docs/<Export>.md, generated, by export name. */
@@ -27,10 +29,26 @@ const markdownFiles = import.meta.glob<string>("../../../docs/*.md", { query: "?
 
 /** Every component's page, from site/src/docs/catalog.json, which `pnpm run docs` writes from the registry. */
 export const docsItems: DocsItem[] = (catalog as Array<Omit<DocsItem, "markdown">>).map((item) => {
-  const markdown = markdownFiles[`../../../docs/${item.title}.md`];
-  if (markdown === undefined) throw new Error(`docs/${item.title}.md is missing; run pnpm run docs.`);
+  const generated = (title: string) => {
+    const markdown = markdownFiles[`../../../docs/${title}.md`];
+    if (markdown === undefined) throw new Error(`docs/${title}.md is missing; run pnpm run docs.`);
+    return markdown;
+  };
+  const markdown = [generated(item.title), ...(item.functions ?? []).map((name) => functionSection(generated(name)))].join("\n");
   return { ...item, markdown };
 });
+
+/**
+ * A function's generated page (docs/toast.md) as one section of its component's page: its
+ * title becomes a `##` heading with the call's parentheses, and its own sections step down
+ * a level, so the Toaster page documents `toast()` too.
+ */
+function functionSection(markdown: string): string {
+  return markdown
+    .replace(/<!--[\s\S]*?-->\n*/g, "")
+    .replace(/^## /gm, "### ")
+    .replace(/^# (\w+)$/m, "## $1()");
+}
 
 /** The `## <family> parts` section of docs/parts.md, without its heading. */
 export function partsSection(family: string): string {

@@ -191,3 +191,10 @@ test("no timestamps", () => {
 test("Sheet's usage names the import of every part it tells you to use", () => {
   assert.match(doc("Sheet.md"), /`import \{ SheetClose \} from "@\/components\/ouro\/sheet\/sheet-parts"`, with your components alias/);
 });
+
+test("a function whose @see is a component's page is documented on that page", () => {
+  const catalog = JSON.parse(readFileSync(join(root, "site/src/docs/catalog.json"), "utf8"));
+  const pages = Object.fromEntries(catalog.filter((item) => item.functions).map((item) => [item.name, item.functions]));
+  assert.deepEqual(pages, { toaster: ["toast"] });
+  assert.match(doc("toast.md"), /^# toast$/m);
+});

@@ -202,6 +202,13 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **Sheet** — A panel that slides in from an edge and is dragged back to dismiss: the mobile form of a dialog. [Docs](docs/Sheet.md)
 - **Tooltip** — A short label that appears beside its trigger on hover and keyboard focus, for an icon button's purpose or a control's shortcut. [Docs](docs/Tooltip.md)
 
+### Feedback
+
+- **Progress** — A bar that shows how far along a task is, or that it is under way when you can't tell. [Docs](docs/Progress.md)
+- **Spinner** — A spinning ring that says something is loading. [Docs](docs/Spinner.md)
+- **toast** — Shows a toast: a short message that appears at the bottom of the screen, is read to screen readers once, and dismisses itself. [Docs](docs/toast.md)
+- **Toaster** — Shows the toasts you send with `toast("Saved")` from `@/lib/ouro/toast`: render it once, at the root of your app, inside `OuroProvider` if you use one, or alone. [Docs](docs/Toaster.md)
+
 ### Display
 
 - **Alert** — An inline message in the page: something saved, something failed, something to know before going on. [Docs](docs/Alert.md)
@@ -209,6 +216,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **AvatarGroup** — Avatars stacked with a slight overlap, such as the cooks on a recipe, with a "+N" count after `max`. [Docs](docs/AvatarGroup.md)
 - **Badge** — A short label for a status, category or count: "Draft", "Vegan", "3". [Docs](docs/Badge.md)
 - **Separator** — A thin line in the theme's border color between groups of content, horizontal or vertical. [Docs](docs/Separator.md)
+- **Skeleton** — A shimmering placeholder in the shape of content that is still loading. [Docs](docs/Skeleton.md)
 
 ### App setup
 
