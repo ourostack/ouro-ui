@@ -150,7 +150,7 @@ test("the catalog is grouped by job in README", () => {
   // In name order within a group; other components may sit between these.
   const others = String.raw`(?:- [^\n]+\n)*`;
   assert.match(catalog, new RegExp(String.raw`### Overlays\n\n- \*\*ConfirmDialog\*\* — [^\n]+\n${others}- \*\*Dialog\*\* — [^\n]+\n${others}- \*\*Sheet\*\* — A panel that slides in`));
-  assert.match(catalog, /### Text\n\n- \*\*Heading\*\* — [^\n]+\n- \*\*Link\*\* — [^\n]+\n- \*\*Text\*\* — /);
+  assert.match(catalog, new RegExp(String.raw`### Text\n\n- \*\*Heading\*\* — [^\n]+\n${others}- \*\*Kbd\*\* — [^\n]+\n${others}- \*\*Link\*\* — [^\n]+\n${others}- \*\*Text\*\* — `));
   assert.match(catalog, new RegExp(String.raw`### Forms\n\n- \*\*Field\*\* — [^\n]+\n${others}- \*\*Fieldset\*\* — [^\n]+\n${others}- \*\*TextArea\*\* — [^\n]+\n${others}- \*\*TextField\*\* — `));
 });
 
