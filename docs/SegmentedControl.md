@@ -42,7 +42,7 @@ Type: `SegmentedControlProps`.
 | `hideLabel` | `boolean` |  | Hides the label visually; it still names the control for screen readers. Most view switchers set it. |
 | `items` (required) | `readonly SegmentedControlItem[]` |  | The segments, in order. Two to five read best. |
 | `label` (required) | `string` |  | Names the choice ("View"). Shown above the control unless `hideLabel` is set; screen readers always hear it. |
-| `name` | `string` |  | Submits the checked segment's value under this name with the form it sits in. |
+| `name` | `string` |  | Submits the checked segment's value under this name with the form it sits in, unless the control is `disabled`. |
 | `onValueChange` | `((value: string) => void)` |  | Called with the new segment's value when the person presses a segment. Pressing the pressed one does nothing. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the group element (`role="radiogroup"`). |
 | `value` | `string` |  | The pressed segment's value, when you control it. Pair it with `onValueChange`. |

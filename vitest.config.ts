@@ -35,7 +35,10 @@ export default defineConfig({
       "@base-ui/react/tabs",
       "@base-ui/react/toggle",
       "@base-ui/react/toggle-group",
+      "@base-ui/react/popover",
+      "@base-ui/react/preview-card",
       "@base-ui/react/separator",
+      "@base-ui/react/tooltip",
     ],
   },
   test: {

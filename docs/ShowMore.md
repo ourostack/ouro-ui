@@ -55,6 +55,7 @@ Not in this mode (typed `never`):
 - `loadedLabel`: Only with `onShowMore`.
 - `loading`: Only with `onShowMore`.
 - `loadingLabel`: Only with `onShowMore`.
+- `noMoreLabel`: Only with `onShowMore`.
 - `onShowMore`: Only for a list that loads more: with `items`, without `initialCount` or `lines`.
 
 ### Lines: `ShowMoreLinesProps`
@@ -76,6 +77,7 @@ Not in this mode (typed `never`):
 - `loadedLabel`: Only with `onShowMore`.
 - `loading`: Only with `onShowMore`.
 - `loadingLabel`: Only with `onShowMore`.
+- `noMoreLabel`: Only with `onShowMore`.
 - `onShowMore`: Only for a list that loads more: with `items`, without `initialCount` or `lines`.
 - `ordered`: List modes only: not with `lines`.
 
@@ -91,6 +93,7 @@ A list the server grows a page at a time: "Show more" asks for the next page and
 | `loadedLabel` | `((count: number) => string)` | (count) => `Showing ${count} items` | What screen readers hear after each page, from the number of items now shown. Name the items and translate it here: `(count) => \`Showing ${count} recipes\``. |
 | `loading` | `boolean` |  | Shows the button as busy, and keeps it from asking twice. |
 | `loadingLabel` | `string` | `"Loading"` | What screen readers hear when loading starts. Translate it here. |
+| `noMoreLabel` | `string` | `"No more items"` | What screen readers hear when a page comes back empty and there is no more. Translate it here. |
 | `onShowMore` (required) | `() => void` |  | Asks for the next page. The button is busy while `loading`, and focus moves to the first new item when it arrives. |
 | `ordered` | `boolean` | `false` (`<ul>`) | Renders an `<ol>`, for a ranked or numbered list. |
 
