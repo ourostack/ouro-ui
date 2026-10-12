@@ -152,6 +152,21 @@ describe("Carousel navigation", () => {
     await expect.poll(() => onIndexChange).toHaveBeenLastCalledWith(1);
   });
 
+  it("moves one slide per press when presses come faster than the scroll settles", async () => {
+    const onIndexChange = vi.fn();
+    const screen = await render(
+      <Carousel label="Recipe photos" onIndexChange={onIndexChange}>
+        {photos()}
+      </Carousel>,
+    );
+    const next = screen.button("Next slide");
+    // Two presses in one task: no scroll event, so nothing has settled in between.
+    next.click();
+    next.click();
+    await expect.poll(() => onIndexChange.mock.calls).toEqual([[2]]);
+    expect(slideAtStart(screen.viewport, screen.slides)).toBe(2);
+  });
+
   it("moves focus to Previous when Next reaches the end, so focus is not lost", async () => {
     const screen = await render(<Carousel label="Recipe photos">{photos(2)}</Carousel>);
     const next = screen.button("Next slide");
@@ -290,12 +305,14 @@ describe("Carousel motion", () => {
       </Carousel>,
     );
     const scrollTo = vi.spyOn(screen.viewport, "scrollTo");
+    // Where each slide starts in the scroller's content, before anything moves.
+    const starts = screen.slides.map((slide) => slide.offsetLeft - screen.slides[0]!.offsetLeft);
     await userEvent.click(screen.button("Next slide"));
     expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: "smooth" }));
-    // Pressing again before the scroll settles goes on from where it is heading.
+    expect((scrollTo.mock.calls[0]![0] as ScrollToOptions).left).toBeCloseTo(starts[1]!, 0);
+    // Pressing again goes on from the slide it is heading to.
     await userEvent.click(screen.button("Next slide"));
-    await expect.poll(() => onIndexChange).toHaveBeenLastCalledWith(2);
-    expect(slideAtStart(screen.viewport, screen.slides)).toBe(2);
+    expect((scrollTo.mock.calls[1]![0] as ScrollToOptions).left).toBeCloseTo(starts[2]!, 0);
   });
 });
 
