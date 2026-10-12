@@ -89,7 +89,10 @@ describe("Toaster", () => {
   it("stacks above dialogs and sheets, one level over --ouro-layer", async () => {
     await render(<Toaster />);
     const portal = viewport()!.parentElement!;
-    expect(getComputedStyle(portal).zIndex).toBe("51");
+    // --ouro-layer is 50 from ouro-base, unless the app raised it.
+    const layer = Number(getComputedStyle(document.documentElement).getPropertyValue("--ouro-layer"));
+    expect(layer).toBeGreaterThanOrEqual(50);
+    expect(getComputedStyle(portal).zIndex).toBe(String(layer + 1));
     expect(getComputedStyle(portal).isolation).toBe("isolate");
   });
 
