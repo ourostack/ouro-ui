@@ -157,6 +157,8 @@ export const swipe: BrowserCommand<[SwipeOptions]> = async (ctx, { from, to, ste
   for (let step = 1; step <= steps; step++) {
     const t = step / steps;
     await touch("touchMove", [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t]);
+    // One move per frame, as a finger reports at 60Hz.
+    await page.waitForTimeout(16);
   }
   await touch("touchEnd", to);
 };

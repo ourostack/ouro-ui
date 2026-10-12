@@ -13,6 +13,8 @@ test("swipe scrolls what is under the finger with real touch input", async () =>
   document.body.append(scroller);
   const events: string[] = [];
   scroller.addEventListener("pointerdown", (event) => events.push(event.pointerType));
+  // Let the compositor see the new scroller before the finger lands, as a user would.
+  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   await commands.swipe({ from: [200, 600], to: [200, 200], steps: 8 });
   await expect.poll(() => scroller.scrollTop).toBeGreaterThan(100);
   scroller.remove();
