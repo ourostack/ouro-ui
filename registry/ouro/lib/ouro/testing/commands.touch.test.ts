@@ -7,12 +7,12 @@ test("the touch project reports a coarse pointer at 390x844", () => {
   expect(innerWidth).toBe(390);
 });
 
-test("rotate refuses to run on a page that is already zoomed, naming the test", async () => {
+test("rotate names the test that had the page zoomed", async () => {
   await commands.setPageZoom(2);
   expect(await commands.pageZoom()).toBeCloseTo(2);
   try {
     await expect(rotate(844, 390)).rejects.toThrow(
-      '"rotate refuses to run on a page that is already zoomed, naming the test" left the page zoomed to 2.00',
+      '"rotate names the test that had the page zoomed" had the page zoomed to 2.00 when rotate(844, 390) ran',
     );
   } finally {
     await commands.resetPageZoom();

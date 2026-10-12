@@ -8,8 +8,9 @@ import { commands, page } from "vitest/browser";
  * input lands. Touch tests rotate with this instead of `page.viewport`; the `ouro-touch`
  * project fails any test that leaves the page zoomed.
  *
- * It first checks that nothing else has zoomed the page, and throws, naming the current test,
- * if something has, so a zoom during a landscape test is not erased by the rotation back.
+ * It also checks that nothing else had zoomed the page: if something had, it still resizes and
+ * resets the zoom, so the next test starts clean, and then throws, naming the current test, so
+ * a zoom during a landscape test is not silently erased by the rotation back.
  *
  * @example
  * await rotate(844, 390); // landscape
@@ -17,12 +18,17 @@ import { commands, page } from "vitest/browser";
  */
 export async function rotate(width: number, height: number): Promise<void> {
   const zoom = await commands.pageZoom();
+  try {
+    await page.viewport(width, height);
+  } finally {
+    // Always leave the page resized and at zoom 1, so a failure here never spills into the
+    // next test.
+    await commands.resetPageZoom();
+  }
   if (Math.abs(zoom - 1) >= 0.001) {
     const name = expect.getState().currentTestName ?? "This test";
     throw new Error(
-      `"${name}" left the page zoomed to ${zoom.toFixed(2)} before rotate(${width}, ${height}). Something other than a rotation zoomed it.`,
+      `"${name}" had the page zoomed to ${zoom.toFixed(2)} when rotate(${width}, ${height}) ran. Something other than a rotation zoomed it.`,
     );
   }
-  await page.viewport(width, height);
-  await commands.resetPageZoom();
 }
