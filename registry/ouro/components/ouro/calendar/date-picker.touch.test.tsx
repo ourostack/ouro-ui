@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { page } from "vitest/browser";
 import { DatePicker } from "@/registry/ouro/components/ouro/calendar/date-picker";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -93,4 +93,20 @@ it("reports a disallowed date from the phone's picker as empty, with the same me
   await choose(input, "");
   expect(calls).toEqual(["2026-10-14", "", "2026-10-20", ""]);
   expect(input.validity.valid).toBe(true);
+});
+
+it("reports a held date once the app relaxes the limit that made it disallowed", async () => {
+  const onValueChange = vi.fn();
+  const host = await render(<DatePicker label="Delivery date" min="2026-10-05" onValueChange={onValueChange} />);
+  const input = host.querySelector("input")!;
+  await choose(input, "2026-10-01");
+  expect(onValueChange).not.toHaveBeenCalled();
+  await act(async () => root!.render(<DatePicker label="Delivery date" min="2026-09-01" onValueChange={onValueChange} />));
+  expect(onValueChange).toHaveBeenCalledTimes(1);
+  expect(onValueChange).toHaveBeenLastCalledWith("2026-10-01");
+  expect(input.validity.valid).toBe(true);
+  // Tightening it again reports the field empty.
+  await act(async () => root!.render(<DatePicker label="Delivery date" min="2026-10-05" onValueChange={onValueChange} />));
+  expect(onValueChange).toHaveBeenLastCalledWith("");
+  expect(onValueChange).toHaveBeenCalledTimes(2);
 });

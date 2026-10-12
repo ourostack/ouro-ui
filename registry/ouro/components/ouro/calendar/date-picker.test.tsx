@@ -273,6 +273,18 @@ describe("DatePicker", () => {
       expect(onValueChange).toHaveBeenLastCalledWith("2026-10-14");
     });
 
+    it("reports a typed date once the app relaxes the limit that made it disallowed", async () => {
+      const onValueChange = vi.fn();
+      const { input, rerender } = await render(<DatePicker label="Date" max="2026-10-20" onValueChange={onValueChange} />);
+      await userEvent.type(input, "10/25/2026");
+      expect(onValueChange).toHaveBeenLastCalledWith("");
+      onValueChange.mockClear();
+      await rerender(<DatePicker label="Date" max="2026-12-31" onValueChange={onValueChange} />);
+      expect(onValueChange).toHaveBeenCalledTimes(1);
+      expect(onValueChange).toHaveBeenLastCalledWith("2026-10-25");
+      expect(input.validity.valid).toBe(true);
+    });
+
     it("translates the out-of-range message", async () => {
       const { input } = await render(<DatePicker label="Datum" min="2026-10-05" outOfRangeMessage="Datum außerhalb des Bereichs." />);
       await userEvent.type(input, "10/01/2026");

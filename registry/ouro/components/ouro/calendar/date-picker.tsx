@@ -270,6 +270,17 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
     inputRef.current!.setCustomValidity(message);
   }, [message, touch]);
 
+  // What the field holds as a value: the picker's or the box's date when it is allowed. Typing
+  // and picking report it as they go; when the app changes min, max or isDateDisabled, a held
+  // date can become allowed (or stop being allowed), so report the change then too.
+  const held = touch ? allowedOrEmpty(isIsoDate(chosen) ? chosen : null) : valueOf(text);
+  const lastHeld = useRef(held);
+  useEffect(() => {
+    if (held === lastHeld.current) return;
+    lastHeld.current = held;
+    commit(held);
+  });
+
   // A typed date outside min and max, or one isDateDisabled names, is not a value: the field
   // reports `""` and shows why, as the browser blocks the submit.
   const onType = (event: ChangeEvent<HTMLInputElement>) => {
