@@ -146,8 +146,7 @@ export interface Opener {
 /**
  * What opens an overlay in a story: the visible, enabled Base UI triggers (`aria-haspopup`) in
  * the scope, then, at the top level, the plain openers by accessible name and the shortcut. A
- * disabled trigger (a disabled Select in a states story) opens nothing, so it is left out, and so
- * is one already expanded (Command's search input, whose inline list always shows).
+ * disabled trigger (a disabled Select in a states story) opens nothing, so it is left out.
  * Throws when a plain opener is missing.
  */
 export function overlayOpeners(
@@ -157,7 +156,7 @@ export function overlayOpeners(
   top = true,
 ): Opener[] {
   const roots = Array.isArray(scope) ? scope : [scope];
-  const triggers = [...new Set(roots.flatMap((root) => [...root.querySelectorAll<HTMLElement>('[aria-haspopup]:not([aria-haspopup="false"]):not([aria-expanded="true"])')]))]
+  const triggers = [...new Set(roots.flatMap((root) => [...root.querySelectorAll<HTMLElement>('[aria-haspopup]:not([aria-haspopup="false"])')]))]
     .filter((element) => !element.matches(':disabled, [aria-disabled="true"], [data-disabled]') && isVisible(element))
     .map((element) => ({ name: accessibleName(element), open: () => userEvent.click(element) }));
   if (!top) return triggers;

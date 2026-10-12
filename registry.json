@@ -1933,6 +1933,11 @@
           "target": "@lib/ouro/ouro-provider.test.tsx"
         },
         {
+          "path": "registry/ouro/lib/ouro/server-element.test.tsx",
+          "type": "registry:lib",
+          "target": "@lib/ouro/server-element.test.tsx"
+        },
+        {
           "path": "registry/ouro/lib/ouro/use-command-shortcut.test.tsx",
           "type": "registry:lib",
           "target": "@lib/ouro/use-command-shortcut.test.tsx"
