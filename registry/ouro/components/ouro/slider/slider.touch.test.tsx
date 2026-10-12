@@ -13,8 +13,6 @@ afterEach(async () => {
   await page.viewport(390, 844);
   await act(async () => root?.unmount());
   for (const node of nodes.splice(0)) node.remove();
-  // The swipe test scrolls this document; later files measure raw coordinates.
-  window.scrollTo(0, 0);
 });
 
 async function render(node: ReactNode) {
