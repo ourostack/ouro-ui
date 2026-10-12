@@ -194,6 +194,16 @@ export const setPageZoom: BrowserCommand<[scale: number]> = async (ctx, scale) =
   await session.send("Emulation.setPageScaleFactor", { pageScaleFactor: scale });
 };
 
+/**
+ * Turns the page's touch emulation back on (Chromium, through CDP; elsewhere it does nothing).
+ * Chromium drops it, for the rest of the page's life, after a screenshot that reaches beyond
+ * the viewport, such as the one Vitest takes when a test fails on a tall page: the page then
+ * reports a fine pointer that can hover. The `ouro-touch` project calls this before every test.
+ */
+export const restoreTouch: BrowserCommand<[]> = async (ctx) => {
+  await (await chromiumSession(ctx))?.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 });
+};
+
 export type TouchStepOptions =
   | {
       /** `touchStart` puts the finger down and `touchMove` moves it. */
@@ -230,7 +240,7 @@ export const touchStep: BrowserCommand<[TouchStepOptions]> = async (ctx, step) =
   fingersDown.add(page);
 };
 
-export const commands = { emulateMedia, drag, flick, pageZoom, pointerPress, resetPageZoom, setPageZoom, tap, touchDrag, touchStep };
+export const commands = { emulateMedia, drag, flick, pageZoom, pointerPress, resetPageZoom, restoreTouch, setPageZoom, tap, touchDrag, touchStep };
 
 declare module "vitest/browser" {
   interface BrowserCommands {
@@ -243,6 +253,7 @@ declare module "vitest/browser" {
     pointerPress: (options: PointerPressOptions) => Promise<void>;
     pageZoom: () => Promise<number>;
     resetPageZoom: () => Promise<void>;
+    restoreTouch: () => Promise<void>;
     setPageZoom: (scale: number) => Promise<void>;
   }
 }

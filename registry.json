@@ -287,7 +287,7 @@
       "name": "ouro-testing",
       "type": "registry:lib",
       "title": "Ouro testing",
-      "description": "Installed with every -tests item; you don't need to add it. The test kit Ouro UI's tests use: Vitest browser projects with the drag, flick, tap, touchDrag, touchStep, pointerPress, emulateMedia, pageZoom, resetPageZoom and setPageZoom commands, the rotate helper (which turns the phone viewport and resets Chromium's zoom; the ouro-touch project fails a test that leaves the page zoomed), the act helper, axeExclude, and the end-to-end story helper.",
+      "description": "Installed with every -tests item; you don't need to add it. The test kit Ouro UI's tests use: Vitest browser projects with the drag, flick, tap, touchDrag, touchStep, pointerPress, emulateMedia, pageZoom, resetPageZoom, setPageZoom and restoreTouch commands, the rotate helper (which turns the phone viewport and resets Chromium's zoom; the ouro-touch project fails a test that leaves the page zoomed), the act helper, axeExclude, and the end-to-end story helper.",
       "docs": "The -tests items install Ouro UI's tests beside each component. To run the Vitest browser tests, add vitest.config.ts (use your components.json tailwind.css path for css), then run npx playwright install chromium webkit and npx vitest run:\n--- vitest.config.ts\nimport { defineConfig, mergeConfig } from \"vitest/config\";\nimport viteConfig from \"./vite.config.ts\";\nimport { ouroTestProjects } from \"./src/lib/ouro/testing/vitest.ts\";\n\nexport default mergeConfig(viteConfig, defineConfig({ test: { projects: ouroTestProjects({ css: \"./src/index.css\" }) } }));\n\nThe end-to-end specs in e2e/ouro open the Ouro stories in a Storybook. If your app has none, add these two files (use your stylesheet in preview.ts):\n--- .storybook/main.ts\nexport default { stories: [\"../src/**/*.stories.@(ts|tsx)\"], framework: \"@storybook/react-vite\" };\n--- .storybook/preview.ts\nimport \"../src/index.css\";\n\nIf your app has no Playwright config, add this one, which starts that Storybook and runs Chromium and WebKit:\n--- playwright.config.ts\nimport { defineConfig, devices } from \"@playwright/test\";\n\n// Starts the app's Storybook, where Ouro UI's specs (e2e/ouro) open their stories.\nexport default defineConfig({\n  testDir: \"e2e\",\n  projects: [\n    { name: \"chromium\", use: { ...devices[\"Desktop Chrome\"] } },\n    { name: \"webkit\", use: { ...devices[\"Desktop Safari\"] } },\n  ],\n  webServer: {\n    command: \"npx storybook dev -p 6006 --ci --no-open\",\n    url: \"http://localhost:6006/iframe.html\",\n    reuseExistingServer: !process.env[\"CI\"],\n    timeout: 180_000,\n  },\n});\n\nThen run npx playwright test e2e/ouro. With a Playwright config of your own, start Storybook with npx storybook dev -p 6006 and run OURO_E2E_URL=http://localhost:6006 npx playwright test e2e/ouro.\nDocs: https://ourostack.github.io/ouro-ui/docs",
       "devDependencies": [
         "@playwright/test@^1.63.0",
@@ -345,6 +345,11 @@
           "path": "registry/ouro/lib/ouro/testing/setup.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/testing/setup.ts"
+        },
+        {
+          "path": "registry/ouro/lib/ouro/testing/touch-setup.touch.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/testing/touch-setup.touch.test.ts"
         },
         {
           "path": "registry/ouro/lib/ouro/testing/touch-setup.ts",
