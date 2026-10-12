@@ -84,6 +84,9 @@ const mounted: Element[] = [];
  */
 export function setScheme(scheme: "light" | "dark"): void {
   document.documentElement.classList.toggle("dark", scheme === "dark");
+  // Resolve styles now: WebKit otherwise styles a native <select> rendered next, and its
+  // ancestors, with the previous scheme's variables.
+  void getComputedStyle(document.documentElement).color;
 }
 
 /** Renders a story into the page. */
@@ -142,7 +145,8 @@ export interface Opener {
 
 /**
  * What opens an overlay in a story: the visible, enabled Base UI triggers (`aria-haspopup`) in
- * the scope, then, at the top level, the plain openers by accessible name and the shortcut.
+ * the scope, then, at the top level, the plain openers by accessible name and the shortcut. A
+ * disabled trigger (a disabled Select in a states story) opens nothing, so it is left out.
  * Throws when a plain opener is missing.
  */
 export function overlayOpeners(
@@ -153,7 +157,7 @@ export function overlayOpeners(
 ): Opener[] {
   const roots = Array.isArray(scope) ? scope : [scope];
   const triggers = [...new Set(roots.flatMap((root) => [...root.querySelectorAll<HTMLElement>('[aria-haspopup]:not([aria-haspopup="false"])')]))]
-    .filter((element) => !element.matches(':disabled, [aria-disabled="true"]') && isVisible(element))
+    .filter((element) => !element.matches(':disabled, [aria-disabled="true"], [data-disabled]') && isVisible(element))
     .map((element) => ({ name: accessibleName(element), open: () => userEvent.click(element) }));
   if (!top) return triggers;
   const plain = (parameters.plainOpeners ?? []).map((label) => {
@@ -181,9 +185,9 @@ export async function settle(): Promise<void> {
 /** How long an overlay may take to open or close on a loaded CI runner. */
 const waitOptions = { timeout: 10_000, interval: 20 };
 
-/** The open overlay's popup (Dialog, ConfirmDialog or Sheet, in either presentation). */
+/** The open overlay's popup (Dialog, ConfirmDialog or Sheet, in either presentation, or Select's list). */
 export function openPopup(): HTMLElement | null {
-  return document.querySelector<HTMLElement>('[role="dialog"][data-open], [role="alertdialog"][data-open]');
+  return document.querySelector<HTMLElement>('[role="dialog"][data-open], [role="alertdialog"][data-open], [data-ouro="select-popup"][data-open]');
 }
 
 /** Uses an opener and waits for its overlay to finish opening. */
