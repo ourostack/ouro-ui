@@ -19,6 +19,7 @@ import {
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
+import { ariaKeyShortcuts } from "@/registry/ouro/lib/ouro/key-shortcuts";
 import {
   floatingAligns,
   floatingHint,
@@ -105,6 +106,8 @@ export interface MenuSubmenuEntry {
   label: string;
   items: readonly MenuEntry[];
   disabled?: boolean | undefined;
+  /** The text of the item that goes back from the submenu in the phone sheet. Default "Back". */
+  backLabel?: string | undefined;
 }
 
 /** One entry in a Menu's `items`: an item (the default `type`), a checkbox, a radio group, a group, a submenu or a separator. */
@@ -266,7 +269,7 @@ function renderEntries(entries: readonly MenuEntry[]): ReactNode {
         );
       case "submenu":
         return (
-          <MenuSub key={index} label={entry.label} disabled={entry.disabled}>
+          <MenuSub key={index} label={entry.label} disabled={entry.disabled} backLabel={entry.backLabel}>
             {renderEntries(entry.items)}
           </MenuSub>
         );
@@ -540,7 +543,7 @@ export interface MenuItemProps {
   /** Shown, but cannot be chosen. */
   disabled?: boolean | undefined;
 
-  /** Not a prop. The handler is `onClick`: `<MenuItem onClick={edit}>`. */
+  /** Not a prop. The handler is `onClick`: `<MenuItem onClick={edit}>`. (A `Command` item is the one that takes `onSelect`.) */
   onSelect?: { "Use <MenuItem onClick={edit}>": never };
   /** Not a prop. A menu item takes `tone`: `<MenuItem tone="destructive">`. */
   variant?: { 'Use <MenuItem tone="destructive">': never };
@@ -561,6 +564,12 @@ function shortcutWarning(component: string, shortcut: unknown): readonly [string
   );
 }
 
+/** The `aria-keyshortcuts` attribute for an item's shortcut, which its `Kbd` (hidden from the accessible name) shows. */
+function keyShortcutProps(shortcut: MenuShortcut | undefined): { "aria-keyshortcuts"?: string } {
+  const keys = shortcutKeys(shortcut);
+  return keys ? { "aria-keyshortcuts": ariaKeyShortcuts(keys) } : {};
+}
+
 /** The item's text, then its shortcut at the end. */
 function ItemBody({ children, shortcut }: { children: ReactNode; shortcut: MenuShortcut | undefined }): JSX.Element {
   const keys = shortcutKeys(shortcut);
@@ -569,7 +578,7 @@ function ItemBody({ children, shortcut }: { children: ReactNode; shortcut: MenuS
       <span data-ouro-menu-label="" className="flex min-w-0 flex-1 items-center gap-2">
         {children}
       </span>
-      {keys && <Kbd keys={keys} className="ms-auto" />}
+      {keys && <Kbd keys={keys} aria-hidden="true" className="ms-auto" />}
     </>
   );
 }
@@ -608,7 +617,7 @@ export function MenuItem(props: MenuItemProps): JSX.Element {
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
-  const shared = { className: menuItemClass, "data-tone": tone, ...(onClick ? { onClick: (event: MouseEvent<HTMLElement>) => onClick(event) } : {}) };
+  const shared = { className: menuItemClass, "data-tone": tone, ...keyShortcutProps(shortcut), ...(onClick ? { onClick: (event: MouseEvent<HTMLElement>) => onClick(event) } : {}) };
   const body = <ItemBody shortcut={shortcut}>{children}</ItemBody>;
   // A disabled link is a disabled item: nothing to follow.
   if (href !== undefined && !disabled) {
@@ -668,7 +677,7 @@ export function MenuCheckboxItem({ children, shortcut, onCheckedChange, ...rest 
     process.env.NODE_ENV !== "production" ? () => [shortcutWarning("MenuCheckboxItem", shortcut)] : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   return (
-    <BaseMenu.CheckboxItem {...rest} {...(onCheckedChange ? { onCheckedChange: (next: boolean) => onCheckedChange(next) } : {})} className={menuItemClass}>
+    <BaseMenu.CheckboxItem {...rest} {...keyShortcutProps(shortcut)} {...(onCheckedChange ? { onCheckedChange: (next: boolean) => onCheckedChange(next) } : {})} className={menuItemClass}>
       <span data-ouro-menu-indicator="" className={menuIndicatorClass}>
         <BaseMenu.CheckboxItemIndicator className="flex">
           <CheckIcon />
@@ -755,7 +764,7 @@ export function MenuRadioItem({ children, shortcut, ...rest }: MenuRadioItemProp
     process.env.NODE_ENV !== "production" ? () => [shortcutWarning("MenuRadioItem", shortcut)] : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   return (
-    <BaseMenu.RadioItem {...rest} className={menuItemClass}>
+    <BaseMenu.RadioItem {...rest} {...keyShortcutProps(shortcut)} className={menuItemClass}>
       <span data-ouro-menu-indicator="" className={menuIndicatorClass}>
         <BaseMenu.RadioItemIndicator className="flex">
           <CheckIcon />

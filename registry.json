@@ -202,6 +202,11 @@
           "target": "@lib/ouro/floating.ts"
         },
         {
+          "path": "registry/ouro/lib/ouro/key-shortcuts.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/key-shortcuts.ts"
+        },
+        {
           "path": "registry/ouro/lib/ouro/last-input.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/last-input.ts"

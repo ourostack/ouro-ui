@@ -27,6 +27,8 @@ const [open, setOpen] = useCommandShortcut("mod+k");
 
 Open it with `trigger`, or control it with `open` and `onOpenChange`, usually from `useCommandShortcut`, which opens it on ⌘K (Ctrl+K elsewhere): `import { useCommandShortcut } from "@/lib/ouro/use-command-shortcut"`.
 
+`useCommandShortcut(shortcut = "mod+k")` returns `[open, setOpen]` and toggles `open` on the shortcut anywhere on the page. It takes the keys as `"mod+k"` or `["mod", "k"]`, with Kbd's names: `mod` (⌘ on Apple platforms, Ctrl elsewhere), `cmd`, `ctrl`, `alt` and `shift`. It needs exactly those modifiers, ignores a held key's repeats and prevents the browser's action for that combination. It never fires while an input method is composing text, and in a text field it fires only when the shortcut includes `mod`, `cmd` or `ctrl`, so a shortcut like `"/"` never takes a typed character.
+
 ## Use instead when
 
 - Use `Menu` instead for the few actions on one thing, and `Combobox` to pick a value for a form.
@@ -132,7 +134,7 @@ interface CommandItem {
   /** Listed, but cannot be run. */
   disabled?: boolean | undefined;
 
-  /** Not a prop. A command runs `onSelect`: `{ label: "New recipe", onSelect: create }`. */
+  /** Not a prop. A command runs `onSelect`: `{ label: "New recipe", onSelect: create }`. (A `MenuItem` is the one that takes `onClick`.) */
   onClick?: { 'Use onSelect: { label: "New recipe", onSelect: create }': never };
 }
 ```

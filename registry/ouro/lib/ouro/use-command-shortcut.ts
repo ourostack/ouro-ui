@@ -43,12 +43,21 @@ function matches(event: KeyboardEvent, keys: readonly string[]): boolean {
   return event.key.toLowerCase() === key;
 }
 
+/** Whether the key press comes from a field the user types in. */
+function isEditable(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return target.isContentEditable || target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement;
+}
+
 /**
  * The open state for a `Command` palette, toggled by a keyboard shortcut anywhere on the
  * page: `"mod+k"` (the default) is ⌘K on Apple platforms and Ctrl+K elsewhere. Pass the
  * keys as a string joined by `+` or as an array, with the names `Kbd` uses (`mod`, `cmd`,
- * `ctrl`, `alt`, `shift`). The shortcut works while focus is in a text field too, and the
- * browser's own action for it is prevented.
+ * `ctrl`, `alt`, `shift`). When it fires, the browser's own action for that key
+ * combination is prevented. It never fires while an input method is composing text. In a
+ * text field (an input, a textarea, a select or a contenteditable element) it fires only
+ * when it includes `mod`, `meta`/`cmd` or `ctrl`, so `"/"` never takes a typed character
+ * and `"mod+k"` still opens the palette from a field.
  *
  * @example
  * const [open, setOpen] = useCommandShortcut("mod+k");
@@ -60,8 +69,11 @@ export function useCommandShortcut(shortcut: string | readonly string[] = "mod+k
   const id = keys.join("+");
   useEffect(() => {
     const parts = id.split("+");
+    // A shortcut with a command modifier types nothing, so it may fire from a field.
+    const commandKey = parts.some((name) => ["mod", "meta", "cmd", "command", "ctrl", "control"].includes(name.toLowerCase()));
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.repeat || !matches(event, parts)) return;
+      if (event.repeat || event.isComposing || !matches(event, parts)) return;
+      if (!commandKey && isEditable(event.target)) return;
       event.preventDefault();
       setOpen((value) => !value);
     };

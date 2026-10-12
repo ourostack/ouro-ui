@@ -6,6 +6,7 @@ import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name
 import { floatingHint } from "@/registry/ouro/lib/ouro/floating";
 import { lastInput } from "@/registry/ouro/lib/ouro/last-input";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
+import { ariaKeyShortcuts } from "@/registry/ouro/lib/ouro/key-shortcuts";
 import { checkOpenMode } from "@/registry/ouro/lib/ouro/open-mode";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
@@ -47,7 +48,7 @@ export interface CommandItem {
   /** Listed, but cannot be run. */
   disabled?: boolean | undefined;
 
-  /** Not a prop. A command runs `onSelect`: `{ label: "New recipe", onSelect: create }`. */
+  /** Not a prop. A command runs `onSelect`: `{ label: "New recipe", onSelect: create }`. (A `MenuItem` is the one that takes `onClick`.) */
   onClick?: { 'Use onSelect: { label: "New recipe", onSelect: create }': never };
 }
 
@@ -169,6 +170,14 @@ function SearchIcon(): JSX.Element {
  * Open it with `trigger`, or control it with `open` and `onOpenChange`, usually from
  * `useCommandShortcut`, which opens it on ⌘K (Ctrl+K elsewhere):
  * `import { useCommandShortcut } from "@/lib/ouro/use-command-shortcut"`.
+ *
+ * `useCommandShortcut(shortcut = "mod+k")` returns `[open, setOpen]` and toggles `open`
+ * on the shortcut anywhere on the page. It takes the keys as `"mod+k"` or `["mod", "k"]`,
+ * with Kbd's names: `mod` (⌘ on Apple platforms, Ctrl elsewhere), `cmd`, `ctrl`, `alt`
+ * and `shift`. It needs exactly those modifiers, ignores a held key's repeats and prevents
+ * the browser's action for that combination. It never fires while an input method is
+ * composing text, and in a text field it fires only when the shortcut includes `mod`,
+ * `cmd` or `ctrl`, so a shortcut like `"/"` never takes a typed character.
  *
  * Use `Menu` instead for the few actions on one thing, and `Combobox` to pick a value for a form.
  *
@@ -297,12 +306,20 @@ export function Command(props: CommandProps): JSX.Element {
                   </Autocomplete.GroupLabel>
                 )}
                 <Autocomplete.Collection>
-                  {(item: CommandItem) => (
-                    <Autocomplete.Item key={item.label} value={item} disabled={item.disabled} onClick={() => run(item)} className={commandItemClass}>
+                  {(item: CommandItem, itemIndex: number) => (
+                    <Autocomplete.Item
+                      // Two commands may share a label; the position keeps their rows apart.
+                      key={`${item.label}-${itemIndex}`}
+                      value={item}
+                      disabled={item.disabled}
+                      onClick={() => run(item)}
+                      className={commandItemClass}
+                      {...(item.shortcut ? { "aria-keyshortcuts": ariaKeyShortcuts(item.shortcut) } : {})}
+                    >
                       <span data-ouro-command-label="" className="min-w-0 flex-1 truncate">
                         {item.label}
                       </span>
-                      {item.shortcut && <Kbd keys={item.shortcut} />}
+                      {item.shortcut && <Kbd keys={item.shortcut} aria-hidden="true" />}
                     </Autocomplete.Item>
                   )}
                 </Autocomplete.Collection>

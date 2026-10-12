@@ -39,7 +39,7 @@ These are not props. Passing one fails the type check with the fix in the error,
 
 - `asChild`: Not a prop. For a link, pass `href`: `<MenuItem href="/recipes/1">`.
 - `checked`: Not a prop. A checkable item is a `MenuCheckboxItem`: `<MenuCheckboxItem checked={pinned} onCheckedChange={setPinned}>`.
-- `onSelect`: Not a prop. The handler is `onClick`: `<MenuItem onClick={edit}>`.
+- `onSelect`: Not a prop. The handler is `onClick`: `<MenuItem onClick={edit}>`. (A `Command` item is the one that takes `onSelect`.)
 - `variant`: Not a prop. A menu item takes `tone`: `<MenuItem tone="destructive">`.
 
 ## Types

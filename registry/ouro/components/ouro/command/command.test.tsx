@@ -297,6 +297,20 @@ describe("Command presentation", () => {
   });
 });
 
+describe("Command duplicate labels", () => {
+  it("renders two commands with the same label in one group without a key warning", async () => {
+    const error = vi.spyOn(console, "error");
+    const first = vi.fn();
+    const second = vi.fn();
+    await openPalette({ items: [{ label: "Recipes", items: [{ label: "Export", onSelect: first }, { label: "Export", onSelect: second }] }] } as object);
+    expect(document.querySelectorAll('[role="option"]')).toHaveLength(2);
+    expect(error.mock.calls.map((call) => String(call[0])).filter((text) => text.includes("same key"))).toEqual([]);
+    await userEvent.click(page.getByRole("option").nth(1));
+    expect(second).toHaveBeenCalledOnce();
+    expect(first).not.toHaveBeenCalled();
+  });
+});
+
 describe("Command server rendering", () => {
   it("renders only the trigger on the server", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});

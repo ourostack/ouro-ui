@@ -230,6 +230,48 @@ describe("Menu items", () => {
     expect(getComputedStyle(element).color).toBe(getComputedStyle(probe).color);
   });
 
+  it("keeps the shortcut out of the item's name and announces it with aria-keyshortcuts", async () => {
+    await openDropdown(
+      {},
+      <>
+        <MenuItem shortcut={["mod", "shift", "e"]}>Edit</MenuItem>
+        <MenuCheckboxItem shortcut={["alt", "backspace"]}>Pin</MenuCheckboxItem>
+      </>,
+    );
+    const edit = page.getByRole("menuitem", { name: "Edit", exact: true }).element();
+    expect(edit.getAttribute("aria-keyshortcuts")).toBe("Control+Shift+E Meta+Shift+E");
+    expect(edit.querySelector('[data-ouro="kbd"]')!.getAttribute("aria-hidden")).toBe("true");
+    const pin = page.getByRole("menuitemcheckbox", { name: "Pin", exact: true }).element();
+    expect(pin.getAttribute("aria-keyshortcuts")).toBe("Alt+Backspace");
+  });
+
+  it("lets a modifier-click on an href item through, so the browser opens the link in a new tab", async () => {
+    await render(
+      <Menu trigger={<Button>Actions</Button>}>
+        <MenuItem href="/recipes/1">Open recipe</MenuItem>
+        <MenuItem href="https://example.com/recipes">Website</MenuItem>
+      </Menu>,
+    );
+    const prevented: boolean[] = [];
+    // Runs after every handler of the page; it records the outcome, then keeps the test page from opening tabs.
+    const record = (event: MouseEvent) => {
+      prevented.push(event.defaultPrevented);
+      event.preventDefault();
+    };
+    window.addEventListener("click", record);
+    try {
+      for (const name of ["Open recipe", "Website"]) {
+        await userEvent.click(trigger());
+        await settled();
+        await userEvent.click(item(name), { modifiers: ["ControlOrMeta"] });
+        await expect.poll(menu).toBeNull();
+      }
+    } finally {
+      window.removeEventListener("click", record);
+    }
+    expect(prevented.slice(-2)).toEqual([false, false]);
+  });
+
   it("renders href as a link through OuroProvider's linkComponent, and closes on click", async () => {
     const seen: string[] = [];
     function AppLink(props: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) {
@@ -387,6 +429,16 @@ describe("Menu items", () => {
     expect(item("Edit").element().querySelector('[data-ouro="kbd"]')).not.toBeNull();
     await userEvent.click(item("Edit"));
     expect(onClick).toHaveBeenCalledOnce();
+  });
+
+  it("takes a submenu's backLabel from items, for the phone sheet's Back item", async () => {
+    await page.viewport(390, 844);
+    await render(<Menu trigger={<Button>Actions</Button>} items={[{ type: "submenu", label: "Partager", backLabel: "Retour", items: [{ label: "Copier le lien" }] }]} />);
+    await userEvent.click(trigger());
+    await settled();
+    await userEvent.click(item("Partager"));
+    await expect.element(item("Retour")).toBeVisible();
+    expect(document.body.textContent).not.toContain("Back");
   });
 
   it("has no axe violations open, with every item type", async () => {

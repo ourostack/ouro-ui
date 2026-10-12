@@ -209,5 +209,7 @@ interface MenuSubmenuEntry {
   label: string;
   items: readonly MenuEntry[];
   disabled?: boolean | undefined;
+  /** The text of the item that goes back from the submenu in the phone sheet. Default "Back". */
+  backLabel?: string | undefined;
 }
 ```
