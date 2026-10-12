@@ -4,7 +4,7 @@ import { NumberField as BaseNumberField } from "@base-ui/react/number-field";
 import type { JSX, ReactElement, ReactNode, Ref } from "react";
 import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-styles";
-import { FieldOwnerContext, useField } from "@/registry/ouro/lib/ouro/use-field";
+import { FieldOwnerContext, useField, useFormErrors } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
@@ -185,6 +185,12 @@ export function NumberField(props: NumberFieldProps): JSX.Element {
     currency,
     type,
   } = props;
+  const form = useFormErrors();
+  // A change drops a Form error for this name, as typing does in a text field.
+  const handleValueChange = (next: number | null) => {
+    if (name !== undefined) form?.clear(name);
+    onValueChange?.(next);
+  };
 
   useDevWarnings(
     "NumberField",
@@ -220,7 +226,7 @@ export function NumberField(props: NumberFieldProps): JSX.Element {
       <BaseNumberField.Root
         value={value}
         defaultValue={defaultValue ?? undefined}
-        onValueChange={onValueChange && ((next) => onValueChange(next))}
+        onValueChange={(next) => handleValueChange(next)}
         onValueCommitted={onValueCommitted && ((next) => onValueCommitted(next))}
         min={min}
         max={max}
@@ -259,7 +265,6 @@ export function NumberField(props: NumberFieldProps): JSX.Element {
         <NumberFieldGroup
           inputRef={ref}
           inputMode={phoneKeyboard(min, step, format, locale)}
-          hasError={Array.isArray(error) ? error.some((message) => message !== "") : Boolean(error)}
           required={required}
           placeholder={placeholder}
           decrementLabel={decrementLabel}
@@ -295,7 +300,6 @@ function NumberFieldGroup({
   placeholder,
   decrementLabel,
   incrementLabel,
-  hasError,
 }: {
   inputRef: Ref<HTMLInputElement> | undefined;
   inputMode: "decimal" | "numeric" | "text";
@@ -303,16 +307,11 @@ function NumberFieldGroup({
   placeholder: string | undefined;
   decrementLabel: string;
   incrementLabel: string;
-  /** The `error` prop has a message. */
-  hasError: boolean;
 }): JSX.Element {
   const field = useField()!;
-  // Ouro owns the invalid state: a Field that shares it (ourostack/ouro-ui#36) decides,
-  // otherwise the `error` prop does. Base UI's own invalid state is never the source.
-  const invalid =
-    "invalid" in field
-      ? /* istanbul ignore next @preserve -- runs once Field shares its invalid state (ourostack/ouro-ui#36) */ field.invalid === true
-      : hasError;
+  // Ouro's own invalid state (the error prop or the Form's error for this name), not Base UI's,
+  // which would count it as a failed check and block the next submit.
+  const invalid = field.invalid;
   return (
     <BaseNumberField.Group data-ouro-number-field-group="" className={groupClass}>
       <BaseNumberField.Decrement aria-label={decrementLabel} className={stepperClass}>

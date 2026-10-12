@@ -5,7 +5,7 @@ import { cloneElement, useId, useLayoutEffect, useMemo, useRef, type JSX, type R
 import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-styles";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
-import { FieldOwnerContext, useField } from "@/registry/ouro/lib/ouro/use-field";
+import { FieldOwnerContext, useField, useFormErrors } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 import {
   controlClass,
@@ -190,6 +190,12 @@ export function Slider<Value extends SliderValue = number>(props: SliderProps<Va
     valueLabelDisplay,
     showTooltip,
   } = props;
+  const form = useFormErrors();
+  // A change drops a Form error for this name, as typing does in a text field.
+  const handleValueChange = (next: number | number[]) => {
+    if (name !== undefined) form?.clear(name);
+    (onValueChange as ((value: number | number[]) => void) | undefined)?.(next);
+  };
   const current = value ?? defaultValue;
   const count = Array.isArray(current) ? current.length : 1;
   const isRange = Array.isArray(current);
@@ -231,7 +237,6 @@ export function Slider<Value extends SliderValue = number>(props: SliderProps<Va
           label={label}
           labelId={isRange ? labelId : undefined}
           isRange={isRange}
-          hasError={Array.isArray(error) ? error.some((message) => message !== "") : Boolean(error)}
           count={count}
           thumbLabels={thumbLabels}
           showValue={showValue}
@@ -239,7 +244,7 @@ export function Slider<Value extends SliderValue = number>(props: SliderProps<Va
           rootProps={{
             value: value as number | number[] | undefined,
             defaultValue: defaultValue as number | number[] | undefined,
-            onValueChange: onValueChange as ((value: number | number[]) => void) | undefined,
+            onValueChange: handleValueChange,
             onValueCommitted: onValueCommitted as ((value: number | number[]) => void) | undefined,
             min,
             max,
@@ -264,7 +269,6 @@ function SliderControl({
   showValue,
   inputRef,
   rootProps,
-  hasError,
 }: {
   label: string;
   labelId: string | undefined;
@@ -273,8 +277,6 @@ function SliderControl({
   thumbLabels: readonly string[];
   showValue: boolean | undefined;
   inputRef: Ref<HTMLInputElement> | undefined;
-  /** The `error` prop has a message. */
-  hasError: boolean;
   rootProps: Pick<
     BaseSlider.Root.Props,
     "value" | "defaultValue" | "min" | "max" | "step" | "largeStep" | "format" | "locale"
@@ -284,12 +286,9 @@ function SliderControl({
   };
 }): JSX.Element {
   const field = useField()!;
-  // Ouro owns the invalid state: a Field that shares it (ourostack/ouro-ui#36) decides,
-  // otherwise the `error` prop does. Base UI's own invalid state is never the source.
-  const invalid =
-    "invalid" in field
-      ? /* istanbul ignore next @preserve -- runs once Field shares its invalid state (ourostack/ouro-ui#36) */ field.invalid === true
-      : hasError;
+  // Ouro's own invalid state (the error prop or the Form's error for this name), not Base UI's,
+  // which would count it as a failed check and block the next submit.
+  const invalid = field.invalid;
   // Base UI builds each thumb's range input itself and takes aria-invalid only from its own
   // checks, so Ouro's state goes on the inputs directly.
   const rootRef = useRef<HTMLDivElement>(null);

@@ -4,6 +4,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { NumberField, type NumberFieldProps } from "@/registry/ouro/components/ouro/number-field/number-field";
+import { Form } from "@/registry/ouro/components/ouro/form/form";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 const roots: Root[] = [];
@@ -393,5 +394,19 @@ describe("NumberField server error", () => {
     await act(async () => view.host.querySelector("form")!.requestSubmit());
     expect(sent).not.toBeNull();
     expect(sent!.get("servings")).toEqual("0");
+  });
+});
+
+describe("NumberField in a Form", () => {
+  it("shows the Form's error for its name and drops it once the user changes the value", async () => {
+    const view = await render(
+      <Form errors={{ servings: "Not that one." }}>
+        <NumberField label="Servings" name="servings" defaultValue={2} />
+      </Form>,
+    );
+    for (const control of [view.input]) expect(control.getAttribute("aria-invalid")).toBe("true");
+    view.input.focus();
+    await userEvent.keyboard("{ArrowUp}");
+    for (const control of [view.input]) await expect.poll(() => control.getAttribute("aria-invalid")).toBeNull();
   });
 });

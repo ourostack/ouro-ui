@@ -4,6 +4,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { Slider, type SliderProps } from "@/registry/ouro/components/ouro/slider/slider";
+import { Form } from "@/registry/ouro/components/ouro/form/form";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 const roots: Root[] = [];
@@ -359,5 +360,19 @@ describe("Slider server error", () => {
     await act(async () => view.host.querySelector("form")!.requestSubmit());
     expect(sent).not.toBeNull();
     expect(sent!.getAll("price")).toEqual(["20", "80"]);
+  });
+});
+
+describe("Slider in a Form", () => {
+  it("shows the Form's error for its name and drops it once the user changes the value", async () => {
+    const view = await render(
+      <Form errors={{ heat: "Not that one." }}>
+        <Slider label="Heat" name="heat" defaultValue={50} />
+      </Form>,
+    );
+    for (const control of view.inputs) expect(control.getAttribute("aria-invalid")).toBe("true");
+    view.inputs[0]!.focus();
+    await userEvent.keyboard("{ArrowRight}");
+    for (const control of view.inputs) await expect.poll(() => control.getAttribute("aria-invalid")).toBeNull();
   });
 });

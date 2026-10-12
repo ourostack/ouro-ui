@@ -2249,6 +2249,7 @@
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
+        "ourostack/ouro-ui/form",
         "ourostack/ouro-ui/number-field",
         "ourostack/ouro-ui/ouro-testing"
       ],
@@ -2293,6 +2294,7 @@
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
+        "ourostack/ouro-ui/form",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/slider"
       ],
@@ -2338,6 +2340,7 @@
       ],
       "registryDependencies": [
         "ourostack/ouro-ui/combobox",
+        "ourostack/ouro-ui/form",
         "ourostack/ouro-ui/ouro-testing"
       ],
       "files": [

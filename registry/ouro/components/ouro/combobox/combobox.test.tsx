@@ -4,6 +4,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Combobox, type ComboboxProps } from "@/registry/ouro/components/ouro/combobox/combobox";
+import { Form } from "@/registry/ouro/components/ouro/form/form";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 const herbs = ["Basil", "Chives", "Dill", "Mint", "Oregano", "Parsley", "Rosemary", "Sage", "Thyme"];
@@ -512,5 +513,19 @@ describe("Combobox server error", () => {
     await act(async () => view.host.querySelector("form")!.requestSubmit());
     expect(sent).not.toBeNull();
     expect(sent!.get("herb")).toEqual("Dill");
+  });
+});
+
+describe("Combobox in a Form", () => {
+  it("shows the Form's error for its name and drops it once the user changes the value", async () => {
+    const view = await render(
+      <Form errors={{ herb: "Not that one." }}>
+        <Combobox label="Herb" name="herb" items={herbs} defaultValue="Dill" />
+      </Form>,
+    );
+    for (const control of [view.input]) expect(control.getAttribute("aria-invalid")).toBe("true");
+    await userEvent.click(view.input);
+    await userEvent.click(page.getByRole("option", { name: "Basil" }));
+    for (const control of [view.input]) await expect.poll(() => control.getAttribute("aria-invalid")).toBeNull();
   });
 });

@@ -9,7 +9,7 @@ import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-st
 import { SheetFrame } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { endSlotClass, groupClass, inputClass } from "@/registry/ouro/components/ouro/text-field/text-field-styles";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
-import { FieldOwnerContext, useField } from "@/registry/ouro/lib/ouro/use-field";
+import { FieldOwnerContext, useField, useFormErrors } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 import { usePickerSheet } from "@/registry/ouro/lib/ouro/use-sheet-presentation";
 import {
@@ -236,8 +236,6 @@ interface ControlProps {
   /** `allowCustomValue` on a phone: one value, which may be typed text. */
   custom: boolean;
   inputRef: Ref<HTMLInputElement> | undefined;
-  /** The `error` prop has a message. */
-  hasError: boolean;
 }
 
 /** Field's messages and root name Combobox. */
@@ -349,6 +347,12 @@ export function Combobox(props: ComboboxProps): JSX.Element {
     removeLabel?: (label: string) => string;
     customValueLabel?: (text: string) => string;
   };
+  const form = useFormErrors();
+  // A change drops a Form error for this name, as typing does in a text field.
+  const handleValueChange = (next: never) => {
+    if (name !== undefined) form?.clear(name);
+    onValueChange?.(next);
+  };
   const sheet = usePickerSheet();
   const custom = allowCustomValue && !multiple;
 
@@ -382,7 +386,7 @@ export function Combobox(props: ComboboxProps): JSX.Element {
     multiple,
     value,
     defaultValue,
-    onValueChange,
+    onValueChange: handleValueChange,
     onInputChange,
     placeholder,
     required,
@@ -395,7 +399,6 @@ export function Combobox(props: ComboboxProps): JSX.Element {
     customValueLabel,
     custom,
     inputRef: ref,
-    hasError: Array.isArray(error) ? error.some((message) => message !== "") : Boolean(error),
   };
 
   return (
@@ -498,14 +501,11 @@ function EndButtons({ clearLabel }: { clearLabel: string }): JSX.Element {
 /** A Combobox that picks one item or several, on Base UI Combobox. */
 function ComboboxControl(props: ControlProps): JSX.Element {
   const { label, items, multiple, value, defaultValue, onValueChange, onInputChange, placeholder, required, loading } = props;
-  const { loadingLabel, emptyLabel, clearLabel, doneLabel, removeLabel, customValueLabel, custom, inputRef, hasError } = props;
+  const { loadingLabel, emptyLabel, clearLabel, doneLabel, removeLabel, customValueLabel, custom, inputRef } = props;
   const field = useField()!;
-  // Ouro owns the invalid state: a Field that shares it (ourostack/ouro-ui#36) decides,
-  // otherwise the `error` prop does. Base UI's own invalid state is never the source.
-  const invalid =
-    "invalid" in field
-      ? /* istanbul ignore next @preserve -- runs once Field shares its invalid state (ourostack/ouro-ui#36) */ field.invalid === true
-      : hasError;
+  // Ouro's own invalid state (the error prop or the Form's error for this name), not Base UI's,
+  // which would count it as a failed check and block the next submit.
+  const invalid = field.invalid;
   // The input's text: for the "nothing matched" line and the row that keeps typed text.
   const [text, setText] = useState("");
   // With allowCustomValue the text is the value, so an item's label is what it submits, as in
@@ -700,14 +700,11 @@ function ComboboxControl(props: ControlProps): JSX.Element {
 /** A Combobox that accepts any text, on Base UI Autocomplete. */
 function AutocompleteControl(props: ControlProps): JSX.Element {
   const { items, value, defaultValue, onValueChange, onInputChange, placeholder, required, loading } = props;
-  const { loadingLabel, emptyLabel, clearLabel, inputRef, hasError } = props;
+  const { loadingLabel, emptyLabel, clearLabel, inputRef } = props;
   const field = useField()!;
-  // Ouro owns the invalid state: a Field that shares it (ourostack/ouro-ui#36) decides,
-  // otherwise the `error` prop does. Base UI's own invalid state is never the source.
-  const invalid =
-    "invalid" in field
-      ? /* istanbul ignore next @preserve -- runs once Field shares its invalid state (ourostack/ouro-ui#36) */ field.invalid === true
-      : hasError;
+  // Ouro's own invalid state (the error prop or the Form's error for this name), not Base UI's,
+  // which would count it as a failed check and block the next submit.
+  const invalid = field.invalid;
   const suggestions = useMemo(() => items.map((item) => toOption(item)), [items]);
   const report = onValueChange as ((value: string) => void) | undefined;
   const [text, setText] = useState(() => ((value ?? defaultValue) as string | undefined) ?? "");
