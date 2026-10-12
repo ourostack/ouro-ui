@@ -171,7 +171,7 @@ export function Checkbox(props: CheckboxProps): JSX.Element {
       "Checkbox",
       "a RadioGroup takes Radio choices",
       process.env.NODE_ENV !== "production"
-        ? `<RadioGroup legend="Size"><Radio value="${value ?? "small"}" label="${label}" /></RadioGroup>, or a CheckboxGroup for several choices`
+        ? `<RadioGroup legend="Size"><Radio value="small" label="${label}" /></RadioGroup>, or a CheckboxGroup for several choices`
         : /* istanbul ignore next @preserve -- production only */ "",
     );
   }

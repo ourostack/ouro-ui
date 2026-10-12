@@ -282,6 +282,13 @@ describe("RadioGroup development messages", () => {
     ]);
   });
 
+  it("names the legend when it is missing", async () => {
+    await render(<RadioGroup {...({ options: sizes } as unknown as RadioGroupProps)} />);
+    expect(messages()).toEqual([
+      '[ouro-ui] RadioGroup: legend is missing, so the group has no name. Fix: <RadioGroup legend="Toppings" hideLegend> to hide a legend you still need.',
+    ]);
+  });
+
   it("has no messages for valid props", async () => {
     await render(
       <RadioGroup legend="Size" hideLegend name="size" description="One." error="Pick." required disabled defaultValue="small" orientation="horizontal" options={sizes} className="mt-4" />,
