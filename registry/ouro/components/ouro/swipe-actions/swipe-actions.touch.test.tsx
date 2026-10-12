@@ -1,0 +1,369 @@
+import type { ReactNode } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { commands, userEvent } from "vitest/browser";
+import { Item } from "@/registry/ouro/components/ouro/item/item";
+import { ItemGroup } from "@/registry/ouro/components/ouro/item/item-group";
+import { SwipeActions } from "@/registry/ouro/components/ouro/swipe-actions/swipe-actions";
+import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
+
+// Runs in the `touch` project: Chromium as a 390x844 phone with a coarse pointer.
+
+let root: Root | undefined;
+const nodes: Element[] = [];
+const cleanups: Array<() => void> = [];
+const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+
+/** Waits until a swipe's momentum has stopped scrolling the page: two frames agree. */
+async function pageAtRest() {
+  await expect
+    .poll(async () => {
+      const before = scrollY;
+      await frame();
+      await frame();
+      return scrollY === before;
+    })
+    .toBe(true);
+}
+
+afterEach(async () => {
+  for (const cleanup of cleanups.splice(0)) cleanup();
+  await commands.touchStep({ type: "touchEnd" });
+  await pageAtRest();
+  await act(async () => root?.unmount());
+  for (const node of nodes.splice(0)) node.remove();
+  scrollTo(0, 0);
+  history.replaceState(null, "", location.pathname + location.search);
+  await commands.emulateMedia({ reducedMotion: "no-preference" });
+  await rotate(390, 844);
+});
+
+async function mount(node: ReactNode, dir?: "rtl") {
+  const host = document.createElement("div");
+  if (dir) host.dir = dir;
+  document.body.append(host);
+  nodes.push(host);
+  root = createRoot(host);
+  await act(async () => root!.render(node));
+  return host;
+}
+
+const spies = () => ({ pin: vi.fn(), archive: vi.fn(), remove: vi.fn() });
+
+/** Three recipe rows between two tall blocks, so the page itself can scroll. */
+async function renderList(calls = spies(), dir?: "rtl") {
+  const host = await mount(
+    <div style={{ padding: 16 }}>
+      <div style={{ height: 200 }} />
+      <ItemGroup label="Recipes">
+        {["Shakshuka", "Short ribs", "Lemon tart"].map((name, index) => (
+          <SwipeActions
+            key={name}
+            label={name}
+            leading={[{ label: "Pin", tone: "primary", onClick: () => calls.pin(name) }]}
+            trailing={[
+              { label: "Delete", tone: "destructive", onClick: () => calls.remove(name) },
+              { label: "Archive", onClick: () => calls.archive(name) },
+            ]}
+          >
+            <Item href={`#recipe-${index}`} title={name} description="Swipe me" />
+          </SwipeActions>
+        ))}
+      </ItemGroup>
+      <div style={{ height: 1600 }} />
+    </div>,
+    dir,
+  );
+  const rows = [...host.querySelectorAll<HTMLElement>('[data-ouro="swipe-actions"]')];
+  return { host, rows, calls };
+}
+
+const track = (row: HTMLElement) => row.querySelector<HTMLElement>("[data-ouro-swipe-actions-track]")!;
+const strip = (row: HTMLElement, side: "leading" | "trailing") => row.querySelector<HTMLElement>(`[data-ouro-swipe-actions-side="${side}"]`)!;
+const action = (row: HTMLElement, name: string) => [...row.querySelectorAll<HTMLButtonElement>("[data-ouro-swipe-actions-side] button")].find((button) => button.textContent === name)!;
+/** How far the row has slid, in px, to a hundredth: negative is toward the left. */
+const offset = (row: HTMLElement) => Math.round(new DOMMatrix(getComputedStyle(track(row)).transform).m41 * 100) / 100;
+/** A side's width, to a hundredth of a px. */
+const stripWidth = (row: HTMLElement, side: "leading" | "trailing") => Math.round(strip(row, side).getBoundingClientRect().width * 100) / 100;
+
+/** Waits for the row to stop moving, then returns its offset. */
+async function settled(row: HTMLElement) {
+  await expect.poll(() => track(row).getAnimations({ subtree: true }).length).toBe(0);
+  return offset(row);
+}
+
+function middle(element: Element): [number, number] {
+  const rect = element.getBoundingClientRect();
+  return [rect.left + rect.width / 2, rect.top + rect.height / 2];
+}
+
+/** A one-finger swipe across the row's middle, by `dx` px, starting from its center. */
+async function swipe(row: HTMLElement, dx: number, dy = 0) {
+  const [x, y] = middle(row);
+  await commands.touchDrag({ from: [x, y], to: [x + dx, y + dy], steps: 10 });
+}
+
+/** Whether a tap at (x, y) lands on `target`. */
+const hits = (target: Element, x: number, y: number) => target.contains(document.elementFromPoint(x, y));
+
+describe("SwipeActions on a phone", () => {
+  it("lets a vertical swipe that starts on a row scroll the page", async () => {
+    const { rows } = await renderList();
+    const row = rows[1]!;
+    expect(getComputedStyle(row).touchAction).toBe("pan-y");
+    let prevented = false;
+    const listener = (event: TouchEvent) => {
+      if (event.defaultPrevented) prevented = true;
+    };
+    addEventListener("touchmove", listener);
+    cleanups.push(() => removeEventListener("touchmove", listener));
+    const [x, y] = middle(row);
+    await commands.touchDrag({ from: [x, y + 60], to: [x + 12, y - 140], steps: 12 });
+    await expect.poll(() => document.scrollingElement!.scrollTop).toBeGreaterThan(50);
+    expect(prevented).toBe(false);
+    expect(row.hasAttribute("data-open")).toBe(false);
+    expect(offset(row)).toBe(0);
+  });
+
+  it("opens the trailing actions with a swipe toward the start, without scrolling the page", async () => {
+    const { rows } = await renderList();
+    const row = rows[1]!;
+    await swipe(row, -120, 20);
+    await expect.poll(() => row.getAttribute("data-open")).toBe("trailing");
+    expect(await settled(row)).toBe(-stripWidth(row, "trailing"));
+    expect(scrollY).toBe(0);
+    // The primary action is at the outer edge, and both take taps.
+    const remove = action(row, "Delete");
+    const archive = action(row, "Archive");
+    expect(remove.getBoundingClientRect().left).toBeGreaterThan(archive.getBoundingClientRect().left);
+    expect(Math.round(remove.getBoundingClientRect().right)).toBe(Math.round(row.getBoundingClientRect().right));
+    expect(hits(remove, ...middle(remove)) && hits(archive, ...middle(archive))).toBe(true);
+    // The other side stays out of reach.
+    expect(strip(row, "leading").inert).toBe(true);
+    expect(strip(row, "trailing").inert).toBe(false);
+  });
+
+  it("opens the leading actions with a swipe toward the end", async () => {
+    const { rows } = await renderList();
+    const row = rows[0]!;
+    await swipe(row, 90);
+    await expect.poll(() => row.getAttribute("data-open")).toBe("leading");
+    expect(await settled(row)).toBe(stripWidth(row, "leading"));
+    const pin = action(row, "Pin");
+    expect(Math.round(pin.getBoundingClientRect().left)).toBe(Math.round(row.getBoundingClientRect().left));
+  });
+
+  it("springs back from a swipe shorter than half the actions", async () => {
+    const { rows, calls } = await renderList();
+    const row = rows[1]!;
+    await swipe(row, -40);
+    await act(async () => {});
+    expect(row.hasAttribute("data-open")).toBe(false);
+    expect(await settled(row)).toBe(0);
+    expect(strip(row, "trailing").inert).toBe(true);
+    expect(calls.remove).not.toHaveBeenCalled();
+  });
+
+  it("commits the primary action with a full swipe, once, and closes the row", async () => {
+    const { rows, calls } = await renderList();
+    const row = rows[2]!;
+    await swipe(row, -300);
+    await expect.poll(() => calls.remove.mock.calls).toEqual([["Lemon tart"]]);
+    expect(calls.archive).not.toHaveBeenCalled();
+    expect(row.hasAttribute("data-open")).toBe(false);
+    expect(await settled(row)).toBe(0);
+    // The leading side's primary action, with a full swipe the other way.
+    await swipe(row, 300);
+    await expect.poll(() => calls.pin.mock.calls).toEqual([["Lemon tart"]]);
+    expect(calls.remove).toHaveBeenCalledTimes(1);
+  });
+
+  it("follows a held finger, and past the full-swipe point shows only the primary action", async () => {
+    const { rows, calls } = await renderList();
+    const row = rows[1]!;
+    const [x, y] = middle(row);
+    try {
+      await commands.touchStep({ type: "touchStart", x, y });
+      for (let step = 1; step <= 6; step++) await commands.touchStep({ type: "touchMove", x: x - step * 15, y });
+      // 90px in: the row is under the finger, with no transition behind it.
+      await expect.poll(() => offset(row)).toBe(-90);
+      expect(track(row).getAnimations().length).toBe(0);
+      expect(row.hasAttribute("data-full")).toBe(false);
+      expect(getComputedStyle(action(row, "Archive")).opacity).toBe("1");
+      for (let step = 7; step <= 18; step++) await commands.touchStep({ type: "touchMove", x: x - step * 15, y });
+      await expect.poll(() => row.hasAttribute("data-full")).toBe(true);
+      await expect.poll(() => getComputedStyle(action(row, "Archive")).opacity).toBe("0");
+      // The gap past the buttons is filled with the primary action's color.
+      const filler = getComputedStyle(strip(row, "trailing"), "::after");
+      expect(filler.backgroundColor).toBe(getComputedStyle(action(row, "Delete")).backgroundColor);
+      expect(calls.remove).not.toHaveBeenCalled();
+      // The user changes their mind and drags back: releasing no longer commits.
+      for (let step = 17; step >= 6; step--) await commands.touchStep({ type: "touchMove", x: x - step * 15, y });
+      await expect.poll(() => row.hasAttribute("data-full")).toBe(false);
+    } finally {
+      await commands.touchStep({ type: "touchEnd" });
+    }
+    await expect.poll(() => row.getAttribute("data-open")).toBe("trailing");
+    expect(calls.remove).not.toHaveBeenCalled();
+  });
+
+  it("does not follow the link on a swipe, closes an open row on a tap, and follows the link on the next tap", async () => {
+    const { rows } = await renderList();
+    const row = rows[0]!;
+    row.id = "first-row";
+    await swipe(row, -120);
+    await expect.poll(() => row.getAttribute("data-open")).toBe("trailing");
+    await settled(row);
+    expect(location.hash).toBe("");
+    // A tap on the open row closes it and is not a navigation.
+    await commands.tap("#first-row [data-ouro-swipe-actions-content]");
+    await expect.poll(() => row.hasAttribute("data-open")).toBe(false);
+    await settled(row);
+    expect(location.hash).toBe("");
+    // A short swipe that springs back is not a tap either.
+    await swipe(row, -30);
+    await settled(row);
+    expect(location.hash).toBe("");
+    await commands.tap("#first-row [data-ouro-swipe-actions-content]");
+    await expect.poll(() => location.hash).toBe("#recipe-0");
+  });
+
+  it("keeps only one row open: swiping another closes the first", async () => {
+    const { rows } = await renderList();
+    await swipe(rows[0]!, -120);
+    await expect.poll(() => rows[0]!.getAttribute("data-open")).toBe("trailing");
+    await swipe(rows[2]!, -120);
+    await expect.poll(() => rows[2]!.getAttribute("data-open")).toBe("trailing");
+    expect(rows[0]!.hasAttribute("data-open")).toBe(false);
+    expect(await settled(rows[0]!)).toBe(0);
+    expect(document.querySelectorAll('[data-ouro="swipe-actions"][data-open]').length).toBe(1);
+  });
+
+  it("closes the open row on a tap outside it, when the page scrolls and on Escape", async () => {
+    const { rows, host } = await renderList();
+    const row = rows[1]!;
+    const open = async () => {
+      await swipe(row, -120);
+      await expect.poll(() => row.getAttribute("data-open")).toBe("trailing");
+      await settled(row);
+    };
+    const closed = async () => {
+      await expect.poll(() => row.hasAttribute("data-open")).toBe(false);
+      expect(await settled(row)).toBe(0);
+    };
+    const outside = host.querySelector<HTMLElement>("div[style]")!;
+    outside.id = "outside";
+    await open();
+    await commands.tap("#outside");
+    await closed();
+
+    await open();
+    await act(async () => scrollTo(0, 120));
+    await closed();
+    await act(async () => scrollTo(0, 0));
+    await pageAtRest();
+
+    await open();
+    await userEvent.keyboard("{Escape}");
+    await closed();
+  });
+
+  it("runs an action from a tap on its button and closes the row", async () => {
+    const { rows, calls } = await renderList();
+    const row = rows[1]!;
+    row.id = "second-row";
+    await swipe(row, -120);
+    await expect.poll(() => row.getAttribute("data-open")).toBe("trailing");
+    await settled(row);
+    await commands.tap('#second-row [data-ouro-swipe-actions-side="trailing"] button:first-child');
+    await expect.poll(() => calls.archive.mock.calls).toEqual([["Short ribs"]]);
+    expect(calls.remove).not.toHaveBeenCalled();
+    await expect.poll(() => row.hasAttribute("data-open")).toBe(false);
+    expect(location.hash).toBe("");
+  });
+
+  it("flips the sides in a right-to-left page", async () => {
+    const { rows, calls } = await renderList(spies(), "rtl");
+    const row = rows[1]!;
+    // Toward the start is to the right: the trailing actions come in from the left edge.
+    await swipe(row, 120);
+    await expect.poll(() => row.getAttribute("data-open")).toBe("trailing");
+    expect(await settled(row)).toBe(stripWidth(row, "trailing"));
+    const remove = action(row, "Delete");
+    expect(Math.round(remove.getBoundingClientRect().left)).toBe(Math.round(row.getBoundingClientRect().left));
+    expect(hits(remove, ...middle(remove))).toBe(true);
+    await swipe(rows[0]!, -90);
+    await expect.poll(() => rows[0]!.getAttribute("data-open")).toBe("leading");
+    expect(row.hasAttribute("data-open")).toBe(false);
+    await swipe(rows[2]!, 300);
+    await expect.poll(() => calls.remove.mock.calls).toEqual([["Lemon tart"]]);
+  });
+
+  it("slides nothing with reduced motion: the row jumps open and the actions fade in", async () => {
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    const { rows } = await renderList();
+    const row = rows[1]!;
+    const [x, y] = middle(row);
+    const properties = new Set<string>();
+    const listener = (event: TransitionEvent) => properties.add(event.propertyName);
+    row.addEventListener("transitionrun", listener);
+    cleanups.push(() => row.removeEventListener("transitionrun", listener));
+    expect(getComputedStyle(strip(row, "trailing")).opacity).toBe("0");
+    try {
+      await commands.touchStep({ type: "touchStart", x, y });
+      for (let step = 1; step <= 8; step++) await commands.touchStep({ type: "touchMove", x: x - step * 15, y });
+      await act(async () => {});
+      // The finger has moved 120px and the row has not.
+      expect(offset(row)).toBe(0);
+    } finally {
+      await commands.touchStep({ type: "touchEnd" });
+    }
+    await expect.poll(() => row.getAttribute("data-open")).toBe("trailing");
+    // Open at once, with no transition on the position.
+    expect(offset(row)).toBe(-stripWidth(row, "trailing"));
+    await expect.poll(() => getComputedStyle(strip(row, "trailing")).opacity).toBe("1");
+    await settled(row);
+    expect([...properties]).toEqual(["opacity"]);
+  });
+
+  it("keeps the actions button for screen readers without showing it, and shows it for keyboard focus", async () => {
+    const { rows } = await renderList();
+    const row = rows[0]!;
+    const button = row.querySelector<HTMLButtonElement>("[data-ouro-swipe-actions-menu] button")!;
+    expect(button.getAttribute("aria-label")).toBe("Actions for Shakshuka");
+    const wrapper = button.parentElement!;
+    // Visually hidden: one clipped pixel that takes no tap from the row.
+    expect(wrapper.getBoundingClientRect().width).toBeLessThanOrEqual(1);
+    const [x, y] = middle(row);
+    expect(hits(button, row.getBoundingClientRect().right - 24, y)).toBe(false);
+    expect(hits(row.querySelector("[data-ouro-swipe-actions-content]")!, x, y)).toBe(true);
+    // An external keyboard reaches it after the row's link, and then it shows, 44px to touch.
+    row.querySelector<HTMLElement>("a")!.focus();
+    await userEvent.keyboard("{Tab}");
+    expect(document.activeElement).toBe(button);
+    const rect = button.getBoundingClientRect();
+    expect(rect.width).toBeGreaterThan(20);
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    expect(hits(button, cx, cy - 21) && hits(button, cx, cy + 21)).toBe(true);
+    expect(hits(button, cx - 21, cy) && hits(button, cx + 21, cy)).toBe(true);
+  });
+
+  it.each([
+    ["portrait", 390, 844],
+    ["landscape", 844, 390],
+  ])("gives each action a 44px target with 16px text in %s", async (_name, width, height) => {
+    await rotate(width, height);
+    const { rows } = await renderList();
+    const row = rows[1]!;
+    await swipe(row, -120);
+    await expect.poll(() => row.getAttribute("data-open")).toBe("trailing");
+    await settled(row);
+    for (const name of ["Delete", "Archive"]) {
+      const rect = action(row, name).getBoundingClientRect();
+      expect(Math.min(rect.width, rect.height), name).toBeGreaterThanOrEqual(44);
+      expect(getComputedStyle(action(row, name)).fontSize, name).toBe("16px");
+    }
+  });
+});

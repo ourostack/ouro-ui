@@ -1,0 +1,523 @@
+import type { ReactNode } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { renderToString } from "react-dom/server";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { page, userEvent } from "vitest/browser";
+import { Item } from "@/registry/ouro/components/ouro/item/item";
+import { SwipeActions, type SwipeActionsProps } from "@/registry/ouro/components/ouro/swipe-actions/swipe-actions";
+import { act } from "@/registry/ouro/lib/ouro/testing/act";
+
+// Real touch swipes are in swipe-actions.touch.test.tsx. Here the pointer events are
+// dispatched, so the same paths run in Chromium and WebKit, with a pen and a mouse too.
+
+let root: Root | undefined;
+let host: HTMLElement;
+const nodes: Element[] = [];
+
+let warn: ReturnType<typeof vi.spyOn>;
+let error: ReturnType<typeof vi.spyOn>;
+beforeEach(() => {
+  warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  error = vi.spyOn(console, "error");
+});
+afterEach(async () => {
+  await act(async () => root?.unmount());
+  root = undefined;
+  for (const node of nodes.splice(0)) node.remove();
+  expect(error).not.toHaveBeenCalled();
+  vi.restoreAllMocks();
+  history.replaceState(null, "", location.pathname + location.search);
+});
+
+async function render(node: ReactNode, dir?: "rtl") {
+  if (!root) {
+    host = document.createElement("div");
+    host.style.width = "360px";
+    if (dir) host.dir = dir;
+    document.body.append(host);
+    nodes.push(host);
+    root = createRoot(host);
+  }
+  await act(async () => root!.render(node));
+  return host.querySelector<HTMLElement>('[data-ouro="swipe-actions"]')!;
+}
+
+const calls = () => ({ pin: vi.fn(), archive: vi.fn(), remove: vi.fn() });
+
+function row(spies = calls(), props: Partial<SwipeActionsProps> = {}) {
+  return (
+    <SwipeActions
+      label="Short ribs"
+      leading={[{ label: "Pin", tone: "primary", onClick: spies.pin }]}
+      trailing={[
+        { label: "Delete", tone: "destructive", onClick: spies.remove },
+        { label: "Archive", onClick: spies.archive },
+      ]}
+      {...props}
+    >
+      <Item href="#short-ribs" title="Short ribs" />
+    </SwipeActions>
+  );
+}
+
+const track = (element: HTMLElement) => element.querySelector<HTMLElement>("[data-ouro-swipe-actions-track]")!;
+const content = (element: HTMLElement) => element.querySelector<HTMLElement>("[data-ouro-swipe-actions-content]")!;
+const strip = (element: HTMLElement, side: "leading" | "trailing") => element.querySelector<HTMLElement>(`[data-ouro-swipe-actions-side="${side}"]`);
+const action = (element: HTMLElement, name: string) =>
+  [...element.querySelectorAll<HTMLButtonElement>("[data-ouro-swipe-actions-side] button")].find((button) => button.textContent === name)!;
+const menuButton = (element: HTMLElement) => element.querySelector<HTMLButtonElement>("[data-ouro-swipe-actions-menu] button")!;
+/** The offset the component set, in px. */
+const offset = (element: HTMLElement) => Number.parseFloat(track(element).style.getPropertyValue("--ouro-swipe-x")) || 0;
+const width = (element: HTMLElement, side: "leading" | "trailing") => strip(element, side)!.getBoundingClientRect().width;
+
+/** Dispatches one pointer event, as a one-finger touch unless `init` says otherwise, and flushes React. */
+async function pointer(target: EventTarget, type: string, x: number, y: number, init: PointerEventInit = {}) {
+  await act(async () => {
+    target.dispatchEvent(
+      new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 1, pointerType: "touch", isPrimary: true, clientX: x, clientY: y, ...init }),
+    );
+  });
+}
+
+/** A swipe by `dx` from (200, 20) on the row's content: down, moves and (unless `hold`) up. */
+async function swipe(element: HTMLElement, dx: number, { hold = false, init = {} as PointerEventInit } = {}) {
+  await pointer(content(element), "pointerdown", 200, 20, init);
+  for (let step = 1; step <= 4; step++) await pointer(window, "pointermove", 200 + (dx * step) / 4, 20, init);
+  if (!hold) await pointer(window, "pointerup", 200 + dx, 20, init);
+}
+
+/** A click as a pointer sends it (`detail` 1) or as the keyboard does (`detail` 0); returns whether its default was prevented. */
+async function click(target: Element, detail: number) {
+  const event = new MouseEvent("click", { bubbles: true, cancelable: true, detail });
+  // Keep a click the row lets through from changing the test page's address.
+  const guard = (bubbled: Event) => {
+    seen = true;
+    prevented = bubbled.defaultPrevented;
+    bubbled.preventDefault();
+  };
+  let seen = false;
+  let prevented = false;
+  document.addEventListener("click", guard);
+  await act(async () => {
+    target.dispatchEvent(event);
+  });
+  document.removeEventListener("click", guard);
+  return { reached: seen, prevented: seen ? prevented : event.defaultPrevented };
+}
+
+describe("SwipeActions", () => {
+  it("renders the row closed, with both sides out of reach and an actions button named after the row", async () => {
+    const element = await render(row());
+    expect(element.hasAttribute("data-open")).toBe(false);
+    expect(page.getByRole("link", { name: "Short ribs" }).element()).toBeTruthy();
+    expect(strip(element, "leading")!.inert).toBe(true);
+    expect(strip(element, "trailing")!.inert).toBe(true);
+    expect(menuButton(element).getAttribute("aria-label")).toBe("Actions for Short ribs");
+    expect(menuButton(element).getBoundingClientRect().width).toBeGreaterThan(20);
+    // The hidden sides are clipped: they widen neither the page nor the row, and the row cannot scroll to them.
+    expect(getComputedStyle(element).overflowX).toBe("clip");
+    expect(document.documentElement.scrollWidth).toBe(document.documentElement.clientWidth);
+    element.scrollLeft = 50;
+    expect(element.scrollLeft).toBe(0);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("names the actions button from actionsLabel", async () => {
+    const element = await render(row(calls(), { actionsLabel: "Actions pour {label}" }));
+    expect(menuButton(element).getAttribute("aria-label")).toBe("Actions pour Short ribs");
+  });
+
+  it("gives every action to the keyboard through the actions menu, leading first", async () => {
+    const spies = calls();
+    const element = await render(row(spies));
+    menuButton(element).focus();
+    await userEvent.keyboard("{Enter}");
+    await expect.element(page.getByRole("menu")).toBeVisible();
+    const items = [...document.querySelectorAll('[role="menuitem"]')].map((item) => item.textContent);
+    expect(items.slice(0, 3)).toEqual(["Pin", "Delete", "Archive"]);
+    expect(page.getByRole("menuitem", { name: "Delete" }).element().getAttribute("data-tone")).toBe("destructive");
+    expect(page.getByRole("menuitem", { name: "Pin" }).element().hasAttribute("data-tone")).toBe(false);
+    await userEvent.click(page.getByRole("menuitem", { name: "Archive" }));
+    expect(spies.archive).toHaveBeenCalledTimes(1);
+    expect(spies.remove).not.toHaveBeenCalled();
+    await expect.poll(() => document.querySelector('[role="menu"]')).toBeNull();
+  });
+
+  it("colors each action by its tone, the side by its primary action, and falls back to secondary", async () => {
+    const element = await render(
+      <SwipeActions
+        label="Short ribs"
+        trailing={[
+          { label: "Delete", tone: "destructive", onClick: () => {} },
+          { label: "Done", tone: "success", onClick: () => {} },
+          { label: "Snooze", tone: "warning", onClick: () => {} },
+          { label: "More", onClick: () => {} },
+        ]}
+      >
+        Row
+      </SwipeActions>,
+    );
+    const probe = document.createElement("div");
+    host.append(probe);
+    const color = (className: string) => {
+      probe.className = className;
+      return getComputedStyle(probe).backgroundColor;
+    };
+    expect(getComputedStyle(action(element, "Delete")).backgroundColor).toBe(color("bg-destructive"));
+    expect(getComputedStyle(action(element, "Done")).backgroundColor).toBe(color("bg-success"));
+    expect(getComputedStyle(action(element, "Snooze")).backgroundColor).toBe(color("bg-warning"));
+    expect(getComputedStyle(action(element, "More")).backgroundColor).toBe(color("bg-secondary"));
+    expect(getComputedStyle(strip(element, "trailing")!).backgroundColor).toBe(color("bg-destructive"));
+    expect(action(element, "Delete").hasAttribute("data-primary")).toBe(true);
+    expect(action(element, "More").hasAttribute("data-primary")).toBe(false);
+    // No leading actions: no leading side.
+    expect(strip(element, "leading")).toBeNull();
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("opens a side with a dispatched touch swipe past half its width, and closes it with a swipe back", async () => {
+    const element = await render(row());
+    await swipe(element, -120);
+    expect(element.getAttribute("data-open")).toBe("trailing");
+    expect(offset(element)).toBe(-width(element, "trailing"));
+    expect(strip(element, "trailing")!.inert).toBe(false);
+    expect(strip(element, "trailing")!.hasAttribute("data-open")).toBe(true);
+    expect(element.hasAttribute("data-dragging")).toBe(false);
+    // A small move while open leaves it open; a move back past half closes it.
+    await swipe(element, 20);
+    expect(element.getAttribute("data-open")).toBe("trailing");
+    expect(offset(element)).toBe(-width(element, "trailing"));
+    await swipe(element, 120);
+    expect(element.hasAttribute("data-open")).toBe(false);
+    expect(offset(element)).toBe(0);
+  });
+
+  it("swipes with a pen, and never with a mouse", async () => {
+    const element = await render(row());
+    await swipe(element, -120, { init: { pointerType: "mouse" } });
+    expect(element.hasAttribute("data-open")).toBe(false);
+    expect(element.hasAttribute("data-dragging")).toBe(false);
+    await swipe(element, 90, { init: { pointerType: "pen" } });
+    expect(element.getAttribute("data-open")).toBe("leading");
+    expect(offset(element)).toBe(width(element, "leading"));
+  });
+
+  it("marks the row while a finger drags it and follows the finger", async () => {
+    const element = await render(row());
+    await swipe(element, -60, { hold: true });
+    expect(element.hasAttribute("data-dragging")).toBe(true);
+    expect(offset(element)).toBe(-60);
+    expect(getComputedStyle(track(element)).transitionDuration).toBe("0s");
+    // Past the row's own width it stops.
+    await pointer(window, "pointermove", 200 - 900, 20);
+    expect(offset(element)).toBe(-360);
+    expect(element.hasAttribute("data-full")).toBe(true);
+    await pointer(window, "pointermove", 200 + 900, 20);
+    expect(offset(element)).toBe(360);
+    await pointer(window, "pointermove", 200, 20);
+    await pointer(window, "pointerup", 200, 20);
+    expect(element.hasAttribute("data-dragging")).toBe(false);
+    expect(element.hasAttribute("data-full")).toBe(false);
+  });
+
+  it("runs the primary action on a full swipe of either side", async () => {
+    const spies = calls();
+    const element = await render(row(spies));
+    await swipe(element, -300);
+    expect(spies.remove).toHaveBeenCalledTimes(1);
+    expect(spies.archive).not.toHaveBeenCalled();
+    expect(element.hasAttribute("data-open")).toBe(false);
+    expect(offset(element)).toBe(0);
+    await swipe(element, 300);
+    expect(spies.pin).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not open toward a side with no actions", async () => {
+    const spies = calls();
+    const element = await render(row(spies, { leading: undefined }));
+    await swipe(element, 300, { hold: true });
+    expect(offset(element)).toBe(0);
+    expect(element.hasAttribute("data-full")).toBe(false);
+    await pointer(window, "pointerup", 500, 20);
+    expect(element.hasAttribute("data-open")).toBe(false);
+    expect(spies.remove).not.toHaveBeenCalled();
+  });
+
+  it("reads the same gesture mirrored in a right-to-left page", async () => {
+    const spies = calls();
+    const element = await render(row(spies, { leading: undefined }), "rtl");
+    await swipe(element, 120);
+    expect(element.getAttribute("data-open")).toBe("trailing");
+    expect(offset(element)).toBe(width(element, "trailing"));
+    // Toward the end, where there are no actions, nothing opens.
+    await swipe(element, -300);
+    expect(element.hasAttribute("data-open")).toBe(false);
+    expect(offset(element)).toBe(0);
+  });
+
+  it("leaves a vertical move to the page and ignores what follows it", async () => {
+    const element = await render(row());
+    await pointer(content(element), "pointerdown", 200, 20);
+    await pointer(window, "pointermove", 204, 24);
+    expect(element.hasAttribute("data-dragging")).toBe(false);
+    await pointer(window, "pointermove", 206, 60);
+    // The gesture is the page's now: a later sideways move does nothing.
+    await pointer(window, "pointermove", 60, 60);
+    await pointer(window, "pointerup", 60, 60);
+    expect(element.hasAttribute("data-dragging")).toBe(false);
+    expect(element.hasAttribute("data-open")).toBe(false);
+    expect(offset(element)).toBe(0);
+  });
+
+  it("treats a press that barely moves as a tap", async () => {
+    const element = await render(row());
+    await pointer(content(element), "pointerdown", 200, 20);
+    await pointer(window, "pointermove", 195, 22);
+    await pointer(window, "pointerup", 195, 22);
+    expect(element.hasAttribute("data-open")).toBe(false);
+    // The tap's click reaches the link.
+    expect(await click(page.getByRole("link", { name: "Short ribs" }).element(), 1)).toEqual({ reached: true, prevented: false });
+  });
+
+  it("follows one finger: other pointers neither start nor steer the swipe", async () => {
+    const element = await render(row());
+    await pointer(content(element), "pointerdown", 200, 20, { isPrimary: false, pointerId: 7 });
+    await pointer(window, "pointermove", 80, 20, { pointerId: 7 });
+    expect(element.hasAttribute("data-dragging")).toBe(false);
+
+    await pointer(content(element), "pointerdown", 200, 20);
+    // A second press during the gesture does not restart it.
+    await pointer(content(element), "pointerdown", 400, 20, { pointerId: 2 });
+    await pointer(window, "pointermove", 20, 20, { pointerId: 2 });
+    expect(element.hasAttribute("data-dragging")).toBe(false);
+    await pointer(window, "pointermove", 140, 20);
+    expect(offset(element)).toBe(-60);
+    await pointer(window, "pointerup", 140, 20, { pointerId: 2 });
+    await pointer(window, "pointercancel", 140, 20, { pointerId: 2 });
+    expect(element.hasAttribute("data-dragging")).toBe(true);
+    await pointer(window, "pointermove", 80, 20);
+    await pointer(window, "pointerup", 80, 20);
+    expect(element.getAttribute("data-open")).toBe("trailing");
+  });
+
+  it("goes back to where it was when the browser cancels the gesture", async () => {
+    const element = await render(row());
+    // Cancelled before it became a swipe: nothing to undo.
+    await pointer(content(element), "pointerdown", 200, 20);
+    await pointer(window, "pointercancel", 200, 20);
+    expect(offset(element)).toBe(0);
+    // Cancelled mid-swipe from closed: closed.
+    await swipe(element, -100, { hold: true });
+    await pointer(window, "pointercancel", 100, 20);
+    expect(element.hasAttribute("data-open")).toBe(false);
+    expect(element.hasAttribute("data-dragging")).toBe(false);
+    expect(offset(element)).toBe(0);
+    // Cancelled mid-swipe from open: open, at the side's width again.
+    await swipe(element, -120);
+    await swipe(element, 100, { hold: true });
+    expect(offset(element)).toBe(100 - width(element, "trailing"));
+    await pointer(window, "pointercancel", 300, 20);
+    expect(element.getAttribute("data-open")).toBe("trailing");
+    expect(offset(element)).toBe(-width(element, "trailing"));
+  });
+
+  it("swallows the click that ends a swipe, once, and never a keyboard click", async () => {
+    const element = await render(row());
+    const link = page.getByRole("link", { name: "Short ribs" }).element();
+    await swipe(element, -30);
+    expect(element.hasAttribute("data-open")).toBe(false);
+    // Enter on the link right after a swipe is its own action.
+    expect(await click(link, 0)).toEqual({ reached: true, prevented: false });
+    expect(await click(link, 1)).toEqual({ reached: false, prevented: true });
+    expect(await click(link, 1)).toEqual({ reached: true, prevented: false });
+    // A new press forgets the swipe, whatever the pointer.
+    await swipe(element, -30);
+    await pointer(content(element), "pointerdown", 200, 20, { pointerType: "mouse" });
+    expect(await click(link, 1)).toEqual({ reached: true, prevented: false });
+  });
+
+  it("closes an open row on a click in it: a pointer's click stops there, the keyboard's goes on to the link", async () => {
+    const element = await render(row());
+    const link = page.getByRole("link", { name: "Short ribs" }).element();
+    await swipe(element, -120);
+    await pointer(content(element), "pointerdown", 200, 20);
+    await pointer(window, "pointerup", 200, 20);
+    expect(element.getAttribute("data-open")).toBe("trailing");
+    expect(await click(link, 1)).toEqual({ reached: false, prevented: true });
+    expect(element.hasAttribute("data-open")).toBe(false);
+    expect(offset(element)).toBe(0);
+
+    await swipe(element, -120);
+    await pointer(content(element), "pointerdown", 200, 20);
+    await pointer(window, "pointerup", 200, 20);
+    expect(await click(link, 0)).toEqual({ reached: true, prevented: false });
+    expect(element.hasAttribute("data-open")).toBe(false);
+  });
+
+  it("runs an action from its button and closes, moving focus from the button to the actions button", async () => {
+    const spies = calls();
+    const element = await render(row(spies));
+    await swipe(element, -120);
+    const archive = action(element, "Archive");
+    archive.focus();
+    expect(document.activeElement).toBe(archive);
+    await pointer(archive, "pointerdown", 400, 20);
+    await pointer(window, "pointerup", 400, 20);
+    await act(async () => archive.click());
+    expect(spies.archive).toHaveBeenCalledTimes(1);
+    expect(spies.remove).not.toHaveBeenCalled();
+    expect(element.hasAttribute("data-open")).toBe(false);
+    expect(strip(element, "trailing")!.inert).toBe(true);
+    expect(document.activeElement).toBe(menuButton(element));
+  });
+
+  it("closes on Escape only, and keeps that Escape from the page", async () => {
+    const element = await render(row());
+    const keys: string[] = [];
+    const listener = (event: KeyboardEvent) => keys.push(event.key);
+    document.addEventListener("keydown", listener);
+    await swipe(element, -120);
+    await userEvent.keyboard("a");
+    expect(element.getAttribute("data-open")).toBe("trailing");
+    await userEvent.keyboard("{Escape}");
+    await act(async () => {});
+    expect(element.hasAttribute("data-open")).toBe(false);
+    expect(offset(element)).toBe(0);
+    // Closed, Escape is the page's again.
+    await userEvent.keyboard("{Escape}");
+    document.removeEventListener("keydown", listener);
+    expect(keys).toEqual(["a", "Escape"]);
+  });
+
+  it("closes on a press or a scroll outside the row, not on one inside it", async () => {
+    const element = await render(row());
+    const outside = document.createElement("div");
+    outside.style.cssText = "height:40px;overflow:auto";
+    outside.innerHTML = '<div style="height:400px"></div>';
+    host.append(outside);
+    await swipe(element, -120);
+    await act(async () => {
+      content(element).dispatchEvent(new Event("scroll"));
+    });
+    await pointer(action(element, "Delete"), "pointerdown", 440, 20, { pointerType: "mouse" });
+    expect(element.getAttribute("data-open")).toBe("trailing");
+    await pointer(outside, "pointerdown", 10, 300, { pointerType: "mouse" });
+    expect(element.hasAttribute("data-open")).toBe(false);
+
+    await swipe(element, -120);
+    expect(element.getAttribute("data-open")).toBe("trailing");
+    outside.scrollTop = 80;
+    await expect.poll(() => element.hasAttribute("data-open")).toBe(false);
+    expect(offset(element)).toBe(0);
+  });
+
+  it("closes a side whose actions the app removes, and survives losing them mid-swipe", async () => {
+    const spies = calls();
+    const element = await render(row(spies));
+    await swipe(element, -120);
+    expect(element.getAttribute("data-open")).toBe("trailing");
+    await render(row(spies, { trailing: [] }));
+    expect(element.hasAttribute("data-open")).toBe(false);
+    expect(offset(element)).toBe(0);
+    expect(strip(element, "trailing")).toBeNull();
+
+    await render(row(spies));
+    await swipe(element, -400, { hold: true });
+    expect(element.hasAttribute("data-full")).toBe(true);
+    await render(row(spies, { trailing: undefined }));
+    await pointer(window, "pointerup", -200, 20);
+    expect(spies.remove).not.toHaveBeenCalled();
+    expect(element.hasAttribute("data-open")).toBe(false);
+    expect(offset(element)).toBe(0);
+  });
+
+  it("stops listening when it unmounts mid-swipe", async () => {
+    const element = await render(row());
+    const removed = vi.spyOn(window, "removeEventListener");
+    await swipe(element, -60, { hold: true });
+    await act(async () => root!.unmount());
+    root = undefined;
+    expect(removed.mock.calls.map(([type]) => type)).toEqual(expect.arrayContaining(["pointermove", "pointerup", "pointercancel"]));
+    await pointer(window, "pointermove", 20, 20);
+    await pointer(window, "pointerup", 20, 20);
+  });
+
+  it("renders without an actions button when it has no actions, and says so", async () => {
+    const element = await render(
+      <SwipeActions label="Short ribs">
+        <Item title="Short ribs" />
+      </SwipeActions>,
+    );
+    expect(element.querySelector("[data-ouro-swipe-actions-menu]")).toBeNull();
+    await swipe(element, -200);
+    expect(element.hasAttribute("data-open")).toBe(false);
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] SwipeActions: it has no actions. Fix: <SwipeActions label="…" trailing={[{ label: "Delete", tone: "destructive", onClick: remove }]}>.',
+    );
+  });
+
+  it.each([
+    ["no label", { label: "" }, "label is required; it names the row for its actions button", '<SwipeActions label="Braised short ribs">'],
+    ["actions", { actions: [] }, "actions is not a prop; name the side", 'trailing={[{ label: "Delete", tone: "destructive", onClick: remove }]}'],
+    ["left", { left: [] }, "left is not a prop; the sides follow the reading direction", 'leading={[{ label: "Pin", onClick: pin }]}'],
+    ["right", { right: [] }, "right is not a prop; the sides follow the reading direction", 'trailing={[{ label: "Delete", tone: "destructive", onClick: remove }]}'],
+    ["leftActions", { leftActions: [] }, "leftActions is not a prop", 'leading={[{ label: "Pin", onClick: pin }]}'],
+    ["rightActions", { rightActions: [] }, "rightActions is not a prop", 'trailing={[{ label: "Delete", tone: "destructive", onClick: remove }]}'],
+    ["onDelete", { onDelete: () => {} }, "onDelete is not a prop; deleting is an action", 'trailing={[{ label: "Delete", tone: "destructive", onClick: remove }]}'],
+    [
+      "a renamed tone",
+      { trailing: [{ label: "Delete", tone: "danger", onClick: () => {} }] },
+      'the action "Delete" has tone: "danger", which is not a tone; use "primary", "secondary", "destructive", "success", "warning"',
+      '{ label: "Delete", tone: "destructive", onClick: … }',
+    ],
+    [
+      "an unknown tone",
+      { trailing: [{ label: "Flag", tone: "accent", onClick: () => {} }] },
+      'the action "Flag" has tone: "accent", which is not a tone; use "primary", "secondary", "destructive", "success", "warning"',
+      '{ label: "Flag", tone: "primary", onClick: … }',
+    ],
+    [
+      "a made-up tone",
+      { trailing: [{ label: "Flag", tone: "red", onClick: () => {} }] },
+      'the action "Flag" has tone: "red", which is not a tone; use "primary", "secondary", "destructive", "success", "warning"',
+      '{ label: "Flag", tone: "destructive", onClick: … }',
+    ],
+    ["onPress on an action", { trailing: [{ label: "Delete", onPress: () => {}, onClick: () => {} }] }, 'the action "Delete" has onPress, which is not a field', '{ label: "Delete", onClick: … }'],
+    [
+      "variant on an action",
+      { trailing: [{ label: "Delete", variant: "destructive", onClick: () => {} }] },
+      'the action "Delete" has variant, which is not a field',
+      '{ label: "Delete", tone: "destructive", onClick: … }',
+    ],
+  ])("warns for %s with the fix", async (_name, extra, problem, fix) => {
+    await render(row(calls(), extra as unknown as Partial<SwipeActionsProps>));
+    expect(warn).toHaveBeenCalledWith(`[ouro-ui] SwipeActions: ${problem}. Fix: ${fix}.`);
+  });
+
+  it("renders an action with a tone that is not one as secondary", async () => {
+    const element = await render(row(calls(), { trailing: [{ label: "Flag", tone: "red" as never, onClick: () => {} }] }));
+    expect(action(element, "Flag").getAttribute("data-tone")).toBe("secondary");
+  });
+
+  it("takes layout classes and warns about appearance classes", async () => {
+    const element = await render(row(calls(), { className: "mt-2" }));
+    expect(element.classList.contains("mt-2")).toBe(true);
+    expect(warn).not.toHaveBeenCalled();
+    await act(async () => root!.unmount());
+    root = undefined;
+    await render(row(calls(), { className: "bg-red-500" }));
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] SwipeActions: "bg-red-500" sets appearance, and className is for layout only. Fix: remove "bg-red-500"; give an action a tone: { label: "Delete", tone: "destructive", onClick: remove }.',
+    );
+  });
+
+  it("renders to a string with the row, its hidden actions and the actions button, without warnings", () => {
+    const html = renderToString(row());
+    expect(html).toContain('data-ouro="swipe-actions"');
+    expect(html).toContain('href="#short-ribs"');
+    expect(html).toContain('aria-label="Actions for Short ribs"');
+    expect(html).toMatch(/data-ouro-swipe-actions-side="trailing"[^>]* inert=""/);
+    expect(html).toContain("Delete");
+    expect(warn).not.toHaveBeenCalled();
+  });
+});
