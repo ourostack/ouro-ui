@@ -29,6 +29,11 @@ export default defineConfig({
       "@base-ui/react/field",
       "@base-ui/react/fieldset",
       "@base-ui/react/form",
+      "@base-ui/react/accordion",
+      "@base-ui/react/collapsible",
+      "@base-ui/react/tabs",
+      "@base-ui/react/toggle",
+      "@base-ui/react/toggle-group",
     ],
   },
   test: {

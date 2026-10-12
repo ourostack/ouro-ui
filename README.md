@@ -192,13 +192,24 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **Dialog** — A dialog that presents itself for the screen: a centered dialog on wider screens and a bottom sheet you can drag away on phones (below 640px). [Docs](docs/Dialog.md)
 - **Sheet** — A panel that slides in from an edge and is dragged back to dismiss: the mobile form of a dialog. [Docs](docs/Sheet.md)
 
+### Lists
+
+- **Accordion** — A stack of titles that each open their own content, for FAQs and long settings pages. [Docs](docs/Accordion.md)
+- **Collapsible** — One section that opens and closes under its title, such as nutrition facts under a recipe. [Docs](docs/Collapsible.md)
+- **ShowMore** — "Show more" for a long list or a long text. [Docs](docs/ShowMore.md)
+
+### Navigation
+
+- **SegmentedControl** — An iOS-style segmented control: a row of equal segments with a raised thumb that slides to the pressed one, for switching how one view shows its content in place, such as list or grid. [Docs](docs/SegmentedControl.md)
+- **Tabs** — Tabs that switch between panels in place: an accessible tab list with roving focus, arrow-key navigation, a line that slides to the selected tab with the theme spring, and 44px tabs on touch screens. [Docs](docs/Tabs.md)
+
 ### App setup
 
 - **OuroProvider** — Optional app-level provider that routes internal `href`s through your router's link. [Docs](docs/OuroProvider.md)
 
 ### Parts
 
-- **Parts** — building blocks for Dialog, Field and Sheet, only for layouts the props cannot express. [Docs](docs/parts.md)
+- **Parts** — building blocks for Dialog, Field, Sheet and Tabs, only for layouts the props cannot express. [Docs](docs/parts.md)
 <!-- catalog:end -->
 
 ## Theme

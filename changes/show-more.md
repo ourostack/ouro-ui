@@ -1,0 +1,1 @@
+- New: `ShowMore`, which cuts a list to `initialCount` items, clamps text to `lines` lines, or grows a list a page at a time with `onShowMore`, `hasMore`, `loading` and a no-JavaScript `href`. "Show more" moves focus to the first newly shown item, and `showMoreLabel` and `showLessLabel` translate the button.

@@ -1,0 +1,257 @@
+import { useState, type ReactNode } from "react";
+import { createRoot, hydrateRoot, type Root } from "react-dom/client";
+import { renderToString } from "react-dom/server";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { commands, page, userEvent } from "vitest/browser";
+import {
+  SegmentedControl,
+  type SegmentedControlProps,
+} from "@/registry/ouro/components/ouro/segmented-control/segmented-control";
+import { act } from "@/registry/ouro/lib/ouro/testing/act";
+
+const roots: Root[] = [];
+let mounted: Element[] = [];
+
+async function render(node: ReactNode) {
+  const host = document.createElement("div");
+  host.style.padding = "24px";
+  host.style.width = "420px";
+  document.body.append(host);
+  mounted.push(host);
+  const root = createRoot(host);
+  roots.push(root);
+  await act(async () => root.render(node));
+  return {
+    host,
+    rerender: (next: ReactNode) => act(async () => root.render(next)),
+    get root() {
+      return host.querySelector<HTMLElement>('[data-ouro="segmented-control"]')!;
+    },
+    get segments() {
+      return [...host.querySelectorAll<HTMLButtonElement>("[data-ouro-segment]")];
+    },
+    get thumb() {
+      return host.querySelector<HTMLElement>("[data-ouro-segment-thumb]")!;
+    },
+  };
+}
+
+let warn: ReturnType<typeof vi.spyOn>;
+beforeEach(async () => {
+  warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  await commands.emulateMedia({ reducedMotion: "no-preference" });
+});
+afterEach(async () => {
+  vi.restoreAllMocks();
+  await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+  for (const node of mounted) node.remove();
+  mounted = [];
+});
+
+const items = [
+  { value: "list", label: "List" },
+  { value: "grid", label: "Grid" },
+  { value: "map", label: "Map" },
+];
+
+async function settled(element: Element) {
+  await expect.poll(() => element.getAnimations({ subtree: true }).length).toBe(0);
+}
+
+describe("SegmentedControl", () => {
+  it("renders a labelled group of toggle buttons with the first one pressed", async () => {
+    const { root, segments } = await render(<SegmentedControl label="View" items={items} />);
+    expect(root.getAttribute("data-ouro")).toBe("segmented-control");
+    await expect.element(page.getByRole("group", { name: "View" })).toBeVisible();
+    expect(segments.map((segment) => segment.textContent)).toEqual(["List", "Grid", "Map"]);
+    expect(segments.map((segment) => segment.getAttribute("aria-pressed"))).toEqual(["true", "false", "false"]);
+    await expect.element(page.getByText("View", { exact: true })).toBeVisible();
+  });
+
+  it("hides the label visually with hideLabel, and still names the group", async () => {
+    const { host } = await render(<SegmentedControl label="View" hideLabel items={items} />);
+    await expect.element(page.getByRole("group", { name: "View" })).toBeInTheDocument();
+    const label = [...host.querySelectorAll("span")].find((span) => span.textContent === "View")!;
+    expect(label.getBoundingClientRect().width).toBeLessThanOrEqual(1);
+  });
+
+  it("presses a segment on click and calls onValueChange with its value", async () => {
+    const onValueChange = vi.fn();
+    const { segments } = await render(<SegmentedControl label="View" items={items} onValueChange={onValueChange} />);
+    await userEvent.click(segments[1]!);
+    expect(onValueChange).toHaveBeenCalledWith("grid");
+    expect(segments.map((segment) => segment.getAttribute("aria-pressed"))).toEqual(["false", "true", "false"]);
+  });
+
+  it("keeps one segment pressed: pressing the pressed one again does nothing", async () => {
+    const onValueChange = vi.fn();
+    const { segments } = await render(<SegmentedControl label="View" items={items} onValueChange={onValueChange} />);
+    await userEvent.click(segments[0]!);
+    expect(onValueChange).not.toHaveBeenCalled();
+    expect(segments[0]!.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("starts on defaultValue and follows a controlled value", async () => {
+    function Controlled() {
+      const [value, setValue] = useState("map");
+      return (
+        <>
+          <SegmentedControl label="View" items={items} value={value} onValueChange={setValue} />
+          <output>{value}</output>
+        </>
+      );
+    }
+    const { host, segments } = await render(<Controlled />);
+    expect(segments[2]!.getAttribute("aria-pressed")).toBe("true");
+    await userEvent.click(segments[0]!);
+    expect(host.querySelector("output")!.textContent).toBe("list");
+    expect(segments[0]!.getAttribute("aria-pressed")).toBe("true");
+    const other = await render(<SegmentedControl label="Other" items={items} defaultValue="grid" />);
+    expect(other.segments[1]!.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("moves focus with the arrow keys and presses with Space", async () => {
+    const { segments } = await render(<SegmentedControl label="View" items={items} />);
+    await userEvent.tab();
+    expect(document.activeElement).toBe(segments[0]);
+    expect(getComputedStyle(segments[0]!).outlineStyle).toBe("solid");
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(segments[1]);
+    await userEvent.keyboard(" ");
+    expect(segments[1]!.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("gives every segment the same width", async () => {
+    const { segments } = await render(
+      <SegmentedControl label="View" items={[{ value: "a", label: "A" }, { value: "b", label: "A much longer label" }]} />,
+    );
+    const [a, b] = segments.map((segment) => segment.getBoundingClientRect().width);
+    expect(Math.abs(a! - b!)).toBeLessThan(1);
+  });
+
+  it("stretches to its container with fullWidth", async () => {
+    const { root, host } = await render(<SegmentedControl label="View" items={items} fullWidth hideLabel />);
+    const group = root.querySelector('[role="group"]')!;
+    expect(Math.round(group.getBoundingClientRect().width)).toBe(Math.round(host.getBoundingClientRect().width - 48));
+  });
+
+  it("slides the thumb under the pressed segment with a transition", async () => {
+    const r = await render(<SegmentedControl label="View" items={items} />);
+    const thumb = r.thumb;
+    const offset = (segment: HTMLElement) => Math.round(thumb.getBoundingClientRect().left - segment.getBoundingClientRect().left) + 0;
+    expect(offset(r.segments[0]!)).toBe(0);
+    await userEvent.click(r.segments[2]!);
+    await expect.poll(() => thumb.getAnimations().length).toBeGreaterThan(0);
+    await settled(thumb);
+    expect(offset(r.segments[2]!)).toBe(0);
+    expect(Math.round(thumb.getBoundingClientRect().width)).toBe(Math.round(r.segments[2]!.getBoundingClientRect().width));
+  });
+
+  it("moves the thumb without a transition under reduced motion", async () => {
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    const { thumb } = await render(<SegmentedControl label="View" items={items} />);
+    expect(getComputedStyle(thumb).transitionProperty).not.toMatch(/translate|transform/);
+  });
+
+  it("hides the thumb when no item has the value", async () => {
+    const props = { label: "View", items, value: "table" } as SegmentedControlProps;
+    const { thumb } = await render(<SegmentedControl {...props} />);
+    expect(getComputedStyle(thumb).opacity).toBe("0");
+  });
+
+  it("disables one segment, or the whole control", async () => {
+    const { segments, rerender } = await render(
+      <SegmentedControl label="View" items={[items[0]!, { ...items[1]!, disabled: true }, items[2]!]} />,
+    );
+    expect(segments[1]!.disabled).toBe(true);
+    await rerender(<SegmentedControl label="View" items={items} disabled />);
+    expect(segments.every((segment) => segment.disabled)).toBe(true);
+  });
+
+  it("lets app layout classes win", async () => {
+    const { root } = await render(<SegmentedControl label="View" items={items} className="mt-4" />);
+    expect(getComputedStyle(root).marginTop).toBe("16px");
+  });
+
+  it("forwards a ref to the group", async () => {
+    let element: HTMLDivElement | null = null;
+    await render(<SegmentedControl label="View" items={items} ref={(node) => void (element = node)} />);
+    expect(element!.getAttribute("role")).toBe("group");
+  });
+
+  it("keeps the label id and pressed state in server HTML and hydrates without a mismatch", async () => {
+    const node = <SegmentedControl label="View" items={items} defaultValue="grid" />;
+    const html = renderToString(node);
+    const host = document.createElement("div");
+    host.innerHTML = html;
+    document.body.append(host);
+    mounted.push(host);
+    const group = host.querySelector('[role="group"]')!;
+    const labelId = group.getAttribute("aria-labelledby")!;
+    expect(host.querySelector(`[id="${labelId}"]`)!.textContent).toBe("View");
+    expect(host.querySelector('[aria-pressed="true"]')!.textContent).toBe("Grid");
+    const recoverable = vi.fn();
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    let root!: Root;
+    await act(async () => {
+      root = hydrateRoot(host, node, { onRecoverableError: recoverable });
+    });
+    roots.push(root);
+    expect(recoverable).not.toHaveBeenCalled();
+    expect(error).not.toHaveBeenCalled();
+    await userEvent.click(host.querySelectorAll<HTMLElement>("[data-ouro-segment]")[2]!);
+    expect(host.querySelector('[aria-pressed="true"]')!.textContent).toBe("Map");
+  });
+});
+
+describe("SegmentedControl development messages", () => {
+  it.each([
+    ["options", { options: items }, "options is not a prop", "<SegmentedControl items={[{ value, label }]}>"],
+    ["onChange", { onChange: () => {} }, "onChange is not a prop", "<SegmentedControl onValueChange={(value) => …}>"],
+    ["unknown value", { value: "table" }, 'value="table" matches no item', '<SegmentedControl value="list">'],
+    ["unknown defaultValue", { defaultValue: "table" }, 'defaultValue="table" matches no item', '<SegmentedControl defaultValue="list">'],
+    ["href", { items: [{ value: "a", label: "A", href: "/a" }] }, "a segment switches a view in place, so it has no href", "<Tabs> or links in a <nav>"],
+  ])("warns for %s with the fix", async (_name, extra, problem, fix) => {
+    const props = { label: "View", items, ...extra } as unknown as SegmentedControlProps;
+    const { root } = await render(<SegmentedControl {...props} />);
+    expect(warn).toHaveBeenCalledWith(`[ouro-ui] SegmentedControl: ${problem}. Fix: ${fix}.`);
+    expect(root.querySelector("[options]")).toBeNull();
+    expect(root.querySelector("[href]")).toBeNull();
+  });
+
+  it("names a placeholder value and presses nothing when there are no items", async () => {
+    const { segments, thumb } = await render(<SegmentedControl label="View" items={[]} value="table" defaultValue="grid" />);
+    expect(warn).toHaveBeenCalledWith('[ouro-ui] SegmentedControl: value="table" matches no item. Fix: <SegmentedControl value="…">.');
+    expect(warn).toHaveBeenCalledWith('[ouro-ui] SegmentedControl: defaultValue="grid" matches no item. Fix: <SegmentedControl defaultValue="…">.');
+    expect(segments).toHaveLength(0);
+    expect(getComputedStyle(thumb).opacity).toBe("0");
+  });
+
+  it("presses nothing when every segment is disabled", async () => {
+    const { segments } = await render(<SegmentedControl label="View" items={items.map((item) => ({ ...item, disabled: true }))} />);
+    expect(segments.every((segment) => segment.getAttribute("aria-pressed") === "false")).toBe(true);
+  });
+
+  it("throws for two items with one value", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(() => renderToString(<SegmentedControl label="View" items={[items[0]!, items[0]!]} />)).toThrow(
+      '[ouro-ui] SegmentedControl: two items have the value "list". Fix: give each item its own value.',
+    );
+    error.mockRestore();
+  });
+
+  it("checks the className", async () => {
+    await render(<SegmentedControl label="View" items={items} className="bg-muted" />);
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] SegmentedControl: "bg-muted" sets appearance, and className is for layout only. Fix: remove "bg-muted"; SegmentedControl sets its own look.',
+    );
+  });
+
+  it("renders to a string without warnings", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const html = renderToString(<SegmentedControl label="View" items={items} className="bg-red-500" />);
+    expect(html).toContain('data-ouro="segmented-control"');
+    expect(warn).not.toHaveBeenCalled();
+    expect(error).not.toHaveBeenCalled();
+  });
+});

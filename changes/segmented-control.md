@@ -1,0 +1,1 @@
+- New: `SegmentedControl`, an iOS-style control on Base UI's ToggleGroup in single mode for switching a view in place: equal segments with a raised thumb that slides to the pressed one, `label` with `hideLabel`, `items`, `fullWidth`, and exactly one segment pressed.

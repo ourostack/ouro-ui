@@ -1,0 +1,346 @@
+import { useState, type ReactNode } from "react";
+import { createRoot, hydrateRoot, type Root } from "react-dom/client";
+import { renderToString } from "react-dom/server";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { commands, page, userEvent } from "vitest/browser";
+import { ShowMore, type ShowMoreProps } from "@/registry/ouro/components/ouro/collapsible/show-more";
+import { act } from "@/registry/ouro/lib/ouro/testing/act";
+
+const roots: Root[] = [];
+let mounted: Element[] = [];
+
+async function render(node: ReactNode) {
+  const host = document.createElement("div");
+  host.style.padding = "24px";
+  host.style.width = "360px";
+  document.body.append(host);
+  mounted.push(host);
+  const root = createRoot(host);
+  roots.push(root);
+  await act(async () => root.render(node));
+  return {
+    host,
+    rerender: (next: ReactNode) => act(async () => root.render(next)),
+    get root() {
+      return host.querySelector<HTMLElement>('[data-ouro="show-more"]')!;
+    },
+    get rows() {
+      return [...host.querySelectorAll<HTMLLIElement>("li")];
+    },
+    get button() {
+      return host.querySelector<HTMLElement>("[data-ouro-show-more-toggle]");
+    },
+  };
+}
+
+let warn: ReturnType<typeof vi.spyOn>;
+beforeEach(async () => {
+  warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  await commands.emulateMedia({ reducedMotion: "no-preference" });
+});
+afterEach(async () => {
+  vi.restoreAllMocks();
+  await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+  for (const node of mounted) node.remove();
+  mounted = [];
+});
+
+const recipes = Array.from({ length: 8 }, (_, index) => `Recipe ${index + 1}`);
+const linkRows = recipes.map((title) => (
+  <a key={title} href={`#${title}`}>
+    {title}
+  </a>
+));
+
+const longText =
+  "Brown the short ribs in batches, then soften the onions, carrots and celery in the fat. " +
+  "Stir in the tomato paste, deglaze with red wine, return the ribs, cover with stock and braise " +
+  "for three hours, until the meat falls from the bone. Rest overnight, lift off the fat, and " +
+  "reheat gently before serving over polenta with gremolata on top.";
+
+describe("ShowMore with items", () => {
+  it("shows the first five items in a list, with a Show more button", async () => {
+    const { root, rows, button } = await render(<ShowMore items={recipes} />);
+    expect(root.getAttribute("data-ouro")).toBe("show-more");
+    await expect.element(page.getByRole("list")).toBeVisible();
+    expect(rows.map((row) => row.textContent)).toEqual(recipes.slice(0, 5));
+    expect(button!.textContent).toBe("Show more");
+  });
+
+  it("shows initialCount items and an ordered list with ordered", async () => {
+    const { host, rows } = await render(<ShowMore items={recipes} initialCount={3} ordered />);
+    expect(rows).toHaveLength(3);
+    expect(host.querySelector("ol")).not.toBeNull();
+  });
+
+  it("shows no button when every item fits", async () => {
+    const { rows, button } = await render(<ShowMore items={recipes.slice(0, 5)} />);
+    expect(rows).toHaveLength(5);
+    expect(button).toBeNull();
+  });
+
+  it("reveals the rest and moves focus to the first new item's link", async () => {
+    const { host, rows, button } = await render(<ShowMore items={linkRows} />);
+    expect(rows).toHaveLength(5);
+    await userEvent.click(button!);
+    expect(host.querySelectorAll("li")).toHaveLength(8);
+    expect(document.activeElement).toBe(host.querySelectorAll("li")[5]!.querySelector("a"));
+    expect(button!.textContent).toBe("Show less");
+  });
+
+  it("focuses the first new item itself when it holds nothing focusable", async () => {
+    const { host, button } = await render(<ShowMore items={recipes} />);
+    await userEvent.click(button!);
+    const sixth = host.querySelectorAll("li")[5]!;
+    expect(document.activeElement).toBe(sixth);
+    expect(sixth.tabIndex).toBe(-1);
+  });
+
+  it("fades the new items in, and not the first ones", async () => {
+    const { host, button } = await render(<ShowMore items={recipes} />);
+    const first = host.querySelector("li")!;
+    expect(first.getAnimations()).toHaveLength(0);
+    await userEvent.click(button!);
+    const sixth = host.querySelectorAll("li")[5]!;
+    expect(getComputedStyle(sixth).transitionProperty).toContain("opacity");
+    expect(getComputedStyle(first).transitionProperty).not.toContain("opacity");
+  });
+
+  it("hides the rest again with Show less and keeps focus on the button", async () => {
+    const { host, button } = await render(<ShowMore items={recipes} />);
+    await userEvent.click(button!);
+    await userEvent.click(button!);
+    expect(host.querySelectorAll("li")).toHaveLength(5);
+    expect(document.activeElement).toBe(button);
+    expect(button!.textContent).toBe("Show more");
+  });
+
+  it("takes translated labels", async () => {
+    const { button } = await render(<ShowMore items={recipes} showMoreLabel="Mehr anzeigen" showLessLabel="Weniger anzeigen" />);
+    expect(button!.textContent).toBe("Mehr anzeigen");
+    await userEvent.click(button!);
+    expect(button!.textContent).toBe("Weniger anzeigen");
+  });
+
+  it("works from the keyboard", async () => {
+    const { host, button } = await render(<ShowMore items={linkRows} />);
+    button!.focus();
+    await userEvent.keyboard("{Enter}");
+    expect(document.activeElement).toBe(host.querySelectorAll("li")[5]!.querySelector("a"));
+  });
+
+  it("lets app layout classes win and keys rows by their own keys", async () => {
+    const { root, rows } = await render(<ShowMore items={linkRows} className="mt-4" />);
+    expect(getComputedStyle(root).marginTop).toBe("16px");
+    expect(rows[0]!.textContent).toBe("Recipe 1");
+  });
+
+  it("renders the visible items in server HTML and hydrates without a mismatch", async () => {
+    const node = <ShowMore items={linkRows} />;
+    const html = renderToString(node);
+    expect(html).toContain("Recipe 5");
+    expect(html).not.toContain("Recipe 6");
+    const host = document.createElement("div");
+    host.innerHTML = html;
+    document.body.append(host);
+    mounted.push(host);
+    const recoverable = vi.fn();
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    let root!: Root;
+    await act(async () => {
+      root = hydrateRoot(host, node, { onRecoverableError: recoverable });
+    });
+    roots.push(root);
+    expect(recoverable).not.toHaveBeenCalled();
+    expect(error).not.toHaveBeenCalled();
+    await userEvent.click(host.querySelector<HTMLElement>("[data-ouro-show-more-toggle]")!);
+    expect(host.querySelectorAll("li")).toHaveLength(8);
+  });
+});
+
+/** A list that loads three more recipes after each "Show more", up to `total`. */
+function Loading({ total = 9, onShowMore }: { total?: number; onShowMore?: () => void }) {
+  const [count, setCount] = useState(3);
+  const [loading, setLoading] = useState(false);
+  return (
+    <ShowMore
+      items={recipes.concat(["Recipe 9"]).slice(0, count).map((title) => (
+        <a key={title} href={`#${title}`}>
+          {title}
+        </a>
+      ))}
+      hasMore={count < total}
+      loading={loading}
+      href="?after=3"
+      onShowMore={() => {
+        onShowMore?.();
+        setLoading(true);
+        setTimeout(() => {
+          setCount((value) => Math.min(value + 3, total));
+          setLoading(false);
+        }, 50);
+      }}
+    />
+  );
+}
+
+describe("ShowMore loading more", () => {
+  it("shows every item and a Show more link to the next page", async () => {
+    const { rows, button } = await render(<Loading />);
+    expect(rows).toHaveLength(3);
+    expect(button!.tagName).toBe("A");
+    expect(button!.getAttribute("href")).toBe("?after=3");
+  });
+
+  it("calls onShowMore instead of following the link, shows it is busy, then focuses the first new item", async () => {
+    const onShowMore = vi.fn();
+    const { host, button } = await render(<Loading onShowMore={onShowMore} />);
+    await userEvent.click(button!);
+    expect(onShowMore).toHaveBeenCalledTimes(1);
+    expect(location.search).not.toContain("after");
+    expect(button!.getAttribute("aria-busy")).toBe("true");
+    await expect.poll(() => host.querySelectorAll("li").length).toBe(6);
+    await expect.poll(() => document.activeElement).toBe(host.querySelectorAll("li")[3]!.querySelector("a"));
+    expect(button!.hasAttribute("aria-busy")).toBe(false);
+  });
+
+  it("removes the button on the last page and moves focus to the first new item", async () => {
+    const { host } = await render(<Loading total={5} />);
+    await userEvent.click(host.querySelector<HTMLElement>("[data-ouro-show-more-toggle]")!);
+    await expect.poll(() => host.querySelectorAll("li").length).toBe(5);
+    expect(host.querySelector("[data-ouro-show-more-toggle]")).toBeNull();
+    await expect.poll(() => document.activeElement).toBe(host.querySelectorAll("li")[3]!.querySelector("a"));
+  });
+
+  it("moves focus to the last item when the last page comes back empty", async () => {
+    const { host } = await render(<Loading total={3} />);
+    // hasMore starts false at total 3, so render one with more and an empty answer.
+    expect(host.querySelector("[data-ouro-show-more-toggle]")).toBeNull();
+    function Empty() {
+      const [hasMore, setHasMore] = useState(true);
+      return <ShowMore items={["A", "B"]} hasMore={hasMore} onShowMore={() => setHasMore(false)} />;
+    }
+    const empty = await render(<Empty />);
+    await userEvent.click(empty.button!);
+    expect(empty.button).toBeNull();
+    expect(document.activeElement).toBe(empty.host.querySelectorAll("li")[1]);
+  });
+
+  it("renders a button when there is no href, and leaves focus alone when items grow by themselves", async () => {
+    const r = await render(<ShowMore items={["A", "B"]} hasMore onShowMore={() => {}} />);
+    expect(r.button!.tagName).toBe("BUTTON");
+    const before = document.activeElement;
+    await r.rerender(<ShowMore items={["A", "B", "C"]} hasMore onShowMore={() => {}} />);
+    expect(document.activeElement).toBe(before);
+  });
+
+  it("keeps focus on the button while the next page has not arrived", async () => {
+    const onShowMore = vi.fn();
+    const { button } = await render(<ShowMore items={["A", "B"]} hasMore onShowMore={onShowMore} />);
+    await userEvent.click(button!);
+    expect(onShowMore).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(button);
+  });
+
+  it("does nothing while it is already loading", async () => {
+    const onShowMore = vi.fn();
+    const { button } = await render(<ShowMore items={["A"]} hasMore loading onShowMore={onShowMore} />);
+    // The busy button is disabled, so a real click never lands; a script click must not either.
+    await act(async () => button!.click());
+    expect(onShowMore).not.toHaveBeenCalled();
+  });
+});
+
+describe("ShowMore with lines", () => {
+  it("clamps long text to lines and shows Show more", async () => {
+    const { root, button } = await render(<ShowMore lines={2}>{longText}</ShowMore>);
+    const text = root.querySelector<HTMLElement>("[data-ouro-show-more-text]")!;
+    const lineHeight = parseFloat(getComputedStyle(text).lineHeight);
+    expect(text.getBoundingClientRect().height).toBeCloseTo(lineHeight * 2, 0);
+    await expect.poll(() => root.querySelector("[data-ouro-show-more-toggle]")).not.toBeNull();
+    expect(button!.textContent).toBe("Show more");
+  });
+
+  it("expands to the full text and back, keeping focus on the button", async () => {
+    const { root } = await render(<ShowMore lines={2}>{longText}</ShowMore>);
+    await expect.poll(() => root.querySelector("[data-ouro-show-more-toggle]")).not.toBeNull();
+    const button = root.querySelector<HTMLElement>("[data-ouro-show-more-toggle]")!;
+    const text = root.querySelector<HTMLElement>("[data-ouro-show-more-text]")!;
+    const clamped = text.getBoundingClientRect().height;
+    await userEvent.click(button);
+    expect(text.getBoundingClientRect().height).toBeGreaterThan(clamped);
+    expect(button.textContent).toBe("Show less");
+    expect(document.activeElement).toBe(button);
+    await userEvent.click(button);
+    expect(text.getBoundingClientRect().height).toBeCloseTo(clamped, 0);
+  });
+
+  it("shows no button when the text fits", async () => {
+    const { root } = await render(<ShowMore lines={3}>Short note.</ShowMore>);
+    await act(async () => {});
+    expect(root.querySelector("[data-ouro-show-more-toggle]")).toBeNull();
+  });
+
+  it("shows the button once the text stops fitting", async () => {
+    const r = await render(<ShowMore lines={2}>Short note.</ShowMore>);
+    await r.rerender(<ShowMore lines={2}>{longText}</ShowMore>);
+    await expect.poll(() => r.root.querySelector("[data-ouro-show-more-toggle]")).not.toBeNull();
+  });
+
+  it("keeps the full text for screen readers and in server HTML", () => {
+    const html = renderToString(<ShowMore lines={2}>{longText}</ShowMore>);
+    expect(html).toContain("gremolata");
+    expect(html).not.toContain("data-ouro-show-more-toggle");
+  });
+});
+
+describe("ShowMore development messages", () => {
+  it.each([
+    ["maxLines", { lines: 2, children: longText, maxLines: 2 }, "maxLines is not a prop", "<ShowMore lines={2}>"],
+    ["limit", { items: recipes, limit: 3 }, "limit is not a prop", "<ShowMore items={items} initialCount={3}>"],
+    ["initialCount", { items: recipes, initialCount: 0 }, "initialCount={0} is not a whole number above 0", "<ShowMore items={items} initialCount={5}>"],
+    ["lines", { lines: -1, children: longText }, "lines={-1} is not a whole number above 0", "<ShowMore lines={3}>"],
+  ])("warns for %s with the fix", async (_name, extra, problem, fix) => {
+    const props = extra as unknown as ShowMoreProps;
+    const { root } = await render(<ShowMore {...props} />);
+    expect(warn).toHaveBeenCalledWith(`[ouro-ui] ShowMore: ${problem}. Fix: ${fix}.`);
+    expect(root.hasAttribute("limit")).toBe(false);
+  });
+
+  it("clamps to a guessed maxLines when lines is missing", async () => {
+    const { root } = await render(<ShowMore {...({ maxLines: 2, children: longText } as unknown as ShowMoreProps)} />);
+    const text = root.querySelector<HTMLElement>("[data-ouro-show-more-text]")!;
+    expect(text.getBoundingClientRect().height).toBeCloseTo(parseFloat(getComputedStyle(text).lineHeight) * 2, 0);
+    expect(warn).toHaveBeenCalledWith("[ouro-ui] ShowMore: maxLines is not a prop. Fix: <ShowMore lines={2}>.");
+  });
+
+  it("uses the default for an invalid initialCount or lines", async () => {
+    const items = await render(<ShowMore {...({ items: recipes, initialCount: 0 } as unknown as ShowMoreProps)} />);
+    expect(items.rows).toHaveLength(5);
+    const lines = await render(<ShowMore {...({ lines: 0, children: longText } as unknown as ShowMoreProps)} />);
+    const text = lines.root.querySelector<HTMLElement>("[data-ouro-show-more-text]")!;
+    expect(text.getBoundingClientRect().height).toBeCloseTo(parseFloat(getComputedStyle(text).lineHeight) * 3, 0);
+  });
+
+  it("checks the className", async () => {
+    await render(<ShowMore items={recipes} className="text-sm" />);
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] ShowMore: "text-sm" sets appearance, and className is for layout only. Fix: <div className="text-sm"><ShowMore /></div>.',
+    );
+  });
+
+  it("points other appearance classes to ShowMore's own look", async () => {
+    await render(<ShowMore items={recipes} className="bg-muted" />);
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] ShowMore: "bg-muted" sets appearance, and className is for layout only. Fix: remove "bg-muted"; ShowMore sets its own look.',
+    );
+  });
+
+  it("renders to a string without warnings", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const html = renderToString(<ShowMore items={recipes} className="bg-red-500" />);
+    expect(html).toContain('data-ouro="show-more"');
+    expect(warn).not.toHaveBeenCalled();
+    expect(error).not.toHaveBeenCalled();
+  });
+});
