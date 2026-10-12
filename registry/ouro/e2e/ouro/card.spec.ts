@@ -4,7 +4,10 @@ import { openStory } from "./story";
 test("a card with href navigates from anywhere on it, named by its title", async ({ page }) => {
   await openStory(page, "display-card--in-context");
   await expect(page.getByRole("link", { name: "Weeknight dinners" })).toBeVisible();
-  await page.getByText("12 recipes").click();
+  // A real click where the description is: the link's hit area covers it, so Playwright's
+  // locator.click would wait for the description itself to receive the click.
+  const box = (await page.getByText("12 recipes").boundingBox())!;
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   await expect(page).toHaveURL(/#weeknight-dinners$/);
 });
 

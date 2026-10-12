@@ -6,7 +6,9 @@ test("a row with href navigates from its media, and its action does not", async 
   const url = page.url();
   await page.getByRole("button", { name: "Save" }).click();
   expect(page.url()).toBe(url);
-  await page.locator('[data-ouro="item"] img').first().click();
+  // A real click on the photo: the link's hit area covers it.
+  const box = (await page.locator('[data-ouro="item"] img').first().boundingBox())!;
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   await expect(page).toHaveURL(/#short-ribs$/);
 });
 
