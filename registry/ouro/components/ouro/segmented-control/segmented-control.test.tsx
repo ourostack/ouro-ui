@@ -154,6 +154,33 @@ describe("SegmentedControl", () => {
     expect(onValueChange).not.toHaveBeenCalled();
   });
 
+  it("reports a pointer press once after an arrow key that moved nowhere", async () => {
+    const onValueChange = vi.fn();
+    // Controlled, with the app not yet updating value, so each report shows.
+    const { segments } = await render(<SegmentedControl label="View" items={items} value="list" onValueChange={onValueChange} />);
+    await userEvent.tab();
+    expect(document.activeElement).toBe(segments[0]);
+    // Up in a row moves nowhere.
+    await userEvent.keyboard("{ArrowUp}");
+    expect(document.activeElement).toBe(segments[0]);
+    expect(onValueChange).not.toHaveBeenCalled();
+    await userEvent.click(segments[1]!);
+    expect(onValueChange).toHaveBeenCalledTimes(1);
+    expect(onValueChange).toHaveBeenCalledWith("grid");
+  });
+
+  it("never reports the checked value when the arrow keys come back to it", async () => {
+    const onValueChange = vi.fn();
+    // Controlled, with the app not updating value: "list" stays checked.
+    const { segments } = await render(<SegmentedControl label="View" items={items} value="list" onValueChange={onValueChange} />);
+    await userEvent.tab();
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(segments[1]);
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(segments[0]);
+    expect(onValueChange.mock.calls).toEqual([["grid"]]);
+  });
+
   it("skips a disabled segment with the arrow keys", async () => {
     const { segments } = await render(<SegmentedControl label="View" items={[items[0]!, { ...items[1]!, disabled: true }, items[2]!]} />);
     await userEvent.tab();

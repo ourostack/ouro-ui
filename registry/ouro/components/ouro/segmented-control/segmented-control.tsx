@@ -157,6 +157,8 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
   // as a radio button does. Tab and pointer focus leave the value alone.
   const arrowed = useRef(false);
   const choose = (pressed: string) => {
+    // Never report the value that is already checked.
+    if (pressed === selected) return;
     setOwn(pressed);
     onValueChange?.(pressed);
   };
@@ -182,6 +184,10 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
         }}
         onKeyDownCapture={(event) => {
           arrowed.current = /^(Arrow|Home$|End$)/.test(event.key);
+        }}
+        onPointerDownCapture={() => {
+          // A pointer press focuses the segment it lands on; that focus is not an arrow key's.
+          arrowed.current = false;
         }}
         onBlurCapture={(event) => {
           // Focus leaving the group (by pointer, say) ends the arrow key's move.

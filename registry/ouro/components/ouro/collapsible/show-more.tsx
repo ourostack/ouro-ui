@@ -141,6 +141,9 @@ function focusRow(row: Element): void {
  * What stays the same for an item across renders: an element's key, or a text or number item
  * itself. An element without a key is a new object every render, so it has none (null).
  */
+/** The first item of a list that was empty when "Show more" was pressed: any first page is new items. */
+const EMPTY = Symbol("empty");
+
 function identity(item: ReactNode): unknown {
   if (isValidElement(item)) return item.key;
   return item;
@@ -300,7 +303,8 @@ function ShowMoreList(props: (ShowMoreItemsProps | ShowMoreLoadProps) & { showMo
       focusRow(row);
       if (load) setStatus(message);
     };
-    if (identity(items[0]) !== pendingFirst.current || rows.length < from) {
+    const replaced = pendingFirst.current !== EMPTY && identity(items[0]) !== pendingFirst.current;
+    if (replaced || rows.length < from) {
       // The list was replaced (a new first item, or fewer items: a new search). Stop waiting,
       // so a later change to the list never moves focus.
       stop();
@@ -319,7 +323,7 @@ function ShowMoreList(props: (ShowMoreItemsProps | ShowMoreLoadProps) & { showMo
     if (load) {
       event.preventDefault();
       pending.current = items.length;
-      pendingFirst.current = identity(items[0]);
+      pendingFirst.current = items.length === 0 ? EMPTY : identity(items[0]);
       loaded.current = false;
       setFreshFrom(items.length);
       load.onShowMore();
@@ -330,6 +334,7 @@ function ShowMoreList(props: (ShowMoreItemsProps | ShowMoreLoadProps) & { showMo
       requestAnimationFrame(() => buttonRef.current?.scrollIntoView({ block: "nearest" }));
     } else {
       pending.current = count;
+      // The button shows only when there are more items than count, so the list is not empty.
       pendingFirst.current = identity(items[0]);
       setFreshFrom(count);
       setExpanded(true);

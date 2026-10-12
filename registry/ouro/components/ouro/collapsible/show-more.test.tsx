@@ -332,6 +332,50 @@ describe("ShowMore focus after a load that adds nothing", () => {
   });
 });
 
+describe("ShowMore from an empty list", () => {
+  it("focuses the first item when the first page arrives", async () => {
+    function FromEmpty() {
+      const [count, setCount] = useState(0);
+      const [loading, setLoading] = useState(false);
+      return (
+        <ShowMore
+          items={recipes.slice(0, count).map((title) => (
+            <a key={title} href={`#${title}`}>
+              {title}
+            </a>
+          ))}
+          hasMore={count < 6}
+          loading={loading}
+          onShowMore={() => {
+            setLoading(true);
+            finishLoad = () => {
+              setCount(3);
+              setLoading(false);
+            };
+          }}
+        />
+      );
+    }
+    const { host, button } = await render(<FromEmpty />);
+    expect(host.querySelectorAll("li")).toHaveLength(0);
+    await userEvent.click(button!);
+    await act(async () => finishLoad());
+    await expect.poll(() => host.querySelectorAll("li").length).toBe(3);
+    await expect.poll(() => document.activeElement).toBe(host.querySelector("li a"));
+    expect(host.querySelector("[data-ouro-show-more-status]")!.textContent).toBe("Showing 3 items");
+  });
+
+  it("focuses the first item without a loading prop too", async () => {
+    function FromEmpty() {
+      const [count, setCount] = useState(0);
+      return <ShowMore items={recipes.slice(0, count)} hasMore={count < 6} onShowMore={() => setCount(3)} />;
+    }
+    const { host, button } = await render(<FromEmpty />);
+    await userEvent.click(button!);
+    await expect.poll(() => document.activeElement).toBe(host.querySelector("li"));
+  });
+});
+
 describe("ShowMore announcements", () => {
   /** Every non-empty text the status region takes, in order. */
   function spoken(host: HTMLElement): string[] {
