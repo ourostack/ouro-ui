@@ -122,8 +122,6 @@ interface SlotsProps {
   slotLabel: (position: number, length: number) => string;
   autoComplete: string | undefined;
   readOnly: boolean | undefined;
-  /** OtpField's own `error` has a message. */
-  hasError: boolean;
   ref: Ref<HTMLDivElement> | undefined;
 }
 
@@ -133,14 +131,10 @@ interface SlotsProps {
  * may land on any slot, and the invalid state is Ouro's own (Base UI's tracks only its own
  * checks).
  */
-function Slots({ length, groupSize, slotLabel, onValueChange, onValueComplete, hasError, ref, ...rest }: SlotsProps): JSX.Element {
+function Slots({ length, groupSize, slotLabel, onValueChange, onValueComplete, ref, ...rest }: SlotsProps): JSX.Element {
   const field = useField()!;
-  // A Field that shares its invalid state (a Form's error for this name counts too) decides;
-  // otherwise OtpField's own error does.
-  const invalid =
-    "invalid" in field
-      ? /* istanbul ignore next @preserve -- runs once Field shares its invalid state (ourostack/ouro-ui#36) */ field.invalid === true
-      : hasError;
+  // The Field's invalid state: OtpField's own error, or a Form's error for this name.
+  const invalid = field.invalid;
   const groups = groupSize && Number.isInteger(groupSize) && groupSize > 0 && groupSize < length ? groupSize : length;
   return (
     <OTPField.Root
@@ -271,7 +265,6 @@ export function OtpField(props: OtpFieldProps): JSX.Element {
           slotLabel={slotLabel}
           autoComplete={autoComplete}
           readOnly={readOnly}
-          hasError={Array.isArray(error) ? error.some((message) => message !== "") : Boolean(error)}
         />
       </Field>
     </FieldOwnerContext.Provider>

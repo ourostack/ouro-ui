@@ -1,0 +1,6 @@
+// What agents write with form: snippets whose cases are in form.cases.ts.
+import { Form } from "@/registry/ouro/components/ouro/form/form";
+import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
+
+export const form01 = <Form validationErrors={{ email: "Taken." }}><TextField label="Email" name="email" /></Form>;
+export const okForm = <Form errors={{ email: "Taken." }}><TextField label="Email" name="email" /></Form>;
