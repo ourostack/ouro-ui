@@ -6,12 +6,8 @@ permissions:
 jobs:
   carousel-probe:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        delay: [50, 200]
     env:
-      CAROUSEL_CDP_DELAY_MS: ${{ matrix.delay }}
+      CAROUSEL_CDP_DELAY_MS: 0
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -23,11 +19,19 @@ jobs:
           cache: pnpm
       - run: pnpm i --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm exec vitest run --project ouro-touch registry/ouro/components/ouro/carousel/carousel.touch.test.tsx -t 'fast flick' > carousel-probe.log 2>&1
+      - name: Ten genuine flicks while two CPU workers compete with the browser
+        run: |
+          uptime
+          load=$(awk '{print $1}' /proc/loadavg)
+          awk -v load="$load" 'BEGIN { exit !(load <= 20) }'
+          yes > /dev/null & first=$!
+          yes > /dev/null & second=$!
+          trap 'kill "$first" "$second"; wait "$first" "$second" || true' EXIT
+          pnpm exec vitest run --project ouro-touch registry/ouro/components/ouro/carousel/carousel.touch.test.tsx > carousel-probe.log 2>&1
       - if: always()
         run: cat carousel-probe.log
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
-          name: carousel-probe-${{ matrix.delay }}
+          name: carousel-probe-cpu
           path: carousel-probe.log
