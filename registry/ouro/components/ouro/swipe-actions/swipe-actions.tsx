@@ -439,6 +439,8 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
       settle(opens ? side : null, velocity, flick);
     },
   });
+  // A tap on an action runs it with no release velocity.
+  const tapped = (action: SwipeAction) => run(action);
   const dragRef = drag.ref;
   const setRoot = useCallback(
     (element: HTMLDivElement) => {
@@ -515,7 +517,7 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
       onClickCapture={onClickCapture}
     >
       <div ref={trackRef} data-ouro-swipe-actions-track="" className={trackClass}>
-        <Strip side="leading" actions={leading} open={open === "leading"} stripRef={leadingRef} onAction={(action) => run(action)} />
+        <Strip side="leading" actions={leading} open={open === "leading"} stripRef={leadingRef} onAction={tapped} />
         {all.length > 0 ? (
           // A long press on the row (or a right-click) opens the actions at the finger: the way in for a touch that cannot swipe.
           <Menu contextTrigger={content} open={pressed} onOpenChange={onLongPress} items={items} />
@@ -538,7 +540,7 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
             />
           </div>
         )}
-        <Strip side="trailing" actions={trailing} open={open === "trailing"} stripRef={trailingRef} onAction={(action) => run(action)} />
+        <Strip side="trailing" actions={trailing} open={open === "trailing"} stripRef={trailingRef} onAction={tapped} />
       </div>
     </div>
   );
