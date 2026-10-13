@@ -237,17 +237,22 @@ describe("spring", () => {
     it("does nothing in a frame that outlives its stop", () => {
       const seen: number[] = [];
       const asked: FrameRequestCallback[] = [];
-      const request = vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => asked.push(callback));
-      const cancel = vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
-      const handle = spring({ from: 0, to: 100, onUpdate: (value) => seen.push(value) });
-      handle.stop();
-      // The cancel did not reach this frame (a test harness, or a browser bug): it runs anyway.
-      asked[0]!(performance.now() + 16);
-      expect(seen).toEqual([]);
-      expect(asked.length).toBe(1);
-      expect(handle.running).toBe(false);
-      request.mockRestore();
-      cancel.mockRestore();
+      // Set by hand and put back by hand: the held frames underneath are not a spy's to restore.
+      const held = { request: window.requestAnimationFrame, cancel: window.cancelAnimationFrame };
+      window.requestAnimationFrame = (callback) => asked.push(callback);
+      window.cancelAnimationFrame = () => {};
+      try {
+        const handle = spring({ from: 0, to: 100, onUpdate: (value) => seen.push(value) });
+        handle.stop();
+        // The cancel did not reach this frame (a test harness, or a browser bug): it runs anyway.
+        asked[0]!(performance.now() + 16);
+        expect(seen).toEqual([]);
+        expect(asked.length).toBe(1);
+        expect(handle.running).toBe(false);
+      } finally {
+        window.requestAnimationFrame = held.request;
+        window.cancelAnimationFrame = held.cancel;
+      }
     });
 
     it("can be retargeted and stopped through functions taken off the handle", () => {

@@ -269,15 +269,17 @@ describe("Reorderable", () => {
       expect(onReorder).toHaveBeenCalledTimes(1);
     });
 
-    it("leaves the arrow keys alone until a row is picked up", async () => {
+    it("opens the menu of moves on an arrow key, and moves the row with one only once it is picked up", async () => {
       const element = await render(list());
+      const soften = handle("Soften");
       await focus("Soften");
-      const event = new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true });
-      await act(async () => {
-        handle("Soften").dispatchEvent(event);
-      });
-      expect(event.defaultPrevented).toBe(false);
+      await press("{ArrowDown}");
+      // As on any menu button: the menu, and nothing has moved.
+      await expect.poll(() => document.querySelector('[role="menu"]')).not.toBeNull();
       expect(order(element)).toEqual(names);
+      await press("{Escape}");
+      await expect.poll(() => document.querySelector('[role="menu"]')).toBeNull();
+      await act(async () => soften.focus());
       await press(" ");
       const held = new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true });
       const other = new KeyboardEvent("keydown", { key: "a", bubbles: true, cancelable: true });

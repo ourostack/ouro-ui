@@ -687,14 +687,14 @@ describe("SwipeActions", () => {
 
   it("does not open the long-press menu under a finger that is already swiping", async () => {
     const element = await render(row());
-    await swipe(element, -60, { hold: true });
+    await swipe(element, -120, { hold: true });
     await act(async () => {
-      content(element).dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 140, clientY: 20 }));
+      content(element).dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 80, clientY: 20 }));
     });
     expect(document.querySelector('[role="menu"]')).toBeNull();
     expect(element.hasAttribute("data-dragging")).toBe(true);
     wait(300);
-    await pointer(window, "pointerup", 140, 20);
+    await pointer(window, "pointerup", 80, 20);
     expect(element.getAttribute("data-open")).toBe("trailing");
   });
 

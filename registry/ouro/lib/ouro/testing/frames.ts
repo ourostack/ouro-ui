@@ -17,6 +17,27 @@ interface HeldFrames {
   release(): void;
 }
 
+// Held frames count down from -1, so they never share a handle with a frame the browser
+// was asked for: cancelling one of those still reaches the browser. One count for every
+// hold, so a frame one hold handed to the browser is not mistaken for a later hold's.
+let last = 0;
+/** Frames handed to the browser on release and not yet run: the id each was given while held, and the browser's. */
+const moved = new Map<number, number>();
+/** The browser's own `cancelAnimationFrame`, while `cancelMoved` stands in for it. */
+let browserCancel: typeof window.cancelAnimationFrame | undefined;
+const cancelMoved = (handle: number) => {
+  const id = moved.get(handle) ?? handle;
+  moved.delete(handle);
+  browserCancel!.call(window, id);
+  settle();
+};
+/** Gives cancelling back to the browser once no moved frame is left. A hold in between keeps its own cancel; its release settles again. */
+function settle() {
+  if (moved.size > 0 || !browserCancel || window.cancelAnimationFrame !== cancelMoved) return;
+  window.cancelAnimationFrame = browserCancel;
+  browserCancel = undefined;
+}
+
 /**
  * Holds `requestAnimationFrame` and `performance.now()` still, so a test decides when a
  * frame runs and what time it is. A spring or any other frame-driven motion then stands
@@ -40,10 +61,7 @@ function holdFrames(): HeldFrames {
   const real = { request: window.requestAnimationFrame, cancel: window.cancelAnimationFrame, now: performance.now };
   const waiting = new Map<number, FrameRequestCallback>();
   let time = performance.now();
-  let last = 0;
   let held = true;
-  // Held frames count down from -1, so they never share a handle with a frame the browser
-  // was asked for before the hold: cancelling one of those still reaches the browser.
   window.requestAnimationFrame = (callback) => {
     waiting.set(--last, callback);
     return last;
@@ -67,29 +85,23 @@ function holdFrames(): HeldFrames {
     window.requestAnimationFrame = real.request;
     window.cancelAnimationFrame = real.cancel;
     performance.now = real.now;
-    if (waiting.size === 0) return;
     // The frames still waiting go to the browser, which knows them by its own ids. Code that
     // asked for one still holds the id it was given, so until the last of them has run,
     // cancelling by that id cancels the browser's frame.
-    const moved = new Map<number, number>();
-    const forget = (handle: number) => {
-      moved.delete(handle);
-      if (moved.size === 0 && window.cancelAnimationFrame === cancel) window.cancelAnimationFrame = real.cancel;
-    };
-    const cancel = (handle: number) => {
-      const id = moved.get(handle) ?? handle;
-      forget(handle);
-      real.cancel.call(window, id);
-    };
     for (const [handle, callback] of waiting) {
       const run: FrameRequestCallback = (now) => {
-        forget(handle);
+        moved.delete(handle);
+        settle();
         callback(now);
       };
       moved.set(handle, real.request.call(window, run));
     }
     waiting.clear();
-    window.cancelAnimationFrame = cancel;
+    if (moved.size > 0 && window.cancelAnimationFrame !== cancelMoved) {
+      browserCancel = window.cancelAnimationFrame;
+      window.cancelAnimationFrame = cancelMoved;
+    }
+    settle();
   };
   // A test that fails, or forgets, before its `release()` still gives the frames back.
   // Held outside a test (in a `beforeAll`), there is no test to wait for.

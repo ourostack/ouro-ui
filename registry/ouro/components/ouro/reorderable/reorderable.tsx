@@ -388,7 +388,11 @@ export function Reorderable(props: ReorderableProps): JSX.Element {
       say(pickedUpLabel, id, order.indexOf(id));
       return;
     }
-    if (grabbed?.id !== id) return;
+    if (grabbed?.id !== id) {
+      // As on any menu button, an arrow key opens the menu of moves.
+      if (event.key === "ArrowUp" || event.key === "ArrowDown") setMenu(id);
+      return;
+    }
     if (event.key === "ArrowUp" || event.key === "ArrowDown") {
       // The arrow moves the row, not the page.
       event.preventDefault();
