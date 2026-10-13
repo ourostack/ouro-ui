@@ -336,6 +336,11 @@ describe("Select popup motion", () => {
     const { trigger } = await render(<Select label="Course" options={courses} />);
     const rest = getComputedStyle(trigger).backgroundColor;
     const box = trigger.getBoundingClientRect();
+    // Keep the press from opening the list: a list that opens over the trigger under the
+    // mouse can take the press's :active state away before the colour is read.
+    const keep = (event: Event) => event.stopImmediatePropagation();
+    const types = ["pointerdown", "mousedown", "click"];
+    for (const type of types) window.addEventListener(type, keep, true);
     await commands.pointerPress({ selector: '[role="combobox"]', action: "down" });
     try {
       await expect.poll(() => getComputedStyle(trigger).backgroundColor).not.toBe(rest);
@@ -344,6 +349,7 @@ describe("Select popup motion", () => {
       expect(trigger.getBoundingClientRect().toJSON()).toEqual(box.toJSON());
     } finally {
       await commands.pointerPress({ selector: '[role="combobox"]', action: "up" });
+      for (const type of types) window.removeEventListener(type, keep, true);
     }
   });
 });

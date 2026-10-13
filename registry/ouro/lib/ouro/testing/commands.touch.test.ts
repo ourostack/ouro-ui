@@ -154,6 +154,8 @@ test("a touch the page never handles throws, naming the event and what the page 
   document.body.append(frame);
   nodes.push(frame);
   await loaded;
+  // A frame that has just loaded may not be hit-testable yet; CI saw the first touch land on nothing.
+  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   await commands.touchStep({ type: "touchStart", x: 100, y: 100 });
   // The finger's target goes away with its frame, so no page gets the touchend.
   frame.remove();
