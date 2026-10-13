@@ -30,3 +30,13 @@ test("a mouse follows a swipeable row's link and never drags the row", async ({ 
   await page.mouse.click(box.x + 60, y);
   await expect(page).toHaveURL(/#short-ribs$/);
 });
+
+test("a right-click on a row opens its actions where the pointer is", async ({ page }) => {
+  await openStory(page, "lists-swipeactions--in-context");
+  const rows = page.locator('[data-ouro="swipe-actions"]');
+  await page.getByRole("link", { name: "Shakshuka" }).click({ button: "right" });
+  await expect(page.getByRole("menuitem")).toHaveText(["Pin", "Delete", "Share"]);
+  await page.getByRole("menuitem", { name: "Delete" }).click();
+  await expect(rows).toHaveCount(2);
+  await expect(page).not.toHaveURL(/#shakshuka$/);
+});

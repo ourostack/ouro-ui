@@ -38,6 +38,12 @@ interface SpringOptions {
   onUpdate: (value: number, velocity: number) => void;
   /** Called when the spring comes to rest on its target. Not called after `stop()`. */
   onRest?: (() => void) | undefined;
+  /**
+   * The element being moved. It carries `data-ouro-settling` while the spring runs, from the
+   * call to the rest or the stop, so styles can follow it and tests can wait for rest. With
+   * reduced motion the spring never runs, and the attribute is never set.
+   */
+  element?: Element | null | undefined;
 }
 
 /** Where a spring is and how fast it is moving, in px and px/ms. */
@@ -48,29 +54,35 @@ interface SpringState {
 
 /** A spring started by `spring`. */
 interface SpringHandle {
-  /** Stops at once and returns where the spring was, for a new drag or a new spring to start from. */
+  /** Stops at once and returns the value last written and its velocity: what is on screen, for a new drag or a new spring to start from. */
   stop(): SpringState;
   /** Moves the target and keeps the current value and velocity. */
   retarget(to: number): void;
-  /** Whether it is still moving. Set `data-ouro-settling` on the element while it is, so tests can wait for rest. */
+  /** Whether it is still moving. Pass `element` and it carries `data-ouro-settling` for as long. */
   readonly running: boolean;
 }
 
 // A spring this close to its target, in px, and this slow, in px/ms, is at rest.
 const REST_DISTANCE = 0.5;
 const REST_VELOCITY = 0.01;
+// A spring with no damping never rests, and one with no response time divides by zero.
+const MIN_DAMPING = 0.1;
+const MIN_RESPONSE = 0.01;
 
 /**
  * Where a spring that left `from` toward `to` at `velocity` (px/ms) is after `elapsed`
  * milliseconds. It is the exact solution, so any moment can be asked for in any order.
+ * `damping` is kept between 0.1 and 1, and `response` at 0.01s or more.
  */
 function springAt(
   from: number,
   to: number,
   velocity: number,
   elapsed: number,
-  { damping = 1, response = 0.3 }: Pick<SpringOptions, "damping" | "response"> = {},
+  options: Pick<SpringOptions, "damping" | "response"> = {},
 ): SpringState {
+  const damping = Math.max(options.damping ?? 1, MIN_DAMPING);
+  const response = Math.max(options.response ?? 0.3, MIN_RESPONSE);
   const seconds = elapsed / 1000;
   const speed = velocity * 1000;
   const omega = (2 * Math.PI) / response;
@@ -94,45 +106,53 @@ function springAt(
 /**
  * Runs a spring on `requestAnimationFrame`, from the live value to the target, starting
  * with the velocity it is handed. With `prefers-reduced-motion: reduce` it jumps to `to`
- * and rests, before it returns.
+ * and rests before it returns, so `onRest` can run before the caller has the handle.
+ *
+ * A critically damped spring handed a velocity toward its target passes the target once,
+ * by less than a pixel below the flick speed.
  */
-function spring({ from, to, velocity = 0, damping, response, onUpdate, onRest }: SpringOptions): SpringHandle {
+function spring({ from, to, velocity = 0, damping, response, onUpdate, onRest, element }: SpringOptions): SpringHandle {
   let start = performance.now();
   let frame = 0;
   let running = false;
-  // Where it stopped or rested, once it has.
+  // The value last written and its velocity: what is on screen.
   let last: SpringState = { value: from, velocity };
-  // A frame's time can be a little before the call that asked for it.
-  const at = (now: number) => springAt(from, to, velocity, Math.max(now - start, 0), { damping, response });
+  const mark = (on: boolean) => element?.toggleAttribute("data-ouro-settling", on);
   const rest = () => {
     running = false;
     last = { value: to, velocity: 0 };
+    mark(false);
     onUpdate(to, 0);
     onRest?.();
   };
   const tick = (now: number) => {
-    const state = at(now);
-    if (Math.abs(state.value - to) < REST_DISTANCE && Math.abs(state.velocity) < REST_VELOCITY) return rest();
-    onUpdate(state.value, state.velocity);
+    // A frame that outlived `stop()` does nothing.
+    if (!running) return;
+    // A frame's time can be a little before the call that asked for it.
+    last = springAt(from, to, velocity, Math.max(now - start, 0), { damping, response });
+    if (Math.abs(last.value - to) < REST_DISTANCE && Math.abs(last.velocity) < REST_VELOCITY) return rest();
+    onUpdate(last.value, last.velocity);
     frame = requestAnimationFrame(tick);
   };
   const run = () => {
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) return rest();
     running = true;
+    mark(true);
     frame = requestAnimationFrame(tick);
+  };
+  const stop = () => {
+    if (running) {
+      running = false;
+      mark(false);
+      cancelAnimationFrame(frame);
+    }
+    return last;
   };
   run();
   return {
-    stop() {
-      if (running) {
-        running = false;
-        cancelAnimationFrame(frame);
-        last = at(performance.now());
-      }
-      return last;
-    },
+    stop,
     retarget(next) {
-      ({ value: from, velocity } = this.stop());
+      ({ value: from, velocity } = stop());
       to = next;
       start = performance.now();
       run();

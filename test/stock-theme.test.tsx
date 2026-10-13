@@ -7,13 +7,15 @@ import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
+import { SwipeActions } from "@/registry/ouro/components/ouro/swipe-actions/swipe-actions";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text, type TextProps } from "@/registry/ouro/components/ouro/text/text";
 import stockCss from "./shadcn-stock.css?raw";
 
 // Every Button tone and variant, every Text tone and Heading, every Badge tone and
-// variant, Alert's title and description in each tone, Kbd and Avatar's initials keep their text at 4.5:1
-// or more in light and dark, under two themes:
+// variant, Alert's title and description in each tone, Kbd, Avatar's initials and a
+// SwipeActions button in each tone keep their text at 4.5:1 or more in light and dark,
+// under two themes:
 //
 // - "stock shadcn": the variables `shadcn init` writes (test/shadcn-stock.css, copied
 //   from the install spike) plus ouro-base.css, which every app installs. This is an
@@ -136,9 +138,14 @@ async function render(css: string, surface: "background" | "popover") {
         ))}
         <Kbd keys={["mod", "k"]} data-probe="Kbd" />
         <Avatar name="Ada Lovelace" data-probe="Avatar" />
+        <SwipeActions label="Short ribs" trailing={tones.map((tone) => ({ label: "Archive", tone, onClick: () => {} }))}>
+          Short ribs
+        </SwipeActions>
       </>,
     ),
   );
+  // SwipeActions' buttons take no attributes from the app: label them here, by their tone.
+  for (const button of host.querySelectorAll("[data-ouro-swipe-actions-side] button")) button.setAttribute("data-probe", `SwipeActions ${button.getAttribute("data-tone")}`);
   return host;
 }
 
@@ -149,7 +156,7 @@ for (const [name, css] of Object.entries(themes)) {
         document.documentElement.classList.toggle("dark", scheme === "dark");
         const host = await render(css, surface);
         const found = ratios(host);
-        expect(found).toHaveLength(variants.length * tones.length + textTones.length + 1 + badgeVariants.length * tones.length + tones.length * 2 + 2);
+        expect(found).toHaveLength(variants.length * tones.length + textTones.length + 1 + badgeVariants.length * tones.length + tones.length * 2 + 2 + tones.length);
         const failures = found.filter(([, value]) => value < 4.5).map(([label, value]) => `${label}: ${value.toFixed(2)}`);
         expect(failures).toEqual([]);
       });

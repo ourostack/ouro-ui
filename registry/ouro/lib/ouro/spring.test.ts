@@ -50,6 +50,18 @@ describe("spring", () => {
     expect(springAt(0, 100, 0, 100, { response: 0.2 }).value).toBeGreaterThan(springAt(0, 100, 0, 100, { response: 0.5 }).value);
   });
 
+  it("keeps a damping or response of zero or less from breaking it: it still comes to rest, on a number", () => {
+    // No damping would swing for ever: it is held at 0.1, which dies away.
+    expect(springAt(0, 100, 0, 250, { damping: 0 })).toEqual(springAt(0, 100, 0, 250, { damping: 0.1 }));
+    expect(springAt(0, 100, 0, 250, { damping: -2 })).toEqual(springAt(0, 100, 0, 250, { damping: 0.1 }));
+    expect(Math.abs(springAt(0, 100, 0, 20_000, { damping: 0 }).value - 100)).toBeLessThan(0.01);
+    // No response time would divide by zero: it is held at 10ms.
+    const instant = springAt(0, 100, 0, 16, { response: 0 });
+    expect(instant).toEqual(springAt(0, 100, 0, 16, { response: 0.01 }));
+    expect(Number.isFinite(instant.value) && Number.isFinite(instant.velocity)).toBe(true);
+    expect(springAt(0, 100, 0, 16, { response: -1 })).toEqual(instant);
+  });
+
   it("agrees with a step-by-step simulation of the same spring", () => {
     for (const damping of [1, 0.8, 0.5]) {
       const response = 0.3;
@@ -166,10 +178,16 @@ describe("spring", () => {
       expect(held.value).toBe(seen.at(-1));
       expect(held).toEqual(springAt(0, 300, 0, 48));
       expect(held.velocity).toBeGreaterThan(0);
-      // Stopped between frames, it says where it is then, not where the last frame left it.
+      // Stopped between frames, it says what the last frame wrote, which is what is on
+      // screen, not where the clock says it would be by now.
       const other = spring({ from: 0, to: 300, onUpdate: () => {} });
       frames.step(10);
+      const now = performance.now;
+      performance.now = () => now.call(performance) + 9;
       expect(other.stop()).toEqual(springAt(0, 300, 0, 10));
+      performance.now = now;
+      // Stopped before its first frame, it is where it began.
+      expect(spring({ from: 7, to: 300, velocity: 0.5, onUpdate: () => {} }).stop()).toEqual({ value: 7, velocity: 0.5 });
       frames.step(16);
       frames.step(16);
       // Stopped: no more updates, no rest, and a second stop says the same.
@@ -216,6 +234,50 @@ describe("spring", () => {
       handle.stop();
     });
 
+    it("does nothing in a frame that outlives its stop", () => {
+      const seen: number[] = [];
+      const asked: FrameRequestCallback[] = [];
+      const request = vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => asked.push(callback));
+      const cancel = vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
+      const handle = spring({ from: 0, to: 100, onUpdate: (value) => seen.push(value) });
+      handle.stop();
+      // The cancel did not reach this frame (a test harness, or a browser bug): it runs anyway.
+      asked[0]!(performance.now() + 16);
+      expect(seen).toEqual([]);
+      expect(asked.length).toBe(1);
+      expect(handle.running).toBe(false);
+      request.mockRestore();
+      cancel.mockRestore();
+    });
+
+    it("can be retargeted and stopped through functions taken off the handle", () => {
+      const seen: number[] = [];
+      const { retarget, stop } = spring({ from: 0, to: 100, onUpdate: (value) => seen.push(value) });
+      frames.step(16);
+      retarget(-50);
+      frames.step(16);
+      expect(seen.at(-1)!).toBeLessThan(100);
+      frames.until(() => seen.at(-1) === -50);
+      expect(stop()).toEqual({ value: -50, velocity: 0 });
+    });
+
+    it("marks the element it moves while it runs, until it rests or is stopped", () => {
+      const element = document.createElement("div");
+      const handle = spring({ from: 0, to: 100, element, onUpdate: () => {}, onRest: () => expect(element.hasAttribute("data-ouro-settling")).toBe(false) });
+      expect(element.getAttribute("data-ouro-settling")).toBe("");
+      frames.step(16);
+      expect(element.hasAttribute("data-ouro-settling")).toBe(true);
+      frames.until(() => !handle.running);
+      expect(element.hasAttribute("data-ouro-settling")).toBe(false);
+      // Sent off again it is marked again, and a stop clears the mark.
+      handle.retarget(0);
+      expect(element.hasAttribute("data-ouro-settling")).toBe(true);
+      handle.stop();
+      expect(element.hasAttribute("data-ouro-settling")).toBe(false);
+      // No element, or none yet, is fine.
+      spring({ from: 0, to: 1, element: null, onUpdate: () => {} }).stop();
+    });
+
     it("rests at once when it starts on its target with no velocity", () => {
       const onUpdate = vi.fn();
       const onRest = vi.fn();
@@ -247,7 +309,12 @@ describe("spring", () => {
       const onUpdate = vi.fn();
       const onRest = vi.fn();
       const asked = vi.spyOn(window, "requestAnimationFrame");
-      const handle = spring({ from: 0, to: 100, velocity: 2, damping: 0.8, onUpdate, onRest });
+      const element = document.createElement("div");
+      const marked = vi.spyOn(element, "toggleAttribute");
+      const handle = spring({ from: 0, to: 100, velocity: 2, damping: 0.8, element, onUpdate, onRest });
+      // Nothing ran, so the element was never marked as settling.
+      expect(marked.mock.calls.every(([, on]) => on === false)).toBe(true);
+      expect(element.hasAttribute("data-ouro-settling")).toBe(false);
       expect(onUpdate.mock.calls).toEqual([[100, 0]]);
       expect(onRest).toHaveBeenCalledTimes(1);
       expect(handle.running).toBe(false);

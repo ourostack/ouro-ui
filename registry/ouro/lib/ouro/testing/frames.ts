@@ -1,3 +1,5 @@
+import { onTestFinished } from "vitest";
+
 export { holdFrames };
 export type { HeldFrames };
 
@@ -7,7 +9,11 @@ interface HeldFrames {
   step(ms?: number): void;
   /** Steps `ms` at a time until `done` returns true; throws after 2000 steps. */
   until(done: () => boolean, ms?: number): void;
-  /** Gives frames and the clock back to the browser, and asks it for the frames still waiting. */
+  /**
+   * Gives frames and the clock back to the browser, and asks it for the frames still
+   * waiting; a later `cancelAnimationFrame` with a held frame's id still cancels it.
+   * Calling it again does nothing.
+   */
   release(): void;
 }
 
@@ -18,7 +24,9 @@ interface HeldFrames {
  * catch it with a pointer, then `until` it has come to rest.
  *
  * While frames are held, nothing that waits for a real frame resolves, `expect.poll`
- * included when it waits on motion: step instead. Always `release()` in `afterEach`.
+ * included when it waits on motion: step instead. The frames are released when the test
+ * finishes, pass or fail, so a forgotten `release()` cannot hang the tests after it.
+ * Release sooner when the rest of the test, or an `afterEach`, waits on real frames.
  *
  * @example
  * const frames = holdFrames();
@@ -53,6 +61,43 @@ function holdFrames(): HeldFrames {
       if (waiting.delete(handle)) callback(time);
     }
   };
+  const release = () => {
+    if (!held) return;
+    held = false;
+    window.requestAnimationFrame = real.request;
+    window.cancelAnimationFrame = real.cancel;
+    performance.now = real.now;
+    if (waiting.size === 0) return;
+    // The frames still waiting go to the browser, which knows them by its own ids. Code that
+    // asked for one still holds the id it was given, so until the last of them has run,
+    // cancelling by that id cancels the browser's frame.
+    const moved = new Map<number, number>();
+    const forget = (handle: number) => {
+      moved.delete(handle);
+      if (moved.size === 0 && window.cancelAnimationFrame === cancel) window.cancelAnimationFrame = real.cancel;
+    };
+    const cancel = (handle: number) => {
+      const id = moved.get(handle) ?? handle;
+      forget(handle);
+      real.cancel.call(window, id);
+    };
+    for (const [handle, callback] of waiting) {
+      const run: FrameRequestCallback = (now) => {
+        forget(handle);
+        callback(now);
+      };
+      moved.set(handle, real.request.call(window, run));
+    }
+    waiting.clear();
+    window.cancelAnimationFrame = cancel;
+  };
+  // A test that fails, or forgets, before its `release()` still gives the frames back.
+  // Held outside a test (in a `beforeAll`), there is no test to wait for.
+  try {
+    onTestFinished(release);
+  } catch {
+    // Not in a test: the caller releases.
+  }
   return {
     step,
     until(done, ms = 16) {
@@ -61,14 +106,6 @@ function holdFrames(): HeldFrames {
         step(ms);
       }
     },
-    release() {
-      if (!held) return;
-      held = false;
-      window.requestAnimationFrame = real.request;
-      window.cancelAnimationFrame = real.cancel;
-      performance.now = real.now;
-      for (const callback of waiting.values()) requestAnimationFrame(callback);
-      waiting.clear();
-    },
+    release,
   };
 }

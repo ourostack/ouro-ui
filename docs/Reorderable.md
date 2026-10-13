@@ -2,7 +2,7 @@
 
 # Reorderable
 
-A list the user puts in order: recipe steps, a queue, favorites. Each row has a drag handle, a 44px target on a touch screen. Dragging it moves the row with the pointer, the other rows make room, and holding it near the top or bottom edge scrolls the list or the page. Let go and the row springs into its place from where it was, and it can be picked up again on the way. A touch that starts anywhere else on a row scrolls as usual.
+A list the user puts in order: recipe steps, a queue, favorites. Each row has a drag handle, a 44px target on a touch screen. Dragging it moves the row with the pointer, the other rows make room, and holding it near the top or bottom edge scrolls the list or the page. Let go and the row drops into the gap the others made for it, springing there from where it was, and it can be picked up again on the way. A touch that starts anywhere else on a row scrolls as usual.
 
 ```tsx
 import { Reorderable } from "@/registry/ouro/components/ouro/reorderable/reorderable";
@@ -20,7 +20,7 @@ import { Reorderable } from "@/registry/ouro/components/ouro/reorderable/reorder
 
 ## Usage
 
-From the keyboard, focus a handle and press Space to pick the row up, the up and down arrow keys to move it, Space to drop it and Escape to cancel, which puts it back. Moving focus away drops it where it is. Every step is announced to screen readers with the row's position ("Sear the ribs moved. Position 3 of 7."), and each spoken string is a prop with an English default.
+Dragging is never the only way. A tap or click on a handle, Enter, or a screen reader's activation opens a menu with Move up, Move down, Move to top and Move to bottom; the ones that cannot apply are disabled. From the keyboard, Space on a handle also picks the row up: the up and down arrow keys move it, Space drops it and Escape cancels, which puts it back. Moving focus away drops it where it is. Every move is announced to screen readers with the row's position ("Sear the ribs moved. Position 3 of 7."), and each spoken string and menu item is a prop with an English default.
 
 The list shows the new order at once and keeps it; `onReorder` reports it, once per drop. With reduced motion the other rows jump out of the way instead of sliding, and a dropped row is in its place at once.
 
@@ -36,13 +36,18 @@ Type: `ReorderableProps`.
 | --- | --- | --- | --- |
 | `canceledLabel` | `string` | `"{label} put back. Position {n} of {total}."` | Announced when a move is cancelled and the row goes back. |
 | `className` | `string` |  | Layout only: margins, or a height with `overflow-auto` (`max-h-80 overflow-auto`) to scroll the list in place. Appearance classes warn in development. |
+| `closeLabel` | `string` | `"Close"` | The item that closes a handle's menu on a phone, where it is a bottom sheet. |
 | `droppedLabel` | `string` | `"{label} dropped. Position {n} of {total}."` | Announced when a row is dropped. |
 | `handleLabel` | `string` | `"Reorder {label}"` | Each handle's accessible name; `{label}` is the row's label. |
-| `instructionsLabel` | `string` | `"Press Space to pick up. Use the arrow keys to move, Space to drop, and Escape to cancel."` | How to use a handle from the keyboard, read after its name. |
+| `instructionsLabel` | `string` | `"Press Enter for a menu of moves. Press Space to pick up, then use the arrow keys to move, Space to drop, and Escape to cancel."` | How to use a handle from the keyboard, read after its name. |
 | `items` (required) | `readonly ReorderableItem[]` |  | The rows, in order: `{ id, label, content }`. Pass them in a new order to change the order from outside. |
 | `label` (required) | `string` |  | Names the list for screen readers, such as "Steps". Always required. |
-| `movedLabel` | `string` | `"{label} moved. Position {n} of {total}."` | Announced on each move with the arrow keys. |
-| `onReorder` | `((ids: string[], move: ReorderableMove) => void)` |  | Called once when the user drops a row in a new place, with every id in the new order and the move. The list already shows the new order; save it, or keep it in state. |
+| `movedLabel` | `string` | `"{label} moved. Position {n} of {total}."` | Announced on each move, with the arrow keys or from a handle's menu. |
+| `moveDownLabel` | `string` | `"Move down"` | The item of a handle's menu that moves the row down one place. |
+| `moveToBottomLabel` | `string` | `"Move to bottom"` | The item of a handle's menu that moves the row to the end of the list. |
+| `moveToTopLabel` | `string` | `"Move to top"` | The item of a handle's menu that moves the row to the start of the list. |
+| `moveUpLabel` | `string` | `"Move up"` | The item of a handle's menu that moves the row up one place. |
+| `onReorder` | `((ids: string[], move: ReorderableMove) => void)` |  | Called once when the user drops a row in a new place, or moves it from its handle's menu, with every id in the new order and the move. The list already shows the new order; save it, or keep it in state. |
 | `pickedUpLabel` | `string` | `"{label} picked up. Position {n} of {total}."` | Announced when a row is picked up; `{label}`, `{n}` (its position) and `{total}` are filled in. |
 
 ## Don't use

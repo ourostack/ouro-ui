@@ -4,6 +4,8 @@ import { holdFrames, type HeldFrames } from "@/registry/ouro/lib/ouro/testing/fr
 let frames: HeldFrames | undefined;
 afterEach(() => frames?.release());
 
+const browser = { request: window.requestAnimationFrame, cancel: window.cancelAnimationFrame, now: performance.now };
+
 it("runs a frame only when the test steps, at the time the test says", () => {
   frames = holdFrames();
   const start = performance.now();
@@ -80,4 +82,45 @@ it("gives frames and the clock back, and the waiting frames to the browser", asy
   // Released twice is released; stepping after that is a mistake.
   frames.release();
   expect(() => frames!.step()).toThrow("were released");
+});
+
+it("still cancels, by the id it gave, a frame it handed to the browser on release", async () => {
+  frames = holdFrames();
+  const ran: string[] = [];
+  const first = requestAnimationFrame(() => ran.push("first"));
+  requestAnimationFrame(() => ran.push("second"));
+  frames.release();
+  // A component's cleanup cancels with the id it was given while frames were held.
+  cancelAnimationFrame(first);
+  await expect.poll(() => ran).toEqual(["second"]);
+  // Once the last of them has run, cancelling is the browser's own again.
+  expect(window.cancelAnimationFrame).toBe(browser.cancel);
+  let later = false;
+  const id = requestAnimationFrame(() => (later = true));
+  cancelAnimationFrame(id);
+  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  expect(later).toBe(false);
+});
+
+it("passes a cancel for a frame it never held on to the browser while released frames wait", async () => {
+  let ran = false;
+  frames = holdFrames();
+  requestAnimationFrame(() => {});
+  frames.release();
+  const own = requestAnimationFrame(() => (ran = true));
+  cancelAnimationFrame(own);
+  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  expect(ran).toBe(false);
+  expect(window.cancelAnimationFrame).toBe(browser.cancel);
+});
+
+it("is left holding frames by a test that forgets to release them", () => {
+  holdFrames();
+  expect(window.requestAnimationFrame).not.toBe(browser.request);
+});
+
+it("gave them back when that test finished", () => {
+  expect(window.requestAnimationFrame).toBe(browser.request);
+  expect(window.cancelAnimationFrame).toBe(browser.cancel);
+  expect(performance.now).toBe(browser.now);
 });

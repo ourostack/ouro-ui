@@ -1,4 +1,4 @@
-export { contentClass, dropIndex, EDGE, edgeSpeed, fillLabel, handleClass, itemClass, listClass, MAX_SPEED, moveItem, rootClass, scrollParent };
+export { contentClass, dropIndex, EDGE, edgeSpeed, fillLabel, handleClass, itemClass, listClass, MAX_FRAME, MAX_SPEED, moveItem, rootClass, scrollParent };
 
 // Class strings, values and helpers for Reorderable, apart from the component so its file
 // exports only components (React Fast Refresh). Class strings are literal so the app's
@@ -7,8 +7,11 @@ export { contentClass, dropIndex, EDGE, edgeSpeed, fillLabel, handleClass, itemC
 /** How near the scrolling area's top or bottom edge, in px, a dragging pointer starts to scroll it. @internal */
 const EDGE = 56;
 
-/** The fastest a drag scrolls, in px per frame, with the pointer at the edge or past it. @internal */
-const MAX_SPEED = 14;
+/** The fastest a drag scrolls, in px per millisecond, with the pointer at the edge or past it: 840px a second. @internal */
+const MAX_SPEED = 0.84;
+
+/** The longest a frame counts for when a drag scrolls, in ms: a frame after a pause does not jump. @internal */
+const MAX_FRAME = 50;
 
 /** @internal */
 const rootClass = "m-0 min-w-0";
@@ -27,9 +30,9 @@ const listClass = "group/reorder m-0 flex min-w-0 list-none flex-col p-0 data-dr
  */
 const itemClass =
   "relative m-0 flex min-w-0 list-none items-center gap-2 p-0 pointer-coarse:min-h-11 " +
-  "motion-safe:group-data-dragging/reorder:[&:not([data-dragging])]:[transition:transform_var(--ouro-duration-base)_ease-out] " +
+  "motion-safe:group-data-dragging/reorder:[&:not([data-dragging])]:[transition:transform_var(--ouro-duration-base)_var(--ouro-ease-out)] " +
   "data-dragging:z-10 data-dragging:rounded-lg data-dragging:bg-background data-dragging:shadow-lg " +
-  "data-[ouro-settling=dropped]:z-10 data-[ouro-settling=dropped]:rounded-lg data-[ouro-settling=dropped]:bg-background " +
+  "data-dropped:z-10 data-dropped:rounded-lg data-dropped:bg-background " +
   "data-grabbed:rounded-lg data-grabbed:outline-2 data-grabbed:outline-ring data-grabbed:outline-solid";
 
 /** The row's content. No `touch-action`: a touch that starts here scrolls the page. @internal */
@@ -78,13 +81,15 @@ function dropIndex(centers: readonly number[], from: number, center: number): nu
 }
 
 /**
- * How far to scroll this frame with the pointer at `y` between the scrolling area's `top`
- * and `bottom`: nothing in the middle, faster the nearer an edge, negative toward the top.
+ * How fast to scroll, in px per millisecond, with the pointer at `y` between the scrolling
+ * area's `top` and `bottom`: not at all in the middle, faster the nearer an edge, negative
+ * toward the top. The caller multiplies by the frame's time, so the speed is the same at
+ * 60Hz and at 120Hz.
  *
  * @internal
  */
 function edgeSpeed(y: number, top: number, bottom: number): number {
-  const near = (distance: number) => Math.ceil(Math.min(Math.max((EDGE - distance) / EDGE, 0), 1) * MAX_SPEED);
+  const near = (distance: number) => Math.min(Math.max((EDGE - distance) / EDGE, 0), 1) * MAX_SPEED;
   return near(bottom - y) - near(y - top);
 }
 

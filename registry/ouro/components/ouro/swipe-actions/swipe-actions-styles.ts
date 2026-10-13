@@ -59,17 +59,13 @@ const contentClass = "min-w-0 flex-1";
 /**
  * The actions on one side, outside the content's edge until the row slides. The `::after`
  * continues the primary action's color past the buttons, so a swipe further than their
- * width shows no gap. With reduced motion the actions fade in once the row is open.
+ * width shows no gap.
  *
  * @internal
  */
 const stripClass = {
-  leading:
-    "absolute inset-y-0 end-full flex items-stretch after:absolute after:inset-y-0 after:end-full after:w-screen after:bg-inherit after:content-[''] " +
-    "motion-reduce:opacity-0 motion-reduce:data-open:opacity-100 motion-reduce:[transition:opacity_var(--ouro-duration-base)_ease-out]",
-  trailing:
-    "absolute inset-y-0 start-full flex items-stretch after:absolute after:inset-y-0 after:start-full after:w-screen after:bg-inherit after:content-[''] " +
-    "motion-reduce:opacity-0 motion-reduce:data-open:opacity-100 motion-reduce:[transition:opacity_var(--ouro-duration-base)_ease-out]",
+  leading: "absolute inset-y-0 end-full flex items-stretch after:absolute after:inset-y-0 after:end-full after:w-screen after:bg-inherit after:content-['']",
+  trailing: "absolute inset-y-0 start-full flex items-stretch after:absolute after:inset-y-0 after:start-full after:w-screen after:bg-inherit after:content-['']",
 } as const;
 
 /** The color behind a side's actions: its primary action's. @internal */
@@ -100,12 +96,13 @@ const actionTones = {
 const fadeClass = "group-data-full/swipe:opacity-0";
 
 /**
- * The actions button's place at the end of the row. With a fine pointer it shows. On a
- * touch screen it is visually hidden, because the swipe is the visible way there, and
+ * The actions button's place at the end of the row. With a fine pointer it shows, 8px in
+ * from the row's end so it does not touch the edge of an outlined group. On a touch screen
+ * it is visually hidden, because the swipe and the long press are the ways there, and
  * stays in the accessibility tree; it shows when the keyboard focuses it, in a 44px column
  * so its touch target stays inside the row.
  *
  * @internal
  */
 const menuClass =
-  "flex shrink-0 justify-center pointer-coarse:[&:not(:has(:focus-visible))]:sr-only pointer-coarse:has-[:focus-visible]:min-w-11";
+  "flex shrink-0 justify-center pointer-fine:pe-2 pointer-coarse:[&:not(:has(:focus-visible))]:sr-only pointer-coarse:has-[:focus-visible]:min-w-11";

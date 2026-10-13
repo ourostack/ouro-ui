@@ -1,8 +1,8 @@
-import type { JSX } from "react";
+import { useEffect, type JSX } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
-import { FLICK_VELOCITY, useDrag, type DragOptions, type DragState } from "@/registry/ouro/lib/ouro/use-drag";
+import { FLICK_VELOCITY, useDrag, type DragOptions, type DragProps, type DragState } from "@/registry/ouro/lib/ouro/use-drag";
 
 // Pointer events are dispatched, each with a time the test sets, so a release is exactly
 // as fast as the test says. Real touch and mouse drags run through the hook in the
@@ -19,6 +19,8 @@ afterEach(async () => {
 
 type Calls = { start: DragState[]; move: DragState[]; end: (DragState & { cancelled: boolean })[] };
 
+let latestProps: DragProps | undefined;
+
 function Pad({ calls, options }: { calls: Calls; options?: Partial<DragOptions> | undefined }): JSX.Element {
   const drag = useDrag({
     axis: "x",
@@ -28,6 +30,9 @@ function Pad({ calls, options }: { calls: Calls; options?: Partial<DragOptions> 
     onMove: (state) => calls.move.push(state),
     onEnd: (state) => calls.end.push(state),
     ...options,
+  });
+  useEffect(() => {
+    latestProps = drag;
   });
   return <div data-testid="pad" style={{ width: 200, height: 100 }} {...drag} />;
 }
@@ -43,10 +48,11 @@ async function mount(options?: Partial<DragOptions>) {
 }
 
 let clock = 1000;
-/** Dispatches a pointer event `ms` after the last one. */
+/** Dispatches a pointer event `ms` after the last one. While the pointer is down its button is held, as a real one's is. */
 async function fire(target: EventTarget, type: string, x: number, y: number, ms = 16, init: PointerEventInit = {}) {
   clock += ms;
-  const event = new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 1, pointerType: "touch", isPrimary: true, button: 0, clientX: x, clientY: y, ...init });
+  const buttons = type === "pointerdown" || type === "pointermove" ? 1 : 0;
+  const event = new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 1, pointerType: "touch", isPrimary: true, button: 0, buttons, clientX: x, clientY: y, ...init });
   Object.defineProperty(event, "timeStamp", { value: clock });
   await act(async () => {
     target.dispatchEvent(event);
@@ -127,7 +133,7 @@ describe("useDrag", () => {
     await fire(pad, "pointerup", 104, 50);
   });
 
-  it("measures velocity over the last 100ms, in px per millisecond, and calls a fast release a flick", async () => {
+  it("measures velocity over the last 100ms up to the event, in px per millisecond, and calls a fast release a flick", async () => {
     const { calls, pad } = await mount();
     expect(FLICK_VELOCITY).toBe(0.11);
     await fire(pad, "pointerdown", 100, 50);
@@ -136,9 +142,19 @@ describe("useDrag", () => {
     // 40px in 40ms.
     expect(calls.move.at(-1)!.velocity).toBeCloseTo(1, 9);
     expect(calls.move.at(-1)!.flick).toBe(true);
+    // The release is measured up to the lift: 40px in the 50ms since the press.
     await fire(pad, "pointerup", 140, 50, 10);
-    expect(calls.end[0]!.velocity).toBeCloseTo(1, 9);
+    expect(calls.end[0]!.velocity).toBeCloseTo(0.8, 9);
     expect(calls.end[0]!.flick).toBe(true);
+
+    // The same fast move, then the finger sits still for 60ms before it lifts: the pause
+    // counts, so the release is not read at the speed the finger had before it stopped.
+    await fire(pad, "pointerdown", 100, 50, 1000);
+    await fire(pad, "pointermove", 120, 50, 20);
+    await fire(pad, "pointermove", 140, 50, 20);
+    await fire(pad, "pointerup", 140, 50, 60);
+    expect(calls.end[1]!.velocity).toBeCloseTo(0.4, 9);
+    calls.end.splice(1);
 
     // Out and then back: the sign is the direction at release, whatever the distance.
     await fire(pad, "pointerdown", 100, 50, 1000);
@@ -158,7 +174,8 @@ describe("useDrag", () => {
     await fire(pad, "pointermove", 112, 50, 50);
     await fire(pad, "pointermove", 115, 50, 50);
     await fire(pad, "pointerup", 115, 50, 10);
-    expect(calls.end[3]!.velocity).toBeCloseTo(0.06, 9);
+    // 3px in the 60ms from the oldest move of the last 100ms to the lift.
+    expect(calls.end[3]!.velocity).toBeCloseTo(0.05, 9);
     expect(calls.end[3]!.flick).toBe(false);
     // Two events in the same instant give no velocity, not a division by zero.
     await fire(pad, "pointerdown", 100, 50, 1000);
@@ -179,6 +196,77 @@ describe("useDrag", () => {
     await fire(pad, "pointerdown", 100, 50);
     await fire(pad, "pointerup", 103, 50);
     expect(calls.end.length).toBe(1);
+  });
+
+  it("says when a press begins, and when it ends without becoming a drag", async () => {
+    const onPress = vi.fn();
+    const onPressEnd = vi.fn();
+    const { calls, pad } = await mount({ onPress, onPressEnd });
+    // Lifted in place.
+    const down = await fire(pad, "pointerdown", 100, 50);
+    expect(onPress.mock.calls).toEqual([[down]]);
+    expect(onPressEnd).not.toHaveBeenCalled();
+    await fire(pad, "pointerup", 102, 50);
+    expect(onPressEnd).toHaveBeenCalledTimes(1);
+    // Cancelled by the browser.
+    await fire(pad, "pointerdown", 100, 50);
+    await fire(pad, "pointercancel", 100, 50);
+    expect(onPressEnd).toHaveBeenCalledTimes(2);
+    // Given up to a scroll.
+    await fire(pad, "pointerdown", 100, 50);
+    await fire(pad, "pointermove", 102, 80);
+    expect(onPressEnd).toHaveBeenCalledTimes(3);
+    await fire(pad, "pointerup", 102, 80);
+    expect(onPressEnd).toHaveBeenCalledTimes(3);
+    // Replaced by a new press when its release went unheard.
+    await fire(pad, "pointerdown", 100, 50);
+    await fire(pad, "pointerdown", 100, 50);
+    expect(onPress).toHaveBeenCalledTimes(5);
+    expect(onPressEnd).toHaveBeenCalledTimes(4);
+    // A press that becomes a drag ends with onEnd, not here.
+    await fire(pad, "pointermove", 140, 50);
+    await fire(pad, "pointerup", 140, 50);
+    expect(calls.end.length).toBe(1);
+    expect(onPressEnd).toHaveBeenCalledTimes(4);
+    // A press the hook does not follow is not reported.
+    await fire(pad, "pointerdown", 100, 50, 16, { pointerType: "mouse", button: 2 });
+    expect(onPress).toHaveBeenCalledTimes(5);
+  });
+
+  it("ends a press whose drag onStart refuses, and says nothing when the component unmounts under a press", async () => {
+    const onPressEnd = vi.fn();
+    const { pad } = await mount({ onStart: () => false, onPressEnd });
+    await fire(pad, "pointerdown", 100, 50);
+    await fire(pad, "pointermove", 140, 50);
+    expect(onPressEnd).toHaveBeenCalledTimes(1);
+    await fire(pad, "pointerdown", 100, 50);
+    await act(async () => root!.unmount());
+    root = undefined;
+    expect(onPressEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it("lets go of a mouse press whose release was never heard, at its next move with no button down", async () => {
+    const onPressEnd = vi.fn();
+    const { calls, pad } = await mount({ onPressEnd });
+    await fire(pad, "pointerdown", 100, 50, 16, { pointerType: "mouse" });
+    await fire(pad, "pointermove", 104, 50, 16, { pointerType: "mouse" });
+    // The button came up outside the window. The mouse comes back and moves: it is not dragging.
+    await fire(window, "pointermove", 160, 50, 16, { pointerType: "mouse", buttons: 0 });
+    expect(onPressEnd).toHaveBeenCalledTimes(1);
+    await fire(window, "pointermove", 200, 50, 16, { pointerType: "mouse" });
+    expect(calls.start).toEqual([]);
+    // A touch reports no button between its moves in some browsers; it is never let go this way.
+    await fire(pad, "pointerdown", 100, 50, 1000);
+    await fire(pad, "pointermove", 140, 50, 16, { buttons: 0 });
+    expect(calls.start.length).toBe(1);
+    // Nor is a mouse drag that has started: it has the pointer captured, and hears its release.
+    await fire(pad, "pointerup", 140, 50);
+    await fire(pad, "pointerdown", 100, 50, 1000, { pointerType: "mouse" });
+    await fire(pad, "pointermove", 140, 50, 16, { pointerType: "mouse" });
+    await fire(pad, "pointermove", 150, 50, 16, { pointerType: "mouse", buttons: 0 });
+    expect(calls.move.at(-1)!.delta).toBe(50);
+    await fire(pad, "pointerup", 150, 50, 16, { pointerType: "mouse" });
+    expect(calls.end.length).toBe(2);
   });
 
   it("follows the first pointer only, and a mouse's primary button only", async () => {
@@ -281,6 +369,33 @@ describe("useDrag", () => {
     expect(calls.move.length).toBe(1);
     expect(later).toHaveBeenCalledTimes(1);
     await fire(pad, "pointerup", 140, 50);
+  });
+
+  it("takes the touch moves of a drag, and of nothing else, so the browser makes no scroll or fling of them", async () => {
+    const { pad } = await mount();
+    const touchMove = (cancelable = true) => {
+      const event = new Event("touchmove", { bubbles: true, cancelable });
+      pad.dispatchEvent(event);
+      return event.defaultPrevented;
+    };
+    // No press, and a press that has not become a drag: the touch may still be a scroll.
+    expect(touchMove()).toBe(false);
+    await fire(pad, "pointerdown", 100, 50);
+    await fire(pad, "pointermove", 105, 50);
+    expect(touchMove()).toBe(false);
+    await fire(pad, "pointermove", 130, 50);
+    expect(touchMove()).toBe(true);
+    // A move the browser will not wait for cannot be taken.
+    expect(touchMove(false)).toBe(false);
+    await fire(pad, "pointerup", 130, 50);
+    expect(touchMove()).toBe(false);
+    // The listener goes with the element.
+    const removed = vi.spyOn(pad, "removeEventListener");
+    await act(async () => root!.unmount());
+    root = undefined;
+    expect(removed.mock.calls.map(([type]) => type)).toContain("touchmove");
+    // A caller that merges refs the old way detaches with null: nothing to do.
+    expect(latestProps!.ref(null)).toBeUndefined();
   });
 
   it("stops listening when its component unmounts mid-drag", async () => {

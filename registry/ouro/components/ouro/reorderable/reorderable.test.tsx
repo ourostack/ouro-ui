@@ -63,6 +63,15 @@ const rows = (element: HTMLElement) => [...element.children] as HTMLElement[];
 const order = (element: HTMLElement) => rows(element).map((row) => row.querySelector("[data-ouro-reorderable-content]")!.textContent);
 const handle = (name: string) => page.getByRole("button", { name: `Reorder ${name}`, exact: true }).element() as HTMLButtonElement;
 const said = () => document.querySelector("[data-ouro-announcer]")?.textContent ?? "";
+const instructions = "Press Enter for a menu of moves. Press Space to pick up, then use the arrow keys to move, Space to drop, and Escape to cancel.";
+/** The items of the open menu of moves, by name, and whether each can be chosen. */
+const moves = () =>
+  Object.fromEntries(
+    [...document.querySelectorAll('[role="menuitem"]:not([data-ouro-menu-close])')].map((item) => [item.textContent, !item.hasAttribute("data-disabled")]),
+  );
+const move = (name: string) => page.getByRole("menuitem", { name, exact: true });
+const menuOpen = () => expect.element(page.getByRole("menu")).toBeVisible();
+const menuClosed = () => expect.poll(() => document.querySelector('[role="menu"]')).toBeNull();
 
 /** Focuses a handle the way the keyboard does. */
 async function focus(name: string) {
@@ -90,7 +99,9 @@ const wait = (ms: number) => {
 async function pointer(target: EventTarget, type: string, x: number, y: number, init: PointerEventInit = {}) {
   let event!: PointerEvent;
   await act(async () => {
-    event = new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 1, pointerType: "mouse", isPrimary: true, button: 0, clientX: x, clientY: y, ...init });
+    // While the pointer is down its button is held, as a real mouse's is.
+    const buttons = type === "pointerdown" || type === "pointermove" ? 1 : 0;
+    event = new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 1, pointerType: "mouse", isPrimary: true, button: 0, buttons, clientX: x, clientY: y, ...init });
     Object.defineProperty(event, "timeStamp", { value: clock });
     target.dispatchEvent(event);
   });
@@ -131,7 +142,7 @@ describe("Reorderable", () => {
     expect(grip.getAttribute("aria-pressed")).toBe("false");
     expect(grip.getAttribute("type")).toBe("button");
     const described = document.getElementById(grip.getAttribute("aria-describedby")!)!;
-    expect(described.textContent).toBe("Press Space to pick up. Use the arrow keys to move, Space to drop, and Escape to cancel.");
+    expect(described.textContent).toBe(instructions);
     expect(described.hidden).toBe(true);
     await expect.element(page.getByRole("button", { name: "Reorder Soften" })).toHaveAccessibleDescription(described.textContent!);
     expect(element.closest('[data-ouro="reorderable"]')).not.toBeNull();
@@ -192,7 +203,7 @@ describe("Reorderable", () => {
     it("says the position again at either end instead of moving", async () => {
       const element = await render(list());
       await focus("Sear");
-      await press("{Enter}");
+      await press(" ");
       await expect.poll(said).toBe("Sear picked up. Position 1 of 4.");
       await press("{ArrowUp}");
       await expect.poll(said).toBe("Sear moved. Position 1 of 4.");
@@ -315,6 +326,11 @@ describe("Reorderable", () => {
           movedLabel: "{label} déplacé, {n} sur {total}",
           droppedLabel: "{label} déposé, {n} sur {total}",
           canceledLabel: "{label} remis, {n} sur {total}",
+          moveUpLabel: "Monter",
+          moveDownLabel: "Descendre",
+          moveToTopLabel: "Tout en haut",
+          moveToBottomLabel: "Tout en bas",
+          closeLabel: "Fermer",
         }),
       );
       const grip = page.getByRole("button", { name: "Déplacer Sear" });
@@ -329,6 +345,172 @@ describe("Reorderable", () => {
       await press(" ");
       await press(" ");
       await expect.poll(said).toBe("Sear déposé, 1 sur 4");
+      await press("{Enter}");
+      await expect.poll(() => Object.keys(moves())).toEqual(["Monter", "Descendre", "Tout en haut", "Tout en bas"]);
+      await expect.poll(() => document.querySelector("[data-ouro-menu-close]")?.textContent ?? "Fermer").toBe("Fermer");
+      await userEvent.click(move("Descendre"));
+      await expect.poll(said).toBe("Sear déplacé, 2 sur 4");
+    });
+  });
+
+  describe("from the handle's menu, with no drag", () => {
+    it("opens a menu of moves on a click of the handle; a move is done at once, announced and reported", async () => {
+      const onReorder = vi.fn();
+      const element = await render(list({ onReorder }));
+      const grip = handle("Soften");
+      expect(grip.getAttribute("aria-haspopup")).toBe("menu");
+      expect(grip.getAttribute("aria-expanded")).toBe("false");
+      await userEvent.click(grip);
+      await menuOpen();
+      expect(grip.getAttribute("aria-expanded")).toBe("true");
+      // The click picked nothing up.
+      expect(grip.getAttribute("aria-pressed")).toBe("false");
+      expect(moves()).toEqual({ "Move up": true, "Move down": true, "Move to top": true, "Move to bottom": true });
+      await userEvent.click(move("Move down"));
+      expect(order(element)).toEqual(["Sear", "Deglaze", "Soften", "Braise"]);
+      await expect.poll(said).toBe("Soften moved. Position 3 of 4.");
+      expect(onReorder.mock.calls).toEqual([[["sear", "deglaze", "soften", "braise"], { id: "soften", from: 1, to: 2 }]]);
+      await menuClosed();
+      // Focus is back on the handle, although its row moved in the page.
+      await expect.poll(() => document.activeElement).toBe(grip);
+      // The move does not animate: every row is in its place at once.
+      for (const row of rows(element)) expect(row.style.transform).toBe("");
+      expect(element.hasAttribute("data-ouro-settling")).toBe(false);
+    });
+
+    it("moves a row to the top and to the bottom, and disables the moves that cannot apply", async () => {
+      const onReorder = vi.fn();
+      const element = await render(list({ onReorder }));
+      const grip = handle("Sear");
+      await userEvent.click(grip);
+      await menuOpen();
+      // The first row cannot go up.
+      expect(moves()).toEqual({ "Move up": false, "Move down": true, "Move to top": false, "Move to bottom": true });
+      await userEvent.click(move("Move to bottom"));
+      expect(order(element)).toEqual(["Soften", "Deglaze", "Braise", "Sear"]);
+      await expect.poll(said).toBe("Sear moved. Position 4 of 4.");
+      await menuClosed();
+      await userEvent.click(grip);
+      await menuOpen();
+      // Now last, it cannot go down.
+      expect(moves()).toEqual({ "Move up": true, "Move down": false, "Move to top": true, "Move to bottom": false });
+      await userEvent.click(move("Move up"));
+      expect(order(element)).toEqual(["Soften", "Deglaze", "Sear", "Braise"]);
+      await expect.poll(said).toBe("Sear moved. Position 3 of 4.");
+      await menuClosed();
+      await userEvent.click(grip);
+      await menuOpen();
+      await userEvent.click(move("Move to top"));
+      expect(order(element)).toEqual(["Sear", "Soften", "Deglaze", "Braise"]);
+      await expect.poll(said).toBe("Sear moved. Position 1 of 4.");
+      expect(onReorder.mock.calls.map(([, moved]) => moved)).toEqual([
+        { id: "sear", from: 0, to: 3 },
+        { id: "sear", from: 3, to: 2 },
+        { id: "sear", from: 2, to: 0 },
+      ]);
+    });
+
+    it("opens the menu on Enter, and the keyboard chooses a move from it", async () => {
+      const element = await render(list());
+      const grip = handle("Deglaze");
+      await focus("Deglaze");
+      await press("{Enter}");
+      await menuOpen();
+      expect(grip.getAttribute("aria-pressed")).toBe("false");
+      // Focus moves into the menu; the arrow keys walk its items and Enter chooses one.
+      await expect.poll(() => document.activeElement?.closest('[role="menu"]') ?? null).not.toBeNull();
+      await expect
+        .poll(async () => {
+          if (document.activeElement?.textContent !== "Move up") await userEvent.keyboard("{ArrowDown}");
+          return document.activeElement?.textContent;
+        })
+        .toBe("Move up");
+      await press("{Enter}");
+      expect(order(element)).toEqual(["Sear", "Deglaze", "Soften", "Braise"]);
+      await expect.poll(said).toBe("Deglaze moved. Position 2 of 4.");
+      await menuClosed();
+      await expect.poll(() => document.activeElement).toBe(grip);
+      // Escape closes the menu and moves nothing.
+      await press("{Enter}");
+      await menuOpen();
+      await press("{Escape}");
+      await menuClosed();
+      expect(order(element)).toEqual(["Sear", "Deglaze", "Soften", "Braise"]);
+    });
+
+    it("opens the menu on a screen reader's activation, a click with no pointer and no key", async () => {
+      const onReorder = vi.fn();
+      const element = await render(list({ onReorder }));
+      await act(async () => handle("Braise").click());
+      await menuOpen();
+      expect(moves()).toEqual({ "Move up": true, "Move down": false, "Move to top": true, "Move to bottom": false });
+      // A screen reader activates the item the same way.
+      await act(async () => (move("Move to top").element() as HTMLElement).click());
+      expect(order(element)).toEqual(["Braise", "Sear", "Soften", "Deglaze"]);
+      await expect.poll(said).toBe("Braise moved. Position 1 of 4.");
+      expect(onReorder.mock.calls).toEqual([[["braise", "sear", "soften", "deglaze"], { id: "braise", from: 3, to: 0 }]]);
+      await menuClosed();
+      // Activated again while its menu is open, the handle closes it.
+      const grip = handle("Sear");
+      await act(async () => grip.click());
+      await menuOpen();
+      await act(async () => grip.click());
+      await menuClosed();
+      expect(grip.getAttribute("aria-expanded")).toBe("false");
+    });
+
+    it("keeps Space for picking up: it opens no menu, held down it does nothing more, and any activation drops the row", async () => {
+      const element = await render(list());
+      await focus("Sear");
+      await press(" ");
+      expect(handle("Sear").getAttribute("aria-pressed")).toBe("true");
+      expect(handle("Sear").getAttribute("aria-expanded")).toBe("false");
+      expect(document.querySelector('[role="menu"]')).toBeNull();
+      // A key held down repeats: the row is not dropped and picked up again.
+      const repeat = new KeyboardEvent("keydown", { key: " ", repeat: true, bubbles: true, cancelable: true });
+      await act(async () => {
+        handle("Sear").dispatchEvent(repeat);
+      });
+      expect(repeat.defaultPrevented).toBe(true);
+      expect(handle("Sear").getAttribute("aria-pressed")).toBe("true");
+      await press("{ArrowDown}");
+      // Enter, or a screen reader's activation, drops a row that is picked up; it does not open the menu over it.
+      await press("{Enter}");
+      expect(handle("Sear").getAttribute("aria-pressed")).toBe("false");
+      await expect.poll(said).toBe("Sear dropped. Position 2 of 4.");
+      expect(document.querySelector('[role="menu"]')).toBeNull();
+      expect(order(element)).toEqual(["Soften", "Sear", "Deglaze", "Braise"]);
+    });
+
+    it("closes the menu when a drag starts on the handle, and when the app replaces the rows", async () => {
+      const element = await render(list());
+      const grip = handle("Sear");
+      await act(async () => grip.click());
+      await menuOpen();
+      const [x, y] = middle(grip);
+      wait(1000);
+      await pointer(grip, "pointerdown", x, y);
+      wait(16);
+      await pointer(window, "pointermove", x, y + 30);
+      expect(element.hasAttribute("data-dragging")).toBe(true);
+      await menuClosed();
+      wait(300);
+      await pointer(window, "pointerup", x, y + 30);
+      await rest(element);
+      // The pointer's click that ends the drag is not an activation; a press that does not move is.
+      await act(async () => {
+        grip.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
+      });
+      expect(document.querySelector('[role="menu"]')).toBeNull();
+      await pointer(grip, "pointerdown", x, y);
+      await pointer(window, "pointerup", x, y);
+      await act(async () => {
+        grip.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
+      });
+      await menuOpen();
+      await render(<Reorderable label="Steps" items={steps(["Braise", "Sear"])} />);
+      await menuClosed();
+      expect(grip.getAttribute("aria-expanded")).toBe("false");
     });
   });
 
@@ -367,12 +549,14 @@ describe("Reorderable", () => {
       // The dropped row is in its new place in the list, and starts where it was on screen:
       // it was 1.1 rows down from the first place, so it is 0.1 of a row below the second.
       expect(shifted(first)).toBe(near - height);
-      expect(first.getAttribute("data-ouro-settling")).toBe("dropped");
+      expect(first.hasAttribute("data-ouro-settling")).toBe(true);
+      expect(first.hasAttribute("data-dropped")).toBe(true);
       expect(getComputedStyle(first).zIndex).toBe("10");
       await rest(element);
       for (const row of rows(element)) {
         expect(row.style.transform).toBe("");
         expect(row.hasAttribute("data-ouro-settling")).toBe(false);
+        expect(row.hasAttribute("data-dropped")).toBe(false);
       }
       await expect.poll(said).toBe("Sear dropped. Position 2 of 4.");
     });
@@ -411,10 +595,6 @@ describe("Reorderable", () => {
       const [x, y] = middle(handle("Soften"));
       await pointer(handle("Soften"), "pointerdown", x, y);
       await pointer(window, "pointerup", x, y);
-      // The pointer's click is not the keyboard's: nothing is picked up.
-      await act(async () => {
-        handle("Soften").dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
-      });
       expect(handle("Soften").getAttribute("aria-pressed")).toBe("false");
       const before = said();
       await dragBy("Soften", 10);
@@ -503,9 +683,10 @@ describe("Reorderable", () => {
       await dragBy("Braise", -200);
       expect(handle("Sear").getAttribute("aria-pressed")).toBe("false");
       expect(onReorder.mock.calls).toEqual([[["soften", "sear", "deglaze", "braise"], { id: "sear", from: 0, to: 1 }]]);
-      // While a pointer drags, the keyboard picks nothing up.
+      // While a pointer drags, another handle's activation opens no menu.
       await act(async () => handle("Soften").click());
-      expect(handle("Soften").getAttribute("aria-pressed")).toBe("false");
+      expect(handle("Soften").getAttribute("aria-expanded")).toBe("false");
+      expect(document.querySelector('[role="menu"]')).toBeNull();
       await pointer(window, "pointerup", 0, 0);
       expect(order(element)).toEqual(["Braise", "Soften", "Sear", "Deglaze"]);
       expect(onReorder).toHaveBeenCalledTimes(2);
@@ -523,64 +704,69 @@ describe("Reorderable", () => {
       for (const row of rows(element)) expect(row.style.transform).toBe("");
     });
 
-    it("drops a flicked row the way it was moving, half a row short of the next place", async () => {
+    it("drops the row in the gap shown on screen, however fast it was let go", async () => {
       const onReorder = vi.fn();
       const element = await render(list({ onReorder }));
       const height = rows(element)[0]!.getBoundingClientRect().height;
       const [x, y] = middle(handle("Sear"));
-      // 0.6 of a row down: with a rested pointer that is not far enough to pass the second row.
-      const [, restedY] = await dragBy("Sear", height * 0.6);
-      await pointer(window, "pointerup", x, restedY);
-      expect(order(element)).toEqual(names);
-      await rest(element);
-      // The same distance with the pointer still moving down when it lifts.
+      // 0.6 of a row down, the pointer still moving fast when it lifts: the second row has
+      // not moved aside, so the row goes back, although a flick was carrying it that way.
       wait(1000);
       await pointer(handle("Sear"), "pointerdown", x, y);
       for (let step = 1; step <= 4; step++) {
         wait(16);
         await pointer(window, "pointermove", x, y + (height * 0.6 * step) / 4);
       }
+      expect(rows(element)[1]!.style.transform).toBe("");
       wait(16);
       await pointer(window, "pointerup", x, y + height * 0.6);
+      expect(order(element)).toEqual(names);
+      expect(onReorder).not.toHaveBeenCalled();
+      await rest(element);
+
+      // 1.3 rows down and then flicked back up, to just short of where the second row gave
+      // way: the gap is still open on screen, so that is where the row drops.
+      wait(1000);
+      await pointer(handle("Sear"), "pointerdown", x, y);
+      for (let step = 1; step <= 4; step++) {
+        wait(16);
+        await pointer(window, "pointermove", x, y + (height * 1.3 * step) / 4);
+      }
+      for (let step = 1; step <= 4; step++) {
+        wait(16);
+        await pointer(window, "pointermove", x, y + height * (1.3 - 0.06 * step));
+      }
+      expect(rows(element)[1]!.style.transform).toBe(`translateY(${-height}px)`);
+      wait(16);
+      await pointer(window, "pointerup", x, y + height * 1.06);
       expect(order(element)).toEqual(["Soften", "Sear", "Deglaze", "Braise"]);
       expect(onReorder.mock.calls).toEqual([[["soften", "sear", "deglaze", "braise"], { id: "sear", from: 0, to: 1 }]]);
       await rest(element);
-
-      // A flick back toward where it began does not take a place the row had only just reached.
-      const [x2, y2] = middle(handle("Deglaze"));
-      wait(1000);
-      await pointer(handle("Deglaze"), "pointerdown", x2, y2);
-      for (let step = 1; step <= 4; step++) {
-        wait(16);
-        await pointer(window, "pointermove", x2, y2 + (height * 1.3 * step) / 4);
-      }
-      for (let step = 1; step <= 8; step++) {
-        wait(16);
-        await pointer(window, "pointermove", x2, y2 + height * (1.3 - 0.04 * step));
-      }
-      wait(16);
-      await pointer(window, "pointerup", x2, y2 + height * 0.98);
-      expect(order(element)).toEqual(["Soften", "Sear", "Deglaze", "Braise"]);
-      expect(onReorder).toHaveBeenCalledTimes(1);
     });
 
-    it("springs a dropped row into its place with the speed it was let go at, and the rows it passed with none", async () => {
+    it("springs a dropped row into its place with the speed it was let go at, and a row still sliding out of its way with none", async () => {
       const element = await render(list());
       const height = rows(element)[0]!.getBoundingClientRect().height;
       const [x, y] = middle(handle("Sear"));
       const dragged = rows(element)[0]!;
+      const passed = rows(element)[1]!;
       wait(1000);
       await pointer(handle("Sear"), "pointerdown", x, y);
       for (let step = 1; step <= 6; step++) {
         wait(16);
         await pointer(window, "pointermove", x, y + (height * 1.8 * step) / 6);
       }
+      // The row it passed has only begun to slide out of the way when the pointer lifts:
+      // hold its slide at the start, so it is where it stood on any machine.
+      for (const animation of passed.getAnimations()) {
+        animation.pause();
+        animation.currentTime = 0;
+      }
       wait(16);
       freeze();
       await pointer(window, "pointerup", x, y + height * 1.8);
-      // Dropped in the third place, 0.2 of a row short of it, still moving down fast.
-      expect(order(element)).toEqual(["Soften", "Deglaze", "Sear", "Braise"]);
-      const passed = rows(element)[1]!;
+      // Dropped in the second place, where the gap was, 0.8 of a row past it and still moving down fast.
+      expect(order(element)).toEqual(["Soften", "Sear", "Deglaze", "Braise"]);
       // Where each is at every 16ms frame until all are at rest.
       const seen = [shifted(dragged)];
       const others = [shifted(passed)];
@@ -590,11 +776,11 @@ describe("Reorderable", () => {
         others.push(shifted(passed));
       }
       await rest(element);
-      expect(seen[0]).toBeCloseTo(-height * 0.2, 1);
-      // Its speed carried it past its place before it came back: the flick's little bounce.
-      expect(Math.max(...seen)).toBeGreaterThan(0.5);
+      expect(seen[0]).toBeCloseTo(height * 0.8, 1);
+      // Its speed carried it on, further from its place, before the spring brought it back.
+      expect(Math.max(...seen)).toBeGreaterThan(height * 0.8 + 2);
       expect(seen.at(-1)).toBe(0);
-      // A row it passed starts where it stood, a row lower, and closes in without passing its place.
+      // The row it passed starts where it stood, a row lower, and closes in without passing its place.
       expect(others[0]).toBe(height);
       expect(Math.min(...others)).toBe(0);
       for (let index = 1; index < others.length; index++) expect(others[index]!).toBeLessThanOrEqual(others[index - 1]!);
@@ -615,21 +801,23 @@ describe("Reorderable", () => {
       expect(element.hasAttribute("data-ouro-settling")).toBe(true);
       frames!.until(() => shifted(dragged) < height * 0.6 - 1);
       expect(shifted(dragged)).toBeGreaterThan(0);
-      // A press on its handle mid-settle does not stop it; once the press is a drag, the row is caught where it is.
+      // A press on its handle stops it there, under the pointer, before the press has moved.
       const [hx, hy] = middle(handle("Sear"));
       wait(1000);
       await pointer(handle("Sear"), "pointerdown", hx, hy);
-      expect(dragged.getAttribute("data-ouro-settling")).toBe("dropped");
-      wait(16);
-      await pointer(window, "pointermove", hx, hy + 12);
       expect(dragged.hasAttribute("data-ouro-settling")).toBe(false);
+      expect(dragged.hasAttribute("data-dropped")).toBe(false);
       expect(element.hasAttribute("data-ouro-settling")).toBe(false);
-      const caught = Math.round((shifted(dragged) - 12) * 100) / 100;
-      expect(caught).toBeGreaterThanOrEqual(0);
+      const caught = shifted(dragged);
+      expect(caught).toBeGreaterThan(0);
       expect(caught).toBeLessThan(height * 0.6);
       // No frame moves it now.
       frames!.step(32);
-      expect(shifted(dragged)).toBe(Math.round((caught + 12) * 100) / 100);
+      expect(shifted(dragged)).toBe(caught);
+      // Once the press is a drag, it goes on from there.
+      wait(16);
+      await pointer(window, "pointermove", hx, hy + 12);
+      expect(shifted(dragged)).toBeCloseTo(caught + 12, 1);
       // The drag goes on from there, 1:1 with the pointer.
       wait(16);
       await pointer(window, "pointermove", hx, hy + 20);
@@ -640,7 +828,7 @@ describe("Reorderable", () => {
       expect(order(element)).toEqual(["Soften", "Sear", "Deglaze", "Braise"]);
       expect(dragged.style.transform).toBe("");
 
-      // A press and release without a drag leaves a settling row on its way.
+      // A press and release without a drag stops a settling row only for as long as the press: it then goes on into its place.
       const [x2, y2] = await dragBy("Sear", height * 0.8);
       freeze();
       await pointer(window, "pointerup", x2, y2);
@@ -649,8 +837,13 @@ describe("Reorderable", () => {
       const [hx2, hy2] = middle(handle("Sear"));
       wait(1000);
       await pointer(handle("Sear"), "pointerdown", hx2, hy2);
+      expect(element.hasAttribute("data-ouro-settling")).toBe(false);
+      const stopped = shifted(dragged);
+      expect(stopped).not.toBe(0);
       await pointer(window, "pointerup", hx2, hy2);
-      expect(dragged.getAttribute("data-ouro-settling")).toBe("dropped");
+      expect(dragged.hasAttribute("data-ouro-settling")).toBe(true);
+      expect(dragged.hasAttribute("data-dropped")).toBe(true);
+      expect(shifted(dragged)).toBe(stopped);
       await rest(element);
       expect(dragged.style.transform).toBe("");
       expect(onReorder).toHaveBeenCalledTimes(1);
@@ -782,8 +975,10 @@ describe("Reorderable", () => {
       await expect.poll(() => onReorder.mock.calls.length).toBe(1);
       expect(order(element)).toEqual(["Soften", "Deglaze", "Sear", "Braise"]);
       expect(onReorder).toHaveBeenCalledWith(["soften", "deglaze", "sear", "braise"], { id: "sear", from: 0, to: 2 });
-      // The mouse's click at the end picks nothing up.
+      // The mouse's click at the end of the drag picks nothing up and opens no menu.
       expect(handle("Sear").getAttribute("aria-pressed")).toBe("false");
+      expect(handle("Sear").getAttribute("aria-expanded")).toBe("false");
+      expect(document.querySelector('[role="menu"]')).toBeNull();
     });
 
     chromiumOnly("scrolls the page while a real mouse holds a row near the bottom of the window", async () => {
@@ -817,6 +1012,8 @@ describe("Reorderable", () => {
     expect(edgeSpeed(700, 0, 600)).toBe(MAX_SPEED);
     expect(edgeSpeed(0, 0, 600)).toBe(-MAX_SPEED);
     expect(edgeSpeed(600 - EDGE / 2, 0, 600)).toBe(MAX_SPEED / 2);
+    // Px per millisecond: 840px a second at an edge, whatever the screen's frame rate.
+    expect(MAX_SPEED * 1000).toBe(840);
     // An element that is not in the page scrolls with the page.
     expect(scrollParent(document.createElement("div"))).toBe(document.documentElement);
     const fixed = document.createElement("div");
@@ -879,7 +1076,8 @@ describe("Reorderable", () => {
     expect(html).toMatch(/<ol[^>]* role="list"[^>]* aria-label="Steps"/);
     expect(html).toContain('aria-label="Reorder Sear"');
     expect(html).toContain('aria-pressed="false"');
-    expect(html).toContain("Press Space to pick up.");
+    expect(html).toContain("Press Enter for a menu of moves. Press Space to pick up,");
+    expect(html).toContain('aria-haspopup="menu"');
     expect(warn).not.toHaveBeenCalled();
   });
 });

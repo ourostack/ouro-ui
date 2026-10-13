@@ -2,7 +2,7 @@
 
 # SwipeActions
 
-A list row with actions beside it that a horizontal swipe reveals: swipe toward the start for the `trailing` actions (Delete, Archive), toward the end for the `leading` ones (Pin). Wrap the row, usually an `Item`, and name it with `label`. It is for touch and pen; every action is also in the row's actions button, a `Menu`, which a mouse sees at the end of the row and a keyboard or screen reader reaches on any device.
+A list row with actions beside it that a horizontal swipe reveals: swipe toward the start for the `trailing` actions (Delete, Archive), toward the end for the `leading` ones (Pin). Wrap the row, usually an `Item`, and name it with `label`. The swipe is for touch and pen, and it is never the only way: a long press on the row (or a right-click) opens the same actions as a `Menu` at the finger, for anyone who cannot swipe, and the row's actions button opens that menu too. A mouse sees the button at the end of the row; on a touch screen it is hidden from sight, and a keyboard or screen reader reaches it on any device. While a finger is down on the row, text selection and the iOS callout are off, so the long press opens the menu.
 
 ```tsx
 import { SwipeActions } from "@/registry/ouro/components/ouro/swipe-actions/swipe-actions";
@@ -41,7 +41,7 @@ The first action of each side is its primary one: it sits at the outer edge, and
 
 The row follows the finger. A quick flick opens or closes it however short, by the direction it was moving at release; a slow release opens it past half the actions' width. A flick alone never runs an action: that takes the distance. The row springs to rest from where it was let go, and a new swipe can catch it on the way.
 
-A vertical swipe that starts on a row scrolls the page. A row that is a link follows it on a tap, never on a swipe. One row is open at a time, and an open row closes on a tap outside it, on a tap on the row, when the page scrolls and on Escape. `leading` and `trailing` follow the reading direction. With reduced motion nothing slides: the row jumps open and its actions fade in.
+A vertical swipe that starts on a row scrolls the page. A row that is a link follows it on a tap, never on a swipe. One row is open at a time, and an open row closes on a tap outside it, on a tap on the row, when the page scrolls and on Escape. `leading` and `trailing` follow the reading direction. With reduced motion the row still follows the finger, so a swipe shows what it is about to do, and on release it jumps to rest instead of springing.
 
 ## Use instead when
 

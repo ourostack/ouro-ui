@@ -12,7 +12,7 @@ const VELOCITY_WINDOW = 100;
 export interface DragState {
   /** Movement from the grab point along the axis, in px. 1:1 with the finger; the caller applies `rubberband`. */
   delta: number;
-  /** Velocity along the axis in px/ms, from the last 100ms of moves. Its sign is the direction at release; 0 for a finger that rested first. */
+  /** Velocity along the axis in px/ms over the last 100ms, up to this event. Its sign is the direction at release; a finger that paused before lifting reads slower, and one that rested 100ms reads 0. */
   velocity: number;
   /** Whether the velocity is a flick: `Math.abs(velocity) >= FLICK_VELOCITY`. */
   flick: boolean;
@@ -36,16 +36,33 @@ export interface DragOptions {
    * @default "scroll"
    */
   crossAxis?: "scroll" | "ignore" | undefined;
-  /** Called once the axis is chosen. Stop a running spring here and start from its value. Return false to refuse the drag. */
+  /**
+   * Called when a pointer this hook will follow goes down, before it has moved. Stop a
+   * running spring here, so what is on screen holds still under the finger.
+   */
+  onPress?: ((event: PointerEvent) => void) | undefined;
+  /**
+   * Called when a press ends without becoming a drag: lifted in place, given up to a
+   * scroll, refused by `onStart`, or replaced by a new press. Settle again here whatever
+   * `onPress` stopped. Not called when the component unmounts.
+   */
+  onPressEnd?: (() => void) | undefined;
+  /** Called once the axis is chosen. Start from where the element is. Return false to refuse the drag. */
   onStart?: ((state: DragState) => boolean | void) | undefined;
   /** Called on every move after the start, the move that started it included. */
   onMove: (state: DragState) => void;
-  /** Called on release, or on cancel with `cancelled` true. Not called for a press that never became a drag. */
+  /** Called on release, or on cancel with `cancelled` true. Not called for a press that never became a drag: that is `onPressEnd`. */
   onEnd: (state: DragState & { cancelled: boolean }) => void;
 }
 
-/** The handlers `useDrag` returns, to spread on the element. */
+/** The handlers and the ref `useDrag` returns, to spread on the element. */
 export interface DragProps {
+  /**
+   * Takes the element's touch moves once a drag has begun, so the browser makes no scroll
+   * or fling of them. Without it, Chromium runs a fling after a fast drag, although
+   * nothing scrolls, and for its half second or so the next tap gets no `click`.
+   */
+  ref: (element: HTMLElement | null) => (() => void) | undefined;
   onPointerDown: (event: ReactPointerEvent<HTMLElement>) => void;
   onPointerMove: (event: ReactPointerEvent<HTMLElement>) => void;
   onPointerUp: (event: ReactPointerEvent<HTMLElement>) => void;
@@ -58,7 +75,8 @@ interface Gesture {
   started: () => boolean;
   move: (event: PointerEvent) => void;
   end: (event: PointerEvent) => void;
-  release: () => void;
+  /** Stops listening. A press that never became a drag reports its end, unless `silent`. */
+  release: (silent?: boolean) => void;
 }
 
 /**
@@ -68,8 +86,11 @@ interface Gesture {
  * It follows the first pointer only and a mouse's primary button only, ignores a second
  * finger, gives up without capturing when the cross axis wins the first 10px, captures
  * the pointer once the drag has started, and never blocks a new `pointerdown` while a
- * settle is running: stop the spring in `onStart`. The handlers are the same on every
- * render and call the options of the latest one.
+ * settle is running: stop the spring in `onPress`. Once a drag has begun, its touch moves
+ * are the hook's (`preventDefault`), so the browser makes no scroll or fling of them and
+ * the tap after a fast drag still clicks; that needs the returned `ref` on the element. A mouse whose release was never heard
+ * (it happened outside the window) is released by its next move with no button down. The
+ * handlers are the same on every render and call the options of the latest one.
  */
 export function useDrag(options: DragOptions): DragProps {
   const latest = useRef(options);
@@ -78,7 +99,24 @@ export function useDrag(options: DragOptions): DragProps {
   });
   const gesture = useRef<Gesture | undefined>(undefined);
   // A component unmounted mid-drag stops listening.
-  useEffect(() => () => gesture.current?.release(), []);
+  useEffect(() => () => gesture.current?.release(true), []);
+
+  // Chromium starts a fling when a fast touch drag ends, whatever `touch-action` says, and
+  // the first touch during the fling "stops" it and gets no click. A drag whose last
+  // touch move was taken starts none. The listener must not be passive, which React's are,
+  // and must be on the element before the touch starts.
+  const hold = useCallback((event: Event) => {
+    if (gesture.current?.started() && event.cancelable) event.preventDefault();
+  }, []);
+  const ref = useCallback(
+    (element: HTMLElement | null) => {
+      // React gives the element and takes the cleanup; null comes only from a caller that merges refs the old way.
+      if (!element) return undefined;
+      element.addEventListener("touchmove", hold, { passive: false });
+      return () => element.removeEventListener("touchmove", hold);
+    },
+    [hold],
+  );
 
   const onPointerDown = useCallback((event: ReactPointerEvent<HTMLElement>) => {
     if (!event.isPrimary || event.button !== 0) return;
@@ -99,21 +137,24 @@ export function useDrag(options: DragOptions): DragProps {
     let seen: Event = event.nativeEvent;
 
     const state = (at: PointerEvent): DragState => {
-      const recent = samples.filter((sample) => at.timeStamp - sample.time <= VELOCITY_WINDOW);
-      const first = recent[0];
-      const last = recent.at(-1);
-      const velocity = first && last && last.time > first.time ? (last.position - first.position) / (last.time - first.time) : 0;
+      // From the oldest move of the last 100ms up to this event itself: time the finger
+      // spent still before lifting counts, so a pause slows the release.
+      const first = samples.find((sample) => at.timeStamp - sample.time <= VELOCITY_WINDOW);
+      const velocity = first && at.timeStamp > first.time ? (along(at) - first.position) / (at.timeStamp - first.time) : 0;
       return { delta: along(at) - origin, velocity, flick: Math.abs(velocity) >= FLICK_VELOCITY, event: at };
     };
-    const release = () => {
+    const release = (silent = false) => {
       removeEventListener("pointermove", move);
       removeEventListener("pointerup", end);
       removeEventListener("pointercancel", end);
       gesture.current = undefined;
+      if (!started && !silent) latest.current.onPressEnd?.();
     };
     const move = (moved: PointerEvent) => {
       if (moved.pointerId !== pointer || moved === seen) return;
       seen = moved;
+      // A mouse moving with no button down was released where nothing heard it.
+      if (!started && moved.pointerType === "mouse" && moved.buttons === 0) return release();
       const { threshold = 10, crossAxis = "scroll", onStart, onMove } = latest.current;
       samples = [...samples.filter((sample) => moved.timeStamp - sample.time <= VELOCITY_WINDOW), { position: along(moved), time: moved.timeStamp }];
       if (!started) {
@@ -138,6 +179,7 @@ export function useDrag(options: DragOptions): DragProps {
       release();
       if (started) latest.current.onEnd({ ...state(ended), cancelled: ended.type === "pointercancel" });
     };
+    latest.current.onPress?.(event.nativeEvent);
     // Until it is captured, a pointer that leaves the element is heard on the window.
     addEventListener("pointermove", move);
     addEventListener("pointerup", end);
@@ -147,7 +189,7 @@ export function useDrag(options: DragOptions): DragProps {
   const onPointerMove = useCallback((event: ReactPointerEvent<HTMLElement>) => gesture.current?.move(event.nativeEvent), []);
   const onPointerEnd = useCallback((event: ReactPointerEvent<HTMLElement>) => gesture.current?.end(event.nativeEvent), []);
   return useMemo(
-    () => ({ onPointerDown, onPointerMove, onPointerUp: onPointerEnd, onPointerCancel: onPointerEnd }),
-    [onPointerDown, onPointerMove, onPointerEnd],
+    () => ({ ref, onPointerDown, onPointerMove, onPointerUp: onPointerEnd, onPointerCancel: onPointerEnd }),
+    [ref, onPointerDown, onPointerMove, onPointerEnd],
   );
 }

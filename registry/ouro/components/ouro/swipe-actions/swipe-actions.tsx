@@ -146,9 +146,13 @@ function Strip({
 /**
  * A list row with actions beside it that a horizontal swipe reveals: swipe toward the
  * start for the `trailing` actions (Delete, Archive), toward the end for the `leading`
- * ones (Pin). Wrap the row, usually an `Item`, and name it with `label`. It is for touch
- * and pen; every action is also in the row's actions button, a `Menu`, which a mouse
- * sees at the end of the row and a keyboard or screen reader reaches on any device.
+ * ones (Pin). Wrap the row, usually an `Item`, and name it with `label`. The swipe is for
+ * touch and pen, and it is never the only way: a long press on the row (or a right-click)
+ * opens the same actions as a `Menu` at the finger, for anyone who cannot swipe, and the
+ * row's actions button opens that menu too. A mouse sees the button at the end of the row;
+ * on a touch screen it is hidden from sight, and a keyboard or screen reader reaches it on
+ * any device. While a finger is down on the row, text selection and the iOS callout are
+ * off, so the long press opens the menu.
  *
  * The first action of each side is its primary one: it sits at the outer edge, and a
  * swipe past 60% of the row runs it on release, with no confirmation. So make a
@@ -163,8 +167,9 @@ function Strip({
  * A vertical swipe that starts on a row scrolls the page. A row that is a link follows it
  * on a tap, never on a swipe. One row is open at a time, and an open row closes on a tap
  * outside it, on a tap on the row, when the page scrolls and on Escape. `leading` and
- * `trailing` follow the reading direction. With reduced motion nothing slides: the row
- * jumps open and its actions fade in.
+ * `trailing` follow the reading direction. With reduced motion the row still follows the
+ * finger, so a swipe shows what it is about to do, and on release it jumps to rest
+ * instead of springing.
  *
  * Use `Item` with `actions` instead when the buttons should always show, and `Menu` with
  * `contextTrigger` for actions on something that is not a list row.
@@ -256,18 +261,22 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
   );
 
   const [open, setOpen] = useState<SwipeSide | null>(null);
+  /** Whether the long-press menu is open. */
+  const [pressed, setPressed] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const leadingRef = useRef<HTMLDivElement>(null);
   const trailingRef = useRef<HTMLDivElement>(null);
-  // Whether the last touch on the row was a swipe, whose click (if the browser sends one) is not a tap.
+  // Whether the last touch on the row was a swipe or a long press, whose click (if the browser sends one) is not a tap.
   const swiped = useRef(false);
+  // The side a press stopped the row on its way to: where it goes on if the press is only a tap.
+  const caught = useRef<SwipeSide | null | undefined>(undefined);
   // Where the track is, in px from closed, and the spring carrying it to rest.
   const x = useRef(0);
   const settling = useRef<SpringHandle | undefined>(undefined);
   /** The swipe under a finger: where the track was when the finger took it, and where the finger has it now. */
-  const swipe = useRef({ base: 0, rtl: false, width: 0, reduce: false, offset: 0, full: false });
+  const swipe = useRef({ base: 0, rtl: false, width: 0, offset: 0, full: false });
 
   /** Puts the track at `value`. Only the track's own `transform` changes, so nothing else restyles. */
   const place = useCallback((value: number) => {
@@ -280,7 +289,6 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
     const running = settling.current;
     if (!running) return;
     settling.current = undefined;
-    rootRef.current!.removeAttribute("data-ouro-settling");
     place(running.stop().value);
   }, [place]);
 
@@ -311,16 +319,14 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
         to: target,
         velocity,
         damping: flick ? 0.8 : 1,
+        element: root,
         onUpdate: place,
         onRest: () => {
           settling.current = undefined;
-          root.removeAttribute("data-ouro-settling");
         },
       });
-      if (handle.running) {
-        settling.current = handle;
-        root.setAttribute("data-ouro-settling", "");
-      }
+      // With reduced motion the spring was a jump, and the row is at rest already.
+      if (handle.running) settling.current = handle;
     },
     [hold, place],
   );
@@ -360,27 +366,39 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
   // A row unmounted while it springs to rest (its action removed it) stops moving.
   useEffect(() => () => void settling.current?.stop(), []);
 
-  const run = (action: SwipeAction) => {
-    settle(null);
+  /** Runs an action and closes the row, which carries on from the `velocity` a full swipe left it with. */
+  const run = (action: SwipeAction, velocity = 0, flick = false) => {
+    settle(null, velocity, flick);
     action.onClick();
   };
 
   const actionsOn = (side: SwipeSide) => (side === "leading" ? leading : trailing);
   const drag = useDrag({
     axis: "x",
+    onPress: (event) => {
+      // A row still springing to rest stops under the finger, where it is.
+      if (event.pointerType === "mouse" || !settling.current) return;
+      caught.current = open;
+      hold();
+    },
+    onPressEnd: () => {
+      // Only a tap, or a scroll: the row goes on to where it was going.
+      const side = caught.current;
+      caught.current = undefined;
+      if (side !== undefined) settle(side);
+    },
     onStart: ({ event }) => {
       // A mouse selects text and clicks; its way to the actions is the actions button.
-      if (event.pointerType === "mouse") return false;
+      // A finger that has opened the long-press menu is choosing from it, not swiping.
+      if (event.pointerType === "mouse" || pressed) return false;
       const root = rootRef.current!;
-      // A row still springing to rest is caught where it is.
-      hold();
+      caught.current = undefined;
       swiped.current = true;
       root.setAttribute("data-dragging", "");
       swipe.current = {
         base: x.current,
         rtl: getComputedStyle(root).direction === "rtl",
         width: root.getBoundingClientRect().width,
-        reduce: matchMedia("(prefers-reduced-motion: reduce)").matches,
         offset: x.current,
         full: false,
       };
@@ -401,8 +419,8 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
         now.full = reach >= now.width * FULL_SWIPE;
       }
       rootRef.current!.toggleAttribute("data-full", now.full);
-      // With reduced motion the row stays put under the finger and jumps open on release.
-      if (!now.reduce) place(now.offset);
+      // Following a finger is not an animation: the row does it with reduced motion too.
+      place(now.offset);
     },
     onEnd: ({ velocity, flick, cancelled }) => {
       // The browser took the gesture: back to where the row was.
@@ -414,19 +432,35 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
       // Whether the finger was still moving the row further open when it lifted.
       const opening = Math.sign(velocity) === Math.sign(offset);
       // A full swipe runs the primary action, unless the finger was flicking the row back.
-      if (full && (opening || !flick)) return run(primary);
+      if (full && (opening || !flick)) return run(primary, velocity, flick);
       // A flick goes the way it was moving, however short. A slow release goes by distance.
       const strip = side === "leading" ? leadingRef.current! : trailingRef.current!;
       const opens = flick ? opening : Math.abs(offset) > strip.getBoundingClientRect().width / 2;
       settle(opens ? side : null, velocity, flick);
     },
   });
+  const dragRef = drag.ref;
+  const setRoot = useCallback(
+    (element: HTMLDivElement) => {
+      rootRef.current = element;
+      const release = dragRef(element);
+      return () => {
+        rootRef.current = null;
+        release!();
+      };
+    },
+    [dragRef],
+  );
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    swiped.current = false;
+    // React sends a press inside the actions menu here too, although the menu is not in
+    // the row: it is a press on the menu, not the start of a swipe.
+    if (!event.currentTarget.contains(event.target as Node)) return;
     drag.onPointerDown(event);
   };
 
   const onClickCapture = (event: ReactMouseEvent<HTMLDivElement>) => {
+    // A click inside the actions menu is the menu's own.
+    if (!event.currentTarget.contains(event.target as Node)) return;
     // A click from the keyboard or a screen reader (`detail` 0) is never part of a swipe.
     const pointer = event.detail !== 0;
     if (pointer && swiped.current) {
@@ -445,12 +479,35 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
     }
   };
 
+  const content = (
+    <div ref={contentRef} data-ouro-swipe-actions-content="" className={contentClass}>
+      {children}
+    </div>
+  );
+  const items = all.map((action) => ({
+    label: action.label,
+    onClick: action.onClick,
+    tone: toneOf(action) === "destructive" ? ("destructive" as const) : undefined,
+  }));
+  const onLongPress = (menuOpen: boolean) => {
+    // A finger that is already swiping the row is not pressing it.
+    if (menuOpen && rootRef.current!.hasAttribute("data-dragging")) return;
+    setPressed(menuOpen);
+    // The menu is now the way to the actions, and the press that opened it is not a tap on the row.
+    if (menuOpen) settle(null);
+    swiped.current = menuOpen;
+  };
+
   return (
     <div
-      ref={rootRef}
+      ref={setRoot}
       data-ouro="swipe-actions"
       data-open={open ?? undefined}
       className={cn(rootClass, className)}
+      // Any new press forgets the last swipe. On the way down, so content that keeps its presses to itself cannot leave the next tap swallowed.
+      onPointerDownCapture={() => {
+        swiped.current = false;
+      }}
       onPointerDown={onPointerDown}
       onPointerMove={drag.onPointerMove}
       onPointerUp={drag.onPointerUp}
@@ -458,10 +515,13 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
       onClickCapture={onClickCapture}
     >
       <div ref={trackRef} data-ouro-swipe-actions-track="" className={trackClass}>
-        <Strip side="leading" actions={leading} open={open === "leading"} stripRef={leadingRef} onAction={run} />
-        <div ref={contentRef} data-ouro-swipe-actions-content="" className={contentClass}>
-          {children}
-        </div>
+        <Strip side="leading" actions={leading} open={open === "leading"} stripRef={leadingRef} onAction={(action) => run(action)} />
+        {all.length > 0 ? (
+          // A long press on the row (or a right-click) opens the actions at the finger: the way in for a touch that cannot swipe.
+          <Menu contextTrigger={content} open={pressed} onOpenChange={onLongPress} items={items} />
+        ) : (
+          content
+        )}
         {all.length > 0 && (
           <div data-ouro-swipe-actions-menu="" className={menuClass}>
             <Menu
@@ -474,15 +534,11 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
               onOpenChange={(menuOpen) => {
                 if (menuOpen) settle(null);
               }}
-              items={all.map((action) => ({
-                label: action.label,
-                onClick: action.onClick,
-                tone: toneOf(action) === "destructive" ? ("destructive" as const) : undefined,
-              }))}
+              items={items}
             />
           </div>
         )}
-        <Strip side="trailing" actions={trailing} open={open === "trailing"} stripRef={trailingRef} onAction={run} />
+        <Strip side="trailing" actions={trailing} open={open === "trailing"} stripRef={trailingRef} onAction={(action) => run(action)} />
       </div>
     </div>
   );

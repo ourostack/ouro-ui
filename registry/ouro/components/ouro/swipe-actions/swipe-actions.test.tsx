@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { Item } from "@/registry/ouro/components/ouro/item/item";
 import { SwipeActions, type SwipeActionsProps } from "@/registry/ouro/components/ouro/swipe-actions/swipe-actions";
 import { rubberband } from "@/registry/ouro/lib/ouro/spring";
@@ -35,6 +35,7 @@ afterEach(async () => {
   expect(error).not.toHaveBeenCalled();
   vi.restoreAllMocks();
   history.replaceState(null, "", location.pathname + location.search);
+  await commands.emulateMedia({ reducedMotion: "no-preference" });
 });
 
 async function render(node: ReactNode, dir?: "rtl") {
@@ -98,7 +99,9 @@ const wait = (ms: number) => {
 /** Dispatches one pointer event, as a one-finger touch unless `init` says otherwise, and flushes React. */
 async function pointer(target: EventTarget, type: string, x: number, y: number, init: PointerEventInit = {}) {
   await act(async () => {
-    const event = new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 1, pointerType: "touch", isPrimary: true, clientX: x, clientY: y, ...init });
+    // While the pointer is down its button is held, as a real one's is.
+    const buttons = type === "pointerdown" || type === "pointermove" ? 1 : 0;
+    const event = new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 1, pointerType: "touch", isPrimary: true, buttons, clientX: x, clientY: y, ...init });
     Object.defineProperty(event, "timeStamp", { value: clock });
     target.dispatchEvent(event);
   });
@@ -370,18 +373,20 @@ describe("SwipeActions", () => {
     expect(getComputedStyle(track(element)).willChange).toBe("transform");
     frames!.until(() => offset(element) < -121);
     expect(offset(element)).toBeGreaterThan(open);
-    // A press alone does not stop it: it may be a tap or the start of a scroll.
+    // A press stops it there, under the finger, before the finger has moved.
     wait(1000);
     await pointer(content(element), "pointerdown", 200, 20);
-    expect(element.hasAttribute("data-ouro-settling")).toBe(true);
+    expect(element.hasAttribute("data-ouro-settling")).toBe(false);
+    const caught = offset(element);
+    expect(caught).toBeLessThan(-120);
+    expect(caught).toBeGreaterThan(open);
+    frames!.step(32);
+    expect(offset(element)).toBe(caught);
     // Once the press is a swipe, the row is the finger's again, from where it was caught.
     wait(16);
     await pointer(window, "pointermove", 188, 20);
     expect(element.hasAttribute("data-ouro-settling")).toBe(false);
     expect(element.hasAttribute("data-dragging")).toBe(true);
-    const caught = hundredths(offset(element) + 12);
-    expect(caught).toBeLessThan(-120);
-    expect(caught).toBeGreaterThanOrEqual(open);
     frames!.step(32);
     // Nothing but the finger moves it now, 1:1: no frame does.
     expect(offset(element)).toBe(hundredths(caught - 12));
@@ -393,7 +398,7 @@ describe("SwipeActions", () => {
     await rest(element);
     expect(offset(element)).toBe(open);
 
-    // Mid-settle a tap, or a touch that turns into a scroll, leaves the row on its way.
+    // Mid-settle a tap, or a touch that turns into a scroll, stops the row only for as long as it lasts: the row then goes on its way.
     for (const end of ["tap", "scroll"]) {
       await swipe(element, 60, { hold: true });
       wait(300);
@@ -403,13 +408,31 @@ describe("SwipeActions", () => {
       expect(element.hasAttribute("data-ouro-settling")).toBe(true);
       wait(1000);
       await pointer(content(element), "pointerdown", 200, 20);
+      expect(element.hasAttribute("data-ouro-settling"), end).toBe(false);
+      const stopped = offset(element);
+      expect(stopped).toBeGreaterThan(open);
       if (end === "tap") await pointer(window, "pointerup", 200, 20);
       else await pointer(window, "pointermove", 202, 60);
       expect(element.hasAttribute("data-ouro-settling"), end).toBe(true);
+      expect(offset(element), end).toBe(stopped);
       await rest(element);
       expect(offset(element), end).toBe(open);
       expect(element.getAttribute("data-open")).toBe("trailing");
     }
+  });
+
+  it("leaves a row a mouse presses to finish springing: a mouse does not swipe", async () => {
+    const element = await render(row());
+    await swipe(element, -120, { hold: true });
+    wait(300);
+    freeze();
+    await pointer(window, "pointerup", 80, 20);
+    frames!.step(16);
+    await pointer(content(element), "pointerdown", 200, 20, { pointerType: "mouse" });
+    expect(element.hasAttribute("data-ouro-settling")).toBe(true);
+    await pointer(window, "pointerup", 200, 20, { pointerType: "mouse" });
+    await rest(element);
+    expect(offset(element)).toBe(-width(element, "trailing"));
   });
 
   it("captures the pointer once the swipe is the row's, not before", async () => {
@@ -454,6 +477,48 @@ describe("SwipeActions", () => {
     await expect.poll(() => offset(element)).toBe(0);
     await swipe(element, 300);
     expect(spies.pin).toHaveBeenCalledTimes(1);
+  });
+
+  it("carries a full swipe's speed into the close: the row goes on outward a moment, then comes back", async () => {
+    const spies = calls();
+    const element = await render(row(spies));
+    await swipe(element, -300, { hold: true });
+    expect(element.hasAttribute("data-full")).toBe(true);
+    wait(16);
+    freeze();
+    await pointer(window, "pointerup", -100, 20);
+    expect(spies.remove).toHaveBeenCalledTimes(1);
+    expect(element.hasAttribute("data-open")).toBe(false);
+    expect(offset(element)).toBe(-300);
+    // Let go while moving outward fast, it does not turn round on the spot.
+    frames!.step(16);
+    expect(offset(element)).toBeLessThan(-310);
+    await rest(element);
+    expect(offset(element)).toBe(0);
+  });
+
+  it("follows the finger with reduced motion too, with the actions in sight, and jumps to rest on release", async () => {
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    const spies = calls();
+    const element = await render(row(spies));
+    await swipe(element, -60, { hold: true });
+    // Following a finger is not an animation.
+    expect(track(element).style.transform).toBe("translateX(-60px)");
+    expect(getComputedStyle(strip(element, "trailing")!).opacity).toBe("1");
+    await pointer(window, "pointermove", 200 - 250, 20);
+    // So a full swipe shows what it is about to do before it does it.
+    expect(offset(element)).toBe(-250);
+    expect(element.hasAttribute("data-full")).toBe(true);
+    await pointer(window, "pointermove", 200 - 100, 20);
+    wait(300);
+    const asked = vi.spyOn(window, "requestAnimationFrame");
+    await pointer(window, "pointerup", 100, 20);
+    // No spring: the row is open, at rest, at once.
+    expect(element.getAttribute("data-open")).toBe("trailing");
+    expect(element.hasAttribute("data-ouro-settling")).toBe(false);
+    expect(offset(element)).toBe(-width(element, "trailing"));
+    expect(asked).not.toHaveBeenCalled();
+    expect(spies.remove).not.toHaveBeenCalled();
   });
 
   it("does not open toward a side with no actions", async () => {
@@ -565,6 +630,96 @@ describe("SwipeActions", () => {
     await swipe(element, -30);
     await pointer(content(element), "pointerdown", 200, 20, { pointerType: "mouse" });
     expect(await click(link, 1)).toEqual({ reached: true, prevented: false });
+  });
+
+  it("forgets a swipe at the next press, even on content that keeps its presses to itself", async () => {
+    const element = await render(
+      <SwipeActions label="Short ribs" trailing={[{ label: "Delete", onClick: () => {} }]}>
+        <div style={{ padding: 20 }}>
+          <span data-testid="selfish" onPointerDown={(event) => event.stopPropagation()}>
+            <a href="#short-ribs">Short ribs</a>
+          </span>
+        </div>
+      </SwipeActions>,
+    );
+    const link = page.getByRole("link", { name: "Short ribs" }).element();
+    await swipe(element, -30);
+    // No click followed the swipe. The next tap is on the content that stops its presses from reaching the row.
+    await pointer(link, "pointerdown", 40, 30);
+    await pointer(window, "pointerup", 40, 30);
+    expect(await click(link, 1)).toEqual({ reached: true, prevented: false });
+  });
+
+  it("opens every action as a menu at the pointer on a long press or a right-click, and that press is not a tap or a swipe", async () => {
+    const spies = calls();
+    const element = await render(row(spies));
+    const link = page.getByRole("link", { name: "Short ribs" }).element();
+    await swipe(element, -120);
+    expect(element.getAttribute("data-open")).toBe("trailing");
+    // A finger goes down on the row and stays. The browser reports the long press as a context menu.
+    wait(1000);
+    await pointer(content(element), "pointerdown", 200, 20);
+    const asked = new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 200, clientY: 20 });
+    await act(async () => {
+      content(element).dispatchEvent(asked);
+    });
+    // The row's menu opens in place of the browser's, and the side the row had open closes.
+    expect(asked.defaultPrevented).toBe(true);
+    await expect.element(page.getByRole("menu")).toBeVisible();
+    expect(document.querySelector('[data-ouro="menu"]')!.getAttribute("data-ouro-presentation")).toBe("menu");
+    expect([...document.querySelectorAll('[role="menuitem"]')].map((item) => item.textContent)).toEqual(["Pin", "Delete", "Archive"]);
+    expect(page.getByRole("menuitem", { name: "Delete" }).element().getAttribute("data-tone")).toBe("destructive");
+    expect(element.hasAttribute("data-open")).toBe(false);
+    // The finger slips sideways on its way up: it is choosing from the menu, not swiping the row.
+    wait(16);
+    await pointer(window, "pointermove", 150, 20);
+    expect(element.hasAttribute("data-dragging")).toBe(false);
+    await pointer(window, "pointerup", 150, 20);
+    // The click a browser may send when that finger lifts is not a tap on the row's link.
+    expect(await click(link, 1)).toEqual({ reached: false, prevented: true });
+    await userEvent.click(page.getByRole("menuitem", { name: "Archive" }));
+    expect(spies.archive).toHaveBeenCalledTimes(1);
+    expect(spies.remove).not.toHaveBeenCalled();
+    await expect.poll(() => document.querySelector('[role="menu"]')).toBeNull();
+    // Closed, the row takes taps again.
+    expect(await click(link, 1)).toEqual({ reached: true, prevented: false });
+  });
+
+  it("does not open the long-press menu under a finger that is already swiping", async () => {
+    const element = await render(row());
+    await swipe(element, -60, { hold: true });
+    await act(async () => {
+      content(element).dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 140, clientY: 20 }));
+    });
+    expect(document.querySelector('[role="menu"]')).toBeNull();
+    expect(element.hasAttribute("data-dragging")).toBe(true);
+    wait(300);
+    await pointer(window, "pointerup", 140, 20);
+    expect(element.getAttribute("data-open")).toBe("trailing");
+  });
+
+  it("leaves a press or a click inside its actions menu to the menu", async () => {
+    const spies = calls();
+    const element = await render(row(spies));
+    // A swipe that sprang back, with no click after it: the row still expects that click.
+    await swipe(element, -30);
+    await act(async () => menuButton(element).click());
+    await expect.element(page.getByRole("menu")).toBeVisible();
+    // React hands the row the menu's events, although the menu is elsewhere in the page.
+    // A pointer's click on an item is the item's, not the click that ends the swipe.
+    await act(async () => {
+      page.getByRole("menuitem", { name: "Archive" }).element().dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, detail: 1 }));
+    });
+    expect(spies.archive).toHaveBeenCalledTimes(1);
+    await expect.poll(() => document.querySelector('[role="menu"]')).toBeNull();
+    // And a touch that goes down on an item and slips sideways is not a swipe of the row behind it.
+    await act(async () => menuButton(element).click());
+    await expect.element(page.getByRole("menu")).toBeVisible();
+    await pointer(page.getByRole("menuitem", { name: "Archive" }).element(), "pointerdown", 200, 300, { pointerId: 9 });
+    await pointer(window, "pointermove", 150, 300, { pointerId: 9 });
+    expect(element.hasAttribute("data-dragging")).toBe(false);
+    await pointer(window, "pointerup", 150, 300, { pointerId: 9 });
+    expect(element.hasAttribute("data-open")).toBe(false);
   });
 
   it("closes an open row on a click in it: a pointer's click stops there, the keyboard's goes on to the link", async () => {

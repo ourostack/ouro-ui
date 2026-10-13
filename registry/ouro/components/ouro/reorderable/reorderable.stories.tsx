@@ -35,7 +35,7 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-/** Try every prop. Drag a handle, or focus one and press Space, then the arrow keys. */
+/** Try every prop. Drag a handle, click or tap one for a menu of moves, or focus one and press Space, then the arrow keys. */
 export const Playground: Story = {};
 
 function RecipeSteps() {

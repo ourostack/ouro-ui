@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { commands, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { Item } from "@/registry/ouro/components/ouro/item/item";
 import { ItemGroup } from "@/registry/ouro/components/ouro/item/item-group";
 import { SwipeActions } from "@/registry/ouro/components/ouro/swipe-actions/swipe-actions";
@@ -302,8 +302,7 @@ describe("SwipeActions on a phone", () => {
     const { rows } = await renderList();
     const row = rows[0]!;
     row.id = "first-row";
-    // A finger that rests before it lifts: a flick can leave Chromium flinging, and the tap that stops a fling is not a tap.
-    await slowSwipe(row, -120);
+    await swipe(row, -120);
     await expect.poll(() => row.getAttribute("data-open")).toBe("trailing");
     await settled(row);
     expect(location.hash).toBe("");
@@ -364,8 +363,17 @@ describe("SwipeActions on a phone", () => {
     const { rows, calls } = await renderList();
     const row = rows[1]!;
     row.id = "second-row";
-    // A finger that rests before it lifts: a flick can leave Chromium flinging, and the tap that stops a fling is not a tap.
-    await slowSwipe(row, -120);
+    let taken = 0;
+    const listener = (event: TouchEvent) => {
+      if (event.defaultPrevented) taken++;
+    };
+    addEventListener("touchmove", listener);
+    cleanups.push(() => removeEventListener("touchmove", listener));
+    // A flick, then a tap as soon as the row is open. Chromium would start a fling when a
+    // fast swipe ends, although nothing scrolls, and the tap that stops a fling gets no
+    // click: the row takes the swipe's touch moves, so there is no fling.
+    await swipe(row, -120);
+    expect(taken).toBeGreaterThan(0);
     await expect.poll(() => row.getAttribute("data-open")).toBe("trailing");
     await settled(row);
     await commands.tap('#second-row [data-ouro-swipe-actions-side="trailing"] button:first-child');
@@ -392,31 +400,61 @@ describe("SwipeActions on a phone", () => {
     await expect.poll(() => calls.remove.mock.calls).toEqual([["Lemon tart"]]);
   });
 
-  it("slides nothing with reduced motion: the row jumps open and the actions fade in", async () => {
+  it("follows the finger with reduced motion too, and jumps to rest when it lifts", async () => {
     await commands.emulateMedia({ reducedMotion: "reduce" });
     const { rows } = await renderList();
     const row = rows[1]!;
     const [x, y] = middle(row);
-    const properties = new Set<string>();
-    const listener = (event: TransitionEvent) => properties.add(event.propertyName);
-    row.addEventListener("transitionrun", listener);
-    cleanups.push(() => row.removeEventListener("transitionrun", listener));
-    expect(getComputedStyle(strip(row, "trailing")).opacity).toBe("0");
+    // The actions are in sight as soon as the row uncovers them: nothing fades in.
+    expect(getComputedStyle(strip(row, "trailing")).opacity).toBe("1");
     try {
       await commands.touchStep({ type: "touchStart", x, y });
       for (let step = 1; step <= 8; step++) await commands.touchStep({ type: "touchMove", x: x - step * 15, y });
-      await act(async () => {});
-      // The finger has moved 120px and the row has not.
-      expect(offset(row)).toBe(0);
+      // Following a finger is not an animation: the row is under it, 120px along.
+      await expect.poll(() => offset(row)).toBe(-120);
+      expect(track(row).getAnimations({ subtree: true }).length).toBe(0);
+      await restFinger();
     } finally {
       await commands.touchStep({ type: "touchEnd" });
     }
     await expect.poll(() => row.getAttribute("data-open")).toBe("trailing");
-    // Open at once, with no transition on the position.
+    // Open at once: no spring and no transition carries it there.
+    expect(row.hasAttribute("data-ouro-settling")).toBe(false);
     expect(offset(row)).toBe(-stripWidth(row, "trailing"));
-    await expect.poll(() => getComputedStyle(strip(row, "trailing")).opacity).toBe("1");
-    await settled(row);
-    expect([...properties]).toEqual(["opacity"]);
+    expect(track(row).getAnimations({ subtree: true }).length).toBe(0);
+  });
+
+  it("opens the actions as a menu on a long press, for a touch that cannot swipe", async () => {
+    const { rows, calls } = await renderList();
+    const row = rows[1]!;
+    const content = row.querySelector<HTMLElement>("[data-ouro-swipe-actions-content]")!;
+    const [x, y] = middle(content);
+    try {
+      await commands.touchStep({ type: "touchStart", x, y });
+      // While the finger is down, text selection and the iOS callout are off, as on a Menu's own long-press area.
+      await expect.poll(() => content.hasAttribute("data-ouro-pressing")).toBe(true);
+      expect(getComputedStyle(content).userSelect).toBe("none");
+      // The finger stays where it is. After half a second the menu opens there, with every action.
+      await expect.element(page.getByRole("menu")).toBeVisible();
+      expect([...document.querySelectorAll('[role="menuitem"]')].map((item) => item.textContent)).toEqual(["Pin", "Delete", "Archive"]);
+      expect(document.querySelector('[data-ouro="menu"]')!.getAttribute("data-ouro-presentation")).toBe("menu");
+      expect(row.hasAttribute("data-dragging")).toBe(false);
+    } finally {
+      await commands.touchStep({ type: "touchEnd" });
+    }
+    await expect.poll(() => content.hasAttribute("data-ouro-pressing")).toBe(false);
+    expect(getComputedStyle(content).userSelect).not.toBe("none");
+    // Lifting the finger is not a tap on the row's link, and the menu stays for the next tap.
+    await pageAtRest();
+    expect(location.hash).toBe("");
+    const archive = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find((item) => item.textContent === "Archive")!;
+    archive.setAttribute("data-test-action", "archive");
+    await commands.tap('[data-test-action="archive"]');
+    await expect.poll(() => calls.archive.mock.calls).toEqual([["Short ribs"]]);
+    expect(calls.remove).not.toHaveBeenCalled();
+    await expect.poll(() => document.querySelector('[role="menu"]')).toBeNull();
+    expect(row.hasAttribute("data-open")).toBe(false);
+    expect(location.hash).toBe("");
   });
 
   it("keeps the actions button for screen readers without showing it, and shows it for keyboard focus", async () => {

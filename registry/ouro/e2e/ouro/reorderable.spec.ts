@@ -38,3 +38,15 @@ test("reorders with a drag on the handle", async ({ page }) => {
   await expect(handles.first()).toHaveAttribute("aria-label", "Reorder Braise");
   await expect(page.getByTestId("saved-order")).toHaveText("Saved order: braise, sear, soften, wine");
 });
+
+test("reorders without a drag: a click on the handle opens a menu of moves", async ({ page }) => {
+  await openStory(page, "lists-reorderable--in-context");
+  const handles = page.locator("[data-ouro-reorderable-handle]");
+  await page.getByRole("button", { name: "Reorder Sear the ribs" }).click();
+  await expect(page.getByRole("menuitem", { name: "Move up" })).toHaveAttribute("data-disabled");
+  await page.getByRole("menuitem", { name: "Move to bottom" }).click();
+  await expect(page.locator("[data-ouro-announcer]")).toHaveText("Sear the ribs moved. Position 4 of 4.");
+  await expect(handles.nth(3)).toHaveAttribute("aria-label", "Reorder Sear the ribs");
+  await expect(page.getByTestId("saved-order")).toHaveText("Saved order: soften, wine, braise, sear");
+  await expect(page.getByRole("menu")).toHaveCount(0);
+});

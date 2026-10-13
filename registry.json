@@ -1665,8 +1665,9 @@
       "type": "registry:ui",
       "title": "Reorderable",
       "description": "A list the user puts in order: recipe steps, a queue, favorites.",
-      "docs": "A list the user puts in order: recipe steps, a queue, favorites. Import: import { Reorderable } from \"@/components/ouro/reorderable/reorderable\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/reorderable.md",
+      "docs": "A list the user puts in order: recipe steps, a queue, favorites. Import: import { Reorderable } from \"@/components/ouro/reorderable/reorderable\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: kbd, menu, ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/reorderable.md",
       "registryDependencies": [
+        "ourostack/ouro-ui/menu",
         "ourostack/ouro-ui/ouro-base",
         "ourostack/ouro-ui/ouro-lib"
       ],

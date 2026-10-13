@@ -1,6 +1,6 @@
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { commands } from "vitest/browser";
+import { commands, page } from "vitest/browser";
 import { Item } from "@/registry/ouro/components/ouro/item/item";
 import { Reorderable } from "@/registry/ouro/components/ouro/reorderable/reorderable";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -96,6 +96,46 @@ describe("Reorderable on a phone", () => {
     }
   });
 
+  it("opens a sheet of moves on a tap of the handle, for a touch that cannot drag", async () => {
+    const { list, onReorder } = await renderSteps();
+    await commands.tap('button[aria-label="Reorder Soften the onions"]');
+    await expect.element(page.getByRole("menu")).toBeVisible();
+    expect(document.querySelector('[data-ouro="menu"]')!.getAttribute("data-ouro-presentation")).toBe("sheet");
+    const items = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')];
+    expect(items.map((item) => item.textContent)).toEqual(["Move up", "Move down", "Move to top", "Move to bottom", "Close"]);
+    // Each move is a 44px target with 16px text.
+    for (const item of items) {
+      expect(item.getBoundingClientRect().height, item.textContent).toBeGreaterThanOrEqual(44);
+      expect(getComputedStyle(item).fontSize, item.textContent).toBe("16px");
+    }
+    // The tap dragged nothing and picked nothing up.
+    expect(list.hasAttribute("data-dragging")).toBe(false);
+    expect(list.querySelector("[data-grabbed]")).toBeNull();
+    items[1]!.setAttribute("data-test-move", "down");
+    await commands.tap('[data-test-move="down"]');
+    await expect.poll(() => onReorder.mock.calls).toEqual([[["step-1", "step-3", "step-2", "step-4", "step-5"], { id: "step-2", from: 1, to: 2 }]]);
+    expect(order(list).slice(0, 3)).toEqual(["Sear the ribs", "Add the wine", "Soften the onions"]);
+    await expect.poll(() => document.querySelector("[data-ouro-announcer]")?.textContent).toBe("Soften the onions moved. Position 3 of 5.");
+    await expect.poll(() => document.querySelector('[role="menu"]')).toBeNull();
+    expect(scrollY).toBe(0);
+  });
+
+  it("opens the same sheet on a screen reader's double tap, a click with no touch, and disables the moves that cannot apply", async () => {
+    const { list, onReorder } = await renderSteps();
+    await act(async () => handle(list, "Rest overnight").click());
+    await expect.element(page.getByRole("menu")).toBeVisible();
+    const item = (name: string) => [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find((found) => found.textContent === name)!;
+    // The last row cannot go down.
+    expect(item("Move down").hasAttribute("data-disabled")).toBe(true);
+    expect(item("Move to bottom").hasAttribute("data-disabled")).toBe(true);
+    expect(item("Move up").hasAttribute("data-disabled")).toBe(false);
+    await act(async () => item("Move to top").click());
+    await expect.poll(() => onReorder.mock.calls).toEqual([[["step-5", "step-1", "step-2", "step-3", "step-4"], { id: "step-5", from: 4, to: 0 }]]);
+    expect(order(list)[0]).toBe("Rest overnight");
+    await expect.poll(() => document.querySelector("[data-ouro-announcer]")?.textContent).toBe("Rest overnight moved. Position 1 of 5.");
+    await expect.poll(() => document.querySelector('[role="menu"]')).toBeNull();
+  });
+
   it("moves a row with a touch drag on its handle, without scrolling the page", async () => {
     const { list, onReorder } = await renderSteps();
     const [x, y] = middle(handle(list, "Sear the ribs"));
@@ -110,6 +150,27 @@ describe("Reorderable on a phone", () => {
     // The rows spring into their places, and then nothing is left displaced.
     await expect.poll(() => list.hasAttribute("data-ouro-settling")).toBe(false);
     for (const row of rows(list)) expect(row.style.transform).toBe("");
+  });
+
+  it("opens the sheet of moves on a tap right after a fast drag", async () => {
+    const { list, onReorder } = await renderSteps();
+    const [x, y] = middle(handle(list, "Sear the ribs"));
+    const [, target] = middle(rows(list)[2]!);
+    let taken = 0;
+    const listener = (event: TouchEvent) => {
+      if (event.defaultPrevented) taken++;
+    };
+    addEventListener("touchmove", listener);
+    cleanups.push(() => removeEventListener("touchmove", listener));
+    // 100ms from touch-down to lift. Chromium would start a fling when a drag this fast
+    // ends, although nothing scrolls, and the tap that stops a fling gets no click: the
+    // handle takes the drag's touch moves, so there is no fling.
+    await commands.touchDrag({ from: [x, y], to: [x, target + 6], steps: 10, durationMs: 100 });
+    expect(taken).toBeGreaterThan(0);
+    await expect.poll(() => onReorder.mock.calls.length).toBe(1);
+    await expect.poll(() => list.hasAttribute("data-ouro-settling")).toBe(false);
+    await commands.tap('button[aria-label="Reorder Sear the ribs"]');
+    await expect.element(page.getByRole("menu")).toBeVisible();
   });
 
   it("springs the dropped row into its place from under the finger, frame by frame", async () => {
