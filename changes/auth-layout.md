@@ -1,0 +1,1 @@
+- New: `AuthLayout`, the sign-in page: a `Card` in the middle of the screen with `brand`, the `title` as the page's `<h1>`, `description`, the form, and a `footer` line under the card. `as="div"` is for a page that already has a `<main>`.
