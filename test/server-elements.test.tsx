@@ -131,16 +131,6 @@ const cases: Array<[string, (wrap: Wrap) => ReactElement]> = [
       </ResizablePanelGroup>
     ),
   ],
-  [
-    "Resizable with a handle added by mistake",
-    (wrap) => (
-      <Resizable>
-        {wrap(<ResizablePanel label="One">One</ResizablePanel>)}
-        {wrap(<ResizableHandle />)}
-        {wrap(<ResizablePanel label="Two">Two</ResizablePanel>)}
-      </Resizable>
-    ),
-  ],
   ["ShowMore items", (wrap) => <ShowMore initialCount={1} items={[wrap(<span key="a">Pasta</span>), wrap(<span key="b">Salad</span>)]} />],
   [
     "Select item children",
@@ -220,5 +210,60 @@ describe.each([
     );
     expect(html).toContain(">Main</span>");
     expect(html).not.toContain(">main</span>");
+  });
+});
+
+// Resizable drops only what is surely a handle added by mistake: `type === ResizableHandle`.
+// Any other component stays, because it may render a panel, and across a Server Component
+// boundary nothing tells a handle (no props) from such a component (a lazy type, no `label`).
+/** An app component that renders a panel. */
+function Notes() {
+  return <ResizablePanel label="Notes">Notes body</ResizablePanel>;
+}
+const separators = (html: string) => html.split('role="separator"').length - 1;
+describe("Resizable children that are not panels", () => {
+  it.each([
+    ["plain", plain],
+    ["lazy type", lazyType],
+    ["both", both],
+  ] as const)("keeps an app component that renders a panel, %s", (_shape, wrap) => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const html = renderToString(
+      <Resizable>
+        <ResizablePanel label="One">One</ResizablePanel>
+        <ResizablePanel label="Two">Two</ResizablePanel>
+        {wrap(<Notes />)}
+      </Resizable>,
+    );
+    expect(html).toContain("Notes body");
+    vi.restoreAllMocks();
+  });
+
+  it("drops a handle a client app added by mistake", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const html = renderToString(
+      <Resizable>
+        <ResizablePanel label="One">One</ResizablePanel>
+        <ResizableHandle />
+        <ResizablePanel label="Two">Two</ResizablePanel>
+      </Resizable>,
+    );
+    expect(separators(html)).toBe(1);
+    vi.restoreAllMocks();
+  });
+
+  it("leaves a mistaken handle from a Server Component in place, since it cannot be told from an app component", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const html = renderToString(
+      <Resizable>
+        <ResizablePanel label="One">One</ResizablePanel>
+        {lazyType(<ResizableHandle />)}
+        <ResizablePanel label="Two">Two</ResizablePanel>
+      </Resizable>,
+    );
+    expect(html).toContain(">One<");
+    expect(html).toContain(">Two<");
+    expect(separators(html)).toBeGreaterThan(1);
+    vi.restoreAllMocks();
   });
 });
