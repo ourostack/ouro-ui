@@ -150,7 +150,7 @@ const base =
   // A state layer in the text color: a light wash on hover, a deeper one while pressed.
   "before:pointer-events-none before:absolute before:-inset-px before:rounded-[inherit] before:bg-current " +
   "before:opacity-0 before:transition-opacity before:duration-(--ouro-duration-fast) before:ease-[ease] " +
-  "not-data-disabled:pointer-fine:hover:before:opacity-8 not-data-disabled:active:before:opacity-14 " +
+  "not-data-disabled:not-active:pointer-fine:hover:before:opacity-8 not-data-disabled:active:before:opacity-14 " +
   // Press feedback: scale only when motion is allowed and the button is enabled.
   "motion-safe:not-data-disabled:active:scale-(--ouro-press-scale) " +
   "disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-progress";

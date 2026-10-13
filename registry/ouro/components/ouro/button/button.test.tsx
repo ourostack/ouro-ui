@@ -803,3 +803,18 @@ describe("Button under more contrast", () => {
     }
   });
 });
+
+describe("Button state layer", () => {
+  it("shows the deeper pressed wash, not the hover wash, while a mouse presses a hovered button", async () => {
+    const { button } = await render(<Button>Save</Button>);
+    const wash = () => getComputedStyle(button, "::before").opacity;
+    await userEvent.hover(button);
+    await expect.poll(wash).toBe("0.08");
+    await commands.pointerPress({ selector: "[data-ouro]", action: "down" });
+    try {
+      await expect.poll(wash).toBe("0.14");
+    } finally {
+      await commands.pointerPress({ action: "up" });
+    }
+  });
+});
