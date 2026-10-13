@@ -112,8 +112,8 @@ const rowItem =
   "aria-[current=page]:bg-accent aria-[current=page]:text-accent-foreground data-current:text-foreground " +
   "motion-safe:active:scale-(--ouro-press-scale) outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 
-// The theme's easing tokens, with the curve as the fallback until a theme defines them.
-const easeOut = "ease-[var(--ouro-ease-out,cubic-bezier(0.23,1,0.32,1))]";
+// The theme's enter and exit curve.
+const easeOut = "ease-(--ouro-ease-out)";
 
 // Opened or closed from the keyboard, nothing animates (`data-ouro-instant`).
 const instantly = "data-ouro-instant:transition-none";

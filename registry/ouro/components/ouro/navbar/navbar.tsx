@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type JSX, type ReactNode, type Ref } from "react";
+import { useId, useLayoutEffect, useRef, useState, type JSX, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { currentHref } from "@/registry/ouro/lib/ouro/current-path";
@@ -179,7 +179,8 @@ export function Navbar(props: NavbarProps): JSX.Element {
   const list = useRef<HTMLUListElement>(null);
   if (!collapsed && open) setOpen(false);
 
-  useEffect(() => {
+  // Before paint, so a client mount never shows a row that does not fit.
+  useLayoutEffect(() => {
     const measure = () => {
       // The room the links would have: the slot, and the menu button's place when it shows.
       const button = menuButton.current!.offsetWidth;

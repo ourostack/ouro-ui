@@ -296,10 +296,12 @@ describe("NavigationMenu", () => {
 });
 
 describe("NavigationMenu panels and easing", () => {
-  it("eases on the theme's --ouro-ease-out, with the curve as the fallback", async () => {
+  it("eases on the theme's --ouro-ease-out token, with no curve of its own", async () => {
     await render(<NavigationMenu label="Main" items={items} />);
     await userEvent.click(page.getByRole("button", { name: "Recipes" }));
     await expect.poll(() => getComputedStyle(popup()!).transitionProperty).toBe("opacity, scale");
+    expect(popup()!.className).toContain("ease-(--ouro-ease-out)");
+    expect(document.querySelector('[data-ouro="navigation-menu"]')!.outerHTML + popup()!.outerHTML).not.toContain("cubic-bezier");
     expect(getComputedStyle(popup()!).transitionTimingFunction).toContain("cubic-bezier(0.23, 1, 0.32, 1)");
     document.documentElement.style.setProperty("--ouro-ease-out", "linear");
     try {

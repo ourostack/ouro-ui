@@ -418,15 +418,96 @@ describe("Sidebar items", () => {
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
-  it("expands the rail and opens the group when a collapsed group is chosen", async () => {
+  it("opens a group's links in a menu from a rail that cannot expand, and keeps focus with the group's button", async () => {
     const onCollapsedChange = vi.fn();
-    await render(<Sidebar label="Main" sections={nested} defaultCollapsed onCollapsedChange={onCollapsedChange} />);
+    const onClick = vi.fn();
+    const withButton = [
+      {
+        items: [
+          {
+            label: "Settings",
+            icon: <Icon />,
+            items: [
+              { label: "Profile", href: "/settings/profile" },
+              { label: "Billing", href: "/settings/billing", badge: "New" },
+              { label: "Sign out", onClick },
+            ],
+          },
+        ],
+      },
+    ];
+    await render(<Sidebar label="Main" sections={withButton} collapsed onCollapsedChange={onCollapsedChange} currentPath="/settings/billing" />);
+    const toggle = page.getByRole("button", { name: "Settings" }).element() as HTMLElement;
+    // It holds the current page, which shows on the button.
+    expect(toggle.hasAttribute("data-current")).toBe(true);
+    expect(toggle.getAttribute("aria-haspopup")).toBe("menu");
+    expect(toggle.hasAttribute("aria-controls")).toBe(false);
+    toggle.focus();
+    await userEvent.keyboard("{Enter}");
+    const menu = page.getByRole("menu");
+    await expect.element(menu).toBeVisible();
+    await expect.element(menu.getByRole("menuitem", { name: "Profile" })).toHaveAttribute("href", "/settings/profile");
+    await expect.element(menu.getByRole("menuitem", { name: "Billing New" })).toBeVisible();
+    // The sidebar did not expand, and the same button is still there, now open.
+    expect(onCollapsedChange).not.toHaveBeenCalled();
+    expect(toggle.isConnected).toBe(true);
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    // The menu sits beside the group's button.
+    await expect.poll(() => document.getAnimations().length).toBe(0);
+    const box = menu.element().getBoundingClientRect();
+    const anchor = toggle.getBoundingClientRect();
+    expect(box.left).toBeGreaterThanOrEqual(anchor.right - 1);
+    expect(Math.abs(box.top - anchor.top)).toBeLessThan(24);
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => page.getByRole("menu").elements().length).toBe(0);
+    await expect.poll(() => document.activeElement).toBe(toggle);
+    // A button in the group runs from the menu.
+    await userEvent.keyboard("{Enter}");
+    await userEvent.click(page.getByRole("menu").getByRole("menuitem", { name: "Sign out" }));
+    expect(onClick).toHaveBeenCalledTimes(1);
+    await expect.poll(() => page.getByRole("menu").elements().length).toBe(0);
+    await expect.poll(() => document.activeElement).toBe(toggle);
+  });
+
+  it("leaves expanding to the collapse control: a group chosen on the rail opens its menu and the rail stays", async () => {
+    const onCollapsedChange = vi.fn();
+    const { root } = await render(<Sidebar label="Main" sections={nested} defaultCollapsed onCollapsedChange={onCollapsedChange} />);
+    await userEvent.click(page.getByRole("button", { name: "Settings" }));
+    await expect.element(page.getByRole("menu").getByRole("menuitem", { name: "Profile" })).toBeVisible();
+    expect(onCollapsedChange).not.toHaveBeenCalled();
+    expect(root.hasAttribute("data-collapsed")).toBe(true);
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => page.getByRole("menu").elements().length).toBe(0);
+    await userEvent.click(page.getByRole("button", { name: "Collapse sidebar" }));
+    expect(onCollapsedChange).toHaveBeenLastCalledWith(false);
     const toggle = page.getByRole("button", { name: "Settings" });
     await expect.element(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(toggle.element().hasAttribute("aria-haspopup")).toBe(false);
     await userEvent.click(toggle);
-    expect(onCollapsedChange).toHaveBeenLastCalledWith(false);
-    await expect.element(toggle).toHaveAttribute("aria-expanded", "true");
     await expect.element(page.getByRole("link", { name: "Profile" })).toBeVisible();
+  });
+
+  it("says when a group sits in a rail that cannot expand", async () => {
+    await render(<Sidebar label="Main" sections={nested} collapsed collapsible={false} />);
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] Sidebar: collapsed without onCollapsedChange cannot expand, so "Settings" shows its links only in a menu. Fix: <Sidebar collapsed={collapsed} onCollapsedChange={setCollapsed}> or defaultCollapsed.',
+    );
+  });
+
+  it("opens the rail's tooltip toward the page in a right-to-left layout", async () => {
+    document.documentElement.dir = "rtl";
+    try {
+      const { nav } = await render(<Sidebar label="Main" sections={sections} defaultCollapsed />);
+      // The rail stands at the right edge, so there is no room on its right.
+      expect(nav!.getBoundingClientRect().right).toBeGreaterThan(document.documentElement.clientWidth - 16);
+      await userEvent.hover(page.getByRole("link", { name: "Cookbooks" }));
+      await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')?.getAttribute("data-side")).toBe("left");
+      await expect.poll(() => document.getAnimations().length).toBe(0);
+      const tip = document.querySelector('[data-ouro="tooltip"]')!.getBoundingClientRect();
+      expect(tip.right).toBeLessThanOrEqual(page.getByRole("link", { name: "Cookbooks" }).element().getBoundingClientRect().left);
+    } finally {
+      document.documentElement.removeAttribute("dir");
+    }
   });
 
   it("shows the nested items in the drawer", async () => {

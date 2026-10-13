@@ -239,6 +239,33 @@ describe("Navbar at tablet widths and with groups", () => {
     await expect.element(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Kitchen Search" })).toBeVisible();
   });
 
+  it("never paints the clipped row on a client mount when its links do not fit", async () => {
+    await page.viewport(768, 800);
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    // What each frame shows of the links' slot, from before the mount.
+    const frames: string[] = [];
+    let sampling = true;
+    const sample = () => {
+      const slot = host.querySelector<HTMLElement>("[data-ouro-navbar-links]");
+      if (slot) frames.push(getComputedStyle(slot).visibility);
+      if (sampling) requestAnimationFrame(sample);
+    };
+    requestAnimationFrame(sample);
+    // Outside act, so React paints between its commit and its passive effects as a browser does.
+    try {
+      root.render(<Navbar label="Main" items={eight} />);
+      await expect.poll(() => frames.length).toBeGreaterThan(3);
+    } finally {
+      sampling = false;
+    }
+    expect(getComputedStyle(host.querySelector("[data-ouro-navbar-menu]")!).display).not.toBe("none");
+    expect(frames).not.toContain("visible");
+  });
+
   it("closes the sheet when the links come to fit", async () => {
     await page.viewport(768, 800);
     const { menuButton } = await render(<Navbar label="Main" items={eight} />);

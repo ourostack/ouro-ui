@@ -8,6 +8,7 @@ import { RouterLink } from "@/registry/ouro/lib/ouro/router-link";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Menu, MenuItem } from "@/registry/ouro/components/ouro/menu/menu";
 import { SheetFrame } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 
@@ -57,7 +58,8 @@ export interface SidebarButtonItem extends SidebarItemBase {
 
 /**
  * An item with links nested under it, one level deep: a button that shows and hides them.
- * It starts open when it holds the current page.
+ * It starts open when it holds the current page. On the collapsed rail the button opens
+ * them in a `Menu` beside it.
  */
 export interface SidebarGroupItem extends SidebarItemBase {
   /** The nested links and buttons. They do not nest further. */
@@ -161,7 +163,7 @@ const example = '<Sidebar label="Main" sections={[{ items: [{ label: "Recipes", 
  * `aria-current="page"`. An item can carry a `badge` ("Inbox 12"), be a button (`onClick`
  * without `href`), or hold one level of nested links (`items`). From 640px up it fills its
  * container's height and collapses to a rail of icons with its own button, each named by a
- * `Tooltip`; below 640px it is a menu button that opens the same links as a `Sheet`
+ * `Tooltip`, where an item with nested links opens them in a `Menu`; below 640px it is a menu button that opens the same links as a `Sheet`
  * drawer. Links render through `OuroProvider`'s `linkComponent`, so your router navigates.
  *
  * The phone menu opens once JavaScript has loaded (after hydration), as in shadcn/ui and
@@ -214,6 +216,7 @@ export function Sidebar(props: SidebarProps): JSX.Element {
       ? (token: string) => `remove "${token}"; Sidebar sets its own look`
       : /* istanbul ignore next @preserve -- production only */ "",
   );
+  const group = sections.flatMap((section) => section.items).find((item) => item.items !== undefined);
   useDevWarnings(
     "Sidebar",
     process.env.NODE_ENV !== "production"
@@ -223,6 +226,12 @@ export function Sidebar(props: SidebarProps): JSX.Element {
             collapsible &&
             onCollapsedChange === undefined && [
               "collapsed without onCollapsedChange cannot be toggled",
+              "<Sidebar collapsed={collapsed} onCollapsedChange={setCollapsed}> or defaultCollapsed",
+            ],
+          collapsedProp === true &&
+            onCollapsedChange === undefined &&
+            group !== undefined && [
+              `collapsed without onCollapsedChange cannot expand, so "${group.label}" shows its links only in a menu`,
               "<Sidebar collapsed={collapsed} onCollapsedChange={setCollapsed}> or defaultCollapsed",
             ],
           items !== undefined && ["items is not a prop; links go in sections", `${example} />`],
@@ -337,46 +346,64 @@ export function Sidebar(props: SidebarProps): JSX.Element {
         <ul aria-labelledby={section.label !== undefined ? `${id}${place}${index}` : undefined} className={list}>
           {section.items.map((item, position) => {
             if (item.items === undefined) return <li key={position}>{leaf(item, rail, onNavigate)}</li>;
-            const key = `${index}-${position}`;
-            // On the rail a group is closed; choosing it expands the sidebar and opens it.
-            const open = !rail && isOpen(key, item);
             const holdsCurrent = item.items.some(isCurrent);
+            if (rail) {
+              // On the rail a group's links open in a menu beside its button, so they are in
+              // reach whether or not the sidebar can expand.
+              return (
+                <li key={position}>
+                  <Menu
+                    side="right"
+                    closeLabel={closeLabel}
+                    trigger={
+                      <Tooltip content={item.label} side="right">
+                        <button type="button" data-current={holdsCurrent ? "" : undefined} className={cn(row, "data-current:text-foreground", railRow)}>
+                          {rowContent(item, true)}
+                        </button>
+                      </Tooltip>
+                    }
+                  >
+                    {item.items.map((child, at) => (
+                      <MenuItem key={at} href={child.href} onClick={child.onClick}>
+                        {child.label}
+                        {child.badge !== undefined && (
+                          <>
+                            {" "}
+                            <span className={cn(badgeClass, "ms-2")}>{child.badge}</span>
+                          </>
+                        )}
+                      </MenuItem>
+                    ))}
+                  </Menu>
+                </li>
+              );
+            }
+            const key = `${index}-${position}`;
+            const open = isOpen(key, item);
             return (
               <li key={position}>
-                {tip(
-                  rail,
-                  item.label,
-                  <button
-                    type="button"
-                    aria-expanded={open}
-                    aria-controls={`${id}${place}${key}`}
-                    data-current={holdsCurrent && !open ? "" : undefined}
-                    onClick={() => {
-                      if (rail) {
-                        setOwn(false);
-                        onCollapsedChange?.(false);
-                      }
-                      setOpened({ ...opened, [key]: rail || !open });
-                    }}
-                    className={cn(row, "data-current:text-foreground", rail && railRow)}
+                <button
+                  type="button"
+                  aria-expanded={open}
+                  aria-controls={`${id}${place}${key}`}
+                  data-current={holdsCurrent && !open ? "" : undefined}
+                  onClick={() => setOpened({ ...opened, [key]: !open })}
+                  className={cn(row, "data-current:text-foreground")}
+                >
+                  {rowContent(item, false)}
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className={cn("size-4 shrink-0 rtl:-scale-x-100", item.badge === undefined && "ms-auto", open && "rotate-90 rtl:-rotate-90")}
                   >
-                    {rowContent(item, rail)}
-                    {!rail && (
-                      <svg
-                        aria-hidden="true"
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className={cn("size-4 shrink-0 rtl:-scale-x-100", item.badge === undefined && "ms-auto", open && "rotate-90 rtl:-rotate-90")}
-                      >
-                        <path d="m6 4 4 4-4 4" />
-                      </svg>
-                    )}
-                  </button>,
-                )}
+                    <path d="m6 4 4 4-4 4" />
+                  </svg>
+                </button>
                 {open && (
                   <ul id={`${id}${place}${key}`} className={cn(list, "ms-5 mt-1 border-0 border-s border-solid border-border ps-2")}>
                     {item.items.map((child, at) => (

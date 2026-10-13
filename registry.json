@@ -1581,9 +1581,10 @@
       "type": "registry:ui",
       "title": "Sidebar",
       "description": "The column of links down the side of an app, in sections, with the current page marked `aria-current=\"page\"`.",
-      "docs": "The column of links down the side of an app, in sections, with the current page marked `aria-current=\"page\"`. Import: import { Sidebar } from \"@/components/ouro/sidebar/sidebar\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, ouro-base, ouro-lib, sheet, tooltip. Docs: https://ourostack.github.io/ouro-ui/docs/sidebar.md",
+      "docs": "The column of links down the side of an app, in sections, with the current page marked `aria-current=\"page\"`. Import: import { Sidebar } from \"@/components/ouro/sidebar/sidebar\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, kbd, menu, ouro-base, ouro-lib, sheet, tooltip. Docs: https://ourostack.github.io/ouro-ui/docs/sidebar.md",
       "registryDependencies": [
         "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/menu",
         "ourostack/ouro-ui/ouro-base",
         "ourostack/ouro-ui/ouro-lib",
         "ourostack/ouro-ui/sheet",
