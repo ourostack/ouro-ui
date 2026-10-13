@@ -316,7 +316,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **Sidebar** — The column of links down the side of an app, in sections, with the current page marked `aria-current="page"`. [Docs](docs/Sidebar.md)
 - **SidebarLayout** — The shell of an app with a `Sidebar`: the sidebar beside the page from 640px up, in view while the page scrolls, and a sticky top bar with the sidebar's menu button below 640px. [Docs](docs/SidebarLayout.md)
 - **StackedLayout** — The shell of an app with a `Navbar`: the bar across the top, in view while the page scrolls, and the page below it in a centered column. [Docs](docs/StackedLayout.md)
-- **Tabs** — Tabs that switch between panels in place: an accessible tab list with roving focus, arrow-key navigation, a line that slides to the selected tab with the theme spring, and 44px tabs on touch screens. [Docs](docs/Tabs.md)
+- **Tabs** — Tabs that switch between panels in place: an accessible tab list with roving focus, arrow-key navigation, a line that slides to the selected tab, and 44px tabs on touch screens. [Docs](docs/Tabs.md)
 
 ### Data
 

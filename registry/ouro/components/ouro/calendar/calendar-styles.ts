@@ -164,7 +164,7 @@ const dayClass =
   "rounded-md border-0 bg-transparent p-0 font-[inherit] text-sm leading-none text-foreground tabular-nums " +
   "cursor-pointer select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "outline-ring outline-offset-2 focus-visible:z-1 focus-visible:outline-2 focus-visible:outline-solid " +
-  "not-aria-disabled:not-data-selected:hover:bg-accent not-aria-disabled:not-data-selected:hover:text-accent-foreground " +
+  "not-aria-disabled:not-data-selected:pointer-fine:hover:bg-accent not-aria-disabled:not-data-selected:pointer-fine:hover:text-accent-foreground " +
   "motion-safe:not-aria-disabled:active:scale-(--ouro-press-scale) " +
   "aria-[current=date]:font-semibold aria-[current=date]:underline aria-[current=date]:underline-offset-4 " +
   "data-in-range:bg-accent data-in-range:text-accent-foreground " +

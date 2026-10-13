@@ -190,3 +190,23 @@ describe("Heading server rendering", () => {
     expect(warn).not.toHaveBeenCalled();
   });
 });
+
+describe("Heading tracking", () => {
+  it("tightens as the text grows: none at body size, more at each larger size", async () => {
+    const { host } = await render(
+      <>
+        {(["sm", "md", "lg", "xl", "2xl"] as const).map((size) => (
+          <Heading key={size} level={2} size={size}>
+            {size}
+          </Heading>
+        ))}
+      </>,
+    );
+    const em = (el: Element) => {
+      const style = getComputedStyle(el);
+      const spacing = style.letterSpacing === "normal" ? 0 : Number.parseFloat(style.letterSpacing);
+      return Math.round((spacing / Number.parseFloat(style.fontSize)) * 1000) / 1000;
+    };
+    expect([...host.children].map(em)).toEqual([0, -0.01, -0.015, -0.02, -0.025]);
+  });
+});

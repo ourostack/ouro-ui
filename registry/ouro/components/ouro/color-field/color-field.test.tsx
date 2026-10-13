@@ -2,7 +2,7 @@ import { createRef, useState, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { ColorField, type ColorFieldProps } from "@/registry/ouro/components/ouro/color-field/color-field";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
@@ -383,5 +383,29 @@ describe("ColorField server rendering", () => {
     expect(error).not.toHaveBeenCalled();
     await pick(host.querySelector('input[type="color"]')!, "#000001");
     expect(host.querySelector<HTMLInputElement>('input[type="text"]')!.value).toBe("#000001");
+  });
+});
+
+describe("ColorField press feedback", () => {
+  it("scales the swatch in to the press scale while the pointer is down, but not with reduced motion", async () => {
+    const { host } = await render(<ColorField label="Brand" defaultValue="#336699" />);
+    const swatch = host.querySelector<HTMLElement>('input[type="color"]')!.closest("label")!;
+    const scale = () => Number.parseFloat(getComputedStyle(swatch).scale) || 1;
+    expect(getComputedStyle(swatch).transitionDuration).toContain("0.16s");
+    await commands.pointerPress({ selector: 'label:has(input[type="color"])', action: "down" });
+    try {
+      await expect.poll(scale).toBeCloseTo(0.97, 2);
+    } finally {
+      await commands.pointerPress({ action: "up" });
+    }
+    await expect.poll(() => getComputedStyle(swatch).scale).toBe("none");
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    await commands.pointerPress({ selector: 'label:has(input[type="color"])', action: "down" });
+    try {
+      expect(getComputedStyle(swatch).scale).toBe("none");
+    } finally {
+      await commands.pointerPress({ action: "up" });
+      await commands.emulateMedia({ reducedMotion: "no-preference" });
+    }
   });
 });

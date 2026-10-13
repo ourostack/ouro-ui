@@ -249,6 +249,21 @@ describe("SegmentedControl", () => {
     expect(Math.abs(thumb.getBoundingClientRect().width - r.segments[2]!.getBoundingClientRect().width)).toBeLessThanOrEqual(1);
   });
 
+  it("slides the thumb on the ease-in-out token, and moves it at once on an arrow key", async () => {
+    const r = await render(<SegmentedControl label="View" items={items} />);
+    const style = () => getComputedStyle(r.thumb);
+    expect(style().transitionProperty).toBe("translate, opacity");
+    expect(style().transitionDuration).toBe("0.2s, 0.15s");
+    expect(style().transitionTimingFunction).toBe("cubic-bezier(0.77, 0, 0.175, 1), ease");
+    r.segments[0]!.focus();
+    await userEvent.keyboard("{ArrowRight}");
+    expect(r.thumb.parentElement!.hasAttribute("data-ouro-keyboard")).toBe(true);
+    expect(style().transitionProperty).toBe("none");
+    await userEvent.click(r.segments[2]!);
+    expect(r.thumb.parentElement!.hasAttribute("data-ouro-keyboard")).toBe(false);
+    expect(style().transitionProperty).toBe("translate, opacity");
+  });
+
   it("moves the thumb without a transition under reduced motion", async () => {
     await commands.emulateMedia({ reducedMotion: "reduce" });
     const { thumb } = await render(<SegmentedControl label="View" items={items} />);

@@ -2,7 +2,7 @@ import { type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -239,5 +239,18 @@ describe("Badge development messages", () => {
     expect(html.match(/data-ouro="badge"/g)).toHaveLength(3);
     expect(warn).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
+  });
+});
+
+describe("Badge under more contrast", () => {
+  it("gives the soft look a visible border with prefers-contrast: more", async () => {
+    const { badge } = await render(<Badge variant="soft">Soft</Badge>);
+    expect(getComputedStyle(badge).borderTopColor).toBe("rgba(0, 0, 0, 0)");
+    await commands.emulateMedia({ contrast: "more" });
+    try {
+      await expect.poll(() => getComputedStyle(badge).borderTopColor).toBe(getComputedStyle(badge).color);
+    } finally {
+      await commands.emulateMedia({ contrast: "no-preference" });
+    }
   });
 });

@@ -56,7 +56,7 @@ const orientations = ["vertical", "horizontal", "both"] as const;
 // coarse pointer it lets touches through to the native scroll container under it, so a
 // finger anywhere pans the content with the platform's momentum, and it is a thin indicator.
 const scrollbar =
-  "flex p-0.5 opacity-0 transition-opacity duration-(--ouro-duration-base) " +
+  "flex p-0.5 opacity-0 transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) " +
   "data-hovering:opacity-100 data-scrolling:opacity-100 data-scrolling:duration-0 group-has-[[data-scroll-viewport]:focus-visible]/scroll-area:opacity-100 " +
   "pointer-coarse:pointer-events-none";
 const scrollbars = {
@@ -150,12 +150,12 @@ export function ScrollArea(props: ScrollAreaProps): JSX.Element {
       </BaseScrollArea.Viewport>
       {orientation !== "horizontal" && (
         <BaseScrollArea.Scrollbar orientation="vertical" className={cn(scrollbar, scrollbars.vertical)}>
-          <BaseScrollArea.Thumb className="w-full rounded-full bg-muted-foreground/40" />
+          <BaseScrollArea.Thumb className="w-full rounded-full bg-muted-foreground/40 active:bg-muted-foreground/60" />
         </BaseScrollArea.Scrollbar>
       )}
       {orientation !== "vertical" && (
         <BaseScrollArea.Scrollbar orientation="horizontal" className={cn(scrollbar, scrollbars.horizontal)}>
-          <BaseScrollArea.Thumb className="h-full rounded-full bg-muted-foreground/40" />
+          <BaseScrollArea.Thumb className="h-full rounded-full bg-muted-foreground/40 active:bg-muted-foreground/60" />
         </BaseScrollArea.Scrollbar>
       )}
       {orientation === "both" && <BaseScrollArea.Corner />}

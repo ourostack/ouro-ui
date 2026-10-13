@@ -67,7 +67,7 @@ npx shadcn@latest add ourostack/ouro-ui/dialog#v0.7.0     # install a component
 - `hover-card`: A preview of where a link goes, shown when a mouse rests on the link or the keyboard focuses it: a cook's profile, a recipe's summary. Docs: https://ourostack.github.io/ouro-ui/docs/hover-card.md
 - `menu`: A list of actions that opens from a button, from a right-click or long press, or from a menubar, with one API for all three. Docs: https://ourostack.github.io/ouro-ui/docs/menu.md
 - `command`: A command palette: a searchable list of every action in the app, in a dialog. Docs: https://ourostack.github.io/ouro-ui/docs/command.md
-- `tabs`: Tabs that switch between panels in place: an accessible tab list with roving focus, arrow-key navigation, a line that slides to the selected tab with the theme spring, and 44px tabs on touch screens. Docs: https://ourostack.github.io/ouro-ui/docs/tabs.md
+- `tabs`: Tabs that switch between panels in place: an accessible tab list with roving focus, arrow-key navigation, a line that slides to the selected tab, and 44px tabs on touch screens. Docs: https://ourostack.github.io/ouro-ui/docs/tabs.md
 - `segmented-control`: An iOS-style segmented control: a row of equal segments with a raised thumb that slides to the checked one, for switching how one view shows its content in place, such as list or grid. Docs: https://ourostack.github.io/ouro-ui/docs/segmented-control.md
 - `accordion`: A stack of titles that each open their own content, for FAQs and long settings pages. Docs: https://ourostack.github.io/ouro-ui/docs/accordion.md
 - `collapsible`: One section that opens and closes under its title, such as nutrition facts under a recipe. Docs: https://ourostack.github.io/ouro-ui/docs/collapsible.md

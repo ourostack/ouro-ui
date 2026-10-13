@@ -69,10 +69,19 @@ export function TabsRoot(props: TabsRootProps): JSX.Element {
  *
  * @internal
  */
-export function TabsRootUnchecked({ className, ...props }: TabsRootProps): JSX.Element {
+export function TabsRootUnchecked({ className, onPointerDownCapture, ...props }: TabsRootProps): JSX.Element {
   return (
     <TabsContext.Provider value>
-      <BaseTabs.Root {...props} data-ouro="tabs" className={cn(rootClass, className)} />
+      <BaseTabs.Root
+        {...props}
+        data-ouro="tabs"
+        // A pointer anywhere inside (a tab, or a control in a panel) ends the keyboard's quiet spell.
+        onPointerDownCapture={(event) => {
+          event.currentTarget.toggleAttribute("data-ouro-keyboard", false);
+          onPointerDownCapture?.(event);
+        }}
+        className={cn(rootClass, className)}
+      />
     </TabsContext.Provider>
   );
 }
@@ -117,15 +126,28 @@ function useEdgeFade(list: { current: HTMLElement | null }): void {
 /**
  * Part: the row (or column) of tabs. Name it with `aria-label` when the page has more than
  * one set of tabs. `activateOnFocus` selects a tab when the arrow keys focus it. A row that
- * scrolls, on a phone, fades out on the side that hides more tabs.
+ * scrolls, on a phone, fades out on the side that hides more tabs. A key that moves the
+ * selection switches tabs without animation.
  */
-export function TabsList({ className, ref, ...props }: TabsListProps): JSX.Element {
+export function TabsList({ className, ref, onKeyDownCapture, ...props }: TabsListProps): JSX.Element {
   useTabsPart("TabsList", '<TabsList aria-label="…">…</TabsList>');
   usePartClassName("TabsList", className);
   const own = useRef<HTMLDivElement>(null);
   const merged = useMergedRef(ref, own);
   useEdgeFade(own);
-  return <BaseTabs.List {...props} ref={merged} className={cn(listClass, className)} />;
+  // The tabs say when a key moved the selection (the root clears it on a pointer), so switching
+  // by key doesn't animate the indicator or the panel.
+  return (
+    <BaseTabs.List
+      {...props}
+      ref={merged}
+      onKeyDownCapture={(event) => {
+        event.currentTarget.closest('[data-ouro="tabs"]')!.toggleAttribute("data-ouro-keyboard", true);
+        onKeyDownCapture?.(event);
+      }}
+      className={cn(listClass, className)}
+    />
+  );
 }
 
 /** Props for {@link TabsTab}. */

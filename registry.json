@@ -1768,8 +1768,8 @@
       "name": "tabs",
       "type": "registry:ui",
       "title": "Tabs",
-      "description": "Tabs that switch between panels in place: an accessible tab list with roving focus, arrow-key navigation, a line that slides to the selected tab with the theme spring, and 44px tabs on touch screens.",
-      "docs": "Tabs that switch between panels in place: an accessible tab list with roving focus, arrow-key navigation, a line that slides to the selected tab with the theme spring, and 44px tabs on touch screens. Import: import { Tabs } from \"@/components/ouro/tabs/tabs\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: the helpers it imports in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/tabs.md",
+      "description": "Tabs that switch between panels in place: an accessible tab list with roving focus, arrow-key navigation, a line that slides to the selected tab, and 44px tabs on touch screens.",
+      "docs": "Tabs that switch between panels in place: an accessible tab list with roving focus, arrow-key navigation, a line that slides to the selected tab, and 44px tabs on touch screens. Import: import { Tabs } from \"@/components/ouro/tabs/tabs\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: the helpers it imports in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/tabs.md",
       "dependencies": [
         "@base-ui/react@^1.8.0"
       ],
@@ -5376,6 +5376,8 @@
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/segmented-control",
+        "ourostack/ouro-ui/segmented-control-tests",
         "ourostack/ouro-ui/tabs",
         "ourostack/ouro-ui/text",
         "ourostack/ouro-ui/text-tests"

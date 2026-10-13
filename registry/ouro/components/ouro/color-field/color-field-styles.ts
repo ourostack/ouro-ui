@@ -41,7 +41,7 @@ const boxClass =
   "[--ouro-control-h:calc(var(--spacing)*11)] sm:pointer-fine:[--ouro-control-h:calc(var(--spacing)*9)] " +
   "rounded-md border border-solid border-input bg-transparent text-base text-foreground sm:pointer-fine:text-sm " +
   "outline-ring outline-offset-2 has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-solid " +
-  "transition-[border-color] duration-(--ouro-duration-fast) ease-out " +
+  "transition-[border-color] duration-(--ouro-duration-fast) ease-[ease] " +
   "has-[input[aria-invalid=true]]:border-destructive has-[input:disabled]:cursor-not-allowed has-[input:disabled]:opacity-50 " +
   "dark:bg-input/30";
 
@@ -51,7 +51,9 @@ const boxClass =
  *
  * @internal
  */
-const swatchClass = "relative flex size-7 shrink-0 cursor-pointer sm:pointer-fine:size-6 has-[input:disabled]:cursor-not-allowed";
+const swatchClass =
+  "press relative flex size-7 shrink-0 cursor-pointer sm:pointer-fine:size-6 " +
+  "motion-safe:not-has-[input:disabled]:active:scale-(--ouro-press-scale) has-[input:disabled]:cursor-not-allowed";
 
 /**
  * The swatch where the browser has no color picker: the color, shown only, beside the hex text

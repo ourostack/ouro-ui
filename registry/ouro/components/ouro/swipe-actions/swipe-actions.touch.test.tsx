@@ -330,7 +330,9 @@ describe("SwipeActions on a phone", () => {
     expect(location.hash).toBe("");
     await commands.tap("#first-row [data-ouro-swipe-actions-content]");
     await expect.poll(() => location.hash).toBe("#recipe-0");
-  });
+    // Two swipes, an 11-step held gesture (each step waits for the page to handle the touch) and two taps:
+    // 15s, the default, is too tight on a loaded runner.
+  }, 30_000);
 
   it("keeps only one row open: swiping another closes the first", async () => {
     const { rows } = await renderList();

@@ -199,3 +199,33 @@ test("no test or spec presses Tab itself: they use pressTab(), which works in We
   assert.deepEqual(presses, [], "Use pressTab() from lib/ouro/testing/tab (Vitest) or e2e/ouro/story (Playwright).");
   for (const path of tabPressPending) assert.ok(directTabPresses(read(path).text).length > 0, `${path} no longer presses Tab itself: remove it from tabPressPending`);
 });
+
+/** The class tokens in a file that use a hover variant without `pointer-fine:` before it. */
+const ungatedHover = (text) =>
+  [
+    ...new Set(
+      text.split(/[\s"'`]+/).filter((token) => {
+        const parts = token.split(":");
+        const at = parts.findIndex((part) => /^(group-|peer-)?hover(\/.+)?$/.test(part));
+        return at !== -1 && at < parts.length - 1 && !parts.slice(0, at).includes("pointer-fine");
+      }),
+    ),
+  ];
+
+test("ungatedHover finds a hover variant with no pointer-fine before it", () => {
+  assert.deepEqual(ungatedHover('"hover:bg-accent pointer-fine:hover:bg-accent not-disabled:hover:text-x group-hover/tab:underline"'), [
+    "hover:bg-accent",
+    "not-disabled:hover:text-x",
+    "group-hover/tab:underline",
+  ]);
+  assert.deepEqual(ungatedHover("'hover:bg-accent' `peer-hover/x:flex` 'pointer-fine:hover:flex'"), ["hover:bg-accent", "peer-hover/x:flex"]);
+  assert.deepEqual(ungatedHover('"not-data-disabled:pointer-fine:hover:before:opacity-8 data-hovering:opacity-100 hover"'), []);
+});
+
+test("every hover style is gated on a fine pointer (pointer-fine:hover:), so a tap on a phone leaves no hover state behind", () => {
+  const runtime = tracked("registry/**/*.ts", "registry/**/*.tsx").filter(
+    (path) => !/\.(test|test-d|stories)\.tsx?$|\.d\.ts$|\/lib\/ouro\/testing\/|\/e2e\/|\/theme\//.test(path),
+  );
+  const offenders = runtime.map(read).filter(({ text }) => ungatedHover(text).length > 0).map(({ path }) => path);
+  assert.deepEqual(offenders, [], "Write hover as pointer-fine:hover:…; Tailwind's hover: checks (hover: hover) only.");
+});

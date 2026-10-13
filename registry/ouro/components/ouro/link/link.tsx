@@ -55,7 +55,7 @@ export type LinkProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, keyof Link
 // Class strings are literal so the app's Tailwind finds them when it compiles.
 const base =
   "rounded-xs underline decoration-current/40 decoration-1 underline-offset-4 " +
-  "transition-[text-decoration-color] duration-(--ouro-duration-fast) ease-out hover:decoration-current " +
+  "transition-[text-decoration-color] duration-(--ouro-duration-fast) ease-[ease] pointer-fine:hover:decoration-current active:opacity-70 " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 
 const tones = {

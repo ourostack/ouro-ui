@@ -110,9 +110,9 @@ const interactive =
   "press cursor-pointer select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
   "before:pointer-events-none before:absolute before:-inset-px before:rounded-[inherit] before:bg-current " +
-  "before:opacity-0 before:transition-opacity before:duration-(--ouro-duration-fast) before:ease-out " +
-  "not-data-disabled:hover:before:opacity-8 not-data-disabled:active:before:opacity-14 " +
-  "motion-safe:not-data-disabled:active:scale-(--ouro-press-scale) active:duration-(--ouro-duration-fast) active:ease-out " +
+  "before:opacity-0 before:transition-opacity before:duration-(--ouro-duration-fast) before:ease-[ease] " +
+  "not-data-disabled:not-active:pointer-fine:hover:before:opacity-8 not-data-disabled:active:before:opacity-14 " +
+  "motion-safe:not-data-disabled:active:scale-(--ouro-press-scale) " +
   "disabled:cursor-not-allowed disabled:opacity-50";
 
 // `soft` text is the tone mixed 20% toward the foreground, as on Button, so it keeps
@@ -126,11 +126,11 @@ const looks = {
     warning: "border-transparent bg-warning text-warning-foreground",
   },
   soft: {
-    primary: "border-transparent bg-primary/10 text-[color-mix(in_oklab,var(--primary)_80%,var(--foreground))]",
-    secondary: "border-transparent bg-muted text-foreground",
-    destructive: "border-transparent bg-destructive/10 text-[color-mix(in_oklab,var(--destructive)_80%,var(--foreground))]",
-    success: "border-transparent bg-success/10 text-[color-mix(in_oklab,var(--success)_80%,var(--foreground))]",
-    warning: "border-transparent bg-warning/10 text-[color-mix(in_oklab,var(--warning)_80%,var(--foreground))]",
+    primary: "border-transparent bg-primary/10 text-[color-mix(in_oklab,var(--primary)_80%,var(--foreground))] contrast-more:border-current",
+    secondary: "border-transparent bg-muted text-foreground contrast-more:border-current",
+    destructive: "border-transparent bg-destructive/10 text-[color-mix(in_oklab,var(--destructive)_80%,var(--foreground))] contrast-more:border-current",
+    success: "border-transparent bg-success/10 text-[color-mix(in_oklab,var(--success)_80%,var(--foreground))] contrast-more:border-current",
+    warning: "border-transparent bg-warning/10 text-[color-mix(in_oklab,var(--warning)_80%,var(--foreground))] contrast-more:border-current",
   },
   outline: {
     primary: "border-primary/45 bg-transparent text-primary",

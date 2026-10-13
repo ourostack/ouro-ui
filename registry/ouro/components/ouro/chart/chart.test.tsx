@@ -265,10 +265,7 @@ describe("Chart", () => {
     await expect.poll(() => chart.querySelector("[data-ouro-chart-tooltip]")?.textContent).toBe("MarchRecipes cooked1,250Recipes saved7");
   });
 
-  it.each([
-    ["reduce", true],
-    ["no-preference", false],
-  ] as const)("draws bars at full height from the first frame only under reduced motion (%s)", async (reducedMotion, still) => {
+  it.each(["reduce", "no-preference"] as const)("draws bars and lines at their final geometry from the first frame (%s)", async (reducedMotion) => {
     await commands.emulateMedia({ reducedMotion });
     try {
       const { chart } = await render(<Chart title="Cooking" data={rows} categoryKey="month" config={config} />);
@@ -277,20 +274,20 @@ describe("Chart", () => {
       await drawn(chart);
       const final = bars(chart, "cooked")[2]!.getBoundingClientRect().height;
       expect(final).toBeGreaterThan(50);
-      expect(first === final).toBe(still);
+      expect(first).toBe(final);
     } finally {
       await commands.emulateMedia({ reducedMotion: "no-preference" });
     }
   });
 
-  it("marks the plot while its marks animate, so a screenshot can wait for them", async () => {
+  it("draws a line in full at once, with no draw-in", async () => {
     const { chart } = await render(<Chart type="line" title="Cooking" data={rows} categoryKey="month" config={config} />);
     const plot = chart.querySelector("[data-ouro-chart-plot]")!;
-    await expect.poll(() => plot.hasAttribute("data-ouro-chart-animating")).toBe(true);
-    await expect.poll(() => plot.hasAttribute("data-ouro-chart-animating")).toBe(false);
+    await expect.poll(() => chart.querySelector<SVGPathElement>(".recharts-line-curve") !== null).toBe(true);
     const curve = chart.querySelector<SVGPathElement>(".recharts-line-curve")!;
-    // Drawn in full: no dash gap left from the line's draw-in.
+    // No dash gap from a draw-in, and nothing for a screenshot to wait for.
     expect(curve.getAttribute("stroke-dasharray") ?? "").not.toMatch(/^0px/);
+    expect(plot.hasAttribute("data-ouro-chart-animating")).toBe(false);
   });
 
   it("takes a recharts chart as children, giving it the data, the name and the theme", async () => {

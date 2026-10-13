@@ -184,10 +184,13 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
         }}
         onKeyDownCapture={(event) => {
           arrowed.current = /^(Arrow|Home$|End$)/.test(event.key);
+          // A key moves the thumb at once; only a pointer slides it.
+          event.currentTarget.toggleAttribute("data-ouro-keyboard", true);
         }}
-        onPointerDownCapture={() => {
+        onPointerDownCapture={(event) => {
           // A pointer press focuses the segment it lands on; that focus is not an arrow key's.
           arrowed.current = false;
+          event.currentTarget.toggleAttribute("data-ouro-keyboard", false);
         }}
         onBlurCapture={(event) => {
           // Focus leaving the group (by pointer, say) ends the arrow key's move.
