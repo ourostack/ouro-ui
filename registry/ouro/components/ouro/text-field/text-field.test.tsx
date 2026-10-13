@@ -33,7 +33,7 @@ async function render(node: ReactNode) {
       return host.querySelector<HTMLElement>("[data-ouro-input-group]")!;
     },
     button(name: string) {
-      return [...host.querySelectorAll("button")].find((button) => button.getAttribute("aria-label") === name) ?? null;
+      return [...host.querySelectorAll("button")].find((button) => button.textContent === name) ?? null;
     },
   };
 }
@@ -191,12 +191,25 @@ describe("TextField password toggle", () => {
     await userEvent.click(show);
     expect(input.type).toBe("text");
     // The name stays fixed; the pressed state says whether the password shows.
-    expect(show.getAttribute("aria-label")).toBe("Show password");
+    expect(show.textContent).toBe("Show password");
     expect(show.getAttribute("aria-pressed")).toBe("true");
     expect(button("Hide password")).toBeNull();
     await userEvent.click(show);
     expect(input.type).toBe("password");
     expect(show.getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("leaves a loose label lookup for the field on the input, not on the toggle or the clear button", async () => {
+    const { input } = await render(<TextField label="Password" type="password" clearable clearLabel="Clear password" defaultValue="hunter22" />);
+    // Playwright's getByLabel("Password") takes any element whose label text contains the
+    // words, and an aria-label is label text. The buttons are named by their own (visually
+    // hidden) text, which is a name but not a label, so only the input matches.
+    expect(page.getByLabelText("Password", { exact: false }).elements()).toEqual([input]);
+    for (const name of ["Show password", "Clear password"]) {
+      const button = page.getByRole("button", { name, exact: true });
+      await expect.element(button).toBeVisible();
+      expect(button.element().hasAttribute("aria-label")).toBe(false);
+    }
   });
 
   it("names the toggle and the clear button with showPasswordLabel and clearLabel", async () => {
@@ -206,7 +219,7 @@ describe("TextField password toggle", () => {
     const toggle = button("Passwort anzeigen")!;
     await userEvent.click(toggle);
     expect(input.type).toBe("text");
-    expect(toggle.getAttribute("aria-label")).toBe("Passwort anzeigen");
+    expect(toggle.textContent).toBe("Passwort anzeigen");
     expect(button("Leeren")).not.toBeNull();
     expect(button("Show password")).toBeNull();
     expect(button("Clear")).toBeNull();
@@ -397,7 +410,7 @@ describe("TextField adornments", () => {
   it("puts the end adornment after the clear button and the password toggle", async () => {
     const { group } = await render(<TextField label="PIN" type="password" clearable defaultValue="1" endAdornment="!" />);
     const order = [...group.querySelectorAll("input, button, [data-ouro-adornment]")].map(
-      (child) => child.getAttribute("aria-label") ?? child.getAttribute("data-ouro-adornment") ?? child.tagName,
+      (child) => child.getAttribute("data-ouro-adornment") ?? (child.textContent || child.tagName),
     );
     expect(order).toEqual(["INPUT", "Clear", "Show password", "end"]);
   });
@@ -573,8 +586,8 @@ describe("TextField server rendering", () => {
     expect(email!.getAttribute("inputmode")).toBe("email");
     expect(email!.getAttribute("autocomplete")).toBe("email");
     expect(describedBy(price!).map((id) => doc.getElementById(id)!.textContent)).toEqual(["$", "per jar"]);
-    expect(doc.querySelector('button[aria-label="Clear"]')).not.toBeNull();
-    expect(doc.querySelector('button[aria-label="Show password"]')!.getAttribute("aria-pressed")).toBe("false");
+    expect(doc.querySelector("button[data-ouro-clear]")).not.toBeNull();
+    expect(doc.querySelector("button[data-ouro-show-password]")!.getAttribute("aria-pressed")).toBe("false");
     expect(error).not.toHaveBeenCalled();
   });
 
@@ -597,7 +610,7 @@ describe("TextField server rendering", () => {
     expect(recoverable).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
     // Hydrated, the controls work.
-    const clear = host.querySelector<HTMLButtonElement>('button[aria-label="Clear"]')!;
+    const clear = host.querySelector<HTMLButtonElement>("button[data-ouro-clear]")!;
     await userEvent.click(clear);
     expect(host.querySelectorAll("input")[1]!.value).toBe("");
   });

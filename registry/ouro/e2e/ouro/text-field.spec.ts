@@ -3,7 +3,8 @@ import { openStory } from "./story";
 
 test("the password toggle shows the password and keeps typing in place", async ({ page }) => {
   await openStory(page, "forms-textfield--types");
-  const password = page.getByLabel("Password", { exact: true });
+  // A loose label lookup: the show/hide button is named "Show password", but not labelled.
+  const password = page.getByLabel("Password");
   await expect(password).toHaveAttribute("type", "password");
   await password.click();
   await password.press("End");

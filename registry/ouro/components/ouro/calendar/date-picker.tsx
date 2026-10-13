@@ -77,7 +77,8 @@ export interface DatePickerProps {
   /** The field shows its date but cannot be changed; its calendar button is disabled. */
   readOnly?: boolean | undefined;
   /**
-   * The label of the button that opens the calendar. Translate it with your app.
+   * The name of the button that opens the calendar, as visually hidden text and not an
+   * `aria-label`, so a test's `getByLabel("Date")` finds the text box alone. Translate it with your app.
    * @default "Choose date"
    */
   chooseDateLabel?: string | undefined;
@@ -363,7 +364,7 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
                         variant="plain"
                         tone="secondary"
                         size="sm"
-                        aria-label={chooseDateLabel}
+                        data-ouro-choose-date=""
                         disabled={disabled || readOnly}
                         className="aspect-square px-0"
                       >
@@ -380,6 +381,9 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
                           <rect x="2.5" y="3.5" width="11" height="10" rx="1.5" />
                           <path d="M2.5 6.5h11M5.5 2v3M10.5 2v3" />
                         </svg>
+                        {/* Named by hidden text, not `aria-label`, which is label text: a label
+                            lookup for a field called "Date" would also find "Choose date". */}
+                        <span className="sr-only">{chooseDateLabel}</span>
                       </Button>
                     }
                   />

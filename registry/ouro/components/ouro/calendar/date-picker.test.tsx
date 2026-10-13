@@ -45,7 +45,7 @@ afterEach(async () => {
 });
 
 const warnings = () => warn.mock.calls.map((call: unknown[]) => call[0]);
-const trigger = () => document.querySelector<HTMLButtonElement>('button[aria-label="Choose date"]')!;
+const trigger = () => document.querySelector<HTMLButtonElement>('button[data-ouro-choose-date]')!;
 const popup = () => document.querySelector<HTMLElement>('[data-ouro="popover"]');
 const day = (iso: string) => document.querySelector<HTMLButtonElement>(`[data-ouro-day="${iso}"]`)!;
 const describedBy = (element: Element) => (element.getAttribute("aria-describedby") ?? "").split(/\s+/).filter(Boolean);
@@ -89,6 +89,15 @@ describe("DatePicker", () => {
     expect(trigger().getAttribute("aria-expanded")).toBe("false");
     // The text box submits nothing itself; the hidden input submits the ISO date.
     expect(input.name).toBe("");
+  });
+
+  it("leaves a loose label lookup for the field on the text box, not on the calendar button", async () => {
+    const { input } = await render(<DatePicker label="Date" />);
+    // Playwright's getByLabel("Date") takes any label text that contains the word, and an
+    // aria-label is label text; the button is named by its own visually hidden text.
+    expect(page.getByLabelText("Date", { exact: false }).elements()).toEqual([input]);
+    await expect.element(page.getByRole("button", { name: "Choose date", exact: true })).toBeVisible();
+    expect(trigger().hasAttribute("aria-label")).toBe(false);
   });
 
   it("wires description, error, required and disabled through Field", async () => {
@@ -168,7 +177,7 @@ describe("DatePicker", () => {
 
     it("closes on Escape back to the button, and has a translated close button for screen readers", async () => {
       await render(<DatePicker label="Lieferdatum" locale="de-DE" chooseDateLabel="Datum wählen" closeLabel="Schließen" previousMonthLabel="Vorheriger Monat" nextMonthLabel="Nächster Monat" defaultValue="2026-10-11" />);
-      const button = document.querySelector<HTMLButtonElement>('button[aria-label="Datum wählen"]')!;
+      const button = [...document.querySelectorAll<HTMLButtonElement>("button")].find((item) => item.textContent === "Datum wählen")!;
       await userEvent.click(button);
       await settled();
       expect(popup()!.querySelector("[data-ouro-popover-close]")!.textContent).toBe("Schließen");

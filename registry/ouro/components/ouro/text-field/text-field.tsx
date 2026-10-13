@@ -79,12 +79,14 @@ export interface TextFieldOwnProps {
   /** Adds a button that empties the field and puts focus back in it. It shows while there is text. */
   clearable?: boolean | undefined;
   /**
-   * The label of the clear button that `clearable` adds. Translate it with your app.
+   * The name of the clear button that `clearable` adds, as visually hidden text. Translate it with your app.
    * @default "Clear"
    */
   clearLabel?: string | undefined;
   /**
-   * The label of a password field's show/hide button. It stays the same while the password
+   * The name of a password field's show/hide button, as visually hidden text and not an
+   * `aria-label`, so a test's `getByLabel("Password")` finds the input alone; find the button
+   * with `getByRole("button", { name: "Show password" })`. It stays the same while the password
    * shows; the button's pressed state (`aria-pressed`) says whether it does. Translate it with your app.
    * @default "Show password"
    */
@@ -355,6 +357,9 @@ export function TextField(props: TextFieldProps): JSX.Element {
               <input {...controlProps} className={cn(inputClass, clearable && type === "search" && nativeClearClass)} />
             )}
           />
+          {/* The buttons are named by visually hidden text, not `aria-label`: an aria-label is
+              label text, so a label lookup for the field ("Password") would also find a button
+              whose label contains it ("Show password"). */}
           {(showClear || password) && (
             <span className={endSlotClass}>
               {showClear && (
@@ -362,7 +367,7 @@ export function TextField(props: TextFieldProps): JSX.Element {
                   variant="plain"
                   tone="secondary"
                   size="sm"
-                  aria-label={clearLabel}
+                  data-ouro-clear=""
                   className="aspect-square px-0"
                   onMouseDown={preventFocusMove}
                   onClick={clear}
@@ -370,6 +375,7 @@ export function TextField(props: TextFieldProps): JSX.Element {
                   <Icon>
                     <path d="M4.5 4.5l7 7M11.5 4.5l-7 7" />
                   </Icon>
+                  <span className="sr-only">{clearLabel}</span>
                 </Button>
               )}
               {password && (
@@ -377,7 +383,7 @@ export function TextField(props: TextFieldProps): JSX.Element {
                   variant="plain"
                   tone="secondary"
                   size="sm"
-                  aria-label={showPasswordLabel}
+                  data-ouro-show-password=""
                   aria-pressed={revealed}
                   disabled={disabled}
                   className="aspect-square px-0"
@@ -389,6 +395,7 @@ export function TextField(props: TextFieldProps): JSX.Element {
                     <circle cx="8" cy="8" r="2" />
                     {revealed && <path d="M2.5 2.5l11 11" />}
                   </Icon>
+                  <span className="sr-only">{showPasswordLabel}</span>
                 </Button>
               )}
             </span>
