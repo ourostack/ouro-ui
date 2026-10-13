@@ -703,7 +703,8 @@ describe("EditSheet's close button while a save is pending (review fix round 2, 
     await expect.poll(() => close().disabled).toBe(true);
     expect(close().hasAttribute("data-disabled")).toBe(true);
     if (width > 640) {
-      expect(getComputedStyle(close()).opacity).not.toBe(enabledOpacity);
+      // The close button's opacity eases with the press utility, so wait for it to arrive.
+      await expect.poll(() => getComputedStyle(close()).opacity).not.toBe(enabledOpacity);
       expect(getComputedStyle(close()).cursor).toBe("not-allowed");
     }
     await act(async () => close().click());

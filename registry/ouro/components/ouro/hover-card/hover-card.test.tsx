@@ -113,6 +113,33 @@ describe("HoverCard", () => {
     expect(style.zIndex).toBe(getComputedStyle(document.documentElement).getPropertyValue("--ouro-layer").trim());
   });
 
+  it("grows from the point Base UI computes next to its link", async () => {
+    await renderCard();
+    await userEvent.hover(link());
+    const element = await shown();
+    element.style.setProperty("--transform-origin", "7px 3px");
+    expect(getComputedStyle(element).transformOrigin).toBe("7px 3px");
+  });
+
+  it("keeps the card where it is placed while its link is pressed", async () => {
+    await renderCard();
+    await userEvent.hover(link());
+    await shown();
+    const positioner = () => document.querySelector<HTMLElement>('[data-ouro="hover-card-positioner"]')!;
+    const rest = JSON.stringify(positioner().getBoundingClientRect());
+    const anchor = JSON.stringify(link().getBoundingClientRect());
+    link().setAttribute("data-probe-target", "");
+    await commands.pointerPress({ selector: "[data-probe-target]", action: "down" });
+    try {
+      await expect.poll(() => link().matches(":active") && link().getAnimations().length === 0).toBe(true);
+      expect(getComputedStyle(link()).scale).toBe("none");
+      expect(JSON.stringify(link().getBoundingClientRect())).toBe(anchor);
+      expect(JSON.stringify(positioner().getBoundingClientRect())).toBe(rest);
+    } finally {
+      await commands.pointerPress({ selector: "[data-probe-target]", action: "up" });
+    }
+  });
+
   it("fades without scaling under reduced motion", async () => {
     await commands.emulateMedia({ reducedMotion: "reduce" });
     await renderCard();

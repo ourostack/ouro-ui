@@ -398,6 +398,38 @@ describe("Combobox looks", () => {
   });
 });
 
+describe("Combobox motion", () => {
+  const timing = (element: HTMLElement) => {
+    const style = getComputedStyle(element);
+    return { duration: style.transitionDuration.split(", ")[0], easing: style.transitionTimingFunction.split(/,\s(?![^(]*\))/)[0] };
+  };
+
+  it("scales about the point Base UI computes next to its input, and leaves on the ease-out token", async () => {
+    const { input } = await render(<Combobox label="Herb" items={herbs} />);
+    await userEvent.click(input);
+    await userEvent.keyboard("{ArrowDown}");
+    await expect.poll(popup).not.toBeNull();
+    const element = popup()!;
+    element.style.setProperty("--transform-origin", "7px 3px");
+    expect(getComputedStyle(element).transformOrigin).toBe("7px 3px");
+    element.setAttribute("data-ending-style", "");
+    expect(timing(element)).toEqual({ duration: "0.15s", easing: "cubic-bezier(0.23, 1, 0.32, 1)" });
+    element.removeAttribute("data-ending-style");
+  });
+
+  it("shrinks a chip's remove button on pointer-down", async () => {
+    await render(<Combobox label="Herbs" multiple items={herbs} defaultValue={["Basil"]} />);
+    const selector = '[aria-label="Remove Basil"]';
+    const remove = document.querySelector<HTMLElement>(selector)!;
+    await commands.pointerPress({ selector, action: "down" });
+    try {
+      await expect.poll(() => getComputedStyle(remove).scale).toBe("0.97");
+    } finally {
+      await commands.pointerPress({ selector, action: "up" });
+    }
+  });
+});
+
 describe("Combobox development messages", () => {
   it.each([
     ["errorMessage", { errorMessage: "Required." }, "errorMessage is not a prop", '<Combobox error="Required.">'],

@@ -109,8 +109,8 @@ const selectClass =
   "rounded-md border border-solid border-input bg-transparent text-base text-foreground sm:pointer-fine:text-sm " +
   "font-[inherit] cursor-pointer [-webkit-tap-highlight-color:transparent] " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
-  "transition-[border-color] duration-(--ouro-duration-fast) ease-out " +
-  "hover:not-disabled:border-ring/60 aria-invalid:border-destructive disabled:cursor-not-allowed disabled:opacity-50 " +
+  "transition-[border-color] duration-(--ouro-duration-fast) ease-[ease] " +
+  "pointer-fine:hover:not-disabled:border-ring/60 aria-invalid:border-destructive disabled:cursor-not-allowed disabled:opacity-50 " +
   "dark:bg-input/30 [&:has(option[value='']:checked)]:text-muted-foreground [&_option]:bg-popover [&_option]:text-popover-foreground dark:scheme-dark";
 
 /** The chevron at the end of the box, drawn in the muted text color; presses go to the select. */
