@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, expect, test } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { Navbar } from "@/registry/ouro/components/ouro/navbar/navbar";
 import { NavigationMenu } from "@/registry/ouro/components/ouro/navigation-menu/navigation-menu";
 import { Sidebar } from "@/registry/ouro/components/ouro/sidebar/sidebar";
@@ -14,6 +14,7 @@ afterEach(async () => {
   await act(async () => root?.unmount());
   host?.remove();
   document.documentElement.removeAttribute("dir");
+  await commands.emulateMedia({ forcedColors: "none" });
   await page.viewport(414, 896);
 });
 
@@ -32,12 +33,29 @@ function expectCurrentMark(current: Element, other: Element, direction: "ltr" | 
   expect(marker.content).toBe('""');
   expect(parseFloat(marker.width)).toBe(2);
   expect(marker.position).toBe("absolute");
+  expect(marker.visibility).toBe("visible");
+  expect(marker.opacity).toBe("1");
+  expect(parseFloat(marker.height)).toBeGreaterThan(0);
+  expect(parseFloat(marker.height)).toBeLessThan(current.getBoundingClientRect().height);
   expect(marker[direction === "rtl" ? "right" : "left"]).toBe("0px");
   expect(getComputedStyle(other, "::before").content).toBe("none");
   expect(getComputedStyle(current).backgroundColor).toBe("rgba(0, 0, 0, 0)");
 }
 
 for (const direction of ["ltr", "rtl"] as const) {
+  for (const kind of ["Sidebar", "Navbar", "NavigationMenu"] as const) {
+    test(`${kind} keeps its ${direction} current-page bar visible with forced colors`, async () => {
+      const links = [{ label: "Recipes", href: "/recipes" }];
+      await render(kind === "Sidebar" ? <Sidebar label="Main" sections={[{ items: links }]} currentPath="/recipes" /> : kind === "Navbar" ? <Navbar label="Main" items={links} currentPath="/recipes" /> : <NavigationMenu label="Main" items={links} currentPath="/recipes" />, direction);
+      await commands.emulateMedia({ forcedColors: "active" });
+      expect(matchMedia("(forced-colors: active)").matches).toBe(true);
+      const current = page.getByRole("link", { name: "Recipes" }).element();
+      const marker = getComputedStyle(current, "::before");
+      const paint = parseFloat(marker.borderInlineStartWidth) > 0 ? marker.borderInlineStartColor : marker.backgroundColor;
+      expect(paint).toBe(getComputedStyle(current).color);
+      expect(paint).not.toBe(getComputedStyle(current).backgroundColor);
+    });
+  }
   for (const collapsed of [false, true]) {
     test(`Sidebar marks the current page at the ${direction} start edge on its ${collapsed ? "rail" : "column"}`, async () => {
       await render(
@@ -70,10 +88,13 @@ for (const direction of ["ltr", "rtl"] as const) {
   });
 
   test(`NavigationMenu marks the current link inside its ${direction} panel`, async () => {
-    await render(<NavigationMenu label="Main" items={[{ label: "Recipes", links: [{ label: "Browse", href: "/recipes" }, { label: "Drafts", href: "/recipes/drafts" }] }]} currentPath="/recipes/drafts" />, direction);
+    await render(<NavigationMenu label="Main" items={[{ label: "Recipes", links: [{ label: "Browse", href: "/recipes" }, { label: "Drafts", href: "/recipes/drafts", description: "Unfinished recipes" }] }]} currentPath="/recipes/drafts" />, direction);
     await userEvent.click(page.getByRole("button", { name: "Recipes" }));
-    const current = page.getByRole("link", { name: "Drafts" });
+    const current = page.getByRole("link", { name: /^Drafts/ });
     await expect.element(current).toBeVisible();
     expectCurrentMark(current.element(), page.getByRole("link", { name: "Browse" }).element(), direction);
+    const [label, description] = current.element().querySelectorAll("span");
+    expect(getComputedStyle(label!).fontWeight).toBe("600");
+    expect(getComputedStyle(description!).fontWeight).toBe("400");
   });
 }

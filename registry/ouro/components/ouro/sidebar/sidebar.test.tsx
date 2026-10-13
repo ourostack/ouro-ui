@@ -51,6 +51,42 @@ beforeEach(async () => {
   await commands.emulateMedia({ reducedMotion: "no-preference" });
   await page.viewport(1024, 768);
 });
+
+describe("Sidebar current-page marks", () => {
+  afterEach(() => document.documentElement.removeAttribute("dir"));
+
+  function assertMark(direction: "ltr" | "rtl", scope: Pick<typeof page, "getByRole"> = page) {
+    const current = scope.getByRole("link", { name: "Recipes", exact: true }).element();
+    const other = scope.getByRole("link", { name: "Cookbooks", exact: true }).element();
+    const marker = getComputedStyle(current, "::before");
+    expect(marker.content).toBe('""');
+    expect(parseFloat(marker.width)).toBe(2);
+    expect(parseFloat(marker.height)).toBeGreaterThan(0);
+    expect(marker.opacity).toBe("1");
+    expect(marker.visibility).toBe("visible");
+    expect(marker[direction === "rtl" ? "right" : "left"]).toBe("0px");
+    expect(getComputedStyle(other, "::before").content).toBe("none");
+    expect(getComputedStyle(current).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+  }
+
+  for (const direction of ["ltr", "rtl"] as const) {
+    for (const collapsed of [false, true]) {
+      it(`shows the ${direction} start-edge mark on its ${collapsed ? "rail" : "column"}`, async () => {
+        document.documentElement.dir = direction;
+        await render(<Sidebar label="Main" defaultCollapsed={collapsed} sections={[{ items: [{ label: "Recipes", href: "/recipes" }, { label: "Cookbooks", href: "/cookbooks" }] }]} currentPath="/recipes" />);
+        assertMark(direction);
+      });
+    }
+    it(`keeps the ${direction} mark in its phone drawer`, async () => {
+      document.documentElement.dir = direction;
+      await page.viewport(390, 844);
+      await render(<Sidebar label="Main" sections={[{ items: [{ label: "Recipes", href: "/recipes" }, { label: "Cookbooks", href: "/cookbooks" }] }]} currentPath="/recipes" />);
+      await userEvent.click(page.getByRole("button", { name: "Menu", exact: true }));
+      await expect.element(page.getByRole("dialog")).toBeVisible();
+      assertMark(direction, page.getByRole("dialog"));
+    });
+  }
+});
 afterEach(async () => {
   vi.restoreAllMocks();
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));

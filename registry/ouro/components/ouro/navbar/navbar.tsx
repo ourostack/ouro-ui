@@ -94,6 +94,7 @@ const link_ =
   "text-base pointer-fine:text-sm leading-5 [-webkit-tap-highlight-color:transparent] " +
   "pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground aria-[current=page]:font-semibold aria-[current=page]:text-foreground " +
   "aria-[current=page]:before:absolute aria-[current=page]:before:inset-y-2 aria-[current=page]:before:start-0 aria-[current=page]:before:w-0.5 aria-[current=page]:before:rounded-full aria-[current=page]:before:bg-current aria-[current=page]:before:content-[''] " +
+  "forced-colors:aria-[current=page]:before:border-s-2 forced-colors:aria-[current=page]:before:border-solid forced-colors:aria-[current=page]:before:border-current " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 // In the sheet a link is a full-width row, which highlights while pressed instead of scaling.
 const sheetLink = "flex min-h-11 pointer-fine:min-h-9 py-2 transition-colors duration-(--ouro-duration-fast) ease-[ease] active:bg-accent active:text-accent-foreground";

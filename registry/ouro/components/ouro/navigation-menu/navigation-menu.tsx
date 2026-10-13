@@ -111,6 +111,7 @@ const rowItem =
   "pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground data-popup-open:bg-accent data-popup-open:text-accent-foreground " +
   "aria-[current=page]:font-semibold aria-[current=page]:text-foreground data-current:text-foreground " +
   "aria-[current=page]:before:absolute aria-[current=page]:before:inset-y-2 aria-[current=page]:before:start-0 aria-[current=page]:before:w-0.5 aria-[current=page]:before:rounded-full aria-[current=page]:before:bg-current aria-[current=page]:before:content-[''] " +
+  "forced-colors:aria-[current=page]:before:border-s-2 forced-colors:aria-[current=page]:before:border-solid forced-colors:aria-[current=page]:before:border-current " +
   "motion-safe:active:scale-(--ouro-press-scale) outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 
 // The theme's enter and exit curve.
@@ -147,8 +148,8 @@ const panelLink =
   "relative m-0 box-border flex min-h-11 pointer-fine:min-h-9 flex-col justify-center gap-0.5 rounded-md px-3 py-2 text-base pointer-fine:text-sm leading-5 " +
   "text-popover-foreground no-underline select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "transition-colors duration-(--ouro-duration-fast) ease-[ease] pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground active:bg-accent active:text-accent-foreground " +
-  "aria-[current=page]:font-semibold " +
   "aria-[current=page]:before:absolute aria-[current=page]:before:inset-y-2 aria-[current=page]:before:start-0 aria-[current=page]:before:w-0.5 aria-[current=page]:before:rounded-full aria-[current=page]:before:bg-current aria-[current=page]:before:content-[''] " +
+  "forced-colors:aria-[current=page]:before:border-s-2 forced-colors:aria-[current=page]:before:border-solid forced-colors:aria-[current=page]:before:border-current " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 
 const example =
@@ -317,7 +318,7 @@ export function NavigationMenuView(props: NavigationMenuViewProps): JSX.Element 
                       {item.links.map((link, position) => (
                         <li key={position}>
                           <BaseNavigationMenu.Link render={<RouterLink href={link.href} />} active={isCurrent(link)} closeOnClick className={panelLink}>
-                            <span className="font-medium">{link.label}</span>
+                            <span className={cn("font-medium", isCurrent(link) && "font-semibold")}>{link.label}</span>
                             {link.description !== undefined && <span className="text-sm leading-5 text-muted-foreground">{link.description}</span>}
                           </BaseNavigationMenu.Link>
                         </li>

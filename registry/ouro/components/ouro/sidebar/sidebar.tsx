@@ -153,6 +153,7 @@ const row =
   "pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground active:bg-accent active:text-accent-foreground " +
   "aria-[current=page]:font-semibold aria-[current=page]:text-foreground " +
   "aria-[current=page]:before:absolute aria-[current=page]:before:inset-y-2 aria-[current=page]:before:start-0 aria-[current=page]:before:w-0.5 aria-[current=page]:before:rounded-full aria-[current=page]:before:bg-current aria-[current=page]:before:content-[''] " +
+  "forced-colors:aria-[current=page]:before:border-s-2 forced-colors:aria-[current=page]:before:border-solid forced-colors:aria-[current=page]:before:border-current " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 const railRow = "justify-center px-0";
 const iconSlot = "flex size-5 shrink-0 items-center justify-center text-sm [&_svg]:size-5 [&_svg]:shrink-0";
