@@ -472,12 +472,13 @@ describe("Popover motion", () => {
     const index = style.transitionProperty.split(", ").indexOf(property);
     return index === -1
       ? undefined
-      : { duration: style.transitionDuration.split(", ")[index], easing: style.transitionTimingFunction.split(", ")[index] };
+      : { duration: style.transitionDuration.split(", ")[index], easing: style.transitionTimingFunction.split(/,\s(?![^(]*\))/)[index] };
   };
 
-  it("grows from the trigger's side with the theme spring and fades", async () => {
+  it("grows from the trigger's side on the ease-out token and fades", async () => {
     const element = await openUncontrolled();
-    expect(transitionOf(element, "transform")!.easing).toMatch(/^linear\(/);
+    expect(transitionOf(element, "transform")!.easing).toBe("cubic-bezier(0.23, 1, 0.32, 1)");
+    expect(transitionOf(element, "transform")!.duration).toBe("0.2s");
     expect(getComputedStyle(element).transformOrigin).not.toBe("");
     element.style.transition = "none";
     element.setAttribute("data-starting-style", "");
@@ -486,7 +487,7 @@ describe("Popover motion", () => {
     element.removeAttribute("data-starting-style");
     element.style.transition = "";
     element.setAttribute("data-ending-style", "");
-    expect(getComputedStyle(element).transitionDuration).toBe("0.1s");
+    expect(getComputedStyle(element).transitionDuration).toBe("0.15s");
     element.removeAttribute("data-ending-style");
   });
 
