@@ -1,1 +1,0 @@
-- New: `DescriptionList`, one thing's details as `items` of `{ term, details }`. On a phone each term sits above its details; from 640px (`stackBelow="md"`: 768px) the terms form a column beside them, with a line between the pairs.
