@@ -143,11 +143,31 @@ export interface Opener {
   open: () => Promise<void>;
 }
 
+/** Whether a trigger is there for screen readers and the keyboard only: clipped to a pixel, so no tap or click can land on it. */
+function clipped(element: HTMLElement): boolean {
+  // Tailwind's `sr-only` on the trigger or its wrapper: a 1px box with its contents clipped away.
+  // A narrow but unclipped trigger (a combobox input that grows as you type) is still clicked.
+  const srOnly = (node: HTMLElement) => {
+    const box = node.getBoundingClientRect();
+    const style = getComputedStyle(node);
+    return box.width <= 1 && box.height <= 1 && (style.clip !== "auto" || style.clipPath !== "none");
+  };
+  return srOnly(element) || (element.parentElement !== null && srOnly(element.parentElement));
+}
+
+/** Opens a trigger the way its only users do: focus, then Enter. */
+async function openFromKeyboard(element: HTMLElement): Promise<void> {
+  element.focus();
+  await userEvent.keyboard("{Enter}");
+}
+
 /**
  * What opens an overlay in a story: the visible, enabled Base UI triggers (`aria-haspopup`) in
- * the scope, then, at the top level, the plain openers by accessible name and the shortcut. A
- * disabled trigger (a disabled Select in a states story) opens nothing, so it is left out, and so
- * is an expanded one, whose popup is already open (a combobox input over its inline list).
+ * the scope (clicked, or opened from the keyboard when clipped to a pixel for screen readers,
+ * as SwipeActions' actions button is on a phone), then, at the top level, the plain openers by
+ * accessible name and the shortcut. A disabled trigger (a disabled Select in a states story)
+ * opens nothing, so it is left out, and so is an expanded one, whose popup is already open (a
+ * combobox input over its inline list).
  * Throws when a plain opener is missing.
  */
 export function overlayOpeners(
@@ -159,7 +179,7 @@ export function overlayOpeners(
   const roots = Array.isArray(scope) ? scope : [scope];
   const triggers = [...new Set(roots.flatMap((root) => [...root.querySelectorAll<HTMLElement>('[aria-haspopup]:not([aria-haspopup="false"]):not([aria-expanded="true"])')]))]
     .filter((element) => !element.matches(':disabled, [aria-disabled="true"], [data-disabled]') && isVisible(element))
-    .map((element) => ({ name: accessibleName(element), open: () => userEvent.click(element) }));
+    .map((element) => ({ name: accessibleName(element), open: () => (clipped(element) ? openFromKeyboard(element) : userEvent.click(element)) }));
   if (!top) return triggers;
   const plain = (parameters.plainOpeners ?? []).map((label) => {
     const button = roots.flatMap((root) => [...root.querySelectorAll<HTMLElement>("button")]).find((item) => accessibleName(item) === label);
