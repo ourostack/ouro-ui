@@ -472,6 +472,7 @@ it("waits while a finger is on a toast, and fans the stack out, as a mouse over 
   try {
     const expiresAt = Date.now() + 1500;
     await act(async () => toast("Held", { id: "held-toast", duration: 1500 }));
+    await act(async () => vi.advanceTimersByTime(500));
     const region = document.querySelector<HTMLElement>('[data-ouro="toaster"]')!;
     expect(region.hasAttribute("data-expanded")).toBe(false);
     const [x, y] = grip(item);
