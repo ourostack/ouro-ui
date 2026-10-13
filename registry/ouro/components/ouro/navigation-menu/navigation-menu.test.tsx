@@ -338,7 +338,8 @@ describe("NavigationMenu panels and easing", () => {
     const browse = page.getByRole("link", { name: "Browse" }).element().getBoundingClientRect();
     const drafts = page.getByRole("link", { name: "Drafts" }).element().getBoundingClientRect();
     expect(card.right).toBeLessThanOrEqual(browse.left);
-    expect(drafts.top).toBe(browse.top);
+    // Read while the panel may still be scaling in, so allow the sub-pixel difference WebKit shows.
+    expect(drafts.top).toBeCloseTo(browse.top, 1);
     expect(drafts.left).toBeGreaterThan(browse.right - 1);
   });
 
