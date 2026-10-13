@@ -146,7 +146,8 @@ export interface Opener {
 /**
  * What opens an overlay in a story: the visible, enabled Base UI triggers (`aria-haspopup`) in
  * the scope, then, at the top level, the plain openers by accessible name and the shortcut. A
- * disabled trigger (a disabled Select in a states story) opens nothing, so it is left out.
+ * disabled trigger (a disabled Select in a states story) opens nothing, so it is left out, and so
+ * is an expanded one, whose popup is already open (a combobox input over its inline list).
  * Throws when a plain opener is missing.
  */
 export function overlayOpeners(
@@ -156,7 +157,7 @@ export function overlayOpeners(
   top = true,
 ): Opener[] {
   const roots = Array.isArray(scope) ? scope : [scope];
-  const triggers = [...new Set(roots.flatMap((root) => [...root.querySelectorAll<HTMLElement>('[aria-haspopup]:not([aria-haspopup="false"])')]))]
+  const triggers = [...new Set(roots.flatMap((root) => [...root.querySelectorAll<HTMLElement>('[aria-haspopup]:not([aria-haspopup="false"]):not([aria-expanded="true"])')]))]
     .filter((element) => !element.matches(':disabled, [aria-disabled="true"], [data-disabled]') && isVisible(element))
     .map((element) => ({ name: accessibleName(element), open: () => userEvent.click(element) }));
   if (!top) return triggers;
@@ -192,10 +193,10 @@ export async function settle(): Promise<void> {
 /** How long an overlay may take to open or close on a loaded CI runner. */
 const waitOptions = { timeout: 10_000, interval: 20 };
 
-/** The open overlay's popup (Dialog, ConfirmDialog or Sheet, in either presentation, or Select's list). */
+/** The open overlay's popup (Dialog, ConfirmDialog or Sheet, in either presentation, or a list's popup). */
 export function openPopup(): HTMLElement | null {
   return document.querySelector<HTMLElement>(
-    '[role="dialog"][data-open], [role="alertdialog"][data-open], [role="menu"][data-open], [data-ouro="select-popup"][data-open]',
+    '[role="dialog"][data-open], [role="alertdialog"][data-open], [role="menu"][data-open], [data-ouro="select-popup"][data-open], [data-open]:has([role="listbox"])',
   );
 }
 
