@@ -376,7 +376,7 @@ export function Calendar<Range extends boolean = false>(props: CalendarProps<Ran
   };
 
   return (
-    <div ref={ref} role="group" aria-label={label} data-ouro="calendar" className={cn("m-0 box-border inline-grid gap-2", className)}>
+    <div ref={ref} role="group" aria-label={label} data-ouro="calendar" className={cn("box-border inline-grid gap-2", className)}>
       <div data-ouro-calendar-header="" className="flex items-center justify-between gap-2">
         <Button
           variant="plain"

@@ -18,7 +18,7 @@ function ownLook(component: string): (token: string) => string {
  *
  * @internal
  */
-const rootClass = "m-0 box-border grid min-w-0 content-start justify-items-start gap-2";
+const rootClass = "box-border grid min-w-0 content-start justify-items-start gap-2";
 
 /**
  * The label, as Field draws it.

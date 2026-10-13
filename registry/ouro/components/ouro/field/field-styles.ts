@@ -27,7 +27,7 @@ export type { ContractGuesses };
  *
  * @internal
  */
-const rootClass = "m-0 box-border grid min-w-0 content-start gap-2";
+const rootClass = "box-border grid min-w-0 content-start gap-2";
 
 /**
  * A field whose control comes first, with the label to its right (a checkbox, a switch, a
@@ -35,7 +35,7 @@ const rootClass = "m-0 box-border grid min-w-0 content-start gap-2";
  *
  * @internal
  */
-const inlineRootClass = "m-0 box-border grid min-w-0 grid-cols-[auto_minmax(0,1fr)] content-start items-start gap-x-3 gap-y-1";
+const inlineRootClass = "box-border grid min-w-0 grid-cols-[auto_minmax(0,1fr)] content-start items-start gap-x-3 gap-y-1";
 
 /**
  * The label beside an inline control, which is also its tap target: 16px text on 24px lines

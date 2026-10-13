@@ -125,7 +125,7 @@ export function Message(props: MessageProps): JSX.Element {
       data-role={role}
       aria-busy={streaming || rest["aria-busy"]}
       className={cn(
-        "m-0 box-border flex w-full min-w-0 items-end gap-2 text-base pointer-fine:text-sm",
+        "box-border flex w-full min-w-0 items-end gap-2 text-base pointer-fine:text-sm",
         role === "user" && "flex-row-reverse",
         role === "system" && "justify-center",
         className,

@@ -82,7 +82,7 @@ export function Fieldset(props: FieldsetProps): JSX.Element {
       aria-labelledby={legendId}
       aria-describedby={hasDescription ? descriptionId : undefined}
       data-ouro="fieldset"
-      className={cn("m-0 box-border grid min-w-0 content-start gap-4 border-0 p-0", className)}
+      className={cn("box-border grid min-w-0 content-start gap-4 border-0 p-0", className)}
     >
       {hasDescription ? (
         <div className="grid gap-1">

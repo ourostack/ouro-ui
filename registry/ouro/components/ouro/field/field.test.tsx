@@ -4,6 +4,7 @@ import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, server } from "vitest/browser";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Field } from "@/registry/ouro/components/ouro/field/field";
 import {
   FieldControl,
@@ -645,5 +646,23 @@ describe("Field server rendering", () => {
     const [email, name] = [...host.querySelectorAll("input")];
     expect(email!.labels![0]!.textContent).toContain("Email");
     expect(name!.labels![0]!.textContent).toBe("Name");
+  });
+});
+
+describe("Field under a parent's spacing", () => {
+  it("keeps the 16px that space-y-4 puts between the Field and the button below it", async () => {
+    // The parent's rule has zero specificity, so a margin class on the root would beat it.
+    const { host } = await render(
+      <div className="space-y-4">
+        <Field label="Email">
+          <FieldControl />
+        </Field>
+        <Button>Save</Button>
+      </div>,
+    );
+    const root = host.querySelector<HTMLElement>('[data-ouro="field"]')!;
+    const button = host.querySelector<HTMLElement>('[data-ouro="button"]')!;
+    expect(getComputedStyle(root).marginBottom).toBe("16px");
+    expect(Math.abs(button.getBoundingClientRect().top - root.getBoundingClientRect().bottom - 16)).toBeLessThanOrEqual(1);
   });
 });

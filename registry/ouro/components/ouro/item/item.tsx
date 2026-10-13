@@ -282,7 +282,7 @@ export function Item(props: ItemProps): JSX.Element {
       "data-ouro": "item",
       "data-linked": linked ? "" : undefined,
       className: cn(
-        "relative isolate m-0 grid min-w-0 list-none items-center gap-x-4 gap-y-2",
+        "relative isolate grid min-w-0 list-none items-center gap-x-4 gap-y-2",
         columns[hasMedia][actions ? "actions" : "none"],
         lifted?.root[actions ? "actions" : "none"],
         stackLayouts.map((layout) => layout.root),

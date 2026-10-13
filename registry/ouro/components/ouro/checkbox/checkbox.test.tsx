@@ -3,6 +3,7 @@ import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Checkbox, type CheckboxProps } from "@/registry/ouro/components/ouro/checkbox/checkbox";
 import { Form, type FormErrors } from "@/registry/ouro/components/ouro/form/form";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -467,5 +468,21 @@ describe("Checkbox on the server", () => {
     const box = host.querySelector<HTMLElement>('[role="checkbox"]')!;
     await userEvent.click(box);
     expect(box.getAttribute("aria-checked")).toBe("true");
+  });
+});
+
+describe("Checkbox under a parent's spacing", () => {
+  it("keeps the 16px that space-y-4 puts between the Checkbox and the button below it", async () => {
+    // The parent's rule has zero specificity, so a margin class on the root would beat it.
+    const { host } = await render(
+      <div className="space-y-4">
+        <Checkbox label="Basil" />
+        <Button>Save</Button>
+      </div>,
+    );
+    const root = host.querySelector<HTMLElement>('[data-ouro="checkbox"]')!;
+    const button = host.querySelector<HTMLElement>('[data-ouro="button"]')!;
+    expect(getComputedStyle(root).marginBottom).toBe("16px");
+    expect(Math.abs(button.getBoundingClientRect().top - root.getBoundingClientRect().bottom - 16)).toBeLessThanOrEqual(1);
   });
 });

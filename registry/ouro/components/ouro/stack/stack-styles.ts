@@ -56,7 +56,7 @@ const layoutElements: readonly LayoutElement[] = ["div", "section", "ul", "ol", 
  *
  * @internal
  */
-const elementReset = "m-0 p-0 list-none min-w-0 border-0" as const;
+const elementReset = "p-0 list-none min-w-0 border-0" as const;
 
 const names = (values: readonly string[]) => values.map((value) => `"${value}"`).join(", ");
 

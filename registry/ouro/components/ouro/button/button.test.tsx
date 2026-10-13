@@ -550,9 +550,9 @@ describe("className", () => {
         <Button className="mt-4 w-full">Go</Button>
       </div>,
     );
-    // Button sets m-0; cn keeps it for the other sides and the app's mt-4 wins on top.
+    // Button sets no margin of its own, so the app's mt-4 is the only one.
     expect(button.classList.contains("mt-4")).toBe(true);
-    expect(button.classList.contains("m-0")).toBe(true);
+    expect(button.classList.contains("m-0")).toBe(false);
     expect(getComputedStyle(button).marginTop).toBe("16px");
     expect(getComputedStyle(button).marginBottom).toBe("0px");
     expect(button.getBoundingClientRect().width).toBe(host.firstElementChild!.getBoundingClientRect().width);
@@ -806,5 +806,19 @@ describe("Button server rendering", () => {
     expect(html).toContain('href="/x"');
     expect(warn).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
+  });
+});
+
+describe("Button under a parent's spacing", () => {
+  it("keeps the 16px that space-y-4 puts under a button that is not the last child", async () => {
+    const { host } = await render(
+      <div className="space-y-4">
+        <Button fullWidth>Save</Button>
+        <Button fullWidth>Cancel</Button>
+      </div>,
+    );
+    const [save, cancel] = [...host.querySelectorAll<HTMLElement>('[data-ouro="button"]')];
+    expect(getComputedStyle(save!).marginBottom).toBe("16px");
+    expect(getComputedStyle(cancel!).marginBottom).toBe("0px");
   });
 });

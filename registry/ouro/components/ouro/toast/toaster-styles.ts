@@ -19,7 +19,7 @@ const portalClass = "relative isolate z-[calc(var(--ouro-layer)+1)]";
  * @internal
  */
 const viewportClass =
-  "fixed start-4 end-4 bottom-[max(1rem,env(safe-area-inset-bottom))] m-0 outline-none " +
+  "fixed start-4 end-4 bottom-[max(1rem,env(safe-area-inset-bottom))] outline-none " +
   "sm:start-auto sm:end-6 sm:bottom-6 sm:w-90";
 
 /**
@@ -34,7 +34,7 @@ const viewportClass =
  * @internal
  */
 const rootClass =
-  "absolute inset-x-0 bottom-0 m-0 box-border origin-bottom touch-none select-none [-webkit-tap-highlight-color:transparent] " +
+  "absolute inset-x-0 bottom-0 box-border origin-bottom touch-none select-none [-webkit-tap-highlight-color:transparent] " +
   "rounded-lg border border-solid border-border bg-popover text-popover-foreground shadow-lg " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
   "[--gap:0.75rem] [--peek:0.75rem] [--scale:calc(max(0,1-(var(--toast-index)*0.1)))] [--shrink:calc(1-var(--scale))] " +

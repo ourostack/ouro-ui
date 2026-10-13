@@ -226,7 +226,7 @@ export function Form(props: FormProps): JSX.Element {
       {/* Base UI's Form runs the browser's checks: it blocks a submit while a constraint
           fails and focuses the first such control. Ouro's errors never reach it, so they
           never block a submit. */}
-      <BaseForm {...rest} ref={setFormRef} onSubmit={submit} data-ouro="form" className={cn("m-0 grid min-w-0 gap-5", className)}>
+      <BaseForm {...rest} ref={setFormRef} onSubmit={submit} data-ouro="form" className={cn("grid min-w-0 gap-5", className)}>
         {/* A new element for each answer, so its alert is announced again. */}
         <FormMessage key={shown.arrivals} ref={messageRef} errors={errors ?? EMPTY} showsAtTop={showsAtTop} />
         {children}

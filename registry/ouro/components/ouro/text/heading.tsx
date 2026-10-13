@@ -117,7 +117,7 @@ export function Heading(props: HeadingProps): JSX.Element {
   );
   const Tag = `h${level}` as const;
   const classes = cn(
-    "m-0 font-semibold tracking-tight text-balance text-foreground",
+    "font-semibold tracking-tight text-balance text-foreground",
     sizes[size],
     align && alignClasses[align],
     className,

@@ -141,7 +141,7 @@ export function Attachment(props: AttachmentProps): JSX.Element {
       {...rest}
       data-ouro="attachment"
       className={cn(
-        "relative m-0 box-border inline-flex max-w-full min-w-0 items-center rounded-lg border border-solid border-border bg-card",
+        "relative box-border inline-flex max-w-full min-w-0 items-center rounded-lg border border-solid border-border bg-card",
         "align-middle text-base text-card-foreground pointer-fine:text-sm",
         className,
       )}

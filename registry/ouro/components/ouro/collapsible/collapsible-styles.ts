@@ -36,7 +36,7 @@ function showMoreHint(token: string): string {
 }
 
 /** @internal */
-const rootClass = "m-0 box-border grid min-w-0 justify-items-start text-foreground";
+const rootClass = "box-border grid min-w-0 justify-items-start text-foreground";
 
 /**
  * The title button: 44px tall on a coarse pointer, 36px from `sm` with a fine one.
@@ -75,7 +75,7 @@ const panelClass =
   "data-starting-style:h-0 data-ending-style:h-0 [&[hidden]:not([hidden=until-found])]:hidden";
 
 /** @internal */
-const showMoreRootClass = "m-0 box-border grid min-w-0 justify-items-start gap-2";
+const showMoreRootClass = "box-border grid min-w-0 justify-items-start gap-2";
 
 /**
  * The list: no bullets or indent, so the items are the app's own rows.

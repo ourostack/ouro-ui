@@ -37,7 +37,7 @@ export interface ButtonGroupProps {
  * 1px separator in their text color at 25%. The focused child is raised so its outline shows.
  */
 const groupClass =
-  "relative isolate m-0 box-border inline-flex max-w-full items-stretch " +
+  "relative isolate box-border inline-flex max-w-full items-stretch " +
   "[&>*]:m-0 [&>*]:rounded-none [&>*:first-child]:rounded-s-lg [&>*:last-child]:rounded-e-lg " +
   "[&>*:not(:first-child)]:-ms-px [&>*:focus-visible]:z-10 " +
   "[&>[data-variant]:not([data-variant=outline])+[data-variant]:not([data-variant=outline])]:after:pointer-events-none " +

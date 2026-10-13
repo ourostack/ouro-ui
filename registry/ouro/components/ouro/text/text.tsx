@@ -162,7 +162,6 @@ export function Text(props: TextProps): JSX.Element {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   const classes = cn(
-    "m-0",
     sizes[size],
     tones[tone],
     align && alignClasses[align],

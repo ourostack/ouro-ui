@@ -40,7 +40,7 @@ function sideOf(offset: number, rtl: boolean): SwipeSide {
  *
  * @internal
  */
-const rootClass = "group/swipe relative m-0 box-border min-w-0 touch-pan-y overflow-clip";
+const rootClass = "group/swipe relative box-border min-w-0 touch-pan-y overflow-clip";
 
 /**
  * What slides: the content, with the actions attached to its two edges. The component

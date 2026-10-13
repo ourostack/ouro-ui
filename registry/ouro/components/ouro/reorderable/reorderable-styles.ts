@@ -14,7 +14,7 @@ const MAX_SPEED = 0.84;
 const MAX_FRAME = 50;
 
 /** @internal */
-const rootClass = "m-0 min-w-0";
+const rootClass = "min-w-0";
 
 /** The list. While a row is dragged, text is not selected. @internal */
 const listClass = "group/reorder m-0 flex min-w-0 list-none flex-col p-0 data-dragging:select-none";

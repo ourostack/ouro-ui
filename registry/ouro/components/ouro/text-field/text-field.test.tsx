@@ -3,6 +3,7 @@ import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { FieldControl } from "@/registry/ouro/components/ouro/field/field-parts";
 import { TextField, type TextFieldProps } from "@/registry/ouro/components/ouro/text-field/text-field";
@@ -613,5 +614,21 @@ describe("TextField server rendering", () => {
     const clear = host.querySelector<HTMLButtonElement>("button[data-ouro-clear]")!;
     await userEvent.click(clear);
     expect(host.querySelectorAll("input")[1]!.value).toBe("");
+  });
+});
+
+describe("TextField under a parent's spacing", () => {
+  it("keeps the 16px that space-y-4 puts between the TextField and the button below it", async () => {
+    // The parent's rule has zero specificity, so a margin class on the root would beat it.
+    const { host } = await render(
+      <div className="space-y-4">
+        <TextField label="Email" />
+        <Button>Save</Button>
+      </div>,
+    );
+    const root = host.querySelector<HTMLElement>('[data-ouro="text-field"]')!;
+    const button = host.querySelector<HTMLElement>('[data-ouro="button"]')!;
+    expect(getComputedStyle(root).marginBottom).toBe("16px");
+    expect(Math.abs(button.getBoundingClientRect().top - root.getBoundingClientRect().bottom - 16)).toBeLessThanOrEqual(1);
   });
 });
