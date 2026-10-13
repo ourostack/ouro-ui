@@ -1,1 +1,0 @@
-- New: `ColorField`, a native color swatch and a hex text input kept in step on the `Field` contract; it takes short or long hex, always submits `#rrggbb`, goes back to `defaultValue` on form reset, and shows a plain swatch beside the hex text where the browser has no color picker.

@@ -73,6 +73,30 @@
     "source": "registry/ouro/components/ouro/text-field/text-area.tsx"
   },
   {
+    "name": "checkbox",
+    "title": "Checkbox",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/checkbox/checkbox.tsx"
+  },
+  {
+    "name": "checkbox-group",
+    "title": "CheckboxGroup",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/checkbox/checkbox-group.tsx"
+  },
+  {
+    "name": "radio-group",
+    "title": "RadioGroup",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/radio-group/radio-group.tsx"
+  },
+  {
+    "name": "switch",
+    "title": "Switch",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/switch/switch.tsx"
+  },
+  {
     "name": "form",
     "title": "Form",
     "group": "Forms",
@@ -90,6 +114,24 @@
     "title": "NativeSelect",
     "group": "Forms",
     "source": "registry/ouro/components/ouro/select/native-select.tsx"
+  },
+  {
+    "name": "number-field",
+    "title": "NumberField",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/number-field/number-field.tsx"
+  },
+  {
+    "name": "slider",
+    "title": "Slider",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/slider/slider.tsx"
+  },
+  {
+    "name": "combobox",
+    "title": "Combobox",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/combobox/combobox.tsx"
   },
   {
     "name": "otp-field",

@@ -1,1 +1,0 @@
-- `openStory` (the e2e helper in `e2e/ouro/story.ts`) also waits for the app's web fonts to load, so a spec that measures no longer sees text change width when a font such as a shadcn preset's Inter arrives late.

@@ -1,5 +1,5 @@
 import type {} from "@vitest/browser-playwright";
-import type { CDPSession } from "playwright";
+import type { CDPSession, Page } from "playwright";
 import type { BrowserCommand } from "vitest/node";
 
 export interface EmulateMediaOptions {
@@ -92,6 +92,155 @@ export const flick: BrowserCommand<[FlickOptions]> = async (ctx, { from, to, ste
   await send("mouseReleased", to, durationMs, 0);
 };
 
+/** How long a touch command waits for the page to handle an event before it throws. */
+const TOUCH_HANDLED_TIMEOUT_MS = 5000;
+
+/**
+ * Runs in every frame of the page, as source text because an app's config for this file may
+ * lack DOM types. It keeps `__ouroTouch` on the frame's window while a gesture is under way:
+ * passive listeners that record the touch events the frame handles, and at most one expected
+ * event. The listeners capture on `window` and, from touchstart on, also sit on the touch's
+ * target, because a touch's later events go to that target even after it has left the
+ * document, where they no longer reach `window`.
+ */
+const TOUCH_WATCH = `(action, expected) => {
+  const view = window;
+  let state = view.__ouroTouch;
+  if (!state) {
+    if (action !== "expect") return { seen: false, moved: false, saw: [] };
+    const types = ["touchstart", "touchmove", "touchend", "touchcancel"];
+    const options = { capture: true, passive: true };
+    state = view.__ouroTouch = { saw: [], handled: new WeakSet(), targets: new Set(), expected: null, seen: false, resolve: null, moved: false };
+    // Where this frame's top left is in the top-level page, in CSS pixels, or null if a parent is cross-origin.
+    const origin = () => {
+      let x = 0, y = 0;
+      try {
+        for (let frame = view; frame !== frame.parent; frame = frame.parent) {
+          const box = frame.frameElement.getBoundingClientRect();
+          x += box.left + frame.frameElement.clientLeft;
+          y += box.top + frame.frameElement.clientTop;
+        }
+        return { x, y };
+      } catch {
+        return null;
+      }
+    };
+    state.listener = (event) => {
+      if (state.handled.has(event)) return;
+      state.handled.add(event);
+      const at = origin();
+      // Each changed touch as the point CDP names for it, also on a zoomed page.
+      const points = [...event.changedTouches].map((touch) => (at ? [touch.clientX + at.x, touch.clientY + at.y] : null));
+      state.saw.push(event.type + points.map((point) => (point ? "(" + Math.round(point[0]) + ", " + Math.round(point[1]) + ")" : "(?)")).join(""));
+      if (event.type === "touchstart") state.moved = false;
+      if (event.type === "touchmove") state.moved = true;
+      if (event.type === "touchstart" && !state.targets.has(event.target)) {
+        state.targets.add(event.target);
+        for (const type of types.slice(1)) event.target.addEventListener(type, state.listener, { passive: true });
+      }
+      const want = state.expected;
+      if (!want) return;
+      if ((event.type === "touchcancel" ? "touchend" : event.type) !== want.type) return;
+      if (!points.some((point) => !point || (Math.abs(point[0] - want.x) <= 1 && Math.abs(point[1] - want.y) <= 1))) return;
+      state.expected = null;
+      state.seen = true;
+      if (state.resolve) state.resolve();
+    };
+    state.remove = () => {
+      for (const type of types) view.removeEventListener(type, state.listener, options);
+      for (const target of state.targets) for (const type of types.slice(1)) target.removeEventListener(type, state.listener, { passive: true });
+      delete view.__ouroTouch;
+    };
+    for (const type of types) view.addEventListener(type, state.listener, options);
+  }
+  if (action === "expect") {
+    state.expected = expected;
+    state.seen = false;
+    state.saw = [];
+    return null;
+  }
+  if (action === "wait") {
+    const result = () => ({ seen: state.seen, moved: state.moved, saw: state.saw });
+    // A touchmove before the gesture's first one in this frame is not on its way: see sendTouch.
+    if (state.seen || !state.expected || (state.expected.type === "touchmove" && !state.moved)) return result();
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => state.resolve(), ${TOUCH_HANDLED_TIMEOUT_MS});
+      state.resolve = () => {
+        clearTimeout(timer);
+        state.resolve = null;
+        resolve(result());
+      };
+    });
+  }
+  // "settle": stop waiting in this frame, and stop watching once the finger is up.
+  state.expected = null;
+  if (state.resolve) state.resolve();
+  if (expected.type === "touchend") state.remove();
+  return null;
+}`;
+
+interface TouchPoint {
+  type: "touchStart" | "touchMove" | "touchEnd";
+  x: number;
+  y: number;
+}
+interface TouchSeen {
+  /** The frame handled the expected event. */
+  seen: boolean;
+  /** The frame has handled a touchmove in this gesture. */
+  moved: boolean;
+  /** The touch events the frame handled while it waited. */
+  saw: string[];
+}
+
+/** Calls `TOUCH_WATCH` in every frame of the page. A frame that goes away mid-call answers `missing`. */
+function watchTouch<T>(page: Page, action: "expect" | "wait" | "settle", point: TouchPoint, missing: T): Promise<T>[] {
+  const call = `(${TOUCH_WATCH})(${JSON.stringify(action)}, ${JSON.stringify({ ...point, type: point.type.toLowerCase() })})`;
+  return page.frames().map((frame) => frame.evaluate<T>(call).catch(() => missing));
+}
+
+/**
+ * Sends touch input and resolves once the page has handled the `expected` event, the last
+ * one sent. CDP resolves a touch event when Chromium's renderer has queued it for the page.
+ * For an event the page can cancel, that is after the page has handled it. Once a swipe
+ * scrolls, the page can't cancel the rest of it, and CDP resolves first
+ * (`MainThreadEventQueue::HandleEvent` in Chromium's main_thread_event_queue.cc runs the reply
+ * right after `QueueEvent`). The page then handles a touchend up to a frame later and a
+ * touchmove up to 200ms later: at the start of each frame `DispatchRafAlignedInput` dispatches
+ * what is queued, except a touchmove that is alone in the queue less than 200ms after the
+ * last one (`kAsyncTouchMoveInterval`).
+ *
+ * So this watches for the event itself in every frame of the page, matched by the point it
+ * was sent to, and throws if the page does not handle it. One event is never on its way: a
+ * touchmove that stays within Chromium's slop distance of the touchstart, which Chromium
+ * keeps from the page. The page can still cancel such a move, so CDP has already waited for
+ * it; it is told apart as a touchmove sent before the page has handled any in this gesture.
+ */
+async function sendTouch(command: string, page: Page, expected: TouchPoint, send: () => Promise<unknown>) {
+  const none: TouchSeen = { seen: false, moved: false, saw: [] };
+  const inFrames = <T>(action: "expect" | "wait" | "settle", missing: T) => watchTouch(page, action, expected, missing);
+  await Promise.all(inFrames("expect", null));
+  let results: TouchSeen[];
+  try {
+    await send();
+    const waits = inFrames("wait", none);
+    // The first frame to see it ends the wait in the others.
+    await Promise.race([Promise.all(waits), ...waits.map((wait) => wait.then((result) => (result.seen ? result : new Promise(() => {}))))]);
+    await Promise.all(inFrames("settle", null));
+    results = await Promise.all(waits);
+  } catch (error) {
+    await Promise.all(inFrames("settle", null));
+    throw error;
+  }
+  if (results.some((result) => result.seen)) return;
+  if (expected.type === "touchMove" && !results.some((result) => result.moved)) return;
+  const saw = results.flatMap((result) => result.saw);
+  throw new Error(
+    `${command}: the page did not handle the ${expected.type} at (${Math.round(expected.x)}, ${Math.round(expected.y)}) within ${TOUCH_HANDLED_TIMEOUT_MS}ms. ` +
+      `It handled: ${saw.length > 0 ? saw.join(" ") : "no touch events"}. Is the page visible and rendering, and is the point inside it?`,
+  );
+}
+
 export interface TouchDragOptions {
   /** Viewport coordinates where the finger touches down. */
   from: [number, number];
@@ -113,6 +262,8 @@ export interface TouchDragOptions {
  * `Input.dispatchTouchEvent`), so the page sees `pointerType: "touch"` pointer events
  * and touch events, as from a phone: a swipe to dismiss. Needs a context with
  * `hasTouch`, as in the `touch` project. Coordinates are relative to the top-level page.
+ * It resolves once the page has handled the whole gesture, touchend included, and throws if
+ * the page has not within 5 seconds.
  */
 export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from, to, steps, durationMs }) => {
   const { page } = ctx;
@@ -131,13 +282,15 @@ export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from,
       touchPoints: type === "touchEnd" ? [] : [{ x, y, id: 1 }],
       ...(durationMs === undefined ? {} : { timestamp: start + (durationMs * t) / 1000 }),
     });
-  await releaseFinger(page, session);
-  await touch("touchStart", from, 0);
-  for (let step = 1; step <= steps; step++) {
-    const t = step / steps;
-    await touch("touchMove", [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t], t);
-  }
-  await touch("touchEnd", to, 1);
+  await releaseFinger("touchDrag", page, session);
+  await sendTouch("touchDrag", page, { type: "touchEnd", x: to[0], y: to[1] }, async () => {
+    await touch("touchStart", from, 0);
+    for (let step = 1; step <= steps; step++) {
+      const t = step / steps;
+      await touch("touchMove", [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t], t);
+    }
+    await touch("touchEnd", to, 1);
+  });
 };
 
 export interface PointerPressOptions {
@@ -226,13 +379,20 @@ export type TouchStepOptions =
     }
   | { /** Lifts the finger. */ type: "touchEnd"; x?: number; y?: number };
 
-/** Pages with a `touchStep` finger still down. */
-const fingersDown = new WeakSet<object>();
+/** Where the finger `touchStep` left down is, for each page that has one, and whether the page handled its touchstart. */
+const fingersDown = new WeakMap<object, { x: number; y: number; handled: boolean }>();
 
 /** Lifts a finger `touchStep` left down, so the next gesture starts clean. */
-async function releaseFinger(page: object, session: CDPSession) {
-  if (!fingersDown.delete(page)) return;
-  await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+async function releaseFinger(command: string, page: Page, session: CDPSession) {
+  const finger = fingersDown.get(page);
+  if (!finger) return;
+  fingersDown.delete(page);
+  const send = () => session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  const end = { type: "touchEnd" as const, x: finger.x, y: finger.y };
+  if (finger.handled) return sendTouch(command, page, end, send);
+  // A page that never handled the touchstart gets no touchend to wait for.
+  await send();
+  await Promise.all(watchTouch(page, "settle", end, null));
 }
 
 /**
@@ -241,15 +401,26 @@ async function releaseFinger(page: object, session: CDPSession) {
  * finger stays down between calls until `touchEnd`. Lift it in a `finally`, so a failed
  * assertion mid-gesture doesn't leave it down; a finger left down anyway is lifted before
  * the next `touchStart` or `touchDrag`.
+ *
+ * Each step resolves once the page has handled its event, and throws if the page has not
+ * within 5 seconds. Once the gesture scrolls the page, Chromium hands the page at most one
+ * touchmove every 200ms, so a `touchMove` step can take that long.
  */
 export const touchStep: BrowserCommand<[TouchStepOptions]> = async (ctx, step) => {
   const session = await chromiumSession(ctx);
   if (!session) throw new Error("touchStep: CDP input is Chromium only");
   const { page } = ctx;
-  if (step.type === "touchEnd") return releaseFinger(page, session);
-  if (step.type === "touchStart") await releaseFinger(page, session);
-  await session.send("Input.dispatchTouchEvent", { type: step.type, touchPoints: [{ x: step.x, y: step.y, id: 1 }] });
-  fingersDown.add(page);
+  if (step.type === "touchEnd") return releaseFinger("touchStep", page, session);
+  if (step.type === "touchStart") await releaseFinger("touchStep", page, session);
+  const { type, x, y } = step;
+  const send = () => session.send("Input.dispatchTouchEvent", { type, touchPoints: [{ x, y, id: 1 }] });
+  const last = fingersDown.get(page);
+  const finger = { x, y, handled: type === "touchMove" && (last?.handled ?? false) };
+  fingersDown.set(page, finger);
+  // Chromium sends the page nothing for a move to where the finger already is.
+  if (type === "touchMove" && last?.x === x && last.y === y) await send();
+  else await sendTouch("touchStep", page, { type, x, y }, send);
+  if (type === "touchStart") finger.handled = true;
 };
 
 export const commands = { emulateMedia, drag, flick, pageZoom, pointerPress, resetPageZoom, restoreTouch, setPageZoom, tap, touchDrag, touchStep };

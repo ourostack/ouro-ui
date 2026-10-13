@@ -30,12 +30,19 @@ function describeViolations(violations: axe.Result[]): string {
     .join("\n");
 }
 
-async function scan(): Promise<axe.Result[]> {
+/**
+ * Scans the page, or only `within` when given. A list's popup (Combobox, Select) is scanned on
+ * its own: while it is open, Base UI hides the rest of the page from assistive tech with
+ * `aria-hidden` (FloatingFocusManager), so axe would report the page's focusable fields as
+ * hidden yet focusable (aria-hidden-focus). Focus stays in the input, and Tab closes the
+ * popup and unhides the page; the closed scan covers the page itself.
+ */
+async function scan(within?: HTMLElement): Promise<axe.Result[]> {
   // Base UI's focus-trap guards are excluded, not a rule (axeExclude, which ships to
   // apps): in WebKit they take `role="button"` on purpose, with no name, so
   // VoiceOver's virtual cursor fires focus on them and the modal's trap catches it
   // (Base UI utils/FocusGuard). They are visually hidden and never reached by Tab.
-  const context: axe.ElementContext = { include: [document.documentElement], exclude: axeExclude.map((selector) => [selector]) };
+  const context: axe.ElementContext = { include: [within ?? document.documentElement], exclude: axeExclude.map((selector) => [selector]) };
   const result = await axe.run(context, {
     resultTypes: ["violations"],
     rules: {
@@ -82,8 +89,8 @@ describe.each([
       const closed = await scan();
       if (closed.length > 0) found.push(`closed:\n${describeViolations(closed)}`);
       for (const opener of overlayOpeners(id, host)) {
-        await openOverlay(opener);
-        const open = await scan();
+        const popup = await openOverlay(opener);
+        const open = await scan(popup.matches('[role="dialog"], [role="alertdialog"]') ? undefined : popup);
         if (open.length > 0) found.push(`with "${opener.name}" open:\n${describeViolations(open)}`);
         await closeOverlay();
       }

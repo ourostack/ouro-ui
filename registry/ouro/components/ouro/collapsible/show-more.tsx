@@ -4,6 +4,7 @@ import { isValidElement, useEffect, useRef, useState, type CSSProperties, type J
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { serverElement } from "@/registry/ouro/lib/ouro/server-element";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 import {
   itemClass,
@@ -145,8 +146,16 @@ const EMPTY = Symbol("empty");
  * itself. An element without a key is a new object every render, so it has none (null).
  */
 function identity(item: ReactNode): unknown {
-  if (isValidElement(item)) return item.key;
-  return item;
+  // An item a Server Component passed can be a lazy wrapper, a new object on every payload.
+  const element = serverElement(item);
+  if (isValidElement(element)) return element.key;
+  return element;
+}
+
+/** The row's key: the item's own key, or its place in the list. */
+function rowKey(item: ReactNode, index: number): string | number {
+  const element = serverElement(item);
+  return isValidElement(element) && element.key !== null ? element.key : index;
 }
 
 const isCount = (value: unknown): value is number => typeof value === "number" && Number.isInteger(value) && value > 0;
@@ -379,7 +388,7 @@ function ShowMoreList(props: (ShowMoreItemsProps | ShowMoreLoadProps) & { showMo
       >
         {visible.map((item, index) => (
           <li
-            key={isValidElement(item) && item.key !== null ? item.key : index}
+            key={rowKey(item, index)}
             tabIndex={-1}
             className={cn(
               itemClass,

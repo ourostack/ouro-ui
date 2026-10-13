@@ -36,9 +36,14 @@
         ":root": {
           "--ouro-spring-duration": "750ms",
           "--ouro-ease-spring": "linear(0, 0.0663, 0.2105, 0.3763, 0.5332, 0.6669, 0.7733, 0.8533, 0.9107, 0.9499, 0.9754, 0.9911, 1, 1.0044, 1.0061, 1.0062, 1.0055, 1.0045, 1.0035, 1.0026, 1.0018, 1.0012, 1.0008, 1, 1)",
-          "--ouro-duration-fast": "100ms",
+          "--ouro-ease-out": "cubic-bezier(0.23, 1, 0.32, 1)",
+          "--ouro-ease-in-out": "cubic-bezier(0.77, 0, 0.175, 1)",
+          "--ouro-ease-drawer": "cubic-bezier(0.32, 0.72, 0, 1)",
+          "--ouro-duration-press": "160ms",
+          "--ouro-duration-fast": "150ms",
           "--ouro-duration-base": "200ms",
-          "--ouro-duration-slow": "400ms",
+          "--ouro-duration-slow": "300ms",
+          "--ouro-duration-sheet": "500ms",
           "--ouro-press-scale": "0.97",
           "--ouro-backdrop-color": "#18181b",
           "--ouro-backdrop-max": "0.4",
@@ -48,7 +53,7 @@
           "--ouro-backdrop-color": "#000000"
         },
         "@utility press": {
-          "transition": "scale var(--ouro-spring-duration) var(--ouro-ease-spring), background-color var(--ouro-duration-fast) ease-out, border-color var(--ouro-duration-fast) ease-out, color var(--ouro-duration-fast) ease-out, opacity var(--ouro-duration-fast) ease-out"
+          "transition": "scale var(--ouro-duration-press) var(--ouro-ease-out), background-color var(--ouro-duration-fast) ease, border-color var(--ouro-duration-fast) ease, color var(--ouro-duration-fast) ease, opacity var(--ouro-duration-fast) ease"
         },
         "@keyframes ouro-spin": {
           "to": {
@@ -650,6 +655,110 @@
       ]
     },
     {
+      "name": "checkbox",
+      "type": "registry:ui",
+      "title": "Checkbox",
+      "description": "A labeled checkbox on the Field contract, with the label to its right: pass `label`, and `checked` with `onCheckedChange` (or `defaultChecked`).",
+      "docs": "A labeled checkbox on the Field contract, with the label to its right: pass `label`, and `checked` with `onCheckedChange` (or `defaultChecked`). Import: import { Checkbox } from \"@/components/ouro/checkbox/checkbox\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: field, ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/checkbox.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/checkbox/checkbox-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/checkbox/checkbox-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/checkbox/checkbox.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/checkbox/checkbox.tsx"
+        }
+      ]
+    },
+    {
+      "name": "checkbox-group",
+      "type": "registry:ui",
+      "title": "CheckboxGroup",
+      "description": "A group of checkboxes under one legend, on the Field contract, for picking any number of choices: pass `legend`, and `options` (or `Checkbox` children).",
+      "docs": "A group of checkboxes under one legend, on the Field contract, for picking any number of choices: pass `legend`, and `options` (or `Checkbox` children). Import: import { CheckboxGroup } from \"@/components/ouro/checkbox/checkbox-group\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: checkbox, field, ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/checkbox-group.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/checkbox",
+        "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/checkbox/checkbox-group.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/checkbox/checkbox-group.tsx"
+        }
+      ]
+    },
+    {
+      "name": "radio-group",
+      "type": "registry:ui",
+      "title": "RadioGroup",
+      "description": "A group of radios under one legend, on the Field contract, for picking exactly one choice: pass `legend`, and `options` (or `Radio` children).",
+      "docs": "A group of radios under one legend, on the Field contract, for picking exactly one choice: pass `legend`, and `options` (or `Radio` children). Import: import { RadioGroup } from \"@/components/ouro/radio-group/radio-group\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: field, ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/radio-group.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/radio-group/radio-group-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/radio-group/radio-group-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/radio-group/radio-group.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/radio-group/radio-group.tsx"
+        }
+      ]
+    },
+    {
+      "name": "switch",
+      "type": "registry:ui",
+      "title": "Switch",
+      "description": "A labeled on/off switch on the Field contract, with the label to its right: pass `label`, and `checked` with `onCheckedChange` (or `defaultChecked`).",
+      "docs": "A labeled on/off switch on the Field contract, with the label to its right: pass `label`, and `checked` with `onCheckedChange` (or `defaultChecked`). Import: import { Switch } from \"@/components/ouro/switch/switch\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: field, ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/switch.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/switch/switch-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/switch/switch-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/switch/switch.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/switch/switch.tsx"
+        }
+      ]
+    },
+    {
       "name": "form",
       "type": "registry:ui",
       "title": "Form",
@@ -740,6 +849,90 @@
           "path": "registry/ouro/components/ouro/select/native-select.tsx",
           "type": "registry:ui",
           "target": "@components/ouro/select/native-select.tsx"
+        }
+      ]
+    },
+    {
+      "name": "number-field",
+      "type": "registry:ui",
+      "title": "NumberField",
+      "description": "A labeled number input on the Field contract: pass `label`, and `error` from your server action or client check.",
+      "docs": "A labeled number input on the Field contract: pass `label`, and `error` from your server action or client check. Import: import { NumberField } from \"@/components/ouro/number-field/number-field\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: field, ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/number-field.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/number-field/number-field-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/number-field/number-field-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/number-field/number-field.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/number-field/number-field.tsx"
+        }
+      ]
+    },
+    {
+      "name": "slider",
+      "type": "registry:ui",
+      "title": "Slider",
+      "description": "A labeled slider on the Field contract: pass `label`, and a `defaultValue` (or `value` with `onValueChange`).",
+      "docs": "A labeled slider on the Field contract: pass `label`, and a `defaultValue` (or `value` with `onValueChange`). Import: import { Slider } from \"@/components/ouro/slider/slider\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: field, ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/slider.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/slider/slider-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/slider/slider-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/slider/slider.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/slider/slider.tsx"
+        }
+      ]
+    },
+    {
+      "name": "combobox",
+      "type": "registry:ui",
+      "title": "Combobox",
+      "description": "A text input that filters a list of items as people type, on the Field contract: pass `label`, `items`, and `error` from your server action or client check.",
+      "docs": "A text input that filters a list of items as people type, on the Field contract: pass `label`, `items`, and `error` from your server action or client check. Import: import { Combobox } from \"@/components/ouro/combobox/combobox\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, field, ouro-base, ouro-lib, sheet, text-field. Docs: https://ourostack.github.io/ouro-ui/docs/combobox.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib",
+        "ourostack/ouro-ui/sheet",
+        "ourostack/ouro-ui/text-field"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/combobox/combobox-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/combobox/combobox-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/combobox/combobox.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/combobox/combobox.tsx"
         }
       ]
     },
@@ -2422,6 +2615,190 @@
       ]
     },
     {
+      "name": "checkbox-tests",
+      "type": "registry:item",
+      "title": "Checkbox tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for checkbox, with the test tooling as devDependencies. Add it beside checkbox: add checkbox checkbox-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "checkbox's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/checkbox.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/checkbox",
+        "ourostack/ouro-ui/form",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/checkbox/checkbox.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/checkbox/checkbox.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/checkbox/checkbox.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/checkbox/checkbox.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/checkbox/checkbox.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/checkbox/checkbox.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/checkbox/checkbox.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/checkbox/checkbox.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/checkbox.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/checkbox.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "checkbox-group-tests",
+      "type": "registry:item",
+      "title": "CheckboxGroup tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for checkbox-group, with the test tooling as devDependencies. Add it beside checkbox-group: add checkbox-group checkbox-group-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "checkbox-group's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/checkbox-group.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/checkbox",
+        "ourostack/ouro-ui/checkbox-group",
+        "ourostack/ouro-ui/form",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/switch"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/checkbox/checkbox-group.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/checkbox/checkbox-group.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/checkbox/checkbox-group.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/checkbox/checkbox-group.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/checkbox/checkbox-group.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/checkbox/checkbox-group.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/checkbox/checkbox-group.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/checkbox/checkbox-group.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/checkbox-group.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/checkbox-group.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "radio-group-tests",
+      "type": "registry:item",
+      "title": "RadioGroup tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for radio-group, with the test tooling as devDependencies. Add it beside radio-group: add radio-group radio-group-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "radio-group's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/radio-group.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/checkbox",
+        "ourostack/ouro-ui/form",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/radio-group",
+        "ourostack/ouro-ui/switch"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/radio-group/radio-group.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/radio-group/radio-group.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/radio-group/radio-group.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/radio-group/radio-group.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/radio-group/radio-group.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/radio-group/radio-group.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/radio-group/radio-group.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/radio-group/radio-group.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/radio-group.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/radio-group.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "switch-tests",
+      "type": "registry:item",
+      "title": "Switch tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for switch, with the test tooling as devDependencies. Add it beside switch: add switch switch-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "switch's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/switch.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/form",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/switch"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/switch/switch.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/switch/switch.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/switch/switch.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/switch/switch.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/switch/switch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/switch/switch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/switch/switch.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/switch/switch.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/switch.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/switch.spec.ts"
+        }
+      ]
+    },
+    {
       "name": "form-tests",
       "type": "registry:item",
       "title": "Form tests",
@@ -2592,6 +2969,141 @@
           "path": "registry/ouro/e2e/ouro/native-select.spec.ts",
           "type": "registry:file",
           "target": "~/e2e/ouro/native-select.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "number-field-tests",
+      "type": "registry:item",
+      "title": "NumberField tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for number-field, with the test tooling as devDependencies. Add it beside number-field: add number-field number-field-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "number-field's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/number-field.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/form",
+        "ourostack/ouro-ui/number-field",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/number-field/number-field.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/number-field/number-field.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/number-field/number-field.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/number-field/number-field.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/number-field/number-field.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/number-field/number-field.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/number-field/number-field.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/number-field/number-field.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/number-field.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/number-field.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "slider-tests",
+      "type": "registry:item",
+      "title": "Slider tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for slider, with the test tooling as devDependencies. Add it beside slider: add slider slider-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "slider's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/slider.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/form",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/slider"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/slider/slider.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/slider/slider.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/slider/slider.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/slider/slider.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/slider/slider.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/slider/slider.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/slider/slider.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/slider/slider.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/slider.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/slider.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "combobox-tests",
+      "type": "registry:item",
+      "title": "Combobox tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for combobox, with the test tooling as devDependencies. Add it beside combobox: add combobox combobox-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "combobox's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/combobox.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/combobox",
+        "ourostack/ouro-ui/form",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/combobox/combobox.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/combobox/combobox.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/combobox/combobox.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/combobox/combobox.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/combobox/combobox.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/combobox/combobox.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/combobox/combobox.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/combobox/combobox.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/combobox.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/combobox.spec.ts"
         }
       ]
     },
@@ -4842,8 +5354,11 @@
         "ourostack/ouro-ui/card-tests",
         "ourostack/ouro-ui/carousel-tests",
         "ourostack/ouro-ui/chart-tests",
+        "ourostack/ouro-ui/checkbox-group-tests",
+        "ourostack/ouro-ui/checkbox-tests",
         "ourostack/ouro-ui/collapsible-tests",
         "ourostack/ouro-ui/color-field-tests",
+        "ourostack/ouro-ui/combobox-tests",
         "ourostack/ouro-ui/command-tests",
         "ourostack/ouro-ui/confirm-dialog-tests",
         "ourostack/ouro-ui/date-picker-tests",
@@ -4867,11 +5382,13 @@
         "ourostack/ouro-ui/native-select-tests",
         "ourostack/ouro-ui/navbar-tests",
         "ourostack/ouro-ui/navigation-menu-tests",
+        "ourostack/ouro-ui/number-field-tests",
         "ourostack/ouro-ui/otp-field-tests",
         "ourostack/ouro-ui/ouro-lib-tests",
         "ourostack/ouro-ui/pagination-tests",
         "ourostack/ouro-ui/popover-tests",
         "ourostack/ouro-ui/progress-tests",
+        "ourostack/ouro-ui/radio-group-tests",
         "ourostack/ouro-ui/resizable-tests",
         "ourostack/ouro-ui/row-tests",
         "ourostack/ouro-ui/scroll-area-tests",
@@ -4883,9 +5400,11 @@
         "ourostack/ouro-ui/sidebar-layout-tests",
         "ourostack/ouro-ui/sidebar-tests",
         "ourostack/ouro-ui/skeleton-tests",
+        "ourostack/ouro-ui/slider-tests",
         "ourostack/ouro-ui/spinner-tests",
         "ourostack/ouro-ui/stack-tests",
         "ourostack/ouro-ui/stacked-layout-tests",
+        "ourostack/ouro-ui/switch-tests",
         "ourostack/ouro-ui/table-tests",
         "ourostack/ouro-ui/tabs-tests",
         "ourostack/ouro-ui/text-area-tests",

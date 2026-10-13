@@ -13,6 +13,7 @@ import {
   panelClass,
   rootClass,
   tabClass,
+  tabFaceClass,
 } from "@/registry/ouro/components/ouro/tabs/tabs-styles";
 
 const TabsContext = createContext(false);
@@ -131,10 +132,14 @@ export function TabsList({ className, ref, ...props }: TabsListProps): JSX.Eleme
 export type TabsTabProps = Omit<BaseTabs.Tab.Props, "className"> & { className?: string | undefined };
 
 /** Part: one tab, a button that shows the panel with the same `value`. */
-export function TabsTab({ className, ...props }: TabsTabProps): JSX.Element {
+export function TabsTab({ className, children, ...props }: TabsTabProps): JSX.Element {
   useTabsPart("TabsTab", '<TabsTab value="…">…</TabsTab>');
   usePartClassName("TabsTab", className);
-  return <BaseTabs.Tab {...props} className={cn(tabClass, className)} />;
+  return (
+    <BaseTabs.Tab {...props} className={cn(tabClass, className)}>
+      <span className={tabFaceClass}>{children}</span>
+    </BaseTabs.Tab>
+  );
 }
 
 /** Part: the line that slides to the selected tab. Put it last inside `TabsList`. */

@@ -33,7 +33,7 @@ const menuSheetPositionerClass =
   "outline-none fixed! inset-x-0! top-auto! bottom-0! w-auto! transform-none!";
 
 /**
- * The menu panel beside its trigger. It opens instantly and closes with a 100ms scale and
+ * The menu panel beside its trigger. It opens instantly and closes with a 150ms scale and
  * fade towards the trigger (spec §6, after RedwoodUI); reduced motion keeps only the fade,
  * and Base UI's `data-instant` (switching between menubar menus) skips it. A menu with
  * checkbox or radio items indents every label by the indicator's width, so labels line up.
@@ -46,15 +46,15 @@ const menuPopupClass =
   "[box-shadow:0_0_0_1px_color-mix(in_oklab,var(--border)_60%,transparent),0_8px_24px_rgb(0_0_0/0.14)] " +
   "has-[[data-ouro-menu-indicator]]:[--ouro-menu-inset:1.5rem] " +
   "origin-(--transform-origin) " +
-  "[transition:transform_var(--ouro-duration-fast)_ease-in,opacity_var(--ouro-duration-fast)_ease-in] " +
+  "[transition:transform_var(--ouro-duration-fast)_var(--ouro-ease-out),opacity_var(--ouro-duration-fast)_var(--ouro-ease-out)] " +
   "data-ending-style:[transform:scale(0.96)] data-ending-style:opacity-0 " +
-  "motion-reduce:[transition:opacity_var(--ouro-duration-fast)_ease-in] motion-reduce:data-ending-style:[transform:none] " +
+  "motion-reduce:[transition:opacity_var(--ouro-duration-fast)_var(--ouro-ease-out)] motion-reduce:data-ending-style:[transform:none] " +
   "data-instant:[transition:none]";
 
 /**
  * The menu as a bottom sheet on a phone: full width with rounded top corners, clear of the
- * home indicator, scrolling when it is taller than most of the screen. It rises with the
- * theme spring and drops quickly; reduced motion fades it instead.
+ * home indicator, scrolling when it is taller than most of the screen. It rises on the
+ * drawer easing token and drops quickly; reduced motion fades it instead.
  *
  * @internal
  */
@@ -64,10 +64,10 @@ const menuSheetPopupClass =
   "rounded-t-xl bg-popover text-popover-foreground outline-none " +
   "[box-shadow:0_0_0_1px_color-mix(in_oklab,var(--border)_60%,transparent),0_-8px_32px_rgb(0_0_0/0.14)] " +
   "has-[[data-ouro-menu-indicator]]:[--ouro-menu-inset:1.5rem] " +
-  "[transition:transform_var(--ouro-spring-duration)_var(--ouro-ease-spring),opacity_var(--ouro-duration-fast)_ease-out] " +
+  "[transition:transform_var(--ouro-duration-sheet)_var(--ouro-ease-drawer),opacity_var(--ouro-duration-fast)_var(--ouro-ease-out)] " +
   "data-starting-style:[transform:translateY(100%)] data-ending-style:[transform:translateY(100%)] " +
-  "data-ending-style:duration-(--ouro-duration-base) data-ending-style:ease-in " +
-  "motion-reduce:[transition:opacity_var(--ouro-duration-base)_ease-out] " +
+  "data-ending-style:duration-(--ouro-duration-base) " +
+  "motion-reduce:[transition:opacity_var(--ouro-duration-base)_var(--ouro-ease-out)] " +
   "motion-reduce:data-starting-style:[transform:none] motion-reduce:data-ending-style:[transform:none] " +
   "motion-reduce:data-starting-style:opacity-0 motion-reduce:data-ending-style:opacity-0";
 
@@ -78,7 +78,7 @@ const menuSheetPopupClass =
  */
 const menuBackdropClass =
   "fixed inset-0 bg-(--ouro-backdrop-color) opacity-(--ouro-backdrop-max) " +
-  "transition-opacity duration-(--ouro-duration-base) ease-out data-starting-style:opacity-0 data-ending-style:opacity-0";
+  "transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) data-starting-style:opacity-0 data-ending-style:opacity-0";
 
 /**
  * One item: 44px tall with 16px text on a coarse pointer, 32px with 14px text with a fine
@@ -138,7 +138,7 @@ const menuBarTriggerClass =
   "relative m-0 box-border inline-flex h-11 pointer-fine:h-8 items-center rounded-md border-0 bg-transparent px-3 " +
   "font-[inherit] text-base pointer-fine:text-sm leading-5 font-medium text-foreground cursor-default select-none " +
   "[-webkit-tap-highlight-color:transparent] outline-ring focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-solid " +
-  "hover:bg-accent hover:text-accent-foreground data-popup-open:bg-accent data-popup-open:text-accent-foreground " +
+  "pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground data-popup-open:bg-accent data-popup-open:text-accent-foreground " +
   "data-disabled:opacity-50";
 
 /**

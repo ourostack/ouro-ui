@@ -1,7 +1,19 @@
 import { toneFor } from "@/registry/ouro/lib/ouro/appearance-hints";
 import type { DevWarning } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 
-export { contractWarnings, controlClass, descriptionClass, errorClass, fieldHint, labelClass, legendClass, rootClass };
+export {
+  choicesClass,
+  contractWarnings,
+  controlClass,
+  descriptionClass,
+  errorClass,
+  fieldHint,
+  inlineLabelClass,
+  inlineRootClass,
+  labelClass,
+  legendClass,
+  rootClass,
+};
 export type { ContractGuesses };
 
 // Class strings and dev-message helpers shared by Field, Fieldset and the Field parts, apart
@@ -14,6 +26,35 @@ export type { ContractGuesses };
  * @internal
  */
 const rootClass = "m-0 box-border grid min-w-0 content-start gap-2";
+
+/**
+ * A field whose control comes first, with the label to its right (a checkbox, a switch, a
+ * radio): the control in the first column, the label, description and error in the second.
+ *
+ * @internal
+ */
+const inlineRootClass = "m-0 box-border grid min-w-0 grid-cols-[auto_minmax(0,1fr)] content-start items-start gap-x-3 gap-y-1";
+
+/**
+ * The label beside an inline control, which is also its tap target: 16px text on 24px lines
+ * on touch screens, stepping down to the field label's 14px on 20px lines from the `sm`
+ * breakpoint with a fine pointer, so a landscape phone keeps the phone size.
+ *
+ * @internal
+ */
+const inlineLabelClass = "text-base leading-6 sm:pointer-fine:text-sm sm:pointer-fine:leading-5";
+
+/**
+ * The choices in a CheckboxGroup or RadioGroup: one under the other, or with `horizontal`,
+ * in a row that wraps. On touch screens rows sit 20px apart, so each control's 44px hit area
+ * stays clear of its neighbors'; with a fine pointer from the `sm` breakpoint, 12px.
+ *
+ * @internal
+ */
+const choicesClass = {
+  vertical: "grid gap-5 sm:pointer-fine:gap-3",
+  horizontal: "flex flex-wrap gap-x-6 gap-y-5 sm:pointer-fine:gap-y-3",
+} as const;
 
 /**
  * The label: medium weight, faded with the field when it is disabled.
