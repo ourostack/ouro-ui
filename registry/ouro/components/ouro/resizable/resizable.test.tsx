@@ -298,6 +298,38 @@ describe("Resizable handle (window splitter)", () => {
     expect(handle.getAttribute("aria-valuenow")).toBe("30");
   });
 
+  it("lets go when it loses the pointer without a release, so the next press can drag", async () => {
+    const onLayout = vi.fn();
+    const screen = await render(<Editor onLayout={onLayout} />);
+    const handle = screen.handles[0]!;
+    const rect = handle.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    let pointerId = -1;
+    handle.addEventListener("pointerdown", (event) => (pointerId = event.pointerId), { once: true });
+    try {
+      await commands.drag({ from: [x, y], to: [x + 40, y], steps: 4, durationMs: 80, hold: true });
+      expect(widths(screen.panels)[0]).toBe(160);
+      // The capture is gone with no pointerup or pointercancel, as when the handle is hidden mid-drag.
+      await act(async () => {
+        handle.dispatchEvent(new PointerEvent("lostpointercapture", { bubbles: true, pointerId: pointerId + 1 }));
+      });
+      expect(screen.group.hasAttribute("data-ouro-resizing")).toBe(true);
+      await act(async () => {
+        handle.dispatchEvent(new PointerEvent("lostpointercapture", { bubbles: true, pointerId }));
+      });
+      expect(screen.group.hasAttribute("data-ouro-resizing")).toBe(false);
+      expect(widths(screen.panels)[0]).toBe(120);
+    } finally {
+      await commands.pointerPress({ action: "up" });
+    }
+    expect(onLayout).not.toHaveBeenCalled();
+    // The handle is not left waiting for that pointer.
+    await dragHandle(handle, 80, 0);
+    await expect.poll(() => handle.getAttribute("aria-valuenow")).toBe("50");
+    expect(onLayout).toHaveBeenCalledTimes(1);
+  });
+
   it("ignores a right-button press and moves that are not a drag", async () => {
     const screen = await render(<Editor />);
     const handle = screen.handles[0]!;

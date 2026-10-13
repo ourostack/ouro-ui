@@ -133,7 +133,18 @@ it.each([
   const rect = handle.getBoundingClientRect();
   const from: [number, number] = orientation === "horizontal" ? [rect.left + 10, rect.top + 150] : [rect.left + 250, rect.top + 10];
   const to: [number, number] = orientation === "horizontal" ? [from[0] - 100, from[1]] : [from[0], from[1] - 90];
-  await commands.touchDrag({ from, to, steps: 8, durationMs: 80 });
+  // What prevents the fling: the handle takes the drag's touch moves.
+  let taken = 0;
+  const count = (event: TouchEvent) => {
+    if (event.defaultPrevented) taken++;
+  };
+  addEventListener("touchmove", count);
+  try {
+    await commands.touchDrag({ from, to, steps: 8, durationMs: 80 });
+  } finally {
+    removeEventListener("touchmove", count);
+  }
+  expect(taken).toBeGreaterThan(0);
   await tapNow(button);
   await expect.poll(() => pressed.mock.calls.length).toBe(1);
   expect(onLayout).toHaveBeenCalledTimes(1);

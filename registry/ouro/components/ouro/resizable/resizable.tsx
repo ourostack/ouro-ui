@@ -4,6 +4,7 @@ import {
   Children,
   createContext,
   isValidElement,
+  useCallback,
   useContext,
   useId,
   useRef,
@@ -368,7 +369,19 @@ export function ResizableHandle({ "aria-label": ariaLabel, withHandle }: Resizab
   );
   // The size before Enter collapsed the panel, to restore on the next Enter.
   const restore = useRef<number | undefined>(undefined);
-  const drag = useRef<{ pointerId: number; start: number; sizes: number[]; pixels: number; latest: number[] } | undefined>(undefined);
+  const drag = useRef<{ pointerId: number; start: number; across: number; taken: boolean; sizes: number[]; pixels: number; latest: number[] } | undefined>(undefined);
+  // Chromium starts a fling when a fast touch drag ends, whatever `touch-action` says, and
+  // the tap that stops a fling gets no click. A drag whose touch moves were taken starts
+  // none. The moves are taken only once the finger has gone further across the handle than
+  // along it: before that the browser may still take the touch for a scroll. The listener
+  // must not be passive, which React's are.
+  const hold = useCallback((element: HTMLDivElement) => {
+    const take = (event: TouchEvent) => {
+      if (drag.current?.taken && event.cancelable) event.preventDefault();
+    };
+    element.addEventListener("touchmove", take, { passive: false });
+    return () => element.removeEventListener("touchmove", take);
+  }, []);
   if (index < 0) return null;
 
   const { orientation, sizes, panels, labels, ids, handleLabel, preview, commit, setResizing } = group;
@@ -411,6 +424,8 @@ export function ResizableHandle({ "aria-label": ariaLabel, withHandle }: Resizab
     drag.current = {
       pointerId: event.pointerId,
       start: coordinate(event),
+      across: horizontal ? event.clientY : event.clientX,
+      taken: false,
       sizes,
       pixels: horizontal ? before.width + after.width : before.height + after.height,
       latest: sizes,
@@ -421,6 +436,7 @@ export function ResizableHandle({ "aria-label": ariaLabel, withHandle }: Resizab
   const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
     const current = drag.current;
     if (!current || event.pointerId !== current.pointerId) return;
+    current.taken ||= Math.abs(coordinate(event) - current.start) > Math.abs((horizontal ? event.clientY : event.clientX) - current.across);
     const moved = (coordinate(event) - current.start) * (rtl(event.currentTarget) ? -1 : 1);
     const percent = (moved * (current.sizes[index]! + current.sizes[index + 1]!)) / current.pixels;
     current.latest = clampSize(current.sizes, index, current.sizes[index]! + percent, panels);
@@ -442,7 +458,9 @@ export function ResizableHandle({ "aria-label": ariaLabel, withHandle }: Resizab
     if (current && current.latest[index] !== current.sizes[index]) commit(current.latest);
   };
 
-  // The browser took the touch for a scroll along the handle: the panels go back to where they were.
+  // The browser took the touch for a scroll along the handle, or the handle lost the pointer
+  // with no release (it was hidden mid-drag): the panels go back to where they were. After
+  // an ordinary release the capture is lost too, and there is no drag left to end.
   const onPointerCancel = (event: PointerEvent<HTMLDivElement>) => {
     const current = release(event);
     if (current) preview(current.sizes);
@@ -466,6 +484,8 @@ export function ResizableHandle({ "aria-label": ariaLabel, withHandle }: Resizab
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerCancel}
+      onLostPointerCapture={onPointerCancel}
+      ref={hold}
     >
       <TouchTarget />
       <span aria-hidden="true" className={hitAreaClass[orientation]} />
