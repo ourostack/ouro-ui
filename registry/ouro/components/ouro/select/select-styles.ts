@@ -1,5 +1,5 @@
 import type { ReactElement, ReactNode } from "react";
-import { serverElement } from "@/registry/ouro/lib/ouro/server-element";
+import { serverNodes } from "@/registry/ouro/lib/ouro/server-element";
 
 export { flattenOptions, groupLabelClass, itemClass, itemIndicatorClass, popupClass, positionerClass, sheetQuery, triggerClass, backdropClass, sheetTitleClass, isGroup };
 export type { SelectOption, SelectOptionGroup, SelectOptions };
@@ -44,18 +44,20 @@ function isGroup(entry: SelectOption | SelectOptionGroup): entry is SelectOption
  *
  * @internal
  */
-function flattenOptions(options: SelectOptions | undefined, children: ReactNode, itemType: unknown): Array<{ value: string; label: ReactNode }> {
+function flattenOptions(options: SelectOptions | undefined, children: ReactNode): Array<{ value: string; label: ReactNode }> {
   const found: Array<{ value: string; label: ReactNode }> = [];
   for (const entry of options ?? []) {
     for (const option of isGroup(entry) ? entry.options : [entry]) found.push({ value: option.value, label: option.label });
   }
   const walk = (given: ReactNode): void => {
-    // An item a Server Component passed can arrive as a lazy wrapper with no props.
-    const node = serverElement(given);
+    // Items a Server Component passed can arrive inside a lazy wrapper with no props.
+    const node = serverNodes(given);
     if (Array.isArray(node)) return node.forEach(walk);
     if (!node || typeof node !== "object" || !("props" in node)) return;
-    const element = node as ReactElement<{ value?: string; children?: ReactNode }>;
-    if (element.type === itemType) found.push({ value: element.props.value!, label: element.props.children });
+    const element = node as ReactElement<{ value?: unknown; children?: ReactNode }>;
+    // An item is known by its `value`, not by `type === SelectItem`: across a Server
+    // Component boundary the type is a lazy reference, never the component itself.
+    if (typeof element.type !== "string" && typeof element.props.value === "string") found.push({ value: element.props.value, label: element.props.children });
     else walk(element.props.children);
   };
   walk(children);

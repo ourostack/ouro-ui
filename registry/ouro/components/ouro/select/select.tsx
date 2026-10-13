@@ -290,7 +290,7 @@ export function Select(props: SelectProps): JSX.Element {
   );
 
   // The trigger shows the chosen option's label, so Select needs every value's label up front.
-  const items = useMemo(() => flattenOptions(options, options ? undefined : children, SelectItem), [options, children]);
+  const items = useMemo(() => flattenOptions(options, options ? undefined : children), [options, children]);
 
   return (
     <FieldOwnerContext.Provider value={owner}>
