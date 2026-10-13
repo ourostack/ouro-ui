@@ -274,7 +274,9 @@ export function Field(props: FieldProps): JSX.Element {
         {control}
         {legend}
         {descriptionPart}
-        {errorPart}
+        {/* A group shows its error once. A choice in it shares the group's validity, so its own
+            error element would repeat the browser's message under every choice. */}
+        {!item && errorPart}
       </>
     ) : layout === "group" ? (
       <>
