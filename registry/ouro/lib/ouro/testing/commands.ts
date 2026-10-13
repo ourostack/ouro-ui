@@ -1,5 +1,5 @@
 import type {} from "@vitest/browser-playwright";
-import type { CDPSession, Page } from "playwright";
+import type { CDPSession, Frame, Page } from "playwright";
 import type { BrowserCommand } from "vitest/node";
 
 export interface EmulateMediaOptions {
@@ -115,11 +115,16 @@ const TOUCH_WATCH = `(action, expected) => {
     }
     return { href: view.location.href, readyState: view.document.readyState, watching: Boolean(state), children: view.length, unwatched };
   }
+  // A frame that navigated keeps its window but loses the listeners: watch its new document afresh.
+  if (state && state.document !== view.document) {
+    state.remove();
+    state = undefined;
+  }
   if (!state) {
     if (action !== "expect") return { seen: false, moved: false, saw: [] };
     const types = ["touchstart", "touchmove", "touchend", "touchcancel"];
     const options = { capture: true, passive: true };
-    state = view.__ouroTouch = { saw: [], handled: new WeakSet(), targets: new Set(), expected: null, seen: false, resolve: null, moved: false };
+    state = view.__ouroTouch = { document: view.document, saw: [], handled: new WeakSet(), targets: new Set(), expected: null, seen: false, resolve: null, moved: false };
     // Where this frame's top left is in the top-level page, in CSS pixels, or null if a parent is cross-origin.
     const origin = () => {
       let x = 0, y = 0;
@@ -166,7 +171,7 @@ const TOUCH_WATCH = `(action, expected) => {
     state.expected = expected;
     state.seen = false;
     state.saw = [];
-    return null;
+    return { children: view.length };
   }
   if (action === "wait") {
     const result = () => ({ seen: state.seen, moved: state.moved, saw: state.saw });
@@ -205,6 +210,7 @@ interface TouchSeen {
 type TouchWatchAction = "expect" | "wait" | "settle" | "inspect";
 /** One frame's answer to a `TOUCH_WATCH` call, or why the call failed. */
 interface FrameAnswer<T> {
+  frame: Frame;
   url: string;
   action: TouchWatchAction;
   value?: T;
@@ -223,10 +229,54 @@ function watchTouch<T>(page: Page, action: TouchWatchAction, point: TouchPoint):
   const call = `(${TOUCH_WATCH})(${JSON.stringify(action)}, ${JSON.stringify({ ...point, type: point.type.toLowerCase() })})`;
   return page.frames().map((frame) =>
     frame.evaluate<T>(call).then(
-      (value) => ({ url: frame.url(), action, value }),
-      (error: unknown) => ({ url: frame.url(), action, error: (error instanceof Error ? error.message : String(error)).split("\n")[0]! }),
+      (value) => ({ frame, url: frame.url(), action, value }),
+      (error: unknown) => ({ frame, url: frame.url(), action, error: (error instanceof Error ? error.message : String(error)).split("\n")[0]! }),
     ),
   );
+}
+
+/**
+ * Starts the watch for `expected` in every frame of the page, and resolves once every frame
+ * the page has is watched. Playwright learns of a new frame, and of a frame's new document,
+ * from Chromium on its own connection, which can lag the page: a test that adds an iframe,
+ * awaits its `load` and touches it can get here before Playwright lists the frame, and a
+ * touch into a frame with no watcher is never seen. So each watched frame reports how many
+ * child frames its window has, and this starts over, when Playwright's frames change, until
+ * every frame has that many watched children. It throws if they never agree.
+ */
+async function watchEveryFrame(command: string, page: Page, expected: TouchPoint): Promise<FrameAnswer<{ children: number }>[]> {
+  const deadline = Date.now() + TOUCH_HANDLED_TIMEOUT_MS;
+  for (;;) {
+    // Listen before asking, so a change during the calls is not missed.
+    let changed!: () => void;
+    const change = new Promise<void>((resolve) => (changed = resolve));
+    page.on("frameattached", changed).on("framenavigated", changed).on("framedetached", changed);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const answers = (await Promise.all(watchTouch<{ children: number }>(page, "expect", expected))).filter(({ frame }) => !frame.isDetached());
+      const watched = new Set(answers.filter((answer) => answer.value).map((answer) => answer.frame));
+      const behind = answers.filter(({ frame, value }) => !value || frame.childFrames().filter((child) => watched.has(child)).length !== value.children);
+      if (behind.length === 0) return answers;
+      const expired = new Promise<boolean>((resolve) => (timer = setTimeout(() => resolve(true), Math.max(0, deadline - Date.now()))));
+      if (await Promise.race([change.then(() => false), expired])) {
+        await Promise.all(watchTouch(page, "settle", expected));
+        throw new Error(
+          `${command}: could not watch every frame of the page within ${TOUCH_HANDLED_TIMEOUT_MS}ms, so the ${expected.type} was not sent. ` +
+            behind
+              .map(({ frame, url, value, error }) =>
+                value
+                  ? `${url} has ${value.children} child frames, and ${frame.childFrames().filter((child) => watched.has(child)).length} of them are watched`
+                  : `${url} could not be watched: ${error}`,
+              )
+              .join("; ") +
+            ".",
+        );
+      }
+    } finally {
+      clearTimeout(timer);
+      page.off("frameattached", changed).off("framenavigated", changed).off("framedetached", changed);
+    }
+  }
 }
 
 /**
@@ -248,7 +298,7 @@ function watchTouch<T>(page: Page, action: TouchWatchAction, point: TouchPoint):
  */
 async function sendTouch(command: string, page: Page, expected: TouchPoint, send: () => Promise<unknown>) {
   const none: TouchSeen = { seen: false, moved: false, saw: [] };
-  const expects = await Promise.all(watchTouch<null>(page, "expect", expected));
+  const expects = await watchEveryFrame(command, page, expected);
   let results: TouchSeen[];
   let answers: FrameAnswer<TouchSeen>[];
   let states: FrameAnswer<FrameState>[] = [];

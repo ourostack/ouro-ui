@@ -146,6 +146,24 @@ test("touchDrag resolves when the gesture removes its target, whose touchend nev
   await expect.poll(() => next.scrollLeft).toBeGreaterThan(100);
 });
 
+test("a touch into an iframe added just before it is handled, however late Playwright learns of the frame", async () => {
+  for (let index = 0; index < 10; index++) {
+    const frame = document.createElement("iframe");
+    Object.assign(frame.style, { position: "absolute", top: "0", left: "0", width: "300px", height: "200px", border: "0" });
+    frame.srcdoc = "<body style='margin:0'><div style='height:200px'></div></body>";
+    const loaded = new Promise((resolve) => frame.addEventListener("load", resolve, { once: true }));
+    document.body.append(frame);
+    nodes.push(frame);
+    await loaded;
+    const seen: string[] = [];
+    frame.contentWindow!.addEventListener("touchstart", (event) => seen.push(event.type));
+    await commands.touchStep({ type: "touchStart", x: 100, y: 100 });
+    await commands.touchStep({ type: "touchEnd" });
+    expect(seen).toEqual(["touchstart"]);
+    frame.remove();
+  }
+});
+
 test("a touch the page never handles throws, naming the event and what the page saw", async () => {
   const frame = document.createElement("iframe");
   Object.assign(frame.style, { position: "absolute", top: "0", left: "0", width: "300px", height: "200px", border: "0" });
