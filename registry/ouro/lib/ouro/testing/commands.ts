@@ -1,5 +1,5 @@
 import type {} from "@vitest/browser-playwright";
-import type { CDPSession } from "playwright";
+import type { CDPSession, Page } from "playwright";
 import type { BrowserCommand } from "vitest/node";
 
 export interface EmulateMediaOptions {
@@ -92,6 +92,20 @@ export const flick: BrowserCommand<[FlickOptions]> = async (ctx, { from, to, ste
   await send("mouseReleased", to, durationMs, 0);
 };
 
+/**
+ * Waits until the page has handled the touch input sent so far. CDP resolves a touch event
+ * once the compositor has taken it, and once a scroll has started the compositor takes the
+ * rest of the gesture without waiting for the page, which then handles it a frame or so later:
+ * a test that reads its listeners as soon as a gesture returns can miss the touchend. Input
+ * queued for the page is dispatched before the next frame's animation callbacks.
+ */
+async function touchHandled(page: Page) {
+  // Runs in the page; written without DOM types, which an app's config for this file may lack.
+  await page.evaluate(
+    () => new Promise<void>((resolve) => (globalThis as unknown as { requestAnimationFrame: (callback: () => void) => void }).requestAnimationFrame(() => resolve())),
+  );
+}
+
 export interface TouchDragOptions {
   /** Viewport coordinates where the finger touches down. */
   from: [number, number];
@@ -113,6 +127,7 @@ export interface TouchDragOptions {
  * `Input.dispatchTouchEvent`), so the page sees `pointerType: "touch"` pointer events
  * and touch events, as from a phone: a swipe to dismiss. Needs a context with
  * `hasTouch`, as in the `touch` project. Coordinates are relative to the top-level page.
+ * It resolves once the page has handled the whole gesture, touchend included.
  */
 export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from, to, steps, durationMs }) => {
   const { page } = ctx;
@@ -138,6 +153,7 @@ export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from,
     await touch("touchMove", [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t], t);
   }
   await touch("touchEnd", to, 1);
+  await touchHandled(page);
 };
 
 export interface PointerPressOptions {
@@ -240,16 +256,19 @@ async function releaseFinger(page: object, session: CDPSession) {
  * gestures `touchDrag` can't make: a finger that stops and stays down mid-swipe. The same
  * finger stays down between calls until `touchEnd`. Lift it in a `finally`, so a failed
  * assertion mid-gesture doesn't leave it down; a finger left down anyway is lifted before
- * the next `touchStart` or `touchDrag`.
+ * the next `touchStart` or `touchDrag`. Each step resolves once the page has handled it.
  */
 export const touchStep: BrowserCommand<[TouchStepOptions]> = async (ctx, step) => {
   const session = await chromiumSession(ctx);
   if (!session) throw new Error("touchStep: CDP input is Chromium only");
   const { page } = ctx;
-  if (step.type === "touchEnd") return releaseFinger(page, session);
-  if (step.type === "touchStart") await releaseFinger(page, session);
-  await session.send("Input.dispatchTouchEvent", { type: step.type, touchPoints: [{ x: step.x, y: step.y, id: 1 }] });
-  fingersDown.add(page);
+  if (step.type === "touchEnd") await releaseFinger(page, session);
+  else {
+    if (step.type === "touchStart") await releaseFinger(page, session);
+    await session.send("Input.dispatchTouchEvent", { type: step.type, touchPoints: [{ x: step.x, y: step.y, id: 1 }] });
+    fingersDown.add(page);
+  }
+  await touchHandled(page);
 };
 
 export const commands = { emulateMedia, drag, flick, pageZoom, pointerPress, resetPageZoom, restoreTouch, setPageZoom, tap, touchDrag, touchStep };

@@ -1,0 +1,1 @@
+- `commands.touchDrag` and `commands.touchStep` resolve once the page has handled the touch input, touchend included. Before, a test that read its touch listeners as soon as a swipe returned could miss the touchend: once the page scrolls, Chromium hands the rest of the gesture to the page without waiting for it.
