@@ -146,7 +146,8 @@ export function FieldControl({ className, required, ...props }: FieldControlProp
     <BaseField.Control
       {...props}
       required={isRequired}
-      aria-required={isRequired || undefined}
+      // A passed `aria-required` says "required" without the browser's blocking check.
+      aria-required={isRequired || props["aria-required"]}
       aria-describedby={describedBy}
       {...(field.invalid ? { "aria-invalid": true } : {})}
       className={cn(controlClass, className)}

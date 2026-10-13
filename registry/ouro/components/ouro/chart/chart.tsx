@@ -261,7 +261,7 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
     <figure
       {...rest}
       data-ouro="chart"
-      aria-describedby={summaryId}
+      aria-describedby={[summaryId, rest["aria-describedby"]].filter(Boolean).join(" ")}
       style={{ ...colors, ...style }}
       className={cn("m-0 box-border flex w-full min-w-0 flex-col gap-3 text-foreground", className)}
     >

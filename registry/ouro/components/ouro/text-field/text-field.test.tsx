@@ -95,6 +95,12 @@ describe("TextField", () => {
     expect(onValueChange).toHaveBeenLastCalledWith("Pasta!", expect.anything());
   });
 
+  it("passes aria-required through without making the input natively required", async () => {
+    const { input } = await render(<TextField label="Quantity" aria-required />);
+    expect(input.getAttribute("aria-required")).toBe("true");
+    expect(input.required).toBe(false);
+  });
+
   it("forwards its ref to the input", async () => {
     let element: HTMLInputElement | null = null;
     const object = createRef<HTMLInputElement>();

@@ -113,6 +113,12 @@ describe("TextArea", () => {
     expect(onValueChange).toHaveBeenLastCalledWith("Salt!", expect.anything());
   });
 
+  it("passes aria-required through without making the textarea natively required", async () => {
+    const { textarea } = await render(<TextArea label="Method" aria-required />);
+    expect(textarea.getAttribute("aria-required")).toBe("true");
+    expect(textarea.required).toBe(false);
+  });
+
   it("keeps the size the user dragged it to while they type", async () => {
     const { textarea } = await render(<TextArea label="Notes" defaultValue="Salt" />);
     // The resize handle writes the dragged size into the inline style.

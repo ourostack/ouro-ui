@@ -383,8 +383,8 @@ export function Button(props: ButtonProps): JSX.Element {
         data-variant={variant}
         data-loading={loading ? "" : undefined}
         data-disabled={loading ? "" : undefined}
-        aria-busy={loading || undefined}
-        aria-disabled={loading || undefined}
+        aria-busy={loading || anchorProps["aria-busy"]}
+        aria-disabled={loading || anchorProps["aria-disabled"]}
       >
         {content}
       </RouterLink>
@@ -405,7 +405,7 @@ export function Button(props: ButtonProps): JSX.Element {
       data-ouro="button"
       data-variant={variant}
       data-loading={loading ? "" : undefined}
-      aria-busy={loading || undefined}
+      aria-busy={loading || buttonProps["aria-busy"]}
     >
       {content}
     </BaseButton>

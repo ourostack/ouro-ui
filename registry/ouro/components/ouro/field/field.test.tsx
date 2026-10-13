@@ -185,6 +185,24 @@ describe("Field wiring", () => {
     await expect.element(page.getByRole("textbox", { name: "Email", exact: true })).toBeVisible();
   });
 
+  it("passes aria-required through, to say a control is required without the browser's blocking check", async () => {
+    const { input, rerender } = await render(
+      <Field label="Quantity">
+        <FieldControl aria-required />
+      </Field>,
+    );
+    expect(input.getAttribute("aria-required")).toBe("true");
+    expect(input.required).toBe(false);
+    // A required field stays required whatever the control is passed.
+    await rerender(
+      <Field label="Quantity" required>
+        <FieldControl aria-required={false} />
+      </Field>,
+    );
+    expect(input.getAttribute("aria-required")).toBe("true");
+    expect(input.required).toBe(true);
+  });
+
   it("has no required marker or aria-required by default", async () => {
     const { input, label } = await render(
       <Field label="Email">

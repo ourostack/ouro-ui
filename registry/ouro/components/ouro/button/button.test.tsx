@@ -193,6 +193,24 @@ describe("loading", () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  it("keeps an aria-busy and aria-disabled the app passes while it is not loading", async () => {
+    const { button, rerender } = await render(
+      <Button aria-busy aria-disabled>
+        Save recipe
+      </Button>,
+    );
+    expect(button.getAttribute("aria-busy")).toBe("true");
+    expect(button.getAttribute("aria-disabled")).toBe("true");
+    await rerender(
+      <Button href="/recipes" aria-busy aria-disabled>
+        Recipes
+      </Button>,
+    );
+    const link = document.querySelector<HTMLElement>('a[data-ouro="button"]')!;
+    expect(link.getAttribute("aria-busy")).toBe("true");
+    expect(link.getAttribute("aria-disabled")).toBe("true");
+  });
+
   it("renders a busy link that cannot be followed", async () => {
     const onClick = vi.fn();
     const { button } = await render(

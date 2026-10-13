@@ -233,7 +233,10 @@ export function SheetViewport(props: Omit<Drawer.Viewport.Props, "className">): 
       {...props}
       data-ouro="sheet-viewport"
       data-side={side}
-      className={cn("fixed inset-0 z-1000 flex overflow-hidden touch-none", viewportClasses[side])}
+      // `overflow-clip`, not `overflow-hidden`: a hidden box is still a scroll container, so
+      // scrolling a control into view while the sheet enters would scroll the viewport and
+      // leave the sheet floating above its edge.
+      className={cn("fixed inset-0 z-1000 flex overflow-clip touch-none", viewportClasses[side])}
     />
   );
 }

@@ -123,7 +123,7 @@ export function Message(props: MessageProps): JSX.Element {
       {...rest}
       data-ouro="message"
       data-role={role}
-      aria-busy={streaming || undefined}
+      aria-busy={streaming || rest["aria-busy"]}
       className={cn(
         "m-0 box-border flex w-full min-w-0 items-end gap-2 text-base pointer-fine:text-sm",
         role === "user" && "flex-row-reverse",
