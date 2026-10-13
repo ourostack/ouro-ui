@@ -524,6 +524,12 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
         if (fingered.current || !event.currentTarget.contains(event.target as Node)) return;
         event.stopPropagation();
       }}
+      // The lift of the long press that opened the menu is not a tap, as on a phone. Chromium
+      // can send one, whose press lands on the menu's backdrop and, half a second after the
+      // menu opened, closes it.
+      onTouchEnd={(event) => {
+        if (pressed && event.currentTarget.contains(event.target as Node)) event.preventDefault();
+      }}
       onPointerDown={onPointerDown}
       onPointerMove={drag.onPointerMove}
       onPointerUp={drag.onPointerUp}
