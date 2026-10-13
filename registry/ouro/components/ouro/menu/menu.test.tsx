@@ -291,9 +291,34 @@ describe("Menu items", () => {
     expect(element("Profile").hasAttribute("aria-current")).toBe(false);
     // Only a link can be the current page.
     expect(element("Sign out").hasAttribute("aria-current")).toBe(false);
-    // The current item keeps the accent tint without the pointer or the keyboard on it.
-    expect(element("Billing").hasAttribute("data-highlighted")).toBe(false);
-    expect(getComputedStyle(element("Billing")).backgroundColor).not.toBe(getComputedStyle(element("Sign out")).backgroundColor);
+  });
+
+  it("tells the current item from the highlighted one without relying on color", async () => {
+    await render(
+      <Menu trigger={<Button>Settings</Button>}>
+        <MenuItem href="/settings/profile">Profile</MenuItem>
+        <MenuItem href="/settings/billing" current>
+          Billing
+        </MenuItem>
+      </Menu>,
+    );
+    await userEvent.click(trigger());
+    await settled();
+    const element = (name: string) => item(name).element() as HTMLElement;
+    const look = (target: HTMLElement) => {
+      const style = getComputedStyle(target);
+      return { background: style.backgroundColor, weight: style.fontWeight, bar: getComputedStyle(target, "::before").width };
+    };
+    element("Profile").setAttribute("data-highlighted", "");
+    element("Billing").removeAttribute("data-highlighted");
+    const highlighted = look(element("Profile"));
+    const current = look(element("Billing"));
+    // The highlight is a tint; the current page is a heavier label with a bar at the start edge.
+    expect(highlighted.background).not.toBe("rgba(0, 0, 0, 0)");
+    expect(current.background).toBe("rgba(0, 0, 0, 0)");
+    expect(Number(current.weight)).toBeGreaterThan(Number(highlighted.weight));
+    expect(parseFloat(current.bar)).toBeGreaterThan(0);
+    expect(highlighted.bar).not.toBe(current.bar);
   });
 
   it("renders href as a link through OuroProvider's linkComponent, and closes on click", async () => {
@@ -727,8 +752,13 @@ describe("Menu motion", () => {
     // The fast duration on the ease-out token; `ease-in` is never used.
     expect(getComputedStyle(element).transitionDuration.split(", ")[0]).toBe("0.15s");
     expect(getComputedStyle(element).transitionTimingFunction.split(/,\s(?![^(]*\))/)[0]).toBe("cubic-bezier(0.23, 1, 0.32, 1)");
-    expect(getComputedStyle(element).transformOrigin).not.toBe("");
     element.removeAttribute("data-ending-style");
+  });
+
+  it("scales about the point Base UI computes next to its trigger", async () => {
+    const element = await openDropdown();
+    element.style.setProperty("--transform-origin", "7px 3px");
+    expect(getComputedStyle(element).transformOrigin).toBe("7px 3px");
   });
 
   it("closes with only a fade under reduced motion", async () => {

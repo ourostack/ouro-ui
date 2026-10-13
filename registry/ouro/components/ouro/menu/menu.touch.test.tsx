@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 import { commands, page } from "vitest/browser";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTint } from "@/registry/ouro/lib/ouro/testing/press";
 import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 import { pageCss } from "@/registry/ouro/lib/ouro/testing/page-css";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -122,5 +123,22 @@ describe("Menu long press", () => {
     touch("touchend", box.left + 50, box.top + 40);
     expect(area().hasAttribute("data-ouro-pressing")).toBe(false);
     expect(getComputedStyle(area()).userSelect).not.toBe("none");
+  });
+});
+
+describe("Menu items pressed on a phone", () => {
+  it("tint on pointer-down, from the press alone", async () => {
+    await mount(
+      <Menu trigger={<Button>Actions</Button>}>
+        <MenuItem>Edit</MenuItem>
+        <MenuItem>Duplicate</MenuItem>
+      </Menu>,
+    );
+    await commands.tap('[data-ouro="button"]');
+    const element = await opened();
+    const item = [...element.querySelectorAll<HTMLElement>('[role="menuitem"]')][1]!;
+    const { rest, pressed, active } = await pressTint(item, { clearHighlight: true });
+    expect(active).toBe(true);
+    expect(pressed).not.toBe(rest);
   });
 });

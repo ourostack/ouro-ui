@@ -479,7 +479,8 @@ describe("Popover motion", () => {
     const element = await openUncontrolled();
     expect(transitionOf(element, "transform")!.easing).toBe("cubic-bezier(0.23, 1, 0.32, 1)");
     expect(transitionOf(element, "transform")!.duration).toBe("0.2s");
-    expect(getComputedStyle(element).transformOrigin).not.toBe("");
+    element.style.setProperty("--transform-origin", "7px 3px");
+    expect(getComputedStyle(element).transformOrigin).toBe("7px 3px");
     element.style.transition = "none";
     element.setAttribute("data-starting-style", "");
     expect(new DOMMatrix(getComputedStyle(element).transform).a).toBeCloseTo(0.96, 3);
@@ -673,5 +674,70 @@ describe("Popover parts", () => {
     ["PopoverClose", <PopoverClose key="c" />, shape("<PopoverTitle>…</PopoverTitle><PopoverClose>Close</PopoverClose>")],
   ])("%s outside PopoverRoot throws with the correct JSX shape", (name, element, jsx) => {
     expect(() => renderToString(element)).toThrow(`[ouro-ui] ${name}: must be rendered inside <PopoverRoot>. Fix: ${jsx}.`);
+  });
+});
+
+describe("Popover trigger press", () => {
+  it.each([
+    ["an object", { color: "rgb(255, 0, 0)" }],
+    ["a function of the state", () => ({ color: "rgb(255, 0, 0)" })],
+  ] as const)("keeps the style a part's trigger is given as %s, and still cancels the press scale", async (_name, style) => {
+    await render(
+      <PopoverRoot>
+        <PopoverTrigger render={<Button>Open</Button>} style={style} />
+      </PopoverRoot>,
+    );
+    expect(getComputedStyle(trigger()).color).toBe("rgb(255, 0, 0)");
+    expect(getComputedStyle(trigger()).getPropertyValue("--ouro-press-scale")).toBe("1");
+  });
+
+  const selector = '[data-ouro="button"]';
+
+  it("keeps the trigger's box untransformed during a press and shows Button's pressed wash instead", async () => {
+    await render(
+      <Popover title="Share recipe" align="start" trigger={<Button>Share this recipe with others</Button>}>
+        <input aria-label="Link" />
+      </Popover>,
+    );
+    const box = JSON.stringify(trigger().getBoundingClientRect());
+    await commands.pointerPress({ selector, action: "down" });
+    try {
+      await expect.poll(() => getComputedStyle(trigger(), "::before").opacity).toBe("0.14");
+      // Button reads --ouro-press-scale, which the trigger sets to 1, so nothing scales.
+      expect(["none","1"]).toContain(getComputedStyle(trigger()).scale);
+      expect(JSON.stringify(trigger().getBoundingClientRect())).toBe(box);
+    } finally {
+      await commands.pointerPress({ selector, action: "up" });
+    }
+  });
+
+  it("places the popover once: its positioner does not move while it enters", async () => {
+    await render(
+      <Popover title="Share recipe" align="start" trigger={<Button>Share this recipe with others</Button>}>
+        <input aria-label="Link" />
+      </Popover>,
+    );
+    const restLeft = trigger().getBoundingClientRect().left;
+    const seen: Array<{ left: number; top: number }> = [];
+    let sampling = true;
+    const sample = () => {
+      const positioner = document.querySelector<HTMLElement>('[data-ouro="popover-positioner"]');
+      if (positioner) {
+        const rect = positioner.getBoundingClientRect();
+        if (!seen.length || seen.at(-1)!.left !== rect.left || seen.at(-1)!.top !== rect.top) seen.push({ left: rect.left, top: rect.top });
+      }
+      if (sampling) requestAnimationFrame(sample);
+    };
+    requestAnimationFrame(sample);
+    await commands.pointerPress({ selector, action: "down" });
+    // Hold until the press has fully arrived, so a scaled trigger would be at its smallest.
+    await expect.poll(() => getComputedStyle(trigger(), "::before").opacity).toBe("0.14");
+    await commands.pointerPress({ selector, action: "up" });
+    await settled();
+    await nextFrame();
+    sampling = false;
+    // Base UI mounts the positioner unplaced, then places it; a scaled trigger would add a third position.
+    expect(seen.length).toBeLessThanOrEqual(2);
+    expect(seen.at(-1)!.left).toBeCloseTo(restLeft, 1);
   });
 });
