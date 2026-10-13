@@ -584,6 +584,20 @@ describe("Carousel settling without scrollend, interrupted", () => {
 });
 
 describe("Carousel motion", () => {
+  it("advances when pressed at scrollend before the settled index renders", async () => {
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+    const screen = await render(<Carousel label="Recipe photos">{photos()}</Carousel>);
+    const next = new Promise<void>((resolve) => {
+      screen.viewport.addEventListener("scrollend", () => {
+        screen.button("Next slide").click();
+        resolve();
+      }, { once: true });
+    });
+    await userEvent.click(screen.button("Next slide"));
+    await next;
+    await expect.poll(() => slideAtStart(screen.viewport, screen.slides)).toBe(2);
+  });
+
   it("jumps instantly with reduced motion", async () => {
     const screen = await render(<Carousel label="Recipe photos">{photos()}</Carousel>);
     const scrollTo = vi.spyOn(screen.viewport, "scrollTo");

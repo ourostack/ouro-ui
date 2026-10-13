@@ -72,6 +72,28 @@ it("covers every story file, each with stories", () => {
   expect(stories.filter((entry) => entry.parameters.plainOpeners).map((entry) => entry.id)).toEqual(expect.arrayContaining(["Dialog/Controlled", "Sheet/Controlled"]));
 });
 
+it("does not scan a sheet before its deferred starting style leaves", async () => {
+  const host = await renderStory(() => (
+    <div role="menu" data-open="" data-starting-style="" style={{ position: "fixed", top: "100vh" }}>
+      <a role="menuitem" href="#print">Print</a>
+    </div>
+  ));
+  const popup = host.querySelector<HTMLElement>('[role="menu"]')!;
+  let frame = 0;
+  const enter = () => {
+    if (++frame < 8) requestAnimationFrame(enter);
+    else {
+      popup.removeAttribute("data-starting-style");
+      popup.style.top = "50vh";
+    }
+  };
+  requestAnimationFrame(enter);
+  await settle();
+  const violations = await scan(popup);
+  expect(describeViolations(violations)).toBe("");
+  expect(popup.hasAttribute("data-starting-style")).toBe(false);
+});
+
 describe.each([
   { width: 390, height: 844 },
   { width: 1280, height: 800 },
