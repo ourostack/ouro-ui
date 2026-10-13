@@ -270,7 +270,8 @@ export function Carousel(props: CarouselProps): JSX.Element {
   });
 
   const go = (step: 1 | -1) => {
-    const from = heading.current ?? current;
+    // scrollend updates the ref before React commits the rendered index.
+    const from = heading.current ?? Math.min(settled.current, lastIndex);
     // The buttons are disabled at the ends without `loop`, so wrapping only happens with it.
     const target = from + step > lastIndex ? 0 : from + step < 0 ? lastIndex : from + step;
     heading.current = target;
