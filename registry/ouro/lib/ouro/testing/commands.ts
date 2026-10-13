@@ -221,16 +221,23 @@ async function sendTouch(command: string, page: Page, expected: TouchPoint, send
   const inFrames = <T>(action: "expect" | "wait" | "settle", missing: T) => watchTouch(page, action, expected, missing);
   await Promise.all(inFrames("expect", null));
   let results: TouchSeen[];
+  let watchdog: ReturnType<typeof setTimeout> | undefined;
   try {
     await send();
     const waits = inFrames("wait", none);
+    // A test may freeze page timers; the provider's deadline must still release those waits.
+    const deadline = new Promise<void>((resolve) => {
+      watchdog = setTimeout(resolve, TOUCH_HANDLED_TIMEOUT_MS);
+    });
     // The first frame to see it ends the wait in the others.
-    await Promise.race([Promise.all(waits), ...waits.map((wait) => wait.then((result) => (result.seen ? result : new Promise(() => {}))))]);
+    await Promise.race([Promise.all(waits), deadline, ...waits.map((wait) => wait.then((result) => (result.seen ? result : new Promise(() => {}))))]);
     await Promise.all(inFrames("settle", null));
     results = await Promise.all(waits);
   } catch (error) {
     await Promise.all(inFrames("settle", null));
     throw error;
+  } finally {
+    if (watchdog !== undefined) clearTimeout(watchdog);
   }
   if (results.some((result) => result.seen)) return;
   if (expected.type === "touchMove" && !results.some((result) => result.moved)) return;
