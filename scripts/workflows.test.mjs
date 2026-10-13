@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -143,6 +143,14 @@ for (const scenario of ["success", "ci-failed", "ci-missing", "dispatch-failed",
     const prepare = releaseStep("Prepare main for the next release");
     const gate = prepare.slice(prepare.indexOf('if [ -n "$run" ] && gh api'));
     const deploy = releaseStep("Deploy Pages and check what is published");
+    const scratch = join(root, ".tmp");
+    mkdirSync(scratch, { recursive: true });
+    const fixture = mkdtempSync(join(scratch, "release-main-gate-"));
+    const output = join(fixture, "output.txt");
+    const summary = join(fixture, "summary.md");
+    writeFileSync(output, "");
+    writeFileSync(summary, "");
+    console.info(`Release gate fixture: ${fixture}`);
     const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", `
       gh() {
         printf 'CALL %s\\n' "$*" >&2
@@ -175,12 +183,12 @@ for (const scenario of ["success", "ci-failed", "ci-missing", "dispatch-failed",
       ${deploy}
     `], {
       cwd: root, encoding: "utf8",
-      env: { ...process.env, SCENARIO: scenario, NEXT_BRANCH: "prepare/after-v9.9.9", TAG: "v9.9.9", GITHUB_REPOSITORY: "ourostack/ouro-ui", GITHUB_STEP_SUMMARY: "/dev/null", GITHUB_OUTPUT: "/dev/stdout" },
+      env: { ...process.env, SCENARIO: scenario, NEXT_BRANCH: "prepare/after-v9.9.9", TAG: "v9.9.9", GITHUB_REPOSITORY: "ourostack/ouro-ui", GITHUB_STEP_SUMMARY: summary, GITHUB_OUTPUT: output },
     });
     assert.doesNotMatch(result.stderr, /Unexpected gh call:/);
     if (scenario === "success") {
       assert.equal(result.status, 0, result.stderr);
-      assert.match(result.stdout, /main_sha=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/);
+      assert.match(readFileSync(output, "utf8"), /main_sha=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/);
       assert.match(result.stderr, /CALL workflow run pages.yml --ref main/);
       assert.match(result.stdout, /PUBLISHED scripts\/published-release.mjs v9.9.9 --wait 900/);
       assert.match(result.stderr, /CALL api -X DELETE repos\/ourostack\/ouro-ui\/git\/refs\/heads\/prepare\/after-v9.9.9/);
