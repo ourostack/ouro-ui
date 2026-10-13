@@ -45,18 +45,20 @@ const panelClass =
 
 /**
  * The handle: a 1px line in the border color that turns the ring color on hover, focus
- * and drag. `touch-none` keeps a touch drag on it resizing instead of scrolling the page.
+ * and drag. A touch drag across it resizes; along it the touch is the page's, so a scroll
+ * that starts on the handle's 44px touch target still scrolls (`touch-pan-y` on a handle
+ * between side-by-side panels, `touch-pan-x` on one between stacked panels).
  *
  * @internal
  */
 const handleClass = {
   horizontal:
-    "relative z-1 flex w-px shrink-0 cursor-col-resize items-center justify-center bg-border touch-none select-none " +
-    "transition-colors duration-(--ouro-duration-fast) ease-out hover:bg-ring active:bg-ring " +
+    "relative z-1 flex w-px shrink-0 cursor-col-resize items-center justify-center bg-border touch-pan-y select-none " +
+    "transition-colors duration-(--ouro-duration-fast) ease-[ease] pointer-fine:hover:bg-ring active:bg-ring " +
     "outline-ring outline-offset-1 focus-visible:bg-ring focus-visible:outline-2 focus-visible:outline-solid",
   vertical:
-    "relative z-1 flex h-px w-full shrink-0 cursor-row-resize items-center justify-center bg-border touch-none select-none " +
-    "transition-colors duration-(--ouro-duration-fast) ease-out hover:bg-ring active:bg-ring " +
+    "relative z-1 flex h-px w-full shrink-0 cursor-row-resize items-center justify-center bg-border touch-pan-x select-none " +
+    "transition-colors duration-(--ouro-duration-fast) ease-[ease] pointer-fine:hover:bg-ring active:bg-ring " +
     "outline-ring outline-offset-1 focus-visible:bg-ring focus-visible:outline-2 focus-visible:outline-solid",
 } as const;
 

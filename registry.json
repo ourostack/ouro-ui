@@ -377,6 +377,16 @@
           "target": "@lib/ouro/testing/page-css.ts"
         },
         {
+          "path": "registry/ouro/lib/ouro/testing/press.touch.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/testing/press.touch.test.ts"
+        },
+        {
+          "path": "registry/ouro/lib/ouro/testing/press.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/testing/press.ts"
+        },
+        {
           "path": "registry/ouro/lib/ouro/testing/rotate.touch.test.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/testing/rotate.touch.test.ts"
@@ -2384,6 +2394,11 @@
           "path": "registry/ouro/components/ouro/sheet/sheet.test.tsx",
           "type": "registry:component",
           "target": "@components/ouro/sheet/sheet.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/sheet/sheet.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/sheet/sheet.touch.test.tsx"
         },
         {
           "path": "registry/ouro/e2e/ouro/sheet.spec.ts",

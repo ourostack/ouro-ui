@@ -439,9 +439,10 @@ export function Command(props: CommandProps): JSX.Element {
       ) : (
         <DialogRoot open={isOpenNow} onOpenChange={(next) => setOpen(next)}>
           <DialogPortal>
-            <DialogBackdrop />
+            <DialogBackdrop data-ouro-instant="" />
             <DialogViewport>
               <DialogPopupUnchecked
+                data-ouro-instant=""
                 ref={popupRef}
                 size="lg"
                 className={className}
