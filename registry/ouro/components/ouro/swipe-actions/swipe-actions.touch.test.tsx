@@ -112,16 +112,22 @@ async function restFinger() {
   await expect.poll(() => performance.now() - since).toBeGreaterThan(150);
 }
 
-/** The same swipe with a finger that comes to rest before it lifts, so the distance decides. */
+/**
+ * The same swipe, slow enough that the distance decides: 600ms from touch-down to lift, as
+ * the page's timestamps say, which is under half the flick speed. Its events are sent all
+ * at once. Sent one command at a time, a busy machine could keep the finger within 10px of
+ * where it went down for half a second, and that is a long press: the actions menu opened
+ * over the row and took the next touches.
+ */
 async function slowSwipe(row: HTMLElement, dx: number) {
   const [x, y] = middle(row);
-  try {
-    await commands.touchStep({ type: "touchStart", x, y });
-    for (let step = 1; step <= 10; step++) await commands.touchStep({ type: "touchMove", x: x + (dx * step) / 10, y });
-    await restFinger();
-  } finally {
-    await commands.touchStep({ type: "touchEnd" });
-  }
+  await commands.touchDrag({ from: [x, y], to: [x + dx, y], steps: 10, durationMs: 600 });
+  noMenu();
+}
+
+/** No long press opened the actions menu: a held finger in these tests always moves on in time. */
+function noMenu() {
+  expect(document.querySelector('[role="menu"]'), "a long press opened the actions menu").toBeNull();
 }
 
 /** Whether a tap at (x, y) lands on `target`. */
@@ -233,8 +239,10 @@ describe("SwipeActions on a phone", () => {
     expect(row.hasAttribute("data-ouro-settling")).toBe(true);
     try {
       // A second swipe begins before the row has come to rest: the row is the finger's from where it was.
+      // Its first move is past the 10px a long press allows, so a slow machine cannot turn the press into one.
       await commands.touchStep({ type: "touchStart", x, y });
-      for (let step = 1; step <= 4; step++) await commands.touchStep({ type: "touchMove", x: x + step * 5, y });
+      for (const dx of [12, 20]) await commands.touchStep({ type: "touchMove", x: x + dx, y });
+      noMenu();
       await expect.poll(() => row.hasAttribute("data-dragging")).toBe(true);
       expect(row.hasAttribute("data-ouro-settling")).toBe(false);
       // It was taken from where the spring had it, and moves the finger's 20px from there once the last move arrives.
