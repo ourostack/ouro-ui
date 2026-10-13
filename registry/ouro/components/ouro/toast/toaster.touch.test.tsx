@@ -466,11 +466,12 @@ it("waits while a finger is on a toast, and fans the stack out, as a mouse over 
   document.body.append(elsewhere);
   nodes.push(elsewhere);
   await renderToaster();
-  // The toast's own clock is the test's: on a loaded runner, waiting for it to slide in could
-  // take longer than its 1.5s, and it would be gone before the finger came down.
+  const item = await show("Held", { id: "held-toast", duration: 0 });
+  // Arm the countdown after the entrance: Vitest's readiness polls advance fake timers too.
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
   try {
-    const item = await show("Held", { duration: 1500 });
+    const expiresAt = Date.now() + 1500;
+    await act(async () => toast("Held", { id: "held-toast", duration: 1500 }));
     const region = document.querySelector<HTMLElement>('[data-ouro="toaster"]')!;
     expect(region.hasAttribute("data-expanded")).toBe(false);
     const [x, y] = grip(item);
@@ -479,8 +480,10 @@ it("waits while a finger is on a toast, and fans the stack out, as a mouse over 
     const record = (event: MouseEvent) => moves.push([event.clientX, event.clientY]);
     addEventListener("mousemove", record);
     cleanups.push(() => removeEventListener("mousemove", record));
+    let remaining: number;
     try {
       await commands.touchStep({ type: "touchStart", x, y });
+      remaining = expiresAt - Date.now();
       await expect.poll(() => region.hasAttribute("data-expanded")).toBe(true);
       expect(moves.length).toBe(1);
       expect(Math.abs(moves[0]![0] - x) < 1 && Math.abs(moves[0]![1] - y) < 1).toBe(true);
@@ -491,9 +494,12 @@ it("waits while a finger is on a toast, and fans the stack out, as a mouse over 
       await commands.touchStep({ type: "touchEnd" });
     }
     // A touch elsewhere lets the toasts go on: the rest of its time, and it closes.
+    const resumedAt = Date.now();
     await commands.tap('[data-testid="elsewhere"]');
     await expect.poll(() => region.hasAttribute("data-expanded")).toBe(false);
-    await act(async () => vi.advanceTimersByTime(1499));
+    const untilLastMillisecond = remaining - (Date.now() - resumedAt) - 1;
+    expect(untilLastMillisecond).toBeGreaterThanOrEqual(0);
+    await act(async () => vi.advanceTimersByTime(untilLastMillisecond));
     expect(item.hasAttribute("data-ending-style")).toBe(false);
     await act(async () => vi.advanceTimersByTime(1));
   } finally {
