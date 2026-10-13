@@ -302,7 +302,8 @@ describe("SwipeActions on a phone", () => {
     const { rows } = await renderList();
     const row = rows[0]!;
     row.id = "first-row";
-    await swipe(row, -120);
+    // A finger that rests before it lifts: a flick can leave Chromium flinging, and the tap that stops a fling is not a tap.
+    await slowSwipe(row, -120);
     await expect.poll(() => row.getAttribute("data-open")).toBe("trailing");
     await settled(row);
     expect(location.hash).toBe("");
@@ -363,7 +364,8 @@ describe("SwipeActions on a phone", () => {
     const { rows, calls } = await renderList();
     const row = rows[1]!;
     row.id = "second-row";
-    await swipe(row, -120);
+    // A finger that rests before it lifts: a flick can leave Chromium flinging, and the tap that stops a fling is not a tap.
+    await slowSwipe(row, -120);
     await expect.poll(() => row.getAttribute("data-open")).toBe("trailing");
     await settled(row);
     await commands.tap('#second-row [data-ouro-swipe-actions-side="trailing"] button:first-child');
