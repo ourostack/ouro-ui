@@ -11,6 +11,9 @@ test("rotate names the test that had the page zoomed", async () => {
   await commands.setPageZoom(2);
   expect(await commands.pageZoom()).toBeCloseTo(2);
   try {
+    // Touch commands find their events on a zoomed page too.
+    await commands.touchStep({ type: "touchStart", x: 100, y: 100 });
+    await commands.touchStep({ type: "touchEnd" });
     await expect(rotate(844, 390)).rejects.toThrow(
       '"rotate names the test that had the page zoomed" had the page zoomed to 2.00 when rotate(844, 390) ran',
     );
@@ -24,7 +27,9 @@ test("rotate names the test that had the page zoomed", async () => {
 });
 
 const nodes: Element[] = [];
+const cleanups: Array<() => void> = [];
 afterEach(() => {
+  for (const cleanup of cleanups.splice(0)) cleanup();
   for (const node of nodes.splice(0)) node.remove();
 });
 
@@ -94,6 +99,71 @@ test("lifts a finger a test left down before the next gesture starts", async () 
   await commands.touchStep({ type: "touchEnd" });
   expect(starts()).toEqual(["pointerdown", "touchstart"]);
   expect(element.scrollLeft).toBeGreaterThan(0);
+});
+
+/** Records each touchmove and touchend the page handles, as its type and the finger's x. */
+function watchTouches(): string[] {
+  const seen: string[] = [];
+  const listener = (event: TouchEvent) => seen.push(`${event.type} ${Math.round(event.changedTouches[0]!.clientX)}`);
+  for (const type of ["touchmove", "touchend"] as const) addEventListener(type, listener, true);
+  cleanups.push(() => {
+    for (const type of ["touchmove", "touchend"] as const) removeEventListener(type, listener, true);
+  });
+  return seen;
+}
+
+test("touchStep resolves once the page has handled its event, also a move during a scroll", async () => {
+  scroller();
+  const seen = watchTouches();
+  await commands.touchStep({ type: "touchStart", x: 260, y: 100 });
+  try {
+    // Within Chromium's slop distance of the touchstart: Chromium keeps these from the page.
+    await commands.touchStep({ type: "touchMove", x: 256, y: 100 });
+    await commands.touchStep({ type: "touchMove", x: 256, y: 100 });
+    expect(seen).toEqual([]);
+    // The first of these starts the scroll. Chromium then hands the page at most one
+    // touchmove every 200ms, so each later one is still queued when CDP resolves.
+    for (const x of [200, 180, 160, 140]) {
+      await commands.touchStep({ type: "touchMove", x, y: 100 });
+      expect(seen.at(-1)).toBe(`touchmove ${x}`);
+    }
+  } finally {
+    await commands.touchStep({ type: "touchEnd" });
+  }
+  expect(seen.at(-1)).toBe("touchend 140");
+});
+
+test("touchDrag resolves when the gesture removes its target, whose touchend never reaches window", async () => {
+  const element = scroller();
+  element.style.overflowX = "hidden";
+  element.addEventListener("touchmove", () => element.remove(), { once: true });
+  const seen = watchTouches();
+  await commands.touchDrag({ from: [260, 100], to: [40, 100], steps: 10 });
+  expect(seen.filter((entry) => entry.startsWith("touchend"))).toEqual([]);
+  // The next gesture starts clean.
+  const next = scroller();
+  await swipe();
+  await expect.poll(() => next.scrollLeft).toBeGreaterThan(100);
+});
+
+test("a touch the page never handles throws, naming the event and what the page saw", async () => {
+  const frame = document.createElement("iframe");
+  Object.assign(frame.style, { position: "absolute", top: "0", left: "0", width: "300px", height: "200px", border: "0" });
+  frame.srcdoc = "<body style='margin:0'><div style='height:200px'></div></body>";
+  const loaded = new Promise((resolve) => frame.addEventListener("load", resolve, { once: true }));
+  document.body.append(frame);
+  nodes.push(frame);
+  await loaded;
+  await commands.touchStep({ type: "touchStart", x: 100, y: 100 });
+  // The finger's target goes away with its frame, so no page gets the touchend.
+  frame.remove();
+  await expect(commands.touchStep({ type: "touchEnd" })).rejects.toThrow(
+    "touchStep: the page did not handle the touchEnd at (100, 100) within 5000ms. It handled: no touch events. Is the page visible and rendering, and is the point inside it?",
+  );
+  // The next gesture starts clean.
+  const element = scroller();
+  await swipe();
+  await expect.poll(() => element.scrollLeft).toBeGreaterThan(100);
 });
 
 test("touchDrag with durationMs spans exactly that long in the page's event timestamps", async () => {
