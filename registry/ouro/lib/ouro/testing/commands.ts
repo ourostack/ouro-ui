@@ -440,24 +440,19 @@ async function sendTouch(
   } finally {
     if (watchdog !== undefined) clearTimeout(watchdog);
   }
-  if (handler) {
-    await tidy();
-    return handler;
-  }
+  // Capture failure-time diagnostics, then settle frozen waits before collecting their observations.
+  const states = handler ? Promise.resolve([]) : Promise.all(watchTouch<FrameState>(page, "inspect", expected, TOUCH_TIDY_MS));
+  await tidy();
+  if (handler) return handler;
   const answers = (await Promise.all(waits)).filter((answer): answer is FrameAnswer<TouchSeen> => answer !== undefined);
   const results = answers.map((answer) => answer.value ?? none);
-  if (expected.type === "touchMove" && !results.some((result) => result.moved)) {
-    await tidy();
-    return undefined;
-  }
-  // Say what state each frame is in before the watchers go.
-  const states = await Promise.all(watchTouch<FrameState>(page, "inspect", expected, TOUCH_TIDY_MS));
-  await tidy();
+  if (expected.type === "touchMove" && !results.some((result) => result.moved)) return undefined;
+  const inspected = await states;
   const saw = results.flatMap((result) => result.saw);
   // What was watched: every frame, and every call into one that failed, with its reason.
   const started = await Promise.all([...calls.values()].map(now));
-  const failed = [...started, ...answers, ...states].flatMap((answer) => (answer?.error !== undefined ? [answer] : []));
-  const frames = states.map(({ url, value }) => (value ? `${url} (${value.watching ? "watching" : "no watcher"}, ${value.readyState})` : `${url} (not reachable)`));
+  const failed = [...started, ...answers, ...inspected].flatMap((answer) => (answer?.error !== undefined ? [answer] : []));
+  const frames = inspected.map(({ url, value }) => (value ? `${url} (${value.watching ? "watching" : "no watcher"}, ${value.readyState})` : `${url} (not reachable)`));
   throw new Error(
     `${command}: the page did not handle the ${expected.type} at (${Math.round(expected.x)}, ${Math.round(expected.y)}) within ${TOUCH_HANDLED_TIMEOUT_MS}ms. ` +
       `It handled: ${saw.length > 0 ? saw.join(" ") : "no touch events"}. Is the page visible and rendering, and is the point inside it? ` +

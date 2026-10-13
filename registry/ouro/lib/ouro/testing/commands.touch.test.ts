@@ -363,6 +363,35 @@ test("a missing touch event remains bounded while the page clock is frozen", asy
   await expect.poll(() => element.scrollLeft).toBeGreaterThan(100);
 });
 
+test("a missing later touchmove rejects while the page clock is frozen", async () => {
+  const element = scroller();
+  let seenMoves = 0;
+  let suppress = false;
+  const listener = (event: TouchEvent) => {
+    if (suppress) event.stopImmediatePropagation();
+    else seenMoves++;
+  };
+  addEventListener("touchmove", listener, { capture: true });
+  cleanups.push(() => removeEventListener("touchmove", listener, { capture: true }));
+  try {
+    await commands.touchStep({ type: "touchStart", x: 260, y: 100 });
+    await commands.touchStep({ type: "touchMove", x: 200, y: 100 });
+    await expect.poll(() => seenMoves).toBeGreaterThan(0);
+    suppress = true;
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    await expect(commands.touchStep({ type: "touchMove", x: 160, y: 100 })).rejects.toThrow(
+      "touchStep: the page did not handle the touchMove at (160, 100) within 5000ms.",
+    );
+  } finally {
+    vi.useRealTimers();
+    suppress = false;
+    removeEventListener("touchmove", listener, { capture: true });
+    await commands.touchStep({ type: "touchEnd" });
+  }
+  await swipe();
+  await expect.poll(() => element.scrollLeft).toBeGreaterThan(100);
+});
+
 test("touchDrag with durationMs spans exactly that long in the page's event timestamps", async () => {
   scroller();
   const stamps: Record<string, number> = {};
