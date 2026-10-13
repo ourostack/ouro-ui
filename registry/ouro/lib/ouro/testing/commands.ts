@@ -106,6 +106,15 @@ const TOUCH_HANDLED_TIMEOUT_MS = 5000;
 const TOUCH_WATCH = `(action, expected) => {
   const view = window;
   let state = view.__ouroTouch;
+  if (action === "inspect") {
+    let unwatched = 0;
+    for (let index = 0; index < view.length; index++) {
+      try {
+        if (!view[index].__ouroTouch) unwatched++;
+      } catch {}
+    }
+    return { href: view.location.href, readyState: view.document.readyState, watching: Boolean(state), children: view.length, unwatched };
+  }
   if (!state) {
     if (action !== "expect") return { seen: false, moved: false, saw: [] };
     const types = ["touchstart", "touchmove", "touchend", "touchcancel"];
@@ -193,10 +202,31 @@ interface TouchSeen {
   saw: string[];
 }
 
-/** Calls `TOUCH_WATCH` in every frame of the page. A frame that goes away mid-call answers `missing`. */
-function watchTouch<T>(page: Page, action: "expect" | "wait" | "settle", point: TouchPoint, missing: T): Promise<T>[] {
+type TouchWatchAction = "expect" | "wait" | "settle" | "inspect";
+/** One frame's answer to a `TOUCH_WATCH` call, or why the call failed. */
+interface FrameAnswer<T> {
+  url: string;
+  action: TouchWatchAction;
+  value?: T;
+  error?: string;
+}
+interface FrameState {
+  href: string;
+  readyState: string;
+  watching: boolean;
+  children: number;
+  unwatched: number;
+}
+
+/** Calls `TOUCH_WATCH` in every frame of the page Playwright lists. A failed call is kept, with its reason. */
+function watchTouch<T>(page: Page, action: TouchWatchAction, point: TouchPoint): Promise<FrameAnswer<T>>[] {
   const call = `(${TOUCH_WATCH})(${JSON.stringify(action)}, ${JSON.stringify({ ...point, type: point.type.toLowerCase() })})`;
-  return page.frames().map((frame) => frame.evaluate<T>(call).catch(() => missing));
+  return page.frames().map((frame) =>
+    frame.evaluate<T>(call).then(
+      (value) => ({ url: frame.url(), action, value }),
+      (error: unknown) => ({ url: frame.url(), action, error: (error instanceof Error ? error.message : String(error)).split("\n")[0]! }),
+    ),
+  );
 }
 
 /**
@@ -218,26 +248,46 @@ function watchTouch<T>(page: Page, action: "expect" | "wait" | "settle", point: 
  */
 async function sendTouch(command: string, page: Page, expected: TouchPoint, send: () => Promise<unknown>) {
   const none: TouchSeen = { seen: false, moved: false, saw: [] };
-  const inFrames = <T>(action: "expect" | "wait" | "settle", missing: T) => watchTouch(page, action, expected, missing);
-  await Promise.all(inFrames("expect", null));
+  const expects = await Promise.all(watchTouch<null>(page, "expect", expected));
   let results: TouchSeen[];
+  let answers: FrameAnswer<TouchSeen>[];
+  let states: FrameAnswer<FrameState>[] = [];
   try {
     await send();
-    const waits = inFrames("wait", none);
+    const waits = watchTouch<TouchSeen>(page, "wait", expected);
     // The first frame to see it ends the wait in the others.
-    await Promise.race([Promise.all(waits), ...waits.map((wait) => wait.then((result) => (result.seen ? result : new Promise(() => {}))))]);
-    await Promise.all(inFrames("settle", null));
-    results = await Promise.all(waits);
+    let seen = false;
+    const firstSeen = waits.map((wait) => wait.then((answer) => (answer.value?.seen ? (seen = true) : new Promise(() => {}))));
+    await Promise.race([Promise.all(waits), ...firstSeen]);
+    if (!seen) {
+      // Every wait has ended. If that is a failure, say what state each frame is in before the watchers go.
+      results = (await Promise.all(waits)).map((answer) => answer.value ?? none);
+      if (expected.type !== "touchMove" || results.some((result) => result.moved)) {
+        states = await Promise.all(watchTouch<FrameState>(page, "inspect", expected));
+      }
+    }
+    await Promise.all(watchTouch(page, "settle", expected));
+    answers = await Promise.all(waits);
+    results = answers.map((answer) => answer.value ?? none);
   } catch (error) {
-    await Promise.all(inFrames("settle", null));
+    await Promise.all(watchTouch(page, "settle", expected));
     throw error;
   }
   if (results.some((result) => result.seen)) return;
   if (expected.type === "touchMove" && !results.some((result) => result.moved)) return;
   const saw = results.flatMap((result) => result.saw);
+  // What was watched: every frame, and every call into one that failed, with its reason.
+  const failed = [...expects, ...answers, ...states].filter((answer) => answer.error !== undefined);
+  const frames = states.map(({ url, value }) =>
+    value
+      ? `${url} (${value.watching ? "watching" : "no watcher"}, ${value.readyState}${value.children > 0 ? `, ${value.children} child frames, ${value.unwatched} of them with no watcher` : ""})`
+      : `${url} (not reachable)`,
+  );
   throw new Error(
     `${command}: the page did not handle the ${expected.type} at (${Math.round(expected.x)}, ${Math.round(expected.y)}) within ${TOUCH_HANDLED_TIMEOUT_MS}ms. ` +
-      `It handled: ${saw.length > 0 ? saw.join(" ") : "no touch events"}. Is the page visible and rendering, and is the point inside it?`,
+      `It handled: ${saw.length > 0 ? saw.join(" ") : "no touch events"}. Is the page visible and rendering, and is the point inside it? ` +
+      `Watched ${expects.length} ${expects.length === 1 ? "frame" : "frames"} before the touch; at the end: ${frames.join("; ")}. ` +
+      `Failed calls: ${failed.length > 0 ? failed.map((answer) => `${answer.action} in ${answer.url}: ${answer.error}`).join("; ") : "none"}.`,
   );
 }
 
@@ -392,7 +442,7 @@ async function releaseFinger(command: string, page: Page, session: CDPSession) {
   if (finger.handled) return sendTouch(command, page, end, send);
   // A page that never handled the touchstart gets no touchend to wait for.
   await send();
-  await Promise.all(watchTouch(page, "settle", end, null));
+  await Promise.all(watchTouch(page, "settle", end));
 }
 
 /**
