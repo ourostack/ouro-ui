@@ -4,9 +4,10 @@ import { Form as BaseForm } from "@base-ui/react/form";
 import { isValidElement, useCallback, useEffect, useMemo, useRef, useState, type JSX, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { formErrorIdentity, type FormErrorIdentity, type FormErrorValue, type FormErrors } from "@/registry/ouro/lib/ouro/form-errors";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
-import { errorMessageKey, errorMessages, FormErrorsContext, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
+import { errorMessageKey, errorMessages, FormErrorsContext } from "@/registry/ouro/lib/ouro/use-field";
 
 /**
  * Errors by field name: one message, or several as an array. A React Router action returns
@@ -14,12 +15,16 @@ import { errorMessageKey, errorMessages, FormErrorsContext, type ErrorMessages }
  * messages about the whole form. A key may hold nothing (`undefined`, `null`, an empty string
  * or list), so an object mapped from an action's answer needs no cleanup.
  */
-export type FormErrors = Record<string, ErrorMessages | null | undefined>;
+export type { FormErrors } from "@/registry/ouro/lib/ouro/form-errors";
 
-/** Props for {@link Form}: a `<form>`'s attributes, `errors`, and Base UI Form's `render`. */
+/** Props for {@link Form}: a `<form>`'s attributes, one complete `errors` value, and Base UI Form's `render`. */
 export type FormProps = Omit<BaseForm.Props, "className" | "errors" | "children"> & {
   /**
-   * Errors by field name, usually from your server action: `errors={actionData?.errors}`.
+   * Errors by field name. Bind an accepted server answer inside this single prop:
+   * `errors={formErrors(actionData, actionData?.errors)}` (import `formErrors` from
+   * `@/lib/ouro/form-errors`). Each changed answer, including an equal refusal, restores
+   * cleared messages, replaces its alert and moves focus once. Rebuilding the value or its
+   * mapped messages with the same answer never counts as arrival.
    * Each one shows on the field with that `name`, which gets `aria-invalid` and links the
    * message, in the server HTML too. A field's own `error` prop wins over it, and a message
    * goes away once the user changes that field. When new errors arrive, focus moves to the
@@ -28,25 +33,29 @@ export type FormProps = Omit<BaseForm.Props, "className" | "errors" | "children"
    * page hydrates, and warns in development. A message is text or a React node (a message
    * with a link), and an array is several messages.
    *
-   * Errors are compared by content, so an object built while rendering
-   * (`errors={{ ...actionData?.errors, form: actionData?.general }}`) is the same errors
-   * until its content changes: it shows no cleared message again and moves no focus, also
-   * while the next submit is pending. To show an answer again when it equals the last one,
-   * pass `result`.
+   * With `formErrors`, a field stays cleared for that answer even if its key disappears
+   * and is re-added. Uncleared messages use the latest projection, including new React
+   * nodes/handlers, without resetting the mask, forcing an alert remount or moving focus.
+   * No answer (`null`/`undefined`) is not arrival and preserves the established mask.
+   * Cached/reused or primitive answers need `{ key: acceptedAnswerKey }`, advanced on
+   * actual acceptance, never submit start. Select this form's accepted source yourself;
+   * Form does not infer ownership or cancellation from a router's global data.
+   *
+   * Plain records still work for display/local errors and are compared by content. Fresh
+   * equal records cannot identify equal new answers; use `formErrors` for action answers,
+   * including the initial undefined-answer render. Changing between raw and answer-bearing
+   * values establishes a baseline with the existing mask, not an arrival.
+   * Construct the value beside Form on server and client. JSON/spread/structured cloning
+   * or server-component transport loses opaque identity and leaves a plain message record;
+   * reconstruct using the locally accepted source or a safely transported acceptance key.
    *
    * These errors only show: they never block the next submit, so the user can always send
    * the form again (a server error may be fixed by changing another field, or by trying
    * again). The browser's own checks (`required`, `type="email"`) still block a submit.
    */
-  errors?: FormErrors | null | undefined;
-  /**
-   * The action's result the `errors` came from: `result={actionData}`. Each new result is a
-   * new answer, so its errors show again and focus moves to them even when they equal the
-   * last ones (the user cleared a message, then sent the same thing again). A re-render with
-   * the same result, such as the one a submit causes while it is pending, changes nothing.
-   * Without it, only errors whose content changed count as new.
-   */
-  result?: unknown;
+  errors?: FormErrors | FormErrorValue | null | undefined;
+  /** Not a prop. Bind the accepted answer inside `errors`: `errors={formErrors(answer, messages)}`. */
+  result?: { 'Use errors={formErrors(answer, messages)}': never };
   /** The fields and the submit button. */
   children: ReactNode;
   /**
@@ -60,6 +69,10 @@ export type FormProps = Omit<BaseForm.Props, "className" | "errors" | "children"
 };
 
 const EMPTY: FormErrors = {};
+
+function maskErrors(projection: FormErrors | null | undefined, cleared: Set<string>): FormErrors {
+  return Object.fromEntries(Object.entries(projection ?? EMPTY).filter(([name]) => !cleared.has(name)));
+}
 
 /**
  * The message at the top of the form, for the `form` key and keys no field claims: the
@@ -112,7 +125,9 @@ function entryPoint(element: HTMLElement): HTMLElement {
  * A form that validates with the browser's own constraints (`required`, `type="email"`,
  * `pattern`) and shows server errors on the matching fields. Pass `errors` straight from
  * your action; each message lands on the field with that `name`, and focus moves to the
- * first field with an error. Server errors only show: unlike the browser's checks they
+ * first field with an error. Bind an accepted action answer with the framework-free
+ * `formErrors` constructor in `@/lib/ouro/form-errors`; it adds no server protocol or router
+ * dependency. Server errors only show: unlike the browser's checks they
  * never block the next submit, so the user can always send the form again. A Form submits
  * only itself: its submit event stops there, so a Form in a sheet inside another Form
  * never submits the outer one. It renders a `<form>`, so `action` and `method` pass
@@ -126,15 +141,28 @@ function entryPoint(element: HTMLElement): HTMLElement {
  *
  * The keys of `errors` are your fields' `name`s, and `form` is the message about the whole
  * form. An action that answers with other keys is mapped where you pass them:
- * `errors={{ form: data?.errors?.general, email: data?.errors?.email }}`. A key that no field
+ * `errors={formErrors(data, { form: data?.errors?.general, email: data?.errors?.email })}`. A key that no field
  * in this form is named shows at the top of the form and warns in development with the key,
  * this form's field names and the fix; with two forms on one route, pass each only its own
  * keys.
  *
- * Errors are compared by content, so an object built while rendering is fine: a message the
- * user cleared stays cleared until errors with other content arrive, or a new `result`. Pass
- * `result={actionData}` so an answer equal to the last one, after the user fixed and resent
- * the form, shows again when it arrives and not while the submit is pending.
+ * `formErrors(answer, messages)` separates arrival from presentation. Same accepted answer:
+ * the clear mask persists, even through empty/omitted maps or a temporarily absent answer,
+ * and the latest uncleared messages render without new focus or a forced alert replacement.
+ * New accepted answer: reset the mask and create one arrival, even when messages are equal.
+ * Cached/reused answers require `{ key: acceptedAnswerKey }`, advanced only on actual
+ * acceptance. Form never guesses arrival from submit start, waits or framework navigation.
+ * The caller chooses accepted, form-local data; passing the same changing route-global
+ * source to two Forms does not automatically partition answers between them.
+ *
+ * Plain `errors={{ email: "Taken." }}` remains compatible and content-only: equal raw maps
+ * cannot prove a new answer. Use the constructor from the initial render for action answers;
+ * switching representations seeds a baseline and preserves clears rather than inventing
+ * arrival. Opaque identity does not survive JSON, spread, structured cloning or server
+ * component transport. Reconstruct beside Form in each environment with the locally
+ * accepted object or a safe explicit acceptance key; the returned value never retains or
+ * serializes the unselected source payload. Changed text in an existing alert may still
+ * produce ordinary live-region speech, but presentation is not a new answer generation.
  *
  * The message about the whole form is an alert (`role="alert"`). It is in the page only
  * while there is a message, and each answer adds a new one with its text already in it,
@@ -156,8 +184,9 @@ function entryPoint(element: HTMLElement): HTMLElement {
  * @see https://ourostack.github.io/ouro-ui/docs/form
  *
  * @example
+ * import { formErrors } from "@/lib/ouro/form-errors";
  * const actionData = useActionData<typeof action>();
- * <Form method="post" errors={actionData?.errors} result={actionData} render={<RouterForm />}>
+ * <Form method="post" errors={formErrors(actionData, actionData?.errors)} render={<RouterForm />}>
  *   <TextField label="Email" name="email" type="email" required />
  *   <Button type="submit">Save</Button>
  * </Form>
@@ -165,7 +194,7 @@ function entryPoint(element: HTMLElement): HTMLElement {
  * @example
  * // The action answers { errors: { general, email } }: map its keys to this form's field names.
  * const errors = actionData?.errors;
- * <Form method="post" errors={{ form: errors?.general, email: errors?.email }} result={actionData} render={<RouterForm />}>
+ * <Form method="post" errors={formErrors(actionData, { form: errors?.general, email: errors?.email })} render={<RouterForm />}>
  *   <TextField label="Email" name="email" type="email" required />
  *   <Button type="submit">Subscribe</Button>
  * </Form>
@@ -189,25 +218,39 @@ export function Form(props: FormProps): JSX.Element {
       ? "style fields in your theme (--input, --ring, --radius)"
       : /* istanbul ignore next @preserve -- production only */ "",
   );
-  // The errors the fields show: the prop, less the fields the user has changed since. New
-  // errors replace them all, during render, so the server HTML and the first client render
-  // agree. Errors are new when their content changed, or when they come with a new `result`
-  // (the next action's answer, which may repeat the last). An equal object otherwise (one
-  // built while rendering, also in the re-render a pending submit causes) is the same errors:
-  // it shows no cleared message again and moves no focus.
-  const [shown, setShown] = useState({ source: errorsProp, result, errors: errorsProp, arrivals: 0 });
-  if (result !== shown.result || (errorsProp !== shown.source && !sameContent(errorsProp ?? EMPTY, shown.source ?? EMPTY))) {
-    setShown({ source: errorsProp, result, errors: errorsProp, arrivals: shown.arrivals + 1 });
+  const identity = formErrorIdentity(errorsProp);
+  const mode = identity ? "answer" : "raw";
+  const accepted = identity?.kind === "none" ? undefined : identity;
+  const [shown, setShown] = useState({
+    mode,
+    source: errorsProp,
+    identity: accepted as FormErrorIdentity | undefined,
+    rawErrors: errorsProp,
+    cleared: new Set<string>(),
+    arrivals: 0,
+  });
+  if (mode !== shown.mode) {
+    // A representation switch establishes a baseline, not an accepted answer.
+    setShown({ ...shown, mode, source: errorsProp, identity: accepted, rawErrors: maskErrors(errorsProp, shown.cleared) });
+  } else if (accepted && (!shown.identity || accepted.kind !== shown.identity.kind || !Object.is(accepted.value, shown.identity.value))) {
+    // Answer identity is the sole arrival authority; projection changes never reset a mask.
+    setShown({ ...shown, source: errorsProp, identity: accepted, cleared: new Set(), arrivals: shown.arrivals + 1 });
+  } else if (mode === "raw" && errorsProp !== shown.source && !sameContent(errorsProp ?? EMPTY, shown.source ?? EMPTY)) {
+    setShown({ ...shown, source: errorsProp, rawErrors: errorsProp, cleared: new Set(), arrivals: shown.arrivals + 1 });
   }
-  const errors = shown.errors;
+  const errors = useMemo(
+    () => mode === "answer" ? maskErrors(errorsProp, shown.cleared) : shown.rawErrors,
+    [mode, errorsProp, shown.cleared, shown.rawErrors],
+  );
   const clear = useCallback((name: string) => {
+    if (!errors || !Object.hasOwn(errors, name)) return;
     setShown((current) => {
-      if (!current.errors || !Object.hasOwn(current.errors, name)) return current;
-      const next = { ...current.errors };
+      if (current.cleared.has(name)) return current;
+      const next: FormErrors = { ...current.rawErrors };
       delete next[name];
-      return { ...current, errors: next };
+      return { ...current, rawErrors: next, cleared: new Set([...current.cleared, name]) };
     });
-  }, []);
+  }, [errors, setShown]);
 
   // The names of the fields in the form, which claim their errors. Fields register once
   // mounted, so the server and the first client render show only the `form` key at the
@@ -238,6 +281,7 @@ export function Form(props: FormProps): JSX.Element {
     process.env.NODE_ENV !== "production"
       ? () => [
           validationErrors !== undefined && ["validationErrors is not a prop", "<Form errors={actionData?.errors}>"],
+          (result !== undefined || Object.hasOwn(props, "result")) && ["result is not a prop", "errors={formErrors(answer, messages)}"],
           ...Object.keys(errorsProp ?? EMPTY)
             .filter((key) => key !== FORM_KEY && !names.current.has(key) && errorMessages(errorsProp![key]).length > 0)
             .map((key) => unclaimedWarning(key, [...names.current.keys()])),
@@ -254,10 +298,10 @@ export function Form(props: FormProps): JSX.Element {
   useEffect(() => {
     if (focusedFor.current === shown.arrivals) return;
     focusedFor.current = shown.arrivals;
-    if (Object.keys(shown.source ?? EMPTY).length === 0) return;
+    if (!Object.values(errors ?? EMPTY).some((message) => errorMessages(message).length > 0)) return;
     const invalid = [...formRef.current!.querySelectorAll<HTMLElement>('[aria-invalid="true"]')].find(focusable);
     (invalid ? entryPoint(invalid) : messageRef.current)?.focus();
-  }, [shown.arrivals, shown.source]);
+  }, [shown.arrivals, errors]);
 
   // A submit stops at its own Form: React bubbles events through portals, so a Form in a
   // sheet would otherwise reach the Form the sheet sits in.

@@ -10,6 +10,8 @@ import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { SheetPopup } from "@/registry/ouro/components/ouro/sheet/sheet-parts";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
+import { Form } from "@/registry/ouro/components/ouro/form/form";
+import { formErrors } from "@/registry/ouro/lib/ouro/form-errors";
 
 const Untyped = <P,>(component: P) => component as unknown as (props: Record<string, unknown>) => null;
 
@@ -23,4 +25,5 @@ export const elements = [
   createElement(Untyped(Dialog), { title: "Dialog", className: "bg-red-500", side: "left", trigger: createElement(Button, null, "Open") }, "Body"),
   createElement(Untyped(ConfirmDialog), { title: "Delete?", confirmLabel: "Delete", onConfirm: () => Promise.reject(new Error("x")), destructive: true, trigger: createElement(Button, null, "Delete") }),
   createElement(DialogPopup),
+  createElement(Untyped(Form), { errors: formErrors({}, {}), result: {} }, "Fields"),
 ];

@@ -212,6 +212,11 @@
           "target": "@lib/ouro/floating.ts"
         },
         {
+          "path": "registry/ouro/lib/ouro/form-errors.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/form-errors.ts"
+        },
+        {
           "path": "registry/ouro/lib/ouro/key-shortcuts.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/key-shortcuts.ts"
@@ -2190,6 +2195,11 @@
           "path": "registry/ouro/lib/ouro/floating.test.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/floating.test.ts"
+        },
+        {
+          "path": "registry/ouro/lib/ouro/form-errors.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/form-errors.test.ts"
         },
         {
           "path": "registry/ouro/lib/ouro/key-shortcuts.test.ts",

@@ -6,6 +6,7 @@ import { page, userEvent } from "vitest/browser";
 import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { FieldControl } from "@/registry/ouro/components/ouro/field/field-parts";
 import { Form, type FormErrors } from "@/registry/ouro/components/ouro/form/form";
+import { formErrors } from "@/registry/ouro/lib/ouro/form-errors";
 import { Select } from "@/registry/ouro/components/ouro/select/select";
 import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
@@ -66,7 +67,7 @@ afterEach(async () => {
  * resolves on the next task) and the action's errors come back as a prop.
  */
 function ActionPage({ result, onSent }: { result: FormErrors | undefined; onSent?: (data: FormData) => void }) {
-  // A new object for each answer, as an action returns, passed as the Form's result.
+  // A new object for each accepted answer, bound inside the complete errors value.
   const [answer, setAnswer] = useState<{ errors: FormErrors | undefined }>();
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -75,7 +76,7 @@ function ActionPage({ result, onSent }: { result: FormErrors | undefined; onSent
     setTimeout(() => setAnswer({ errors: result && { ...result } }));
   };
   return (
-    <Form method="post" errors={answer?.errors} result={answer} onSubmit={submit}>
+    <Form method="post" errors={formErrors(answer, answer?.errors)} onSubmit={submit}>
       <TextField label="Name" name="name" defaultValue="Ari" />
       <TextField label="Email" name="email" type="email" description="We never share it." defaultValue="ari@example.com" />
       <TextArea label="Bio" name="bio" />
@@ -329,7 +330,7 @@ describe("Form", () => {
      * pending, the page re-renders when the submit starts, and the errors are mapped inline.
      */
     let answer!: (data: Answer) => void;
-    function RouterPage({ withResult }: { withResult: boolean }) {
+    function RouterPage({ withAnswer }: { withAnswer: boolean }) {
       const [data, setData] = useState<Answer>();
       const [pending, setPending] = useState(false);
       useEffect(() => {
@@ -341,8 +342,9 @@ describe("Form", () => {
       }, []);
       return (
         <Form
-          errors={{ form: data?.general, email: data?.email }}
-          {...(withResult ? { result: data } : {})}
+          errors={withAnswer
+            ? formErrors(data, { form: data?.general, email: data?.email })
+            : { form: data?.general, email: data?.email }}
           onSubmit={(event: FormEvent<HTMLFormElement>) => {
             event.preventDefault();
             setPending(true);
@@ -367,7 +369,7 @@ describe("Form", () => {
     }
 
     it("keeps a cleared message cleared through the next submit's own re-render, then shows the equal answer and moves focus once when it arrives", async () => {
-      await render(<RouterPage withResult />);
+      await render(<RouterPage withAnswer />);
       await answeredAndCleared();
       nameInput().focus();
       await userEvent.click(page.getByRole("button", { name: "Save" }));
@@ -386,7 +388,7 @@ describe("Form", () => {
     });
 
     it("re-announces an equal form message only when the answer arrives", async () => {
-      const { host } = await render(<RouterPage withResult />);
+      const { host } = await render(<RouterPage withAnswer />);
       await userEvent.click(page.getByRole("button", { name: "Save" }));
       await act(async () => answer({ general: "Could not save." }));
       const first = host.querySelector('[role="alert"]')!;
@@ -401,8 +403,8 @@ describe("Form", () => {
       expect(second.textContent).toBe("Could not save.");
     });
 
-    it("without result, keeps a cleared message cleared through a submit's stale re-render", async () => {
-      await render(<RouterPage withResult={false} />);
+    it("with a raw record, keeps a cleared message cleared through a submit's stale re-render", async () => {
+      await render(<RouterPage withAnswer={false} />);
       await answeredAndCleared();
       nameInput().focus();
       await userEvent.click(page.getByRole("button", { name: "Save" }));
@@ -421,8 +423,7 @@ describe("Form", () => {
         const [clientError, setClientError] = useState<string | undefined>();
         return (
           <Form
-            errors={{ email: data.email }}
-            result={data}
+            errors={formErrors(data, { email: data.email })}
             onSubmit={(event: FormEvent<HTMLFormElement>) => {
               event.preventDefault();
               setClientError("Name is too short.");
@@ -474,6 +475,121 @@ describe("Form", () => {
       expect(emailInput().getAttribute("aria-invalid")).toBe("true");
       expect(host.querySelector('[role="alert"]')!.textContent).toBe("Could not subscribe.");
       expect(host.contains(document.activeElement)).toBe(false);
+    });
+  });
+
+  describe("answer-bearing errors", () => {
+    const fields = <>
+      <TextField label="Email" name="email" />
+      <TextField label="Name" name="name" />
+    </>;
+    const notes = { email: "Taken.", form: "Could not save." };
+
+    it("preserves a clear through omission, empty projections and absent answers, then restores it on the next accepted answer", async () => {
+      const answer = {};
+      const node = (source: object | undefined, messages: FormErrors) => <Form errors={formErrors(source, messages)}>{fields}</Form>;
+      const { input, rerender } = await render(node(answer, notes));
+      await userEvent.fill(page.getByRole("textbox", { name: "Email", exact: true }), "x");
+      for (const next of [node(answer, { form: "Updated text." }), node(answer, {}), node(undefined, {}), node(answer, notes)]) {
+        await rerender(next);
+        expect(input("email").getAttribute("aria-invalid")).toBeNull();
+      }
+      await rerender(node({}, notes));
+      expect(input("email").getAttribute("aria-invalid")).toBe("true");
+      await expect.poll(() => document.activeElement).toBe(input("email"));
+    });
+
+    it("renders new uncleared node props and handlers without restoring a masked error or replacing its alert", async () => {
+      const answer = {};
+      const before = vi.fn();
+      const after = vi.fn();
+      const node = (href: string, handler: () => void) => <Form errors={formErrors(answer, {
+        email: "Taken.", form: <a href={href} onClick={(event) => { event.preventDefault(); handler(); }}>Help</a>,
+      })}>{fields}</Form>;
+      const { host, input, rerender } = await render(node("/first", before));
+      const first = host.querySelector('[role="alert"]');
+      await userEvent.fill(page.getByRole("textbox", { name: "Email", exact: true }), "x");
+      input("name").focus();
+      await rerender(node("/next", after));
+      expect(input("email").getAttribute("aria-invalid")).toBeNull();
+      expect(host.querySelector('[role="alert"]')).toBe(first);
+      expect(first!.querySelector("a")!.getAttribute("href")).toBe("/next");
+      expect(document.activeElement).toBe(input("name"));
+      await userEvent.click(page.getByRole("link", { name: "Help" }));
+      expect(before).not.toHaveBeenCalled();
+      expect(after).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps a cached answer cleared for key zero, including rebuilt sources, and restores once for its next acceptance key", async () => {
+      const source = {};
+      const node = (answer: object, key: number) => <Form errors={formErrors(answer, notes, { key })}>{fields}</Form>;
+      const { host, input, rerender } = await render(node(source, 0));
+      const first = host.querySelector('[role="alert"]');
+      await userEvent.fill(page.getByRole("textbox", { name: "Email", exact: true }), "x");
+      await rerender(node({}, 0));
+      expect(input("email").getAttribute("aria-invalid")).toBeNull();
+      expect(host.querySelector('[role="alert"]')).toBe(first);
+      const focus = vi.spyOn(input("email"), "focus");
+      await rerender(node(source, 1));
+      expect(input("email").getAttribute("aria-invalid")).toBe("true");
+      expect(host.querySelector('[role="alert"]')).not.toBe(first);
+      expect(focus).toHaveBeenCalledTimes(1);
+    });
+
+    it("seeds representation switches without inventing arrival, losing a clear or moving focus", async () => {
+      const answer = {};
+      const opaque = () => <Form errors={formErrors(answer, notes)}>{fields}</Form>;
+      const { host, input, rerender } = await render(opaque());
+      const first = host.querySelector('[role="alert"]');
+      await userEvent.fill(page.getByRole("textbox", { name: "Email", exact: true }), "x");
+      input("name").focus();
+      await rerender(<Form errors={{ ...notes }}>{fields}</Form>);
+      expect(input("email").getAttribute("aria-invalid")).toBeNull();
+      expect(host.querySelector('[role="alert"]')).toBe(first);
+      await rerender(opaque());
+      expect(input("email").getAttribute("aria-invalid")).toBeNull();
+      expect(host.querySelector('[role="alert"]')).toBe(first);
+      expect(document.activeElement).toBe(input("name"));
+    });
+
+    it("keeps the first accepted mask through two changes flushed in the same React turn", async () => {
+      const { input } = await render(<Form errors={formErrors({}, notes)}>{fields}</Form>);
+      await act(() => {
+        const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+        for (const value of ["first", "second"]) {
+          setValue.call(input("email"), value);
+          input("email").dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      });
+      expect(input("email").getAttribute("aria-invalid")).toBeNull();
+    });
+
+    it("a keyed null success clears prior errors and never focuses a local-error-only field or creates an empty alert", async () => {
+      const { host, input, rerender } = await render(<Form errors={formErrors({}, notes)}>{fields}</Form>);
+      input("name").focus();
+      await rerender(<Form errors={formErrors(null, { email: undefined, form: null }, { key: "accepted-success" })}>
+        <>
+          <TextField label="Email" name="email" error="Local check." />
+          <TextField label="Name" name="name" />
+        </>
+      </Form>);
+      expect(host.querySelector('[role="alert"]')).toBeNull();
+      expect(document.activeElement).toBe(input("name"));
+    });
+
+    it.each([undefined, { ignored: true }])("drops the removed result prop %s and teaches the complete-errors fix without a second authority", async (result) => {
+      const answer = {};
+      const node = (projection: FormErrors) => <Form errors={formErrors(answer, projection)} result={result as never}>{fields}</Form>;
+      const { host, input, rerender } = await render(node(notes));
+      const first = host.querySelector('[role="alert"]');
+      await userEvent.fill(page.getByRole("textbox", { name: "Email", exact: true }), "x");
+      input("name").focus();
+      await rerender(node({ ...notes, form: "Updated presentation." }));
+      expect(input("email").getAttribute("aria-invalid")).toBeNull();
+      expect(host.querySelector('[role="alert"]')).toBe(first);
+      expect(host.querySelector("form")!.hasAttribute("result")).toBe(false);
+      expect(document.activeElement).toBe(input("name"));
+      expect(warn).toHaveBeenCalledWith("[ouro-ui] Form: result is not a prop. Fix: errors={formErrors(answer, messages)}.");
     });
   });
 

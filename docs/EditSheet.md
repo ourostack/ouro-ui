@@ -123,7 +123,7 @@ type ErrorMessages = ErrorMessage | ErrorMessage[];
 
 ### `FormErrors`
 
-Errors by field name: one message, or several as an array. A React Router action returns this shape. A message is text or a React node, so it can carry a link. The `form` key holds messages about the whole form. A key may hold nothing (`undefined`, `null`, an empty string or list), so an object mapped from an action's answer needs no cleanup.
+Display messages by field name; `form` holds messages about the whole form.
 
 ```ts
 type FormErrors = Record<string, ErrorMessages | null | undefined>;
