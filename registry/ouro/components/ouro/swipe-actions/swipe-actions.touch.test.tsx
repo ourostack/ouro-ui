@@ -238,11 +238,14 @@ describe("SwipeActions on a phone", () => {
     const flying = offset(row);
     expect(row.hasAttribute("data-ouro-settling")).toBe(true);
     try {
-      // A second swipe begins before the row has come to rest: the row is the finger's from where it was.
-      // Its first move is past the 10px a long press allows, so the press is a long press only if that move
-      // arrives over half a second after the touch: then the menu check fails, with that message.
-      await commands.touchStep({ type: "touchStart", x, y });
-      for (const dx of [12, 20]) await commands.touchStep({ type: "touchMove", x: x + dx, y });
+      // Command latency is not a held finger: keep the long-press clock still until movement cancels it.
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      try {
+        await commands.touchStep({ type: "touchStart", x, y });
+        for (const dx of [12, 20]) await commands.touchStep({ type: "touchMove", x: x + dx, y });
+      } finally {
+        vi.useRealTimers();
+      }
       noMenu();
       await expect.poll(() => row.hasAttribute("data-dragging")).toBe(true);
       expect(row.hasAttribute("data-ouro-settling")).toBe(false);
@@ -450,7 +453,8 @@ describe("SwipeActions on a phone", () => {
       expect(row.hasAttribute("data-dragging")).toBe(false);
       // The finger rests on the menu a moment before it lifts, longer than the half second after
       // opening in which Base UI ignores a press outside the menu.
-      await new Promise((resolve) => setTimeout(resolve, 600));
+      const openedAt = performance.now();
+      await expect.poll(() => performance.now() - openedAt).toBeGreaterThan(600);
     } finally {
       await commands.touchStep({ type: "touchEnd" });
     }
