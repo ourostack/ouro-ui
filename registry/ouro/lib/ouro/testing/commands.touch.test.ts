@@ -146,7 +146,91 @@ test("touchDrag resolves when the gesture removes its target, whose touchend nev
   await expect.poll(() => next.scrollLeft).toBeGreaterThan(100);
 });
 
-test("a touch into an iframe added just before it is handled, however late Playwright learns of the frame", async () => {
+/** An iframe at the top left of the page, 300x100 at `top`, showing `text`, appended to `parent`. */
+async function frameAt(parent: Node, top: number, source: { srcdoc: string } | { src: string }): Promise<HTMLIFrameElement> {
+  const frame = document.createElement("iframe");
+  Object.assign(frame.style, { position: "absolute", top: `${top}px`, left: "0", width: "300px", height: "100px", border: "0" });
+  Object.assign(frame, source);
+  const loaded = new Promise((resolve) => frame.addEventListener("load", resolve, { once: true }));
+  parent.appendChild(frame);
+  nodes.push(frame);
+  if ("srcdoc" in source) await loaded;
+  return frame;
+}
+
+/** A host element whose shadow root, open or closed, holds an iframe at `top`. */
+async function shadowFrame(mode: ShadowRootMode, top: number): Promise<HTMLIFrameElement> {
+  const host = document.createElement("div");
+  document.body.append(host);
+  nodes.push(host);
+  return frameAt(host.attachShadow({ mode }), top, { srcdoc: "<body style='margin:0'><div style='height:100px'></div></body>" });
+}
+
+/** Taps at (x, y) and returns the touch events `target` saw. */
+async function tapAt(target: EventTarget, x: number, y: number): Promise<string[]> {
+  const seen: string[] = [];
+  const listener = (event: Event) => seen.push(event.type);
+  for (const type of ["touchstart", "touchend"]) target.addEventListener(type, listener);
+  try {
+    await commands.touchStep({ type: "touchStart", x, y });
+    await commands.touchStep({ type: "touchEnd" });
+  } finally {
+    for (const type of ["touchstart", "touchend"]) target.removeEventListener(type, listener);
+  }
+  return seen;
+}
+
+test("a touch on a ::before box is watched like one on its element", async () => {
+  const element = document.createElement("div");
+  element.className = "ouro-touch-kit-pseudo";
+  const style = document.createElement("style");
+  style.textContent = ".ouro-touch-kit-pseudo::before { content: ''; position: absolute; top: 0; left: 0; width: 300px; height: 100px; }";
+  document.head.append(style);
+  document.body.append(element);
+  nodes.push(element, style);
+  expect(await tapAt(window, 100, 50)).toEqual(["touchstart", "touchend"]);
+});
+
+test.each(["open", "closed"] as const)("touches reach an iframe in a %s shadow root, and the page around it", async (mode) => {
+  const frame = await shadowFrame(mode, 300);
+  expect(await tapAt(frame.contentWindow!, 100, 350)).toEqual(["touchstart", "touchend"]);
+  expect(await tapAt(window, 100, 50)).toEqual(["touchstart", "touchend"]);
+});
+
+test("touches reach a cross-origin iframe, and a cross-origin iframe does not hold up touches elsewhere", async () => {
+  // Another origin of the same Vitest server: the page's host name swapped for its IP address.
+  const other = new URL(location.href);
+  other.hostname = other.hostname === "localhost" ? "127.0.0.1" : "localhost";
+  const frame = await frameAt(document.body, 300, { src: `${other.origin}/?touch-kit-cross-origin` });
+  const loaded = new Promise((resolve) => frame.addEventListener("load", resolve, { once: true }));
+  await loaded;
+  const started = performance.now();
+  expect(await tapAt(window, 100, 50)).toEqual(["touchstart", "touchend"]);
+  expect(performance.now() - started).toBeLessThan(1000);
+  // Inside it, no listener of this page can see the touch; the kit's own watcher must.
+  await commands.touchStep({ type: "touchStart", x: 100, y: 350 });
+  await commands.touchStep({ type: "touchEnd" });
+});
+
+test("a touch into an iframe that has not loaded ends within the kit's bound, and names the frame if it throws", async () => {
+  // A non-routable address: the connection hangs, so the frame keeps its first, empty document,
+  // which Playwright cannot evaluate in. Where the network refuses it at once, the frame shows an
+  // error page instead; either way the touch must end within the bound.
+  await frameAt(document.body, 300, { src: "http://10.255.255.1/" });
+  const started = performance.now();
+  const outcome = await tapAt(window, 100, 350).then(
+    () => "handled",
+    (error: Error) => error.message,
+  );
+  expect(performance.now() - started).toBeLessThan(2 * 5000 + 2000);
+  if (outcome !== "handled") expect(outcome).toMatch(/^touchStep: could not watch the frame at \(100, 350\) within 5000ms, so the touchStart was not sent\. The frame there is /);
+  // A touch elsewhere is not held up by it.
+  expect(await tapAt(window, 100, 50)).toEqual(["touchstart", "touchend"]);
+});
+
+// A smoke test, not a control: Playwright lists a new frame late only now and then, mostly in a
+// full suite on a busy runner (CI probe run 38385210551). The race itself is in that run's log.
+test("a touch into an iframe added just before it is handled", async () => {
   for (let index = 0; index < 10; index++) {
     const frame = document.createElement("iframe");
     Object.assign(frame.style, { position: "absolute", top: "0", left: "0", width: "300px", height: "200px", border: "0" });
@@ -164,7 +248,7 @@ test("a touch into an iframe added just before it is handled, however late Playw
   }
 });
 
-test("a touch the page never handles throws, naming the event and what the page saw", async () => {
+test("a lift into a frame that has gone is sent all the same, and throws naming the frame", async () => {
   const frame = document.createElement("iframe");
   Object.assign(frame.style, { position: "absolute", top: "0", left: "0", width: "300px", height: "200px", border: "0" });
   frame.srcdoc = "<body style='margin:0'><div style='height:200px'></div></body>";
@@ -176,7 +260,7 @@ test("a touch the page never handles throws, naming the event and what the page 
   // The finger's target goes away with its frame, so no page gets the touchend.
   frame.remove();
   await expect(commands.touchStep({ type: "touchEnd" })).rejects.toThrow(
-    "touchStep: the page did not handle the touchEnd at (100, 100) within 5000ms. It handled: no touch events. Is the page visible and rendering, and is the point inside it?",
+    "touchStep: could not watch about:srcdoc, the frame the gesture's touchstart went to: frame.evaluate: Frame was detached. The touchEnd was sent, but nothing could see it.",
   );
   // The next gesture starts clean.
   const element = scroller();
