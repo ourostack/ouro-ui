@@ -700,13 +700,61 @@ describe("swiping", () => {
     await elapse(300);
     expect(showing("Stays")).toBe(true);
   });
+
+  chromiumOnly("follows the mouse 1:1 once it has moved 10px, and springs back when let go short of 40px", async () => {
+    await render(<Toaster />);
+    const item = await show("Follows", { duration: 0 });
+    const rect = item.getBoundingClientRect();
+    const x = rect.left + 60;
+    const y = rect.top + rect.height / 2;
+    try {
+      await commands.drag({ from: [x, y], to: [x + 30, y], steps: 6, durationMs: 200, hold: true });
+      expect(getComputedStyle(item).translate).toBe("30px");
+      // A mouse at rest has no velocity: the distance decides.
+      await elapse(150);
+    } finally {
+      await commands.pointerPress({ action: "up" });
+    }
+    await expect.poll(() => !item.hasAttribute("data-ouro-settling") && item.style.translate === "").toBe(true);
+    expect(showing("Follows")).toBe(true);
+  });
+
+  chromiumOnly("dismisses on a quick flick of 30px, short of the 40px a slow release needs", async () => {
+    await render(<Toaster />);
+    const item = await show("Flicked", { duration: 0 });
+    const rect = item.getBoundingClientRect();
+    const x = rect.left + 60;
+    const y = rect.top + rect.height / 2;
+    await commands.flick({ from: [x, y], to: [x + 30, y], steps: 4, durationMs: 60 });
+    await gone("Flicked");
+  });
+
+  chromiumOnly("does not start a swipe from the dismiss button", async () => {
+    await render(<Toaster />);
+    const item = await show("Button", { duration: 0 });
+    const rect = item.querySelector("button")!.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    try {
+      await commands.drag({ from: [x, y], to: [x - 80, y], steps: 6, durationMs: 200, hold: true });
+      expect(item.style.translate).toBe("");
+    } finally {
+      await commands.pointerPress({ action: "up" });
+    }
+    expect(showing("Button")).toBe(true);
+  });
 });
 
 describe("motion", () => {
-  it("slides and springs, and only fades with reduced motion", async () => {
+  it("slides on the ease-out curve in 300ms or less, never animates height, and only fades with reduced motion", async () => {
     await render(<Toaster />);
     const item = await show("Moving", { duration: 0 });
-    expect(getComputedStyle(item).transitionProperty).toContain("transform");
+    const style = getComputedStyle(item);
+    expect(style.transitionProperty).toBe("transform, opacity");
+    expect(style.transitionDuration).toBe("0.3s, 0.2s");
+    expect(style.transitionTimingFunction).toBe("cubic-bezier(0.23, 1, 0.32, 1), cubic-bezier(0.23, 1, 0.32, 1)");
+    const content = item.firstElementChild!;
+    expect(getComputedStyle(content).transitionTimingFunction).toBe("cubic-bezier(0.23, 1, 0.32, 1)");
     await commands.emulateMedia({ reducedMotion: "reduce" });
     expect(getComputedStyle(item).transitionProperty).toBe("opacity");
     const fresh = await show("Still", { duration: 0 });

@@ -1,12 +1,14 @@
 "use client";
 
 import { Toast } from "@base-ui/react/toast";
-import { useEffect, useRef, useState, type JSX } from "react";
+import { useCallback, useEffect, useRef, useState, type JSX, type PointerEvent as ReactPointerEvent } from "react";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
+import { rubberband, spring, type SpringHandle } from "@/registry/ouro/lib/ouro/spring";
 import { connectToaster, type ToastRecord } from "@/registry/ouro/lib/ouro/toast";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDrag, type DragState } from "@/registry/ouro/lib/ouro/use-drag";
 import {
   actionClass,
   closeClass,
@@ -14,7 +16,6 @@ import {
   iconTones,
   portalClass,
   rootClass,
-  swipeDirections,
   viewportClass,
 } from "@/registry/ouro/components/ouro/toast/toaster-styles";
 
@@ -48,7 +49,8 @@ export interface ToasterProps {
  * Ouro UI install has `toast`. Toasts stack at the
  * bottom of the screen, full width on phones; up to three show, and later ones wait their
  * turn, a `destructive` toast ahead of the others. They pause while the pointer is over them or a toast has focus, F6 moves focus to
- * them, newest first, and a swipe down or sideways dismisses one. Each toast is read to
+ * them, newest first, and a swipe down or sideways dismisses one: a toast follows the
+ * finger, a quick flick is enough, and one let go short of that springs back. Each toast is read to
  * screen readers once: politely through this region, and a `destructive` toast
  * assertively, so it interrupts.
  *
@@ -213,15 +215,17 @@ function Connect({ onActive }: { onActive: (active: boolean) => void }): null {
  */
 function ToastList({ closeLabel }: { closeLabel: string }): JSX.Element[] {
   const { toasts } = Toast.useToastManager();
-  return toasts.map((item) => (
-    <Toast.Root
-      key={item.id}
-      toast={item}
-      swipeDirection={swipeDirections}
-      data-ouro="toast"
-      data-tone={item.type}
-      className={rootClass}
-    >
+  return toasts.map((item) => <ToastItem key={item.id} item={item} closeLabel={closeLabel} />);
+}
+
+type ToastObject = ReturnType<typeof Toast.useToastManager>["toasts"][number];
+
+/** One toast. The swipe is Ouro's own, so Base UI's is off. */
+function ToastItem({ item, closeLabel }: { item: ToastObject; closeLabel: string }): JSX.Element {
+  const { close } = Toast.useToastManager();
+  const swipe = useSwipeAway(() => close(item.id));
+  return (
+    <Toast.Root toast={item} swipeDirection={NO_SWIPE} {...swipe} data-ouro="toast" data-tone={item.type} className={rootClass}>
       <Toast.Content className={contentClass}>
         <ToneIcon tone={item.type} />
         <div className="grid min-w-0 flex-1 gap-0.5">
@@ -237,7 +241,203 @@ function ToastList({ closeLabel }: { closeLabel: string }): JSX.Element[] {
         </Toast.Close>
       </Toast.Content>
     </Toast.Root>
-  ));
+  );
+}
+
+const NO_SWIPE: [] = [];
+/** How far, in px, a toast let go without a flick must be from rest to leave. */
+const AWAY = 40;
+/** A press on one of these never starts a swipe: the action, the dismiss button, a link in the message. */
+const CONTROLS = "button,a";
+
+type Axis = "x" | "y";
+
+/**
+ * The swipe that dismisses a toast: sideways either way, or down, off the edge it came in
+ * from. The toast follows the finger from where it is taken, after 10px that choose the
+ * axis. Up is the one way it cannot leave, so there it follows less and less. Let go, a
+ * flick away from rest dismisses it however short, and so does a release more than 40px
+ * from rest that is not on its way back; anything else springs back from where it is,
+ * with the speed it was let go at, and can be caught again on the way. A dismissed toast
+ * goes on the way it was thrown while it fades. With reduced motion it still follows the
+ * finger, then returns or fades with no travel.
+ *
+ * The offset is the element's `translate`, which adds to the `transform` the stack sets.
+ */
+function useSwipeAway(dismiss: () => void) {
+  const state = useRef<SwipeState>({ element: null, axis: null, offset: 0, grab: 0, pressed: { x: false, y: false }, moved: false, leaving: false, control: false, settle: undefined });
+
+  const write = useCallback((offset: number) => {
+    const now = state.current;
+    now.offset = offset;
+    now.element!.style.translate = offset === 0 ? "" : now.axis === "x" ? `${offset}px 0px` : `0px ${offset}px`;
+  }, []);
+  /** The toast's size along the axis: what a rubber band stretches against, and how far out a dismissed toast is thrown. */
+  const size = useCallback(() => {
+    const { axis, element } = state.current;
+    return axis === "x" ? element!.offsetWidth : element!.offsetHeight;
+  }, []);
+  const settle = useCallback(
+    (velocity = 0, flick = false) => {
+      const now = state.current;
+      now.settle = spring({
+        from: now.offset,
+        to: 0,
+        velocity,
+        damping: flick ? 0.8 : 1,
+        element: now.element,
+        onUpdate: write,
+        onRest: () => {
+          now.axis = null;
+        },
+      });
+    },
+    [write],
+  );
+
+  // Two drags, one per axis, on the one element: the first to move 10px its way has the toast.
+  const press = useCallback((axis: Axis) => {
+    const now = state.current;
+    now.pressed[axis] = true;
+    now.moved = false;
+    // Hold still under the finger, where the spring had brought it.
+    now.settle?.stop();
+  }, []);
+  const pressEnd = useCallback(
+    (axis: Axis) => {
+      const now = state.current;
+      now.pressed[axis] = false;
+      // Neither axis took the press: carry on back to rest.
+      if (!now.pressed.x && !now.pressed.y && !now.moved && now.offset !== 0) settle();
+    },
+    [settle],
+  );
+  const start = useCallback(
+    (axis: Axis) => {
+      const now = state.current;
+      // One drag at a time, and a toast caught off rest moves along the axis it is off on.
+      if (now.control || now.moved || (now.offset !== 0 && now.axis !== axis)) return false;
+      now.axis = axis;
+      now.moved = true;
+      now.pressed[axis] = false;
+      // Above rest the toast is held back: start from the finger travel that puts it there.
+      now.grab = axis === "y" && now.offset < 0 ? unband(now.offset, size()) : now.offset;
+      return true;
+    },
+    [size],
+  );
+  const move = useCallback(
+    (axis: Axis, { delta }: DragState) => {
+      const wanted = state.current.grab + delta;
+      // Following a finger is not an animation: the toast does it with reduced motion too.
+      write(axis === "y" && wanted < 0 ? rubberband(wanted, size()) : wanted);
+    },
+    [size, write],
+  );
+  const end = (axis: Axis, { velocity, flick, cancelled }: DragState & { cancelled: boolean }) => {
+    const now = state.current;
+    const { offset } = now;
+    // Whether the finger was moving the toast away from rest when it lifted.
+    const toward = velocity * offset;
+    const canLeave = axis === "x" || offset > 0;
+    if (cancelled || !canLeave || !(flick ? toward > 0 : Math.abs(offset) > AWAY && toward >= 0)) return settle(cancelled ? 0 : velocity, flick && !cancelled);
+    now.leaving = true;
+    // Before the close: a swiped toast fades on its way, and does not slide down as a closed one does.
+    now.element!.setAttribute("data-ouro-swiped", "");
+    // With reduced motion it fades where it is.
+    if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      now.settle = spring({ from: offset, to: offset + Math.sign(offset) * size() * 1.5, velocity, onUpdate: write });
+    }
+    dismiss();
+  };
+  const x = useDrag({
+    axis: "x",
+    onPress: () => press("x"),
+    onPressEnd: () => pressEnd("x"),
+    onStart: () => start("x"),
+    onMove: (drag) => move("x", drag),
+    onEnd: (drag) => end("x", drag),
+  });
+  const y = useDrag({
+    axis: "y",
+    // The toast takes every touch (`touch-none`), so no move is a scroll: sideways travel is the other drag's.
+    crossAxis: "ignore",
+    onPress: () => press("y"),
+    onPressEnd: () => pressEnd("y"),
+    onStart: () => start("y"),
+    onMove: (drag) => move("y", drag),
+    onEnd: (drag) => end("y", drag),
+  });
+
+  const ref = useCallback(
+    (element: HTMLDivElement) => {
+      state.current.element = element;
+      const detachX = x.ref(element);
+      const detachY = y.ref(element);
+      return () => {
+        // A toast removed on its way out, or on its way back, stops there.
+        state.current.settle?.stop();
+        detachX!();
+        detachY!();
+      };
+    },
+    [x, y],
+  );
+  const onPointerDown = useCallback(
+    (event: ReactPointerEvent<HTMLElement>) => {
+      // Base UI pauses the toasts and fans them out while a mouse is over them. A finger has no
+      // hover, so its press says the same: the toasts wait while one is held or read.
+      if (event.pointerType !== "mouse") event.currentTarget.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+      const now = state.current;
+      // A toast on its way out is no longer the finger's.
+      if (now.leaving) return;
+      // A press on a control holds the toast still, as any press does, so the tap lands; it starts no swipe.
+      now.control = (event.target as Element).closest(CONTROLS) !== null;
+      x.onPointerDown(event);
+      y.onPointerDown(event);
+    },
+    [x, y],
+  );
+  // Sideways first, so a move that could start either drag starts that one.
+  const onPointerMove = useCallback(
+    (event: ReactPointerEvent<HTMLElement>) => {
+      x.onPointerMove(event);
+      y.onPointerMove(event);
+    },
+    [x, y],
+  );
+  const onPointerEnd = useCallback(
+    (event: ReactPointerEvent<HTMLElement>) => {
+      x.onPointerUp(event);
+      y.onPointerUp(event);
+    },
+    [x, y],
+  );
+  return { ref, onPointerDown, onPointerMove, onPointerUp: onPointerEnd, onPointerCancel: onPointerEnd };
+}
+
+/** What a toast's swipe keeps between events. */
+interface SwipeState {
+  element: HTMLElement | null;
+  /** The axis of the drag, or of the offset a settle is bringing back. */
+  axis: Axis | null;
+  /** What is on screen, in px along `axis`. */
+  offset: number;
+  /** The finger travel that put the toast where it was taken. */
+  grab: number;
+  /** Which of the two drags, one per axis, still follows a press that has not chosen. */
+  pressed: { x: boolean; y: boolean };
+  /** Whether the press became a drag. */
+  moved: boolean;
+  leaving: boolean;
+  /** Whether the press is on one of the toast's controls. */
+  control: boolean;
+  settle: SpringHandle | undefined;
+}
+
+/** The finger travel past an end that `rubberband` turns into `shown`, for a toast `size` px along the axis. */
+function unband(shown: number, size: number, constant = 0.55): number {
+  return (shown * size) / (constant * (size - Math.abs(shown)));
 }
 
 /** The tone's icon, drawn in the tone's color; `secondary` has none. */
