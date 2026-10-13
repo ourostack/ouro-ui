@@ -5,7 +5,7 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { serverElement } from "@/registry/ouro/lib/ouro/server-element";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import {
   itemClass,
   listClass,
@@ -392,7 +392,7 @@ function ShowMoreList(props: (ShowMoreItemsProps | ShowMoreLoadProps) & { showMo
             tabIndex={-1}
             className={cn(
               itemClass,
-              freshFrom !== null && index >= freshFrom && "transition-opacity duration-(--ouro-duration-base) ease-out starting:opacity-0",
+              freshFrom !== null && index >= freshFrom && "transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) starting:opacity-0",
             )}
           >
             {item}

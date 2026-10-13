@@ -3,7 +3,7 @@
 import { Fragment, type HTMLAttributes, type JSX, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { useDevWarnings, type DevWarning } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings, type DevWarning } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
 /** One pair in a {@link DescriptionList}: what it is, and its value. */
 export interface DescriptionListItem {

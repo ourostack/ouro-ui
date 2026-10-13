@@ -48,7 +48,7 @@ const triggerClass =
   "min-h-11 sm:pointer-fine:min-h-10 px-0 py-3 rounded-md border-0 bg-transparent text-start " +
   "font-[inherit] text-base font-medium text-foreground sm:pointer-fine:text-sm " +
   "select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
-  "underline-offset-4 not-data-disabled:hover:underline not-data-disabled:active:opacity-70 " +
+  "underline-offset-4 not-data-disabled:pointer-fine:hover:underline not-data-disabled:active:opacity-70 " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
   "data-disabled:cursor-not-allowed data-disabled:opacity-50";
 
@@ -58,7 +58,7 @@ const triggerClass =
  * @internal
  */
 const iconClass =
-  "size-4 shrink-0 text-muted-foreground transition-[rotate] duration-(--ouro-duration-base) ease-out " +
+  "size-4 shrink-0 text-muted-foreground transition-[rotate] duration-(--ouro-duration-base) ease-(--ouro-ease-out) " +
   "group-data-panel-open/trigger:rotate-180 motion-reduce:transition-none";
 
 /**
@@ -70,7 +70,7 @@ const iconClass =
  */
 const panelClass =
   "h-(--accordion-panel-height) overflow-hidden " +
-  "transition-[height] duration-(--ouro-duration-base) ease-out motion-reduce:transition-none " +
+  "transition-[height] duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:transition-none " +
   "data-starting-style:h-0 data-ending-style:h-0 [&[hidden]:not([hidden=until-found])]:hidden";
 
 /** @internal */

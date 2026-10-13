@@ -160,6 +160,8 @@ describe("ItemGroup development messages", () => {
   });
 
   it("warns when an Item inside renders its own <li>", async () => {
+    // React reports the nested list item too.
+    vi.spyOn(console, "error").mockImplementation(() => {});
     await render(
       <ItemGroup aria-label="x">
         <Item as="li" title="A" />

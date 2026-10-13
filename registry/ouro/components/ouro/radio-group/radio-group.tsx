@@ -8,7 +8,7 @@ import { choicesClass, contractWarnings } from "@/registry/ouro/components/ouro/
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { FieldOwnerContext, useField, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { dotClass, radioClass } from "@/registry/ouro/components/ouro/radio-group/radio-group-styles";
 
 /** One choice in a {@link RadioGroup}'s `options`. */

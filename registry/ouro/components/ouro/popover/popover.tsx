@@ -6,7 +6,7 @@ import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { floatingAlign, floatingHint, floatingPlacementWarnings, floatingSide, type FloatingAlign, type FloatingSide } from "@/registry/ouro/lib/ouro/floating";
 import { lastInput } from "@/registry/ouro/lib/ouro/last-input";
 import { checkOpenMode } from "@/registry/ouro/lib/ouro/open-mode";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useKeyboardScrollable } from "@/registry/ouro/lib/ouro/use-keyboard-scrollable";
 import { useSheetPresentation } from "@/registry/ouro/lib/ouro/use-sheet-presentation";
 import { SheetFrame } from "@/registry/ouro/components/ouro/sheet/sheet";

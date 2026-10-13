@@ -2,7 +2,12 @@
 // registry/, through the TypeScript compiler API:
 //
 // - docs/<Export>.md for every component, and docs/parts.md;
-// - the catalog in README.md, between <!-- catalog:start --> and <!-- catalog:end -->;
+// - the catalog in README.md, between <!-- catalog:start --> and <!-- catalog:end -->, and its
+//   item list, between <!-- items:start --> and <!-- items:end -->, from the component
+//   manifests and lib/ouro;
+// - site/src/docs/catalog.json, the site's page per registry item, and site/src/docs/pages.json,
+//   its page per other documented export (Radio, OuroProvider) and per guide (docs/guides/*.md,
+//   written by hand), so every docs page has an address: docs/<kebab-case name>;
 // - README.md "Upgrading from v0.1.0", between <!-- upgrade:start --> and <!-- upgrade:end -->,
 //   copied from UPGRADING.md with its {{latestRelease}} placeholder filled in;
 // - the release tag in the install commands of README.md, site/public/llms.txt and
@@ -571,6 +576,33 @@ const siteItems = components
   .sort((a, b) => catalogGroups.indexOf(a.group) - catalogGroups.indexOf(b.group));
 outputs.set("site/src/docs/catalog.json", `${JSON.stringify(siteItems, null, 2)}\n`);
 
+/** `OuroProvider` to `ouro-provider`: the address of an export's page that is not a registry item's. */
+const kebab = (name: string) => name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+// The site's other pages (site/src/docs/pages.ts): each documented export that is not a
+// registry item's own page (Radio lives in radio-group, OuroProvider in lib/ouro), and each
+// guide in docs/guides. A guide starts with `# Title` and a one-paragraph summary.
+const itemTitles = new Set(siteItems.map((item) => item.title));
+const exportPages = pages
+  .filter((page) => !itemTitles.has(page.name))
+  .map((page) => ({ name: kebab(page.name), title: page.name, kind: "export" as const, group: page.group, markdown: `docs/${page.name}.md` }));
+const guidesDir = join(root, "docs/guides");
+const guidePages = (existsSync(guidesDir) ? readdirSync(guidesDir) : [])
+  .filter((file) => file.endsWith(".md"))
+  .sort()
+  .map((file) => {
+    const text = readFileSync(join(guidesDir, file), "utf8");
+    const title = /^# (.+)\n\n(.+)\n/.exec(text);
+    if (!title) throw new Error(`docs/guides/${file} must start with "# Title", a blank line and a one-paragraph summary.`);
+    return { name: file.slice(0, -3), title: title[1]!, kind: "guide" as const, group: "Guides", markdown: `docs/guides/${file}` };
+  });
+const sitePages = [...guidePages, ...exportPages];
+const taken = new Map<string, string>(siteItems.map((item) => [item.name, `the ${item.name} item`]));
+for (const page of sitePages) {
+  if (taken.has(page.name)) throw new Error(`${page.markdown} would be published at docs/${page.name}, the address of ${taken.get(page.name)}. Rename one.`);
+  taken.set(page.name, page.markdown);
+}
+outputs.set("site/src/docs/pages.json", `${JSON.stringify(sitePages, null, 2)}\n`);
+
 const catalogLines = () =>
   catalogGroups
     .map((group) => ({
@@ -590,10 +622,33 @@ const readmeCatalog = [
   "<!-- catalog:end -->",
 ].join("\n");
 
+// README.md "Items": every item an app can add, from the manifests and lib/ouro, so a new
+// component or helper can't leave the list behind.
+const helperItems = readdirSync(join(root, "registry/ouro/lib/ouro"))
+  .filter((file) => /\.tsx?$/.test(file) && !/\.test\.tsx?$/.test(file))
+  .map((file) => `lib-${file.replace(/\.d\.ts$|\.tsx?$/, "")}`)
+  .sort();
+const readmeItems = [
+  "<!-- items:start -->",
+  GENERATED,
+  "",
+  `Components: ${components.map((entry) => code(entry.name)).join(", ")}.`,
+  "",
+  "Each component has an optional `<name>-tests` item (`button-tests`) with its Vitest browser tests, type tests, stories and Playwright spec; it also installs the tests of everything the component installs. `ouro-tests` adds every component with all of its tests, and `ouro-testing` is the test kit the `-tests` items bring.",
+  "",
+  "Once per app: `ouro-base`, the tokens every component needs in your stylesheet. Optional: `ouro-theme`, the Ouro look.",
+  "",
+  `Helpers, one item per file in \`lib/ouro\`, each installed with the components that import it (you don't add them by name; \`ouro-lib\` is all of them, and a helper with tests has a \`<name>-tests\` item): ${helperItems.map(code).join(", ")}.`,
+  "<!-- items:end -->",
+].join("\n");
+
 const readmePath = join(root, "README.md");
 const readme = readFileSync(readmePath, "utf8");
 if (!/<!-- catalog:start -->[\s\S]*<!-- catalog:end -->/.test(readme)) {
   throw new Error("README.md needs <!-- catalog:start --> and <!-- catalog:end --> markers.");
+}
+if (!/<!-- items:start -->[\s\S]*<!-- items:end -->/.test(readme)) {
+  throw new Error("README.md needs <!-- items:start --> and <!-- items:end --> markers.");
 }
 if (!/<!-- upgrade:start -->[\s\S]*<!-- upgrade:end -->/.test(readme)) {
   throw new Error("README.md needs <!-- upgrade:start --> and <!-- upgrade:end --> markers.");
@@ -607,6 +662,7 @@ outputs.set(
   withRelease(
     readme
       .replace(/<!-- catalog:start -->[\s\S]*<!-- catalog:end -->/, () => readmeCatalog)
+      .replace(/<!-- items:start -->[\s\S]*<!-- items:end -->/, () => readmeItems)
       .replace(/<!-- upgrade:start -->[\s\S]*<!-- upgrade:end -->/, () => upgrade),
     release,
   ),

@@ -14,7 +14,7 @@ import {
   useFormErrors,
   type ErrorMessages,
 } from "@/registry/ouro/lib/ouro/use-field";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { FieldDescription, FieldError, FieldLabel } from "@/registry/ouro/components/ouro/field/field-parts";
 import { fieldHint, inlineRootClass, labelFrameClass, requiredMarkClass, rootClass } from "@/registry/ouro/components/ouro/field/field-styles";
 

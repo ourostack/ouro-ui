@@ -8,6 +8,7 @@ import {
   type SegmentedControlProps,
 } from "@/registry/ouro/components/ouro/segmented-control/segmented-control";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -116,7 +117,7 @@ describe("SegmentedControl", () => {
   it("selects with the arrow keys, as radio buttons do, and tabs to the checked segment", async () => {
     const onValueChange = vi.fn();
     const { segments } = await render(<SegmentedControl label="View" items={items} defaultValue="grid" onValueChange={onValueChange} />);
-    await userEvent.tab();
+    await pressTab();
     expect(document.activeElement).toBe(segments[1]);
     expect(onValueChange).not.toHaveBeenCalled();
     expect(getComputedStyle(segments[1]!).outlineStyle).toBe("solid");
@@ -142,14 +143,14 @@ describe("SegmentedControl", () => {
         <button>After</button>
       </>,
     );
-    await userEvent.tab();
+    await pressTab();
     expect(document.activeElement).toBe(segments[0]);
     // The only enabled segment: the arrow key keeps focus where it is.
     await userEvent.keyboard("{ArrowRight}");
     expect(document.activeElement).toBe(segments[0]);
     // Leave with the pointer, so no key clears the arrow, then come back with the keyboard.
     await userEvent.click(page.getByRole("button", { name: "After" }));
-    await userEvent.tab({ shift: true });
+    await pressTab({ shift: true });
     expect(document.activeElement).toBe(segments[0]);
     expect(onValueChange).not.toHaveBeenCalled();
   });
@@ -158,7 +159,7 @@ describe("SegmentedControl", () => {
     const onValueChange = vi.fn();
     // Controlled, with the app not yet updating value, so each report shows.
     const { segments } = await render(<SegmentedControl label="View" items={items} value="list" onValueChange={onValueChange} />);
-    await userEvent.tab();
+    await pressTab();
     expect(document.activeElement).toBe(segments[0]);
     // Up in a row moves nowhere.
     await userEvent.keyboard("{ArrowUp}");
@@ -173,7 +174,7 @@ describe("SegmentedControl", () => {
     const onValueChange = vi.fn();
     // Controlled, with the app not updating value: "list" stays checked.
     const { segments } = await render(<SegmentedControl label="View" items={items} value="list" onValueChange={onValueChange} />);
-    await userEvent.tab();
+    await pressTab();
     await userEvent.keyboard("{ArrowRight}");
     expect(document.activeElement).toBe(segments[1]);
     await userEvent.keyboard("{ArrowLeft}");
@@ -183,7 +184,7 @@ describe("SegmentedControl", () => {
 
   it("skips a disabled segment with the arrow keys", async () => {
     const { segments } = await render(<SegmentedControl label="View" items={[items[0]!, { ...items[1]!, disabled: true }, items[2]!]} />);
-    await userEvent.tab();
+    await pressTab();
     await userEvent.keyboard("{ArrowRight}");
     expect(document.activeElement).toBe(segments[2]);
     expect(segments[2]!.getAttribute("aria-checked")).toBe("true");
@@ -246,6 +247,21 @@ describe("SegmentedControl", () => {
     await settled(thumb);
     expect(Math.abs(offset(r.segments[2]!))).toBeLessThanOrEqual(1);
     expect(Math.abs(thumb.getBoundingClientRect().width - r.segments[2]!.getBoundingClientRect().width)).toBeLessThanOrEqual(1);
+  });
+
+  it("slides the thumb on the ease-in-out token, and moves it at once on an arrow key", async () => {
+    const r = await render(<SegmentedControl label="View" items={items} />);
+    const style = () => getComputedStyle(r.thumb);
+    expect(style().transitionProperty).toBe("translate, opacity");
+    expect(style().transitionDuration).toBe("0.2s, 0.15s");
+    expect(style().transitionTimingFunction).toBe("cubic-bezier(0.77, 0, 0.175, 1), ease");
+    r.segments[0]!.focus();
+    await userEvent.keyboard("{ArrowRight}");
+    expect(r.thumb.parentElement!.hasAttribute("data-ouro-keyboard")).toBe(true);
+    expect(style().transitionProperty).toBe("none");
+    await userEvent.click(r.segments[2]!);
+    expect(r.thumb.parentElement!.hasAttribute("data-ouro-keyboard")).toBe(false);
+    expect(style().transitionProperty).toBe("translate, opacity");
   });
 
   it("moves the thumb without a transition under reduced motion", async () => {

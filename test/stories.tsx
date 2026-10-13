@@ -193,18 +193,16 @@ export function overlayOpeners(
 /** Resolves once every finite animation and transition in the document has finished. */
 export async function settle(): Promise<void> {
   for (let round = 0; round < 20; round++) {
+    // Base UI clears the starting style in a deferred React update. Before that
+    // commit a sheet is offscreen but has no running transition to await.
+    await vi.waitFor(() => {
+      if (document.querySelector("[data-open][data-starting-style]")) throw new Error("an overlay still has its starting style");
+    }, waitOptions);
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     const running = document
       .getAnimations()
       .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity && animation.playState === "running");
-    if (running.length === 0) {
-      // Chart's marks animate with JavaScript (recharts), which getAnimations() cannot see; the plot marks it.
-      if (!document.querySelector("[data-ouro-chart-animating]")) return;
-      await vi.waitFor(() => {
-        if (document.querySelector("[data-ouro-chart-animating]")) throw new Error("a chart is still animating");
-      }, waitOptions);
-      continue;
-    }
+    if (running.length === 0) return;
     await Promise.all(running.map((animation) => animation.finished.catch(() => undefined)));
   }
   throw new Error("animations did not settle");

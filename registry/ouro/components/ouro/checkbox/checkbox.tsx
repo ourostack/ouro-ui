@@ -7,7 +7,7 @@ import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-st
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { FieldOwnerContext, useField, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { boxClass, dashClass, indicatorClass, tickClass } from "@/registry/ouro/components/ouro/checkbox/checkbox-styles";
 
 /** Props for {@link Checkbox}. */
@@ -127,7 +127,7 @@ function CheckboxBox(props: {
 /**
  * A labeled checkbox on the Field contract, with the label to its right: pass `label`, and
  * `checked` with `onCheckedChange` (or `defaultChecked`). Clicking the label toggles it,
- * Space toggles it from the keyboard, the tick draws itself, and `indeterminate` shows a
+ * Space toggles it from the keyboard, the tick fades in, and `indeterminate` shows a
  * dash announced as "mixed". With `name`, a checked box submits `name=value` with its form.
  *
  * Use `CheckboxGroup` instead for several choices under one legend that submit together,

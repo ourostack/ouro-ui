@@ -26,7 +26,7 @@ const textAreaClass =
 const textAreaVariants = {
   outline:
     "px-3 py-2 border border-solid border-input bg-transparent " +
-    "transition-[border-color] duration-(--ouro-duration-fast) ease-out " +
+    "transition-[border-color] duration-(--ouro-duration-fast) ease-[ease] " +
     "aria-invalid:border-destructive dark:bg-input/30",
   plain: "p-0 border-0 bg-transparent",
 } as const;

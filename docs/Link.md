@@ -19,13 +19,15 @@ import { Link } from "@/registry/ouro/components/ouro/link/link";
 
 ## Usage
 
-Inside running text, put the Link in a `Text`.
+Link is for text links only: it sets the text color and the underline, so wrapping a card, a list row or a tab in it restyles their text. Inside running text, put the Link in a `Text`.
 
 On a touch screen a link that stands alone is a box at least 44px tall and wide, with its text centred, so it is easy to tap and never overlaps a neighbour. A link in running text (a `<p>`, a `<label>`, a `Text`, a field's description or error) stays as tall as its line; `inline` says the same anywhere else. With a mouse every link is as tall as its text.
 
 ## Use instead when
 
 - Use `Button` with `href` instead when the link is the main action and should look like a button.
+- Use `Card` with `href` instead when a whole card is the link, `Item` with `href` for a whole list row, and `Table` with `rowHref` (or `TableRow` with `href`) for a table row: each makes the surface one link with one tab stop, through the same router link, and keeps its own look.
+- Use `Navbar` or `Sidebar` instead for the links that move between an app's pages, which mark the current one: `Tabs` and `SegmentedControl` switch a view in place and take no `href`.
 
 ## Props
 

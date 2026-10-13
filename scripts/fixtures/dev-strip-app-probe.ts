@@ -11,7 +11,7 @@ import { SheetPopup } from "@/registry/ouro/components/ouro/sheet/sheet-parts";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { Form } from "@/registry/ouro/components/ouro/form/form";
-import { formErrors } from "@/registry/ouro/lib/ouro/form-errors";
+import { formErrors } from "@/registry/ouro/lib/ouro/form-answer";
 
 const Untyped = <P,>(component: P) => component as unknown as (props: Record<string, unknown>) => null;
 

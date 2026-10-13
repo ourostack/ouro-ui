@@ -6,7 +6,7 @@ import { fontFor, toneFor } from "@/registry/ouro/lib/ouro/appearance-hints";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { toneWarning, type ToneName } from "@/registry/ouro/lib/ouro/tones";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
 /** An icon component, such as one from `lucide-react` or `@heroicons/react`. */
 export type AlertIcon = ComponentType<SVGProps<SVGSVGElement>>;
@@ -188,8 +188,14 @@ function toneFromSeverity(value: unknown): ToneName {
  * button when you pass `onDismiss`. Destructive and warning alerts are spoken at once
  * (`role="alert"`); the others politely (`role="status"`).
  *
+ * In and around forms, Alert is the component for a message that belongs to no field and
+ * to no form as a whole: a reorder or a deletion the server refused, a step that could not
+ * be parsed. Render it where the action was taken, with `action` for the way out.
+ *
  * Use `Toast` instead for a brief message that disappears by itself, `ConfirmDialog` to
  * ask before a destructive action, and `Field`'s `error` for a message about one field.
+ * Use `Form`'s `errors` instead for what a submit returned: a field's name as the key puts
+ * the message under that field, and the `form` key shows it at the top of the form.
  *
  * @group Display
  * @see https://ourostack.github.io/ouro-ui/docs/alert

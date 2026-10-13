@@ -18,7 +18,7 @@ import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { devThrow, devWarn } from "@/registry/ouro/lib/ouro/dev";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { RouterLink, safeRel } from "@/registry/ouro/lib/ouro/router-link";
 import { raiseControlsClass, stretchedLinkClass } from "@/registry/ouro/lib/ouro/stretched-link";
 import { ScrollArea } from "@/registry/ouro/components/ouro/scroll-area/scroll-area";

@@ -8,7 +8,7 @@ import { contractWarnings, errorClass } from "@/registry/ouro/components/ouro/fi
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { FieldOwnerContext, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import {
   acceptProblem,
   fileKey,

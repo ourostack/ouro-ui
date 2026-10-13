@@ -4,8 +4,8 @@ import { Form as BaseForm } from "@base-ui/react/form";
 import { isValidElement, useCallback, useEffect, useMemo, useRef, useState, type JSX, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { formErrorIdentity, type FormErrorIdentity, type FormErrorValue, type FormErrors } from "@/registry/ouro/lib/ouro/form-errors";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { formErrorIdentity, type FormErrorIdentity, type FormErrorValue, type FormErrors } from "@/registry/ouro/lib/ouro/form-answer";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { errorMessageKey, errorMessages, FormErrorsContext } from "@/registry/ouro/lib/ouro/use-field";
 
@@ -15,14 +15,14 @@ import { errorMessageKey, errorMessages, FormErrorsContext } from "@/registry/ou
  * messages about the whole form. A key may hold nothing (`undefined`, `null`, an empty string
  * or list), so an object mapped from an action's answer needs no cleanup.
  */
-export type { FormErrors } from "@/registry/ouro/lib/ouro/form-errors";
+export type { FormErrors } from "@/registry/ouro/lib/ouro/form-answer";
 
 /** Props for {@link Form}: a `<form>`'s attributes, one complete `errors` value, and Base UI Form's `render`. */
 export type FormProps = Omit<BaseForm.Props, "className" | "errors" | "children"> & {
   /**
    * Errors by field name. Bind an accepted server answer inside this single prop:
    * `errors={formErrors(actionData, actionData?.errors)}` (import `formErrors` from
-   * `@/lib/ouro/form-errors`). Each changed answer, including an equal refusal, restores
+   * `@/lib/ouro/form-answer`). Each changed answer, including an equal refusal, restores
    * cleared messages, replaces its alert and moves focus once. Rebuilding the value or its
    * mapped messages with the same answer never counts as arrival.
    * Each one shows on the field with that `name`, which gets `aria-invalid` and links the
@@ -126,7 +126,7 @@ function entryPoint(element: HTMLElement): HTMLElement {
  * `pattern`) and shows server errors on the matching fields. Pass `errors` straight from
  * your action; each message lands on the field with that `name`, and focus moves to the
  * first field with an error. Bind an accepted action answer with the framework-free
- * `formErrors` constructor in `@/lib/ouro/form-errors`; it adds no server protocol or router
+ * `formErrors` constructor in `@/lib/ouro/form-answer`; it adds no server protocol or router
  * dependency. Server errors only show: unlike the browser's checks they
  * never block the next submit, so the user can always send the form again. A Form submits
  * only itself: its submit event stops there, so a Form in a sheet inside another Form
@@ -184,7 +184,7 @@ function entryPoint(element: HTMLElement): HTMLElement {
  * @see https://ourostack.github.io/ouro-ui/docs/form
  *
  * @example
- * import { formErrors } from "@/lib/ouro/form-errors";
+ * import { formErrors } from "@/lib/ouro/form-answer";
  * const actionData = useActionData<typeof action>();
  * <Form method="post" errors={formErrors(actionData, actionData?.errors)} render={<RouterForm />}>
  *   <TextField label="Email" name="email" type="email" required />

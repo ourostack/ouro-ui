@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, server, userEvent } from "vitest/browser";
 import { Accordion, type AccordionProps } from "@/registry/ouro/components/ouro/accordion/accordion";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -155,7 +156,7 @@ describe("Accordion", () => {
 
   it("toggles with Enter and Space and shows a focus outline", async () => {
     const { triggers } = await render(<Accordion items={items} />);
-    await userEvent.tab();
+    await pressTab();
     expect(document.activeElement).toBe(triggers[0]);
     expect(getComputedStyle(triggers[0]!).outlineStyle).toBe("solid");
     await userEvent.keyboard("{Enter}");

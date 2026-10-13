@@ -6,7 +6,7 @@ import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useKeyboardScrollable } from "@/registry/ouro/lib/ouro/use-keyboard-scrollable";
 
 /** The props MessageList adds to the `<div>` attributes it passes through. */
@@ -52,8 +52,8 @@ const jumpClass =
   "press pointer-events-auto relative m-0 box-border inline-flex h-9 items-center gap-1.5 rounded-full border border-solid border-border " +
   "bg-background px-3.5 text-base font-medium text-foreground shadow-md pointer-fine:h-8 pointer-fine:text-sm whitespace-nowrap " +
   "cursor-pointer touch-manipulation outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
-  "hover:bg-accent hover:text-accent-foreground motion-safe:active:scale-(--ouro-press-scale) active:duration-(--ouro-duration-fast) " +
-  "transition-opacity duration-(--ouro-duration-base) ease-out starting:opacity-0";
+  "pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground motion-safe:active:scale-(--ouro-press-scale) " +
+  "transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) starting:opacity-0";
 
 interface Spoken {
   id: number;

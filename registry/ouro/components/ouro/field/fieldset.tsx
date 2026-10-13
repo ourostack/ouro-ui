@@ -4,7 +4,7 @@ import { Fieldset as BaseFieldset } from "@base-ui/react/fieldset";
 import { useId, type JSX, type ReactNode } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { descriptionClass, fieldHint, legendClass } from "@/registry/ouro/components/ouro/field/field-styles";
 
 /** Props for {@link Fieldset}. Groups take `legend` where a single control takes `label`. */

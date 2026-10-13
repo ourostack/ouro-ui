@@ -4,7 +4,7 @@ import { Fragment, useSyncExternalStore } from "react";
 import type { HTMLAttributes, JSX, Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
 /** The props Kbd adds to the `<kbd>` attributes it passes through. */
 export interface KbdOwnProps {

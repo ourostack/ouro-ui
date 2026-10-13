@@ -21,6 +21,10 @@ import { Select } from "@/registry/ouro/components/ouro/select/select";
 <Select label="Tags" name="tags" multiple defaultValue={["quick"]} options={tags} />
 ```
 
+## Usage
+
+A `multiple` Select posts one entry per chosen value, all under `name`, in the order they were chosen, and no entry when nothing is chosen: read them with `formData.getAll("tags")`, not `formData.get`. In a test, open the list and choose an option with real pointer events (`userEvent.click` in Vitest browser mode, `locator.click()` in Playwright): the options act on pointer events, so a synthetic `fireEvent.click` chooses nothing.
+
 ## Use instead when
 
 - Use `NativeSelect` instead for the operating system's own picker (long lists of plain text on phones, such as countries), `RadioGroup` for two to five choices that should all show, and `Combobox` when the user needs to type to filter.

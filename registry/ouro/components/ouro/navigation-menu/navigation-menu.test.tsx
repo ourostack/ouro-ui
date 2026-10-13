@@ -6,6 +6,7 @@ import { commands, page, userEvent } from "vitest/browser";
 import { NavigationMenu, type NavigationMenuProps } from "@/registry/ouro/components/ouro/navigation-menu/navigation-menu";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -148,7 +149,7 @@ describe("NavigationMenu", () => {
     await userEvent.keyboard("{Enter}");
     await expect.element(page.getByRole("link", { name: /Browse/ })).toBeVisible();
     await settled();
-    await userEvent.keyboard("{Tab}");
+    await pressTab();
     await expect.element(page.getByRole("link", { name: /Browse/ })).toHaveFocus();
   });
 
@@ -334,6 +335,9 @@ describe("NavigationMenu panels and easing", () => {
     await render(<NavigationMenu label="Main" items={featured} />);
     await userEvent.click(page.getByRole("button", { name: "Recipes" }));
     await expect.element(page.getByTestId("featured")).toBeVisible();
+    // The popup scales in, and WebKit can advance that transition between two reads of a
+    // box, so measure once it has finished.
+    await settled();
     const card = page.getByTestId("featured").element().getBoundingClientRect();
     const browse = page.getByRole("link", { name: "Browse" }).element().getBoundingClientRect();
     const drafts = page.getByRole("link", { name: "Drafts" }).element().getBoundingClientRect();

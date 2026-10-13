@@ -5,7 +5,7 @@ import { fontFor, sizeFor, toneFor } from "@/registry/ouro/lib/ouro/appearance-h
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { alignClasses, checkAlign, type TextAlign } from "@/registry/ouro/components/ouro/text/text-styles";
 
 /** A heading size from the theme's type scale. `display` is for a page's hero headline. */
@@ -43,10 +43,10 @@ export interface HeadingProps extends Omit<HTMLAttributes<HTMLHeadingElement>, "
 
 const sizes = {
   sm: "text-base",
-  md: "text-lg",
-  lg: "text-xl",
-  xl: "text-2xl",
-  "2xl": "text-3xl",
+  md: "text-lg tracking-[-0.01em]",
+  lg: "text-xl tracking-[-0.015em]",
+  xl: "text-2xl tracking-[-0.02em]",
+  "2xl": "text-3xl tracking-[-0.025em]",
   display: "text-[2.5rem] leading-[1.05] tracking-[-0.035em] sm:text-6xl sm:leading-[1.02]",
 } as const;
 
@@ -117,7 +117,7 @@ export function Heading(props: HeadingProps): JSX.Element {
   );
   const Tag = `h${level}` as const;
   const classes = cn(
-    "[@layer_ouro-reset]:m-0 font-semibold tracking-tight text-balance text-foreground",
+    "[@layer_ouro-reset]:m-0 font-semibold text-balance text-foreground",
     sizes[size],
     align && alignClasses[align],
     className,

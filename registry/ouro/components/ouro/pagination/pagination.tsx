@@ -5,7 +5,7 @@ import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { RouterLink } from "@/registry/ouro/lib/ouro/router-link";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
 /** Props shared by every kind of Pagination (`href` or `onPageChange`, `pageCount` or `hasNextPage`). */
 export interface PaginationBaseProps {

@@ -5,7 +5,7 @@ import { Form, type FormErrors } from "@/registry/ouro/components/ouro/form/form
 import { Select } from "@/registry/ouro/components/ouro/select/select";
 import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
-import { formErrors } from "@/registry/ouro/lib/ouro/form-errors";
+import { formErrors } from "@/registry/ouro/lib/ouro/form-answer";
 
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names).
 

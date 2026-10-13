@@ -4,7 +4,7 @@ import { Collapsible as BaseCollapsible } from "@base-ui/react/collapsible";
 import { useSyncExternalStore, type JSX, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { iconClass, ownLook, panelClass, rootClass, triggerClass } from "@/registry/ouro/components/ouro/collapsible/collapsible-styles";
 
 /** Props for {@link Collapsible}. */

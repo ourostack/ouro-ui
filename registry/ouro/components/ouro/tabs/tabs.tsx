@@ -3,7 +3,7 @@
 import { useId, useState, type JSX, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
 import {
   TabsIndicator,
@@ -87,7 +87,7 @@ function duplicateValue(items: readonly TabsItem[]): string | undefined {
 
 /**
  * Tabs that switch between panels in place: an accessible tab list with roving focus,
- * arrow-key navigation, a line that slides to the selected tab with the theme spring, and
+ * arrow-key navigation, a line that slides to the selected tab, and
  * 44px tabs on touch screens. Pass the tabs and their panels as `items`.
  *
  * Use `SegmentedControl` instead when the choice changes how one view looks (list or grid)

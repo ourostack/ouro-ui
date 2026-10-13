@@ -8,7 +8,7 @@ import { choicesClass, contractWarnings } from "@/registry/ouro/components/ouro/
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { FieldOwnerContext, useField, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
 /** One choice in a {@link CheckboxGroup}'s `options`. */
 export interface CheckboxGroupOption {

@@ -1,6 +1,6 @@
 import { createElement } from "react";
 import { describe, expect, it } from "vitest";
-import { formErrors, formErrorIdentity, type FormErrors } from "@/registry/ouro/lib/ouro/form-errors";
+import { formErrors, formErrorIdentity, type FormErrors } from "@/registry/ouro/lib/ouro/form-answer";
 
 describe("formErrors answer value", () => {
   it("recognizes the same answer through fresh projections and different answers with equal projections", () => {

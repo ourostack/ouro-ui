@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, server, userEvent } from "vitest/browser";
 import { Carousel } from "@/registry/ouro/components/ouro/carousel/carousel";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -182,10 +183,10 @@ describe("Carousel structure", () => {
       </Carousel>,
     );
     screen.host.querySelector<HTMLButtonElement>("button")!.focus();
-    await userEvent.tab();
+    await pressTab();
     expect(document.activeElement?.textContent).toBe("Save 2");
     // Slides 3 and 4 are skipped, and so is Previous, which is disabled.
-    await userEvent.tab();
+    await pressTab();
     expect(document.activeElement).toBe(screen.button("Next slide"));
   });
 
@@ -584,6 +585,51 @@ describe("Carousel settling without scrollend, interrupted", () => {
 });
 
 describe("Carousel motion", () => {
+  it.each([
+    { direction: "Next", loop: false, target: 1 },
+    { direction: "Previous", loop: false, target: 0 },
+    { direction: "Next", loop: true, target: 0 },
+    { direction: "Previous", loop: true, target: 1 },
+  ])("respects loop=$loop when $direction is pressed at the boundary's native scrollend", async ({ direction, loop, target }) => {
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+    const onIndexChange = vi.fn();
+    const screen = await render(<Carousel label="Recipe photos" loop={loop} onIndexChange={onIndexChange}>{photos(2)}</Carousel>);
+    if (direction === "Previous") {
+      await userEvent.click(screen.button("Next slide"));
+      await expect.poll(() => screen.button("Previous slide").disabled).toBe(false);
+      await expect.poll(() => onIndexChange.mock.calls).toEqual([[1]]);
+    }
+    onIndexChange.mockClear();
+    const scrollTo = vi.spyOn(screen.viewport, "scrollTo");
+    const button = screen.button(`${direction} slide`);
+    const boundary = direction === "Next" ? 1 : 0;
+    const pressed = new Promise<void>((resolve) => {
+      screen.viewport.addEventListener("scrollend", () => {
+        button.click();
+        resolve();
+      }, { once: true });
+    });
+    await userEvent.click(button);
+    await pressed;
+    expect(scrollTo).toHaveBeenCalledTimes(loop ? 2 : 1);
+    await expect.poll(() => onIndexChange.mock.calls).toEqual(loop ? [[boundary], [target]] : [[boundary]]);
+    expect(slideAtStart(screen.viewport, screen.slides)).toBe(target);
+  });
+
+  it("advances when pressed at scrollend before the settled index renders", async () => {
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+    const screen = await render(<Carousel label="Recipe photos">{photos()}</Carousel>);
+    const next = new Promise<void>((resolve) => {
+      screen.viewport.addEventListener("scrollend", () => {
+        screen.button("Next slide").click();
+        resolve();
+      }, { once: true });
+    });
+    await userEvent.click(screen.button("Next slide"));
+    await next;
+    await expect.poll(() => slideAtStart(screen.viewport, screen.slides)).toBe(2);
+  });
+
   it("jumps instantly with reduced motion", async () => {
     const screen = await render(<Carousel label="Recipe photos">{photos()}</Carousel>);
     const scrollTo = vi.spyOn(screen.viewport, "scrollTo");

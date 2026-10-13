@@ -6,6 +6,7 @@ import { commands, page, userEvent } from "vitest/browser";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 
 
@@ -460,7 +461,7 @@ describe("appearance", () => {
     );
     const button = host.querySelector("button")!;
     document.body.focus();
-    await userEvent.tab();
+    await pressTab();
     expect(document.activeElement).toBe(button);
     expect(button.matches(":focus-visible")).toBe(true);
     const style = getComputedStyle(button);
@@ -820,5 +821,33 @@ describe("Button under a parent's spacing", () => {
     const [save, cancel] = [...host.querySelectorAll<HTMLElement>('[data-ouro="button"]')];
     expect(getComputedStyle(save!).marginBottom).toBe("16px");
     expect(getComputedStyle(cancel!).marginBottom).toBe("0px");
+  });
+});
+
+describe("Button under more contrast", () => {
+  it("gives the soft look a visible border with prefers-contrast: more", async () => {
+    const { button } = await render(<Button variant="soft">Soft</Button>);
+    expect(getComputedStyle(button).borderTopColor).toBe("rgba(0, 0, 0, 0)");
+    await commands.emulateMedia({ contrast: "more" });
+    try {
+      await expect.poll(() => getComputedStyle(button).borderTopColor).toBe(getComputedStyle(button).color);
+    } finally {
+      await commands.emulateMedia({ contrast: "no-preference" });
+    }
+  });
+});
+
+describe("Button state layer", () => {
+  it("shows the deeper pressed wash, not the hover wash, while a mouse presses a hovered button", async () => {
+    const { button } = await render(<Button>Save</Button>);
+    const wash = () => getComputedStyle(button, "::before").opacity;
+    await userEvent.hover(button);
+    await expect.poll(wash).toBe("0.08");
+    await commands.pointerPress({ selector: "[data-ouro]", action: "down" });
+    try {
+      await expect.poll(wash).toBe("0.14");
+    } finally {
+      await commands.pointerPress({ action: "up" });
+    }
   });
 });

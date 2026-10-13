@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Toggle, type ToggleProps } from "@/registry/ouro/components/ouro/toggle/toggle";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -202,7 +203,7 @@ describe("Toggle looks", () => {
       </>,
     );
     document.body.focus();
-    await userEvent.tab();
+    await pressTab();
     expect(document.activeElement).toBe(toggle);
     const style = getComputedStyle(toggle);
     expect(style.outlineStyle).toBe("solid");
@@ -343,5 +344,18 @@ describe("Toggle server rendering", () => {
     const italic = host.querySelectorAll("button")[1]!;
     await userEvent.click(italic);
     expect(italic.getAttribute("aria-pressed")).toBe("true");
+  });
+});
+
+describe("Toggle under more contrast", () => {
+  it("gives the pressed look a visible border with prefers-contrast: more", async () => {
+    const { toggle } = await render(<Toggle label="Bold" defaultPressed />);
+    expect(getComputedStyle(toggle).borderTopColor).toBe("rgba(0, 0, 0, 0)");
+    await commands.emulateMedia({ contrast: "more" });
+    try {
+      await expect.poll(() => getComputedStyle(toggle).borderTopColor).toBe(getComputedStyle(toggle).color);
+    } finally {
+      await commands.emulateMedia({ contrast: "no-preference" });
+    }
   });
 });

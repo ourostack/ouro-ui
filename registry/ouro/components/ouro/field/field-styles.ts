@@ -1,5 +1,5 @@
 import { toneFor } from "@/registry/ouro/lib/ouro/appearance-hints";
-import type { DevWarning } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import type { DevWarning } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
 export {
   choicesClass,
@@ -106,10 +106,10 @@ const descriptionClass = "m-0 text-sm leading-5 text-muted-foreground";
  */
 const errorClass =
   "m-0 text-sm leading-5 text-destructive " +
-  "[transition:opacity_var(--ouro-duration-base)_ease-out,translate_var(--ouro-duration-base)_ease-out] " +
+  "[transition:opacity_var(--ouro-duration-base)_var(--ouro-ease-out),translate_var(--ouro-duration-base)_var(--ouro-ease-out)] " +
   "data-starting-style:opacity-0 data-starting-style:-translate-y-1 " +
   "data-ending-style:opacity-0 data-ending-style:-translate-y-1 " +
-  "motion-reduce:[transition:opacity_var(--ouro-duration-base)_ease-out] " +
+  "motion-reduce:[transition:opacity_var(--ouro-duration-base)_var(--ouro-ease-out)] " +
   "motion-reduce:data-starting-style:translate-y-0 motion-reduce:data-ending-style:translate-y-0 " +
   "[&_ul]:m-0 [&_ul]:list-disc [&_ul]:ps-5";
 
@@ -134,7 +134,7 @@ const controlClass =
   "rounded-md border border-solid border-input bg-transparent text-base text-foreground sm:pointer-fine:text-sm " +
   "font-[inherit] placeholder:text-muted-foreground " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
-  "transition-[border-color] duration-(--ouro-duration-fast) ease-out " +
+  "transition-[border-color] duration-(--ouro-duration-fast) ease-[ease] " +
   "aria-invalid:border-destructive disabled:cursor-not-allowed disabled:opacity-50 " +
   "dark:bg-input/30";
 

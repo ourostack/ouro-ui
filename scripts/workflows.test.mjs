@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -104,4 +104,126 @@ test("scheduled-failure.sh opens the issue once, then comments on it", () => {
   assert.match(calls[2], /^issue list /);
   assert.equal(calls[3], "issue comment 42 --body Failed again: https://github.com/o/r/actions/runs/1");
   assert.equal(calls.length, 4);
+});
+
+// v0.7.0 was out for two hours while the site's llms.txt and main's README still gave install
+// commands for v0.6.0: main named the old release until a person merged the "Prepare main"
+// pull request, and Pages then skipped three deploys in a row because main kept moving.
+
+const workflow = (file) => workflows.find((entry) => entry.file === file).text;
+
+test("Pages names GitHub's newest release before it builds, whatever main's package.json says", () => {
+  const pages = workflow("pages.yml");
+  const name = pages.indexOf('gh api "repos/$REPO/releases/latest" --jq .tag_name');
+  const set = pages.indexOf('node scripts/latest-release.mjs set "$newest"');
+  assert.ok(name > 0 && set > name, "pages.yml asks GitHub for the newest release and sets it");
+  assert.ok(pages.indexOf("pnpm run docs", set) > set, "then regenerates the docs that name it");
+  assert.ok(pages.indexOf("pnpm site:build") > set, "before the site builds");
+  assert.ok(pages.indexOf("scripts/namespace.sh _site/r") > set, "and before the namespace builds");
+});
+
+test("Release merges the pull request that prepares main, then runs CI there, so main names the release", () => {
+  const release = workflow("release.yml");
+  assert.match(release, /gh run watch "\$run" --exit-status --interval 30 && gh pr merge "\$NEXT_BRANCH" --squash \|\| true/);
+  // gh's exit code also fails on local branch cleanup, so the pull request's state decides, and
+  // the branch is deleted through the API afterwards.
+  assert.doesNotMatch(release, /gh pr merge[^\n]*--delete-branch/);
+  assert.match(release, /gh pr view "\$NEXT_BRANCH" --json state --jq \.state\)" = MERGED/);
+  assert.match(release, /gh workflow run ci\.yml --ref main/);
+  // Pages deploys main's new tip only after CI on it has run.
+  assert.ok(release.indexOf('gh run watch "$ci"') > release.indexOf("gh workflow run ci.yml --ref main"));
+  assert.ok(release.indexOf("gh workflow run pages.yml --ref main") > release.indexOf('gh run watch "$ci"'));
+  // The next release accepts that dispatched run: a merge made with the workflow's token starts no push run.
+  assert.match(release, /select\(\.event == "push" or \.event == "workflow_dispatch"\)/);
+});
+
+test("Release deploys Pages itself and fails when the published llms.txt or README names another release", () => {
+  const release = workflow("release.yml");
+  const deploy = release.indexOf("gh workflow run pages.yml --ref main");
+  const check = release.indexOf('node scripts/published-release.mjs "$TAG" --wait');
+  assert.ok(deploy > release.indexOf('gh release create "$TAG"'), "Pages is deployed after the release is created");
+  assert.ok(check > deploy, "and the published pages are checked last");
+});
+
+const releaseStep = (name) => {
+  const release = workflow("release.yml");
+  const start = release.indexOf(`        name: ${name}\n`);
+  assert.notEqual(start, -1);
+  const body = release.slice(start).split("        run: |\n")[1].split(/\n {6}- /)[0];
+  return body.split("\n").map((line) => line.slice(10)).join("\n");
+};
+
+for (const scenario of ["success", "ci-failed", "ci-missing", "dispatch-failed", "not-merged", "approval-failed", "tip-advanced"]) {
+  test(`Release's main CI gate ${scenario === "success" ? "permits" : "blocks"} Pages (${scenario})`, () => {
+    // Execute the workflow's actual shell, substituting only GitHub/network operations.
+    // gh merge exits non-zero even when state says MERGED, exercising independent readback.
+    const prepare = releaseStep("Prepare main for the next release");
+    const gate = prepare.slice(prepare.indexOf('if [ -n "$run" ] && gh api'));
+    const deploy = releaseStep("Deploy Pages and check what is published");
+    const scratch = join(root, ".tmp");
+    mkdirSync(scratch, { recursive: true });
+    const fixture = mkdtempSync(join(scratch, "release-main-gate-"));
+    const output = join(fixture, "output.txt");
+    const summary = join(fixture, "summary.md");
+    writeFileSync(output, "");
+    writeFileSync(summary, "");
+    console.info(`Release gate fixture: ${fixture}`);
+    const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", `
+      gh() {
+        printf 'CALL %s\\n' "$*" >&2
+        case "$*" in
+          "api -X POST "*"/approve") [ "$SCENARIO" != approval-failed ] ;;
+          "run watch 1 "*) return 0 ;;
+          "pr merge "*) return 1 ;;
+          "pr view "*"--json state"*) if [ "$SCENARIO" = not-merged ]; then echo OPEN; else echo MERGED; fi ;;
+          "pr view "*"--json body"*) echo body ;;
+          "pr edit "*|"api -X DELETE "*) return 0 ;;
+          "api "*"commits/main"*) echo aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ;;
+          "workflow run ci.yml --ref main") [ "$SCENARIO" != dispatch-failed ] ;;
+          "workflow run ci.yml --ref prepare/"*) return 0 ;;
+          "run list --workflow ci.yml "*) if [ "$SCENARIO" != ci-missing ]; then echo 2; fi ;;
+          "run watch 2 "*) [ "$SCENARIO" != ci-failed ] ;;
+          "run list --workflow pages.yml "*) if [ "$pages" = 1 ]; then echo 4; else echo 3; fi ;;
+          "workflow run pages.yml --ref main") pages=1 ;;
+          "run watch 4 "*) return 0 ;;
+          *) echo "Unexpected gh call: $*" >&2; return 99 ;;
+        esac
+      }
+      seq() { echo 1; }
+      sleep() { :; }
+      node() { printf 'PUBLISHED %s\\n' "$*"; }
+      run=1
+      pages=0
+      ${gate}
+      VERIFIED_MAIN_SHA="$tip"
+      if [ "$SCENARIO" = tip-advanced ]; then VERIFIED_MAIN_SHA=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; fi
+      ${deploy}
+    `], {
+      cwd: root, encoding: "utf8",
+      env: { ...process.env, SCENARIO: scenario, NEXT_BRANCH: "prepare/after-v9.9.9", TAG: "v9.9.9", GITHUB_REPOSITORY: "ourostack/ouro-ui", GITHUB_STEP_SUMMARY: summary, GITHUB_OUTPUT: output },
+    });
+    assert.doesNotMatch(result.stderr, /Unexpected gh call:/);
+    if (scenario === "success") {
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(readFileSync(output, "utf8"), /main_sha=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/);
+      assert.match(result.stderr, /CALL workflow run pages.yml --ref main/);
+      assert.match(result.stdout, /PUBLISHED scripts\/published-release.mjs v9.9.9 --wait 900/);
+      assert.match(result.stderr, /CALL api -X DELETE repos\/ourostack\/ouro-ui\/git\/refs\/heads\/prepare\/after-v9.9.9/);
+    } else {
+      assert.notEqual(result.status, 0, result.stderr);
+      assert.doesNotMatch(result.stderr, /CALL workflow run pages.yml/);
+      assert.match(result.stdout, /::error::/, result.stderr);
+    }
+  });
+}
+
+test("Release passes the verified main SHA to Pages and does not bypass the ruleset", () => {
+  const release = workflow("release.yml");
+  assert.match(release, /id: prepare/);
+  assert.match(release, /VERIFIED_MAIN_SHA: \$\{\{ steps\.prepare\.outputs\.main_sha \}\}/);
+  assert.doesNotMatch(release, /gh pr merge[^\n]*--admin/);
+});
+
+test("Scheduled install checks that the published llms.txt and README name the newest release", () => {
+  assert.match(job("latest"), /node scripts\/published-release\.mjs "\$newest"/);
 });

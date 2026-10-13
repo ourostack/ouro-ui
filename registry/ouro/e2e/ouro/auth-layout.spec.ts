@@ -1,5 +1,5 @@
-import { expect, test } from "@playwright/test";
-import { openStory } from "./story";
+import { expect, test } from "../ouro-fixtures";
+import { openStory, pressTab } from "./story";
 
 test("the auth layout centers a card with the page's heading and the form", async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 768 });
@@ -9,7 +9,7 @@ test("the auth layout centers a card with the page's heading and the form", asyn
   const card = (await main.locator('[data-ouro="card"]').boundingBox())!;
   expect(Math.abs(card.x + card.width / 2 - 512)).toBeLessThanOrEqual(1);
   await page.getByRole("textbox", { name: "Email" }).fill("ari@example.com");
-  await page.keyboard.press("Tab");
+  await pressTab(page);
   await expect(page.locator('input[name="password"]')).toBeFocused();
   await expect(main.getByRole("link", { name: "Create an account" })).toBeVisible();
 });

@@ -6,6 +6,7 @@ import { page, userEvent } from "vitest/browser";
 import { Navbar } from "@/registry/ouro/components/ouro/navbar/navbar";
 import { StackedLayout, type StackedLayoutProps } from "@/registry/ouro/components/ouro/sidebar/stacked-layout";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -101,7 +102,7 @@ describe("StackedLayout", () => {
         Page content
       </StackedLayout>,
     );
-    await userEvent.keyboard("{Tab}");
+    await pressTab();
     const skip = page.getByRole("link", { name: "Skip to recipes" });
     await expect.element(skip).toHaveFocus();
     expect(skip.element().getBoundingClientRect().width).toBeGreaterThan(44);

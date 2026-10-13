@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../ouro-fixtures";
 import { openStory, settledBox, slowDrag } from "./story";
 
 test.use({ viewport: { width: 390, height: 844 } });

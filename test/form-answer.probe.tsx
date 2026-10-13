@@ -4,7 +4,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Form } from "@/registry/ouro/components/ouro/form/form";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
-import { formErrors, type FormErrors } from "@/registry/ouro/lib/ouro/form-errors";
+import { formErrors, type FormErrors } from "@/registry/ouro/lib/ouro/form-answer";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 // Repo-only actual Router fixture: installed by form-answer-proof.yml into owned scratch.

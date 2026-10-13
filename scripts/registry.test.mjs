@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -36,6 +36,10 @@ test("--check fails when registry.json is stale, and names the fix", () => {
 
 /** The components, in registry order, from each folder's component.json. */
 const components = readComponents(root).map((entry) => entry.name);
+/** The helper items, one per file in lib/ouro, and the helpers that have tests. */
+const libFiles = readdirSync(join(root, "registry/ouro/lib/ouro")).filter((file) => /\.tsx?$/.test(file));
+const libs = libFiles.filter((file) => !/\.test\.tsx?$/.test(file)).map((file) => `lib-${file.replace(/\.d\.ts$|\.tsx?$/, "")}`).sort();
+const libTests = [...new Set(libFiles.filter((file) => /\.test\.tsx?$/.test(file)).map((file) => `lib-${file.replace(/(\.touch)?\.test\.tsx?$/, "")}-tests`))].sort();
 /** The components this repository had when the manifests replaced the script's list: their order never changes. */
 const firstComponents = ["button", "text", "heading", "sheet", "dialog", "confirm-dialog", "field", "fieldset", "link", "text-field", "text-area"];
 
@@ -75,14 +79,16 @@ test("the registry is named ouro and lists every item", () => {
     "ouro-theme",
     "ouro-lib",
     "ouro-testing",
+    ...libs,
     ...components,
-    "ouro-lib-tests",
+    ...libTests,
     ...components.map((name) => `${name}-tests`),
+    "ouro-lib-tests",
     "ouro-tests",
   ]);
 });
 
-const runtimeItems = ["ouro-base", "ouro-theme", "ouro-lib", ...components];
+const runtimeItems = ["ouro-base", "ouro-theme", "ouro-lib", ...libs, ...components];
 const testFile = /\.(test|touch\.test)\.tsx?$|\.test-d\.ts$|\.stories\.tsx$|\.spec\.ts$/;
 
 test("runtime items ship no tests, stories, specs or test tooling, and never pull in the test kit", () => {
@@ -109,12 +115,12 @@ test("the generator fails when a runtime file imports test tooling", () => {
 });
 
 test("each -tests item's description names the kinds of file it ships", () => {
-  assert.match(item("ouro-lib-tests").description, /^Optional: the Vitest browser tests for ouro-lib,/);
+  assert.match(item("lib-cn-tests").description, /^Optional: the Vitest browser tests for lib-cn,/);
   assert.match(item("text-tests").description, /^Optional: the Vitest browser tests, type tests, stories and Playwright spec for text,/);
 });
 
 test("each component has an opt-in -tests item with its tests, type tests, stories and spec", () => {
-  for (const name of [...components, "ouro-lib"]) {
+  for (const name of [...components, ...libTests.map((tests) => tests.slice(0, -6))]) {
     const tests = item(`${name}-tests`);
     assert.equal(tests.type, "registry:item");
     assert.match(tests.description, /^Optional: /);
@@ -132,8 +138,10 @@ test("each component has an opt-in -tests item with its tests, type tests, stori
   ]) {
     assert.ok(paths.includes(path), `sheet-tests ships ${path}`);
   }
-  assert.ok(item("ouro-lib-tests").files.some((file) => file.path === "registry/ouro/lib/ouro/cn.test.ts"));
-  assert.deepEqual(item("button-tests").devDependencies, ["@playwright/test@^1.63.0", "@storybook/react-vite@^10.6.1", "storybook@^10.6.1", "vitest@^5.0.3"]);
+  assert.deepEqual(item("lib-cn-tests").files.map((file) => file.path), ["registry/ouro/lib/ouro/cn.test.ts"]);
+  // Playwright comes with ouro-testing: a spec takes test and expect from the app's fixtures file.
+  assert.deepEqual(item("button-tests").devDependencies, ["@storybook/react-vite", "storybook", "vitest"]);
+  assert.deepEqual(item("button-tests").meta.requires, { "@storybook/react-vite": ">=10.2.10", storybook: ">=10.2.10", vitest: ">=4.1.11" });
 });
 
 test("ouro-tests installs every -tests item: the whole suite in one command", () => {
@@ -141,7 +149,10 @@ test("ouro-tests installs every -tests item: the whole suite in one command", ()
   assert.equal(all.type, "registry:item");
   assert.match(all.description, /^Optional: /);
   assert.equal(all.files, undefined);
-  assert.deepEqual(all.registryDependencies, ["ouro-lib", ...components].map((name) => repo(`${name}-tests`)).sort());
+  assert.deepEqual(all.registryDependencies, [...libTests, ...components.map((name) => `${name}-tests`)].map(repo).sort());
+  // ouro-lib-tests is every helper with its tests.
+  assert.deepEqual(item("ouro-lib-tests").registryDependencies, ["ouro-lib", ...libTests].map(repo).sort());
+  assert.deepEqual(item("ouro-lib").registryDependencies, libs.map(repo).sort());
 });
 
 test("theme items come from the repository's CSS, in shadcn's cssVars format", () => {
@@ -206,11 +217,19 @@ test("components ship as registry:ui, tests and stories as registry:component, s
 });
 
 test("helpers land in lib/ouro and the test kit in lib/ouro/testing and e2e/ouro", () => {
-  for (const file of item("ouro-lib").files) {
-    assert.equal(file.type, "registry:lib");
-    assert.match(file.target, /^@lib\/ouro\/[\w.-]+$/);
+  for (const name of libs) {
+    assert.equal(item(name).type, "registry:lib");
+    assert.equal(item(name).files.length, 1, `${name} is one file`);
+    for (const file of item(name).files) {
+      assert.equal(file.type, "registry:lib");
+      assert.match(file.target, /^@lib\/ouro\/[\w.-]+$/);
+    }
   }
-  assert.ok(item("ouro-lib").files.some((file) => file.target === "@lib/ouro/env.d.ts"));
+  assert.equal(item("ouro-lib").files, undefined);
+  assert.deepEqual(item("lib-env").files.map((file) => file.target), ["@lib/ouro/env.d.ts"]);
+  // env.d.ts declares process.env.NODE_ENV: every item that reads it installs it, though nothing imports it.
+  assert.ok(item("lib-dev").registryDependencies.includes(repo("lib-env")));
+  assert.ok(item("button").registryDependencies.includes(repo("lib-env")));
   const testing = item("ouro-testing").files.map((file) => file.target);
   assert.ok(testing.includes("@lib/ouro/testing/vitest.ts"));
   assert.ok(testing.includes("@lib/ouro/testing/setup.ts"));
@@ -222,7 +241,12 @@ test("every registry file ships in exactly one item, except the repository's own
   assert.equal(itemForFile("registry/ouro/components/ouro/dialog/confirm-dialog.test.tsx"), "confirm-dialog-tests");
   assert.equal(itemForFile("registry/ouro/components/ouro/dialog/dialog.stories.tsx"), "dialog-tests");
   assert.equal(itemForFile("registry/ouro/e2e/ouro/sheet.spec.ts"), "sheet-tests");
-  assert.equal(itemForFile("registry/ouro/lib/ouro/cn.test.ts"), "ouro-lib-tests");
+  assert.equal(itemForFile("registry/ouro/lib/ouro/cn.test.ts"), "lib-cn-tests");
+  assert.equal(itemForFile("registry/ouro/lib/ouro/cn.ts"), "lib-cn");
+  assert.equal(itemForFile("registry/ouro/lib/ouro/env.d.ts"), "lib-env");
+  assert.equal(itemForFile("registry/ouro/lib/ouro/ouro-provider.test.tsx"), "lib-ouro-provider-tests");
+  // The repository's stand-in for the fixtures file an app writes once and no item ships.
+  assert.equal(itemForFile("registry/ouro/e2e/ouro-fixtures.ts"), null);
   assert.equal(itemForFile("registry/ouro/e2e/ouro/story.ts"), "ouro-testing");
   assert.equal(itemForFile("registry/ouro/lib/ouro/testing/act.ts"), "ouro-testing");
   assert.equal(itemForFile("registry/ouro/theme/theme.test.tsx"), null);
@@ -230,13 +254,16 @@ test("every registry file ships in exactly one item, except the repository's own
 });
 
 test("registryDependencies are the same-repo items each item imports, as full unpinned addresses", () => {
-  assert.deepEqual(item("dialog").registryDependencies, [repo("ouro-base"), repo("ouro-lib"), repo("sheet")]);
-  assert.deepEqual(item("heading").registryDependencies, [repo("ouro-base"), repo("ouro-lib"), repo("text")]);
-  assert.deepEqual(item("confirm-dialog").registryDependencies, [repo("button"), repo("dialog"), repo("ouro-base"), repo("ouro-lib")]);
-  assert.equal(item("ouro-lib").registryDependencies, undefined);
-  assert.deepEqual(item("heading-tests").registryDependencies, [repo("button"), repo("heading"), repo("ouro-testing"), repo("text")]);
-  assert.deepEqual(item("dialog-tests").registryDependencies, [repo("button"), repo("dialog"), repo("ouro-testing"), repo("sheet")]);
-  assert.deepEqual(item("ouro-lib-tests").registryDependencies, [repo("ouro-lib"), repo("ouro-testing")]);
+  const notHelpers = (name) => item(name).registryDependencies.filter((dependency) => !dependency.startsWith(repo("lib-")));
+  assert.deepEqual(notHelpers("dialog"), [repo("sheet")]);
+  assert.deepEqual(notHelpers("heading"), [repo("text")]);
+  assert.deepEqual(notHelpers("confirm-dialog"), [repo("button"), repo("dialog")]);
+  assert.deepEqual(item("lib-cn").registryDependencies, undefined);
+  assert.deepEqual(item("lib-class-name-check").registryDependencies, [repo("lib-dev"), repo("lib-env")]);
+  // A -tests item also names the tests of everything it installs.
+  assert.deepEqual(notHelpers("heading-tests"), ["button", "button-tests", "heading", "ouro-testing", "text", "text-tests"].map(repo));
+  assert.deepEqual(notHelpers("dialog-tests"), ["button", "button-tests", "dialog", "ouro-testing", "sheet", "sheet-tests"].map(repo));
+  assert.deepEqual(item("lib-cn-tests").registryDependencies, [repo("lib-cn"), repo("ouro-testing")]);
   assert.equal(item("ouro-testing").registryDependencies, undefined);
   assert.equal(item("ouro-theme").registryDependencies, undefined);
   for (const entry of registry.items) {
@@ -247,15 +274,18 @@ test("registryDependencies are the same-repo items each item imports, as full un
 test("npm dependencies are pinned to the ranges this repository tests", () => {
   assert.deepEqual(item("button").dependencies, ["@base-ui/react@^1.8.0"]);
   // OuroProvider groups tooltips with Base UI's Tooltip.Provider.
-  assert.deepEqual(item("ouro-lib").dependencies, ["@base-ui/react@^1.8.0", "clsx@^2.1.1", "tailwind-merge@^3.7.0"]);
+  assert.deepEqual(item("lib-ouro-provider").dependencies, ["@base-ui/react@^1.8.0"]);
+  assert.deepEqual(item("lib-cn").dependencies, ["clsx@^2.1.1", "tailwind-merge@^3.7.0"]);
+  assert.equal(item("ouro-lib").dependencies, undefined);
   assert.ok(!JSON.stringify(registry).includes('"motion@'), "no item depends on motion");
   assert.equal(item("button").devDependencies, undefined);
-  assert.deepEqual(item("ouro-testing").devDependencies, ["@playwright/test@^1.63.0", "@vitest/browser-playwright@^5.0.3", "playwright@^1.63.0", "vitest@^5.0.3"]);
+  assert.deepEqual(item("ouro-testing").devDependencies, ["@playwright/test", "@vitest/browser-playwright", "playwright", "vitest"]);
   for (const entry of registry.items) {
-    for (const dependency of [...(entry.dependencies ?? []), ...(entry.devDependencies ?? [])]) {
+    for (const dependency of entry.dependencies ?? []) {
       assert.doesNotMatch(dependency, /^react(-dom)?@/);
       assert.match(dependency, /@\^\d+\.\d+\.\d+$/);
     }
+    for (const dependency of entry.devDependencies ?? []) assert.doesNotMatch(dependency, /^react(-dom)?$/);
   }
 });
 
@@ -265,18 +295,21 @@ test("each item has a one-line description and a docs message with its docs URL"
   assert.equal(sheet.description, "A panel that slides in from an edge and is dragged back to dismiss: the mobile form of a dialog.");
   assert.equal(
     sheet.docs,
-    `${sheet.description} Import: import { Sheet } from "@/components/ouro/sheet/sheet", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/sheet.md`,
+    `${sheet.description} Import: import { Sheet } from "@/components/ouro/sheet/sheet", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: the helpers it imports in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/sheet.md`,
   );
   assert.equal(
     item("confirm-dialog").docs,
-    `${item("confirm-dialog").description} Import: import { ConfirmDialog } from "@/components/ouro/dialog/confirm-dialog", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, dialog, ouro-base, ouro-lib, sheet. Docs: https://ourostack.github.io/ouro-ui/docs/confirm-dialog.md`,
+    `${item("confirm-dialog").description} Import: import { ConfirmDialog } from "@/components/ouro/dialog/confirm-dialog", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, dialog, sheet, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/confirm-dialog.md`,
   );
   assert.match(item("heading").docs, /import \{ Heading \} from "@\/components\/ouro\/text\/heading"/);
-  for (const name of ["ouro-base", "ouro-lib"]) {
-    assert.match(item(name).description, /^Installed with every component; you don't need to add it\. /, name);
-  }
+  // ouro-base is the one item an app adds by hand, once; the helpers come with what imports them.
+  assert.match(item("ouro-base").description, /^Add it once per app, before your first component; no component installs it, /);
+  for (const name of libs.filter((each) => each !== "lib-ouro-provider")) assert.match(item(name).description, /^Installed with the components that import it; you don't need to add it\. /, name);
+  // OuroProvider is imported only by the app, so its description says when to add it by name.
+  assert.doesNotMatch(item("lib-ouro-provider").description, /you don't need to add it/);
+  assert.match(item("lib-ouro-provider").description, /add it by name/);
   assert.match(item("ouro-testing").description, /^Installed with every -tests item; you don't need to add it\. /);
-  assert.match(item("sheet-tests").docs, /https:\/\/ourostack\.github\.io\/ouro-ui\/docs\/sheet\.md$/);
+  assert.match(item("sheet-tests").docs, /https:\/\/ourostack\.github\.io\/ouro-ui\/docs\/testing\.md$/);
   for (const name of components) {
     assert.ok(item(name).docs.endsWith(`Docs: https://ourostack.github.io/ouro-ui/docs/${name}.md`), name);
   }
@@ -284,34 +317,28 @@ test("each item has a one-line description and a docs message with its docs URL"
   assert.match(item("ouro-testing").docs, /OURO_E2E_URL/);
   for (const entry of registry.items) {
     assert.ok(entry.description.length > 0 && !entry.description.includes("\n"), entry.name);
-    assert.ok(entry.docs, entry.name);
+    assert.equal(Boolean(entry.docs), !entry.name.startsWith("lib-"), entry.name);
   }
 });
 
 test("rewriteDependencies points same-repo dependencies anywhere, leaving the registry unchanged", () => {
   const local = rewriteDependencies(registry, (name) => `/tmp/r/${name}.json`);
-  assert.deepEqual(local.items.find((entry) => entry.name === "heading").registryDependencies, [
-    "/tmp/r/ouro-base.json",
-    "/tmp/r/ouro-lib.json",
-    "/tmp/r/text.json",
-  ]);
-  assert.deepEqual(item("heading").registryDependencies[0], repo("ouro-base"));
+  assert.deepEqual(local.items.find((entry) => entry.name === "lib-class-name-check").registryDependencies, ["/tmp/r/lib-dev.json", "/tmp/r/lib-env.json"]);
+  assert.ok(local.items.find((entry) => entry.name === "heading").registryDependencies.includes("/tmp/r/text.json"));
+  assert.deepEqual(item("lib-class-name-check").registryDependencies[0], repo("lib-dev"));
 });
 
 test("--deps writes a copy whose same-repo dependencies follow a template: the @ouro namespace (Pages) or local files (install test)", () => {
   const dir = mkdtempSync(join(tmpdir(), "ouro-registry-"));
   assert.equal(run("--out", join(dir, "ns.json"), "--deps", "@ouro/{name}").status, 0);
   const namespaced = JSON.parse(readFileSync(join(dir, "ns.json"), "utf8"));
-  assert.deepEqual(namespaced.items.find((entry) => entry.name === "dialog").registryDependencies, [
-    "@ouro/ouro-base",
-    "@ouro/ouro-lib",
-    "@ouro/sheet",
-  ]);
+  assert.deepEqual(namespaced.items.find((entry) => entry.name === "lib-class-name-check").registryDependencies, ["@ouro/lib-dev", "@ouro/lib-env"]);
+  assert.ok(namespaced.items.find((entry) => entry.name === "dialog").registryDependencies.includes("@ouro/sheet"));
   assert.ok(namespaced.items.find((entry) => entry.name === "ouro-tests").registryDependencies.includes("@ouro/dialog-tests"));
   assert.equal(namespaced.version, undefined);
   assert.equal(run("--out", join(dir, "local.json"), "--deps", "/srv/r/{name}.json").status, 0);
   const local = JSON.parse(readFileSync(join(dir, "local.json"), "utf8"));
-  assert.deepEqual(local.items.find((entry) => entry.name === "ouro-lib-tests").registryDependencies, ["/srv/r/ouro-lib.json", "/srv/r/ouro-testing.json"]);
+  assert.deepEqual(local.items.find((entry) => entry.name === "lib-cn-tests").registryDependencies, ["/srv/r/lib-cn.json", "/srv/r/ouro-testing.json"]);
   assert.equal(run("--out", join(dir, "bad.json"), "--deps", "@ouro/").status, 1, "a template without {name} fails");
 });
 
@@ -321,24 +348,27 @@ test("--release pins every same-repo dependency to the release tag and records t
   const released = JSON.parse(readFileSync(out, "utf8"));
   assert.deepEqual(Object.keys(released), ["$schema", "name", "homepage", "version", "items"]);
   assert.equal(released.version, "0.1.0");
-  assert.deepEqual(released.items.find((entry) => entry.name === "dialog").registryDependencies, [
-    "ourostack/ouro-ui/ouro-base#v0.1.0",
-    "ourostack/ouro-ui/ouro-lib#v0.1.0",
-    "ourostack/ouro-ui/sheet#v0.1.0",
+  assert.deepEqual(released.items.find((entry) => entry.name === "lib-class-name-check").registryDependencies, [
+    "ourostack/ouro-ui/lib-dev#v0.1.0",
+    "ourostack/ouro-ui/lib-env#v0.1.0",
   ]);
   assert.ok(released.items.find((entry) => entry.name === "ouro-tests").registryDependencies.includes("ourostack/ouro-ui/sheet-tests#v0.1.0"));
   assert.ok(released.items.find((entry) => entry.name === "sheet-tests").registryDependencies.includes("ourostack/ouro-ui/sheet#v0.1.0"));
   for (const entry of released.items) {
     for (const dependency of entry.registryDependencies ?? []) assert.match(dependency, /^ourostack\/ouro-ui\/[\w-]+#v0\.1\.0$/);
-    // Every add prints the version it installed; the CLI shows no other trace of it.
+    // Every add prints the version it installed; the CLI shows no other trace of it. A helper prints nothing.
+    if (entry.name.startsWith("lib-")) {
+      assert.equal(entry.docs, undefined);
+      continue;
+    }
     assert.ok(entry.docs.endsWith(" Ouro UI v0.1.0."), `${entry.name}: ${entry.docs.slice(-60)}`);
     assert.equal(entry.docs, `${item(entry.name).docs} Ouro UI v0.1.0.`);
   }
-  for (const entry of registry.items) assert.doesNotMatch(entry.docs, /Ouro UI v\d/, `${entry.name} names a version on main`);
+  for (const entry of registry.items) assert.doesNotMatch(entry.docs ?? "", /Ouro UI v\d/, `${entry.name} names a version on main`);
 
   // CI on the release branch: --check reads the version from the file and still catches drift.
   assert.equal(run("--check", "--out", out).status, 0);
-  released.items.find((entry) => entry.name === "dialog").registryDependencies[0] = "ourostack/ouro-ui/ouro-base";
+  released.items.find((entry) => entry.name === "dialog").registryDependencies[0] = "ourostack/ouro-ui/lib-cn";
   writeFileSync(out, JSON.stringify(released, null, 2) + "\n");
   assert.equal(run("--check", "--out", out).status, 1);
 
@@ -368,6 +398,18 @@ test("the install fixture's test setup uses exactly the files the ouro-testing d
     assert.ok(docs.includes(`--- ${path}\n${content}`), `the docs print ${path}`);
   }
   assert.ok("playwright.config.ts" in testingSetup, "the fixture's Playwright config is one of the documented files");
+  // The specs take test and expect from a file the app owns, which no item ships, so no add overwrites it.
+  assert.ok("e2e/ouro-fixtures.ts" in testingSetup);
+  assert.equal(readFileSync(join(root, "registry/ouro/e2e/ouro-fixtures.ts"), "utf8"), testingSetup["e2e/ouro-fixtures.ts"]);
+  for (const entry of registry.items) {
+    for (const file of entry.files ?? []) {
+      assert.notEqual(file.path, "registry/ouro/e2e/ouro-fixtures.ts", `${entry.name} ships the fixtures file`);
+      if (!file.path.endsWith(".spec.ts")) continue;
+      const source = readFileSync(join(root, file.path), "utf8");
+      assert.match(source, /^import \{ expect, test \} from "\.\.\/ouro-fixtures";$/m, `${file.path} takes test and expect from ../ouro-fixtures`);
+      assert.doesNotMatch(source, /^import \{[^}]*\b(test|expect)\b[^}]*\} from "@playwright\/test";$/m, `${file.path} imports test or expect from @playwright/test`);
+    }
+  }
   assert.match(docs, /npx storybook dev -p 6006/);
   assert.match(docs, /Then run npx playwright test e2e\/ouro\./);
   assert.match(docs, /OURO_E2E_URL=http:\/\/localhost:6006 npx playwright test e2e\/ouro/);
@@ -378,13 +420,16 @@ test("site/public/llms.txt gives the init, search and add commands and lists eve
   assert.ok(llms.includes("npx shadcn@latest init --base base --preset nova --yes --no-monorepo"));
   assert.ok(llms.includes("npx shadcn@latest search 'ourostack/ouro-ui#v"));
   assert.ok(llms.includes("npx shadcn@latest add ourostack/ouro-ui/dialog#v"));
-  for (const entry of registry.items) {
+  for (const entry of registry.items.filter((each) => !each.name.startsWith("lib-"))) {
     // A component's line ends with its page's full Markdown URL, so an agent never composes one.
     const line = components.includes(entry.name)
       ? `- \`${entry.name}\`: ${entry.description} Docs: https://ourostack.github.io/ouro-ui/docs/${entry.name}.md\n`
       : `- \`${entry.name}\`: ${entry.description}\n`;
     assert.ok(llms.includes(line), `llms.txt lists ${entry.name} with its registry description; run pnpm registry`);
   }
+  // The helpers are one line: no app adds one by name.
+  const helpers = llms.split("\n").find((line) => line.startsWith("- Helpers, one item per file in lib/ouro"));
+  for (const name of libs) assert.ok(helpers.includes(`\`${name}\``), `llms.txt names ${name}`);
   assert.ok(llms.includes("https://ourostack.github.io/ouro-ui/docs/parts.md"), "llms.txt links parts.md");
 });
 
@@ -395,7 +440,8 @@ test("--from rewrites a released registry.json for the @ouro namespace, keeping 
   assert.equal(run("--from", released, "--out", join(dir, "ns.json"), "--deps", "@ouro/{name}").status, 0);
   const namespaced = JSON.parse(readFileSync(join(dir, "ns.json"), "utf8"));
   assert.equal(namespaced.version, "0.3.0");
-  assert.deepEqual(namespaced.items.find((entry) => entry.name === "dialog").registryDependencies, ["@ouro/ouro-base", "@ouro/ouro-lib", "@ouro/sheet"]);
+  assert.ok(namespaced.items.find((entry) => entry.name === "dialog").registryDependencies.includes("@ouro/sheet"));
+  for (const entry of namespaced.items) for (const dependency of entry.registryDependencies ?? []) assert.match(dependency, /^@ouro\/[\w-]+$/);
   assert.ok(namespaced.items.every((entry) => entry.docs === undefined || entry.docs.endsWith(" Ouro UI v0.3.0.")));
   assert.equal(run("--from", released, "--out", join(dir, "bad.json")).status, 1, "--from without --deps fails");
 });
@@ -425,4 +471,111 @@ test("no item lists a package as a devDependency that a runtime item, or anythin
     assert.deepEqual(dev.filter((name) => installed.has(name)), [], `${entry.name}: a devDependency its own install already lists as a dependency`);
     assert.deepEqual(dev.filter((name) => runtimePackages.has(name)), [], `${entry.name}: a devDependency that a runtime item needs`);
   }
+});
+
+// What Spoonjoy's adoption found (H5, H6, D9): every add must leave the app's setup alone,
+// and a subset installed with its tests must be able to cover every file it installed.
+const closure = (name, seen = new Set()) => {
+  for (const dependency of item(name)?.registryDependencies ?? []) {
+    const dep = dependency.slice("ourostack/ouro-ui/".length);
+    if (!seen.has(dep)) {
+      seen.add(dep);
+      closure(dep, seen);
+    }
+  }
+  return seen;
+};
+
+test("a -tests item installs the tests of every item it installs: link-tests brings text-tests", () => {
+  assert.ok(item("link-tests").registryDependencies.includes(repo("text-tests")), "link-tests installs text, so it installs text-tests");
+  const names = new Set(registry.items.map((entry) => entry.name));
+  for (const entry of registry.items.filter((each) => each.name.endsWith("-tests") && each.name !== "ouro-tests" && each.name !== "ouro-lib-tests")) {
+    const installed = new Set([entry.name, ...closure(entry.name)]);
+    for (const dep of installed) {
+      if (dep.endsWith("-tests") || !names.has(`${dep}-tests`)) continue;
+      assert.ok(installed.has(`${dep}-tests`), `${entry.name} installs ${dep} without ${dep}-tests`);
+    }
+  }
+});
+
+test("only ouro-base and ouro-theme touch the app's stylesheet, and no other item installs them", () => {
+  for (const entry of registry.items) {
+    const themed = entry.name === "ouro-base" || entry.name === "ouro-theme";
+    assert.equal(Boolean(entry.cssVars || entry.css), themed, `${entry.name} cssVars/css`);
+    for (const dep of closure(entry.name)) {
+      assert.ok(dep !== "ouro-base" && dep !== "ouro-theme", `${entry.name} installs ${dep}, so adding it would rewrite the app's stylesheet`);
+    }
+  }
+});
+
+test("devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has", () => {
+  const tooling = /^(storybook|@storybook\/.*|vitest|@vitest\/.*|playwright|@playwright\/.*)$/;
+  let seen = 0;
+  for (const entry of registry.items) {
+    for (const spec of entry.dependencies ?? []) assert.ok(!tooling.test(spec.replace(/(?!^)@.*$/, "")), `${entry.name} lists ${spec} as a dependency`);
+    for (const spec of entry.devDependencies ?? []) {
+      seen++;
+      assert.doesNotMatch(spec, /.@/, `${entry.name}: ${spec} carries a version`);
+    }
+    if (entry.devDependencies) {
+      // The minimum versions are stated, as ranges, where an app and its agent can read them.
+      for (const name of entry.devDependencies) assert.match(entry.meta?.requires?.[name] ?? "", /^>=\d+\.\d+\.\d+$/, `${entry.name} meta.requires.${name}`);
+    }
+  }
+  assert.ok(seen > 0);
+  assert.match(item("ouro-testing").docs, /Needs Vitest \d[\d.]* or later in browser mode .*Playwright \d[\d.]* or later/);
+});
+
+test("each lib helper is its own item, so an item installs only the helpers it imports", () => {
+  const button = closure("button");
+  for (const helper of ["lib-cn", "lib-dev", "lib-announce"]) assert.ok(button.has(helper), `button installs ${helper}`);
+  for (const helper of ["lib-toast", "lib-stretched-link", "lib-floating", "lib-spring", "lib-use-drag"]) {
+    assert.ok(!button.has(helper), `button does not import ${helper}`);
+  }
+  // Every helper file an installed file imports is installed, and nothing else from lib/ouro.
+  for (const entry of registry.items.filter((each) => each.type === "registry:ui")) {
+    const installed = new Set([entry.name, ...closure(entry.name)]);
+    const files = [...installed].flatMap((name) => (item(name).files ?? []).map((file) => file.path));
+    const imported = new Set();
+    for (const path of files) {
+      for (const match of readFileSync(join(root, path), "utf8").matchAll(/from "@\/(registry\/ouro\/lib\/ouro\/[\w-]+)"/g)) imported.add(match[1]);
+    }
+    // OuroProvider is the one helper the app imports: it comes with the components that render links.
+    const helpers = files
+      .filter((path) => path.startsWith("registry/ouro/lib/ouro/") && !path.endsWith("env.d.ts") && !path.endsWith("/ouro-provider.tsx"))
+      .map((path) => path.replace(/\.tsx?$/, ""));
+    assert.equal(files.includes("registry/ouro/lib/ouro/ouro-provider.tsx"), files.includes("registry/ouro/lib/ouro/router-link.ts") || entry.name === "tooltip", `${entry.name} has OuroProvider exactly when it renders links or is the tooltip, which the provider groups`);
+    assert.deepEqual(helpers.filter((path) => !imported.has(path)), [], `${entry.name} installs helpers nothing it installs imports`);
+  }
+  // ouro-lib stays, as every helper in one item.
+  const all = closure("ouro-lib");
+  for (const entry of registry.items.filter((each) => each.name.startsWith("lib-") && !each.name.endsWith("-tests"))) assert.ok(all.has(entry.name), `ouro-lib installs ${entry.name}`);
+});
+
+test("every item's docs message names a docs page the site publishes", () => {
+  const catalog = JSON.parse(readFileSync(join(root, "site/src/docs/catalog.json"), "utf8")).map((entry) => entry.name);
+  const pages = JSON.parse(readFileSync(join(root, "site/src/docs/pages.json"), "utf8")).map((entry) => entry.name);
+  const published = new Set([...catalog, ...pages].map((name) => `https://ourostack.github.io/ouro-ui/docs/${name}.md`));
+  for (const entry of registry.items) {
+    // A helper prints nothing, so an add prints one message per component, not one per helper.
+    if (entry.name.startsWith("lib-")) {
+      assert.equal(entry.docs, undefined, `${entry.name} prints a message`);
+      continue;
+    }
+    const url = /Docs: (\S+)$/.exec(entry.docs)?.[1];
+    assert.ok(url && published.has(url), `${entry.name}: ${url} is not a published docs page`);
+  }
+  for (const name of components) assert.ok(catalog.includes(name), `${name} has no docs page`);
+});
+
+test("a component that renders links brings OuroProvider, which only the app imports", () => {
+  assert.ok(item("lib-router-link").registryDependencies.includes(repo("lib-ouro-provider")));
+  const installs = (name, seen = new Set()) => {
+    if (seen.has(name)) return seen;
+    seen.add(name);
+    for (const dep of item(name).registryDependencies ?? []) installs(dep.split("/").at(-1), seen);
+    return seen;
+  };
+  for (const name of ["button", "link", "card", "item", "table"]) assert.ok(installs(name).has("lib-ouro-provider"), `${name} installs OuroProvider`);
+  assert.ok(installs("button-tests").has("lib-ouro-provider-tests"), "and its tests come with the component's tests");
 });

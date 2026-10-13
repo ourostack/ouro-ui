@@ -1,11 +1,11 @@
-import { expect, test } from "@playwright/test";
-import { openStory } from "./story";
+import { expect, test } from "../ouro-fixtures";
+import { openStory, pressTab } from "./story";
 
 test("the group is one tab stop, and the arrow keys move and pick, skipping disabled choices", async ({ page }) => {
   await openStory(page, "forms-radiogroup--sizes");
   const group = page.getByRole("radiogroup", { name: "Size" });
   await expect(group).toHaveAccessibleDescription("How many people you're cooking for.");
-  await page.keyboard.press("Tab");
+  await pressTab(page);
   const medium = group.getByRole("radio", { name: "Medium" });
   await expect(medium).toBeFocused();
   await page.keyboard.press("ArrowDown");

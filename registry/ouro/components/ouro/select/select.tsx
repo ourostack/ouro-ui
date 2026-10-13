@@ -17,7 +17,7 @@ import {
   type SelectOptions,
 } from "@/registry/ouro/components/ouro/select/select-styles";
 import { FieldOwnerContext, useField, useFormErrors, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
 
 export type { SelectOption, SelectOptionGroup, SelectOptions } from "@/registry/ouro/components/ouro/select/select-styles";
@@ -230,6 +230,13 @@ function SelectControl({
  * is a `string[]`. On a phone the list opens as a bottom sheet you scroll with your thumb;
  * elsewhere it opens next to the trigger, over the chosen option. It submits its value under
  * `name` in a plain form post. Covers Catalyst's Listbox.
+ *
+ * A `multiple` Select posts one entry per chosen value, all under `name`, in the order they
+ * were chosen, and no entry when nothing is chosen: read them with
+ * `formData.getAll("tags")`, not `formData.get`. In a test, open the list and choose an
+ * option with real pointer events (`userEvent.click` in Vitest browser mode, `locator.click()`
+ * in Playwright): the options act on pointer events, so a synthetic `fireEvent.click`
+ * chooses nothing.
  *
  * Use `NativeSelect` instead for the operating system's own picker (long lists of plain
  * text on phones, such as countries), `RadioGroup` for two to five choices that should all

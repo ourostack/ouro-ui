@@ -8,7 +8,7 @@ import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-st
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { FieldOwnerContext, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { fitHeight, textAreaClass, textAreaSizes, textAreaVariants } from "@/registry/ouro/components/ouro/text-field/text-area-styles";
 import { controlSizeWarning, controlVariantWarning } from "@/registry/ouro/components/ouro/text-field/text-field-styles";
 

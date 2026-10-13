@@ -2,7 +2,7 @@
 
 # Checkbox
 
-A labeled checkbox on the Field contract, with the label to its right: pass `label`, and `checked` with `onCheckedChange` (or `defaultChecked`). Clicking the label toggles it, Space toggles it from the keyboard, the tick draws itself, and `indeterminate` shows a dash announced as "mixed". With `name`, a checked box submits `name=value` with its form.
+A labeled checkbox on the Field contract, with the label to its right: pass `label`, and `checked` with `onCheckedChange` (or `defaultChecked`). Clicking the label toggles it, Space toggles it from the keyboard, the tick fades in, and `indeterminate` shows a dash announced as "mixed". With `name`, a checked box submits `name=value` with its form.
 
 ```tsx
 import { Checkbox } from "@/registry/ouro/components/ouro/checkbox/checkbox";

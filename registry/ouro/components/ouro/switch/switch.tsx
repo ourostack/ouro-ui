@@ -7,7 +7,7 @@ import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-st
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { FieldOwnerContext, useField, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { thumbClass, trackClass } from "@/registry/ouro/components/ouro/switch/switch-styles";
 
 /** Props for {@link Switch}. */
@@ -104,7 +104,7 @@ function SwitchTrack(props: {
 /**
  * A labeled on/off switch on the Field contract, with the label to its right: pass `label`,
  * and `checked` with `onCheckedChange` (or `defaultChecked`). Clicking the label or pressing
- * Space flips it; the thumb slides with the theme spring and stretches while pressed. With
+ * Space flips it; the thumb slides and stretches while pressed. With
  * `name`, a switch that is on submits `name=value` with its form.
  *
  * Use it for a setting that takes effect at once. Use `Checkbox` instead for a choice that

@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../ouro-fixtures";
 import { openStory } from "./story";
 
 test("terms sit above their details on a phone and beside them on a wide screen", async ({ page }) => {

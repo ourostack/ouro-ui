@@ -2,10 +2,11 @@ import { createRef, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { Form } from "@base-ui/react/form";
 import { FileField, type FileFieldProps } from "@/registry/ouro/components/ouro/file-field/file-field";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -433,7 +434,7 @@ describe("FileField", () => {
   it("outlines the zone while the input has keyboard focus", async () => {
     const { zone } = await render(<FileField label="Photo" />);
     document.body.focus();
-    await userEvent.tab();
+    await pressTab();
     await expect.poll(() => getComputedStyle(zone).outlineStyle).toBe("solid");
   });
 
@@ -546,5 +547,20 @@ describe("FileField server rendering", () => {
     expect(error).not.toHaveBeenCalled();
     await choose(host.querySelector('input[type="file"]')!, [image()]);
     expect(host.querySelectorAll("[data-ouro-file-name]")).toHaveLength(1);
+  });
+});
+
+describe("FileField press feedback", () => {
+  it("tints the drop zone while the pointer is down, and eases its border and tint with ease", async () => {
+    const { host } = await render(<FileField label="Photos" />);
+    const zone = host.querySelector<HTMLElement>("[data-ouro-drop-zone]")!;
+    const rest = getComputedStyle(zone).backgroundColor;
+    expect(getComputedStyle(zone).transitionTimingFunction).toBe("ease");
+    await commands.pointerPress({ selector: "[data-ouro-drop-zone]", action: "down" });
+    try {
+      await expect.poll(() => getComputedStyle(zone).backgroundColor).not.toBe(rest);
+    } finally {
+      await commands.pointerPress({ action: "up" });
+    }
   });
 });

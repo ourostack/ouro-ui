@@ -83,7 +83,7 @@ const groupBaseClass =
 const groupVariants = {
   outline:
     "px-3 border border-solid border-input bg-transparent " +
-    "transition-[border-color] duration-(--ouro-duration-fast) ease-out " +
+    "transition-[border-color] duration-(--ouro-duration-fast) ease-[ease] " +
     "has-[input[aria-invalid=true]]:border-destructive dark:bg-input/30",
   plain: "px-0 border-0 bg-transparent",
 } as const;

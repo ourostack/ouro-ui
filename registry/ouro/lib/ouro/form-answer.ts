@@ -56,7 +56,7 @@ const isObject = (value: unknown): value is object => (typeof value === "object"
  * partition route-global data between forms, or observe a framework's requests.
  *
  * @example
- * import { formErrors } from "@/lib/ouro/form-errors";
+ * import { formErrors } from "@/lib/ouro/form-answer";
  * <Form errors={formErrors(actionData, { email: actionData?.email, form: actionData?.general })} />
  *
  * @example

@@ -5,7 +5,7 @@ import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { FieldControl, type FieldControlProps } from "@/registry/ouro/components/ouro/field/field-parts";
 import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-styles";
 import { FieldOwnerContext, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
 /** One choice: the `value` it submits and the `label` it shows. */
 export interface NativeSelectOption {

@@ -6,7 +6,7 @@ import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { RouterLink, safeRel } from "@/registry/ouro/lib/ouro/router-link";
 import { toneWarning } from "@/registry/ouro/lib/ouro/tones";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
 /** The props Link adds to the anchor attributes it passes through. */
 export interface LinkOwnProps {
@@ -65,7 +65,7 @@ export type LinkProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, keyof Link
 // Class strings are literal so the app's Tailwind finds them when it compiles.
 const base =
   "rounded-xs underline decoration-current/40 decoration-1 underline-offset-4 " +
-  "transition-[text-decoration-color] duration-(--ouro-duration-fast) ease-out hover:decoration-current " +
+  "transition-[text-decoration-color] duration-(--ouro-duration-fast) ease-[ease] pointer-fine:hover:decoration-current active:opacity-70 " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 
 // On a coarse pointer a link that is not in running text is a 44px box with its text
@@ -95,8 +95,17 @@ function linkHint(token: string): string {
  * `OuroProvider`'s `linkComponent`, the same path `Button` with `href` takes, and
  * `external` opens a new tab safely and says so.
  *
+ * Link is for text links only: it sets the text color and the underline, so wrapping a
+ * card, a list row or a tab in it restyles their text. Inside running text, put the Link in
+ * a `Text`.
+ *
  * Use `Button` with `href` instead when the link is the main action and should look like a
- * button. Inside running text, put the Link in a `Text`.
+ * button. Use `Card` with `href` instead when a whole card is the link, `Item` with `href`
+ * for a whole list row, and `Table` with `rowHref` (or `TableRow` with `href`) for a
+ * table row: each makes the surface one link with one tab stop, through the same router
+ * link, and keeps its own look. Use `Navbar` or `Sidebar` instead for the links that move
+ * between an app's pages, which mark the current one: `Tabs` and `SegmentedControl` switch
+ * a view in place and take no `href`.
  *
  * On a touch screen a link that stands alone is a box at least 44px tall and wide, with its text
  * centred, so it is easy to tap and never overlaps a neighbour. A link in running text (a

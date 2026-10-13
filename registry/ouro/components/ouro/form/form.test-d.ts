@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { expectTypeOf } from "vitest";
 import { Form, type FormErrors, type FormProps } from "@/registry/ouro/components/ouro/form/form";
-import { formErrors, type FormErrorValue } from "@/registry/ouro/lib/ouro/form-errors";
+import { formErrors, type FormErrorValue } from "@/registry/ouro/lib/ouro/form-answer";
 
 // Type tests: `pnpm typecheck` compiles this file, and every `@ts-expect-error`
 // fails the check if the line below it stops being an error.

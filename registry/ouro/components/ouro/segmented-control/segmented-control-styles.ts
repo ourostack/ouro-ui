@@ -41,7 +41,7 @@ const groupClass =
 /**
  * The raised thumb behind the pressed segment. Segments are equal, so its place is the
  * pressed index times its own width: no measuring, and server HTML already has it right.
- * It slides with the theme spring; with reduced motion it moves at once.
+ * It slides on the ease-in-out token; with reduced motion, or on an arrow key, it moves at once.
  *
  * @internal
  */
@@ -50,8 +50,8 @@ const thumbClass =
   "w-[calc((100%-var(--spacing)*1)/var(--ouro-segment-count))] translate-x-[calc(var(--ouro-segment-index)*100%)] " +
   "bg-background dark:bg-[color-mix(in_oklab,var(--foreground)_16%,var(--muted))] " +
   "shadow-[0_1px_3px_rgb(0_0_0/0.12),0_0_0_0.5px_rgb(0_0_0/0.06)] " +
-  "[transition:translate_var(--ouro-spring-duration)_var(--ouro-ease-spring),opacity_var(--ouro-duration-fast)_ease-out] " +
-  "motion-reduce:[transition:opacity_var(--ouro-duration-fast)_ease-out]";
+  "[transition:translate_var(--ouro-duration-base)_var(--ouro-ease-in-out),opacity_var(--ouro-duration-fast)_ease] " +
+  "motion-reduce:[transition:opacity_var(--ouro-duration-fast)_ease] in-data-ouro-keyboard:[transition:none]";
 
 /**
  * A segment: muted text, the foreground when pressed.
@@ -62,7 +62,7 @@ const segmentClass =
   "press relative m-0 box-border flex min-w-0 cursor-pointer items-center justify-center px-3 pointer-coarse:min-w-11 " +
   "rounded-md border-0 bg-transparent text-base font-medium whitespace-nowrap text-muted-foreground sm:pointer-fine:text-sm " +
   "select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
-  "not-data-disabled:hover:text-foreground data-pressed:text-foreground " +
+  "not-data-disabled:pointer-fine:hover:text-foreground data-pressed:text-foreground " +
   "motion-safe:not-data-disabled:active:scale-(--ouro-press-scale) " +
   "outline-ring outline-offset-1 focus-visible:outline-2 focus-visible:outline-solid " +
   "data-disabled:cursor-not-allowed data-disabled:opacity-50";

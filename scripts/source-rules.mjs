@@ -13,6 +13,13 @@
 // - testNames: the full name of every test (describe titles and the test title), so a
 //   name filter (`vitest -t`, `playwright -g`) can target each test alone.
 //
+// - alarmingFileName / alarmingTestTitle: a shipped file name or a test title that an app's
+//   log filter reads as a warning or an error (use-dev-warnings.ts, "warn for …").
+//
+// - directTabPresses: a test or spec that presses Tab itself. WebKit on a Mac skips buttons and
+//   links on a plain Tab unless a system setting is on, so tests use pressTab() (testing/tab.ts,
+//   e2e/ouro/story.ts), which works whatever the setting.
+//
 // scripts/source-rules.test.mjs applies them to the repository; scripts/install-check.mjs
 // compares the comments of each installed file with its source.
 import ts from "typescript";
@@ -192,4 +199,32 @@ export function duplicateTestNames(files) {
     for (const name of testNames(path, text)) where.set(name, [...(where.get(name) ?? []), path]);
   }
   return [...where].filter(([, paths]) => paths.length > 1).map(([name, paths]) => `${name} (${paths.join(", ")})`);
+}
+
+/**
+ * Words a log filter reads as trouble. An app's CI that fails on any line holding one fails
+ * on a printed file name (the coverage table) or test title (a slow or failed test).
+ */
+const alarmWords = ["warn", "warning", "warnings", "error", "errors", "fail", "failed", "failure", "failures", "fatal", "deprecated"];
+
+/** The alarm word in a file's own name (`use-dev-warnings.ts` has `warnings`), or null. Words are split on `-`, `_` and `.`. */
+export function alarmingFileName(path) {
+  const words = path.split("/").at(-1).toLowerCase().split(/[-_.]/);
+  return words.find((word) => alarmWords.includes(word)) ?? null;
+}
+
+/**
+ * The describe or test title in a full test name (`testNames`) that starts with an alarm
+ * word, or null. "warn for …" and "Errors" are flagged; a sentence about what the component
+ * does ("warns about …", "fails a submit …", "shows the error …") is not.
+ */
+export function alarmingTestTitle(name) {
+  const starts = new RegExp(`^(${alarmWords.join("|")})(?![\\w-])`, "i");
+  return name.split(" > ").find((title) => starts.test(title.trim())) ?? null;
+}
+
+/** The lines of a test or spec that press Tab directly, as "line: text", instead of with pressTab(). */
+export function directTabPresses(text) {
+  const press = /(keyboard|press)\(\s*["'`]([^"'`]*[{+])?Tab[}"'`]|userEvent\.tab\(/;
+  return text.split("\n").flatMap((line, index) => (press.test(line) && !/^\s*(\*|\/\/)/.test(line) ? [`${index + 1}: ${line.trim()}`] : []));
 }

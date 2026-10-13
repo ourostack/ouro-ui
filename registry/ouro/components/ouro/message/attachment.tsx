@@ -3,7 +3,7 @@
 import type { HTMLAttributes, JSX, Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
 /** The props Attachment adds to the `<div>` attributes it passes through. */
 export interface AttachmentOwnProps {
@@ -152,8 +152,8 @@ export function Attachment(props: AttachmentProps): JSX.Element {
           download={download || undefined}
           className={cn(
             inner,
-            "press rounded-[inherit] text-inherit no-underline hover:bg-accent hover:text-accent-foreground",
-            "motion-safe:active:scale-(--ouro-press-scale) active:duration-(--ouro-duration-fast)",
+            "press rounded-[inherit] text-inherit no-underline pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground",
+            "motion-safe:active:scale-(--ouro-press-scale)",
             focusRing,
           )}
         >
@@ -169,8 +169,8 @@ export function Attachment(props: AttachmentProps): JSX.Element {
           onClick={onRemove}
           className={cn(
             "press relative m-0 box-border inline-flex size-11 shrink-0 pointer-fine:me-1.5 pointer-fine:size-7 items-center justify-center rounded-md border-0 bg-transparent p-0",
-            "cursor-pointer text-muted-foreground touch-manipulation hover:bg-accent hover:text-accent-foreground",
-            "motion-safe:active:scale-(--ouro-press-scale) active:duration-(--ouro-duration-fast)",
+            "cursor-pointer text-muted-foreground touch-manipulation pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground",
+            "motion-safe:active:scale-(--ouro-press-scale)",
             focusRing,
           )}
         >

@@ -5,7 +5,7 @@ import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { currentHref } from "@/registry/ouro/lib/ouro/current-path";
 import { RouterLink } from "@/registry/ouro/lib/ouro/router-link";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { NavigationMenuView } from "@/registry/ouro/components/ouro/navigation-menu/navigation-menu";

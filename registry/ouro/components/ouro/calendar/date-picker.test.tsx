@@ -6,6 +6,7 @@ import { page, userEvent } from "vitest/browser";
 import { DatePicker, type DatePickerProps } from "@/registry/ouro/components/ouro/calendar/date-picker";
 import { formatDateInput, parseDateInput } from "@/registry/ouro/components/ouro/calendar/date-picker-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 // Runs in Chromium and WebKit, with a fine pointer. date-picker.touch.test.tsx covers the
 // phone's own picker on a real coarse pointer; here a stubbed media query stands in for it
@@ -218,13 +219,13 @@ describe("DatePicker", () => {
       const { input } = await render(<DatePicker label="Date" onValueChange={onValueChange} />);
       await userEvent.type(input, "10/11/26");
       expect(onValueChange).toHaveBeenLastCalledWith("2026-10-11");
-      await userEvent.tab();
+      await pressTab();
       expect(input.value).toBe("10/11/2026");
       await userEvent.clear(input);
       expect(onValueChange).toHaveBeenLastCalledWith("");
       await userEvent.type(input, "2027-3-9");
       expect(onValueChange).toHaveBeenLastCalledWith("2027-03-09");
-      await userEvent.tab();
+      await pressTab();
       expect(input.value).toBe("03/09/2027");
     });
 
@@ -268,7 +269,7 @@ describe("DatePicker", () => {
       expect(input.validationMessage).toBe("Enter a date in the allowed range.");
       expect(onValueChange.mock.calls.flat()).not.toContain("2026-10-01");
       expect(submitted(form)).toEqual({ date: "" });
-      await userEvent.tab();
+      await pressTab();
       expect(input.value).toBe("10/01/2026");
       await userEvent.clear(input);
       await userEvent.type(input, "11/02/2026");
@@ -317,7 +318,7 @@ describe("DatePicker", () => {
       const { input } = await render(<DatePicker label="Date" defaultValue="2026-10-11" />);
       await userEvent.clear(input);
       await userEvent.type(input, "10/1");
-      await userEvent.tab();
+      await pressTab();
       expect(input.value).toBe("10/1");
     });
   });

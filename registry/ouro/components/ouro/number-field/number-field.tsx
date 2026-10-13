@@ -5,7 +5,7 @@ import type { ComponentPropsWithRef, JSX, ReactElement, ReactNode, Ref } from "r
 import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-styles";
 import { FieldOwnerContext, useField, useFormErrors, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { groupClass, inputClass, scrubClass, stepperClass } from "@/registry/ouro/components/ouro/number-field/number-field-styles";

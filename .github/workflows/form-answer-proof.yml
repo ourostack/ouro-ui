@@ -37,9 +37,9 @@ jobs:
       - name: Shipped Form, constructor and Link regressions with focused coverage
         run: |
           pnpm exec vitest run --project ouro-chromium --project ouro-webkit --project ouro-touch \
-            registry/ouro/components/ouro/form registry/ouro/components/ouro/link registry/ouro/components/ouro/radio-group registry/ouro/lib/ouro/form-errors.test.ts \
+            registry/ouro/components/ouro/form registry/ouro/components/ouro/link registry/ouro/components/ouro/radio-group registry/ouro/lib/ouro/form-answer.test.ts \
             --coverage --coverage.include=registry/ouro/components/ouro/form/form.tsx \
-            --coverage.include=registry/ouro/lib/ouro/form-errors.ts \
+            --coverage.include=registry/ouro/lib/ouro/form-answer.ts \
             --coverage.reporter=text --coverage.reporter=json \
             --coverage.reportsDirectory=.tmp/adopt-a-form-value/browser-coverage | tee .tmp/adopt-a-form-value/browser-proof.log
       - if: always()
