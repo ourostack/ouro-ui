@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Combobox } from "@/registry/ouro/components/ouro/combobox/combobox";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTint } from "@/registry/ouro/lib/ouro/testing/press";
 import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
@@ -356,5 +357,49 @@ describe("Combobox server error on a phone", () => {
     expect(host.querySelector(TRIGGER)!.getAttribute("aria-invalid")).toBe("true");
     await act(async () => host.querySelector("form")!.requestSubmit());
     expect(sent!.get("herb")).toBe("Dill");
+  });
+});
+
+describe("Combobox pressed on a phone", () => {
+  it("tints the field's button on pointer-down", async () => {
+    const host = await render(<Combobox label="Herb" items={herbs} />);
+    const { rest, pressed, active } = await pressTint(host.querySelector<HTMLElement>(TRIGGER)!);
+    expect(active).toBe(true);
+    expect(pressed).not.toBe(rest);
+  });
+
+  it("tints an item in the sheet on pointer-down, from the press alone", async () => {
+    await render(<Combobox label="Herb" items={herbs} />);
+    await commands.tap(TRIGGER);
+    const panel = await opened();
+    const item = [...panel.querySelectorAll<HTMLElement>('[role="option"]')][2]!;
+    const { rest, pressed, active } = await pressTint(item, { clearHighlight: true });
+    expect(active).toBe(true);
+    expect(pressed).not.toBe(rest);
+  });
+
+  it("does not tint a disabled item", async () => {
+    await render(<Combobox label="Herb" items={[{ value: "a", label: "Basil" }, { value: "b", label: "Dill", disabled: true }]} />);
+    await commands.tap(TRIGGER);
+    const panel = await opened();
+    const item = [...panel.querySelectorAll<HTMLElement>('[role="option"]')][1]!;
+    const rest = getComputedStyle(item).backgroundColor;
+    item.setAttribute("data-press-target", "");
+    await commands.pointerPress({ selector: "[data-press-target]", action: "down" });
+    try {
+      await expect.poll(() => item.matches(":active")).toBe(true);
+      item.removeAttribute("data-highlighted");
+      expect(getComputedStyle(item).backgroundColor).toBe(rest);
+    } finally {
+      await commands.pointerPress({ selector: "[data-press-target]", action: "up" });
+    }
+  });
+
+  it("tints a chip's remove button on pointer-down in the wide layout, where hover is off for a finger", async () => {
+    await rotate(844, 390);
+    const host = await render(<Combobox label="Herbs" multiple items={herbs} defaultValue={["Basil"]} />);
+    const { rest, pressed, active } = await pressTint(host.querySelector<HTMLElement>('[aria-label="Remove Basil"]')!);
+    expect(active).toBe(true);
+    expect(pressed).not.toBe(rest);
   });
 });

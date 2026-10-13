@@ -1,7 +1,7 @@
 "use client";
 
 import { Popover as BasePopover } from "@base-ui/react/popover";
-import { createContext, useContext, type JSX } from "react";
+import { createContext, useContext, type CSSProperties, type JSX } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
@@ -65,10 +65,15 @@ export function PopoverRoot(props: BasePopover.Root.Props): JSX.Element {
   );
 }
 
-/** Part: the button that opens and closes the popover. Pass your button as `render={<Button>Open</Button>}`. */
-export function PopoverTrigger(props: BasePopover.Trigger.Props): JSX.Element {
+/**
+ * Part: the button that opens and closes the popover. Pass your button as `render={<Button>Open</Button>}`.
+ * The trigger anchors the popover, which opens on click while the button is pressed, so the
+ * press scale is cancelled on it (Button's pressed wash still shows) and the popover lands once.
+ */
+export function PopoverTrigger({ style, ...props }: BasePopover.Trigger.Props): JSX.Element {
   usePopoverPart("PopoverTrigger", "…");
-  return <BasePopover.Trigger {...props} />;
+  const noScale = (own?: CSSProperties): CSSProperties => ({ ...own, ["--ouro-press-scale" as string]: 1 });
+  return <BasePopover.Trigger {...props} style={typeof style === "function" ? (state) => noScale(style(state)) : noScale(style)} />;
 }
 
 /**
@@ -121,7 +126,7 @@ export type PopoverPopupProps = Omit<BasePopover.Popup.Props, "className"> & { c
 
 /**
  * Part: the popover panel, 18rem wide (never wider than the screen allows) with 1rem of
- * padding. It grows from the trigger with the theme spring and fades; reduced motion
+ * padding. It grows from the trigger over 200ms on the ease-out token and fades; reduced motion
  * keeps only the fade. Put a `PopoverTitle` first: it names the popover.
  */
 export function PopoverPopup(props: PopoverPopupProps): JSX.Element {

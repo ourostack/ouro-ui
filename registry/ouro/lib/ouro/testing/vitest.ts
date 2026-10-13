@@ -34,6 +34,7 @@ export interface OuroTestOptions {
  * `restoreTouch`) and the setup that fails a test on anything it writes to the console (a React act() warning, a development message). In `ouro-touch`, a test
  * that leaves the page zoomed fails too (rotate the viewport with `rotate` from testing/rotate.ts),
  * and every test starts with touch emulation on, even after a failure's screenshot dropped it.
+ * `pressTint` from testing/press.ts holds the mouse down on an element and proves its `:active` tint.
  * Each project extends your root config, so your Vite plugins and aliases apply. Needs
  * Playwright's browsers: `npx playwright install chromium webkit`. Needs Vitest 4.1.11 or
  * later; on Vitest 4, pass `page` (https://ourostack.github.io/ouro-ui/docs/testing.md).

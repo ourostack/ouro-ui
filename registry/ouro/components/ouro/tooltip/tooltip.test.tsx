@@ -150,6 +150,34 @@ describe("Tooltip", () => {
     expect(style.zIndex).toBe(getComputedStyle(document.documentElement).getPropertyValue("--ouro-layer").trim());
   });
 
+  it("grows from its trigger in 150ms on the ease-out token", async () => {
+    await renderTooltip();
+    await userEvent.hover(trigger());
+    const element = await shown();
+    element.style.setProperty("--transform-origin", "7px 3px");
+    expect(getComputedStyle(element).transformOrigin).toBe("7px 3px");
+    const style = getComputedStyle(element);
+    expect(style.transitionProperty).toBe("transform, opacity");
+    expect(style.transitionDuration.split(", ")[0]).toBe("0.15s");
+    expect(style.transitionTimingFunction.split(/,\s(?![^(]*\))/)[0]).toBe("cubic-bezier(0.23, 1, 0.32, 1)");
+  });
+
+  it("closes or stays put when its button is pressed, never moving against the scaled button", async () => {
+    await renderTooltip();
+    await userEvent.hover(trigger());
+    await shown();
+    const rest = JSON.stringify(document.querySelector<HTMLElement>('[data-ouro="tooltip-positioner"]')!.getBoundingClientRect());
+    await commands.pointerPress({ selector: '[data-ouro="button"]', action: "down" });
+    try {
+      await expect.poll(() => getComputedStyle(trigger()).scale).toBe("0.97");
+      // Base UI closes a tooltip on pointer-down; if it were kept, it must not have moved.
+      const kept = document.querySelector<HTMLElement>('[data-ouro="tooltip-positioner"]');
+      expect(kept === null || JSON.stringify(kept.getBoundingClientRect()) === rest).toBe(true);
+    } finally {
+      await commands.pointerPress({ selector: '[data-ouro="button"]', action: "up" });
+    }
+  });
+
   it("fades without scaling under reduced motion", async () => {
     await commands.emulateMedia({ reducedMotion: "reduce" });
     await renderTooltip();

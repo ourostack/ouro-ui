@@ -551,8 +551,8 @@ export interface MenuItemProps {
    */
   href?: string | undefined;
   /**
-   * Marks a link item as the page being shown (`aria-current="page"`, with the highlighted
-   * look), for a menu of pages. It does nothing on an item without `href`.
+   * Marks a link item as the page being shown (`aria-current="page"`, a medium-weight label
+   * with a bar at the start edge, which the highlight does not have), for a menu of pages. It does nothing on an item without `href`.
    */
   current?: boolean | undefined;
   /**
