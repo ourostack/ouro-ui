@@ -335,6 +335,9 @@ describe("NavigationMenu panels and easing", () => {
     await render(<NavigationMenu label="Main" items={featured} />);
     await userEvent.click(page.getByRole("button", { name: "Recipes" }));
     await expect.element(page.getByTestId("featured")).toBeVisible();
+    // The popup scales in, and WebKit can advance that transition between two reads of a
+    // box, so measure once it has finished.
+    await settled();
     const card = page.getByTestId("featured").element().getBoundingClientRect();
     const browse = page.getByRole("link", { name: "Browse" }).element().getBoundingClientRect();
     const drafts = page.getByRole("link", { name: "Drafts" }).element().getBoundingClientRect();

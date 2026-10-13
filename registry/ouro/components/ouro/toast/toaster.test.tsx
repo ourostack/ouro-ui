@@ -5,8 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, server, userEvent } from "vitest/browser";
 import { Toaster, type ToasterProps } from "@/registry/ouro/components/ouro/toast/toaster";
 import { toast, type ToastOptions } from "@/registry/ouro/lib/ouro/toast";
+import { springAt } from "@/registry/ouro/lib/ouro/spring";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
+import { holdFrames } from "@/registry/ouro/lib/ouro/testing/frames";
 
 const chromiumOnly = it.skipIf(server.browser !== "chromium");
 
@@ -680,6 +682,25 @@ describe("swiping", () => {
     await commands.drag({ from: [x, y], to: [x + dx, y + dy], steps: 12, durationMs: 200 });
   }
 
+  /**
+   * A pointer on the toast's message whose events carry the times the test gives them, so
+   * a release velocity is exact on any machine and in every browser. `send(type, dx, at)`
+   * dispatches one event `dx` px from where the pointer came down, `at` ms after it did.
+   */
+  function pointerOn(item: HTMLElement, target: Element = item.querySelector("[data-ouro-toast-title]")!) {
+    const rect = item.getBoundingClientRect();
+    const x = rect.left + 60;
+    const y = rect.top + rect.height / 2;
+    const start = performance.now();
+    return (type: string, dx: number, at: number, init: PointerEventInit = {}) => {
+      const event = new PointerEvent(type, { bubbles: true, isPrimary: true, button: 0, pointerId: 41, pointerType: "touch", clientX: x + dx, clientY: y, ...init });
+      Object.defineProperty(event, "timeStamp", { value: start + at });
+      target.dispatchEvent(event);
+    };
+  }
+  const offsetOf = (item: HTMLElement) => parseFloat(getComputedStyle(item).translate.replace("none", "0"));
+  const atRest = (item: HTMLElement) => expect.poll(() => !item.hasAttribute("data-ouro-settling") && item.style.translate === "").toBe(true);
+
   chromiumOnly("dismisses with a swipe down, right or left", async () => {
     await render(<Toaster />);
     for (const [message, dx, dy] of [
@@ -701,13 +722,274 @@ describe("swiping", () => {
     await elapse(300);
     expect(showing("Stays")).toBe(true);
   });
+
+  chromiumOnly("follows the mouse 1:1 once it has moved 10px, and springs back when let go short of 40px", async () => {
+    await render(<Toaster />);
+    const item = await show("Follows", { duration: 0 });
+    const rect = item.getBoundingClientRect();
+    const x = rect.left + 60;
+    const y = rect.top + rect.height / 2;
+    try {
+      await commands.drag({ from: [x, y], to: [x + 30, y], steps: 6, durationMs: 200, hold: true });
+      expect(getComputedStyle(item).translate).toBe("30px");
+      // A mouse at rest has no velocity: the distance decides.
+      await elapse(150);
+    } finally {
+      await commands.pointerPress({ action: "up" });
+    }
+    await expect.poll(() => !item.hasAttribute("data-ouro-settling") && item.style.translate === "").toBe(true);
+    expect(showing("Follows")).toBe(true);
+  });
+
+  chromiumOnly("dismisses on a quick flick of 30px, short of the 40px a slow release needs", async () => {
+    await render(<Toaster />);
+    const item = await show("Flicked", { duration: 0 });
+    const rect = item.getBoundingClientRect();
+    const x = rect.left + 60;
+    const y = rect.top + rect.height / 2;
+    await commands.flick({ from: [x, y], to: [x + 30, y], steps: 4, durationMs: 60 });
+    await gone("Flicked");
+  });
+
+  it("comes back when the pointer turns round and flicks it home, though it is far out", async () => {
+    await render(<Toaster />);
+    const item = await show("Changed my mind", { duration: 0 });
+    const send = pointerOn(item);
+    send("pointerdown", 0, 0);
+    send("pointermove", 12, 16);
+    send("pointermove", 60, 32);
+    send("pointermove", 120, 48);
+    expect(getComputedStyle(item).translate).toBe("120px");
+    // It rests, then goes back toward rest fast, and is let go while still 70px out.
+    send("pointermove", 120, 400);
+    send("pointermove", 100, 416);
+    send("pointermove", 70, 432);
+    send("pointerup", 70, 440);
+    expect(item.hasAttribute("data-ouro-swiped")).toBe(false);
+    await atRest(item);
+    expect(showing("Changed my mind")).toBe(true);
+  });
+
+  it("comes back when it is let go far out but moving home slowly, and leaves when let go there at rest", async () => {
+    await render(<Toaster />);
+    const item = await show("Slowly home", { duration: 0 });
+    let send = pointerOn(item);
+    send("pointerdown", 0, 0);
+    send("pointermove", 12, 16);
+    send("pointermove", 120, 48);
+    // Home at 0.05 px/ms, half the speed of a flick, and let go 70px out, still moving.
+    for (let step = 1; step <= 10; step++) send("pointermove", 120 - step * 5, 400 + step * 100);
+    send("pointerup", 67.5, 1450);
+    expect(item.hasAttribute("data-ouro-swiped")).toBe(false);
+    await atRest(item);
+    expect(showing("Slowly home")).toBe(true);
+    // The same place with the pointer at rest: far enough, and not on its way back.
+    send = pointerOn(item);
+    send("pointerdown", 0, 0);
+    send("pointermove", 12, 16);
+    send("pointermove", 70, 48);
+    send("pointerup", 70, 400);
+    expect(item.hasAttribute("data-ouro-swiped")).toBe(true);
+    await gone("Slowly home");
+  });
+
+  it("starts its way back with the speed it was let go at", async () => {
+    await render(<Toaster />);
+    const item = await show("Carried", { duration: 0 });
+    const frames = holdFrames();
+    const send = pointerOn(item);
+    send("pointerdown", 0, 0);
+    send("pointermove", 12, 16);
+    send("pointermove", 22, 116);
+    send("pointermove", 30, 216);
+    // Let go 30px out, still moving out at 0.08 px/ms: under a flick, and short of 40px, so it will come back.
+    send("pointerup", 30, 216);
+    expect(item.hasAttribute("data-ouro-settling")).toBe(true);
+    frames.step(16);
+    // Exactly where a spring handed that speed is after 16ms: further out than one started from rest, by most of the 1.3px the speed alone covers.
+    expect(offsetOf(item)).toBeCloseTo(springAt(30, 0, 0.08, 16).value, 1);
+    expect(offsetOf(item) - springAt(30, 0, 0, 16).value).toBeGreaterThan(0.5);
+    frames.release();
+    await atRest(item);
+  });
+
+  it("leaves with the speed it was thrown at", async () => {
+    await render(<Toaster />);
+    const item = await show("Thrown", { duration: 0 });
+    // A long fade, so the toast is still on the page to be measured.
+    item.style.transitionDuration = "20s";
+    const frames = holdFrames();
+    const send = pointerOn(item);
+    send("pointerdown", 0, 0);
+    send("pointermove", 15, 15);
+    send("pointermove", 30, 30);
+    // 1 px/ms at 30px out: a flick.
+    await act(async () => send("pointerup", 30, 30));
+    expect(item.hasAttribute("data-ouro-swiped")).toBe(true);
+    const target = 30 + item.offsetWidth * 1.5;
+    frames.step(16);
+    expect(offsetOf(item)).toBeCloseTo(springAt(30, target, 1, 16).value, 1);
+    // Further than the same exit started from rest, by most of the 16px the throw alone covers.
+    expect(offsetOf(item) - springAt(30, target, 0, 16).value).toBeGreaterThan(10);
+    frames.release();
+    await expect.poll(() => item.hasAttribute("data-ending-style") && item.getAnimations().length > 0).toBe(true);
+    for (const animation of item.getAnimations()) animation.finish();
+    await gone("Thrown");
+  });
+
+  it("fades a swiped toast on the way it was thrown, and slides a closed one down", async () => {
+    await render(<Toaster />);
+    /** Where the toast's own `transform` ends up once its exit has run: how far down it slides. */
+    const slidesTo = (item: HTMLElement) => {
+      for (const animation of item.getAnimations()) animation.finish();
+      return new DOMMatrix(getComputedStyle(item).transform).m42;
+    };
+    const swiped = await show("Swiped", { duration: 0 });
+    swiped.style.transitionDuration = "20s";
+    const send = pointerOn(swiped);
+    send("pointerdown", 0, 0);
+    send("pointermove", 15, 15);
+    send("pointermove", 30, 30);
+    await act(async () => send("pointerup", 30, 30));
+    await expect.poll(() => swiped.hasAttribute("data-ending-style")).toBe(true);
+    // The swipe carries it off sideways; the stack's transform takes it nowhere.
+    expect(slidesTo(swiped)).toBe(0);
+    await gone("Swiped");
+    const closed = await show("Closed", { duration: 0 });
+    closed.style.transitionDuration = "20s";
+    await userEvent.click(closed.querySelector("button")!);
+    await expect.poll(() => closed.hasAttribute("data-ending-style")).toBe(true);
+    // One and a half times its height, down and off the screen.
+    expect(slidesTo(closed)).toBeCloseTo(closed.offsetHeight * 1.5, 0);
+    await gone("Closed");
+  });
+
+  it("shows a toast sent again with the id of one just swiped away, where a toast belongs, and it can be swiped again", async () => {
+    await render(<Toaster />);
+    const item = await show("Syncing", { id: "sync", duration: 0 });
+    item.style.transitionDuration = "20s";
+    let send = pointerOn(item);
+    send("pointerdown", 0, 0);
+    send("pointermove", 15, 15);
+    send("pointermove", 30, 30);
+    await act(async () => send("pointerup", 30, 30));
+    expect(item.hasAttribute("data-ouro-swiped")).toBe(true);
+    // The app sends the same toast again while it is still fading out: Base UI brings it back on the same element.
+    await act(async () => {
+      toast("Synced", { id: "sync", duration: 0 });
+    });
+    item.style.transitionDuration = "";
+    await expect.poll(() => toastNamed("Synced")).toBe(item);
+    expect(item.hasAttribute("data-ouro-swiped")).toBe(false);
+    expect(item.hasAttribute("data-ouro-settling")).toBe(false);
+    expect(item.style.translate).toBe("");
+    await expect.poll(() => item.getAnimations().length).toBe(0);
+    expect(showing("Synced")).toBe(true);
+    const rect = item.getBoundingClientRect();
+    expect(rect.left).toBeGreaterThanOrEqual(0);
+    expect(rect.right).toBeLessThanOrEqual(innerWidth);
+    // And it is the pointer's again.
+    send = pointerOn(item);
+    send("pointerdown", 0, 0);
+    send("pointermove", 15, 15);
+    expect(offsetOf(item)).toBe(15);
+    await act(async () => send("pointerup", 30, 30));
+    await gone("Synced");
+  });
+
+  it("keeps following the pointer when the toast is updated in the middle of a swipe, and when it is updated on its way back", async () => {
+    await render(<Toaster />);
+    const item = await show("Saving", { id: "save", duration: 0 });
+    const frames = holdFrames();
+    const send = pointerOn(item, item);
+    send("pointerdown", 0, 0);
+    send("pointermove", 12, 16);
+    send("pointermove", 30, 32);
+    await act(async () => {
+      toast("Saved", { id: "save", duration: 0 });
+    });
+    expect(toastNamed("Saved")).toBe(item);
+    expect(offsetOf(item)).toBe(30);
+    send("pointermove", 36, 300);
+    expect(offsetOf(item)).toBe(36);
+    send("pointerup", 36, 600);
+    // On its way back, another update: the spring carries on from where it is.
+    frames.step(16);
+    const flying = offsetOf(item);
+    expect(flying).toBeLessThan(36);
+    await act(async () => {
+      toast("Saved again", { id: "save", duration: 0 });
+    });
+    expect(toastNamed("Saved again")).toBe(item);
+    expect(item.hasAttribute("data-ouro-settling")).toBe(true);
+    expect(offsetOf(item)).toBe(flying);
+    frames.release();
+    await atRest(item);
+    expect(showing("Saved again")).toBe(true);
+  });
+
+  it("takes its press from the first pointer: a second one on a button does not stop the swipe, and one that began on a button starts none", async () => {
+    await render(<Toaster />);
+    const item = await show("Two fingers", { duration: 0 });
+    const close = item.querySelector("button")!;
+    // A finger on the message, then a second finger and a right click on the dismiss button, inside the first 10px.
+    let send = pointerOn(item);
+    send("pointerdown", 0, 0);
+    send("pointermove", 6, 16);
+    pointerOn(item, close)("pointerdown", 200, 20, { isPrimary: false, pointerId: 42 });
+    pointerOn(item, close)("pointerdown", 200, 24, { button: 2, pointerId: 43, pointerType: "mouse" });
+    send("pointermove", 20, 400);
+    expect(offsetOf(item)).toBe(20);
+    send("pointerup", 20, 800);
+    await atRest(item);
+    // A finger on the dismiss button, then a second one on the message: the button's press starts no swipe.
+    send = pointerOn(item, close);
+    send("pointerdown", 0, 0);
+    pointerOn(item)("pointerdown", -100, 10, { isPrimary: false, pointerId: 42 });
+    send("pointermove", -30, 400);
+    expect(item.style.translate).toBe("");
+    send("pointerup", -30, 800);
+    expect(showing("Two fingers")).toBe(true);
+  });
+
+  it("starts no swipe from content marked data-swipe-ignore or data-base-ui-swipe-ignore, as before", async () => {
+    await render(<Toaster />);
+    for (const mark of ["data-swipe-ignore", "data-base-ui-swipe-ignore"]) {
+      const item = await show(`Ignore ${mark}`, { duration: 0, description: <span {...{ [mark]: "" }}>Drag me and nothing moves</span> });
+      const send = pointerOn(item, item.querySelector(`[${mark}]`)!);
+      send("pointerdown", 0, 0);
+      send("pointermove", 30, 400);
+      expect(item.style.translate).toBe("");
+      send("pointerup", 30, 800);
+    }
+  });
+
+  chromiumOnly("does not start a swipe from the dismiss button", async () => {
+    await render(<Toaster />);
+    const item = await show("Button", { duration: 0 });
+    const rect = item.querySelector("button")!.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    try {
+      await commands.drag({ from: [x, y], to: [x - 80, y], steps: 6, durationMs: 200, hold: true });
+      expect(item.style.translate).toBe("");
+    } finally {
+      await commands.pointerPress({ action: "up" });
+    }
+    expect(showing("Button")).toBe(true);
+  });
 });
 
 describe("motion", () => {
-  it("slides and springs, and only fades with reduced motion", async () => {
+  it("slides on the ease-out curve in 300ms or less, never animates height, and only fades with reduced motion", async () => {
     await render(<Toaster />);
     const item = await show("Moving", { duration: 0 });
-    expect(getComputedStyle(item).transitionProperty).toContain("transform");
+    const style = getComputedStyle(item);
+    expect(style.transitionProperty).toBe("transform, opacity");
+    expect(style.transitionDuration).toBe("0.3s, 0.2s");
+    expect(style.transitionTimingFunction).toBe("cubic-bezier(0.23, 1, 0.32, 1), cubic-bezier(0.23, 1, 0.32, 1)");
+    const content = item.firstElementChild!;
+    expect(getComputedStyle(content).transitionTimingFunction).toBe("cubic-bezier(0.23, 1, 0.32, 1)");
     await commands.emulateMedia({ reducedMotion: "reduce" });
     expect(getComputedStyle(item).transitionProperty).toBe("opacity");
     const fresh = await show("Still", { duration: 0 });

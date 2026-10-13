@@ -238,6 +238,98 @@ describe("Resizable handle (window splitter)", () => {
     await expect.poll(() => screen.group.hasAttribute("data-ouro-resizing")).toBe(false);
   });
 
+  it("follows the pointer that took the handle and ignores a second one", async () => {
+    const onLayout = vi.fn();
+    const screen = await render(<Editor onLayout={onLayout} />);
+    const handle = screen.handles[0]!;
+    const rect = handle.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    const second = (type: string, clientX: number) => handle.dispatchEvent(new PointerEvent(type, { bubbles: true, button: 0, clientX, clientY: y, pointerId: 77 }));
+    try {
+      await commands.drag({ from: [x, y], to: [x + 20, y], steps: 4, durationMs: 80, hold: true });
+      // 20px of 400px is 5%.
+      expect(widths(screen.panels)[0]).toBe(140);
+      // A second finger comes down 100px away, moves, and lifts: the panel stays with the first.
+      await act(async () => {
+        second("pointerdown", x + 120);
+        second("pointermove", x + 160);
+      });
+      expect(widths(screen.panels)[0]).toBe(140);
+      await act(async () => {
+        second("pointerup", x + 160);
+      });
+      expect(screen.group.hasAttribute("data-ouro-resizing")).toBe(true);
+      expect(onLayout).not.toHaveBeenCalled();
+      await act(async () => {
+        second("pointercancel", x + 160);
+      });
+      expect(screen.group.hasAttribute("data-ouro-resizing")).toBe(true);
+      expect(widths(screen.panels)[0]).toBe(140);
+    } finally {
+      await commands.pointerPress({ action: "up" });
+    }
+    await expect.poll(() => screen.group.hasAttribute("data-ouro-resizing")).toBe(false);
+    expect(onLayout).toHaveBeenCalledTimes(1);
+    expect(handle.getAttribute("aria-valuenow")).toBe("35");
+  });
+
+  it("puts the sizes back when the browser cancels the drag, and reports no layout", async () => {
+    const onLayout = vi.fn();
+    const screen = await render(<Editor onLayout={onLayout} />);
+    const handle = screen.handles[0]!;
+    const rect = handle.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    let pointerId = -1;
+    handle.addEventListener("pointerdown", (event) => (pointerId = event.pointerId), { once: true });
+    try {
+      await commands.drag({ from: [x, y], to: [x + 40, y], steps: 4, durationMs: 80, hold: true });
+      expect(widths(screen.panels)[0]).toBe(160);
+      await act(async () => {
+        handle.dispatchEvent(new PointerEvent("pointercancel", { bubbles: true, pointerId }));
+      });
+      expect(widths(screen.panels)[0]).toBe(120);
+      expect(screen.group.hasAttribute("data-ouro-resizing")).toBe(false);
+    } finally {
+      await commands.pointerPress({ action: "up" });
+    }
+    expect(onLayout).not.toHaveBeenCalled();
+    expect(handle.getAttribute("aria-valuenow")).toBe("30");
+  });
+
+  it("lets go when it loses the pointer without a release, so the next press can drag", async () => {
+    const onLayout = vi.fn();
+    const screen = await render(<Editor onLayout={onLayout} />);
+    const handle = screen.handles[0]!;
+    const rect = handle.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    let pointerId = -1;
+    handle.addEventListener("pointerdown", (event) => (pointerId = event.pointerId), { once: true });
+    try {
+      await commands.drag({ from: [x, y], to: [x + 40, y], steps: 4, durationMs: 80, hold: true });
+      expect(widths(screen.panels)[0]).toBe(160);
+      // The capture is gone with no pointerup or pointercancel, as when the handle is hidden mid-drag.
+      await act(async () => {
+        handle.dispatchEvent(new PointerEvent("lostpointercapture", { bubbles: true, pointerId: pointerId + 1 }));
+      });
+      expect(screen.group.hasAttribute("data-ouro-resizing")).toBe(true);
+      await act(async () => {
+        handle.dispatchEvent(new PointerEvent("lostpointercapture", { bubbles: true, pointerId }));
+      });
+      expect(screen.group.hasAttribute("data-ouro-resizing")).toBe(false);
+      expect(widths(screen.panels)[0]).toBe(120);
+    } finally {
+      await commands.pointerPress({ action: "up" });
+    }
+    expect(onLayout).not.toHaveBeenCalled();
+    // The handle is not left waiting for that pointer.
+    await dragHandle(handle, 80, 0);
+    await expect.poll(() => handle.getAttribute("aria-valuenow")).toBe("50");
+    expect(onLayout).toHaveBeenCalledTimes(1);
+  });
+
   it("ignores a right-button press and moves that are not a drag", async () => {
     const screen = await render(<Editor />);
     const handle = screen.handles[0]!;
