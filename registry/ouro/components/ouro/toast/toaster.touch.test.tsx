@@ -138,7 +138,15 @@ it("gets the click of a tap on its action right after a flick that does not dism
   // A fast flick up, the one way a toast cannot leave: it comes back. Chromium would start a
   // fling when a fast swipe ends, although nothing scrolls, and the tap that stops a fling
   // gets no click.
+  // What prevents the fling: the toast takes the swipe's touch moves once the drag has begun.
+  let taken = 0;
+  const count = (event: TouchEvent) => {
+    if (event.defaultPrevented) taken++;
+  };
+  addEventListener("touchmove", count);
+  cleanups.push(() => removeEventListener("touchmove", count));
   await commands.touchDrag({ from: [x, y], to: [x, y - 120], steps: 10, durationMs: 100 });
+  expect(taken).toBeGreaterThan(0);
   expect(toastNamed("Recipe deleted")).toBe(item);
   await tapNow([...item.querySelectorAll("button")].find((button) => button.textContent === "Undo")!);
   await expect.poll(() => undo.mock.calls.length).toBe(1);
@@ -445,6 +453,11 @@ describe("the swipe follows the finger (rule 12)", () => {
   });
 });
 
+// Guards a workaround. Base UI's own swipe paused the toasts and fanned the stack out on a touch
+// press; with that swipe off (`swipeDirection={[]}`) nothing public does, so the toast sends a
+// `mousemove`, which Base UI's `Toast.Viewport` answers through its `onMouseMove`. If this
+// fails after a Base UI upgrade, the viewport has stopped answering that event: look for a
+// public way to pause the toasts, or for what its hover handling listens to now.
 it("waits while a finger is on a toast, and fans the stack out, as a mouse over it does", async () => {
   const elsewhere = document.createElement("button");
   elsewhere.textContent = "Elsewhere";
@@ -457,9 +470,16 @@ it("waits while a finger is on a toast, and fans the stack out, as a mouse over 
   const region = document.querySelector<HTMLElement>('[data-ouro="toaster"]')!;
   expect(region.hasAttribute("data-expanded")).toBe(false);
   const [x, y] = grip(item);
+  // The event is where the finger is, for an app that follows the mouse.
+  const moves: Array<[number, number]> = [];
+  const record = (event: MouseEvent) => moves.push([event.clientX, event.clientY]);
+  addEventListener("mousemove", record);
+  cleanups.push(() => removeEventListener("mousemove", record));
   try {
     await commands.touchStep({ type: "touchStart", x, y });
     await expect.poll(() => region.hasAttribute("data-expanded")).toBe(true);
+    expect(moves.length).toBe(1);
+    expect(Math.abs(moves[0]![0] - x) < 1 && Math.abs(moves[0]![1] - y) < 1).toBe(true);
     const since = performance.now();
     await expect.poll(() => performance.now() - since, { timeout: 5000 }).toBeGreaterThan(2200);
     expect(toastNamed("Held")).toBe(item);

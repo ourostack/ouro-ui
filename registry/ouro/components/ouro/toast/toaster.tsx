@@ -1,7 +1,7 @@
 "use client";
 
 import { Toast } from "@base-ui/react/toast";
-import { useCallback, useEffect, useRef, useState, type JSX, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type JSX, type PointerEvent as ReactPointerEvent } from "react";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
 import { rubberband, spring, type SpringHandle } from "@/registry/ouro/lib/ouro/spring";
@@ -223,7 +223,7 @@ type ToastObject = ReturnType<typeof Toast.useToastManager>["toasts"][number];
 /** One toast. The swipe is Ouro's own, so Base UI's is off. */
 function ToastItem({ item, closeLabel }: { item: ToastObject; closeLabel: string }): JSX.Element {
   const { close } = Toast.useToastManager();
-  const swipe = useSwipeAway(() => close(item.id));
+  const swipe = useSwipeAway(() => close(item.id), item.transitionStatus === "ending");
   return (
     <Toast.Root toast={item} swipeDirection={NO_SWIPE} {...swipe} data-ouro="toast" data-tone={item.type} className={rootClass}>
       <Toast.Content className={contentClass}>
@@ -247,8 +247,8 @@ function ToastItem({ item, closeLabel }: { item: ToastObject; closeLabel: string
 const NO_SWIPE: [] = [];
 /** How far, in px, a toast let go without a flick must be from rest to leave. */
 const AWAY = 40;
-/** A press on one of these never starts a swipe: the action, the dismiss button, a link or a control in the message. The list Base UI's swipe used. */
-const CONTROLS = 'button,a,input,textarea,[role="button"]';
+/** A press on one of these never starts a swipe: the action, the dismiss button, a link or a control in the message, and anything an app marks `data-swipe-ignore`. The list Base UI's swipe used. */
+const CONTROLS = 'button,a,input,textarea,[role="button"],[data-base-ui-swipe-ignore],[data-swipe-ignore]';
 
 type Axis = "x" | "y";
 
@@ -264,7 +264,7 @@ type Axis = "x" | "y";
  *
  * The offset is the element's `translate`, which adds to the `transform` the stack sets.
  */
-function useSwipeAway(dismiss: () => void) {
+function useSwipeAway(dismiss: () => void, ending: boolean) {
   const state = useRef<SwipeState>({ element: null, axis: null, offset: 0, grab: 0, pressed: { x: false, y: false }, moved: false, leaving: false, control: false, settle: undefined });
 
   const write = useCallback((offset: number) => {
@@ -295,11 +295,25 @@ function useSwipeAway(dismiss: () => void) {
     [write],
   );
 
+  // A toast sent again with the id of one that is on its way out comes back on the same
+  // element (Base UI keeps it). It starts over: at rest, not swiped, and the finger's to take.
+  useLayoutEffect(() => {
+    const now = state.current;
+    if (ending || !now.leaving) return;
+    now.settle?.stop();
+    now.leaving = false;
+    now.element!.removeAttribute("data-ouro-swiped");
+    write(0);
+    now.axis = null;
+  }, [ending, write]);
+
   // Two drags, one per axis, on the one element: the first to move 10px its way has the toast.
-  const press = useCallback((axis: Axis) => {
+  const press = useCallback((axis: Axis, event: PointerEvent) => {
     const now = state.current;
     now.pressed[axis] = true;
     now.moved = false;
+    // A press on a control holds the toast still, as any press does, so the tap lands; it starts no swipe.
+    now.control = (event.target as Element).closest(CONTROLS) !== null;
     // Hold still under the finger, where the spring had brought it.
     now.settle?.stop();
   }, []);
@@ -352,7 +366,7 @@ function useSwipeAway(dismiss: () => void) {
   };
   const x = useDrag({
     axis: "x",
-    onPress: () => press("x"),
+    onPress: (event) => press("x", event),
     onPressEnd: () => pressEnd("x"),
     onStart: () => start("x"),
     onMove: (drag) => move("x", drag),
@@ -362,7 +376,7 @@ function useSwipeAway(dismiss: () => void) {
     axis: "y",
     // The toast takes every touch (`touch-none`), so no move is a scroll: sideways travel is the other drag's.
     crossAxis: "ignore",
-    onPress: () => press("y"),
+    onPress: (event) => press("y", event),
     onPressEnd: () => pressEnd("y"),
     onStart: () => start("y"),
     onMove: (drag) => move("y", drag),
@@ -387,12 +401,13 @@ function useSwipeAway(dismiss: () => void) {
     (event: ReactPointerEvent<HTMLElement>) => {
       // Base UI pauses the toasts and fans them out while a mouse is over them. A finger has no
       // hover, so its press says the same: the toasts wait while one is held or read.
-      if (event.pointerType !== "mouse") event.currentTarget.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
-      const now = state.current;
+      // The event is where the finger is, for an app that follows the mouse.
+      if (event.pointerType !== "mouse") {
+        const { clientX, clientY, screenX, screenY } = event;
+        event.currentTarget.dispatchEvent(new MouseEvent("mousemove", { bubbles: true, clientX, clientY, screenX, screenY }));
+      }
       // A toast on its way out is no longer the finger's.
-      if (now.leaving) return;
-      // A press on a control holds the toast still, as any press does, so the tap lands; it starts no swipe.
-      now.control = (event.target as Element).closest(CONTROLS) !== null;
+      if (state.current.leaving) return;
       x.onPointerDown(event);
       y.onPointerDown(event);
     },
