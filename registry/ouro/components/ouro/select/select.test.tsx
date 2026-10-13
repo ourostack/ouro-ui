@@ -321,6 +321,8 @@ describe("Select popup motion", () => {
     const { trigger } = await render(<Select label="Course" options={courses} />);
     await open(trigger);
     const element = popup()!;
+    // Base UI holds transitions off for the first frame.
+    await expect.poll(() => getComputedStyle(element).transitionProperty).not.toBe("none");
     await expect.poll(() => element.getAnimations().length).toBe(0);
     element.style.setProperty("--transform-origin", "7px 3px");
     expect(getComputedStyle(element).transformOrigin).toBe("7px 3px");
