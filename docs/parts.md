@@ -223,7 +223,7 @@ Each part checks that it sits inside `<SheetRoot>`. Outside it, a part throws in
 | `SheetRoot` | The state owner of a sheet built from parts. Use the `Sheet` component instead unless its props cannot express your layout. |
 | `SheetTitle` | The sheet's title, which names the dialog. Every sheet needs one. |
 | `SheetTrigger` | The button that opens the sheet. Pass your button as `render={<Button>Open</Button>}`. |
-| `SheetViewport` | The full-screen layer that positions the popup against its edge. |
+| `SheetViewport` | The full-screen layer that positions the popup against its edge. A `ref` reaches the viewport element. |
 
 ## Tabs parts
 

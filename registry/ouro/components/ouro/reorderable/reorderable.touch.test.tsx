@@ -103,9 +103,9 @@ describe("Reorderable on a phone", () => {
     expect(document.querySelector('[data-ouro="menu"]')!.getAttribute("data-ouro-presentation")).toBe("sheet");
     const items = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')];
     expect(items.map((item) => item.textContent)).toEqual(["Move up", "Move down", "Move to top", "Move to bottom", "Close"]);
-    // Each move is a 44px target with 16px text, once the sheet has finished growing in: mid-way its items are scaled down.
-    const sheet = document.querySelector<HTMLElement>('[role="menu"]')!;
-    await expect.poll(() => !sheet.hasAttribute("data-starting-style") && sheet.getAnimations({ subtree: true }).length === 0).toBe(true);
+    // The sheet has slid in: on the way, a fraction of a pixel of travel makes a 44px height read as 43.9999.
+    await expect.poll(() => document.querySelector('[data-ouro="menu"]')!.getAnimations().length).toBe(0);
+    // Each move is a 44px target with 16px text.
     for (const item of items) {
       expect(item.getBoundingClientRect().height, item.textContent).toBeGreaterThanOrEqual(44);
       expect(getComputedStyle(item).fontSize, item.textContent).toBe("16px");
