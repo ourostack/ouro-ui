@@ -491,9 +491,10 @@ export interface ResizableProps extends ResizableGroupProps {
  */
 export function Resizable({ children, ...props }: ResizableProps): JSX.Element {
   const items = Children.toArray(children);
-  // Every child is a panel; a handle the app added by mistake is dropped (it is recognised
-  // when its type is the component itself).
-  const isHandleElement = (child: unknown) => isValidElement(child) && child.type === ResizableHandle;
+  // Every child is a panel; a handle the app added by mistake is dropped. As in
+  // ResizablePanelGroup, a handle is any component that is not a panel: across a Server
+  // Component boundary its type is a lazy reference, not `ResizableHandle` itself.
+  const isHandleElement = (child: unknown) => !isPanel(child) && !isStray(child);
   useDevWarnings(
     "Resizable",
     process.env.NODE_ENV !== "production"

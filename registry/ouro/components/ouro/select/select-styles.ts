@@ -1,5 +1,5 @@
 import type { ReactElement, ReactNode } from "react";
-import { serverNodes } from "@/registry/ouro/lib/ouro/server-element";
+import { hasLazyType, serverNodes } from "@/registry/ouro/lib/ouro/server-element";
 
 export { flattenOptions, groupLabelClass, itemClass, itemIndicatorClass, popupClass, positionerClass, sheetQuery, triggerClass, backdropClass, sheetTitleClass, isGroup };
 export type { SelectOption, SelectOptionGroup, SelectOptions };
@@ -44,7 +44,7 @@ function isGroup(entry: SelectOption | SelectOptionGroup): entry is SelectOption
  *
  * @internal
  */
-function flattenOptions(options: SelectOptions | undefined, children: ReactNode): Array<{ value: string; label: ReactNode }> {
+function flattenOptions(options: SelectOptions | undefined, children: ReactNode, itemType: unknown): Array<{ value: string; label: ReactNode }> {
   const found: Array<{ value: string; label: ReactNode }> = [];
   for (const entry of options ?? []) {
     for (const option of isGroup(entry) ? entry.options : [entry]) found.push({ value: option.value, label: option.label });
@@ -55,9 +55,12 @@ function flattenOptions(options: SelectOptions | undefined, children: ReactNode)
     if (Array.isArray(node)) return node.forEach(walk);
     if (!node || typeof node !== "object" || !("props" in node)) return;
     const element = node as ReactElement<{ value?: unknown; children?: ReactNode }>;
-    // An item is known by its `value`, not by `type === SelectItem`: across a Server
-    // Component boundary the type is a lazy reference, never the component itself.
-    if (typeof element.type !== "string" && typeof element.props.value === "string") found.push({ value: element.props.value, label: element.props.children });
+    // An item is a `SelectItem`. Across a Server Component boundary its type is a lazy
+    // reference, never the component itself, so there it is known by its string `value`.
+    // (That also takes a client component with a string `value` that a Server Component put
+    // around the items for an item; nothing visible across the boundary tells them apart.)
+    const isItem = element.type === itemType || (hasLazyType(element) && typeof element.props.value === "string");
+    if (isItem) found.push({ value: element.props.value as string, label: element.props.children });
     else walk(element.props.children);
   };
   walk(children);

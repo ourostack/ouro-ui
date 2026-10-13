@@ -41,3 +41,14 @@ export function serverElement<T>(element: T): T {
 export function serverNodes(node: ReactNode): ReactNode {
   return isWrapper(node) ? held(node) : node;
 }
+
+/**
+ * Whether the element's `type` is a lazy reference, not a component: what a client
+ * component's element has when a Server Component passed it. Such an element cannot be told
+ * apart by `type === Component`, only by its props.
+ *
+ * Internal: Ouro UI components use it; apps don't need to.
+ */
+export function hasLazyType(element: { type: unknown }): boolean {
+  return isWrapper(element.type);
+}
