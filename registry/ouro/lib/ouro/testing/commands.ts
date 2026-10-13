@@ -285,6 +285,8 @@ export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from,
   const start = Date.now() / 1000;
   const sent: unknown[] = [];
   const touch = async (type: "touchStart" | "touchMove" | "touchEnd", [x, y]: [number, number], t: number) => {
+    const delay = Number(process.env["CAROUSEL_CDP_DELAY_MS"] ?? 0);
+    if (delay > 0) await new Promise((resolve) => setTimeout(resolve, delay));
     const before = Date.now();
     await session.send("Input.dispatchTouchEvent", {
       type,
