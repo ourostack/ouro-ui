@@ -386,7 +386,7 @@ describe("Combobox pressed on a phone", () => {
     item.setAttribute("data-press-target", "");
     await commands.pointerPress({ selector: "[data-press-target]", action: "down" });
     try {
-      await new Promise((resolve) => setTimeout(resolve, 250));
+      await expect.poll(() => item.matches(":active")).toBe(true);
       item.removeAttribute("data-highlighted");
       expect(getComputedStyle(item).backgroundColor).toBe(rest);
     } finally {

@@ -730,6 +730,8 @@ describe("Popover trigger press", () => {
     };
     requestAnimationFrame(sample);
     await commands.pointerPress({ selector, action: "down" });
+    // Hold until the press has fully arrived, so a scaled trigger would be at its smallest.
+    await expect.poll(() => getComputedStyle(trigger(), "::before").opacity).toBe("0.14");
     await commands.pointerPress({ selector, action: "up" });
     await settled();
     await nextFrame();

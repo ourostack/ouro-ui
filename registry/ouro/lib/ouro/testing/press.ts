@@ -9,7 +9,8 @@ const MOVES = ["pointermove", "mousemove", "pointerover", "mouseover", "pointere
  * hovers or highlights it, which can give the same colour, so by default the move events
  * are kept from the page (the browser still applies `:active`). Base UI lists highlight an
  * item on pointer-down; pass `clearHighlight` to drop `data-highlighted` while the button is
- * held, so only `:active` can explain the colour. Run it in the `ouro-touch` project where
+ * held, so only `:active` can explain the colour. `during` runs while the button is still
+ * down, for checks on the pressed element. It throws if the element never tints. Run it in the `ouro-touch` project where
  * `pointer-fine:` hover rules are off.
  *
  * @example
@@ -18,9 +19,9 @@ const MOVES = ["pointermove", "mousemove", "pointerover", "mouseover", "pointere
  */
 export async function pressTint(
   element: HTMLElement,
-  options: { blockMoves?: boolean; clearHighlight?: boolean } = {},
+  options: { blockMoves?: boolean; clearHighlight?: boolean; during?: () => void } = {},
 ): Promise<{ rest: string; pressed: string; active: boolean }> {
-  const { blockMoves = true, clearHighlight = false } = options;
+  const { blockMoves = true, clearHighlight = false, during } = options;
   const block = (event: Event) => event.stopImmediatePropagation();
   if (blockMoves) for (const type of MOVES) window.addEventListener(type, block, true);
   element.setAttribute("data-press-target", "");
@@ -35,6 +36,7 @@ export async function pressTint(
         return element.matches(":active") && pressed !== rest && element.getAnimations().length === 0;
       })
       .toBe(true);
+    during?.();
     return { rest, pressed, active: element.matches(":active") };
   } finally {
     await commands.pointerPress({ selector: "[data-press-target]", action: "up" });

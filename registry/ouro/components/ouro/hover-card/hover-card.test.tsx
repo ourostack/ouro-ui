@@ -131,7 +131,7 @@ describe("HoverCard", () => {
     link().setAttribute("data-probe-target", "");
     await commands.pointerPress({ selector: "[data-probe-target]", action: "down" });
     try {
-      await new Promise((resolve) => setTimeout(resolve, 400));
+      await expect.poll(() => link().matches(":active") && link().getAnimations().length === 0).toBe(true);
       expect(getComputedStyle(link()).scale).toBe("none");
       expect(JSON.stringify(link().getBoundingClientRect())).toBe(anchor);
       expect(JSON.stringify(positioner().getBoundingClientRect())).toBe(rest);

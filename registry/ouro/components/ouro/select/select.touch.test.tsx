@@ -146,6 +146,32 @@ it("slides the sheet up from the bottom edge in 500ms on the drawer curve, and l
 });
 
 describe("Select on a phone, pressed", () => {
+  it("tints the trigger under a held finger, without moving or transforming it", async () => {
+    const host = await render(<Select label="Course" options={[{ value: "a", label: "Starter" }]} />);
+    const trigger = host.querySelector<HTMLElement>('[role="combobox"]')!;
+    const box = JSON.stringify(trigger.getBoundingClientRect());
+    // A mouse opens the list on pointer-down, and the open list is its feedback. A finger
+    // opens it on release (the browser sends mousedown then), so for the whole hold the
+    // trigger is pressed with the list closed and the tint is the only feedback; holding the
+    // open back models that hold.
+    const hold = (event: Event) => event.stopImmediatePropagation();
+    const types = ["pointerdown", "mousedown", "click"];
+    for (const type of types) window.addEventListener(type, hold, true);
+    try {
+      const { rest, pressed, active } = await pressTint(trigger, {
+        during: () => {
+          const style = getComputedStyle(trigger);
+          expect([style.scale, style.transform]).toEqual(["none", "none"]);
+          expect(JSON.stringify(trigger.getBoundingClientRect())).toBe(box);
+        },
+      });
+      expect(active).toBe(true);
+      expect(pressed).not.toBe(rest);
+    } finally {
+      for (const type of types) window.removeEventListener(type, hold, true);
+    }
+  });
+
   const options = [
     { value: "a", label: "Starter" },
     { value: "b", label: "Main" },
@@ -173,8 +199,7 @@ describe("Select on a phone, pressed", () => {
     dessert!.setAttribute("data-press-target", "");
     await commands.pointerPress({ selector: "[data-press-target]", action: "down" });
     try {
-      await new Promise((resolve) => setTimeout(resolve, 250));
-      expect(dessert!.matches(":active")).toBe(true);
+      await expect.poll(() => dessert!.matches(":active")).toBe(true);
       // Base UI may highlight the row under the pointer; only the press itself is in question.
       dessert!.removeAttribute("data-highlighted");
       expect(getComputedStyle(dessert!).backgroundColor).toBe(rest);

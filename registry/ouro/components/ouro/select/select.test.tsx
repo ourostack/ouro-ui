@@ -331,27 +331,6 @@ describe("Select popup motion", () => {
     expect(getComputedStyle(element).transitionDuration).toBe("0.15s");
     element.removeAttribute("data-ending-style");
   });
-
-  it("tints the trigger on pointer-down without moving or transforming it", async () => {
-    const { trigger } = await render(<Select label="Course" options={courses} />);
-    const rest = getComputedStyle(trigger).backgroundColor;
-    const box = trigger.getBoundingClientRect();
-    // Keep the press from opening the list: a list that opens over the trigger under the
-    // mouse can take the press's :active state away before the colour is read.
-    const keep = (event: Event) => event.stopImmediatePropagation();
-    const types = ["pointerdown", "mousedown", "click"];
-    for (const type of types) window.addEventListener(type, keep, true);
-    await commands.pointerPress({ selector: '[role="combobox"]', action: "down" });
-    try {
-      await expect.poll(() => getComputedStyle(trigger).backgroundColor).not.toBe(rest);
-      const style = getComputedStyle(trigger);
-      expect([style.scale, style.transform]).toEqual(["none", "none"]);
-      expect(trigger.getBoundingClientRect().toJSON()).toEqual(box.toJSON());
-    } finally {
-      await commands.pointerPress({ selector: '[role="combobox"]', action: "up" });
-      for (const type of types) window.removeEventListener(type, keep, true);
-    }
-  });
 });
 
 describe("Select in a Form with server errors (review fix round 1, finding 7)", () => {
