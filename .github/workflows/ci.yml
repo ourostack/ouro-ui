@@ -6,7 +6,7 @@ permissions:
 jobs:
   watchdog:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -18,4 +18,15 @@ jobs:
           cache: pnpm
       - run: pnpm i --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm exec vitest run --project ouro-touch registry/ouro/lib/ouro/testing/commands.touch.test.ts -t "a missing touch event remains bounded while the page clock is frozen"
+      - run: pnpm exec vitest run --project ouro-touch registry/ouro/lib/ouro/testing/commands.touch.test.ts
+      - name: Keep a spring catch a swipe despite a command stall past the long-press deadline
+        run: |
+          node probe/delay-catch.mjs
+          pnpm exec vitest run --project ouro-touch registry/ouro/components/ouro/swipe-actions/swipe-actions.touch.test.tsx -t "can be caught by a finger"
+      - name: Ten uninstrumented SwipeActions touch files
+        run: |
+          git show HEAD:registry/ouro/components/ouro/swipe-actions/swipe-actions.touch.test.tsx > registry/ouro/components/ouro/swipe-actions/swipe-actions.touch.test.tsx
+          for i in $(seq 1 10); do
+            pnpm exec vitest run --project ouro-touch registry/ouro/components/ouro/swipe-actions/swipe-actions.touch.test.tsx > swipe-file.log 2>&1 || { cat swipe-file.log; exit 1; }
+            echo "SWIPE_FILE_PASS $i"
+          done
