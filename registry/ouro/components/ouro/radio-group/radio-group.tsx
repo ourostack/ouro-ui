@@ -7,7 +7,7 @@ import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { choicesClass, contractWarnings } from "@/registry/ouro/components/ouro/field/field-styles";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
-import { FieldOwnerContext, useField } from "@/registry/ouro/lib/ouro/use-field";
+import { FieldOwnerContext, useField, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 import { dotClass, radioClass } from "@/registry/ouro/components/ouro/radio-group/radio-group-styles";
 
@@ -38,7 +38,7 @@ export interface RadioGroupOwnProps {
    * What is wrong, from your server action or client check, shown under the choices; every
    * radio gets `aria-invalid`. An empty string or array means valid.
    */
-  error?: string | string[] | undefined;
+  error?: ErrorMessages | undefined;
   /** A choice must be picked to submit the form: the group gets `aria-required`, and the legend a marker. */
   required?: boolean | undefined;
   /** Disables every radio and fades the group. */

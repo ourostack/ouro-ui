@@ -10,6 +10,7 @@ import { Select } from "@/registry/ouro/components/ouro/select/select";
 import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import type { ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -70,7 +71,8 @@ function ActionPage({ result, onSent }: { result: FormErrors | undefined; onSent
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     onSent?.(data);
-    setTimeout(() => setErrors(result));
+    // A new object for each answer, as an action returns.
+    setTimeout(() => setErrors(result && { ...result }));
   };
   return (
     <Form method="post" errors={errors} onSubmit={submit}>
@@ -208,6 +210,144 @@ describe("Form", () => {
       </Form>,
     );
     expect(description(input("email"))).toEqual(["Still taken."]);
+  });
+
+  it("compares errors by content: an equal object rebuilt on every render shows nothing again and moves no focus", async () => {
+    function Page() {
+      const [count, setCount] = useState(0);
+      return (
+        // A new object, with new arrays and elements in it, on every render.
+        <Form
+          errors={{
+            email: "That email is taken.",
+            name: ["Too short.", <a key="rules" href="/rules">Read the rules</a>],
+            form: (
+              <>
+                Could not save. <a href="/status">Status</a>
+              </>
+            ),
+          }}
+        >
+          <TextField label="Name" name="name" />
+          <TextField label="Email" name="email" />
+          <button type="button" onClick={() => setCount(count + 1)}>
+            Rendered {count}
+          </button>
+        </Form>
+      );
+    }
+    const { input } = await render(<Page />);
+    await userEvent.fill(page.getByRole("textbox", { name: "Email", exact: true }), "new@example.com");
+    expect(input("email").getAttribute("aria-invalid")).toBeNull();
+    const again = page.getByRole("button", { name: /^Rendered/ });
+    await userEvent.click(again);
+    await expect.element(page.getByRole("button", { name: "Rendered 1" })).toBeVisible();
+    // The cleared message stays cleared, and focus stays on the button that was pressed.
+    expect(input("email").getAttribute("aria-invalid")).toBeNull();
+    expect(input("name").getAttribute("aria-invalid")).toBe("true");
+    expect(document.activeElement).toBe(again.element());
+  });
+
+  it.each<[string, ErrorMessages, ErrorMessages, boolean]>([
+    ["the same text", "Taken.", "Taken.", true],
+    ["other text", "Taken.", "Still taken.", false],
+    ["equal lists", ["A.", "B."], ["A.", "B."], true],
+    ["a longer list", ["A."], ["A.", "B."], false],
+    ["a list and its text", ["A."], "A.", false],
+    ["equal elements", <a href="/x">Open</a>, <a href="/x">Open</a>, true],
+    ["an element with another prop", <a href="/x">Open</a>, <a href="/y">Open</a>, false],
+    ["an element with one prop more", <a href="/x">Open</a>, <a href="/x" rel="next">Open</a>, false],
+    ["an element with another prop name", <a href="/x">Open</a>, <a title="/x">Open</a>, false],
+    ["another element type", <a href="/x">Open</a>, <b>Open</b>, false],
+    ["another key", <a key="a">Open</a>, <a key="b">Open</a>, false],
+    ["an element and text", <b>Open</b>, "Open", false],
+    ["an element and a plain object in its place", <b style={{ top: 0 }}>Open</b>, <b style={{ top: 1 }}>Open</b>, false],
+    ["equal nested elements", <b><i>Open</i> it</b>, <b><i>Open</i> it</b>, true],
+    ["two empty messages", "", "", true],
+  ])("compares the errors by content: %s", async (_what, first, second, same) => {
+    const { input, rerender } = await render(
+      <Form errors={{ email: first, name: "Required." }}>
+        <TextField label="Name" name="name" />
+        <TextField label="Email" name="email" />
+      </Form>,
+    );
+    await userEvent.fill(page.getByRole("textbox", { name: "Name", exact: true }), "Ari");
+    expect(input("name").getAttribute("aria-invalid")).toBeNull();
+    await rerender(
+      <Form errors={{ email: second, name: "Required." }}>
+        <TextField label="Name" name="name" />
+        <TextField label="Email" name="email" />
+      </Form>,
+    );
+    // New errors show every message again, the cleared one included; equal ones change nothing.
+    expect(input("name").getAttribute("aria-invalid")).toBe(same ? null : "true");
+  });
+
+  it("treats no errors, null and an empty object as the same, and an element with a loop in its props as new", async () => {
+    // A new object that holds itself, on every call.
+    const makeLoop = () => {
+      const loop: { self?: unknown } = {};
+      loop.self = loop;
+      return loop;
+    };
+    const Note = (_props: { info: unknown }) => <>Taken.</>;
+    const { input, rerender } = await render(
+      <Form errors={undefined}>
+        <TextField label="Email" name="email" />
+      </Form>,
+    );
+    const before = document.activeElement;
+    for (const empty of [null, {}]) {
+      await rerender(
+        <Form errors={empty}>
+          <TextField label="Email" name="email" />
+        </Form>,
+      );
+    }
+    await rerender(
+      <Form errors={{ email: <Note info={makeLoop()} /> }}>
+        <TextField label="Email" name="email" />
+      </Form>,
+    );
+    await expect.poll(() => document.activeElement).toBe(input("email"));
+    await userEvent.fill(page.getByRole("textbox", { name: "Email" }), "x");
+    expect(input("email").getAttribute("aria-invalid")).toBeNull();
+    // The comparison gives up on the loop and takes the errors as new, rather than never ending.
+    await rerender(
+      <Form errors={{ email: <Note info={makeLoop()} /> }}>
+        <TextField label="Email" name="email" />
+      </Form>,
+    );
+    expect(input("email").getAttribute("aria-invalid")).toBe("true");
+    expect(before).not.toBe(input("email"));
+  });
+
+  it("shows an equal answer again after another submit, and moves focus to it again", async () => {
+    // Each answer is a new object with the same content, as an action returns.
+    function Page() {
+      const [errors, setErrors] = useState<FormErrors | undefined>();
+      return (
+        <Form
+          errors={errors}
+          onSubmit={(event: FormEvent<HTMLFormElement>) => {
+            event.preventDefault();
+            setTimeout(() => setErrors({ email: "That email is taken." }));
+          }}
+        >
+          <TextField label="Email" name="email" defaultValue="ari@example.com" />
+          <button type="submit">Save</button>
+        </Form>
+      );
+    }
+    const { input } = await render(<Page />);
+    const save = page.getByRole("button", { name: "Save" });
+    await userEvent.click(save);
+    await expect.poll(() => input("email").getAttribute("aria-invalid")).toBe("true");
+    await userEvent.fill(page.getByRole("textbox", { name: "Email" }), "other@example.com");
+    expect(input("email").getAttribute("aria-invalid")).toBeNull();
+    await userEvent.click(save);
+    await expect.poll(() => input("email").getAttribute("aria-invalid")).toBe("true");
+    await expect.poll(() => document.activeElement).toBe(input("email"));
   });
 
   it("ignores a change in a field without a form error", async () => {
@@ -376,13 +516,71 @@ describe("Form-level messages (review fix round 1, finding 3)", () => {
     expect(alert.textContent).not.toContain("Taken.");
   });
 
-  it("renders no alert without form-level errors", async () => {
-    const { host } = await render(
+  it("renders no alert without form-level errors, so getByRole(\"alert\") finds only a message that shows", async () => {
+    const { host, rerender } = await render(
       <Form errors={{ email: "Taken." }}>
         <TextField label="Email" name="email" />
       </Form>,
     );
-    expect(host.querySelector('[role="alert"]')!.textContent).toBe("");
+    // A field's error is its control's description, not an alert.
+    expect(host.querySelector('[role="alert"]')).toBeNull();
+    expect(page.getByRole("alert").elements()).toEqual([]);
+    await rerender(
+      <Form errors={{ email: "Taken.", form: "The server is down." }}>
+        <TextField label="Email" name="email" />
+      </Form>,
+    );
+    await expect.element(page.getByRole("alert")).toHaveTextContent("The server is down.");
+    expect(page.getByRole("alert").elements()).toHaveLength(1);
+    await rerender(
+      <Form>
+        <TextField label="Email" name="email" />
+      </Form>,
+    );
+    expect(page.getByRole("alert").elements()).toEqual([]);
+  });
+
+  it("adds the alert to the page with its message already in it, each time an answer arrives, so screen readers announce it", async () => {
+    const { form } = await render(<ActionPage result={{ form: "The server is down.", email: "Taken." }} />);
+    const added: string[] = [];
+    const observer = new MutationObserver((records) => {
+      for (const record of records) {
+        for (const node of record.addedNodes) {
+          if (node instanceof HTMLElement && node.getAttribute("role") === "alert") added.push(node.textContent);
+        }
+      }
+    });
+    observer.observe(form, { childList: true });
+    try {
+      await userEvent.click(page.getByRole("button", { name: "Save" }));
+      await expect.poll(() => added).toEqual(["The server is down."]);
+      // The same answer to another submit is a new alert, not a silent one that was already there.
+      await userEvent.click(page.getByRole("button", { name: "Save" }));
+      await expect.poll(() => added).toEqual(["The server is down.", "The server is down."]);
+      expect(page.getByRole("alert").elements()).toHaveLength(1);
+    } finally {
+      observer.disconnect();
+    }
+  });
+
+  it("shows a form-level message that is a React node, such as one with a link", async () => {
+    await render(
+      <Form
+        errors={{
+          form: (
+            <>
+              You are signed out. <a href="/login">Sign in</a>
+            </>
+          ),
+          email: [<a key="reset" href="/reset">Reset the password</a>, "Or use another email."],
+        }}
+      >
+        <TextField label="Email" name="email" />
+      </Form>,
+    );
+    await expect.element(page.getByRole("alert")).toHaveTextContent("You are signed out. Sign in");
+    await expect.element(page.getByRole("link", { name: "Sign in" })).toBeVisible();
+    await expect.element(page.getByRole("textbox", { name: "Email" })).toHaveAccessibleDescription("Reset the password Or use another email.");
   });
 
   it("focuses the alert when errors arrive and no field has one", async () => {
@@ -434,20 +632,49 @@ describe("Form-level messages (review fix round 1, finding 3)", () => {
     const { host, rerender } = await render(<Tags both />);
     await rerender(<Tags both={false} />);
     await act(async () => {});
-    expect(host.querySelector('[role="alert"]')!.textContent).toBe("");
+    expect(host.querySelector('[role="alert"]')).toBeNull();
     expect(warn).not.toHaveBeenCalled();
   });
 
-  it("warns in development about a key no field claims, naming the fields there are", async () => {
+  it("warns in development about a key no field claims, naming the key, the form's fields and both fixes", async () => {
     await render(
-      <Form errors={{ emial: "Typo key.", form: "Shown at the top." }}>
+      <Form errors={{ general: "Could not save.", form: "Shown at the top." }}>
         <TextField label="Email" name="email" />
         <TextField label="Name" name="name" />
       </Form>,
     );
     await expect.poll(() => warn.mock.calls.length).toBe(1);
     expect(warn).toHaveBeenCalledWith(
-      '[ouro-ui] Form: errors has "emial", which no field in the form is named, so it shows at the top of the form. Fix: use a field\'s name (email, name), or "form" for a message about the whole form.',
+      '[ouro-ui] Form: errors has the key "general", but the form\'s fields are named email, name, so the message shows at the top of the form. ' +
+        'Fix: a message about the whole form uses the "form" key: errors={{ ...errors, form: errors.general }}; ' +
+        "to pass only this form's errors: errors={{ email: errors.email, name: errors.name }}.",
+    );
+  });
+
+  it("quotes a key or field name that is not a plain property name in the warning's fix", async () => {
+    await render(
+      <Form errors={{ "first name": "Required." }}>
+        <TextField label="Last name" name="last-name" />
+      </Form>,
+    );
+    await expect.poll(() => warn.mock.calls.length).toBe(1);
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] Form: errors has the key "first name", but the form\'s fields are named last-name, so the message shows at the top of the form. ' +
+        'Fix: a message about the whole form uses the "form" key: errors={{ ...errors, form: errors["first name"] }}; ' +
+        'to pass only this form\'s errors: errors={{ "last-name": errors["last-name"] }}.',
+    );
+  });
+
+  it("warns about a key no field claims in a form with no named field", async () => {
+    await render(
+      <Form errors={{ general: "Could not save." }}>
+        <button type="submit">Log out</button>
+      </Form>,
+    );
+    await expect.poll(() => warn.mock.calls.length).toBe(1);
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] Form: errors has the key "general", but the form has no named field, so the message shows at the top of the form. ' +
+        'Fix: a message about the whole form uses the "form" key: errors={{ form: errors.general }}.',
     );
   });
 

@@ -1,14 +1,19 @@
 "use client";
 
 import { Form as BaseForm } from "@base-ui/react/form";
-import { useCallback, useEffect, useMemo, useRef, useState, type JSX, type ReactNode, type Ref } from "react";
+import { isValidElement, useCallback, useEffect, useMemo, useRef, useState, type JSX, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
-import { FormErrorsContext } from "@/registry/ouro/lib/ouro/use-field";
+import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
+import { errorMessageKey, errorMessages, FormErrorsContext, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 
-/** Errors by field name: one message, or several. A React Router action returns this shape. */
-export type FormErrors = Record<string, string | string[]>;
+/**
+ * Errors by field name: one message, or several as an array. A React Router action returns
+ * this shape. A message is text or a React node, so it can carry a link. The `form` key holds
+ * messages about the whole form.
+ */
+export type FormErrors = Record<string, ErrorMessages>;
 
 /** Props for {@link Form}: a `<form>`'s attributes, `errors`, and Base UI Form's `render`. */
 export type FormProps = Omit<BaseForm.Props, "className" | "errors" | "children"> & {
@@ -19,7 +24,14 @@ export type FormProps = Omit<BaseForm.Props, "className" | "errors" | "children"
    * goes away once the user changes that field. When new errors arrive, focus moves to the
    * first field with one, in page order. The `form` key shows in an alert at the top of
    * the form, in the server HTML too; a key no rendered field is named joins it once the
-   * page hydrates.
+   * page hydrates, and warns in development. A message is text or a React node (a message
+   * with a link), and an array is several messages.
+   *
+   * Errors are compared by content, so an object built while rendering
+   * (`errors={{ ...actionData?.errors, form: actionData?.general }}`) is the same errors
+   * until its content changes: it shows no cleared message again and moves no focus. After a
+   * submit, the next errors the Form is given count as that submit's answer even when they
+   * equal the last ones, so a repeated answer shows again.
    *
    * These errors only show: they never block the next submit, so the user can always send
    * the form again (a server error may be fixed by changing another field, or by trying
@@ -42,16 +54,35 @@ const EMPTY: FormErrors = {};
 
 /**
  * The message at the top of the form, for the `form` key and keys no field claims: the
- * destructive color, with an outline only while focused. Empty, it takes no space.
+ * destructive color, with an outline only while focused.
  */
 const formMessageClass =
-  "grid gap-1 text-sm leading-5 text-destructive outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid empty:absolute";
+  "grid gap-1 text-sm leading-5 text-destructive outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 
 /** The key for a message about the whole form, shown at its top. */
 const FORM_KEY = "form";
 
-/** The messages an error holds: one, several, or none for an empty string or array. */
-const messagesOf = (error: string | string[] | undefined) => (Array.isArray(error) ? error : error ? [error] : []);
+/** How deep `sameContent` looks before it calls two values different: past any real message, short of a loop. */
+const MAX_DEPTH = 40;
+
+/**
+ * Whether two error values hold the same content: equal text, arrays and plain objects with
+ * equal entries, and React elements of the same type and key with equal props. An app that
+ * builds its errors object while rendering passes a new, equal one on every render.
+ */
+function sameContent(a: unknown, b: unknown, depth = 0): boolean {
+  if (Object.is(a, b)) return true;
+  if (typeof a !== "object" || typeof b !== "object" || a === null || b === null || depth === MAX_DEPTH) return false;
+  if (isValidElement(a) || isValidElement(b)) {
+    return isValidElement(a) && isValidElement(b) && a.type === b.type && a.key === b.key && sameContent(a.props, b.props, depth + 1);
+  }
+  const keys = Object.keys(a);
+  return (
+    Array.isArray(a) === Array.isArray(b) &&
+    keys.length === Object.keys(b).length &&
+    keys.every((key) => Object.hasOwn(b, key) && sameContent((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key], depth + 1))
+  );
+}
 
 /**
  * Whether an element takes focus: hidden inputs and hidden copies of a control do not, and
@@ -109,21 +140,24 @@ export function Form(props: FormProps): JSX.Element {
       ? "style fields in your theme (--input, --ring, --radius)"
       : /* istanbul ignore next @preserve -- production only */ "",
   );
-  // The errors the fields show: the prop, less the fields the user has changed since. A new
-  // errors object (the next action's result) replaces them all, during render, so the
-  // server HTML and the first client render agree.
-  const [errors, setErrors] = useState(errorsProp);
-  const [source, setSource] = useState(errorsProp);
-  if (errorsProp !== source) {
-    setSource(errorsProp);
-    setErrors(errorsProp);
+  // The errors the fields show: the prop, less the fields the user has changed since. New
+  // errors (the next action's result) replace them all, during render, so the server HTML and
+  // the first client render agree. Errors are new when their content changed, or when the form
+  // was submitted since the last ones: an action that answers a second submit with equal
+  // errors is saying it again. An equal object otherwise (one built while rendering) is the
+  // same errors: it shows no cleared message again and moves no focus.
+  const [submits, setSubmits] = useState(0);
+  const [shown, setShown] = useState({ source: errorsProp, errors: errorsProp, submits, arrivals: 0 });
+  if (errorsProp !== shown.source && (submits !== shown.submits || !sameContent(errorsProp ?? EMPTY, shown.source ?? EMPTY))) {
+    setShown({ source: errorsProp, errors: errorsProp, submits, arrivals: shown.arrivals + 1 });
   }
+  const errors = shown.errors;
   const clear = useCallback((name: string) => {
-    setErrors((current) => {
-      if (!current || !Object.hasOwn(current, name)) return current;
-      const next = { ...current };
+    setShown((current) => {
+      if (!current.errors || !Object.hasOwn(current.errors, name)) return current;
+      const next = { ...current.errors };
       delete next[name];
-      return next;
+      return { ...current, errors: next };
     });
   }, []);
 
@@ -158,13 +192,7 @@ export function Form(props: FormProps): JSX.Element {
           validationErrors !== undefined && ["validationErrors is not a prop", "<Form errors={actionData?.errors}>"],
           ...Object.keys(errorsProp ?? EMPTY)
             .filter((key) => key !== FORM_KEY && !names.current.has(key))
-            .map(
-              (key) =>
-                [
-                  `errors has "${key}", which no field in the form is named, so it shows at the top of the form`,
-                  `use a field's name (${[...names.current.keys()].join(", ")}), or "${FORM_KEY}" for a message about the whole form`,
-                ] as const,
-            ),
+            .map((key) => unclaimedWarning(key, [...names.current.keys()])),
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
@@ -172,38 +200,65 @@ export function Form(props: FormProps): JSX.Element {
   // When new errors arrive, focus the first field showing one, in page order, or the
   // message at the top when no field has one. Not on the first render: a page that loads
   // with errors leaves focus where the browser puts it.
+  const formRef = useRef<HTMLFormElement>(null);
   const messageRef = useRef<HTMLDivElement>(null);
-  const focusedFor = useRef(errorsProp);
+  const focusedFor = useRef(shown.arrivals);
   useEffect(() => {
-    if (focusedFor.current === errorsProp) return;
-    focusedFor.current = errorsProp;
-    if (Object.keys(errorsProp ?? EMPTY).length === 0) return;
-    const message = messageRef.current!;
-    const invalid = [...message.parentElement!.querySelectorAll<HTMLElement>('[aria-invalid="true"]')].find(focusable);
-    (invalid ? entryPoint(invalid) : message.textContent ? message : undefined)?.focus();
-  }, [errorsProp]);
+    if (focusedFor.current === shown.arrivals) return;
+    focusedFor.current = shown.arrivals;
+    if (Object.keys(shown.source ?? EMPTY).length === 0) return;
+    const invalid = [...formRef.current!.querySelectorAll<HTMLElement>('[aria-invalid="true"]')].find(focusable);
+    (invalid ? entryPoint(invalid) : messageRef.current)?.focus();
+  }, [shown.arrivals, shown.source]);
 
   // A submit stops at its own Form: React bubbles events through portals, so a Form in a
-  // sheet would otherwise reach the Form the sheet sits in.
+  // sheet would otherwise reach the Form the sheet sits in. It runs only once the browser's
+  // checks pass, so it also marks the errors that come next as this submit's answer.
   const submit: NonNullable<BaseForm.Props["onSubmit"]> = (event) => {
     event.stopPropagation();
+    setSubmits((count) => count + 1);
     onSubmit?.(event);
   };
+  const setFormRef = useMergedRef(rest.ref, formRef);
 
   return (
     <FormErrorsContext.Provider value={value}>
       {/* Base UI's Form runs the browser's checks: it blocks a submit while a constraint
           fails and focuses the first such control. Ouro's errors never reach it, so they
           never block a submit. */}
-      <BaseForm {...rest} onSubmit={submit} data-ouro="form" className={cn("m-0 grid min-w-0 gap-5", className)}>
-        <FormMessage ref={messageRef} errors={errors ?? EMPTY} showsAtTop={showsAtTop} />
+      <BaseForm {...rest} ref={setFormRef} onSubmit={submit} data-ouro="form" className={cn("m-0 grid min-w-0 gap-5", className)}>
+        {/* A new element for each answer, so its alert is announced again. */}
+        <FormMessage key={shown.arrivals} ref={messageRef} errors={errors ?? EMPTY} showsAtTop={showsAtTop} />
         {children}
       </BaseForm>
     </FormErrorsContext.Provider>
   );
 }
 
-/** The message region at the top of the form. */
+/**
+ * The development message for an `errors` key no field in the form is named: the key, the
+ * fields there are, and both fixes. Development only.
+ */
+function unclaimedWarning(key: string, fields: string[]): readonly [string, string] {
+  const property = (name: string) => (/^[A-Za-z_$][\w$]*$/.test(name) ? name : JSON.stringify(name));
+  const read = (name: string) => (property(name) === name ? `errors.${name}` : `errors[${property(name)}]`);
+  return fields.length === 0
+    ? [
+        `errors has the key "${key}", but the form has no named field, so the message shows at the top of the form`,
+        `a message about the whole form uses the "${FORM_KEY}" key: errors={{ ${FORM_KEY}: ${read(key)} }}`,
+      ]
+    : [
+        `errors has the key "${key}", but the form's fields are named ${fields.join(", ")}, so the message shows at the top of the form`,
+        `a message about the whole form uses the "${FORM_KEY}" key: errors={{ ...errors, ${FORM_KEY}: ${read(key)} }}; ` +
+          `to pass only this form's errors: errors={{ ${fields.map((name) => `${property(name)}: ${read(name)}`).join(", ")} }}`,
+      ];
+}
+
+/**
+ * The message at the top of the form. It is in the page only while it has a message, and it
+ * arrives with the message already in it: an element added with `role="alert"` and its text
+ * is what screen readers announce, and a test's `getByRole("alert")` finds a message or nothing.
+ */
 function FormMessage({
   ref,
   errors,
@@ -212,16 +267,17 @@ function FormMessage({
   ref: Ref<HTMLDivElement>;
   errors: FormErrors;
   showsAtTop: (key: string) => boolean;
-}): JSX.Element {
+}): JSX.Element | null {
   // The message about the whole form comes first, then the keys no field claims.
   const keys = Object.keys(errors).filter(showsAtTop);
   const messages = [...keys.filter((key) => key === FORM_KEY), ...keys.filter((key) => key !== FORM_KEY)].flatMap((key) =>
-    messagesOf(errors[key]),
+    errorMessages(errors[key]),
   );
+  if (messages.length === 0) return null;
   return (
     <div ref={ref} role="alert" tabIndex={-1} data-ouro="form-message" className={formMessageClass}>
-      {messages.map((message) => (
-        <p key={message} className="m-0">
+      {messages.map((message, index) => (
+        <p key={errorMessageKey(message, index)} className="m-0">
           {message}
         </p>
       ))}

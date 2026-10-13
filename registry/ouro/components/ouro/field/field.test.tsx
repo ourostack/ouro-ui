@@ -127,6 +127,46 @@ describe("Field wiring", () => {
     expect(input.hasAttribute("aria-invalid")).toBe(false);
   });
 
+  it("shows an error that is a React node, such as a message with a link, and describes the control with it", async () => {
+    const { host, input } = await render(
+      <Field
+        label="Recipe link"
+        error={
+          <>
+            You already brought this one in as Soup. <a href="/recipes/soup">Open it</a>
+          </>
+        }
+      >
+        <FieldControl />
+      </Field>,
+    );
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+    const error = host.querySelector<HTMLElement>(`#${CSS.escape(describedBy(input)[0]!)}`)!;
+    expect(error.textContent).toBe("You already brought this one in as Soup. Open it");
+    expect(error.querySelector("a")!.getAttribute("href")).toBe("/recipes/soup");
+    await expect.element(page.getByRole("textbox", { name: "Recipe link" })).toHaveAccessibleDescription("You already brought this one in as Soup. Open it");
+    await expect.element(page.getByRole("link", { name: "Open it" })).toBeVisible();
+  });
+
+  it("lists nodes and strings from an error array, and counts null, false and empty text as no error", async () => {
+    const { host, input, rerender } = await render(
+      // The types take text and elements only; untyped code can leave a condition's null or false behind.
+      <Field label="Password" error={["Use 8 or more characters.", <a key="rules" href="/rules">Read the rules</a>, null, false, ""] as string[]}>
+        <FieldControl />
+      </Field>,
+    );
+    expect([...host.querySelectorAll("li")].map((item) => item.textContent)).toEqual(["Use 8 or more characters.", "Read the rules"]);
+    for (const empty of [null, false, "", [], [null, ""]]) {
+      await rerender(
+        <Field label="Password" error={empty as string[]}>
+          <FieldControl />
+        </Field>,
+      );
+      expect(input.hasAttribute("aria-invalid")).toBe(false);
+      expect(describedBy(input)).toEqual([]);
+    }
+  });
+
   it("shows every message of an error array as a list", async () => {
     const { input, host } = await render(
       <Field label="Password" error={["Use 8 or more characters.", "Add a number."]}>

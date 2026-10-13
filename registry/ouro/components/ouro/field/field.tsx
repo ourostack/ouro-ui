@@ -4,7 +4,16 @@ import { Field as BaseField } from "@base-ui/react/field";
 import { useCallback, useEffect, useId, useMemo, useRef, type FormEvent, type JSX, type ReactElement, type ReactNode } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { FieldContext, FieldOwnerContext, useField, useFieldOwner, useFormErrors } from "@/registry/ouro/lib/ouro/use-field";
+import {
+  errorMessageKey,
+  errorMessages,
+  FieldContext,
+  FieldOwnerContext,
+  useField,
+  useFieldOwner,
+  useFormErrors,
+  type ErrorMessages,
+} from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 import { FieldDescription, FieldError, FieldLabel } from "@/registry/ouro/components/ouro/field/field-parts";
 import { fieldHint, inlineRootClass, labelFrameClass, requiredMarkClass, rootClass } from "@/registry/ouro/components/ouro/field/field-styles";
@@ -24,12 +33,14 @@ export interface FieldProps {
   /** Supporting text under the label, read after the label through `aria-describedby`. */
   description?: ReactNode | undefined;
   /**
-   * What is wrong, from your server action or client check. A message (or several, as a
-   * list, each shown once) shows under the control, which gets `aria-invalid` and points at the message
-   * with `aria-describedby`. An empty string or array means valid. It only shows: it never
-   * blocks the next submit of the form around it.
+   * What is wrong, from your server action or client check. A message (or several, as an
+   * array, each shown once as a list item) shows under the control, which gets `aria-invalid`
+   * and points at the message with `aria-describedby`. A message is text or a React node, so
+   * it can carry a link: `error={<>Already imported. <Link href="/recipes/soup">Open it</Link></>}`.
+   * An empty string or array means valid. It only
+   * shows: it never blocks the next submit of the form around it.
    */
-  error?: string | string[] | undefined;
+  error?: ErrorMessages | undefined;
   /** The control must be filled: it gets `required` and `aria-required`, and the label a marker. */
   required?: boolean | undefined;
   /** Disables the control and fades the field. */
@@ -75,12 +86,6 @@ const defaultFrame = (label: ReactElement, rest: ReactNode): ReactNode => (
 
 /** The owner a plain Field has, restored for the Field's own children. */
 const fieldOwner = { name: "Field", data: "field" };
-
-/** The messages in an `error` prop, without empty ones or repeats (merged validators can repeat one). */
-function messagesOf(error: string | string[] | undefined): string[] {
-  if (error === undefined) return [];
-  return [...new Set(Array.isArray(error) ? error : [error])].filter((message) => message !== "");
-}
 
 /**
  * The label is connected when its `for` names an element inside the field, or when an element
@@ -152,7 +157,7 @@ export function Field(props: FieldProps): JSX.Element {
   // here, while rendering, puts the message id in the server HTML's aria-describedby.
   const form = useFormErrors();
   const formError = error === undefined && name !== undefined ? form?.errors[name] : undefined;
-  const messages = item ? [] : messagesOf(error ?? formError);
+  const messages = item ? [] : errorMessages(error ?? formError);
   const invalid = messages.length > 0;
   const hasDescription = description !== undefined && description !== null && description !== false && description !== "";
   const labelId = `${id}-label`;
@@ -257,8 +262,8 @@ export function Field(props: FieldProps): JSX.Element {
     <FieldError id={errorId} match className={layout === "inline" ? "col-start-2" : undefined}>
       {messages.length > 1 ? (
         <ul>
-          {messages.map((message) => (
-            <li key={message}>{message}</li>
+          {messages.map((message, index) => (
+            <li key={errorMessageKey(message, index)}>{message}</li>
           ))}
         </ul>
       ) : (

@@ -9,7 +9,7 @@ import { FieldControl, type FieldControlProps } from "@/registry/ouro/components
 import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-styles";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
-import { FieldOwnerContext } from "@/registry/ouro/lib/ouro/use-field";
+import { FieldOwnerContext, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 import {
   adornmentClass,
@@ -39,7 +39,7 @@ export interface TextFieldOwnProps {
    * What is wrong, from your server action or client check. The message (or several, as a
    * list) shows under the field, which gets `aria-invalid`. An empty string or array means valid.
    */
-  error?: string | string[] | undefined;
+  error?: ErrorMessages | undefined;
   /** The field must be filled: it gets `required` and `aria-required`, and the label a marker. */
   required?: boolean | undefined;
   /** Disables the field, its buttons included, and fades it. */
