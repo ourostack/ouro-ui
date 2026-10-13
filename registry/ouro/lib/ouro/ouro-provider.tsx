@@ -22,6 +22,10 @@ export interface OuroProviderProps {
  * queries), and need no animation library. If your app animates with Motion,
  * wrap it in `<MotionConfig reducedMotion="user">` for the same behavior.
  *
+ * It installs with every component that renders links (`Button`, `Link`, `Card`, `Item`,
+ * `Table` and the navigation components) and with `Tooltip`. An app with none of those adds
+ * it by name, `lib-ouro-provider`, at the release tag of your other components (the
+ * README's Next.js steps show the command).
  * Type a custom adapter with `ComponentProps<OuroLinkComponent>` so it always
  * compiles, including under `exactOptionalPropertyTypes`.
  *

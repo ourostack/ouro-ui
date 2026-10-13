@@ -96,10 +96,27 @@ if [ "$variant" = next ]; then
   node -e 'if (require("./components.json").rsc !== true) throw new Error("shadcn init did not set rsc: true")'
   echo "::endgroup::"
 
-  echo "::group::Every component, runtime only"
   node "$root/scripts/registry.mts" --out "$registry/registry.json" --deps "$registry/r/{name}.json"
   "${shadcn[@]}" build "$registry/registry.json" --output "$registry/r" --cwd "$root"
-  items_json=("$registry/r/ouro-base.json")
+
+  echo "::group::The README's steps for a Next.js app, exactly: ouro-base, dialog, then OuroProvider by name and its two files"
+  # scripts/readme-steps.mjs reads the add commands and the two files from README.md, so this
+  # builds what a reader builds. dialog brings no OuroProvider, which is why the README adds
+  # lib-ouro-provider by name; without that step the build fails on the provider's import.
+  while IFS= read -r names; do
+    step=()
+    for name in $names; do step+=("$registry/r/$name.json"); done
+    "${shadcn[@]}" add --yes "${step[@]}"
+  done < <(node -e 'for (const names of JSON.parse(process.argv[1])) console.log(names.join(" "))' "$(node "$root/scripts/readme-steps.mjs")")
+  test -f src/lib/ouro/ouro-provider.tsx || { echo "the README's steps did not install OuroProvider"; exit 1; }
+  node "$root/scripts/readme-steps.mjs" write "$app"
+  npx tsc --noEmit
+  npx next build
+  echo "::endgroup::"
+
+  echo "::group::Every component, runtime only"
+  # ouro-base is in the app already, from the README's steps above.
+  items_json=()
   for item in "${items[@]}"; do items_json+=("$registry/r/$item.json"); done
   "${shadcn[@]}" add --yes "${items_json[@]}"
   echo "::endgroup::"
@@ -401,6 +418,18 @@ npx tsc -b
 npx vite build
 runtime_only "$variant"
 echo "::endgroup::"
+
+if [ "$variant" = shadcn ]; then
+  # The React Router adapter the OuroProvider page prints, as an app copies it (with its own
+  # alias for "@/"), type checked against React Router itself. --no-save leaves package.json
+  # alone for the byte comparison below.
+  echo "::group::The OuroProvider page's React Router adapter"
+  npm install --no-save --no-audit --no-fund react-router@7.9.4
+  node "$root/scripts/readme-steps.mjs" write-router "$app" "~/"
+  npx tsc -b
+  mv src/root.tsx src/components/ouro-router-link.tsx "$registry/"
+  echo "::endgroup::"
+fi
 
 # The app's own setup, made after the first install: a rule of its own in the stylesheet (the
 # README's way to raise --ouro-layer: a :root rule after the Ouro tokens, outside any @layer)

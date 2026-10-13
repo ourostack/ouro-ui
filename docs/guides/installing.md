@@ -31,7 +31,9 @@ npx shadcn@latest add ourostack/ouro-ui/dialog#v0.7.0
 
 A component installs its own files in `components/ouro/<component>/`, the components it renders, and only the helpers it imports, one file each in `lib/ouro/`. Its install message names what came with it. It adds the npm packages it imports (`@base-ui/react`, `clsx`, `tailwind-merge`) and nothing for tests.
 
-A component that finds no `ouro-base` tokens still installs and type checks, but renders without them: a `Sheet` with no spring, a field with no border. If a component looks unstyled, add `ouro-base`.
+A component that finds no `ouro-base` tokens still installs, type checks and builds, but renders without them: a `Sheet` with no backdrop, layer or spring, a field with no border. In development, the first Ouro UI component to mount checks the page once and logs `[ouro-ui] theme: ouro-base is not in this page's CSS …` with the command to run. Production builds contain no such check.
+
+`OuroProvider` comes with every component that renders links (`button`, `link`, `card`, `item`, `table` and the navigation components) and with `tooltip`. An app with none of those adds it by name, `ourostack/ouro-ui/lib-ouro-provider#v0.7.0` ([OuroProvider](../OuroProvider.md); v0.7.0 has no such item, because there it comes with every component).
 
 ## What an add changes in package.json
 
@@ -40,7 +42,7 @@ A component that finds no `ouro-base` tokens still installs and type checks, but
 
 ## The tests are optional
 
-Each component has a `<name>-tests` item with its Vitest browser tests, type tests, stories and Playwright spec, and the tests of everything the component installed, so the installed files are covered to 100% by the installed tests. [Testing](testing.md) says what they need and how to run them.
+Each component has a `<name>-tests` item with its Vitest browser tests, type tests, stories and Playwright spec, and the tests of everything the component installed, so the installed tests cover the installed files to 100%. Ouro UI's CI measures that for the button, the dialog, the sheet and the form controls; every other component gets its tests by the same rule but is not measured alone. [Testing](testing.md) says what they need and how to run them.
 
 ## Updating
 
@@ -50,13 +52,15 @@ List what a release changes with `npx shadcn@latest add ourostack/ouro-ui/<item>
 
 Every component file starts with `"use client";`, which Next.js needs. In an app whose `components.json` has `"rsc": false` the shadcn CLI is meant to remove that line, but its check never matches a directive followed by a semicolon, and matches only every other file without one, so the line stays in every file. It is harmless: React ignores it outside a Server Components build.
 
-Rollup reports it during `vite build` as `Module level directives cause errors when bundled, "use client" in "…" was ignored` (code `MODULE_LEVEL_DIRECTIVE`). `@vitejs/plugin-react` silences that notice for you. A build without that plugin, such as a React Router framework build, can drop it in `vite.config.ts`:
+Rollup reports it during `vite build` with two notices per file. The first is `Module level directives cause errors when bundled, "use client" in "…" was ignored` (code `MODULE_LEVEL_DIRECTIVE`). The second follows from the first when the build writes source maps: `Error when using sourcemap for reporting an error: Can't resolve original location of error.` (code `SOURCEMAP_ERROR`), at the start of the same file, where the directive was. `@vitejs/plugin-react` silences both for you, with the two conditions below. A build without that plugin, such as a React Router framework build, can drop them in `vite.config.ts`:
 
 ```ts
 build: {
   rollupOptions: {
     onwarn(warning, defaultHandler) {
       if (warning.code === "MODULE_LEVEL_DIRECTIVE" && /["']use client["']/.test(warning.message)) return;
+      // The source map notice for the same directive, at the first character of the file.
+      if (warning.code === "SOURCEMAP_ERROR" && warning.message.includes("resolve original location") && warning.pos === 0) return;
       defaultHandler(warning);
     },
   },

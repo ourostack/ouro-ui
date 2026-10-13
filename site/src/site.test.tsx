@@ -111,7 +111,7 @@ describe("docs", () => {
     await renderPage(`/docs/${name}/`);
     await expect.element(page.getByText(INIT, { exact: true })).toBeVisible();
     await expect.element(page.getByText(`npx shadcn@latest add ourostack/ouro-ui/${name}#${latestRelease}`, { exact: true })).toBeVisible();
-    await expect.element(page.getByText(`npx shadcn@latest add @ouro/${name}`, { exact: true })).toBeVisible();
+    await expect.element(page.getByText(`npx shadcn@latest add @ouro/ouro-base @ouro/${name}`, { exact: true })).toBeVisible();
     await expect.element(page.getByText(`npx shadcn@latest add ourostack/ouro-ui/${name}#${latestRelease} ourostack/ouro-ui/${name}-tests#${latestRelease}`, { exact: true })).toBeVisible();
     await expect.element(page.getByRole("region", { name: "Live demo" })).toBeVisible();
     await expect.element(page.getByRole("heading", { name: "Props", level: 2 })).toBeVisible();

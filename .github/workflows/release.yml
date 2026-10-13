@@ -140,7 +140,7 @@ jobs:
             echo '```'
             echo
             echo '```sh'
-            echo 'npx shadcn@latest add @ouro/dialog'
+            echo 'npx shadcn@latest add @ouro/ouro-base @ouro/dialog'
             echo '```'
             echo
             echo "Items:"
@@ -189,9 +189,25 @@ jobs:
             # Merge it here, so main's README names this release before the run ends instead of
             # when a person next looks. A merge made with this workflow's token starts no
             # workflow, so run CI on main's new tip: the next release needs a passing run there.
-            if gh run watch "$run" --exit-status --interval 30 && gh pr merge "$NEXT_BRANCH" --squash --delete-branch; then
+            # The merge is confirmed by the pull request's state, not by gh's exit code, which is
+            # also non-zero when only its local branch cleanup fails; the branch is deleted after.
+            # Pages is deployed (next step) only once CI on main's new tip has passed.
+            gh run watch "$run" --exit-status --interval 30 && gh pr merge "$NEXT_BRANCH" --squash || true
+            if [ "$(gh pr view "$NEXT_BRANCH" --json state --jq .state)" = MERGED ]; then
               echo "Merged \"Prepare main for the next release\"." >> "$GITHUB_STEP_SUMMARY"
-              gh workflow run ci.yml --ref main || echo "::warning::Could not start CI on main. Run it by hand (gh workflow run ci.yml --ref main) before the next release."
+              gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/heads/$NEXT_BRANCH" >/dev/null || echo "::notice::Could not delete $NEXT_BRANCH; delete it by hand."
+              tip=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
+              if gh workflow run ci.yml --ref main; then
+                ci=
+                for _ in $(seq 24); do
+                  ci=$(gh run list --workflow ci.yml --event workflow_dispatch --commit "$tip" --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+                  [ -n "$ci" ] && break
+                  sleep "${POLL_SECONDS:-5}"
+                done
+                [ -n "$ci" ] && gh run watch "$ci" --exit-status --interval 30 || echo "::warning::CI on main's tip did not pass; Pages deploys anyway so the site names $TAG. Fix main before the next release."
+              else
+                echo "::warning::Could not start CI on main. Run it by hand (gh workflow run ci.yml --ref main) before the next release."
+              fi
             else
               echo "::warning::Could not merge \"Prepare main for the next release\". Merge it by hand; until then main's README names the release before $TAG, and the last step of this run fails."
             fi

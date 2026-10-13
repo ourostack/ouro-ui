@@ -107,8 +107,15 @@ test("Pages names GitHub's newest release before it builds, whatever main's pack
 
 test("Release merges the pull request that prepares main, then runs CI there, so main names the release", () => {
   const release = workflow("release.yml");
-  assert.match(release, /gh run watch "\$run" --exit-status --interval 30 && gh pr merge "\$NEXT_BRANCH" --squash --delete-branch/);
+  assert.match(release, /gh run watch "\$run" --exit-status --interval 30 && gh pr merge "\$NEXT_BRANCH" --squash \|\| true/);
+  // gh's exit code also fails on local branch cleanup, so the pull request's state decides, and
+  // the branch is deleted through the API afterwards.
+  assert.doesNotMatch(release, /gh pr merge[^\n]*--delete-branch/);
+  assert.match(release, /gh pr view "\$NEXT_BRANCH" --json state --jq \.state\)" = MERGED/);
   assert.match(release, /gh workflow run ci\.yml --ref main/);
+  // Pages deploys main's new tip only after CI on it has run.
+  assert.ok(release.indexOf('gh run watch "$ci"') > release.indexOf("gh workflow run ci.yml --ref main"));
+  assert.ok(release.indexOf("gh workflow run pages.yml --ref main") > release.indexOf('gh run watch "$ci"'));
   // The next release accepts that dispatched run: a merge made with the workflow's token starts no push run.
   assert.match(release, /select\(\.event == "push" or \.event == "workflow_dispatch"\)/);
 });

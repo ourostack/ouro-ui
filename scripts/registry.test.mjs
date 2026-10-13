@@ -304,7 +304,10 @@ test("each item has a one-line description and a docs message with its docs URL"
   assert.match(item("heading").docs, /import \{ Heading \} from "@\/components\/ouro\/text\/heading"/);
   // ouro-base is the one item an app adds by hand, once; the helpers come with what imports them.
   assert.match(item("ouro-base").description, /^Add it once per app, before your first component; no component installs it, /);
-  for (const name of libs) assert.match(item(name).description, /^Installed with the components that import it; you don't need to add it\. /, name);
+  for (const name of libs.filter((each) => each !== "lib-ouro-provider")) assert.match(item(name).description, /^Installed with the components that import it; you don't need to add it\. /, name);
+  // OuroProvider is imported only by the app, so its description says when to add it by name.
+  assert.doesNotMatch(item("lib-ouro-provider").description, /you don't need to add it/);
+  assert.match(item("lib-ouro-provider").description, /add it by name/);
   assert.match(item("ouro-testing").description, /^Installed with every -tests item; you don't need to add it\. /);
   assert.match(item("sheet-tests").docs, /https:\/\/ourostack\.github\.io\/ouro-ui\/docs\/testing\.md$/);
   for (const name of components) {
@@ -541,7 +544,7 @@ test("each lib helper is its own item, so an item installs only the helpers it i
     const helpers = files
       .filter((path) => path.startsWith("registry/ouro/lib/ouro/") && !path.endsWith("env.d.ts") && !path.endsWith("/ouro-provider.tsx"))
       .map((path) => path.replace(/\.tsx?$/, ""));
-    assert.equal(files.includes("registry/ouro/lib/ouro/ouro-provider.tsx"), files.includes("registry/ouro/lib/ouro/router-link.ts"), `${entry.name} has OuroProvider exactly when it renders links`);
+    assert.equal(files.includes("registry/ouro/lib/ouro/ouro-provider.tsx"), files.includes("registry/ouro/lib/ouro/router-link.ts") || entry.name === "tooltip", `${entry.name} has OuroProvider exactly when it renders links or is the tooltip, which the provider groups`);
     assert.deepEqual(helpers.filter((path) => !imported.has(path)), [], `${entry.name} installs helpers nothing it installs imports`);
   }
   // ouro-lib stays, as every helper in one item.

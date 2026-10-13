@@ -32,11 +32,12 @@ Ouro UI is alpha.
 ```sh
 # Existing Vite/Next app with Tailwind CSS v4 and an "@/*" path alias:
 npx shadcn@latest init --base base --preset nova --yes --no-monorepo
-npx shadcn@latest add ourostack/ouro-ui/ouro-base#v0.7.0   # once per app: the tokens every component needs
+# Once per app, before your first component: the tokens every component needs.
+npx shadcn@latest add ourostack/ouro-ui/ouro-base#v0.7.0
 npx shadcn@latest add ourostack/ouro-ui/dialog#v0.7.0
 ```
 
-- Add `ouro-base` once, before your first component. It is the only item that writes to your stylesheet (apart from the optional `ouro-theme`), so no later add touches it. [Installing](docs/guides/installing.md) says what it writes.
+- Add `ouro-base` once, before your first component. It is the only item that writes to your stylesheet (apart from the optional `ouro-theme`), so no later add touches it (from v0.8.0; in v0.7.0 every component still installs it, and an add can rewrite the stylesheet). [Installing](docs/guides/installing.md) says what it writes.
 
 - Pass `--base base`: Ouro UI is built on Base UI. Don't pass `-t`/`--template` in an existing app; it adds shadcn's `components/ui/button.tsx`.
 - New Vite app? Add `@tailwindcss/vite`, `@import "tailwindcss";`, a Vite `@` alias, and `"paths": { "@/*": ["./src/*"] }` in both `tsconfig.json` and `tsconfig.app.json` (no `baseUrl` on TypeScript 6) before `init`. shadcn reads the root file, and `tsc -b` builds the app one.
@@ -48,7 +49,13 @@ In a Next.js App Router app, `init` writes `"rsc": true`, so the components keep
 
 In a React Router app, `OuroProvider` needs a small adapter, because the router's `Link` takes `to`; [OuroProvider](docs/OuroProvider.md) has both files in full.
 
-To route `href`s through `next/link`, put `OuroProvider` in a client file, because a Server Component can't pass `Link`, a function, to a client component. `app/providers.tsx`:
+`OuroProvider` routes `href`s through `next/link` and groups tooltips. It comes with every component that renders links (`button`, `link`, `card`, `item`, `table` and the navigation components) and with `tooltip`. With only other components installed, such as `dialog` above, add it by name (v0.7.0 has no such item: there it comes with every component):
+
+```sh
+npx shadcn@latest add ourostack/ouro-ui/lib-ouro-provider#v0.7.0
+```
+
+Put it in a client file, because a Server Component can't pass `Link`, a function, to a client component. `app/providers.tsx`:
 
 ```tsx
 "use client";
@@ -85,11 +92,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 ### Details
 
 - The CLI reads `registry.json` at this repository's root. A [release](https://github.com/ourostack/ouro-ui/releases) tag such as `#v0.7.0` installs the item and every Ouro dependency (`ouro-lib`, `button` and so on) at that tag. Without a ref, items come from `main`, which is for contributors: it can hold changes no release has yet. A `#<branch>` or `#<sha>` ref pins only the item you name; its Ouro dependencies come from `main`.
-- Or add the `@ouro` namespace to `components.json` once, `"registries": { "@ouro": "https://ourostack.github.io/ouro-ui/r/{name}.json" }`, and run `npx shadcn@latest add @ouro/dialog`. The namespace serves the newest release, the same code as `#v0.7.0`.
-- Components land in `components/ouro/<component>/`, beside shadcn's `components/ui/`, and the helpers they import in `lib/ouro/`, one file each: a component installs only the helpers it imports. No component installs `ouro-base`; you add it once, as above.
+- Or add the `@ouro` namespace to `components.json` once, `"registries": { "@ouro": "https://ourostack.github.io/ouro-ui/r/{name}.json" }`, and run `npx shadcn@latest add @ouro/ouro-base @ouro/dialog` (`@ouro/ouro-base` once per app, as above). The namespace serves the newest release, the same code as `#v0.7.0`.
+- Components land in `components/ouro/<component>/`, beside shadcn's `components/ui/`, and the helpers they import in `lib/ouro/`, one file each: a component installs only the helpers it imports. No component installs `ouro-base`; you add it once, as above. If you skip it, nothing fails to build, so in development the first Ouro UI component to mount logs the command to run.
 - `init` is shadcn's: it writes `lib/utils.ts` and adds `cn`, `class-variance-authority`, `lucide-react` and `tw-animate-css`. Ouro UI doesn't use them; keep them for shadcn components. Ouro never writes to `components/ui/`, so don't pass `--overwrite` on a first install.
 - Tests are optional. Each component's Vitest browser tests, type tests, stories and Playwright spec are its `-tests` item, with the tests of everything the component installs: `npx shadcn@latest add ourostack/ouro-ui/dialog#v0.7.0 ourostack/ouro-ui/dialog-tests#v0.7.0`. The installed tests cover the installed files to 100%. `ouro-tests` adds every component with all of its tests in one command. The install message of `ouro-testing` (the test kit the `-tests` items bring) lists the config files to add, then run `npx vitest run`.
-- The tests need Vitest 4.1.11 or later in browser mode, Playwright 1.58.1 or later and Storybook 10.2.10 or later. A `-tests` item names those tools without a version, so the CLI installs one only when your app lacks it and never changes a version you have. v0.7.0's items still carry versions: after `add`, restore every test-tool version you had pinned (`git diff package.json`). [Testing](docs/guides/testing.md) has the requirements, what to do on Vitest 4, and how to find Ouro UI's fields in your own tests.
+- The tests need Vitest 4.1.11 or later in browser mode, Playwright 1.58.1 or later and Storybook 10.2.10 or later. Ouro UI's own CI runs them on Vitest 5 only; Vitest 4 is the stated minimum, not a tested one. A `-tests` item names those tools without a version, so the CLI installs one only when your app lacks it and never changes a version you have. v0.7.0's items still carry versions: after `add`, restore every test-tool version you had pinned (`git diff package.json`). [Testing](docs/guides/testing.md) has the requirements, what to do on Vitest 4, and how to find Ouro UI's fields in your own tests.
 - In a Vite or React Router app the components keep their `"use client";` line, which is harmless there. [Installing](docs/guides/installing.md#vite-and-react-router-apps-the-use-client-notice) says why, and how to drop Rollup's notice about it.
 - For the Ouro look, add `ourostack/ouro-ui/ouro-theme#v0.7.0`. Skip it to keep your app's shadcn theme.
 - To update to the newest release, list the changed files with `npx shadcn@latest add ourostack/ouro-ui/<item>#v0.7.0 --dry-run` (or `@ouro/<item>`), review each one marked overwrite with `--diff <path>`, then add the item again at the same ref with `--overwrite` (with its `-tests` item if you have it: `add <item> <item>-tests --overwrite`) and reapply your edits. Coming from v0.1.0? Follow [Upgrading from v0.1.0](#upgrading-from-v010) instead.
@@ -106,7 +113,7 @@ What an app on v0.1.0 has to know beyond these steps. The release notes list eve
 - **v0.2.0:** each component's tests became an optional `<name>-tests` item, some helpers moved to new files (step 4), and v0.1.0's self-referential theme lines can go (step 2).
 - **v0.3.0:** sheets and dialogs stack at `--ouro-layer`, a z-index of 50 by default, instead of level 0, so an app element at z-index 1 to 49 that used to show above an open sheet or dialog now sits under it. Raise the token in a `:root` rule of your own if your app has fixed bars above z-50 (see "Theme" in the README), and drop any portal z-index workaround. A controlled `Dialog` opened by a touch or pen tap focuses its popup instead of its first input, and `ConfirmDialog`'s `finalFocus` applies only after a confirmed action; drop workarounds for either. Every coverage hint is `/* istanbul ignore … @preserve */`, so a build plugin that kept the hints can go. A `-tests` item sets Vitest to `^5`.
 - **v0.3.1:** every component starts with `"use client"`, so Next.js App Router pages can render them, and the `@ouro` namespace serves the newest release instead of `main`.
-- **The release after v0.7.0:** no component installs `ouro-base`; add it once (step 1 does), and later adds leave your stylesheet alone. A component installs only the helpers it imports, one item per file in `lib/ouro`, and a `-tests` item brings the tests of everything its component installs. The `-tests` items no longer set a version for Vitest, Storybook or Playwright. The specs import `test` and `expect` from `e2e/ouro-fixtures.ts`, a file of yours (step 1). `lib/ouro/use-dev-warnings.ts` is now `lib/ouro/use-dev-messages.ts` (step 4).
+- **v0.8.0:** no component installs `ouro-base`; add it once (step 1 does), and later adds leave your stylesheet alone. A component installs only the helpers it imports, one item per file in `lib/ouro`, and a `-tests` item brings the tests of everything its component installs. The `-tests` items no longer set a version for Vitest, Storybook or Playwright. The specs import `test` and `expect` from `e2e/ouro-fixtures.ts`, a file of yours (step 1). `lib/ouro/use-dev-warnings.ts` is now `lib/ouro/use-dev-messages.ts` (step 4). Earlier releases installed every helper in `lib/ouro` with any component, and an update deletes nothing, so the helpers your components never import stay on disk, uncovered by any test you have: delete them (step 5). `OuroProvider` now comes only with the components that render links and with `tooltip`; your copy stays, and a new app adds `lib-ouro-provider` by name.
 
 #### 0. Commit first
 
@@ -153,6 +160,16 @@ If your own code imports these helpers, change the import:
 - `dialogSizes` and `dialogSizeWarning`: from `components/ouro/dialog/dialog-parts` to `components/ouro/dialog/dialog-styles`.
 - `alignClasses` and `checkAlign`: from `components/ouro/text/text` to `components/ouro/text/text-styles`.
 - `useDevWarnings`: from `lib/ouro/use-dev-warnings` to `lib/ouro/use-dev-messages`. Delete the old `lib/ouro/use-dev-warnings.ts`; nothing imports it after step 1.
+
+#### 5. Delete the helpers nothing imports
+
+Releases before v0.8.0 installed every helper in `lib/ouro` with any component. From v0.8.0 a component installs only the helpers it imports, but an update deletes nothing, so the rest stay in your app, and the tests you have do not cover them. This command only lists them: each file in `lib/ouro` that no other file in your app imports (its own test does not count).
+
+```sh
+npx shadcn@latest info --json | node -e 'const fs=require("fs"),path=require("path");const base=JSON.parse(fs.readFileSync(0,"utf8")).config.resolvedPaths.lib,lib=path.join(base,"ouro");const walk=(d)=>fs.readdirSync(d,{withFileTypes:true}).flatMap((e)=>e.name==="node_modules"?[]:e.isDirectory()?walk(path.join(d,e.name)):/\.tsx?$/.test(e.name)?[path.join(d,e.name)]:[]);const stem=(f)=>path.basename(f).replace(/(\.touch)?\.test\.tsx?$|\.tsx?$/,"");const files=walk(path.dirname(base)).map((f)=>[stem(f),fs.readFileSync(f,"utf8")]);for(const f of fs.readdirSync(lib).filter((n)=>/\.tsx?$/.test(n)&&!/\.test\.|\.d\.ts$/.test(n))){const s=stem(f),used=new RegExp("lib/ouro/"+s+"[\"\x27]");if(!files.some(([o,text])=>o!==s&&used.test(text)))console.log(path.join(lib,f))}'
+```
+
+Delete each file it lists, with its `.test.ts` or `.test.tsx` if you have one, and run it again until it prints nothing: a helper that only a deleted helper imported shows up on the next run. Keep `ouro-provider.tsx` if you mean to use it and have not yet.
 
 Then type check and build your app. CI runs steps 1 to 3 on a v0.1.0 app, with these commands read from this file (`scripts/install-test.sh upgrade`).
 <!-- upgrade:end -->

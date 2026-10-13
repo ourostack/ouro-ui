@@ -20,7 +20,7 @@ The tests do not run in jsdom or happy-dom. They drag, flick and measure, so the
 npx shadcn@latest add ourostack/ouro-ui/dialog#v0.7.0 ourostack/ouro-ui/dialog-tests#v0.7.0
 ```
 
-A `<name>-tests` item installs the component's tests, type tests, stories and spec, the tests of every component and helper that came with it, and `ouro-testing`, the test kit. The installed tests cover the installed files to 100% of lines and branches, whichever components you chose; Ouro UI's CI checks that for the button, the dialog, the sheet and the form controls as a set. `ouro-tests` adds every component with all of its tests.
+A `<name>-tests` item installs the component's tests, type tests, stories and spec, the tests of every component and helper that came with it, and `ouro-testing`, the test kit. The installed tests cover the installed files to 100% of lines and branches. Ouro UI's CI measures that for the button, the dialog, the sheet, the form controls and all of those together; every other component gets its tests by the same rule but is not measured alone. `ouro-tests` adds every component with all of its tests.
 
 Then add the config files the `ouro-testing` install message prints: `vitest.config.ts`, a Storybook and a Playwright config if your app has none, and `e2e/ouro-fixtures.ts`. The Vitest config is:
 
@@ -65,7 +65,7 @@ Vitest 4 scales the test frame down when the Playwright page is smaller than the
 
 2. Use Playwright 1.64 or later, or skip two WebKit tests. Vitest 4 sizes the test frame with a CSS transform, and under it the WebKit that Playwright 1.58 ships measures `100dvh` a fraction of a pixel short (811.999939px of 812); with Playwright 1.64 it does not. Two tests in `sheet.test.tsx` compare that height exactly and fail there, in WebKit only: "sits at the bottom edge, fits its content and keeps clear of the top" and "covers the visible screen on a page scrolled 2000px". They pass in Chromium and in the touch project, and in WebKit on Vitest 5.
 
-Ouro UI's CI runs Vitest 5 only. The Vitest 4 minimums are the versions the first app to adopt the tests runs them on, with these two changes, to 100% coverage.
+Ouro UI's CI runs Vitest 5 only, so Vitest 4 is a stated minimum and not a tested one. The minimums are the versions the first app to adopt the tests runs v0.7.0's tests on, to 100% coverage, with its own equivalent of these two changes; the `page` option itself has not yet run on Vitest 4.
 
 ## Finding fields in tests
 

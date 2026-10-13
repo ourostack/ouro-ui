@@ -16,6 +16,10 @@
 // - alarmingFileName / alarmingTestTitle: a shipped file name or a test title that an app's
 //   log filter reads as a warning or an error (use-dev-warnings.ts, "warn for …").
 //
+// - directTabPresses: a test or spec that presses Tab itself. WebKit on a Mac skips buttons and
+//   links on a plain Tab unless a system setting is on, so tests use pressTab() (testing/tab.ts,
+//   e2e/ouro/story.ts), which works whatever the setting.
+//
 // scripts/source-rules.test.mjs applies them to the repository; scripts/install-check.mjs
 // compares the comments of each installed file with its source.
 import ts from "typescript";
@@ -217,4 +221,10 @@ export function alarmingFileName(path) {
 export function alarmingTestTitle(name) {
   const starts = new RegExp(`^(${alarmWords.join("|")})(?![\\w-])`, "i");
   return name.split(" > ").find((title) => starts.test(title.trim())) ?? null;
+}
+
+/** The lines of a test or spec that press Tab directly, as "line: text", instead of with pressTab(). */
+export function directTabPresses(text) {
+  const press = /(keyboard|press)\(\s*["'`]([^"'`]*[{+])?Tab[}"'`]|userEvent\.tab\(/;
+  return text.split("\n").flatMap((line, index) => (press.test(line) && !/^\s*(\*|\/\/)/.test(line) ? [`${index + 1}: ${line.trim()}`] : []));
 }

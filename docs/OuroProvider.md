@@ -61,7 +61,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
 ## Usage
 
-Type a custom adapter with `ComponentProps<OuroLinkComponent>` so it always compiles, including under `exactOptionalPropertyTypes`.
+It installs with every component that renders links (`Button`, `Link`, `Card`, `Item`, `Table` and the navigation components) and with `Tooltip`. An app with none of those adds it by name, `lib-ouro-provider`, at the release tag of your other components (the README's Next.js steps show the command). Type a custom adapter with `ComponentProps<OuroLinkComponent>` so it always compiles, including under `exactOptionalPropertyTypes`.
 
 Every Ouro UI link takes `href`: `Link`, `Button`, `Card`, `Item` and `Table` rows. An internal `href` (a path) renders through `linkComponent`; an absolute URL (`https:`, `mailto:`) always renders a plain `<a>`. Without a provider, or without `linkComponent`, internal links are plain `<a>` elements too, so they work but load the page.
 

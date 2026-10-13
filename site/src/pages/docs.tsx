@@ -71,7 +71,7 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
         <Command command="npx shadcn@latest init --base base --preset nova --yes --no-monorepo" />
         <Command command={`npx shadcn@latest add ourostack/ouro-ui/ouro-base#${latestRelease}`} />
         <Text size="sm" tone="muted">
-          Then the component. It installs only the helpers it imports and never touches your stylesheet (
+          Then the component. From v0.8.0 it installs only the helpers it imports and never touches your stylesheet (
           <a href={href("/docs/installing/")} className="text-primary underline underline-offset-4">Installing</a>):
         </Text>
         <Command command={`npx shadcn@latest add ourostack/ouro-ui/${item.name}#${latestRelease}`} />
@@ -79,10 +79,10 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
           Or, with the <a href={`${href("/")}#install`} className="text-primary underline underline-offset-4">@ouro namespace</a> set
           up:
         </Text>
-        <Command command={`npx shadcn@latest add @ouro/${item.name}`} />
+        <Command command={`npx shadcn@latest add @ouro/ouro-base @ouro/${item.name}`} />
         <Text size="sm" tone="muted">
-          Its tests, stories and Playwright spec are optional. They need Vitest 4.1.11 or later, and never change a version
-          your app has (<a href={href("/docs/testing/")} className="text-primary underline underline-offset-4">Testing</a>):
+          Its tests, stories and Playwright spec are optional. They need Vitest 4.1.11 or later, and from v0.8.0 never change
+          a version your app has (<a href={href("/docs/testing/")} className="text-primary underline underline-offset-4">Testing</a>):
         </Text>
         <Command command={`npx shadcn@latest add ourostack/ouro-ui/${item.name}#${latestRelease} ourostack/ouro-ui/${item.name}-tests#${latestRelease}`} />
         <CodeBlock code={importLine} className="mt-2" />

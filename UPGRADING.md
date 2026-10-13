@@ -11,7 +11,7 @@ What an app on v0.1.0 has to know beyond these steps. The release notes list eve
 - **v0.2.0:** each component's tests became an optional `<name>-tests` item, some helpers moved to new files (step 4), and v0.1.0's self-referential theme lines can go (step 2).
 - **v0.3.0:** sheets and dialogs stack at `--ouro-layer`, a z-index of 50 by default, instead of level 0, so an app element at z-index 1 to 49 that used to show above an open sheet or dialog now sits under it. Raise the token in a `:root` rule of your own if your app has fixed bars above z-50 (see "Theme" in the README), and drop any portal z-index workaround. A controlled `Dialog` opened by a touch or pen tap focuses its popup instead of its first input, and `ConfirmDialog`'s `finalFocus` applies only after a confirmed action; drop workarounds for either. Every coverage hint is `/* istanbul ignore … @preserve */`, so a build plugin that kept the hints can go. A `-tests` item sets Vitest to `^5`.
 - **v0.3.1:** every component starts with `"use client"`, so Next.js App Router pages can render them, and the `@ouro` namespace serves the newest release instead of `main`.
-- **The release after v0.7.0:** no component installs `ouro-base`; add it once (step 1 does), and later adds leave your stylesheet alone. A component installs only the helpers it imports, one item per file in `lib/ouro`, and a `-tests` item brings the tests of everything its component installs. The `-tests` items no longer set a version for Vitest, Storybook or Playwright. The specs import `test` and `expect` from `e2e/ouro-fixtures.ts`, a file of yours (step 1). `lib/ouro/use-dev-warnings.ts` is now `lib/ouro/use-dev-messages.ts` (step 4).
+- **v0.8.0:** no component installs `ouro-base`; add it once (step 1 does), and later adds leave your stylesheet alone. A component installs only the helpers it imports, one item per file in `lib/ouro`, and a `-tests` item brings the tests of everything its component installs. The `-tests` items no longer set a version for Vitest, Storybook or Playwright. The specs import `test` and `expect` from `e2e/ouro-fixtures.ts`, a file of yours (step 1). `lib/ouro/use-dev-warnings.ts` is now `lib/ouro/use-dev-messages.ts` (step 4). Earlier releases installed every helper in `lib/ouro` with any component, and an update deletes nothing, so the helpers your components never import stay on disk, uncovered by any test you have: delete them (step 5). `OuroProvider` now comes only with the components that render links and with `tooltip`; your copy stays, and a new app adds `lib-ouro-provider` by name.
 
 #### 0. Commit first
 
@@ -58,5 +58,15 @@ If your own code imports these helpers, change the import:
 - `dialogSizes` and `dialogSizeWarning`: from `components/ouro/dialog/dialog-parts` to `components/ouro/dialog/dialog-styles`.
 - `alignClasses` and `checkAlign`: from `components/ouro/text/text` to `components/ouro/text/text-styles`.
 - `useDevWarnings`: from `lib/ouro/use-dev-warnings` to `lib/ouro/use-dev-messages`. Delete the old `lib/ouro/use-dev-warnings.ts`; nothing imports it after step 1.
+
+#### 5. Delete the helpers nothing imports
+
+Releases before v0.8.0 installed every helper in `lib/ouro` with any component. From v0.8.0 a component installs only the helpers it imports, but an update deletes nothing, so the rest stay in your app, and the tests you have do not cover them. This command only lists them: each file in `lib/ouro` that no other file in your app imports (its own test does not count).
+
+```sh
+npx shadcn@latest info --json | node -e 'const fs=require("fs"),path=require("path");const base=JSON.parse(fs.readFileSync(0,"utf8")).config.resolvedPaths.lib,lib=path.join(base,"ouro");const walk=(d)=>fs.readdirSync(d,{withFileTypes:true}).flatMap((e)=>e.name==="node_modules"?[]:e.isDirectory()?walk(path.join(d,e.name)):/\.tsx?$/.test(e.name)?[path.join(d,e.name)]:[]);const stem=(f)=>path.basename(f).replace(/(\.touch)?\.test\.tsx?$|\.tsx?$/,"");const files=walk(path.dirname(base)).map((f)=>[stem(f),fs.readFileSync(f,"utf8")]);for(const f of fs.readdirSync(lib).filter((n)=>/\.tsx?$/.test(n)&&!/\.test\.|\.d\.ts$/.test(n))){const s=stem(f),used=new RegExp("lib/ouro/"+s+"[\"\x27]");if(!files.some(([o,text])=>o!==s&&used.test(text)))console.log(path.join(lib,f))}'
+```
+
+Delete each file it lists, with its `.test.ts` or `.test.tsx` if you have one, and run it again until it prints nothing: a helper that only a deleted helper imported shows up on the next run. Keep `ouro-provider.tsx` if you mean to use it and have not yet.
 
 Then type check and build your app. CI runs steps 1 to 3 on a v0.1.0 app, with these commands read from this file (`scripts/install-test.sh upgrade`).

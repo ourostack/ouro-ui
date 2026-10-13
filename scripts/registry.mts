@@ -394,7 +394,10 @@ export function buildRegistry(root: string): Registry {
       name,
       title: name,
       kind: "lib" as const,
-      description: `Installed with the components that import it; you don't need to add it. The helper lib/ouro/${libFile(name)}.`,
+      description:
+        name === "lib-ouro-provider"
+          ? "OuroProvider, which routes every href through your router's link and groups tooltips. It comes with every component that renders links and with tooltip; add it by name when your app has neither and you want the provider. The helper lib/ouro/ouro-provider.tsx."
+          : `Installed with the components that import it; you don't need to add it. The helper lib/ouro/${libFile(name)}.`,
       docs: undefined as string | undefined,
     })),
     ...components.map((entry) => ({
@@ -462,9 +465,10 @@ export function buildRegistry(root: string): Registry {
       const isDev = entry.name === "ouro-testing" || entry.kind === "tests";
       // env.d.ts declares process.env.NODE_ENV for apps without @types/node; nothing imports it.
       if (!isDev && entry.name !== "lib-env" && /\bprocess\.env\b/.test(source)) registryDeps.add("lib-env");
-      // A component that renders links reads the app's router link from OuroProvider, which it
-      // never imports: the app does. So the provider comes with every such component.
-      if (entry.name === "lib-router-link") registryDeps.add("lib-ouro-provider");
+      // OuroProvider is the one helper only the app imports. It comes with what it serves: a
+      // component that renders links reads the app's router link from it, and it groups
+      // tooltips. Any other app adds it by name (the README's Next.js steps do).
+      if (entry.name === "lib-router-link" || entry.name === "tooltip") registryDeps.add("lib-ouro-provider");
       for (const specifier of importsOf(source)) {
         if (specifier.startsWith("@/")) {
           if (path.startsWith(e2eDir)) throw new Error(`${path}: e2e files ship as registry:file, which the CLI does not rewrite; use relative imports.`);

@@ -1,4 +1,4 @@
-import { userEvent } from "vitest/browser";
+import { server, userEvent } from "vitest/browser";
 
 /**
  * Presses Tab, or Shift+Tab with `{ shift: true }`, so that focus moves to the next tab stop
@@ -21,8 +21,10 @@ export async function pressTab({ shift = false }: { shift?: boolean } = {}): Pro
   await userEvent.keyboard(shift ? `{Shift>}${tab}{/Shift}` : tab);
 }
 
-/** Whether this browser is WebKit on a Mac, where plain Tab may skip buttons and links. */
+/**
+ * Whether this is WebKit on a Mac, where plain Tab may skip buttons and links. It asks the
+ * test server, not the user agent, which Playwright's WebKit may report as a Mac's on Linux too.
+ */
 function tabSkipsControls(): boolean {
-  const agent = navigator.userAgent;
-  return /Macintosh/.test(agent) && /AppleWebKit/.test(agent) && !/Chrome|Chromium|Edg/.test(agent);
+  return server.platform === "darwin" && server.browser === "webkit";
 }

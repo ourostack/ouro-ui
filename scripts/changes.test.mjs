@@ -153,7 +153,8 @@ test("release.yml advises deleting a tag only when GitHub says its release was n
 // Runs the approval part of "Prepare main for the next release" against a stand-in gh and git.
 // MODE: ok (approve works), refuse (approve fails), flaky (the first `run list` fails, then works),
 // nodispatch (approve fails and so does the dispatch), redci (approve works, the run fails),
-// nomerge (approve works, the run passes, the merge is refused).
+// nomerge (approve works, the run passes, the merge is refused), cleanup (the merge happens but
+// gh exits non-zero, as when only its local branch cleanup fails).
 const runApproval = (mode) => {
   const body = step("Prepare main for the next release").body;
   const from = body.indexOf("          sha=$(git rev-parse HEAD)");
@@ -168,10 +169,11 @@ const runApproval = (mode) => {
 all="$*"; printf '%s\\n' "\${all//$'\\n'/ }" >> "${log}"
 case "$1 $2" in
   "run list") if [ "$MODE" = flaky ] && [ ! -e "${dir}/once" ]; then : > "${dir}/once"; exit 1; fi; echo 77 ;;
-  "api -X") [ "$MODE" = ok ] || [ "$MODE" = redci ] || [ "$MODE" = nomerge ] || exit 1 ;;
+  "api -X") [ "$MODE" = ok ] || [ "$MODE" = redci ] || [ "$MODE" = nomerge ] || [ "$MODE" = cleanup ] || exit 1 ;;
   "run watch") [ "$MODE" = redci ] && exit 1 ;;
-  "pr merge") [ "$MODE" = nomerge ] && exit 1 ;;
-  "pr view") echo "old body" ;;
+  "pr merge") [ "$MODE" = nomerge ] && exit 1; : > "${dir}/merged"; [ "$MODE" = cleanup ] && exit 1 ;;
+  "pr view") case "$all" in *"--json state"*) [ -e "${dir}/merged" ] && echo MERGED || echo OPEN ;; *) echo "old body" ;; esac ;;
+  "api repos/o/r/commits/main") echo def456 ;;
   "workflow run") [ "$MODE" = nodispatch ] && exit 1 ;;
 esac
 exit 0
@@ -194,11 +196,22 @@ test("the approval step approves the held run, merges the pull request when it p
   const at = (start) => calls.findIndex((c) => c.startsWith(start));
   assert.ok(at("api -X POST repos/o/r/actions/runs/77/approve") !== -1);
   assert.ok(at("run watch 77 --exit-status") > at("api -X POST"));
-  assert.ok(at("pr merge prepare/after-v1.2.3 --squash --delete-branch") > at("run watch 77"));
+  assert.ok(at("pr merge prepare/after-v1.2.3 --squash") > at("run watch 77"));
+  assert.ok(at("api -X DELETE repos/o/r/git/refs/heads/prepare/after-v1.2.3") > at("pr merge"));
   assert.ok(at("workflow run ci.yml --ref main") > at("pr merge"));
+  // It waits for that CI run, on main's new tip, before the step ends and Pages deploys.
+  assert.ok(at("run list --workflow ci.yml --event workflow_dispatch --commit def456") > at("workflow run ci.yml --ref main"));
+  assert.ok(calls.findLastIndex((c) => c.startsWith("run watch 77")) > at("workflow run ci.yml --ref main"));
   assert.ok(!calls.some((c) => c.startsWith("pr edit")));
   assert.match(summary, /Approved CI run 77/);
   assert.match(summary, /Merged "Prepare main for the next release"/);
+});
+
+test("the approval step trusts the pull request's state, not gh's exit code, after a merge", () => {
+  const { result, calls, summary } = runApproval("cleanup");
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(summary, /Merged "Prepare main for the next release"/);
+  assert.ok(calls.some((c) => c.startsWith("workflow run ci.yml --ref main")), "CI runs on main after a merge whose cleanup failed");
 });
 
 test("the approval step never merges a pull request whose CI failed, and says what a refused merge leaves", () => {

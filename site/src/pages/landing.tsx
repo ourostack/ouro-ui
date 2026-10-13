@@ -271,8 +271,8 @@ function Install(): JSX.Element {
             </Text>
             <Command command="npx shadcn@latest init --base base --preset nova --yes --no-monorepo" />
             <Text size="sm" tone="muted">
-              Then add the base tokens, once per app. It is the only add that writes to your stylesheet, so later adds leave
-              it alone.
+              Then add the base tokens, once per app. From v0.8.0 it is the only add that writes to your stylesheet, so later
+              adds leave it alone.
             </Text>
             <Command command={`npx shadcn@latest add ourostack/ouro-ui/ouro-base#${latestRelease}`} />
           </Step>
@@ -288,7 +288,7 @@ function Install(): JSX.Element {
               It serves the newest release. Put this in <InlineCode>components.json</InlineCode>:
             </Text>
             <CodeBlock code={namespace} />
-            <Command command="npx shadcn@latest add @ouro/sheet" />
+            <Command command="npx shadcn@latest add @ouro/ouro-base @ouro/sheet" />
           </Step>
           <Step number={3} title="Use it">
             <CodeBlock code={firstSheet} />
