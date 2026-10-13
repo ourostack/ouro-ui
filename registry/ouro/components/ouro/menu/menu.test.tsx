@@ -575,10 +575,11 @@ describe("Menu presentation", () => {
     await expect.poll(() => menu()?.getAttribute("data-ouro-presentation")).toBe("menu");
   });
 
-  it("slides the sheet up with the theme spring, and only fades under reduced motion", async () => {
+  it("slides the sheet up on the drawer easing token, and only fades under reduced motion", async () => {
     await page.viewport(390, 844);
     const element = await openDropdown();
-    expect(getComputedStyle(element).transitionTimingFunction).toMatch(/linear\(/);
+    expect(getComputedStyle(element).transitionTimingFunction.split(/,\s(?![^(]*\))/)[0]).toBe("cubic-bezier(0.32, 0.72, 0, 1)");
+    expect(getComputedStyle(element).transitionDuration.split(", ")[0]).toBe("0.5s");
     element.style.transition = "none";
     element.setAttribute("data-starting-style", "");
     expect(new DOMMatrix(getComputedStyle(element).transform).f).toBeGreaterThan(10);
@@ -699,7 +700,9 @@ describe("Menu motion", () => {
     expect(new DOMMatrix(getComputedStyle(element).transform).a).toBeCloseTo(0.96, 3);
     expect(getComputedStyle(element).opacity).toBe("0");
     element.style.transition = "";
-    expect(getComputedStyle(element).transitionDuration.split(", ")[0]).toBe("0.1s");
+    // The fast duration on the ease-out token; `ease-in` is never used.
+    expect(getComputedStyle(element).transitionDuration.split(", ")[0]).toBe("0.15s");
+    expect(getComputedStyle(element).transitionTimingFunction.split(/,\s(?![^(]*\))/)[0]).toBe("cubic-bezier(0.23, 1, 0.32, 1)");
     expect(getComputedStyle(element).transformOrigin).not.toBe("");
     element.removeAttribute("data-ending-style");
   });
