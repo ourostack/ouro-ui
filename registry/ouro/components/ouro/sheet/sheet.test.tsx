@@ -534,6 +534,27 @@ describe("dragging (Chromium)", () => {
     expect(opacity).toBeCloseTo(0.4 * (1 - progress), 2);
   });
 
+  chromiumOnly("stays under the mouse when it is caught on its way back to rest, and follows from there", async () => {
+    const sheet = await openUncontrolled();
+    // A long settle, stopped part-way: the sheet stands off its rest position, as it does for a moment after any release.
+    document.documentElement.style.setProperty("--ouro-duration-sheet", "20s");
+    try {
+      await dragSheet(100, { durationMs: 600, steps: 12 });
+      await expect.poll(() => getAnimations(sheet)).toBeGreaterThan(0);
+      for (const animation of sheet.getAnimations()) animation.pause();
+      const frozen = translation(sheet).y;
+      expect(frozen).toBeGreaterThan(40);
+      // Base UI measures from the first of the four moves, so the sheet moves 30px of the 40.
+      await dragSheet(40, { durationMs: 200, steps: 4, hold: true });
+      expect(sheet.hasAttribute("data-swiping")).toBe(true);
+      expect(Math.abs(translation(sheet).y - (frozen + 30))).toBeLessThan(1);
+    } finally {
+      document.documentElement.style.removeProperty("--ouro-duration-sheet");
+      await commands.pointerPress({ action: "up" });
+    }
+    await expect.poll(() => isIdentity(sheet)).toBe(true);
+  });
+
   chromiumOnly("reopens fully after a partial drag, release and Escape (review focus 3)", async () => {
     const sheet = await openUncontrolled();
     const openTop = sheet.getBoundingClientRect().top;

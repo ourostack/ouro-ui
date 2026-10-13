@@ -1,5 +1,5 @@
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { commands } from "vitest/browser";
 import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
@@ -11,6 +11,7 @@ import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 let root: Root | undefined;
 const nodes: Element[] = [];
 afterEach(async () => {
+  await commands.touchStep({ type: "touchEnd" });
   await act(async () => toast.dismiss());
   await act(async () => root?.unmount());
   for (const node of nodes.splice(0)) node.remove();
@@ -83,6 +84,29 @@ it("dismisses with a swipe down on a page that scrolls, without scrolling it", a
   await expect.poll(() => toastNamed("Swipe on a long page")).toBeUndefined();
   expect(scrollY).toBe(400);
   scrollTo(0, 0);
+});
+
+/** A tap with no wait before it: touch input straight at the element's middle. Playwright's own tap first waits for the element to hold still. */
+async function tapNow(element: Element) {
+  const rect = element.getBoundingClientRect();
+  await commands.touchStep({ type: "touchStart", x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+  await commands.touchStep({ type: "touchEnd" });
+}
+
+it("gets the click of a tap on its action right after a flick that does not dismiss it", async () => {
+  const undo = vi.fn();
+  await renderToaster();
+  const item = await show("Recipe deleted", { duration: 0, action: { label: "Undo", onClick: undo } });
+  const rect = item.getBoundingClientRect();
+  const x = rect.left + 60;
+  const y = rect.top + rect.height / 2;
+  // A fast flick up, the one way a toast cannot leave: it comes back. Chromium would start a
+  // fling when a fast swipe ends, although nothing scrolls, and the tap that stops a fling
+  // gets no click.
+  await commands.touchDrag({ from: [x, y], to: [x, y - 120], steps: 10, durationMs: 100 });
+  expect(toastNamed("Recipe deleted")).toBe(item);
+  await tapNow([...item.querySelectorAll("button")].find((button) => button.textContent === "Undo")!);
+  await expect.poll(() => undo.mock.calls.length).toBe(1);
 });
 
 it("gives the dismiss and action buttons 44px touch targets", async () => {

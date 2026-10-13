@@ -26,6 +26,7 @@ async function pageAtRest() {
 
 afterEach(async () => {
   for (const cleanup of cleanups.splice(0)) cleanup();
+  await commands.touchStep({ type: "touchEnd" });
   await pageAtRest();
   await act(async () => root?.unmount());
   for (const node of nodes.splice(0)) node.remove();
@@ -143,6 +144,68 @@ it("reports and announces nothing while a finger is held still mid-swipe", async
   }
   await expect.poll(() => viewport.scrollLeft).toBe(0);
   await new Promise((resolve) => setTimeout(resolve, 300));
+  expect(onIndexChange).not.toHaveBeenCalled();
+});
+
+/** A tap with no wait before it: touch input straight at the element's middle. Playwright's own tap first waits for the element to hold still. */
+async function tapNow(element: Element) {
+  const rect = element.getBoundingClientRect();
+  await commands.touchStep({ type: "touchStart", x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+  await commands.touchStep({ type: "touchEnd" });
+}
+
+/** A carousel whose slides each hold a button. */
+async function renderWithButtons(onIndexChange = vi.fn()) {
+  const pressed = vi.fn();
+  const host = document.createElement("div");
+  document.body.append(host);
+  nodes.push(host);
+  root = createRoot(host);
+  await act(async () =>
+    root!.render(
+      <div style={{ padding: 16 }}>
+        <Carousel label="Recipe photos" onIndexChange={onIndexChange}>
+          {[1, 2, 3].map((n) => (
+            <div key={n} style={{ display: "grid", height: 200, placeItems: "center" }}>
+              <button type="button" style={{ width: 120, height: 48 }} onClick={() => pressed(n)}>
+                Save photo {n}
+              </button>
+            </div>
+          ))}
+        </Carousel>
+      </div>,
+    ),
+  );
+  const viewport = host.querySelector<HTMLElement>("[data-ouro-carousel-viewport]")!;
+  const buttons = [...viewport.querySelectorAll("button")];
+  return { viewport, buttons, pressed, onIndexChange };
+}
+
+it("gets the click of a tap on a slide's button as soon as a swipe has brought the slide in", async () => {
+  const { viewport, buttons, pressed, onIndexChange } = await renderWithButtons();
+  const rect = viewport.getBoundingClientRect();
+  const y = rect.top + 30;
+  await commands.touchDrag({ from: [rect.right - 40, y], to: [rect.left + 40, y], steps: 12, durationMs: 400 });
+  // The position is reported when the scroll has ended; the tap follows at once.
+  await expect.poll(() => onIndexChange.mock.calls).toEqual([[1]]);
+  await tapNow(buttons[1]!);
+  await expect.poll(() => pressed.mock.calls).toEqual([[2]]);
+});
+
+it("gets the click of a tap on a slide's button as soon as a short swipe has let the slide snap back", async () => {
+  const { viewport, buttons, pressed, onIndexChange } = await renderWithButtons();
+  const rect = viewport.getBoundingClientRect();
+  const y = rect.top + 30;
+  let ended = 0;
+  const count = () => ended++;
+  viewport.addEventListener("scrollend", count);
+  cleanups.push(() => viewport.removeEventListener("scrollend", count));
+  // A swipe too short and too slow to reach the next slide: the slides move and snap back.
+  await commands.touchDrag({ from: [rect.right - 60, y], to: [rect.right - 110, y], steps: 6, durationMs: 300 });
+  await expect.poll(() => ended).toBeGreaterThan(0);
+  expect(viewport.scrollLeft).toBe(0);
+  await tapNow(buttons[0]!);
+  await expect.poll(() => pressed.mock.calls).toEqual([[1]]);
   expect(onIndexChange).not.toHaveBeenCalled();
 });
 
