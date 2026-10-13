@@ -484,7 +484,7 @@ describe("dragging (Chromium)", () => {
     await expect.poll(() => popup()).toBeNull();
     observer.disconnect();
     expect(durations.length).toBeGreaterThan(0);
-    expect(durations.at(-1)).toBe("0.1s");
+    expect(durations.at(-1)).toBe("0.15s");
   });
 
   chromiumOnly("keeps Tab inside the sheet, wrapping from the last control to the first", async () => {
