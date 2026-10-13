@@ -239,7 +239,8 @@ describe("SwipeActions on a phone", () => {
     expect(row.hasAttribute("data-ouro-settling")).toBe(true);
     try {
       // A second swipe begins before the row has come to rest: the row is the finger's from where it was.
-      // Its first move is past the 10px a long press allows, so a slow machine cannot turn the press into one.
+      // Its first move is past the 10px a long press allows, so the press is a long press only if that move
+      // arrives over half a second after the touch: then the menu check fails, with that message.
       await commands.touchStep({ type: "touchStart", x, y });
       for (const dx of [12, 20]) await commands.touchStep({ type: "touchMove", x: x + dx, y });
       noMenu();
