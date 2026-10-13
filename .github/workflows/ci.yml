@@ -22,8 +22,8 @@ jobs:
       - name: Ten genuine flicks while two CPU workers compete with the browser
         run: |
           uptime
-          load=$(awk '{print $1}' /proc/loadavg)
-          awk -v load="$load" 'BEGIN { exit !(load <= 20) }'
+          average=$(awk '{print $1}' /proc/loadavg)
+          awk -v average="$average" 'BEGIN { exit !(average <= 20) }'
           yes > /dev/null & first=$!
           yes > /dev/null & second=$!
           trap 'kill "$first" "$second"; wait "$first" "$second" || true' EXIT
