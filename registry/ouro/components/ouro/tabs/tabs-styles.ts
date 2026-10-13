@@ -1,4 +1,4 @@
-export { activations, indicatorClass, listClass, orientations, ownLook, panelClass, rootClass, tabClass };
+export { activations, indicatorClass, listClass, orientations, ownLook, panelClass, rootClass, tabClass, tabFaceClass };
 export type { TabsActivation, TabsOrientation };
 
 // Class strings and value lists for Tabs, apart from the components so their files export
@@ -65,15 +65,25 @@ const listClass =
  * @internal
  */
 const tabClass =
-  "press relative m-0 box-border inline-flex shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap " +
+  "group/tab press relative m-0 box-border inline-flex shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap " +
   "h-(--ouro-tab-h) px-3 [--ouro-tab-h:calc(var(--spacing)*11)] sm:pointer-fine:[--ouro-tab-h:calc(var(--spacing)*9)] " +
   "pointer-coarse:min-w-11 justify-center data-[orientation=vertical]:justify-start " +
   "rounded-md border-0 bg-transparent text-base font-medium text-muted-foreground sm:pointer-fine:text-sm " +
   "select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "not-data-disabled:hover:text-foreground data-active:text-foreground " +
-  "motion-safe:not-data-disabled:active:scale-(--ouro-press-scale) " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
   "data-disabled:cursor-not-allowed data-disabled:opacity-50";
+
+/**
+ * The label and icon inside a tab, which take the press scale. The tab itself never
+ * scales, because Base UI's indicator measures the tab's bounding box and a scaled box
+ * would put the indicator off the tab.
+ *
+ * @internal
+ */
+const tabFaceClass =
+  "inline-flex items-center gap-2 [transition:scale_var(--ouro-duration-press)_var(--ouro-ease-out)] " +
+  "motion-safe:group-not-data-disabled/tab:group-active/tab:scale-(--ouro-press-scale)";
 
 /**
  * The line under the selected tab (beside it, in a column). It slides and resizes to the

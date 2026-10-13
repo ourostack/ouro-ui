@@ -201,6 +201,28 @@ describe("Tabs", () => {
     expect(under(r.tabs[2]!)).toEqual([0, 0]);
   });
 
+  it("keeps the indicator on the tab when it re-measures during a press", async () => {
+    const r = await render(<Tabs label="Recipe" items={items} />);
+    await expect.poll(() => r.indicator).not.toBeNull();
+    const indicator = r.indicator!;
+    const tab = r.tabs[0]!;
+    await settled(indicator);
+    // The press scale sits on the tab or on a wrapper inside it; either way it must reach 0.97.
+    const scale = () => Math.min(...[tab, tab.firstElementChild].filter((element) => element !== null).map((element) => Number.parseFloat(getComputedStyle(element).scale) || 1));
+    await commands.pointerPress({ selector: '[role="tab"][data-active]', action: "down" });
+    try {
+      await expect.poll(scale).toBeCloseTo(0.97, 2);
+      // Resizing the list makes Base UI measure the tab again, mid-press.
+      r.host.querySelector<HTMLElement>('[role="tablist"]')!.style.width = "400px";
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    } finally {
+      await commands.pointerPress({ action: "up" });
+    }
+    await expect.poll(scale).toBeCloseTo(1, 3);
+    await settled(indicator);
+    expect(Math.abs(indicator.getBoundingClientRect().left - tab.getBoundingClientRect().left)).toBeLessThan(0.3);
+  });
+
   it("moves the indicator without a transition under reduced motion", async () => {
     await commands.emulateMedia({ reducedMotion: "reduce" });
     const r = await render(<Tabs label="Recipe" items={items} />);
