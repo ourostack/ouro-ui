@@ -283,12 +283,16 @@ export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from,
     cdpSessions.set(page, session);
   }
   const start = Date.now() / 1000;
-  const touch = (type: "touchStart" | "touchMove" | "touchEnd", [x, y]: [number, number], t: number) =>
-    session.send("Input.dispatchTouchEvent", {
+  const sent: unknown[] = [];
+  const touch = async (type: "touchStart" | "touchMove" | "touchEnd", [x, y]: [number, number], t: number) => {
+    const before = Date.now();
+    await session.send("Input.dispatchTouchEvent", {
       type,
       touchPoints: type === "touchEnd" ? [] : [{ x, y, id: 1 }],
       ...(durationMs === undefined ? {} : { timestamp: start + (durationMs * t) / 1000 }),
     });
+    sent.push({ type, x, y, stamp: start + (durationMs ?? 0) * t / 1000, before, after: Date.now() });
+  };
   await releaseFinger("touchDrag", page, session);
   await sendTouch("touchDrag", page, { type: "touchEnd", x: to[0], y: to[1] }, async () => {
     await touch("touchStart", from, 0);
@@ -298,6 +302,7 @@ export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from,
     }
     await touch("touchEnd", to, 1);
   });
+  console.log("CDP_PROBE", JSON.stringify({ durationMs, sent }));
 };
 
 export interface PointerPressOptions {

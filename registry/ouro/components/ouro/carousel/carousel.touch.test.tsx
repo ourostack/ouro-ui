@@ -109,14 +109,37 @@ it("moves to the next slide with a horizontal swipe and reports it once", async 
   expect(scrollY).toBe(pageY);
 });
 
-it("lets a fast flick carry past the next slide, as the platform does, and reports it once", async () => {
+it.each(Array.from({ length: 10 }, (_, i) => i))("lets a fast flick carry past the next slide, as the platform does, and reports it once probe %i", async (run) => {
   const { viewport, onIndexChange } = await renderInPage();
   const rect = viewport.getBoundingClientRect();
   const y = rect.top + rect.height / 2;
-  await commands.touchDrag({ from: [rect.right - 40, y], to: [rect.left + 40, y], steps: 12, durationMs: 30 });
-  await expect.poll(() => onIndexChange.mock.calls).toEqual([[2]]);
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  expect(onIndexChange.mock.calls).toEqual([[2]]);
+  const events: unknown[] = [];
+  const record = (event: Event) => {
+    const touch = (event as TouchEvent).changedTouches?.[0];
+    events.push({ type: event.type, stamp: event.timeStamp, wall: performance.now(), left: viewport.scrollLeft, x: touch?.clientX, prevented: event.defaultPrevented });
+  };
+  for (const type of ["touchstart", "touchmove", "touchend", "pointerdown", "pointermove", "pointercancel", "scroll", "scrollend"]) viewport.addEventListener(type, record, { passive: true });
+  const frames: unknown[] = [];
+  let watching = true;
+  const sample = () => {
+    if (!watching) return;
+    frames.push([performance.now(), viewport.scrollLeft]);
+    requestAnimationFrame(sample);
+  };
+  requestAnimationFrame(sample);
+  const before = performance.now();
+  try {
+    await commands.touchDrag({ from: [rect.right - 40, y], to: [rect.left + 40, y], steps: 12, durationMs: 30 });
+    const delivered = performance.now();
+    await expect.poll(() => onIndexChange.mock.calls).toEqual([[2]]);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(onIndexChange.mock.calls).toEqual([[2]]);
+    console.log("CAROUSEL_PROBE", JSON.stringify({ run, before, delivered, geometry: rect.toJSON(), scrollWidth: viewport.scrollWidth, width: viewport.clientWidth, calls: onIndexChange.mock.calls, events, frames }));
+  } finally {
+    watching = false;
+    for (const type of ["touchstart", "touchmove", "touchend", "pointerdown", "pointermove", "pointercancel", "scroll", "scrollend"]) viewport.removeEventListener(type, record);
+    console.log("CAROUSEL_FINAL", JSON.stringify({ run, before, geometry: rect.toJSON(), scrollWidth: viewport.scrollWidth, width: viewport.clientWidth, calls: onIndexChange.mock.calls, events, frames }));
+  }
 });
 
 it("reports and announces nothing while a finger is held still mid-swipe", async () => {
