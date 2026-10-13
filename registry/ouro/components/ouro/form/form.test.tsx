@@ -1,4 +1,4 @@
-import { createContext, forwardRef, useEffect, useState, type ComponentPropsWithRef, type FormEvent, type ReactNode } from "react";
+import { createContext, forwardRef, useContext, useEffect, useState, type ComponentPropsWithRef, type FormEvent, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -11,7 +11,7 @@ import { Select } from "@/registry/ouro/components/ouro/select/select";
 import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
-import type { ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
+import { FormErrorsContext, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -484,6 +484,31 @@ describe("Form", () => {
       <TextField label="Name" name="name" />
     </>;
     const notes = { email: "Taken.", form: "Could not save." };
+    function ClearRequests() {
+      const context = useContext(FormErrorsContext)!;
+      return <button type="button" onClick={() => {
+        context.clear("email");
+        context.clear("email");
+        context.clear("missing");
+      }}>Clear requests</button>;
+    }
+
+    it("coalesces duplicate field-context clear requests and ignores a name with no message", async () => {
+      const answer = {};
+      const node = () => <Form errors={formErrors(answer, notes)}>{fields}<ClearRequests /></Form>;
+      const { input, rerender } = await render(node());
+      await userEvent.click(page.getByRole("button", { name: "Clear requests" }));
+      expect(input("email").getAttribute("aria-invalid")).toBeNull();
+      await rerender(node());
+      expect(input("email").getAttribute("aria-invalid")).toBeNull();
+    });
+
+    it("ignores a field-context clear request when no raw errors have been supplied", async () => {
+      const { host, input } = await render(<Form>{fields}<ClearRequests /></Form>);
+      await userEvent.click(page.getByRole("button", { name: "Clear requests" }));
+      expect(input("email").getAttribute("aria-invalid")).toBeNull();
+      expect(host.querySelector('[role="alert"]')).toBeNull();
+    });
 
     it("preserves a clear through omission, empty projections and absent answers, then restores it on the next accepted answer", async () => {
       const answer = {};

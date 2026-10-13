@@ -4,6 +4,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+defaults:
+  run:
+    shell: bash
 concurrency:
   group: form-answer-proof-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
@@ -34,12 +37,17 @@ jobs:
       - name: Shipped Form, constructor and Link regressions with focused coverage
         run: |
           pnpm exec vitest run --project ouro-chromium --project ouro-webkit --project ouro-touch \
-            registry/ouro/components/ouro/form registry/ouro/components/ouro/link registry/ouro/lib/ouro/form-errors.test.ts \
+            registry/ouro/components/ouro/form registry/ouro/components/ouro/link registry/ouro/components/ouro/radio-group registry/ouro/lib/ouro/form-errors.test.ts \
             --coverage --coverage.include=registry/ouro/components/ouro/form/form.tsx \
-            --coverage.include=registry/ouro/lib/ouro/form-errors.ts | tee .tmp/adopt-a-form-value/browser-proof.log
+            --coverage.include=registry/ouro/lib/ouro/form-errors.ts \
+            --coverage.reporter=text --coverage.reporter=json \
+            --coverage.reportsDirectory=.tmp/adopt-a-form-value/browser-coverage | tee .tmp/adopt-a-form-value/browser-proof.log
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: form-answer-proof
-          path: .tmp/adopt-a-form-value/*.log
+          path: |
+            .tmp/adopt-a-form-value/*.log
+            .tmp/adopt-a-form-value/node-coverage/coverage-final.json
+            .tmp/adopt-a-form-value/browser-coverage/coverage-final.json
           if-no-files-found: error
