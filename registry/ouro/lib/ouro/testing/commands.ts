@@ -246,12 +246,21 @@ const TOUCH_TIDY_MS = 1000;
 /**
  * Whether the frame that receives a touch at (x, y) is watched, asked of Chromium directly.
  * `DOM.getNodeForLocation` hit-tests the way input does, through every frame and every shadow
- * root, open or closed, so it finds the frame a touch there goes to, even one Playwright does
- * not list yet. "unknown" means Chromium could not say, as for a frame in another process.
+ * root, open or closed, and past `pointer-events: none`, so it finds the frame a touch there
+ * goes to, even one Playwright does not list yet. It takes a point in the top-level document,
+ * and a touch a point in the viewport, so the top-level page's scroll is added. "unknown" means
+ * the kit could not place the point in a frame: Chromium found no node there, as for a point
+ * outside the viewport, or the node there has no window.
  */
 async function frameAtPoint(session: CDPSession, x: number, y: number): Promise<{ watched: boolean | "unknown"; where: string }> {
   try {
-    const { backendNodeId } = await session.send("DOM.getNodeForLocation", { x: Math.round(x), y: Math.round(y), ignorePointerEventsNone: true });
+    const { cssLayoutViewport } = await session.send("Page.getLayoutMetrics");
+    const { backendNodeId } = await session.send("DOM.getNodeForLocation", {
+      x: Math.round(x + cssLayoutViewport.pageX),
+      y: Math.round(y + cssLayoutViewport.pageY),
+      // Hit-test as input does: an element with `pointer-events: none` is not the target.
+      ignorePointerEventsNone: false,
+    });
     const { object } = await session.send("DOM.resolveNode", { backendNodeId });
     try {
       const { result } = await session.send("Runtime.callFunctionOn", {

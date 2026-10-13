@@ -180,7 +180,53 @@ async function tapAt(target: EventTarget, x: number, y: number): Promise<string[
   return seen;
 }
 
-test("a touch on a ::before box is watched like one on its element", async () => {
+/**
+ * A srcdoc iframe at `top` that the kit can never watch: its window drops `__ouroTouch`, so the
+ * kit's watcher never sticks there. `body` is the frame's body markup.
+ */
+function unwatchableFrame(top: number, body = "<div style='height:100px'></div>"): Promise<HTMLIFrameElement> {
+  const keepOut = "<script>Object.defineProperty(window, '__ouroTouch', { get() { return undefined; }, set() {} });</script>";
+  return frameAt(document.body, top, { srcdoc: `${keepOut}<body style='margin:0'>${body}</body>` });
+}
+
+const refused = (x: number, y: number) =>
+  `touchStep: could not watch the frame at (${x}, ${y}) within 5000ms, so the touchStart was not sent. The frame there is about:srcdoc, and it has no watcher.`;
+
+test("a touchstart into a frame the kit cannot watch is refused after the time limit, and the next touch works", async () => {
+  await unwatchableFrame(300);
+  const started = performance.now();
+  await expect(commands.touchStep({ type: "touchStart", x: 100, y: 350 })).rejects.toThrow(refused(100, 350));
+  expect(performance.now() - started).toBeGreaterThanOrEqual(5000);
+  // A refused touchstart leaves no finger down.
+  expect(await tapAt(window, 100, 50)).toEqual(["touchstart", "touchend"]);
+});
+
+test("the kit waits for the frame under a pointer-events: none overlay, where the touch lands", async () => {
+  await unwatchableFrame(300);
+  const overlay = document.createElement("div");
+  Object.assign(overlay.style, { position: "absolute", top: "300px", left: "0", width: "300px", height: "100px", pointerEvents: "none" });
+  document.body.append(overlay);
+  nodes.push(overlay);
+  await expect(commands.touchStep({ type: "touchStart", x: 100, y: 350 })).rejects.toThrow(refused(100, 350));
+});
+
+test("the kit does not wait for a pointer-events: none iframe, which the touch passes through", async () => {
+  const frame = await unwatchableFrame(300);
+  frame.style.pointerEvents = "none";
+  const started = performance.now();
+  expect(await tapAt(window, 100, 350)).toEqual(["touchstart", "touchend"]);
+  expect(performance.now() - started).toBeLessThan(1000);
+});
+
+test("a touch on a ::before box inside a frame waits for that frame", async () => {
+  await unwatchableFrame(
+    300,
+    "<style>div::before { content: ''; position: absolute; top: 0; left: 0; width: 300px; height: 100px; }</style><div></div>",
+  );
+  await expect(commands.touchStep({ type: "touchStart", x: 100, y: 350 })).rejects.toThrow(refused(100, 350));
+});
+
+test("a touch on a ::before box is handled", async () => {
   const element = document.createElement("div");
   element.className = "ouro-touch-kit-pseudo";
   const style = document.createElement("style");
@@ -212,7 +258,9 @@ test("touches reach a cross-origin iframe, and a cross-origin iframe does not ho
   await commands.touchStep({ type: "touchEnd" });
 });
 
-test("a touch into an iframe that has not loaded ends within the kit's bound, and names the frame if it throws", async () => {
+// A check that the command never hangs, not of what it does: whether the frame's empty document
+// gets the watcher depends on timing and the network, so either outcome passes.
+test("a touch into an iframe that never loads does not hang", async () => {
   // A non-routable address: the connection hangs, so the frame keeps its first, empty document,
   // which Playwright cannot evaluate in. Where the network refuses it at once, the frame shows an
   // error page instead; either way the touch must end within the bound.
