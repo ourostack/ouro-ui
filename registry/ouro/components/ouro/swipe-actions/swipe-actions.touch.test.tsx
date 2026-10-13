@@ -8,6 +8,7 @@ import { SwipeActions } from "@/registry/ouro/components/ouro/swipe-actions/swip
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { holdFrames } from "@/registry/ouro/lib/ouro/testing/frames";
 import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 // Runs in the `touch` project: Chromium as a 390x844 phone with a coarse pointer.
 
@@ -488,7 +489,7 @@ describe("SwipeActions on a phone", () => {
     expect(hits(row.querySelector("[data-ouro-swipe-actions-content]")!, x, y)).toBe(true);
     // An external keyboard reaches it after the row's link, and then it shows, 44px to touch.
     row.querySelector<HTMLElement>("a")!.focus();
-    await userEvent.keyboard("{Tab}");
+    await pressTab();
     expect(document.activeElement).toBe(button);
     const rect = button.getBoundingClientRect();
     expect(rect.width).toBeGreaterThan(20);

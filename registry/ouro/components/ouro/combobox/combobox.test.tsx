@@ -6,6 +6,7 @@ import { commands, page, userEvent } from "vitest/browser";
 import { Combobox, type ComboboxProps } from "@/registry/ouro/components/ouro/combobox/combobox";
 import { Form } from "@/registry/ouro/components/ouro/form/form";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const herbs = ["Basil", "Chives", "Dill", "Mint", "Oregano", "Parsley", "Rosemary", "Sage", "Thyme"];
 const cheeses = [
@@ -367,7 +368,7 @@ describe("Combobox looks", () => {
     );
     const [valid, invalid] = [...host.querySelectorAll<HTMLElement>("[data-ouro-input-group]")];
     expect(getComputedStyle(invalid!).borderTopColor).not.toBe(getComputedStyle(valid!).borderTopColor);
-    await userEvent.keyboard("{Tab}");
+    await pressTab();
     await expect.poll(() => getComputedStyle(valid!).outlineStyle).toBe("solid");
   });
 

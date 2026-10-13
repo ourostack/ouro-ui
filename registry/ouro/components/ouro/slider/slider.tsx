@@ -6,7 +6,7 @@ import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-styles";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { FieldOwnerContext, useField, useFormErrors } from "@/registry/ouro/lib/ouro/use-field";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import {
   controlClass,
   indicatorClass,

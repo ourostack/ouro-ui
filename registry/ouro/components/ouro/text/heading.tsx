@@ -5,7 +5,7 @@ import { fontFor, sizeFor, toneFor } from "@/registry/ouro/lib/ouro/appearance-h
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { alignClasses, checkAlign, type TextAlign } from "@/registry/ouro/components/ouro/text/text-styles";
 
 /** A heading size from the theme's type scale. `display` is for a page's hero headline. */

@@ -1,5 +1,5 @@
 import { toneFor } from "@/registry/ouro/lib/ouro/appearance-hints";
-import type { DevWarning } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import type { DevWarning } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
 export {
   choicesClass,

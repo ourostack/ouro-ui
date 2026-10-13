@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../ouro-fixtures";
 import { openStory } from "./story";
 
 test("the sidebar marks the current page and collapses to a rail that keeps the links' names", async ({ page }) => {

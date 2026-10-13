@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../ouro-fixtures";
 import { openStory } from "./story";
 
 test("an attachment opens from a link named by the file and its size", async ({ page }) => {

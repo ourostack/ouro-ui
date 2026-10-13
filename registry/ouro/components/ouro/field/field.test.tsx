@@ -451,7 +451,7 @@ describe("Field parts", () => {
     error.mockRestore();
   });
 
-  it("warn for appearance classes on parts", async () => {
+  it("warns about appearance classes on parts", async () => {
     await render(
       <FieldRoot className="shadow-lg">
         <FieldLabel className="font-bold">Email</FieldLabel>

@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../ouro-fixtures";
 import { openStory } from "./story";
 
 test("a navigation menu opens a panel of links, marks the current page and closes on Escape", async ({ page }) => {

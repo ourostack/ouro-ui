@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../ouro-fixtures";
 import { openStory } from "./story";
 
 test("previews the link on hover and hides when the pointer leaves", async ({ page }) => {

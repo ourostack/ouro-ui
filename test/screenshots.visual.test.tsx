@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { commands, page, userEvent } from "vitest/browser";
+import { commands, page } from "vitest/browser";
 import { cleanupStories, openOverlay, overlayOpeners, renderStory, setScheme, settle, stories } from "./stories.tsx";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 // Screenshot baselines (spec §8): light, dark and reduced motion, at 390px and
 // 1280px. Runs only in the `visual` project (CI_VISUAL=1), in Chromium on
@@ -74,7 +75,7 @@ describe.each(widths)("at $width px", ({ width, height }) => {
       }
       if (focus) {
         // Tab to the story's first control: a keyboard focus shows a Tooltip or HoverCard.
-        await userEvent.keyboard("{Tab}");
+        await pressTab();
         await expect.poll(() => document.querySelector("[data-open]")).not.toBeNull();
         await settle();
       }

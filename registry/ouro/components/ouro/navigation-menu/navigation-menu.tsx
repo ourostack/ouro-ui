@@ -7,7 +7,7 @@ import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { currentHref } from "@/registry/ouro/lib/ouro/current-path";
 import { floatingPortalClass } from "@/registry/ouro/lib/ouro/floating";
 import { RouterLink } from "@/registry/ouro/lib/ouro/router-link";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
 /** One link inside a NavigationMenu panel. */
 export interface NavigationMenuLink {

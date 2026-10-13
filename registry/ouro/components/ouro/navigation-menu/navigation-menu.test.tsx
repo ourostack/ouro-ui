@@ -6,6 +6,7 @@ import { commands, page, userEvent } from "vitest/browser";
 import { NavigationMenu, type NavigationMenuProps } from "@/registry/ouro/components/ouro/navigation-menu/navigation-menu";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -148,7 +149,7 @@ describe("NavigationMenu", () => {
     await userEvent.keyboard("{Enter}");
     await expect.element(page.getByRole("link", { name: /Browse/ })).toBeVisible();
     await settled();
-    await userEvent.keyboard("{Tab}");
+    await pressTab();
     await expect.element(page.getByRole("link", { name: /Browse/ })).toHaveFocus();
   });
 

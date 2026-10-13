@@ -7,6 +7,7 @@ import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-cont
 import { Tabs, type TabsProps } from "@/registry/ouro/components/ouro/tabs/tabs";
 import { TabsIndicator, TabsList, TabsPanel, TabsRoot, TabsTab } from "@/registry/ouro/components/ouro/tabs/tabs-parts";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -337,7 +338,7 @@ describe("Tabs", () => {
 
   it("shows a focus outline on keyboard focus", async () => {
     const { tabs } = await render(<Tabs label="Recipe" items={items} />);
-    await userEvent.tab();
+    await pressTab();
     expect(document.activeElement).toBe(tabs[0]);
     expect(getComputedStyle(tabs[0]!).outlineStyle).toBe("solid");
   });

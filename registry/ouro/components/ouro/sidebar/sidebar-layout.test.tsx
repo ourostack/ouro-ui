@@ -6,6 +6,7 @@ import { page, userEvent } from "vitest/browser";
 import { Sidebar } from "@/registry/ouro/components/ouro/sidebar/sidebar";
 import { SidebarLayout, type SidebarLayoutProps } from "@/registry/ouro/components/ouro/sidebar/sidebar-layout";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -85,7 +86,7 @@ describe("SidebarLayout", () => {
 
   it("starts with a skip link that moves focus to the main landmark", async () => {
     const { main } = await render(<SidebarLayout sidebar={sidebar}>Page content</SidebarLayout>);
-    await userEvent.keyboard("{Tab}");
+    await pressTab();
     const skip = page.getByRole("link", { name: "Skip to content" });
     await expect.element(skip).toHaveFocus();
     const box = skip.element().getBoundingClientRect();

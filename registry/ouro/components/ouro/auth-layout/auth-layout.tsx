@@ -3,7 +3,7 @@
 import type { HTMLAttributes, JSX, ReactNode, Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { Card } from "@/registry/ouro/components/ouro/card/card";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text } from "@/registry/ouro/components/ouro/text/text";

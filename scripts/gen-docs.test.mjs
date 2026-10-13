@@ -56,12 +56,15 @@ test("an export with no @group, or an unknown one, fails the generator with the 
 test("generating is deterministic and matches the committed files", () => {
   const out = mkdtempSync(join(tmpdir(), "ouro-docs-"));
   assert.equal(run("--out", out).status, 0);
-  const files = readdirSync(join(out, "docs")).sort();
-  assert.deepEqual(files, readdirSync(join(root, "docs")).sort());
+  const files = readdirSync(join(out, "docs")).filter((name) => name.endsWith(".md")).sort();
+  // docs/guides is hand-written; everything else in docs/ is generated.
+  const committed = readdirSync(join(root, "docs"), { withFileTypes: true });
+  assert.deepEqual(committed.filter((entry) => entry.isDirectory()).map((entry) => entry.name), ["guides"]);
+  assert.deepEqual(files, committed.filter((entry) => entry.isFile()).map((entry) => entry.name).sort());
   for (const file of files) {
     assert.equal(readFileSync(join(out, "docs", file), "utf8"), doc(file), file);
   }
-  for (const file of ["README.md", "site/src/docs/catalog.json"]) {
+  for (const file of ["README.md", "site/src/docs/catalog.json", "site/src/docs/pages.json"]) {
     assert.equal(readFileSync(join(out, file), "utf8"), readFileSync(join(root, file), "utf8"), file);
   }
 });
@@ -185,7 +188,7 @@ test("the catalog is grouped by job in README", async () => {
 test("no timestamps", () => {
   // Example dates in code (Calendar's `value="2026-10-11"`) are not timestamps; prose must have none.
   const prose = (text) => text.replace(/```[\s\S]*?```/g, "").replace(/`[^`\n]*`/g, "");
-  for (const file of readdirSync(join(root, "docs"))) {
+  for (const file of readdirSync(join(root, "docs"), { recursive: true }).filter((name) => name.endsWith(".md"))) {
     assert.doesNotMatch(prose(doc(file)), /\b20\d\d-\d\d-\d\d\b/, file);
   }
   assert.match(prose("Generated 2026-10-11."), /\b20\d\d-\d\d-\d\d\b/);

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type JSX, type ReactElement, type ReactNod
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
 import { checkOpenMode } from "@/registry/ouro/lib/ouro/open-mode";
 import { toneWarning } from "@/registry/ouro/lib/ouro/tones";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import {
   AlertDialogRoot,

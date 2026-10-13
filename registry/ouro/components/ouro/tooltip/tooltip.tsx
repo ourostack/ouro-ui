@@ -14,7 +14,7 @@ import {
 } from "@/registry/ouro/lib/ouro/floating";
 import { lastInput } from "@/registry/ouro/lib/ouro/last-input";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
 export type { FloatingAlign as TooltipAlign, FloatingSide as TooltipSide } from "@/registry/ouro/lib/ouro/floating";
 

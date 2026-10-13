@@ -18,6 +18,7 @@ import {
   PopoverTrigger,
 } from "@/registry/ouro/components/ouro/popover/popover-parts";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 // Runs in Chromium and WebKit.
 
@@ -138,7 +139,7 @@ describe("Popover", () => {
     expect(close.getBoundingClientRect().width).toBeLessThanOrEqual(1);
     // Focus starts on the first control; Tab reaches the close button last.
     await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toBe("Link");
-    await userEvent.keyboard("{Tab}");
+    await pressTab();
     expect(document.activeElement).toBe(close);
     await expect.poll(() => close.getBoundingClientRect().width).toBeGreaterThan(1);
     await userEvent.keyboard("{Enter}");
@@ -383,8 +384,8 @@ describe("nested overlays", () => {
     );
     await userEvent.click(page.getByRole("button", { name: "Share" }));
     await settled();
-    await userEvent.keyboard("{Tab}");
-    await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
+    await pressTab();
+    await pressTab({ shift: true });
     expect(document.activeElement?.getAttribute("aria-label")).toBe("Copy");
     await expect.poll(() => tooltip()).not.toBeNull();
     await userEvent.keyboard("{Escape}");

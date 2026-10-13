@@ -8,6 +8,7 @@ import { demos } from "../docs/demos";
 import { groupOrder } from "../../../scripts/catalog-groups.mts";
 import { docsItems, GITHUB, installedPaths, partsSection, summary, type DocsItem } from "../docs/items";
 import { inline, Markdown, parse, type Block } from "../docs/markdown";
+import { exportPages, guidePages, publishedName, type DocsPage } from "../docs/pages";
 import { href } from "../routes";
 import { latestRelease, upgrading } from "../release";
 
@@ -68,14 +69,20 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
           <InlineCode>--base base</InlineCode>; skip <InlineCode>-t</InlineCode> in an existing app):
         </Text>
         <Command command="npx shadcn@latest init --base base --preset nova --yes --no-monorepo" />
+        <Command command={`npx shadcn@latest add ourostack/ouro-ui/ouro-base#${latestRelease}`} />
+        <Text size="sm" tone="muted">
+          Then the component. From v0.8.0 it installs only the helpers it imports and never touches your stylesheet (
+          <a href={href("/docs/installing/")} className="text-primary underline underline-offset-4">Installing</a>):
+        </Text>
         <Command command={`npx shadcn@latest add ourostack/ouro-ui/${item.name}#${latestRelease}`} />
         <Text size="sm" tone="muted">
           Or, with the <a href={`${href("/")}#install`} className="text-primary underline underline-offset-4">@ouro namespace</a> set
           up:
         </Text>
-        <Command command={`npx shadcn@latest add @ouro/${item.name}`} />
+        <Command command={`npx shadcn@latest add @ouro/ouro-base @ouro/${item.name}`} />
         <Text size="sm" tone="muted">
-          Its tests, stories and Playwright spec are optional, with Vitest, Storybook and Playwright as devDependencies:
+          Its tests, stories and Playwright spec are optional. They need Vitest 4.1.11 or later, and from v0.8.0 never change
+          a version your app has (<a href={href("/docs/testing/")} className="text-primary underline underline-offset-4">Testing</a>):
         </Text>
         <Command command={`npx shadcn@latest add ourostack/ouro-ui/${item.name}#${latestRelease} ourostack/ouro-ui/${item.name}-tests#${latestRelease}`} />
         <CodeBlock code={importLine} className="mt-2" />
@@ -84,13 +91,43 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
         </Text>
       </div>
 
-      <Markdown blocks={body} />
+      <Markdown blocks={body} link={(target) => siteLink(target, `docs/${item.title}.md`)} />
 
       <div className="mt-14 flex flex-wrap gap-x-6 gap-y-2 border-t border-border pt-6 text-sm">
         <a href={`${GITHUB}/blob/main/${item.source}`} className="text-muted-foreground underline underline-offset-4 hover:text-foreground">
           Source on GitHub
         </a>
         <a href={href(`/docs/${item.name}.md`)} className="text-muted-foreground underline underline-offset-4 hover:text-foreground">
+          This page as Markdown
+        </a>
+      </div>
+    </DocsShell>
+  );
+}
+
+/** Where a link in a docs Markdown file goes on the site: another docs file becomes its page. */
+function siteLink(target: string, from: string): string {
+  const to = publishedName(target, from);
+  return to ? `${href(`/docs/${to.name}/`)}${to.fragment}` : target;
+}
+
+/**
+ * A page that is not a registry item's: a guide (docs/guides) or a documented export with no
+ * item of its own (Radio, OuroProvider). Links between Markdown files go to the site's pages.
+ */
+export function DocsPageView({ page }: { page: DocsPage }): JSX.Element {
+  const [, lead, ...body] = parse(installedPaths(page.markdown));
+  if (lead?.kind !== "paragraph") throw new Error(`${page.file} must start with a title and a one-paragraph summary`);
+  const link = (target: string) => siteLink(target, page.file);
+  return (
+    <DocsShell current={`/docs/${page.name}/`}>
+      <PageTitle eyebrow={page.group} title={page.title} lead={inline(lead.text, link)} />
+      <Markdown blocks={body} link={link} />
+      <div className="mt-14 flex flex-wrap gap-x-6 gap-y-2 border-t border-border pt-6 text-sm">
+        <a href={`${GITHUB}/blob/main/${page.file}`} className="text-muted-foreground underline underline-offset-4 hover:text-foreground">
+          Source on GitHub
+        </a>
+        <a href={href(`/docs/${page.name}.md`)} className="text-muted-foreground underline underline-offset-4 hover:text-foreground">
           This page as Markdown
         </a>
       </div>
@@ -129,11 +166,36 @@ export function DocsIndex(): JSX.Element {
           </ul>
         </section>
       ))}
+      <section aria-labelledby="group-more" className="mt-10">
+        <Heading level={2} size="md" id="group-more" className="mb-4">
+          Parts and app setup
+        </Heading>
+        <Text size="sm" tone="muted" className="mb-4 max-w-[40rem]">
+          Exports that install with another component, or with the helpers in <InlineCode>lib/ouro</InlineCode>, each with a page of its own.
+        </Text>
+        <ul className="m-0 flex list-none flex-wrap gap-x-5 gap-y-2 p-0">
+          {exportPages.map((page) => (
+            <li key={page.name}>
+              <a href={href(`/docs/${page.name}/`)} className="inline-flex min-h-11 items-center text-sm font-medium text-primary underline underline-offset-4 sm:min-h-6">
+                {page.title}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
       <section aria-labelledby="group-guides" className="mt-10">
         <Heading level={2} size="md" id="group-guides" className="mb-4">
           Guides
         </Heading>
         <ul className="m-0 grid list-none gap-3 p-0 sm:grid-cols-2">
+          {guidePages.map((page) => (
+            <li key={page.name}>
+              <a href={href(`/docs/${page.name}/`)} className={card}>
+                <span className="font-medium text-foreground">{page.title}</span>
+                <span className="text-sm leading-6 text-muted-foreground">{inline(summary(page.markdown.replace(/^# .*$/m, "")))}</span>
+              </a>
+            </li>
+          ))}
           <li>
             <a href={href("/docs/switching-from-shadcn/")} className={card}>
               <span className="font-medium text-foreground">Switching from shadcn</span>
@@ -290,8 +352,8 @@ export function Updating(): JSX.Element {
           </Text>
           <Command command={`npx shadcn@latest add ourostack/ouro-ui/sheet#${latestRelease}`} />
           <Text size="sm" tone="muted">
-            A release tag pins the item and every Ouro dependency it brings (such as <InlineCode>ouro-lib</InlineCode> and{" "}
-            <InlineCode>button</InlineCode>) to the same tag. Any other ref, <InlineCode>#&lt;sha&gt;</InlineCode> or{" "}
+            A release tag pins the item and every Ouro dependency it brings (such as <InlineCode>button</InlineCode> and the
+            helpers in <InlineCode>lib/ouro</InlineCode>) to the same tag. Any other ref, <InlineCode>#&lt;sha&gt;</InlineCode> or{" "}
             <InlineCode>#&lt;branch&gt;</InlineCode>, pins only the item you name: its Ouro dependencies come from <InlineCode>main</InlineCode>.
             The <InlineCode>@ouro</InlineCode> namespace serves the newest release, <InlineCode>{latestRelease}</InlineCode>. Without a ref, the GitHub address installs <InlineCode>main</InlineCode>, which is for contributors and can hold unreleased changes. Releases are listed on{" "}
             <a href={`${GITHUB}/releases`} className="text-primary underline underline-offset-4">GitHub</a>.

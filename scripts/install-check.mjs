@@ -25,11 +25,16 @@
 // Checks only that every installed Ouro file equals its source under <source-root> (a release
 // tag's files, for the @ouro namespace install).
 //
+//   node scripts/install-check.mjs --strip-field-tokens <css-file>
+//
+// Rewrites the file without `--input`, `--radius` and their `@theme inline` mappings, so the
+// install job can prove ouro-base gives fields their border in an app whose theme has none.
+//
 //   node scripts/install-check.mjs --layer-override <css-file>
 //
 // Checks that an app's own `:root { --ouro-layer: … }` rule, after the Ouro tokens and
 // outside any @layer, is still the declaration that wins after a later `shadcn add`.
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import postcss from "postcss";
@@ -128,6 +133,12 @@ export function checkInstall(app, variant, stage) {
     "--ouro-backdrop-color",
     "--color-success",
     "--color-warning",
+    // The field border color and the radius scale: from the app's theme, or from ouro-base
+    // when the theme has none (the shadcn install job strips them first, stripFieldTokens).
+    "--input",
+    "--radius",
+    "--color-input",
+    "--radius-md",
   ]) {
     if (!declares(name)) problems.push(`${cssPath} does not declare ${name}`);
   }
@@ -154,6 +165,19 @@ export function checkInstall(app, variant, stage) {
     if (built && !built.includes(needle)) problems.push(`the built CSS has no ${needle}`);
   }
   return problems;
+}
+
+/**
+ * `css` without the field border color and the radius scale: every `--input`, `--radius`,
+ * `--color-input` and `--radius-*` declaration. The install job runs it on the stylesheet
+ * `shadcn init` wrote, before it adds ouro-base, to stand for an app whose theme has neither.
+ */
+export function stripFieldTokens(css) {
+  const root = postcss.parse(css);
+  root.walkDecls(/^--(input|radius|color-input|radius-[\w-]+)$/, (decl) => {
+    decl.remove();
+  });
+  return root.toString();
 }
 
 /** Where the CLI installs a registry file in an app with src/ aliases, or undefined for a non-file. */
@@ -245,7 +269,17 @@ export function checkLayerOverride(css, value) {
   return problems;
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url) && process.argv[2] === "--layer-override") {
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url) && process.argv[2] === "--strip-field-tokens") {
+  const css = readFileSync(process.argv[3], "utf8");
+  const stripped = stripFieldTokens(css);
+  if (stripped === css) {
+    console.error(`install check: ${process.argv[3]} had no --input or --radius to strip`);
+    process.exitCode = 1;
+  } else {
+    writeFileSync(process.argv[3], stripped);
+    console.log(`install check: stripped --input, --radius and their mappings from ${process.argv[3]}`);
+  }
+} else if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url) && process.argv[2] === "--layer-override") {
   const problems = checkLayerOverride(readFileSync(process.argv[3], "utf8"), process.argv[4] ?? "60");
   for (const problem of problems) console.error(`install check: ${problem}`);
   if (problems.length === 0) console.log("install check: the app's --ouro-layer override survived");

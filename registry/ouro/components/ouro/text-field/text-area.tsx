@@ -8,7 +8,7 @@ import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-st
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { FieldOwnerContext } from "@/registry/ouro/lib/ouro/use-field";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { fitHeight, textAreaClass } from "@/registry/ouro/components/ouro/text-field/text-area-styles";
 
 /** The props TextArea adds to the textarea attributes it passes through. */

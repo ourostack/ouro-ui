@@ -3,7 +3,7 @@
 import { Children, isValidElement, type HTMLAttributes, type JSX, type ReactNode, type Ref, useId } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
 /** The props ItemGroup adds to the div attributes it passes through. */
 export interface ItemGroupOwnProps {

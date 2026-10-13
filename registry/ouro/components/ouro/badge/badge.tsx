@@ -8,7 +8,7 @@ import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { RouterLink } from "@/registry/ouro/lib/ouro/router-link";
 import { toneWarning } from "@/registry/ouro/lib/ouro/tones";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
 /** An icon component, such as one from `lucide-react` or `@heroicons/react`. */
 export type BadgeIcon = ComponentType<SVGProps<SVGSVGElement>>;

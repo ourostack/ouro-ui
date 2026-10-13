@@ -2,11 +2,12 @@ import { createRef, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { page } from "vitest/browser";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { ButtonGroup, type ButtonGroupProps } from "@/registry/ouro/components/ouro/button-group/button-group";
 import { Toggle } from "@/registry/ouro/components/ouro/toggle/toggle";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -143,8 +144,8 @@ describe("ButtonGroup", () => {
   it("raises the focused button, so its outline is not covered by a neighbor", async () => {
     const { buttons } = await render(three());
     document.body.focus();
-    await userEvent.tab();
-    await userEvent.tab();
+    await pressTab();
+    await pressTab();
     expect(document.activeElement).toBe(buttons[1]);
     expect(getComputedStyle(buttons[1]!).zIndex).toBe("10");
     expect(getComputedStyle(buttons[0]!).zIndex).toBe("auto");
