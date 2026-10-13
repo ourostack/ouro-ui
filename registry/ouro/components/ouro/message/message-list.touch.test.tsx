@@ -72,7 +72,9 @@ const jumpButton = () => page.getByRole("button", { name: "Jump to latest" });
 it("keeps the reader's place on a phone once they swipe up, and jumps back with a 44px button", async () => {
   const items = texts(24);
   const { scroller, rerender } = await render(<Chat items={items} />);
-  expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+  // Polled: this is the first render in the page, and a theme's web font can swap in just after
+  // it and rewrap the messages. The list follows that growth in the next frame, before paint.
+  await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
 
   await swipe(scroller, 250);
   expect(distanceFromBottom(scroller)).toBeGreaterThan(100);
