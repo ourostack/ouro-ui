@@ -1,10 +1,11 @@
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTint } from "@/registry/ouro/lib/ouro/testing/press";
 import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
-import { Command } from "@/registry/ouro/components/ouro/command/command";
+import { Command, type CommandEntry } from "@/registry/ouro/components/ouro/command/command";
 
 // Runs in the `touch` project: Chromium as a 390x844 phone with a coarse pointer.
 
@@ -69,5 +70,54 @@ describe("Command on a phone", () => {
     expect(content.scrollTop).toBeGreaterThan(0);
     expect(input().getBoundingClientRect().top).toBe(top);
     expect(popup()).toBe(element);
+  });
+});
+
+describe("Command pressed and closing on a phone", () => {
+  const run = () => {};
+  const entries: CommandEntry[] = [
+    { label: "New recipe", onSelect: run },
+    { label: "Import from a link", onSelect: run },
+    { label: "Switch theme", onSelect: run },
+  ];
+
+  async function openEntries(items: CommandEntry[] = entries) {
+    const host = document.createElement("div");
+    document.body.append(host);
+    nodes.push(host);
+    root = createRoot(host);
+    await act(() => root!.render(<Command title="Command palette" trigger={<Button>Search</Button>} items={items} />));
+    await commands.tap('[data-ouro="button"]');
+    await expect
+      .poll(() => {
+        const element = popup();
+        return Boolean(element && !element.hasAttribute("data-starting-style") && element.getAnimations().length === 0);
+      })
+      .toBe(true);
+    return popup()!;
+  }
+
+  it("tints a command on pointer-down, from the press alone", async () => {
+    const sheet = await openEntries();
+    const item = [...sheet.querySelectorAll<HTMLElement>('[role="option"]')][2]!;
+    const { rest, pressed, active } = await pressTint(item);
+    expect(active).toBe(true);
+    expect(pressed).not.toBe(rest);
+  });
+
+  it("keeps showing what it showed while the sheet slides out after a command runs", async () => {
+    const onSelect = vi.fn();
+    await openEntries([{ label: "Switch theme", onSelect }, { label: "Sign out", onSelect: run }]);
+    await userEvent.type(input(), "swi");
+    await expect.poll(() => document.querySelectorAll('[role="option"]').length).toBe(1);
+    await userEvent.keyboard("{Enter}");
+    expect(onSelect).toHaveBeenCalledOnce();
+    const seen = new Set<number>();
+    while (popup()) {
+      seen.add(document.querySelectorAll('[role="option"]').length);
+      expect(input().value).toBe("swi");
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    }
+    expect([...seen]).toEqual([1]);
   });
 });

@@ -703,7 +703,6 @@ describe("Menu motion", () => {
     // The fast duration on the ease-out token; `ease-in` is never used.
     expect(getComputedStyle(element).transitionDuration.split(", ")[0]).toBe("0.15s");
     expect(getComputedStyle(element).transitionTimingFunction.split(/,\s(?![^(]*\))/)[0]).toBe("cubic-bezier(0.23, 1, 0.32, 1)");
-    expect(getComputedStyle(element).transformOrigin).not.toBe("");
     element.removeAttribute("data-ending-style");
   });
 

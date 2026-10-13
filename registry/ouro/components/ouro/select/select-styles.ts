@@ -126,6 +126,7 @@ const popupClass =
   "data-[ouro-presentation=sheet]:data-starting-style:scale-100 data-[ouro-presentation=sheet]:data-ending-style:scale-100 " +
   "data-[ouro-presentation=sheet]:data-starting-style:opacity-100 data-[ouro-presentation=sheet]:data-ending-style:opacity-100 " +
   "data-[ouro-presentation=sheet]:data-starting-style:translate-y-full data-[ouro-presentation=sheet]:data-ending-style:translate-y-full " +
+  "data-[ouro-presentation=sheet]:data-ending-style:duration-(--ouro-duration-base) " +
   "motion-reduce:data-[ouro-presentation=sheet]:[transition:opacity_var(--ouro-duration-base)_var(--ouro-ease-out)] " +
   "motion-reduce:data-[ouro-presentation=sheet]:data-starting-style:translate-y-0 motion-reduce:data-[ouro-presentation=sheet]:data-ending-style:translate-y-0 " +
   "motion-reduce:data-[ouro-presentation=sheet]:data-starting-style:opacity-0 motion-reduce:data-[ouro-presentation=sheet]:data-ending-style:opacity-0";
@@ -156,7 +157,7 @@ const itemClass =
   "relative box-border grid min-h-11 cursor-default grid-cols-[1rem_1fr] items-center gap-2 rounded-sm px-2 py-1.5 " +
   "text-base leading-6 outline-none select-none pointer-fine:min-h-8 sm:pointer-fine:text-sm sm:pointer-fine:leading-5 " +
   "scroll-my-1 [-webkit-tap-highlight-color:transparent] data-highlighted:bg-accent data-highlighted:text-accent-foreground " +
-  "active:bg-accent active:text-accent-foreground " +
+  "not-data-disabled:active:bg-accent not-data-disabled:active:text-accent-foreground " +
   "data-disabled:opacity-50 [&_svg]:size-4";
 
 /**

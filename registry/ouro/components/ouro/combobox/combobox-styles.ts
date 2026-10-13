@@ -30,7 +30,7 @@ const chipsGroupClass =
   "min-h-(--ouro-control-h) [--ouro-control-h:calc(var(--spacing)*11)] sm:pointer-fine:[--ouro-control-h:calc(var(--spacing)*9)] " +
   "rounded-md border border-solid border-input bg-transparent text-base text-foreground sm:pointer-fine:text-sm " +
   "outline-ring outline-offset-2 has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-solid " +
-  "transition-[border-color] duration-(--ouro-duration-fast) ease-out " +
+  "transition-[border-color] duration-(--ouro-duration-fast) ease-[ease] " +
   "has-[input[aria-invalid=true]]:border-destructive has-[input:disabled]:cursor-not-allowed has-[input:disabled]:opacity-50 " +
   "dark:bg-input/30";
 
@@ -97,7 +97,7 @@ const listClass = "box-border min-h-0 flex-1 overflow-y-auto overscroll-contain 
 const itemClass =
   "relative box-border grid min-h-11 cursor-default grid-cols-[1rem_1fr] items-center gap-2 rounded-sm px-2 py-1.5 " +
   "text-base leading-5 outline-none select-none sm:pointer-fine:min-h-8 sm:pointer-fine:text-sm " +
-  "data-highlighted:bg-accent data-highlighted:text-accent-foreground active:bg-accent active:text-accent-foreground " +
+  "data-highlighted:bg-accent data-highlighted:text-accent-foreground not-data-disabled:active:bg-accent not-data-disabled:active:text-accent-foreground " +
   "data-disabled:cursor-not-allowed data-disabled:opacity-50 [&_svg]:size-4";
 
 /**

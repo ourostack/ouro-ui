@@ -593,17 +593,16 @@ describe("motion", () => {
 });
 
 describe("Dialog close button press", () => {
-  /** The close button's scale and background once the press transition has finished. */
+  /** The close button's scale once the press transition has finished. (The tint is proven in dialog.touch.test.tsx, where hover cannot give the same colour.) */
   async function pressed() {
     const close = document.querySelector<HTMLElement>("[data-ouro-dialog-close]")!;
-    const rest = getComputedStyle(close).backgroundColor;
     await commands.pointerPress({ selector: "[data-ouro-dialog-close]", action: "down" });
     try {
       let last = "";
       await expect
         .poll(
           () => {
-            const now = `${getComputedStyle(close).scale}|${getComputedStyle(close).backgroundColor}`;
+            const now = getComputedStyle(close).scale;
             const still = now === last && close.getAnimations().length === 0;
             last = now;
             return still;
@@ -611,27 +610,24 @@ describe("Dialog close button press", () => {
           { interval: 50 },
         )
         .toBe(true);
-      const [scale, background] = last.split("|");
-      return { scale, tinted: background !== rest, transition: getComputedStyle(close).transitionDuration };
+      return { scale: last, transition: getComputedStyle(close).transitionDuration };
     } finally {
       await commands.pointerPress({ selector: "[data-ouro-dialog-close]", action: "up" });
     }
   }
 
-  it("shrinks to the press scale and tints on pointer-down, in the press duration", async () => {
+  it("shrinks to the press scale on pointer-down, in the press duration", async () => {
     await openUncontrolled();
     const result = await pressed();
     expect(result.scale).toBe("0.97");
-    expect(result.tinted).toBe(true);
     expect(result.transition.split(", ")[0]).toBe("0.16s");
   });
 
-  it("only tints, without scaling, under reduced motion", async () => {
+  it("does not scale under reduced motion", async () => {
     await commands.emulateMedia({ reducedMotion: "reduce" });
     await openUncontrolled();
     const result = await pressed();
     expect(result.scale).toBe("none");
-    expect(result.tinted).toBe(true);
   });
 });
 

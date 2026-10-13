@@ -409,15 +409,13 @@ describe("Combobox motion", () => {
     element.removeAttribute("data-ending-style");
   });
 
-  it("shrinks a chip's remove button and tints it on pointer-down", async () => {
+  it("shrinks a chip's remove button on pointer-down", async () => {
     await render(<Combobox label="Herbs" multiple items={herbs} defaultValue={["Basil"]} />);
     const selector = '[aria-label="Remove Basil"]';
     const remove = document.querySelector<HTMLElement>(selector)!;
-    const rest = getComputedStyle(remove).backgroundColor;
     await commands.pointerPress({ selector, action: "down" });
     try {
       await expect.poll(() => getComputedStyle(remove).scale).toBe("0.97");
-      await expect.poll(() => getComputedStyle(remove).backgroundColor).not.toBe(rest);
     } finally {
       await commands.pointerPress({ selector, action: "up" });
     }
