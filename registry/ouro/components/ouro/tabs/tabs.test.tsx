@@ -256,7 +256,7 @@ describe("Tabs", () => {
     expect(getComputedStyle(panel()).transitionProperty).toBe("none");
     await userEvent.click(r.tabs[2]!);
     expect(r.root.hasAttribute("data-ouro-keyboard")).toBe(false);
-    expect(getComputedStyle(r.indicator!).transitionProperty).toBe("translate");
+    expect(getComputedStyle(r.indicator!).transitionProperty).toBe("translate, scale");
     expect(getComputedStyle(panel()).transitionProperty).toBe("opacity");
   });
 
