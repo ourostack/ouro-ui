@@ -103,6 +103,8 @@ test("touchDrag with durationMs spans exactly that long in the page's event time
   for (const type of ["touchstart", "touchend"]) addEventListener(type, listener, true);
   try {
     await commands.touchDrag({ from: [260, 100], to: [40, 100], steps: 10, durationMs: 300 });
+    // The command returns once CDP takes the events; a loaded page may handle the last one later.
+    await expect.poll(() => [stamps["touchstart"], stamps["touchend"]].every((stamp) => stamp !== undefined)).toBe(true);
   } finally {
     for (const type of ["touchstart", "touchend"]) removeEventListener(type, listener, true);
   }

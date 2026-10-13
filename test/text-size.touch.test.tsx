@@ -372,6 +372,31 @@ describe("the 16px detector", () => {
     await expect(scan(subject, [], 0)).rejects.toThrow('Fixture/Deep has an overlay opener ("One") deeper than the scan opens (0 levels): raise maxDepth');
   });
 
+  it("does not click an opener whose popup is already open, as a combobox input with an inline list", async () => {
+    let clicks = 0;
+    const Open = () => (
+      <>
+        <input
+          role="combobox"
+          aria-label="Herb"
+          aria-haspopup="listbox"
+          aria-expanded="true"
+          aria-controls="fixture-herbs"
+          style={{ fontSize: "16px" }}
+          onClick={() => clicks++}
+        />
+        <ul role="listbox" id="fixture-herbs">
+          <li role="option" aria-selected="false">
+            Basil
+          </li>
+        </ul>
+      </>
+    );
+    const subject: Subject = { id: "Fixture/Open", Subject: Open, parameters: {}, demo: false };
+    expect(await scan(subject)).toEqual([]);
+    expect(clicks).toBe(0);
+  });
+
   it("names the story when an opener shows nothing", async () => {
     const subject: Subject = { id: "Fixture/Dead", Subject: () => <button aria-haspopup="dialog">Nothing</button>, parameters: {}, demo: false };
     await expect(scan(subject)).rejects.toThrow('Fixture/Dead: opening "Nothing" showed no dialog, listbox or menu');

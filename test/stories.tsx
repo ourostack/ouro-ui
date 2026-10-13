@@ -160,8 +160,8 @@ async function openFromKeyboard(element: HTMLElement): Promise<void> {
  * the scope (clicked, or opened from the keyboard when clipped to a pixel for screen readers,
  * as SwipeActions' actions button is on a phone), then, at the top level, the plain openers by
  * accessible name and the shortcut. A disabled trigger (a disabled Select in a states story)
- * opens nothing, so it is left out, and so is one already expanded (Command's search input,
- * whose inline list always shows).
+ * opens nothing, so it is left out, and so is an expanded one, whose popup is already open (a
+ * combobox input over its inline list).
  * Throws when a plain opener is missing.
  */
 export function overlayOpeners(
@@ -207,10 +207,10 @@ export async function settle(): Promise<void> {
 /** How long an overlay may take to open or close on a loaded CI runner. */
 const waitOptions = { timeout: 10_000, interval: 20 };
 
-/** The open overlay's popup (Dialog, ConfirmDialog or Sheet, in either presentation, or Select's list). */
+/** The open overlay's popup (Dialog, ConfirmDialog or Sheet, in either presentation, or a list's popup). */
 export function openPopup(): HTMLElement | null {
   return document.querySelector<HTMLElement>(
-    '[role="dialog"][data-open], [role="alertdialog"][data-open], [role="menu"][data-open], [data-ouro="select-popup"][data-open]',
+    '[role="dialog"][data-open], [role="alertdialog"][data-open], [role="menu"][data-open], [data-ouro="select-popup"][data-open], [data-open]:has([role="listbox"])',
   );
 }
 
