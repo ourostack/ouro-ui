@@ -2,7 +2,7 @@
 
 # SwipeActions
 
-A list row with actions beside it that a horizontal swipe reveals: swipe toward the start for the `trailing` actions (Delete, Archive), toward the end for the `leading` ones (Pin). Wrap the row, usually an `Item`, and name it with `label`. The swipe is for touch and pen, and it is never the only way: a long press on the row (or a right-click) opens the same actions as a `Menu` at the finger, for anyone who cannot swipe, and the row's actions button opens that menu too. A mouse sees the button at the end of the row; on a touch screen it is hidden from sight, and a keyboard or screen reader reaches it on any device. While a finger is down on the row, text selection and the iOS callout are off, so the long press opens the menu.
+A list row with actions beside it that a horizontal swipe reveals: swipe toward the start for the `trailing` actions (Delete, Archive), toward the end for the `leading` ones (Pin). Wrap the row, usually an `Item`, and name it with `label`. The swipe is for touch and pen, and it is never the only way: a long press on the row opens the same actions as a `Menu` at the finger, for anyone who cannot swipe, and the row's actions button opens that menu too. A mouse sees the button at the end of the row, and its right-click keeps the browser's own menu ("Open in new tab" for a row that is a link); on a touch screen the button is hidden from sight, and a keyboard or screen reader reaches it on any device. While a finger is down on the row, text selection and the iOS callout are off, so the long press opens the menu.
 
 ```tsx
 import { SwipeActions } from "@/registry/ouro/components/ouro/swipe-actions/swipe-actions";

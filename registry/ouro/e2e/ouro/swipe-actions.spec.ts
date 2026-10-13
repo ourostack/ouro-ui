@@ -31,12 +31,12 @@ test("a mouse follows a swipeable row's link and never drags the row", async ({ 
   await expect(page).toHaveURL(/#short-ribs$/);
 });
 
-test("a right-click on a row opens its actions where the pointer is", async ({ page }) => {
+test("a mouse's right-click on a row is left to the browser's own menu", async ({ page }) => {
   await openStory(page, "lists-swipeactions--in-context");
-  const rows = page.locator('[data-ouro="swipe-actions"]');
-  await page.getByRole("link", { name: "Shakshuka" }).click({ button: "right" });
-  await expect(page.getByRole("menuitem")).toHaveText(["Pin", "Delete", "Share"]);
-  await page.getByRole("menuitem", { name: "Delete" }).click();
-  await expect(rows).toHaveCount(2);
+  const link = page.getByRole("link", { name: "Shakshuka" });
+  const prevented = link.evaluate((element) => new Promise<boolean>((resolve) => element.addEventListener("contextmenu", (event) => setTimeout(() => resolve(event.defaultPrevented)), { once: true })));
+  await link.click({ button: "right" });
+  expect(await prevented).toBe(false);
+  await expect(page.getByRole("menu")).toHaveCount(0);
   await expect(page).not.toHaveURL(/#shakshuka$/);
 });

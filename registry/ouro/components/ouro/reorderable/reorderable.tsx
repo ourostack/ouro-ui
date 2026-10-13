@@ -71,6 +71,12 @@ export interface ReorderableProps {
    * @default "Press Enter for a menu of moves. Press Space to pick up, then use the arrow keys to move, Space to drop, and Escape to cancel."
    */
   instructionsLabel?: string | undefined;
+  /**
+   * Read after a handle's name, in place of the instructions, while its row is picked up
+   * from the keyboard.
+   * @default "Picked up. Use the arrow keys to move, Space to drop, and Escape to cancel."
+   */
+  heldLabel?: string | undefined;
   /** The item of a handle's menu that moves the row up one place. @default "Move up" */
   moveUpLabel?: string | undefined;
   /** The item of a handle's menu that moves the row down one place. @default "Move down" */
@@ -188,6 +194,7 @@ export function Reorderable(props: ReorderableProps): JSX.Element {
     onReorder,
     handleLabel = "Reorder {label}",
     instructionsLabel = "Press Enter for a menu of moves. Press Space to pick up, then use the arrow keys to move, Space to drop, and Escape to cancel.",
+    heldLabel = "Picked up. Use the arrow keys to move, Space to drop, and Escape to cancel.",
     moveUpLabel = "Move up",
     moveDownLabel = "Move down",
     moveToTopLabel = "Move to top",
@@ -257,6 +264,7 @@ export function Reorderable(props: ReorderableProps): JSX.Element {
   const total = order.length;
 
   const instructionsId = useId();
+  const heldId = useId();
   const listRef = useRef<HTMLOListElement>(null);
   /** The handle a pointer last pressed, and the drag it became. */
   const pressed = useRef<string | null>(null);
@@ -599,8 +607,9 @@ export function Reorderable(props: ReorderableProps): JSX.Element {
                     type="button"
                     data-ouro-reorderable-handle=""
                     aria-label={fillLabel(handleLabel, item.label, index + 1, total)}
-                    aria-describedby={instructionsId}
-                    aria-pressed={grabbed?.id === id}
+                    // A menu button, so no `aria-pressed`: a picked-up row is said by the announcer and by the handle's description.
+                    aria-describedby={grabbed?.id === id ? heldId : instructionsId}
+                    data-grabbed={grabbed?.id === id ? "" : undefined}
                     className={handleClass}
                     onClick={(event) => onClick(event, id)}
                     onKeyDown={(event) => onKeyDown(event, id)}
@@ -631,6 +640,9 @@ export function Reorderable(props: ReorderableProps): JSX.Element {
       </ol>
       <span id={instructionsId} hidden>
         {instructionsLabel}
+      </span>
+      <span id={heldId} hidden>
+        {heldLabel}
       </span>
     </div>
   );

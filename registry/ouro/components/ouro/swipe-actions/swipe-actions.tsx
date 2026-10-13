@@ -147,12 +147,13 @@ function Strip({
  * A list row with actions beside it that a horizontal swipe reveals: swipe toward the
  * start for the `trailing` actions (Delete, Archive), toward the end for the `leading`
  * ones (Pin). Wrap the row, usually an `Item`, and name it with `label`. The swipe is for
- * touch and pen, and it is never the only way: a long press on the row (or a right-click)
- * opens the same actions as a `Menu` at the finger, for anyone who cannot swipe, and the
- * row's actions button opens that menu too. A mouse sees the button at the end of the row;
- * on a touch screen it is hidden from sight, and a keyboard or screen reader reaches it on
- * any device. While a finger is down on the row, text selection and the iOS callout are
- * off, so the long press opens the menu.
+ * touch and pen, and it is never the only way: a long press on the row opens the same
+ * actions as a `Menu` at the finger, for anyone who cannot swipe, and the row's actions
+ * button opens that menu too. A mouse sees the button at the end of the row, and its
+ * right-click keeps the browser's own menu ("Open in new tab" for a row that is a link);
+ * on a touch screen the button is hidden from sight, and a keyboard or screen reader
+ * reaches it on any device. While a finger is down on the row, text selection and the iOS
+ * callout are off, so the long press opens the menu.
  *
  * The first action of each side is its primary one: it sits at the outer edge, and a
  * swipe past 60% of the row runs it on release, with no confirmation. So make a
@@ -270,6 +271,8 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
   const trailingRef = useRef<HTMLDivElement>(null);
   // Whether the last touch on the row was a swipe or a long press, whose click (if the browser sends one) is not a tap.
   const swiped = useRef(false);
+  // Whether the last press on the row was a finger's or a pen's: only theirs can be a long press.
+  const fingered = useRef(false);
   // The side a press stopped the row on its way to: where it goes on if the press is only a tap.
   const caught = useRef<SwipeSide | null | undefined>(undefined);
   // Where the track is, in px from closed, and the spring carrying it to rest.
@@ -495,8 +498,12 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
     // A finger that is already swiping the row is not pressing it.
     if (menuOpen && rootRef.current!.hasAttribute("data-dragging")) return;
     setPressed(menuOpen);
-    // The menu is now the way to the actions, and the press that opened it is not a tap on the row.
-    if (menuOpen) settle(null);
+    // The menu is now the way to the actions, and the press that opened it is not a tap on
+    // the row. A row the press caught on its way open stays closed when the finger lifts.
+    if (menuOpen) {
+      caught.current = undefined;
+      settle(null);
+    }
     swiped.current = menuOpen;
   };
 
@@ -507,8 +514,15 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
       data-open={open ?? undefined}
       className={cn(rootClass, className)}
       // Any new press forgets the last swipe. On the way down, so content that keeps its presses to itself cannot leave the next tap swallowed.
-      onPointerDownCapture={() => {
+      onPointerDownCapture={(event) => {
         swiped.current = false;
+        fingered.current = event.pointerType !== "mouse";
+      }}
+      // A mouse's right-click is the browser's: its menu has "Open in new tab" for a row that
+      // is a link, and a mouse has the actions button in sight. Menu never hears of it.
+      onContextMenuCapture={(event) => {
+        if (fingered.current || !event.currentTarget.contains(event.target as Node)) return;
+        event.stopPropagation();
       }}
       onPointerDown={onPointerDown}
       onPointerMove={drag.onPointerMove}
@@ -519,7 +533,7 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
       <div ref={trackRef} data-ouro-swipe-actions-track="" className={trackClass}>
         <Strip side="leading" actions={leading} open={open === "leading"} stripRef={leadingRef} onAction={tapped} />
         {all.length > 0 ? (
-          // A long press on the row (or a right-click) opens the actions at the finger: the way in for a touch that cannot swipe.
+          // A long press on the row opens the actions at the finger: the way in for a touch that cannot swipe.
           <Menu contextTrigger={content} open={pressed} onOpenChange={onLongPress} items={items} />
         ) : (
           content

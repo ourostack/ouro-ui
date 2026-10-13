@@ -9,13 +9,13 @@ test("reorders with the keyboard: Space picks a row up, the arrows move it, Spac
   const sear = page.getByRole("button", { name: "Reorder Sear the ribs" });
   await sear.focus();
   await page.keyboard.press("Space");
-  await expect(sear).toHaveAttribute("aria-pressed", "true");
+  await expect(sear).toHaveAttribute("data-grabbed", "");
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("ArrowDown");
   await expect(sear).toBeFocused();
   await expect(page.locator("[data-ouro-announcer]")).toHaveText("Sear the ribs moved. Position 3 of 4.");
   await page.keyboard.press("Space");
-  await expect(sear).toHaveAttribute("aria-pressed", "false");
+  await expect(sear).not.toHaveAttribute("data-grabbed");
   await expect(saved).toHaveText("Saved order: soften, wine, sear, braise");
   await expect(handles.nth(2)).toHaveAttribute("aria-label", "Reorder Sear the ribs");
 

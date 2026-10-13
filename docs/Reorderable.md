@@ -39,6 +39,7 @@ Type: `ReorderableProps`.
 | `closeLabel` | `string` | `"Close"` | The item that closes a handle's menu on a phone, where it is a bottom sheet. |
 | `droppedLabel` | `string` | `"{label} dropped. Position {n} of {total}."` | Announced when a row is dropped. |
 | `handleLabel` | `string` | `"Reorder {label}"` | Each handle's accessible name; `{label}` is the row's label. |
+| `heldLabel` | `string` | `"Picked up. Use the arrow keys to move, Space to drop, and Escape to cancel."` | Read after a handle's name, in place of the instructions, while its row is picked up from the keyboard. |
 | `instructionsLabel` | `string` | `"Press Enter for a menu of moves. Press Space to pick up, then use the arrow keys to move, Space to drop, and Escape to cancel."` | How to use a handle from the keyboard, read after its name. |
 | `items` (required) | `readonly ReorderableItem[]` |  | The rows, in order: `{ id, label, content }`. Pass them in a new order to change the order from outside. |
 | `label` (required) | `string` |  | Names the list for screen readers, such as "Steps". Always required. |

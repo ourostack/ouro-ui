@@ -650,7 +650,7 @@ describe("SwipeActions", () => {
     expect(await click(link, 1)).toEqual({ reached: true, prevented: false });
   });
 
-  it("opens every action as a menu at the pointer on a long press or a right-click, and that press is not a tap or a swipe", async () => {
+  it("opens every action as a menu at the finger on a long press, and that press is not a tap or a swipe", async () => {
     const spies = calls();
     const element = await render(row(spies));
     const link = page.getByRole("link", { name: "Short ribs" }).element();
@@ -683,6 +683,51 @@ describe("SwipeActions", () => {
     await expect.poll(() => document.querySelector('[role="menu"]')).toBeNull();
     // Closed, the row takes taps again.
     expect(await click(link, 1)).toEqual({ reached: true, prevented: false });
+  });
+
+  it("leaves a mouse's right-click to the browser, on the row and in its actions menu", async () => {
+    const element = await render(row());
+    const rightClick = async (target: Element) => {
+      const asked = new MouseEvent("contextmenu", { bubbles: true, cancelable: true, button: 2, clientX: 200, clientY: 20 });
+      await act(async () => {
+        target.dispatchEvent(asked);
+      });
+      return asked.defaultPrevented;
+    };
+    await pointer(content(element), "pointerdown", 200, 20, { pointerType: "mouse", button: 2, buttons: 2 });
+    // The browser's own menu, with "Open in new tab" for the row's link: the row's does not open.
+    expect(await rightClick(content(element))).toBe(false);
+    await pointer(window, "pointerup", 200, 20, { pointerType: "mouse", button: 2 });
+    expect(document.querySelector('[role="menu"]')).toBeNull();
+    expect(element.hasAttribute("data-open")).toBe(false);
+    // A right-click inside the open actions menu is the menu's own business.
+    await act(async () => menuButton(element).click());
+    await expect.element(page.getByRole("menu")).toBeVisible();
+    await rightClick(page.getByRole("menuitem", { name: "Archive" }).element());
+    expect(document.querySelectorAll('[role="menu"]').length).toBe(1);
+  });
+
+  it("keeps a row closed that a long press caught on its way open", async () => {
+    const element = await render(row());
+    await swipe(element, -120, { hold: true });
+    wait(300);
+    freeze();
+    await pointer(window, "pointerup", 80, 20);
+    frames!.step(16);
+    expect(element.getAttribute("data-open")).toBe("trailing");
+    // A finger stops the row mid-spring and stays down until the long press opens the menu.
+    wait(1000);
+    await pointer(content(element), "pointerdown", 200, 20);
+    await act(async () => {
+      content(element).dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 200, clientY: 20 }));
+    });
+    expect(document.querySelector('[role="menu"]')).not.toBeNull();
+    expect(element.hasAttribute("data-open")).toBe(false);
+    // Lifting the finger does not send the row back to where it was going.
+    await pointer(window, "pointerup", 200, 20);
+    expect(element.hasAttribute("data-open")).toBe(false);
+    await rest(element);
+    expect(offset(element)).toBe(0);
   });
 
   it("does not open the long-press menu under a finger that is already swiping", async () => {
