@@ -1,0 +1,1 @@
+- `MenuItem` takes `current`, which marks a link item as the page being shown (`aria-current="page"`, with the highlighted look). `Sidebar` uses it for the nested links a collapsed rail opens in a menu.

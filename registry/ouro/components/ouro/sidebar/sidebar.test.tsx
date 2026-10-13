@@ -447,7 +447,10 @@ describe("Sidebar items", () => {
     const menu = page.getByRole("menu");
     await expect.element(menu).toBeVisible();
     await expect.element(menu.getByRole("menuitem", { name: "Profile" })).toHaveAttribute("href", "/settings/profile");
-    await expect.element(menu.getByRole("menuitem", { name: "Billing New" })).toBeVisible();
+    // The current page is marked in the menu, as it is in the expanded sidebar.
+    await expect.element(menu.getByRole("menuitem", { name: "Billing New" })).toHaveAttribute("aria-current", "page");
+    expect(menu.getByRole("menuitem", { name: "Profile" }).element().hasAttribute("aria-current")).toBe(false);
+    expect(menu.getByRole("menuitem", { name: "Sign out" }).element().hasAttribute("aria-current")).toBe(false);
     // The sidebar did not expand, and the same button is still there, now open.
     expect(onCollapsedChange).not.toHaveBeenCalled();
     expect(toggle.isConnected).toBe(true);

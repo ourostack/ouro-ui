@@ -364,7 +364,7 @@ export function Sidebar(props: SidebarProps): JSX.Element {
                     }
                   >
                     {item.items.map((child, at) => (
-                      <MenuItem key={at} href={child.href} onClick={child.onClick}>
+                      <MenuItem key={at} href={child.href} current={isCurrent(child)} onClick={child.onClick}>
                         {child.label}
                         {child.badge !== undefined && (
                           <>
