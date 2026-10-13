@@ -1,1 +1,0 @@
-- The `ouro-touch` test project turns touch emulation back on before every test, through the new `commands.restoreTouch()`. Chromium drops it after a screenshot taller than the viewport, such as the one Vitest takes when a test fails on a tall page, so one failing touch test no longer fails every later test that checks for a coarse pointer.

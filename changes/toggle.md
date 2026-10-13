@@ -1,1 +1,0 @@
-- New: `Toggle`, a button that stays pressed (`pressed`, `defaultPressed`, `onPressedChange`) with one name (`label`, `hideLabel` with an `icon` for icon-only) and `aria-pressed`, in `plain` and `outline` variants and Button's sizes.

@@ -1,1 +1,0 @@
-- New: `AspectRatio`, a frame that keeps an image or video at `ratio` (a number such as `16 / 9`) while its width follows the layout.

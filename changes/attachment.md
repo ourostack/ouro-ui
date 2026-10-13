@@ -1,1 +1,0 @@
-- New: `Attachment`, a file on a chat message: its icon, name and size (`formatSize`), a link with `href`, and a remove button with `onRemove`, named by `removeLabel`.
