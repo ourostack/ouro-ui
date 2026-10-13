@@ -20,6 +20,12 @@ import { accessibleName, cleanupStories, isVisible, overlayOpeners, renderStory,
 //
 // Out of scope: controls that appear only after typing, after stepping through a flow (a wizard's
 // next step, a submitted form) or after any interaction other than opening an overlay.
+//
+// The scan runs with every CSS transition and animation at zero length. Motion never changes a
+// control's font size, only how long an overlay takes to reach its open or closed state, and
+// waiting it out cost most of the file's time: below 640px a Menu is a bottom sheet that takes
+// 500ms to rise and 200ms to fall, so a story with ten row menus (Reorderable/ScrollsInPlace)
+// spent over 7s of a 15s limit on motion in portrait and under 1s in landscape.
 
 /** Text-entry controls: what iOS zooms into on focus. */
 const textEntry =
@@ -32,6 +38,13 @@ const popupSelector = '[role="dialog"], [role="alertdialog"], [role="listbox"], 
 
 /** How many overlays deep the scan opens (an overlay inside an overlay inside an overlay). */
 const maxDepth = 3;
+
+/** Turns off CSS motion while a subject is scanned; see the comment at the top. */
+const noMotion =
+  "*, *::before, *::after, ::backdrop { transition-duration: 0s !important; transition-delay: 0s !important; animation-duration: 0s !important; animation-delay: 0s !important; }";
+
+/** How long an opener has to show its popup, on a loaded CI runner. */
+const openTimeout = 10_000;
 
 /** Stories and demos that fail today, by id, with the component that needs the fix. */
 const knownViolations: Record<string, string> = {};
@@ -103,7 +116,7 @@ const subjects = [...storySubjects, ...demoSubjects];
 const visiblePopups = () => [...document.querySelectorAll<HTMLElement>(popupSelector)].filter(isVisible);
 
 /** Opens an overlay and returns the popups it added. */
-async function openVia(opener: Opener, where: string): Promise<HTMLElement[]> {
+async function openVia(opener: Opener, where: string, timeout: number): Promise<HTMLElement[]> {
   const before = new Set(visiblePopups());
   await opener.open();
   let added: HTMLElement[] = [];
@@ -112,7 +125,7 @@ async function openVia(opener: Opener, where: string): Promise<HTMLElement[]> {
       added = visiblePopups().filter((popup) => !before.has(popup));
       if (added.length === 0) throw new Error(`${where}: opening "${opener.name}" showed no dialog, listbox or menu`);
     },
-    { timeout: 10_000, interval: 20 },
+    { timeout, interval: 20 },
   );
   await settle();
   // A popup that opened inside another one (a listbox in a dialog) is scanned with its parent.
@@ -142,10 +155,13 @@ async function closeAll(where: string, opened: HTMLElement[]): Promise<void> {
  * Renders the subject, opens the overlays along `path` (an opener index per level) and scans what
  * the last one showed: the whole page at the top, the new popups below it. Then does the same for
  * each opener in what it showed, `depth` levels deep, and fails on an opener below that.
+ * `openTimeout` is how long an opener has to show its popup.
  */
-async function scan(subject: Subject, path: number[] = [], depth = maxDepth): Promise<string[]> {
+async function scan(subject: Subject, path: number[] = [], depth = maxDepth, options: { openTimeout?: number } = {}): Promise<string[]> {
   const style = subject.demo ? Object.assign(document.createElement("style"), { textContent: siteCss }) : undefined;
   if (style) document.head.append(style);
+  const still = Object.assign(document.createElement("style"), { textContent: noMotion });
+  document.head.append(still);
   try {
     const host = await renderStory(subject.Subject);
     await settle();
@@ -154,7 +170,7 @@ async function scan(subject: Subject, path: number[] = [], depth = maxDepth): Pr
     const opened: HTMLElement[] = [];
     for (const [level, index] of path.entries()) {
       const opener = overlayOpeners(subject.id, scope, subject.parameters, level === 0)[index]!;
-      const added = await openVia(opener, where);
+      const added = await openVia(opener, where, options.openTimeout ?? openTimeout);
       opened.push(...added);
       scope = added;
       where += ` with "${opener.name}" open`;
@@ -167,9 +183,10 @@ async function scan(subject: Subject, path: number[] = [], depth = maxDepth): Pr
       const names = children.map((opener) => `"${opener.name}"`).join(", ");
       throw new Error(`${where} has an overlay opener (${names}) deeper than the scan opens (${depth} levels): raise maxDepth`);
     }
-    for (let index = 0; index < children.length; index++) found.push(...(await scan(subject, [...path, index], depth)));
+    for (let index = 0; index < children.length; index++) found.push(...(await scan(subject, [...path, index], depth, options)));
     return found;
   } finally {
+    still.remove();
     style?.remove();
   }
 }
@@ -399,7 +416,39 @@ describe("the 16px detector", () => {
 
   it("names the story when an opener shows nothing", async () => {
     const subject: Subject = { id: "Fixture/Dead", Subject: () => <button aria-haspopup="dialog">Nothing</button>, parameters: {}, demo: false };
-    await expect(scan(subject)).rejects.toThrow('Fixture/Dead: opening "Nothing" showed no dialog, listbox or menu');
+    const start = performance.now();
+    await expect(scan(subject, [], maxDepth, { openTimeout: 500 })).rejects.toThrow('Fixture/Dead: opening "Nothing" showed no dialog, listbox or menu');
+    expect(performance.now() - start).toBeLessThan(5_000);
+  });
+
+  it("scans an overlay without waiting out its motion, which does not change a font size", async () => {
+    function Slow() {
+      const [open, setOpen] = useState(false);
+      useEffect(() => {
+        const onKey = (event: KeyboardEvent) => event.key === "Escape" && setOpen(false);
+        document.addEventListener("keydown", onKey);
+        return () => document.removeEventListener("keydown", onKey);
+      }, []);
+      // A 20s entrance on the page and on the popup: far past the test's timeout if waited out.
+      const slow = { animation: "fixture-slow-fade 20s" };
+      return (
+        <>
+          <style>{"@keyframes fixture-slow-fade { from { opacity: 0.5 } }"}</style>
+          <button aria-haspopup="dialog" style={slow} onClick={() => setOpen(true)}>
+            Edit
+          </button>
+          {open && (
+            <div role="dialog" aria-label="Edit" style={slow}>
+              <input aria-label="Name" style={px14} />
+            </div>
+          )}
+        </>
+      );
+    }
+    const subject: Subject = { id: "Fixture/Slow", Subject: Slow, parameters: {}, demo: false };
+    const start = performance.now();
+    expect((await scan(subject)).map((line) => line.replace(/ is 14px.*$/, ""))).toEqual(['Fixture/Slow with "Edit" open: input[type=text] "Name"']);
+    expect(performance.now() - start).toBeLessThan(5_000);
   });
 });
 
