@@ -1,4 +1,4 @@
-import { afterEach, expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { commands } from "vitest/browser";
 import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 
@@ -161,6 +161,29 @@ test("a touch the page never handles throws, naming the event and what the page 
     "touchStep: the page did not handle the touchEnd at (100, 100) within 5000ms. It handled: no touch events. Is the page visible and rendering, and is the point inside it?",
   );
   // The next gesture starts clean.
+  const element = scroller();
+  await swipe();
+  await expect.poll(() => element.scrollLeft).toBeGreaterThan(100);
+});
+
+test("a missing touch event remains bounded while the page clock is frozen", async () => {
+  const frame = document.createElement("iframe");
+  Object.assign(frame.style, { position: "absolute", top: "0", left: "0", width: "300px", height: "200px", border: "0" });
+  frame.srcdoc = "<body style='margin:0'><div style='height:200px'></div></body>";
+  const loaded = new Promise((resolve) => frame.addEventListener("load", resolve, { once: true }));
+  document.body.append(frame);
+  nodes.push(frame);
+  await loaded;
+  await commands.touchStep({ type: "touchStart", x: 100, y: 100 });
+  frame.remove();
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  try {
+    await expect(commands.touchStep({ type: "touchEnd" })).rejects.toThrow(
+      "touchStep: the page did not handle the touchEnd at (100, 100) within 5000ms.",
+    );
+  } finally {
+    vi.useRealTimers();
+  }
   const element = scroller();
   await swipe();
   await expect.poll(() => element.scrollLeft).toBeGreaterThan(100);

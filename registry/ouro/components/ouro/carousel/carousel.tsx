@@ -270,9 +270,12 @@ export function Carousel(props: CarouselProps): JSX.Element {
   });
 
   const go = (step: 1 | -1) => {
-    const from = heading.current ?? current;
-    // The buttons are disabled at the ends without `loop`, so wrapping only happens with it.
-    const target = from + step > lastIndex ? 0 : from + step < 0 ? lastIndex : from + step;
+    // scrollend updates the ref before React commits the rendered index.
+    const from = heading.current ?? Math.min(settled.current, lastIndex);
+    // A native scrollend press can precede React disabling the boundary button.
+    const requested = from + step;
+    if (!loop && (requested < 0 || requested > lastIndex)) return;
+    const target = requested > lastIndex ? 0 : requested < 0 ? lastIndex : requested;
     heading.current = target;
     const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
     scrollToSlide(target, reduce ? "instant" : "smooth");
