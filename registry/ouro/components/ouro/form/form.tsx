@@ -11,9 +11,10 @@ import { errorMessageKey, errorMessages, FormErrorsContext, type ErrorMessages }
 /**
  * Errors by field name: one message, or several as an array. A React Router action returns
  * this shape. A message is text or a React node, so it can carry a link. The `form` key holds
- * messages about the whole form.
+ * messages about the whole form. A key may hold nothing (`undefined`, `null`, an empty string
+ * or list), so an object mapped from an action's answer needs no cleanup.
  */
-export type FormErrors = Record<string, ErrorMessages>;
+export type FormErrors = Record<string, ErrorMessages | null | undefined>;
 
 /** Props for {@link Form}: a `<form>`'s attributes, `errors`, and Base UI Form's `render`. */
 export type FormProps = Omit<BaseForm.Props, "className" | "errors" | "children"> & {
@@ -109,6 +110,35 @@ function entryPoint(element: HTMLElement): HTMLElement {
  * never submits the outer one. It renders a `<form>`, so `action` and `method` pass
  * through; to submit through React Router, render its `Form`: `render={<RouterForm />}`.
  *
+ * A submit is checked in this order. First the browser's own checks (`required`,
+ * `type="email"`, `pattern`): a failure stops the submit, marks each failing field with the
+ * browser's message and moves focus to the first. Then your `onSubmit`, which runs only when
+ * those pass and can still call `event.preventDefault()`. Then the server, whose answer
+ * comes back as `errors`.
+ *
+ * The keys of `errors` are your fields' `name`s, and `form` is the message about the whole
+ * form. An action that answers with other keys is mapped where you pass them:
+ * `errors={{ form: data?.errors?.general, email: data?.errors?.email }}`. A key that no field
+ * in this form is named shows at the top of the form and warns in development with the key,
+ * this form's field names and the fix; with two forms on one route, pass each only its own
+ * keys.
+ *
+ * Errors are compared by content, so an object built while rendering is fine: it shows a
+ * cleared message again only when its content changes or after the next submit.
+ *
+ * The message about the whole form is an alert (`role="alert"`). It is in the page only
+ * while there is a message, and each answer adds a new one with its text already in it,
+ * which is what screen readers announce; `getByRole("alert")` finds nothing on a form
+ * without one. A field's message is not an alert: it is that control's description, so
+ * assert it with `toHaveAccessibleDescription`.
+ *
+ * Focus moves to the first field with an error when errors arrive after a submit. A page
+ * that loads with `errors` already set (a post without JavaScript, or a reload) shows them
+ * in the server HTML and moves no focus: nothing was submitted from this page, and taking
+ * focus on load would drop a keyboard or screen-reader user into the middle of a page they
+ * have not read. To send them to the errors on load, put an in-page link to the form in
+ * your page's own error summary.
+ *
  * Use `EditSheet` instead for a form in a dialog that saves and closes, and a plain
  * `<form>` when nothing needs validating.
  *
@@ -120,6 +150,14 @@ function entryPoint(element: HTMLElement): HTMLElement {
  * <Form method="post" errors={actionData?.errors} render={<RouterForm />}>
  *   <TextField label="Email" name="email" type="email" required />
  *   <Button type="submit">Save</Button>
+ * </Form>
+ *
+ * @example
+ * // The action answers { errors: { general, email } }: map its keys to this form's field names.
+ * const errors = actionData?.errors;
+ * <Form method="post" errors={{ form: errors?.general, email: errors?.email }} render={<RouterForm />}>
+ *   <TextField label="Email" name="email" type="email" required />
+ *   <Button type="submit">Subscribe</Button>
  * </Form>
  */
 export function Form(props: FormProps): JSX.Element {
@@ -191,7 +229,7 @@ export function Form(props: FormProps): JSX.Element {
       ? () => [
           validationErrors !== undefined && ["validationErrors is not a prop", "<Form errors={actionData?.errors}>"],
           ...Object.keys(errorsProp ?? EMPTY)
-            .filter((key) => key !== FORM_KEY && !names.current.has(key))
+            .filter((key) => key !== FORM_KEY && !names.current.has(key) && errorMessages(errorsProp![key]).length > 0)
             .map((key) => unclaimedWarning(key, [...names.current.keys()])),
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
@@ -242,15 +280,16 @@ export function Form(props: FormProps): JSX.Element {
 function unclaimedWarning(key: string, fields: string[]): readonly [string, string] {
   const property = (name: string) => (/^[A-Za-z_$][\w$]*$/.test(name) ? name : JSON.stringify(name));
   const read = (name: string) => (property(name) === name ? `errors.${name}` : `errors[${property(name)}]`);
+  const own = fields.map((name) => `${property(name)}: ${read(name)}`).join(", ");
   return fields.length === 0
     ? [
         `errors has the key "${key}", but the form has no named field, so the message shows at the top of the form`,
-        `a message about the whole form uses the "${FORM_KEY}" key: errors={{ ${FORM_KEY}: ${read(key)} }}`,
+        `a message about the whole form goes under the "${FORM_KEY}" key: errors={{ ${FORM_KEY}: ${read(key)} }}`,
       ]
     : [
         `errors has the key "${key}", but the form's fields are named ${fields.join(", ")}, so the message shows at the top of the form`,
-        `a message about the whole form uses the "${FORM_KEY}" key: errors={{ ...errors, ${FORM_KEY}: ${read(key)} }}; ` +
-          `to pass only this form's errors: errors={{ ${fields.map((name) => `${property(name)}: ${read(name)}`).join(", ")} }}`,
+        `a message about the whole form goes under the "${FORM_KEY}" key: errors={{ ${FORM_KEY}: ${read(key)}, ${own} }}; ` +
+          `one that belongs to another form is left out: errors={{ ${own} }}`,
       ];
 }
 

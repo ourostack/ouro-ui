@@ -115,7 +115,7 @@ export type ErrorMessages = ErrorMessage | ErrorMessage[];
  *
  * @internal
  */
-export function errorMessages(error: ErrorMessages | undefined): ErrorMessage[] {
+export function errorMessages(error: ErrorMessages | null | undefined): ErrorMessage[] {
   const list: unknown[] = Array.isArray(error) ? error : [error];
   return [...new Set(list)].filter((message): message is ErrorMessage => typeof message === "string" ? message !== "" : isValidElement(message));
 }
@@ -133,7 +133,7 @@ export function errorMessageKey(message: ErrorMessage, index: number): string {
 /** A form's server or client errors, by field name, as `Form` shares them with the fields inside it. */
 export interface FormErrorsValue {
   /** The messages for each field name; a field shows its own when it has no `error` prop. */
-  errors: Readonly<Record<string, ErrorMessages>>;
+  errors: Readonly<Record<string, ErrorMessages | null | undefined>>;
   /** Drops one field's message, once the user changes that field. */
   clear: (name: string) => void;
   /**

@@ -28,7 +28,7 @@ export interface OtpFieldProps {
   description?: ReactNode | undefined;
   /**
    * What is wrong ("That code has expired"), from your server action or client check. It shows
-   * under the slots, which get `aria-invalid`. An empty string or array means valid.
+   * under the slots, which get `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid.
    */
   error?: ErrorMessages | undefined;
   /** The code must be filled before the form submits. */

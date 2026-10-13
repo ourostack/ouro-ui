@@ -36,7 +36,7 @@ export interface RadioGroupOwnProps {
   description?: ReactNode | undefined;
   /**
    * What is wrong, from your server action or client check, shown under the choices; every
-   * radio gets `aria-invalid`. An empty string or array means valid.
+   * radio gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid.
    */
   error?: ErrorMessages | undefined;
   /** A choice must be picked to submit the form: the group gets `aria-required`, and the legend a marker. */

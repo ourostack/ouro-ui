@@ -32,7 +32,7 @@ export interface ColorFieldProps {
   description?: ReactNode | undefined;
   /**
    * What is wrong, from your server action or client check. It shows under the field, which
-   * gets `aria-invalid`. An empty string or array means valid.
+   * gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid.
    */
   error?: ErrorMessages | undefined;
   /**

@@ -360,8 +360,10 @@ describe("Form", () => {
         </Field>
       </Form>,
     );
-    await userEvent.fill(page.getByRole("textbox", { name: "Name" }), "Ari");
-    await userEvent.fill(page.getByRole("textbox", { name: "Unnamed" }), "x");
+    // "Name" is also part of "Unnamed": exact, so the lookup finds one field under substring
+    // matching too (Vitest 4, Playwright), not only where a name matches exactly by default.
+    await userEvent.fill(page.getByRole("textbox", { name: "Name", exact: true }), "Ari");
+    await userEvent.fill(page.getByRole("textbox", { name: "Unnamed", exact: true }), "x");
     expect(input("email").getAttribute("aria-invalid")).toBe("true");
   });
 
@@ -646,9 +648,52 @@ describe("Form-level messages (review fix round 1, finding 3)", () => {
     await expect.poll(() => warn.mock.calls.length).toBe(1);
     expect(warn).toHaveBeenCalledWith(
       '[ouro-ui] Form: errors has the key "general", but the form\'s fields are named email, name, so the message shows at the top of the form. ' +
-        'Fix: a message about the whole form uses the "form" key: errors={{ ...errors, form: errors.general }}; ' +
-        "to pass only this form's errors: errors={{ email: errors.email, name: errors.name }}.",
+        'Fix: a message about the whole form goes under the "form" key: errors={{ form: errors.general, email: errors.email, name: errors.name }}; ' +
+        "one that belongs to another form is left out: errors={{ email: errors.email, name: errors.name }}.",
     );
+  });
+
+  it("follows its own fix: an object mapped key by key shows the message once and warns about nothing, whatever is missing", async () => {
+    const answers: (Record<string, string | null | undefined> | undefined)[] = [undefined, { general: "Could not save." }, { email: "That email is taken.", name: null }];
+    function Mapped({ answer }: { answer: Record<string, string | null | undefined> | undefined }) {
+      return (
+        <Form errors={{ form: answer?.general, email: answer?.email, name: answer?.name }}>
+          <TextField label="Email" name="email" />
+          <TextField label="Name" name="name" />
+        </Form>
+      );
+    }
+    const { rerender, host, input } = await render(<Mapped answer={answers[0]} />);
+    expect(host.querySelector('[role="alert"]')).toBeNull();
+    expect(input("email").getAttribute("aria-invalid")).toBeNull();
+    await rerender(<Mapped answer={answers[1]} />);
+    expect(host.querySelector('[role="alert"]')!.textContent).toBe("Could not save.");
+    await rerender(<Mapped answer={answers[2]} />);
+    expect(host.querySelector('[role="alert"]')).toBeNull();
+    expect(input("email").getAttribute("aria-invalid")).toBe("true");
+    expect(input("name").getAttribute("aria-invalid")).toBeNull();
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("says nothing about a key no field claims while it holds no message", async () => {
+    await render(
+      <Form errors={{ general: undefined, other: null, empty: "", none: [] }}>
+        <TextField label="Email" name="email" />
+      </Form>,
+    );
+    await expect.element(page.getByRole("textbox", { name: "Email", exact: true })).toBeInTheDocument();
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("leaves focus where the browser put it when the page loads with errors", async () => {
+    const { input, host } = await render(
+      <Form errors={{ email: "That email is taken.", form: "Could not save." }}>
+        <TextField label="Email" name="email" />
+      </Form>,
+    );
+    await expect.poll(() => input("email").getAttribute("aria-invalid")).toBe("true");
+    expect(host.querySelector('[role="alert"]')!.textContent).toBe("Could not save.");
+    expect(host.contains(document.activeElement)).toBe(false);
   });
 
   it("quotes a key or field name that is not a plain property name in the warning's fix", async () => {
@@ -660,8 +705,8 @@ describe("Form-level messages (review fix round 1, finding 3)", () => {
     await expect.poll(() => warn.mock.calls.length).toBe(1);
     expect(warn).toHaveBeenCalledWith(
       '[ouro-ui] Form: errors has the key "first name", but the form\'s fields are named last-name, so the message shows at the top of the form. ' +
-        'Fix: a message about the whole form uses the "form" key: errors={{ ...errors, form: errors["first name"] }}; ' +
-        'to pass only this form\'s errors: errors={{ "last-name": errors["last-name"] }}.',
+        'Fix: a message about the whole form goes under the "form" key: errors={{ form: errors["first name"], "last-name": errors["last-name"] }}; ' +
+        'one that belongs to another form is left out: errors={{ "last-name": errors["last-name"] }}.',
     );
   });
 
@@ -674,7 +719,7 @@ describe("Form-level messages (review fix round 1, finding 3)", () => {
     await expect.poll(() => warn.mock.calls.length).toBe(1);
     expect(warn).toHaveBeenCalledWith(
       '[ouro-ui] Form: errors has the key "general", but the form has no named field, so the message shows at the top of the form. ' +
-        'Fix: a message about the whole form uses the "form" key: errors={{ form: errors.general }}.',
+        'Fix: a message about the whole form goes under the "form" key: errors={{ form: errors.general }}.',
     );
   });
 

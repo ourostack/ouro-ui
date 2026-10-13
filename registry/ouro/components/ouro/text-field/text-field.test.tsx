@@ -172,6 +172,18 @@ describe("TextField types", () => {
     );
   });
 
+  it.each([
+    ["datetime-local", "has no date-and-time field; DatePicker picks the date and a time TextField the time", '<DatePicker label="When" name="date" /> and <TextField label="Time" type="time" name="time" />'],
+    ["file", "FileField picks and lists files", '<FileField label="When" name="file" />'],
+    ["month", "DatePicker picks dates from a calendar", '<DatePicker label="When" />, or <TextField type="date"> for the OS picker'],
+    ["week", "DatePicker picks dates from a calendar", '<DatePicker label="When" />, or <TextField type="date"> for the OS picker'],
+  ] as const)("renders a text input and names the component for type=%s", async (type, why, fix) => {
+    const props = { label: "When", type } as unknown as TextFieldProps;
+    const { input } = await render(<TextField {...props} />);
+    expect(input.type).toBe("text");
+    expect(warn).toHaveBeenCalledWith(`[ouro-ui] TextField: type="${type}" is not a TextField type; ${why}. Fix: ${fix}.`);
+  });
+
   it("renders a text input and lists the types for any other type", async () => {
     const props = { label: "Color", type: "color" } as unknown as TextFieldProps;
     const { input } = await render(<TextField {...props} />);
@@ -511,6 +523,71 @@ describe("TextField looks", () => {
     const [valid, invalid, disabled] = [...host.querySelectorAll<HTMLElement>("[data-ouro-input-group]")];
     expect(getComputedStyle(invalid!).borderTopColor).not.toBe(getComputedStyle(valid!).borderTopColor);
     expect(getComputedStyle(disabled!).opacity).toBe("0.5");
+  });
+});
+
+describe("TextField variant and size", () => {
+  it("draws no frame of its own with variant plain, and still outlines on keyboard focus", async () => {
+    const { group, input } = await render(<TextField label="Search recipes" hideLabel type="search" variant="plain" />);
+    const box = getComputedStyle(group);
+    expect(group.dataset.variant).toBe("plain");
+    expect(box.borderTopWidth).toBe("0px");
+    expect(box.paddingLeft).toBe("0px");
+    expect(box.paddingRight).toBe("0px");
+    expect(box.backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    input.focus();
+    await expect.poll(() => getComputedStyle(group).outlineStyle).toBe("solid");
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("keeps a plain field's buttons inside its box", async () => {
+    const { group, button } = await render(<TextField label="Search" type="search" variant="plain" clearable defaultValue="basil" />);
+    expect(button("Clear")!.getBoundingClientRect().right).toBeLessThanOrEqual(group.getBoundingClientRect().right + 0.5);
+  });
+
+  it("sets 20px text in a taller box with size lg, at phone and desktop widths", async () => {
+    await page.viewport(390, 844);
+    const { group, input } = await render(<TextField label="Search" size="lg" startAdornment={<svg aria-hidden="true" />} />);
+    expect(group.dataset.size).toBe("lg");
+    expect(getComputedStyle(input).fontSize).toBe("20px");
+    expect(group.getBoundingClientRect().height).toBe(56);
+    expect(group.querySelector("svg")!.getBoundingClientRect().width).toBe(20);
+    await page.viewport(1280, 800);
+    await expect.poll(() => group.getBoundingClientRect().height).toBe(48);
+    expect(getComputedStyle(input).fontSize).toBe("20px");
+  });
+
+  it("is outlined at the medium size by default", async () => {
+    const { group } = await render(<TextField label="Name" />);
+    expect(group.dataset.variant).toBe("outline");
+    expect(group.dataset.size).toBe("md");
+  });
+
+  it("sits inside the app's own bordered row: the row draws the one frame", async () => {
+    const { host, group, input } = await render(
+      <div data-row="" className="flex items-center border-y border-border">
+        <TextField label="Search recipes" hideLabel type="search" variant="plain" size="lg" className="flex-1" />
+      </div>,
+    );
+    const row = host.querySelector<HTMLElement>("[data-row]")!;
+    expect(input.getBoundingClientRect().left).toBe(row.getBoundingClientRect().left);
+    expect(group.getBoundingClientRect().width).toBe(row.getBoundingClientRect().width);
+    expect(row.getBoundingClientRect().height).toBe(group.getBoundingClientRect().height + 2);
+  });
+
+  it.each([
+    ["a filled variant", { variant: "filled" }, 'variant="filled" is not a variant; use "outline" or "plain"', '<TextField variant="outline">'],
+    ["shadcn's ghost", { variant: "ghost" }, 'variant="ghost" is not a variant; use "outline" or "plain"', '<TextField variant="plain">'],
+    ["an unstyled variant", { variant: "unstyled" }, 'variant="unstyled" is not a variant; use "outline" or "plain"', '<TextField variant="plain">'],
+    ["an unknown size", { size: "xl" }, 'size="xl" is not a size; use "md" or "lg"', '<TextField size="md">'],
+    ["the input's size attribute", { size: 20 }, "size={20} is not a size; a width in characters is not supported, so set the width with className", '<TextField className="w-40">'],
+  ] as const)("renders the default and names the fix for %s", async (_name, wrong, problem, fix) => {
+    const props = { label: "Name", ...wrong } as unknown as TextFieldProps;
+    const { group, input } = await render(<TextField {...props} />);
+    expect(group.dataset.variant).toBe("outline");
+    expect(group.dataset.size).toBe("md");
+    expect(input.hasAttribute("size")).toBe(false);
+    expect(warn).toHaveBeenCalledWith(`[ouro-ui] TextField: ${problem}. Fix: ${fix}.`);
   });
 });
 

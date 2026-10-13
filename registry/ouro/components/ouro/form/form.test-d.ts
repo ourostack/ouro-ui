@@ -12,6 +12,9 @@ expectTypeOf<{ children: "Fields"; errors: { name: "Required." }; method: "post"
 expectTypeOf<{ children: "Fields"; errors: null }>().toExtend<FormProps>();
 createElement(Form, { onSubmit: (event) => event.preventDefault(), children: "Fields" });
 
+// A key may hold nothing, so an object mapped from an action's answer needs no cleanup.
+expectTypeOf<{ form: string | undefined; email: string | null; name: undefined }>().toExtend<FormErrors>();
+
 // Error values are strings.
 expectTypeOf<{ children: "Fields"; errors: { name: 1 } }>().not.toExtend<FormProps>();
 

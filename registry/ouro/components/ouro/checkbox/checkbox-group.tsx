@@ -35,7 +35,7 @@ export interface CheckboxGroupOwnProps {
   description?: ReactNode | undefined;
   /**
    * What is wrong, from your server action or client check, shown under the choices; every
-   * box gets `aria-invalid`. An empty string or array means valid.
+   * box gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid.
    */
   error?: ErrorMessages | undefined;
   /**

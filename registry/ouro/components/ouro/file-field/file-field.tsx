@@ -43,7 +43,7 @@ export interface FileFieldProps {
   description?: ReactNode | undefined;
   /**
    * What is wrong, from your server action or client check. It shows under the field, and
-   * the input gets `aria-invalid`. An empty string or array means valid.
+   * the input gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid.
    */
   error?: ErrorMessages | undefined;
   /** A file must be chosen before the form submits. */

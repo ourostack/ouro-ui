@@ -23,7 +23,7 @@ export interface SwitchProps {
   description?: ReactNode | undefined;
   /**
    * What is wrong, from your server action or client check, shown under the label; the
-   * switch gets `aria-invalid`. An empty string or array means valid.
+   * switch gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid.
    */
   error?: ErrorMessages | undefined;
   /** The switch must be on to submit the form: it gets `required` and `aria-required`, and the label a marker. */

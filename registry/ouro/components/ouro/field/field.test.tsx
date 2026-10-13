@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, server } from "vitest/browser";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Field } from "@/registry/ouro/components/ouro/field/field";
+import { Form as OuroForm } from "@/registry/ouro/components/ouro/form/form";
 import {
   FieldControl,
   FieldDescription,
@@ -524,6 +525,41 @@ describe("Field development messages", () => {
     expect(warn).toHaveBeenCalledWith(
       '[ouro-ui] Field: "text-lg" sets appearance, and className is for layout only. Fix: style fields in your theme (--input, --ring, --radius).',
     );
+  });
+});
+
+describe("Helper text after the control", () => {
+  it("links a FieldDescription placed after the control in a Field, and keeps the error after it", async () => {
+    const { input, host, field } = await render(
+      <OuroForm errors={{ email: "That email is taken." }}>
+        <Field label="Email" name="email">
+          <FieldControl type="email" />
+          <FieldDescription>We never share it.</FieldDescription>
+        </Field>
+      </OuroForm>,
+    );
+    const order = [...field.children].map((child) => child.textContent);
+    expect(order).toEqual(["Email", "", "We never share it.", "That email is taken."]);
+    await expect.poll(() => describedBy(input).map((id) => host.querySelector(`#${CSS.escape(id)}`)?.textContent)).toEqual(
+      expect.arrayContaining(["We never share it.", "That email is taken."]),
+    );
+    await expect.element(page.getByRole("textbox", { name: "Email", exact: true })).toHaveAccessibleDescription("That email is taken. We never share it.");
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("links a FieldDescription placed after the control in a field built from parts", async () => {
+    const { input, field } = await render(
+      <FieldRoot name="email">
+        <FieldLabel>Email</FieldLabel>
+        <FieldControl type="email" />
+        <FieldDescription>We never share it.</FieldDescription>
+        <FieldError />
+      </FieldRoot>,
+    );
+    expect([...field.children].map((child) => child.textContent)).toEqual(["Email", "", "We never share it."]);
+    await expect.element(page.getByRole("textbox", { name: "Email", exact: true })).toHaveAccessibleDescription("We never share it.");
+    expect(input.name).toBe("email");
   });
 });
 

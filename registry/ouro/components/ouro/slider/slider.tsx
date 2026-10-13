@@ -36,7 +36,7 @@ export interface SliderProps<Value extends SliderValue = number> {
   description?: ReactNode | undefined;
   /**
    * What is wrong, from your server action or client check. The message (or several, as a
-   * list) shows under the slider, which gets `aria-invalid` and the destructive color. An empty string or array means valid.
+   * list) shows under the slider, which gets `aria-invalid` and the destructive color. A message is text or a React node (one with a link); an empty string or array means valid.
    */
   error?: ErrorMessages | undefined;
   /** Disables the slider and fades it. */

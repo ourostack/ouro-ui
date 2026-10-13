@@ -1,6 +1,6 @@
 import { type AgentCase, notAssignable, hint } from "./shared.ts";
 
-const textFieldTypes = `"text" | "email" | "password" | "tel" | "url" | "search" | "date" | "time" | (string & { 'number is <NumberField>; digit codes: inputMode="numeric"': never; }) | undefined`;
+const textFieldTypes = `"text" | "email" | "password" | "tel" | "url" | "search" | "date" | "time" | (string & { 'number is <NumberField> (digit codes: inputMode="numeric"); a calendar or datetime-local is <DatePicker>; file is <FileField>': never; }) | undefined`;
 
 /** The text-field snippets in text-field.snippets.tsx that make mistakes, in file order. */
 export const agentCases: AgentCase[] = [

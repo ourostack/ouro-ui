@@ -250,6 +250,50 @@ describe("TextArea autoGrow", () => {
   });
 });
 
+describe("TextArea variant and size", () => {
+  it("draws no frame of its own with variant plain, and still outlines on keyboard focus", async () => {
+    const { textarea } = await render(<TextArea label="Message" hideLabel variant="plain" autoGrow rows={1} />);
+    const box = getComputedStyle(textarea);
+    expect(textarea.dataset.variant).toBe("plain");
+    expect(box.borderTopWidth).toBe("0px");
+    expect(box.paddingLeft).toBe("0px");
+    expect(box.paddingTop).toBe("0px");
+    expect(box.backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    expect(textarea.getBoundingClientRect().height).toBe(parseFloat(box.lineHeight));
+    textarea.focus();
+    await expect.poll(() => getComputedStyle(textarea).outlineStyle).toBe("solid");
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("sets 20px text on 28px lines with size lg, at phone and desktop widths", async () => {
+    await page.viewport(390, 844);
+    const { textarea } = await render(<TextArea label="Message" size="lg" />);
+    expect(textarea.dataset.size).toBe("lg");
+    expect(getComputedStyle(textarea).fontSize).toBe("20px");
+    expect(getComputedStyle(textarea).lineHeight).toBe("28px");
+    await page.viewport(1280, 800);
+    await expect.poll(() => getComputedStyle(textarea).fontSize).toBe("20px");
+  });
+
+  it("is outlined at the medium size by default", async () => {
+    const { textarea } = await render(<TextArea label="Notes" />);
+    expect(textarea.dataset.variant).toBe("outline");
+    expect(textarea.dataset.size).toBe("md");
+  });
+
+  it.each([
+    ["a filled variant", { variant: "filled" }, 'variant="filled" is not a variant; use "outline" or "plain"', '<TextArea variant="outline">'],
+    ["a borderless variant", { variant: "borderless" }, 'variant="borderless" is not a variant; use "outline" or "plain"', '<TextArea variant="plain">'],
+    ["an unknown size", { size: "sm" }, 'size="sm" is not a size; use "md" or "lg"', '<TextArea size="md">'],
+  ] as const)("renders the default and names the fix for %s", async (_name, wrong, problem, fix) => {
+    const props = { label: "Notes", ...wrong } as unknown as TextAreaProps;
+    const { textarea } = await render(<TextArea {...props} />);
+    expect(textarea.dataset.variant).toBe("outline");
+    expect(textarea.dataset.size).toBe("md");
+    expect(warn).toHaveBeenCalledWith(`[ouro-ui] TextArea: ${problem}. Fix: ${fix}.`);
+  });
+});
+
 describe("TextArea development messages", () => {
   it.each([
     ["errorMessage", { errorMessage: "Required." }, "errorMessage is not a prop", '<TextArea error="Required.">'],

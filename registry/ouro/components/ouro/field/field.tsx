@@ -114,12 +114,34 @@ function labelConnected(root: HTMLElement, data: string, labelId: string, native
  * it has no `error` of its own. The control is `FieldControl`, from `field-parts`. Use `Fieldset` instead to group several controls under one legend,
  * and the `FieldRoot` parts when the label, control and error need another layout.
  *
+ * The order is fixed: label, `description`, control, error. To put helper text after the
+ * control, leave `description` out and render a `FieldDescription` after the `FieldControl`.
+ * It is linked to the control (`aria-describedby`) wherever it sits, and the error still
+ * comes last. `TextField` and the other one-tag controls take no children, so build that
+ * field from `Field` and `FieldControl`.
+ *
+ * The required marker is drawn with CSS beside the label and is not part of its text, so a
+ * test finds the field by the label alone: `getByLabelText("Email")`, or Playwright's
+ * `getByLabel("Email", { exact: true })`. The marker stays visible in forced colors.
+ *
+ * A field's error is the control's description, not an alert, so screen readers read it
+ * when focus reaches the field (a `Form` moves focus to the first invalid one). In a test,
+ * assert it with `toHaveAccessibleDescription("Enter an email address.")` or `getByText`;
+ * `getByRole("alert")` finds only a Form's message about the whole form.
+ *
  * @group Forms
  * @see https://ourostack.github.io/ouro-ui/docs/field
  *
  * @example
  * <Field label="Email" name="email" required description="We never share it." error={errors?.email}>
  *   <FieldControl type="email" autoComplete="email" />
+ * </Field>
+ *
+ * @example
+ * // Helper text after the control: a FieldDescription placed where it shows.
+ * <Field label="Password" name="password" required error={errors?.password}>
+ *   <FieldControl type="password" autoComplete="new-password" />
+ *   <FieldDescription>Use 8 or more characters.</FieldDescription>
  * </Field>
  */
 export function Field(props: FieldProps): JSX.Element {

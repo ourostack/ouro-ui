@@ -13,11 +13,14 @@ import { FieldOwnerContext, type ErrorMessages } from "@/registry/ouro/lib/ouro/
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 import {
   adornmentClass,
+  controlSizeWarning,
+  controlVariantWarning,
   endSlotClass,
   groupClass,
+  groupSizes,
+  groupVariants,
   inputClass,
   nativeClearClass,
-  numberWarning,
   textFieldTypes,
   typeDefaults,
   typeWarning,
@@ -37,7 +40,7 @@ export interface TextFieldOwnProps {
   description?: ReactNode | undefined;
   /**
    * What is wrong, from your server action or client check. The message (or several, as a
-   * list) shows under the field, which gets `aria-invalid`. An empty string or array means valid.
+   * list) shows under the field, which gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid.
    */
   error?: ErrorMessages | undefined;
   /** The field must be filled: it gets `required` and `aria-required`, and the label a marker. */
@@ -49,8 +52,11 @@ export interface TextFieldOwnProps {
   /**
    * What kind of text it holds. Each type sets the phone keyboard (`inputMode`) and autofill
    * (`autoComplete`) for you; pass either to override. `password` adds a show/hide button;
-   * `date` and `time` open the OS picker. For numbers use `NumberField`, which parses and
-   * steps them; for digit codes, `inputMode="numeric"`.
+   * `date` and `time` open the OS picker. Other kinds of value have their own component:
+   * `NumberField` for numbers (`inputMode="numeric"` here for digit codes), `DatePicker` for a
+   * date picked from a calendar, `DatePicker` beside a `type="time"` TextField for a date and
+   * time (there is no `datetime-local`), and `FileField` for files. Any other string is a type
+   * error whose message names them.
    * @default "text"
    */
   type?:
@@ -62,8 +68,24 @@ export interface TextFieldOwnProps {
     | "search"
     | "date"
     | "time"
-    | (string & { 'number is <NumberField>; digit codes: inputMode="numeric"': never })
+    | (string & { 'number is <NumberField> (digit codes: inputMode="numeric"); a calendar or datetime-local is <DatePicker>; file is <FileField>': never })
     | undefined;
+  /**
+   * The frame. `outline` draws the bordered box. `plain` draws no border, background or side
+   * padding, for a field inside a frame your app draws (a search row with its own rules and
+   * a button beside the input); it keeps the focus outline, and the error message still shows
+   * under it, but with no border to turn red, color your own frame for an invalid field.
+   * Any other string is a type error whose message names the fix. @default "outline"
+   */
+  variant?: "outline" | "plain" | (string & { 'default is "outline"; ghost, unstyled and borderless are "plain"': never }) | undefined;
+  /**
+   * Control size. `md` is 44px tall with 16px text on phones and steps down to desktop
+   * density from the `sm` breakpoint (640px). `lg` is 56px tall (48px on desktop) with 20px
+   * text at every width, for a page's main search. The font family is inherited, so set a
+   * display font on a parent. It replaces the input's own `size` attribute (a width in
+   * characters); set the width with `className`. @default "md"
+   */
+  size?: "md" | "lg" | (string & { 'default is "md"; "lg" is 20px text. For a width, use className="w-40"': never }) | undefined;
   /**
    * Text or an icon inside the box, before the input: `"$"`, `<SearchIcon />`. Text is also
    * read as part of the field's description. Replaces shadcn's InputGroup.
@@ -167,8 +189,23 @@ function Icon({ children }: { children: ReactNode }): JSX.Element {
  * gets a show/hide button that keeps focus in the input, `clearable` adds a clear button, and
  * `startAdornment`/`endAdornment` put text or icons inside the box.
  *
- * Use `TextArea` instead for several lines, `NumberField` for numbers, and `Field` with
+ * Use `TextArea` instead for several lines, `NumberField` for numbers, `DatePicker` for a date picked from a calendar, `FileField` for files, and `Field` with
  * `FieldControl` when the control is not a text input.
+ *
+ * Not here:
+ *
+ * - Numbers: `NumberField` parses, steps and formats them. A digit code (a PIN, a postcode) stays a TextField with `inputMode="numeric"`, or is an `OtpField`.
+ *
+ * - A date picked from a calendar: `DatePicker`. `type="date"` here opens the OS picker.
+ *
+ * - A date and time together: there is no `datetime-local`. Use a `DatePicker` and a `type="time"` TextField side by side, and join the two values on the server.
+ *
+ * - Files: `FileField`.
+ *
+ * - Several lines: `TextArea`.
+ *
+ * `variant="plain"` draws no frame, and `size="lg"` sets 20px text: together they put the
+ * field inside a row your app frames, such as a page's main search between two rules.
  *
  * @group Forms
  * @see https://ourostack.github.io/ouro-ui/docs/text-field
@@ -178,6 +215,14 @@ function Icon({ children }: { children: ReactNode }): JSX.Element {
  * <TextField label="Password" type="password" name="password" autoComplete="new-password" />
  * <TextField label="Search recipes" hideLabel type="search" clearable startAdornment={<SearchIcon />} />
  * <TextField label="Price" startAdornment="$" endAdornment="per jar" />
+ *
+ * @example
+ * // A hero search: the row draws the rules, the field has no frame and large text.
+ * <form action="/recipes" className="flex items-center gap-3 border-y border-border font-serif">
+ *   <SearchIcon aria-hidden="true" className="size-5 shrink-0" />
+ *   <TextField label="Search recipes" hideLabel type="search" name="q" placeholder="tomato, beans, lemon" variant="plain" size="lg" className="flex-1" />
+ *   <Button type="submit">Search</Button>
+ * </form>
  */
 export function TextField(props: TextFieldProps): JSX.Element {
   const {
@@ -189,6 +234,8 @@ export function TextField(props: TextFieldProps): JSX.Element {
     disabled,
     name,
     type: typeProp = "text",
+    variant: variantProp = "outline",
+    size: sizeProp = "md",
     startAdornment,
     endAdornment,
     clearable,
@@ -222,6 +269,8 @@ export function TextField(props: TextFieldProps): JSX.Element {
   } = props;
   // A type that is not one of TextField's (a type error) warns and renders the default.
   const type: TextFieldType = textFieldTypes.includes(typeProp as TextFieldType) ? (typeProp as TextFieldType) : "text";
+  const variant = Object.hasOwn(groupVariants, variantProp) ? (variantProp as keyof typeof groupVariants) : "outline";
+  const size = Object.hasOwn(groupSizes, sizeProp) ? (sizeProp as keyof typeof groupSizes) : "md";
   // A number that fell back to text still gets a number keyboard.
   const defaults = typeProp === "number" ? { ...typeDefaults.text, inputMode: "decimal" as const } : typeDefaults[type];
   const id = useId();
@@ -233,7 +282,9 @@ export function TextField(props: TextFieldProps): JSX.Element {
     "TextField",
     process.env.NODE_ENV !== "production"
       ? () => [
-          type !== typeProp && (typeProp === "number" ? numberWarning(label) : typeWarning(String(typeProp))),
+          type !== typeProp && typeWarning(String(typeProp), label),
+          variant !== variantProp && controlVariantWarning("TextField", String(variantProp)),
+          size !== sizeProp && controlSizeWarning("TextField", sizeProp),
           ...contractWarnings("TextField", { errorMessage, helperText, isInvalid, invalid, isRequired, isDisabled }),
           startIcon !== undefined && ["startIcon is not a prop", "<TextField startAdornment={<SearchIcon />}>"],
           leftIcon !== undefined && ["leftIcon is not a prop", "<TextField startAdornment={<SearchIcon />}>"],
@@ -333,7 +384,13 @@ export function TextField(props: TextFieldProps): JSX.Element {
         name={name}
         className={className}
       >
-        <div data-ouro-input-group="" className={groupClass} onMouseDown={focusInput}>
+        <div
+          data-ouro-input-group=""
+          data-variant={variant}
+          data-size={size}
+          className={cn(groupClass, groupVariants[variant], groupSizes[size])}
+          onMouseDown={focusInput}
+        >
           {hasStart && (
             <span id={startId} data-ouro-adornment="start" className={adornmentClass}>
               {startAdornment}
@@ -361,7 +418,7 @@ export function TextField(props: TextFieldProps): JSX.Element {
               label text, so a label lookup for the field ("Password") would also find a button
               whose label contains it ("Show password"). */}
           {(showClear || password) && (
-            <span className={endSlotClass}>
+            <span className={cn(endSlotClass, variant === "outline" && "-me-2")}>
               {showClear && (
                 <Button
                   variant="plain"

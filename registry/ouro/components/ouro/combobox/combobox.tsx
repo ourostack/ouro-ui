@@ -48,7 +48,7 @@ export interface ComboboxBaseProps {
   description?: ReactNode | undefined;
   /**
    * What is wrong, from your server action or client check. The message (or several, as a
-   * list) shows under the field, which gets `aria-invalid`. An empty string or array means valid.
+   * list) shows under the field, which gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid.
    */
   error?: ErrorMessages | undefined;
   /** Something must be picked: the input gets `aria-required`, and the label a marker. */
