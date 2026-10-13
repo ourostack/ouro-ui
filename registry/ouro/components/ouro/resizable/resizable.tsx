@@ -368,7 +368,7 @@ export function ResizableHandle({ "aria-label": ariaLabel, withHandle }: Resizab
   );
   // The size before Enter collapsed the panel, to restore on the next Enter.
   const restore = useRef<number | undefined>(undefined);
-  const drag = useRef<{ start: number; sizes: number[]; pixels: number; latest: number[] } | undefined>(undefined);
+  const drag = useRef<{ pointerId: number; start: number; sizes: number[]; pixels: number; latest: number[] } | undefined>(undefined);
   if (index < 0) return null;
 
   const { orientation, sizes, panels, labels, ids, handleLabel, preview, commit, setResizing } = group;
@@ -400,7 +400,8 @@ export function ResizableHandle({ "aria-label": ariaLabel, withHandle }: Resizab
   const coordinate = (event: PointerEvent) => (horizontal ? event.clientX : event.clientY);
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0) return;
+    // One pointer drags the handle: a second finger on it changes nothing.
+    if (event.button !== 0 || drag.current) return;
     const handle = event.currentTarget;
     const before = handle.previousElementSibling!.getBoundingClientRect();
     const after = handle.nextElementSibling!.getBoundingClientRect();
@@ -408,6 +409,7 @@ export function ResizableHandle({ "aria-label": ariaLabel, withHandle }: Resizab
     // Keep the press from selecting text or starting a native drag.
     event.preventDefault();
     drag.current = {
+      pointerId: event.pointerId,
       start: coordinate(event),
       sizes,
       pixels: horizontal ? before.width + after.width : before.height + after.height,
@@ -418,20 +420,32 @@ export function ResizableHandle({ "aria-label": ariaLabel, withHandle }: Resizab
 
   const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
     const current = drag.current;
-    if (!current) return;
+    if (!current || event.pointerId !== current.pointerId) return;
     const moved = (coordinate(event) - current.start) * (rtl(event.currentTarget) ? -1 : 1);
     const percent = (moved * (current.sizes[index]! + current.sizes[index + 1]!)) / current.pixels;
     current.latest = clampSize(current.sizes, index, current.sizes[index]! + percent, panels);
     preview(current.latest);
   };
 
-  const onPointerUp = () => {
+  /** Ends the drag for the pointer that began it, and returns it. */
+  const release = (event: PointerEvent<HTMLDivElement>) => {
     const current = drag.current;
-    if (!current) return;
+    if (!current || event.pointerId !== current.pointerId) return undefined;
     drag.current = undefined;
     setResizing(false);
+    return current;
+  };
+
+  const onPointerUp = (event: PointerEvent<HTMLDivElement>) => {
+    const current = release(event);
     // A press that ends where it started is not a new layout.
-    if (current.latest[index] !== current.sizes[index]) commit(current.latest);
+    if (current && current.latest[index] !== current.sizes[index]) commit(current.latest);
+  };
+
+  // The browser took the touch for a scroll along the handle: the panels go back to where they were.
+  const onPointerCancel = (event: PointerEvent<HTMLDivElement>) => {
+    const current = release(event);
+    if (current) preview(current.sizes);
   };
 
   return (
@@ -451,7 +465,7 @@ export function ResizableHandle({ "aria-label": ariaLabel, withHandle }: Resizab
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
-      onPointerCancel={onPointerUp}
+      onPointerCancel={onPointerCancel}
     >
       <TouchTarget />
       <span aria-hidden="true" className={hitAreaClass[orientation]} />

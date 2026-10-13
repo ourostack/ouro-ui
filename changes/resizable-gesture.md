@@ -1,0 +1,3 @@
+- A `ResizableHandle` follows the pointer that took it: a second finger on the handle no longer makes the panel jump.
+- A touch that moves along a `ResizableHandle` scrolls the page: the handle sets `touch-action: pan-y` between side-by-side panels and `pan-x` between stacked panels, where it set `none`. When the browser takes a touch for a scroll, the panels go back to the sizes they had and `onLayout` is not called.
+- A `ResizableHandle` shows its hover color only for a mouse (`pointer-fine:hover:`).

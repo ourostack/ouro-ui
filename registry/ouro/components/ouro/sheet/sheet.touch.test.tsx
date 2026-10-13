@@ -127,6 +127,40 @@ describe("Sheet on a phone", () => {
     expect(Math.abs(translation(sheet).y)).toBeLessThan(0.5);
   });
 
+  it("does not jump when a finger comes down on it while it is still opening", async () => {
+    document.documentElement.style.setProperty("--ouro-duration-sheet", "20s");
+    const host = document.createElement("div");
+    document.body.append(host);
+    nodes.push(host);
+    root = createRoot(host);
+    await act(async () =>
+      root!.render(
+        <Sheet title="Save to cookbook" trigger={<Button>Save</Button>}>
+          <p style={{ margin: 0, height: 320 }}>Pick a cookbook for this recipe.</p>
+        </Sheet>,
+      ),
+    );
+    await commands.tap('[data-ouro="button"]');
+    await expect.poll(() => (popup()?.getAnimations().length ?? 0) > 0 && !popup()!.hasAttribute("data-starting-style")).toBe(true);
+    const sheet = popup()!;
+    for (const animation of sheet.getAnimations()) animation.pause();
+    const frozen = translation(sheet).y;
+    expect(frozen).toBeGreaterThan(40);
+    const [x, y] = grip(sheet);
+    try {
+      await commands.touchStep({ type: "touchStart", x, y });
+      await act(async () => {});
+      // Base UI starts no drag before the sheet is open. Drag or not, the sheet stays where it was.
+      expect(Math.abs(translation(sheet).y - frozen)).toBeLessThan(1);
+      await commands.touchStep({ type: "touchMove", x, y: y + 10 });
+      await commands.touchStep({ type: "touchMove", x, y: y + 20 });
+      expect(translation(sheet).y).toBeGreaterThanOrEqual(frozen - 1);
+    } finally {
+      document.documentElement.style.removeProperty("--ouro-duration-sheet");
+      await commands.touchStep({ type: "touchEnd" });
+    }
+  });
+
   it("stays under the finger when a sheet with snap points is caught on its way back to one", async () => {
     const sheet = await openSheet({ snapPoints: [0.5, 1] });
     const snap = translation(sheet).y;

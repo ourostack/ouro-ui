@@ -17,7 +17,7 @@ afterEach(async () => {
 });
 
 /** A 300px-tall split in a page tall enough to scroll. */
-async function renderSplit(onLayout = vi.fn()) {
+async function renderSplit(onLayout = vi.fn(), orientation: "horizontal" | "vertical" = "horizontal") {
   const host = document.createElement("div");
   document.body.append(host);
   nodes.push(host);
@@ -26,7 +26,7 @@ async function renderSplit(onLayout = vi.fn()) {
     root!.render(
       <div style={{ padding: 16 }}>
         <div style={{ height: 300 }}>
-          <Resizable onLayout={onLayout}>
+          <Resizable onLayout={onLayout} orientation={orientation}>
             <ResizablePanel label="Files" defaultSize={40}>
               Files
             </ResizablePanel>
@@ -59,7 +59,8 @@ it.each([
 
 it("resizes with a touch drag instead of scrolling the page", async () => {
   const { handle, onLayout } = await renderSplit();
-  expect(getComputedStyle(handle).touchAction).toBe("none");
+  // Sideways is the handle's; up and down stays the page's.
+  expect(getComputedStyle(handle).touchAction).toBe("pan-y");
   const rect = handle.getBoundingClientRect();
   // Start 15px beside the line, inside the touch target, and drag right and a little down.
   const x = rect.left + 15;
@@ -69,4 +70,41 @@ it("resizes with a touch drag instead of scrolling the page", async () => {
   // 72px of the 357px the panels share is about 20%.
   expect(Number(handle.getAttribute("aria-valuenow"))).toBe(60);
   expect(scrollY).toBe(0);
+});
+
+it("resizes a vertical split with a drag down, and leaves a sideways swipe to the page", async () => {
+  const { handle, onLayout } = await renderSplit(vi.fn(), "vertical");
+  expect(getComputedStyle(handle).touchAction).toBe("pan-x");
+  const rect = handle.getBoundingClientRect();
+  const x = rect.left + 100;
+  const y = rect.top + 15;
+  await commands.touchDrag({ from: [x, y], to: [x + 20, y + 60], steps: 10 });
+  await expect.poll(() => onLayout.mock.calls.length).toBe(1);
+  // 60px of the 299px the panels share is about 20%.
+  expect(Number(handle.getAttribute("aria-valuenow"))).toBe(60);
+});
+
+it("lets a vertical swipe that starts on the handle scroll the page, and leaves the sizes alone", async () => {
+  const { handle, onLayout } = await renderSplit();
+  const rect = handle.getBoundingClientRect();
+  const x = rect.left + 15;
+  const y = rect.top + 200;
+  // Up, and a little sideways as a thumb goes: the browser takes it for a scroll and cancels the pointer.
+  await commands.touchDrag({ from: [x, y], to: [x + 6, y - 160], steps: 10 });
+  await expect.poll(() => scrollY).toBeGreaterThan(100);
+  expect(handle.getAttribute("aria-valuenow")).toBe("40");
+  expect(handle.closest('[data-ouro="resizable"]')!.hasAttribute("data-ouro-resizing")).toBe(false);
+  expect(onLayout).not.toHaveBeenCalled();
+  // Let the scroll come to a stop, so its momentum does not take the next test's first touch.
+  let last = -1;
+  await expect
+    .poll(
+      () => {
+        const still = scrollY === last;
+        last = scrollY;
+        return still;
+      },
+      { interval: 100 },
+    )
+    .toBe(true);
 });

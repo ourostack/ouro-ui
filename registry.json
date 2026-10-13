@@ -2218,6 +2218,11 @@
           "target": "@components/ouro/sheet/sheet.test.tsx"
         },
         {
+          "path": "registry/ouro/components/ouro/sheet/sheet.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/sheet/sheet.touch.test.tsx"
+        },
+        {
           "path": "registry/ouro/e2e/ouro/sheet.spec.ts",
           "type": "registry:file",
           "target": "~/e2e/ouro/sheet.spec.ts"
