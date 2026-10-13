@@ -419,6 +419,7 @@ async function sendTouch(
   };
   let waits: Promise<FrameAnswer<TouchSeen> | undefined>[];
   let handler: Frame | undefined;
+  let watchdog: ReturnType<typeof setTimeout> | undefined;
   try {
     await send();
     if (gone) throw new Error(gone);
@@ -426,12 +427,18 @@ async function sendTouch(
     waits = [...calls].map(([frame, call]) =>
       call.then((answer) => (answer.error === undefined ? callWatch<TouchSeen>(frame, "wait", expected, TOUCH_HANDLED_TIMEOUT_MS + TOUCH_TIDY_MS) : undefined)),
     );
+    // Page timers may be frozen by a test; keep the acknowledgement deadline on the provider.
+    const deadline = new Promise<undefined>((resolve) => {
+      watchdog = setTimeout(() => resolve(undefined), TOUCH_HANDLED_TIMEOUT_MS);
+    });
     // The first frame to see it ends the wait in the others.
     const firstSeen = waits.map((wait) => wait.then((answer) => (answer?.value?.seen ? answer.frame : new Promise<never>(() => {}))));
-    handler = await Promise.race([Promise.all(waits).then(() => undefined), ...firstSeen]);
+    handler = await Promise.race([Promise.all(waits).then(() => undefined), deadline, ...firstSeen]);
   } catch (error) {
     await tidy();
     throw error;
+  } finally {
+    if (watchdog !== undefined) clearTimeout(watchdog);
   }
   if (handler) {
     await tidy();

@@ -1,4 +1,4 @@
-import { afterEach, expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { commands } from "vitest/browser";
 import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 
@@ -340,6 +340,25 @@ test("a lift into a frame that has gone is sent all the same, and throws naming 
   );
   // The next gesture starts clean.
   const element = scroller();
+  await swipe();
+  await expect.poll(() => element.scrollLeft).toBeGreaterThan(100);
+});
+
+test("a missing touch event remains bounded while the page clock is frozen", async () => {
+  const element = scroller();
+  const suppress = (event: TouchEvent) => event.stopImmediatePropagation();
+  addEventListener("touchend", suppress, { capture: true });
+  cleanups.push(() => removeEventListener("touchend", suppress, { capture: true }));
+  await commands.touchStep({ type: "touchStart", x: 260, y: 100 });
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  try {
+    await expect(commands.touchStep({ type: "touchEnd" })).rejects.toThrow(
+      "touchStep: the page did not handle the touchEnd at (260, 100) within 5000ms.",
+    );
+  } finally {
+    vi.useRealTimers();
+    removeEventListener("touchend", suppress, { capture: true });
+  }
   await swipe();
   await expect.poll(() => element.scrollLeft).toBeGreaterThan(100);
 });
