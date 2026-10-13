@@ -16,7 +16,7 @@ import {
   controlSizeWarning,
   controlVariantWarning,
   endSlotClass,
-  groupClass,
+  groupBaseClass,
   groupSizes,
   groupVariants,
   inputClass,
@@ -388,7 +388,7 @@ export function TextField(props: TextFieldProps): JSX.Element {
           data-ouro-input-group=""
           data-variant={variant}
           data-size={size}
-          className={cn(groupClass, groupVariants[variant], groupSizes[size])}
+          className={cn(groupBaseClass, groupVariants[variant], groupSizes[size])}
           onMouseDown={focusInput}
         >
           {hasStart && (
@@ -418,7 +418,7 @@ export function TextField(props: TextFieldProps): JSX.Element {
               label text, so a label lookup for the field ("Password") would also find a button
               whose label contains it ("Show password"). */}
           {(showClear || password) && (
-            <span className={cn(endSlotClass, variant === "outline" && "-me-2")}>
+            <span className={cn(endSlotClass, variant === "plain" && "me-0")}>
               {showClear && (
                 <Button
                   variant="plain"

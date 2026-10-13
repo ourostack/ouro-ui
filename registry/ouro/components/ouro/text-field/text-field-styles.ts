@@ -3,6 +3,7 @@ export {
   controlSizeWarning,
   controlVariantWarning,
   endSlotClass,
+  groupBaseClass,
   groupClass,
   groupSizes,
   groupVariants,
@@ -66,7 +67,7 @@ const typeDefaults: Readonly<Record<TextFieldType, TypeDefaults>> = {
  *
  * @internal
  */
-const groupClass =
+const groupBaseClass =
   "relative m-0 box-border flex w-full min-w-0 items-center gap-2 h-(--ouro-control-h) py-0 cursor-text " +
   "rounded-md text-foreground " +
   "outline-ring outline-offset-2 has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-solid " +
@@ -102,6 +103,14 @@ const groupSizes = {
 } as const;
 
 /**
+ * The outlined box at the medium size, for the controls that share TextField's box (Combobox,
+ * DatePicker).
+ *
+ * @internal
+ */
+const groupClass = `${groupBaseClass} ${groupVariants.outline} ${groupSizes.md}`;
+
+/**
  * The input inside the box: borderless, filling it, in the box's font size. Date and time
  * values start at the inline start, as text does (iOS centers them).
  *
@@ -127,13 +136,13 @@ const nativeClearClass = "[&::-webkit-search-cancel-button]:appearance-none";
 const adornmentClass = "flex shrink-0 items-center whitespace-nowrap text-muted-foreground select-none [&_svg]:size-4 [&_svg]:shrink-0";
 
 /**
- * The trailing buttons (clear, show password). On a coarse pointer they sit 12px apart, so
- * their 44px touch areas do not overlap. An outlined box pulls them close to its end edge
- * (`-me-2`, set by the component); a plain box has no padding to pull them into.
+ * The trailing buttons (clear, show password) sit close to the box's end edge. On a coarse
+ * pointer they sit 12px apart, so their 44px touch areas do not overlap. A plain box has no
+ * padding to pull them into, so TextField sets `me-0` there.
  *
  * @internal
  */
-const endSlotClass = "flex shrink-0 items-center gap-1 pointer-coarse:gap-3";
+const endSlotClass = "-me-2 flex shrink-0 items-center gap-1 pointer-coarse:gap-3";
 
 /** Types that are another component's job, with why and the fix. */
 const otherComponents: Readonly<Record<string, (label: string) => readonly [string, string]>> = {

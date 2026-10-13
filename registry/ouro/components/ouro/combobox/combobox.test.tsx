@@ -349,6 +349,14 @@ describe("Combobox allowCustomValue", () => {
 });
 
 describe("Combobox looks", () => {
+  it("draws TextField's bordered box around the input", async () => {
+    const { group } = await render(<Combobox label="Herb" items={herbs} />);
+    const box = getComputedStyle(group);
+    expect(box.borderTopStyle).toBe("solid");
+    expect(parseFloat(box.borderTopWidth)).toBeGreaterThan(0);
+    expect(parseFloat(box.paddingLeft)).toBeGreaterThan(0);
+  });
+
   it("uses a 16px font and a 44px box on phones, stepping down with a mouse on wider screens", async () => {
     await page.viewport(390, 844);
     const { input, group } = await render(<Combobox label="Herb" items={herbs} />);

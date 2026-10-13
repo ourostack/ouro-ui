@@ -517,3 +517,13 @@ describe("DatePicker typed dates", () => {
     expect(parseDateInput(" 2026-10-11 ", "en-GB")).toBe("2026-10-11");
   });
 });
+
+describe("DatePicker looks", () => {
+  it("draws TextField's bordered box around the input and the calendar button", async () => {
+    const { host } = await render(<DatePicker label="Delivery date" />);
+    const box = getComputedStyle(host.querySelector<HTMLElement>("[data-ouro-input-group]")!);
+    expect(box.borderTopStyle).toBe("solid");
+    expect(parseFloat(box.borderTopWidth)).toBeGreaterThan(0);
+    expect(parseFloat(box.paddingLeft)).toBeGreaterThan(0);
+  });
+});
