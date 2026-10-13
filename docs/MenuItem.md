@@ -27,6 +27,7 @@ Type: `MenuItemProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `children` (required) | `ReactNode` |  | The item's text, or text with an icon. |
+| `current` | `boolean` |  | Marks a link item as the page being shown (`aria-current="page"`, with the highlighted look), for a menu of pages. It does nothing on an item without `href`. |
 | `disabled` | `boolean` |  | Shown, but cannot be chosen. |
 | `href` | `string` |  | Makes the item a link: an internal path goes through `OuroProvider`'s router link, an absolute URL is a plain `<a>`. The menu closes when it is followed. |
 | `onClick` | `((event: MouseEvent<HTMLElement>) => void)` |  | Runs when the item is chosen, by click, tap or Enter. The menu then closes. |

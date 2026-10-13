@@ -53,6 +53,8 @@ expectTypeOf<{ label: "Edit"; tone: "danger" }>().not.toExtend<MenuEntry>();
 
 // MenuItem: tone, shortcut as an array, and the guessed props.
 expectTypeOf<{ children: "Edit"; tone: "destructive"; shortcut: ["mod", "e"]; href: "/r" }>().toExtend<MenuItemProps>();
+expectTypeOf<{ children: "Billing"; href: "/settings/billing"; current: true }>().toExtend<MenuItemProps>();
+expectTypeOf<{ children: "Billing"; href: "/settings/billing"; current: "page" }>().not.toExtend<MenuItemProps>();
 expectTypeOf<{ children: "Edit"; tone: "danger" }>().not.toExtend<MenuItemProps>();
 expectTypeOf<{ children: "Edit"; shortcut: "mod+e" }>().not.toExtend<MenuItemProps>();
 expectTypeOf<{ children: "Edit"; onSelect: () => void }>().not.toExtend<MenuItemProps>();

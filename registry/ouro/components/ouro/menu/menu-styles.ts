@@ -94,6 +94,7 @@ const menuItemClass =
   "text-start text-base leading-5 pointer-fine:text-sm text-popover-foreground no-underline outline-none select-none " +
   "[-webkit-tap-highlight-color:transparent] " +
   "data-highlighted:bg-accent data-highlighted:text-accent-foreground data-popup-open:bg-accent data-popup-open:text-accent-foreground " +
+  "aria-[current=page]:bg-accent aria-[current=page]:text-accent-foreground " +
   "data-[tone=destructive]:text-[color-mix(in_oklab,var(--destructive)_80%,var(--foreground))] " +
   "data-[tone=destructive]:data-highlighted:bg-destructive/10 " +
   "data-disabled:pointer-events-none data-disabled:opacity-50 " +

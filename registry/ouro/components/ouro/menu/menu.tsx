@@ -551,6 +551,11 @@ export interface MenuItemProps {
    */
   href?: string | undefined;
   /**
+   * Marks a link item as the page being shown (`aria-current="page"`, with the highlighted
+   * look), for a menu of pages. It does nothing on an item without `href`.
+   */
+  current?: boolean | undefined;
+  /**
    * The item's keyboard shortcut, as `Kbd` shows it: `["mod", "e"]` is ⌘E on Apple platforms
    * and Ctrl+E elsewhere. It only shows the keys; bind them in your app.
    */
@@ -615,7 +620,7 @@ function ItemBody({ children, shortcut }: { children: ReactNode; shortcut: MenuS
  * <MenuItem tone="destructive" onClick={remove}>Delete</MenuItem>
  */
 export function MenuItem(props: MenuItemProps): JSX.Element {
-  const { children, onClick, href, shortcut, tone: toneProp, disabled, onSelect, variant, asChild, checked } = props;
+  const { children, onClick, href, current, shortcut, tone: toneProp, disabled, onSelect, variant, asChild, checked } = props;
   useMenuPart("MenuItem", "<MenuItem>Edit</MenuItem>");
   const tone = toneProp === "destructive" ? "destructive" : undefined;
   useDevWarnings(
@@ -639,7 +644,7 @@ export function MenuItem(props: MenuItemProps): JSX.Element {
   // A disabled link is a disabled item: nothing to follow.
   if (href !== undefined && !disabled) {
     return (
-      <BaseMenu.LinkItem {...shared} closeOnClick render={<RouterLink href={href} />}>
+      <BaseMenu.LinkItem {...shared} aria-current={current ? "page" : undefined} closeOnClick render={<RouterLink href={href} />}>
         {body}
       </BaseMenu.LinkItem>
     );
