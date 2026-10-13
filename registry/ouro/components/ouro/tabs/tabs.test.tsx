@@ -257,7 +257,8 @@ describe("Tabs", () => {
     await userEvent.click(r.tabs[2]!);
     expect(r.root.hasAttribute("data-ouro-keyboard")).toBe(false);
     expect(getComputedStyle(r.indicator!).transitionProperty).toBe("translate, scale");
-    expect(getComputedStyle(panel()).transitionProperty).toBe("opacity");
+    // The leaving panel has no transition (data-ending-style), so wait for the new one to be the one read.
+    await expect.poll(() => getComputedStyle(panel()).transitionProperty).toBe("opacity");
   });
 
   it("lets a pointer anywhere inside the tabs, such as a control in a panel, end the keyboard's quiet spell", async () => {
