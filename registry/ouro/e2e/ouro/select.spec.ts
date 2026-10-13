@@ -11,7 +11,9 @@ test("chooses an option with the mouse and the keyboard", async ({ page }) => {
   await expect(course).toBeFocused();
   await page.keyboard.press("ArrowDown");
   await expect(page.getByRole("listbox")).toBeVisible();
+  await expect(page.getByRole("option", { name: "Main", exact: true })).toBeFocused();
   await page.keyboard.press("ArrowDown");
+  await expect(page.getByRole("option", { name: "Side", exact: true })).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(course).toHaveText("Side");
 });
