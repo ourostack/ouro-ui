@@ -206,6 +206,33 @@ describe("TextArea autoGrow", () => {
     await expect.poll(() => height(textarea)).toBeGreaterThan(wide);
   });
 
+  it("refits after a width change without a ResizeObserver loop error reaching the window", async () => {
+    // A resize done inside the observer's own callback leaves an observation the browser cannot
+    // deliver in that frame, which it reports as an error event on the window: error trackers
+    // record it, and a test run that allows no console output fails on it.
+    const loops: string[] = [];
+    const onError = (event: ErrorEvent) => {
+      if (/ResizeObserver loop/.test(event.message)) loops.push(event.message);
+    };
+    window.addEventListener("error", onError);
+    const frame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    try {
+      const { host, textarea } = await render(<TextArea label="Notes" autoGrow rows={1} defaultValue={"word ".repeat(30).trim()} />);
+      const wide = height(textarea);
+      host.style.width = "200px";
+      await expect.poll(() => height(textarea)).toBeGreaterThan(wide);
+      const narrow = height(textarea);
+      host.style.width = "360px";
+      await expect.poll(() => height(textarea)).toBeLessThan(narrow);
+      // The browser reports a loop as it finishes the frame that had one.
+      await frame();
+      await frame();
+      expect(loops).toEqual([]);
+    } finally {
+      window.removeEventListener("error", onError);
+    }
+  });
+
   it("never caps below rows", async () => {
     const { textarea } = await render(<TextArea label="Notes" autoGrow rows={3} maxRows={2} defaultValue={"1\n2\n3\n4\n5"} />);
     expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 3), 0);

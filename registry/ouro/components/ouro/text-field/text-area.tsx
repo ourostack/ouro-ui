@@ -162,18 +162,26 @@ export function TextArea(props: TextAreaProps): JSX.Element {
     if (autoGrow) fitHeight(event.currentTarget, rows, maxRows);
     onChange?.(event);
   };
-  // The text rewraps when the width changes (a rotated phone, a resized window).
+  // The text rewraps when the width changes (a rotated phone, a resized window). The refit
+  // runs in the next frame, never inside the observer's callback: a height set there is a new
+  // observation the browser cannot deliver in the same frame, which it reports on the window
+  // as "ResizeObserver loop completed with undelivered notifications".
   useEffect(() => {
     if (!autoGrow) return;
     const textarea = textareaRef.current!;
     let width = textarea.offsetWidth;
+    let frame = 0;
     const observer = new ResizeObserver(() => {
       if (textarea.offsetWidth === width) return;
       width = textarea.offsetWidth;
-      fitHeight(textarea, rows, maxRows);
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => fitHeight(textarea, rows, maxRows));
     });
     observer.observe(textarea);
-    return () => observer.disconnect();
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
   }, [autoGrow, rows, maxRows]);
 
   const setRef = useMergedRef(ref, textareaRef);
