@@ -221,7 +221,12 @@ describe("Link development messages", () => {
 
 describe("Link press feedback", () => {
   it("dims while the pointer is down, like an Accordion trigger, and never scales", async () => {
-    const { link } = await render(<Link href="/recipes">Recipes</Link>);
+    // Releasing the press clicks the link; keep the test page where it is.
+    const { link } = await render(
+      <Link href="/recipes" onClick={(event) => event.preventDefault()}>
+        Recipes
+      </Link>,
+    );
     expect(getComputedStyle(link).opacity).toBe("1");
     await commands.pointerPress({ selector: '[data-ouro="link"]', action: "down" });
     try {
