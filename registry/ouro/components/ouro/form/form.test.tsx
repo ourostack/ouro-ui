@@ -577,6 +577,20 @@ describe("Form", () => {
       expect(document.activeElement).toBe(input("name"));
     });
 
+    it.each([null, undefined])("preserves its mask and focus when switching through an absent raw projection (%s)", async (empty) => {
+      const answer = {};
+      const opaque = () => <Form errors={formErrors(answer, notes)}>{fields}</Form>;
+      const { host, input, rerender } = await render(opaque());
+      await userEvent.fill(page.getByRole("textbox", { name: "Email", exact: true }), "x");
+      input("name").focus();
+      await rerender(<Form errors={empty}>{fields}</Form>);
+      expect(input("email").getAttribute("aria-invalid")).toBeNull();
+      expect(host.querySelector('[role="alert"]')).toBeNull();
+      await rerender(opaque());
+      expect(input("email").getAttribute("aria-invalid")).toBeNull();
+      expect(document.activeElement).toBe(input("name"));
+    });
+
     it("keeps the first accepted mask through two changes flushed in the same React turn", async () => {
       const { input } = await render(<Form errors={formErrors({}, notes)}>{fields}</Form>);
       await act(() => {
