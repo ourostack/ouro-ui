@@ -209,6 +209,18 @@
     "source": "registry/ouro/components/ouro/hover-card/hover-card.tsx"
   },
   {
+    "name": "menu",
+    "title": "Menu",
+    "group": "Menus",
+    "source": "registry/ouro/components/ouro/menu/menu.tsx"
+  },
+  {
+    "name": "command",
+    "title": "Command",
+    "group": "Menus",
+    "source": "registry/ouro/components/ouro/command/command.tsx"
+  },
+  {
     "name": "toaster",
     "title": "Toaster",
     "group": "Feedback",

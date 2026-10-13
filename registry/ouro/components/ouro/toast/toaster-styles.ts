@@ -27,11 +27,14 @@ const viewportClass =
  * smaller; hovering or focusing the stack (`data-expanded`) fans them out. Base UI sets
  * `--toast-index`, `--toast-offset-y`, `--toast-height` and the swipe movement. With
  * reduced motion nothing slides or springs: toasts fade in and out where they are.
+ * A toast swipes away downward as well as sideways, so it takes every touch gesture
+ * (`touch-none`, not `touch-pan-y`): otherwise a downward swipe on a scrollable page
+ * scrolls the page, and the browser cancels the swipe.
  *
  * @internal
  */
 const rootClass =
-  "absolute inset-x-0 bottom-0 m-0 box-border origin-bottom select-none [-webkit-tap-highlight-color:transparent] " +
+  "absolute inset-x-0 bottom-0 m-0 box-border origin-bottom touch-none select-none [-webkit-tap-highlight-color:transparent] " +
   "rounded-lg border border-solid border-border bg-popover text-popover-foreground shadow-lg " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
   "[--gap:0.75rem] [--peek:0.75rem] [--scale:calc(max(0,1-(var(--toast-index)*0.1)))] [--shrink:calc(1-var(--scale))] " +

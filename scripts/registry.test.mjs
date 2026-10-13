@@ -226,7 +226,7 @@ test("every registry file ships in exactly one item, except the repository's own
   assert.equal(itemForFile("registry/ouro/e2e/ouro/story.ts"), "ouro-testing");
   assert.equal(itemForFile("registry/ouro/lib/ouro/testing/act.ts"), "ouro-testing");
   assert.equal(itemForFile("registry/ouro/theme/theme.test.tsx"), null);
-  assert.throws(() => itemForFile("registry/ouro/components/ouro/menu/menu.tsx"), /menu\.tsx.*no item/);
+  assert.throws(() => itemForFile("registry/ouro/components/ouro/unregistered/unregistered.tsx"), /unregistered\.tsx.*no item/);
 });
 
 test("registryDependencies are the same-repo items each item imports, as full unpinned addresses", () => {
