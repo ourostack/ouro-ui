@@ -724,6 +724,90 @@
       ]
     },
     {
+      "name": "number-field",
+      "type": "registry:ui",
+      "title": "NumberField",
+      "description": "A labeled number input on the Field contract: pass `label`, and `error` from your server action or client check.",
+      "docs": "A labeled number input on the Field contract: pass `label`, and `error` from your server action or client check. Import: import { NumberField } from \"@/components/ouro/number-field/number-field\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: field, ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/number-field.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/number-field/number-field-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/number-field/number-field-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/number-field/number-field.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/number-field/number-field.tsx"
+        }
+      ]
+    },
+    {
+      "name": "slider",
+      "type": "registry:ui",
+      "title": "Slider",
+      "description": "A labeled slider on the Field contract: pass `label`, and a `defaultValue` (or `value` with `onValueChange`).",
+      "docs": "A labeled slider on the Field contract: pass `label`, and a `defaultValue` (or `value` with `onValueChange`). Import: import { Slider } from \"@/components/ouro/slider/slider\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: field, ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/slider.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/slider/slider-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/slider/slider-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/slider/slider.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/slider/slider.tsx"
+        }
+      ]
+    },
+    {
+      "name": "combobox",
+      "type": "registry:ui",
+      "title": "Combobox",
+      "description": "A text input that filters a list of items as people type, on the Field contract: pass `label`, `items`, and `error` from your server action or client check.",
+      "docs": "A text input that filters a list of items as people type, on the Field contract: pass `label`, `items`, and `error` from your server action or client check. Import: import { Combobox } from \"@/components/ouro/combobox/combobox\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, field, ouro-base, ouro-lib, sheet, text-field. Docs: https://ourostack.github.io/ouro-ui/docs/combobox.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib",
+        "ourostack/ouro-ui/sheet",
+        "ourostack/ouro-ui/text-field"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/combobox/combobox-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/combobox/combobox-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/combobox/combobox.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/combobox/combobox.tsx"
+        }
+      ]
+    },
+    {
       "name": "toaster",
       "type": "registry:ui",
       "title": "Toaster",
@@ -2339,6 +2423,141 @@
           "path": "registry/ouro/e2e/ouro/native-select.spec.ts",
           "type": "registry:file",
           "target": "~/e2e/ouro/native-select.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "number-field-tests",
+      "type": "registry:item",
+      "title": "NumberField tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for number-field, with the test tooling as devDependencies. Add it beside number-field: add number-field number-field-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "number-field's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/number-field.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/form",
+        "ourostack/ouro-ui/number-field",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/number-field/number-field.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/number-field/number-field.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/number-field/number-field.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/number-field/number-field.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/number-field/number-field.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/number-field/number-field.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/number-field/number-field.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/number-field/number-field.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/number-field.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/number-field.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "slider-tests",
+      "type": "registry:item",
+      "title": "Slider tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for slider, with the test tooling as devDependencies. Add it beside slider: add slider slider-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "slider's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/slider.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/form",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/slider"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/slider/slider.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/slider/slider.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/slider/slider.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/slider/slider.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/slider/slider.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/slider/slider.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/slider/slider.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/slider/slider.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/slider.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/slider.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "combobox-tests",
+      "type": "registry:item",
+      "title": "Combobox tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for combobox, with the test tooling as devDependencies. Add it beside combobox: add combobox combobox-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "combobox's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/combobox.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/combobox",
+        "ourostack/ouro-ui/form",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/combobox/combobox.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/combobox/combobox.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/combobox/combobox.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/combobox/combobox.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/combobox/combobox.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/combobox/combobox.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/combobox/combobox.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/combobox/combobox.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/combobox.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/combobox.spec.ts"
         }
       ]
     },
@@ -4134,6 +4353,7 @@
         "ourostack/ouro-ui/chart-tests",
         "ourostack/ouro-ui/collapsible-tests",
         "ourostack/ouro-ui/color-field-tests",
+        "ourostack/ouro-ui/combobox-tests",
         "ourostack/ouro-ui/confirm-dialog-tests",
         "ourostack/ouro-ui/date-picker-tests",
         "ourostack/ouro-ui/description-list-tests",
@@ -4153,6 +4373,7 @@
         "ourostack/ouro-ui/message-list-tests",
         "ourostack/ouro-ui/message-tests",
         "ourostack/ouro-ui/native-select-tests",
+        "ourostack/ouro-ui/number-field-tests",
         "ourostack/ouro-ui/otp-field-tests",
         "ourostack/ouro-ui/ouro-lib-tests",
         "ourostack/ouro-ui/popover-tests",
@@ -4166,6 +4387,7 @@
         "ourostack/ouro-ui/sheet-tests",
         "ourostack/ouro-ui/show-more-tests",
         "ourostack/ouro-ui/skeleton-tests",
+        "ourostack/ouro-ui/slider-tests",
         "ourostack/ouro-ui/spinner-tests",
         "ourostack/ouro-ui/stack-tests",
         "ourostack/ouro-ui/table-tests",
