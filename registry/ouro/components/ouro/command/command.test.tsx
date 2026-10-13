@@ -79,6 +79,18 @@ async function openPalette(props: Partial<CommandProps> = {}) {
   return settled();
 }
 
+describe("Command motion", () => {
+  it("opens and closes without animating, its backdrop included, because a shortcut opens it", async () => {
+    const element = await openPalette();
+    const backdrop = document.querySelector<HTMLElement>('[data-ouro="dialog-backdrop"]')!;
+    for (const surface of [element, backdrop]) {
+      expect(getComputedStyle(surface).transitionProperty).toBe("none");
+    }
+    for (const surface of [element, backdrop]) surface.setAttribute("data-ending-style", "");
+    for (const surface of [element, backdrop]) expect(getComputedStyle(surface).transitionProperty).toBe("none");
+  });
+});
+
 describe("Command", () => {
   beforeEach(() => Object.values(actions).forEach((action) => action.mockClear()));
 
@@ -541,21 +553,6 @@ describe("Command server search", () => {
 });
 
 describe("Command closing", () => {
-  it("keeps showing what it showed while it fades out after a command runs", async () => {
-    await openPalette();
-    await userEvent.type(input(), "swi");
-    await expect.poll(options).toEqual(["Switch theme"]);
-    await userEvent.keyboard("{Enter}");
-    expect(actions.theme).toHaveBeenCalledOnce();
-    const seen = new Set<number>();
-    while (popup()) {
-      seen.add(document.querySelectorAll('[role="option"]').length);
-      expect((input().query() as HTMLInputElement | null)?.value ?? "swi").toBe("swi");
-      await new Promise((resolve) => requestAnimationFrame(resolve));
-    }
-    expect([...seen]).toEqual([1]);
-  });
-
   it("starts empty, with every command, when opened again", async () => {
     await openPalette();
     await userEvent.type(input(), "swi");
