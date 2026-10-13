@@ -114,11 +114,8 @@ describe("Sheet on a phone", () => {
       await act(async () => {});
       expect(sheet.hasAttribute("data-swiping")).toBe(true);
       expect(Math.abs(translation(sheet).y - frozen)).toBeLessThan(1);
-      // Base UI measures from the first move, so that one moves nothing; the rest move the sheet 1:1.
-      await commands.touchStep({ type: "touchMove", x, y: y + 10 });
-      expect(Math.abs(translation(sheet).y - frozen)).toBeLessThan(1);
-      await commands.touchStep({ type: "touchMove", x, y: y + 20 });
-      await commands.touchStep({ type: "touchMove", x, y: y + 30 });
+      // Base UI starts to count at the second move; from there the sheet follows 1:1.
+      for (const step of [10, 20, 30, 40]) await commands.touchStep({ type: "touchMove", x, y: y + step });
       await expect.poll(() => Math.abs(translation(sheet).y - (frozen + 20))).toBeLessThan(1);
       await restFinger();
     } finally {
@@ -141,7 +138,7 @@ describe("Sheet on a phone", () => {
       await commands.touchStep({ type: "touchStart", x, y });
       await act(async () => {});
       expect(Math.abs(translation(sheet).y - frozen)).toBeLessThan(1);
-      for (const step of [10, 20, 30]) await commands.touchStep({ type: "touchMove", x, y: y + step });
+      for (const step of [10, 20, 30, 40]) await commands.touchStep({ type: "touchMove", x, y: y + step });
       await expect.poll(() => Math.abs(translation(sheet).y - (frozen + 20))).toBeLessThan(1);
       await restFinger();
     } finally {
@@ -161,7 +158,7 @@ describe("Sheet on a phone", () => {
       await commands.touchStep({ type: "touchStart", x, y });
       await act(async () => {});
       expect(Math.abs(translation(sheet).x - frozen)).toBeLessThan(1);
-      for (const step of [10, 20, 30]) await commands.touchStep({ type: "touchMove", x: x + step, y });
+      for (const step of [10, 20, 30, 40]) await commands.touchStep({ type: "touchMove", x: x + step, y });
       await expect.poll(() => Math.abs(translation(sheet).x - (frozen + 20))).toBeLessThan(1);
       await restFinger();
     } finally {
@@ -186,11 +183,12 @@ describe("Sheet on a phone", () => {
       await commands.touchStep({ type: "touchStart", x, y });
       await act(async () => {});
       expect(sheet.hasAttribute("data-swiping")).toBe(false);
-      await commands.touchStep({ type: "touchMove", x, y: y + 10 });
+      for (const step of [10, 20]) await commands.touchStep({ type: "touchMove", x, y: y + step });
       await expect.poll(() => sheet.hasAttribute("data-swiping")).toBe(true);
-      expect(Math.abs(translation(sheet).y - (frozen + 10))).toBeLessThan(1);
-      await commands.touchStep({ type: "touchMove", x, y: y + 20 });
+      // Counted from where the finger came down: the sheet is 20px on from where it was caught.
       await expect.poll(() => Math.abs(translation(sheet).y - (frozen + 20))).toBeLessThan(1);
+      await commands.touchStep({ type: "touchMove", x, y: y + 30 });
+      await expect.poll(() => Math.abs(translation(sheet).y - (frozen + 30))).toBeLessThan(1);
       await restFinger();
     } finally {
       document.documentElement.style.removeProperty("--ouro-duration-sheet");
@@ -213,14 +211,16 @@ describe("Sheet on a phone", () => {
     // fast swipe ends, although nothing scrolls, and the tap that stops a fling gets no click.
     await commands.touchDrag({ from: [x, y], to: [x, y - 120], steps: 10, durationMs: 100 });
     expect(popup()).toBe(sheet);
-    // The tap follows at once. The sheet is still on its way back, so the click lands on
-    // whatever is under the finger when it lifts: the button or the body beside it.
+    // The tap follows at once, on the button, while the sheet is still on its way back. The
+    // sheet stays under the finger for the tap, so the click lands on the button.
     await tapNow(button);
     await expect.poll(() => clicks).toBe(1);
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(popup()).toBe(sheet);
     // At rest, the button is where the finger finds it.
     await settled();
     await tapNow(button);
-    await expect.poll(() => save.mock.calls.length).toBeGreaterThan(0);
+    await expect.poll(() => save.mock.calls.length).toBe(2);
     expect(clicks).toBe(2);
   });
 });
