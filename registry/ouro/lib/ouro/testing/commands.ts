@@ -117,16 +117,19 @@ const TOUCH_WATCH = `(action, expected) => {
     const types = ["touchstart", "touchmove", "touchend", "touchcancel"];
     const options = { capture: true, passive: true };
     state = view.__ouroTouch = { document: view.document, saw: [], handled: new WeakSet(), targets: new Set(), expected: null, seen: false, resolve: null, moved: false };
-    // Where this frame's top left is in the top-level page, in CSS pixels, or null if a parent is cross-origin.
+    // Where this frame's top left is in the top-level page's visual viewport, in CSS pixels, or null if a parent is cross-origin.
     const origin = () => {
       let x = 0, y = 0;
       try {
-        for (let frame = view; frame !== frame.parent; frame = frame.parent) {
+        let frame = view;
+        for (; frame !== frame.parent; frame = frame.parent) {
           const box = frame.frameElement.getBoundingClientRect();
           x += box.left + frame.frameElement.clientLeft;
           y += box.top + frame.frameElement.clientTop;
         }
-        return { x, y };
+        // CDP names a point in the visual viewport, which a pinch-zoomed page can pan across the layout viewport.
+        const visual = frame.visualViewport;
+        return visual ? { x: x - visual.offsetLeft, y: y - visual.offsetTop } : { x, y };
       } catch {
         return null;
       }
@@ -248,16 +251,17 @@ const TOUCH_TIDY_MS = 1000;
  * `DOM.getNodeForLocation` hit-tests the way input does, through every frame and every shadow
  * root, open or closed, and past `pointer-events: none`, so it finds the frame a touch there
  * goes to, even one Playwright does not list yet. It takes a point in the top-level document,
- * and a touch a point in the viewport, so the top-level page's scroll is added. "unknown" means
+ * and a touch a point in the visual viewport, so where that viewport is in the page is added: the
+ * top-level page's scroll, and the pan of a pinch-zoomed page. "unknown" means
  * the kit could not place the point in a frame: Chromium found no node there, as for a point
  * outside the viewport, or the node there has no window.
  */
 async function frameAtPoint(session: CDPSession, x: number, y: number): Promise<{ watched: boolean | "unknown"; where: string }> {
   try {
-    const { cssLayoutViewport } = await session.send("Page.getLayoutMetrics");
+    const { cssVisualViewport } = await session.send("Page.getLayoutMetrics");
     const { backendNodeId } = await session.send("DOM.getNodeForLocation", {
-      x: Math.round(x + cssLayoutViewport.pageX),
-      y: Math.round(y + cssLayoutViewport.pageY),
+      x: Math.round(x + cssVisualViewport.pageX),
+      y: Math.round(y + cssVisualViewport.pageY),
       // Hit-test as input does: an element with `pointer-events: none` is not the target.
       ignorePointerEventsNone: false,
     });

@@ -218,6 +218,34 @@ test("the kit does not wait for a pointer-events: none iframe, which the touch p
   expect(performance.now() - started).toBeLessThan(1000);
 });
 
+test("on a page zoomed and panned by touch, the kit waits for the frame where the touch lands", async () => {
+  await commands.setPageZoom(2);
+  try {
+    // At zoom 2 the page can't scroll, so a drag pans the visual viewport across it.
+    await commands.touchDrag({ from: [300, 700], to: [50, 200], steps: 10 });
+    /** Where a touch at (x, y) lands on this page. */
+    const landed = async (x: number, y: number) => {
+      const point = new Promise<[number, number]>((resolve) =>
+        addEventListener("touchstart", (event) => resolve([event.touches[0]!.clientX, event.touches[0]!.clientY]), { once: true }),
+      );
+      await commands.touchStep({ type: "touchStart", x, y });
+      await commands.touchStep({ type: "touchEnd" });
+      return point;
+    };
+    const [left, top] = await landed(0, 0);
+    expect(await landed(100, 100)).toEqual([left + 100, top + 100]);
+    // Panned far enough that a hit test at the unpanned point would miss the frame.
+    expect(Math.min(left, top)).toBeGreaterThan(150);
+    const frame = await unwatchableFrame(Math.round(top) + 100);
+    frame.style.left = `${Math.round(left) + 20}px`;
+    await expect(commands.touchStep({ type: "touchStart", x: 170, y: 150 })).rejects.toThrow(refused(170, 150));
+    // Beside it, the touch reaches the page.
+    expect(await tapAt(window, 10, 150)).toEqual(["touchstart", "touchend"]);
+  } finally {
+    await commands.resetPageZoom();
+  }
+});
+
 test("a touch on a ::before box inside a frame waits for that frame", async () => {
   await unwatchableFrame(
     300,
