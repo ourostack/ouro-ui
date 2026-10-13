@@ -1,4 +1,4 @@
-import { createElement, isValidElement, type ComponentType, type ReactElement, type ReactNode } from "react";
+import { createContext, createElement, isValidElement, type ComponentType, type ReactElement, type ReactNode } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { Avatar, AvatarGroup } from "@/registry/ouro/components/ouro/avatar/avatar";
@@ -131,6 +131,16 @@ const cases: Array<[string, (wrap: Wrap) => ReactElement]> = [
       </ResizablePanelGroup>
     ),
   ],
+  [
+    "Resizable with a handle added by mistake",
+    (wrap) => (
+      <Resizable>
+        {wrap(<ResizablePanel label="One">One</ResizablePanel>)}
+        {wrap(<ResizableHandle />)}
+        {wrap(<ResizablePanel label="Two">Two</ResizablePanel>)}
+      </Resizable>
+    ),
+  ],
   ["ShowMore items", (wrap) => <ShowMore initialCount={1} items={[wrap(<span key="a">Pasta</span>), wrap(<span key="b">Salad</span>)]} />],
   [
     "Select item children",
@@ -184,5 +194,31 @@ describe.each([
     const expected = renderToString(app(plain));
     expect(renderToString(app(wrap))).toBe(expected);
     vi.restoreAllMocks();
+  });
+});
+
+// A component around the items that has a string `value` of its own is not an item: Select
+// looks inside it. The items are given in each shape; the component around them is the app's.
+const Locale = createContext("en");
+function Section({ children }: { value: string; children: ReactNode }) {
+  return <>{children}</>;
+}
+describe.each([
+  ["plain", plain],
+  ["wrapped", wrapped],
+  ["lazy type", lazyType],
+  ["both", both],
+] as const)("Select items inside a component with its own value, %s", (_shape, wrap) => {
+  it.each([
+    ["a context provider", (item: ReactNode) => <Locale value="fr">{item}</Locale>],
+    ["an app component", (item: ReactNode) => <Section value="courses">{item}</Section>],
+  ])("shows the chosen item's label through %s", (_name, around) => {
+    const html = renderToString(
+      <Select label="Course" defaultValue="main">
+        {around(wrap(<SelectItem value="main">Main</SelectItem>))}
+      </Select>,
+    );
+    expect(html).toContain(">Main</span>");
+    expect(html).not.toContain(">main</span>");
   });
 });

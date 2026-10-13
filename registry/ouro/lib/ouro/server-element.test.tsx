@@ -1,6 +1,6 @@
 import type { ReactElement, ReactNode } from "react";
 import { expect, it } from "vitest";
-import { serverElement, serverNodes } from "@/registry/ouro/lib/ouro/server-element";
+import { hasLazyType, serverElement, serverNodes } from "@/registry/ouro/lib/ouro/server-element";
 
 type Chunk = { status: "fulfilled"; value: unknown } | { status: "pending"; then: () => void } | { status: "rejected"; reason: unknown };
 
@@ -74,4 +74,11 @@ it("throws a failed wrapper's error, for the error boundary", () => {
   const reason = new Error("The server component failed");
   expect(() => serverElement(wrapper({ status: "rejected", reason }))).toThrow(reason);
   expect(() => serverNodes(wrapper({ status: "rejected", reason }))).toThrow(reason);
+});
+
+it("tells an element whose type is a lazy reference from one whose type is a component or a tag", () => {
+  const Component = () => null;
+  expect(hasLazyType({ type: holding(Component) })).toBe(true);
+  expect(hasLazyType(<Component />)).toBe(false);
+  expect(hasLazyType(<button />)).toBe(false);
 });
