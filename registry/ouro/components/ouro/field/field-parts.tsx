@@ -5,12 +5,13 @@ import { useMemo, type JSX, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
-import { FieldContext, useField, type FieldContextValue } from "@/registry/ouro/lib/ouro/use-field";
+import { FieldContext, useField, useFieldOwner, type FieldContextValue } from "@/registry/ouro/lib/ouro/use-field";
 import {
   controlClass,
   descriptionClass,
   errorClass,
   fieldHint,
+  inlineLabelClass,
   labelClass,
   rootClass,
 } from "@/registry/ouro/components/ouro/field/field-styles";
@@ -86,8 +87,10 @@ export type FieldLabelProps = Omit<BaseField.Label.Props, "className"> & { class
 export function FieldLabel({ className, children, ...props }: FieldLabelProps): JSX.Element {
   const field = useFieldPart("FieldLabel");
   useLayoutClassName("FieldLabel", className);
+  // The label beside a checkbox or switch is its tap target, so it keeps phone-sized text on touch.
+  const inline = useFieldOwner().layout === "inline";
   return (
-    <BaseField.Label {...props} className={cn(labelClass, className)}>
+    <BaseField.Label {...props} className={cn(labelClass, inline && inlineLabelClass, className)}>
       {children}
       {field.required && (
         <span aria-hidden="true" data-ouro-required="" className="ms-0.5 text-destructive">

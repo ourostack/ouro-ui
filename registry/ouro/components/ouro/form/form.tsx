@@ -53,8 +53,20 @@ const FORM_KEY = "form";
 /** The messages an error holds: one, several, or none for an empty string or array. */
 const messagesOf = (error: string | string[] | undefined) => (Array.isArray(error) ? error : error ? [error] : []);
 
-/** Whether an element takes focus: hidden inputs and hidden copies of a control do not. */
-const focusable = (element: HTMLElement) => !element.matches('input[type="hidden"], [aria-hidden="true"], [hidden]');
+/**
+ * Whether an element takes focus: hidden inputs and hidden copies of a control do not, and
+ * neither does a disabled control, which the user cannot change (a disabled checkbox or
+ * radio is a `<span aria-disabled>` that would otherwise accept focus).
+ */
+const focusable = (element: HTMLElement) =>
+  !element.matches('input[type="hidden"], [aria-hidden="true"], [hidden], :disabled, [aria-disabled="true"]');
+
+/** In a radio group, the picked radio is the way in, when it can take focus; otherwise the element itself. */
+function entryPoint(element: HTMLElement): HTMLElement {
+  if (element.getAttribute("role") !== "radio") return element;
+  const picked = element.closest('[role="radiogroup"]')!.querySelector<HTMLElement>('[role="radio"][aria-checked="true"]');
+  return picked && focusable(picked) ? picked : element;
+}
 
 /**
  * A form that validates with the browser's own constraints (`required`, `type="email"`,
@@ -168,7 +180,7 @@ export function Form(props: FormProps): JSX.Element {
     if (Object.keys(errorsProp ?? EMPTY).length === 0) return;
     const message = messageRef.current!;
     const invalid = [...message.parentElement!.querySelectorAll<HTMLElement>('[aria-invalid="true"]')].find(focusable);
-    (invalid ?? (message.textContent ? message : undefined))?.focus();
+    (invalid ? entryPoint(invalid) : message.textContent ? message : undefined)?.focus();
   }, [errorsProp]);
 
   // A submit stops at its own Form: React bubbles events through portals, so a Form in a
