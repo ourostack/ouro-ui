@@ -678,6 +678,19 @@ describe("Popover parts", () => {
 });
 
 describe("Popover trigger press", () => {
+  it.each([
+    ["an object", { color: "rgb(255, 0, 0)" }],
+    ["a function of the state", () => ({ color: "rgb(255, 0, 0)" })],
+  ] as const)("keeps the style a part's trigger is given as %s, and still cancels the press scale", async (_name, style) => {
+    await render(
+      <PopoverRoot>
+        <PopoverTrigger render={<Button>Open</Button>} style={style} />
+      </PopoverRoot>,
+    );
+    expect(getComputedStyle(trigger()).color).toBe("rgb(255, 0, 0)");
+    expect(getComputedStyle(trigger()).getPropertyValue("--ouro-press-scale")).toBe("1");
+  });
+
   const selector = '[data-ouro="button"]';
 
   it("keeps the trigger's box untransformed during a press and shows Button's pressed wash instead", async () => {
