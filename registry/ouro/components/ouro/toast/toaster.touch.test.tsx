@@ -466,10 +466,21 @@ it("waits while a finger is on a toast, and fans the stack out, as a mouse over 
   document.body.append(elsewhere);
   nodes.push(elsewhere);
   await renderToaster();
+  const created = performance.now();
   const item = await show("Held", { duration: 1500 });
+  const shown = performance.now() - created;
   const region = document.querySelector<HTMLElement>('[data-ouro="toaster"]')!;
   expect(region.hasAttribute("data-expanded")).toBe(false);
   const [x, y] = grip(item);
+  const downs: string[] = [];
+  const onDown = (event: PointerEvent) => downs.push(`${event.pointerType}@${Math.round(performance.now() - created)}:${(event.target as Element).closest("[data-ouro]")?.getAttribute("data-ouro") ?? (event.target as Element).tagName}`);
+  addEventListener("pointerdown", onDown, true);
+  cleanups.push(() => removeEventListener("pointerdown", onDown, true));
+  const flips: string[] = [];
+  const observer = new MutationObserver(() => flips.push(`${region.hasAttribute("data-expanded") ? "expanded" : "collapsed"}@${Math.round(performance.now() - created)}`));
+  observer.observe(region, { attributes: true, attributeFilter: ["data-expanded"] });
+  cleanups.push(() => observer.disconnect());
+  const before = { connected: item.isConnected, ending: item.hasAttribute("data-ending-style"), at: Math.round(performance.now() - created) };
   // The event is where the finger is, for an app that follows the mouse.
   const moves: Array<[number, number]> = [];
   const record = (event: MouseEvent) => moves.push([event.clientX, event.clientY]);
@@ -477,7 +488,12 @@ it("waits while a finger is on a toast, and fans the stack out, as a mouse over 
   cleanups.push(() => removeEventListener("mousemove", record));
   try {
     await commands.touchStep({ type: "touchStart", x, y });
-    await expect.poll(() => region.hasAttribute("data-expanded")).toBe(true);
+    const touched = Math.round(performance.now() - created);
+    try {
+      await expect.poll(() => region.hasAttribute("data-expanded")).toBe(true);
+    } catch (error) {
+      throw new Error(`PROBE ${JSON.stringify({ shown: Math.round(shown), before, touched, after: { connected: item.isConnected, ending: item.hasAttribute("data-ending-style"), at: Math.round(performance.now() - created) }, hit: document.elementFromPoint(x, y)?.closest("[data-ouro]")?.getAttribute("data-ouro") ?? document.elementFromPoint(x, y)?.tagName, downs, flips, moves })}`, { cause: error });
+    }
     expect(moves.length).toBe(1);
     expect(Math.abs(moves[0]![0] - x) < 1 && Math.abs(moves[0]![1] - y) < 1).toBe(true);
     const since = performance.now();
