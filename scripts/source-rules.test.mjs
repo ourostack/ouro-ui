@@ -157,17 +157,6 @@ const ungatedHover = (text) =>
     ),
   ];
 
-// Files whose hover styles belong to the overlay and gesture fix PRs. Remove a file from this
-// list in the PR that gates its hover; the test below fails while a listed file is already clean.
-const hoverGatedLater = [
-  "registry/ouro/components/ouro/combobox/combobox-styles.ts",
-  "registry/ouro/components/ouro/dialog/dialog.tsx",
-  "registry/ouro/components/ouro/resizable/resizable-styles.ts",
-  "registry/ouro/components/ouro/select/native-select.tsx",
-  "registry/ouro/components/ouro/select/select-styles.ts",
-  "registry/ouro/components/ouro/toast/toaster-styles.ts",
-];
-
 test("ungatedHover finds a hover variant with no pointer-fine before it", () => {
   assert.deepEqual(ungatedHover('"hover:bg-accent pointer-fine:hover:bg-accent not-disabled:hover:text-x group-hover/tab:underline"'), [
     "hover:bg-accent",
@@ -183,14 +172,5 @@ test("every hover style is gated on a fine pointer (pointer-fine:hover:), so a t
     (path) => !/\.(test|test-d|stories)\.tsx?$|\.d\.ts$|\/lib\/ouro\/testing\/|\/e2e\/|\/theme\//.test(path),
   );
   const offenders = runtime.map(read).filter(({ text }) => ungatedHover(text).length > 0).map(({ path }) => path);
-  assert.deepEqual(
-    offenders.filter((path) => !hoverGatedLater.includes(path)),
-    [],
-    "Write hover as pointer-fine:hover:…; Tailwind's hover: checks (hover: hover) only.",
-  );
-  assert.deepEqual(
-    hoverGatedLater.filter((path) => !offenders.includes(path)),
-    [],
-    "These files are gated now: remove them from hoverGatedLater.",
-  );
+  assert.deepEqual(offenders, [], "Write hover as pointer-fine:hover:…; Tailwind's hover: checks (hover: hover) only.");
 });
