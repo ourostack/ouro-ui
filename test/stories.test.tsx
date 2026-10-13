@@ -96,6 +96,13 @@ it("does not scan a sheet before its deferred starting style leaves", async () =
   expect(popup.hasAttribute("data-starting-style")).toBe(false);
 });
 
+it("still reports a genuine offscreen skip link with no target", async () => {
+  const host = await renderStory(() => (
+    <a href="#missing-content" style={{ position: "fixed", top: "100vh" }}>Skip to content</a>
+  ));
+  expect((await scan(host)).map((violation) => violation.id)).toContain("skip-link");
+});
+
 describe.each([
   { width: 390, height: 844 },
   { width: 1280, height: 800 },
