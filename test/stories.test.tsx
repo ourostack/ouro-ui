@@ -1,6 +1,7 @@
 import axe from "axe-core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page } from "vitest/browser";
+import { menuItemClass, menuSheetPopupClass, menuSheetPositionerClass } from "@/registry/ouro/components/ouro/menu/menu-styles";
 import { axeExclude } from "@/registry/ouro/lib/ouro/testing/axe";
 import {
   cleanupStories,
@@ -70,6 +71,36 @@ it("covers every story file, each with stories", () => {
   for (const [file, composed] of Object.entries(storyFiles)) expect(Object.keys(composed).length, file).toBeGreaterThan(0);
   // Every plain opener a story names is a button in that story (overlayOpeners throws otherwise).
   expect(stories.filter((entry) => entry.parameters.plainOpeners).map((entry) => entry.id)).toEqual(expect.arrayContaining(["Dialog/Controlled", "Sheet/Controlled"]));
+});
+
+it("does not scan a sheet before its deferred starting style leaves", async () => {
+  const host = await renderStory(() => (
+    <div className={menuSheetPositionerClass}>
+      <div role="menu" data-open="" data-starting-style="" className={menuSheetPopupClass}>
+        <a role="menuitem" className={menuItemClass} href="#print">Print</a>
+      </div>
+    </div>
+  ));
+  const popup = host.querySelector<HTMLElement>('[role="menu"]')!;
+  let frame = 0;
+  const enter = () => {
+    if (++frame < 8) requestAnimationFrame(enter);
+    else {
+      popup.removeAttribute("data-starting-style");
+    }
+  };
+  requestAnimationFrame(enter);
+  await settle();
+  const violations = await scan(popup);
+  expect(describeViolations(violations)).toBe("");
+  expect(popup.hasAttribute("data-starting-style")).toBe(false);
+});
+
+it("still reports a genuine offscreen skip link with no target", async () => {
+  const host = await renderStory(() => (
+    <a href="#missing-content" style={{ position: "fixed", top: "100vh" }}>Skip to content</a>
+  ));
+  expect((await scan(host)).map((violation) => violation.id)).toContain("skip-link");
 });
 
 describe.each([

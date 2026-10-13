@@ -193,6 +193,11 @@ export function overlayOpeners(
 /** Resolves once every finite animation and transition in the document has finished. */
 export async function settle(): Promise<void> {
   for (let round = 0; round < 20; round++) {
+    // Base UI clears the starting style in a deferred React update. Before that
+    // commit a sheet is offscreen but has no running transition to await.
+    await vi.waitFor(() => {
+      if (document.querySelector("[data-open][data-starting-style]")) throw new Error("an overlay still has its starting style");
+    }, waitOptions);
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     const running = document
       .getAnimations()
