@@ -447,6 +447,9 @@ describe("SwipeActions on a phone", () => {
       expect([...document.querySelectorAll('[role="menuitem"]')].map((item) => item.textContent)).toEqual(["Pin", "Delete", "Archive"]);
       expect(document.querySelector('[data-ouro="menu"]')!.getAttribute("data-ouro-presentation")).toBe("menu");
       expect(row.hasAttribute("data-dragging")).toBe(false);
+      // The finger rests on the menu a moment before it lifts, longer than the half second after
+      // opening in which Base UI ignores a press outside the menu.
+      await new Promise((resolve) => setTimeout(resolve, 600));
     } finally {
       await commands.touchStep({ type: "touchEnd" });
     }
