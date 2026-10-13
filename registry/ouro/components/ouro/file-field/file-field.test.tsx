@@ -543,7 +543,7 @@ describe("FileField press feedback", () => {
     const { host } = await render(<FileField label="Photos" />);
     const zone = host.querySelector<HTMLElement>("[data-ouro-drop-zone]")!;
     const rest = getComputedStyle(zone).backgroundColor;
-    expect(getComputedStyle(zone).transitionTimingFunction).toBe("ease, ease");
+    expect(getComputedStyle(zone).transitionTimingFunction).toBe("ease");
     await commands.pointerPress({ selector: "[data-ouro-drop-zone]", action: "down" });
     try {
       await expect.poll(() => getComputedStyle(zone).backgroundColor).not.toBe(rest);

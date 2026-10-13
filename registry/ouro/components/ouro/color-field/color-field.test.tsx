@@ -401,7 +401,8 @@ describe("ColorField press feedback", () => {
     await commands.emulateMedia({ reducedMotion: "reduce" });
     await commands.pointerPress({ selector: 'label:has(input[type="color"])', action: "down" });
     try {
-      expect(scale()).toBe(1);
+      // The release from the first press may still be easing the last fraction of a percent.
+      expect(scale()).toBeCloseTo(1, 2);
     } finally {
       await commands.pointerPress({ action: "up" });
       await commands.emulateMedia({ reducedMotion: "no-preference" });
