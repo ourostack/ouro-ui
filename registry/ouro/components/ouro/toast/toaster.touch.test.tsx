@@ -466,27 +466,38 @@ it("waits while a finger is on a toast, and fans the stack out, as a mouse over 
   document.body.append(elsewhere);
   nodes.push(elsewhere);
   await renderToaster();
-  const item = await show("Held", { duration: 1500 });
-  const region = document.querySelector<HTMLElement>('[data-ouro="toaster"]')!;
-  expect(region.hasAttribute("data-expanded")).toBe(false);
-  const [x, y] = grip(item);
-  // The event is where the finger is, for an app that follows the mouse.
-  const moves: Array<[number, number]> = [];
-  const record = (event: MouseEvent) => moves.push([event.clientX, event.clientY]);
-  addEventListener("mousemove", record);
-  cleanups.push(() => removeEventListener("mousemove", record));
+  // The toast's own clock is the test's: on a loaded runner, waiting for it to slide in could
+  // take longer than its 1.5s, and it would be gone before the finger came down.
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
   try {
-    await commands.touchStep({ type: "touchStart", x, y });
-    await expect.poll(() => region.hasAttribute("data-expanded")).toBe(true);
-    expect(moves.length).toBe(1);
-    expect(Math.abs(moves[0]![0] - x) < 1 && Math.abs(moves[0]![1] - y) < 1).toBe(true);
-    const since = performance.now();
-    await expect.poll(() => performance.now() - since, { timeout: 5000 }).toBeGreaterThan(2200);
-    expect(toastNamed("Held")).toBe(item);
+    const item = await show("Held", { duration: 1500 });
+    const region = document.querySelector<HTMLElement>('[data-ouro="toaster"]')!;
+    expect(region.hasAttribute("data-expanded")).toBe(false);
+    const [x, y] = grip(item);
+    // The event is where the finger is, for an app that follows the mouse.
+    const moves: Array<[number, number]> = [];
+    const record = (event: MouseEvent) => moves.push([event.clientX, event.clientY]);
+    addEventListener("mousemove", record);
+    cleanups.push(() => removeEventListener("mousemove", record));
+    try {
+      await commands.touchStep({ type: "touchStart", x, y });
+      await expect.poll(() => region.hasAttribute("data-expanded")).toBe(true);
+      expect(moves.length).toBe(1);
+      expect(Math.abs(moves[0]![0] - x) < 1 && Math.abs(moves[0]![1] - y) < 1).toBe(true);
+      // Twice its time passes under the finger, and it is still there.
+      await act(async () => vi.advanceTimersByTime(3000));
+      expect(toastNamed("Held")).toBe(item);
+    } finally {
+      await commands.touchStep({ type: "touchEnd" });
+    }
+    // A touch elsewhere lets the toasts go on: the rest of its time, and it closes.
+    await commands.tap('[data-testid="elsewhere"]');
+    await expect.poll(() => region.hasAttribute("data-expanded")).toBe(false);
+    await act(async () => vi.advanceTimersByTime(1499));
+    expect(item.hasAttribute("data-ending-style")).toBe(false);
+    await act(async () => vi.advanceTimersByTime(1));
   } finally {
-    await commands.touchStep({ type: "touchEnd" });
+    vi.useRealTimers();
   }
-  // A touch elsewhere lets the toasts go on.
-  await commands.tap('[data-testid="elsewhere"]');
-  await expect.poll(() => toastNamed("Held"), { timeout: 5000 }).toBeUndefined();
+  await expect.poll(() => toastNamed("Held")).toBeUndefined();
 });
