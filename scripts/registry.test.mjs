@@ -537,7 +537,11 @@ test("each lib helper is its own item, so an item installs only the helpers it i
     for (const path of files) {
       for (const match of readFileSync(join(root, path), "utf8").matchAll(/from "@\/(registry\/ouro\/lib\/ouro\/[\w-]+)"/g)) imported.add(match[1]);
     }
-    const helpers = files.filter((path) => path.startsWith("registry/ouro/lib/ouro/") && !path.endsWith("env.d.ts")).map((path) => path.replace(/\.tsx?$/, ""));
+    // OuroProvider is the one helper the app imports: it comes with the components that render links.
+    const helpers = files
+      .filter((path) => path.startsWith("registry/ouro/lib/ouro/") && !path.endsWith("env.d.ts") && !path.endsWith("/ouro-provider.tsx"))
+      .map((path) => path.replace(/\.tsx?$/, ""));
+    assert.equal(files.includes("registry/ouro/lib/ouro/ouro-provider.tsx"), files.includes("registry/ouro/lib/ouro/router-link.ts"), `${entry.name} has OuroProvider exactly when it renders links`);
     assert.deepEqual(helpers.filter((path) => !imported.has(path)), [], `${entry.name} installs helpers nothing it installs imports`);
   }
   // ouro-lib stays, as every helper in one item.
@@ -559,4 +563,16 @@ test("every item's docs message names a docs page the site publishes", () => {
     assert.ok(url && published.has(url), `${entry.name}: ${url} is not a published docs page`);
   }
   for (const name of components) assert.ok(catalog.includes(name), `${name} has no docs page`);
+});
+
+test("a component that renders links brings OuroProvider, which only the app imports", () => {
+  assert.ok(item("lib-router-link").registryDependencies.includes(repo("lib-ouro-provider")));
+  const installs = (name, seen = new Set()) => {
+    if (seen.has(name)) return seen;
+    seen.add(name);
+    for (const dep of item(name).registryDependencies ?? []) installs(dep.split("/").at(-1), seen);
+    return seen;
+  };
+  for (const name of ["button", "link", "card", "item", "table"]) assert.ok(installs(name).has("lib-ouro-provider"), `${name} installs OuroProvider`);
+  assert.ok(installs("button-tests").has("lib-ouro-provider-tests"), "and its tests come with the component's tests");
 });

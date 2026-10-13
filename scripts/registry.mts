@@ -462,6 +462,9 @@ export function buildRegistry(root: string): Registry {
       const isDev = entry.name === "ouro-testing" || entry.kind === "tests";
       // env.d.ts declares process.env.NODE_ENV for apps without @types/node; nothing imports it.
       if (!isDev && entry.name !== "lib-env" && /\bprocess\.env\b/.test(source)) registryDeps.add("lib-env");
+      // A component that renders links reads the app's router link from OuroProvider, which it
+      // never imports: the app does. So the provider comes with every such component.
+      if (entry.name === "lib-router-link") registryDeps.add("lib-ouro-provider");
       for (const specifier of importsOf(source)) {
         if (specifier.startsWith("@/")) {
           if (path.startsWith(e2eDir)) throw new Error(`${path}: e2e files ship as registry:file, which the CLI does not rewrite; use relative imports.`);
