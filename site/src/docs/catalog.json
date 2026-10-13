@@ -209,6 +209,18 @@
     "source": "registry/ouro/components/ouro/hover-card/hover-card.tsx"
   },
   {
+    "name": "menu",
+    "title": "Menu",
+    "group": "Menus",
+    "source": "registry/ouro/components/ouro/menu/menu.tsx"
+  },
+  {
+    "name": "command",
+    "title": "Command",
+    "group": "Menus",
+    "source": "registry/ouro/components/ouro/command/command.tsx"
+  },
+  {
     "name": "toaster",
     "title": "Toaster",
     "group": "Feedback",
@@ -312,6 +324,18 @@
     "title": "ItemGroup",
     "group": "Lists",
     "source": "registry/ouro/components/ouro/item/item-group.tsx"
+  },
+  {
+    "name": "swipe-actions",
+    "title": "SwipeActions",
+    "group": "Lists",
+    "source": "registry/ouro/components/ouro/swipe-actions/swipe-actions.tsx"
+  },
+  {
+    "name": "reorderable",
+    "title": "Reorderable",
+    "group": "Lists",
+    "source": "registry/ouro/components/ouro/reorderable/reorderable.tsx"
   },
   {
     "name": "scroll-area",

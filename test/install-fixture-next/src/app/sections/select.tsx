@@ -8,6 +8,8 @@ import { SelectGroup, SelectItem } from "@/components/ouro/select/select-parts";
 // Select's trigger is named by the label and described by the description in the server HTML.
 // expect: aria-labelledby="[^"]*-label"
 // expect: aria-describedby="[^"]*-description"
+// The chosen item's label, read from a `SelectItem` whose type is a client reference here.
+// expect: <span[^>]*>Quick</span>
 export default function SelectSection() {
   return (
     <>

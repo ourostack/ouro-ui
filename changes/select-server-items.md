@@ -1,0 +1,1 @@
+- A Select whose `SelectItem` children come from a Server Component shows the chosen item's label in its trigger when React hands an item over as a lazy wrapper.

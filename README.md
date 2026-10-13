@@ -216,6 +216,19 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **Sheet** — A panel that slides in from an edge and is dragged back to dismiss: the mobile form of a dialog. [Docs](docs/Sheet.md)
 - **Tooltip** — A short label that appears beside its trigger on hover and keyboard focus, for an icon button's purpose or a control's shortcut. [Docs](docs/Tooltip.md)
 
+### Menus
+
+- **Command** — A command palette: a searchable list of every action in the app, in a dialog. [Docs](docs/Command.md)
+- **Menu** — A list of actions that opens from a button, from a right-click or long press, or from a menubar, with one API for all three. [Docs](docs/Menu.md)
+- **MenuBar** — A row of menus, as at the top of a desktop app: File, Edit, View. [Docs](docs/MenuBar.md)
+- **MenuCheckboxItem** — An on/off setting in a `Menu`, with a check mark when it is on. [Docs](docs/MenuCheckboxItem.md)
+- **MenuGroup** — Items under a label in a `Menu`, such as "Recipe" and "Account" sections. [Docs](docs/MenuGroup.md)
+- **MenuItem** — One action in a `Menu`: `onClick` runs it, `href` makes it a link, `shortcut` shows its keys and `tone="destructive"` marks an action that cannot be undone. [Docs](docs/MenuItem.md)
+- **MenuRadioGroup** — One choice of several in a `Menu`, such as a sort order: its `MenuRadioItem`s show a mark on the chosen one, and choosing keeps the menu open. [Docs](docs/MenuRadioGroup.md)
+- **MenuRadioItem** — One choice in a `MenuRadioGroup`, marked when it is the group's value. [Docs](docs/MenuRadioItem.md)
+- **MenuSeparator** — A line between items in a `Menu`, to set apart a group of actions such as the destructive ones at the end. [Docs](docs/MenuSeparator.md)
+- **MenuSub** — A nested menu in a `Menu`: an item that opens more items beside it, on hover, click or the arrow key. [Docs](docs/MenuSub.md)
+
 ### Feedback
 
 - **Progress** — A bar that shows how far along a task is, or that it is under way when you can't tell. [Docs](docs/Progress.md)
@@ -242,7 +255,9 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **Collapsible** — One section that opens and closes under its title, such as nutrition facts under a recipe. [Docs](docs/Collapsible.md)
 - **Item** — One row of a list: leading media, a title with a description, and trailing actions. [Docs](docs/Item.md)
 - **ItemGroup** — A list of `Item` rows, with an optional label that names it, lines between the rows, and what to show when it is empty. [Docs](docs/ItemGroup.md)
+- **Reorderable** — A list the user puts in order: recipe steps, a queue, favorites. [Docs](docs/Reorderable.md)
 - **ShowMore** — "Show more" for a long list or a long text. [Docs](docs/ShowMore.md)
+- **SwipeActions** — A list row with actions beside it that a horizontal swipe reveals: swipe toward the start for the `trailing` actions (Delete, Archive), toward the end for the `leading` ones (Pin). [Docs](docs/SwipeActions.md)
 
 ### Layout
 

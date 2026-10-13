@@ -207,6 +207,11 @@
           "target": "@lib/ouro/floating.ts"
         },
         {
+          "path": "registry/ouro/lib/ouro/key-shortcuts.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/key-shortcuts.ts"
+        },
+        {
           "path": "registry/ouro/lib/ouro/last-input.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/last-input.ts"
@@ -230,6 +235,16 @@
           "path": "registry/ouro/lib/ouro/router-link.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/router-link.ts"
+        },
+        {
+          "path": "registry/ouro/lib/ouro/server-element.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/server-element.ts"
+        },
+        {
+          "path": "registry/ouro/lib/ouro/spring.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/spring.ts"
         },
         {
           "path": "registry/ouro/lib/ouro/stretched-link.ts",
@@ -257,9 +272,19 @@
           "target": "@lib/ouro/use-backdrop-anchor.ts"
         },
         {
+          "path": "registry/ouro/lib/ouro/use-command-shortcut.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/use-command-shortcut.ts"
+        },
+        {
           "path": "registry/ouro/lib/ouro/use-dev-warnings.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/use-dev-warnings.ts"
+        },
+        {
+          "path": "registry/ouro/lib/ouro/use-drag.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/use-drag.ts"
         },
         {
           "path": "registry/ouro/lib/ouro/use-field.ts",
@@ -292,7 +317,7 @@
       "name": "ouro-testing",
       "type": "registry:lib",
       "title": "Ouro testing",
-      "description": "Installed with every -tests item; you don't need to add it. The test kit Ouro UI's tests use: Vitest browser projects with the drag, flick, tap, touchDrag, touchStep, pointerPress, emulateMedia, pageZoom, resetPageZoom, setPageZoom and restoreTouch commands, the rotate helper (which turns the phone viewport and resets Chromium's zoom; the ouro-touch project fails a test that leaves the page zoomed), the act helper, axeExclude, and the end-to-end story helper.",
+      "description": "Installed with every -tests item; you don't need to add it. The test kit Ouro UI's tests use: Vitest browser projects with the drag, flick, tap, touchDrag, touchStep, pointerPress, emulateMedia, pageZoom, resetPageZoom, setPageZoom and restoreTouch commands, the rotate helper (which turns the phone viewport and resets Chromium's zoom; the ouro-touch project fails a test that leaves the page zoomed), the act helper, the holdFrames helper (which holds animation frames and the clock still so a test steps a spring itself), axeExclude, and the end-to-end story helper.",
       "docs": "The -tests items install Ouro UI's tests beside each component. To run the Vitest browser tests, add vitest.config.ts (use your components.json tailwind.css path for css), then run npx playwright install chromium webkit and npx vitest run:\n--- vitest.config.ts\nimport { defineConfig, mergeConfig } from \"vitest/config\";\nimport viteConfig from \"./vite.config.ts\";\nimport { ouroTestProjects } from \"./src/lib/ouro/testing/vitest.ts\";\n\nexport default mergeConfig(viteConfig, defineConfig({ test: { projects: ouroTestProjects({ css: \"./src/index.css\" }) } }));\n\nThe end-to-end specs in e2e/ouro open the Ouro stories in a Storybook. If your app has none, add these two files (use your stylesheet in preview.ts):\n--- .storybook/main.ts\nexport default { stories: [\"../src/**/*.stories.@(ts|tsx)\"], framework: \"@storybook/react-vite\" };\n--- .storybook/preview.ts\nimport \"../src/index.css\";\n\nIf your app has no Playwright config, add this one, which starts that Storybook and runs Chromium and WebKit:\n--- playwright.config.ts\nimport { defineConfig, devices } from \"@playwright/test\";\n\n// Starts the app's Storybook, where Ouro UI's specs (e2e/ouro) open their stories.\nexport default defineConfig({\n  testDir: \"e2e\",\n  projects: [\n    { name: \"chromium\", use: { ...devices[\"Desktop Chrome\"] } },\n    { name: \"webkit\", use: { ...devices[\"Desktop Safari\"] } },\n  ],\n  webServer: {\n    command: \"npx storybook dev -p 6006 --ci --no-open\",\n    url: \"http://localhost:6006/iframe.html\",\n    reuseExistingServer: !process.env[\"CI\"],\n    timeout: 180_000,\n  },\n});\n\nThen run npx playwright test e2e/ouro. With a Playwright config of your own, start Storybook with npx storybook dev -p 6006 and run OURO_E2E_URL=http://localhost:6006 npx playwright test e2e/ouro.\nDocs: https://ourostack.github.io/ouro-ui/docs",
       "devDependencies": [
         "@playwright/test@^1.63.0",
@@ -330,6 +355,16 @@
           "path": "registry/ouro/lib/ouro/testing/commands.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/testing/commands.ts"
+        },
+        {
+          "path": "registry/ouro/lib/ouro/testing/frames.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/testing/frames.test.ts"
+        },
+        {
+          "path": "registry/ouro/lib/ouro/testing/frames.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/testing/frames.ts"
         },
         {
           "path": "registry/ouro/lib/ouro/testing/page-css.ts",
@@ -1174,6 +1209,62 @@
       ]
     },
     {
+      "name": "menu",
+      "type": "registry:ui",
+      "title": "Menu",
+      "description": "A list of actions that opens from a button, from a right-click or long press, or from a menubar, with one API for all three.",
+      "docs": "A list of actions that opens from a button, from a right-click or long press, or from a menubar, with one API for all three. Import: import { Menu } from \"@/components/ouro/menu/menu\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: kbd, ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/menu.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/kbd",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/menu/menu-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/menu/menu-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/menu/menu.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/menu/menu.tsx"
+        }
+      ]
+    },
+    {
+      "name": "command",
+      "type": "registry:ui",
+      "title": "Command",
+      "description": "A command palette: a searchable list of every action in the app, in a dialog.",
+      "docs": "A command palette: a searchable list of every action in the app, in a dialog. Import: import { Command } from \"@/components/ouro/command/command\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: dialog, kbd, ouro-base, ouro-lib, sheet. Docs: https://ourostack.github.io/ouro-ui/docs/command.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/dialog",
+        "ourostack/ouro-ui/kbd",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib",
+        "ourostack/ouro-ui/sheet"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/command/command-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/command/command-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/command/command.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/command/command.tsx"
+        }
+      ]
+    },
+    {
       "name": "tabs",
       "type": "registry:ui",
       "title": "Tabs",
@@ -1649,6 +1740,55 @@
       ]
     },
     {
+      "name": "swipe-actions",
+      "type": "registry:ui",
+      "title": "SwipeActions",
+      "description": "A list row with actions beside it that a horizontal swipe reveals: swipe toward the start for the `trailing` actions (Delete, Archive), toward the end for the `leading` ones (Pin).",
+      "docs": "A list row with actions beside it that a horizontal swipe reveals: swipe toward the start for the `trailing` actions (Delete, Archive), toward the end for the `leading` ones (Pin). Import: import { SwipeActions } from \"@/components/ouro/swipe-actions/swipe-actions\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, kbd, menu, ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/swipe-actions.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/menu",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/swipe-actions/swipe-actions-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/swipe-actions/swipe-actions-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/swipe-actions/swipe-actions.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/swipe-actions/swipe-actions.tsx"
+        }
+      ]
+    },
+    {
+      "name": "reorderable",
+      "type": "registry:ui",
+      "title": "Reorderable",
+      "description": "A list the user puts in order: recipe steps, a queue, favorites.",
+      "docs": "A list the user puts in order: recipe steps, a queue, favorites. Import: import { Reorderable } from \"@/components/ouro/reorderable/reorderable\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: kbd, menu, ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/reorderable.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/menu",
+        "ourostack/ouro-ui/ouro-base",
+        "ourostack/ouro-ui/ouro-lib"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/reorderable/reorderable-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/reorderable/reorderable-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/reorderable/reorderable.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/reorderable/reorderable.tsx"
+        }
+      ]
+    },
+    {
       "name": "calendar",
       "type": "registry:ui",
       "title": "Calendar",
@@ -1873,6 +2013,11 @@
           "target": "@lib/ouro/floating.test.ts"
         },
         {
+          "path": "registry/ouro/lib/ouro/key-shortcuts.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/key-shortcuts.test.ts"
+        },
+        {
           "path": "registry/ouro/lib/ouro/last-input.test.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/last-input.test.ts"
@@ -1881,6 +2026,26 @@
           "path": "registry/ouro/lib/ouro/ouro-provider.test.tsx",
           "type": "registry:lib",
           "target": "@lib/ouro/ouro-provider.test.tsx"
+        },
+        {
+          "path": "registry/ouro/lib/ouro/server-element.test.tsx",
+          "type": "registry:lib",
+          "target": "@lib/ouro/server-element.test.tsx"
+        },
+        {
+          "path": "registry/ouro/lib/ouro/spring.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/spring.test.ts"
+        },
+        {
+          "path": "registry/ouro/lib/ouro/use-command-shortcut.test.tsx",
+          "type": "registry:lib",
+          "target": "@lib/ouro/use-command-shortcut.test.tsx"
+        },
+        {
+          "path": "registry/ouro/lib/ouro/use-drag.test.tsx",
+          "type": "registry:lib",
+          "target": "@lib/ouro/use-drag.test.tsx"
         },
         {
           "path": "registry/ouro/lib/ouro/use-keyboard-scrollable.test.tsx",
@@ -3362,6 +3527,102 @@
       ]
     },
     {
+      "name": "menu-tests",
+      "type": "registry:item",
+      "title": "Menu tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for menu, with the test tooling as devDependencies. Add it beside menu: add menu menu-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "menu's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/menu.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "axe-core@^4.13.0",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/menu",
+        "ourostack/ouro-ui/ouro-lib",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/tooltip"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/menu/menu.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/menu/menu.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/menu/menu.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/menu/menu.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/menu/menu.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/menu/menu.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/menu/menu.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/menu/menu.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/menu.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/menu.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "command-tests",
+      "type": "registry:item",
+      "title": "Command tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for command, with the test tooling as devDependencies. Add it beside command: add command command-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "command's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/command.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "axe-core@^4.13.0",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/command",
+        "ourostack/ouro-ui/kbd",
+        "ourostack/ouro-ui/ouro-lib",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/command/command.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/command/command.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/command/command.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/command/command.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/command/command.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/command/command.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/command/command.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/command/command.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/command.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/command.spec.ts"
+        }
+      ]
+    },
+    {
       "name": "tabs-tests",
       "type": "registry:item",
       "title": "Tabs tests",
@@ -4283,6 +4544,100 @@
       ]
     },
     {
+      "name": "swipe-actions-tests",
+      "type": "registry:item",
+      "title": "SwipeActions tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for swipe-actions, with the test tooling as devDependencies. Add it beside swipe-actions: add swipe-actions swipe-actions-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "swipe-actions's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/swipe-actions.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/item",
+        "ourostack/ouro-ui/item-group",
+        "ourostack/ouro-ui/ouro-lib",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/swipe-actions",
+        "ourostack/ouro-ui/toaster"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/swipe-actions/swipe-actions.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/swipe-actions/swipe-actions.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/swipe-actions/swipe-actions.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/swipe-actions/swipe-actions.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/swipe-actions/swipe-actions.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/swipe-actions/swipe-actions.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/swipe-actions/swipe-actions.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/swipe-actions/swipe-actions.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/swipe-actions.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/swipe-actions.spec.ts"
+        }
+      ]
+    },
+    {
+      "name": "reorderable-tests",
+      "type": "registry:item",
+      "title": "Reorderable tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for reorderable, with the test tooling as devDependencies. Add it beside reorderable: add reorderable reorderable-tests. It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.",
+      "docs": "reorderable's tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/reorderable.md",
+      "devDependencies": [
+        "@playwright/test@^1.63.0",
+        "@storybook/react-vite@^10.6.1",
+        "storybook@^10.6.1",
+        "vitest@^5.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/item",
+        "ourostack/ouro-ui/ouro-lib",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/reorderable"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/reorderable/reorderable.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/reorderable/reorderable.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/reorderable/reorderable.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/reorderable/reorderable.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/reorderable/reorderable.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/reorderable/reorderable.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/reorderable/reorderable.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/reorderable/reorderable.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/reorderable.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/reorderable.spec.ts"
+        }
+      ]
+    },
+    {
       "name": "calendar-tests",
       "type": "registry:item",
       "title": "Calendar tests",
@@ -4650,6 +5005,7 @@
         "ourostack/ouro-ui/collapsible-tests",
         "ourostack/ouro-ui/color-field-tests",
         "ourostack/ouro-ui/combobox-tests",
+        "ourostack/ouro-ui/command-tests",
         "ourostack/ouro-ui/confirm-dialog-tests",
         "ourostack/ouro-ui/date-picker-tests",
         "ourostack/ouro-ui/description-list-tests",
@@ -4666,6 +5022,7 @@
         "ourostack/ouro-ui/item-tests",
         "ourostack/ouro-ui/kbd-tests",
         "ourostack/ouro-ui/link-tests",
+        "ourostack/ouro-ui/menu-tests",
         "ourostack/ouro-ui/message-list-tests",
         "ourostack/ouro-ui/message-tests",
         "ourostack/ouro-ui/native-select-tests",
@@ -4675,6 +5032,7 @@
         "ourostack/ouro-ui/popover-tests",
         "ourostack/ouro-ui/progress-tests",
         "ourostack/ouro-ui/radio-group-tests",
+        "ourostack/ouro-ui/reorderable-tests",
         "ourostack/ouro-ui/resizable-tests",
         "ourostack/ouro-ui/row-tests",
         "ourostack/ouro-ui/scroll-area-tests",
@@ -4687,6 +5045,7 @@
         "ourostack/ouro-ui/slider-tests",
         "ourostack/ouro-ui/spinner-tests",
         "ourostack/ouro-ui/stack-tests",
+        "ourostack/ouro-ui/swipe-actions-tests",
         "ourostack/ouro-ui/switch-tests",
         "ourostack/ouro-ui/table-tests",
         "ourostack/ouro-ui/tabs-tests",

@@ -58,11 +58,31 @@ it.each([
 ] as const)("dismisses with a real touch swipe %s", async (direction, dx, dy) => {
   await renderToaster();
   const message = `Swipe ${direction}`;
-  const rect = (await show(message, { duration: 0 })).getBoundingClientRect();
+  const item = await show(message, { duration: 0 });
+  // The page must not take the swipe for a scroll: that cancels the pointer and the toast stays.
+  expect(getComputedStyle(item).touchAction).toBe("none");
+  const rect = item.getBoundingClientRect();
   const x = rect.left + rect.width / 2;
   const y = rect.top + rect.height / 2;
   await commands.touchDrag({ from: [x, y], to: [x + dx, y + dy], steps: 10 });
   await expect.poll(() => toastNamed(message)).toBeUndefined();
+});
+
+it("dismisses with a swipe down on a page that scrolls, without scrolling it", async () => {
+  const tall = document.createElement("div");
+  tall.style.height = "3000px";
+  document.body.append(tall);
+  nodes.push(tall);
+  scrollTo(0, 400);
+  await renderToaster();
+  const item = await show("Swipe on a long page", { duration: 0 });
+  const rect = item.getBoundingClientRect();
+  const x = rect.left + rect.width / 2;
+  const y = rect.top + rect.height / 2;
+  await commands.touchDrag({ from: [x, y], to: [x, y + 140], steps: 10 });
+  await expect.poll(() => toastNamed("Swipe on a long page")).toBeUndefined();
+  expect(scrollY).toBe(400);
+  scrollTo(0, 0);
 });
 
 it("gives the dismiss and action buttons 44px touch targets", async () => {
