@@ -15,15 +15,22 @@ export interface FieldContextValue {
   /** Ids of the description and error the field renders, for the control's `aria-describedby`. */
   describedBy: string | undefined;
   /**
-   * The field shows an error, from its `error` prop or its `Form`'s `errors`. A control
-   * that is not a `FieldControl` (Select's trigger) sets `aria-invalid` from it.
+   * The field shows an error, from its `error` prop or its `Form`'s `errors`; for a group's
+   * item, the group's. A control that is not a `FieldControl` (Select's trigger, a checkbox,
+   * a switch, a radio) sets `aria-invalid` from it.
    */
   invalid: boolean;
   /**
-   * The label's id, for a control that a `<label for>` cannot name (Select's trigger takes
-   * `aria-labelledby`). `undefined` in the parts, which leave the id to Base UI.
+   * The label's (or a group's legend's) id, for a control that a `<label for>` cannot name
+   * (Select's trigger, a checkbox, a switch, a radio group) and that takes `aria-labelledby`.
+   * `undefined` in the parts, which leave the id to Base UI.
    */
   labelId: string | undefined;
+  /**
+   * Set by a `Field` whose control is a group of choices: its owner's `name`, such as
+   * `RadioGroup`. A checkbox or radio `Field` inside it renders as one of the group's items.
+   */
+  group?: string | undefined;
 }
 
 /**
@@ -50,6 +57,19 @@ export interface FieldOwner {
   name: string;
   /** The root's `data-ouro` value, such as `text-field`. */
   data: string;
+  /**
+   * How the field lays out its parts. `stack` (the default) puts the label above the
+   * control. `inline` puts the control first with the label to its right, as a checkbox or
+   * switch does. `group` names a group of choices: the label is the group's legend, not a
+   * `<label>`, and the control is the group.
+   */
+  layout?: "stack" | "inline" | "group" | undefined;
+  /**
+   * For a group whose control cannot carry `aria-required` (a checkbox group): the words a
+   * required field adds, visually hidden, after its legend, such as `(required)`, so screen
+   * readers announce it.
+   */
+  requiredLabel?: string | undefined;
   /**
    * Arranges the field's content inside its root: the label element, then the rest
    * (description, control, error). NumberField puts its Base UI root around both and a scrub
