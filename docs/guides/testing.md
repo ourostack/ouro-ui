@@ -20,7 +20,7 @@ The tests do not run in jsdom or happy-dom. They drag, flick and measure, so the
 npx shadcn@latest add ourostack/ouro-ui/dialog#v0.7.0 ourostack/ouro-ui/dialog-tests#v0.7.0
 ```
 
-A `<name>-tests` item installs the component's tests, type tests, stories and spec, the tests of every component and helper that came with it, and `ouro-testing`, the test kit. The installed tests cover the installed files to 100% of lines and branches. Ouro UI's CI measures that for the button, the dialog, the sheet, the form controls and all of those together; every other component gets its tests by the same rule but is not measured alone. `ouro-tests` adds every component with all of its tests.
+A `<name>-tests` item installs the component's tests, type tests, stories and spec, the tests of every component and helper that came with it, and `ouro-testing`, the test kit. CI verifies 100% line and branch coverage of the installed runtime files for five sets: button, dialog, sheet, the forms set and their union. The forms set is `field`, `fieldset`, `text-field`, `text-area`, `checkbox`, `checkbox-group`, `radio-group`, `switch`, `form`, `select`, `native-select` and `combobox`. Other items receive their full test dependency closure but are not measured individually. This closure guarantee does not establish execution coverage for every item alone. `ouro-tests` adds every component with all of its tests.
 
 Then add the config files the `ouro-testing` install message prints: `vitest.config.ts`, a Storybook and a Playwright config if your app has none, and `e2e/ouro-fixtures.ts`. The Vitest config is:
 

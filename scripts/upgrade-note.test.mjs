@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -17,14 +17,15 @@ const read = (path) => readFileSync(join(root, path), "utf8");
 const note = read("UPGRADING.md");
 const commands = steps(note).flatMap((step) => step.commands);
 
-test("the note has steps 0 to 5, and steps 1 to 3 and 5 have commands", () => {
+test("the note has steps 0 to 5, and only steps 1 to 3 have commands", () => {
   assert.deepEqual(
     steps(note).map((step) => step.number),
     [0, 1, 2, 3, 4, 5],
   );
-  for (const number of [1, 2, 3, 5]) {
+  for (const number of [1, 2, 3]) {
     assert.ok(steps(note).find((step) => step.number === number).commands.length > 0, `step ${number}`);
   }
+  assert.deepEqual(steps(note).find((step) => step.number === 5).commands, [], "No automated unused-helper classification is safe without resolving the app's imports.");
 });
 
 test("the raw note says what {{latestRelease}} stands for, and each filled copy drops that line", () => {
@@ -246,36 +247,28 @@ test("no doc suggests re-pinning a test tool to a ^ range", () => {
   assert.match(read("README.md"), /after `add`, restore every test-tool version you had pinned \(`git diff package\.json`\)/);
 });
 
-for (const shell of shells) {
-  test(`step 5 lists the lib/ouro helpers no other file imports, and deletes nothing (${shell})`, () => {
-    const { app, run } = scratchApp(["app/components/ouro/dialog/dialog.tsx"]);
-    const write = (path, text) => {
-      mkdirSync(dirname(join(app, path)), { recursive: true });
-      writeFileSync(join(app, path), text);
-    };
-    write("app/components/ouro/dialog/dialog.tsx", 'import { cn } from "~/lib/ouro/cn";\nexport const a = cn;\n');
-    write("app/lib/ouro/cn.ts", "export const cn = 1;\n");
-    write("app/lib/ouro/cn.test.ts", 'import { cn } from "~/lib/ouro/cn";\n');
-    // Imported only by its own tests: unused.
-    write("app/lib/ouro/toast.ts", "export const toast = 1;\n");
-    write("app/lib/ouro/toast.test.tsx", 'import { toast } from "~/lib/ouro/toast";\n');
-    write("app/lib/ouro/toast.touch.test.tsx", "import { toast } from '~/lib/ouro/toast';\n");
-    // Imported only by an unused helper: listed once that one is deleted.
-    write("app/lib/ouro/floating.ts", 'import { spring } from "~/lib/ouro/spring";\nexport const floating = spring;\n');
-    write("app/lib/ouro/spring.ts", "export const spring = 1;\n");
-    // A longer name that ends the same is another helper.
-    write("app/lib/ouro/use-spring.ts", "export const useSpring = 1;\n");
-    write("app/routes/home.tsx", 'import { useSpring } from "~/lib/ouro/use-spring";\n');
-    write("app/lib/ouro/env.d.ts", "declare const process: unknown;\n");
-    write("app/lib/ouro/testing/act.ts", "export const act = 1;\n");
-    const listed = () => {
-      const result = run(5, shell);
-      assert.equal(result.status, 0, result.stderr);
-      return result.stdout.trim().split("\n").filter(Boolean).map((path) => path.slice(app.length + 1)).sort();
-    };
-    assert.deepEqual(listed(), ["app/lib/ouro/floating.ts", "app/lib/ouro/toast.ts"]);
-    assert.ok(existsSync(join(app, "app/lib/ouro/toast.ts")), "the command deletes nothing");
-    renameSync(join(app, "app/lib/ouro/floating.ts"), join(app, "floating.removed"));
-    assert.deepEqual(listed(), ["app/lib/ouro/spring.ts", "app/lib/ouro/toast.ts"]);
-  });
-}
+test("step 5 requires a verified app-wide reference audit before deleting historical helpers", () => {
+  const step5 = note.slice(note.indexOf("#### 5."));
+  assert.doesNotMatch(step5, /```sh|Delete each file it lists|new RegExp/, "Do not present a text-match classifier as an unused-file audit.");
+  for (const requirement of [
+    /reference audit/i, /before deleting/i, /relative imports/i, /explicit extensions/i,
+    /same basename/i, /outside.*src/i, /re-exports/i, /dynamic imports/i,
+    /own tests/i, /unresolved/i, /keep/i, /type check and build/i,
+  ]) assert.match(step5, requirement);
+  assert.match(note, /Earlier releases installed every helper/);
+  assert.match(read("changes/adoption-install-docs.md"), /reference audit/i);
+});
+
+test("coverage docs distinguish the measured sets from every item's test dependency closure", () => {
+  for (const path of ["README.md", "docs/guides/installing.md", "docs/guides/testing.md"]) {
+    const text = read(path);
+    assert.doesNotMatch(text, /[Tt]he installed tests cover the installed files to 100%/);
+    assert.match(text, /100% line and branch coverage/);
+    assert.match(text, /button.*dialog.*sheet.*forms set.*union/);
+    assert.match(text, /not measured (alone|individually)/);
+    assert.match(text, /tests of everything|tests of every component and helper/);
+  }
+  for (const name of ["field", "fieldset", "text-field", "text-area", "checkbox", "checkbox-group", "radio-group", "switch", "form", "select", "native-select", "combobox"]) {
+    assert.ok(read("docs/guides/testing.md").includes(`\`${name}\``), `The measured forms set must name ${name}.`);
+  }
+});

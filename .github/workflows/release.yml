@@ -150,6 +150,7 @@ jobs:
           gh release create "$TAG" --verify-tag --title "$TAG" --notes-file "$RUNNER_TEMP/notes.md"
           git push origin --delete "$BRANCH"
       - if: steps.check.outputs.new == 'true'
+        id: prepare
         name: Prepare main for the next release
         env:
           NEXT_BRANCH: prepare/after-v${{ inputs.version }}
@@ -204,12 +205,16 @@ jobs:
                   [ -n "$ci" ] && break
                   sleep "${POLL_SECONDS:-5}"
                 done
-                [ -n "$ci" ] && gh run watch "$ci" --exit-status --interval 30 || echo "::warning::CI on main's tip did not pass; Pages deploys anyway so the site names $TAG. Fix main before the next release."
+                [ -n "$ci" ] || { echo "::error::CI on main's tip did not start; Pages will not deploy. Run CI on main and deploy Pages only after it passes."; exit 1; }
+                gh run watch "$ci" --exit-status --interval 30 || { echo "::error::CI on main's tip did not pass; Pages will not deploy. Fix main and pass CI before deploying."; exit 1; }
+                echo "main_sha=$tip" >> "$GITHUB_OUTPUT"
               else
-                echo "::warning::Could not start CI on main. Run it by hand (gh workflow run ci.yml --ref main) before the next release."
+                echo "::error::Could not start CI on main; Pages will not deploy. Run it by hand (gh workflow run ci.yml --ref main) and deploy Pages only after it passes."
+                exit 1
               fi
             else
-              echo "::warning::Could not merge \"Prepare main for the next release\". Merge it by hand; until then main's README names the release before $TAG, and the last step of this run fails."
+              echo "::error::Could not merge \"Prepare main for the next release\"; Pages will not deploy. Merge it by hand, then pass main CI before deploying."
+              exit 1
             fi
           else
             cmd="gh api -X POST repos/$GITHUB_REPOSITORY/actions/runs/${run:-<run id of the pull_request CI run on $NEXT_BRANCH>}/approve"
@@ -222,14 +227,20 @@ jobs:
 
               $cmd"
             gh workflow run ci.yml --ref "$NEXT_BRANCH" || echo "::warning::Could not dispatch CI on $NEXT_BRANCH either."
+            echo "::error::Main has not passed CI for $TAG; Pages will not deploy. Approve and merge the PR, then pass main CI before deploying."
+            exit 1
           fi
       - if: steps.check.outputs.new == 'true'
         name: Deploy Pages and check what is published
+        env:
+          VERIFIED_MAIN_SHA: ${{ steps.prepare.outputs.main_sha }}
         run: |
           # Pages follows CI on a push to main, and no push happened here, so deploy it now: its
           # build names GitHub's newest release, this one. Then read what people and agents
           # read, the site's llms.txt and main's README, and fail when an install command
           # there still names another release.
+          tip=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
+          [ -n "$VERIFIED_MAIN_SHA" ] && [ "$tip" = "$VERIFIED_MAIN_SHA" ] || { echo "::error::Main moved or has no verified CI; Pages will not deploy. Pass CI on the current tip before deploying."; exit 1; }
           before=$(gh run list --workflow pages.yml --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId // 0')
           gh workflow run pages.yml --ref main
           run=

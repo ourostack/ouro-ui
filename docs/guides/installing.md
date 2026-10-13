@@ -42,7 +42,7 @@ A component that finds no `ouro-base` tokens still installs, type checks and bui
 
 ## The tests are optional
 
-Each component has a `<name>-tests` item with its Vitest browser tests, type tests, stories and Playwright spec, and the tests of everything the component installed, so the installed tests cover the installed files to 100%. Ouro UI's CI measures that for the button, the dialog, the sheet and the form controls; every other component gets its tests by the same rule but is not measured alone. [Testing](testing.md) says what they need and how to run them.
+Each component has a `<name>-tests` item with its Vitest browser tests, type tests, stories and Playwright spec, and the tests of everything the component installed. CI verifies 100% line and branch coverage of the installed runtime files for five sets: button, dialog, sheet, the forms set and their union. Other items receive their full test dependency closure but are not measured individually. [Testing](testing.md) lists the forms set, says what the tests need and how to run them.
 
 ## Updating
 

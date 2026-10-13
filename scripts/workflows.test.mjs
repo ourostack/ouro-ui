@@ -128,6 +128,77 @@ test("Release deploys Pages itself and fails when the published llms.txt or READ
   assert.ok(check > deploy, "and the published pages are checked last");
 });
 
+const releaseStep = (name) => {
+  const release = workflow("release.yml");
+  const start = release.indexOf(`        name: ${name}\n`);
+  assert.notEqual(start, -1);
+  const body = release.slice(start).split("        run: |\n")[1].split(/\n {6}- /)[0];
+  return body.split("\n").map((line) => line.slice(10)).join("\n");
+};
+
+for (const scenario of ["success", "ci-failed", "ci-missing", "dispatch-failed", "not-merged", "approval-failed", "tip-advanced"]) {
+  test(`Release's main CI gate ${scenario === "success" ? "permits" : "blocks"} Pages (${scenario})`, () => {
+    // Execute the workflow's actual shell, substituting only GitHub/network operations.
+    // gh merge exits non-zero even when state says MERGED, exercising independent readback.
+    const prepare = releaseStep("Prepare main for the next release");
+    const gate = prepare.slice(prepare.indexOf('if [ -n "$run" ] && gh api'));
+    const deploy = releaseStep("Deploy Pages and check what is published");
+    const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", `
+      gh() {
+        printf 'CALL %s\\n' "$*" >&2
+        case "$*" in
+          "api -X POST "*"/approve") [ "$SCENARIO" != approval-failed ] ;;
+          "run watch 1 "*) return 0 ;;
+          "pr merge "*) return 1 ;;
+          "pr view "*"--json state"*) if [ "$SCENARIO" = not-merged ]; then echo OPEN; else echo MERGED; fi ;;
+          "pr view "*"--json body"*) echo body ;;
+          "pr edit "*|"api -X DELETE "*) return 0 ;;
+          "api "*"commits/main"*) echo aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ;;
+          "workflow run ci.yml --ref main") [ "$SCENARIO" != dispatch-failed ] ;;
+          "workflow run ci.yml --ref prepare/"*) return 0 ;;
+          "run list --workflow ci.yml "*) if [ "$SCENARIO" != ci-missing ]; then echo 2; fi ;;
+          "run watch 2 "*) [ "$SCENARIO" != ci-failed ] ;;
+          "run list --workflow pages.yml "*) if [ "$pages" = 1 ]; then echo 4; else echo 3; fi ;;
+          "workflow run pages.yml --ref main") pages=1 ;;
+          "run watch 4 "*) return 0 ;;
+          *) echo "Unexpected gh call: $*" >&2; return 99 ;;
+        esac
+      }
+      seq() { echo 1; }
+      sleep() { :; }
+      node() { printf 'PUBLISHED %s\\n' "$*"; }
+      run=1
+      pages=0
+      ${gate}
+      VERIFIED_MAIN_SHA="$tip"
+      if [ "$SCENARIO" = tip-advanced ]; then VERIFIED_MAIN_SHA=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; fi
+      ${deploy}
+    `], {
+      cwd: root, encoding: "utf8",
+      env: { ...process.env, SCENARIO: scenario, NEXT_BRANCH: "prepare/after-v9.9.9", TAG: "v9.9.9", GITHUB_REPOSITORY: "ourostack/ouro-ui", GITHUB_STEP_SUMMARY: "/dev/null", GITHUB_OUTPUT: "/dev/stdout" },
+    });
+    assert.doesNotMatch(result.stderr, /Unexpected gh call:/);
+    if (scenario === "success") {
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /main_sha=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/);
+      assert.match(result.stderr, /CALL workflow run pages.yml --ref main/);
+      assert.match(result.stdout, /PUBLISHED scripts\/published-release.mjs v9.9.9 --wait 900/);
+      assert.match(result.stderr, /CALL api -X DELETE repos\/ourostack\/ouro-ui\/git\/refs\/heads\/prepare\/after-v9.9.9/);
+    } else {
+      assert.notEqual(result.status, 0, result.stderr);
+      assert.doesNotMatch(result.stderr, /CALL workflow run pages.yml/);
+      assert.match(result.stdout, /::error::/, result.stderr);
+    }
+  });
+}
+
+test("Release passes the verified main SHA to Pages and does not bypass the ruleset", () => {
+  const release = workflow("release.yml");
+  assert.match(release, /id: prepare/);
+  assert.match(release, /VERIFIED_MAIN_SHA: \$\{\{ steps\.prepare\.outputs\.main_sha \}\}/);
+  assert.doesNotMatch(release, /gh pr merge[^\n]*--admin/);
+});
+
 test("Scheduled install checks that the published llms.txt and README name the newest release", () => {
   assert.match(job("latest"), /node scripts\/published-release\.mjs "\$newest"/);
 });
