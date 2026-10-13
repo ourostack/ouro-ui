@@ -226,6 +226,21 @@ describe("CheckboxGroup", () => {
     await expect.element(page.getByRole("group", { name: "Kräuter (erforderlich)" })).toBeInTheDocument();
   });
 
+  it("shows the required message once, under the group and not under each box, after a blocked submit", async () => {
+    const { host } = await render(
+      <form>
+        <CheckboxGroup legend="Herbs" name="herbs" options={herbs} required />
+      </form>,
+    );
+    const shown = () =>
+      [...host.querySelectorAll("*")].filter((node) => node.children.length === 0 && node.textContent === "Choose at least one.");
+    host.querySelector("form")!.requestSubmit();
+    await expect.poll(() => shown().length).toBeGreaterThan(0);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    expect(shown()).toHaveLength(1);
+    expect(shown()[0]!.closest('[data-ouro="checkbox"]')).toBeNull();
+  });
+
   it("translates the required message with requiredMessage", async () => {
     const { host } = await render(
       <form>

@@ -75,6 +75,10 @@ it("keeps the reader's place on a phone once they swipe up, and jumps back with 
   // Polled: this is the first render in the page, and a theme's web font can swap in just after
   // it and rewrap the messages. The list follows that growth in the next frame, before paint.
   await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+  // Once there it stays there: still pinned two frames later, with no button to jump back.
+  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+  expect(jumpButton().query()).toBeNull();
 
   await swipe(scroller, 250);
   expect(distanceFromBottom(scroller)).toBeGreaterThan(100);

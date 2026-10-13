@@ -198,6 +198,22 @@ describe("RadioGroup", () => {
     expect(form.checkValidity()).toBe(true);
   });
 
+  it("shows the browser's message once, under the group and not under each radio, after a blocked submit", async () => {
+    const { host } = await render(
+      <form>
+        <RadioGroup legend="Size" name="size" options={sizes} required />
+      </form>,
+    );
+    const message = host.querySelector<HTMLInputElement>("input:invalid")!.validationMessage;
+    expect(message).not.toBe("");
+    const shown = () => [...host.querySelectorAll("*")].filter((node) => node.children.length === 0 && node.textContent === message);
+    host.querySelector("form")!.requestSubmit();
+    await expect.poll(() => shown().length).toBeGreaterThan(0);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    expect(shown()).toHaveLength(1);
+    expect(shown()[0]!.closest('[data-ouro="radio"]')).toBeNull();
+  });
+
   it("shows a Form error for its name without blocking the form, and drops it once a radio is picked", async () => {
     const { host, radios } = await render(
       <Form errors={{ size: "That size is sold out." }}>
