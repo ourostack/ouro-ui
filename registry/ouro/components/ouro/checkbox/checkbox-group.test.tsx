@@ -228,9 +228,9 @@ describe("CheckboxGroup", () => {
 
   it("shows the required message once, under the group and not under each box, after a blocked submit", async () => {
     const { host } = await render(
-      <form>
+      <Form>
         <CheckboxGroup legend="Herbs" name="herbs" options={herbs} required />
-      </form>,
+      </Form>,
     );
     const shown = () =>
       [...host.querySelectorAll("*")].filter((node) => node.children.length === 0 && node.textContent === "Choose at least one.");

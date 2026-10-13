@@ -200,9 +200,9 @@ describe("RadioGroup", () => {
 
   it("shows the browser's message once, under the group and not under each radio, after a blocked submit", async () => {
     const { host } = await render(
-      <form>
+      <Form>
         <RadioGroup legend="Size" name="size" options={sizes} required />
-      </form>,
+      </Form>,
     );
     const message = host.querySelector<HTMLInputElement>("input:invalid")!.validationMessage;
     expect(message).not.toBe("");
