@@ -1,6 +1,7 @@
 import axe from "axe-core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page } from "vitest/browser";
+import { menuItemClass, menuSheetPopupClass, menuSheetPositionerClass } from "@/registry/ouro/components/ouro/menu/menu-styles";
 import { axeExclude } from "@/registry/ouro/lib/ouro/testing/axe";
 import {
   cleanupStories,
@@ -74,8 +75,10 @@ it("covers every story file, each with stories", () => {
 
 it("does not scan a sheet before its deferred starting style leaves", async () => {
   const host = await renderStory(() => (
-    <div role="menu" data-open="" data-starting-style="" style={{ position: "fixed", top: "100vh" }}>
-      <a role="menuitem" href="#print">Print</a>
+    <div className={menuSheetPositionerClass}>
+      <div role="menu" data-open="" data-starting-style="" className={menuSheetPopupClass}>
+        <a role="menuitem" className={menuItemClass} href="#print">Print</a>
+      </div>
     </div>
   ));
   const popup = host.querySelector<HTMLElement>('[role="menu"]')!;
@@ -84,7 +87,6 @@ it("does not scan a sheet before its deferred starting style leaves", async () =
     if (++frame < 8) requestAnimationFrame(enter);
     else {
       popup.removeAttribute("data-starting-style");
-      popup.style.top = "50vh";
     }
   };
   requestAnimationFrame(enter);
