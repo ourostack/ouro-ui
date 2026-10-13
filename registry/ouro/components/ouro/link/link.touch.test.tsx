@@ -52,6 +52,33 @@ it("gives a link on its own line a 44px box, centred on its text", async () => {
   expect(linkAt(rect.left + 4, y + 21)).toBe(link);
 });
 
+it.each(["automatic", "forced"] as const)("gives a short %s standalone link a 44px-wide layout and hit target", async (mode) => {
+  const shortLink = <Link href="/go" {...(mode === "forced" ? { inline: false } : {})}>Go</Link>;
+  const host = await render(
+    <div style={{ display: "inline-flex" }}>
+      {mode === "forced" ? <Text>{shortLink}</Text> : shortLink}
+    </div>,
+  );
+  const [link] = links(host);
+  const rect = link!.getBoundingClientRect();
+  expect(rect.width).toBeGreaterThanOrEqual(44);
+  expect(rect.height).toBeGreaterThanOrEqual(44);
+  expect(host.firstElementChild!.getBoundingClientRect().width).toBeGreaterThanOrEqual(44);
+  // Both dimensions belong to the anchor itself, not an overlapping invisible child.
+  for (let x = Math.ceil(rect.left); x < rect.right; x += 1) {
+    expect(linkAt(x, rect.top + rect.height / 2)).toBe(link);
+  }
+});
+
+it.each(["ancestry", "explicit"] as const)("does not widen a short link in %s running text", async (mode) => {
+  const shortLink = <Link href="/go" {...(mode === "explicit" ? { inline: true } : {})}>Go</Link>;
+  const host = await render(mode === "ancestry" ? <p>{shortLink}</p> : <div>{shortLink}</div>);
+  const [link] = links(host);
+  expect(getComputedStyle(link!).display).toBe("inline");
+  expect(link!.getBoundingClientRect().width).toBeLessThan(44);
+  expect(link!.getBoundingClientRect().height).toBeLessThan(30);
+});
+
 it("never lets one of two stacked links in an app's list take a tap on the other", async () => {
   const host = await render(
     <ul style={{ listStyle: "none", padding: 0, margin: 0, lineHeight: "24px", fontSize: 16 }}>

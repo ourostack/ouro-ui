@@ -38,7 +38,7 @@ export interface LinkOwnProps {
   /**
    * Whether the link sits in running text. On a touch screen a link that stands alone
    * ("Forgot password?", "Back to recipes", a link in a list item or a table cell) is a box at
-   * least 44px tall with its text centred, which takes its room in the layout; a link in
+   * least 44px tall and wide with its text centred, which takes its room in the layout; a link in
    * running text stays as tall as its line. Unset, a link is in running text inside a `<p>`,
    * a `<label>`, a `<dt>` or `<dd>`, a `Text`, and Ouro's own text (a field's description and
    * error, a Form's message, an Alert's text, an Item's description). Pass `inline` for a
@@ -73,8 +73,9 @@ const base =
 const standalone =
   "pointer-coarse:not-in-[:is(p,label,dt,dd,[data-ouro=text],[data-ouro-text])]:inline-flex " +
   "pointer-coarse:not-in-[:is(p,label,dt,dd,[data-ouro=text],[data-ouro-text])]:min-h-11 " +
+  "pointer-coarse:not-in-[:is(p,label,dt,dd,[data-ouro=text],[data-ouro-text])]:min-w-11 " +
   "pointer-coarse:not-in-[:is(p,label,dt,dd,[data-ouro=text],[data-ouro-text])]:items-center";
-const alwaysStandalone = "pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center";
+const alwaysStandalone = "pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:min-w-11 pointer-coarse:items-center";
 
 const tones = {
   primary: "text-primary",
@@ -97,7 +98,7 @@ function linkHint(token: string): string {
  * Use `Button` with `href` instead when the link is the main action and should look like a
  * button. Inside running text, put the Link in a `Text`.
  *
- * On a touch screen a link that stands alone is a box at least 44px tall, with its text
+ * On a touch screen a link that stands alone is a box at least 44px tall and wide, with its text
  * centred, so it is easy to tap and never overlaps a neighbour. A link in running text (a
  * `<p>`, a `<label>`, a `Text`, a field's description or error) stays as tall as its line;
  * `inline` says the same anywhere else. With a mouse every link is as tall as its text.

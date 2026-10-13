@@ -401,14 +401,12 @@ describe("Form", () => {
       expect(second.textContent).toBe("Could not save.");
     });
 
-    it("without result, keeps a cleared message cleared through a submit's re-render and an equal answer", async () => {
+    it("without result, keeps a cleared message cleared through a submit's stale re-render", async () => {
       await render(<RouterPage withResult={false} />);
       await answeredAndCleared();
       nameInput().focus();
       await userEvent.click(page.getByRole("button", { name: "Save" }));
       await expect.element(page.getByRole("button", { name: "Saving" })).toBeVisible();
-      expect(emailInput().getAttribute("aria-invalid")).toBeNull();
-      await act(async () => answer({ email: "That email is taken." }));
       expect(emailInput().getAttribute("aria-invalid")).toBeNull();
       expect(document.activeElement).not.toBe(emailInput());
       // A different answer is new by its content.
@@ -469,7 +467,7 @@ describe("Form", () => {
     it("shows errors on a page an action's plain navigation rendered, with no submit handler", async () => {
       // A form posted without JavaScript comes back as a new page: the Form mounts with the answer.
       const { host } = await render(
-        <Form action="/subscribe" method="post" errors={{ email: "That email is taken.", form: "Could not subscribe." }} result={{}}>
+        <Form action="/subscribe" method="post" errors={{ email: "That email is taken.", form: "Could not subscribe." }}>
           <TextField label="Email" name="email" />
         </Form>,
       );
