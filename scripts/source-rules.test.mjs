@@ -149,7 +149,7 @@ test("every test's full name is unique across the suite, so a name filter runs e
 const ungatedHover = (text) =>
   [
     ...new Set(
-      text.split(/[\s"`]+/).filter((token) => {
+      text.split(/[\s"'`]+/).filter((token) => {
         const parts = token.split(":");
         const at = parts.findIndex((part) => /^(group-|peer-)?hover(\/.+)?$/.test(part));
         return at !== -1 && at < parts.length - 1 && !parts.slice(0, at).includes("pointer-fine");
@@ -174,6 +174,7 @@ test("ungatedHover finds a hover variant with no pointer-fine before it", () => 
     "not-disabled:hover:text-x",
     "group-hover/tab:underline",
   ]);
+  assert.deepEqual(ungatedHover("'hover:bg-accent' `peer-hover/x:flex` 'pointer-fine:hover:flex'"), ["hover:bg-accent", "peer-hover/x:flex"]);
   assert.deepEqual(ungatedHover('"not-data-disabled:pointer-fine:hover:before:opacity-8 data-hovering:opacity-100 hover"'), []);
 });
 

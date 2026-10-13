@@ -25,7 +25,7 @@ const boxClass =
   "data-disabled:cursor-not-allowed data-disabled:opacity-50";
 
 /**
- * The indicator, kept mounted so the tick can draw itself and undraw.
+ * The indicator, kept mounted so the tick can fade out as well as in.
  *
  * @internal
  */

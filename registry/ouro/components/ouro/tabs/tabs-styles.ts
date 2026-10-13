@@ -86,19 +86,24 @@ const tabFaceClass =
   "motion-safe:group-not-data-disabled/tab:group-active/tab:scale-(--ouro-press-scale)";
 
 /**
- * The line under the selected tab (beside it, in a column). It slides to the
- * selected tab on the ease-in-out token and changes size at once; with reduced motion, or while the
- * keys move the selection, it moves without a transition.
+ * The line under the selected tab (beside it, in a column). It is 1px long and scaled to the
+ * selected tab's width (a unitless factor from Base UI's length), so it slides with `translate`
+ * and resizes with `scale`, both on the ease-in-out token, and nothing lays out again. It has
+ * square ends because a scaled radius would distort. The line is never what Base UI measures,
+ * and the tab never scales. With reduced motion, or while the keys move the selection, it
+ * moves without a transition.
  *
  * @internal
  */
 const indicatorClass =
-  "pointer-events-none absolute z-1 rounded-full bg-primary " +
-  "[transition-property:translate] duration-(--ouro-duration-base) ease-(--ouro-ease-in-out) motion-reduce:transition-none in-data-ouro-keyboard:transition-none " +
+  "pointer-events-none absolute z-1 bg-primary " +
+  "[transition-property:translate,scale] duration-(--ouro-duration-base) ease-(--ouro-ease-in-out) motion-reduce:transition-none in-data-ouro-keyboard:transition-none " +
   "data-[orientation=horizontal]:bottom-0 data-[orientation=horizontal]:left-0 data-[orientation=horizontal]:h-0.5 " +
-  "data-[orientation=horizontal]:w-(--active-tab-width) data-[orientation=horizontal]:translate-x-(--active-tab-left) " +
+  "data-[orientation=horizontal]:w-px data-[orientation=horizontal]:origin-left data-[orientation=horizontal]:translate-x-(--active-tab-left) " +
+  "data-[orientation=horizontal]:scale-x-[tan(atan2(var(--active-tab-width,0px),1px))] " +
   "data-[orientation=vertical]:top-0 data-[orientation=vertical]:right-0 data-[orientation=vertical]:w-0.5 " +
-  "data-[orientation=vertical]:h-(--active-tab-height) data-[orientation=vertical]:translate-y-(--active-tab-top)";
+  "data-[orientation=vertical]:h-px data-[orientation=vertical]:origin-top data-[orientation=vertical]:translate-y-(--active-tab-top) " +
+  "data-[orientation=vertical]:scale-y-[tan(atan2(var(--active-tab-height,0px),1px))]";
 
 /**
  * A panel. It fades in when its tab is selected; the old panel leaves at once, so the

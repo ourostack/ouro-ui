@@ -179,7 +179,9 @@ function chartWarnings(props: ChartProps<Record<string, unknown>>, series: Serie
  *
  * Pass `type` for bars, lines or areas, one per series in `config`. For anything else, pass
  * a recharts chart as children with `<ChartTooltip />` and `<ChartLegend />` inside it, as in
- * shadcn's charts; it draws with `var(--color-<key>)`.
+ * shadcn's charts; it draws with `var(--color-<key>)`. The marks Chart draws itself appear at
+ * once; your own `<Line>` or `<Bar>` keeps recharts' draw-in unless you pass
+ * `isAnimationActive={false}`.
  *
  * Built on recharts, which adds about 120 KB gzip (about 420 KB minified, measured with
  * esbuild) to the page that renders it. Load it with `next/dynamic` or `React.lazy` when

@@ -41,7 +41,7 @@ const inputClass =
 const stepperClass =
   "press relative m-0 box-border flex aspect-square h-full shrink-0 items-center justify-center border-0 p-0 " +
   "bg-transparent text-muted-foreground cursor-pointer select-none [-webkit-tap-highlight-color:transparent] " +
-  "pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground active:bg-[color-mix(in_oklab,var(--accent)_85%,var(--foreground))] active:text-accent-foreground " +
+  "pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground not-data-disabled:active:bg-[color-mix(in_oklab,var(--accent)_85%,var(--foreground))] not-data-disabled:active:text-accent-foreground " +
   "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid " +
   "first:rounded-s-[calc(var(--radius-md)-1px)] last:rounded-e-[calc(var(--radius-md)-1px)] " +
   "data-disabled:cursor-not-allowed data-disabled:opacity-50 data-disabled:pointer-fine:hover:bg-transparent [&_svg]:size-4";

@@ -397,12 +397,11 @@ describe("ColorField press feedback", () => {
     } finally {
       await commands.pointerPress({ action: "up" });
     }
-    await expect.poll(scale).toBeCloseTo(1, 3);
+    await expect.poll(() => getComputedStyle(swatch).scale).toBe("none");
     await commands.emulateMedia({ reducedMotion: "reduce" });
     await commands.pointerPress({ selector: 'label:has(input[type="color"])', action: "down" });
     try {
-      // The release from the first press may still be easing the last fraction of a percent.
-      expect(scale()).toBeCloseTo(1, 2);
+      expect(getComputedStyle(swatch).scale).toBe("none");
     } finally {
       await commands.pointerPress({ action: "up" });
       await commands.emulateMedia({ reducedMotion: "no-preference" });

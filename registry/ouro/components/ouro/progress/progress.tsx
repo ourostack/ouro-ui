@@ -116,7 +116,9 @@ export function Progress(props: ProgressProps): JSX.Element {
     color,
   } = props;
   const low = min ?? 0;
-  const fraction = value === null ? 0 : Math.min(Math.max((value - low) / ((max ?? 100) - low), 0), 1);
+  const span = (max ?? 100) - low;
+  // An empty or backwards range (max equal to min, say while a total is still 0) shows an empty bar.
+  const fraction = value === null || !(span > 0) ? 0 : Math.min(Math.max((value - low) / span, 0), 1);
   const tone = Object.hasOwn(tones, toneProp) ? (toneProp as keyof typeof tones) : "primary";
   // Base UI links the label in an effect, after the first render; an id of our own puts
   // aria-labelledby in the server HTML too.

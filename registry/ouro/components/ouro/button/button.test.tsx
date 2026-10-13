@@ -790,3 +790,16 @@ describe("Button server rendering", () => {
     expect(error).not.toHaveBeenCalled();
   });
 });
+
+describe("Button under more contrast", () => {
+  it("gives the soft look a visible border with prefers-contrast: more", async () => {
+    const { button } = await render(<Button variant="soft">Soft</Button>);
+    expect(getComputedStyle(button).borderTopColor).toBe("rgba(0, 0, 0, 0)");
+    await commands.emulateMedia({ contrast: "more" });
+    try {
+      await expect.poll(() => getComputedStyle(button).borderTopColor).toBe(getComputedStyle(button).color);
+    } finally {
+      await commands.emulateMedia({ contrast: "no-preference" });
+    }
+  });
+});

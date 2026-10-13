@@ -25,7 +25,7 @@ const trackClass =
   "data-disabled:cursor-not-allowed data-disabled:opacity-50";
 
 /**
- * The thumb slides 16px on the ease-in-out token when the switch turns on or off. While the
+ * The thumb slides 16px in the press duration when the switch turns on or off. While the
  * pointer is down it stretches 4px toward the way it will travel, as in RedwoodUI: to the
  * right when off, to the left when on. With reduced motion it neither slides nor stretches.
  * It is `muted-foreground` when off and `primary-foreground` when on, so the thumb's color
@@ -36,6 +36,7 @@ const trackClass =
 const thumbClass =
   "pointer-events-none block size-(--ouro-switch-thumb) rounded-full bg-muted-foreground data-checked:bg-primary-foreground shadow-sm " +
   "translate-x-0 data-checked:translate-x-4 " +
-  "origin-left data-checked:origin-right " +
-  "motion-safe:[transition:translate_var(--ouro-duration-base)_var(--ouro-ease-in-out),scale_var(--ouro-duration-press)_var(--ouro-ease-out)] " +
-  "motion-safe:group-active:not-data-disabled:scale-x-[1.2]";
+  "origin-left " +
+  "motion-safe:[transition:translate_var(--ouro-duration-press)_var(--ouro-ease-out),scale_var(--ouro-duration-press)_var(--ouro-ease-out)] " +
+  "motion-safe:group-active:not-data-disabled:scale-x-[1.2] " +
+  "motion-safe:group-active:not-data-disabled:data-checked:translate-x-3";

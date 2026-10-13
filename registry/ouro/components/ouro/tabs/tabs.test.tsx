@@ -3,6 +3,7 @@ import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
+import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-control/segmented-control";
 import { Tabs, type TabsProps } from "@/registry/ouro/components/ouro/tabs/tabs";
 import { TabsIndicator, TabsList, TabsPanel, TabsRoot, TabsTab } from "@/registry/ouro/components/ouro/tabs/tabs-parts";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -201,13 +202,44 @@ describe("Tabs", () => {
     expect(under(r.tabs[2]!)).toEqual([0, 0]);
   });
 
-  it("slides the indicator with translate only, on the ease-in-out token in the base duration", async () => {
+  it("slides the indicator with translate and resizes it with scale only, on the ease-in-out token in the base duration", async () => {
     const r = await render(<Tabs label="Recipe" items={items} />);
     await expect.poll(() => r.indicator).not.toBeNull();
     const style = getComputedStyle(r.indicator!);
-    expect(style.transitionProperty).toBe("translate");
+    expect(style.transitionProperty).toBe("translate, scale");
     expect(style.transitionDuration).toBe("0.2s");
     expect(style.transitionTimingFunction).toBe("cubic-bezier(0.77, 0, 0.175, 1)");
+    // A fixed 1px box scaled to the tab: the layout width never changes.
+    expect(style.width).toBe("1px");
+  });
+
+  it("resizes the indicator between tabs of different width without ever changing its layout box, and keeps its ends square", async () => {
+    const wide = [
+      { value: "a", label: "Ingredients and equipment", content: <p>One</p> },
+      { value: "b", label: "Go", content: <p>Two</p> },
+    ];
+    const r = await render(<Tabs label="Recipe" items={wide} />);
+    await expect.poll(() => r.indicator).not.toBeNull();
+    const indicator = r.indicator!;
+    await settled(indicator);
+    const widths = new Set<number>();
+    let sizes: number[] = [];
+    await userEvent.click(r.tabs[1]!);
+    for (let frame = 0; frame < 20; frame++) {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      widths.add(indicator.offsetWidth);
+      sizes.push(indicator.getBoundingClientRect().width);
+    }
+    await settled(indicator);
+    // Only transforms changed: the box stayed 1px wide, and the drawn width moved between the two tabs.
+    expect([...widths]).toEqual([1]);
+    sizes = sizes.filter((size, index) => index === 0 || size !== sizes[index - 1]);
+    // Smooth: some frame is drawn between the old width and the new one, not just the two ends.
+    const final = r.tabs[1]!.getBoundingClientRect().width;
+    expect(sizes.some((size) => size > final + 5 && size < r.tabs[0]!.getBoundingClientRect().width - 5)).toBe(true);
+    expect(Math.abs(indicator.getBoundingClientRect().width - r.tabs[1]!.getBoundingClientRect().width)).toBeLessThan(0.5);
+    expect(getComputedStyle(indicator).borderRadius).toBe("0px");
+    for (const tab of r.tabs) expect(getComputedStyle(tab).scale).toBe("none");
   });
 
   it("switches by key without animating the indicator or the panel, and by pointer with both", async () => {
@@ -226,6 +258,26 @@ describe("Tabs", () => {
     expect(r.root.hasAttribute("data-ouro-keyboard")).toBe(false);
     expect(getComputedStyle(r.indicator!).transitionProperty).toBe("translate");
     expect(getComputedStyle(panel()).transitionProperty).toBe("opacity");
+  });
+
+  it("lets a pointer anywhere inside the tabs, such as a control in a panel, end the keyboard's quiet spell", async () => {
+    const r = await render(
+      <Tabs
+        label="Recipe"
+        items={[
+          { value: "a", label: "A", content: <SegmentedControl label="View" items={[{ value: "x", label: "X" }, { value: "y", label: "Y" }]} /> },
+          { value: "b", label: "B", content: <p>Two</p> },
+        ]}
+      />,
+    );
+    r.tabs[0]!.focus();
+    await userEvent.keyboard("{Enter}");
+    expect(r.root.hasAttribute("data-ouro-keyboard")).toBe(true);
+    const thumb = r.host.querySelector<HTMLElement>("[data-ouro-segment-thumb]")!;
+    expect(getComputedStyle(thumb).transitionProperty).toBe("none");
+    await userEvent.click(page.getByRole("radio", { name: "Y" }));
+    expect(r.root.hasAttribute("data-ouro-keyboard")).toBe(false);
+    expect(getComputedStyle(thumb).transitionProperty).toBe("translate, opacity");
   });
 
   it("still calls the key and pointer handlers a list is given", async () => {
@@ -274,7 +326,7 @@ describe("Tabs", () => {
     await commands.emulateMedia({ reducedMotion: "reduce" });
     const r = await render(<Tabs label="Recipe" items={items} />);
     await expect.poll(() => r.indicator).not.toBeNull();
-    expect(getComputedStyle(r.indicator!).transitionProperty).not.toMatch(/translate|transform|width|height/);
+    expect(getComputedStyle(r.indicator!).transitionProperty).not.toMatch(/translate|transform|scale|width|height/);
   });
 
   it("marks the selected tab with the foreground color and others muted", async () => {

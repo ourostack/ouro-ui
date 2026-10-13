@@ -123,6 +123,22 @@ describe("Progress", () => {
     expect(indicator.getBoundingClientRect().width).toBeCloseTo(track.getBoundingClientRect().width, 0);
   });
 
+  it("shows an empty bar, not a full one, when the range is empty or backwards", async () => {
+    const { indicator, track, rerender } = await render(<Progress label="Importing" value={0} max={0} />);
+    expect(filled(indicator, track)).toBeCloseTo(0, 0);
+    await rerender(<Progress label="Importing" value={5} min={10} max={10} />);
+    expect(filled(indicator, track)).toBeCloseTo(0, 0);
+    await rerender(<Progress label="Importing" value={5} min={10} max={2} />);
+    expect(filled(indicator, track)).toBeCloseTo(0, 0);
+  });
+
+  it("fills from the right edge in a right-to-left page", async () => {
+    const { host, indicator, track } = await render(<Progress label="Uploading" value={40} />);
+    host.dir = "rtl";
+    const t = track.getBoundingClientRect();
+    await expect.poll(() => t.right - indicator.getBoundingClientRect().left).toBeCloseTo(t.width * 0.4, 0);
+  });
+
   it("animates a change in value only when motion is allowed", async () => {
     const { indicator } = await render(<Progress label="Uploading" value={20} />);
     expect(getComputedStyle(indicator).transitionProperty).toBe("translate");

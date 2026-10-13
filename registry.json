@@ -3375,6 +3375,7 @@
       ],
       "registryDependencies": [
         "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/segmented-control",
         "ourostack/ouro-ui/tabs",
         "ourostack/ouro-ui/text"
       ],
