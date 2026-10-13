@@ -1,7 +1,7 @@
 "use client";
 
 import { Progress as BaseProgress } from "@base-ui/react/progress";
-import { useId, type JSX, type Ref } from "react";
+import { useId, type CSSProperties, type JSX, type Ref } from "react";
 import { toneFor } from "@/registry/ouro/lib/ouro/appearance-hints";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
@@ -71,12 +71,15 @@ const tones = {
   warning: "bg-warning",
 } as const;
 
-// Determinate, Base UI sets the width and the bar eases to it. Indeterminate, a third of the
-// track slides across; with reduced motion the whole track pulses instead.
+// Determinate, the bar is always full width and slides with `translate` (the compositor), not by
+// animating the width Base UI sets inline, which `w-full!` overrides. Indeterminate, a third of
+// the track slides across; with reduced motion the whole track pulses instead.
 const indicatorClass =
-  "absolute inset-y-0 start-0 h-full rounded-full transition-[width] duration-(--ouro-duration-slow) ease-out motion-reduce:transition-none " +
-  "data-indeterminate:w-1/3 data-indeterminate:animate-[ouro-progress_1.4s_ease-in-out_infinite] " +
-  "motion-reduce:data-indeterminate:w-full motion-reduce:data-indeterminate:animate-[ouro-pulse_1.6s_ease-in-out_infinite]";
+  "absolute inset-y-0 start-0 h-full w-full! rounded-full " +
+  "-translate-x-[calc(100%-var(--ouro-progress))] rtl:translate-x-[calc(100%-var(--ouro-progress))] " +
+  "transition-[translate] duration-(--ouro-duration-slow) ease-(--ouro-ease-out) motion-reduce:transition-none " +
+  "data-indeterminate:w-1/3! data-indeterminate:translate-x-0 rtl:data-indeterminate:translate-x-0 data-indeterminate:animate-[ouro-progress_1.4s_ease-in-out_infinite] " +
+  "motion-reduce:data-indeterminate:w-full! motion-reduce:data-indeterminate:animate-[ouro-pulse_1.6s_ease-in-out_infinite]";
 
 /**
  * A bar that shows how far along a task is, or that it is under way when you can't tell.
@@ -112,6 +115,10 @@ export function Progress(props: ProgressProps): JSX.Element {
     variant,
     color,
   } = props;
+  const low = min ?? 0;
+  const span = (max ?? 100) - low;
+  // An empty or backwards range (max equal to min, say while a total is still 0) shows an empty bar.
+  const fraction = value === null || !(span > 0) ? 0 : Math.min(Math.max((value - low) / span, 0), 1);
   const tone = Object.hasOwn(tones, toneProp) ? (toneProp as keyof typeof tones) : "primary";
   // Base UI links the label in an effect, after the first render; an id of our own puts
   // aria-labelledby in the server HTML too.
@@ -158,7 +165,11 @@ export function Progress(props: ProgressProps): JSX.Element {
         )}
       </div>
       <BaseProgress.Track data-ouro-progress-track="" className="relative block h-2 w-full overflow-hidden rounded-full bg-secondary">
-        <BaseProgress.Indicator data-ouro-progress-indicator="" className={cn(indicatorClass, tones[tone])} />
+        <BaseProgress.Indicator
+          data-ouro-progress-indicator=""
+          className={cn(indicatorClass, tones[tone])}
+          style={{ "--ouro-progress": `${fraction * 100}%` } as CSSProperties}
+        />
       </BaseProgress.Track>
     </BaseProgress.Root>
   );

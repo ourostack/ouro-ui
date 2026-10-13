@@ -17,7 +17,7 @@ const textAreaClass =
   "rounded-md border border-solid border-input bg-transparent text-base leading-6 text-foreground sm:pointer-fine:text-sm sm:pointer-fine:leading-5 " +
   "font-[inherit] placeholder:text-muted-foreground " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
-  "transition-[border-color] duration-(--ouro-duration-fast) ease-out " +
+  "transition-[border-color] duration-(--ouro-duration-fast) ease-[ease] " +
   "aria-invalid:border-destructive disabled:cursor-not-allowed disabled:opacity-50 " +
   "dark:bg-input/30";
 

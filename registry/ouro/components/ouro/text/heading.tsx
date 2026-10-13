@@ -43,10 +43,10 @@ export interface HeadingProps extends Omit<HTMLAttributes<HTMLHeadingElement>, "
 
 const sizes = {
   sm: "text-base",
-  md: "text-lg",
-  lg: "text-xl",
-  xl: "text-2xl",
-  "2xl": "text-3xl",
+  md: "text-lg tracking-[-0.01em]",
+  lg: "text-xl tracking-[-0.015em]",
+  xl: "text-2xl tracking-[-0.02em]",
+  "2xl": "text-3xl tracking-[-0.025em]",
   display: "text-[2.5rem] leading-[1.05] tracking-[-0.035em] sm:text-6xl sm:leading-[1.02]",
 } as const;
 
@@ -117,7 +117,7 @@ export function Heading(props: HeadingProps): JSX.Element {
   );
   const Tag = `h${level}` as const;
   const classes = cn(
-    "m-0 font-semibold tracking-tight text-balance text-foreground",
+    "m-0 font-semibold text-balance text-foreground",
     sizes[size],
     align && alignClasses[align],
     className,

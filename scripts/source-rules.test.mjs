@@ -144,3 +144,33 @@ test("every test's full name is unique across the suite, so a name filter runs e
   assert.ok(files.length > 40);
   assert.deepEqual(duplicateTestNames(files), [], "Rename the tests so each full name (describe titles and title) is unique.");
 });
+
+/** The class tokens in a file that use a hover variant without `pointer-fine:` before it. */
+const ungatedHover = (text) =>
+  [
+    ...new Set(
+      text.split(/[\s"'`]+/).filter((token) => {
+        const parts = token.split(":");
+        const at = parts.findIndex((part) => /^(group-|peer-)?hover(\/.+)?$/.test(part));
+        return at !== -1 && at < parts.length - 1 && !parts.slice(0, at).includes("pointer-fine");
+      }),
+    ),
+  ];
+
+test("ungatedHover finds a hover variant with no pointer-fine before it", () => {
+  assert.deepEqual(ungatedHover('"hover:bg-accent pointer-fine:hover:bg-accent not-disabled:hover:text-x group-hover/tab:underline"'), [
+    "hover:bg-accent",
+    "not-disabled:hover:text-x",
+    "group-hover/tab:underline",
+  ]);
+  assert.deepEqual(ungatedHover("'hover:bg-accent' `peer-hover/x:flex` 'pointer-fine:hover:flex'"), ["hover:bg-accent", "peer-hover/x:flex"]);
+  assert.deepEqual(ungatedHover('"not-data-disabled:pointer-fine:hover:before:opacity-8 data-hovering:opacity-100 hover"'), []);
+});
+
+test("every hover style is gated on a fine pointer (pointer-fine:hover:), so a tap on a phone leaves no hover state behind", () => {
+  const runtime = tracked("registry/**/*.ts", "registry/**/*.tsx").filter(
+    (path) => !/\.(test|test-d|stories)\.tsx?$|\.d\.ts$|\/lib\/ouro\/testing\/|\/e2e\/|\/theme\//.test(path),
+  );
+  const offenders = runtime.map(read).filter(({ text }) => ungatedHover(text).length > 0).map(({ path }) => path);
+  assert.deepEqual(offenders, [], "Write hover as pointer-fine:hover:…; Tailwind's hover: checks (hover: hover) only.");
+});

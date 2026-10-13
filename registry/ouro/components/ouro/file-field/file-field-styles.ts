@@ -14,8 +14,8 @@ const zoneClass =
   "relative m-0 box-border flex min-h-11 w-full min-w-0 cursor-pointer flex-col items-center justify-center gap-1 px-4 py-6 " +
   "rounded-lg border border-dashed border-input bg-transparent text-center text-muted-foreground " +
   "outline-ring outline-offset-2 has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-solid " +
-  "transition-[border-color,background-color] duration-(--ouro-duration-fast) ease-out " +
-  "not-data-disabled:hover:border-ring data-dragging:border-primary data-dragging:bg-primary/10 " +
+  "transition-[border-color,background-color] duration-(--ouro-duration-fast) ease-[ease] " +
+  "not-data-disabled:pointer-fine:hover:border-ring not-data-disabled:active:bg-accent/60 data-dragging:border-primary data-dragging:bg-primary/10 " +
   "has-[input[aria-invalid=true]]:border-destructive " +
   "data-disabled:cursor-not-allowed data-disabled:opacity-50 dark:bg-input/30";
 

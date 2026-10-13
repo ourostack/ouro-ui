@@ -287,6 +287,66 @@ describe("Switch look and motion", () => {
     await commands.pointerPress({ selector: '[role="switch"]', action: "up" });
   });
 
+  it("stretches by scaling and slides on translate, never by animating its width, with one timing for both", async () => {
+    const { thumb } = await render(<Switch label="Wi-Fi" />);
+    const style = getComputedStyle(thumb);
+    expect(style.transitionProperty).toBe("translate, scale");
+    expect(style.transitionDuration).toBe("0.16s, 0.16s");
+    expect(style.transitionTimingFunction).toBe("cubic-bezier(0.23, 1, 0.32, 1), cubic-bezier(0.23, 1, 0.32, 1)");
+    const width = style.width;
+    await commands.pointerPress({ selector: '[role="switch"]', action: "down" });
+    try {
+      await expect.poll(() => Number.parseFloat(getComputedStyle(thumb).scale)).toBeCloseTo(1.2, 2);
+      expect(getComputedStyle(thumb).width).toBe(width);
+    } finally {
+      await commands.pointerPress({ selector: '[role="switch"]', action: "up" });
+    }
+  });
+
+  it.each([
+    ["on", false],
+    ["off", true],
+  ] as const)("moves the thumb only toward where it is going, and stays inside the track, when a pointer turns the switch %s", async (_name, startChecked) => {
+    const { track, thumb } = await render(<Switch label="Wi-Fi" defaultChecked={startChecked} />);
+    await settled(thumb);
+    const inner = () => {
+      const box = track.getBoundingClientRect();
+      const border = Number.parseFloat(getComputedStyle(track).borderLeftWidth);
+      return { left: box.left + border, right: box.right - border };
+    };
+    const edges = () => {
+      const box = thumb.getBoundingClientRect();
+      return { left: box.left, right: box.right };
+    };
+    const direction = startChecked ? -1 : 1;
+    const samples: { left: number; right: number }[] = [];
+    await commands.pointerPress({ selector: '[role="switch"]', action: "down" });
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    const pressed = edges();
+    let sampling = true;
+    const sample = () => {
+      samples.push(edges());
+      if (sampling) requestAnimationFrame(sample);
+    };
+    requestAnimationFrame(sample);
+    await commands.pointerPress({ selector: '[role="switch"]', action: "up" });
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    sampling = false;
+    await settled(thumb);
+    const frames = [pressed, ...samples, edges()];
+    const bounds = inner();
+    for (const frame of frames) {
+      expect(frame.left).toBeGreaterThanOrEqual(bounds.left - 0.5);
+      expect(frame.right).toBeLessThanOrEqual(bounds.right + 0.5);
+    }
+    // Neither edge ever moves against the direction of travel by more than a pixel.
+    for (let index = 1; index < frames.length; index++) {
+      expect((frames[index]!.left - frames[index - 1]!.left) * direction).toBeGreaterThanOrEqual(-1);
+      expect((frames[index]!.right - frames[index - 1]!.right) * direction).toBeGreaterThanOrEqual(-1);
+    }
+    expect(track.getAttribute("aria-checked")).toBe(String(!startChecked));
+  });
+
   it("does not stretch or slide with reduced motion", async () => {
     await commands.emulateMedia({ reducedMotion: "reduce" });
     const { thumb } = await render(<Switch label="Wi-Fi" />);

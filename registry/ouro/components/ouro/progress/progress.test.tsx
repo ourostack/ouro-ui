@@ -56,6 +56,10 @@ afterEach(async () => {
   await commands.emulateMedia({ reducedMotion: "no-preference" });
 });
 
+/** How much of the track the bar covers: the bar is full width and slid back by what is not done. */
+const filled = (indicator: HTMLElement, track: HTMLElement) =>
+  Math.max(0, indicator.getBoundingClientRect().right - track.getBoundingClientRect().left);
+
 const warnings = () => warn.mock.calls.map((call: unknown[]) => String(call[0]));
 
 describe("Progress", () => {
@@ -68,14 +72,14 @@ describe("Progress", () => {
     expect(bar.getAttribute("aria-valuemax")).toBe("100");
     expect(bar.getAttribute("aria-valuetext")).toBe("40%");
     expect(root.querySelector("[data-ouro-progress-label]")!.getBoundingClientRect().width).toBeGreaterThan(1);
-    expect(indicator.getBoundingClientRect().width).toBeCloseTo(track.getBoundingClientRect().width * 0.4, 0);
+    expect(filled(indicator, track)).toBeCloseTo(track.getBoundingClientRect().width * 0.4, 0);
   });
 
   it("scales the value between min and max", async () => {
     const { bar, indicator, track } = await render(<Progress label="Steps" value={3} min={0} max={4} showValue format={{ style: "decimal" }} />);
     expect(bar.querySelector("[data-ouro-progress-value]")!.textContent).toBe("3");
     expect(bar.getAttribute("aria-valuemax")).toBe("4");
-    expect(indicator.getBoundingClientRect().width).toBeCloseTo(track.getBoundingClientRect().width * 0.75, 0);
+    expect(filled(indicator, track)).toBeCloseTo(track.getBoundingClientRect().width * 0.75, 0);
   });
 
   it("shows the formatted value with showValue", async () => {
@@ -110,9 +114,35 @@ describe("Progress", () => {
     expect(bar.getAttribute("aria-valuetext")).toBe("40%");
   });
 
+  it("keeps the bar full width and fills it by sliding, clamped between min and max", async () => {
+    const { indicator, track, rerender } = await render(<Progress label="Uploading" value={150} />);
+    expect(indicator.getBoundingClientRect().width).toBeCloseTo(track.getBoundingClientRect().width, 0);
+    expect(filled(indicator, track)).toBeCloseTo(track.getBoundingClientRect().width, 0);
+    await rerender(<Progress label="Uploading" value={-5} />);
+    await expect.poll(() => filled(indicator, track)).toBeCloseTo(0, 0);
+    expect(indicator.getBoundingClientRect().width).toBeCloseTo(track.getBoundingClientRect().width, 0);
+  });
+
+  it("shows an empty bar, not a full one, when the range is empty or backwards", async () => {
+    const { indicator, track, rerender } = await render(<Progress label="Importing" value={0} max={0} />);
+    expect(filled(indicator, track)).toBeCloseTo(0, 0);
+    await rerender(<Progress label="Importing" value={5} min={10} max={10} />);
+    expect(filled(indicator, track)).toBeCloseTo(0, 0);
+    await rerender(<Progress label="Importing" value={5} min={10} max={2} />);
+    expect(filled(indicator, track)).toBeCloseTo(0, 0);
+  });
+
+  it("fills from the right edge in a right-to-left page", async () => {
+    const { host, indicator, track } = await render(<Progress label="Uploading" value={40} />);
+    host.dir = "rtl";
+    const t = track.getBoundingClientRect();
+    await expect.poll(() => t.right - indicator.getBoundingClientRect().left).toBeCloseTo(t.width * 0.4, 0);
+  });
+
   it("animates a change in value only when motion is allowed", async () => {
     const { indicator } = await render(<Progress label="Uploading" value={20} />);
-    expect(getComputedStyle(indicator).transitionProperty).toBe("width");
+    expect(getComputedStyle(indicator).transitionProperty).toBe("translate");
+    expect(getComputedStyle(indicator).transitionTimingFunction).toBe("cubic-bezier(0.23, 1, 0.32, 1)");
     await commands.emulateMedia({ reducedMotion: "reduce" });
     expect(getComputedStyle(indicator).transitionProperty).toBe("none");
   });
