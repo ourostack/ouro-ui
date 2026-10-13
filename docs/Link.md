@@ -21,7 +21,7 @@ import { Link } from "@/registry/ouro/components/ouro/link/link";
 
 Inside running text, put the Link in a `Text`.
 
-On a touch screen a link that stands alone has a touch area at least 44px tall and wide, centered on its text; its box and line height stay the text's. A link in a sentence keeps to its line, so it takes no tap from a link on the line above or below: a Link inside a `Text` does this by itself, and `inline` says it anywhere else. Leave 44px between the centers of links stacked in a list, or their touch areas overlap.
+On a touch screen a link that stands alone is a box at least 44px tall, with its text centred, so it is easy to tap and never overlaps a neighbour. A link in running text (a `<p>`, a `<label>`, a `Text`, a field's description or error) stays as tall as its line; `inline` says the same anywhere else. With a mouse every link is as tall as its text.
 
 ## Use instead when
 
@@ -37,7 +37,7 @@ Type: `LinkProps`.
 | `className` | `string` |  | Layout only: margins, display, grid placement (`ms-2`). Appearance classes warn in development; use `tone`. |
 | `external` | `boolean` |  | Opens the link in a new tab: sets `target="_blank"`, adds `rel="noopener noreferrer"` (keeping your own `rel` tokens) and an icon, and tells screen readers "opens in a new tab". |
 | `href` (required) | `string` |  | Where the link goes. Internal paths render through `OuroProvider`'s `linkComponent` (your router's link), so navigation stays client-side; `http(s)://`, `mailto:` and other absolute URLs render as a plain `<a>`. Router links that take `to` take `href` here: the adapter maps it. |
-| `inline` | `boolean` | `false`, or true inside a `Text` | The link sits in running text, so its touch area stays on its own line. A link that stands alone ("Forgot password?", "Back to recipes") has a touch area at least 44px tall and wide on a touch screen, centered on its text, with no change to its box or line height; in a sentence that area would cover the lines above and below and take taps meant for a link there. Inside a `Text` a link is inline without the prop; pass `inline={false}` to a link that is the only thing in its `Text`. |
+| `inline` | `boolean` |  | Whether the link sits in running text. On a touch screen a link that stands alone ("Forgot password?", "Back to recipes", a link in a list item or a table cell) is a box at least 44px tall with its text centred, which takes its room in the layout; a link in running text stays as tall as its line. Unset, a link is in running text inside a `<p>`, a `<label>`, a `<dt>` or `<dd>`, a `Text`, and Ouro's own text (a field's description and error, a Form's message, an Alert's text, an Item's description). Pass `inline` for a sentence in another element, and `inline={false}` for a link that is alone in its `Text`. |
 | `ref` | `Ref<HTMLAnchorElement>` |  | Reaches the rendered element. |
 | `tone` | `"primary" \| "secondary" \| "destructive" \| "success" \| "warning"` | `"primary"` | Text color from the theme, named after its token. `secondary` is the page's foreground, for links in navigation and lists; the underline still marks it as a link. |
 

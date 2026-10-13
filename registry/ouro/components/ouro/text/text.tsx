@@ -4,7 +4,6 @@ import type { CSSProperties, HTMLAttributes, JSX, ReactNode, Ref } from "react";
 import { fontFor, isWeight, sizeFor, toneFor } from "@/registry/ouro/lib/ouro/appearance-hints";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { RunningTextContext } from "@/registry/ouro/lib/ouro/running-text";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 import { toneWarning } from "@/registry/ouro/lib/ouro/tones";
 import { alignClasses, checkAlign, type TextAlign } from "@/registry/ouro/components/ouro/text/text-styles";
@@ -175,10 +174,5 @@ export function Text(props: TextProps): JSX.Element {
     className,
   );
   const finalStyle = lines !== undefined ? ({ ...style, "--ouro-lines": lines } as CSSProperties) : style;
-  // A Link inside knows it is in running text, so its touch area keeps to its own line.
-  return (
-    <RunningTextContext.Provider value={true}>
-      <Tag {...rest} ref={ref as Ref<HTMLParagraphElement>} data-ouro="text" className={classes} style={finalStyle} />
-    </RunningTextContext.Provider>
-  );
+  return <Tag {...rest} ref={ref as Ref<HTMLParagraphElement>} data-ouro="text" className={classes} style={finalStyle} />;
 }

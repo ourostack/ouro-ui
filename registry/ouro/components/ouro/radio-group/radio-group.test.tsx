@@ -191,7 +191,7 @@ describe("RadioGroup", () => {
       </form>,
     );
     const legend = root.querySelector<HTMLElement>("[data-ouro-legend][data-ouro-required]")!;
-    expect(getComputedStyle(legend, "::after").content).toBe('"*"');
+    expect(getComputedStyle(legend, "::after").content).toBe('"*" / ""');
     expect(legend.querySelector("[aria-hidden]")).toBeNull();
     expect(group.getAttribute("aria-required")).toBe("true");
     const form = host.querySelector("form")!;

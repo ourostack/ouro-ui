@@ -4,7 +4,6 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page } from "vitest/browser";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
-import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -149,41 +148,24 @@ describe("Link", () => {
   });
 });
 
-describe("Link in running text", () => {
-  it("is inline inside a Text and stands alone outside one, unless it says otherwise", async () => {
+describe("Link with a mouse", () => {
+  it("is as tall as its text with a fine pointer, standing alone or in a sentence", async () => {
+    expect(matchMedia("(pointer: fine)").matches).toBe(true);
     const { host } = await render(
       <>
-        <Link href="/a">Alone</Link>
-        <Text>
-          Read the <Link href="/b">terms</Link> first.
-        </Text>
-        <Text>
-          <Link href="/c" inline={false}>
-            Forgot password?
-          </Link>
-        </Text>
-        <Link href="/d" inline>
-          Marked inline
-        </Link>
+        <div>
+          <Link href="/forgot">Forgot password?</Link>
+        </div>
+        <p>
+          Read the <Link href="/terms">terms</Link> first.
+        </p>
       </>,
     );
-    const links = [...host.querySelectorAll<HTMLElement>('[data-ouro="link"]')];
-    expect(links.map((link) => link.hasAttribute("data-inline"))).toEqual([false, true, false, true]);
-    expect(links.map((link) => link.querySelector("[data-ouro-touch-target]") !== null)).toEqual([true, false, true, false]);
-    // The hit area is hidden text-wise and takes no room with a mouse.
-    expect(getComputedStyle(links[0]!.querySelector("[data-ouro-touch-target]")!).display).toBe("none");
-    expect(links[0]!.textContent).toBe("Alone");
+    for (const link of host.querySelectorAll<HTMLElement>('[data-ouro="link"]')) {
+      expect(getComputedStyle(link).display).toBe("inline");
+      expect(link.getBoundingClientRect().height).toBeLessThan(30);
+    }
     expect(warn).not.toHaveBeenCalled();
-  });
-
-  it("still passes an app's ref to the anchor", async () => {
-    const ref = { current: null as HTMLAnchorElement | null };
-    const { link } = await render(
-      <Link href="/a" ref={ref}>
-        One
-      </Link>,
-    );
-    expect(ref.current).toBe(link);
   });
 });
 

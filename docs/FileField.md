@@ -41,7 +41,7 @@ Type: `FileFieldProps`.
 | `prompt` | `string` | `"Drag a file here, or choose one"` ("Drag files here, or choose them" with `multiple`) | The text in the drop zone. Translate it with your app. |
 | `ref` | `Ref<HTMLInputElement>` |  | The file input element. |
 | `rejectMessage` | `((rejection: FileRejection) => string)` | (rejection) => "notes.heic is not an accepted file type.", "big.png is larger than 5 MB." or "Only one file can be added, so b.png was left out." | The message under the field for each file that was left out, until the next choice takes every file, a removal or a form reset. It is announced to screen readers as a status, and shows next to `error` and a Form's error for this name, never instead of them. Translate it with your app. |
-| `removeLabel` | `string` | `"Remove"` | The start of each file's remove button name, followed by the file name. Translate it with your app. |
+| `removeLabel` | `string` | `"Remove"` | The start of each file's remove button name, followed by the file name, as visually hidden text and not an `aria-label`, so a test's `getByLabel("Photo")` finds the field and not "Remove photo.jpg". Translate it with your app. |
 | `required` | `boolean` |  | A file must be chosen before the form submits. |
 
 ## Don't use

@@ -242,11 +242,6 @@
           "target": "@lib/ouro/router-link.ts"
         },
         {
-          "path": "registry/ouro/lib/ouro/running-text.ts",
-          "type": "registry:lib",
-          "target": "@lib/ouro/running-text.ts"
-        },
-        {
           "path": "registry/ouro/lib/ouro/server-element.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/server-element.ts"
@@ -2520,7 +2515,9 @@
         "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/field",
         "ourostack/ouro-ui/form",
-        "ourostack/ouro-ui/ouro-testing"
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/radio-group",
+        "ourostack/ouro-ui/select"
       ],
       "files": [
         {
@@ -2598,10 +2595,16 @@
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
+        "ourostack/ouro-ui/alert",
+        "ourostack/ouro-ui/description-list",
+        "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/form",
+        "ourostack/ouro-ui/item",
         "ourostack/ouro-ui/link",
         "ourostack/ouro-ui/ouro-lib",
         "ourostack/ouro-ui/ouro-testing",
-        "ourostack/ouro-ui/text"
+        "ourostack/ouro-ui/text",
+        "ourostack/ouro-ui/text-field"
       ],
       "files": [
         {

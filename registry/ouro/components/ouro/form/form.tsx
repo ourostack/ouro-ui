@@ -30,15 +30,23 @@ export type FormProps = Omit<BaseForm.Props, "className" | "errors" | "children"
    *
    * Errors are compared by content, so an object built while rendering
    * (`errors={{ ...actionData?.errors, form: actionData?.general }}`) is the same errors
-   * until its content changes: it shows no cleared message again and moves no focus. After a
-   * submit, the next errors the Form is given count as that submit's answer even when they
-   * equal the last ones, so a repeated answer shows again.
+   * until its content changes: it shows no cleared message again and moves no focus, also
+   * while the next submit is pending. To show an answer again when it equals the last one,
+   * pass `result`.
    *
    * These errors only show: they never block the next submit, so the user can always send
    * the form again (a server error may be fixed by changing another field, or by trying
    * again). The browser's own checks (`required`, `type="email"`) still block a submit.
    */
   errors?: FormErrors | null | undefined;
+  /**
+   * The action's result the `errors` came from: `result={actionData}`. Each new result is a
+   * new answer, so its errors show again and focus moves to them even when they equal the
+   * last ones (the user cleared a message, then sent the same thing again). A re-render with
+   * the same result, such as the one a submit causes while it is pending, changes nothing.
+   * Without it, only errors whose content changed count as new.
+   */
+  result?: unknown;
   /** The fields and the submit button. */
   children: ReactNode;
   /**
@@ -123,8 +131,10 @@ function entryPoint(element: HTMLElement): HTMLElement {
  * this form's field names and the fix; with two forms on one route, pass each only its own
  * keys.
  *
- * Errors are compared by content, so an object built while rendering is fine: it shows a
- * cleared message again only when its content changes or after the next submit.
+ * Errors are compared by content, so an object built while rendering is fine: a message the
+ * user cleared stays cleared until errors with other content arrive, or a new `result`. Pass
+ * `result={actionData}` so an answer equal to the last one, after the user fixed and resent
+ * the form, shows again when it arrives and not while the submit is pending.
  *
  * The message about the whole form is an alert (`role="alert"`). It is in the page only
  * while there is a message, and each answer adds a new one with its text already in it,
@@ -147,7 +157,7 @@ function entryPoint(element: HTMLElement): HTMLElement {
  *
  * @example
  * const actionData = useActionData<typeof action>();
- * <Form method="post" errors={actionData?.errors} render={<RouterForm />}>
+ * <Form method="post" errors={actionData?.errors} result={actionData} render={<RouterForm />}>
  *   <TextField label="Email" name="email" type="email" required />
  *   <Button type="submit">Save</Button>
  * </Form>
@@ -155,7 +165,7 @@ function entryPoint(element: HTMLElement): HTMLElement {
  * @example
  * // The action answers { errors: { general, email } }: map its keys to this form's field names.
  * const errors = actionData?.errors;
- * <Form method="post" errors={{ form: errors?.general, email: errors?.email }} render={<RouterForm />}>
+ * <Form method="post" errors={{ form: errors?.general, email: errors?.email }} result={actionData} render={<RouterForm />}>
  *   <TextField label="Email" name="email" type="email" required />
  *   <Button type="submit">Subscribe</Button>
  * </Form>
@@ -163,6 +173,7 @@ function entryPoint(element: HTMLElement): HTMLElement {
 export function Form(props: FormProps): JSX.Element {
   const {
     errors: errorsProp,
+    result,
     onSubmit,
     children,
     className,
@@ -179,15 +190,14 @@ export function Form(props: FormProps): JSX.Element {
       : /* istanbul ignore next @preserve -- production only */ "",
   );
   // The errors the fields show: the prop, less the fields the user has changed since. New
-  // errors (the next action's result) replace them all, during render, so the server HTML and
-  // the first client render agree. Errors are new when their content changed, or when the form
-  // was submitted since the last ones: an action that answers a second submit with equal
-  // errors is saying it again. An equal object otherwise (one built while rendering) is the
-  // same errors: it shows no cleared message again and moves no focus.
-  const [submits, setSubmits] = useState(0);
-  const [shown, setShown] = useState({ source: errorsProp, errors: errorsProp, submits, arrivals: 0 });
-  if (errorsProp !== shown.source && (submits !== shown.submits || !sameContent(errorsProp ?? EMPTY, shown.source ?? EMPTY))) {
-    setShown({ source: errorsProp, errors: errorsProp, submits, arrivals: shown.arrivals + 1 });
+  // errors replace them all, during render, so the server HTML and the first client render
+  // agree. Errors are new when their content changed, or when they come with a new `result`
+  // (the next action's answer, which may repeat the last). An equal object otherwise (one
+  // built while rendering, also in the re-render a pending submit causes) is the same errors:
+  // it shows no cleared message again and moves no focus.
+  const [shown, setShown] = useState({ source: errorsProp, result, errors: errorsProp, arrivals: 0 });
+  if (result !== shown.result || (errorsProp !== shown.source && !sameContent(errorsProp ?? EMPTY, shown.source ?? EMPTY))) {
+    setShown({ source: errorsProp, result, errors: errorsProp, arrivals: shown.arrivals + 1 });
   }
   const errors = shown.errors;
   const clear = useCallback((name: string) => {
@@ -250,11 +260,9 @@ export function Form(props: FormProps): JSX.Element {
   }, [shown.arrivals, shown.source]);
 
   // A submit stops at its own Form: React bubbles events through portals, so a Form in a
-  // sheet would otherwise reach the Form the sheet sits in. It runs only once the browser's
-  // checks pass, so it also marks the errors that come next as this submit's answer.
+  // sheet would otherwise reach the Form the sheet sits in.
   const submit: NonNullable<BaseForm.Props["onSubmit"]> = (event) => {
     event.stopPropagation();
-    setSubmits((count) => count + 1);
     onSubmit?.(event);
   };
   const setFormRef = useMergedRef(rest.ref, formRef);

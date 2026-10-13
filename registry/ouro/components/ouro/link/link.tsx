@@ -1,13 +1,11 @@
 "use client";
 
-import { useContext, type AnchorHTMLAttributes, type JSX, type ReactNode, type Ref } from "react";
+import type { AnchorHTMLAttributes, JSX, ReactNode, Ref } from "react";
 import { fontFor, toneFor } from "@/registry/ouro/lib/ouro/appearance-hints";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { RouterLink, safeRel } from "@/registry/ouro/lib/ouro/router-link";
-import { RunningTextContext } from "@/registry/ouro/lib/ouro/running-text";
 import { toneWarning } from "@/registry/ouro/lib/ouro/tones";
-import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 
 /** The props Link adds to the anchor attributes it passes through. */
@@ -38,13 +36,13 @@ export interface LinkOwnProps {
     | (string & { 'danger is "destructive"; accent is "primary"; neutral is "secondary"': never })
     | undefined;
   /**
-   * The link sits in running text, so its touch area stays on its own line. A link that
-   * stands alone ("Forgot password?", "Back to recipes") has a touch area at least 44px tall
-   * and wide on a touch screen, centered on its text, with no change to its box or line
-   * height; in a sentence that area would cover the lines above and below and take taps meant
-   * for a link there. Inside a `Text` a link is inline without the prop; pass
-   * `inline={false}` to a link that is the only thing in its `Text`.
-   * @default false, or true inside a `Text`
+   * Whether the link sits in running text. On a touch screen a link that stands alone
+   * ("Forgot password?", "Back to recipes", a link in a list item or a table cell) is a box at
+   * least 44px tall with its text centred, which takes its room in the layout; a link in
+   * running text stays as tall as its line. Unset, a link is in running text inside a `<p>`,
+   * a `<label>`, a `<dt>` or `<dd>`, a `Text`, and Ouro's own text (a field's description and
+   * error, a Form's message, an Alert's text, an Item's description). Pass `inline` for a
+   * sentence in another element, and `inline={false}` for a link that is alone in its `Text`.
    */
   inline?: boolean | undefined;
   /** The link text. Make it say where the link goes: "Browse recipes", not "click here". */
@@ -70,6 +68,14 @@ const base =
   "transition-[text-decoration-color] duration-(--ouro-duration-fast) ease-out hover:decoration-current " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 
+// On a coarse pointer a link that is not in running text is a 44px box with its text
+// centred. Running text is found with CSS ancestor selectors, so the server HTML is right.
+const standalone =
+  "pointer-coarse:not-in-[:is(p,label,dt,dd,[data-ouro=text],[data-ouro-text])]:inline-flex " +
+  "pointer-coarse:not-in-[:is(p,label,dt,dd,[data-ouro=text],[data-ouro-text])]:min-h-11 " +
+  "pointer-coarse:not-in-[:is(p,label,dt,dd,[data-ouro=text],[data-ouro-text])]:items-center";
+const alwaysStandalone = "pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center";
+
 const tones = {
   primary: "text-primary",
   secondary: "text-foreground",
@@ -91,11 +97,10 @@ function linkHint(token: string): string {
  * Use `Button` with `href` instead when the link is the main action and should look like a
  * button. Inside running text, put the Link in a `Text`.
  *
- * On a touch screen a link that stands alone has a touch area at least 44px tall and wide,
- * centered on its text; its box and line height stay the text's. A link in a sentence keeps
- * to its line, so it takes no tap from a link on the line above or below: a Link inside a
- * `Text` does this by itself, and `inline` says it anywhere else. Leave 44px between the
- * centers of links stacked in a list, or their touch areas overlap.
+ * On a touch screen a link that stands alone is a box at least 44px tall, with its text
+ * centred, so it is easy to tap and never overlaps a neighbour. A link in running text (a
+ * `<p>`, a `<label>`, a `Text`, a field's description or error) stays as tall as its line;
+ * `inline` says the same anywhere else. With a mouse every link is as tall as its text.
  *
  * @group Text
  * @see https://ourostack.github.io/ouro-ui/docs/link
@@ -124,8 +129,6 @@ export function Link(props: LinkProps): JSX.Element {
   } = props;
   // A tone that is not one of Ouro UI's (a type error) warns and renders the default.
   const tone = Object.hasOwn(tones, toneProp) ? (toneProp as keyof typeof tones) : "primary";
-  const inRunningText = useContext(RunningTextContext);
-  const inline = inlineProp ?? inRunningText;
   useAppearanceClassNameCheck(
     "Link",
     className,
@@ -151,10 +154,9 @@ export function Link(props: LinkProps): JSX.Element {
       target={external ? "_blank" : target}
       rel={external ? safeRel(rel) : rel}
       data-ouro="link"
-      data-inline={inline ? "" : undefined}
-      className={cn(base, !inline && "relative", tones[tone], className)}
+      data-inline={inlineProp ? "" : undefined}
+      className={cn(base, inlineProp === undefined ? standalone : !inlineProp && alwaysStandalone, tones[tone], className)}
     >
-      {!inline && <TouchTarget />}
       {children}
       {external && (
         <>

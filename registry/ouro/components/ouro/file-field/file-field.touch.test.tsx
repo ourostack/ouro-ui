@@ -38,7 +38,7 @@ it("keeps 16px prompt text and a remove button with a 44px hit area on a landsca
     input.files = data.files;
     input.dispatchEvent(new Event("change", { bubbles: true }));
   });
-  const remove = host.querySelector<HTMLElement>('button[aria-label="Remove a.txt"]')!;
+  const remove = [...host.querySelectorAll<HTMLElement>("[data-ouro-file-remove]")].find((button) => button.textContent === "Remove a.txt")!;
   const rect = remove.getBoundingClientRect();
   const cx = rect.left + rect.width / 2;
   const cy = rect.top + rect.height / 2;

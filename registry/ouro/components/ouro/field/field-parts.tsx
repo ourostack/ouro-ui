@@ -78,14 +78,20 @@ export function FieldRoot({ className, required, ...props }: FieldRootProps): JS
   );
 }
 
-/** Props for {@link FieldLabel}. `className` is for layout only; `sr-only` hides the label visually. */
+/**
+ * Props for {@link FieldLabel}. `className` goes on the element around the label and is for
+ * layout only (`sr-only` hides the label visually); every other prop (`style`, `id`, `data-*`,
+ * event handlers) goes on the `<label>` itself.
+ */
 export type FieldLabelProps = Omit<BaseField.Label.Props, "className"> & { className?: string | undefined };
 
 /**
  * Part: the control's label. It points at the control by id. A required field shows a marker
  * after it, drawn by CSS on the element around the label, so the label's text and the
  * control's name stay exactly what you wrote (screen readers hear "required" from the
- * control). `className` goes on that element; hide the label visually with `className="sr-only"`.
+ * control). `className` goes on that element, where `[data-ouro-required]` is too; hide the
+ * label visually with `className="sr-only"`. `style`, `id`, `data-*` attributes and event
+ * handlers go on the `<label>`.
  */
 export function FieldLabel({ className, children, ...props }: FieldLabelProps): JSX.Element {
   const field = useFieldPart("FieldLabel");
@@ -126,7 +132,7 @@ export type FieldErrorProps = Omit<BaseField.Error.Props, "className"> & { class
 export function FieldError({ className, ...props }: FieldErrorProps): JSX.Element {
   useFieldPart("FieldError");
   useLayoutClassName("FieldError", className);
-  return <BaseField.Error {...props} className={cn(errorClass, className)} />;
+  return <BaseField.Error data-ouro-text="" {...props} className={cn(errorClass, className)} />;
 }
 
 /** Props for {@link FieldControl}. `className` is for layout only. */

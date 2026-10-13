@@ -6,6 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, server } from "vitest/browser";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Field } from "@/registry/ouro/components/ouro/field/field";
+import { RadioGroup } from "@/registry/ouro/components/ouro/radio-group/radio-group";
+import { Select } from "@/registry/ouro/components/ouro/select/select";
 import { Form as OuroForm } from "@/registry/ouro/components/ouro/form/form";
 import {
   FieldControl,
@@ -224,7 +226,7 @@ describe("Field wiring", () => {
     const marked = host.querySelector<HTMLElement>("[data-ouro-required]")!;
     expect(marked.contains(label)).toBe(true);
     expect(marked).not.toBe(label);
-    expect(getComputedStyle(marked, "::after").content).toBe('"*"');
+    expect(getComputedStyle(marked, "::after").content).toBe('"*" / ""');
     expect(getComputedStyle(label, "::after").content).toBe("none");
     expect(label.textContent).toBe("Email");
     expect(host.textContent).toBe("Email");
@@ -268,7 +270,7 @@ describe("Field wiring", () => {
       probe.style.color = "CanvasText";
       host.append(probe);
       const after = getComputedStyle(required!, "::after");
-      expect(after.content).toBe('"*"');
+      expect(after.content).toBe('"*" / ""');
       expect(after.color).toBe(getComputedStyle(probe).color);
       expect(markerWidth()).toBeGreaterThan(4);
     } finally {
@@ -525,6 +527,27 @@ describe("Field development messages", () => {
     expect(warn).toHaveBeenCalledWith(
       '[ouro-ui] Field: "text-lg" sets appearance, and className is for layout only. Fix: style fields in your theme (--input, --ring, --radius).',
     );
+  });
+});
+
+describe("Required marker", () => {
+  it("is an asterisk with empty alternative text, so screen readers do not read it", async () => {
+    const { label } = await render(
+      <Field label="Email" required>
+        <FieldControl />
+      </Field>,
+    );
+    const content = getComputedStyle(label.closest("[data-ouro-label]")!, "::after").content;
+    expect(content.replace(/\s+/g, " ")).toBe('"*" / ""');
+  });
+
+  it.each<[string, () => ReactNode, string]>([
+    ["a field with a <label>", () => <Field label="Email" required disabled><FieldControl /></Field>, "[data-ouro-label]"],
+    ["a field whose label is not a <label>", () => <Select label="Course" required disabled options={[{ value: "main", label: "Main" }]} />, "[data-ouro-label]"],
+    ["a group's legend", () => <RadioGroup legend="Size" required disabled options={[{ value: "s", label: "Small" }]} />, "[data-ouro-legend]"],
+  ])("fades with %s when it is disabled", async (_name, node, frame) => {
+    const { host } = await render(node());
+    expect(getComputedStyle(host.querySelector(frame)!, "::after").opacity).toBe("0.5");
   });
 });
 

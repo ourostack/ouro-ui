@@ -34,7 +34,7 @@ Type: `ColorFieldProps`.
 | `label` (required) | `string` |  | What the color is for ("Accent color"), shown above the field and read as the text input's name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. |
 | `name` | `string` |  | The form field name the color submits under, always as `#rrggbb`. |
 | `onValueChange` | `((hex: string) => void)` |  | Called with the color as `#rrggbb` when it is picked, or typed as a whole hex. |
-| `pickerLabel` | `string` | `"Pick a color"` | The name of the swatch that opens the system color picker. Translate it with your app. |
+| `pickerLabel` | `string` | `"Pick a color"` | The name of the swatch that opens the system color picker. The swatch is a color input, which can only be named by label text, so Playwright's loose `getByLabel("Color")` also finds it when the field's label is in this name; find the field with `getByLabel("Color", { exact: true })` or `getByRole("textbox", { name: "Color" })`. Translate it with your app. |
 | `ref` | `Ref<HTMLInputElement>` |  | The hex text input. |
 | `required` | `boolean` |  | Marks the field required: it gets `aria-required`, and the label a marker. A color always has a value, so it never blocks a submit, even with the text cleared. |
 | `value` | `string` |  | The color as hex (`#3366ff`, or short `#36f`), when you control it. Pair it with `onValueChange`. |

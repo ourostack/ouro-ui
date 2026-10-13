@@ -30,14 +30,14 @@ Type: `NumberFieldProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-4`, `col-span-2`). Appearance classes warn in development; style fields in your theme. |
-| `decrementLabel` | `string` | `"Decrease"` | The label of the button that lowers the value. Translate it with your app. |
+| `decrementLabel` | `string` | `"Decrease"` | The name of the button that lowers the value, as visually hidden text and not an `aria-label`, so a test's label lookup for the field finds the field alone. Translate it with your app. |
 | `defaultValue` | `number \| null` |  | The starting value, when the field keeps its own; `null` is empty. |
 | `description` | `ReactNode` |  | Supporting text under the label, read after the label through `aria-describedby`. |
 | `disabled` | `boolean` |  | Disables the field and its steppers, and fades it. |
 | `error` | `ErrorMessages` |  | What is wrong, from your server action or client check. The message (or several, as a list) shows under the field, which gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. |
 | `format` | `Intl.NumberFormatOptions` |  | How the number shows, as `Intl.NumberFormat` options: `{ style: "currency", currency: "USD" }` shows `$4.50`, `{ style: "percent" }` shows `15%`, `{ maximumFractionDigits: 2 }` rounds. The form still submits the plain number. |
 | `hideLabel` | `boolean` |  | Hides the label visually; screen readers still read it as the field's name. |
-| `incrementLabel` | `string` | `"Increase"` | The label of the button that raises the value. Translate it with your app. |
+| `incrementLabel` | `string` | `"Increase"` | The name of the button that raises the value, as visually hidden text and not an `aria-label`. Translate it with your app. |
 | `label` (required) | `string` |  | What the number is, shown above the field and read as its name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. Drag it sideways with a mouse to change the value. |
 | `largeStep` | `number` | `10` | The step for Page Up, Page Down and Shift with an arrow key. |
 | `locale` | `Intl.LocalesArgument` | the browser's | The locale for `format` and for parsing what people type. |

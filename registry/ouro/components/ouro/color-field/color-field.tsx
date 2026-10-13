@@ -51,7 +51,11 @@ export interface ColorFieldProps {
   /** Called with the color as `#rrggbb` when it is picked, or typed as a whole hex. */
   onValueChange?: ((hex: string) => void) | undefined;
   /**
-   * The name of the swatch that opens the system color picker. Translate it with your app.
+   * The name of the swatch that opens the system color picker. The swatch is a color input,
+   * which can only be named by label text, so Playwright's loose `getByLabel("Color")` also
+   * finds it when the field's label is in this name; find the field with
+   * `getByLabel("Color", { exact: true })` or `getByRole("textbox", { name: "Color" })`.
+   * Translate it with your app.
    * @default "Pick a color"
    */
   pickerLabel?: string | undefined;

@@ -12,13 +12,13 @@ import { Form } from "@/registry/ouro/components/ouro/form/form";
 
 ```tsx
 const actionData = useActionData<typeof action>();
-<Form method="post" errors={actionData?.errors} render={<RouterForm />}>
+<Form method="post" errors={actionData?.errors} result={actionData} render={<RouterForm />}>
   <TextField label="Email" name="email" type="email" required />
   <Button type="submit">Save</Button>
 </Form>
 // The action answers { errors: { general, email } }: map its keys to this form's field names.
 const errors = actionData?.errors;
-<Form method="post" errors={{ form: errors?.general, email: errors?.email }} render={<RouterForm />}>
+<Form method="post" errors={{ form: errors?.general, email: errors?.email }} result={actionData} render={<RouterForm />}>
   <TextField label="Email" name="email" type="email" required />
   <Button type="submit">Subscribe</Button>
 </Form>
@@ -30,7 +30,7 @@ A submit is checked in this order. First the browser's own checks (`required`, `
 
 The keys of `errors` are your fields' `name`s, and `form` is the message about the whole form. An action that answers with other keys is mapped where you pass them: `errors={{ form: data?.errors?.general, email: data?.errors?.email }}`. A key that no field in this form is named shows at the top of the form and warns in development with the key, this form's field names and the fix; with two forms on one route, pass each only its own keys.
 
-Errors are compared by content, so an object built while rendering is fine: it shows a cleared message again only when its content changes or after the next submit.
+Errors are compared by content, so an object built while rendering is fine: a message the user cleared stays cleared until errors with other content arrive, or a new `result`. Pass `result={actionData}` so an answer equal to the last one, after the user fixed and resent the form, shows again when it arrives and not while the submit is pending.
 
 The message about the whole form is an alert (`role="alert"`). It is in the page only while there is a message, and each answer adds a new one with its text already in it, which is what screen readers announce; `getByRole("alert")` finds nothing on a form without one. A field's message is not an alert: it is that control's description, so assert it with `toHaveAccessibleDescription`.
 
@@ -48,7 +48,8 @@ Type: `FormProps`.
 | --- | --- | --- | --- |
 | `children` (required) | `ReactNode` |  | The fields and the submit button. |
 | `className` | `string` |  | Layout only: margins, width, grid placement. Fields stack with a gap by default; appearance classes warn in development. |
-| `errors` | `FormErrors \| null` |  | Errors by field name, usually from your server action: `errors={actionData?.errors}`. Each one shows on the field with that `name`, which gets `aria-invalid` and links the message, in the server HTML too. A field's own `error` prop wins over it, and a message goes away once the user changes that field. When new errors arrive, focus moves to the first field with one, in page order. The `form` key shows in an alert at the top of the form, in the server HTML too; a key no rendered field is named joins it once the page hydrates, and warns in development. A message is text or a React node (a message with a link), and an array is several messages. Errors are compared by content, so an object built while rendering (`errors={{ ...actionData?.errors, form: actionData?.general }}`) is the same errors until its content changes: it shows no cleared message again and moves no focus. After a submit, the next errors the Form is given count as that submit's answer even when they equal the last ones, so a repeated answer shows again. These errors only show: they never block the next submit, so the user can always send the form again (a server error may be fixed by changing another field, or by trying again). The browser's own checks (`required`, `type="email"`) still block a submit. |
+| `errors` | `FormErrors \| null` |  | Errors by field name, usually from your server action: `errors={actionData?.errors}`. Each one shows on the field with that `name`, which gets `aria-invalid` and links the message, in the server HTML too. A field's own `error` prop wins over it, and a message goes away once the user changes that field. When new errors arrive, focus moves to the first field with one, in page order. The `form` key shows in an alert at the top of the form, in the server HTML too; a key no rendered field is named joins it once the page hydrates, and warns in development. A message is text or a React node (a message with a link), and an array is several messages. Errors are compared by content, so an object built while rendering (`errors={{ ...actionData?.errors, form: actionData?.general }}`) is the same errors until its content changes: it shows no cleared message again and moves no focus, also while the next submit is pending. To show an answer again when it equals the last one, pass `result`. These errors only show: they never block the next submit, so the user can always send the form again (a server error may be fixed by changing another field, or by trying again). The browser's own checks (`required`, `type="email"`) still block a submit. |
+| `result` | `unknown` |  | The action's result the `errors` came from: `result={actionData}`. Each new result is a new answer, so its errors show again and focus moves to them even when they equal the last ones (the user cleared a message, then sent the same thing again). A re-render with the same result, such as the one a submit causes while it is pending, changes nothing. Without it, only errors whose content changed count as new. |
 
 ## Native attributes
 

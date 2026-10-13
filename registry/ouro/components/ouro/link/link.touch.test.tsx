@@ -1,8 +1,15 @@
 import type { ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { Alert } from "@/registry/ouro/components/ouro/alert/alert";
+import { DescriptionList } from "@/registry/ouro/components/ouro/description-list/description-list";
+import { Field } from "@/registry/ouro/components/ouro/field/field";
+import { FieldControl, FieldDescription } from "@/registry/ouro/components/ouro/field/field-parts";
+import { Form } from "@/registry/ouro/components/ouro/form/form";
+import { Item } from "@/registry/ouro/components/ouro/item/item";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
+import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 // Runs in the `touch` project: Chromium as a 390x844 phone with a coarse pointer.
@@ -26,78 +33,84 @@ async function render(node: ReactNode) {
 
 /** The link a tap at this point would follow, if any. */
 const linkAt = (x: number, y: number) => document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-ouro="link"]') ?? null;
+const links = (host: Element) => [...host.querySelectorAll<HTMLElement>('[data-ouro="link"]')];
 
-/** The centre of a link's text. */
-function centre(link: HTMLElement) {
-  const rect = link.getBoundingClientRect();
-  return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, rect };
-}
-
-it("gives a link on its own line a 44px hit area without changing its box", async () => {
+it("gives a link on its own line a 44px box, centred on its text", async () => {
   expect(matchMedia("(pointer: coarse)").matches).toBe(true);
   const host = await render(
-    <>
-      <div>
-        <Link href="/forgot">Forgot password?</Link>
-      </div>
-      <div>
-        <a data-plain="" href="/forgot" className="underline">
-          Forgot password?
-        </a>
-      </div>
-    </>,
-  );
-  const link = host.querySelector<HTMLElement>('[data-ouro="link"]')!;
-  const plain = host.querySelector<HTMLElement>("[data-plain]")!;
-  const { x, y, rect } = centre(link);
-  // The link is as tall and wide as a plain anchor with the same text, and so is its line.
-  expect(rect.height).toBe(plain.getBoundingClientRect().height);
-  expect(rect.width).toBe(plain.getBoundingClientRect().width);
-  expect(link.parentElement!.getBoundingClientRect().height).toBe(plain.parentElement!.getBoundingClientRect().height);
-  expect(rect.height).toBeLessThan(30);
-  // 22px above the text's centre is the hit area's first row; 22px below is the first row past it.
-  expect(linkAt(x, y - 22)).toBe(link);
-  expect(linkAt(x, y + 21)).toBe(link);
-  expect(linkAt(x, y + 22)).toBeNull();
-  expect(linkAt(x, y - 23)).toBeNull();
-});
-
-it("makes a short link's hit area 44px wide as well", async () => {
-  const host = await render(
     <div>
-      <Link href="/edit">Edit</Link>
+      <Link href="/forgot">Forgot password?</Link>
     </div>,
   );
-  const link = host.querySelector<HTMLElement>('[data-ouro="link"]')!;
-  const { x, y, rect } = centre(link);
-  expect(rect.width).toBeLessThan(44);
-  expect(linkAt(x - 21, y)).toBe(link);
-  expect(linkAt(x + 21, y)).toBe(link);
+  const [link] = links(host);
+  const rect = link!.getBoundingClientRect();
+  expect(rect.height).toBe(44);
+  // The box takes its room in the layout: its line is 44px too.
+  expect(link!.parentElement!.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+  const y = rect.top + rect.height / 2;
+  expect(linkAt(rect.left + 4, y - 21)).toBe(link);
+  expect(linkAt(rect.left + 4, y + 21)).toBe(link);
 });
 
-it("keeps a link in running text to its own line, so it takes no tap from the link on the next line", async () => {
+it("never lets one of two stacked links in an app's list take a tap on the other", async () => {
   const host = await render(
-    <Text style={{ width: 300 }}>
-      <Link href="/terms">Terms</Link>
-      <br />
-      <Link href="/privacy">Privacy</Link>
-    </Text>,
+    <ul style={{ listStyle: "none", padding: 0, margin: 0, lineHeight: "24px", fontSize: 16 }}>
+      <li>
+        <Link href="/terms">Terms</Link>
+      </li>
+      <li>
+        <Link href="/privacy">Privacy</Link>
+      </li>
+    </ul>,
   );
-  const [terms, privacy] = [...host.querySelectorAll<HTMLElement>('[data-ouro="link"]')];
-  const upper = centre(terms!);
-  const lower = centre(privacy!);
-  // The two lines are closer than a hit area is tall, so an extended one would overlap.
-  expect(lower.y - upper.y).toBeLessThan(44);
-  expect(linkAt(upper.x, upper.y)).toBe(terms);
-  expect(linkAt(lower.x, lower.y)).toBe(privacy);
-  // 22px below the upper link's centre is the lower link's line, and 22px above the lower one's is the upper's.
-  expect(linkAt(upper.x, upper.y + 22)).not.toBe(terms);
-  expect(linkAt(lower.x, lower.y - 22)).not.toBe(privacy);
-  expect(linkAt(upper.x, upper.y - 22)).toBeNull();
-  expect(linkAt(lower.x, lower.y + 22)).toBeNull();
+  const [terms, privacy] = links(host);
+  const upper = terms!.getBoundingClientRect();
+  const lower = privacy!.getBoundingClientRect();
+  // A list item is not running text, so each link has its own 44px box, one under the other.
+  expect(upper.height).toBe(44);
+  expect(lower.top).toBeGreaterThanOrEqual(upper.bottom);
+  for (let y = Math.ceil(upper.top); y < upper.bottom; y += 1) expect(linkAt(upper.left + 4, y)).toBe(terms);
+  for (let y = Math.ceil(lower.top); y < lower.bottom; y += 1) expect(linkAt(lower.left + 4, y)).toBe(privacy);
 });
 
-it("extends a link that is alone in a Text when it says inline={false}", async () => {
+it("takes no tap from the field above when it sits in the field's error", async () => {
+  const host = await render(<TextField label="Recipe link" error={<>Already imported. <Link href="/recipes/soup">Open it</Link></>} />);
+  const input = host.querySelector("input")!.getBoundingClientRect();
+  const [link] = links(host);
+  const box = link!.getBoundingClientRect();
+  expect(box.height).toBeLessThan(30);
+  const x = box.left + box.width / 2;
+  for (let y = Math.ceil(input.top); y < input.bottom; y += 1) expect(linkAt(x, y)).toBeNull();
+});
+
+describe("a link in running text keeps to its line", () => {
+  const sentence = (
+    <>
+      Read the <Link href="/terms">terms</Link> first.
+    </>
+  );
+  it.each<[string, ReactNode]>([
+    ["an app's <p>", <p key="p">{sentence}</p>],
+    ["an app's <label>", <label key="label">{sentence}</label>],
+    ["a Text", <Text key="text">{sentence}</Text>],
+    ["a Text as a span", <Text key="span" as="span">{sentence}</Text>],
+    ["a field's description", <TextField key="d" label="Email" description={sentence} />],
+    ["a field's error", <TextField key="e" label="Email" error={sentence} />],
+    ["a Field's helper text after the control", <Field key="f" label="Email"><FieldControl /><FieldDescription>{sentence}</FieldDescription></Field>],
+    ["a Form's message", <Form key="form" errors={{ form: sentence }}><span /></Form>],
+    ["an Alert", <Alert key="alert" title="Saved" description={sentence} />],
+    ["an Item's description", <Item key="item" title="Short ribs" description={sentence} />],
+    ["a DescriptionList detail", <DescriptionList key="dl" items={[{ term: "Source", details: sentence }]} />],
+    ["a link marked inline", <div key="inline">Read the <Link href="/terms" inline>terms</Link> first.</div>],
+  ])("in %s", async (_name, node) => {
+    const host = await render(node);
+    const [link] = links(host);
+    expect(getComputedStyle(link!).display).toBe("inline");
+    expect(link!.getBoundingClientRect().height).toBeLessThan(30);
+  });
+});
+
+it("gives a link that is alone in a Text its box when it says inline={false}", async () => {
   const host = await render(
     <Text>
       <Link href="/forgot" inline={false}>
@@ -105,25 +118,5 @@ it("extends a link that is alone in a Text when it says inline={false}", async (
       </Link>
     </Text>,
   );
-  const link = host.querySelector<HTMLElement>('[data-ouro="link"]')!;
-  const { x, y } = centre(link);
-  expect(linkAt(x, y - 22)).toBe(link);
-  expect(linkAt(x, y + 21)).toBe(link);
-});
-
-it("keeps a link outside a Text to its line when it says inline", async () => {
-  const host = await render(
-    <p>
-      Read the{" "}
-      <Link href="/terms" inline>
-        terms
-      </Link>{" "}
-      first.
-    </p>,
-  );
-  const link = host.querySelector<HTMLElement>('[data-ouro="link"]')!;
-  const { x, y } = centre(link);
-  expect(linkAt(x, y)).toBe(link);
-  expect(linkAt(x, y - 22)).toBeNull();
-  expect(linkAt(x, y + 22)).toBeNull();
+  expect(links(host)[0]!.getBoundingClientRect().height).toBe(44);
 });

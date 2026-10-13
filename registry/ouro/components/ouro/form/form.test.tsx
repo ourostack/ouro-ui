@@ -1,4 +1,4 @@
-import { createContext, forwardRef, useState, type ComponentPropsWithRef, type FormEvent, type ReactNode } from "react";
+import { createContext, forwardRef, useEffect, useState, type ComponentPropsWithRef, type FormEvent, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -66,16 +66,16 @@ afterEach(async () => {
  * resolves on the next task) and the action's errors come back as a prop.
  */
 function ActionPage({ result, onSent }: { result: FormErrors | undefined; onSent?: (data: FormData) => void }) {
-  const [errors, setErrors] = useState<FormErrors | undefined>();
+  // A new object for each answer, as an action returns, passed as the Form's result.
+  const [answer, setAnswer] = useState<{ errors: FormErrors | undefined }>();
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     onSent?.(data);
-    // A new object for each answer, as an action returns.
-    setTimeout(() => setErrors(result && { ...result }));
+    setTimeout(() => setAnswer({ errors: result && { ...result } }));
   };
   return (
-    <Form method="post" errors={errors} onSubmit={submit}>
+    <Form method="post" errors={answer?.errors} result={answer} onSubmit={submit}>
       <TextField label="Name" name="name" defaultValue="Ari" />
       <TextField label="Email" name="email" type="email" description="We never share it." defaultValue="ari@example.com" />
       <TextArea label="Bio" name="bio" />
@@ -322,32 +322,161 @@ describe("Form", () => {
     expect(before).not.toBe(input("email"));
   });
 
-  it("shows an equal answer again after another submit, and moves focus to it again", async () => {
-    // Each answer is a new object with the same content, as an action returns.
-    function Page() {
-      const [errors, setErrors] = useState<FormErrors | undefined>();
+  describe("a new answer and a re-render", () => {
+    type Answer = { general?: string; email?: string } | undefined;
+    /**
+     * React Router's shape: the action's data stays the last answer while the next submit is
+     * pending, the page re-renders when the submit starts, and the errors are mapped inline.
+     */
+    let answer!: (data: Answer) => void;
+    function RouterPage({ withResult }: { withResult: boolean }) {
+      const [data, setData] = useState<Answer>();
+      const [pending, setPending] = useState(false);
+      useEffect(() => {
+        answer = (next) => {
+          // Each answer is a new object, as each action result is.
+          setData(next && { ...next });
+          setPending(false);
+        };
+      }, []);
       return (
         <Form
-          errors={errors}
+          errors={{ form: data?.general, email: data?.email }}
+          {...(withResult ? { result: data } : {})}
           onSubmit={(event: FormEvent<HTMLFormElement>) => {
             event.preventDefault();
-            setTimeout(() => setErrors({ email: "That email is taken." }));
+            setPending(true);
           }}
         >
-          <TextField label="Email" name="email" defaultValue="ari@example.com" />
-          <button type="submit">Save</button>
+          <TextField label="Email" name="email" defaultValue="a@example.com" />
+          <TextField label="Name" name="name" defaultValue="Ari" />
+          <button type="submit">{pending ? "Saving" : "Save"}</button>
         </Form>
       );
     }
-    const { input } = await render(<Page />);
-    const save = page.getByRole("button", { name: "Save" });
-    await userEvent.click(save);
-    await expect.poll(() => input("email").getAttribute("aria-invalid")).toBe("true");
-    await userEvent.fill(page.getByRole("textbox", { name: "Email" }), "other@example.com");
-    expect(input("email").getAttribute("aria-invalid")).toBeNull();
-    await userEvent.click(save);
-    await expect.poll(() => input("email").getAttribute("aria-invalid")).toBe("true");
-    await expect.poll(() => document.activeElement).toBe(input("email"));
+    const nameInput = () => document.querySelector<HTMLInputElement>('input[name="name"]')!;
+    const emailInput = () => document.querySelector<HTMLInputElement>('input[name="email"]')!;
+
+    /** Submits, answers with "taken", and clears the message by editing the email. */
+    async function answeredAndCleared() {
+      await userEvent.click(page.getByRole("button", { name: "Save" }));
+      await act(async () => answer({ email: "That email is taken." }));
+      await expect.poll(() => emailInput().getAttribute("aria-invalid")).toBe("true");
+      await userEvent.fill(page.getByRole("textbox", { name: "Email", exact: true }), "b@example.com");
+      expect(emailInput().getAttribute("aria-invalid")).toBeNull();
+    }
+
+    it("keeps a cleared message cleared through the next submit's own re-render, then shows the equal answer and moves focus once when it arrives", async () => {
+      await render(<RouterPage withResult />);
+      await answeredAndCleared();
+      nameInput().focus();
+      await userEvent.click(page.getByRole("button", { name: "Save" }));
+      await expect.element(page.getByRole("button", { name: "Saving" })).toBeVisible();
+      // Pending, with the last answer still in place: nothing comes back, and focus stays.
+      expect(emailInput().getAttribute("aria-invalid")).toBeNull();
+      nameInput().focus();
+      // The server answers the second submit with the same refusal.
+      await act(async () => answer({ email: "That email is taken." }));
+      await expect.poll(() => emailInput().getAttribute("aria-invalid")).toBe("true");
+      expect(document.activeElement).toBe(emailInput());
+      // Once: a re-render after the answer moves focus nowhere.
+      nameInput().focus();
+      await userEvent.click(page.getByRole("textbox", { name: "Name", exact: true }));
+      expect(document.activeElement).toBe(nameInput());
+    });
+
+    it("re-announces an equal form message only when the answer arrives", async () => {
+      const { host } = await render(<RouterPage withResult />);
+      await userEvent.click(page.getByRole("button", { name: "Save" }));
+      await act(async () => answer({ general: "Could not save." }));
+      const first = host.querySelector('[role="alert"]')!;
+      expect(first.textContent).toBe("Could not save.");
+      await userEvent.click(page.getByRole("button", { name: "Save" }));
+      await expect.element(page.getByRole("button", { name: "Saving" })).toBeVisible();
+      // The same element, so nothing is announced at submit time.
+      expect(host.querySelector('[role="alert"]')).toBe(first);
+      await act(async () => answer({ general: "Could not save." }));
+      const second = host.querySelector('[role="alert"]')!;
+      expect(second).not.toBe(first);
+      expect(second.textContent).toBe("Could not save.");
+    });
+
+    it("without result, keeps a cleared message cleared through a submit's re-render and an equal answer", async () => {
+      await render(<RouterPage withResult={false} />);
+      await answeredAndCleared();
+      nameInput().focus();
+      await userEvent.click(page.getByRole("button", { name: "Save" }));
+      await expect.element(page.getByRole("button", { name: "Saving" })).toBeVisible();
+      expect(emailInput().getAttribute("aria-invalid")).toBeNull();
+      await act(async () => answer({ email: "That email is taken." }));
+      expect(emailInput().getAttribute("aria-invalid")).toBeNull();
+      expect(document.activeElement).not.toBe(emailInput());
+      // A different answer is new by its content.
+      await act(async () => answer({ email: "Use your work email." }));
+      await expect.poll(() => emailInput().getAttribute("aria-invalid")).toBe("true");
+      expect(document.activeElement).toBe(emailInput());
+    });
+
+    it("brings back no cleared message when a client check stops the submit and re-renders", async () => {
+      function Page() {
+        const [data] = useState({ email: "That email is taken." });
+        const [clientError, setClientError] = useState<string | undefined>();
+        return (
+          <Form
+            errors={{ email: data.email }}
+            result={data}
+            onSubmit={(event: FormEvent<HTMLFormElement>) => {
+              event.preventDefault();
+              setClientError("Name is too short.");
+            }}
+          >
+            <TextField label="Email" name="email" defaultValue="a@example.com" />
+            <TextField label="Name" name="name" defaultValue="A" error={clientError} />
+            <button type="submit">Save</button>
+          </Form>
+        );
+      }
+      await render(<Page />);
+      expect(emailInput().getAttribute("aria-invalid")).toBe("true");
+      await userEvent.fill(page.getByRole("textbox", { name: "Email", exact: true }), "b@example.com");
+      nameInput().focus();
+      await userEvent.click(page.getByRole("button", { name: "Save" }));
+      await expect.poll(() => nameInput().getAttribute("aria-invalid")).toBe("true");
+      expect(emailInput().getAttribute("aria-invalid")).toBeNull();
+      expect(document.activeElement).not.toBe(emailInput());
+    });
+
+    it("keeps a cleared message cleared through re-renders that are not a submit", async () => {
+      let bump!: () => void;
+      function Page() {
+        const [count, setCount] = useState(0);
+        useEffect(() => {
+          bump = () => setCount((value) => value + 1);
+        }, []);
+        return (
+          <Form errors={{ email: "That email is taken." }} data-count={count}>
+            <TextField label="Email" name="email" />
+          </Form>
+        );
+      }
+      await render(<Page />);
+      await userEvent.fill(page.getByRole("textbox", { name: "Email", exact: true }), "x");
+      await act(async () => bump());
+      await act(async () => bump());
+      expect(emailInput().getAttribute("aria-invalid")).toBeNull();
+    });
+
+    it("shows errors on a page an action's plain navigation rendered, with no submit handler", async () => {
+      // A form posted without JavaScript comes back as a new page: the Form mounts with the answer.
+      const { host } = await render(
+        <Form action="/subscribe" method="post" errors={{ email: "That email is taken.", form: "Could not subscribe." }} result={{}}>
+          <TextField label="Email" name="email" />
+        </Form>,
+      );
+      expect(emailInput().getAttribute("aria-invalid")).toBe("true");
+      expect(host.querySelector('[role="alert"]')!.textContent).toBe("Could not subscribe.");
+      expect(host.contains(document.activeElement)).toBe(false);
+    });
   });
 
   it("ignores a change in a field without a form error", async () => {
