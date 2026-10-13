@@ -1,16 +1,43 @@
 import { Children, isValidElement, type ReactNode } from "react";
 
 /**
- * The element (or node) a Server Component passed as a prop or child. React's Flight client can hand a
- * client component a lazy wrapper in its place, with no `type` or `props`
- * (https://github.com/facebook/react/issues/32392), so cloning it renders `undefined`
- * and fails the build. `Children.toArray` resolves the wrapper, as Base UI's own
- * `render` prop does. Anything else comes back unchanged.
+ * Whether `node` is the lazy wrapper React's Flight client can hand a client component in
+ * place of an element, or a list of them, that a Server Component passed
+ * (https://github.com/facebook/react/issues/32392). The wrapper has no `type`, `props` or `key`.
+ */
+const isWrapper = (node: unknown): boolean => (node as { $$typeof?: symbol } | null | undefined)?.$$typeof === Symbol.for("react.lazy");
+
+/**
+ * What a wrapper holds, with each element's own key. `Children.forEach` resolves the wrapper
+ * and hands over the elements as they are; `Children.toArray` would give them new keys.
+ * A wrapper still loading suspends, and one that failed throws its error.
+ */
+function held(wrapper: unknown): ReactNode[] {
+  const nodes: ReactNode[] = [];
+  Children.forEach(wrapper as ReactNode, (node) => nodes.push(node));
+  return nodes;
+}
+
+/**
+ * The one element a Server Component passed as a prop or an item, resolved from React's lazy
+ * wrapper so its `props` and `key` can be read and it can be cloned. Anything else comes back
+ * unchanged, and so does a wrapper that holds no element or more than one, so cloning it
+ * still fails loudly.
  *
  * Internal: Ouro UI components use it; apps don't need to.
  */
 export function serverElement<T>(element: T): T {
-  if ((element as { $$typeof?: symbol } | undefined)?.$$typeof !== Symbol.for("react.lazy")) return element;
-  const resolved = Children.toArray(element as ReactNode)[0];
-  return (isValidElement(resolved) ? resolved : element) as T;
+  if (!isWrapper(element)) return element;
+  const nodes = held(element);
+  return (nodes.length === 1 && isValidElement(nodes[0]) ? nodes[0] : element) as T;
+}
+
+/**
+ * Children a Server Component passed, for a component that walks them by hand: what React's
+ * lazy wrapper holds (every element of a list, not just the first), or `node` unchanged.
+ *
+ * Internal: Ouro UI components use it; apps don't need to.
+ */
+export function serverNodes(node: ReactNode): ReactNode {
+  return isWrapper(node) ? held(node) : node;
 }

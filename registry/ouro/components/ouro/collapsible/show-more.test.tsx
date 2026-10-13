@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactElement, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -162,16 +162,18 @@ describe("ShowMore with items", () => {
 let finishLoad: () => void = () => {};
 
 /** A list that loads three more recipes after each "Show more", up to `total`, when the test calls `finishLoad`. */
-function Loading({ total = 9, onShowMore }: { total?: number; onShowMore?: () => void }) {
+function Loading({ total = 9, onShowMore, wrap = (row) => row }: { total?: number; onShowMore?: () => void; wrap?: (row: ReactElement) => ReactNode }) {
   const [count, setCount] = useState(3);
   const [loading, setLoading] = useState(false);
   return (
     <ShowMore
-      items={recipes.concat(["Recipe 9"]).slice(0, count).map((title) => (
-        <a key={title} href={`#${title}`}>
-          {title}
-        </a>
-      ))}
+      items={recipes.concat(["Recipe 9"]).slice(0, count).map((title) =>
+        wrap(
+          <a key={title} href={`#${title}`}>
+            {title}
+          </a>,
+        ),
+      )}
       hasMore={count < total}
       loading={loading}
       href="?after=3"
@@ -186,6 +188,37 @@ function Loading({ total = 9, onShowMore }: { total?: number; onShowMore?: () =>
     />
   );
 }
+
+/**
+ * What React's Flight client can hand over for an item a Server Component passed: a lazy
+ * wrapper with no key, and a new object on every payload.
+ */
+const fromServer = (row: ReactElement) => ({ $$typeof: Symbol.for("react.lazy"), _payload: row, _init: (payload: unknown) => payload }) as unknown as ReactNode;
+
+describe("ShowMore with items a Server Component passed", () => {
+  it("knows an appended page from a replaced list, and focuses the first new item", async () => {
+    const { host, button } = await render(<Loading wrap={fromServer} />);
+    await userEvent.click(button!);
+    await act(async () => finishLoad());
+    await expect.poll(() => host.querySelectorAll("li").length).toBe(6);
+    await expect.poll(() => document.activeElement).toBe(host.querySelectorAll("li")[3]!.querySelector("a"));
+  });
+
+  it("keys each row by its item's own key, so a row keeps its node when the order changes", async () => {
+    const rows = (titles: string[]) => titles.map((title) => fromServer(<a key={title} href={`#${title}`}>{title}</a>));
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    await act(async () => root.render(<ShowMore items={rows(["Pasta", "Salad"])} />));
+    const pasta = host.querySelectorAll("li")[0]!;
+    expect(pasta.textContent).toBe("Pasta");
+    await act(async () => root.render(<ShowMore items={rows(["Salad", "Pasta"])} />));
+    expect(host.querySelectorAll("li")[1]).toBe(pasta);
+    expect(pasta.textContent).toBe("Pasta");
+  });
+});
 
 describe("ShowMore loading more", () => {
   it("shows every item and a Show more link to the next page", async () => {

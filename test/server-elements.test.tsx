@@ -1,4 +1,4 @@
-import type { ReactElement, ReactNode } from "react";
+import { createElement, isValidElement, type ComponentType, type ReactElement, type ReactNode } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { Avatar, AvatarGroup } from "@/registry/ouro/components/ouro/avatar/avatar";
@@ -23,16 +23,26 @@ import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 
 // Every component that reads, copies or sorts an element it was given (a trigger, a render
-// prop or its children) must handle the lazy wrapper React's Flight client can hand over in
-// place of an element a Server Component passed (https://github.com/facebook/react/issues/32392).
-// Each case renders on the server twice, once with plain elements and once with every given
-// element wrapped, and both must give the same HTML.
+// prop or its children) must handle what React's Flight client hands a client component in
+// place of an element a Server Component passed (https://github.com/facebook/react/issues/32392):
+// - "wrapped": a lazy wrapper around the element, with no `type`, `props` or `key`;
+// - "lazy type": the element itself, whose `type` is a lazy reference to the client component
+//   and never the component, which is what a Next.js build sends for `<SelectItem>` or `<Button>`;
+// - "both": a lazy wrapper around an element with a lazy type.
+// Each case renders on the server with plain elements and in each of those shapes, and all
+// must give the same HTML.
 
-/** What the Flight client hands a client component in place of `element`. */
-function fromServer<T extends ReactNode>(element: T): T {
-  return { $$typeof: Symbol.for("react.lazy"), _payload: element, _init: (payload: unknown) => payload } as unknown as T;
-}
-const plain = <T,>(element: T): T => element;
+type Wrap = <T extends ReactNode>(element: T) => T;
+
+const lazy = (value: unknown) => ({ $$typeof: Symbol.for("react.lazy"), _payload: value, _init: (payload: unknown) => payload });
+const plain: Wrap = (element) => element;
+const wrapped: Wrap = (element) => lazy(element) as unknown as typeof element;
+const lazyType: Wrap = (element) => {
+  // A host element (`<p>`, `<a>`) keeps its tag; only a component is sent as a reference.
+  if (!isValidElement(element) || typeof element.type === "string") return element;
+  return createElement(lazy(element.type) as unknown as ComponentType, { ...(element.props as object), key: element.key ?? undefined }) as typeof element;
+};
+const both: Wrap = (element) => wrapped(lazyType(element));
 
 /** A plot Chart hands its data to, in place of a recharts chart. */
 function Plot({ data }: { data?: unknown }) {
@@ -41,7 +51,7 @@ function Plot({ data }: { data?: unknown }) {
 const rows = [{ month: "January", cooked: 12 }];
 const noop = () => {};
 
-const cases: Array<[string, (wrap: <T extends ReactNode>(element: T) => T) => ReactElement]> = [
+const cases: Array<[string, (wrap: Wrap) => ReactElement]> = [
   ["Dialog trigger", (wrap) => <Dialog title="t" trigger={wrap(<Button>Open</Button>)}>x</Dialog>],
   ["Command trigger", (wrap) => <Command title="t" trigger={wrap(<Button>Search</Button>)} items={[{ label: "New", onSelect: noop }]} />],
   ["ConfirmDialog trigger", (wrap) => <ConfirmDialog title="t" confirmLabel="Delete" onConfirm={noop} trigger={wrap(<Button>Delete</Button>)} />],
@@ -134,14 +144,45 @@ const cases: Array<[string, (wrap: <T extends ReactNode>(element: T) => T) => Re
       </Select>
     ),
   ],
+  [
+    "Select item inside an HTML element",
+    (wrap) => (
+      <Select label="Course" defaultValue="main">
+        <div>{wrap(<SelectItem value="main">Main</SelectItem>)}</div>
+      </Select>
+    ),
+  ],
+  [
+    "Select items in one list",
+    (wrap) => (
+      <Select label="Course" defaultValue="dessert">
+        {wrap([
+          wrap(
+            <SelectItem key="main" value="main">
+              Main
+            </SelectItem>,
+          ),
+          wrap(
+            <SelectItem key="dessert" value="dessert">
+              Dessert
+            </SelectItem>,
+          ),
+        ])}
+      </Select>
+    ),
+  ],
 ];
 
-describe("elements a Server Component passes", () => {
-  it.each(cases)("%s renders the same through React's lazy wrapper", (_name, app) => {
+describe.each([
+  ["wrapped", wrapped],
+  ["lazy type", lazyType],
+  ["both", both],
+] as const)("elements a Server Component passes, %s", (_shape, wrap) => {
+  it.each(cases)("%s renders the same as with plain elements", (_name, app) => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const expected = renderToString(app(plain));
-    expect(renderToString(app(fromServer))).toBe(expected);
+    expect(renderToString(app(wrap))).toBe(expected);
     vi.restoreAllMocks();
   });
 });
