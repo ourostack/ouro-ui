@@ -118,7 +118,7 @@ Each part checks that it sits inside `<DialogRoot>`. Outside it, a part throws i
 | `DialogContent` | The dialog's body. It scrolls when the dialog is taller than the screen, and while it overflows it is a tab stop, so a keyboard can scroll it. |
 | `DialogDescription` | A line under the title that describes the dialog. |
 | `DialogFooter` | The actions row. A row at the end on wider screens; on phones the actions stack full width. Put the primary action last, so it sits at the bottom on phones, nearest the thumb. |
-| `DialogPopup` | The dialog panel. It scales up from 0.96 and fades in with the theme spring, and scales and fades out; reduced motion keeps only the fade. |
+| `DialogPopup` | The dialog panel. It scales up from 0.96 and fades in over 300ms, and scales and fades out in 200ms; reduced motion keeps only the fade. |
 | `DialogPortal` | Moves the dialog to the end of `<body>`, in its own stacking context at the `--ouro-layer` z-index (50 by default, from ouro-base.css). If your app has fixed bars above z-50, raise it in a `:root` rule of your own after the Ouro tokens, outside any `@layer`: `:root { --ouro-layer: 60; }`. Don't edit the line shadcn wrote; `shadcn add` resets it. |
 | `DialogRoot` | The state owner of a centered dialog built from parts. Use the `Dialog` component instead unless its props cannot express your layout; `Dialog` also becomes a bottom sheet on phones, which parts do not. |
 | `DialogTitle` | The dialog's title, which names it. Every dialog needs one. |

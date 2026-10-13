@@ -489,10 +489,13 @@ describe("motion", () => {
     const index = style.transitionProperty.split(", ").indexOf(property);
     return index === -1
       ? undefined
-      : { duration: style.transitionDuration.split(", ")[index], easing: style.transitionTimingFunction.split(", ")[index] };
+      : {
+          duration: style.transitionDuration.split(", ")[index],
+          easing: style.transitionTimingFunction.split(/,\s(?![^(]*\))/)[index],
+        };
   };
 
-  it("scales from 0.96 with the theme spring and fades, entering and leaving", async () => {
+  it("scales from 0.96 on the ease-out token and fades, entering in 300ms and leaving in 200ms", async () => {
     await render(
       <Dialog title="Edit recipe" trigger={<Button>Edit</Button>}>
         Body
@@ -522,9 +525,19 @@ describe("motion", () => {
     await userEvent.click(trigger());
     await settled();
     const element = dialogPopup()!;
-    expect(transitionOf(element, "transform")!.easing).toMatch(/^linear\(/);
-    expect(transitionOf(element, "transform")!.duration).toBe("0.75s");
-    expect(transitionOf(element, "opacity")).toBeDefined();
+    const easeOut = "cubic-bezier(0.23, 1, 0.32, 1)";
+    expect(transitionOf(element, "transform")).toEqual({ duration: "0.3s", easing: easeOut });
+    expect(transitionOf(element, "opacity")).toEqual({ duration: "0.3s", easing: easeOut });
+    expect(transitionOf(backdrop()!, "opacity")).toEqual({ duration: "0.3s", easing: easeOut });
+    element.setAttribute("data-ending-style", "");
+    backdrop()!.setAttribute("data-ending-style", "");
+    for (const leaving of [element, backdrop()!]) {
+      const style = getComputedStyle(leaving);
+      expect(style.transitionDuration).toBe("0.2s");
+      expect(style.transitionTimingFunction.split(/,\s(?![^(]*\))/)[0]).toBe(easeOut);
+    }
+    element.removeAttribute("data-ending-style");
+    backdrop()!.removeAttribute("data-ending-style");
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => popup()).toBeNull();
     observer.disconnect();
@@ -535,6 +548,14 @@ describe("motion", () => {
     expect(start.opacity).toBe("0");
     expect(scale(end.transform)).toBeCloseTo(0.96, 3);
     expect(end.opacity).toBe("0");
+  });
+
+  it("stays centred: the dialog scales about its own middle, not its trigger", async () => {
+    const element = await openUncontrolled();
+    const box = element.getBoundingClientRect();
+    const [x, y] = getComputedStyle(element).transformOrigin.split(" ").map(parseFloat);
+    expect(x).toBeCloseTo(box.width / 2, 0);
+    expect(y).toBeCloseTo(box.height / 2, 0);
   });
 
   it("fades the backdrop in to --ouro-backdrop-max", async () => {
@@ -552,6 +573,49 @@ describe("motion", () => {
     expect(getComputedStyle(element).transform).toBe("none");
     expect(getComputedStyle(element).opacity).toBe("0");
     element.removeAttribute("data-ending-style");
+  });
+});
+
+describe("Dialog close button press", () => {
+  /** The close button's scale and background once the press transition has finished. */
+  async function pressed() {
+    const close = document.querySelector<HTMLElement>("[data-ouro-dialog-close]")!;
+    const rest = getComputedStyle(close).backgroundColor;
+    await commands.pointerPress({ selector: "[data-ouro-dialog-close]", action: "down" });
+    try {
+      let last = "";
+      await expect
+        .poll(
+          () => {
+            const now = `${getComputedStyle(close).scale}|${getComputedStyle(close).backgroundColor}`;
+            const still = now === last && close.getAnimations().length === 0;
+            last = now;
+            return still;
+          },
+          { interval: 50 },
+        )
+        .toBe(true);
+      const [scale, background] = last.split("|");
+      return { scale, tinted: background !== rest, transition: getComputedStyle(close).transitionDuration };
+    } finally {
+      await commands.pointerPress({ selector: "[data-ouro-dialog-close]", action: "up" });
+    }
+  }
+
+  it("shrinks to the press scale and tints on pointer-down, in the press duration", async () => {
+    await openUncontrolled();
+    const result = await pressed();
+    expect(result.scale).toBe("0.97");
+    expect(result.tinted).toBe(true);
+    expect(result.transition.split(", ")[0]).toBe("0.16s");
+  });
+
+  it("only tints, without scaling, under reduced motion", async () => {
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    await openUncontrolled();
+    const result = await pressed();
+    expect(result.scale).toBe("none");
+    expect(result.tinted).toBe(true);
   });
 });
 

@@ -310,6 +310,42 @@ describe("Select", () => {
   });
 });
 
+describe("Select popup motion", () => {
+  const timing = (element: HTMLElement) => {
+    const style = getComputedStyle(element);
+    const split = (value: string) => value.split(/,\s(?![^(]*\))/);
+    return { duration: split(style.transitionDuration), easing: split(style.transitionTimingFunction)[0], property: style.transitionProperty };
+  };
+
+  it("grows from the point Base UI computes, in 200ms on the ease-out token, and leaves in 150ms", async () => {
+    const { trigger } = await render(<Select label="Course" options={courses} />);
+    await open(trigger);
+    const element = popup()!;
+    await expect.poll(() => element.getAnimations().length).toBe(0);
+    element.style.setProperty("--transform-origin", "7px 3px");
+    expect(getComputedStyle(element).transformOrigin).toBe("7px 3px");
+    expect(timing(element)).toEqual({ duration: ["0.2s", "0.2s"], easing: "cubic-bezier(0.23, 1, 0.32, 1)", property: "opacity, scale" });
+    element.setAttribute("data-ending-style", "");
+    expect(getComputedStyle(element).transitionDuration).toBe("0.15s");
+    element.removeAttribute("data-ending-style");
+  });
+
+  it("tints the trigger on pointer-down without moving or transforming it", async () => {
+    const { trigger } = await render(<Select label="Course" options={courses} />);
+    const rest = getComputedStyle(trigger).backgroundColor;
+    const box = trigger.getBoundingClientRect();
+    await commands.pointerPress({ selector: '[role="combobox"]', action: "down" });
+    try {
+      await expect.poll(() => getComputedStyle(trigger).backgroundColor).not.toBe(rest);
+      const style = getComputedStyle(trigger);
+      expect([style.scale, style.transform]).toEqual(["none", "none"]);
+      expect(trigger.getBoundingClientRect().toJSON()).toEqual(box.toJSON());
+    } finally {
+      await commands.pointerPress({ selector: '[role="combobox"]', action: "up" });
+    }
+  });
+});
+
 describe("Select in a Form with server errors (review fix round 1, finding 7)", () => {
   it("gets focus when the errors arrive, and drops its error once the user picks another option", async () => {
     function Page() {

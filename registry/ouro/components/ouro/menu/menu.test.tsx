@@ -707,6 +707,12 @@ describe("Menu motion", () => {
     element.removeAttribute("data-ending-style");
   });
 
+  it("scales about the point Base UI computes next to its trigger", async () => {
+    const element = await openDropdown();
+    element.style.setProperty("--transform-origin", "7px 3px");
+    expect(getComputedStyle(element).transformOrigin).toBe("7px 3px");
+  });
+
   it("closes with only a fade under reduced motion", async () => {
     await commands.emulateMedia({ reducedMotion: "reduce" });
     const element = await openDropdown();

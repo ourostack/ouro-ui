@@ -79,6 +79,18 @@ async function openPalette(props: Partial<CommandProps> = {}) {
   return settled();
 }
 
+describe("Command motion", () => {
+  it("opens and closes without animating, its backdrop included, because a shortcut opens it", async () => {
+    const element = await openPalette();
+    const backdrop = document.querySelector<HTMLElement>('[data-ouro="dialog-backdrop"]')!;
+    for (const surface of [element, backdrop]) {
+      expect(getComputedStyle(surface).transitionProperty).toBe("none");
+    }
+    for (const surface of [element, backdrop]) surface.setAttribute("data-ending-style", "");
+    for (const surface of [element, backdrop]) expect(getComputedStyle(surface).transitionProperty).toBe("none");
+  });
+});
+
 describe("Command", () => {
   beforeEach(() => Object.values(actions).forEach((action) => action.mockClear()));
 

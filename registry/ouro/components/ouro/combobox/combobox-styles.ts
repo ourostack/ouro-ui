@@ -63,12 +63,12 @@ const chipClass =
  */
 const chipRemoveClass =
   "press relative m-0 box-border inline-flex aspect-square h-full shrink-0 items-center justify-center rounded-sm border-0 p-0 " +
-  "bg-transparent text-inherit cursor-pointer [-webkit-tap-highlight-color:transparent] hover:bg-accent " +
+  "bg-transparent text-inherit cursor-pointer [-webkit-tap-highlight-color:transparent] pointer-fine:hover:bg-accent active:bg-accent motion-safe:active:scale-(--ouro-press-scale) " +
   "focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-solid [&_svg]:size-3.5";
 
 /**
  * The popup: the input's width, on the popover surface. It opens at once and closes with a
- * 100ms fade and scale toward the input; with reduced motion it only fades. Its height
+ * 150ms fade and scale toward the input; with reduced motion it only fades. Its height
  * fits the screen above or below the input.
  *
  * @internal
@@ -77,9 +77,9 @@ const popupClass =
   "box-border flex w-(--anchor-width) max-w-(--available-width) max-h-[min(var(--available-height),22rem)] flex-col " +
   "origin-(--transform-origin) overflow-hidden rounded-md border border-solid border-border bg-popover text-popover-foreground " +
   "[box-shadow:0_8px_24px_rgb(0_0_0/0.12)] outline-none " +
-  "[transition:opacity_var(--ouro-duration-fast)_ease-out,scale_var(--ouro-duration-fast)_ease-out] " +
+  "[transition:opacity_var(--ouro-duration-fast)_var(--ouro-ease-out),scale_var(--ouro-duration-fast)_var(--ouro-ease-out)] " +
   "data-starting-style:transition-none data-ending-style:opacity-0 data-ending-style:scale-95 " +
-  "motion-reduce:[transition:opacity_var(--ouro-duration-fast)_ease-out] motion-reduce:data-ending-style:scale-100";
+  "motion-reduce:[transition:opacity_var(--ouro-duration-fast)_var(--ouro-ease-out)] motion-reduce:data-ending-style:scale-100";
 
 /**
  * The list of items: it scrolls inside the popup.
@@ -97,7 +97,7 @@ const listClass = "box-border min-h-0 flex-1 overflow-y-auto overscroll-contain 
 const itemClass =
   "relative box-border grid min-h-11 cursor-default grid-cols-[1rem_1fr] items-center gap-2 rounded-sm px-2 py-1.5 " +
   "text-base leading-5 outline-none select-none sm:pointer-fine:min-h-8 sm:pointer-fine:text-sm " +
-  "data-highlighted:bg-accent data-highlighted:text-accent-foreground " +
+  "data-highlighted:bg-accent data-highlighted:text-accent-foreground active:bg-accent active:text-accent-foreground " +
   "data-disabled:cursor-not-allowed data-disabled:opacity-50 [&_svg]:size-4";
 
 /**
@@ -125,7 +125,7 @@ const triggerClass =
   "[--ouro-control-h:calc(var(--spacing)*11)] rounded-md border border-solid border-input bg-transparent " +
   "text-start text-base text-foreground font-[inherit] cursor-pointer [-webkit-tap-highlight-color:transparent] " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
-  "aria-invalid:border-destructive disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30 " +
+  "not-disabled:active:bg-accent/60 aria-invalid:border-destructive disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30 " +
   "data-placeholder:text-muted-foreground [&>span]:truncate [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground " +
   "group-has-[[data-ouro-combobox-clear]]/combobox-field:[&>span]:me-10";
 

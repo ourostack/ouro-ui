@@ -149,6 +149,18 @@ describe("Tooltip", () => {
     expect(style.zIndex).toBe(getComputedStyle(document.documentElement).getPropertyValue("--ouro-layer").trim());
   });
 
+  it("grows from its trigger in 150ms on the ease-out token", async () => {
+    await renderTooltip();
+    await userEvent.hover(trigger());
+    const element = await shown();
+    element.style.setProperty("--transform-origin", "7px 3px");
+    expect(getComputedStyle(element).transformOrigin).toBe("7px 3px");
+    const style = getComputedStyle(element);
+    expect(style.transitionProperty).toBe("transform, opacity");
+    expect(style.transitionDuration.split(", ")[0]).toBe("0.15s");
+    expect(style.transitionTimingFunction.split(/,\s(?![^(]*\))/)[0]).toBe("cubic-bezier(0.23, 1, 0.32, 1)");
+  });
+
   it("fades without scaling under reduced motion", async () => {
     await commands.emulateMedia({ reducedMotion: "reduce" });
     await renderTooltip();

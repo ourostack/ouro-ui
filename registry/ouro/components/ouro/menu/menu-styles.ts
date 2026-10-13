@@ -93,7 +93,7 @@ const menuItemClass =
   "rounded-md py-1.5 pe-2 ps-[calc(0.5rem+var(--ouro-menu-inset,0px))] " +
   "text-start text-base leading-5 pointer-fine:text-sm text-popover-foreground no-underline outline-none select-none " +
   "[-webkit-tap-highlight-color:transparent] " +
-  "data-highlighted:bg-accent data-highlighted:text-accent-foreground data-popup-open:bg-accent data-popup-open:text-accent-foreground " +
+  "data-highlighted:bg-accent data-highlighted:text-accent-foreground active:bg-accent active:text-accent-foreground data-popup-open:bg-accent data-popup-open:text-accent-foreground " +
   "data-[tone=destructive]:text-[color-mix(in_oklab,var(--destructive)_80%,var(--foreground))] " +
   "data-[tone=destructive]:data-highlighted:bg-destructive/10 " +
   "data-disabled:pointer-events-none data-disabled:opacity-50 " +
@@ -138,7 +138,7 @@ const menuBarTriggerClass =
   "relative m-0 box-border inline-flex h-11 pointer-fine:h-8 items-center rounded-md border-0 bg-transparent px-3 " +
   "font-[inherit] text-base pointer-fine:text-sm leading-5 font-medium text-foreground cursor-default select-none " +
   "[-webkit-tap-highlight-color:transparent] outline-ring focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-solid " +
-  "pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground data-popup-open:bg-accent data-popup-open:text-accent-foreground " +
+  "pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground active:bg-accent active:text-accent-foreground data-popup-open:bg-accent data-popup-open:text-accent-foreground " +
   "data-disabled:opacity-50";
 
 /**

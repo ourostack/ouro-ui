@@ -116,7 +116,7 @@ it("slides the sheet with transform, and only fades it with reduced motion", asy
   await settled(popup());
   expect(getComputedStyle(popup()).transitionProperty).toBe("opacity");
   await commands.emulateMedia({ reducedMotion: "no-preference" });
-  expect(getComputedStyle(popup()).transitionProperty).toBe("transform, opacity");
+  expect(getComputedStyle(popup()).transitionProperty).toBe("translate, opacity");
 });
 
 it("keeps 44px controls and 16px text on a landscape phone, where the list opens by the trigger", async () => {
