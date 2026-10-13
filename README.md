@@ -272,7 +272,15 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ### Navigation
 
+- **AuthLayout** — The page for signing in, signing up or resetting a password: one `Card` in the middle of the screen, with your brand, the title as the page's `<h1>`, the form, and a line under the card. [Docs](docs/AuthLayout.md)
+- **Breadcrumb** — The trail from the top of the site to the current page: a labelled `<nav>` with an ordered list of links, the last item marked `aria-current="page"`. [Docs](docs/Breadcrumb.md)
+- **Navbar** — The bar across the top of an app: your brand, the main links and a few controls, with the current page marked `aria-current="page"`. [Docs](docs/Navbar.md)
+- **NavigationMenu** — A row of links where some open a panel of further links, each with a line of description: the navigation of a site with more pages than fit in a bar. [Docs](docs/NavigationMenu.md)
+- **Pagination** — Page navigation for a long list: Previous, the page numbers with gaps, and Next, with the current page marked `aria-current="page"`. [Docs](docs/Pagination.md)
 - **SegmentedControl** — An iOS-style segmented control: a row of equal segments with a raised thumb that slides to the checked one, for switching how one view shows its content in place, such as list or grid. [Docs](docs/SegmentedControl.md)
+- **Sidebar** — The column of links down the side of an app, in sections, with the current page marked `aria-current="page"`. [Docs](docs/Sidebar.md)
+- **SidebarLayout** — The shell of an app with a `Sidebar`: the sidebar beside the page from 640px up, in view while the page scrolls, and a sticky top bar with the sidebar's menu button below 640px. [Docs](docs/SidebarLayout.md)
+- **StackedLayout** — The shell of an app with a `Navbar`: the bar across the top, in view while the page scrolls, and the page below it in a centered column. [Docs](docs/StackedLayout.md)
 - **Tabs** — Tabs that switch between panels in place: an accessible tab list with roving focus, arrow-key navigation, a line that slides to the selected tab with the theme spring, and 44px tabs on touch screens. [Docs](docs/Tabs.md)
 
 ### Data

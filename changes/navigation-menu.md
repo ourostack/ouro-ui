@@ -1,0 +1,1 @@
+- New: `NavigationMenu`, on Base UI's Navigation Menu: a row of `items` that are links or buttons opening a panel: `links` with descriptions in one or two `columns`, and any `content` beside them, such as a featured card. Panels open on hover or click, close on Escape and when a link is chosen, and the link for `currentPath` gets `aria-current="page"`.

@@ -94,6 +94,8 @@ const menuItemClass =
   "text-start text-base leading-5 pointer-fine:text-sm text-popover-foreground no-underline outline-none select-none " +
   "[-webkit-tap-highlight-color:transparent] " +
   "data-highlighted:bg-accent data-highlighted:text-accent-foreground active:bg-accent active:text-accent-foreground data-popup-open:bg-accent data-popup-open:text-accent-foreground " +
+  // The current page is marked by weight and a bar at the start edge, so it differs from the highlight without relying on color.
+  "aria-[current=page]:font-medium aria-[current=page]:before:absolute aria-[current=page]:before:inset-y-2 aria-[current=page]:before:start-0 aria-[current=page]:before:w-0.5 aria-[current=page]:before:rounded-full aria-[current=page]:before:bg-current aria-[current=page]:before:content-[''] " +
   "data-[tone=destructive]:text-[color-mix(in_oklab,var(--destructive)_80%,var(--foreground))] " +
   "data-[tone=destructive]:data-highlighted:bg-destructive/10 " +
   "data-disabled:pointer-events-none data-disabled:opacity-50 " +
