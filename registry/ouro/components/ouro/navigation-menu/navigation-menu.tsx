@@ -109,7 +109,8 @@ const rowItem =
   "rounded-md border-0 bg-transparent px-3 font-[inherit] text-base pointer-fine:text-sm leading-5 font-medium text-muted-foreground no-underline " +
   "select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground data-popup-open:bg-accent data-popup-open:text-accent-foreground " +
-  "aria-[current=page]:bg-accent aria-[current=page]:text-accent-foreground data-current:text-foreground " +
+  "aria-[current=page]:font-semibold aria-[current=page]:text-foreground data-current:text-foreground " +
+  "aria-[current=page]:before:absolute aria-[current=page]:before:inset-y-2 aria-[current=page]:before:start-0 aria-[current=page]:before:w-0.5 aria-[current=page]:before:rounded-full aria-[current=page]:before:bg-current aria-[current=page]:before:content-[''] " +
   "motion-safe:active:scale-(--ouro-press-scale) outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 
 // The theme's enter and exit curve.
@@ -143,10 +144,11 @@ const panel = cn(
 );
 // A link in a panel: a full-width row, which highlights while pressed instead of scaling.
 const panelLink =
-  "m-0 box-border flex min-h-11 pointer-fine:min-h-9 flex-col justify-center gap-0.5 rounded-md px-3 py-2 text-base pointer-fine:text-sm leading-5 " +
+  "relative m-0 box-border flex min-h-11 pointer-fine:min-h-9 flex-col justify-center gap-0.5 rounded-md px-3 py-2 text-base pointer-fine:text-sm leading-5 " +
   "text-popover-foreground no-underline select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "transition-colors duration-(--ouro-duration-fast) ease-[ease] pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground active:bg-accent active:text-accent-foreground " +
-  "aria-[current=page]:bg-accent aria-[current=page]:text-accent-foreground " +
+  "aria-[current=page]:font-semibold " +
+  "aria-[current=page]:before:absolute aria-[current=page]:before:inset-y-2 aria-[current=page]:before:start-0 aria-[current=page]:before:w-0.5 aria-[current=page]:before:rounded-full aria-[current=page]:before:bg-current aria-[current=page]:before:content-[''] " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 
 const example =
@@ -156,7 +158,7 @@ const example =
  * A row of links where some open a panel of further links, each with a line of
  * description: the navigation of a site with more pages than fit in a bar. Panels open on
  * hover or click, move between each other without closing, and close on Escape, on an
- * outside press and when a link is chosen. The current page is marked `aria-current="page"`.
+ * outside press and when a link is chosen. The current page is marked `aria-current="page"` and a bar at the start edge, distinct from hover and press highlights.
  * Built on Base UI's Navigation Menu.
  *
  * Use `Navbar` instead when every item is a plain link; it also collapses into a drawer on

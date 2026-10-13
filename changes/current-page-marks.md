@@ -1,0 +1,1 @@
+Sidebar, Navbar and NavigationMenu mark the current page with a bar at the logical start edge, matching Menu in left-to-right and right-to-left layouts. Hover, open-panel and press highlights remain transient. Existing `currentPath`, `current` and `aria-current="page"` behavior is unchanged.

@@ -151,7 +151,8 @@ const row =
   "text-start font-[inherit] text-base pointer-fine:text-sm leading-5 font-medium text-muted-foreground no-underline select-none touch-manipulation " +
   "[-webkit-tap-highlight-color:transparent] transition-colors duration-(--ouro-duration-fast) ease-[ease] " +
   "pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground active:bg-accent active:text-accent-foreground " +
-  "aria-[current=page]:bg-accent aria-[current=page]:text-accent-foreground " +
+  "aria-[current=page]:font-semibold aria-[current=page]:text-foreground " +
+  "aria-[current=page]:before:absolute aria-[current=page]:before:inset-y-2 aria-[current=page]:before:start-0 aria-[current=page]:before:w-0.5 aria-[current=page]:before:rounded-full aria-[current=page]:before:bg-current aria-[current=page]:before:content-[''] " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 const railRow = "justify-center px-0";
 const iconSlot = "flex size-5 shrink-0 items-center justify-center text-sm [&_svg]:size-5 [&_svg]:shrink-0";
@@ -160,7 +161,7 @@ const example = '<Sidebar label="Main" sections={[{ items: [{ label: "Recipes", 
 
 /**
  * The column of links down the side of an app, in sections, with the current page marked
- * `aria-current="page"`. An item can carry a `badge` ("Inbox 12"), be a button (`onClick`
+ * `aria-current="page"` and a bar at the start edge, distinct from hover and press highlights. An item can carry a `badge` ("Inbox 12"), be a button (`onClick`
  * without `href`), or hold one level of nested links (`items`). From 640px up it fills its
  * container's height and collapses to a rail of icons with its own button, each named by a
  * `Tooltip`, where an item with nested links opens them in a `Menu`; below 640px it is a menu button that opens the same links as a `Sheet`
