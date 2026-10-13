@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../ouro-fixtures";
 import { openStory, settledBox } from "./story";
 
 test("a segmented control switches the view and slides its thumb", async ({ page }) => {

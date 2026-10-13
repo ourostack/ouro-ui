@@ -7,7 +7,7 @@ import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-st
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { FieldOwnerContext, useField } from "@/registry/ouro/lib/ouro/use-field";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { boxClass, dashClass, indicatorClass, tickClass } from "@/registry/ouro/components/ouro/checkbox/checkbox-styles";
 
 /** Props for {@link Checkbox}. */

@@ -5,7 +5,7 @@ import { type HTMLAttributes, type JSX, type ReactNode, type Ref, useEffect, use
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
 /** Which way a ScrollArea scrolls. */
 export type ScrollAreaOrientation = "vertical" | "horizontal" | "both";

@@ -17,7 +17,7 @@ import {
   type FloatingSide,
 } from "@/registry/ouro/lib/ouro/floating";
 import { lastInput } from "@/registry/ouro/lib/ouro/last-input";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
 
 export type { FloatingAlign as HoverCardAlign, FloatingSide as HoverCardSide } from "@/registry/ouro/lib/ouro/floating";

@@ -6,6 +6,7 @@ import { commands, page, userEvent } from "vitest/browser";
 import { Sidebar, type SidebarProps } from "@/registry/ouro/components/ouro/sidebar/sidebar";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -360,7 +361,8 @@ describe("Sidebar items", () => {
     await userEvent.unhover(page.getByRole("link", { name: "Cookbooks" }));
     await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')).toBeNull();
     page.getByRole("link", { name: "Shopping list" }).element().focus();
-    await userEvent.keyboard("{Shift>}{Tab}{/Shift}{Tab}");
+    await pressTab({ shift: true });
+    await pressTab();
     await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')?.textContent).toBe("Shopping list");
   });
 

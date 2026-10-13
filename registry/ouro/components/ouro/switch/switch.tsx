@@ -7,7 +7,7 @@ import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-st
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { FieldOwnerContext, useField } from "@/registry/ouro/lib/ouro/use-field";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { thumbClass, trackClass } from "@/registry/ouro/components/ouro/switch/switch-styles";
 
 /** Props for {@link Switch}. */

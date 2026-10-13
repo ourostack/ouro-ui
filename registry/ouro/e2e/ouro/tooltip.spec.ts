@@ -1,5 +1,5 @@
-import { expect, test } from "@playwright/test";
-import { openStory } from "./story";
+import { expect, test } from "../ouro-fixtures";
+import { openStory, pressTab } from "./story";
 
 test("shows on hover and hides when the pointer leaves", async ({ page }) => {
   await openStory(page, "overlays-tooltip--playground");
@@ -12,7 +12,7 @@ test("shows on hover and hides when the pointer leaves", async ({ page }) => {
 
 test("shows on keyboard focus and hides on Escape", async ({ page }) => {
   await openStory(page, "overlays-tooltip--playground");
-  await page.keyboard.press("Tab");
+  await pressTab(page);
   await expect(page.getByRole("button", { name: "Save" })).toBeFocused();
   const tooltip = page.getByText("Add to cookbook");
   await expect(tooltip).toBeVisible();

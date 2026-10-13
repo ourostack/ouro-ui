@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../ouro-fixtures";
 import { openStory } from "./story";
 
 test("the password toggle shows the password and keeps typing in place", async ({ page }) => {
@@ -32,4 +32,32 @@ test("clear empties the field and puts focus back in it", async ({ page }) => {
   await expect(search).toBeFocused();
   await expect(page.getByRole("button", { name: "Clear" })).toHaveCount(0);
   await expect(page.getByRole("textbox", { name: "Price" })).toHaveAccessibleDescription("$ per jar");
+});
+
+test("a field draws a 1px border in the theme's --input color, with rounded corners", async ({ page }) => {
+  await openStory(page, "forms-textfield--types");
+  const field = page.locator("[data-ouro-input-group]").first();
+  const style = await field.evaluate((element) => {
+    const computed = getComputedStyle(element);
+    // The theme's --input as the browser resolves it, whatever notation the theme uses.
+    const probe = document.createElement("div");
+    probe.style.border = "1px solid var(--input)";
+    document.body.append(probe);
+    const input = getComputedStyle(probe).borderTopColor;
+    probe.remove();
+    return {
+      token: getComputedStyle(document.documentElement).getPropertyValue("--input").trim(),
+      width: computed.borderTopWidth,
+      line: computed.borderTopStyle,
+      color: computed.borderTopColor,
+      radius: Number.parseFloat(computed.borderTopLeftRadius),
+      input,
+    };
+  });
+  // ouro-base gives a theme that has neither its --input and its --radius scale.
+  expect(style.token).not.toBe("");
+  expect(style.width).toBe("1px");
+  expect(style.line).toBe("solid");
+  expect(style.color).toBe(style.input);
+  expect(style.radius).toBeGreaterThan(0);
 });

@@ -6,6 +6,7 @@ import { Combobox } from "@/registry/ouro/components/ouro/combobox/combobox";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressTint } from "@/registry/ouro/lib/ouro/testing/press";
 import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 // Runs in the `touch` project: Chromium as a 390x844 phone with a coarse pointer.
 
@@ -170,7 +171,7 @@ describe("Combobox on a phone", () => {
     await expect.poll(sheet).toBeNull();
     expect(new FormData(form).get("herb")).toBe("Chives");
     host.querySelector<HTMLElement>(TRIGGER)!.focus();
-    await userEvent.keyboard("{Tab}");
+    await pressTab();
     expect(document.activeElement).toBe(clear());
     await userEvent.keyboard("{Enter}");
     expect(new FormData(form).get("herb")).toBe("");

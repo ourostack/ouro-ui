@@ -7,6 +7,7 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Tooltip, type TooltipProps } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 // Runs in Chromium and WebKit.
 
@@ -77,7 +78,7 @@ describe("Tooltip", () => {
 
   it("shows on keyboard focus and hides on Escape", async () => {
     await renderTooltip();
-    await userEvent.keyboard("{Tab}");
+    await pressTab();
     expect(document.activeElement).toBe(trigger());
     await shown();
     await userEvent.keyboard("{Escape}");

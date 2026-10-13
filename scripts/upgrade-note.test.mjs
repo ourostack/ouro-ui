@@ -17,14 +17,15 @@ const read = (path) => readFileSync(join(root, path), "utf8");
 const note = read("UPGRADING.md");
 const commands = steps(note).flatMap((step) => step.commands);
 
-test("the note has steps 0 to 4, and steps 1 to 3 have commands", () => {
+test("the note has steps 0 to 5, and only steps 1 to 3 have commands", () => {
   assert.deepEqual(
     steps(note).map((step) => step.number),
-    [0, 1, 2, 3, 4],
+    [0, 1, 2, 3, 4, 5],
   );
   for (const number of [1, 2, 3]) {
     assert.ok(steps(note).find((step) => step.number === number).commands.length > 0, `step ${number}`);
   }
+  assert.deepEqual(steps(note).find((step) => step.number === 5).commands, [], "No automated unused-helper classification is safe without resolving the app's imports.");
 });
 
 test("the raw note says what {{latestRelease}} stands for, and each filled copy drops that line", () => {
@@ -96,8 +97,8 @@ test("the commands delete only paths Ouro owns and uninstall nothing", () => {
 test("localCommand points the note's addresses at a local registry and pins the CLI", () => {
   const options = { shadcn: "npx --yes shadcn@4.21.1", address: "/tmp/r/{name}.json" };
   assert.equal(
-    localCommand("x; npx shadcn@latest add ourostack/ouro-ui/dialog#{{latestRelease}} ourostack/ouro-ui/ouro-lib-tests#{{latestRelease}} --overwrite", options),
-    "x; npx --yes shadcn@4.21.1 add --yes /tmp/r/dialog.json /tmp/r/ouro-lib-tests.json --overwrite",
+    localCommand("x; npx shadcn@latest add ourostack/ouro-ui/dialog#{{latestRelease}} ourostack/ouro-ui/ouro-base#{{latestRelease}} --overwrite", options),
+    "x; npx --yes shadcn@4.21.1 add --yes /tmp/r/dialog.json /tmp/r/ouro-base.json --overwrite",
   );
   assert.equal(localCommand("npx shadcn@latest info --json | node", options), "npx --yes shadcn@4.21.1 info --json | node");
   assert.equal(
@@ -155,7 +156,7 @@ for (const shell of shells) {
     const items = args.filter((arg) => arg.startsWith("ourostack/")).sort();
     assert.deepEqual(
       items,
-      ["button", "button-tests", "confirm-dialog", "confirm-dialog-tests", "dialog", "dialog-tests", "ouro-lib-tests"].map((name) => `ourostack/ouro-ui/${name}#{{latestRelease}}`),
+      ["button", "button-tests", "confirm-dialog", "confirm-dialog-tests", "dialog", "dialog-tests", "ouro-base"].map((name) => `ourostack/ouro-ui/${name}#{{latestRelease}}`),
     );
     assert.ok(args.includes("--overwrite"));
     // One line in both shells: zsh does not split an unquoted $items.
@@ -232,9 +233,10 @@ test("the note says what changed by version, for an app that reads only this not
 test("step 0 warns that add rewrites the Tailwind CSS file and package.json, and step 1 explains shadcn's Skipped message", () => {
   const step0 = note.slice(note.indexOf("#### 0."), note.indexOf("#### 1."));
   assert.match(step0, /@custom-variant dark \(&:is\(\.dark \*\)\);/);
-  assert.match(step0, /Keep only the new `--ouro-\*` lines and step 2's deletions/);
+  assert.match(step0, /Keep the new lines and step 2's deletions, and revert the rest/);
   const step1 = note.slice(note.indexOf("#### 1."), note.indexOf("#### 2."));
   assert.match(step1, /Skipped N files: \(files might be identical, use --overwrite to overwrite\)/);
+  assert.match(step1, /name Vitest, Storybook and Playwright without a version/);
   assert.match(step1, /restore every test-tool version you had pinned \(`git diff package\.json`\): Vitest and its companions, Playwright and Storybook/);
 });
 
@@ -243,4 +245,30 @@ test("no doc suggests re-pinning a test tool to a ^ range", () => {
     assert.doesNotMatch(read(path), /(add -D|install -D) [^`]*@\^/, `${path} re-pins to a range`);
   }
   assert.match(read("README.md"), /after `add`, restore every test-tool version you had pinned \(`git diff package\.json`\)/);
+});
+
+test("step 5 requires a verified app-wide reference audit before deleting historical helpers", () => {
+  const step5 = note.slice(note.indexOf("#### 5."));
+  assert.doesNotMatch(step5, /```sh|Delete each file it lists|new RegExp/, "Do not present a text-match classifier as an unused-file audit.");
+  for (const requirement of [
+    /reference audit/i, /before deleting/i, /relative imports/i, /explicit extensions/i,
+    /same basename/i, /outside.*src/i, /re-exports/i, /dynamic imports/i,
+    /own tests/i, /unresolved/i, /keep/i, /type check and build/i,
+  ]) assert.match(step5, requirement);
+  assert.match(note, /Earlier releases installed every helper/);
+  assert.match(read("changes/adoption-install-docs.md"), /reference audit/i);
+});
+
+test("coverage docs distinguish the measured sets from every item's test dependency closure", () => {
+  for (const path of ["README.md", "docs/guides/installing.md", "docs/guides/testing.md"]) {
+    const text = read(path);
+    assert.doesNotMatch(text, /[Tt]he installed tests cover the installed files to 100%/);
+    assert.match(text, /100% line and branch coverage/);
+    assert.match(text, /button.*dialog.*sheet.*forms set.*union/);
+    assert.match(text, /not measured (alone|individually)/);
+    assert.match(text, /tests of everything|tests of every component and helper/);
+  }
+  for (const name of ["field", "fieldset", "text-field", "text-area", "checkbox", "checkbox-group", "radio-group", "switch", "form", "select", "native-select", "combobox"]) {
+    assert.ok(read("docs/guides/testing.md").includes(`\`${name}\``), `The measured forms set must name ${name}.`);
+  }
 });

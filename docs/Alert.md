@@ -21,9 +21,14 @@ import { Alert } from "@/registry/ouro/components/ouro/alert/alert";
 />
 ```
 
+## Usage
+
+In and around forms, Alert is the component for a message that belongs to no field and to no form as a whole: a reorder or a deletion the server refused, a step that could not be parsed. Render it where the action was taken, with `action` for the way out.
+
 ## Use instead when
 
 - Use `Toast` instead for a brief message that disappears by itself, `ConfirmDialog` to ask before a destructive action, and `Field`'s `error` for a message about one field.
+- Use `Form`'s `errors` instead for what a submit returned: a field's name as the key puts the message under that field, and the `form` key shows it at the top of the form.
 
 ## Props
 

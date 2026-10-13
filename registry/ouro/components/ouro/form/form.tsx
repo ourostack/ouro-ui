@@ -4,7 +4,7 @@ import { Form as BaseForm } from "@base-ui/react/form";
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { FormErrorsContext } from "@/registry/ouro/lib/ouro/use-field";
 
 /** Errors by field name: one message, or several. A React Router action returns this shape. */

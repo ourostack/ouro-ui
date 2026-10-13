@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { checkComments, checkDirectives, checkInstall, checkLayerOverride, checkSources } from "./install-check.mjs";
+import { checkComments, checkDirectives, checkInstall, checkLayerOverride, checkSources, stripFieldTokens } from "./install-check.mjs";
 
 // A real installed app is the install job's to build; these cases prove the check fails
 // on each kind of broken install, using a stand-in with a passing app's key files.
@@ -40,7 +40,7 @@ const app = (variant, css, stage = "tests") => {
   write("package.json", JSON.stringify({ dependencies: { react: "^19.3.0" }, devDependencies }));
   for (const file of files) write(file, 'import { cn } from "~/lib/ouro/cn";\nimport { useState } from "react";\n');
   const primary = variant === "ouro" ? "#2261eb" : "oklch(0.205 0 0)";
-  const index = css ?? `:root {\n  --primary: ${primary};\n  --success: #157d3c;\n  --success-foreground: #fff;\n  --warning: #b05109;\n  --warning-foreground: #fff;\n  --destructive-foreground: #fff;\n  --ouro-spring-duration: 750ms;\n  --ouro-ease-spring: linear(0, 1);\n  --ouro-press-scale: 0.97;\n  --ouro-backdrop-color: #000;\n}\n@theme inline {\n  --color-success: var(--success);\n  --color-warning: var(--warning);\n  @keyframes ouro-spin { to { rotate: 1turn; } }\n  @keyframes ouro-pulse { 50% { opacity: 0.4; } }\n}\n@utility press { scale: 1; }\n`;
+  const index = css ?? `:root {\n  --primary: ${primary};\n  --success: #157d3c;\n  --success-foreground: #fff;\n  --warning: #b05109;\n  --warning-foreground: #fff;\n  --destructive-foreground: #fff;\n  --ouro-spring-duration: 750ms;\n  --ouro-ease-spring: linear(0, 1);\n  --ouro-press-scale: 0.97;\n  --ouro-backdrop-color: #000;\n  --input: #e5e5e5;\n  --radius: 0.625rem;\n}\n@theme inline {\n  --color-input: var(--input);\n  --radius-md: calc(var(--radius) * 0.8);\n  --color-success: var(--success);\n  --color-warning: var(--warning);\n  @keyframes ouro-spin { to { rotate: 1turn; } }\n  @keyframes ouro-pulse { 50% { opacity: 0.4; } }\n}\n@utility press { scale: 1; }\n`;
   write("src/index.css", index);
   write("dist/assets/index.css", "@keyframes ouro-spin{} :root{--ouro-spring-duration:750ms;--success:#157d3c}");
   return dir;
@@ -232,4 +232,20 @@ test("the README's Next.js files are the ones the Next.js install job builds", (
   for (const file of ["src/app/layout.tsx", "src/app/page.tsx", ...sections]) {
     assert.doesNotMatch(readFileSync(join(root, "test/install-fixture-next", file), "utf8"), /"use client"/, `${file} must stay a Server Component`);
   }
+});
+
+// A theme without --input and the radius scale drew fields with no visible border and square
+// corners in the first app to adopt the forms. ouro-base adds them when the app has none.
+
+test("an install whose stylesheet lacks the field border color or the radius scale fails", () => {
+  const dir = app("shadcn");
+  const css = readFileSync(join(dir, "src/index.css"), "utf8");
+  writeFileSync(join(dir, "src/index.css"), stripFieldTokens(css));
+  const problems = checkInstall(dir, "shadcn", "tests").join("\n");
+  for (const name of ["--input", "--radius", "--color-input", "--radius-md"]) assert.match(problems, new RegExp(`does not declare ${name}\\b`));
+});
+
+test("stripFieldTokens removes --input, --radius and their @theme mappings, and nothing else", () => {
+  const css = ":root {\n  --input: red;\n  --radius: 1rem;\n  --border: blue;\n}\n.dark {\n  --input: black;\n}\n@theme inline {\n  --color-input: var(--input);\n  --radius-md: calc(var(--radius) * 0.8);\n  --color-border: var(--border);\n}\n";
+  assert.equal(stripFieldTokens(css), ":root {\n  --border: blue;\n}\n.dark {\n}\n@theme inline {\n  --color-border: var(--border);\n}\n");
 });

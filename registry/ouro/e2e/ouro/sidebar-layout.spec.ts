@@ -1,10 +1,10 @@
-import { expect, test } from "@playwright/test";
-import { openStory } from "./story";
+import { expect, test } from "../ouro-fixtures";
+import { openStory, pressTab } from "./story";
 
 test("the sidebar layout starts with a skip link that moves focus to the page", async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 768 });
   await openStory(page, "navigation-sidebarlayout--in-context");
-  await page.keyboard.press("Tab");
+  await pressTab(page);
   const skip = page.getByRole("link", { name: "Skip to content" });
   await expect(skip).toBeFocused();
   await expect(skip).toBeInViewport();

@@ -8,6 +8,7 @@ import { dropIndex, edgeSpeed, EDGE, MAX_SPEED, moveItem, scrollParent } from "@
 import { rubberband } from "@/registry/ouro/lib/ouro/spring";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { holdFrames, type HeldFrames } from "@/registry/ouro/lib/ouro/testing/frames";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 // Touch drags are in reorderable.touch.test.tsx. Here the keyboard runs in Chromium and
 // WebKit, pointer events are dispatched so both run the drag paths, and a real mouse
@@ -264,7 +265,7 @@ describe("Reorderable", () => {
       await focus("Sear");
       await press(" ");
       await press("{ArrowDown}");
-      await press("{Tab}");
+      await pressTab();
       expect(document.activeElement).not.toBe(handle("Sear"));
       expect(handle("Sear").hasAttribute("data-grabbed")).toBe(false);
       expect(order(element)).toEqual(["Soften", "Sear", "Deglaze", "Braise"]);
@@ -272,7 +273,7 @@ describe("Reorderable", () => {
       await expect.poll(said).toBe("Sear dropped. Position 2 of 4.");
       // A handle that holds nothing ignores losing focus.
       await focus("Braise");
-      await press("{Tab}");
+      await pressTab();
       expect(onReorder).toHaveBeenCalledTimes(1);
     });
 

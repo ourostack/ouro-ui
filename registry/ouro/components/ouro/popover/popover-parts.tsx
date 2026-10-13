@@ -16,7 +16,7 @@ import {
   type FloatingAlign,
   type FloatingSide,
 } from "@/registry/ouro/lib/ouro/floating";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { popoverCloseClass } from "@/registry/ouro/components/ouro/popover/popover-styles";
 
 export type { FloatingAlign as PopoverAlign, FloatingSide as PopoverSide } from "@/registry/ouro/lib/ouro/floating";

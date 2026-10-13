@@ -9,6 +9,7 @@ import { Table } from "@/registry/ouro/components/ouro/table/table";
 import { TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRoot, TableRow } from "@/registry/ouro/components/ouro/table/table-parts";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -289,10 +290,10 @@ describe("Table with rowHref", () => {
     const before = document.createElement("button");
     table.parentElement!.prepend(before);
     before.focus();
-    await userEvent.tab();
+    await pressTab();
     expect(document.activeElement).toBe(links[0]);
     expect(getComputedStyle(links[0]!, "::after").outlineStyle).toBe("solid");
-    await userEvent.tab();
+    await pressTab();
     expect(document.activeElement).toBe(links[1]);
   });
 
@@ -667,8 +668,12 @@ describe("Table development messages", () => {
     ["no header", { header: "" }, "every column needs a header; it names the column for screen readers", '{ key: "…", header: "Actions", hideHeader: true }'],
   ])("warns for a column's %s with the fix", async (_name, extra, problem, fix) => {
     const cols = [{ key: "name", header: "Recipe" }, { key: "time", header: "Time", ...extra }];
+    // Two columns with one key are two children with one key, which React reports itself.
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
     await render(<Table {...({ caption: "Recipes", columns: cols, rows: recipes } as unknown as Parameters<typeof Table>[0])} />);
     expect(warn).toHaveBeenCalledWith(`[ouro-ui] Table: ${problem}. Fix: ${fix}.`);
+    expect(error.mock.calls.length > 0).toBe("key" in extra);
+    error.mockRestore();
   });
 
   it("warns when columns come without rows, and shows the empty message", async () => {
