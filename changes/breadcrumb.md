@@ -1,0 +1,1 @@
+- New: `Breadcrumb`, the trail to the current page from `items` of `{ label, href, icon }`, the last one marked `aria-current="page"`. A trail longer than `maxItems` (default 4) keeps its first and last steps and puts the middle in a `Menu`, a bottom sheet below 640px, named by `moreLabel`.

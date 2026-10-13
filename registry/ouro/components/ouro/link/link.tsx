@@ -84,9 +84,9 @@ function linkHint(token: string): string {
  * button. Use `Card` with `href` instead when a whole card is the link, `Item` with `href`
  * for a whole list row, and `Table` with `rowHref` (or `TableRow` with `href`) for a
  * table row: each makes the surface one link with one tab stop, through the same router
- * link, and keeps its own look. Use your own links in a `<nav>` instead for tabs that
- * navigate between pages: `Tabs` and `SegmentedControl` switch a view in place and take no
- * `href`, and Ouro UI has no navigation tabs yet.
+ * link, and keeps its own look. Use `Navbar` or `Sidebar` instead for the links that move
+ * between an app's pages, which mark the current one: `Tabs` and `SegmentedControl` switch
+ * a view in place and take no `href`.
  *
  * @group Text
  * @see https://ourostack.github.io/ouro-ui/docs/link

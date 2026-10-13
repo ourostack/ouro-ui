@@ -272,6 +272,30 @@ describe("Menu items", () => {
     expect(prevented.slice(-2)).toEqual([false, false]);
   });
 
+  it("marks a link item as the current page with current, and shows it", async () => {
+    await render(
+      <Menu trigger={<Button>Settings</Button>}>
+        <MenuItem href="/settings/profile">Profile</MenuItem>
+        <MenuItem href="/settings/billing" current>
+          Billing
+        </MenuItem>
+        <MenuItem onClick={() => {}} current>
+          Sign out
+        </MenuItem>
+      </Menu>,
+    );
+    await userEvent.click(trigger());
+    await settled();
+    const element = (name: string) => item(name).element() as HTMLElement;
+    expect(element("Billing").getAttribute("aria-current")).toBe("page");
+    expect(element("Profile").hasAttribute("aria-current")).toBe(false);
+    // Only a link can be the current page.
+    expect(element("Sign out").hasAttribute("aria-current")).toBe(false);
+    // The current item keeps the accent tint without the pointer or the keyboard on it.
+    expect(element("Billing").hasAttribute("data-highlighted")).toBe(false);
+    expect(getComputedStyle(element("Billing")).backgroundColor).not.toBe(getComputedStyle(element("Sign out")).backgroundColor);
+  });
+
   it("renders href as a link through OuroProvider's linkComponent, and closes on click", async () => {
     const seen: string[] = [];
     function AppLink(props: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) {

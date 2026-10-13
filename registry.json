@@ -181,6 +181,7 @@
         "ourostack/ouro-ui/lib-appearance-hints",
         "ourostack/ouro-ui/lib-class-name-check",
         "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-current-path",
         "ourostack/ouro-ui/lib-dev",
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-floating",
@@ -375,6 +376,19 @@
           "path": "registry/ouro/lib/ouro/cn.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/cn.ts"
+        }
+      ]
+    },
+    {
+      "name": "lib-current-path",
+      "type": "registry:lib",
+      "title": "lib-current-path",
+      "description": "Installed with the components that import it; you don't need to add it. The helper lib/ouro/current-path.ts.",
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/current-path.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/current-path.ts"
         }
       ]
     },
@@ -2063,6 +2077,192 @@
       ]
     },
     {
+      "name": "navbar",
+      "type": "registry:ui",
+      "title": "Navbar",
+      "description": "The bar across the top of an app: your brand, the main links and a few controls, with the current page marked `aria-current=\"page\"`.",
+      "docs": "The bar across the top of an app: your brand, the main links and a few controls, with the current page marked `aria-current=\"page\"`. Import: import { Navbar } from \"@/components/ouro/navbar/navbar\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, navigation-menu, sheet, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/navbar.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-current-path",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-router-link",
+        "ourostack/ouro-ui/lib-use-dev-messages",
+        "ourostack/ouro-ui/lib-use-media-query",
+        "ourostack/ouro-ui/navigation-menu",
+        "ourostack/ouro-ui/sheet"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/navbar/navbar.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/navbar/navbar.tsx"
+        }
+      ]
+    },
+    {
+      "name": "sidebar",
+      "type": "registry:ui",
+      "title": "Sidebar",
+      "description": "The column of links down the side of an app, in sections, with the current page marked `aria-current=\"page\"`.",
+      "docs": "The column of links down the side of an app, in sections, with the current page marked `aria-current=\"page\"`. Import: import { Sidebar } from \"@/components/ouro/sidebar/sidebar\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, kbd, menu, sheet, tooltip, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/sidebar.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-current-path",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-router-link",
+        "ourostack/ouro-ui/lib-use-dev-messages",
+        "ourostack/ouro-ui/lib-use-media-query",
+        "ourostack/ouro-ui/menu",
+        "ourostack/ouro-ui/sheet",
+        "ourostack/ouro-ui/tooltip"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/sidebar/sidebar.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/sidebar/sidebar.tsx"
+        }
+      ]
+    },
+    {
+      "name": "sidebar-layout",
+      "type": "registry:ui",
+      "title": "SidebarLayout",
+      "description": "The shell of an app with a `Sidebar`: the sidebar beside the page from 640px up, in view while the page scrolls, and a sticky top bar with the sidebar's menu button below 640px.",
+      "docs": "The shell of an app with a `Sidebar`: the sidebar beside the page from 640px up, in view while the page scrolls, and a sticky top bar with the sidebar's menu button below 640px. Import: import { SidebarLayout } from \"@/components/ouro/sidebar/sidebar-layout\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: the helpers it imports in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/sidebar-layout.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-use-dev-messages"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/sidebar/sidebar-layout.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/sidebar/sidebar-layout.tsx"
+        }
+      ]
+    },
+    {
+      "name": "stacked-layout",
+      "type": "registry:ui",
+      "title": "StackedLayout",
+      "description": "The shell of an app with a `Navbar`: the bar across the top, in view while the page scrolls, and the page below it in a centered column.",
+      "docs": "The shell of an app with a `Navbar`: the bar across the top, in view while the page scrolls, and the page below it in a centered column. Import: import { StackedLayout } from \"@/components/ouro/sidebar/stacked-layout\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: the helpers it imports in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/stacked-layout.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-use-dev-messages"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/sidebar/stacked-layout.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/sidebar/stacked-layout.tsx"
+        }
+      ]
+    },
+    {
+      "name": "auth-layout",
+      "type": "registry:ui",
+      "title": "AuthLayout",
+      "description": "The page for signing in, signing up or resetting a password: one `Card` in the middle of the screen, with your brand, the title as the page's `<h1>`, the form, and a line under the card.",
+      "docs": "The page for signing in, signing up or resetting a password: one `Card` in the middle of the screen, with your brand, the title as the page's `<h1>`, the form, and a line under the card. Import: import { AuthLayout } from \"@/components/ouro/auth-layout/auth-layout\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: card, heading, text, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/auth-layout.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/card",
+        "ourostack/ouro-ui/heading",
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-use-dev-messages",
+        "ourostack/ouro-ui/text"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/auth-layout/auth-layout.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/auth-layout/auth-layout.tsx"
+        }
+      ]
+    },
+    {
+      "name": "breadcrumb",
+      "type": "registry:ui",
+      "title": "Breadcrumb",
+      "description": "The trail from the top of the site to the current page: a labelled `<nav>` with an ordered list of links, the last item marked `aria-current=\"page\"`.",
+      "docs": "The trail from the top of the site to the current page: a labelled `<nav>` with an ordered list of links, the last item marked `aria-current=\"page\"`. Import: import { Breadcrumb } from \"@/components/ouro/breadcrumb/breadcrumb\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: kbd, menu, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/breadcrumb.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-router-link",
+        "ourostack/ouro-ui/lib-use-dev-messages",
+        "ourostack/ouro-ui/menu"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/breadcrumb/breadcrumb.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/breadcrumb/breadcrumb.tsx"
+        }
+      ]
+    },
+    {
+      "name": "pagination",
+      "type": "registry:ui",
+      "title": "Pagination",
+      "description": "Page navigation for a long list: Previous, the page numbers with gaps, and Next, with the current page marked `aria-current=\"page\"`.",
+      "docs": "Page navigation for a long list: Previous, the page numbers with gaps, and Next, with the current page marked `aria-current=\"page\"`. Import: import { Pagination } from \"@/components/ouro/pagination/pagination\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: the helpers it imports in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/pagination.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-dev",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-router-link",
+        "ourostack/ouro-ui/lib-use-dev-messages"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/pagination/pagination.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/pagination/pagination.tsx"
+        }
+      ]
+    },
+    {
+      "name": "navigation-menu",
+      "type": "registry:ui",
+      "title": "NavigationMenu",
+      "description": "A row of links where some open a panel of further links, each with a line of description: the navigation of a site with more pages than fit in a bar.",
+      "docs": "A row of links where some open a panel of further links, each with a line of description: the navigation of a site with more pages than fit in a bar. Import: import { NavigationMenu } from \"@/components/ouro/navigation-menu/navigation-menu\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: the helpers it imports in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/navigation-menu.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-current-path",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-floating",
+        "ourostack/ouro-ui/lib-router-link",
+        "ourostack/ouro-ui/lib-use-dev-messages"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/navigation-menu/navigation-menu.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/navigation-menu/navigation-menu.tsx"
+        }
+      ]
+    },
+    {
       "name": "table",
       "type": "registry:ui",
       "title": "Table",
@@ -2634,6 +2834,31 @@
           "path": "registry/ouro/lib/ouro/cn.test.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/cn.test.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "lib-current-path-tests",
+      "type": "registry:item",
+      "title": "lib-current-path tests",
+      "description": "Optional: the Vitest browser tests for lib-current-path, and the tests of everything lib-current-path installs, so the installed files reach 100% coverage. Add it beside lib-current-path: add lib-current-path lib-current-path-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "devDependencies": [
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-current-path",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/current-path.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/current-path.test.ts"
         }
       ],
       "meta": {
@@ -5778,6 +6003,521 @@
       }
     },
     {
+      "name": "navbar-tests",
+      "type": "registry:item",
+      "title": "Navbar tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for navbar, and the tests of everything navbar installs, so the installed files reach 100% coverage. Add it beside navbar: add navbar navbar-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "navbar's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-current-path-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-floating-tests",
+        "ourostack/ouro-ui/lib-ouro-provider",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
+        "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/navbar",
+        "ourostack/ouro-ui/navigation-menu-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/sheet-tests",
+        "ourostack/ouro-ui/text",
+        "ourostack/ouro-ui/text-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/navbar/navbar.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/navbar/navbar.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/navbar/navbar.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/navbar/navbar.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/navbar/navbar.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/navbar/navbar.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/navbar/navbar.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/navbar/navbar.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/navbar.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/navbar.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "sidebar-tests",
+      "type": "registry:item",
+      "title": "Sidebar tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for sidebar, and the tests of everything sidebar installs, so the installed files reach 100% coverage. Add it beside sidebar: add sidebar sidebar-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "sidebar's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/kbd-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-current-path-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-floating-tests",
+        "ourostack/ouro-ui/lib-key-shortcuts-tests",
+        "ourostack/ouro-ui/lib-last-input-tests",
+        "ourostack/ouro-ui/lib-ouro-provider",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
+        "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
+        "ourostack/ouro-ui/menu-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/sheet-tests",
+        "ourostack/ouro-ui/sidebar",
+        "ourostack/ouro-ui/text",
+        "ourostack/ouro-ui/text-tests",
+        "ourostack/ouro-ui/tooltip-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/sidebar/sidebar.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/sidebar/sidebar.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/sidebar/sidebar.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/sidebar/sidebar.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/sidebar/sidebar.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/sidebar/sidebar.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/sidebar/sidebar.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/sidebar/sidebar.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/sidebar.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/sidebar.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "sidebar-layout-tests",
+      "type": "registry:item",
+      "title": "SidebarLayout tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for sidebar-layout, and the tests of everything sidebar-layout installs, so the installed files reach 100% coverage. Add it beside sidebar-layout: add sidebar-layout sidebar-layout-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "sidebar-layout's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/heading",
+        "ourostack/ouro-ui/heading-tests",
+        "ourostack/ouro-ui/kbd-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-current-path-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-floating-tests",
+        "ourostack/ouro-ui/lib-key-shortcuts-tests",
+        "ourostack/ouro-ui/lib-last-input-tests",
+        "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
+        "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
+        "ourostack/ouro-ui/menu-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/sheet-tests",
+        "ourostack/ouro-ui/sidebar",
+        "ourostack/ouro-ui/sidebar-layout",
+        "ourostack/ouro-ui/sidebar-tests",
+        "ourostack/ouro-ui/text",
+        "ourostack/ouro-ui/text-tests",
+        "ourostack/ouro-ui/tooltip-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/sidebar/sidebar-layout.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/sidebar/sidebar-layout.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/sidebar/sidebar-layout.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/sidebar/sidebar-layout.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/sidebar/sidebar-layout.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/sidebar/sidebar-layout.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/sidebar-layout.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/sidebar-layout.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "stacked-layout-tests",
+      "type": "registry:item",
+      "title": "StackedLayout tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for stacked-layout, and the tests of everything stacked-layout installs, so the installed files reach 100% coverage. Add it beside stacked-layout: add stacked-layout stacked-layout-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "stacked-layout's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/heading",
+        "ourostack/ouro-ui/heading-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-current-path-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-floating-tests",
+        "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
+        "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/navbar",
+        "ourostack/ouro-ui/navbar-tests",
+        "ourostack/ouro-ui/navigation-menu-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/sheet-tests",
+        "ourostack/ouro-ui/stacked-layout",
+        "ourostack/ouro-ui/text",
+        "ourostack/ouro-ui/text-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/sidebar/stacked-layout.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/sidebar/stacked-layout.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/sidebar/stacked-layout.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/sidebar/stacked-layout.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/sidebar/stacked-layout.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/sidebar/stacked-layout.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/stacked-layout.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/stacked-layout.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "auth-layout-tests",
+      "type": "registry:item",
+      "title": "AuthLayout tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for auth-layout, and the tests of everything auth-layout installs, so the installed files reach 100% coverage. Add it beside auth-layout: add auth-layout auth-layout-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "auth-layout's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/auth-layout",
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/card-tests",
+        "ourostack/ouro-ui/field-tests",
+        "ourostack/ouro-ui/form",
+        "ourostack/ouro-ui/form-tests",
+        "ourostack/ouro-ui/heading-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/link",
+        "ourostack/ouro-ui/link-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/text",
+        "ourostack/ouro-ui/text-field",
+        "ourostack/ouro-ui/text-field-tests",
+        "ourostack/ouro-ui/text-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/auth-layout/auth-layout.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/auth-layout/auth-layout.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/auth-layout/auth-layout.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/auth-layout/auth-layout.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/auth-layout/auth-layout.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/auth-layout/auth-layout.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/auth-layout.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/auth-layout.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "breadcrumb-tests",
+      "type": "registry:item",
+      "title": "Breadcrumb tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for breadcrumb, and the tests of everything breadcrumb installs, so the installed files reach 100% coverage. Add it beside breadcrumb: add breadcrumb breadcrumb-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "breadcrumb's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/breadcrumb",
+        "ourostack/ouro-ui/heading",
+        "ourostack/ouro-ui/heading-tests",
+        "ourostack/ouro-ui/kbd-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-floating-tests",
+        "ourostack/ouro-ui/lib-key-shortcuts-tests",
+        "ourostack/ouro-ui/lib-ouro-provider",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
+        "ourostack/ouro-ui/menu-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/text-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/breadcrumb/breadcrumb.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/breadcrumb/breadcrumb.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/breadcrumb/breadcrumb.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/breadcrumb/breadcrumb.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/breadcrumb/breadcrumb.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/breadcrumb/breadcrumb.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/breadcrumb/breadcrumb.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/breadcrumb/breadcrumb.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/breadcrumb.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/breadcrumb.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "pagination-tests",
+      "type": "registry:item",
+      "title": "Pagination tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for pagination, and the tests of everything pagination installs, so the installed files reach 100% coverage. Add it beside pagination: add pagination pagination-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "pagination's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-ouro-provider",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/pagination",
+        "ourostack/ouro-ui/text",
+        "ourostack/ouro-ui/text-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/pagination/pagination.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/pagination/pagination.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/pagination/pagination.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/pagination/pagination.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/pagination/pagination.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/pagination/pagination.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/pagination/pagination.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/pagination/pagination.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/pagination.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/pagination.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "navigation-menu-tests",
+      "type": "registry:item",
+      "title": "NavigationMenu tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for navigation-menu, and the tests of everything navigation-menu installs, so the installed files reach 100% coverage. Add it beside navigation-menu: add navigation-menu navigation-menu-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "navigation-menu's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-current-path-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-floating-tests",
+        "ourostack/ouro-ui/lib-ouro-provider",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/navigation-menu",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/text",
+        "ourostack/ouro-ui/text-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/navigation-menu/navigation-menu.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/navigation-menu/navigation-menu.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/navigation-menu/navigation-menu.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/navigation-menu/navigation-menu.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/navigation-menu/navigation-menu.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/navigation-menu/navigation-menu.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/navigation-menu/navigation-menu.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/navigation-menu.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/navigation-menu.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
       "name": "table-tests",
       "type": "registry:item",
       "title": "Table tests",
@@ -6820,6 +7560,7 @@
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-current-path-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-floating-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
@@ -6846,8 +7587,10 @@
         "ourostack/ouro-ui/alert-tests",
         "ourostack/ouro-ui/aspect-ratio-tests",
         "ourostack/ouro-ui/attachment-tests",
+        "ourostack/ouro-ui/auth-layout-tests",
         "ourostack/ouro-ui/avatar-tests",
         "ourostack/ouro-ui/badge-tests",
+        "ourostack/ouro-ui/breadcrumb-tests",
         "ourostack/ouro-ui/button-group-tests",
         "ourostack/ouro-ui/button-tests",
         "ourostack/ouro-ui/calendar-tests",
@@ -6879,6 +7622,7 @@
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-current-path-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-floating-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
@@ -6896,8 +7640,11 @@
         "ourostack/ouro-ui/message-list-tests",
         "ourostack/ouro-ui/message-tests",
         "ourostack/ouro-ui/native-select-tests",
+        "ourostack/ouro-ui/navbar-tests",
+        "ourostack/ouro-ui/navigation-menu-tests",
         "ourostack/ouro-ui/number-field-tests",
         "ourostack/ouro-ui/otp-field-tests",
+        "ourostack/ouro-ui/pagination-tests",
         "ourostack/ouro-ui/popover-tests",
         "ourostack/ouro-ui/progress-tests",
         "ourostack/ouro-ui/radio-group-tests",
@@ -6910,10 +7657,13 @@
         "ourostack/ouro-ui/separator-tests",
         "ourostack/ouro-ui/sheet-tests",
         "ourostack/ouro-ui/show-more-tests",
+        "ourostack/ouro-ui/sidebar-layout-tests",
+        "ourostack/ouro-ui/sidebar-tests",
         "ourostack/ouro-ui/skeleton-tests",
         "ourostack/ouro-ui/slider-tests",
         "ourostack/ouro-ui/spinner-tests",
         "ourostack/ouro-ui/stack-tests",
+        "ourostack/ouro-ui/stacked-layout-tests",
         "ourostack/ouro-ui/swipe-actions-tests",
         "ourostack/ouro-ui/switch-tests",
         "ourostack/ouro-ui/table-tests",

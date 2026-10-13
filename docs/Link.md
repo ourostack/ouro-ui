@@ -24,7 +24,7 @@ Link is for text links only: it sets the text color and the underline, so wrappi
 
 - Use `Button` with `href` instead when the link is the main action and should look like a button.
 - Use `Card` with `href` instead when a whole card is the link, `Item` with `href` for a whole list row, and `Table` with `rowHref` (or `TableRow` with `href`) for a table row: each makes the surface one link with one tab stop, through the same router link, and keeps its own look.
-- Use your own links in a `<nav>` instead for tabs that navigate between pages: `Tabs` and `SegmentedControl` switch a view in place and take no `href`, and Ouro UI has no navigation tabs yet.
+- Use `Navbar` or `Sidebar` instead for the links that move between an app's pages, which mark the current one: `Tabs` and `SegmentedControl` switch a view in place and take no `href`.
 
 ## Props
 

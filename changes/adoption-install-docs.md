@@ -9,6 +9,6 @@
 - Renamed `lib/ouro/use-dev-warnings.ts` to `use-dev-messages.ts` so the file name does not trip a "no warnings" source rule; the hook is still `useDevWarnings`. After updating, delete the old file.
 - Select: the "is disabled and read-only on request" test no longer logs Base UI's "changing the default value" message, and a new test shows that `multiple` posts one form entry per chosen value (`formData.getAll`).
 - Docs: new Installing, Testing and Forms guides and an OuroProvider page with complete React Router and Next.js adapters; `radio`, the menu parts and every other exported item now have a page, and CI checks that every link in the README, the docs and the install messages opens a page, letter case included.
-- Docs: Link says it is for text links and names what to use for a card, a row or navigation tabs; Alert says it is for a message that belongs to no field and no form; Select documents `multiple` posting and that tests need real pointer events.
+- Docs: Link says it is for text links and names what to use for a card, a row or the links between pages; Alert says it is for a message that belongs to no field and no form; Select documents `multiple` posting and that tests need real pointer events.
 - Docs: `"use client";` at the top of each component is kept in an app with `"rsc": false`; the Installing guide explains why and how to silence the bundler's notice.
 - Releases: the site, `llms.txt` and the README name a new release as soon as it is published, and the release run checks the published pages before it ends.
