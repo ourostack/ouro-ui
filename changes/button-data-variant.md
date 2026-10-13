@@ -1,1 +1,0 @@
-- `Button` and `Toggle` now set `data-variant` to their look (`solid`, `soft`, `outline`, `plain`), so a group or an app style can select on it; `ButtonGroup` uses it to draw separators between borderless buttons.
