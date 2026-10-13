@@ -1569,8 +1569,8 @@
       "name": "navbar",
       "type": "registry:ui",
       "title": "Navbar",
-      "description": "The bar across the top of an app: your brand, the main links and a few controls, with the current page marked `aria-current=\"page\"`.",
-      "docs": "The bar across the top of an app: your brand, the main links and a few controls, with the current page marked `aria-current=\"page\"`. Import: import { Navbar } from \"@/components/ouro/navbar/navbar\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, navigation-menu, ouro-base, ouro-lib, sheet. Docs: https://ourostack.github.io/ouro-ui/docs/navbar.md",
+      "description": "The bar across the top of an app: your brand, the main links and a few controls, with the current page marked `aria-current=\"page\"` and a bar at the start edge, distinct from hover and press highlights.",
+      "docs": "The bar across the top of an app: your brand, the main links and a few controls, with the current page marked `aria-current=\"page\"` and a bar at the start edge, distinct from hover and press highlights. Import: import { Navbar } from \"@/components/ouro/navbar/navbar\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, navigation-menu, ouro-base, ouro-lib, sheet. Docs: https://ourostack.github.io/ouro-ui/docs/navbar.md",
       "registryDependencies": [
         "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/navigation-menu",
@@ -1590,8 +1590,8 @@
       "name": "sidebar",
       "type": "registry:ui",
       "title": "Sidebar",
-      "description": "The column of links down the side of an app, in sections, with the current page marked `aria-current=\"page\"`.",
-      "docs": "The column of links down the side of an app, in sections, with the current page marked `aria-current=\"page\"`. Import: import { Sidebar } from \"@/components/ouro/sidebar/sidebar\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, kbd, menu, ouro-base, ouro-lib, sheet, tooltip. Docs: https://ourostack.github.io/ouro-ui/docs/sidebar.md",
+      "description": "The column of links down the side of an app, in sections, with the current page marked `aria-current=\"page\"` and a bar at the start edge, distinct from hover and press highlights.",
+      "docs": "The column of links down the side of an app, in sections, with the current page marked `aria-current=\"page\"` and a bar at the start edge, distinct from hover and press highlights. Import: import { Sidebar } from \"@/components/ouro/sidebar/sidebar\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, kbd, menu, ouro-base, ouro-lib, sheet, tooltip. Docs: https://ourostack.github.io/ouro-ui/docs/sidebar.md",
       "registryDependencies": [
         "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/menu",
