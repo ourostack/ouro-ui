@@ -258,25 +258,29 @@ function useGrabOffset(side: SheetSide): (viewport: HTMLDivElement) => () => voi
   return useCallback(
     (viewport) => {
       const horizontal = side === "left" || side === "right";
-      let pressed = false;
+      // Whether the press may still need measuring: it is inside the viewport, Base UI has not begun a drag, and the sheet is moving.
+      let watching = false;
+      /** Writes how far the sheet is from rest. Returns whether to measure again on the next move. */
       const measure = () => {
         const popup = viewport.querySelector<HTMLElement>('[data-ouro="sheet"]');
         // Base UI turns the popup's transition off for as long as it drags it: the drag has begun.
-        if (!popup || popup.style.transitionProperty === "none") return;
+        if (!popup || popup.style.transitionProperty === "none") return false;
         const style = getComputedStyle(popup);
         const live = new DOMMatrixReadOnly(style.transform);
         const rest = horizontal ? 0 : parseFloat(style.getPropertyValue("--drawer-snap-point-offset"));
         popup.style.setProperty("--ouro-sheet-grab", `${(horizontal ? live.m41 : live.m42) - rest}px`);
+        // A sheet that stands still is where this measured it for the rest of the press, so a
+        // mouse that drags a slider or selects text inside it reads no style on its moves.
+        return popup.getAnimations().length > 0;
       };
       const onDown = (event: PointerEvent) => {
-        pressed = viewport.contains(event.target as Node);
-        if (pressed) measure();
+        watching = viewport.contains(event.target as Node) && measure();
       };
       const onMove = () => {
-        if (pressed) measure();
+        if (watching) watching = measure();
       };
       const onEnd = () => {
-        pressed = false;
+        watching = false;
       };
       addEventListener("pointerdown", onDown, true);
       addEventListener("pointermove", onMove, true);

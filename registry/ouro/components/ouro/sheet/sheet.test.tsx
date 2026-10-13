@@ -870,16 +870,36 @@ describe("Sheet parts", () => {
     fire(document.body, "pointerup");
     fire(sheet, "pointermove");
     expect(grab()).toBe("");
-    // A press on the sheet at rest: it is 0px from rest.
+    // A press on the sheet at rest: it is 0px from rest, and stays so for that press.
     fire(sheet, "pointerdown");
     expect(grab()).toBe("0px");
-    // Off rest, the next move measures again, until the press ends.
-    sheet.style.transition = "transform 0s";
-    sheet.style.transform = "translateY(25px)";
+    fire(sheet, "pointerup");
+    // A press while the sheet is still moving: each move measures again.
+    const moving = sheet.animate([{ transform: "translateY(25px)" }, { transform: "translateY(25px)" }], { duration: 60_000 });
+    fire(sheet, "pointerdown");
+    expect(grab()).toBe("25px");
+    moving.effect!.updateTiming({ duration: 60_001 });
+    (moving.effect as KeyframeEffect).setKeyframes([{ transform: "translateY(20px)" }, { transform: "translateY(20px)" }]);
     fire(sheet, "pointermove");
+    expect(grab()).toBe("20px");
+    // Once a move finds it standing still, the measuring stops for the rest of the press: no style is read on later moves.
+    moving.cancel();
+    fire(sheet, "pointermove");
+    expect(grab()).toBe("0px");
+    const read = vi.spyOn(window, "getComputedStyle");
+    sheet.style.transform = "translateY(50px)";
+    fire(sheet, "pointermove");
+    fire(sheet, "pointermove");
+    expect(read).not.toHaveBeenCalled();
+    expect(grab()).toBe("0px");
+    read.mockRestore();
+    sheet.style.transform = "";
+    // A new press measures afresh, and the end of a press stops it too.
+    const again = sheet.animate([{ transform: "translateY(25px)" }, { transform: "translateY(25px)" }], { duration: 60_000 });
+    fire(sheet, "pointerdown");
     expect(grab()).toBe("25px");
     fire(sheet, "pointercancel");
-    sheet.style.transform = "translateY(50px)";
+    again.cancel();
     fire(sheet, "pointermove");
     expect(grab()).toBe("25px");
     // Released, the measurement no longer moves the sheet.
