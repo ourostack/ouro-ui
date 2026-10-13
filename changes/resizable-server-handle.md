@@ -1,1 +1,0 @@
-- Resizable drops a `<ResizableHandle />` added by mistake, and warns about it, when the handle comes from a Server Component too.
