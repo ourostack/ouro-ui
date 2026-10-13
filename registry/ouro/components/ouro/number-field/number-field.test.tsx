@@ -2,7 +2,7 @@ import { createRef, useState, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { NumberField, type NumberFieldProps } from "@/registry/ouro/components/ouro/number-field/number-field";
 import { Form } from "@/registry/ouro/components/ouro/form/form";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -408,5 +408,23 @@ describe("NumberField in a Form", () => {
     view.input.focus();
     await userEvent.keyboard("{ArrowUp}");
     for (const control of [view.input]) await expect.poll(() => control.getAttribute("aria-invalid")).toBeNull();
+  });
+});
+
+describe("NumberField stepper press feedback", () => {
+  it("shows a pressed color that differs from the hover color", async () => {
+    await render(<NumberField label="Servings" defaultValue={2} />);
+    const stepper = document.querySelector<HTMLElement>('button[aria-label="Increase"]')!;
+    const color = () => getComputedStyle(stepper).backgroundColor;
+    const rest = color();
+    await userEvent.hover(stepper);
+    await expect.poll(color).not.toBe(rest);
+    const hovered = color();
+    await commands.pointerPress({ selector: "[data-ouro-number-field-group] button:last-of-type", action: "down" });
+    try {
+      await expect.poll(color).not.toBe(hovered);
+    } finally {
+      await commands.pointerPress({ action: "up" });
+    }
   });
 });

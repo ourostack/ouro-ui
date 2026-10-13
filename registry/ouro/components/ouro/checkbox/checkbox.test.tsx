@@ -317,19 +317,22 @@ describe("Checkbox look", () => {
     expect(boxCenter).toBeCloseTo(labelLine / 2, 0);
   });
 
-  it("draws the tick along its path when checked, and only fades it with reduced motion", async () => {
+  it("grows the tick in from 95% as it fades in when checked, and only fades it with reduced motion", async () => {
     const { box, host } = await render(<Checkbox label="Basil" />);
     const tick = host.querySelector("path")!;
-    expect(getComputedStyle(tick).strokeDashoffset).toBe("1px");
-    expect(getComputedStyle(tick).transitionProperty).toContain("stroke-dashoffset");
+    expect(getComputedStyle(tick).opacity).toBe("0");
+    expect(Number.parseFloat(getComputedStyle(tick).scale)).toBeCloseTo(0.95, 2);
+    expect(getComputedStyle(tick).transitionProperty).toBe("opacity, scale");
+    expect(getComputedStyle(tick).transitionTimingFunction).toBe("cubic-bezier(0.23, 1, 0.32, 1), cubic-bezier(0.23, 1, 0.32, 1)");
     await userEvent.click(box);
-    await expect.poll(() => getComputedStyle(tick).strokeDashoffset).toBe("0px");
+    await expect.poll(() => getComputedStyle(tick).opacity).toBe("1");
+    await expect.poll(() => Number.parseFloat(getComputedStyle(tick).scale) || 1).toBeCloseTo(1, 3);
     await commands.emulateMedia({ reducedMotion: "reduce" });
     expect(getComputedStyle(tick).transitionProperty).toBe("opacity");
     expect(getComputedStyle(tick).opacity).toBe("1");
     await userEvent.click(box);
     await expect.poll(() => getComputedStyle(tick).opacity).toBe("0");
-    expect(getComputedStyle(tick).strokeDashoffset).toBe("0px");
+    expect(Number.parseFloat(getComputedStyle(tick).scale) || 1).toBeCloseTo(1, 3);
   });
 
   it("presses in while the pointer is down, but not with reduced motion", async () => {

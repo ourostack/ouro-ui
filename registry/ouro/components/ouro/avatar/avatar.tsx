@@ -181,7 +181,7 @@ export function Avatar(props: AvatarProps): JSX.Element {
           src={src}
           alt=""
           onLoadingStatusChange={setImage}
-          className="size-full object-cover transition-opacity duration-(--ouro-duration-base) ease-out data-starting-style:opacity-0"
+          className="size-full object-cover transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) data-starting-style:opacity-0"
         />
       )}
       <BaseAvatar.Fallback>{initials ?? initialsOf(name)}</BaseAvatar.Fallback>

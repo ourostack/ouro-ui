@@ -87,7 +87,7 @@ function duplicateValue(items: readonly TabsItem[]): string | undefined {
 
 /**
  * Tabs that switch between panels in place: an accessible tab list with roving focus,
- * arrow-key navigation, a line that slides to the selected tab with the theme spring, and
+ * arrow-key navigation, a line that slides to the selected tab, and
  * 44px tabs on touch screens. Pass the tabs and their panels as `items`.
  *
  * Use `SegmentedControl` instead when the choice changes how one view looks (list or grid)

@@ -2,7 +2,7 @@
 
 # Switch
 
-A labeled on/off switch on the Field contract, with the label to its right: pass `label`, and `checked` with `onCheckedChange` (or `defaultChecked`). Clicking the label or pressing Space flips it; the thumb slides with the theme spring and stretches while pressed. With `name`, a switch that is on submits `name=value` with its form.
+A labeled on/off switch on the Field contract, with the label to its right: pass `label`, and `checked` with `onCheckedChange` (or `defaultChecked`). Clicking the label or pressing Space flips it; the thumb slides and stretches while pressed. With `name`, a switch that is on submits `name=value` with its form.
 
 ```tsx
 import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
