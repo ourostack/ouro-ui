@@ -34,9 +34,13 @@ test("a mouse follows a swipeable row's link and never drags the row", async ({ 
 test("a mouse's right-click on a row is left to the browser's own menu", async ({ page }) => {
   await openStory(page, "lists-swipeactions--in-context");
   const link = page.getByRole("link", { name: "Shakshuka" });
-  const prevented = link.evaluate((element) => new Promise<boolean>((resolve) => element.addEventListener("contextmenu", (event) => setTimeout(() => resolve(event.defaultPrevented)), { once: true })));
+  // Heard on its way down, because the row stops it there, and read once every handler has had its say.
+  await page.evaluate(() => {
+    const seen = window as unknown as { rightClick?: boolean };
+    window.addEventListener("contextmenu", (event) => setTimeout(() => (seen.rightClick = event.defaultPrevented)), { once: true, capture: true });
+  });
   await link.click({ button: "right" });
-  expect(await prevented).toBe(false);
+  await expect.poll(() => page.evaluate(() => (window as unknown as { rightClick?: boolean }).rightClick)).toBe(false);
   await expect(page.getByRole("menu")).toHaveCount(0);
   await expect(page).not.toHaveURL(/#shakshuka$/);
 });
