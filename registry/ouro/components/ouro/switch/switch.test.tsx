@@ -311,7 +311,7 @@ describe("Switch look and motion", () => {
     const { track, label } = await render(<Switch label="Wi-Fi" />);
     expect(track.getBoundingClientRect().height).toBe(20);
     expect(getComputedStyle(label).fontSize).toBe("14px");
-    const center = track.getBoundingClientRect().top + 10 - label.getBoundingClientRect().top;
+    const center = track.getBoundingClientRect().top + 10 - label.closest("[data-ouro-label]")!.getBoundingClientRect().top;
     expect(center).toBeCloseTo(parseFloat(getComputedStyle(label).lineHeight) / 2, 0);
   });
 });

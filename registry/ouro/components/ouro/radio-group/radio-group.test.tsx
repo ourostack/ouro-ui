@@ -190,7 +190,9 @@ describe("RadioGroup", () => {
         <RadioGroup legend="Size" name="size" options={sizes} required />
       </form>,
     );
-    expect(root.querySelector("[data-ouro-legend] [data-ouro-required]")).not.toBeNull();
+    const legend = root.querySelector<HTMLElement>("[data-ouro-legend][data-ouro-required]")!;
+    expect(getComputedStyle(legend, "::after").content).toBe('"*"');
+    expect(legend.querySelector("[aria-hidden]")).toBeNull();
     expect(group.getAttribute("aria-required")).toBe("true");
     const form = host.querySelector("form")!;
     expect(form.checkValidity()).toBe(false);

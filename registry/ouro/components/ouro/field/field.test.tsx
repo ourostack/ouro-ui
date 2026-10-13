@@ -3,7 +3,7 @@ import { type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { commands, page } from "vitest/browser";
+import { commands, page, server } from "vitest/browser";
 import { Field } from "@/registry/ouro/components/ouro/field/field";
 import {
   FieldControl,
@@ -170,19 +170,68 @@ describe("Field wiring", () => {
     expect(input.hasAttribute("aria-invalid")).toBe(false);
   });
 
-  it("sets required and aria-required, and marks the label without changing its name", async () => {
-    const { input, label } = await render(
+  it("sets required and aria-required, and marks the label without adding to its text or name", async () => {
+    const { input, label, host } = await render(
       <Field label="Email" required>
         <FieldControl />
       </Field>,
     );
     expect(input.required).toBe(true);
     expect(input.getAttribute("aria-required")).toBe("true");
-    const marker = label.querySelector<HTMLElement>("[data-ouro-required]")!;
-    expect(marker.textContent).toBe("*");
-    expect(marker.getAttribute("aria-hidden")).toBe("true");
-    expect(getComputedStyle(marker).display).not.toBe("none");
+    // The marker is CSS on the element around the label: no element and no text of its own.
+    const marked = host.querySelector<HTMLElement>("[data-ouro-required]")!;
+    expect(marked.contains(label)).toBe(true);
+    expect(marked).not.toBe(label);
+    expect(getComputedStyle(marked, "::after").content).toBe('"*"');
+    expect(getComputedStyle(label, "::after").content).toBe("none");
+    expect(label.textContent).toBe("Email");
+    expect(host.textContent).toBe("Email");
     await expect.element(page.getByRole("textbox", { name: "Email", exact: true })).toBeVisible();
+  });
+
+  it("finds a required field by its exact label, as Testing Library and Playwright look it up", async () => {
+    const { input, label } = await render(
+      <Field label="Email" required>
+        <FieldControl />
+      </Field>,
+    );
+    // Testing Library's getByLabelText("Email") compares the whole text of the <label>.
+    expect([...document.querySelectorAll("label")].filter((element) => element.textContent === "Email")).toEqual([label]);
+    // Playwright's getByLabel("Email", { exact: true }), which Vitest's getByLabelText shares.
+    expect(page.getByLabelText("Email", { exact: true }).elements()).toEqual([input]);
+    expect(page.getByLabelText("Email", { exact: false }).elements()).toEqual([input]);
+  });
+
+  it("shows the required marker beside the label, and in forced colors too", async () => {
+    const { host } = await render(
+      <>
+        <Field label="Email" required>
+          <FieldControl />
+        </Field>
+        <Field label="Email">
+          <FieldControl />
+        </Field>
+      </>,
+    );
+    const [required, plain] = [...host.querySelectorAll<HTMLElement>("[data-ouro-label]")];
+    const markerWidth = () => required!.getBoundingClientRect().width - plain!.getBoundingClientRect().width;
+    expect(markerWidth()).toBeGreaterThan(4);
+    // WebKit has no forced-colors mode to check.
+    if (server.browser !== "chromium") return;
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      await expect.poll(() => matchMedia("(forced-colors: active)").matches).toBe(true);
+      // Generated text takes the forced text color, so it shows on any forced background.
+      const probe = document.createElement("span");
+      probe.style.color = "CanvasText";
+      host.append(probe);
+      const after = getComputedStyle(required!, "::after");
+      expect(after.content).toBe('"*"');
+      expect(after.color).toBe(getComputedStyle(probe).color);
+      expect(markerWidth()).toBeGreaterThan(4);
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
   });
 
   it("passes aria-required through, to say a control is required without the browser's blocking check", async () => {
@@ -211,7 +260,8 @@ describe("Field wiring", () => {
     );
     expect(input.required).toBe(false);
     expect(input.hasAttribute("aria-required")).toBe(false);
-    expect(label.querySelector("[data-ouro-required]")).toBeNull();
+    expect(label.closest("[data-ouro-label]")!.hasAttribute("data-ouro-required")).toBe(false);
+    expect(getComputedStyle(label.closest("[data-ouro-label]")!, "::after").content).toBe("none");
   });
 
   it("disables the control with disabled and fades the label", async () => {
@@ -239,7 +289,8 @@ describe("Field wiring", () => {
         <FieldControl />
       </Field>,
     );
-    const rect = label.getBoundingClientRect();
+    // The element around the label is what hides, so a required marker hides with it.
+    const rect = label.closest("[data-ouro-label]")!.getBoundingClientRect();
     expect(rect.width).toBeLessThanOrEqual(1);
     expect(rect.height).toBeLessThanOrEqual(1);
     await expect.element(page.getByRole("textbox", { name: "Search recipes" })).toBeInTheDocument();
@@ -449,7 +500,8 @@ describe("Field parts", () => {
     expect(input.name).toBe("email");
     expect(input.getAttribute("aria-required")).toBe("true");
     expect(input.getAttribute("aria-invalid")).toBe("true");
-    expect(label.querySelector("[data-ouro-required]")).not.toBeNull();
+    expect(label.closest("[data-ouro-required]")).not.toBeNull();
+    expect(label.textContent).toBe("Email");
     const ids = describedBy(input);
     expect(ids).toHaveLength(2);
     for (const id of ids) expect(host.querySelector(`#${CSS.escape(id)}`)).not.toBeNull();

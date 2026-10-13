@@ -11,7 +11,9 @@ export {
   inlineLabelClass,
   inlineRootClass,
   labelClass,
+  labelFrameClass,
   legendClass,
+  requiredMarkClass,
   rootClass,
 };
 export type { ContractGuesses };
@@ -57,12 +59,32 @@ const choicesClass = {
 } as const;
 
 /**
- * The label: medium weight, faded with the field when it is disabled.
+ * The element around the label, which sizes its text and takes the field's layout classes.
+ * The required marker hangs off it, not off the label, so the label's text stays the label.
  *
  * @internal
  */
-const labelClass =
-  "m-0 block justify-self-start text-sm leading-5 font-medium text-foreground select-none data-disabled:opacity-50";
+const labelFrameClass = "block justify-self-start text-sm leading-5 select-none";
+
+/**
+ * The label: medium weight, faded with the field when it is disabled. Inline, so the required
+ * marker follows its last word.
+ *
+ * @internal
+ */
+const labelClass = "m-0 inline font-medium text-foreground data-disabled:opacity-50";
+
+/**
+ * The required marker, on the element around a label or on a group's legend: an asterisk
+ * drawn by CSS, so it is in no element's text and no control's name. `getByLabelText("Email")`
+ * and `getByLabel("Email", { exact: true })` find a required field, and screen readers hear
+ * "required" from the control. It is generated text, so forced colors keep it visible. It
+ * fades with a disabled label.
+ *
+ * @internal
+ */
+const requiredMarkClass =
+  "after:ms-0.5 after:font-medium after:text-destructive after:content-['*'] has-[label[data-disabled]]:after:opacity-50";
 
 /**
  * Supporting text under the label, and under a fieldset's legend. It stays at full contrast when the

@@ -7,7 +7,7 @@ import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { FieldContext, FieldOwnerContext, useField, useFieldOwner, useFormErrors } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
 import { FieldDescription, FieldError, FieldLabel } from "@/registry/ouro/components/ouro/field/field-parts";
-import { fieldHint, inlineRootClass, labelClass, rootClass } from "@/registry/ouro/components/ouro/field/field-styles";
+import { fieldHint, inlineRootClass, labelFrameClass, requiredMarkClass, rootClass } from "@/registry/ouro/components/ouro/field/field-styles";
 
 /**
  * The props every Ouro form control takes, with these exact names: a required `label`,
@@ -225,15 +225,17 @@ export function Field(props: FieldProps): JSX.Element {
     layout === "group" ? (
       // A group's name: not a <label>, because a group has no one element to focus. It names a
       // section rather than a control, so it keeps full contrast when the group is disabled.
-      <div id={labelId} data-ouro-legend="" className={cn(labelClass, hideLabel && "sr-only")}>
-        {label}
-        {required && (
-          <span aria-hidden="true" data-ouro-required="" className="ms-0.5 text-destructive">
-            *
-          </span>
-        )}
-        {/* The asterisk is hidden; a group with no aria-required says "required" in words. */}
-        {required && owner.requiredLabel && <span className="sr-only"> {owner.requiredLabel}</span>}
+      // The required marker is CSS on the legend, outside the element that names the group.
+      <div
+        data-ouro-legend=""
+        {...(required ? { "data-ouro-required": "" } : {})}
+        className={cn(labelFrameClass, required && requiredMarkClass, hideLabel && "sr-only")}
+      >
+        <span id={labelId} className="font-medium text-foreground">
+          {label}
+          {/* The asterisk is not text; a group with no aria-required says "required" in words. */}
+          {required && owner.requiredLabel && <span className="sr-only"> {owner.requiredLabel}</span>}
+        </span>
       </div>
     ) : (
       <FieldLabel

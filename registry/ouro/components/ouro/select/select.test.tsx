@@ -31,7 +31,7 @@ async function render(node: ReactNode) {
       return host.querySelector<HTMLButtonElement>('[role="combobox"]')!;
     },
     get label() {
-      return host.querySelector<HTMLElement>('[data-ouro="select"] > div')!;
+      return host.querySelector<HTMLElement>('[data-ouro="select"] > [data-ouro-label] > div')!;
     },
     hidden(name: string) {
       return [...host.querySelectorAll<HTMLInputElement>(`input[name="${name}"]`)].map((input) => input.value);
@@ -398,7 +398,7 @@ describe("Select server rendering", () => {
     );
     const doc = new DOMParser().parseFromString(html, "text/html");
     const trigger = doc.querySelector('[role="combobox"]')!;
-    expect(doc.getElementById(trigger.getAttribute("aria-labelledby")!)!.textContent).toBe("Course*");
+    expect(doc.getElementById(trigger.getAttribute("aria-labelledby")!)!.textContent).toBe("Course");
     expect(description(trigger)).toEqual(["What you are cooking.", "That course is full."]);
     expect(trigger.getAttribute("aria-invalid")).toBe("true");
     expect(trigger.getAttribute("aria-required")).toBe("true");

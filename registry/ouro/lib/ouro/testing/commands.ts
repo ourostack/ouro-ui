@@ -5,6 +5,7 @@ import type { BrowserCommand } from "vitest/node";
 export interface EmulateMediaOptions {
   reducedMotion?: "reduce" | "no-preference";
   colorScheme?: "light" | "dark";
+  forcedColors?: "active" | "none";
 }
 
 export interface DragOptions {
@@ -23,7 +24,7 @@ export interface DragOptions {
   hold?: boolean;
 }
 
-/** Wraps Playwright's `page.emulateMedia` for `prefers-reduced-motion` and `prefers-color-scheme`. */
+/** Wraps Playwright's `page.emulateMedia` for `prefers-reduced-motion`, `prefers-color-scheme` and `forced-colors`. */
 export const emulateMedia: BrowserCommand<[EmulateMediaOptions]> = async (ctx, options) => {
   await ctx.page.emulateMedia(options);
 };

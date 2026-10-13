@@ -13,6 +13,8 @@ import {
   fieldHint,
   inlineLabelClass,
   labelClass,
+  labelFrameClass,
+  requiredMarkClass,
   rootClass,
 } from "@/registry/ouro/components/ouro/field/field-styles";
 
@@ -80,9 +82,10 @@ export function FieldRoot({ className, required, ...props }: FieldRootProps): JS
 export type FieldLabelProps = Omit<BaseField.Label.Props, "className"> & { className?: string | undefined };
 
 /**
- * Part: the control's label. It points at the control by id, and a required field adds a
- * marker that screen readers skip (they hear "required" from the control). Hide it
- * visually with `className="sr-only"`.
+ * Part: the control's label. It points at the control by id. A required field shows a marker
+ * after it, drawn by CSS on the element around the label, so the label's text and the
+ * control's name stay exactly what you wrote (screen readers hear "required" from the
+ * control). `className` goes on that element; hide the label visually with `className="sr-only"`.
  */
 export function FieldLabel({ className, children, ...props }: FieldLabelProps): JSX.Element {
   const field = useFieldPart("FieldLabel");
@@ -90,14 +93,15 @@ export function FieldLabel({ className, children, ...props }: FieldLabelProps): 
   // The label beside a checkbox or switch is its tap target, so it keeps phone-sized text on touch.
   const inline = useFieldOwner().layout === "inline";
   return (
-    <BaseField.Label {...props} className={cn(labelClass, inline && inlineLabelClass, className)}>
-      {children}
-      {field.required && (
-        <span aria-hidden="true" data-ouro-required="" className="ms-0.5 text-destructive">
-          *
-        </span>
-      )}
-    </BaseField.Label>
+    <div
+      data-ouro-label=""
+      {...(field.required ? { "data-ouro-required": "" } : {})}
+      className={cn(labelFrameClass, inline && inlineLabelClass, field.required && requiredMarkClass, className)}
+    >
+      <BaseField.Label {...props} className={labelClass}>
+        {children}
+      </BaseField.Label>
+    </div>
   );
 }
 
