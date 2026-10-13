@@ -295,6 +295,22 @@ describe("trigger", () => {
     await act(async () => {});
     expect(popup()).toBeNull();
   });
+
+  it("opens from a trigger that a Server Component handed over as a lazy wrapper", async () => {
+    const onClick = vi.fn();
+    // What React's server-component client passes while the trigger's module is loading.
+    const wrapper = { $$typeof: Symbol.for("react.lazy"), _payload: null, _init: () => <Button onClick={onClick}>Edit</Button> } as unknown as ReactElement;
+    await render(
+      <Dialog title="Edit recipe" trigger={wrapper}>
+        Body
+      </Dialog>,
+    );
+    expect(trigger().textContent).toBe("Edit");
+    expect(trigger().getAttribute("aria-haspopup")).toBe("dialog");
+    await userEvent.click(trigger());
+    expect(onClick).toHaveBeenCalledOnce();
+    await expect.poll(() => popup()).not.toBeNull();
+  });
 });
 
 describe("Dialog stacking above the app's fixed bars", () => {
