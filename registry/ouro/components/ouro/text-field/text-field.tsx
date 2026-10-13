@@ -192,7 +192,7 @@ function Icon({ children }: { children: ReactNode }): JSX.Element {
  * Use `TextArea` instead for several lines, `NumberField` for numbers, `DatePicker` for a date picked from a calendar, `FileField` for files, and `Field` with
  * `FieldControl` when the control is not a text input.
  *
- * Not here:
+ * Not here, because each has its own component:
  *
  * - Numbers: `NumberField` parses, steps and formats them. A digit code (a PIN, a postcode) stays a TextField with `inputMode="numeric"`, or is an `OtpField`.
  *

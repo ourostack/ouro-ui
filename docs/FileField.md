@@ -30,7 +30,7 @@ Type: `FileFieldProps`.
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-4`). Appearance classes warn in development; style fields in your theme. |
 | `description` | `ReactNode` |  | Supporting text under the label ("PNG or JPG, up to 5 MB"), read through `aria-describedby`. |
 | `disabled` | `boolean` |  | Disables the input and the drop zone, and fades the field. |
-| `error` | `string \| string[]` |  | What is wrong, from your server action or client check. It shows under the field, and the input gets `aria-invalid`. An empty string or array means valid. |
+| `error` | `ErrorMessages` |  | What is wrong, from your server action or client check. It shows under the field, and the input gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. |
 | `hideLabel` | `boolean` |  | Hides the label visually; screen readers still read it. |
 | `label` (required) | `string` |  | What the files are for ("Recipe photo"), shown above the drop zone and read as the input's name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. |
 | `maxSize` | `number` |  | The largest file it takes, in bytes: `5 * 1024 * 1024` for 5 MB. Larger files are left out, with a message under the field, and reported to `onReject`. |
@@ -68,6 +68,22 @@ Appearance comes from props, not classes. In development, a class that sets appe
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ## Types
+
+### `ErrorMessage`
+
+One error message: text, or a React element for a message that carries a link or other markup.
+
+```ts
+type ErrorMessage = string | ReactElement;
+```
+
+### `ErrorMessages`
+
+What an `error` prop or a `Form` `errors` value takes: one message, or several as an array.
+
+```ts
+type ErrorMessages = ErrorMessage | ErrorMessage[];
+```
 
 ### `FileRejection`
 

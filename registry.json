@@ -655,11 +655,12 @@
       "type": "registry:ui",
       "title": "TextArea",
       "description": "A labeled multi-line text field on the Field contract, a native `<textarea>`: pass `label`, and `error` from your server action or client check.",
-      "docs": "A labeled multi-line text field on the Field contract, a native `<textarea>`: pass `label`, and `error` from your server action or client check. Import: import { TextArea } from \"@/components/ouro/text-field/text-area\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: field, ouro-base, ouro-lib. Docs: https://ourostack.github.io/ouro-ui/docs/text-area.md",
+      "docs": "A labeled multi-line text field on the Field contract, a native `<textarea>`: pass `label`, and `error` from your server action or client check. Import: import { TextArea } from \"@/components/ouro/text-field/text-area\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, field, ouro-base, ouro-lib, text-field. Docs: https://ourostack.github.io/ouro-ui/docs/text-area.md",
       "registryDependencies": [
         "ourostack/ouro-ui/field",
         "ourostack/ouro-ui/ouro-base",
-        "ourostack/ouro-ui/ouro-lib"
+        "ourostack/ouro-ui/ouro-lib",
+        "ourostack/ouro-ui/text-field"
       ],
       "files": [
         {
@@ -2503,6 +2504,7 @@
       "registryDependencies": [
         "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/form",
         "ourostack/ouro-ui/ouro-testing"
       ],
       "files": [
@@ -2622,6 +2624,7 @@
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
+        "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/field",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/text-area",
@@ -2668,6 +2671,7 @@
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
+        "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/text-area"
       ],
@@ -2707,6 +2711,7 @@
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
+        "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/checkbox",
         "ourostack/ouro-ui/form",
         "ourostack/ouro-ui/ouro-testing"
@@ -2846,6 +2851,7 @@
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
+        "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/form",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/switch"
@@ -2894,6 +2900,7 @@
         "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/field",
         "ourostack/ouro-ui/form",
+        "ourostack/ouro-ui/ouro-lib",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/select",
         "ourostack/ouro-ui/text-area",
@@ -2978,6 +2985,7 @@
         "vitest@^5.0.3"
       ],
       "registryDependencies": [
+        "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/form",
         "ourostack/ouro-ui/native-select",
         "ourostack/ouro-ui/ouro-testing",

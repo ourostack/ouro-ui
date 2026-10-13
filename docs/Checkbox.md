@@ -30,7 +30,7 @@ Type: `CheckboxProps`.
 | `defaultChecked` | `boolean` |  | Whether it starts checked, for an uncontrolled checkbox. |
 | `description` | `ReactNode` |  | Supporting text under the label, read after it through `aria-describedby`. |
 | `disabled` | `boolean` |  | Disables the checkbox and fades it. |
-| `error` | `string \| string[]` |  | What is wrong, from your server action or client check, shown under the label; the box gets `aria-invalid`. An empty string or array means valid. In a `CheckboxGroup`, pass it to the group. |
+| `error` | `ErrorMessages` |  | What is wrong, from your server action or client check, shown under the label; the box gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. In a `CheckboxGroup`, pass it to the group. |
 | `hideLabel` | `boolean` |  | Hides the label visually; screen readers still read it as the checkbox's name. |
 | `indeterminate` | `boolean` |  | Shows a dash and announces "mixed": neither checked nor unchecked, as a "select all" box does when some of its items are checked. It is controlled: a click does not clear it, so clear it in `onCheckedChange`, as in `<Checkbox indeterminate={some} checked={all} onCheckedChange={toggleAll}>`. The box submits only while `checked`. |
 | `label` (required) | `string` |  | What checking it means, shown to the right of the box and read as its name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. |
@@ -63,3 +63,21 @@ Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your cl
 Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
+
+## Types
+
+### `ErrorMessage`
+
+One error message: text, or a React element for a message that carries a link or other markup.
+
+```ts
+type ErrorMessage = string | ReactElement;
+```
+
+### `ErrorMessages`
+
+What an `error` prop or a `Form` `errors` value takes: one message, or several as an array.
+
+```ts
+type ErrorMessages = ErrorMessage | ErrorMessage[];
+```

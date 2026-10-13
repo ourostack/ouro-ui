@@ -25,13 +25,13 @@ Type: `DatePickerProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `chooseDateLabel` | `string` | `"Choose date"` | The label of the button that opens the calendar. Translate it with your app. |
+| `chooseDateLabel` | `string` | `"Choose date"` | The name of the button that opens the calendar, as visually hidden text and not an `aria-label`, so a test's `getByLabel("Date")` finds the text box alone. Translate it with your app. |
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-4`, `col-span-2`). Appearance classes warn in development; style fields in your theme. |
 | `closeLabel` | `string` | `"Close"` | The label of the calendar's close button, which only screen readers and the keyboard reach. Translate it with your app. |
 | `defaultValue` | `string` |  | The date at first, as an ISO date, when you do not control `value`. |
 | `description` | `ReactNode` |  | Supporting text under the label, read after the label through `aria-describedby`. |
 | `disabled` | `boolean` |  | Disables the field and its calendar button, and fades it. |
-| `error` | `string \| string[]` |  | What is wrong, from your server action or client check. The message (or several, as a list) shows under the field, which gets `aria-invalid`. An empty string or array means valid. |
+| `error` | `ErrorMessages` |  | What is wrong, from your server action or client check. The message (or several, as a list) shows under the field, which gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. |
 | `hideLabel` | `boolean` |  | Hides the label visually; screen readers still read it as the field's name. |
 | `invalidDateMessage` | `string` | `"Enter a valid date."` | The browser's message for typed text that is not a date, or a date `isDateDisabled` names. Translate it with your app. |
 | `isDateDisabled` | `((date: string) => boolean)` |  | Marks single days unavailable: `isDateDisabled={(date) => booked.has(date)}`. It gets each day as an ISO date. Such a day, typed or picked in the phone's own picker, is invalid. |
@@ -74,3 +74,21 @@ Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your cl
 Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
+
+## Types
+
+### `ErrorMessage`
+
+One error message: text, or a React element for a message that carries a link or other markup.
+
+```ts
+type ErrorMessage = string | ReactElement;
+```
+
+### `ErrorMessages`
+
+What an `error` prop or a `Form` `errors` value takes: one message, or several as an array.
+
+```ts
+type ErrorMessages = ErrorMessage | ErrorMessage[];
+```

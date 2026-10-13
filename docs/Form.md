@@ -16,7 +16,25 @@ const actionData = useActionData<typeof action>();
   <TextField label="Email" name="email" type="email" required />
   <Button type="submit">Save</Button>
 </Form>
+// The action answers { errors: { general, email } }: map its keys to this form's field names.
+const errors = actionData?.errors;
+<Form method="post" errors={{ form: errors?.general, email: errors?.email }} render={<RouterForm />}>
+  <TextField label="Email" name="email" type="email" required />
+  <Button type="submit">Subscribe</Button>
+</Form>
 ```
+
+## Usage
+
+A submit is checked in this order. First the browser's own checks (`required`, `type="email"`, `pattern`): a failure stops the submit, marks each failing field with the browser's message and moves focus to the first. Then your `onSubmit`, which runs only when those pass and can still call `event.preventDefault()`. Then the server, whose answer comes back as `errors`.
+
+The keys of `errors` are your fields' `name`s, and `form` is the message about the whole form. An action that answers with other keys is mapped where you pass them: `errors={{ form: data?.errors?.general, email: data?.errors?.email }}`. A key that no field in this form is named shows at the top of the form and warns in development with the key, this form's field names and the fix; with two forms on one route, pass each only its own keys.
+
+Errors are compared by content, so an object built while rendering is fine: it shows a cleared message again only when its content changes or after the next submit.
+
+The message about the whole form is an alert (`role="alert"`). It is in the page only while there is a message, and each answer adds a new one with its text already in it, which is what screen readers announce; `getByRole("alert")` finds nothing on a form without one. A field's message is not an alert: it is that control's description, so assert it with `toHaveAccessibleDescription`.
+
+Focus moves to the first field with an error when errors arrive after a submit. A page that loads with `errors` already set (a post without JavaScript, or a reload) shows them in the server HTML and moves no focus: nothing was submitted from this page, and taking focus on load would drop a keyboard or screen-reader user into the middle of a page they have not read. To send them to the errors on load, put an in-page link to the form in your page's own error summary.
 
 ## Use instead when
 
@@ -30,7 +48,7 @@ Type: `FormProps`.
 | --- | --- | --- | --- |
 | `children` (required) | `ReactNode` |  | The fields and the submit button. |
 | `className` | `string` |  | Layout only: margins, width, grid placement. Fields stack with a gap by default; appearance classes warn in development. |
-| `errors` | `FormErrors \| null` |  | Errors by field name, usually from your server action: `errors={actionData?.errors}`. Each one shows on the field with that `name`, which gets `aria-invalid` and links the message, in the server HTML too. A field's own `error` prop wins over it, and a message goes away once the user changes that field. When new errors arrive, focus moves to the first field with one, in page order. The `form` key shows in an alert at the top of the form, in the server HTML too; a key no rendered field is named joins it once the page hydrates. These errors only show: they never block the next submit, so the user can always send the form again (a server error may be fixed by changing another field, or by trying again). The browser's own checks (`required`, `type="email"`) still block a submit. |
+| `errors` | `FormErrors \| null` |  | Errors by field name, usually from your server action: `errors={actionData?.errors}`. Each one shows on the field with that `name`, which gets `aria-invalid` and links the message, in the server HTML too. A field's own `error` prop wins over it, and a message goes away once the user changes that field. When new errors arrive, focus moves to the first field with one, in page order. The `form` key shows in an alert at the top of the form, in the server HTML too; a key no rendered field is named joins it once the page hydrates, and warns in development. A message is text or a React node (a message with a link), and an array is several messages. Errors are compared by content, so an object built while rendering (`errors={{ ...actionData?.errors, form: actionData?.general }}`) is the same errors until its content changes: it shows no cleared message again and moves no focus. After a submit, the next errors the Form is given count as that submit's answer even when they equal the last ones, so a repeated answer shows again. These errors only show: they never block the next submit, so the user can always send the form again (a server error may be fixed by changing another field, or by trying again). The browser's own checks (`required`, `type="email"`) still block a submit. |
 
 ## Native attributes
 
@@ -52,10 +70,26 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ## Types
 
-### `FormErrors`
+### `ErrorMessage`
 
-Errors by field name: one message, or several. A React Router action returns this shape.
+One error message: text, or a React element for a message that carries a link or other markup.
 
 ```ts
-type FormErrors = Record<string, string | string[]>;
+type ErrorMessage = string | ReactElement;
+```
+
+### `ErrorMessages`
+
+What an `error` prop or a `Form` `errors` value takes: one message, or several as an array.
+
+```ts
+type ErrorMessages = ErrorMessage | ErrorMessage[];
+```
+
+### `FormErrors`
+
+Errors by field name: one message, or several as an array. A React Router action returns this shape. A message is text or a React node, so it can carry a link. The `form` key holds messages about the whole form. A key may hold nothing (`undefined`, `null`, an empty string or list), so an object mapped from an action's answer needs no cleanup.
+
+```ts
+type FormErrors = Record<string, ErrorMessages | null | undefined>;
 ```

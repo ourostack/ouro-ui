@@ -290,7 +290,7 @@ describe("Form", () => {
       loop.self = loop;
       return loop;
     };
-    const Note = (_props: { info: unknown }) => <>Taken.</>;
+    const Note: (props: { info: unknown }) => ReactNode = () => <>Taken.</>;
     const { input, rerender } = await render(
       <Form errors={undefined}>
         <TextField label="Email" name="email" />

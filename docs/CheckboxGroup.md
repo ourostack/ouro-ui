@@ -36,7 +36,7 @@ Props every mode takes. Type: `CheckboxGroupProps`.
 | `defaultValue` | `string[]` |  | The values checked at first, for an uncontrolled group. |
 | `description` | `ReactNode` |  | Supporting text under the legend, read after it through `aria-describedby`. |
 | `disabled` | `boolean` |  | Disables every box and fades the group. |
-| `error` | `string \| string[]` |  | What is wrong, from your server action or client check, shown under the choices; every box gets `aria-invalid`. An empty string or array means valid. |
+| `error` | `ErrorMessages` |  | What is wrong, from your server action or client check, shown under the choices; every box gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. |
 | `hideLegend` | `boolean` |  | Hides the legend visually; screen readers still read it as the group's name. |
 | `legend` (required) | `string` |  | What the group is, shown above the choices and read as the group's name. Required: a group of controls needs a name. To hide it visually, keep it and add `hideLegend`. |
 | `name` | `string` |  | The form field name every checked box submits under, once per checked value. |
@@ -110,4 +110,20 @@ interface CheckboxGroupOption {
   /** Disables this one box. */
   disabled?: boolean | undefined;
 }
+```
+
+### `ErrorMessage`
+
+One error message: text, or a React element for a message that carries a link or other markup.
+
+```ts
+type ErrorMessage = string | ReactElement;
+```
+
+### `ErrorMessages`
+
+What an `error` prop or a `Form` `errors` value takes: one message, or several as an array.
+
+```ts
+type ErrorMessages = ErrorMessage | ErrorMessage[];
 ```
