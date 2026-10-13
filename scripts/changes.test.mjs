@@ -163,6 +163,7 @@ const runApproval = (mode) => {
   const dir = mkdtempSync(join(tmpdir(), "ouro-approve-"));
   const log = join(dir, "calls.log");
   const summary = join(dir, "summary.md");
+  const output = join(dir, "output.txt");
   writeFileSync(
     join(dir, "gh"),
     `#!/usr/bin/env bash
@@ -183,16 +184,18 @@ exit 0
   chmodSync(join(dir, "gh"), 0o755);
   chmodSync(join(dir, "git"), 0o755);
   writeFileSync(summary, "");
+  writeFileSync(output, "");
   const result = spawnSync("bash", ["-eo", "pipefail", "-c", script], {
     encoding: "utf8",
-    env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, MODE: mode, POLL_SECONDS: "0", NEXT_BRANCH: "prepare/after-v1.2.3", GITHUB_REPOSITORY: "o/r", GITHUB_STEP_SUMMARY: summary },
+    env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, MODE: mode, POLL_SECONDS: "0", TAG: "v1.2.3", NEXT_BRANCH: "prepare/after-v1.2.3", GITHUB_REPOSITORY: "o/r", GITHUB_STEP_SUMMARY: summary, GITHUB_OUTPUT: output },
   });
-  return { result, calls: readFileSync(log, "utf8").trim().split("\n"), summary: readFileSync(summary, "utf8") };
+  return { result, calls: readFileSync(log, "utf8").trim().split("\n"), summary: readFileSync(summary, "utf8"), output: readFileSync(output, "utf8") };
 };
 
 test("the approval step approves the held run, merges the pull request when it passes and runs CI on main", () => {
-  const { result, calls, summary } = runApproval("ok");
+  const { result, calls, summary, output } = runApproval("ok");
   assert.equal(result.status, 0, result.stderr);
+  assert.equal(output, "main_sha=def456\n", "The fixture must own and return its GITHUB_OUTPUT.");
   const at = (start) => calls.findIndex((c) => c.startsWith(start));
   assert.ok(at("api -X POST repos/o/r/actions/runs/77/approve") !== -1);
   assert.ok(at("run watch 77 --exit-status") > at("api -X POST"));
@@ -208,42 +211,55 @@ test("the approval step approves the held run, merges the pull request when it p
 });
 
 test("the approval step trusts the pull request's state, not gh's exit code, after a merge", () => {
-  const { result, calls, summary } = runApproval("cleanup");
+  const { result, calls, summary, output } = runApproval("cleanup");
   assert.equal(result.status, 0, result.stderr);
+  assert.equal(output, "main_sha=def456\n", "The fixture must own and return its GITHUB_OUTPUT.");
   assert.match(summary, /Merged "Prepare main for the next release"/);
   assert.ok(calls.some((c) => c.startsWith("workflow run ci.yml --ref main")), "CI runs on main after a merge whose cleanup failed");
 });
 
 test("the approval step never merges a pull request whose CI failed, and says what a refused merge leaves", () => {
   for (const mode of ["redci", "nomerge"]) {
-    const { result, calls } = runApproval(mode);
-    assert.equal(result.status, 0, result.stderr);
+    const { result, calls, output } = runApproval(mode);
+    assert.equal(result.status, 1, result.stderr);
     assert.equal(calls.some((c) => c.startsWith("pr merge")), mode === "nomerge");
     assert.ok(!calls.some((c) => c.startsWith("workflow run")), "no CI on main without a merge");
-    assert.match(result.stdout, /::warning::Could not merge "Prepare main for the next release"\. Merge it by hand/);
+    assert.match(result.stdout, /::error::Could not merge "Prepare main for the next release"; Pages will not deploy\. Merge it by hand, then pass main CI before deploying/);
+    assert.equal(output, "", "Failed preparation must not emit a verified main SHA.");
   }
 });
 
-test("the approval step, when the approval is refused, leaves the command in the summary and the PR body, then dispatches", () => {
-  const { result, calls, summary } = runApproval("refuse");
-  assert.equal(result.status, 0, result.stderr);
+test("the approval step, when the approval is refused, preserves recovery instructions and branch dispatch but fails closed", () => {
+  const { result, calls, summary, output } = runApproval("refuse");
+  assert.equal(result.status, 1, result.stderr);
   assert.match(result.stdout, /::warning::Could not approve the held CI run/);
+  assert.match(result.stdout, /::error::Main has not passed CI for v1\.2\.3; Pages will not deploy/);
   assert.match(summary, /gh api -X POST repos\/o\/r\/actions\/runs\/77\/approve/);
   const edit = calls.findIndex((c) => c.startsWith("pr edit prepare/after-v1.2.3 --body old body"));
   assert.notEqual(edit, -1);
   assert.match(calls[edit], /gh api -X POST repos\/o\/r\/actions\/runs\/77\/approve/);
   assert.ok(calls.findIndex((c) => c.startsWith("workflow run ci.yml --ref prepare/after-v1.2.3")) > edit);
+  assert.ok(!calls.some((c) => c.startsWith("pr merge") || c === "workflow run ci.yml --ref main"));
+  assert.equal(output, "", "Refused approval must not emit a verified main SHA.");
 });
 
-test("the approval step survives a failed dispatch and a failed first poll", () => {
+test("the approval step fails closed after a failed branch dispatch or refused approval following a failed first poll", () => {
   const failed = runApproval("nodispatch");
-  assert.equal(failed.result.status, 0, failed.result.stderr);
+  assert.equal(failed.result.status, 1, failed.result.stderr);
   assert.match(failed.result.stdout, /::warning::Could not dispatch CI/);
+  assert.match(failed.result.stdout, /::error::Main has not passed CI for v1\.2\.3; Pages will not deploy/);
   assert.match(failed.summary, /approve/);
+  assert.ok(failed.calls.some((c) => c.startsWith("pr edit") && c.includes("gh api -X POST repos/o/r/actions/runs/77/approve")));
   const flaky = runApproval("flaky");
-  assert.equal(flaky.result.status, 0, flaky.result.stderr);
+  assert.equal(flaky.result.status, 1, flaky.result.stderr);
   assert.equal(flaky.calls.filter((c) => c.startsWith("run list")).length, 2);
   assert.match(flaky.calls.join("\n"), /runs\/77\/approve/);
+  assert.match(flaky.result.stdout, /::error::Main has not passed CI for v1\.2\.3; Pages will not deploy/);
+  assert.match(flaky.summary, /gh api -X POST repos\/o\/r\/actions\/runs\/77\/approve/);
+  for (const { calls, output } of [failed, flaky]) {
+    assert.ok(!calls.some((c) => c.startsWith("pr merge") || c === "workflow run ci.yml --ref main"));
+    assert.equal(output, "", "Failed approval must not emit a verified main SHA.");
+  }
 });
 
 test("preparing main deletes the fragments the release used and keeps one added to main during the release", () => {
