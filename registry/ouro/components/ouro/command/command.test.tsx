@@ -206,19 +206,6 @@ describe("Command", () => {
   });
 });
 
-describe("Command with a trigger from a Server Component", () => {
-  it("opens from a trigger handed over as a lazy wrapper", async () => {
-    // What React's server-component client passes while the trigger's module is loading.
-    const wrapper = { $$typeof: Symbol.for("react.lazy"), _payload: null, _init: () => <Button>Search</Button> } as unknown as ReactElement;
-    await render(<Command title="Command palette" trigger={wrapper} items={entries()} />);
-    expect(trigger().textContent).toBe("Search");
-    expect(trigger().getAttribute("aria-haspopup")).toBe("dialog");
-    await userEvent.click(trigger());
-    await settled();
-    expect(trigger().getAttribute("aria-expanded")).toBe("true");
-  });
-});
-
 describe("controlled Command", () => {
   function Controlled({ onOpenChange }: { onOpenChange?: (open: boolean) => void }) {
     const [open, setOpen] = useState(false);

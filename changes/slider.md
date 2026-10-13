@@ -1,1 +1,0 @@
-- New: `Slider`, on the `Field` contract. It takes one value, or an array for a range with a thumb per value; it names each thumb after the label ("Minimum, Price", translated with `thumbLabels`), and shows the formatted value with `showValue`. Its thumbs keep a 44px hit area on touch screens, and a vertical finger drag over it scrolls the page.

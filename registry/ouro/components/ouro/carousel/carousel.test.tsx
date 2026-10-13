@@ -444,6 +444,31 @@ describe("Carousel settling", () => {
       await expect.poll(() => onIndexChange.mock.calls).toEqual([[1], [2], [3]]);
     });
   });
+
+  it("cancels a check that is waiting on its frames when a finger comes down", async () => {
+    await withoutScrollEnd(async () => {
+      const onIndexChange = vi.fn();
+      const screen = await render(
+        <Carousel label="Recipe photos" onIndexChange={onIndexChange}>
+          {photos()}
+        </Carousel>,
+      );
+      // Frames that never run, so the check after the pause starts and cannot finish. Without
+      // this the finger would have to land inside a two-frame window, which a test cannot time.
+      const frames = vi.spyOn(window, "requestAnimationFrame").mockReturnValue(7);
+      const cancel = vi.spyOn(window, "cancelAnimationFrame");
+      screen.viewport.scrollTo({ left: screen.slides[1]!.offsetLeft - screen.slides[0]!.offsetLeft, behavior: "instant" });
+      await expect.poll(() => frames.mock.calls.length).toBeGreaterThan(0);
+      touch(screen.viewport, "touchstart", 1);
+      expect(cancel).toHaveBeenCalledWith(7);
+      expect(onIndexChange).not.toHaveBeenCalled();
+      frames.mockRestore();
+      cancel.mockRestore();
+      // The finger lifts: the pause starts again and the scroll settles.
+      touch(screen.viewport, "touchend", 0);
+      await expect.poll(() => onIndexChange.mock.calls).toEqual([[1]]);
+    });
+  });
 });
 
 describe("Carousel settling without scrollend", () => {
