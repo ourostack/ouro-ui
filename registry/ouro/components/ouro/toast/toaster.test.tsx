@@ -729,6 +729,34 @@ describe("swiping", () => {
     await gone("Flicked");
   });
 
+  it("comes back when the pointer turns round and flicks it home, though it is far out", async () => {
+    await render(<Toaster />);
+    const item = await show("Changed my mind", { duration: 0 });
+    const rect = item.getBoundingClientRect();
+    const x = rect.left + 60;
+    const y = rect.top + rect.height / 2;
+    // Events with the times the test gives them, so the release velocity is exact on any machine.
+    const start = performance.now();
+    const send = (type: string, dx: number, at: number) => {
+      const event = new PointerEvent(type, { bubbles: true, isPrimary: true, button: 0, pointerId: 41, pointerType: "touch", clientX: x + dx, clientY: y });
+      Object.defineProperty(event, "timeStamp", { value: start + at });
+      item.querySelector("[data-ouro-toast-title]")!.dispatchEvent(event);
+    };
+    send("pointerdown", 0, 0);
+    send("pointermove", 12, 16);
+    send("pointermove", 60, 32);
+    send("pointermove", 120, 48);
+    expect(getComputedStyle(item).translate).toBe("120px");
+    // It rests, then goes back toward rest fast, and is let go while still 70px out.
+    send("pointermove", 120, 400);
+    send("pointermove", 100, 416);
+    send("pointermove", 70, 432);
+    send("pointerup", 70, 440);
+    expect(item.hasAttribute("data-ouro-swiped")).toBe(false);
+    await expect.poll(() => !item.hasAttribute("data-ouro-settling") && item.style.translate === "").toBe(true);
+    expect(showing("Changed my mind")).toBe(true);
+  });
+
   chromiumOnly("does not start a swipe from the dismiss button", async () => {
     await render(<Toaster />);
     const item = await show("Button", { duration: 0 });

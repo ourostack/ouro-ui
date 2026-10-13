@@ -247,8 +247,8 @@ function ToastItem({ item, closeLabel }: { item: ToastObject; closeLabel: string
 const NO_SWIPE: [] = [];
 /** How far, in px, a toast let go without a flick must be from rest to leave. */
 const AWAY = 40;
-/** A press on one of these never starts a swipe: the action, the dismiss button, a link in the message. */
-const CONTROLS = "button,a";
+/** A press on one of these never starts a swipe: the action, the dismiss button, a link or a control in the message. The list Base UI's swipe used. */
+const CONTROLS = 'button,a,input,textarea,[role="button"]';
 
 type Axis = "x" | "y";
 

@@ -253,6 +253,8 @@ describe("the swipe follows the finger (rule 12)", () => {
     // The exit is a spring: with frames held it stands where it was let go until the test steps.
     const frames = holdFrames();
     cleanups.push(() => frames.release());
+    // A long fade, so the toast is still on the page, however slow the machine, for the finger that comes next.
+    item.style.transitionDuration = "20s";
     try {
       await dragTo(from, [[-12, 0], [-30, 0], [-50, 0]]);
       await expect.poll(() => shift(item).x).toBe(-50);
@@ -275,25 +277,8 @@ describe("the swipe follows the finger (rule 12)", () => {
     expect(shift(item).x).toBeLessThan(leaving);
     await commands.touchStep({ type: "touchEnd" });
     frames.release();
+    for (const animation of item.getAnimations()) animation.finish();
     await expect.poll(() => toastNamed("Far")).toBeUndefined();
-  });
-
-  it("comes back when the finger turns round and flicks it home, though it is far out", async () => {
-    await renderToaster();
-    const item = await show("Changed my mind", { duration: 0 });
-    const from = grip(item);
-    try {
-      await dragTo(from, [[12, 0], [60, 0], [120, 0]]);
-      await expect.poll(() => shift(item).x).toBe(120);
-      await restFinger();
-      // Back toward rest, fast, and off the screen while still 70px out.
-      await dragTo(from, [[100, 0], [70, 0]], false);
-    } finally {
-      await commands.touchStep({ type: "touchEnd" });
-    }
-    expect(item.hasAttribute("data-ouro-swiped")).toBe(false);
-    await atRest(item);
-    expect(toastNamed("Changed my mind")).toBe(item);
   });
 
   it("settles from where it was let go, and can be caught again on the way", async () => {
