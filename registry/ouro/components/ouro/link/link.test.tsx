@@ -4,6 +4,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page } from "vitest/browser";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
+import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -145,6 +146,44 @@ describe("Link", () => {
     );
     expect(getComputedStyle(link).marginInlineStart).toBe("8px");
     expect(getComputedStyle(link).display).toBe("inline-block");
+  });
+});
+
+describe("Link in running text", () => {
+  it("is inline inside a Text and stands alone outside one, unless it says otherwise", async () => {
+    const { host } = await render(
+      <>
+        <Link href="/a">Alone</Link>
+        <Text>
+          Read the <Link href="/b">terms</Link> first.
+        </Text>
+        <Text>
+          <Link href="/c" inline={false}>
+            Forgot password?
+          </Link>
+        </Text>
+        <Link href="/d" inline>
+          Marked inline
+        </Link>
+      </>,
+    );
+    const links = [...host.querySelectorAll<HTMLElement>('[data-ouro="link"]')];
+    expect(links.map((link) => link.hasAttribute("data-inline"))).toEqual([false, true, false, true]);
+    expect(links.map((link) => link.querySelector("[data-ouro-touch-target]") !== null)).toEqual([true, false, true, false]);
+    // The hit area is hidden text-wise and takes no room with a mouse.
+    expect(getComputedStyle(links[0]!.querySelector("[data-ouro-touch-target]")!).display).toBe("none");
+    expect(links[0]!.textContent).toBe("Alone");
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("still passes an app's ref to the anchor", async () => {
+    const ref = { current: null as HTMLAnchorElement | null };
+    const { link } = await render(
+      <Link href="/a" ref={ref}>
+        One
+      </Link>,
+    );
+    expect(ref.current).toBe(link);
   });
 });
 

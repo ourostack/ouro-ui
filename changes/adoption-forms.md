@@ -12,3 +12,4 @@
 - TextArea: `autoGrow` no longer reports "ResizeObserver loop completed with undelivered notifications" on the window when its width changes; it refits in the next frame.
 - Sheet: the viewport is `overflow-clip`, so focusing or scrolling a control into view while a sheet is closing or dragged can no longer scroll the sheet off its edge.
 - Test kit: `commands.emulateMedia` accepts `forcedColors: "active" | "none"`.
+- Link: on a touch screen a link that stands alone ("Forgot password?") has a touch area at least 44px tall and wide, centered on its text, with no change to its box or line height. A Link inside a `Text` keeps to its line so it takes no tap from a link on the next line; the new `inline` prop says the same anywhere else, and `inline={false}` extends a link that is alone in its `Text`.

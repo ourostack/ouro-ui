@@ -242,6 +242,11 @@
           "target": "@lib/ouro/router-link.ts"
         },
         {
+          "path": "registry/ouro/lib/ouro/running-text.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/running-text.ts"
+        },
+        {
           "path": "registry/ouro/lib/ouro/server-element.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/server-element.ts"
@@ -2603,6 +2608,11 @@
           "path": "registry/ouro/components/ouro/link/link.test.tsx",
           "type": "registry:component",
           "target": "@components/ouro/link/link.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/link/link.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/link/link.touch.test.tsx"
         },
         {
           "path": "registry/ouro/e2e/ouro/link.spec.ts",
