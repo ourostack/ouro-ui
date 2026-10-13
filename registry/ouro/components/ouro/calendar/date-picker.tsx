@@ -20,7 +20,7 @@ import {
 import { endSlotClass, groupClass, inputClass } from "@/registry/ouro/components/ouro/text-field/text-field-styles";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { FieldOwnerContext } from "@/registry/ouro/lib/ouro/use-field";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
 
 /** Props for {@link DatePicker}. */

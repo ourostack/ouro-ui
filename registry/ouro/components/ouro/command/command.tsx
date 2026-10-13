@@ -10,7 +10,7 @@ import { ariaKeyShortcuts } from "@/registry/ouro/lib/ouro/key-shortcuts";
 import { checkOpenMode } from "@/registry/ouro/lib/ouro/open-mode";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { serverElement } from "@/registry/ouro/lib/ouro/server-element";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useSheetPresentation } from "@/registry/ouro/lib/ouro/use-sheet-presentation";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
 import { SheetFrame } from "@/registry/ouro/components/ouro/sheet/sheet";

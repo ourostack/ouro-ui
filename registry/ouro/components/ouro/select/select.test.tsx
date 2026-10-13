@@ -196,6 +196,21 @@ describe("Select", () => {
     expect(hidden("courses")).toEqual(["starter", "main"]);
   });
 
+  it("posts one entry per chosen value under its name with multiple, for formData.getAll", async () => {
+    const { host, trigger } = await render(
+      <form>
+        <Select label="Courses" name="courses" multiple options={courses} />
+      </form>,
+    );
+    const posted = () => new FormData(host.querySelector("form")!).getAll("courses");
+    // Nothing chosen posts no entry, so the server reads an empty list.
+    expect(posted()).toEqual([]);
+    await open(trigger);
+    await userEvent.click(option("Main"));
+    await userEvent.click(option("Starter"));
+    expect(posted()).toEqual(["main", "starter"]);
+  });
+
   it("follows a controlled value", async () => {
     function Controlled() {
       const [value, setValue] = useState<string | null>("main");
@@ -246,7 +261,9 @@ describe("Select", () => {
   });
 
   it("is disabled and read-only on request", async () => {
-    const { trigger, rerender } = await render(<Select label="Course" options={courses} disabled />);
+    // The same defaultValue in both renders: changing it on an uncontrolled Select makes Base UI
+    // log a development message, and test output stays clean.
+    const { trigger, rerender } = await render(<Select label="Course" options={courses} disabled defaultValue="main" />);
     expect(trigger.hasAttribute("data-disabled")).toBe(true);
     await userEvent.click(trigger, { force: true });
     expect(popup()?.hasAttribute("data-open") ?? false).toBe(false);

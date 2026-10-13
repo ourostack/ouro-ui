@@ -152,7 +152,8 @@ test("release.yml advises deleting a tag only when GitHub says its release was n
 
 // Runs the approval part of "Prepare main for the next release" against a stand-in gh and git.
 // MODE: ok (approve works), refuse (approve fails), flaky (the first `run list` fails, then works),
-// nodispatch (approve fails and so does the dispatch).
+// nodispatch (approve fails and so does the dispatch), redci (approve works, the run fails),
+// nomerge (approve works, the run passes, the merge is refused).
 const runApproval = (mode) => {
   const body = step("Prepare main for the next release").body;
   const from = body.indexOf("          sha=$(git rev-parse HEAD)");
@@ -167,7 +168,9 @@ const runApproval = (mode) => {
 all="$*"; printf '%s\\n' "\${all//$'\\n'/ }" >> "${log}"
 case "$1 $2" in
   "run list") if [ "$MODE" = flaky ] && [ ! -e "${dir}/once" ]; then : > "${dir}/once"; exit 1; fi; echo 77 ;;
-  "api -X") [ "$MODE" = ok ] || exit 1 ;;
+  "api -X") [ "$MODE" = ok ] || [ "$MODE" = redci ] || [ "$MODE" = nomerge ] || exit 1 ;;
+  "run watch") [ "$MODE" = redci ] && exit 1 ;;
+  "pr merge") [ "$MODE" = nomerge ] && exit 1 ;;
   "pr view") echo "old body" ;;
   "workflow run") [ "$MODE" = nodispatch ] && exit 1 ;;
 esac
@@ -185,12 +188,27 @@ exit 0
   return { result, calls: readFileSync(log, "utf8").trim().split("\n"), summary: readFileSync(summary, "utf8") };
 };
 
-test("the approval step approves the held run and does nothing else when GitHub allows it", () => {
+test("the approval step approves the held run, merges the pull request when it passes and runs CI on main", () => {
   const { result, calls, summary } = runApproval("ok");
   assert.equal(result.status, 0, result.stderr);
-  assert.ok(calls.some((c) => c === "api -X POST repos/o/r/actions/runs/77/approve"));
-  assert.ok(!calls.some((c) => c.startsWith("workflow run") || c.startsWith("pr edit")));
+  const at = (start) => calls.findIndex((c) => c.startsWith(start));
+  assert.ok(at("api -X POST repos/o/r/actions/runs/77/approve") !== -1);
+  assert.ok(at("run watch 77 --exit-status") > at("api -X POST"));
+  assert.ok(at("pr merge prepare/after-v1.2.3 --squash --delete-branch") > at("run watch 77"));
+  assert.ok(at("workflow run ci.yml --ref main") > at("pr merge"));
+  assert.ok(!calls.some((c) => c.startsWith("pr edit")));
   assert.match(summary, /Approved CI run 77/);
+  assert.match(summary, /Merged "Prepare main for the next release"/);
+});
+
+test("the approval step never merges a pull request whose CI failed, and says what a refused merge leaves", () => {
+  for (const mode of ["redci", "nomerge"]) {
+    const { result, calls } = runApproval(mode);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(calls.some((c) => c.startsWith("pr merge")), mode === "nomerge");
+    assert.ok(!calls.some((c) => c.startsWith("workflow run")), "no CI on main without a merge");
+    assert.match(result.stdout, /::warning::Could not merge "Prepare main for the next release"\. Merge it by hand/);
+  }
 });
 
 test("the approval step, when the approval is refused, leaves the command in the summary and the PR body, then dispatches", () => {

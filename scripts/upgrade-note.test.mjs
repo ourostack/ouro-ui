@@ -96,8 +96,8 @@ test("the commands delete only paths Ouro owns and uninstall nothing", () => {
 test("localCommand points the note's addresses at a local registry and pins the CLI", () => {
   const options = { shadcn: "npx --yes shadcn@4.21.1", address: "/tmp/r/{name}.json" };
   assert.equal(
-    localCommand("x; npx shadcn@latest add ourostack/ouro-ui/dialog#{{latestRelease}} ourostack/ouro-ui/ouro-lib-tests#{{latestRelease}} --overwrite", options),
-    "x; npx --yes shadcn@4.21.1 add --yes /tmp/r/dialog.json /tmp/r/ouro-lib-tests.json --overwrite",
+    localCommand("x; npx shadcn@latest add ourostack/ouro-ui/dialog#{{latestRelease}} ourostack/ouro-ui/ouro-base#{{latestRelease}} --overwrite", options),
+    "x; npx --yes shadcn@4.21.1 add --yes /tmp/r/dialog.json /tmp/r/ouro-base.json --overwrite",
   );
   assert.equal(localCommand("npx shadcn@latest info --json | node", options), "npx --yes shadcn@4.21.1 info --json | node");
   assert.equal(
@@ -155,7 +155,7 @@ for (const shell of shells) {
     const items = args.filter((arg) => arg.startsWith("ourostack/")).sort();
     assert.deepEqual(
       items,
-      ["button", "button-tests", "confirm-dialog", "confirm-dialog-tests", "dialog", "dialog-tests", "ouro-lib-tests"].map((name) => `ourostack/ouro-ui/${name}#{{latestRelease}}`),
+      ["button", "button-tests", "confirm-dialog", "confirm-dialog-tests", "dialog", "dialog-tests", "ouro-base"].map((name) => `ourostack/ouro-ui/${name}#{{latestRelease}}`),
     );
     assert.ok(args.includes("--overwrite"));
     // One line in both shells: zsh does not split an unquoted $items.
@@ -232,9 +232,10 @@ test("the note says what changed by version, for an app that reads only this not
 test("step 0 warns that add rewrites the Tailwind CSS file and package.json, and step 1 explains shadcn's Skipped message", () => {
   const step0 = note.slice(note.indexOf("#### 0."), note.indexOf("#### 1."));
   assert.match(step0, /@custom-variant dark \(&:is\(\.dark \*\)\);/);
-  assert.match(step0, /Keep only the new `--ouro-\*` lines and step 2's deletions/);
+  assert.match(step0, /Keep the new lines and step 2's deletions, and revert the rest/);
   const step1 = note.slice(note.indexOf("#### 1."), note.indexOf("#### 2."));
   assert.match(step1, /Skipped N files: \(files might be identical, use --overwrite to overwrite\)/);
+  assert.match(step1, /name Vitest, Storybook and Playwright without a version/);
   assert.match(step1, /restore every test-tool version you had pinned \(`git diff package\.json`\): Vitest and its companions, Playwright and Storybook/);
 });
 

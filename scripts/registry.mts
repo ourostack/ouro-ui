@@ -16,13 +16,26 @@
 //
 // shadcn's CLI reads registry.json but has no way to make one: this script fills the
 // gaps. Each component is two items: <name> ships the runtime source only, and the opt-in
-// <name>-tests ships its tests, type tests, stories and end-to-end spec with the test
-// tooling as devDependencies (ouro-lib-tests does the same for lib/ouro, and ouro-tests
-// installs them all). It derives each item's files and targets from the folder layout, its
-// registryDependencies and npm dependencies from the imports, its versions from this
-// repository's package.json (the versions the tests ran against), the theme items'
-// cssVars and css from registry/ouro/theme/*.css, and each description and docs
-// message from the generated docs/<Component>.md.
+// <name>-tests ships its tests, type tests, stories and end-to-end spec and names the test
+// tooling as devDependencies. Each helper in lib/ouro is an item of its own (lib-<stem>, with
+// lib-<stem>-tests when it has tests), so a component installs only the helpers it imports;
+// ouro-lib and ouro-lib-tests install them all, and ouro-tests every -tests item. It derives
+// each item's files and targets from the folder layout, its registryDependencies and npm
+// dependencies from the imports, its runtime versions from this repository's package.json
+// (the versions the tests ran against), the theme items' cssVars and css from
+// registry/ouro/theme/*.css, and each description and docs message from the generated
+// docs/<Component>.md.
+//
+// Two rules keep an add from undoing an app's setup (scripts/registry.test.mjs):
+// - Only ouro-base and ouro-theme carry cssVars or css, and no item depends on them. The CLI
+//   rewrites the whole stylesheet (adds @custom-variant dark, re-adds missing defaults,
+//   collapses blank lines, drops the final newline) whenever any item it resolves has either,
+//   and leaves the file alone otherwise, so an app adds ouro-base once and later adds never
+//   touch its stylesheet.
+// - Test tooling is named without a version. The CLI skips a version-less package the app
+//   already has, in any section of package.json, and hands every versioned one to the package
+//   manager on every add, which rewrites the app's range. The minimum versions are in each
+//   item's meta.requires and in the ouro-testing message.
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -37,7 +50,7 @@ const DOCS_URL = "https://ourostack.github.io/ouro-ui/docs";
 const components = readComponents();
 
 /** Registry files that test this repository itself and never ship. */
-const repoOnly = new Set(["registry/ouro/theme/theme.test.tsx"]);
+const repoOnly = new Set(["registry/ouro/theme/theme.test.tsx", "registry/ouro/e2e/ouro-fixtures.ts"]);
 
 /** Packages every app already has. */
 const appPackages = new Set(["react", "react-dom"]);
@@ -80,27 +93,52 @@ export const testingSetup: Record<string, string> = {
     "});",
     "",
   ].join("\n"),
+  "e2e/ouro-fixtures.ts": [
+    'export { expect, test } from "@playwright/test";',
+    "",
+    "// Ouro UI's specs (e2e/ouro) take test and expect from this file. It is yours: export your",
+    "// own fixtures here to run them with your setup. No Ouro UI item ships or overwrites it.",
+    "",
+  ].join("\n"),
 };
 
 /**
- * What a -tests item does to an app's Vitest. The CLI installs each devDependency's range
- * with the app's package manager, which picks the newest matching version, so a wider
- * range (`^4.1.0 || ^5.0.0`) would still move a Vitest 4 app to 5.
+ * The oldest test tooling the shipped tests are known to run on: the stack of the first app
+ * that ran them on Vitest 4 (Spoonjoy, with the two changes docs/guides/testing.md gives).
+ * This repository's CI runs the versions in package.json. A -tests item names each package
+ * without a version (see the header), and states these as ranges in meta.requires.
  */
-const vitestPin =
-  "It sets vitest to ^5, the version its tests are verified on; an app pinned to Vitest 4 keeps its pin by not adding the -tests items, which no component needs.";
+export const toolingMinimum: Record<string, string> = {
+  vitest: "4.1.11",
+  "@vitest/browser-playwright": "4.1.11",
+  playwright: "1.58.1",
+  "@playwright/test": "1.58.1",
+  storybook: "10.2.10",
+  "@storybook/react-vite": "10.2.10",
+};
 
-function testingDocs(): string {
+/** What a -tests item does to an app's package.json. */
+const toolingNote =
+  "It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.";
+
+const TESTING_URL = `${DOCS_URL}/testing.md`;
+const INSTALLING_URL = `${DOCS_URL}/installing.md`;
+
+function testingDocs(tested: Record<string, string>): string {
   const file = (path: string) => `--- ${path}\n${testingSetup[path]}`;
+  const ran = (name: string) => tested[name]!.replace(/^\^/, "");
   return [
+    `Needs Vitest ${toolingMinimum["vitest"]} or later in browser mode (@vitest/browser-playwright), Playwright ${toolingMinimum["playwright"]} or later and, for the stories and specs, Storybook ${toolingMinimum["storybook"]} or later. Ouro UI's CI runs Vitest ${ran("vitest")}, Playwright ${ran("playwright")} and Storybook ${ran("storybook")}; on Vitest 4, read "Vitest 4" in ${TESTING_URL} first. No item sets a version: the CLI installs a package only when your app lacks it.`,
     "The -tests items install Ouro UI's tests beside each component. To run the Vitest browser tests, add vitest.config.ts (use your components.json tailwind.css path for css), then run npx playwright install chromium webkit and npx vitest run:",
     file("vitest.config.ts"),
     "The end-to-end specs in e2e/ouro open the Ouro stories in a Storybook. If your app has none, add these two files (use your stylesheet in preview.ts):",
     file(".storybook/main.ts") + file(".storybook/preview.ts"),
     "If your app has no Playwright config, add this one, which starts that Storybook and runs Chromium and WebKit:",
     file("playwright.config.ts"),
+    "The specs take test and expect from e2e/ouro-fixtures.ts, a file of yours that no item ships, so no add overwrites it. Add it once; export your own fixtures from it to run the specs with your setup:",
+    file("e2e/ouro-fixtures.ts"),
     "Then run npx playwright test e2e/ouro. With a Playwright config of your own, start Storybook with npx storybook dev -p 6006 and run OURO_E2E_URL=http://localhost:6006 npx playwright test e2e/ouro.",
-    `Docs: ${DOCS_URL}`,
+    `Docs: ${TESTING_URL}`,
   ].join("\n");
 }
 
@@ -110,29 +148,30 @@ const foundation = [
     title: "Ouro base",
     css: "registry/ouro/theme/ouro-base.css",
     description:
-      "Installed with every component; you don't need to add it. What every Ouro UI component needs in the app's CSS: success and warning colors, a destructive foreground, the motion tokens, the press utility, the keyframes for spinners, progress bars and skeletons, and --ouro-layer, the z-index of sheets and dialogs (50; raise it in a :root rule of your own if your app has fixed bars above z-50).",
-    docs: "Ouro UI's base tokens are in your CSS. Your theme's values win: edit them like any shadcn variable.",
+      "Add it once per app, before your first component; no component installs it, so later adds never touch your stylesheet. What every Ouro UI component needs in the app's CSS: success and warning colors, a destructive foreground, the field border color (--input) and --radius when your theme has none, the motion tokens, the press utility, the keyframes for spinners, progress bars and skeletons, and --ouro-layer, the z-index of sheets and dialogs (50; raise it in a :root rule of your own if your app has fixed bars above z-50).",
+    docs: `Ouro UI's base tokens are in your CSS. Your theme's values win: a variable you already had keeps its value, and you edit the new ones like any shadcn variable. This add rewrote your stylesheet's spacing once (shadcn does that for any item with CSS); no component add touches it again. Docs: ${INSTALLING_URL}`,
   },
   {
     name: "ouro-theme",
     title: "Ouro theme",
     css: "registry/ouro/theme/ouro-theme.css",
     description: "Ouro UI's own look, as a shadcn theme for :root and .dark. Skip it to keep your app's theme.",
-    docs: `The Ouro theme replaced your theme's colors in :root and .dark. Docs: ${DOCS_URL}`,
+    docs: `The Ouro theme replaced your theme's colors in :root and .dark. Docs: ${INSTALLING_URL}`,
   },
   {
     name: "ouro-lib",
     title: "Ouro lib",
     description:
-      "Installed with every component; you don't need to add it. Shared helpers every Ouro UI component uses, in lib/ouro: cn, dev messages, the className check, announce, toast, OuroProvider and hooks.",
-    docs: `Ouro UI's helpers are in lib/ouro. OuroProvider is optional; it routes internal hrefs through your router's link. Docs: ${DOCS_URL}`,
+      "Every helper in lib/ouro in one item. You don't need to add it: each component installs only the helpers it imports (the lib-<name> items).",
+    docs: `Every Ouro UI helper is in lib/ouro. OuroProvider is optional; it routes internal hrefs through your router's link. Docs: ${INSTALLING_URL}`,
   },
   {
     name: "ouro-testing",
     title: "Ouro testing",
     description:
       "Installed with every -tests item; you don't need to add it. The test kit Ouro UI's tests use: Vitest browser projects with the drag, flick, tap, touchDrag, touchStep, pointerPress, emulateMedia, pageZoom, resetPageZoom, setPageZoom and restoreTouch commands, the rotate helper (which turns the phone viewport and resets Chromium's zoom; the ouro-touch project fails a test that leaves the page zoomed), the act helper, the holdFrames helper (which holds animation frames and the clock still so a test steps a spring itself), axeExclude, and the end-to-end story helper.",
-    docs: testingDocs(),
+    // Completed in buildRegistry, which knows the versions CI runs.
+    docs: "",
   },
 ];
 
@@ -153,10 +192,13 @@ export interface RegistryItem {
   type: string;
   title: string;
   description: string;
-  docs: string;
+  /** What the CLI prints after an add. The helper items (lib-*) have none, so an add prints one line per component, not one per helper. */
+  docs?: string;
   dependencies?: string[];
   devDependencies?: string[];
   registryDependencies?: string[];
+  /** requires: the oldest version of each devDependency the item's files run on, as ranges. */
+  meta?: { requires: Record<string, string> };
   files?: RegistryFile[];
   cssVars?: CssVars;
   css?: CssTree;
@@ -190,6 +232,12 @@ function fileKinds(paths: string[]): string {
 
 const devFile = /\.(test|touch\.test)\.tsx?$|\.test-d\.ts$|\.stories\.tsx$|\.spec\.ts$/;
 
+/** The item that ships a lib/ouro file: lib-<stem>, or lib-<stem>-tests for the helper's tests. */
+function libItem(file: string): string {
+  const stem = file.replace(/(\.touch)?\.test\.tsx?$|\.d\.ts$|\.tsx?$/, "");
+  return devFile.test(file) ? `lib-${stem}-tests` : `lib-${stem}`;
+}
+
 /** The item that ships a registry file, or null for a repository-only file. Throws for a file no item claims. */
 export function itemForFile(path: string): string | null {
   if (repoOnly.has(path)) return null;
@@ -200,7 +248,7 @@ export function itemForFile(path: string): string | null {
   } else if (path.startsWith(testingDir) || path === `${e2eDir}story.ts`) {
     return "ouro-testing";
   } else if (path.startsWith(libDir) && !path.slice(libDir.length).includes("/")) {
-    return devFile.test(file) ? "ouro-lib-tests" : "ouro-lib";
+    return libItem(file);
   } else if (path.startsWith(e2eDir)) {
     const stem = file.replace(/\.spec\.ts$/, "");
     const component = components.find((entry) => entry.stem === stem);
@@ -331,12 +379,24 @@ export function buildRegistry(root: string): Registry {
   const shipped = (name: string) => all.filter((file) => owner.get(file) === name && !file.endsWith(".css"));
 
   const items: RegistryItem[] = [];
+  // One item per helper in lib/ouro, and one for its tests when it has any.
+  const libNames = [...new Set(all.map((file) => owner.get(file)).filter((name): name is string => Boolean(name?.startsWith("lib-"))))].sort();
+  const libs = libNames.filter((name) => !name.endsWith("-tests"));
+  const libFile = (name: string) => shipped(name)[0]!.slice(libDir.length);
   const testsItems = [
-    { name: "ouro-lib-tests", title: "Ouro lib tests", of: "ouro-lib", docsPage: "" },
-    ...components.map((entry) => ({ name: `${entry.name}-tests`, title: `${entry.title} tests`, of: entry.name, docsPage: `/${entry.name}` })),
+    ...libNames.filter((name) => name.endsWith("-tests")).map((name) => ({ name, title: `${name.slice(0, -6)} tests`, of: name.slice(0, -6) })),
+    ...components.map((entry) => ({ name: `${entry.name}-tests`, title: `${entry.title} tests`, of: entry.name })),
   ];
+  const libTests = testsItems.filter((entry) => entry.name.startsWith("lib-")).map((entry) => entry.name);
   const entries = [
-    ...foundation.map((entry) => ({ ...entry, kind: "foundation" as const })),
+    ...foundation.map((entry) => ({ ...entry, kind: "foundation" as const, ...(entry.name === "ouro-testing" ? { docs: testingDocs(tested) } : {}) })),
+    ...libs.map((name) => ({
+      name,
+      title: name,
+      kind: "lib" as const,
+      description: `Installed with the components that import it; you don't need to add it. The helper lib/ouro/${libFile(name)}.`,
+      docs: undefined as string | undefined,
+    })),
     ...components.map((entry) => ({
       ...entry,
       kind: "component" as const,
@@ -348,18 +408,32 @@ export function buildRegistry(root: string): Registry {
       ...entry,
       kind: "tests" as const,
       // Says what the item ships, by the kinds of file it has (ouro-lib-tests has only tests).
-      description: `Optional: the ${fileKinds(shipped(entry.name))} for ${entry.of}, with the test tooling as devDependencies. Add it beside ${entry.of}: add ${entry.of} ${entry.name}. ${vitestPin}`,
-      docs: `${entry.of}'s tests, stories and specs are installed beside it. The ouro-testing message says how to run them. Docs: ${DOCS_URL}${entry.docsPage ? `${entry.docsPage}.md` : ""}`,
+      description: `Optional: the ${fileKinds(shipped(entry.name))} for ${entry.of}, and the tests of everything ${entry.of} installs, so the installed files reach 100% coverage. Add it beside ${entry.of}: add ${entry.of} ${entry.name}. ${toolingNote}`,
+      docs: entry.name.startsWith("lib-")
+        ? undefined
+        : `${entry.of}'s tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: ${TESTING_URL}`,
     })),
+    {
+      name: "ouro-lib-tests",
+      title: "Ouro lib tests",
+      kind: "aggregate" as const,
+      description: `Optional: the tests of every helper in lib/ouro, with ouro-lib. You don't need to add it: each -tests item installs the tests of the helpers its component imports. ${toolingNote}`,
+      docs: `Every Ouro UI helper and its tests are installed. The ouro-testing message says how to run them. Docs: ${TESTING_URL}`,
+    },
     {
       name: "ouro-tests",
       title: "Ouro tests",
       kind: "aggregate" as const,
       description:
-        `Optional: every Ouro UI component with its tests, type tests, stories and Playwright spec, and the test kit. The whole suite in one command. ${vitestPin}`,
-      docs: `Every Ouro UI component and its tests are installed. The ouro-testing message says how to run them. Docs: ${DOCS_URL}`,
+        `Optional: every Ouro UI component with its tests, type tests, stories and Playwright spec, and the test kit. The whole suite in one command. ${toolingNote}`,
+      docs: `Every Ouro UI component and its tests are installed. The ouro-testing message says how to run them. Docs: ${TESTING_URL}`,
     },
   ];
+  const aggregates: Record<string, string[]> = {
+    "ouro-lib": libs,
+    "ouro-lib-tests": ["ouro-lib", ...libTests],
+    "ouro-tests": testsItems.map((tests) => tests.name),
+  };
   for (const entry of entries) {
     const item: RegistryItem = {
       name: entry.name,
@@ -376,23 +450,18 @@ export function buildRegistry(root: string): Registry {
               : "registry:lib",
       title: entry.title,
       description: entry.description,
-      docs: entry.docs,
+      ...(entry.docs === undefined ? {} : { docs: entry.docs }),
     };
     const paths = shipped(entry.name);
     const runtime = new Set<string>();
     const dev = new Set<string>();
-    const registryDeps = new Set<string>(
-      entry.kind === "component"
-        ? ["ouro-base"]
-        : entry.kind === "tests"
-          ? [entry.of, "ouro-testing"]
-          : entry.kind === "aggregate"
-            ? testsItems.map((tests) => tests.name)
-            : [],
-    );
+    // No item depends on ouro-base or ouro-theme (see the header): an app adds ouro-base once.
+    const registryDeps = new Set<string>(entry.kind === "tests" ? [entry.of, "ouro-testing"] : (aggregates[entry.name] ?? []));
     for (const path of paths) {
       const source = readFileSync(join(root, path), "utf8");
       const isDev = entry.name === "ouro-testing" || entry.kind === "tests";
+      // env.d.ts declares process.env.NODE_ENV for apps without @types/node; nothing imports it.
+      if (!isDev && entry.name !== "lib-env" && /\bprocess\.env\b/.test(source)) registryDeps.add("lib-env");
       for (const specifier of importsOf(source)) {
         if (specifier.startsWith("@/")) {
           if (path.startsWith(e2eDir)) throw new Error(`${path}: e2e files ship as registry:file, which the CLI does not rewrite; use relative imports.`);
@@ -407,12 +476,15 @@ export function buildRegistry(root: string): Registry {
       }
     }
     const dependencies = [...runtime].sort().map(pin);
-    const devDependencies = [...dev].filter((name) => !runtime.has(name)).sort().map(pin);
+    // devDependencies go without a version (see the header); meta.requires states the minimum.
+    const devDependencies = [...dev].filter((name) => !runtime.has(name)).sort();
+    devDependencies.forEach(pin);
     if (dependencies.length > 0) item.dependencies = dependencies;
     if (devDependencies.length > 0) item.devDependencies = devDependencies;
     if (registryDeps.size > 0) item.registryDependencies = [...registryDeps].sort().map((name) => `${REPO}/${name}`);
     if (paths.length > 0) item.files = paths.map(fileEntry);
     if ("css" in entry && entry.css) Object.assign(item, cssToItem(readFileSync(join(root, entry.css), "utf8")));
+    else if (item.cssVars || item.css) throw new Error(`${entry.name} carries CSS; only the theme items may.`);
     if (entry.kind !== "tests" && entry.kind !== "aggregate" && entry.name !== "ouro-testing") {
       const tooling = [...runtime, ...dev].filter((name) => testTooling.test(name)).sort();
       if (tooling.length > 0) {
@@ -440,7 +512,7 @@ export function buildRegistry(root: string): Registry {
   // `devDependencies`, so a production install (`npm ci --omit=dev`) would lose it. A test
   // item therefore never lists a package as a devDependency that a runtime item needs: one
   // its registry dependencies already install is dropped, and any other is a dependency.
-  const packageOf = (spec: string) => spec.slice(0, spec.indexOf("@", 1));
+  const packageOf = (spec: string) => (spec.indexOf("@", 1) === -1 ? spec : spec.slice(0, spec.indexOf("@", 1)));
   const runtimePackages = new Set(
     items.filter((item) => !item.name.endsWith("-tests") && item.name !== "ouro-testing").flatMap((item) => (item.dependencies ?? []).map(packageOf)),
   );
@@ -455,13 +527,35 @@ export function buildRegistry(root: string): Registry {
     if (devDependencies.length > 0) item.devDependencies = devDependencies;
     else delete item.devDependencies;
   }
+  // The oldest tooling each item's files run on, as ranges; the packages themselves carry no version.
+  for (const item of items) {
+    if (!item.devDependencies) continue;
+    const requires: Record<string, string> = {};
+    for (const name of item.devDependencies.map(packageOf)) {
+      // Test tooling has a known oldest stack; any other package (axe-core) is as tested here.
+      requires[name] = `>=${toolingMinimum[name] ?? pin(name).slice(name.length + 2)}`;
+    }
+    item.meta = { requires };
+  }
+  // A -tests item installs the tests of every item it installs, so a subset installed with its
+  // tests covers every file it brought: link-tests brings text (its stories import it), so it
+  // brings text-tests too. A helper without tests of its own breaks no chain: the closure is
+  // taken over everything the item installs.
+  const hasTests = new Set(testsItems.map((tests) => tests.name));
+  for (const tests of testsItems) {
+    const item = byName.get(tests.name)!;
+    const more = [...installedWith(tests.name)].filter((name) => hasTests.has(`${name}-tests`) && `${name}-tests` !== tests.name).map((name) => `${prefix}${name}-tests`);
+    item.registryDependencies = [...new Set([...(item.registryDependencies ?? []), ...more])].sort();
+  }
   for (const entry of components) {
     const item = byName.get(entry.name)!;
-    const also = [...installedWith(entry.name)].sort().join(", ");
+    // The components it brought by name; the helpers as one phrase, not a line of lib-* names.
+    const others = [...installedWith(entry.name)].filter((name) => !name.startsWith("lib-")).sort();
+    const also = [...others, `the helpers ${others.length > 0 ? "they import" : "it imports"} in lib/ouro`].join(", ");
     item.docs =
       `${item.description} Import: import { ${entry.title} } from "@/components/ouro/${entry.folder}/${entry.stem}", ` +
       "with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). " +
-      `Also installed: ${also}. Docs: ${DOCS_URL}/${entry.name}.md`;
+      `Also installed: ${also}. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: ${DOCS_URL}/${entry.name}.md`;
   }
   return {
     $schema: "https://ui.shadcn.com/schema/registry.json",
@@ -492,15 +586,19 @@ export function release(registry: Registry, version: string): Registry {
   if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error(`--release takes x.y.z, without the v (got ${version}).`);
   const { items, ...head } = rewriteDependencies(registry, (name) => `${REPO}/${name}#v${version}`);
   // The CLI prints each item's docs message on add, and nothing else names the version.
-  return { ...head, version, items: items.map((item) => ({ ...item, docs: `${item.docs} Ouro UI v${version}.` })) };
+  return { ...head, version, items: items.map((item) => (item.docs === undefined ? item : { ...item, docs: `${item.docs} Ouro UI v${version}.` })) };
 }
 
 /** site/public/llms.txt with its "## Items" list made from the registry: every item, and each component's docs page. */
 export function withLlmsItems(llms: string, registry: Registry): string {
   const names = new Set(components.map((entry) => entry.name));
-  const lines = registry.items.map(
-    (item) => `- \`${item.name}\`: ${item.description}${names.has(item.name) ? ` Docs: ${DOCS_URL}/${item.name}.md` : ""}`,
-  );
+  // The helper items are one line: no app adds them by name.
+  const helper = (name: string) => /^lib-/.test(name);
+  const helpers = registry.items.filter((item) => helper(item.name) && !item.name.endsWith("-tests")).map((item) => `\`${item.name}\``);
+  const lines = registry.items
+    .filter((item) => !helper(item.name))
+    .map((item) => `- \`${item.name}\`: ${item.description}${names.has(item.name) ? ` Docs: ${DOCS_URL}/${item.name}.md` : ""}`);
+  lines.push(`- Helpers, one item per file in lib/ouro, each installed with the components that import it (and \`<name>-tests\` for a helper with tests): ${helpers.join(", ")}.`);
   if (!/\n## Items\n\n[\s\S]*?\n\n## /.test(llms)) throw new Error("site/public/llms.txt needs an ## Items section followed by another ## section.");
   return llms.replace(/(\n## Items\n\n)[\s\S]*?(\n\n## )/, (_, head: string, tail: string) => `${head}${lines.join("\n")}${tail}`);
 }

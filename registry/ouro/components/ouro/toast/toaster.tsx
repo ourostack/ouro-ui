@@ -6,7 +6,7 @@ import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
 import { connectToaster, type ToastRecord } from "@/registry/ouro/lib/ouro/toast";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import {
   actionClass,
   closeClass,

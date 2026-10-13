@@ -29,7 +29,14 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test
+      # An app that installs some components with their tests reaches 100% of what it
+      # installed: the button, the dialog, the sheet and the forms set, each alone and together.
+      - run: node scripts/subset-coverage.mjs
       - run: pnpm test:scripts
+      # The site as Pages builds it, then every internal link in it, in exact letter case
+      # (scripts/links.mjs; the sources' links are checked in test:scripts).
+      - run: pnpm site:build
+      - run: node scripts/links.mjs site/dist
       - run: pnpm build-storybook
   visual:
     # Compares screenshots with the committed baselines, on the image that produced them

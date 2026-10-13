@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../ouro-fixtures";
 import { openStory } from "./story";
 
 test("a row's actions button gives the keyboard every swipe action, and Undo brings a deleted row back", async ({ page }) => {

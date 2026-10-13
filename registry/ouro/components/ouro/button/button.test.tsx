@@ -2,10 +2,11 @@ import { type ReactNode, type SVGProps } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { commands, page, userEvent } from "vitest/browser";
+import { commands, page } from "vitest/browser";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 
 
@@ -442,7 +443,7 @@ describe("appearance", () => {
     );
     const button = host.querySelector("button")!;
     document.body.focus();
-    await userEvent.tab();
+    await pressTab();
     expect(document.activeElement).toBe(button);
     expect(button.matches(":focus-visible")).toBe(true);
     const style = getComputedStyle(button);

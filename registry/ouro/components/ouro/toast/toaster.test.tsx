@@ -6,6 +6,7 @@ import { commands, page, server, userEvent } from "vitest/browser";
 import { Toaster, type ToasterProps } from "@/registry/ouro/components/ouro/toast/toaster";
 import { toast, type ToastOptions } from "@/registry/ouro/lib/ouro/toast";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const chromiumOnly = it.skipIf(server.browser !== "chromium");
 
@@ -627,7 +628,7 @@ describe("keyboard", () => {
     await expect.poll(() => viewport()!.contains(document.activeElement)).toBe(true);
     const reached: string[] = [];
     for (let presses = 0; presses < 12 && document.activeElement?.textContent !== "Undo A"; presses++) {
-      await userEvent.keyboard("{Tab}");
+      await pressTab();
       reached.push(document.activeElement?.textContent ?? "");
     }
     expect(document.activeElement?.textContent).toBe("Undo A");

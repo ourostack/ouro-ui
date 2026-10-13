@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Chart, ChartContainer, ChartLegend, ChartTooltip, type ChartConfig } from "@/registry/ouro/components/ouro/chart/chart";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -241,7 +242,7 @@ describe("Chart", () => {
     document.body.append(parking);
     mounted.push(parking);
     await userEvent.hover(parking);
-    await userEvent.keyboard("{Tab}");
+    await pressTab();
     expect(document.activeElement).toBe(chart.querySelector(".recharts-surface"));
     // Focus shows the first point; the arrow keys move along.
     const tooltip = () => chart.querySelector<HTMLElement>("[data-ouro-chart-tooltip]");
@@ -326,7 +327,7 @@ describe("Chart", () => {
     );
     await drawn(chart);
     await expect.poll(() => chart.querySelector("[data-ouro-chart-legend]")?.textContent).toBe("Recipes cooked");
-    await userEvent.keyboard("{Tab}");
+    await pressTab();
     // One row: the series in config. The other line is drawn but not described.
     await expect.poll(() => chart.querySelector("[data-ouro-chart-tooltip]")?.textContent).toMatch(/^(January|February|March)Recipes cooked[\d,]+$/);
   });

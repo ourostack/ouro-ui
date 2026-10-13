@@ -8,6 +8,7 @@ import { Item } from "@/registry/ouro/components/ouro/item/item";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -264,10 +265,10 @@ describe("Item with href", () => {
     const before = document.createElement("button");
     item.parentElement!.prepend(before);
     before.focus();
-    await userEvent.tab();
+    await pressTab();
     expect(document.activeElement).toBe(link);
     expect(getComputedStyle(item).outlineStyle).toBe("solid");
-    await userEvent.tab();
+    await pressTab();
     expect(document.activeElement).toBe(save);
   });
 

@@ -8,6 +8,7 @@ import { Radio, RadioGroup, type RadioGroupProps, type RadioProps } from "@/regi
 import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
 import { Form, type FormErrors } from "@/registry/ouro/components/ouro/form/form";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -115,7 +116,7 @@ describe("RadioGroup", () => {
       </>,
     );
     host.querySelector("button")!.focus();
-    await userEvent.keyboard("{Tab}");
+    await pressTab();
     // Tab lands on the chosen radio.
     expect(document.activeElement).toBe(radios[1]);
     await userEvent.keyboard("{ArrowDown}");
@@ -125,9 +126,9 @@ describe("RadioGroup", () => {
     await userEvent.keyboard("{ArrowUp}");
     expect(document.activeElement).toBe(radios[1]);
     expect(onValueChange).toHaveBeenLastCalledWith("medium");
-    await userEvent.keyboard("{Tab}");
+    await pressTab();
     expect(document.activeElement!.textContent).toBe("After");
-    await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
+    await pressTab({ shift: true });
     expect(document.activeElement).toBe(radios[1]);
   });
 

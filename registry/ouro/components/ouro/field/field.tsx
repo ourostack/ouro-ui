@@ -5,7 +5,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, type FormEvent, type JS
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { FieldContext, FieldOwnerContext, useField, useFieldOwner, useFormErrors } from "@/registry/ouro/lib/ouro/use-field";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { FieldDescription, FieldError, FieldLabel } from "@/registry/ouro/components/ouro/field/field-parts";
 import { fieldHint, inlineRootClass, labelClass, rootClass } from "@/registry/ouro/components/ouro/field/field-styles";
 

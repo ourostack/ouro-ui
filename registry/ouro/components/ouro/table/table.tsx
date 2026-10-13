@@ -2,7 +2,7 @@
 
 import { type CSSProperties, type HTMLAttributes, type JSX, type Key, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
-import { useDevWarnings, type DevWarning } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings, type DevWarning } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { TableBody, TableCell, TableHead, TableFrame, TableHeader, TableRow, type TableAlign } from "@/registry/ouro/components/ouro/table/table-parts";
 
 /** The keys of `Row` whose values are assignable to `Value`. */

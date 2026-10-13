@@ -1,4 +1,5 @@
-import { docsItems } from "./docs/items";
+import { docsItems, summary } from "./docs/items";
+import { docsPages } from "./docs/pages";
 import { HERO_COPY } from "./copy";
 import { latestRelease } from "./release";
 
@@ -18,6 +19,11 @@ export const routes: Route[] = [
     path: `/docs/${item.name}/`,
     title: `${item.title} · Ouro UI`,
     description: `${item.title}: install it with npx shadcn@latest add ourostack/ouro-ui/${item.name}#${latestRelease}.`,
+  })),
+  ...docsPages.map((page) => ({
+    path: `/docs/${page.name}/`,
+    title: `${page.title} · Ouro UI`,
+    description: summary(page.markdown.replace(/^# .*$/m, "")).replace(/`/g, ""),
   })),
   {
     path: "/docs/switching-from-shadcn/",

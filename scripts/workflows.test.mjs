@@ -88,3 +88,39 @@ test("scheduled-failure.sh opens the issue once, then comments on it", () => {
   assert.equal(calls[3], "issue comment 42 --body Failed again: https://github.com/o/r/actions/runs/1");
   assert.equal(calls.length, 4);
 });
+
+// v0.7.0 was out for two hours while the site's llms.txt and main's README still gave install
+// commands for v0.6.0: main named the old release until a person merged the "Prepare main"
+// pull request, and Pages then skipped three deploys in a row because main kept moving.
+
+const workflow = (file) => workflows.find((entry) => entry.file === file).text;
+
+test("Pages names GitHub's newest release before it builds, whatever main's package.json says", () => {
+  const pages = workflow("pages.yml");
+  const name = pages.indexOf('gh api "repos/$REPO/releases/latest" --jq .tag_name');
+  const set = pages.indexOf('node scripts/latest-release.mjs set "$newest"');
+  assert.ok(name > 0 && set > name, "pages.yml asks GitHub for the newest release and sets it");
+  assert.ok(pages.indexOf("pnpm run docs", set) > set, "then regenerates the docs that name it");
+  assert.ok(pages.indexOf("pnpm site:build") > set, "before the site builds");
+  assert.ok(pages.indexOf("scripts/namespace.sh _site/r") > set, "and before the namespace builds");
+});
+
+test("Release merges the pull request that prepares main, then runs CI there, so main names the release", () => {
+  const release = workflow("release.yml");
+  assert.match(release, /gh run watch "\$run" --exit-status --interval 30 && gh pr merge "\$NEXT_BRANCH" --squash --delete-branch/);
+  assert.match(release, /gh workflow run ci\.yml --ref main/);
+  // The next release accepts that dispatched run: a merge made with the workflow's token starts no push run.
+  assert.match(release, /select\(\.event == "push" or \.event == "workflow_dispatch"\)/);
+});
+
+test("Release deploys Pages itself and fails when the published llms.txt or README names another release", () => {
+  const release = workflow("release.yml");
+  const deploy = release.indexOf("gh workflow run pages.yml --ref main");
+  const check = release.indexOf('node scripts/published-release.mjs "$TAG" --wait');
+  assert.ok(deploy > release.indexOf('gh release create "$TAG"'), "Pages is deployed after the release is created");
+  assert.ok(check > deploy, "and the published pages are checked last");
+});
+
+test("Scheduled install checks that the published llms.txt and README name the newest release", () => {
+  assert.match(job("latest"), /node scripts\/published-release\.mjs "\$newest"/);
+});

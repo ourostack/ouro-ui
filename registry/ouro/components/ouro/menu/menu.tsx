@@ -31,7 +31,7 @@ import {
 } from "@/registry/ouro/lib/ouro/floating";
 import { RouterLink } from "@/registry/ouro/lib/ouro/router-link";
 import { toneWarning } from "@/registry/ouro/lib/ouro/tones";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useSheetPresentation } from "@/registry/ouro/lib/ouro/use-sheet-presentation";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
 import {

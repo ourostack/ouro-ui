@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { ToggleGroup, type ToggleGroupProps } from "@/registry/ouro/components/ouro/toggle/toggle-group";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -125,7 +126,7 @@ describe("ToggleGroup", () => {
   it("moves focus with the arrow keys and presses with Space", async () => {
     const { toggles } = await render(<ToggleGroup label="Alignment" items={align} />);
     document.body.focus();
-    await userEvent.tab();
+    await pressTab();
     expect(document.activeElement).toBe(toggles[0]);
     await userEvent.keyboard("{ArrowRight}");
     expect(document.activeElement).toBe(toggles[1]);
@@ -196,12 +197,14 @@ describe("ToggleGroup development messages", () => {
 
   it("warns for a value that matches no item, and for a list without multiple", async () => {
     const props = { label: "Alignment", items: align, defaultValue: ["left"] } as unknown as ToggleGroupProps;
-    const { rerender } = await render(<ToggleGroup {...props} />);
+    // Each case is its own group: one group going from defaultValue to value would make Base UI
+    // log that it changed from uncontrolled to controlled.
+    await render(<ToggleGroup {...props} />);
     expect(warn).toHaveBeenCalledWith("[ouro-ui] ToggleGroup: a list of values needs multiple. Fix: <ToggleGroup multiple defaultValue={[…]}>.");
-    await rerender(<ToggleGroup label="Alignment" items={align} value="top" />);
+    await render(<ToggleGroup label="Alignment" items={align} value="top" />);
     expect(warn).toHaveBeenCalledWith('[ouro-ui] ToggleGroup: value "top" matches no item. Fix: <ToggleGroup value="left">.');
     const many = { label: "Style", items: styles, multiple: true, value: "bold" } as unknown as ToggleGroupProps;
-    await rerender(<ToggleGroup {...many} />);
+    await render(<ToggleGroup {...many} />);
     expect(warn).toHaveBeenCalledWith('[ouro-ui] ToggleGroup: multiple takes a list of values. Fix: <ToggleGroup multiple value={["bold"]}>.');
   });
 

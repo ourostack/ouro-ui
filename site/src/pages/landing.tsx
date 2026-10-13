@@ -258,9 +258,9 @@ function Install(): JSX.Element {
             <Pill>Alpha</Pill>
           </div>
           <Text tone="muted" className="mt-4">
-            The shadcn CLI copies each component into <InlineCode>components/ouro/</InlineCode> and installs what it depends
-            on. Its tests and stories are an optional <InlineCode>-tests</InlineCode> item. Ouro UI is in alpha, so props can
-            still change.
+            The shadcn CLI copies each component into <InlineCode>components/ouro/</InlineCode> with only the helpers it
+            imports. Its tests and stories are an optional <InlineCode>-tests</InlineCode> item that never changes your test
+            tools' versions. Ouro UI is in alpha, so props can still change.
           </Text>
         </div>
         <ol className="m-0 grid list-none gap-10 p-0">
@@ -270,6 +270,11 @@ function Install(): JSX.Element {
               because Ouro UI is built on Base UI; skip <InlineCode>-t</InlineCode> in an existing app.
             </Text>
             <Command command="npx shadcn@latest init --base base --preset nova --yes --no-monorepo" />
+            <Text size="sm" tone="muted">
+              Then add the base tokens, once per app. It is the only add that writes to your stylesheet, so later adds leave
+              it alone.
+            </Text>
+            <Command command={`npx shadcn@latest add ourostack/ouro-ui/ouro-base#${latestRelease}`} />
           </Step>
           <Step number={1} title="Add a component from GitHub">
             <Command command={`npx shadcn@latest add ourostack/ouro-ui/sheet#${latestRelease}`} />

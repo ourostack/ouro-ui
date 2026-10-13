@@ -8,10 +8,18 @@
 #
 #   scripts/install-test.sh <shadcn|ouro|github|namespace|next|upgrade> <app-dir> [ref]
 #
-# shadcn: the app keeps the theme `shadcn init` wrote, and a stock shadcn button is added
+# Every variant adds ouro-base first, once, as the README says: no component installs it.
+#
+# shadcn: the app keeps the theme `shadcn init` wrote, without its field border color and
+#         radius scale (--input, --radius and their @theme mappings are stripped before
+#         ouro-base is added, to stand for a theme that has neither; ouro-base must add them,
+#         and the shipped text-field spec measures the border). A stock shadcn button is added
 #         beside Ouro's; both must build.
-# shadcn and ouro also raise --ouro-layer the way the README says, re-add an item, and check
-#         that the override still wins.
+# shadcn and ouro then make the app's own setup (a rule of its own in the stylesheet, which
+#         raises --ouro-layer the way the README says, and its test tools pinned to exact
+#         versions in package.json), add two more items, a component again with --overwrite and
+#         a tests item, and check that the stylesheet and package.json are byte for byte what
+#         they were: a later add never undoes an app's setup.
 # ouro:   the app installs the ouro-theme item first, from GitHub at <ref> (default HEAD,
 #         which must be pushed).
 # github: what a user runs today: `shadcn add ourostack/ouro-ui/<item>` with no ref, so
@@ -20,9 +28,11 @@
 #         push to main).
 # namespace: the @ouro namespace as Pages serves it (pages.yml): built from the newest release
 #         tag (package.json ouro.latestRelease) by scripts/namespace.sh, served on localhost and
-#         registered in components.json, then `shadcn add @ouro/dialog`. Every dependency must
-#         come through @ouro, every installed file must equal the tag's source, and each item
-#         must name that release. Type check and build.
+#         registered in components.json, then `shadcn add @ouro/ouro-base @ouro/dialog`. Every
+#         dependency of dialog in that release (read from the built items, so the test holds
+#         for a release before and after the helpers became one item each) must come through
+#         @ouro, every installed file must equal the tag's source, and each item must name
+#         that release. Type check and build.
 # next:   a Next.js App Router app from create-next-app (TypeScript, Tailwind CSS v4, src/),
 #         `shadcn init` (which writes "rsc": true), every runtime item, and test/install-fixture-next:
 #         a Server Component layout with the README's providers.tsx (<OuroProvider
@@ -89,7 +99,7 @@ if [ "$variant" = next ]; then
   echo "::group::Every component, runtime only"
   node "$root/scripts/registry.mts" --out "$registry/registry.json" --deps "$registry/r/{name}.json"
   "${shadcn[@]}" build "$registry/registry.json" --output "$registry/r" --cwd "$root"
-  items_json=()
+  items_json=("$registry/r/ouro-base.json")
   for item in "${items[@]}"; do items_json+=("$registry/r/$item.json"); done
   "${shadcn[@]}" add --yes "${items_json[@]}"
   echo "::endgroup::"
@@ -142,7 +152,7 @@ echo "::endgroup::"
 
 if [ "$variant" = github ]; then
   echo "::group::Every item from GitHub, no ref"
-  "${shadcn[@]}" add --yes "${items[@]/#/ourostack/ouro-ui/}"
+  "${shadcn[@]}" add --yes ourostack/ouro-ui/ouro-base "${items[@]/#/ourostack/ouro-ui/}"
   echo "::endgroup::"
   echo "::group::Type check and build"
   npx tsc -b
@@ -156,8 +166,26 @@ if [ "$variant" = namespace ]; then
   echo "::group::@ouro/dialog from the namespace, served locally"
   tag=$(node "$root/scripts/latest-release.mjs")
   "$root/scripts/namespace.sh" "$registry/r" "$tag" "$registry/tag"
-  for item in dialog sheet ouro-lib ouro-base; do
-    node -e 'const i = require(process.argv[1]); if (!i.docs.endsWith(` Ouro UI ${process.argv[2]}.`)) throw new Error(`${i.name} does not name ${process.argv[2]}: ${i.docs.slice(-40)}`)' "$registry/r/$item.json" "$tag"
+  # ouro-base and everything dialog installs in this release, from the built items.
+  # shellcheck disable=SC2207 # item names have no spaces
+  closure=($(node -e '
+    const dir = process.argv[1];
+    const seen = new Set();
+    const visit = (name) => {
+      if (seen.has(name)) return;
+      seen.add(name);
+      for (const dep of require(dir + "/" + name + ".json").registryDependencies ?? []) {
+        if (!dep.startsWith("@ouro/")) throw new Error(name + " depends on " + dep + ", outside the namespace");
+        visit(dep.slice(6));
+      }
+    };
+    visit("ouro-base");
+    visit("dialog");
+    console.log([...seen].join("\n"));
+  ' "$registry/r"))
+  for item in "${closure[@]}"; do
+    # An item with a message names the release it came from (a helper has no message).
+    node -e 'const i = require(process.argv[1]); if (i.docs && !i.docs.endsWith(` Ouro UI ${process.argv[2]}.`)) throw new Error(`${i.name} does not name ${process.argv[2]}: ${i.docs.slice(-40)}`)' "$registry/r/$item.json" "$tag"
   done
   python3 -m http.server 8765 --bind 127.0.0.1 --directory "$registry" 2>"$registry/served.log" &
   server=$!
@@ -166,13 +194,11 @@ if [ "$variant" = namespace ]; then
   node -e 'const f = "components.json"; const c = JSON.parse(require("fs").readFileSync(f, "utf8"));
     c.registries = { "@ouro": "http://127.0.0.1:8765/r/{name}.json" };
     require("fs").writeFileSync(f, JSON.stringify(c, null, 2) + "\n");'
-  "${shadcn[@]}" add --yes @ouro/dialog
-  for item in dialog sheet ouro-lib ouro-base; do
+  "${shadcn[@]}" add --yes @ouro/ouro-base @ouro/dialog
+  for item in "${closure[@]}"; do
     grep -q "GET /r/$item.json" "$registry/served.log" || { echo "$item did not resolve through @ouro"; exit 1; }
   done
-  for item in ouro-testing dialog-tests; do
-    if grep -q "GET /r/$item.json" "$registry/served.log"; then echo "@ouro/dialog pulled in $item"; exit 1; fi
-  done
+  if grep -E "GET /r/(ouro-testing|[a-z0-9-]+-tests)\.json" "$registry/served.log"; then echo "@ouro/dialog pulled in a tests item"; exit 1; fi
   for path in components/ouro/dialog/dialog.tsx components/ouro/sheet/sheet.tsx lib/ouro/cn.ts; do
     test -f "src/$path" || { echo "missing src/$path"; exit 1; }
   done
@@ -334,10 +360,21 @@ if [ "$variant" = ouro ]; then
   echo "::endgroup::"
 fi
 
+echo "::group::ouro-base, once"
+if [ "$variant" = shadcn ]; then
+  # A theme with no field border color and no radius scale: ouro-base must add them.
+  node "$root/scripts/install-check.mjs" --strip-field-tokens src/index.css
+fi
+"${shadcn[@]}" add --yes "$registry/r/ouro-base.json"
+echo "::endgroup::"
+
 echo "::group::Every component, runtime only"
+# No component depends on ouro-base, so this add must leave the stylesheet as it is.
+cp src/index.css "$registry/index.after-base.css"
 items_json=()
 for item in "${items[@]}"; do items_json+=("$registry/r/$item.json"); done
 "${shadcn[@]}" add --yes "${items_json[@]}"
+cmp src/index.css "$registry/index.after-base.css" || { echo "adding the components changed src/index.css"; diff "$registry/index.after-base.css" src/index.css || true; exit 1; }
 echo "::endgroup::"
 
 if [ "$variant" = shadcn ]; then
@@ -365,12 +402,32 @@ npx vite build
 runtime_only "$variant"
 echo "::endgroup::"
 
-# The README's way to raise --ouro-layer: a :root rule of the app's own, after the Ouro tokens
-# and outside any @layer. A later `shadcn add` rewrites the --ouro-layer line it wrote, but must
-# leave this rule as the winning declaration. The shipped tests below then run with it.
-echo "::group::An --ouro-layer override survives a re-add"
-printf '\n:root {\n  --ouro-layer: 60;\n}\n' >>src/index.css
-"${shadcn[@]}" add --yes --overwrite "$registry/r/sheet.json"
+# The app's own setup, made after the first install: a rule of its own in the stylesheet (the
+# README's way to raise --ouro-layer: a :root rule after the Ouro tokens, outside any @layer)
+# and its test tools pinned to exact versions in package.json, here the versions this
+# repository runs. Then two more items: a component again with --overwrite (how an app
+# updates one) and a tests item. Neither file may change by a byte: no item but ouro-base
+# carries CSS, and a tests item names its tools without a version, so the CLI leaves a tool
+# the app already has alone. The shipped tests below then run with this setup.
+echo "::group::Later adds leave the app's stylesheet and package.json alone"
+printf '\n:root {\n  --ouro-layer: 60;\n}\n\n/* The app'"'"'s own rule. */\n.app-own {\n  color: rebeccapurple;\n}\n' >>src/index.css
+node -e '
+  const fs = require("node:fs");
+  const ours = require(process.argv[1]).devDependencies;
+  const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+  for (const name of ["@playwright/test", "@storybook/react-vite", "@vitest/browser-playwright", "playwright", "storybook", "vitest"]) {
+    pkg.devDependencies[name] = ours[name].replace(/^[\^~]/, "");
+  }
+  pkg.devDependencies = Object.fromEntries(Object.entries(pkg.devDependencies).sort(([a], [b]) => a.localeCompare(b)));
+  fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
+' "$root/package.json"
+npm install --no-audit --no-fund
+cp src/index.css "$registry/index.before.css"
+cp package.json "$registry/package.before.json"
+"${shadcn[@]}" add --yes --overwrite "$registry/r/sheet.json" "$registry/r/button-tests.json"
+cmp src/index.css "$registry/index.before.css" || { echo "a later add changed src/index.css"; diff "$registry/index.before.css" src/index.css || true; exit 1; }
+cmp package.json "$registry/package.before.json" || { echo "a later add changed package.json"; diff "$registry/package.before.json" package.json || true; exit 1; }
+test -f src/components/ouro/button/button.test.tsx || { echo "button-tests was not installed"; exit 1; }
 node "$root/scripts/install-check.mjs" --layer-override src/index.css 60
 npx vite build
 grep -q -- "--ouro-layer:60" dist/assets/*.css || { echo "the built CSS lost the --ouro-layer override"; exit 1; }
@@ -379,6 +436,14 @@ echo "::endgroup::"
 echo "::group::The testing setup and ouro-tests"
 cp -R "$root/test/install-fixture-tests/." "$app/"
 "${shadcn[@]}" add --yes "$registry/r/ouro-tests.json"
+cmp src/index.css "$registry/index.before.css" || { echo "ouro-tests changed src/index.css"; diff "$registry/index.before.css" src/index.css || true; exit 1; }
+# The pinned tools keep their versions; ouro-tests may add only tools the app lacked.
+node -e '
+  const before = require(process.argv[1]).devDependencies;
+  const after = require("./package.json").devDependencies;
+  const changed = Object.keys(before).filter((name) => after[name] !== before[name]);
+  if (changed.length > 0) throw new Error("ouro-tests changed the version of " + changed.map((name) => name + " (" + before[name] + " to " + after[name] + ")").join(", "));
+' "$registry/package.before.json"
 npx tsc -b
 npx vite build
 node "$root/scripts/install-check.mjs" "$app" "$variant" tests

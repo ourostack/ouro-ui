@@ -1,5 +1,5 @@
-import { expect, test } from "@playwright/test";
-import { openStory } from "./story";
+import { expect, test } from "../ouro-fixtures";
+import { openStory, pressTab } from "./story";
 
 test("a card with href navigates from anywhere on it, named by its title", async ({ page }) => {
   await openStory(page, "display-card--in-context");
@@ -14,9 +14,9 @@ test("a card with href navigates from anywhere on it, named by its title", async
 test("a linked card is one tab stop, and its action is its own", async ({ page }) => {
   await openStory(page, "display-card--in-context");
   await page.getByRole("link", { name: "Weeknight dinners" }).focus();
-  await page.keyboard.press("Tab");
+  await pressTab(page);
   await expect(page.getByRole("button", { name: "Share Weeknight dinners" })).toBeFocused();
-  await page.keyboard.press("Tab");
+  await pressTab(page);
   await expect(page.getByRole("link", { name: "Sunday bakes" })).toBeFocused();
 });
 

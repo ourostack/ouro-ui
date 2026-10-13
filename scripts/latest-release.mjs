@@ -24,7 +24,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const PLACEHOLDER = "{{latestRelease}}";
 
 /** Files whose install commands name the tag; gen-docs keeps them in step. */
-export const syncedFiles = ["README.md", "site/public/llms.txt", "package.json"];
+export const syncedFiles = ["README.md", "site/public/llms.txt", "package.json", "docs/guides/installing.md", "docs/guides/testing.md", "docs/guides/forms.md"];
 
 const literal = /([#@])v\d+\.\d+\.\d+\b/g;
 

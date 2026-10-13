@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, server, userEvent } from "vitest/browser";
 import { Collapsible, type CollapsibleProps } from "@/registry/ouro/components/ouro/collapsible/collapsible";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -123,7 +124,7 @@ describe("Collapsible", () => {
 
   it("toggles with the keyboard and shows a focus outline", async () => {
     const { trigger } = await render(<Collapsible title="Nutrition facts">{facts}</Collapsible>);
-    await userEvent.tab();
+    await pressTab();
     expect(document.activeElement).toBe(trigger);
     expect(getComputedStyle(trigger).outlineStyle).toBe("solid");
     await userEvent.keyboard("{Enter}");

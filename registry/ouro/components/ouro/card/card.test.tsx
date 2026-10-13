@@ -11,6 +11,7 @@ import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { ScrollArea } from "@/registry/ouro/components/ouro/scroll-area/scroll-area";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -233,11 +234,11 @@ describe("Card with href", () => {
     before.textContent = "before";
     card.parentElement!.prepend(before);
     before.focus();
-    await userEvent.tab();
+    await pressTab();
     expect(document.activeElement).toBe(card.querySelector("a"));
-    await userEvent.tab();
+    await pressTab();
     expect(document.activeElement).toBe(share);
-    await userEvent.tab();
+    await pressTab();
     expect(document.activeElement).toBe(cook);
   });
 
@@ -287,7 +288,7 @@ describe("Card with href", () => {
     const before = document.createElement("button");
     card.parentElement!.prepend(before);
     before.focus();
-    await userEvent.tab();
+    await pressTab();
     expect(getComputedStyle(card).outlineStyle).toBe("solid");
   });
 

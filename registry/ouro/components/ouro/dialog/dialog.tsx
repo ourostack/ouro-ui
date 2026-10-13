@@ -16,7 +16,7 @@ import { checkOpenMode } from "@/registry/ouro/lib/ouro/open-mode";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { serverElement } from "@/registry/ouro/lib/ouro/server-element";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { lastInput } from "@/registry/ouro/lib/ouro/last-input";
 import { useSheetPresentation } from "@/registry/ouro/lib/ouro/use-sheet-presentation";
 import { sheetHint } from "@/registry/ouro/components/ouro/sheet/sheet-styles";

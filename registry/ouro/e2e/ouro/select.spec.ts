@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../ouro-fixtures";
 import { openStory, settledBox } from "./story";
 
 test("chooses an option with the mouse and the keyboard", async ({ page }) => {

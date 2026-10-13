@@ -3,11 +3,12 @@ import { commands, page } from "vitest/browser";
 import { cleanupPage, describeViolations, renderPage, scan, setScheme, settle } from "../test/render";
 import { latestRelease, upgrading } from "./release";
 import { docsItems } from "./docs/items";
+import { docsPages } from "./docs/pages";
 import { unpinnedAddresses } from "../../scripts/addresses.mjs";
 import { parse } from "./docs/markdown";
 import ogImage from "../public/og.png?url";
 import { headTags } from "./head";
-import { routes } from "./routes";
+import { href, routes } from "./routes";
 import { AGENTS_COMING_SOON, HERO_SUBLINE, HERO_TITLE, SHADCN_LINE } from "./copy";
 import readme from "../../README.md?raw";
 import llms from "../public/llms.txt?raw";
@@ -86,6 +87,11 @@ describe("landing page", () => {
     expect(latestRelease).toMatch(/^v\d+\.\d+\.\d+$/);
     await expect.element(page.getByText(`npx shadcn@latest add ourostack/ouro-ui/sheet#${latestRelease}`, { exact: true })).toBeVisible();
     await expect.element(page.getByText(/Without it, the address installs/)).toBeVisible();
+  });
+
+  it("adds ouro-base once, before the first component", async () => {
+    await renderPage("/");
+    await expect.element(page.getByText(`npx shadcn@latest add ourostack/ouro-ui/ouro-base#${latestRelease}`, { exact: true })).toBeVisible();
   });
 });
 
@@ -172,7 +178,7 @@ describe.each([
 it("the Updating page's note has the tag filled in and no raw-file hint", () => {
   expect(upgrading).not.toContain("{{latestRelease}}");
   expect(upgrading).not.toContain("Reading this file on GitHub");
-  expect(upgrading).toContain(`ourostack/ouro-ui/ouro-lib-tests#${latestRelease}`);
+  expect(upgrading).toContain(`ourostack/ouro-ui/ouro-base#${latestRelease}`);
 });
 
 describe("head tags", () => {
@@ -202,6 +208,35 @@ describe("head tags", () => {
     for (const route of routes.filter((entry) => entry.description.includes("shadcn@latest add"))) {
       expect(route.description).toContain(`#${latestRelease}.`);
     }
+  });
+});
+
+describe("guides and exports without an item", () => {
+  it("has a page for every guide and for each documented export that ships in another item", () => {
+    const names = docsPages.map((doc) => doc.name);
+    for (const name of ["installing", "testing", "forms", "radio", "ouro-provider"]) expect(names).toContain(name);
+    for (const doc of docsPages) expect(routes.some((route) => route.path === `/docs/${doc.name}/`)).toBe(true);
+    // No page shares an address with a registry item's.
+    expect(names.filter((name) => docsItems.some((item) => item.name === name))).toEqual([]);
+  });
+
+  it("renders the OuroProvider page with the React Router adapter and the Next.js provider file", async () => {
+    await renderPage("/docs/ouro-provider/");
+    await expect.element(page.getByRole("heading", { level: 1, name: "OuroProvider" })).toBeVisible();
+    expect(document.body.innerText).toContain("return <Link to={href} {...props} />;");
+    expect(document.body.innerText).toContain("<OuroProvider linkComponent={Link}>{children}</OuroProvider>");
+  });
+
+  it("renders the Testing guide, and its links go to the site's pages", async () => {
+    await renderPage("/docs/testing/");
+    await expect.element(page.getByRole("heading", { level: 1, name: "Testing" })).toBeVisible();
+    await expect.element(page.getByRole("heading", { name: "Finding fields in tests" })).toBeVisible();
+    await renderPage("/docs/forms/");
+    const hrefs = [...document.querySelectorAll<HTMLAnchorElement>("a[href]")].map((link) => link.getAttribute("href")!);
+    // "../Alert.md" and "testing.md#…" in docs/guides/forms.md, as site pages under the base.
+    expect(hrefs.filter((link) => link.endsWith("/docs/alert/")).length).toBeGreaterThan(0);
+    expect(hrefs).toContain(href("/docs/testing/") + "#finding-fields-in-tests");
+    expect(hrefs.filter((link) => link.endsWith(".md") && !link.startsWith("http") && !link.includes("/docs/forms.md"))).toEqual([]);
   });
 });
 

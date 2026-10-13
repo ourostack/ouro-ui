@@ -1,5 +1,5 @@
-import { expect, test } from "@playwright/test";
-import { openStory } from "./story";
+import { expect, test } from "../ouro-fixtures";
+import { openStory, pressTab } from "./story";
 
 test("on a phone, a row opens from a tap on any cell, and its Save button does not open it", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -18,9 +18,9 @@ test("on a phone, a row opens from a tap on any cell, and its Save button does n
 test("each row is one tab stop, and its buttons are their own", async ({ page }) => {
   await openStory(page, "data-table--in-context");
   await page.getByRole("link", { name: "Braised short ribs" }).focus();
-  await page.keyboard.press("Tab");
+  await pressTab(page);
   await expect(page.getByRole("button", { name: "Save Braised short ribs" })).toBeFocused();
-  await page.keyboard.press("Tab");
+  await pressTab(page);
   await expect(page.getByRole("link", { name: "Herb salad" })).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/#herb-salad$/);

@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { ColorField, type ColorFieldProps } from "@/registry/ouro/components/ouro/color-field/color-field";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -109,11 +110,11 @@ describe("ColorField", () => {
     const { text } = await render(<ColorField label="Color" defaultValue="#112233" />);
     await userEvent.clear(text);
     await userEvent.type(text, "ABC");
-    await userEvent.tab();
+    await pressTab();
     expect(text.value).toBe("#aabbcc");
     await userEvent.clear(text);
     await userEvent.type(text, "blue");
-    await userEvent.tab();
+    await pressTab();
     expect(text.value).toBe("#aabbcc");
   });
 
@@ -286,7 +287,7 @@ describe("ColorField", () => {
   it("outlines the box when either input has keyboard focus", async () => {
     const { box } = await render(<ColorField label="Color" />);
     document.body.focus();
-    await userEvent.tab();
+    await pressTab();
     await expect.poll(() => getComputedStyle(box).outlineStyle).toBe("solid");
   });
 

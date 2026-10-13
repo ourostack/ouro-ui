@@ -4,7 +4,8 @@ name: Scheduled install
 # float (@base-ui/react@^1.8.0), so a new upstream release can change what a pinned #v<x.y.z>
 # install gets without any commit here; this run notices. A variant the tag's install test
 # does not have yet is skipped with a notice. The run also fails when main's
-# ouro.latestRelease is not GitHub's newest release, which the docs and @ouro would then lag.
+# ouro.latestRelease is not GitHub's newest release, or when the published llms.txt or main's
+# README names another release in an install command (scripts/published-release.mjs).
 # Any failure opens, or comments on, one "Scheduled install failed" issue.
 on:
   schedule:
@@ -33,6 +34,10 @@ jobs:
     needs: refs
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
       - env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
@@ -41,6 +46,8 @@ jobs:
           newest=$(gh api "repos/$REPO/releases/latest" --jq .tag_name)
           [ "$newest" = "$TAG" ] || { echo "::error::main's package.json ouro.latestRelease is $TAG, but the newest release is $newest. Merge the 'Prepare main for the next release' PR (or open it by hand)."; exit 1; }
           echo "ouro.latestRelease is $TAG, the newest release."
+          # What people read must name it too: the site's llms.txt and main's README.
+          node scripts/published-release.mjs "$newest"
   install:
     needs: refs
     runs-on: ubuntu-latest

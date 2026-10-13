@@ -6,6 +6,7 @@ import { page, userEvent } from "vitest/browser";
 import { Form } from "@base-ui/react/form";
 import { FileField, type FileFieldProps } from "@/registry/ouro/components/ouro/file-field/file-field";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -422,7 +423,7 @@ describe("FileField", () => {
   it("outlines the zone while the input has keyboard focus", async () => {
     const { zone } = await render(<FileField label="Photo" />);
     document.body.focus();
-    await userEvent.tab();
+    await pressTab();
     await expect.poll(() => getComputedStyle(zone).outlineStyle).toBe("solid");
   });
 

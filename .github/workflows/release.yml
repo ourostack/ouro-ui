@@ -7,8 +7,11 @@ name: Release
 # branch is deleted (the tag keeps the commit). Because main never receives the release
 # commit, the run then opens "Prepare main for the next release" against main: it deletes
 # the change fragments this release used (changes/*.md) and makes the tag the newest release
-# (package.json ouro.latestRelease, scripts/latest-release.mjs), which the docs, the site and
-# the @ouro namespace follow once it merges. The next release refuses to start while changes/
+# (package.json ouro.latestRelease, scripts/latest-release.mjs). The run merges that pull
+# request itself once its checks pass, runs CI on main's new tip, deploys Pages, and last
+# checks that the site's llms.txt and main's README name this release
+# (scripts/published-release.mjs), so no install command names the release before this one
+# after the run ends. The next release refuses to start while changes/
 # lists no change or still lists this release's (scripts/changes.mjs). Rerunning is safe: a released tag exits
 # cleanly, a tag without a release fails with the fix, and a failed run deletes its
 # branch. Recovery: AGENTS.md, "Pages and releases".
@@ -28,7 +31,7 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 150 # CI on the release commit, CI on the pull request that prepares main, then a Pages deploy
     env:
       GH_TOKEN: ${{ github.token }}
       VERSION: ${{ inputs.version }}
@@ -57,7 +60,9 @@ jobs:
             exit 1
           fi
           sha=$(git rev-parse HEAD)
-          conclusion=$(gh run list --workflow ci.yml --branch main --event push --commit "$sha" --json conclusion --jq '.[0].conclusion')
+          # A push run, or the run the last release dispatched after it merged "Prepare main
+          # for the next release" (a merge made with a workflow's token starts no push run).
+          conclusion=$(gh run list --workflow ci.yml --branch main --commit "$sha" --json conclusion,event --jq '[.[] | select(.event == "push" or .event == "workflow_dispatch")][0].conclusion')
           [ "$conclusion" = success ] || { echo "::error::CI on main ($sha) is '${conclusion:-not run}', not success"; exit 1; }
           echo "MAIN_SHA=$sha" >> "$GITHUB_ENV"
           echo "new=true" >> "$GITHUB_OUTPUT"
@@ -113,7 +118,7 @@ jobs:
             echo
             echo '```sh'
             echo "npx shadcn@latest init --base base --preset nova --yes --no-monorepo"
-            echo "npx shadcn@latest add ourostack/ouro-ui/dialog#$TAG"
+            echo "npx shadcn@latest add ourostack/ouro-ui/ouro-base#$TAG ourostack/ouro-ui/dialog#$TAG"
             echo '```'
             echo
             echo "The tests, stories and specs are optional, one item per component: \`npx shadcn@latest add ourostack/ouro-ui/dialog#$TAG ourostack/ouro-ui/dialog-tests#$TAG\`, or \`ourostack/ouro-ui/ouro-tests#$TAG\` for all of them. List every item with \`npx shadcn@latest search 'ourostack/ouro-ui#$TAG'\`."
@@ -181,6 +186,15 @@ jobs:
           done
           if [ -n "$run" ] && gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$run/approve" >/dev/null; then
             echo "Approved CI run $run on $NEXT_BRANCH; its checks report on the pull request." >> "$GITHUB_STEP_SUMMARY"
+            # Merge it here, so main's README names this release before the run ends instead of
+            # when a person next looks. A merge made with this workflow's token starts no
+            # workflow, so run CI on main's new tip: the next release needs a passing run there.
+            if gh run watch "$run" --exit-status --interval 30 && gh pr merge "$NEXT_BRANCH" --squash --delete-branch; then
+              echo "Merged \"Prepare main for the next release\"." >> "$GITHUB_STEP_SUMMARY"
+              gh workflow run ci.yml --ref main || echo "::warning::Could not start CI on main. Run it by hand (gh workflow run ci.yml --ref main) before the next release."
+            else
+              echo "::warning::Could not merge \"Prepare main for the next release\". Merge it by hand; until then main's README names the release before $TAG, and the last step of this run fails."
+            fi
           else
             cmd="gh api -X POST repos/$GITHUB_REPOSITORY/actions/runs/${run:-<run id of the pull_request CI run on $NEXT_BRANCH>}/approve"
             echo "::warning::Could not approve the held CI run on $NEXT_BRANCH; the required checks will not report until a person does."
@@ -193,6 +207,24 @@ jobs:
               $cmd"
             gh workflow run ci.yml --ref "$NEXT_BRANCH" || echo "::warning::Could not dispatch CI on $NEXT_BRANCH either."
           fi
+      - if: steps.check.outputs.new == 'true'
+        name: Deploy Pages and check what is published
+        run: |
+          # Pages follows CI on a push to main, and no push happened here, so deploy it now: its
+          # build names GitHub's newest release, this one. Then read what people and agents
+          # read, the site's llms.txt and main's README, and fail when an install command
+          # there still names another release.
+          before=$(gh run list --workflow pages.yml --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId // 0')
+          gh workflow run pages.yml --ref main
+          run=
+          for _ in $(seq 24); do
+            run=$(gh run list --workflow pages.yml --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId // 0')
+            [ "$run" != "$before" ] && break
+            sleep "${POLL_SECONDS:-5}"
+          done
+          [ "$run" != "$before" ] || { echo "::error::Pages did not start. Run it by hand: gh workflow run pages.yml --ref main"; exit 1; }
+          gh run watch "$run" --exit-status --interval 30
+          node scripts/published-release.mjs "$TAG" --wait 900
       - if: failure() && steps.check.outputs.new == 'true'
         name: Clean up after a failure
         run: |

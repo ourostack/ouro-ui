@@ -1,5 +1,5 @@
-import { expect, test } from "@playwright/test";
-import { openStory } from "./story";
+import { expect, test } from "../ouro-fixtures";
+import { openStory, pressTab } from "./story";
 
 test("a group joins its buttons into one row with shared borders", async ({ page }) => {
   await openStory(page, "actions-buttongroup--looks");
@@ -10,6 +10,6 @@ test("a group joins its buttons into one row with shared borders", async ({ page
   );
   expect(Math.abs(first.x - (previous.x + previous.width - 1))).toBeLessThan(1);
   await group.getByRole("button", { name: "Previous" }).focus();
-  await page.keyboard.press("Tab");
+  await pressTab(page);
   await expect(group.getByRole("button", { name: "1" })).toBeFocused();
 });

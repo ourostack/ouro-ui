@@ -13,6 +13,7 @@ import {
   DialogFooter,
   DialogPopup,
   DialogPortal,
+  AlertDialogRoot,
   DialogRoot,
   DialogTitle,
   DialogTrigger,
@@ -688,6 +689,21 @@ describe("Dialog parts", () => {
     expect(warn.mock.calls.map((call: unknown[]) => call[0])).toEqual([
       '[ouro-ui] DialogPopup: size="xl" is not a size; use "sm", "md", "lg". Fix: <DialogPopup size="md">.',
     ]);
+  });
+
+  it("AlertDialogRoot, the root ConfirmDialog uses, opens the same parts as an alert dialog", async () => {
+    await render(
+      <AlertDialogRoot open>
+        <DialogPortal>
+          <DialogViewport>
+            <DialogPopup>
+              <DialogTitle>Delete the recipe?</DialogTitle>
+            </DialogPopup>
+          </DialogViewport>
+        </DialogPortal>
+      </AlertDialogRoot>,
+    );
+    await expect.element(page.getByRole("alertdialog", { name: "Delete the recipe?" })).toBeVisible();
   });
 
   it("compose into a working dialog", async () => {

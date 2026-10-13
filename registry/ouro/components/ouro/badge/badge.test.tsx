@@ -6,6 +6,7 @@ import { page, userEvent } from "vitest/browser";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -96,7 +97,7 @@ describe("Badge", () => {
 
   it("shows a focus outline on keyboard focus", async () => {
     const { badge } = await render(<Badge onClick={() => {}}>Vegetarian</Badge>);
-    await userEvent.tab();
+    await pressTab();
     expect(document.activeElement).toBe(badge);
     expect(getComputedStyle(badge).outlineStyle).toBe("solid");
   });

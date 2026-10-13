@@ -1,0 +1,149 @@
+[
+  {
+    "name": "forms",
+    "title": "Forms",
+    "kind": "guide",
+    "group": "Guides",
+    "markdown": "docs/guides/forms.md"
+  },
+  {
+    "name": "installing",
+    "title": "Installing",
+    "kind": "guide",
+    "group": "Guides",
+    "markdown": "docs/guides/installing.md"
+  },
+  {
+    "name": "testing",
+    "title": "Testing",
+    "kind": "guide",
+    "group": "Guides",
+    "markdown": "docs/guides/testing.md"
+  },
+  {
+    "name": "radio",
+    "title": "Radio",
+    "kind": "export",
+    "group": "Forms",
+    "markdown": "docs/Radio.md"
+  },
+  {
+    "name": "menu-bar",
+    "title": "MenuBar",
+    "kind": "export",
+    "group": "Menus",
+    "markdown": "docs/MenuBar.md"
+  },
+  {
+    "name": "menu-checkbox-item",
+    "title": "MenuCheckboxItem",
+    "kind": "export",
+    "group": "Menus",
+    "markdown": "docs/MenuCheckboxItem.md"
+  },
+  {
+    "name": "menu-group",
+    "title": "MenuGroup",
+    "kind": "export",
+    "group": "Menus",
+    "markdown": "docs/MenuGroup.md"
+  },
+  {
+    "name": "menu-item",
+    "title": "MenuItem",
+    "kind": "export",
+    "group": "Menus",
+    "markdown": "docs/MenuItem.md"
+  },
+  {
+    "name": "menu-radio-group",
+    "title": "MenuRadioGroup",
+    "kind": "export",
+    "group": "Menus",
+    "markdown": "docs/MenuRadioGroup.md"
+  },
+  {
+    "name": "menu-radio-item",
+    "title": "MenuRadioItem",
+    "kind": "export",
+    "group": "Menus",
+    "markdown": "docs/MenuRadioItem.md"
+  },
+  {
+    "name": "menu-separator",
+    "title": "MenuSeparator",
+    "kind": "export",
+    "group": "Menus",
+    "markdown": "docs/MenuSeparator.md"
+  },
+  {
+    "name": "menu-sub",
+    "title": "MenuSub",
+    "kind": "export",
+    "group": "Menus",
+    "markdown": "docs/MenuSub.md"
+  },
+  {
+    "name": "toast",
+    "title": "toast",
+    "kind": "export",
+    "group": "Feedback",
+    "markdown": "docs/toast.md"
+  },
+  {
+    "name": "avatar-group",
+    "title": "AvatarGroup",
+    "kind": "export",
+    "group": "Display",
+    "markdown": "docs/AvatarGroup.md"
+  },
+  {
+    "name": "resizable-handle",
+    "title": "ResizableHandle",
+    "kind": "export",
+    "group": "Layout",
+    "markdown": "docs/ResizableHandle.md"
+  },
+  {
+    "name": "resizable-panel",
+    "title": "ResizablePanel",
+    "kind": "export",
+    "group": "Layout",
+    "markdown": "docs/ResizablePanel.md"
+  },
+  {
+    "name": "resizable-panel-group",
+    "title": "ResizablePanelGroup",
+    "kind": "export",
+    "group": "Layout",
+    "markdown": "docs/ResizablePanelGroup.md"
+  },
+  {
+    "name": "chart-container",
+    "title": "ChartContainer",
+    "kind": "export",
+    "group": "Data",
+    "markdown": "docs/ChartContainer.md"
+  },
+  {
+    "name": "chart-legend",
+    "title": "ChartLegend",
+    "kind": "export",
+    "group": "Data",
+    "markdown": "docs/ChartLegend.md"
+  },
+  {
+    "name": "chart-tooltip",
+    "title": "ChartTooltip",
+    "kind": "export",
+    "group": "Data",
+    "markdown": "docs/ChartTooltip.md"
+  },
+  {
+    "name": "ouro-provider",
+    "title": "OuroProvider",
+    "kind": "export",
+    "group": "App setup",
+    "markdown": "docs/OuroProvider.md"
+  }
+]

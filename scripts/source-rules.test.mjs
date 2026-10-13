@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { comments, duplicateTestNames, hasClientDirective, leadingComment, needsClientDirective, testNames, unpreservedHints } from "./source-rules.mjs";
+import { alarmingFileName, alarmingTestTitle, comments, duplicateTestNames, hasClientDirective, leadingComment, needsClientDirective, testNames, unpreservedHints } from "./source-rules.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const tracked = (...globs) =>
@@ -143,4 +143,38 @@ test("every test's full name is unique across the suite, so a name filter runs e
   const files = tracked("*.test.ts", "*.test.tsx", "*.test.mjs", "registry/ouro/e2e/**/*.spec.ts").map(read);
   assert.ok(files.length > 40);
   assert.deepEqual(duplicateTestNames(files), [], "Rename the tests so each full name (describe titles and title) is unique.");
+});
+
+// An app's CI often fails on any output line that reads as a warning or an error. A test
+// runner prints file names (the coverage table) and test titles (a slow or failed test), so
+// a shipped module named use-dev-warnings.ts or a test titled "warn for …" fails such a run
+// though nothing is wrong.
+
+test("alarmingFileName flags a shipped file whose name has a word a log filter reads as trouble", () => {
+  assert.equal(alarmingFileName("registry/ouro/lib/ouro/use-dev-warnings.ts"), "warnings");
+  assert.equal(alarmingFileName("registry/ouro/lib/ouro/error.test.tsx"), "error");
+  assert.equal(alarmingFileName("registry/ouro/components/ouro/x/x-deprecated.tsx"), "deprecated");
+  assert.equal(alarmingFileName("registry/ouro/lib/ouro/use-dev-messages.ts"), null);
+  // Only the file's own name counts, and only whole words in it.
+  assert.equal(alarmingFileName("registry/ouro/components/ouro/failover/terror.tsx"), null);
+});
+
+test("alarmingTestTitle flags a title that starts with such a word, and allows the verb forms", () => {
+  assert.equal(alarmingTestTitle("Field > warn for appearance classes on parts"), "warn for appearance classes on parts");
+  assert.equal(alarmingTestTitle("Errors > shows one"), "Errors");
+  assert.equal(alarmingTestTitle("Field > Warning: the label is missing"), "Warning: the label is missing");
+  assert.equal(alarmingTestTitle("Field > warns about appearance classes on parts"), null);
+  assert.equal(alarmingTestTitle("Form > fails a submit while a field is empty"), null);
+  assert.equal(alarmingTestTitle("Form > shows the error under its field"), null);
+});
+
+test("no shipped file's name reads as a warning or an error in an app's test output", () => {
+  const named = tracked("registry/**").flatMap((path) => (alarmingFileName(path) ? [path] : []));
+  assert.deepEqual(named, [], "Rename the file: a log filter that fails on these words fails the app's run when the name is printed.");
+});
+
+test("no test or describe title starts with a word that reads as a warning or an error", () => {
+  const files = tracked("registry/**/*.test.ts", "registry/**/*.test.tsx", "registry/ouro/e2e/**/*.spec.ts").map(read);
+  const titles = files.flatMap(({ path, text }) => testNames(path, text).flatMap((name) => (alarmingTestTitle(name) ? [`${path}: ${alarmingTestTitle(name)}`] : [])));
+  assert.deepEqual([...new Set(titles)], [], 'Start the title with what the component does ("warns about …", "shows an error …").');
 });

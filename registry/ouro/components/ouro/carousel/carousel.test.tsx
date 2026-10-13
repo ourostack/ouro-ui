@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, server, userEvent } from "vitest/browser";
 import { Carousel } from "@/registry/ouro/components/ouro/carousel/carousel";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -182,10 +183,10 @@ describe("Carousel structure", () => {
       </Carousel>,
     );
     screen.host.querySelector<HTMLButtonElement>("button")!.focus();
-    await userEvent.tab();
+    await pressTab();
     expect(document.activeElement?.textContent).toBe("Save 2");
     // Slides 3 and 4 are skipped, and so is Previous, which is disabled.
-    await userEvent.tab();
+    await pressTab();
     expect(document.activeElement).toBe(screen.button("Next slide"));
   });
 

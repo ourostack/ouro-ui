@@ -4,7 +4,7 @@ import { Children, useEffect, useLayoutEffect, useRef, useState, type JSX, type 
 import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-warnings";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import {
   buttonsClass,
