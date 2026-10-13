@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -65,4 +67,14 @@ test("the React Router adapter the OuroProvider page prints is two files the ins
   assert.doesNotMatch(files["root.tsx"], /next\/link/);
   const script = read("scripts/install-test.sh");
   assert.match(script, /readme-steps\.mjs" write-router "\$app"/);
+});
+
+test("write-router writes the adapter with the app's alias in place of @/", () => {
+  const app = mkdtempSync(join(tmpdir(), "ouro-router-"));
+  const result = spawnSync("node", [join(root, "scripts/readme-steps.mjs"), "write-router", app, "~/"], { encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr);
+  const rootFile = readFileSync(join(app, "src/root.tsx"), "utf8");
+  assert.match(rootFile, /from "~\/lib\/ouro\/ouro-provider"/);
+  assert.match(rootFile, /from "~\/components\/ouro-router-link"/);
+  assert.doesNotMatch(rootFile + readFileSync(join(app, "src/components/ouro-router-link.tsx"), "utf8"), /"@\//);
 });

@@ -64,9 +64,8 @@ export function routerAdapterFiles(markdown) {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const steps = readmeSteps(readFileSync(join(root, "README.md"), "utf8"));
-  const [mode, app] = process.argv.slice(2);
+  const [mode, app, alias = "@/"] = process.argv.slice(2);
   if (mode === "write-router") {
-    const alias = process.argv[5] ?? "@/";
     for (const [path, content] of Object.entries(routerAdapterFiles(readFileSync(join(root, "docs/OuroProvider.md"), "utf8")))) {
       mkdirSync(dirname(join(app, "src", path)), { recursive: true });
       writeFileSync(join(app, "src", path), content.replaceAll('"@/', `"${alias}`));
