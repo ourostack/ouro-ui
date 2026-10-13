@@ -145,8 +145,14 @@ export interface Opener {
 
 /** Whether a trigger is there for screen readers and the keyboard only: clipped to a pixel, so no tap or click can land on it. */
 function clipped(element: HTMLElement): boolean {
-  const box = (element.parentElement ?? element).getBoundingClientRect();
-  return element.getBoundingClientRect().width <= 1 || (box.width <= 1 && box.height <= 1);
+  // Tailwind's `sr-only` on the trigger or its wrapper: a 1px box with its contents clipped away.
+  // A narrow but unclipped trigger (a combobox input that grows as you type) is still clicked.
+  const srOnly = (node: HTMLElement) => {
+    const box = node.getBoundingClientRect();
+    const style = getComputedStyle(node);
+    return box.width <= 1 && box.height <= 1 && (style.clip !== "auto" || style.clipPath !== "none");
+  };
+  return srOnly(element) || (element.parentElement !== null && srOnly(element.parentElement));
 }
 
 /** Opens a trigger the way its only users do: focus, then Enter. */
