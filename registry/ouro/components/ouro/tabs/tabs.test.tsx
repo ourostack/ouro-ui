@@ -201,6 +201,53 @@ describe("Tabs", () => {
     expect(under(r.tabs[2]!)).toEqual([0, 0]);
   });
 
+  it("slides the indicator with translate only, on the ease-in-out token in the base duration", async () => {
+    const r = await render(<Tabs label="Recipe" items={items} />);
+    await expect.poll(() => r.indicator).not.toBeNull();
+    const style = getComputedStyle(r.indicator!);
+    expect(style.transitionProperty).toBe("translate");
+    expect(style.transitionDuration).toBe("0.2s");
+    expect(style.transitionTimingFunction).toBe("cubic-bezier(0.77, 0, 0.175, 1)");
+  });
+
+  it("switches by key without animating the indicator or the panel, and by pointer with both", async () => {
+    const r = await render(<Tabs label="Recipe" items={items} />);
+    await expect.poll(() => r.indicator).not.toBeNull();
+    const panel = () => r.host.querySelector<HTMLElement>('[role="tabpanel"]')!;
+    expect(r.root.hasAttribute("data-ouro-keyboard")).toBe(false);
+    expect(getComputedStyle(panel()).transitionProperty).toBe("opacity");
+    r.tabs[0]!.focus();
+    await userEvent.keyboard("{ArrowRight}");
+    await userEvent.keyboard("{Enter}");
+    expect(r.root.hasAttribute("data-ouro-keyboard")).toBe(true);
+    expect(getComputedStyle(r.indicator!).transitionProperty).toBe("none");
+    expect(getComputedStyle(panel()).transitionProperty).toBe("none");
+    await userEvent.click(r.tabs[2]!);
+    expect(r.root.hasAttribute("data-ouro-keyboard")).toBe(false);
+    expect(getComputedStyle(r.indicator!).transitionProperty).toBe("translate");
+    expect(getComputedStyle(panel()).transitionProperty).toBe("opacity");
+  });
+
+  it("still calls the key and pointer handlers a list is given", async () => {
+    const onKeyDownCapture = vi.fn();
+    const onPointerDownCapture = vi.fn();
+    const r = await render(
+      <TabsRoot defaultValue="a">
+        <TabsList aria-label="Recipe" onKeyDownCapture={onKeyDownCapture} onPointerDownCapture={onPointerDownCapture}>
+          <TabsTab value="a">A</TabsTab>
+          <TabsTab value="b">B</TabsTab>
+        </TabsList>
+        <TabsPanel value="a">One</TabsPanel>
+        <TabsPanel value="b">Two</TabsPanel>
+      </TabsRoot>,
+    );
+    r.tabs[0]!.focus();
+    await userEvent.keyboard("{ArrowRight}");
+    expect(onKeyDownCapture).toHaveBeenCalled();
+    await userEvent.click(r.tabs[1]!);
+    expect(onPointerDownCapture).toHaveBeenCalled();
+  });
+
   it("keeps the indicator on the tab when it re-measures during a press", async () => {
     const r = await render(<Tabs label="Recipe" items={items} />);
     await expect.poll(() => r.indicator).not.toBeNull();
@@ -227,7 +274,7 @@ describe("Tabs", () => {
     await commands.emulateMedia({ reducedMotion: "reduce" });
     const r = await render(<Tabs label="Recipe" items={items} />);
     await expect.poll(() => r.indicator).not.toBeNull();
-    expect(getComputedStyle(r.indicator!).transitionProperty).not.toMatch(/translate|transform|width/);
+    expect(getComputedStyle(r.indicator!).transitionProperty).not.toMatch(/translate|transform|width|height/);
   });
 
   it("marks the selected tab with the foreground color and others muted", async () => {

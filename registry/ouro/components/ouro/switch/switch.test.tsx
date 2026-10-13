@@ -287,6 +287,22 @@ describe("Switch look and motion", () => {
     await commands.pointerPress({ selector: '[role="switch"]', action: "up" });
   });
 
+  it("stretches by scaling and slides on translate, never by animating its width", async () => {
+    const { thumb } = await render(<Switch label="Wi-Fi" />);
+    const style = getComputedStyle(thumb);
+    expect(style.transitionProperty).toBe("translate, scale");
+    expect(style.transitionDuration).toBe("0.2s, 0.16s");
+    expect(style.transitionTimingFunction).toBe("cubic-bezier(0.77, 0, 0.175, 1), cubic-bezier(0.23, 1, 0.32, 1)");
+    const width = style.width;
+    await commands.pointerPress({ selector: '[role="switch"]', action: "down" });
+    try {
+      await expect.poll(() => Number.parseFloat(getComputedStyle(thumb).scale)).toBeCloseTo(1.2, 2);
+      expect(getComputedStyle(thumb).width).toBe(width);
+    } finally {
+      await commands.pointerPress({ selector: '[role="switch"]', action: "up" });
+    }
+  });
+
   it("does not stretch or slide with reduced motion", async () => {
     await commands.emulateMedia({ reducedMotion: "reduce" });
     const { thumb } = await render(<Switch label="Wi-Fi" />);

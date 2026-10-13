@@ -17,7 +17,7 @@ type ToggleIcon = ComponentType<SVGProps<SVGSVGElement>>;
 
 /**
  * The toggle's shape and feedback: Button's state layer (a wash in the text color on hover,
- * deeper while pressed), the spring press scale when motion is allowed, and the focus outline
+ * deeper while pressed), the press scale when motion is allowed, and the focus outline
  * in the ring color.
  *
  * @internal
@@ -28,12 +28,12 @@ const toggleBase =
   "no-underline select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
   "before:pointer-events-none before:absolute before:-inset-px before:rounded-[inherit] before:bg-current " +
-  "before:opacity-0 before:transition-opacity before:duration-(--ouro-duration-fast) before:ease-out " +
-  "not-data-disabled:hover:before:opacity-8 not-data-disabled:active:before:opacity-14 " +
-  "motion-safe:not-data-disabled:active:scale-(--ouro-press-scale) active:duration-(--ouro-duration-fast) active:ease-out " +
+  "before:opacity-0 before:transition-opacity before:duration-(--ouro-duration-fast) before:ease-[ease] " +
+  "not-data-disabled:pointer-fine:hover:before:opacity-8 not-data-disabled:active:before:opacity-14 " +
+  "motion-safe:not-data-disabled:active:scale-(--ouro-press-scale) " +
   "disabled:cursor-not-allowed disabled:opacity-50 " +
   // Pressed: the primary tone at 10% behind text mixed 20% toward the foreground, as Button's soft look.
-  "data-pressed:bg-primary/10 data-pressed:text-[color-mix(in_oklab,var(--primary)_80%,var(--foreground))]";
+  "data-pressed:bg-primary/10 data-pressed:text-[color-mix(in_oklab,var(--primary)_80%,var(--foreground))] contrast-more:data-pressed:border-current";
 
 /**
  * Height and padding read two variables, so the toggle has one unprefixed `h-*` and `px-*`

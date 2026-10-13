@@ -117,15 +117,33 @@ function useEdgeFade(list: { current: HTMLElement | null }): void {
 /**
  * Part: the row (or column) of tabs. Name it with `aria-label` when the page has more than
  * one set of tabs. `activateOnFocus` selects a tab when the arrow keys focus it. A row that
- * scrolls, on a phone, fades out on the side that hides more tabs.
+ * scrolls, on a phone, fades out on the side that hides more tabs. A key that moves the
+ * selection switches tabs without animation.
  */
-export function TabsList({ className, ref, ...props }: TabsListProps): JSX.Element {
+export function TabsList({ className, ref, onKeyDownCapture, onPointerDownCapture, ...props }: TabsListProps): JSX.Element {
   useTabsPart("TabsList", '<TabsList aria-label="…">…</TabsList>');
   usePartClassName("TabsList", className);
   const own = useRef<HTMLDivElement>(null);
   const merged = useMergedRef(ref, own);
   useEdgeFade(own);
-  return <BaseTabs.List {...props} ref={merged} className={cn(listClass, className)} />;
+  // The tabs say when a key moved the selection (and when a pointer did), so switching by key
+  // doesn't animate the indicator or the panel.
+  const mark = (element: HTMLElement, keyboard: boolean) => element.closest('[data-ouro="tabs"]')!.toggleAttribute("data-ouro-keyboard", keyboard);
+  return (
+    <BaseTabs.List
+      {...props}
+      ref={merged}
+      onKeyDownCapture={(event) => {
+        mark(event.currentTarget, true);
+        onKeyDownCapture?.(event);
+      }}
+      onPointerDownCapture={(event) => {
+        mark(event.currentTarget, false);
+        onPointerDownCapture?.(event);
+      }}
+      className={cn(listClass, className)}
+    />
+  );
 }
 
 /** Props for {@link TabsTab}. */

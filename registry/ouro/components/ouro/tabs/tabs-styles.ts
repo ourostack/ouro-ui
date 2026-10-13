@@ -70,7 +70,7 @@ const tabClass =
   "pointer-coarse:min-w-11 justify-center data-[orientation=vertical]:justify-start " +
   "rounded-md border-0 bg-transparent text-base font-medium text-muted-foreground sm:pointer-fine:text-sm " +
   "select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
-  "not-data-disabled:hover:text-foreground data-active:text-foreground " +
+  "not-data-disabled:pointer-fine:hover:text-foreground data-active:text-foreground " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
   "data-disabled:cursor-not-allowed data-disabled:opacity-50";
 
@@ -86,14 +86,15 @@ const tabFaceClass =
   "motion-safe:group-not-data-disabled/tab:group-active/tab:scale-(--ouro-press-scale)";
 
 /**
- * The line under the selected tab (beside it, in a column). It slides and resizes to the
- * selected tab with the theme spring; with reduced motion it moves without a transition.
+ * The line under the selected tab (beside it, in a column). It slides to the
+ * selected tab on the ease-in-out token and changes size at once; with reduced motion, or while the
+ * keys move the selection, it moves without a transition.
  *
  * @internal
  */
 const indicatorClass =
   "pointer-events-none absolute z-1 rounded-full bg-primary " +
-  "[transition-property:translate,width,height] duration-(--ouro-spring-duration) ease-(--ouro-ease-spring) motion-reduce:transition-none " +
+  "[transition-property:translate] duration-(--ouro-duration-base) ease-(--ouro-ease-in-out) motion-reduce:transition-none in-data-ouro-keyboard:transition-none " +
   "data-[orientation=horizontal]:bottom-0 data-[orientation=horizontal]:left-0 data-[orientation=horizontal]:h-0.5 " +
   "data-[orientation=horizontal]:w-(--active-tab-width) data-[orientation=horizontal]:translate-x-(--active-tab-left) " +
   "data-[orientation=vertical]:top-0 data-[orientation=vertical]:right-0 data-[orientation=vertical]:w-0.5 " +
@@ -107,4 +108,4 @@ const indicatorClass =
  */
 const panelClass =
   "min-w-0 flex-1 rounded-md outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
-  "transition-opacity duration-(--ouro-duration-base) ease-out data-starting-style:opacity-0 data-ending-style:transition-none";
+  "transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) data-starting-style:opacity-0 data-ending-style:transition-none in-data-ouro-keyboard:transition-none";

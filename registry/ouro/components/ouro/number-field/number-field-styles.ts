@@ -17,7 +17,7 @@ const groupClass =
   "[--ouro-control-h:calc(var(--spacing)*11)] sm:pointer-fine:[--ouro-control-h:calc(var(--spacing)*9)] " +
   "rounded-md border border-solid border-input bg-transparent text-base text-foreground sm:pointer-fine:text-sm " +
   "outline-ring outline-offset-2 has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-solid " +
-  "transition-[border-color] duration-(--ouro-duration-fast) ease-out " +
+  "transition-[border-color] duration-(--ouro-duration-fast) ease-[ease] " +
   "has-[input[aria-invalid=true]]:border-destructive has-[input:disabled]:opacity-50 " +
   "dark:bg-input/30";
 
@@ -41,10 +41,10 @@ const inputClass =
 const stepperClass =
   "press relative m-0 box-border flex aspect-square h-full shrink-0 items-center justify-center border-0 p-0 " +
   "bg-transparent text-muted-foreground cursor-pointer select-none [-webkit-tap-highlight-color:transparent] " +
-  "hover:bg-accent hover:text-accent-foreground active:bg-accent " +
+  "pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground active:bg-[color-mix(in_oklab,var(--accent)_85%,var(--foreground))] active:text-accent-foreground " +
   "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid " +
   "first:rounded-s-[calc(var(--radius-md)-1px)] last:rounded-e-[calc(var(--radius-md)-1px)] " +
-  "data-disabled:cursor-not-allowed data-disabled:opacity-50 data-disabled:hover:bg-transparent [&_svg]:size-4";
+  "data-disabled:cursor-not-allowed data-disabled:opacity-50 data-disabled:pointer-fine:hover:bg-transparent [&_svg]:size-4";
 
 /**
  * The label's scrub area: drag it sideways with a mouse to change the value.

@@ -2,7 +2,7 @@ import { type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page } from "vitest/browser";
+import { commands, page } from "vitest/browser";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -216,5 +216,25 @@ describe("Link development messages", () => {
     expect(html).toContain("opens in a new tab");
     expect(warn).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
+  });
+});
+
+describe("Link press feedback", () => {
+  it("dims while the pointer is down, like an Accordion trigger, and never scales", async () => {
+    const { link } = await render(<Link href="/recipes">Recipes</Link>);
+    expect(getComputedStyle(link).opacity).toBe("1");
+    await commands.pointerPress({ selector: '[data-ouro="link"]', action: "down" });
+    try {
+      expect(getComputedStyle(link).opacity).toBe("0.7");
+      expect(getComputedStyle(link).scale).toBe("none");
+    } finally {
+      await commands.pointerPress({ action: "up" });
+    }
+  });
+
+  it("eases its underline color with the plain ease curve", async () => {
+    const { link } = await render(<Link href="/recipes">Recipes</Link>);
+    expect(getComputedStyle(link).transitionTimingFunction).toBe("ease");
+    expect(getComputedStyle(link).transitionDuration).toBe("0.15s");
   });
 });

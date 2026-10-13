@@ -104,7 +104,7 @@ function SwitchTrack(props: {
 /**
  * A labeled on/off switch on the Field contract, with the label to its right: pass `label`,
  * and `checked` with `onCheckedChange` (or `defaultChecked`). Clicking the label or pressing
- * Space flips it; the thumb slides with the theme spring and stretches while pressed. With
+ * Space flips it; the thumb slides and stretches while pressed. With
  * `name`, a switch that is on submits `name=value` with its form.
  *
  * Use it for a setting that takes effect at once. Use `Checkbox` instead for a choice that

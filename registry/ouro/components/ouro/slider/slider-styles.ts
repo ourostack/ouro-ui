@@ -51,7 +51,7 @@ const thumbClass =
   "relative box-border size-5 rounded-full border-2 border-solid border-primary bg-background select-none " +
   "[box-shadow:0_1px_2px_rgb(0_0_0/0.2)] " +
   "outline-ring outline-offset-2 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-solid " +
-  "[transition:scale_var(--ouro-spring-duration)_var(--ouro-ease-spring),border-color_var(--ouro-duration-fast)_ease-out] " +
+  "[transition:scale_var(--ouro-duration-press)_var(--ouro-ease-out),border-color_var(--ouro-duration-fast)_ease] " +
   "motion-safe:data-dragging:scale-110 " +
   "group-data-[ouro-invalid]/slider:border-destructive data-disabled:cursor-not-allowed";
 

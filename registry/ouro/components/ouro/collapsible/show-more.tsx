@@ -383,7 +383,7 @@ function ShowMoreList(props: (ShowMoreItemsProps | ShowMoreLoadProps) & { showMo
             tabIndex={-1}
             className={cn(
               itemClass,
-              freshFrom !== null && index >= freshFrom && "transition-opacity duration-(--ouro-duration-base) ease-out starting:opacity-0",
+              freshFrom !== null && index >= freshFrom && "transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) starting:opacity-0",
             )}
           >
             {item}
