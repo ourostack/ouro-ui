@@ -22,6 +22,7 @@ export default defineConfig({
   optimizeDeps: {
     include: [
       "@base-ui/react/alert-dialog",
+      "@base-ui/react/autocomplete",
       "@base-ui/react/avatar",
       "@base-ui/react/button",
       "@base-ui/react/checkbox",
@@ -29,11 +30,14 @@ export default defineConfig({
       "@base-ui/react/radio",
       "@base-ui/react/radio-group",
       "@base-ui/react/switch",
+      "@base-ui/react/combobox",
       "@base-ui/react/dialog",
       "@base-ui/react/drawer",
       "@base-ui/react/field",
       "@base-ui/react/fieldset",
       "@base-ui/react/form",
+      "@base-ui/react/number-field",
+      "@base-ui/react/slider",
       "@base-ui/react/accordion",
       "@base-ui/react/collapsible",
       "@base-ui/react/tabs",
@@ -48,6 +52,7 @@ export default defineConfig({
       "@base-ui/react/separator",
       "@base-ui/react/toast",
       "@base-ui/react/tooltip",
+      "recharts",
     ],
   },
   test: {

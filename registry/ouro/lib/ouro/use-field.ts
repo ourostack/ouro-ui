@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext } from "react";
+import { createContext, useContext, type ReactElement, type ReactNode } from "react";
 
 // The state a Field shares with its control and label, apart from the components so the
 // parts file exports only components (React Fast Refresh). Base UI's Field owns ids,
@@ -70,6 +70,13 @@ export interface FieldOwner {
    * readers announce it.
    */
   requiredLabel?: string | undefined;
+  /**
+   * Arranges the field's content inside its root: the label element, then the rest
+   * (description, control, error). NumberField puts its Base UI root around both and a scrub
+   * area around the label; a range Slider drops the label's `for`, because its group is named
+   * with `aria-labelledby`. Without it, the label comes first, then the rest.
+   */
+  frame?: ((label: ReactElement, rest: ReactNode) => ReactNode) | undefined;
   /**
    * `false` when the control is not a form element a `<label for>` can click and name, such
    * as Select's trigger button: the label renders as a `<div>` and the control takes

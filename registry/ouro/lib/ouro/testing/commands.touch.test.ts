@@ -95,3 +95,18 @@ test("lifts a finger a test left down before the next gesture starts", async () 
   expect(starts()).toEqual(["pointerdown", "touchstart"]);
   expect(element.scrollLeft).toBeGreaterThan(0);
 });
+
+test("touchDrag with durationMs spans exactly that long in the page's event timestamps", async () => {
+  scroller();
+  const stamps: Record<string, number> = {};
+  const listener = (event: Event) => (stamps[event.type] = event.timeStamp);
+  for (const type of ["touchstart", "touchend"]) addEventListener(type, listener, true);
+  try {
+    await commands.touchDrag({ from: [260, 100], to: [40, 100], steps: 10, durationMs: 300 });
+    // The command returns once CDP takes the events; a loaded page may handle the last one later.
+    await expect.poll(() => [stamps["touchstart"], stamps["touchend"]].every((stamp) => stamp !== undefined)).toBe(true);
+  } finally {
+    for (const type of ["touchstart", "touchend"]) removeEventListener(type, listener, true);
+  }
+  expect(stamps["touchend"]! - stamps["touchstart"]!).toBeCloseTo(300, 0);
+});

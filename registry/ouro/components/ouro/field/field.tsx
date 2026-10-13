@@ -1,7 +1,7 @@
 "use client";
 
 import { Field as BaseField } from "@base-ui/react/field";
-import { useCallback, useEffect, useId, useMemo, useRef, type FormEvent, type JSX, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, type FormEvent, type JSX, type ReactElement, type ReactNode } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { FieldContext, FieldOwnerContext, useField, useFieldOwner, useFormErrors } from "@/registry/ouro/lib/ouro/use-field";
@@ -65,6 +65,14 @@ export interface FieldProps {
   placeholder?: { 'Use label="Email"; a placeholder example goes on the control': never };
 }
 
+/** Field's own arrangement: the label, then the rest. */
+const defaultFrame = (label: ReactElement, rest: ReactNode): ReactNode => (
+  <>
+    {label}
+    {rest}
+  </>
+);
+
 /** The owner a plain Field has, restored for the Field's own children. */
 const fieldOwner = { name: "Field", data: "field" };
 
@@ -75,17 +83,18 @@ function messagesOf(error: string | string[] | undefined): string[] {
 }
 
 /**
- * The label is connected when its `for` names an element inside the field, or, for a label
- * that is not a `<label>`, when an element inside the field names it in `aria-labelledby`.
+ * The label is connected when its `for` names an element inside the field, or when an element
+ * inside the field names it in `aria-labelledby`: a range Slider's group names the label
+ * element's own id, and a label that is not a `<label>` (Select's) is named by `labelId`.
  * Development only.
  */
 function labelConnected(root: HTMLElement, data: string, labelId: string, nativeLabel: boolean): boolean {
-  const target = nativeLabel
-    ? root.querySelector("label")?.htmlFor
-    : root.querySelector(`[aria-labelledby~="${CSS.escape(labelId)}"]`)?.id;
-  /* istanbul ignore next @preserve -- Field's label always has a for, and Select's trigger always names its label */
-  if (!target) return false;
-  return root.ownerDocument.getElementById(target)?.closest(`[data-ouro="${data}"]`) === root;
+  const label = root.querySelector("label");
+  const inside = (element: Element | null) => element?.closest(`[data-ouro="${data}"]`) === root;
+  if (nativeLabel && label?.htmlFor && inside(root.ownerDocument.getElementById(label.htmlFor))) return true;
+  return [label?.id ?? labelId, labelId].some((id) =>
+    [...root.querySelectorAll(`[aria-labelledby~="${CSS.escape(id)}"]`)].some(inside),
+  );
 }
 
 /**
@@ -235,28 +244,62 @@ export function Field(props: FieldProps): JSX.Element {
         {label}
       </FieldLabel>
     );
-  // An inline control comes first, so it reads before its label, and sits to its left.
+  // The owner names this Field only: a plain Field inside (in an adornment's popover) is a Field.
   const control = <FieldOwnerContext.Provider value={fieldOwner}>{children}</FieldOwnerContext.Provider>;
-  const parts = (
-    <>
-      {layout === "inline" && control}
-      {legend}
-      {hasDescription && (
-        <FieldDescription id={descriptionId} className={layout === "inline" ? "col-start-2" : undefined}>
-          {description}
-        </FieldDescription>
-      )}
-      {/* The owner names this Field only: a plain Field inside (in an adornment's popover) is a Field. */}
-      {layout !== "inline" && control}
-    </>
+  const descriptionPart = hasDescription && (
+    <FieldDescription id={descriptionId} className={layout === "inline" ? "col-start-2" : undefined}>
+      {description}
+    </FieldDescription>
   );
+  const errorPart = invalid ? (
+    <FieldError id={errorId} match className={layout === "inline" ? "col-start-2" : undefined}>
+      {messages.length > 1 ? (
+        <ul>
+          {messages.map((message) => (
+            <li key={message}>{message}</li>
+          ))}
+        </ul>
+      ) : (
+        messages[0]
+      )}
+    </FieldError>
+  ) : (
+    <FieldError id={errorId} className={layout === "inline" ? "col-start-2" : undefined} />
+  );
+  // An inline control comes first, so it reads before its label, and sits to its left. A
+  // stacked field lets its owner arrange the label and the rest (NumberField, a range Slider).
+  const content =
+    layout === "inline" ? (
+      <>
+        {control}
+        {legend}
+        {descriptionPart}
+        {errorPart}
+      </>
+    ) : layout === "group" ? (
+      <>
+        {legend}
+        {descriptionPart}
+        {control}
+        {errorPart}
+      </>
+    ) : (
+      (owner.frame ?? defaultFrame)(
+        legend,
+        <>
+          {descriptionPart}
+          {control}
+          {errorPart}
+        </>,
+      )
+    );
   const rootClassName = cn(layout === "inline" ? inlineRootClass : rootClass, className);
 
   return (
     <FieldContext.Provider value={value}>
       {item ? (
         <BaseField.Item ref={rootRef} disabled={disabled} data-ouro={owner.data} className={rootClassName}>
-          {parts}
+          {content}
         </BaseField.Item>
       ) : (
         // `invalid` stays Ouro's: Base UI would count it as a failed check and block the
@@ -270,22 +313,7 @@ export function Field(props: FieldProps): JSX.Element {
           className={rootClassName}
           onChange={clearFormError}
         >
-          {parts}
-          {invalid ? (
-            <FieldError id={errorId} match className={layout === "inline" ? "col-start-2" : undefined}>
-              {messages.length > 1 ? (
-                <ul>
-                  {messages.map((message) => (
-                    <li key={message}>{message}</li>
-                  ))}
-                </ul>
-              ) : (
-                messages[0]
-              )}
-            </FieldError>
-          ) : (
-            <FieldError id={errorId} className={layout === "inline" ? "col-start-2" : undefined} />
-          )}
+          {content}
         </BaseField.Root>
       )}
     </FieldContext.Provider>

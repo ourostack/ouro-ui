@@ -35,13 +35,14 @@
     "site:build": "node site/scripts/agent-messages.mts --check && vite build --config site/vite.config.ts && vite build --config site/vite.config.ts --ssr src/entry-server.tsx --outDir ../.tmp/site-ssr && node site/scripts/prerender.mts",
     "site:preview": "vite preview --config site/vite.config.ts",
     "site:messages": "node site/scripts/agent-messages.mts",
-    "test:scripts": "node --test scripts/app-lint.test.mjs scripts/agent-types.test.mjs scripts/changes.test.mjs scripts/dev-strip.test.mjs scripts/gen-docs.test.mjs scripts/registry.test.mjs scripts/install-check.test.mjs scripts/latest-release.test.mjs scripts/source-rules.test.mjs scripts/upgrade-note.test.mjs scripts/workflows.test.mjs site/scripts/agent-messages.test.mjs",
+    "test:scripts": "node --test scripts/app-lint.test.mjs scripts/agent-types.test.mjs scripts/changes.test.mjs scripts/dev-strip.test.mjs scripts/gen-docs.test.mjs scripts/registry.test.mjs scripts/install-check.test.mjs scripts/latest-release.test.mjs scripts/source-rules.test.mjs scripts/upgrade-note.test.mjs scripts/workflows.test.mjs site/scripts/agent-messages.test.mjs scripts/agent-usability/score.test.mjs",
     "test:e2e": "playwright test",
     "registry": "node scripts/registry.mts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
     "clsx": "^2.1.1",
+    "recharts": "^3.10.1",
     "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {
@@ -68,6 +69,7 @@
     "postcss": "8.5.28",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "react-is": "19.3.0",
     "storybook": "10.6.1",
     "tailwindcss": "4.3.3",
     "typescript": "6.0.3",

@@ -1,0 +1,1 @@
+- `commands.touchDrag` takes `durationMs`, the time from touch down to lift as the page's event timestamps report it. Pass it when the result depends on the swipe's speed, as over scroll snap points, where a fast flick carries past the next slide.

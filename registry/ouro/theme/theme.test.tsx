@@ -93,6 +93,15 @@ for (const scheme of ["light", "dark"] as const) {
       }
     });
 
+    // Chart series are graphics, which need 3:1 against what they are drawn on.
+    it.each([1, 2, 3, 4, 5])("chart-%i is at least 3:1 on the page and a card", (index) => {
+      surfaces();
+      for (const surface of ["background", "card"]) {
+        const behind = toRgb(color(surface));
+        expect(ratio(toRgb(color(`chart-${index}`), behind), behind)).toBeGreaterThanOrEqual(3);
+      }
+    });
+
     it.each([
       ["foreground", "background"],
       ["popover-foreground", "popover"],
@@ -141,5 +150,38 @@ describe("motion tokens", () => {
 
   it("runs the spring at least as long as its visual duration", () => {
     expect(Number.parseFloat(root().getPropertyValue("--ouro-spring-duration"))).toBeGreaterThanOrEqual(400);
+  });
+
+  it("defines the three easing curves under the --ouro- prefix, leaving Tailwind's own ease-out alone", () => {
+    expect(root().getPropertyValue("--ouro-ease-out").trim()).toBe("cubic-bezier(0.23, 1, 0.32, 1)");
+    expect(root().getPropertyValue("--ouro-ease-in-out").trim()).toBe("cubic-bezier(0.77, 0, 0.175, 1)");
+    expect(root().getPropertyValue("--ouro-ease-drawer").trim()).toBe("cubic-bezier(0.32, 0.72, 0, 1)");
+    // Tailwind's own `ease-out` class keeps Tailwind's curve in an app that installs the theme.
+    const tailwind = getComputedStyle(mount('<i class="ease-out"></i>').firstElementChild!);
+    expect(tailwind.transitionTimingFunction).toBe("cubic-bezier(0, 0, 0.2, 1)");
+  });
+
+  it("defines the durations: press 160ms, fast 150ms, base 200ms, slow 300ms, sheet 500ms", () => {
+    const durations = Object.fromEntries(
+      ["press", "fast", "base", "slow", "sheet"].map((name) => [name, root().getPropertyValue(`--ouro-duration-${name}`).trim()]),
+    );
+    expect(durations).toEqual({ press: "160ms", fast: "150ms", base: "200ms", slow: "300ms", sheet: "500ms" });
+  });
+});
+
+describe("press utility", () => {
+  it("scales in and out in 160ms on the ease-out token, and eases colors in 150ms", () => {
+    const style = getComputedStyle(mount('<button class="press"></button>').firstElementChild!);
+    const properties = style.transitionProperty.split(", ");
+    const durations = style.transitionDuration.split(", ");
+    const easings = style.transitionTimingFunction.split(/, (?=cubic-bezier|ease|linear)/);
+    const at = (property: string) => properties.indexOf(property);
+    expect(at("scale")).toBeGreaterThanOrEqual(0);
+    expect(durations[at("scale")]).toBe("0.16s");
+    expect(easings[at("scale")]).toBe("cubic-bezier(0.23, 1, 0.32, 1)");
+    for (const property of ["background-color", "border-color", "color", "opacity"]) {
+      expect(durations[at(property)], property).toBe("0.15s");
+      expect(easings[at(property)], property).toBe("ease");
+    }
   });
 });

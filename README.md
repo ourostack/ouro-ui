@@ -185,18 +185,23 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ### Forms
 
+- **Calendar** — A month grid to pick a day or a range of days, with the arrow keys or a press. [Docs](docs/Calendar.md)
 - **Checkbox** — A labeled checkbox on the Field contract, with the label to its right: pass `label`, and `checked` with `onCheckedChange` (or `defaultChecked`). [Docs](docs/Checkbox.md)
 - **CheckboxGroup** — A group of checkboxes under one legend, on the Field contract, for picking any number of choices: pass `legend`, and `options` (or `Checkbox` children). [Docs](docs/CheckboxGroup.md)
 - **ColorField** — A color on the Field contract: a swatch that opens the system color picker, next to the same color as hex text, kept in step both ways. [Docs](docs/ColorField.md)
+- **Combobox** — A text input that filters a list of items as people type, on the Field contract: pass `label`, `items`, and `error` from your server action or client check. [Docs](docs/Combobox.md)
+- **DatePicker** — A labeled date field. [Docs](docs/DatePicker.md)
 - **Field** — A labeled form control: the label, an optional description, the control and its error, wired together with ids that match between the server and the browser. [Docs](docs/Field.md)
 - **Fieldset** — A titled group of related fields, such as an address, rendered as a `<fieldset>` named by its legend. [Docs](docs/Fieldset.md)
 - **FileField** — A labeled file input with a drop zone, on the Field contract. [Docs](docs/FileField.md)
 - **Form** — A form that validates with the browser's own constraints (`required`, `type="email"`, `pattern`) and shows server errors on the matching fields. [Docs](docs/Form.md)
 - **NativeSelect** — A labeled native `<select>` on the Field contract: pass `label`, `options` (or `<option>` children) and `error`. [Docs](docs/NativeSelect.md)
+- **NumberField** — A labeled number input on the Field contract: pass `label`, and `error` from your server action or client check. [Docs](docs/NumberField.md)
 - **OtpField** — A one-time code entry on the Field contract: one slot per character, with focus that moves as the person types, a whole code pasted at once, and `autoComplete="one-time-code"` so phones offer the code from a text message. [Docs](docs/OtpField.md)
 - **Radio** — One choice in a `RadioGroup`, with its label to its right. [Docs](docs/Radio.md)
 - **RadioGroup** — A group of radios under one legend, on the Field contract, for picking exactly one choice: pass `legend`, and `options` (or `Radio` children). [Docs](docs/RadioGroup.md)
 - **Select** — A labeled list of choices on the Field contract: pass `label`, `options` (or `SelectItem` children) and `error` from your server action or client check. [Docs](docs/Select.md)
+- **Slider** — A labeled slider on the Field contract: pass `label`, and a `defaultValue` (or `value` with `onValueChange`). [Docs](docs/Slider.md)
 - **Switch** — A labeled on/off switch on the Field contract, with the label to its right: pass `label`, and `checked` with `onCheckedChange` (or `defaultChecked`). [Docs](docs/Switch.md)
 - **TextArea** — A labeled multi-line text field on the Field contract, a native `<textarea>`: pass `label`, and `error` from your server action or client check. [Docs](docs/TextArea.md)
 - **TextField** — A labeled one-line text input on the Field contract: pass `label`, and `error` from your server action or client check. [Docs](docs/TextField.md)
@@ -257,7 +262,17 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ### Data
 
+- **Chart** — A chart drawn in the theme's colors, which people can use without seeing it: a figure named by its `title`, a summary for screen readers, and a table of every value (visible with `showTable`). [Docs](docs/Chart.md)
+- **ChartContainer** — shadcn's name for `Chart`: the same component with the same props, so code ported from shadcn's chart docs finds it. [Docs](docs/ChartContainer.md)
+- **ChartLegend** — The legend for a recharts chart inside `Chart`: each series' marker shape and label from the chart's `config`, under the plot. [Docs](docs/ChartLegend.md)
+- **ChartTooltip** — The tooltip for a recharts chart inside `Chart`: the category, then each series' marker, label and value from the chart's `config`, in the theme's popover colors. [Docs](docs/ChartTooltip.md)
 - **Table** — A data table: a caption, column headers, and rows, from `columns` and `rows` or from parts. [Docs](docs/Table.md)
+
+### Chat
+
+- **Attachment** — A file attached to a chat message, or waiting to be sent with one: its icon, name and size. [Docs](docs/Attachment.md)
+- **Message** — One message in a chat: who wrote it, their avatar and what they wrote, with any attachments under it. [Docs](docs/Message.md)
+- **MessageList** — A conversation: `Message`s in a scrolling, labeled region that opens at the newest one. [Docs](docs/MessageList.md)
 
 ### App setup
 

@@ -15,7 +15,7 @@ export { raiseControlsClass, stretchedLinkClass };
  */
 const stretchedLinkClass =
   "text-inherit no-underline outline-none after:absolute after:inset-0 after:z-1 after:content-[''] " +
-  "after:transition-colors after:duration-(--ouro-duration-fast) hover:after:bg-foreground/[0.03] active:after:bg-foreground/[0.06]";
+  "after:transition-colors after:duration-(--ouro-duration-fast) pointer-fine:hover:after:bg-foreground/[0.03] active:after:bg-foreground/[0.06]";
 
 /**
  * The class for a linked root that lifts every control inside it (a link, a button, an
