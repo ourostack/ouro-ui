@@ -1,4 +1,5 @@
 import type { ReactElement, ReactNode } from "react";
+import { serverElement } from "@/registry/ouro/lib/ouro/server-element";
 
 export { flattenOptions, groupLabelClass, itemClass, itemIndicatorClass, popupClass, positionerClass, sheetQuery, triggerClass, backdropClass, sheetTitleClass, isGroup };
 export type { SelectOption, SelectOptionGroup, SelectOptions };
@@ -48,7 +49,9 @@ function flattenOptions(options: SelectOptions | undefined, children: ReactNode,
   for (const entry of options ?? []) {
     for (const option of isGroup(entry) ? entry.options : [entry]) found.push({ value: option.value, label: option.label });
   }
-  const walk = (node: ReactNode): void => {
+  const walk = (given: ReactNode): void => {
+    // An item a Server Component passed can arrive as a lazy wrapper with no props.
+    const node = serverElement(given);
     if (Array.isArray(node)) return node.forEach(walk);
     if (!node || typeof node !== "object" || !("props" in node)) return;
     const element = node as ReactElement<{ value?: string; children?: ReactNode }>;
