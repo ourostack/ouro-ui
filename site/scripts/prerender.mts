@@ -18,7 +18,7 @@ interface Route {
   description: string;
 }
 const { render, routes, docsItems, docsPages, publishedMarkdown, headTags } = (await import(pathToFileURL(server).href)) as {
-  render: (path: string) => string;
+  render: (path: string) => Promise<string>;
   headTags: (route: Route, canonical: boolean) => string[];
   routes: Route[];
   docsItems: Array<{ name: string; title: string }>;
@@ -29,19 +29,20 @@ const { render, routes, docsItems, docsPages, publishedMarkdown, headTags } = (a
 const template = readFileSync(join(dist, "index.html"), "utf8");
 if (!template.includes("<!--app-->") || !template.includes("<!--head-->")) throw new Error("site/dist/index.html has no <!--app--> or <!--head--> marker");
 
-function page(route: Route, path: string, canonical: boolean): string {
+async function page(route: Route, path: string, canonical: boolean): Promise<string> {
   const head = headTags(route, canonical).join("\n    ");
-  return template.replace("<!--head-->", head).replace("<!--app-->", render(path));
+  const html = await render(path);
+  return template.replace("<!--head-->", () => head).replace("<!--app-->", () => html);
 }
 
 for (const route of routes) {
   const file = join(dist, route.path, "index.html");
   mkdirSync(dirname(file), { recursive: true });
-  writeFileSync(file, page(route, route.path, true));
+  writeFileSync(file, await page(route, route.path, true));
 }
 writeFileSync(
   join(dist, "404.html"),
-  page({ path: "/404/", title: "Page not found · Ouro UI", description: "That page isn't here." }, "/404/", false),
+  await page({ path: "/404/", title: "Page not found · Ouro UI", description: "That page isn't here." }, "/404/", false),
 );
 // The published Markdown shows installed paths (`@/components/ouro/...`), as the HTML pages
 // do, and parts.md is published beside it so each page's link to it resolves.

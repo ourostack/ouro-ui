@@ -4,7 +4,7 @@ import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { agentExamples } from "../agents/examples";
 import { CodeBlock, Command, InlineCode } from "../components/code";
 import { DocsShell } from "../components/layout";
-import { demos } from "../docs/demos";
+import { LiveDemo } from "../components/live-demo";
 import { groupOrder } from "../../../scripts/catalog-groups.mts";
 import { docsItems, GITHUB, installedPaths, partsSection, summary, type DocsItem } from "../docs/items";
 import { inline, Markdown, parse, type Block } from "../docs/markdown";
@@ -49,7 +49,6 @@ function pageBlocks(item: DocsItem): { purpose: string; importLine: string; body
 
 export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
   const { purpose, importLine, body } = pageBlocks(item);
-  const Demo = demos[item.name]!;
   return (
     <DocsShell current={`/docs/${item.name}/`}>
       <PageTitle eyebrow={item.group} title={item.title} lead={inline(purpose)} />
@@ -57,7 +56,7 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
         aria-label="Live demo"
         className="flex min-h-48 items-center justify-center rounded-2xl border border-border bg-[radial-gradient(var(--border)_1px,transparent_1px)] [background-size:16px_16px] px-5 py-10 sm:px-10"
       >
-        <Demo />
+        <LiveDemo name={item.name} title={item.title} />
       </section>
 
       <Heading level={2} size="lg" id="install" className="mt-14 mb-4">

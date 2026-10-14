@@ -11,11 +11,21 @@ export default defineConfig({
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
     { name: "webkit", use: { ...devices["Desktop Safari"] } },
+    { name: "site-chromium", testDir: "site/e2e", retries: 0, use: { ...devices["Desktop Chrome"], baseURL: "http://127.0.0.1:4179/ouro-ui/" } },
+    { name: "site-webkit", testDir: "site/e2e", retries: 0, use: { ...devices["Desktop Safari"], baseURL: "http://127.0.0.1:4179/ouro-ui/" } },
   ],
-  webServer: {
-    command: "pnpm exec storybook dev -p 6006 --ci --no-open",
-    url: "http://localhost:6006/iframe.html",
-    reuseExistingServer: !process.env["CI"],
-    timeout: 180_000,
-  },
+  webServer: [
+    {
+      command: "pnpm exec storybook dev -p 6006 --ci --no-open",
+      url: "http://localhost:6006/iframe.html",
+      reuseExistingServer: !process.env["CI"],
+      timeout: 180_000,
+    },
+    {
+      command: "pnpm site:build && pnpm site:preview --host 127.0.0.1 --port 4179 --strictPort",
+      url: "http://127.0.0.1:4179/ouro-ui/",
+      reuseExistingServer: false,
+      timeout: 180_000,
+    },
+  ],
 });
