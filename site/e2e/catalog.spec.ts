@@ -50,12 +50,14 @@ test("every built docs demo has resolved static content, and native example cont
     expect(html, name).toContain(`data-site-demo="${name}"`);
     expect(html, name).not.toContain("data-site-demo-loading");
     expect(html, name).not.toContain('data-msg="');
+    expect(html, name).not.toContain("<!--app-->");
+    expect(html, name).not.toContain("<!--head-->");
   }
   const context = await browser.newContext({ javaScriptEnabled: false });
   try {
     const page = await context.newPage();
     const errors = diagnostics(page);
-    for (const name of ["form", "sheet", "menu", "swipe-actions", "table"]) {
+    for (const name of ["form", "sheet", "menu", "swipe-actions", "table", "text-field"]) {
       await page.goto(new URL(`docs/${name}/`, baseURL).href);
       await expect(page.locator(`[data-site-demo="${name}"] > *`).first()).toBeVisible();
       await expect(page.locator("[data-site-demo-loading]")).toHaveCount(0);
@@ -72,11 +74,24 @@ test("every built docs demo has resolved static content, and native example cont
         await expect(table).toBeVisible();
         await expect(table.getByRole("row")).toHaveCount(4);
       }
+      if (name === "text-field") {
+        await expect(page.locator("pre code").filter({ hasText: 'startAdornment="$"' }).first()).toBeVisible();
+      }
     }
     expect(errors).toEqual([]);
   } finally {
     await context.close();
   }
+});
+
+test("literal dollar examples survive template serialization and real hydration", async ({ page }) => {
+  const errors = diagnostics(page);
+  await page.goto("docs/text-field/");
+  await expect(page.locator("pre code").filter({ hasText: 'startAdornment="$"' }).first()).toBeVisible();
+  const input = page.getByRole("textbox", { name: "Price", exact: true });
+  await input.fill("7.25");
+  await expect(input).toHaveValue("7.25");
+  expect(errors).toEqual([]);
 });
 
 test("real production hydration keeps label/control IDs while the uncached selected demo chunk is delayed", async ({ page }) => {

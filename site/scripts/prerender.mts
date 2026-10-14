@@ -31,7 +31,8 @@ if (!template.includes("<!--app-->") || !template.includes("<!--head-->")) throw
 
 async function page(route: Route, path: string, canonical: boolean): Promise<string> {
   const head = headTags(route, canonical).join("\n    ");
-  return template.replace("<!--head-->", head).replace("<!--app-->", await render(path));
+  const html = await render(path);
+  return template.replace("<!--head-->", () => head).replace("<!--app-->", () => html);
 }
 
 for (const route of routes) {

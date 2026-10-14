@@ -24,7 +24,12 @@ export async function renderHtml(
   };
   try {
     // Even completed boundaries can be outlined behind JS reveal scripts once a chunk fills.
-    const result = await createStream(node, { signal: controller.signal, onError: fail, progressiveChunkSize: Infinity });
+    const result = await createStream(node, {
+      signal: controller.signal,
+      onError: fail,
+      onBrowserBailout: fail,
+      progressiveChunkSize: Infinity,
+    });
     stream = result.prelude;
     if (result.postponed !== null) throw new Error("Prerender returned unfinished content");
     if (failed) throw firstFailure;

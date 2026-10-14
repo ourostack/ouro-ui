@@ -149,3 +149,19 @@ test("native prerender Promise rejection is preserved", async (t) => {
   const failure = new Error("prerender creation rejected");
   await assert.rejects(renderHtml(h("p"), () => Promise.reject(failure)), (error) => error === failure);
 });
+
+test("a reported browser-only bailout rejects recovery HTML and cancels its prelude", async (t) => {
+  t.mock.method(console, "error", () => {});
+  const failure = new Error("browser-only example");
+  let cancelled = 0;
+  const stream = new ReadableStream({
+    start(controller) { controller.enqueue(new TextEncoder().encode("<p>Client-only fallback</p>")); },
+    pull(controller) { controller.close(); },
+    cancel() { cancelled++; },
+  });
+  await assert.rejects(renderHtml(h("p"), async (_node, options) => {
+    options.onBrowserBailout?.(failure, { componentStack: "Browser-only fixture" });
+    return { prelude: stream, postponed: null };
+  }), (error) => error === failure);
+  assert.equal(cancelled, 1);
+});
