@@ -25,6 +25,7 @@ function frozenFrame({ unreachableOtherFrame = false } = {}) {
   });
   let loseAfterMove = false;
   let unreachable = false;
+  let replaceAfterMove = false;
   const frame = {
     url: () => view.location.href,
     async evaluate(source) {
@@ -33,6 +34,7 @@ function frozenFrame({ unreachableOtherFrame = false } = {}) {
     },
   };
   let suppress = false;
+  let canceledInput;
   let last = { x: 100, y: 100 };
   const session = {
     async send(method, params = {}) {
@@ -47,8 +49,13 @@ function frozenFrame({ unreachableOtherFrame = false } = {}) {
         unreachable = true;
         return {};
       }
+      if (params.type === "touchMove" && replaceAfterMove) {
+        assert.equal(view.__ouroTouch.expected.type, "touchmove");
+        view.document = { readyState: "complete" };
+        return {};
+      }
       if (!suppress) {
-        const type = params.type.toLowerCase();
+        const type = params.type === canceledInput ? "touchcancel" : params.type.toLowerCase();
         listeners.get(type)?.({ type, target, changedTouches: [{ clientX: last.x, clientY: last.y }] });
       }
       return {};
@@ -72,6 +79,9 @@ function frozenFrame({ unreachableOtherFrame = false } = {}) {
     view,
     subscriptions,
     suppress(value) { suppress = value; },
+    cancelInput(type) { canceledInput = type; },
+    replaceDocument() { view.document = { readyState: "complete" }; },
+    replaceDocumentAfterMove(value) { replaceAfterMove = value; },
     loseMoveObservations(value) {
       loseAfterMove = value;
       if (!value) unreachable = false;
@@ -95,6 +105,49 @@ test("touchStep rejects unknown first-move observations instead of declaring Chr
   assert.equal(h.view.__ouroTouch, undefined);
   assert.equal(h.subscriptions.size, 0);
 });
+
+test("touchStep rejects a canceled first move instead of declaring Chromium slop", async () => {
+  const h = frozenFrame();
+  await touchStep(h.ctx, { type: "touchStart", x: 100, y: 100 });
+  h.cancelInput("touchMove");
+  await assert.rejects(touchStep(h.ctx, { type: "touchMove", x: 101, y: 100 }), (error) => {
+    assert.match(error.message, /the page did not handle the touchMove/);
+    assert.match(error.message, /It handled: touchcancel/);
+    return true;
+  });
+  h.cancelInput(undefined);
+  await touchStep(h.ctx, { type: "touchEnd" });
+  assert.equal(h.view.__ouroTouch, undefined);
+  assert.equal(h.subscriptions.size, 0);
+});
+
+test("touchStep accepts touchcancel as the gesture's terminal event", async () => {
+  const h = frozenFrame();
+  await touchStep(h.ctx, { type: "touchStart", x: 100, y: 100 });
+  h.cancelInput("touchEnd");
+  await touchStep(h.ctx, { type: "touchEnd" });
+  assert.equal(h.view.__ouroTouch, undefined);
+  assert.equal(h.subscriptions.size, 0);
+});
+
+for (const boundary of ["before watch startup", "at input acknowledgment"]) {
+  test(`touchStep rejects a target document replaced ${boundary} instead of declaring slop`, async () => {
+    const h = frozenFrame();
+    await touchStep(h.ctx, { type: "touchStart", x: 100, y: 100 });
+    if (boundary === "before watch startup") {
+      h.replaceDocument();
+      h.suppress(true);
+    } else h.replaceDocumentAfterMove(true);
+    await assert.rejects(touchStep(h.ctx, { type: "touchMove", x: 101, y: 100 }), /the page did not handle the touchMove/);
+    h.replaceDocumentAfterMove(false);
+    h.suppress(false);
+    await touchStep(h.ctx, { type: "touchEnd" });
+    await touchStep(h.ctx, { type: "touchStart", x: 100, y: 100 });
+    await touchStep(h.ctx, { type: "touchEnd" });
+    assert.equal(h.view.__ouroTouch, undefined);
+    assert.equal(h.subscriptions.size, 0);
+  });
+}
 
 for (const unreachableOtherFrame of [false, true]) {
   test(`touchStep accepts observed first-move slop with ${unreachableOtherFrame ? "an unavailable unrelated frame" : "only its target frame"}`, async () => {
