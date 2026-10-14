@@ -1,4 +1,4 @@
-import { useState, type JSX } from "react";
+import { useEffect, useRef, useState, type JSX } from "react";
 import { Item } from "@/registry/ouro/components/ouro/item/item";
 import { ItemGroup } from "@/registry/ouro/components/ouro/item/item-group";
 import { SwipeActions } from "@/registry/ouro/components/ouro/swipe-actions/swipe-actions";
@@ -11,6 +11,11 @@ const recipes = ["Shakshuka", "Braised short ribs", "Lemon tart"];
 
 export default function SwipeActionsDemo(): JSX.Element {
   const [list, setList] = useState(recipes);
+  const notifications = useRef(new Set<string>());
+  useEffect(() => () => {
+    for (const id of notifications.current) toast.dismiss(id);
+    notifications.current.clear();
+  }, []);
   return (
     <div className="w-full max-w-md">
       <ItemGroup label="Recipes" empty="No recipes left.">
@@ -18,14 +23,14 @@ export default function SwipeActionsDemo(): JSX.Element {
           <SwipeActions
             key={recipe}
             label={recipe}
-            leading={[{ label: "Pin", tone: "primary", onClick: () => toast(`${recipe} pinned`) }]}
+            leading={[{ label: "Pin", tone: "primary", onClick: () => { notifications.current.add(toast(`${recipe} pinned`)); } }]}
             trailing={[
               {
                 label: "Delete",
                 tone: "destructive",
                 onClick: () => {
                   setList((rows) => rows.filter((row) => row !== recipe));
-                  toast(`${recipe} deleted`, { action: { label: "Undo", onClick: () => setList((rows) => recipes.filter((row) => row === recipe || rows.includes(row))) } });
+                  notifications.current.add(toast(`${recipe} deleted`, { action: { label: "Undo", onClick: () => setList((rows) => recipes.filter((row) => row === recipe || rows.includes(row))) } }));
                 },
               },
             ]}

@@ -1,19 +1,33 @@
 import axe from "axe-core";
-import { createRoot, type Root } from "react-dom/client";
+import { createRoot, type Root, type RootOptions } from "react-dom/client";
+import type { ReactNode } from "react";
+import { expect } from "vitest";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { App } from "../src/app";
+import { docsItems } from "../src/docs/items";
 import { axeExclude } from "@/registry/ouro/lib/ouro/testing/axe";
 
 let mounted: { root: Root; host: HTMLElement } | undefined;
 
-/** Renders a site page, as the prerendered HTML hydrates it, into a fresh host. */
+/** Client-renders a page and waits for real docs demo content, not its loading shell. */
 export async function renderPage(path: string): Promise<HTMLElement> {
+  const host = await renderFixture(<App path={path} />);
+  const name = /^\/docs\/([^/]+)\/$/.exec(path)?.[1];
+  if (name && docsItems.some((item) => item.name === name)) {
+    await expect.poll(() => host.querySelector(`[data-site-demo="${name}"]`)?.childElementCount ?? 0).toBeGreaterThan(0);
+    expect(host.querySelector("[data-site-demo-loading]")).toBeNull();
+  }
+  return host;
+}
+
+/** A client-rendered fixture; caught-error callbacks belong only to explicit negative cases. */
+export async function renderFixture(node: ReactNode, options?: RootOptions): Promise<HTMLElement> {
   await cleanupPage();
   const host = document.createElement("div");
   host.id = "root";
   document.body.append(host);
-  const root = createRoot(host);
-  await act(() => root.render(<App path={path} />));
+  const root = createRoot(host, options);
+  await act(() => root.render(node));
   mounted = { root, host };
   return host;
 }
@@ -24,6 +38,12 @@ export async function cleanupPage(): Promise<void> {
   mounted = undefined;
   await act(() => root.unmount());
   host.remove();
+}
+
+export async function rerenderFixture(node: ReactNode): Promise<void> {
+  if (!mounted) throw new Error("No site fixture is mounted");
+  const { root } = mounted;
+  await act(() => root.render(node));
 }
 
 /** shadcn's `.dark` class on <html>, as the site's head script sets it from the OS setting. */
