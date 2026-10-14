@@ -447,7 +447,13 @@ async function sendTouch(
   if (handler) return handler;
   const answers = (await Promise.all(waits)).filter((answer): answer is FrameAnswer<TouchSeen> => answer !== undefined);
   const results = answers.map((answer) => answer.value ?? none);
-  if (expected.type === "touchMove" && !results.some((result) => result.moved)) return undefined;
+  const targetFrame = "frame" in target ? target.frame : undefined;
+  // A failed frame call supplies no evidence that Chromium kept the move within slop.
+  if (
+    expected.type === "touchMove" &&
+    !results.some((result) => result.moved) &&
+    answers.some((answer) => answer.frame === targetFrame && answer.error === undefined && answer.value?.moved === false)
+  ) return undefined;
   const inspected = await states;
   const saw = results.flatMap((result) => result.saw);
   // What was watched: every frame, and every call into one that failed, with its reason.

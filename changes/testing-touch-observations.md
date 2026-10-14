@@ -1,0 +1,1 @@
+Touch commands report an unavailable target frame instead of mistaking missing observations for Chromium's first-move slop. A genuinely unobserved slop move still succeeds when the gesture's target reports that state, even if an unrelated frame is unavailable. Existing time bounds and recovery behavior are unchanged.
