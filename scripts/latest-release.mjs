@@ -3,7 +3,7 @@
 //
 // - gen-docs.mts writes it into the install commands in README.md, site/public/llms.txt and
 //   package.json's description, and into the command lib/ouro/dev.ts prints when an app has
-//   no ouro-base, and fills UPGRADING.md's {{latestRelease}} placeholder in
+//   no ouro-base and its exact-message test, and fills UPGRADING.md's {{latestRelease}} placeholder in
 //   the README copy of the note;
 // - the site imports it (site/src/release.ts);
 // - pages.yml builds the @ouro namespace (/r/) from that tag;
@@ -25,7 +25,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const PLACEHOLDER = "{{latestRelease}}";
 
 /** Files whose install commands name the tag; gen-docs keeps them in step. */
-export const syncedFiles = ["README.md", "site/public/llms.txt", "package.json", "docs/guides/installing.md", "docs/guides/testing.md", "docs/guides/forms.md", "registry/ouro/lib/ouro/dev.ts"];
+export const syncedFiles = ["README.md", "site/public/llms.txt", "package.json", "docs/guides/installing.md", "docs/guides/testing.md", "docs/guides/forms.md", "registry/ouro/lib/ouro/dev.ts", "registry/ouro/lib/ouro/dev.test.ts"];
 
 const literal = /([#@])v\d+\.\d+\.\d+\b/g;
 

@@ -101,7 +101,7 @@ test("the release commit names only its own tag: release.yml's release-branch co
   assert.match(readFileSync(join(copy, "CHANGES.md"), "utf8"), /^- A change for this test's release\.$/m);
   assert.equal(readFileSync(join(bin, "calls.log"), "utf8"), "add CHANGES.md\n");
   assert.equal(latestRelease(copy), "v9.9.9");
-  const docs = ["README.md", "site/public/llms.txt", "package.json", "UPGRADING.md", ...tracked("docs/*.md", "site/src/*.ts", "site/src/*.tsx")];
+  const docs = ["README.md", "site/public/llms.txt", "package.json", "UPGRADING.md", "registry/ouro/lib/ouro/dev.ts", "registry/ouro/lib/ouro/dev.test.ts", ...tracked("docs/*.md", "site/src/*.ts", "site/src/*.tsx")];
   const stale = docs.flatMap((path) => releaseMismatches(readFileSync(join(copy, path), "utf8"), "v9.9.9").map((problem) => `${path}:${problem}`));
   assert.deepEqual(stale, [], `the release commit still names ${previous}`);
   assert.ok(readFileSync(join(copy, "README.md"), "utf8").includes("ourostack/ouro-ui/dialog#v9.9.9"));
