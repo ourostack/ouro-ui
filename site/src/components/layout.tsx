@@ -5,7 +5,7 @@ import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { docsItems, GITHUB } from "../docs/items";
 import { guidePages } from "../docs/pages";
 import { href } from "../routes";
-import { MenuIcon, OuroMark } from "./icons";
+import { MenuIcon } from "./icons";
 
 export const STORYBOOK = "https://ourostack.github.io/ouro-ui/storybook/";
 
@@ -26,8 +26,16 @@ export function SiteHeader(): JSX.Element {
           href={href("/")}
           className="-ms-1 inline-flex min-h-11 items-center gap-2 rounded-md px-1 font-semibold tracking-tight text-foreground no-underline outline-ring focus-visible:outline-2 focus-visible:outline-offset-2"
         >
-          <OuroMark className="size-6 text-primary" />
-          Ouro UI
+          <img
+            src={href("/ouro-hx-render-128.webp")}
+            srcSet={`${href("/ouro-hx-render-128.webp")} 128w, ${href("/ouro-hx-render-256.webp")} 256w, ${href("/ouro-hx-render.webp")} 1024w`}
+            sizes="40px"
+            width={40}
+            height={40}
+            alt=""
+            className="size-10 shrink-0"
+          />
+          Ouro HX
         </a>
         <nav aria-label="Site">
           <ul className="m-0 flex list-none items-center gap-0.5 p-0 sm:gap-1">
@@ -65,10 +73,10 @@ export function SiteFooter(): JSX.Element {
     <footer className="mt-24 border-t border-border">
       <Container className="flex flex-col gap-6 py-10 sm:flex-row sm:items-center sm:justify-between">
         <p className="m-0 flex items-center gap-2 text-sm text-muted-foreground">
-          <OuroMark className="size-5 text-foreground" />
           <span>
-            Ouro UI is part of <a href="https://ouro.bot" className="text-foreground underline underline-offset-4">Ouro</a>. MIT
-            license.
+            Ouro HX is part of Ouro UI, the interface family within{" "}
+            <a href="https://ouro.bot" className="text-foreground underline underline-offset-4">Ouro</a>.
+            {" "}MIT license.
           </span>
         </p>
         <nav aria-label="Footer">

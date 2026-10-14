@@ -1,6 +1,8 @@
-# Ouro UI
+# Ouro HX
 
 > Designed down to the last tap and the last prop. Interactions that feel right to the humans using them. Code that's obvious to the agents building with them. Copy-in source distributed as a shadcn/ui registry on GitHub (ourostack/ouro-ui). No npm package: the shadcn CLI copies each component into your app.
+
+Under construction. Ouro HX is the component library within Ouro UI. Ouro AX is coming soon; its scope is still being defined. The repository, @ouro namespace and install addresses are unchanged.
 
 ## Install
 

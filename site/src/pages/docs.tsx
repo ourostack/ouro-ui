@@ -65,7 +65,7 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
       </Heading>
       <div className="grid gap-3">
         <Text size="sm" tone="muted">
-          Once per app, with Tailwind CSS v4 and an <InlineCode>@/*</InlineCode> path alias (Ouro UI is built on Base UI, so{" "}
+          Once per app, with Tailwind CSS v4 and an <InlineCode>@/*</InlineCode> path alias (Ouro HX is built on Base UI, so{" "}
           <InlineCode>--base base</InlineCode>; skip <InlineCode>-t</InlineCode> in an existing app):
         </Text>
         <Command command="npx shadcn@latest init --base base --preset nova --yes --no-monorepo" />
@@ -145,7 +145,7 @@ export function DocsIndex(): JSX.Element {
       <PageTitle
         eyebrow="Docs"
         title="Components"
-        lead="Every Ouro UI component, with a live demo, install commands, its props and what to use instead. The same docs live in each component's JSDoc, so an agent reading the installed source sees them too."
+        lead="Every Ouro HX component, with a live demo, install commands, its props and what to use instead. The same docs live in each component's JSDoc, so an agent reading the installed source sees them too."
       />
       {groups.map((group) => (
         <section key={group} aria-labelledby={`group-${group}`} className="mt-10">
@@ -199,7 +199,7 @@ export function DocsIndex(): JSX.Element {
           <li>
             <a href={href("/docs/switching-from-shadcn/")} className={card}>
               <span className="font-medium text-foreground">Switching from shadcn</span>
-              <span className="text-sm leading-6 text-muted-foreground">Each shadcn/ui component and prop, and its Ouro UI equivalent.</span>
+              <span className="text-sm leading-6 text-muted-foreground">Each shadcn/ui component and prop, and its Ouro HX equivalent.</span>
             </a>
           </li>
           <li>
@@ -214,18 +214,18 @@ export function DocsIndex(): JSX.Element {
   );
 }
 
-const switchingIntro = `Ouro UI follows the shadcn/ui registry standard and reads the same theme variables, so switching is one component at a time, not a migration.`;
+const switchingIntro = `Ouro HX follows the shadcn/ui registry standard and reads the same theme variables, so switching is one component at a time, not a migration.`;
 
 const switchingCoexist = `
 ## Both live in one app
 
-shadcn/ui installs to \`components/ui/\`. Ouro UI installs to \`components/ouro/\`, so a shadcn \`button\` and an Ouro \`button\` never collide. Switch a screen at a time, and remove the shadcn file when nothing imports it any more.
+shadcn/ui installs to \`components/ui/\`. Ouro HX installs to \`components/ouro/\`, so a shadcn \`button\` and an Ouro \`button\` never collide. Switch a screen at a time, and remove the shadcn file when nothing imports it any more.
 
-Ouro components read shadcn's variables (\`--primary\`, \`--muted-foreground\`, \`--radius\` and the rest), so your theme carries over unchanged. Dark mode is the same \`.dark\` class. Ouro UI adds only what shadcn themes lack, in \`ouro-base.css\`: \`--success\` and \`--warning\` with their foregrounds, \`--destructive-foreground\`, the motion tokens, and \`--ouro-layer\`, the z-index of sheets and dialogs (50, as in shadcn's overlays; raise it if your app has fixed bars above z-50). To change any \`--ouro-*\` token, such as \`--ouro-layer\`, \`--ouro-press-scale\` or \`--ouro-backdrop-max\`, set it in a \`:root\` (or \`.dark\`) rule of your own after the Ouro tokens, outside any \`@layer\`. Don't edit the lines shadcn wrote: every \`shadcn add\` of an Ouro item rewrites them. The Ouro look (\`ouro-theme\`) is optional; skip it to keep yours.
+Ouro components read shadcn's variables (\`--primary\`, \`--muted-foreground\`, \`--radius\` and the rest), so your theme carries over unchanged. Dark mode is the same \`.dark\` class. Ouro HX adds only what shadcn themes lack, in \`ouro-base.css\`: \`--success\` and \`--warning\` with their foregrounds, \`--destructive-foreground\`, the motion tokens, and \`--ouro-layer\`, the z-index of sheets and dialogs (50, as in shadcn's overlays; raise it if your app has fixed bars above z-50). To change any \`--ouro-*\` token, such as \`--ouro-layer\`, \`--ouro-press-scale\` or \`--ouro-backdrop-max\`, set it in a \`:root\` (or \`.dark\`) rule of your own after the Ouro tokens, outside any \`@layer\`. Don't edit the lines shadcn wrote: every \`shadcn add\` of an Ouro item rewrites them. The Ouro look (\`ouro-theme\`) is optional; skip it to keep yours.
 
 ## Components
 
-| shadcn/ui | Ouro UI | Notes |
+| shadcn/ui | Ouro HX | Notes |
 | --- | --- | --- |
 | \`Button\` | \`Button\` | Same name; the props differ (below). |
 | \`Dialog\` with \`DialogTrigger\`, \`DialogContent\`, \`DialogHeader\`, \`DialogTitle\`, \`DialogDescription\`, \`DialogFooter\` | \`Dialog\` with \`trigger\`, \`title\`, \`description\` and \`footer\` | Becomes a bottom sheet below 640px. Parts exist for layouts the props can't express. |
@@ -237,7 +237,7 @@ Ouro components read shadcn's variables (\`--primary\`, \`--muted-foreground\`, 
 
 ## Button props
 
-| shadcn/ui | Ouro UI |
+| shadcn/ui | Ouro HX |
 | --- | --- |
 | \`variant="default"\` | The default: \`<Button>\` |
 | \`variant="destructive"\` | \`tone="destructive"\` |
@@ -254,7 +254,7 @@ Ouro components read shadcn's variables (\`--primary\`, \`--muted-foreground\`, 
 
 ## Dialog and Sheet props
 
-| shadcn/ui | Ouro UI |
+| shadcn/ui | Ouro HX |
 | --- | --- |
 | \`open\` and \`onOpenChange\` | The same |
 | \`<DialogTrigger asChild>\` around a button | \`trigger={<Button>Edit</Button>}\` |
@@ -265,7 +265,7 @@ Ouro components read shadcn's variables (\`--primary\`, \`--muted-foreground\`, 
 
 ## AlertDialog to ConfirmDialog
 
-| shadcn/ui | Ouro UI |
+| shadcn/ui | Ouro HX |
 | --- | --- |
 | \`<AlertDialogTitle>\` | \`title\`, the question |
 | \`<AlertDialogDescription>\` | \`description\` |
@@ -275,7 +275,7 @@ Ouro components read shadcn's variables (\`--primary\`, \`--muted-foreground\`, 
 
 ## If you miss one
 
-Shadcn's prop names that Ouro UI doesn't use, and its Button variant and size values, fail the type check, and the error names the Ouro prop to use. In development, Button's console message names the fix for each guard prop and each shadcn variant and size:
+Shadcn's prop names that Ouro HX doesn't use, and its Button variant and size values, fail the type check, and the error names the Ouro prop to use. In development, Button's console message names the fix for each guard prop and each shadcn variant and size:
 `;
 
 export function Switching(): JSX.Element {
@@ -295,7 +295,7 @@ export function Updating(): JSX.Element {
       <PageTitle
         eyebrow="Guide"
         title="Updating installed components"
-        lead="Ouro UI components are copied into your project, so they're yours to edit. As with shadcn/ui, there's no install manifest: to take an upstream change, compare first, then decide."
+        lead="Ouro HX components are copied into your project, so they're yours to edit. As with shadcn/ui, there's no install manifest: to take an upstream change, compare first, then decide."
       />
       <ol className="m-0 grid list-none gap-12 p-0">
         <li className="grid gap-3">
