@@ -6,6 +6,7 @@ import { Navbar } from "@/registry/ouro/components/ouro/navbar/navbar";
 import { NavigationMenu } from "@/registry/ouro/components/ouro/navigation-menu/navigation-menu";
 import { Sidebar } from "@/registry/ouro/components/ouro/sidebar/sidebar";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { isTransparent } from "@/registry/ouro/lib/ouro/testing/color";
 
 let root: Root | undefined;
 let host: HTMLDivElement | undefined;
@@ -39,8 +40,22 @@ function expectCurrentMark(current: Element, other: Element, direction: "ltr" | 
   expect(parseFloat(marker.height)).toBeLessThan(current.getBoundingClientRect().height);
   expect(marker[direction === "rtl" ? "right" : "left"]).toBe("0px");
   expect(getComputedStyle(other, "::before").content).toBe("none");
-  expect(getComputedStyle(current).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+  expect(isTransparent(getComputedStyle(current).backgroundColor)).toBe(true);
 }
+
+test("current-page transparency accepts computed zero alpha but rejects a faint painted tint", () => {
+  const element = document.createElement("div");
+  document.body.append(element);
+  try {
+    element.style.backgroundColor = "oklab(0 0 0 / 0)";
+    expect(element.style.backgroundColor).not.toBe("");
+    expect(isTransparent(getComputedStyle(element).backgroundColor)).toBe(true);
+    element.style.backgroundColor = "oklab(0 0 0 / 0.000001)";
+    expect(isTransparent(getComputedStyle(element).backgroundColor)).toBe(false);
+  } finally {
+    element.remove();
+  }
+});
 
 for (const direction of ["ltr", "rtl"] as const) {
   for (const kind of ["Sidebar", "Navbar", "NavigationMenu"] as const) {

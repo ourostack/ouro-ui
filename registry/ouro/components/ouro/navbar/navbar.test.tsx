@@ -6,6 +6,7 @@ import { commands, page, userEvent } from "vitest/browser";
 import { Navbar, type NavbarProps } from "@/registry/ouro/components/ouro/navbar/navbar";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { isTransparent } from "@/registry/ouro/lib/ouro/testing/color";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -64,7 +65,7 @@ describe("Navbar current-page marks", () => {
     expect(marker.visibility).toBe("visible");
     expect(marker[direction === "rtl" ? "right" : "left"]).toBe("0px");
     expect(getComputedStyle(other, "::before").content).toBe("none");
-    expect(getComputedStyle(current).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    expect(isTransparent(getComputedStyle(current).backgroundColor)).toBe(true);
   }
 
   for (const direction of ["ltr", "rtl"] as const) {
