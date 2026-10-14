@@ -2,7 +2,7 @@
 
 # Navbar
 
-The bar across the top of an app: your brand, the main links and a few controls, with the current page marked `aria-current="page"`. A group of links (`{ label, links }`) opens a panel, as in `NavigationMenu`. Whenever the links do not fit, below 640px and on a narrow tablet, they collapse behind a menu button into a `Sheet` that slides in from the side, with each group under its name; the brand and `actions` stay in the bar. Links render through `OuroProvider`'s `linkComponent`, so your router navigates.
+The bar across the top of an app: your brand, the main links and a few controls, with the current page marked `aria-current="page"` and a bar at the start edge, distinct from hover and press highlights. A group of links (`{ label, links }`) opens a panel, as in `NavigationMenu`. Whenever the links do not fit, below 640px and on a narrow tablet, they collapse behind a menu button into a `Sheet` that slides in from the side, with each group under its name; the brand and `actions` stay in the bar. Links render through `OuroProvider`'s `linkComponent`, so your router navigates.
 
 ```tsx
 import { Navbar } from "@/registry/ouro/components/ouro/navbar/navbar";

@@ -2,7 +2,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { Navbar, type NavbarProps } from "@/registry/ouro/components/ouro/navbar/navbar";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -45,6 +45,54 @@ let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(async () => {
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
   await page.viewport(1024, 768);
+});
+
+describe("Navbar current-page marks", () => {
+  afterEach(async () => {
+    document.documentElement.removeAttribute("dir");
+    await commands.emulateMedia({ forcedColors: "none" });
+  });
+
+  function assertMark(direction: "ltr" | "rtl", scope: Pick<typeof page, "getByRole"> = page) {
+    const current = scope.getByRole("link", { name: "Recipes", exact: true }).element();
+    const other = scope.getByRole("link", { name: "Cookbooks", exact: true }).element();
+    const marker = getComputedStyle(current, "::before");
+    expect(marker.content).toBe('""');
+    expect(parseFloat(marker.width)).toBe(2);
+    expect(parseFloat(marker.height)).toBeGreaterThan(0);
+    expect(marker.opacity).toBe("1");
+    expect(marker.visibility).toBe("visible");
+    expect(marker[direction === "rtl" ? "right" : "left"]).toBe("0px");
+    expect(getComputedStyle(other, "::before").content).toBe("none");
+    expect(getComputedStyle(current).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+  }
+
+  for (const direction of ["ltr", "rtl"] as const) {
+    it(`keeps its ${direction} start-edge mark visible in the system palette`, async () => {
+      document.documentElement.dir = direction;
+      await render(<Navbar label="Main" items={[{ label: "Recipes", href: "/recipes" }]} currentPath="/recipes" />);
+      await commands.emulateMedia({ forcedColors: "active" });
+      expect(matchMedia("(forced-colors: active)").matches).toBe(true);
+      const current = page.getByRole("link", { name: "Recipes", exact: true }).element();
+      const marker = getComputedStyle(current, "::before");
+      expect(marker[direction === "rtl" ? "borderRightWidth" : "borderLeftWidth"]).toBe("2px");
+      expect(marker.borderInlineStartColor).toBe(getComputedStyle(current).color);
+      expect(marker.borderInlineStartColor).not.toBe(getComputedStyle(current).backgroundColor);
+    });
+    it(`shows the ${direction} start-edge mark in its bar`, async () => {
+      document.documentElement.dir = direction;
+      await render(<Navbar label="Main" items={[{ label: "Recipes", href: "/recipes" }, { label: "Cookbooks", href: "/cookbooks" }]} currentPath="/recipes" />);
+      assertMark(direction);
+    });
+    it(`keeps the ${direction} mark in its phone drawer`, async () => {
+      document.documentElement.dir = direction;
+      await page.viewport(390, 844);
+      await render(<Navbar label="Main" items={[{ label: "Recipes", href: "/recipes" }, { label: "Cookbooks", href: "/cookbooks" }]} currentPath="/recipes" />);
+      await userEvent.click(page.getByRole("button", { name: "Menu", exact: true }));
+      await expect.element(page.getByRole("dialog")).toBeVisible();
+      assertMark(direction, page.getByRole("dialog"));
+    });
+  }
 });
 afterEach(async () => {
   vi.restoreAllMocks();
@@ -284,4 +332,3 @@ describe("Navbar at tablet widths and with groups", () => {
     expect(html).toMatch(/aria-current="page"[^>]*>Cookbooks</);
   });
 });
-

@@ -2,7 +2,7 @@
 
 # NavigationMenu
 
-A row of links where some open a panel of further links, each with a line of description: the navigation of a site with more pages than fit in a bar. Panels open on hover or click, move between each other without closing, and close on Escape, on an outside press and when a link is chosen. The current page is marked `aria-current="page"`. Built on Base UI's Navigation Menu.
+A row of links where some open a panel of further links, each with a line of description: the navigation of a site with more pages than fit in a bar. Panels open on hover or click, move between each other without closing, and close on Escape, on an outside press and when a link is chosen. The current page is marked `aria-current="page"` and a bar at the start edge, distinct from hover and press highlights. Built on Base UI's Navigation Menu.
 
 ```tsx
 import { NavigationMenu } from "@/registry/ouro/components/ouro/navigation-menu/navigation-menu";
