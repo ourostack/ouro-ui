@@ -26,7 +26,9 @@ test("dialog alone does not bring OuroProvider, which is why the README adds it 
   const visit = (name) => {
     if (seen.has(name)) return;
     seen.add(name);
-    for (const dep of byName.get(name).registryDependencies ?? []) visit(dep.split("/").at(-1));
+    const item = byName.get(name);
+    assert.ok(item, `registry.json has no ${name} item`);
+    for (const dep of item.registryDependencies ?? []) visit(dep.split("/").at(-1).split("#")[0]);
   };
   visit("dialog");
   assert.ok(!seen.has("lib-ouro-provider"));

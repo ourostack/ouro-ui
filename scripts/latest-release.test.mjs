@@ -107,4 +107,10 @@ test("the release commit names only its own tag: release.yml's release-branch co
   assert.ok(readFileSync(join(copy, "README.md"), "utf8").includes("ourostack/ouro-ui/dialog#v9.9.9"));
   assert.ok(readFileSync(join(copy, "site/public/llms.txt"), "utf8").includes("ourostack/ouro-ui/dialog#v9.9.9"));
   assert.match(readFileSync(join(copy, "registry.json"), "utf8"), /"ourostack\/ouro-ui\/sheet#v9\.9\.9"/);
+  const env = { ...process.env };
+  // The nested runner must not inherit this test worker's reporting protocol.
+  delete env.NODE_TEST_CONTEXT;
+  const readmeTests = spawnSync(process.execPath, ["--test", "--test-reporter=tap", "scripts/readme-steps.test.mjs"], { cwd: copy, encoding: "utf8", env });
+  assert.equal(readmeTests.status, 0, readmeTests.stdout + readmeTests.stderr);
+  assert.match(readmeTests.stdout, /^ok \d+ - dialog alone does not bring OuroProvider, which is why the README adds it by name$/m);
 });
