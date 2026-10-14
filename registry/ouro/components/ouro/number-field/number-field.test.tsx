@@ -427,7 +427,7 @@ describe("NumberField in a Form", () => {
 describe("NumberField stepper press feedback", () => {
   it("shows a pressed color that differs from the hover color", async () => {
     await render(<NumberField label="Servings" defaultValue={2} />);
-    const stepper = document.querySelector<HTMLElement>('button[aria-label="Increase"]')!;
+    const stepper = page.getByRole("button", { name: "Increase", exact: true }).element();
     const color = () => getComputedStyle(stepper).backgroundColor;
     const rest = color();
     await userEvent.hover(stepper);

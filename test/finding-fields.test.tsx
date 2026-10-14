@@ -37,13 +37,12 @@ describe("Finding fields in tests, as the Testing page says", () => {
     expect(page.getByLabelText("Email", { exact: true }).element()).toBe(input);
   });
 
-  it("finds a required field by role and name; its label's text ends with the marker", async () => {
+  it("finds a required field by role and name, or by its exact label without the marker", async () => {
     await render(<TextField label="Email" name="email" required />);
     const input = document.querySelector('input[name="email"]')!;
     expect(page.getByRole("textbox", { name: "Email", exact: true }).element()).toBe(input);
-    // The marker is hidden from assistive technology but is part of the label's text.
-    expect(count(page.getByLabelText("Email", { exact: true }))).toBe(0);
-    expect(page.getByLabelText("Email*", { exact: true }).element()).toBe(input);
+    expect(page.getByLabelText("Email", { exact: true }).element()).toBe(input);
+    expect(count(page.getByLabelText("Email*", { exact: true }))).toBe(0);
     expect(input.hasAttribute("required")).toBe(true);
   });
 
@@ -52,10 +51,11 @@ describe("Finding fields in tests, as the Testing page says", () => {
     const input = document.querySelector('input[name="password"]')!;
     // Playwright and Vitest give a password input the textbox role (Testing Library gives it none).
     expect(page.getByRole("textbox", { name: "Password", exact: true }).element()).toBe(input);
-    expect(page.getByLabelText("Password*", { exact: true }).element()).toBe(input);
+    expect(page.getByLabelText("Password", { exact: true }).element()).toBe(input);
+    expect(page.getByLabelText("Password").elements()).toEqual([input]);
     const button = page.getByRole("button", { name: "Show password" }).element();
     expect(button).not.toBe(input);
-    expect(button.getAttribute("aria-label")).toBe("Show password");
+    expect(button.hasAttribute("aria-label")).toBe(false);
   });
 
   it("finds a field's error by its text and as the field's description; it is not an alert", async () => {
@@ -67,15 +67,13 @@ describe("Finding fields in tests, as the Testing page says", () => {
     expect(error.closest('[role="alert"]')).toBeNull();
   });
 
-  it("finds the form's message in its alert region, which is in the page even when empty", async () => {
+  it("finds the form's message in its alert region only when there is a message", async () => {
     const host = await render(
       <Form>
         <TextField label="Email" name="email" />
       </Form>,
     );
-    // The region is always rendered, so a bare getByRole("alert") finds it with no message.
-    expect(count(page.getByRole("alert"))).toBe(1);
-    expect(page.getByRole("alert").element().textContent).toBe("");
+    expect(count(page.getByRole("alert"))).toBe(0);
     await act(async () => roots[0]!.render(
       <Form errors={{ form: "We could not save your changes." }}>
         <TextField label="Email" name="email" />
