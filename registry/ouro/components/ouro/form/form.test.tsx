@@ -873,7 +873,10 @@ describe("Form-level messages (review fix round 1, finding 3)", () => {
   it("focuses the alert when errors arrive and no field has one", async () => {
     const { host } = await render(<ActionPage result={{ form: "The server is down." }} />);
     await userEvent.click(page.getByRole("button", { name: "Save" }));
-    await expect.poll(() => document.activeElement).toBe(host.querySelector('[role="alert"]'));
+    await expect.poll(() => {
+      const alert = host.querySelector('[role="alert"]');
+      return alert !== null && document.activeElement === alert;
+    }).toBe(true);
   });
 
   it("lists several form-level messages and shows nothing for an empty one", async () => {
