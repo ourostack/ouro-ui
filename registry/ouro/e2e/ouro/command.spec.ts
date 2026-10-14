@@ -30,7 +30,10 @@ test.describe("on a desktop", () => {
 
   test("the shortcut opens and closes the palette", async ({ page }) => {
     await openStory(page, "menus-command--shortcut");
-    await page.keyboard.press("ControlOrMeta+k");
+    // The emulated app platform can differ from Playwright's host-OS modifier alias.
+    const shortcut = page.locator('[data-ouro="kbd"]');
+    await expect(shortcut).toHaveAttribute("data-platform", /^(apple|other)$/);
+    await page.keyboard.press(await shortcut.getAttribute("data-platform") === "apple" ? "Meta+k" : "Control+k");
     const dialog = page.getByRole("dialog", { name: "Command palette" });
     await expect(dialog).toBeVisible();
     await page.keyboard.press("Escape");
