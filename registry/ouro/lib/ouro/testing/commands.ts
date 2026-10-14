@@ -115,10 +115,10 @@ const TOUCH_WATCH = `(action, expected) => {
     state = undefined;
   }
   if (!state) {
-    if (action !== "expect") return { seen: false, moved: false, saw: [] };
+    if (action !== "expect") return { seen: false, active: false, moved: false, saw: [] };
     const types = ["touchstart", "touchmove", "touchend", "touchcancel"];
     const options = { capture: true, passive: true };
-    state = view.__ouroTouch = { document: view.document, saw: [], handled: new WeakSet(), targets: new Set(), expected: null, seen: false, resolve: null, moved: false };
+    state = view.__ouroTouch = { document: view.document, saw: [], handled: new WeakSet(), targets: new Set(), expected: null, seen: false, resolve: null, moved: false, active: false };
     // Where this frame's top left is in the top-level page's visual viewport, in CSS pixels, or null if a parent is cross-origin.
     const origin = () => {
       let x = 0, y = 0;
@@ -143,7 +143,11 @@ const TOUCH_WATCH = `(action, expected) => {
       // Each changed touch as the point CDP names for it, also on a zoomed page.
       const points = [...event.changedTouches].map((touch) => (at ? [touch.clientX + at.x, touch.clientY + at.y] : null));
       state.saw.push(event.type + points.map((point) => (point ? "(" + Math.round(point[0]) + ", " + Math.round(point[1]) + ")" : "(?)")).join(""));
-      if (event.type === "touchstart") state.moved = false;
+      if (event.type === "touchstart") {
+        state.active = true;
+        state.moved = false;
+      }
+      if (event.type === "touchend" || event.type === "touchcancel") state.active = false;
       if (event.type === "touchmove") state.moved = true;
       if (event.type === "touchstart" && !state.targets.has(event.target)) {
         state.targets.add(event.target);
@@ -171,7 +175,7 @@ const TOUCH_WATCH = `(action, expected) => {
     return { children: view.length };
   }
   if (action === "wait") {
-    const result = () => ({ seen: state.seen, moved: state.moved, saw: state.saw });
+    const result = () => ({ seen: state.seen, active: state.active, moved: state.moved, saw: state.saw });
     // A touchmove before the gesture's first one in this frame is not on its way: see sendTouch.
     if (state.seen || !state.expected || (state.expected.type === "touchmove" && !state.moved)) return result();
     return new Promise((resolve) => {
@@ -198,6 +202,8 @@ interface TouchPoint {
 interface TouchSeen {
   /** The frame handled the expected event. */
   seen: boolean;
+  /** This document has handled the gesture's touchstart but not its end. */
+  active: boolean;
   /** The frame has handled a touchmove in this gesture. */
   moved: boolean;
   /** The touch events the frame handled while it waited. */
@@ -410,7 +416,7 @@ async function sendTouch(
   target: TouchTarget,
   send: () => Promise<unknown>,
 ): Promise<Frame | undefined> {
-  const none: TouchSeen = { seen: false, moved: false, saw: [] };
+  const none: TouchSeen = { seen: false, active: false, moved: false, saw: [] };
   const { calls, gone } = await watchTarget(command, page, session, expected, target);
   const now = <T>(call: Promise<T>) => within(call, 0, "").catch(() => undefined);
   // Tidies every frame whose watch started; a frame whose call is still out is tidied when it answers, without waiting.
@@ -448,7 +454,16 @@ async function sendTouch(
   if (handler) return handler;
   const answers = (await Promise.all(waits)).filter((answer): answer is FrameAnswer<TouchSeen> => answer !== undefined);
   const results = answers.map((answer) => answer.value ?? none);
-  if (expected.type === "touchMove" && !results.some((result) => result.moved)) return undefined;
+  const targetFrame = "frame" in target ? target.frame : undefined;
+  const targetObservation = answers.find((answer) => answer.frame === targetFrame && answer.error === undefined)?.value;
+  // Slop needs an active gesture in this document and no contradictory event, not a missing-data fallback.
+  if (
+    expected.type === "touchMove" &&
+    !results.some((result) => result.moved) &&
+    targetObservation?.active === true &&
+    targetObservation.moved === false &&
+    targetObservation.saw.length === 0
+  ) return undefined;
   const inspected = await states;
   const saw = results.flatMap((result) => result.saw);
   // What was watched: every frame, and every call into one that failed, with its reason.
@@ -458,6 +473,7 @@ async function sendTouch(
   throw new Error(
     `${command}: the page did not handle the ${expected.type} at (${Math.round(expected.x)}, ${Math.round(expected.y)}) within ${TOUCH_HANDLED_TIMEOUT_MS}ms. ` +
       `It handled: ${saw.length > 0 ? saw.join(" ") : "no touch events"}. Is the page visible and rendering, and is the point inside it? ` +
+      (expected.type === "touchMove" && targetObservation?.active === false ? "The target document did not report an active touchstart. " : "") +
       `Watched ${answers.length} ${answers.length === 1 ? "frame" : "frames"}; at the end: ${frames.join("; ")}. ` +
       `Failed calls: ${failed.length > 0 ? failed.map((answer) => `${answer.action} in ${answer.url}: ${answer.error}`).join("; ") : "none"}.`,
   );
