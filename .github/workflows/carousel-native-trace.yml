@@ -16,10 +16,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { mode: full, iteration: 1 }
-          - { mode: full, iteration: 2 }
-          - { mode: full, iteration: 3 }
-          - { mode: touch-file, iteration: 1 }
+          - { mode: full, iteration: cold, profile: none }
+          - { mode: touch-file, iteration: prestart, profile: prestart }
+          - { mode: touch-file, iteration: midmove, profile: midmove }
+          - { mode: touch-file, iteration: preend, profile: preend }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -37,12 +37,13 @@ jobs:
         env:
           MODE: ${{ matrix.mode }}
           ITERATION: ${{ matrix.iteration }}
+          CAROUSEL_STALL_PROFILE: ${{ matrix.profile }}
         run: |
           set -euo pipefail
           mkdir -p carousel-evidence
           git rev-parse HEAD > carousel-evidence/source.txt
           git diff HEAD^ -- registry/ouro/components/ouro/carousel/carousel.tsx registry/ouro/components/ouro/carousel/carousel-styles.ts > carousel-evidence/runtime.diff
-          sha256sum registry/ouro/components/ouro/carousel/carousel.tsx registry/ouro/components/ouro/carousel/carousel-styles.ts registry/ouro/lib/ouro/testing/commands.ts registry/ouro/components/ouro/carousel/carousel.touch.test.tsx > carousel-evidence/digests.txt
+          sha256sum registry/ouro/components/ouro/carousel/carousel.tsx registry/ouro/components/ouro/carousel/carousel-styles.ts registry/ouro/lib/ouro/testing/commands.ts registry/ouro/components/ouro/carousel/carousel.touch.test.tsx scripts/carousel-native-trace.config.mts .github/workflows/carousel-native-trace.yml > carousel-evidence/digests.txt
           export CAROUSEL_PROBE_SOURCE=$(git rev-parse HEAD)
           export CAROUSEL_TRACE_ITERATION="$MODE-$ITERATION"
           export CAROUSEL_TRACE_FILE="$PWD/carousel-evidence/$MODE-$ITERATION-browser.jsonl"
@@ -50,6 +51,9 @@ jobs:
           export CAROUSEL_RESULT_FILE="$PWD/carousel-evidence/$MODE-$ITERATION-results.json"
           case "$MODE" in
             full)
+              pnpm run docs --check
+              pnpm typecheck
+              pnpm lint
               if pnpm test --config scripts/carousel-native-trace.config.mts > "carousel-evidence/$MODE-$ITERATION.log" 2>&1; then code=0; else code=$?; fi
               ;;
             touch-file)
@@ -58,8 +62,8 @@ jobs:
             *) echo "Unknown probe mode: $MODE" >&2; exit 2 ;;
           esac
           printf '%s\n' "$code" > "carousel-evidence/$MODE-$ITERATION.exit"
-          if [ ! -s "$CAROUSEL_TRACE_FILE" ] || [ ! -s "$CAROUSEL_RESULT_FILE" ]; then
-            echo "Probe $MODE-$ITERATION did not retain both its target trace and test results." >&2
+          if [ ! -s "$CAROUSEL_TRACE_FILE" ] || [ ! -s "$CAROUSEL_RESULT_FILE" ] || [ ! -s "carousel-evidence/$MODE-$ITERATION-engine.json" ]; then
+            echo "Probe $MODE-$ITERATION did not retain its target, engine trace, and test results." >&2
             exit 2
           fi
           exit "$code"

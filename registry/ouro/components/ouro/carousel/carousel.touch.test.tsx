@@ -7,6 +7,7 @@ import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 
 declare module "vitest/browser" {
   interface BrowserCommands {
+    startCarouselTrace: () => Promise<void>;
     recordCarouselTrace: (record: string) => Promise<void>;
   }
 }
@@ -171,6 +172,7 @@ it("lets a fast flick carry past the next slide, as the platform does, and repor
   window.addEventListener("focus", visibility);
   window.addEventListener("blur", visibility);
   onIndexChange.mockImplementation((index: number) => record("callback", { index, pose: snapshot() }));
+  await commands.startCarouselTrace();
   record("before", snapshot());
   try {
     await commands.touchDrag({ from: [rect.right - 40, y], to: [rect.left + 40, y], steps: 12, durationMs: 30 });
