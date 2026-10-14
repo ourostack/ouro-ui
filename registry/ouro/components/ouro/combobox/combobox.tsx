@@ -9,7 +9,7 @@ import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-st
 import { SheetFrame } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { endSlotClass, groupClass, inputClass } from "@/registry/ouro/components/ouro/text-field/text-field-styles";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
-import { FieldOwnerContext, useField, useFormErrors } from "@/registry/ouro/lib/ouro/use-field";
+import { FieldOwnerContext, useField, useFormErrors, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { usePickerSheet } from "@/registry/ouro/lib/ouro/use-sheet-presentation";
 import {
@@ -48,9 +48,9 @@ export interface ComboboxBaseProps {
   description?: ReactNode | undefined;
   /**
    * What is wrong, from your server action or client check. The message (or several, as a
-   * list) shows under the field, which gets `aria-invalid`. An empty string or array means valid.
+   * list) shows under the field, which gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid.
    */
-  error?: string | string[] | undefined;
+  error?: ErrorMessages | undefined;
   /** Something must be picked: the input gets `aria-required`, and the label a marker. */
   required?: boolean | undefined;
   /** Disables the field and its buttons, and fades it. */
@@ -83,8 +83,9 @@ export interface ComboboxBaseProps {
    */
   emptyLabel?: string | undefined;
   /**
-   * The label of the button that clears the field. It shows while there is something to
-   * clear. Translate it with your app.
+   * The name of the button that clears the field, as visually hidden text and not an
+   * `aria-label`, so a test's label lookup for the field finds the field alone. It shows while
+   * there is something to clear. Translate it with your app.
    * @default "Clear"
    */
   clearLabel?: string | undefined;
@@ -167,7 +168,8 @@ export type ComboboxMultipleProps = ComboboxBaseProps & {
   /** Called with the picked items' values. */
   onValueChange?: ((value: string[]) => void) | undefined;
   /**
-   * The label of a chip's remove button, from the item's label. Translate it with your app.
+   * The name of a chip's remove button, from the item's label, as visually hidden text and not
+   * an `aria-label`. Translate it with your app.
    * @default (label) => `Remove ${label}`
    */
   removeLabel?: ((label: string) => string) | undefined;
@@ -486,8 +488,9 @@ function EndButtons({ clearLabel }: { clearLabel: string }): JSX.Element {
     <span className={endSlotClass}>
       <BaseCombobox.Clear
         render={
-          <Button variant="plain" tone="secondary" size="sm" aria-label={clearLabel} className="aspect-square px-0">
+          <Button variant="plain" tone="secondary" size="sm" data-ouro-combobox-clear="" className="aspect-square px-0">
             <CrossIcon />
+            <span className="sr-only">{clearLabel}</span>
           </Button>
         }
       />
@@ -631,8 +634,9 @@ function ComboboxControl(props: ControlProps): JSX.Element {
               className={sheetClearClass}
               onClick={() => triggerRef.current?.focus()}
               render={
-                <Button variant="plain" tone="secondary" size="sm" aria-label={clearLabel} className="aspect-square px-0">
+                <Button variant="plain" tone="secondary" size="sm" className="aspect-square px-0">
                   <CrossIcon />
+                  <span className="sr-only">{clearLabel}</span>
                 </Button>
               }
             />
@@ -674,9 +678,10 @@ function ComboboxControl(props: ControlProps): JSX.Element {
                       {picked.map((option) => (
                         <BaseCombobox.Chip key={option.value} data-ouro-combobox-chip="" className={chipClass}>
                           <span>{option.label}</span>
-                          <BaseCombobox.ChipRemove aria-label={removeLabel(option.label)} className={chipRemoveClass}>
+                          <BaseCombobox.ChipRemove data-ouro-combobox-chip-remove="" className={chipRemoveClass}>
                             <TouchTarget />
                             <CrossIcon />
+                            <span className="sr-only">{removeLabel(option.label)}</span>
                           </BaseCombobox.ChipRemove>
                         </BaseCombobox.Chip>
                       ))}

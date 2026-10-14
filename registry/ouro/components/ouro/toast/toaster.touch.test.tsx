@@ -121,13 +121,6 @@ it("dismisses with a swipe down on a page that scrolls, without scrolling it", a
   scrollTo(0, 0);
 });
 
-/** A tap with no wait before it: touch input straight at the element's middle. Playwright's own tap first waits for the element to hold still. */
-async function tapNow(element: Element) {
-  const rect = element.getBoundingClientRect();
-  await commands.touchStep({ type: "touchStart", x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
-  await commands.touchStep({ type: "touchEnd" });
-}
-
 it("gets the click of a tap on its action right after a flick that does not dismiss it", async () => {
   const undo = vi.fn();
   await renderToaster();
@@ -145,11 +138,28 @@ it("gets the click of a tap on its action right after a flick that does not dism
   };
   addEventListener("touchmove", count);
   cleanups.push(() => removeEventListener("touchmove", count));
-  await commands.touchDrag({ from: [x, y], to: [x, y - 120], steps: 10, durationMs: 100 });
-  expect(taken).toBeGreaterThan(0);
-  expect(toastNamed("Recipe deleted")).toBe(item);
-  await tapNow([...item.querySelectorAll("button")].find((button) => button.textContent === "Undo")!);
-  await expect.poll(() => undo.mock.calls.length).toBe(1);
+  // Hold the moving pose across input transport; the press itself must stop its spring.
+  const frames = holdFrames();
+  try {
+    await commands.touchDrag({ from: [x, y], to: [x, y - 120], steps: 10, durationMs: 100 });
+    expect(taken).toBeGreaterThan(0);
+    expect(toastNamed("Recipe deleted")).toBe(item);
+    expect(item.hasAttribute("data-ouro-settling")).toBe(true);
+    expect(shift(item).y).toBeLessThan(0);
+    const action = [...item.querySelectorAll("button")].find((button) => button.textContent === "Undo")!;
+    const target = action.getBoundingClientRect();
+    const caught = shift(item);
+    await commands.touchStep({ type: "touchStart", x: target.left + target.width / 2, y: target.top + target.height / 2 });
+    frames.step(16);
+    frames.step(16);
+    expect(shift(item)).toEqual(caught);
+    frames.release();
+    await commands.touchStep({ type: "touchEnd" });
+    await expect.poll(() => undo.mock.calls.length).toBe(1);
+  } finally {
+    frames.release();
+    await commands.touchStep({ type: "touchEnd" });
+  }
 });
 
 it("gives the dismiss and action buttons 44px touch targets", async () => {

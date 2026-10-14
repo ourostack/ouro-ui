@@ -23,7 +23,7 @@ type ToggleIcon = ComponentType<SVGProps<SVGSVGElement>>;
  * @internal
  */
 const toggleBase =
-  "press relative m-0 box-border inline-flex shrink-0 items-center justify-center align-middle " +
+  "press relative box-border inline-flex shrink-0 items-center justify-center align-middle " +
   "rounded-lg border border-solid font-medium whitespace-nowrap " +
   "no-underline select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +

@@ -14,11 +14,22 @@ import { Field } from "@/registry/ouro/components/ouro/field/field";
 <Field label="Email" name="email" required description="We never share it." error={errors?.email}>
   <FieldControl type="email" autoComplete="email" />
 </Field>
+// Helper text after the control: a FieldDescription placed where it shows.
+<Field label="Password" name="password" required error={errors?.password}>
+  <FieldControl type="password" autoComplete="new-password" />
+  <FieldDescription>Use 8 or more characters.</FieldDescription>
+</Field>
 ```
 
 ## Usage
 
 Pass `error` straight from a server action or a client check: it shows the message and sets `aria-invalid`. The error only shows: it never blocks the form's next submit, so the user can always send the form again (only the browser's own checks, such as `required`, block). Inside a `Form`, a field with a `name` shows the form's error for that name when it has no `error` of its own. The control is `FieldControl`, from `field-parts`.
+
+The order is fixed: label, `description`, control, error. To put helper text after the control, leave `description` out and render a `FieldDescription` after the `FieldControl`. It is linked to the control (`aria-describedby`) wherever it sits, and the error still comes last. `TextField` and the other one-tag controls take no children, so build that field from `Field` and `FieldControl`.
+
+The required marker is drawn with CSS beside the label and is not part of its text, so a test finds the field by the label alone: `getByLabelText("Email")`, or Playwright's `getByLabel("Email", { exact: true })`. The marker stays visible in forced colors.
+
+A field's error is the control's description, not an alert, so screen readers read it when focus reaches the field (a `Form` moves focus to the first invalid one). In a test, assert it with `toHaveAccessibleDescription("Enter an email address.")` or `getByText`; `getByRole("alert")` finds only a Form's message about the whole form.
 
 ## Use instead when
 
@@ -34,7 +45,7 @@ Type: `FieldProps`.
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-4`, `col-span-2`). Appearance classes warn in development; style fields in your theme. |
 | `description` | `ReactNode` |  | Supporting text under the label, read after the label through `aria-describedby`. |
 | `disabled` | `boolean` |  | Disables the control and fades the field. |
-| `error` | `string \| string[]` |  | What is wrong, from your server action or client check. A message (or several, as a list, each shown once) shows under the control, which gets `aria-invalid` and points at the message with `aria-describedby`. An empty string or array means valid. It only shows: it never blocks the next submit of the form around it. |
+| `error` | `ErrorMessages` |  | What is wrong, from your server action or client check. A message (or several, as an array, each shown once as a list item) shows under the control, which gets `aria-invalid` and points at the message with `aria-describedby`. A message is text or a React node, so it can carry a link: `error={<>Already imported. <Link href="/recipes/soup">Open it</Link></>}`. An empty string or array means valid. It only shows: it never blocks the next submit of the form around it. |
 | `hideLabel` | `boolean` |  | Hides the label visually; screen readers still read it as the control's name. |
 | `label` (required) | `string` |  | What the control is for, shown above it and read as its name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. |
 | `name` | `string` |  | The form field name the control submits under. A `Form`'s `errors` for this name show here when there is no `error` prop, and go away once the user changes the control. |
@@ -64,3 +75,21 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 ## Parts
 
 When these props cannot express your layout, build it from the parts in `@/registry/ouro/components/ouro/field/field-parts`. See [parts.md](parts.md#field-parts) for the required nesting.
+
+## Types
+
+### `ErrorMessage`
+
+One error message: text, or a React element for a message that carries a link or other markup.
+
+```ts
+type ErrorMessage = string | ReactElement;
+```
+
+### `ErrorMessages`
+
+What an `error` prop or a `Form` `errors` value takes: one message, or several as an array.
+
+```ts
+type ErrorMessages = ErrorMessage | ErrorMessage[];
+```

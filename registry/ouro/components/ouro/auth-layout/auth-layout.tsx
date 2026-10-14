@@ -118,7 +118,7 @@ export function AuthLayout(props: AuthLayoutProps): JSX.Element {
           {children}
         </div>
       </Card>
-      {footer !== undefined && <div className="w-full max-w-sm text-center text-base pointer-fine:text-sm text-muted-foreground">{footer}</div>}
+      {footer !== undefined && <div data-ouro-text="" className="w-full max-w-sm text-center text-base pointer-fine:text-sm text-muted-foreground">{footer}</div>}
     </Root>
   );
 }

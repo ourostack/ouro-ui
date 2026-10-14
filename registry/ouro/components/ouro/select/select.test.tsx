@@ -3,6 +3,7 @@ import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Form, type FormErrors } from "@/registry/ouro/components/ouro/form/form";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { Select, type SelectProps } from "@/registry/ouro/components/ouro/select/select";
@@ -31,7 +32,7 @@ async function render(node: ReactNode) {
       return host.querySelector<HTMLButtonElement>('[role="combobox"]')!;
     },
     get label() {
-      return host.querySelector<HTMLElement>('[data-ouro="select"] > div')!;
+      return host.querySelector<HTMLElement>('[data-ouro="select"] > [data-ouro-label] > div')!;
     },
     hidden(name: string) {
       return [...host.querySelectorAll<HTMLInputElement>(`input[name="${name}"]`)].map((input) => input.value);
@@ -438,7 +439,7 @@ describe("Select server rendering", () => {
     );
     const doc = new DOMParser().parseFromString(html, "text/html");
     const trigger = doc.querySelector('[role="combobox"]')!;
-    expect(doc.getElementById(trigger.getAttribute("aria-labelledby")!)!.textContent).toBe("Course*");
+    expect(doc.getElementById(trigger.getAttribute("aria-labelledby")!)!.textContent).toBe("Course");
     expect(description(trigger)).toEqual(["What you are cooking.", "That course is full."]);
     expect(trigger.getAttribute("aria-invalid")).toBe("true");
     expect(trigger.getAttribute("aria-required")).toBe("true");
@@ -465,5 +466,21 @@ describe("Select server rendering", () => {
     expect(host.querySelector('[role="combobox"]')!.textContent).toBe("Main");
     expect(recoverable).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
+  });
+});
+
+describe("Select under a parent's spacing", () => {
+  it("keeps the 16px that space-y-4 puts between the Select and the button below it", async () => {
+    // The parent's rule has zero specificity, so a margin class on the root would beat it.
+    const { host } = await render(
+      <div className="space-y-4">
+        <Select label="Course" options={[{ value: "main", label: "Main" }]} />
+        <Button>Save</Button>
+      </div>,
+    );
+    const root = host.querySelector<HTMLElement>('[data-ouro="select"]')!;
+    const button = host.querySelector<HTMLElement>('[data-ouro="button"]')!;
+    expect(getComputedStyle(root).marginBottom).toBe("16px");
+    expect(Math.abs(button.getBoundingClientRect().top - root.getBoundingClientRect().bottom - 16)).toBeLessThanOrEqual(1);
   });
 });

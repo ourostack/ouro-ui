@@ -115,6 +115,17 @@ describe("Chart", () => {
     expect(summary().textContent).toBe("Recipes cooked et Recipes saved, 3 points.");
   });
 
+  it("keeps an aria-describedby the app passes, after its own summary", async () => {
+    const { chart } = await render(
+      <>
+        <Chart title="Cooking" data={rows} categoryKey="month" config={config} aria-describedby="chart-note" />
+        <p id="chart-note">Counts are for this year.</p>
+      </>,
+    );
+    const summary = chart.querySelector<HTMLElement>("[data-ouro-chart-summary]")!;
+    expect(chart.getAttribute("aria-describedby")).toBe(`${summary.id} chart-note`);
+  });
+
   it("lists every value in a table for screen readers, visible with showTable", async () => {
     const { chart, rerender } = await render(<Chart title="Cooking" data={rows} categoryKey="month" config={config} />);
     const table = page.getByRole("table", { name: "Cooking" });

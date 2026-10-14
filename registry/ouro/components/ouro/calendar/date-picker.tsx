@@ -19,7 +19,7 @@ import {
 } from "@/registry/ouro/components/ouro/popover/popover-parts";
 import { endSlotClass, groupClass, inputClass } from "@/registry/ouro/components/ouro/text-field/text-field-styles";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
-import { FieldOwnerContext } from "@/registry/ouro/lib/ouro/use-field";
+import { FieldOwnerContext, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
 
@@ -36,9 +36,9 @@ export interface DatePickerProps {
   description?: ReactNode | undefined;
   /**
    * What is wrong, from your server action or client check. The message (or several, as a
-   * list) shows under the field, which gets `aria-invalid`. An empty string or array means valid.
+   * list) shows under the field, which gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid.
    */
-  error?: string | string[] | undefined;
+  error?: ErrorMessages | undefined;
   /** A date must be given: the field gets `required` and `aria-required`, and the label a marker. */
   required?: boolean | undefined;
   /** Disables the field and its calendar button, and fades it. */
@@ -77,7 +77,8 @@ export interface DatePickerProps {
   /** The field shows its date but cannot be changed; its calendar button is disabled. */
   readOnly?: boolean | undefined;
   /**
-   * The label of the button that opens the calendar. Translate it with your app.
+   * The name of the button that opens the calendar, as visually hidden text and not an
+   * `aria-label`, so a test's `getByLabel("Date")` finds the text box alone. Translate it with your app.
    * @default "Choose date"
    */
   chooseDateLabel?: string | undefined;
@@ -363,7 +364,7 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
                         variant="plain"
                         tone="secondary"
                         size="sm"
-                        aria-label={chooseDateLabel}
+                        data-ouro-choose-date=""
                         disabled={disabled || readOnly}
                         className="aspect-square px-0"
                       >
@@ -380,6 +381,9 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
                           <rect x="2.5" y="3.5" width="11" height="10" rx="1.5" />
                           <path d="M2.5 6.5h11M5.5 2v3M10.5 2v3" />
                         </svg>
+                        {/* Named by hidden text, not `aria-label`, which is label text: a label
+                            lookup for a field called "Date" would also find "Choose date". */}
+                        <span className="sr-only">{chooseDateLabel}</span>
                       </Button>
                     }
                   />

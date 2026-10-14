@@ -1,10 +1,10 @@
 "use client";
 
 import { NumberField as BaseNumberField } from "@base-ui/react/number-field";
-import type { JSX, ReactElement, ReactNode, Ref } from "react";
+import type { ComponentPropsWithRef, JSX, ReactElement, ReactNode, Ref } from "react";
 import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-styles";
-import { FieldOwnerContext, useField, useFormErrors } from "@/registry/ouro/lib/ouro/use-field";
+import { FieldOwnerContext, useField, useFormErrors, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
@@ -24,9 +24,9 @@ export interface NumberFieldProps {
   description?: ReactNode | undefined;
   /**
    * What is wrong, from your server action or client check. The message (or several, as a
-   * list) shows under the field, which gets `aria-invalid`. An empty string or array means valid.
+   * list) shows under the field, which gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid.
    */
-  error?: string | string[] | undefined;
+  error?: ErrorMessages | undefined;
   /** The field must be filled: it gets `aria-required`, and the label a marker. */
   required?: boolean | undefined;
   /** Disables the field and its steppers, and fades it. */
@@ -66,12 +66,14 @@ export interface NumberFieldProps {
   /** An example shown while the field is empty. It is not a label; pass `label`. */
   placeholder?: string | undefined;
   /**
-   * The label of the button that lowers the value. Translate it with your app.
+   * The name of the button that lowers the value, as visually hidden text and not an
+   * `aria-label`, so a test's label lookup for the field finds the field alone. Translate it with your app.
    * @default "Decrease"
    */
   decrementLabel?: string | undefined;
   /**
-   * The label of the button that raises the value. Translate it with your app.
+   * The name of the button that raises the value, as visually hidden text and not an
+   * `aria-label`. Translate it with your app.
    * @default "Increase"
    */
   incrementLabel?: string | undefined;
@@ -292,6 +294,12 @@ function phoneKeyboard(
   return fractionalStep || fractionalFormat ? "decimal" : "numeric";
 }
 
+/**
+ * A stepper without the `aria-label` Base UI gives it: its hidden text names it, and an
+ * `aria-label` is label text, which a loose label lookup for the field would also match.
+ */
+const unlabelled = (props: ComponentPropsWithRef<"button">) => <button {...props} aria-label={undefined} />;
+
 /** The steppers and the input, inside the Field, where they read its server-known description ids. */
 function NumberFieldGroup({
   inputRef,
@@ -314,11 +322,12 @@ function NumberFieldGroup({
   const invalid = field.invalid;
   return (
     <BaseNumberField.Group data-ouro-number-field-group="" className={groupClass}>
-      <BaseNumberField.Decrement aria-label={decrementLabel} className={stepperClass}>
+      <BaseNumberField.Decrement data-ouro-decrement="" render={unlabelled} className={stepperClass}>
         <TouchTarget />
         <Icon>
           <path d="M3.5 8h9" />
         </Icon>
+        <span className="sr-only">{decrementLabel}</span>
       </BaseNumberField.Decrement>
       <BaseNumberField.Input
         ref={inputRef}
@@ -329,11 +338,12 @@ function NumberFieldGroup({
         {...(invalid ? { "aria-invalid": true } : {})}
         className={inputClass}
       />
-      <BaseNumberField.Increment aria-label={incrementLabel} className={stepperClass}>
+      <BaseNumberField.Increment data-ouro-increment="" render={unlabelled} className={stepperClass}>
         <TouchTarget />
         <Icon>
           <path d="M3.5 8h9M8 3.5v9" />
         </Icon>
+        <span className="sr-only">{incrementLabel}</span>
       </BaseNumberField.Increment>
     </BaseNumberField.Group>
   );

@@ -98,7 +98,7 @@ export function Separator(props: SeparatorProps): JSX.Element {
       orientation={orientation}
       {...(decorative ? { role: "none", "aria-orientation": undefined } : {})}
       data-ouro="separator"
-      className={cn("m-0 shrink-0 border-0 bg-border", orientations[orientation], className)}
+      className={cn("shrink-0 border-0 bg-border", orientations[orientation], className)}
     />
   );
 }

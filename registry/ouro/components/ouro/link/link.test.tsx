@@ -148,6 +148,27 @@ describe("Link", () => {
   });
 });
 
+describe("Link with a mouse", () => {
+  it("is as tall as its text with a fine pointer, standing alone or in a sentence", async () => {
+    expect(matchMedia("(pointer: fine)").matches).toBe(true);
+    const { host } = await render(
+      <>
+        <div>
+          <Link href="/forgot">Forgot password?</Link>
+        </div>
+        <p>
+          Read the <Link href="/terms">terms</Link> first.
+        </p>
+      </>,
+    );
+    for (const link of host.querySelectorAll<HTMLElement>('[data-ouro="link"]')) {
+      expect(getComputedStyle(link).display).toBe("inline");
+      expect(link.getBoundingClientRect().height).toBeLessThan(30);
+    }
+    expect(warn).not.toHaveBeenCalled();
+  });
+});
+
 describe("Link development messages", () => {
   it.each([
     ["to", { to: "/recipes" }, "to is not a prop", '<Link href="/recipes">'],

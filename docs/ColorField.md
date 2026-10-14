@@ -29,12 +29,12 @@ Type: `ColorFieldProps`.
 | `defaultValue` | `string` | `"#000000"` | The color the field starts with, and goes back to when its form resets, as hex. |
 | `description` | `ReactNode` |  | Supporting text under the label, read through `aria-describedby`. |
 | `disabled` | `boolean` |  | Disables the swatch and the text, and fades the field. |
-| `error` | `string \| string[]` |  | What is wrong, from your server action or client check. It shows under the field, which gets `aria-invalid`. An empty string or array means valid. |
+| `error` | `ErrorMessages` |  | What is wrong, from your server action or client check. It shows under the field, which gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. |
 | `hideLabel` | `boolean` |  | Hides the label visually; screen readers still read it. |
 | `label` (required) | `string` |  | What the color is for ("Accent color"), shown above the field and read as the text input's name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. |
 | `name` | `string` |  | The form field name the color submits under, always as `#rrggbb`. |
 | `onValueChange` | `((hex: string) => void)` |  | Called with the color as `#rrggbb` when it is picked, or typed as a whole hex. |
-| `pickerLabel` | `string` | `"Pick a color"` | The name of the swatch that opens the system color picker. Translate it with your app. |
+| `pickerLabel` | `string` | `"Pick a color"` | The name of the swatch that opens the system color picker. The swatch is a color input, which can only be named by label text, so Playwright's loose `getByLabel("Color")` also finds it when the field's label is in this name; find the field with `getByLabel("Color", { exact: true })` or `getByRole("textbox", { name: "Color" })`. Translate it with your app. |
 | `ref` | `Ref<HTMLInputElement>` |  | The hex text input. |
 | `required` | `boolean` |  | Marks the field required: it gets `aria-required`, and the label a marker. A color always has a value, so it never blocks a submit, even with the text cleared. |
 | `value` | `string` |  | The color as hex (`#3366ff`, or short `#36f`), when you control it. Pair it with `onValueChange`. |
@@ -61,3 +61,21 @@ Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your cl
 Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
+
+## Types
+
+### `ErrorMessage`
+
+One error message: text, or a React element for a message that carries a link or other markup.
+
+```ts
+type ErrorMessage = string | ReactElement;
+```
+
+### `ErrorMessages`
+
+What an `error` prop or a `Form` `errors` value takes: one message, or several as an array.
+
+```ts
+type ErrorMessages = ErrorMessage | ErrorMessage[];
+```

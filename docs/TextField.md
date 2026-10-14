@@ -15,11 +15,33 @@ import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field
 <TextField label="Password" type="password" name="password" autoComplete="new-password" />
 <TextField label="Search recipes" hideLabel type="search" clearable startAdornment={<SearchIcon />} />
 <TextField label="Price" startAdornment="$" endAdornment="per jar" />
+// A hero search: the row draws the rules, the field has no frame and large text.
+<form action="/recipes" className="flex items-center gap-3 border-y border-border font-serif">
+  <SearchIcon aria-hidden="true" className="size-5 shrink-0" />
+  <TextField label="Search recipes" hideLabel type="search" name="q" placeholder="tomato, beans, lemon" variant="plain" size="lg" className="flex-1" />
+  <Button type="submit">Search</Button>
+</form>
 ```
+
+## Usage
+
+Not here, because each has its own component:
+
+- Numbers: `NumberField` parses, steps and formats them. A digit code (a PIN, a postcode) stays a TextField with `inputMode="numeric"`, or is an `OtpField`.
+
+- A date picked from a calendar: `DatePicker`. `type="date"` here opens the OS picker.
+
+- A date and time together: there is no `datetime-local`. Use a `DatePicker` and a `type="time"` TextField side by side, and join the two values on the server.
+
+- Files: `FileField`.
+
+- Several lines: `TextArea`.
+
+`variant="plain"` draws no frame, and `size="lg"` sets 20px text: together they put the field inside a row your app frames, such as a page's main search between two rules.
 
 ## Use instead when
 
-- Use `TextArea` instead for several lines, `NumberField` for numbers, and `Field` with `FieldControl` when the control is not a text input.
+- Use `TextArea` instead for several lines, `NumberField` for numbers, `DatePicker` for a date picked from a calendar, `FileField` for files, and `Field` with `FieldControl` when the control is not a text input.
 
 ## Props
 
@@ -29,20 +51,22 @@ Type: `TextFieldProps`.
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-4`, `col-span-2`). Appearance classes warn in development; style fields in your theme. |
 | `clearable` | `boolean` |  | Adds a button that empties the field and puts focus back in it. It shows while there is text. |
-| `clearLabel` | `string` | `"Clear"` | The label of the clear button that `clearable` adds. Translate it with your app. |
+| `clearLabel` | `string` | `"Clear"` | The name of the clear button that `clearable` adds, as visually hidden text. Translate it with your app. |
 | `description` | `ReactNode` |  | Supporting text under the label, read after the label through `aria-describedby`. |
 | `disabled` | `boolean` |  | Disables the field, its buttons included, and fades it. |
 | `endAdornment` | `ReactNode` |  | Text or an icon inside the box, after the input: `"kg"`, `<CheckIcon />`. Text is also read as part of the description. |
-| `error` | `string \| string[]` |  | What is wrong, from your server action or client check. The message (or several, as a list) shows under the field, which gets `aria-invalid`. An empty string or array means valid. |
+| `error` | `ErrorMessages` |  | What is wrong, from your server action or client check. The message (or several, as a list) shows under the field, which gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. |
 | `hideLabel` | `boolean` |  | Hides the label visually; screen readers still read it as the field's name. |
 | `label` (required) | `string` |  | What the field is for, shown above it and read as its name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. A placeholder is not a label. |
 | `name` | `string` |  | The form field name the value submits under. |
 | `placeholder` | `string` |  | An example of what to type, shown while the field is empty: `"you@example.com"`. It is not a label; pass `label`, which stays visible. |
 | `ref` | `Ref<HTMLInputElement>` |  | The input element. |
 | `required` | `boolean` |  | The field must be filled: it gets `required` and `aria-required`, and the label a marker. |
-| `showPasswordLabel` | `string` | `"Show password"` | The label of a password field's show/hide button. It stays the same while the password shows; the button's pressed state (`aria-pressed`) says whether it does. Translate it with your app. |
+| `showPasswordLabel` | `string` | `"Show password"` | The name of a password field's show/hide button, as visually hidden text and not an `aria-label`, so a test's `getByLabel("Password")` finds the input alone; find the button with `getByRole("button", { name: "Show password" })`. It stays the same while the password shows; the button's pressed state (`aria-pressed`) says whether it does. Translate it with your app. |
+| `size` | `"md" \| "lg"` | `"md"` | Control size. `md` is 44px tall with 16px text on phones and steps down to desktop density from the `sm` breakpoint (640px). `lg` is 56px tall (48px on desktop) with 20px text at every width, for a page's main search. The font family is inherited, so set a display font on a parent. It replaces the input's own `size` attribute (a width in characters); set the width with `className`. |
 | `startAdornment` | `ReactNode` |  | Text or an icon inside the box, before the input: `"$"`, `<SearchIcon />`. Text is also read as part of the field's description. Replaces shadcn's InputGroup. |
-| `type` | `"search" \| "time" \| "text" \| "email" \| "password" \| "tel" \| "url" \| "date"` | `"text"` | What kind of text it holds. Each type sets the phone keyboard (`inputMode`) and autofill (`autoComplete`) for you; pass either to override. `password` adds a show/hide button; `date` and `time` open the OS picker. For numbers use `NumberField`, which parses and steps them; for digit codes, `inputMode="numeric"`. |
+| `type` | `"search" \| "time" \| "text" \| "email" \| "password" \| "tel" \| "url" \| "date"` | `"text"` | What kind of text it holds. Each type sets the phone keyboard (`inputMode`) and autofill (`autoComplete`) for you; pass either to override. `password` adds a show/hide button; `date` and `time` open the OS picker. Other kinds of value have their own component: `NumberField` for numbers (`inputMode="numeric"` here for digit codes), `DatePicker` for a date picked from a calendar, `DatePicker` beside a `type="time"` TextField for a date and time (there is no `datetime-local`), and `FileField` for files. Any other string is a type error whose message names them. |
+| `variant` | `"outline" \| "plain"` | `"outline"` | The frame. `outline` draws the bordered box. `plain` draws no border, background or side padding, for a field inside a frame your app draws (a search row with its own rules and a button beside the input); it keeps the focus outline, and the error message still shows under it, but with no border to turn red, color your own frame for an invalid field. Any other string is a type error whose message names the fix. |
 
 ## Native attributes
 
@@ -74,3 +98,21 @@ Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your cl
 Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
+
+## Types
+
+### `ErrorMessage`
+
+One error message: text, or a React element for a message that carries a link or other markup.
+
+```ts
+type ErrorMessage = string | ReactElement;
+```
+
+### `ErrorMessages`
+
+What an `error` prop or a `Form` `errors` value takes: one message, or several as an array.
+
+```ts
+type ErrorMessages = ErrorMessage | ErrorMessage[];
+```

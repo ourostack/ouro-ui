@@ -29,7 +29,7 @@ Type: `SliderProps<Value>`.
 | `defaultValue` | `Value` |  | The starting value, when the slider keeps its own. An array gives a range: `defaultValue={[20, 80]}`. |
 | `description` | `ReactNode` |  | Supporting text under the label, read after the label through `aria-describedby`. |
 | `disabled` | `boolean` |  | Disables the slider and fades it. |
-| `error` | `string \| string[]` |  | What is wrong, from your server action or client check. The message (or several, as a list) shows under the slider, which gets `aria-invalid` and the destructive color. An empty string or array means valid. |
+| `error` | `ErrorMessages` |  | What is wrong, from your server action or client check. The message (or several, as a list) shows under the slider, which gets `aria-invalid` and the destructive color. A message is text or a React node (one with a link); an empty string or array means valid. |
 | `format` | `Intl.NumberFormatOptions` |  | How the value reads, as `Intl.NumberFormat` options, for `showValue` and screen readers: `{ style: "percent" }`, `{ style: "currency", currency: "EUR" }`. |
 | `hideLabel` | `boolean` |  | Hides the label visually; screen readers still read it as the slider's name. |
 | `label` (required) | `string` |  | What the slider sets, shown above it and read as its name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. |
@@ -73,6 +73,22 @@ Appearance comes from props, not classes. In development, a class that sets appe
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ## Types
+
+### `ErrorMessage`
+
+One error message: text, or a React element for a message that carries a link or other markup.
+
+```ts
+type ErrorMessage = string | ReactElement;
+```
+
+### `ErrorMessages`
+
+What an `error` prop or a `Form` `errors` value takes: one message, or several as an array.
+
+```ts
+type ErrorMessages = ErrorMessage | ErrorMessage[];
+```
 
 ### `SliderOutput`
 

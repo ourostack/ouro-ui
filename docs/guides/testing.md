@@ -74,14 +74,14 @@ These lookups are the same in Playwright (`page.getByRole`) and in Vitest browse
 | To find | Use | Why |
 | --- | --- | --- |
 | A labelled field | `getByRole("textbox", { name: "Email", exact: true })` | The label names the input. `exact` keeps "Email" from also matching "Work email". |
-| A required field | The same: `getByRole("textbox", { name: "Email", exact: true })` | The required marker `*` is hidden from assistive technology, so the accessible name is still "Email". The label's text is "Email*", so `getByLabel("Email", { exact: true })` finds nothing; use the role, or `getByLabel("Email*", { exact: true })`. |
-| A password field | `getByRole("textbox", { name: "Password", exact: true })` | Playwright and Vitest give a password input the `textbox` role. The field also renders a "Show password" button, so `getByLabel("Password")` without `exact` finds two elements. In Testing Library a password input has no role: use `getByLabelText("Password", { exact: true })`, with the `*` when the field is required. |
+| A required field | The same: `getByRole("textbox", { name: "Email", exact: true })`, or `getByLabel("Email", { exact: true })` | The required marker is drawn with CSS beside the label, not in its text. Both lookups use "Email" without `*`. |
+| A password field | `getByRole("textbox", { name: "Password", exact: true })`, or `getByLabel("Password", { exact: true })` | Playwright and Vitest give a password input the `textbox` role. The "Show password" button is named by hidden text, not `aria-label`, so a loose label lookup also finds the input alone. Find the button by its role and name. In Testing Library a password input has no role: use `getByLabelText("Password", { exact: true })`, required or not. |
 | A field's error | `getByText("Enter an email address.")`, or assert on the field: `toHaveAccessibleDescription("Enter an email address.")` and `toHaveAttribute("aria-invalid", "true")` | The error is the field's description. It is not an alert, so `getByRole("alert")` does not find it. |
-| The form's message | `getByRole("alert").filter({ hasText: "We could not save your changes." })` | A `Form` always renders its alert region, empty until there is a message, so a bare `getByRole("alert")` finds an empty element and cannot tell you a message arrived. Filter by text, or use `filter({ hasText: /\S/ })` for any message. |
+| The form's message | `getByRole("alert").filter({ hasText: "We could not save your changes." })` | A `Form` renders an alert only while there is a message. An accepted new answer inserts a new alert with its text already present; a form without a message has no alert. Filtering by text checks the actual message rather than another alert on the page. |
 
 Other controls: a `Select` and a `Combobox` are `getByRole("combobox", { name })`; a `Checkbox` is `getByRole("checkbox", { name })`; a `Switch` is `getByRole("switch", { name })`; a `RadioGroup` is `getByRole("radiogroup", { name })` with `getByRole("radio", { name })` inside.
 
-The required marker, the password button and the empty alert region are being reworked. When a release changes one, its notes say so and this table changes with it.
+These lookups describe the current source, not v0.7.0's behavior. In v0.7.0, required labels include `*` in their text, password buttons also match loose label lookups, and Form keeps an empty alert region. When upgrading from that release, update those selectors and empty-alert assertions; the required field's accessible name stays the same.
 
 ## Choosing an option in a Select
 

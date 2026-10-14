@@ -52,11 +52,14 @@ const layoutElements: readonly LayoutElement[] = ["div", "section", "ul", "ol", 
 
 /**
  * What the browser sets on these elements that a layout primitive must not keep: list
- * bullets and indents, and a fieldset's border, padding and minimum width.
+ * bullets and indents, and a fieldset's border, padding and minimum width. The margin is
+ * cleared in a sublayer of Tailwind's utilities (`[@layer_ouro-reset]:`), which every plain
+ * utility beats whatever its specificity, so a parent's `space-y-4` and the app's own margin
+ * class still apply.
  *
  * @internal
  */
-const elementReset = "m-0 p-0 list-none min-w-0 border-0" as const;
+const elementReset = "[@layer_ouro-reset]:m-0 p-0 list-none min-w-0 border-0" as const;
 
 const names = (values: readonly string[]) => values.map((value) => `"${value}"`).join(", ");
 

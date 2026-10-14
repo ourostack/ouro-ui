@@ -129,3 +129,24 @@ describe.each([
     });
   });
 });
+
+// A component root sets no margin of its own. Margin between components is the app's layout: a
+// parent's `space-y-4` puts it on its children with a zero-specificity rule, which any margin
+// class on the child, even `m-0`, would beat.
+describe("component roots leave their margin to the app", () => {
+  it.each(stories)("$id has no margin reset on a component root", async ({ id, Story }) => {
+    const host = await renderStory(Story);
+    await settle();
+    const resets = (root: ParentNode) =>
+      [...root.querySelectorAll<HTMLElement>("[data-ouro]")]
+        .filter((element) => [...element.classList].some((token) => /^-?m[xytblrse]?-0$/.test(token)))
+        .map((element) => element.getAttribute("data-ouro"));
+    const found = resets(document);
+    for (const opener of overlayOpeners(id, host)) {
+      await openOverlay(opener);
+      found.push(...resets(document));
+      await closeOverlay();
+    }
+    expect([...new Set(found)]).toEqual([]);
+  });
+});

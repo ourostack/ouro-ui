@@ -214,7 +214,7 @@ export function ToggleGroup(props: ToggleGroupProps): JSX.Element {
   const labelId = useId();
 
   return (
-    <div data-ouro="toggle-group" className={cn("m-0 box-border grid min-w-0 content-start justify-items-start gap-2", className)}>
+    <div data-ouro="toggle-group" className={cn("box-border grid min-w-0 content-start justify-items-start gap-2", className)}>
       <span id={labelId} className={cn("m-0 text-sm leading-5 font-medium text-foreground select-none", hideLabel && "sr-only")}>
         {label}
       </span>

@@ -35,7 +35,7 @@ it("uses the phone's own date picker on a touch screen, submitting the ISO date"
   const input = host.querySelector("input")!;
   expect(input.type).toBe("date");
   expect(input.value).toBe("2026-10-11");
-  expect(host.querySelector('button[aria-label="Choose date"]')).toBeNull();
+  expect(host.querySelector('button[data-ouro-choose-date]')).toBeNull();
   expect(Object.fromEntries(new FormData(host.querySelector("form")!))).toEqual({ delivery: "2026-10-11" });
   // 16px text, so iOS does not zoom on focus, and a 44px box.
   expect(parseFloat(getComputedStyle(input).fontSize)).toBeGreaterThanOrEqual(16);

@@ -252,9 +252,9 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
     <figure
       {...rest}
       data-ouro="chart"
-      aria-describedby={summaryId}
+      aria-describedby={[summaryId, rest["aria-describedby"]].filter(Boolean).join(" ")}
       style={{ ...colors, ...style }}
-      className={cn("m-0 box-border flex w-full min-w-0 flex-col gap-3 text-foreground", className)}
+      className={cn("[@layer_ouro-reset]:m-0 box-border flex w-full min-w-0 flex-col gap-3 text-foreground", className)}
     >
       <figcaption className={hideTitle ? "sr-only" : "text-base font-semibold pointer-fine:text-sm"}>{title}</figcaption>
       {description !== undefined && <p className="-mt-2 mb-0 text-sm text-muted-foreground">{description}</p>}

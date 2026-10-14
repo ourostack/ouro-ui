@@ -280,7 +280,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   };
 
   return (
-    <div {...rest} data-ouro="message-list" className={cn("relative m-0 box-border flex min-h-0 flex-col", className)}>
+    <div {...rest} data-ouro="message-list" className={cn("relative box-border flex min-h-0 flex-col", className)}>
       {/* No browser scroll anchoring; the layout effect above keeps the reader's place instead. */}
       <div
         ref={setScroller}

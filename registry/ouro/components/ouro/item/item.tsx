@@ -282,7 +282,7 @@ export function Item(props: ItemProps): JSX.Element {
       "data-ouro": "item",
       "data-linked": linked ? "" : undefined,
       className: cn(
-        "relative isolate m-0 grid min-w-0 list-none items-center gap-x-4 gap-y-2",
+        "relative isolate grid min-w-0 list-none items-center gap-x-4 gap-y-2",
         columns[hasMedia][actions ? "actions" : "none"],
         lifted?.root[actions ? "actions" : "none"],
         stackLayouts.map((layout) => layout.root),
@@ -317,7 +317,7 @@ export function Item(props: ItemProps): JSX.Element {
           title
         )}
       </div>
-      {description && <div className="text-sm text-muted-foreground">{description}</div>}
+      {description && <div data-ouro-text="" className="text-sm text-muted-foreground">{description}</div>}
     </div>,
     actions && <div className={cn("flex flex-wrap items-center justify-end gap-2", stackLayouts.map((layout) => layout.actions))}>{actions}</div>,
   );

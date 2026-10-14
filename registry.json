@@ -185,6 +185,7 @@
         "ourostack/ouro-ui/lib-dev",
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-floating",
+        "ourostack/ouro-ui/lib-form-answer",
         "ourostack/ouro-ui/lib-key-shortcuts",
         "ourostack/ouro-ui/lib-last-input",
         "ourostack/ouro-ui/lib-open-mode",
@@ -454,6 +455,24 @@
           "path": "registry/ouro/lib/ouro/floating.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/floating.ts"
+        }
+      ]
+    },
+    {
+      "name": "lib-form-answer",
+      "type": "registry:lib",
+      "title": "lib-form-answer",
+      "description": "Installed with the components that import it; you don't need to add it. The helper lib/ouro/form-answer.ts.",
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-dev",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-use-field"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/form-answer.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/form-answer.ts"
         }
       ]
     },
@@ -1057,14 +1076,15 @@
       "type": "registry:ui",
       "title": "TextArea",
       "description": "A labeled multi-line text field on the Field contract, a native `<textarea>`: pass `label`, and `error` from your server action or client check.",
-      "docs": "A labeled multi-line text field on the Field contract, a native `<textarea>`: pass `label`, and `error` from your server action or client check. Import: import { TextArea } from \"@/components/ouro/text-field/text-area\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: field, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/text-area.md",
+      "docs": "A labeled multi-line text field on the Field contract, a native `<textarea>`: pass `label`, and `error` from your server action or client check. Import: import { TextArea } from \"@/components/ouro/text-field/text-area\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, field, text-field, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/text-area.md",
       "registryDependencies": [
         "ourostack/ouro-ui/field",
         "ourostack/ouro-ui/lib-cn",
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-refs",
         "ourostack/ouro-ui/lib-use-dev-messages",
-        "ourostack/ouro-ui/lib-use-field"
+        "ourostack/ouro-ui/lib-use-field",
+        "ourostack/ouro-ui/text-field"
       ],
       "files": [
         {
@@ -1208,6 +1228,8 @@
         "ourostack/ouro-ui/lib-class-name-check",
         "ourostack/ouro-ui/lib-cn",
         "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-form-answer",
+        "ourostack/ouro-ui/lib-refs",
         "ourostack/ouro-ui/lib-use-dev-messages",
         "ourostack/ouro-ui/lib-use-field"
       ],
@@ -2943,6 +2965,32 @@
       }
     },
     {
+      "name": "lib-form-answer-tests",
+      "type": "registry:item",
+      "title": "lib-form-answer tests",
+      "description": "Optional: the Vitest browser tests for lib-form-answer, and the tests of everything lib-form-answer installs, so the installed files reach 100% coverage. Add it beside lib-form-answer: add lib-form-answer lib-form-answer-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "devDependencies": [
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-form-answer",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/form-answer.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/form-answer.test.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
       "name": "lib-key-shortcuts-tests",
       "type": "registry:item",
       "title": "lib-key-shortcuts tests",
@@ -3601,14 +3649,23 @@
         "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/button-tests",
         "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/form",
+        "ourostack/ouro-ui/form-tests",
         "ourostack/ouro-ui/lib-announce-tests",
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-server-element-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/ouro-testing"
+        "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/radio-group",
+        "ourostack/ouro-ui/radio-group-tests",
+        "ourostack/ouro-ui/select",
+        "ourostack/ouro-ui/select-tests"
       ],
       "files": [
         {
@@ -3704,16 +3761,31 @@
         "vitest"
       ],
       "registryDependencies": [
+        "ourostack/ouro-ui/alert",
+        "ourostack/ouro-ui/alert-tests",
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/description-list",
+        "ourostack/ouro-ui/description-list-tests",
+        "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/field-tests",
+        "ourostack/ouro-ui/form",
+        "ourostack/ouro-ui/form-tests",
+        "ourostack/ouro-ui/item",
+        "ourostack/ouro-ui/item-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-ouro-provider",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/link",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/text",
+        "ourostack/ouro-ui/text-field",
+        "ourostack/ouro-ui/text-field-tests",
         "ourostack/ouro-ui/text-tests"
       ],
       "files": [
@@ -3731,6 +3803,11 @@
           "path": "registry/ouro/components/ouro/link/link.test.tsx",
           "type": "registry:component",
           "target": "@components/ouro/link/link.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/link/link.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/link/link.touch.test.tsx"
         },
         {
           "path": "registry/ouro/e2e/ouro/link.spec.ts",
@@ -3758,6 +3835,7 @@
         "vitest"
       ],
       "registryDependencies": [
+        "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/button-tests",
         "ourostack/ouro-ui/field",
         "ourostack/ouro-ui/field-tests",
@@ -3820,14 +3898,19 @@
         "vitest"
       ],
       "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/button-tests",
         "ourostack/ouro-ui/field-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/ouro-testing",
-        "ourostack/ouro-ui/text-area"
+        "ourostack/ouro-ui/text-area",
+        "ourostack/ouro-ui/text-field-tests"
       ],
       "files": [
         {
@@ -3871,14 +3954,19 @@
         "vitest"
       ],
       "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/button-tests",
         "ourostack/ouro-ui/checkbox",
         "ourostack/ouro-ui/field-tests",
         "ourostack/ouro-ui/form",
         "ourostack/ouro-ui/form-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-form-answer-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/ouro-testing"
       ],
@@ -3939,6 +4027,7 @@
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/switch",
@@ -4000,6 +4089,7 @@
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/radio-group",
@@ -4053,13 +4143,18 @@
         "vitest"
       ],
       "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/button-tests",
         "ourostack/ouro-ui/field-tests",
         "ourostack/ouro-ui/form",
         "ourostack/ouro-ui/form-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-form-answer-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/switch"
@@ -4121,9 +4216,12 @@
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-form-answer",
+        "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-server-element-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/lib-use-field",
         "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/select",
@@ -4193,6 +4291,7 @@
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-server-element-tests",
@@ -4250,6 +4349,7 @@
         "vitest"
       ],
       "registryDependencies": [
+        "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/button-tests",
         "ourostack/ouro-ui/field-tests",
         "ourostack/ouro-ui/form",
@@ -4259,6 +4359,7 @@
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-server-element-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
@@ -4329,6 +4430,7 @@
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/native-select",
         "ourostack/ouro-ui/ouro-testing"
@@ -4382,6 +4484,7 @@
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/number-field",
@@ -4441,6 +4544,7 @@
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/slider"
@@ -4502,6 +4606,7 @@
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
@@ -6433,6 +6538,7 @@
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/link",
@@ -7731,6 +7837,7 @@
         "ourostack/ouro-ui/lib-current-path-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-floating-tests",
+        "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
@@ -7794,6 +7901,7 @@
         "ourostack/ouro-ui/lib-current-path-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-floating-tests",
+        "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",

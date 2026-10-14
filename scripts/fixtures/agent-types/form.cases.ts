@@ -11,7 +11,16 @@ export const agentCases: AgentCase[] = [
     dev: "<Form errors={actionData?.errors}>",
     names: ["tsc", "dev"],
   },
+  {
+    id: "form02",
+    habit: "The unreleased separate Form result prop",
+    tsc: [
+      `error TS2353: Object literal may only specify known properties, and 'errors' does not exist in type '{ 'Use errors={formErrors(answer, messages)}': never; }'.`,
+    ],
+    dev: "errors={formErrors(answer, messages)}",
+    names: ["tsc", "dev"],
+  },
 ];
 
 /** Valid form snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["okForm"];
+export const validSnippets: string[] = ["okForm", "okFormAnswer"];

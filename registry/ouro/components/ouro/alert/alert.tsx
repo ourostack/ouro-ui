@@ -260,18 +260,18 @@ export function Alert(props: AlertProps): JSX.Element {
       data-ouro="alert"
       data-tone={tone}
       className={cn(
-        "m-0 box-border flex w-full items-start gap-3 rounded-lg border border-solid p-4 text-foreground",
+        "box-border flex w-full items-start gap-3 rounded-lg border border-solid p-4 text-foreground",
         tones[tone].root,
         className,
       )}
     >
       {Icon && <Icon aria-hidden="true" data-ouro-alert-icon="" className={cn("mt-0.5 size-5 shrink-0", accent)} />}
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <div data-ouro-alert-title="" className={cn("text-base/6 font-medium sm:pointer-fine:text-sm/5", accent)}>
+        <div data-ouro-alert-title="" data-ouro-text="" className={cn("text-base/6 font-medium sm:pointer-fine:text-sm/5", accent)}>
           {title}
         </div>
         {description !== undefined && (
-          <div data-ouro-alert-description="" className="text-base/6 sm:pointer-fine:text-sm/5">
+          <div data-ouro-alert-description="" data-ouro-text="" className="text-base/6 sm:pointer-fine:text-sm/5">
             {description}
           </div>
         )}

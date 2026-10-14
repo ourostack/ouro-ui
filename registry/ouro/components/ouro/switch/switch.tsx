@@ -6,7 +6,7 @@ import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-styles";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
-import { FieldOwnerContext, useField } from "@/registry/ouro/lib/ouro/use-field";
+import { FieldOwnerContext, useField, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { thumbClass, trackClass } from "@/registry/ouro/components/ouro/switch/switch-styles";
 
@@ -23,9 +23,9 @@ export interface SwitchProps {
   description?: ReactNode | undefined;
   /**
    * What is wrong, from your server action or client check, shown under the label; the
-   * switch gets `aria-invalid`. An empty string or array means valid.
+   * switch gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid.
    */
-  error?: string | string[] | undefined;
+  error?: ErrorMessages | undefined;
   /** The switch must be on to submit the form: it gets `required` and `aria-required`, and the label a marker. */
   required?: boolean | undefined;
   /** Disables the switch and fades it. */

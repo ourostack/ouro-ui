@@ -35,6 +35,16 @@ export interface LinkOwnProps {
     | "warning"
     | (string & { 'danger is "destructive"; accent is "primary"; neutral is "secondary"': never })
     | undefined;
+  /**
+   * Whether the link sits in running text. On a touch screen a link that stands alone
+   * ("Forgot password?", "Back to recipes", a link in a list item or a table cell) is a box at
+   * least 44px tall and wide with its text centred, which takes its room in the layout; a link in
+   * running text stays as tall as its line. Unset, a link is in running text inside a `<p>`,
+   * a `<label>`, a `<dt>` or `<dd>`, a `Text`, and Ouro's own text (a field's description and
+   * error, a Form's message, an Alert's text, an Item's description). Pass `inline` for a
+   * sentence in another element, and `inline={false}` for a link that is alone in its `Text`.
+   */
+  inline?: boolean | undefined;
   /** The link text. Make it say where the link goes: "Browse recipes", not "click here". */
   children: ReactNode;
   /** Layout only: margins, display, grid placement (`ms-2`). Appearance classes warn in development; use `tone`. */
@@ -57,6 +67,15 @@ const base =
   "rounded-xs underline decoration-current/40 decoration-1 underline-offset-4 " +
   "transition-[text-decoration-color] duration-(--ouro-duration-fast) ease-[ease] pointer-fine:hover:decoration-current active:opacity-70 " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
+
+// On a coarse pointer a link that is not in running text is a 44px box with its text
+// centred. Running text is found with CSS ancestor selectors, so the server HTML is right.
+const standalone =
+  "pointer-coarse:not-in-[:is(p,label,dt,dd,[data-ouro=text],[data-ouro-text])]:inline-flex " +
+  "pointer-coarse:not-in-[:is(p,label,dt,dd,[data-ouro=text],[data-ouro-text])]:min-h-11 " +
+  "pointer-coarse:not-in-[:is(p,label,dt,dd,[data-ouro=text],[data-ouro-text])]:min-w-11 " +
+  "pointer-coarse:not-in-[:is(p,label,dt,dd,[data-ouro=text],[data-ouro-text])]:items-center";
+const alwaysStandalone = "pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:min-w-11 pointer-coarse:items-center";
 
 const tones = {
   primary: "text-primary",
@@ -88,6 +107,11 @@ function linkHint(token: string): string {
  * between an app's pages, which mark the current one: `Tabs` and `SegmentedControl` switch
  * a view in place and take no `href`.
  *
+ * On a touch screen a link that stands alone is a box at least 44px tall and wide, with its text
+ * centred, so it is easy to tap and never overlaps a neighbour. A link in running text (a
+ * `<p>`, a `<label>`, a `Text`, a field's description or error) stays as tall as its line;
+ * `inline` says the same anywhere else. With a mouse every link is as tall as its text.
+ *
  * @group Text
  * @see https://ourostack.github.io/ouro-ui/docs/link
  *
@@ -95,12 +119,14 @@ function linkHint(token: string): string {
  * <Link href="/recipes">Browse recipes</Link>
  * <Link href="https://ouro.bot" external>Ouro</Link>
  * <Text>Read the <Link href="/terms">terms</Link> first.</Text>
+ * <Text size="sm"><Link href="/forgot" inline={false}>Forgot password?</Link></Text>
  */
 export function Link(props: LinkProps): JSX.Element {
   const {
     href,
     external,
     tone: toneProp = "primary",
+    inline: inlineProp,
     children,
     className,
     target,
@@ -138,7 +164,8 @@ export function Link(props: LinkProps): JSX.Element {
       target={external ? "_blank" : target}
       rel={external ? safeRel(rel) : rel}
       data-ouro="link"
-      className={cn(base, tones[tone], className)}
+      data-inline={inlineProp ? "" : undefined}
+      className={cn(base, inlineProp === undefined ? standalone : !inlineProp && alwaysStandalone, tones[tone], className)}
     >
       {children}
       {external && (

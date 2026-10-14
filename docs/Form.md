@@ -2,7 +2,7 @@
 
 # Form
 
-A form that validates with the browser's own constraints (`required`, `type="email"`, `pattern`) and shows server errors on the matching fields. Pass `errors` straight from your action; each message lands on the field with that `name`, and focus moves to the first field with an error. Server errors only show: unlike the browser's checks they never block the next submit, so the user can always send the form again. A Form submits only itself: its submit event stops there, so a Form in a sheet inside another Form never submits the outer one. It renders a `<form>`, so `action` and `method` pass through; to submit through React Router, render its `Form`: `render={<RouterForm />}`.
+A form that validates with the browser's own constraints (`required`, `type="email"`, `pattern`) and shows server errors on the matching fields. Pass `errors` straight from your action; each message lands on the field with that `name`, and focus moves to the first field with an error. Bind an accepted action answer with the framework-free `formErrors` constructor in `@/lib/ouro/form-answer`; it adds no server protocol or router dependency. Server errors only show: unlike the browser's checks they never block the next submit, so the user can always send the form again. A Form submits only itself: its submit event stops there, so a Form in a sheet inside another Form never submits the outer one. It renders a `<form>`, so `action` and `method` pass through; to submit through React Router, render its `Form`: `render={<RouterForm />}`.
 
 ```tsx
 import { Form } from "@/registry/ouro/components/ouro/form/form";
@@ -11,12 +11,33 @@ import { Form } from "@/registry/ouro/components/ouro/form/form";
 ## Example
 
 ```tsx
+import { formErrors } from "@/lib/ouro/form-answer";
 const actionData = useActionData<typeof action>();
-<Form method="post" errors={actionData?.errors} render={<RouterForm />}>
+<Form method="post" errors={formErrors(actionData, actionData?.errors)} render={<RouterForm />}>
   <TextField label="Email" name="email" type="email" required />
   <Button type="submit">Save</Button>
 </Form>
+// The action answers { errors: { general, email } }: map its keys to this form's field names.
+const errors = actionData?.errors;
+<Form method="post" errors={formErrors(actionData, { form: errors?.general, email: errors?.email })} render={<RouterForm />}>
+  <TextField label="Email" name="email" type="email" required />
+  <Button type="submit">Subscribe</Button>
+</Form>
 ```
+
+## Usage
+
+A submit is checked in this order. First the browser's own checks (`required`, `type="email"`, `pattern`): a failure stops the submit, marks each failing field with the browser's message and moves focus to the first. Then your `onSubmit`, which runs only when those pass and can still call `event.preventDefault()`. Then the server, whose answer comes back as `errors`.
+
+The keys of `errors` are your fields' `name`s, and `form` is the message about the whole form. An action that answers with other keys is mapped where you pass them: `errors={formErrors(data, { form: data?.errors?.general, email: data?.errors?.email })}`. A key that no field in this form is named shows at the top of the form and warns in development with the key, this form's field names and the fix; with two forms on one route, pass each only its own keys.
+
+`formErrors(answer, messages)` separates arrival from presentation. Same accepted answer: the clear mask persists, even through empty/omitted maps or a temporarily absent answer, and the latest uncleared messages render without new focus or a forced alert replacement. New accepted answer: reset the mask and create one arrival, even when messages are equal. Cached/reused answers require `{ key: acceptedAnswerKey }`, advanced only on actual acceptance. Form never guesses arrival from submit start, waits or framework navigation. The caller chooses accepted, form-local data; passing the same changing route-global source to two Forms does not automatically partition answers between them.
+
+Plain `errors={{ email: "Taken." }}` remains compatible and content-only: equal raw maps cannot prove a new answer. Use the constructor from the initial render for action answers; switching representations seeds a baseline and preserves clears rather than inventing arrival. Opaque identity does not survive JSON, spread, structured cloning or server component transport. Reconstruct beside Form in each environment with the locally accepted object or a safe explicit acceptance key; the returned value never retains or serializes the unselected source payload. Changed text in an existing alert may still produce ordinary live-region speech, but presentation is not a new answer generation.
+
+The message about the whole form is an alert (`role="alert"`). It is in the page only while there is a message, and each answer adds a new one with its text already in it, which is what screen readers announce; `getByRole("alert")` finds nothing on a form without one. A field's message is not an alert: it is that control's description, so assert it with `toHaveAccessibleDescription`.
+
+Focus moves to the first field with an error when errors arrive after a submit. A page that loads with `errors` already set (a post without JavaScript, or a reload) shows them in the server HTML and moves no focus: nothing was submitted from this page, and taking focus on load would drop a keyboard or screen-reader user into the middle of a page they have not read. To send them to the errors on load, put an in-page link to the form in your page's own error summary.
 
 ## Use instead when
 
@@ -30,7 +51,7 @@ Type: `FormProps`.
 | --- | --- | --- | --- |
 | `children` (required) | `ReactNode` |  | The fields and the submit button. |
 | `className` | `string` |  | Layout only: margins, width, grid placement. Fields stack with a gap by default; appearance classes warn in development. |
-| `errors` | `FormErrors \| null` |  | Errors by field name, usually from your server action: `errors={actionData?.errors}`. Each one shows on the field with that `name`, which gets `aria-invalid` and links the message, in the server HTML too. A field's own `error` prop wins over it, and a message goes away once the user changes that field. When new errors arrive, focus moves to the first field with one, in page order. The `form` key shows in an alert at the top of the form, in the server HTML too; a key no rendered field is named joins it once the page hydrates. These errors only show: they never block the next submit, so the user can always send the form again (a server error may be fixed by changing another field, or by trying again). The browser's own checks (`required`, `type="email"`) still block a submit. |
+| `errors` | `FormErrors \| FormErrorValue \| null` |  | Errors by field name. Bind an accepted server answer inside this single prop: `errors={formErrors(actionData, actionData?.errors)}` (import `formErrors` from `@/lib/ouro/form-answer`). Each changed answer, including an equal refusal, restores cleared messages, replaces its alert and moves focus once. Rebuilding the value or its mapped messages with the same answer never counts as arrival. Each one shows on the field with that `name`, which gets `aria-invalid` and links the message, in the server HTML too. A field's own `error` prop wins over it, and a message goes away once the user changes that field. When new errors arrive, focus moves to the first field with one, in page order. The `form` key shows in an alert at the top of the form, in the server HTML too; a key no rendered field is named joins it once the page hydrates, and warns in development. A message is text or a React node (a message with a link), and an array is several messages. With `formErrors`, a field stays cleared for that answer even if its key disappears and is re-added. Uncleared messages use the latest projection, including new React nodes/handlers, without resetting the mask, forcing an alert remount or moving focus. No answer (`null`/`undefined`) is not arrival and preserves the established mask. Cached/reused or primitive answers need `{ key: acceptedAnswerKey }`, advanced on actual acceptance, never submit start. Select this form's accepted source yourself; Form does not infer ownership or cancellation from a router's global data. Plain records still work for display/local errors and are compared by content. Fresh equal records cannot identify equal new answers; use `formErrors` for action answers, including the initial undefined-answer render. Changing between raw and answer-bearing values establishes a baseline with the existing mask, not an arrival. Construct the value beside Form on server and client. JSON/spread/structured cloning or server-component transport loses opaque identity and leaves a plain message record; reconstruct using the locally accepted source or a safely transported acceptance key. These errors only show: they never block the next submit, so the user can always send the form again (a server error may be fixed by changing another field, or by trying again). The browser's own checks (`required`, `type="email"`) still block a submit. |
 
 ## Native attributes
 
@@ -40,6 +61,7 @@ Also accepts the attributes in React's `FormHTMLAttributes` and `HTMLAttributes`
 
 These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
+- `result`: Not a prop. Bind the accepted answer inside `errors`: `errors={formErrors(answer, messages)}`.
 - `validationErrors`: Not a prop. Ouro UI uses `errors`: `<Form errors={actionData?.errors}>`.
 
 ## `className` is for layout only
@@ -52,10 +74,34 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ## Types
 
-### `FormErrors`
+### `ErrorMessage`
 
-Errors by field name: one message, or several. A React Router action returns this shape.
+One error message: text, or a React element for a message that carries a link or other markup.
 
 ```ts
-type FormErrors = Record<string, string | string[]>;
+type ErrorMessage = string | ReactElement;
+```
+
+### `ErrorMessages`
+
+What an `error` prop or a `Form` `errors` value takes: one message, or several as an array.
+
+```ts
+type ErrorMessages = ErrorMessage | ErrorMessage[];
+```
+
+### `FormErrors`
+
+Display messages by field name; `form` holds messages about the whole form.
+
+```ts
+type FormErrors = Record<string, ErrorMessages | null | undefined>;
+```
+
+### `FormErrorValue`
+
+A read-only message snapshot with private, in-memory answer identity. Create it with `formErrors`; JSON, spread, structured cloning and server-component transport retain only the messages, not its identity. Reconstruct it beside Form in each environment. Array containers are snapshotted and frozen; React elements are retained, not cloned. React nodes are render inputs, not a promise that arbitrary node graphs JSON-serialize.
+
+```ts
+type FormErrorValue = Readonly<FormErrors> & { readonly [errorValueBrand]: true };
 ```

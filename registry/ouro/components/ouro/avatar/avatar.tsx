@@ -170,7 +170,7 @@ export function Avatar(props: AvatarProps): JSX.Element {
       data-ouro="avatar"
       data-image={image}
       className={cn(
-        "relative m-0 box-border inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full align-middle",
+        "relative box-border inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full align-middle",
         "bg-secondary font-medium leading-none text-secondary-foreground select-none",
         sizes[size],
         className,
@@ -241,7 +241,7 @@ export function AvatarGroup(props: AvatarGroupProps): JSX.Element {
       role="group"
       aria-label={label}
       data-ouro="avatar-group"
-      className={cn("m-0 flex items-center *:shadow-[0_0_0_2px_var(--background)] *:not-first:-ms-2", className)}
+      className={cn("flex items-center *:shadow-[0_0_0_2px_var(--background)] *:not-first:-ms-2", className)}
     >
       <GroupSize value={size}>{shown}</GroupSize>
       {more > 0 && (

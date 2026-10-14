@@ -146,7 +146,7 @@ describe("Combobox on a phone", () => {
       </form>,
     );
     const form = host.querySelector("form")!;
-    const clear = () => host.querySelector<HTMLButtonElement>('button[aria-label="Clear"]');
+    const clear = () => host.querySelector<HTMLButtonElement>("button[data-ouro-combobox-clear]");
     expect(clear()).not.toBeNull();
     expect(clear()!.tabIndex).toBe(0);
     expect(clear()!.closest("[aria-hidden]")).toBeNull();
@@ -156,7 +156,7 @@ describe("Combobox on a phone", () => {
     const cy = rect.top + rect.height / 2;
     expect(document.elementFromPoint(cx, cy - 21)?.closest("button")).toBe(clear());
     expect(document.elementFromPoint(cx, cy + 21)?.closest("button")).toBe(clear());
-    await commands.tap('button[aria-label="Clear"]');
+    await commands.tap("button[data-ouro-combobox-clear]");
     expect(onValueChange).toHaveBeenLastCalledWith(null);
     expect(new FormData(form).get("herb")).toBe("");
     expect(host.querySelector(TRIGGER)!.textContent).toContain("Pick a herb");
@@ -256,7 +256,7 @@ describe("Combobox on a phone", () => {
       );
     }
     const host = await render(<Cuisine />);
-    expect(host.querySelector('button[aria-label="Clear"]')).toBeNull();
+    expect(host.querySelector("button[data-ouro-combobox-clear]")).toBeNull();
     await commands.tap(TRIGGER);
     const panel = await opened();
     await commands.tap('[data-ouro="sheet"] input[role="combobox"]');
@@ -264,7 +264,7 @@ describe("Combobox on a phone", () => {
     await commands.tap('[role="option"]:nth-child(1)');
     await expect.poll(sheet).toBeNull();
     expect(host.querySelector(TRIGGER)!.textContent).toContain("Georgian");
-    await commands.tap('button[aria-label="Clear"]');
+    await commands.tap("button[data-ouro-combobox-clear]");
     expect(onValueChange).toHaveBeenLastCalledWith("");
     expect(host.querySelector(TRIGGER)!.textContent).toContain("Any cuisine");
   });
@@ -332,7 +332,7 @@ describe("Combobox on a phone", () => {
   it("gives chip remove buttons a 44px hit area", async () => {
     await rotate(844, 390);
     const host = await render(<Combobox label="Herbs" multiple items={herbs} defaultValue={["Basil"]} />);
-    const remove = host.querySelector<HTMLElement>('button[aria-label="Remove Basil"]')!;
+    const remove = host.querySelector<HTMLElement>("button[data-ouro-combobox-chip-remove]")!;
     const rect = remove.getBoundingClientRect();
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
@@ -398,7 +398,7 @@ describe("Combobox pressed on a phone", () => {
   it("tints a chip's remove button on pointer-down in the wide layout, where hover is off for a finger", async () => {
     await rotate(844, 390);
     const host = await render(<Combobox label="Herbs" multiple items={herbs} defaultValue={["Basil"]} />);
-    const { rest, pressed, active } = await pressTint(host.querySelector<HTMLElement>('[aria-label="Remove Basil"]')!);
+    const { rest, pressed, active } = await pressTint(host.querySelector<HTMLElement>("[data-ouro-combobox-chip-remove]")!);
     expect(active).toBe(true);
     expect(pressed).not.toBe(rest);
   });

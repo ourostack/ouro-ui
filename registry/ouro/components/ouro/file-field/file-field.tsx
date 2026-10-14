@@ -7,7 +7,7 @@ import { FieldControl } from "@/registry/ouro/components/ouro/field/field-parts"
 import { contractWarnings, errorClass } from "@/registry/ouro/components/ouro/field/field-styles";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
-import { FieldOwnerContext } from "@/registry/ouro/lib/ouro/use-field";
+import { FieldOwnerContext, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import {
   acceptProblem,
@@ -43,9 +43,9 @@ export interface FileFieldProps {
   description?: ReactNode | undefined;
   /**
    * What is wrong, from your server action or client check. It shows under the field, and
-   * the input gets `aria-invalid`. An empty string or array means valid.
+   * the input gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid.
    */
-  error?: string | string[] | undefined;
+  error?: ErrorMessages | undefined;
   /** A file must be chosen before the form submits. */
   required?: boolean | undefined;
   /** Disables the input and the drop zone, and fades the field. */
@@ -91,7 +91,9 @@ export interface FileFieldProps {
    */
   prompt?: string | undefined;
   /**
-   * The start of each file's remove button name, followed by the file name. Translate it with your app.
+   * The start of each file's remove button name, followed by the file name, as visually
+   * hidden text and not an `aria-label`, so a test's `getByLabel("Photo")` finds the field and
+   * not "Remove photo.jpg". Translate it with your app.
    * @default "Remove"
    */
   removeLabel?: string | undefined;
@@ -397,7 +399,7 @@ export function FileField(props: FileFieldProps): JSX.Element {
                     variant="plain"
                     tone="secondary"
                     size="sm"
-                    aria-label={`${removeLabel} ${file.name}`}
+                    data-ouro-file-remove=""
                     disabled={disabled}
                     className="aspect-square px-0"
                     onClick={() => remove(file)}
@@ -405,6 +407,7 @@ export function FileField(props: FileFieldProps): JSX.Element {
                     <Icon className="size-4">
                       <path d="M7 7l10 10M17 7L7 17" />
                     </Icon>
+                    <span className="sr-only">{`${removeLabel} ${file.name}`}</span>
                   </Button>
                 </li>
               );

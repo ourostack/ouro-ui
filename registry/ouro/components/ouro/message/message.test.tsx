@@ -153,6 +153,15 @@ describe("Message", () => {
     expect(bubbleOf(message).textContent).toBe("Done");
   });
 
+  it("keeps an aria-busy the app passes while it is not streaming", async () => {
+    const { message } = await render(
+      <Message role="assistant" name="Ouro" aria-busy>
+        Done
+      </Message>,
+    );
+    expect(message.getAttribute("aria-busy")).toBe("true");
+  });
+
   it("shows partial text, not the indicator, while text streams in", async () => {
     const { message } = await render(
       <Message role="assistant" name="Ouro" streaming>

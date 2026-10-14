@@ -298,7 +298,7 @@ describe("FileField", () => {
       );
       await drop(zone, [image("a.png"), text("notes.txt")]);
       expect(messages(host, input)).toEqual(["notes.txt is not an accepted file type."]);
-      await userEvent.click(host.querySelector<HTMLButtonElement>('button[aria-label="Remove a.png"]')!);
+      await userEvent.click(page.getByRole("button", { name: "Remove a.png" }).element() as HTMLButtonElement);
       expect(input.hasAttribute("aria-invalid")).toBe(false);
       await drop(zone, [text("notes.txt")]);
       expect(input.getAttribute("aria-invalid")).toBe("true");
@@ -314,7 +314,7 @@ describe("FileField", () => {
     const [a, b] = [...host.querySelectorAll("img")].map((img) => img.getAttribute("src"));
     expect(a).toMatch(/^blob:/);
     expect(b).toMatch(/^blob:/);
-    await userEvent.click(host.querySelector<HTMLButtonElement>('button[aria-label="Remove a.png"]')!);
+    await userEvent.click(page.getByRole("button", { name: "Remove a.png" }).element() as HTMLButtonElement);
     expect(revoke.mock.calls.map(([url]) => url)).toEqual([a]);
     await act(async () => roots.pop()!.unmount());
     expect(revoke.mock.calls.map(([url]) => url)).toEqual([a, b]);
@@ -338,7 +338,7 @@ describe("FileField", () => {
     const onFilesChange = vi.fn();
     const { input, zone, host } = await render(<FileField label="Files" multiple onFilesChange={onFilesChange} />);
     await drop(zone, [text("a.txt"), text("b.txt")]);
-    const remove = host.querySelector<HTMLButtonElement>('button[aria-label="Remove a.txt"]')!;
+    const remove = page.getByRole("button", { name: "Remove a.txt" }).element() as HTMLButtonElement;
     expect(remove.type).toBe("button");
     await userEvent.click(remove);
     expect([...host.querySelectorAll("[data-ouro-file-name]")].map((name) => name.textContent)).toEqual(["b.txt"]);
@@ -347,11 +347,22 @@ describe("FileField", () => {
     expect(document.activeElement).toBe(input);
   });
 
+  it("leaves a loose label lookup for the field on the input, not on a file's remove button", async () => {
+    const { input, host } = await render(<FileField label="Photo" />);
+    await choose(input, [text("photo.jpg")]);
+    // An aria-label is label text to Playwright's getByLabel, so "Remove photo.jpg" would match "Photo".
+    expect(page.getByLabelText("Photo", { exact: false }).elements()).toEqual([input]);
+    const remove = page.getByRole("button", { name: "Remove photo.jpg", exact: true });
+    await expect.element(remove).toBeVisible();
+    expect(remove.element().hasAttribute("aria-label")).toBe(false);
+    expect(host.querySelector("[data-ouro-file-remove]")).toBe(remove.element());
+  });
+
   it("names the remove buttons and the prompt with removeLabel and prompt", async () => {
-    const { input, zone, host } = await render(<FileField label="Dateien" multiple prompt="Dateien hierher ziehen" removeLabel="Entfernen" />);
+    const { input, zone } = await render(<FileField label="Dateien" multiple prompt="Dateien hierher ziehen" removeLabel="Entfernen" />);
     expect(zone.textContent).toContain("Dateien hierher ziehen");
     await choose(input, [text("a.txt")]);
-    expect(host.querySelector('button[aria-label="Entfernen a.txt"]')).not.toBeNull();
+    await expect.element(page.getByRole("button", { name: "Entfernen a.txt" })).toBeVisible();
   });
 
   /** Counts the clicks that reach the input (each opens the file picker), without opening it. */

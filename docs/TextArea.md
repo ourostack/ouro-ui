@@ -13,7 +13,16 @@ import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
 ```tsx
 <TextArea label="Notes" name="notes" description="Only you see these." />
 <TextArea label="Message" name="message" autoGrow rows={2} maxRows={8} required error={errors?.message} />
+// A chat composer: the box is the app's, and the textarea inside it has no frame.
+<form className="flex items-end gap-2 rounded-xl border border-border p-2 focus-within:border-ring">
+  <TextArea label="Message" hideLabel name="message" placeholder="Ask anything" variant="plain" autoGrow rows={1} maxRows={8} className="flex-1" />
+  <Button type="submit">Send</Button>
+</form>
 ```
+
+## Usage
+
+`variant="plain"` draws no frame, for a textarea inside a box your app draws, and `size="lg"` sets 20px text.
 
 ## Use instead when
 
@@ -30,7 +39,7 @@ Type: `TextAreaProps`.
 | `defaultValue` | `string` |  | The starting text, for an uncontrolled field. |
 | `description` | `ReactNode` |  | Supporting text under the label, read after the label through `aria-describedby`. |
 | `disabled` | `boolean` |  | Disables the field and fades it. |
-| `error` | `string \| string[]` |  | What is wrong, from your server action or client check. The message (or several, as a list) shows under the field, which gets `aria-invalid`. An empty string or array means valid. |
+| `error` | `ErrorMessages` |  | What is wrong, from your server action or client check. The message (or several, as a list) shows under the field, which gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. |
 | `hideLabel` | `boolean` |  | Hides the label visually; screen readers still read it as the field's name. |
 | `label` (required) | `string` |  | What the field is for, shown above it and read as its name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. A placeholder is not a label. |
 | `maxRows` | `number` |  | With `autoGrow`, the most lines it grows to before it scrolls. Unset, it keeps growing. |
@@ -40,7 +49,9 @@ Type: `TextAreaProps`.
 | `ref` | `Ref<HTMLTextAreaElement>` |  | The textarea element. |
 | `required` | `boolean` |  | The field must be filled: it gets `required` and `aria-required`, and the label a marker. |
 | `rows` | `number` | `3` | Lines of text it shows; with `autoGrow`, the fewest it shows. |
+| `size` | `"md" \| "lg"` | `"md"` | Text size. `md` is 16px on phones and steps down to 14px from the `sm` breakpoint (640px). `lg` is 20px at every width. The font family is inherited, so set a display font on a parent. |
 | `value` | `string` |  | The current text, for a controlled field; pair it with `onValueChange` or `onChange`. |
+| `variant` | `"outline" \| "plain"` | `"outline"` | The frame. `outline` draws the bordered box. `plain` draws no border, background or padding, for a textarea inside a frame your app draws (a chat composer with its send button in the same box); it keeps the focus outline, and the error message still shows under it, but with no border to turn red, color your own frame for an invalid field. Any other string is a type error whose message names the fix. |
 
 ## Native attributes
 
@@ -69,6 +80,22 @@ Appearance comes from props, not classes. In development, a class that sets appe
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ## Types
+
+### `ErrorMessage`
+
+One error message: text, or a React element for a message that carries a link or other markup.
+
+```ts
+type ErrorMessage = string | ReactElement;
+```
+
+### `ErrorMessages`
+
+What an `error` prop or a `Form` `errors` value takes: one message, or several as an array.
+
+```ts
+type ErrorMessages = ErrorMessage | ErrorMessage[];
+```
 
 ### `FieldControlProps`
 

@@ -30,7 +30,7 @@ Type: `FileFieldProps`.
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-4`). Appearance classes warn in development; style fields in your theme. |
 | `description` | `ReactNode` |  | Supporting text under the label ("PNG or JPG, up to 5 MB"), read through `aria-describedby`. |
 | `disabled` | `boolean` |  | Disables the input and the drop zone, and fades the field. |
-| `error` | `string \| string[]` |  | What is wrong, from your server action or client check. It shows under the field, and the input gets `aria-invalid`. An empty string or array means valid. |
+| `error` | `ErrorMessages` |  | What is wrong, from your server action or client check. It shows under the field, and the input gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. |
 | `hideLabel` | `boolean` |  | Hides the label visually; screen readers still read it. |
 | `label` (required) | `string` |  | What the files are for ("Recipe photo"), shown above the drop zone and read as the input's name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. |
 | `maxSize` | `number` |  | The largest file it takes, in bytes: `5 * 1024 * 1024` for 5 MB. Larger files are left out, with a message under the field, and reported to `onReject`. |
@@ -41,7 +41,7 @@ Type: `FileFieldProps`.
 | `prompt` | `string` | `"Drag a file here, or choose one"` ("Drag files here, or choose them" with `multiple`) | The text in the drop zone. Translate it with your app. |
 | `ref` | `Ref<HTMLInputElement>` |  | The file input element. |
 | `rejectMessage` | `((rejection: FileRejection) => string)` | (rejection) => "notes.heic is not an accepted file type.", "big.png is larger than 5 MB." or "Only one file can be added, so b.png was left out." | The message under the field for each file that was left out, until the next choice takes every file, a removal or a form reset. It is announced to screen readers as a status, and shows next to `error` and a Form's error for this name, never instead of them. Translate it with your app. |
-| `removeLabel` | `string` | `"Remove"` | The start of each file's remove button name, followed by the file name. Translate it with your app. |
+| `removeLabel` | `string` | `"Remove"` | The start of each file's remove button name, followed by the file name, as visually hidden text and not an `aria-label`, so a test's `getByLabel("Photo")` finds the field and not "Remove photo.jpg". Translate it with your app. |
 | `required` | `boolean` |  | A file must be chosen before the form submits. |
 
 ## Don't use
@@ -68,6 +68,22 @@ Appearance comes from props, not classes. In development, a class that sets appe
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ## Types
+
+### `ErrorMessage`
+
+One error message: text, or a React element for a message that carries a link or other markup.
+
+```ts
+type ErrorMessage = string | ReactElement;
+```
+
+### `ErrorMessages`
+
+What an `error` prop or a `Form` `errors` value takes: one message, or several as an array.
+
+```ts
+type ErrorMessages = ErrorMessage | ErrorMessage[];
+```
 
 ### `FileRejection`
 

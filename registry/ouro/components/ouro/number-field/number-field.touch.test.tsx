@@ -58,7 +58,7 @@ it("steps with a tap on Increase, and does not scrub from the label", async () =
   const onValueChange = vi.fn();
   const host = await render(<NumberField label="Servings" defaultValue={4} onValueChange={onValueChange} />);
   expect(host.querySelector("[data-ouro-number-field-scrub]")).toBeNull();
-  await commands.tap('button[aria-label="Increase"]');
+  await commands.tap("button[data-ouro-increment]");
   expect(onValueChange.mock.lastCall?.[0]).toBe(5);
   expect(host.querySelector("input")!.value).toBe("5");
 });

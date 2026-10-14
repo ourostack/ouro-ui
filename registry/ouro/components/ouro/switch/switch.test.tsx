@@ -3,6 +3,7 @@ import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Switch, type SwitchProps } from "@/registry/ouro/components/ouro/switch/switch";
 import { Form, type FormErrors } from "@/registry/ouro/components/ouro/form/form";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -371,7 +372,7 @@ describe("Switch look and motion", () => {
     const { track, label } = await render(<Switch label="Wi-Fi" />);
     expect(track.getBoundingClientRect().height).toBe(20);
     expect(getComputedStyle(label).fontSize).toBe("14px");
-    const center = track.getBoundingClientRect().top + 10 - label.getBoundingClientRect().top;
+    const center = track.getBoundingClientRect().top + 10 - label.closest("[data-ouro-label]")!.getBoundingClientRect().top;
     expect(center).toBeCloseTo(parseFloat(getComputedStyle(label).lineHeight) / 2, 0);
   });
 });
@@ -457,5 +458,21 @@ describe("Switch on the server", () => {
     const track = host.querySelector<HTMLElement>('[role="switch"]')!;
     await userEvent.click(track);
     expect(track.getAttribute("aria-checked")).toBe("false");
+  });
+});
+
+describe("Switch under a parent's spacing", () => {
+  it("keeps the 16px that space-y-4 puts between the Switch and the button below it", async () => {
+    // The parent's rule has zero specificity, so a margin class on the root would beat it.
+    const { host } = await render(
+      <div className="space-y-4">
+        <Switch label="Wi-Fi" />
+        <Button>Save</Button>
+      </div>,
+    );
+    const root = host.querySelector<HTMLElement>('[data-ouro="switch"]')!;
+    const button = host.querySelector<HTMLElement>('[data-ouro="button"]')!;
+    expect(getComputedStyle(root).marginBottom).toBe("16px");
+    expect(Math.abs(button.getBoundingClientRect().top - root.getBoundingClientRect().bottom - 16)).toBeLessThanOrEqual(1);
   });
 });

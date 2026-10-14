@@ -231,7 +231,7 @@ export function Card(props: CardProps): JSX.Element {
       "data-ouro": "card",
       "data-linked": linked ? "" : undefined,
       className: cn(
-        "relative isolate m-0 flex min-w-0 list-none flex-col overflow-hidden",
+        "relative isolate flex min-w-0 list-none flex-col overflow-hidden",
         variants[variant],
         rootSizes[variant][size],
         linked && linkRoot,

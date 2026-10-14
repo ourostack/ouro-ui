@@ -396,7 +396,7 @@ describe("EditSheet failures outside a field (review fix round 1, finding 3)", (
     await userEvent.click(dialogButton("Save"));
     await expect.poll(() => alert().textContent).toBe("The server is down.Typo key.");
     expect(popup()!.hasAttribute("data-open")).toBe(true);
-    await expect.poll(() => warn.mock.calls.map((call: unknown[]) => String(call[0])).join("\n")).toContain('errors has "nmae"');
+    await expect.poll(() => warn.mock.calls.map((call: unknown[]) => String(call[0])).join("\n")).toContain('errors has the key "nmae"');
   });
 });
 

@@ -6,7 +6,7 @@ import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-styles";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
-import { FieldOwnerContext, useField } from "@/registry/ouro/lib/ouro/use-field";
+import { FieldOwnerContext, useField, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { boxClass, dashClass, indicatorClass, tickClass } from "@/registry/ouro/components/ouro/checkbox/checkbox-styles";
 
@@ -23,10 +23,10 @@ export interface CheckboxProps {
   description?: ReactNode | undefined;
   /**
    * What is wrong, from your server action or client check, shown under the label; the box
-   * gets `aria-invalid`. An empty string or array means valid. In a `CheckboxGroup`, pass it
+   * gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. In a `CheckboxGroup`, pass it
    * to the group.
    */
-  error?: string | string[] | undefined;
+  error?: ErrorMessages | undefined;
   /**
    * The box must be checked to submit the form (accepting terms): it gets `required` and
    * `aria-required`, and the label a marker. In a `CheckboxGroup`, pass it to the group.

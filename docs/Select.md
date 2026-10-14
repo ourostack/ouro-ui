@@ -40,7 +40,7 @@ Props every mode takes. Type: `SelectProps`.
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-4`, `col-span-2`). Appearance classes warn in development; style fields in your theme. |
 | `description` | `ReactNode` |  | Supporting text under the label, read after the label through `aria-describedby`. |
 | `disabled` | `boolean` |  | Disables the select and fades it. |
-| `error` | `string \| string[]` |  | What is wrong, from your server action or client check. The message (or several, as a list) shows under the select, which gets `aria-invalid`. An empty string or array means valid. |
+| `error` | `ErrorMessages` |  | What is wrong, from your server action or client check. The message (or several, as a list) shows under the select, which gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. |
 | `form` | `string` |  | The id of a form outside which the select sits, so its value submits with that form. |
 | `hideLabel` | `boolean` |  | Hides the label visually; screen readers still read it as the select's name. |
 | `label` (required) | `string` |  | What the select is for, shown above it and read as its name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. On phones it also heads the list. |
@@ -102,3 +102,21 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 ## Parts
 
 For what these props cannot express, pass as children the parts in `@/registry/ouro/components/ouro/select/select-parts`. See [parts.md](parts.md#select-parts) for the required nesting.
+
+## Types
+
+### `ErrorMessage`
+
+One error message: text, or a React element for a message that carries a link or other markup.
+
+```ts
+type ErrorMessage = string | ReactElement;
+```
+
+### `ErrorMessages`
+
+What an `error` prop or a `Form` `errors` value takes: one message, or several as an array.
+
+```ts
+type ErrorMessages = ErrorMessage | ErrorMessage[];
+```

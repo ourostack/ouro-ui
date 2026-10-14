@@ -4,7 +4,7 @@ import { chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFile
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, URL } from "node:url";
 
 // The workflows publish the registry and push to the repository, so what they run must not
 // change under them: every action is pinned to a commit, and only the release job keeps the
@@ -39,6 +39,40 @@ test("only release.yml, which pushes, keeps the checkout's credentials", () => {
     });
   }
   assert.deepEqual(problems, [], "Set persist-credentials: false on every checkout that never pushes.");
+});
+
+test("Form answer proof propagates a failing test command through both logged pipelines", () => {
+  const proof = readFileSync(join(dir, "form-answer-proof.yml"), "utf8");
+  const browser = proof.match(/- name: Shipped Form, constructor and Link regressions with focused coverage\n\s+run: \|\n([\s\S]+?)\n\s+- if: always\(\)/)?.[1];
+  const node = proof.match(/run: (pnpm exec vitest run --config test\/form-answer\.config\.ts[^\n]*)/)?.[1];
+  assert.ok(browser && node, "The proof must execute both regression commands.");
+  // GitHub's implicit shell is bash -e; explicit shell: bash additionally sets pipefail.
+  const strict = /^defaults:\n {2}run:\n {4}shell: bash$/m.test(proof);
+  for (const script of [node, browser]) {
+    const controlled = `pnpm() { return 17; }\n${script.replace(/tee \.tmp\/adopt-a-form-value\/[\w-]+\.log/g, "tee /dev/null")}`;
+    const control = spawnSync("bash", ["-e", "-c", controlled], { encoding: "utf8" });
+    assert.equal(control.status, 0, "The former implicit-shell pipeline conceals the test failure.");
+    const args = strict ? ["--noprofile", "--norc", "-e", "-o", "pipefail"] : ["-e"];
+    const actual = spawnSync("bash", [...args, "-c", controlled], { encoding: "utf8" });
+    assert.equal(actual.status, 17, "A failed regression/coverage command must fail the proof job, not only tee.");
+  }
+});
+
+test("Form answer fixture uses the public npm registry, not a machine-specific mirror", () => {
+  const fixture = join(root, "test/form-answer-fixture");
+  const manifest = JSON.parse(readFileSync(join(fixture, "package.json"), "utf8"));
+  const lock = JSON.parse(readFileSync(join(fixture, "package-lock.json"), "utf8"));
+  assert.deepEqual(lock.packages[""].dependencies, manifest.dependencies);
+  const packages = Object.entries(lock.packages).filter(([, entry]) => entry.resolved);
+  assert.ok(packages.length > 0);
+  for (const [name, entry] of packages) {
+    const url = new URL(entry.resolved);
+    assert.equal(url.origin, "https://registry.npmjs.org", name);
+    assert.equal(url.username + url.password + url.search + url.hash, "", name);
+    assert.ok(entry.integrity, `${name} must retain its locked checksum`);
+  }
+  const proof = readFileSync(join(dir, "form-answer-proof.yml"), "utf8");
+  assert.match(proof, /npm ci --prefix \.tmp\/adopt-a-form-value[^\n]*--registry=https:\/\/registry\.npmjs\.org(?:\s|$)/);
 });
 
 test("Dependabot proposes new action pins weekly", () => {

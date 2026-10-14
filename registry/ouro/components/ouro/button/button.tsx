@@ -143,7 +143,7 @@ export type ButtonProps = ButtonLinkProps | ButtonButtonProps;
 
 // Class strings are literal so the app's Tailwind finds them when it compiles.
 const base =
-  "press relative m-0 box-border inline-flex shrink-0 items-center justify-center align-middle " +
+  "press relative box-border inline-flex shrink-0 items-center justify-center align-middle " +
   "rounded-lg border border-solid font-medium whitespace-nowrap " +
   "no-underline select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
@@ -383,8 +383,8 @@ export function Button(props: ButtonProps): JSX.Element {
         data-variant={variant}
         data-loading={loading ? "" : undefined}
         data-disabled={loading ? "" : undefined}
-        aria-busy={loading || undefined}
-        aria-disabled={loading || undefined}
+        aria-busy={loading || anchorProps["aria-busy"]}
+        aria-disabled={loading || anchorProps["aria-disabled"]}
       >
         {content}
       </RouterLink>
@@ -405,7 +405,7 @@ export function Button(props: ButtonProps): JSX.Element {
       data-ouro="button"
       data-variant={variant}
       data-loading={loading ? "" : undefined}
-      aria-busy={loading || undefined}
+      aria-busy={loading || buttonProps["aria-busy"]}
     >
       {content}
     </BaseButton>

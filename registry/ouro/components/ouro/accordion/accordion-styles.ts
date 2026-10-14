@@ -25,7 +25,7 @@ function ownLook(component: string): (token: string) => string {
 }
 
 /** @internal */
-const rootClass = "m-0 box-border w-full min-w-0 text-foreground";
+const rootClass = "box-border w-full min-w-0 text-foreground";
 
 /**
  * An item: a hairline under each one.

@@ -101,7 +101,7 @@ export type BadgeProps = BadgeCommonProps & (BadgeLinkModeProps | BadgeButtonMod
 
 // Class strings are literal so the app's Tailwind finds them when it compiles.
 const base =
-  "relative m-0 box-border inline-flex shrink-0 items-center gap-1 align-middle " +
+  "relative box-border inline-flex shrink-0 items-center gap-1 align-middle " +
   "h-6 rounded-md border border-solid px-2 text-xs/none font-medium whitespace-nowrap no-underline";
 
 // Only for the link and button kinds: press feedback, a state layer and the focus ring,

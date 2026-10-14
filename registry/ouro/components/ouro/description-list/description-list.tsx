@@ -118,7 +118,7 @@ export function DescriptionList(props: DescriptionListProps): JSX.Element {
   );
   const layout = layouts[stackBelow];
   return (
-    <dl {...rest} data-ouro="description-list" className={cn("m-0 grid text-base pointer-fine:text-sm", layout.root, className)}>
+    <dl {...rest} data-ouro="description-list" className={cn("[@layer_ouro-reset]:m-0 grid text-base pointer-fine:text-sm", layout.root, className)}>
       {items.map((item, index) => {
         // A guessed `label` or `value` still shows, beside its development message.
         const loose = item as unknown as { label?: ReactNode; value?: ReactNode; description?: ReactNode };

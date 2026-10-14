@@ -105,10 +105,26 @@ What `onSubmit` may return: nothing (saved), or errors by field name (not saved)
 type EditSheetResult = void | undefined | FormErrors;
 ```
 
-### `FormErrors`
+### `ErrorMessage`
 
-Errors by field name: one message, or several. A React Router action returns this shape.
+One error message: text, or a React element for a message that carries a link or other markup.
 
 ```ts
-type FormErrors = Record<string, string | string[]>;
+type ErrorMessage = string | ReactElement;
+```
+
+### `ErrorMessages`
+
+What an `error` prop or a `Form` `errors` value takes: one message, or several as an array.
+
+```ts
+type ErrorMessages = ErrorMessage | ErrorMessage[];
+```
+
+### `FormErrors`
+
+Display messages by field name; `form` holds messages about the whole form.
+
+```ts
+type FormErrors = Record<string, ErrorMessages | null | undefined>;
 ```

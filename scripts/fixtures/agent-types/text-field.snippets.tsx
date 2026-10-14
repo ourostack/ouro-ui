@@ -7,4 +7,4 @@ export const s45 = <TextField label="Price" prefix="$" />;
 export const s46 = <TextField label="Notes" multiline />;
 export const s47 = <TextField label="Search" isClearable />;
 export const s50 = <TextField placeholder="Email" />;
-export const ok11 = <TextField label="Email" type="email" name="email" required error="Required." clearable startAdornment="@" />;
+export const ok11 = <TextField label="Email" type="email" name="email" required error="Required." clearable startAdornment="@" variant="plain" size="lg" />;

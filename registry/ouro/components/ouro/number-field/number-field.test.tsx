@@ -32,7 +32,7 @@ async function render(node: ReactNode) {
       return host.querySelector<HTMLElement>("[data-ouro-number-field-group]")!;
     },
     button(name: string) {
-      return [...host.querySelectorAll("button")].find((button) => button.getAttribute("aria-label") === name)!;
+      return [...host.querySelectorAll("button")].find((button) => button.textContent === name)!;
     },
   };
 }
@@ -140,13 +140,13 @@ describe("NumberField", () => {
     const { input, host, button } = await render(<Controlled />);
     await userEvent.click(button("Increase"));
     expect(host.querySelector("output")!.textContent).toBe("4");
-    await userEvent.click(host.querySelector("button:not([aria-label])")!);
+    await userEvent.click(host.querySelector("button:not([data-ouro-increment], [data-ouro-decrement])")!);
     expect(input.value).toBe("8");
   });
 
   it("translates the stepper labels", async () => {
     const { host } = await render(<NumberField label="Portionen" decrementLabel="Weniger" incrementLabel="Mehr" />);
-    expect([...host.querySelectorAll("button")].map((button) => button.getAttribute("aria-label"))).toEqual(["Weniger", "Mehr"]);
+    expect([...host.querySelectorAll("button")].map((button) => button.textContent)).toEqual(["Weniger", "Mehr"]);
   });
 
   it("passes placeholder and readOnly to the input", async () => {
@@ -169,6 +169,19 @@ describe("NumberField", () => {
   it("lets app layout classes win on the root", async () => {
     const { root } = await render(<NumberField label="Servings" className="mt-6" />);
     expect(getComputedStyle(root).marginTop).toBe("24px");
+  });
+});
+
+describe("NumberField steppers", () => {
+  it("leaves a loose label lookup for the field on the input, not on its steppers", async () => {
+    const { host } = await render(<NumberField label="Servings" decrementLabel="Fewer servings" incrementLabel="More servings" />);
+    const input = host.querySelector<HTMLInputElement>("input:not([aria-hidden])")!;
+    expect(page.getByLabelText("Servings", { exact: false }).elements()).toEqual([input]);
+    for (const name of ["Fewer servings", "More servings"]) {
+      const button = page.getByRole("button", { name, exact: true });
+      await expect.element(button).toBeVisible();
+      expect(button.element().hasAttribute("aria-label")).toBe(false);
+    }
   });
 });
 
@@ -360,7 +373,7 @@ describe("NumberField server rendering", () => {
     expect(recoverable).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
     // Hydrated, the steppers work.
-    await userEvent.click(host.querySelector<HTMLButtonElement>('button[aria-label="Increase"]')!);
+    await userEvent.click(host.querySelector<HTMLButtonElement>("button[data-ouro-increment]")!);
     expect(host.querySelector<HTMLInputElement>("input:not([aria-hidden])")!.value).toBe("5");
   });
 });
@@ -414,7 +427,7 @@ describe("NumberField in a Form", () => {
 describe("NumberField stepper press feedback", () => {
   it("shows a pressed color that differs from the hover color", async () => {
     await render(<NumberField label="Servings" defaultValue={2} />);
-    const stepper = document.querySelector<HTMLElement>('button[aria-label="Increase"]')!;
+    const stepper = page.getByRole("button", { name: "Increase", exact: true }).element();
     const color = () => getComputedStyle(stepper).backgroundColor;
     const rest = color();
     await userEvent.hover(stepper);

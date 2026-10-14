@@ -162,7 +162,10 @@ export function Text(props: TextProps): JSX.Element {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   const classes = cn(
-    "m-0",
+    // A `<p>` has a margin in the browser's stylesheet. It is cleared in a sublayer of
+    // Tailwind's utilities (`[@layer_ouro-reset]:`), which every plain utility beats whatever
+    // its specificity: a parent's `space-y-4` (a `:where()` rule) and the app's margin class.
+    "[@layer_ouro-reset]:m-0",
     sizes[size],
     tones[tone],
     align && alignClasses[align],
