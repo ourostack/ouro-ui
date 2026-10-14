@@ -392,6 +392,28 @@ test("a missing later touchmove rejects while the page clock is frozen", async (
   await expect.poll(() => element.scrollLeft).toBeGreaterThan(100);
 });
 
+test("a restarted watcher cannot acknowledge first-move slop without the gesture's touchstart", async () => {
+  const element = scroller();
+  await commands.touchStep({ type: "touchStart", x: 260, y: 100 });
+  const view = window as Window & { __ouroTouch?: { seen: boolean; saw: string[]; remove(): void } };
+  expect(view.__ouroTouch?.seen).toBe(true);
+  expect(view.__ouroTouch?.saw.some((event) => event.startsWith("touchstart"))).toBe(true);
+  view.__ouroTouch!.remove();
+  const suppress = (event: TouchEvent) => event.stopImmediatePropagation();
+  addEventListener("touchmove", suppress, { capture: true });
+  cleanups.push(() => removeEventListener("touchmove", suppress, { capture: true }));
+  try {
+    await expect(commands.touchStep({ type: "touchMove", x: 259, y: 100 })).rejects.toThrow(
+      "The target document did not report an active touchstart.",
+    );
+  } finally {
+    removeEventListener("touchmove", suppress, { capture: true });
+    await commands.touchStep({ type: "touchEnd" });
+  }
+  await swipe();
+  await expect.poll(() => element.scrollLeft).toBeGreaterThan(100);
+});
+
 test("touchDrag with durationMs spans exactly that long in the page's event timestamps", async () => {
   scroller();
   const stamps: Record<string, number> = {};

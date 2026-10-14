@@ -21,6 +21,7 @@ import {
 } from "@/registry/ouro/components/ouro/menu/menu";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { isTransparent } from "@/registry/ouro/lib/ouro/testing/color";
 import { axeExclude } from "@/registry/ouro/lib/ouro/testing/axe";
 
 // Runs in Chromium and WebKit.
@@ -50,13 +51,32 @@ afterEach(async () => {
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));
   for (const node of mounted) node.remove();
   mounted = [];
-  await commands.emulateMedia({ reducedMotion: "no-preference" });
+  await commands.emulateMedia({ reducedMotion: "no-preference", forcedColors: "none" });
 });
 
 const warnings = () => warn.mock.calls.map((call: unknown[]) => call[0]);
 const menus = () => [...document.querySelectorAll<HTMLElement>('[data-ouro="menu"]')];
 const menu = () => menus()[0] ?? null;
 const trigger = () => document.querySelector<HTMLElement>('[data-ouro="button"]')!;
+
+describe("Menu current-page forced colors", () => {
+  afterEach(() => document.documentElement.removeAttribute("dir"));
+  for (const direction of ["ltr", "rtl"] as const) {
+    it(`keeps its ${direction} start-edge mark visible in the system palette`, async () => {
+      document.documentElement.dir = direction;
+      await render(<Menu trigger={<Button>Account</Button>}><MenuItem href="/settings" current>Settings</MenuItem></Menu>);
+      await userEvent.click(trigger());
+      const current = page.getByRole("menuitem", { name: "Settings", exact: true });
+      await expect.element(current).toBeVisible();
+      await commands.emulateMedia({ forcedColors: "active" });
+      expect(matchMedia("(forced-colors: active)").matches).toBe(true);
+      const marker = getComputedStyle(current.element(), "::before");
+      expect(marker[direction === "rtl" ? "borderRightWidth" : "borderLeftWidth"]).toBe("2px");
+      expect(marker.borderInlineStartColor).toBe(getComputedStyle(current.element()).color);
+      expect(marker.borderInlineStartColor).not.toBe(getComputedStyle(current.element()).backgroundColor);
+    });
+  }
+});
 const item = (name: string) => page.getByRole("menuitem", { name: new RegExp(`^${name}`) });
 const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
@@ -314,8 +334,8 @@ describe("Menu items", () => {
     const highlighted = look(element("Profile"));
     const current = look(element("Billing"));
     // The highlight is a tint; the current page is a heavier label with a bar at the start edge.
-    expect(highlighted.background).not.toBe("rgba(0, 0, 0, 0)");
-    expect(current.background).toBe("rgba(0, 0, 0, 0)");
+    expect(isTransparent(highlighted.background)).toBe(false);
+    expect(isTransparent(current.background)).toBe(true);
     expect(Number(current.weight)).toBeGreaterThan(Number(highlighted.weight));
     expect(parseFloat(current.bar)).toBeGreaterThan(0);
     expect(highlighted.bar).not.toBe(current.bar);

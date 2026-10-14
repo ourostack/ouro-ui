@@ -6,6 +6,7 @@ import { commands, page, userEvent } from "vitest/browser";
 import { NavigationMenu, type NavigationMenuProps } from "@/registry/ouro/components/ouro/navigation-menu/navigation-menu";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { isTransparent } from "@/registry/ouro/lib/ouro/testing/color";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
@@ -44,6 +45,43 @@ beforeEach(async () => {
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
   await commands.emulateMedia({ reducedMotion: "no-preference" });
   await page.viewport(1024, 768);
+});
+
+describe("NavigationMenu current-page marks", () => {
+  afterEach(() => document.documentElement.removeAttribute("dir"));
+
+  function assertMark(current: Element, other: Element, direction: "ltr" | "rtl") {
+    const marker = getComputedStyle(current, "::before");
+    expect(marker.content).toBe('""');
+    expect(parseFloat(marker.width)).toBe(2);
+    expect(parseFloat(marker.height)).toBeGreaterThan(0);
+    expect(marker.opacity).toBe("1");
+    expect(marker.visibility).toBe("visible");
+    expect(marker[direction === "rtl" ? "right" : "left"]).toBe("0px");
+    expect(getComputedStyle(other, "::before").content).toBe("none");
+    expect(isTransparent(getComputedStyle(current).backgroundColor)).toBe(true);
+  }
+
+  for (const direction of ["ltr", "rtl"] as const) {
+    it(`marks only the page link while a ${direction} panel is open`, async () => {
+      document.documentElement.dir = direction;
+      await render(<NavigationMenu label="Main" items={[{ label: "Pricing", href: "/pricing" }, { label: "Recipes", links: [{ label: "Browse", href: "/recipes" }] }]} currentPath="/pricing" />);
+      await userEvent.click(page.getByRole("button", { name: "Recipes" }));
+      await expect.element(page.getByRole("link", { name: "Browse" })).toBeVisible();
+      assertMark(page.getByRole("link", { name: "Pricing" }).element(), page.getByRole("button", { name: "Recipes" }).element(), direction);
+    });
+    it(`emphasizes its ${direction} current panel label instead of the description`, async () => {
+      document.documentElement.dir = direction;
+      await render(<NavigationMenu label="Main" items={[{ label: "Recipes", links: [{ label: "Browse", href: "/recipes" }, { label: "Drafts", href: "/recipes/drafts", description: "Unfinished recipes" }] }]} currentPath="/recipes/drafts" />);
+      await userEvent.click(page.getByRole("button", { name: "Recipes" }));
+      const current = page.getByRole("link", { name: /^Drafts/ });
+      await expect.element(current).toBeVisible();
+      assertMark(current.element(), page.getByRole("link", { name: "Browse" }).element(), direction);
+      const [label, description] = current.element().querySelectorAll("span");
+      expect(getComputedStyle(label!).fontWeight).toBe("600");
+      expect(getComputedStyle(description!).fontWeight).toBe("400");
+    });
+  }
 });
 afterEach(async () => {
   vi.restoreAllMocks();
@@ -375,4 +413,3 @@ describe("NavigationMenu panels and easing", () => {
     expect(popup()!.getBoundingClientRect().right).toBeLessThanOrEqual(390);
   });
 });
-
