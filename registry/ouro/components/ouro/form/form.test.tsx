@@ -11,6 +11,7 @@ import { Select } from "@/registry/ouro/components/ouro/select/select";
 import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 import { FormErrorsContext, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 
 const roots: Root[] = [];
@@ -241,7 +242,9 @@ describe("Form", () => {
     await userEvent.fill(page.getByRole("textbox", { name: "Email", exact: true }), "new@example.com");
     expect(input("email").getAttribute("aria-invalid")).toBeNull();
     const again = page.getByRole("button", { name: /^Rendered/ });
-    await userEvent.click(again);
+    await pressTab();
+    expect(document.activeElement).toBe(again.element());
+    await userEvent.keyboard("{Enter}");
     await expect.element(page.getByRole("button", { name: "Rendered 1" })).toBeVisible();
     // The cleared message stays cleared, and focus stays on the button that was pressed.
     expect(input("email").getAttribute("aria-invalid")).toBeNull();
