@@ -28,7 +28,7 @@ jobs:
         run: |
           mkdir -p .tmp/adopt-a-form-value
           cp test/form-answer-fixture/package.json test/form-answer-fixture/package-lock.json .tmp/adopt-a-form-value/
-          npm ci --prefix .tmp/adopt-a-form-value --ignore-scripts --legacy-peer-deps --no-audit --no-fund
+          npm ci --prefix .tmp/adopt-a-form-value --ignore-scripts --legacy-peer-deps --no-audit --no-fund --registry=https://registry.npmjs.org
           ln -s ../.tmp/adopt-a-form-value/node_modules/jsdom node_modules/jsdom
           echo "Owned fixture: $GITHUB_WORKSPACE/.tmp/adopt-a-form-value; jsdom link: $GITHUB_WORKSPACE/node_modules/jsdom" >> "$GITHUB_STEP_SUMMARY"
       - name: Actual Router, privacy, mask and hydration regressions
