@@ -6,6 +6,7 @@ import { agentExamples } from "../agents/examples";
 import { CodeBlock, Command, InlineCode } from "../components/code";
 import { ArrowRightIcon } from "../components/icons";
 import { Container, SiteFooter, SiteHeader } from "../components/layout";
+import { LiveCatalog } from "../components/live-catalog";
 import generated from "../generated/agent-messages.json";
 import { AGENTS_COMING_SOON, HERO_SUBLINE, HERO_TITLE, SHADCN_BADGE, SHADCN_LINE } from "../copy";
 import { latestRelease } from "../release";
@@ -350,6 +351,7 @@ export function Landing(): JSX.Element {
         <Container className="pt-10 pb-20 sm:pt-16 lg:pt-20 lg:pb-28">
           <Hero />
         </Container>
+        <LiveCatalog />
         <Agents />
         <Principles />
         <Install />
