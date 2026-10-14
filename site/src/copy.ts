@@ -15,11 +15,9 @@ export const SHADCN_BADGE = "Works with shadcn/ui";
 export const SHADCN_LINE =
   "Installs with the shadcn CLI, uses shadcn's theme tokens, and sits alongside the shadcn/ui components you already have.";
 
-/** The "Coming soon: Ouro UI for agents" section (spec section 12). No dates. */
+/** AX's product scope is not established; the concept is not a shipped kit. */
 export const AGENTS_COMING_SOON = {
-  title: "Coming soon: Ouro UI for agents",
+  title: "Coming soon: Ouro AX",
   intro:
-    "Ouro UI has two halves, named for who they serve: for humans, this library, and for agents, the CLIs, MCP servers and other interfaces whose user is an agent. The agent half arrives as copy-in kits through the same registry.",
-  cli: "The CLI kit: one definition gives human output and --json, errors that name the fix, stable exit codes, and help that parses.",
-  mcp: "The MCP kit: tool schemas that reject bad calls with the fix, paginated and truncated results, and one error shape.",
+    "Ouro AX is the agent-facing direction within Ouro UI. Its scope is still being defined.",
 } as const;

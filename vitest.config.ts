@@ -75,6 +75,7 @@ export default defineConfig({
         // inherits this file's Vite setup (React, Tailwind, the `@` alias), which matches
         // site/vite.config.ts.
         extends: true as const,
+        publicDir: fileURLToPath(new URL("./site/public", import.meta.url)),
         test: {
           name: "site",
           expect: { poll: { timeout: 10_000 } },

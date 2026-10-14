@@ -14,14 +14,14 @@ export function headTags(route: Route, canonical: boolean): string[] {
   const title = escape(route.title);
   const description = escape(route.description);
   const image = `${SITE}/og.png`;
-  const alt = "Ouro UI: the landing page, with the headline Designed down to the last tap and the last prop.";
+  const alt = "Ouro HX, part of Ouro UI. Under construction. Designed down to the last tap and the last prop.";
   return [
     `<title>${title}</title>`,
     `<meta name="description" content="${description}" />`,
     canonical ? `<link rel="canonical" href="${SITE}${route.path}" />` : "",
     `<link rel="icon" href="/ouro-ui/favicon.svg" type="image/svg+xml" />`,
     `<meta property="og:type" content="website" />`,
-    `<meta property="og:site_name" content="Ouro UI" />`,
+    `<meta property="og:site_name" content="Ouro HX" />`,
     `<meta property="og:title" content="${title}" />`,
     `<meta property="og:description" content="${description}" />`,
     canonical ? `<meta property="og:url" content="${SITE}${route.path}" />` : "",
