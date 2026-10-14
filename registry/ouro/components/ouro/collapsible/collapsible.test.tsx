@@ -104,8 +104,18 @@ describe("Collapsible", () => {
 
   it("animates the panel to its measured height, and not with reduced motion", async () => {
     const r = await render(<Collapsible title="Nutrition facts">{facts}</Collapsible>);
-    await userEvent.click(r.trigger);
-    await expect.poll(() => r.panel.getAnimations().some((animation) => (animation as CSSTransition).transitionProperty === "height")).toBe(true);
+    const panel = r.panel;
+    let heightStarted = false;
+    const record = (event: TransitionEvent) => {
+      if (event.target === panel && event.propertyName === "height") heightStarted = true;
+    };
+    panel.addEventListener("transitionrun", record);
+    try {
+      await userEvent.click(r.trigger);
+      await expect.poll(() => heightStarted).toBe(true);
+    } finally {
+      panel.removeEventListener("transitionrun", record);
+    }
     await settled(r.panel);
     expect(r.panel.getBoundingClientRect().height).toBeCloseTo(r.panel.scrollHeight, 0);
     await commands.emulateMedia({ reducedMotion: "reduce" });
