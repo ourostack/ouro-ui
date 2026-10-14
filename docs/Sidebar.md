@@ -2,7 +2,7 @@
 
 # Sidebar
 
-The column of links down the side of an app, in sections, with the current page marked `aria-current="page"`. An item can carry a `badge` ("Inbox 12"), be a button (`onClick` without `href`), or hold one level of nested links (`items`). From 640px up it fills its container's height and collapses to a rail of icons with its own button, each named by a `Tooltip`, where an item with nested links opens them in a `Menu`; below 640px it is a menu button that opens the same links as a `Sheet` drawer. Links render through `OuroProvider`'s `linkComponent`, so your router navigates.
+The column of links down the side of an app, in sections, with the current page marked `aria-current="page"` and a bar at the start edge, distinct from hover and press highlights. An item can carry a `badge` ("Inbox 12"), be a button (`onClick` without `href`), or hold one level of nested links (`items`). From 640px up it fills its container's height and collapses to a rail of icons with its own button, each named by a `Tooltip`, where an item with nested links opens them in a `Menu`; below 640px it is a menu button that opens the same links as a `Sheet` drawer. Links render through `OuroProvider`'s `linkComponent`, so your router navigates.
 
 ```tsx
 import { Sidebar } from "@/registry/ouro/components/ouro/sidebar/sidebar";

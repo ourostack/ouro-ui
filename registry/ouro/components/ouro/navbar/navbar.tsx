@@ -88,11 +88,13 @@ const bar =
   "ps-[max(1rem,env(safe-area-inset-left,0px))] pe-[max(1rem,env(safe-area-inset-right,0px))]";
 
 // A link: 44px with 16px text on a coarse pointer at every width, 36px with 14px text with a
-// fine one. The current page takes the accent surface.
+// fine one. The current page has a bar at the start edge, not a hover highlight.
 const link_ =
-  "m-0 box-border items-center rounded-md px-3 font-medium text-muted-foreground no-underline select-none touch-manipulation " +
+  "relative m-0 box-border items-center rounded-md px-3 font-medium text-muted-foreground no-underline select-none touch-manipulation " +
   "text-base pointer-fine:text-sm leading-5 [-webkit-tap-highlight-color:transparent] " +
-  "pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground aria-[current=page]:bg-accent aria-[current=page]:text-accent-foreground " +
+  "pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground aria-[current=page]:font-semibold aria-[current=page]:text-foreground " +
+  "aria-[current=page]:before:absolute aria-[current=page]:before:inset-y-2 aria-[current=page]:before:start-0 aria-[current=page]:before:w-0.5 aria-[current=page]:before:rounded-full aria-[current=page]:before:bg-current aria-[current=page]:before:content-[''] " +
+  "forced-colors:aria-[current=page]:before:border-s-2 forced-colors:aria-[current=page]:before:border-solid forced-colors:aria-[current=page]:before:border-current " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 // In the sheet a link is a full-width row, which highlights while pressed instead of scaling.
 const sheetLink = "flex min-h-11 pointer-fine:min-h-9 py-2 transition-colors duration-(--ouro-duration-fast) ease-[ease] active:bg-accent active:text-accent-foreground";
@@ -102,7 +104,7 @@ const example = '<Navbar label="Main" items={[{ label: "Recipes", href: "/recipe
 
 /**
  * The bar across the top of an app: your brand, the main links and a few controls, with
- * the current page marked `aria-current="page"`. A group of links (`{ label, links }`)
+ * the current page marked `aria-current="page"` and a bar at the start edge, distinct from hover and press highlights. A group of links (`{ label, links }`)
  * opens a panel, as in `NavigationMenu`. Whenever the links do not fit, below 640px and on
  * a narrow tablet, they collapse behind a menu button into a `Sheet` that slides in from
  * the side, with each group under its name; the brand and `actions` stay in the bar. Links
