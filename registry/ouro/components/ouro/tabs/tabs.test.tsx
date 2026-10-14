@@ -223,19 +223,42 @@ describe("Tabs", () => {
     await expect.poll(() => r.indicator).not.toBeNull();
     const indicator = r.indicator!;
     await settled(indicator);
+    await expect.poll(() => Math.abs(indicator.getBoundingClientRect().width - r.tabs[0]!.getBoundingClientRect().width)).toBeLessThan(0.5);
+    // Capture native transitions before input acknowledgement, which can arrive after they finish.
+    const transitions = new Map<string, CSSTransition>();
+    const capture = new MutationObserver(() => {
+      for (const animation of indicator.getAnimations()) {
+        if (animation instanceof CSSTransition && !transitions.has(animation.transitionProperty)) {
+          animation.pause();
+          animation.currentTime = 0;
+          transitions.set(animation.transitionProperty, animation);
+        }
+      }
+    });
+    capture.observe(indicator, { attributes: true, attributeFilter: ["style"] });
     const widths = new Set<number>();
-    let sizes: number[] = [];
-    await userEvent.click(r.tabs[1]!);
-    for (let frame = 0; frame < 20; frame++) {
-      await new Promise((resolve) => requestAnimationFrame(resolve));
-      widths.add(indicator.offsetWidth);
-      sizes.push(indicator.getBoundingClientRect().width);
+    const sizes: number[] = [];
+    try {
+      await userEvent.click(r.tabs[1]!);
+      await expect.poll(() => [...transitions.keys()].sort()).toEqual(["scale", "translate"]);
+      for (let sample = 0; sample < 20; sample++) {
+        for (const animation of transitions.values()) {
+          const duration = animation.effect!.getTiming().duration;
+          expect(typeof duration).toBe("number");
+          if (typeof duration !== "number") throw new Error("Tabs transition duration must be numeric");
+          animation.currentTime = duration * sample / 20;
+        }
+        widths.add(indicator.offsetWidth);
+        sizes.push(indicator.getBoundingClientRect().width);
+      }
+    } finally {
+      capture.disconnect();
+      for (const animation of transitions.values()) animation.finish();
     }
     await settled(indicator);
     // Only transforms changed: the box stayed 1px wide, and the drawn width moved between the two tabs.
     expect([...widths]).toEqual([1]);
-    sizes = sizes.filter((size, index) => index === 0 || size !== sizes[index - 1]);
-    // Smooth: some frame is drawn between the old width and the new one, not just the two ends.
+    // Smooth: some sampled time draws between the old width and the new one, not just the two ends.
     const final = r.tabs[1]!.getBoundingClientRect().width;
     expect(sizes.some((size) => size > final + 5 && size < r.tabs[0]!.getBoundingClientRect().width - 5)).toBe(true);
     expect(Math.abs(indicator.getBoundingClientRect().width - r.tabs[1]!.getBoundingClientRect().width)).toBeLessThan(0.5);

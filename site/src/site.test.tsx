@@ -6,14 +6,18 @@ import { docsItems } from "./docs/items";
 import { docsPages } from "./docs/pages";
 import { unpinnedAddresses } from "../../scripts/addresses.mjs";
 import { parse } from "./docs/markdown";
-import ogImage from "../public/og.png?url";
 import { headTags } from "./head";
 import { href, routes } from "./routes";
 import { AGENTS_COMING_SOON, HERO_SUBLINE, HERO_TITLE, SHADCN_LINE } from "./copy";
 import readme from "../../README.md?raw";
-import llms from "../public/llms.txt?raw";
 import registry from "../../registry.json";
 import { groupOrder } from "../../scripts/catalog-groups.mts";
+
+const llmsResponse = await fetch(href("/llms.txt"));
+if (!llmsResponse.ok || !llmsResponse.headers.get("content-type")?.includes("text/plain")) {
+  throw new Error("The site must serve llms.txt as plain text.");
+}
+const llms = await llmsResponse.text();
 
 // The site's contract (Task 11): the hero says exactly what it should, the live Sheet
 // opens, every page passes axe in light and dark at a phone and a desktop width, nothing
@@ -59,16 +63,41 @@ describe("landing page", () => {
     expect(page.getByRole("button", { name: "Save to cookbook" }).elements()).toEqual([]);
   });
 
-  it("announces Ouro UI for agents as coming soon, with no date", async () => {
+  it("keeps Ouro UI as the parent, HX under construction and AX scope undefined", async () => {
     await renderPage("/");
-    await expect.element(page.getByRole("heading", { level: 2, name: "Coming soon: Ouro UI for agents" })).toBeVisible();
-    for (const text of [AGENTS_COMING_SOON.intro, AGENTS_COMING_SOON.cli, AGENTS_COMING_SOON.mcp]) {
-      await expect.element(page.getByText(text, { exact: true })).toBeVisible();
-    }
-    expect(AGENTS_COMING_SOON.cli).toContain("--json");
-    expect(AGENTS_COMING_SOON.mcp).toContain("one error shape");
+    await expect.element(page.getByRole("link", { name: "Ouro HX", exact: true })).toBeVisible();
+    await expect.element(page.getByText("Under construction", { exact: true })).toBeVisible();
+    await expect.element(page.getByRole("heading", { level: 2, name: "Coming soon: Ouro AX" })).toBeVisible();
+    await expect.element(page.getByText(AGENTS_COMING_SOON.intro, { exact: true })).toBeVisible();
     const copy = Object.values(AGENTS_COMING_SOON).join(" ");
-    expect(copy).not.toMatch(/people|20\d\d|Q[1-4]/);
+    expect(copy).toContain("scope is still being defined");
+    expect(copy).not.toMatch(/CLI|MCP|--json|registry|20\d\d|Q[1-4]/);
+    expect(document.body.innerText).toContain("Ouro HX is part of Ouro UI");
+    expect(routes[0]!.title).toBe("Ouro HX");
+    expect(readme.startsWith("# Ouro HX\n")).toBe(true);
+    expect(llms.startsWith("# Ouro HX\n")).toBe(true);
+    for (const text of [readme, llms]) {
+      expect(text).toContain("Under construction");
+      expect(text).toContain("Ouro UI");
+    }
+  });
+
+  it("uses the approved rich HX artwork decoratively beside its accessible name", async () => {
+    await renderPage("/");
+    const home = page.getByRole("link", { name: "Ouro HX", exact: true }).element();
+    const image = home.querySelector("img");
+    expect(image).not.toBeNull();
+    expect(image!.alt).toBe("");
+    expect(image!.getAttribute("src")).toContain("ouro-hx-render-128.webp");
+    expect(image!.srcset).toContain("ouro-hx-render-256.webp 256w");
+    await image!.decode();
+    const response = await fetch(image!.currentSrc);
+    expect(response.ok).toBe(true);
+    expect(response.headers.get("content-type")).toContain("image/webp");
+    expect(image!.naturalWidth).toBeGreaterThan(0);
+    expect(image!.naturalWidth).toBe(image!.naturalHeight);
+    expect(image!.getBoundingClientRect().width).toBe(40);
+    expect(image!.getBoundingClientRect().height).toBe(40);
   });
 
   it("keeps the hero copy the same in the head tags, README and llms.txt", () => {
@@ -183,10 +212,10 @@ it("the Updating page's note has the tag filled in and no raw-file hint", () => 
 
 describe("head tags", () => {
   it("give every page Open Graph and Twitter tags with the 1200x630 og.png", async () => {
-    const route = { path: "/docs/sheet/", title: "Sheet · Ouro UI", description: 'Install "sheet" & go' };
+    const route = { path: "/docs/sheet/", title: "Sheet · Ouro HX", description: 'Install "sheet" & go' };
     const tags = headTags(route, true);
     for (const tag of [
-      '<meta property="og:title" content="Sheet · Ouro UI" />',
+      '<meta property="og:title" content="Sheet · Ouro HX" />',
       '<meta property="og:description" content="Install &quot;sheet&quot; &amp; go" />',
       '<meta property="og:url" content="https://ourostack.github.io/ouro-ui/docs/sheet/" />',
       '<meta property="og:image" content="https://ourostack.github.io/ouro-ui/og.png" />',
@@ -194,12 +223,15 @@ describe("head tags", () => {
       '<meta property="og:image:height" content="630" />',
       '<meta name="twitter:card" content="summary_large_image" />',
       '<meta name="twitter:image" content="https://ourostack.github.io/ouro-ui/og.png" />',
+      '<meta property="og:site_name" content="Ouro HX" />',
+      '<meta property="og:image:alt" content="Ouro HX, part of Ouro UI. Under construction. Designed down to the last tap and the last prop." />',
+      '<meta name="twitter:image:alt" content="Ouro HX, part of Ouro UI. Under construction. Designed down to the last tap and the last prop." />',
     ]) {
       expect(tags).toContain(tag);
     }
     expect(headTags(route, false).some((tag) => tag.includes("og:url") || tag.includes("canonical"))).toBe(false);
     const image = new Image();
-    image.src = ogImage;
+    image.src = href("/og.png");
     await image.decode();
     expect([image.naturalWidth, image.naturalHeight]).toEqual([1200, 630]);
   });

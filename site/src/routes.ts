@@ -10,29 +10,29 @@ export interface Route {
   description: string;
 }
 
-const DESCRIPTION = `${HERO_COPY} Copy-in React components for shadcn/ui apps.`;
+const DESCRIPTION = `${HERO_COPY} Ouro HX is the component library within Ouro UI. Under construction. Copy-in React components for shadcn/ui apps.`;
 
 export const routes: Route[] = [
-  { path: "/", title: "Ouro UI", description: DESCRIPTION },
-  { path: "/docs/", title: "Docs · Ouro UI", description: "Every Ouro UI component, with install commands, props and live demos." },
+  { path: "/", title: "Ouro HX", description: DESCRIPTION },
+  { path: "/docs/", title: "Docs · Ouro HX", description: "Every Ouro HX component, with install commands, props and live demos." },
   ...docsItems.map((item) => ({
     path: `/docs/${item.name}/`,
-    title: `${item.title} · Ouro UI`,
+    title: `${item.title} · Ouro HX`,
     description: `${item.title}: install it with npx shadcn@latest add ourostack/ouro-ui/${item.name}#${latestRelease}.`,
   })),
   ...docsPages.map((page) => ({
     path: `/docs/${page.name}/`,
-    title: `${page.title} · Ouro UI`,
+    title: `${page.title} · Ouro HX`,
     description: summary(page.markdown.replace(/^# .*$/m, "")).replace(/`/g, ""),
   })),
   {
     path: "/docs/switching-from-shadcn/",
-    title: "Switching from shadcn · Ouro UI",
-    description: "How each shadcn/ui component and prop maps to Ouro UI, and how both live in one app.",
+    title: "Switching from shadcn · Ouro HX",
+    description: "How each shadcn/ui component and prop maps to Ouro HX, and how both live in one app.",
   },
   {
     path: "/docs/updating/",
-    title: "Updating installed components · Ouro UI",
+    title: "Updating installed components · Ouro HX",
     description: "Review upstream changes with add --diff, then overwrite and reapply your edits.",
   },
 ];

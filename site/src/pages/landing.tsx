@@ -30,7 +30,7 @@ function Hero(): JSX.Element {
     <section aria-labelledby="hero-title" className="min-w-0">
       <div className="flex flex-wrap gap-2">
         <Pill>{SHADCN_BADGE}</Pill>
-        <Pill>Alpha</Pill>
+        <Pill>Under construction</Pill>
       </div>
       <Heading level={1} size="display" id="hero-title" className="mt-6 max-w-[18ch]">
         {HERO_TITLE}
@@ -108,7 +108,7 @@ function Agents(): JSX.Element {
           Agents read the types
         </Heading>
         <Text size="lg" tone="muted" className="mt-4 max-w-[42rem]">
-          An agent that learned on shadcn/ui writes what it knows. Ouro UI answers where the agent already looks: the type
+          An agent that learned on shadcn/ui writes what it knows. Ouro HX answers where the agent already looks: the type
           check, the source it just installed, and the console. Every message here is real output from the code,
           checked against the code on every CI run.
         </Text>
@@ -260,14 +260,14 @@ function Install(): JSX.Element {
           <Text tone="muted" className="mt-4">
             The shadcn CLI copies each component into <InlineCode>components/ouro/</InlineCode> with only the helpers it
             imports. Its tests and stories are an optional <InlineCode>-tests</InlineCode> item that never changes your test
-            tools' versions. Ouro UI is in alpha, so props can still change.
+            tools' versions. Ouro HX is under construction, so props can still change.
           </Text>
         </div>
         <ol className="m-0 grid list-none gap-10 p-0">
           <Step number={0} title="Set up shadcn once">
             <Text size="sm" tone="muted">
               In an app with Tailwind CSS v4 and an <InlineCode>@/*</InlineCode> path alias. <InlineCode>--base base</InlineCode>{" "}
-              because Ouro UI is built on Base UI; skip <InlineCode>-t</InlineCode> in an existing app.
+              because Ouro HX is built on Base UI; skip <InlineCode>-t</InlineCode> in an existing app.
             </Text>
             <Command command="npx shadcn@latest init --base base --preset nova --yes --no-monorepo" />
             <Text size="sm" tone="muted">
@@ -312,7 +312,7 @@ function Switching(): JSX.Element {
           </div>
           <div className="grid content-start justify-items-start gap-6">
             <Text size="lg" tone="muted">
-              Ouro UI reads the same theme variables as shadcn/ui, so your theme carries over unchanged. Its components install
+              Ouro HX reads the same theme variables as shadcn/ui, so your theme carries over unchanged. Its components install
               to <InlineCode>components/ouro</InlineCode> beside your <InlineCode>components/ui</InlineCode>, so you can switch
               one at a time.
             </Text>
@@ -337,13 +337,6 @@ function ComingSoon(): JSX.Element {
         <Text size="lg" tone="muted" className="mt-4 max-w-[42rem]">
           {AGENTS_COMING_SOON.intro}
         </Text>
-        <ul className="m-0 mt-8 grid list-none gap-4 p-0 sm:grid-cols-2">
-          {[AGENTS_COMING_SOON.cli, AGENTS_COMING_SOON.mcp].map((line) => (
-            <li key={line} className="rounded-2xl border border-border p-5 sm:p-6">
-              <Text tone="muted">{line}</Text>
-            </li>
-          ))}
-        </ul>
       </Container>
     </section>
   );
