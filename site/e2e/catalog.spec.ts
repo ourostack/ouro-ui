@@ -112,7 +112,7 @@ test("real production hydration keeps label/control IDs while the uncached selec
     await expect(name).toHaveValue("Pasta");
     const before = await name.getAttribute("id");
     expect(before).not.toBeNull();
-    await expect(page.locator(`label[for="${before}"]`)).toHaveText("Recipe name*");
+    await expect(page.locator(`label[for="${before}"]`)).toHaveText("Recipe name");
     await expect(page.locator("[data-site-demo-loading]")).toHaveCount(0);
     release();
     await page.getByRole("combobox", { name: "Course", exact: true }).click();
