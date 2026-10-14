@@ -21,6 +21,7 @@ import {
 } from "@/registry/ouro/components/ouro/menu/menu";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { isTransparent } from "@/registry/ouro/lib/ouro/testing/color";
 import { axeExclude } from "@/registry/ouro/lib/ouro/testing/axe";
 
 // Runs in Chromium and WebKit.
@@ -333,8 +334,8 @@ describe("Menu items", () => {
     const highlighted = look(element("Profile"));
     const current = look(element("Billing"));
     // The highlight is a tint; the current page is a heavier label with a bar at the start edge.
-    expect(highlighted.background).not.toBe("rgba(0, 0, 0, 0)");
-    expect(current.background).toBe("rgba(0, 0, 0, 0)");
+    expect(isTransparent(highlighted.background)).toBe(false);
+    expect(isTransparent(current.background)).toBe(true);
     expect(Number(current.weight)).toBeGreaterThan(Number(highlighted.weight));
     expect(parseFloat(current.bar)).toBeGreaterThan(0);
     expect(highlighted.bar).not.toBe(current.bar);
