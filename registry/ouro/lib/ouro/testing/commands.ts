@@ -1,3 +1,4 @@
+import { appendFileSync } from "node:fs";
 import type {} from "@vitest/browser-playwright";
 import type { CDPSession, Frame, Page } from "playwright";
 import type { BrowserCommand } from "vitest/node";
@@ -519,21 +520,34 @@ export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from,
     cdpSessions.set(page, session);
   }
   const start = Date.now() / 1000;
-  const touch = (type: "touchStart" | "touchMove" | "touchEnd", [x, y]: [number, number], t: number) =>
-    session.send("Input.dispatchTouchEvent", {
+  const packets: Array<{ type: string; x: number; y: number; timestamp: number | undefined; sent: number; acknowledged: number }> = [];
+  const touch = async (type: "touchStart" | "touchMove" | "touchEnd", [x, y]: [number, number], t: number) => {
+    const payload = {
       type,
       touchPoints: type === "touchEnd" ? [] : [{ x, y, id: 1 }],
       ...(durationMs === undefined ? {} : { timestamp: start + (durationMs * t) / 1000 }),
-    });
-  await releaseFinger("touchDrag", page, session);
-  await sendTouch("touchDrag", page, session, { type: "touchEnd", x: to[0], y: to[1] }, { point: { x: from[0], y: from[1] } }, async () => {
-    await touch("touchStart", from, 0);
-    for (let step = 1; step <= steps; step++) {
-      const t = step / steps;
-      await touch("touchMove", [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t], t);
+    };
+    const sent = Date.now();
+    try {
+      await session.send("Input.dispatchTouchEvent", payload);
+    } finally {
+      packets.push({ type, x, y, timestamp: payload.timestamp, sent, acknowledged: Date.now() });
     }
-    await touch("touchEnd", to, 1);
-  });
+  };
+  try {
+    await releaseFinger("touchDrag", page, session);
+    await sendTouch("touchDrag", page, session, { type: "touchEnd", x: to[0], y: to[1] }, { point: { x: from[0], y: from[1] } }, async () => {
+      await touch("touchStart", from, 0);
+      for (let step = 1; step <= steps; step++) {
+        const t = step / steps;
+        await touch("touchMove", [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t], t);
+      }
+      await touch("touchEnd", to, 1);
+    });
+  } finally {
+    const path = process.env["CAROUSEL_PACKET_FILE"];
+    if (path) appendFileSync(path, `${JSON.stringify({ iteration: process.env["CAROUSEL_TRACE_ITERATION"], from, to, steps, durationMs, packets })}\n`);
+  }
 };
 
 export interface PointerPressOptions {

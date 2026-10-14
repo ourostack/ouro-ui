@@ -5,6 +5,12 @@ import { Carousel } from "@/registry/ouro/components/ouro/carousel/carousel";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 
+declare module "vitest/browser" {
+  interface BrowserCommands {
+    recordCarouselTrace: (record: string) => Promise<void>;
+  }
+}
+
 // Runs in the `touch` project: Chromium as a 390x844 phone with a coarse pointer.
 
 let root: Root | undefined;
@@ -113,10 +119,73 @@ it("lets a fast flick carry past the next slide, as the platform does, and repor
   const { viewport, onIndexChange } = await renderInPage();
   const rect = viewport.getBoundingClientRect();
   const y = rect.top + rect.height / 2;
-  await commands.touchDrag({ from: [rect.right - 40, y], to: [rect.left + 40, y], steps: 12, durationMs: 30 });
-  await expect.poll(() => onIndexChange.mock.calls).toEqual([[2]]);
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  expect(onIndexChange.mock.calls).toEqual([[2]]);
+  const rows: Array<Record<string, unknown>> = [];
+  const snapshot = () => {
+    const style = getComputedStyle(viewport);
+    return {
+      rect: viewport.getBoundingClientRect().toJSON(),
+      clientWidth: viewport.clientWidth,
+      scrollWidth: viewport.scrollWidth,
+      scrollLeft: viewport.scrollLeft,
+      slides: [...viewport.children].map((slide) => ({
+        rect: slide.getBoundingClientRect().toJSON(),
+        snapStop: getComputedStyle(slide).scrollSnapStop,
+        snapAlign: getComputedStyle(slide).scrollSnapAlign,
+      })),
+      touchAction: style.touchAction,
+      scrollSnapType: style.scrollSnapType,
+      scrollBehavior: style.scrollBehavior,
+      direction: style.direction,
+      gap: style.columnGap,
+      fontSize: style.fontSize,
+      scrollY,
+      scale: visualViewport?.scale,
+      innerWidth,
+      innerHeight,
+      documentHidden: document.hidden,
+      documentFocused: document.hasFocus(),
+      reducedMotion: matchMedia("(prefers-reduced-motion: reduce)").matches,
+      coarse: matchMedia("(pointer: coarse)").matches,
+    };
+  };
+  const record = (kind: string, data: Record<string, unknown> = {}) => {
+    rows.push({ kind, now: performance.now(), wall: Date.now(), left: viewport.scrollLeft, ...data });
+  };
+  const listener = (event: Event) => {
+    const data: Record<string, unknown> = { timestamp: event.timeStamp, trusted: event.isTrusted, prevented: event.defaultPrevented };
+    if (event instanceof TouchEvent) {
+      data.touches = Array.from(event.touches).map((touch) => ({ x: touch.clientX, y: touch.clientY, pageX: touch.pageX, pageY: touch.pageY }));
+      data.changed = Array.from(event.changedTouches).map((touch) => ({ x: touch.clientX, y: touch.clientY }));
+    }
+    if (event instanceof PointerEvent) {
+      data.pointer = { type: event.pointerType, x: event.clientX, y: event.clientY };
+      data.coalesced = event.getCoalescedEvents().map((point) => ({ x: point.clientX, y: point.clientY, timestamp: point.timeStamp }));
+    }
+    if (event.type === "scrollend") data.pose = snapshot();
+    record(event.type, data);
+  };
+  const events = ["touchstart", "touchmove", "touchend", "touchcancel", "pointerdown", "pointermove", "pointerup", "pointercancel", "scroll", "scrollend"] as const;
+  for (const event of events) viewport.addEventListener(event, listener, { passive: true });
+  const visibility = () => record("visibility", { hidden: document.hidden, focused: document.hasFocus() });
+  document.addEventListener("visibilitychange", visibility);
+  window.addEventListener("focus", visibility);
+  window.addEventListener("blur", visibility);
+  onIndexChange.mockImplementation((index: number) => record("callback", { index, pose: snapshot() }));
+  record("before", snapshot());
+  try {
+    await commands.touchDrag({ from: [rect.right - 40, y], to: [rect.left + 40, y], steps: 12, durationMs: 30 });
+    record("command-returned", snapshot());
+    await expect.poll(() => onIndexChange.mock.calls).toEqual([[2]]);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(onIndexChange.mock.calls).toEqual([[2]]);
+  } finally {
+    record("final", { pose: snapshot(), calls: onIndexChange.mock.calls });
+    for (const event of events) viewport.removeEventListener(event, listener);
+    document.removeEventListener("visibilitychange", visibility);
+    window.removeEventListener("focus", visibility);
+    window.removeEventListener("blur", visibility);
+    await commands.recordCarouselTrace(JSON.stringify({ name: "fast-native-carousel", timeOrigin: performance.timeOrigin, rows }));
+  }
 });
 
 it("reports and announces nothing while a finger is held still mid-swipe", async () => {
