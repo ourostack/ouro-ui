@@ -1,0 +1,43 @@
+name: Coalesced Drag RED
+on:
+  push:
+    branches: [probe/coalesced-drag-red]
+permissions:
+  contents: read
+jobs:
+  red:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium webkit
+      - name: Observe the unchanged sampler against test-first history cases
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p coalesced-evidence
+          git rev-parse HEAD > coalesced-evidence/source.txt
+          git diff 0e61ad49e9faebd40bc2815e33bc6a9de27f0c17 -- registry/ouro/lib/ouro/use-drag.ts > coalesced-evidence/runtime.diff
+          test ! -s coalesced-evidence/runtime.diff
+          sha256sum registry/ouro/lib/ouro/use-drag.ts registry/ouro/lib/ouro/use-drag.test.tsx > coalesced-evidence/digests.txt
+          if pnpm exec vitest run --project=ouro-chromium --project=ouro-webkit --reporter=default --reporter=json --outputFile=coalesced-evidence/results.json registry/ouro/lib/ouro/use-drag.test.tsx > coalesced-evidence/red.log 2>&1; then code=0; else code=$?; fi
+          printf '%s\n' "$code" > coalesced-evidence/red.exit
+          test -s coalesced-evidence/results.json
+          exit "$code"
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coalesced-drag-red
+          path: |
+            coalesced-evidence/
+            .vitest/attachments/
+          if-no-files-found: error
