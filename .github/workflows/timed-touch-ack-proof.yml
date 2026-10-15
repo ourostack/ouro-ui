@@ -1,0 +1,58 @@
+name: Timed Touch ACK Proof
+on:
+  push:
+    branches: [probe/timed-touch-ack-proof]
+permissions:
+  contents: read
+concurrency:
+  group: timed-touch-ack-proof-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [original, fixed]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium webkit
+      - name: Observe real input with a delayed transport reply
+        shell: bash
+        env:
+          TOUCH_ACK_PROFILE: ${{ matrix.profile }}
+        run: |
+          set -euo pipefail
+          mkdir -p touch-ack-evidence .tmp/touch-legacy
+          git rev-parse HEAD > touch-ack-evidence/source.txt
+          git merge-base --is-ancestor 7309c9d2e15a18024115b0df690e281e8d87efa4 HEAD
+          git diff 7309c9d2e15a18024115b0df690e281e8d87efa4 -- registry scripts/agent-usability scripts/touch-watchdog.test.mjs > touch-ack-evidence/candidate.diff
+          test ! -s touch-ack-evidence/candidate.diff
+          git archive 0e61ad49e9faebd40bc2815e33bc6a9de27f0c17 registry/ouro/lib/ouro/testing/commands.ts | tar -x -C .tmp/touch-legacy
+          sha256sum registry/ouro/lib/ouro/testing/commands.ts .tmp/touch-legacy/registry/ouro/lib/ouro/testing/commands.ts registry/ouro/components/ouro/swipe-actions/swipe-actions.touch.test.tsx registry/ouro/components/ouro/carousel/carousel.touch.test.tsx scripts/timed-touch-ack-proof.config.mts .github/workflows/timed-touch-ack-proof.yml > touch-ack-evidence/digests.txt
+          export TOUCH_ACK_PROOF_SOURCE=$(git rev-parse HEAD)
+          export TOUCH_ACK_TRACE_FILE="$PWD/touch-ack-evidence/native.jsonl"
+          export TOUCH_ACK_RESULT_FILE="$PWD/touch-ack-evidence/results.json"
+          if pnpm exec vitest run --config scripts/timed-touch-ack-proof.config.mts --project=ouro-touch registry/ouro/components/ouro/swipe-actions/swipe-actions.touch.test.tsx registry/ouro/components/ouro/carousel/carousel.touch.test.tsx > touch-ack-evidence/proof.log 2>&1; then code=0; else code=$?; fi
+          printf '%s\n' "$code" > touch-ack-evidence/proof.exit
+          test -s "$TOUCH_ACK_TRACE_FILE"
+          test -s "$TOUCH_ACK_RESULT_FILE"
+          exit "$code"
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: timed-touch-ack-${{ matrix.profile }}
+          path: |
+            touch-ack-evidence/
+            .vitest/attachments/
+          if-no-files-found: error
