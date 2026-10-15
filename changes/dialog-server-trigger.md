@@ -1,1 +1,0 @@
-- A Dialog whose `trigger` comes from a Server Component no longer fails `next build` with "Element type is invalid" when React hands the trigger over as a lazy wrapper.

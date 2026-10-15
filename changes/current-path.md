@@ -1,1 +1,0 @@
-- lib/ouro gains `current-path.ts`: `currentHref(hrefs, currentPath)` picks the navigation link for the current page, which `Navbar`, `Sidebar` and `NavigationMenu` use for `currentPath`.

@@ -1,2 +1,0 @@
-- New: Menu, one API for a dropdown (`trigger`, a bottom sheet below 640px), a context menu (`contextTrigger`, right-click or long-press) and a `MenuBar`, with `items` data or `MenuItem`, `MenuCheckboxItem`, `MenuRadioGroup`, `MenuSub`, `MenuGroup` and `MenuSeparator` children; items take `shortcut`, `tone="destructive"` and `href`.
-- Menu: the phone sheet ends with a Close item (`closeLabel`, default "Close") for screen-reader and switch users, and a submenu in the sheet no longer opens on hover.

@@ -1,1 +1,0 @@
-- Carousel advances from the slide that just settled when Next or Previous is pressed before React updates the rendered index, without wrapping unless `loop` is enabled.
