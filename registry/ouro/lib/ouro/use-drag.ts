@@ -156,7 +156,13 @@ export function useDrag(options: DragOptions): DragProps {
       // A mouse moving with no button down was released where nothing heard it.
       if (!started && moved.pointerType === "mouse" && moved.buttons === 0) return release();
       const { threshold = 10, crossAxis = "scroll", onStart, onMove } = latest.current;
-      samples = [...samples.filter((sample) => moved.timeStamp - sample.time <= VELOCITY_WINDOW), { position: along(moved), time: moved.timeStamp }];
+      // A browser can deliver several physical moves as one event; keep their history,
+      // without turning them into additional drag callbacks.
+      samples = [
+        ...samples,
+        ...(moved.getCoalescedEvents?.() ?? []).map((sample) => ({ position: along(sample), time: sample.timeStamp })),
+        { position: along(moved), time: moved.timeStamp },
+      ].filter((sample) => moved.timeStamp - sample.time <= VELOCITY_WINDOW);
       if (!started) {
         const distance = Math.abs(along(moved) - origin);
         const cross = crossAxis === "scroll" ? Math.abs(across(moved) - crossOrigin) : 0;
