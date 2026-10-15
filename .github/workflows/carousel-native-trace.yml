@@ -16,10 +16,18 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { mode: touch-file, iteration: sequential-original, profile: none, offset: "0" }
-          - { mode: touch-file, iteration: burst-original, profile: burst, offset: "0" }
-          - { mode: touch-file, iteration: burst-anchored, profile: burst-anchored, offset: "0" }
-          - { mode: touch-file, iteration: sequential-anchored, profile: anchored, offset: "0" }
+          - { mode: full, iteration: natural-1 }
+          - { mode: full, iteration: natural-2 }
+          - { mode: full, iteration: natural-3 }
+          - { mode: full, iteration: natural-4 }
+          - { mode: full, iteration: natural-5 }
+          - { mode: full, iteration: natural-6 }
+          - { mode: full, iteration: natural-7 }
+          - { mode: full, iteration: natural-8 }
+          - { mode: full, iteration: natural-9 }
+          - { mode: full, iteration: natural-10 }
+          - { mode: full, iteration: natural-11 }
+          - { mode: full, iteration: natural-12 }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -37,12 +45,12 @@ jobs:
         env:
           MODE: ${{ matrix.mode }}
           ITERATION: ${{ matrix.iteration }}
-          CAROUSEL_STALL_PROFILE: ${{ matrix.profile }}
-          CAROUSEL_TIMESTAMP_OFFSET_MS: ${{ matrix.offset }}
         run: |
           set -euo pipefail
           mkdir -p carousel-evidence
           git rev-parse HEAD > carousel-evidence/source.txt
+          lscpu > carousel-evidence/runner-cpu.txt
+          uptime > carousel-evidence/runner-uptime.txt
           git diff HEAD^ -- registry/ouro/components/ouro/carousel/carousel.tsx registry/ouro/components/ouro/carousel/carousel-styles.ts > carousel-evidence/runtime.diff
           sha256sum registry/ouro/components/ouro/carousel/carousel.tsx registry/ouro/components/ouro/carousel/carousel-styles.ts registry/ouro/lib/ouro/testing/commands.ts registry/ouro/components/ouro/carousel/carousel.touch.test.tsx scripts/carousel-native-trace.config.mts .github/workflows/carousel-native-trace.yml > carousel-evidence/digests.txt
           export CAROUSEL_PROBE_SOURCE=$(git rev-parse HEAD)
@@ -63,8 +71,8 @@ jobs:
             *) echo "Unknown probe mode: $MODE" >&2; exit 2 ;;
           esac
           printf '%s\n' "$code" > "carousel-evidence/$MODE-$ITERATION.exit"
-          if [ ! -s "$CAROUSEL_TRACE_FILE" ] || [ ! -s "$CAROUSEL_RESULT_FILE" ] || [ ! -s "carousel-evidence/$MODE-$ITERATION-engine.json" ]; then
-            echo "Probe $MODE-$ITERATION did not retain its target, engine trace, and test results." >&2
+          if [ ! -s "$CAROUSEL_TRACE_FILE" ] || [ ! -s "$CAROUSEL_RESULT_FILE" ]; then
+            echo "Probe $MODE-$ITERATION did not retain its target trace and test results." >&2
             exit 2
           fi
           exit "$code"

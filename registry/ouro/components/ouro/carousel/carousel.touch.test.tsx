@@ -7,7 +7,6 @@ import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 
 declare module "vitest/browser" {
   interface BrowserCommands {
-    startCarouselTrace: () => Promise<void>;
     recordCarouselTrace: (record: string) => Promise<void>;
   }
 }
@@ -162,7 +161,6 @@ it("lets a fast flick carry past the next slide, as the platform does, and repor
       data.pointer = { type: event.pointerType, x: event.clientX, y: event.clientY };
       data.coalesced = event.getCoalescedEvents().map((point) => ({ x: point.clientX, y: point.clientY, timestamp: point.timeStamp }));
     }
-    if (event.type === "scrollend") data.pose = snapshot();
     record(event.type, data);
   };
   const events = ["touchstart", "touchmove", "touchend", "touchcancel", "pointerdown", "pointermove", "pointerup", "pointercancel", "scroll", "scrollend"] as const;
@@ -171,12 +169,11 @@ it("lets a fast flick carry past the next slide, as the platform does, and repor
   document.addEventListener("visibilitychange", visibility);
   window.addEventListener("focus", visibility);
   window.addEventListener("blur", visibility);
-  onIndexChange.mockImplementation((index: number) => record("callback", { index, pose: snapshot() }));
-  await commands.startCarouselTrace();
-  record("before", snapshot());
+  onIndexChange.mockImplementation((index: number) => record("callback", { index }));
+  record("before", { rect: rect.toJSON(), timeOrigin: performance.timeOrigin, documentHidden: document.hidden });
   try {
     await commands.touchDrag({ from: [rect.right - 40, y], to: [rect.left + 40, y], steps: 12, durationMs: 30 });
-    record("command-returned", snapshot());
+    record("command-returned");
     await expect.poll(() => onIndexChange.mock.calls).toEqual([[2]]);
     await new Promise((resolve) => setTimeout(resolve, 300));
     expect(onIndexChange.mock.calls).toEqual([[2]]);
