@@ -29,9 +29,9 @@ jobs:
           set -euo pipefail
           mkdir -p accordion-evidence
           git rev-parse HEAD > accordion-evidence/source.txt
-          git rev-parse HEAD^ > accordion-evidence/candidate.txt
-          test "$(git rev-parse HEAD^)" = 62adf6b175b9e1d8b1ea87e31d8f530067232c5b
-          git diff HEAD^ -- registry/ouro/components/ouro/accordion registry/ouro/components/ouro/carousel registry/ouro/lib/ouro/testing/commands.ts > accordion-evidence/candidate.diff
+          git rev-parse 4e663fc480be9a303895e0661a6d897dc02be87f > accordion-evidence/candidate.txt
+          git merge-base --is-ancestor 4e663fc480be9a303895e0661a6d897dc02be87f HEAD
+          git diff 4e663fc480be9a303895e0661a6d897dc02be87f -- registry > accordion-evidence/candidate.diff
           test ! -s accordion-evidence/candidate.diff
           sha256sum registry/ouro/components/ouro/accordion/accordion.test.tsx test/accordion-observation-proof.test.tsx scripts/accordion-observation-proof.config.mts .github/workflows/accordion-observation-proof.yml > accordion-evidence/digests.txt
           export ACCORDION_PROOF_SOURCE=$(git rev-parse HEAD)

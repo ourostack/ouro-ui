@@ -6,7 +6,7 @@ const recordAccordionObservation: BrowserCommand<[record: string]> = async (_ctx
   const path = process.env["ACCORDION_OBSERVATION_FILE"];
   if (!path) throw new Error("ACCORDION_OBSERVATION_FILE must name the retained native observation evidence.");
   appendFileSync(path, `${JSON.stringify({
-    candidate: "62adf6b175b9e1d8b1ea87e31d8f530067232c5b",
+    candidate: "4e663fc480be9a303895e0661a6d897dc02be87f",
     proofSource: process.env["ACCORDION_PROOF_SOURCE"],
     observation: JSON.parse(record),
   })}\n`);

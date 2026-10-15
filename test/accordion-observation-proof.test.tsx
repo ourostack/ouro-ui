@@ -35,7 +35,8 @@ async function render() {
     }]} />,
   ));
   const trigger = host.querySelector<HTMLButtonElement>("button[aria-expanded]")!;
-  const panel = host.querySelector<HTMLElement>(`[id="${trigger.getAttribute("aria-controls")}"]`)!;
+  const panel = host.querySelector<HTMLElement>(`[role="region"][aria-labelledby="${trigger.id}"]`)!;
+  expect(panel).not.toBeNull();
   const child = panel.querySelector<HTMLElement>("[data-proof-child]")!;
   return { trigger, panel, child };
 }
