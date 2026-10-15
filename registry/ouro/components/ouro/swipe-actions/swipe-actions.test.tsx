@@ -809,14 +809,17 @@ describe("SwipeActions", () => {
     document.addEventListener("keydown", listener);
     const snapshot = (phase: string) => ({
       phase,
-      direction: getComputedStyle(element).direction,
-      hostDirection: getComputedStyle(host).direction,
-      documentDirection: getComputedStyle(document.documentElement).direction,
+      direction: phase === "before swipe" ? undefined : getComputedStyle(element).direction,
+      hostDirection: phase === "before swipe" ? undefined : getComputedStyle(host).direction,
+      documentDirection: phase === "before swipe" ? undefined : getComputedStyle(document.documentElement).direction,
       hostDir: host.dir,
+      pointerFrom: [200, 20],
+      pointerTo: [80, 20],
       open: element.getAttribute("data-open"),
       offset: offset(element),
       settling: element.hasAttribute("data-ouro-settling"),
       focus: document.activeElement?.outerHTML.slice(0, 600),
+      documentHasFocus: document.hasFocus(),
     });
     const trace = [snapshot("before swipe")];
     await swipe(element, -120);

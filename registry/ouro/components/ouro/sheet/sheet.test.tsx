@@ -551,6 +551,9 @@ describe("dragging (Chromium)", () => {
     const seen: string[] = [];
     const focus = () => ({
       active: document.activeElement?.outerHTML.slice(0, 600),
+      activeOwner: document.activeElement?.ownerDocument.URL,
+      documentHasFocus: document.hasFocus(),
+      connected: sheet.isConnected,
       inside: sheet.contains(document.activeElement),
       open: sheet.getAttribute("data-open"),
       starting: sheet.hasAttribute("data-starting-style"),

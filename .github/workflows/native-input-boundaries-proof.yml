@@ -10,10 +10,9 @@ jobs:
     timeout-minutes: 20
     strategy:
       fail-fast: false
-      max-parallel: 6
+      max-parallel: 2
       matrix:
-        theme: [stock]
-        observation: [1, 2, 3]
+        context: [whole-library, whole-shadcn-install]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -27,27 +26,33 @@ jobs:
           cache: pnpm
       - run: pnpm i --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium webkit
-      - name: Observe whole source suites without changing input or assertions
+      - name: Observe original full-suite contexts without changing input or assertions
         shell: bash
         env:
-          PROBE_STYLE: ${{ matrix.theme }}
+          CONTEXT: ${{ matrix.context }}
         run: |
           set -euo pipefail
           git merge-base --is-ancestor 9a8e0d86d3fdcfa746de1b3b2eb3cad0e5dbf226 HEAD
           git diff 9a8e0d86d3fdcfa746de1b3b2eb3cad0e5dbf226 -- registry registry.json scripts test changes > input-evidence/diagnostic.diff
           git diff 9a8e0d86d3fdcfa746de1b3b2eb3cad0e5dbf226 -- registry ':!registry/**/*.test.tsx' > input-evidence/runtime.diff
           test ! -s input-evidence/runtime.diff
-          sha256sum registry/ouro/components/ouro/swipe-actions/{swipe-actions.tsx,swipe-actions.test.tsx} registry/ouro/components/ouro/sheet/{sheet.tsx,sheet.test.tsx} proof/native-input-boundaries.config.ts proof/native-input-stock.ts > input-evidence/digests.txt
+          sha256sum registry/ouro/components/ouro/swipe-actions/{swipe-actions.tsx,swipe-actions.test.tsx} registry/ouro/components/ouro/sheet/{sheet.tsx,sheet.test.tsx} scripts/install-test.sh vitest.config.ts > input-evidence/digests.txt
           pnpm list vitest @vitest/browser-playwright playwright --depth 0 --json > input-evidence/tools.json
-          if pnpm exec vitest run --config proof/native-input-boundaries.config.ts --project=ouro-chromium --project=ouro-webkit --reporter=default --reporter=json --outputFile=input-evidence/results.json registry/ouro/components/ouro/swipe-actions/swipe-actions.test.tsx registry/ouro/components/ouro/sheet/sheet.test.tsx > input-evidence/browser.log 2>&1; then code=0; else code=$?; fi
+          if [ "$CONTEXT" = whole-library ]; then
+            if pnpm exec vitest run --coverage --reporter=default --reporter=json --outputFile=input-evidence/results.json > input-evidence/browser.log 2>&1; then code=0; else code=$?; fi
+            test -s input-evidence/results.json
+          else
+            if bash scripts/install-test.sh shadcn "$RUNNER_TEMP/app" "$GITHUB_SHA" > input-evidence/browser.log 2>&1; then code=0; else code=$?; fi
+          fi
           printf '%s\n' "$code" > input-evidence/browser.exit
-          test -s input-evidence/results.json
           exit "$code"
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: native-input-${{ matrix.theme }}-${{ matrix.observation }}
+          name: native-input-${{ matrix.context }}
           path: |
             input-evidence/
             .vitest/attachments/
+            ${{ runner.temp }}/app/.vitest/attachments/
           if-no-files-found: error
+          include-hidden-files: true
