@@ -16,10 +16,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { mode: full, iteration: origin-control, profile: none, offset: "0" }
-          - { mode: touch-file, iteration: future-1000, profile: future, offset: "1000" }
-          - { mode: touch-file, iteration: future-1005, profile: future, offset: "1005" }
-          - { mode: touch-file, iteration: future-1010, profile: future, offset: "1010" }
+          - { mode: touch-file, iteration: sequential-original, profile: none, offset: "0" }
+          - { mode: touch-file, iteration: burst-original, profile: burst, offset: "0" }
+          - { mode: touch-file, iteration: burst-anchored, profile: burst-anchored, offset: "0" }
+          - { mode: touch-file, iteration: sequential-anchored, profile: anchored, offset: "0" }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

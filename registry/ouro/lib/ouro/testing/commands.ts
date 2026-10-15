@@ -520,14 +520,17 @@ export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from,
     cdpSessions.set(page, session);
   }
   const profile = durationMs === 30 ? process.env["CAROUSEL_STALL_PROFILE"] : undefined;
-  if (profile !== undefined && !["none", "prestart", "midmove", "preend", "future"].includes(profile)) {
+  if (profile !== undefined && !["none", "prestart", "midmove", "preend", "future", "burst", "burst-anchored", "anchored"].includes(profile)) {
     throw new Error(`Unknown Carousel diagnostic stall profile: ${profile}`);
   }
   const offset = profile === "future" ? process.env["CAROUSEL_TIMESTAMP_OFFSET_MS"] : "0";
   if (offset === undefined || !["0", "1000", "1005", "1010"].includes(offset)) {
     throw new Error(`Unknown Carousel diagnostic timestamp offset: ${offset}`);
   }
-  const start = (Date.now() + Number(offset)) / 1000;
+  const anchored = profile === "anchored" || profile === "burst-anchored";
+  const burst = profile === "burst" || profile === "burst-anchored";
+  const age = anchored && durationMs !== undefined ? durationMs + 34 : 0;
+  const start = (Date.now() + Number(offset) - age) / 1000;
   const packets: Array<{ type: string; x: number; y: number; timestamp: number | undefined; sent: number; acknowledged: number }> = [];
   const touch = async (type: "touchStart" | "touchMove" | "touchEnd", [x, y]: [number, number], t: number) => {
     const payload = {
@@ -536,24 +539,33 @@ export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from,
       ...(durationMs === undefined ? {} : { timestamp: start + (durationMs * t) / 1000 }),
     };
     const sent = Date.now();
+    const packet = { type, x, y, timestamp: payload.timestamp, sent, acknowledged: 0 };
+    packets.push(packet);
     try {
       await session.send("Input.dispatchTouchEvent", payload);
     } finally {
-      packets.push({ type, x, y, timestamp: payload.timestamp, sent, acknowledged: Date.now() });
+      packet.acknowledged = Date.now();
     }
   };
   try {
     await releaseFinger("touchDrag", page, session);
     await sendTouch("touchDrag", page, session, { type: "touchEnd", x: to[0], y: to[1] }, { point: { x: from[0], y: from[1] } }, async () => {
+      const pending: Promise<void>[] = [];
+      const send = async (type: "touchStart" | "touchMove" | "touchEnd", point: [number, number], t: number) => {
+        const delivery = touch(type, point, t);
+        if (burst) pending.push(delivery);
+        else await delivery;
+      };
       if (profile === "prestart") await page.waitForTimeout(500);
-      await touch("touchStart", from, 0);
+      await send("touchStart", from, 0);
       for (let step = 1; step <= steps; step++) {
         const t = step / steps;
-        await touch("touchMove", [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t], t);
+        await send("touchMove", [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t], t);
         if (profile === "midmove" && step === 6) await page.waitForTimeout(250);
       }
       if (profile === "preend") await page.waitForTimeout(250);
-      await touch("touchEnd", to, 1);
+      await send("touchEnd", to, 1);
+      await Promise.all(pending);
     });
   } finally {
     const path = process.env["CAROUSEL_PACKET_FILE"];
