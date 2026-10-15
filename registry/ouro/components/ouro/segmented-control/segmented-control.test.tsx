@@ -242,8 +242,18 @@ describe("SegmentedControl", () => {
     const offset = (segment: HTMLElement) => Math.round(thumb.getBoundingClientRect().left - segment.getBoundingClientRect().left) + 0;
     // Within a pixel: the thumb's width is a fraction of the track, and WebKit rounds it.
     expect(Math.abs(offset(r.segments[0]!))).toBeLessThanOrEqual(1);
-    await userEvent.click(r.segments[2]!);
-    await expect.poll(() => thumb.getAnimations().length).toBeGreaterThan(0);
+    let translateStarted = false;
+    const record = (event: TransitionEvent) => {
+      if (event.target === thumb && event.propertyName === "translate") translateStarted = true;
+    };
+    thumb.addEventListener("transitionrun", record);
+    try {
+      await userEvent.click(r.segments[2]!);
+      await settled(thumb);
+      await expect.poll(() => translateStarted).toBe(true);
+    } finally {
+      thumb.removeEventListener("transitionrun", record);
+    }
     await settled(thumb);
     expect(Math.abs(offset(r.segments[2]!))).toBeLessThanOrEqual(1);
     expect(Math.abs(thumb.getBoundingClientRect().width - r.segments[2]!.getBoundingClientRect().width)).toBeLessThanOrEqual(1);
