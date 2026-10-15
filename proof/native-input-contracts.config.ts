@@ -7,6 +7,7 @@ const projects = ouroTestProjects({
   page: { width: 1600, height: 1200 },
   include: [
     "registry/ouro/components/ouro/swipe-actions/swipe-actions.test.tsx",
+    "registry/ouro/components/ouro/sheet/sheet.test.tsx",
     "proof/native-sheet-focus-boundary.test.tsx",
   ],
 });

@@ -31,15 +31,14 @@ jobs:
           set -euo pipefail
           pnpm add -Dw --save-exact "vitest@$VITEST" "@vitest/browser-playwright@$VITEST" "@vitest/coverage-istanbul@$VITEST" "@playwright/test@1.64.0" "playwright@1.64.0" 2>&1 | tee contract-evidence/toolchain.log
       - run: pnpm exec playwright install --with-deps chromium webkit
-      - name: Characterize the original fixture and real frame-queued focus
+      - name: Qualify the fixed fixtures and real frame-queued focus
         shell: bash
         run: |
           set -euo pipefail
-          path=registry/ouro/components/ouro/swipe-actions/swipe-actions.test.tsx
-          git show "9a8e0d86d3fdcfa746de1b3b2eb3cad0e5dbf226:$path" > "$path"
-          git diff 9a8e0d86d3fdcfa746de1b3b2eb3cad0e5dbf226 -- registry ':!registry/**/*.test.tsx' > contract-evidence/runtime.diff
-          test ! -s contract-evidence/runtime.diff
-          sha256sum "$path" proof/native-sheet-focus-boundary.test.tsx proof/native-input-rtl.ts proof/native-input-contracts.config.ts > contract-evidence/digests.txt
+          git merge-base --is-ancestor aab1129cfecf7c889ef2b62d7d665c310562f668 HEAD
+          git diff aab1129cfecf7c889ef2b62d7d665c310562f668 -- registry registry.json scripts test changes > contract-evidence/candidate.diff
+          test ! -s contract-evidence/candidate.diff
+          sha256sum registry/ouro/components/ouro/swipe-actions/{swipe-actions.tsx,swipe-actions.test.tsx} registry/ouro/components/ouro/sheet/{sheet.tsx,sheet.test.tsx} proof/native-sheet-focus-boundary.test.tsx proof/native-input-rtl.ts proof/native-input-contracts.config.ts > contract-evidence/digests.txt
           pnpm list vitest @vitest/browser-playwright playwright --depth 0 --json > contract-evidence/tools.json
           if pnpm exec vitest run --config proof/native-input-contracts.config.ts --project=ouro-chromium --project=ouro-webkit --reporter=default --reporter=json --outputFile=contract-evidence/results.json > contract-evidence/browser.log 2>&1; then code=0; else code=$?; fi
           printf '%s\n' "$code" > contract-evidence/browser.exit
