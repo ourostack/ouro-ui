@@ -1,0 +1,1 @@
+- Badge's installed tests check theme-token roles rather than assuming every color role is distinct, and ItemGroup's empty-state tests use exact text matches on Vitest 4 and 5.
