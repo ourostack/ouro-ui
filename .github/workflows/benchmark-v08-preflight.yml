@@ -1,0 +1,65 @@
+name: Benchmark v0.8 Frozen Baseline Preflight
+on:
+  push:
+    branches: [probe/benchmark-v08-preflight]
+permissions:
+  contents: read
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        arm: [shadcn, shadcn-skill]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Check unchanged harness and baseline before scoring
+        shell: bash
+        env:
+          ARM: ${{ matrix.arm }}
+        run: |
+          set -euo pipefail
+          mkdir -p "preflight-evidence/$ARM"
+          git rev-parse HEAD > "preflight-evidence/$ARM/source.txt"
+          git diff 82bef5517790d3b46d136c4fe59d134a5e2d99e0 -- scripts/agent-usability test/install-fixture > "preflight-evidence/$ARM/harness.diff"
+          test ! -s "preflight-evidence/$ARM/harness.diff"
+          export ARM_APP="$RUNNER_TEMP/baseline-$ARM"
+          cp -R "proof/benchmark-baselines/$ARM" "$ARM_APP"
+          (cd "$ARM_APP" && npm ci --ignore-scripts --no-audit --no-fund)
+          node --input-type=module <<'NODE' | tee "preflight-evidence/$ARM/baseline.json"
+          import { createHash } from "node:crypto";
+          import { readFileSync } from "node:fs";
+          import { join } from "node:path";
+          const dir = process.env.ARM_APP;
+          const record = JSON.parse(readFileSync(join(dir, ".agent-usability/arm.json"), "utf8"));
+          if (record.arm !== process.env.ARM) throw new Error("Wrong baseline arm");
+          if (record.arm === "ouro" && record.ouroRef !== "v0.8.0") throw new Error("Ouro must be the actual v0.8.0 baseline");
+          for (const [path, expected] of Object.entries(record.files)) {
+            const actual = createHash("sha256").update(readFileSync(join(dir, path))).digest("hex");
+            if (actual !== expected) throw new Error(`Baseline drift: ${path}`);
+          }
+          console.log(JSON.stringify({ arm: record.arm, ouroRef: record.ouroRef, files: Object.keys(record.files).length, baseline: record.baseline, manifestSha256: createHash("sha256").update(readFileSync(join(dir, ".agent-usability/arm.json"))).digest("hex") }, null, 2));
+          NODE
+          if node scripts/agent-usability/preflight.mts "$ARM_APP" "$RUNNER_TEMP/preflight-$ARM" > "preflight-evidence/$ARM/preflight.log" 2>&1; then code=0; else code=$?; fi
+          printf '%s\n' "$code" > "preflight-evidence/$ARM/preflight.exit"
+          cat "preflight-evidence/$ARM/preflight.log"
+          exit "$code"
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: benchmark-v08-preflight-${{ matrix.arm }}
+          path: |
+            preflight-evidence/
+            ${{ runner.temp }}/preflight-${{ matrix.arm }}/score/
+          if-no-files-found: error
