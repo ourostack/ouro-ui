@@ -21,6 +21,7 @@ import { registerSheetProperties } from "@/registry/ouro/components/ouro/sheet/s
 import { Sheet, type SheetProps } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pageCss } from "@/registry/ouro/lib/ouro/testing/page-css";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 // Drag and velocity tests run in Chromium only (plan amendment): WebKit drag is covered
 // by the recorded feel check. Everything else runs in Chromium and WebKit at 390x844.
@@ -549,8 +550,9 @@ describe("dragging (Chromium)", () => {
     await settled();
     const sheet = popup()!;
     const seen: string[] = [];
-    for (let i = 0; i < 4; i++) {
-      await userEvent.keyboard("{Tab}");
+    for (const name of ["First", "Second", "Close", "First"]) {
+      await pressTab();
+      await expect.poll(() => document.activeElement?.textContent).toBe(name);
       expect(sheet.contains(document.activeElement)).toBe(true);
       seen.push(document.activeElement!.textContent ?? "");
     }

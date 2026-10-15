@@ -42,7 +42,7 @@ async function render(node: ReactNode, dir?: "rtl") {
   if (!root) {
     host = document.createElement("div");
     host.style.width = "360px";
-    if (dir) host.dir = dir;
+    host.dir = dir ?? "ltr";
     document.body.append(host);
     nodes.push(host);
     root = createRoot(host);
