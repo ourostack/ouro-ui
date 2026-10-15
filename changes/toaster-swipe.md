@@ -1,1 +1,0 @@
-- Toasts set `touch-action: none`, so on a scrollable page a swipe dismisses the toast instead of scrolling the page and cancelling the swipe.
