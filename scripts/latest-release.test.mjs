@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, readFileSync, renameSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -113,4 +113,8 @@ test("the release commit names only its own tag: release.yml's release-branch co
   const readmeTests = spawnSync(process.execPath, ["--test", "--test-reporter=tap", "scripts/readme-steps.test.mjs"], { cwd: copy, encoding: "utf8", env });
   assert.equal(readmeTests.status, 0, readmeTests.stdout + readmeTests.stderr);
   assert.match(readmeTests.stdout, /^ok \d+ - dialog alone does not bring OuroProvider, which is why the README adds it by name$/m);
+  // Prepare main consumes these fragments; the durable upgrade contract must still pass.
+  renameSync(join(copy, "changes"), join(mkdtempSync(join(tmpdir(), "ouro-consumed-changes-")), "changes"));
+  const upgradeTests = spawnSync(process.execPath, ["--test", "--test-reporter=tap", "scripts/upgrade-note.test.mjs"], { cwd: copy, encoding: "utf8", env });
+  assert.equal(upgradeTests.status, 0, upgradeTests.stdout + upgradeTests.stderr);
 });
