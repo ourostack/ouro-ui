@@ -284,11 +284,16 @@ describe("Combobox on a phone", () => {
     expect(onValueChange).not.toHaveBeenCalled();
   });
 
-  it.each([false, true])("restores an uncontrolled custom default on native form reset (sheet=%s)", async (portrait) => {
+  it.each([
+    [false, "Italian", "Italian"],
+    [true, "Italian", "Italian"],
+    [false, undefined, ""],
+    [true, undefined, ""],
+  ] as const)("restores an uncontrolled custom default on native form reset (sheet=%s, default=%s)", async (portrait, defaultValue, expected) => {
     await rotate(portrait ? 390 : 844, portrait ? 844 : 390);
     const onValueChange = vi.fn();
     const host = await render(
-      <form><Combobox label="Cuisine" name="cuisine" allowCustomValue defaultValue="Italian" items={["Italian"]} onValueChange={onValueChange} /></form>,
+      <form><Combobox label="Cuisine" name="cuisine" allowCustomValue defaultValue={defaultValue} items={["Italian"]} placeholder="Any cuisine" onValueChange={onValueChange} /></form>,
     );
     if (portrait) {
       await commands.tap(TRIGGER);
@@ -303,8 +308,10 @@ describe("Combobox on a phone", () => {
     const form = host.querySelector("form")!;
     expect(new FormData(form).get("cuisine")).toBe("Sushi");
     await act(async () => form.reset());
-    await expect.poll(() => new FormData(form).get("cuisine")).toBe("Italian");
-    expect(onValueChange).toHaveBeenLastCalledWith("Italian");
+    await expect.poll(() => new FormData(form).get("cuisine")).toBe(expected);
+    if (portrait) expect(host.querySelector(TRIGGER)!.textContent).toContain(expected || "Any cuisine");
+    else expect(host.querySelector<HTMLInputElement>('input[role="combobox"]')!.value).toBe(expected);
+    expect(onValueChange).toHaveBeenLastCalledWith(expected);
   });
 
   it("resets an unnamed uncontrolled custom field without needing an onValueChange callback", async () => {

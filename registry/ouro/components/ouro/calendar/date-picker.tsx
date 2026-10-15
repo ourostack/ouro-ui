@@ -313,7 +313,7 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
     restoreRef.current = restore;
     // Native reset needs defaults distinct from the current React-owned draft and ISO value.
     if (backingRef.current) backingRef.current.value = iso;
-    if (inputRef.current) inputRef.current.defaultValue = touch ? resetDate : formatDateInput(resetDate, locale);
+    inputRef.current!.defaultValue = touch ? resetDate : formatDateInput(resetDate, locale);
   });
   const lastReset = useRef<Event | undefined>(undefined);
   useEffect(() => {
