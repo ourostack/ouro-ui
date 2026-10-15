@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { setImmediate } from "node:timers";
 import vm from "node:vm";
-import { touchStep } from "../registry/ouro/lib/ouro/testing/commands.ts";
+import { touchDrag, touchStep } from "../registry/ouro/lib/ouro/testing/commands.ts";
 
 const drain = () => new Promise((resolve) => setImmediate(resolve));
 
@@ -87,6 +87,43 @@ function frozenFrame({ unreachableOtherFrame = false } = {}) {
       if (!value) unreachable = false;
     },
   };
+}
+
+for (const durationMs of [undefined, 600]) {
+  test(`touchDrag ${durationMs === undefined ? "keeps untimed input sequential" : "queues timed input before waiting for replies"}`, async () => {
+    const h = frozenFrame();
+    const session = await h.ctx.page.context().newCDPSession();
+    const send = session.send.bind(session);
+    let release;
+    const reply = new Promise((resolve) => { release = resolve; });
+    const packets = [];
+    session.send = async (method, params) => {
+      if (method === "Input.dispatchTouchEvent") packets.push(params);
+      const value = await send(method, params);
+      if (method === "Input.dispatchTouchEvent" && params.type === "touchStart") await reply;
+      return value;
+    };
+    let completed = false;
+    const pending = touchDrag(h.ctx, { from: [100, 100], to: [140, 100], steps: 10, ...(durationMs === undefined ? {} : { durationMs }) });
+    void pending.then(() => { completed = true; });
+    try {
+      await drain();
+      const types = ["touchStart", ...Array(10).fill("touchMove"), "touchEnd"];
+      assert.deepEqual(packets.map((packet) => packet.type), durationMs === undefined ? ["touchStart"] : types);
+      assert.equal(completed, false, "the command must await the delayed reply even when the page saw touchEnd");
+      if (durationMs !== undefined) {
+        assert.equal(packets.at(-1).timestamp, packets[0].timestamp + durationMs / 1000);
+        assert.deepEqual(packets.at(-2).touchPoints, [{ x: 140, y: 100, id: 1 }]);
+        assert.deepEqual(packets.at(-1).touchPoints, []);
+      }
+    } finally {
+      release();
+      await pending;
+    }
+    assert.equal(h.view.__ouroTouch, undefined);
+    assert.equal(h.subscriptions.size, 0);
+    if (durationMs === undefined) assert.ok(packets.every((packet) => !Object.hasOwn(packet, "timestamp")));
+  });
 }
 
 test("touchStep rejects unknown first-move observations instead of declaring Chromium slop", async () => {

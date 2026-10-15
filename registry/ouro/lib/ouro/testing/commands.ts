@@ -501,6 +501,9 @@ export interface TouchDragOptions {
  * and touch events, as from a phone: a swipe to dismiss. Needs a context with
  * `hasTouch`, as in the `touch` project. Coordinates are relative to the top-level page.
  * It resolves once the page has handled the whole gesture, touchend included.
+ * With `durationMs`, it queues the whole timed path before waiting for protocol replies:
+ * delayed acknowledgments must not turn its first small moves into a long press.
+ * Use `touchStep` when the finger should actually stay down between commands.
  *
  * Before the touch it waits until the frame at `from` has the kit's watcher, up to 5 seconds,
  * and throws naming that frame if it never does. Then it waits up to 5 seconds for the page to
@@ -527,12 +530,19 @@ export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from,
     });
   await releaseFinger("touchDrag", page, session);
   await sendTouch("touchDrag", page, session, { type: "touchEnd", x: to[0], y: to[1] }, { point: { x: from[0], y: from[1] } }, async () => {
-    await touch("touchStart", from, 0);
+    const deliveries: Promise<unknown>[] = [];
+    const send = async (type: "touchStart" | "touchMove" | "touchEnd", point: [number, number], t: number) => {
+      const delivery = touch(type, point, t);
+      if (durationMs === undefined) await delivery;
+      else deliveries.push(delivery);
+    };
+    await send("touchStart", from, 0);
     for (let step = 1; step <= steps; step++) {
       const t = step / steps;
-      await touch("touchMove", [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t], t);
+      await send("touchMove", [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t], t);
     }
-    await touch("touchEnd", to, 1);
+    await send("touchEnd", to, 1);
+    await Promise.all(deliveries);
   });
 };
 

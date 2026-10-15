@@ -81,6 +81,7 @@ case "$arm" in
     [ "${#items[@]}" -gt 0 ] || { echo "registry.json at $ouro_ref lists no component"; exit 1; }
     addresses=()
     for item in "${items[@]}"; do addresses+=("ourostack/ouro-ui/$item#$ouro_ref"); done
+    "${shadcn[@]}" add --yes "ourostack/ouro-ui/ouro-base#$ouro_ref"
     "${shadcn[@]}" add --yes "${addresses[@]}"
     llms="$raw/site/public/llms.txt"
     echo "::endgroup::"
