@@ -31,12 +31,12 @@ jobs:
           set -euo pipefail
           pnpm add -Dw --save-exact "vitest@$VITEST" "@vitest/browser-playwright@$VITEST" "@vitest/coverage-istanbul@$VITEST" "@playwright/test@1.64.0" "playwright@1.64.0" 2>&1 | tee contract-evidence/toolchain.log
       - run: pnpm exec playwright install --with-deps chromium webkit
-      - name: Qualify the fixed fixtures and real frame-queued focus
+      - name: Prove permanent RTL geometry cases before changing runtime alignment
         shell: bash
         run: |
           set -euo pipefail
-          git merge-base --is-ancestor aab1129cfecf7c889ef2b62d7d665c310562f668 HEAD
-          git diff aab1129cfecf7c889ef2b62d7d665c310562f668 -- registry registry.json scripts test changes > contract-evidence/candidate.diff
+          git merge-base --is-ancestor 80cb91815feb73bbe94963acf60f8c89aa9ee628 HEAD
+          git diff 80cb91815feb73bbe94963acf60f8c89aa9ee628 -- registry registry.json scripts test changes > contract-evidence/candidate.diff
           test ! -s contract-evidence/candidate.diff
           sha256sum registry/ouro/components/ouro/swipe-actions/{swipe-actions.tsx,swipe-actions.test.tsx} registry/ouro/components/ouro/sheet/{sheet.tsx,sheet.test.tsx} proof/native-sheet-focus-boundary.test.tsx proof/native-input-rtl.ts proof/native-input-contracts.config.ts > contract-evidence/digests.txt
           pnpm list vitest @vitest/browser-playwright playwright --depth 0 --json > contract-evidence/tools.json
