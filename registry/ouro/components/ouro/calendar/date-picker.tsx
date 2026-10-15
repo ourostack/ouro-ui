@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ChangeEvent, type JSX, type MouseEvent, type ReactNode, type Ref } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ChangeEvent, type JSX, type MouseEvent, type ReactNode, type Ref } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Calendar } from "@/registry/ouro/components/ouro/calendar/calendar";
 import { isIsoDate, isoWarning } from "@/registry/ouro/components/ouro/calendar/calendar-styles";
@@ -19,7 +19,7 @@ import {
 } from "@/registry/ouro/components/ouro/popover/popover-parts";
 import { endSlotClass, groupClass, inputClass } from "@/registry/ouro/components/ouro/text-field/text-field-styles";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
-import { FieldOwnerContext, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
+import { FieldOwnerContext, useFormErrors, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
 
@@ -229,28 +229,39 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
   // A touch screen gets the phone's own picker; the server renders the text box and calendar.
   const touch = useMediaQuery("(pointer: coarse)", false);
 
-  // Values that are not ISO dates (a dev warning) count as no date.
-  const [own, setOwn] = useState(() => (isIsoDate(defaultValue) ? defaultValue : ""));
-  const controlled = value !== undefined;
-  const iso = controlled ? (isIsoDate(value) ? value : "") : own;
-  const commit = (next: string) => {
-    if (next === iso) return;
-    if (!controlled) setOwn(next);
-    onValueChange?.(next);
-  };
-
   const low = isIsoDate(min) ? min : undefined;
   const high = isIsoDate(max) ? max : undefined;
   const inRange = (date: string) => !(low && date < low) && !(high && date > high);
   /** The value a date stands for: itself when it is an allowed one, else `""`. */
-  const allowedOrEmpty = (date: string | null) => (date !== null && inRange(date) && !isDateDisabled?.(date) ? date : "");
+  const allowedOrEmpty = (date: string | null) => (date !== null && date !== "" && inRange(date) && !isDateDisabled?.(date) ? date : "");
+  const defaultDate = isIsoDate(defaultValue) ? defaultValue : "";
+  // An invalid default remains visible as a draft, but is not a submitted date.
+  const [own, setOwn] = useState(() => allowedOrEmpty(defaultDate));
+  const controlled = value !== undefined;
+  const iso = controlled ? (isIsoDate(value) ? value : "") : own;
+  const currentIso = useRef(iso);
+  const formErrors = useFormErrors();
+  const report = (next: string) => {
+    if (name !== undefined) formErrors?.clear(name);
+    onValueChange?.(next);
+  };
+  const commit = (next: string) => {
+    if (next === currentIso.current) return;
+    if (!controlled) {
+      currentIso.current = next;
+      setOwn(next);
+    }
+    report(next);
+  };
+
   /** The value a typed text stands for. */
   const valueOf = (typedText: string) => allowedOrEmpty(parseDateInput(typedText, locale));
 
   // What the phone's own picker shows: the date the user chose, which may not be an allowed one.
-  const [chosen, setChosen] = useState(iso);
+  const initialDate = controlled ? iso : defaultDate;
+  const [chosen, setChosen] = useState(initialDate);
   // What the text box shows. A new value from outside rewrites it, unless it already stands for that value.
-  const [text, setText] = useState(() => formatDateInput(iso, locale));
+  const [text, setText] = useState(() => formatDateInput(initialDate, locale));
   const [shown, setShown] = useState(`${iso} ${locale}`);
   if (shown !== `${iso} ${locale}`) {
     setShown(`${iso} ${locale}`);
@@ -282,9 +293,51 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
     commit(held);
   });
 
+  const backingRef = useRef<HTMLInputElement>(null);
+  const resetDate = controlled ? iso : defaultDate;
+  const resetIso = controlled ? iso : allowedOrEmpty(resetDate);
+  const restore = () => {
+    const changed = resetIso !== currentIso.current;
+    lastHeld.current = allowedOrEmpty(resetDate);
+    if (!controlled) {
+      currentIso.current = resetIso;
+      setOwn(resetIso);
+    }
+    setText(formatDateInput(resetDate, locale));
+    setChosen(resetDate);
+    if (!controlled && changed) report(resetIso);
+  };
+  const restoreRef = useRef(restore);
+  useLayoutEffect(() => {
+    currentIso.current = iso;
+    restoreRef.current = restore;
+    // Native reset needs defaults distinct from the current React-owned draft and ISO value.
+    if (backingRef.current) backingRef.current.value = iso;
+    inputRef.current!.defaultValue = touch ? resetDate : formatDateInput(resetDate, locale);
+  });
+  const lastReset = useRef<Event | undefined>(undefined);
+  useEffect(() => {
+    const input = inputRef.current;
+    const form = input?.form;
+    if (!form) return;
+    const reset = (event: Event) => {
+      lastReset.current = event;
+      queueMicrotask(() => {
+        if (lastReset.current !== event) return;
+        lastReset.current = undefined;
+        // Observe cancellation after propagation; a later edit or replacement wins over this reset.
+        const current = inputRef.current;
+        if (!event.defaultPrevented && event.target === form && current === input && current.value === current.defaultValue) restoreRef.current();
+      });
+    };
+    form.addEventListener("reset", reset);
+    return () => form.removeEventListener("reset", reset);
+  }, [touch]);
+
   // A typed date outside min and max, or one isDateDisabled names, is not a value: the field
   // reports `""` and shows why, as the browser blocks the submit.
   const onType = (event: ChangeEvent<HTMLInputElement>) => {
+    lastReset.current = undefined;
     const next = event.currentTarget.value;
     setText(next);
     commit(valueOf(next));
@@ -297,6 +350,7 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
   const [open, setOpen] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
   const pick = (date: string) => {
+    lastReset.current = undefined;
     commit(date);
     setText(formatDateInput(date, locale));
     setOpen(false);
@@ -334,11 +388,12 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
               max={high}
               readOnly={readOnly}
               onChange={(event) => {
+                lastReset.current = undefined;
                 const next = event.currentTarget.value;
                 setChosen(next);
                 commit(allowedOrEmpty(isIsoDate(next) ? next : null));
               }}
-              render={(controlProps) => <input {...controlProps} className={inputClass} />}
+              render={(controlProps) => <input {...controlProps} name={undefined} className={inputClass} />}
             />
           ) : (
             <>
@@ -355,7 +410,6 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
                 onBlur={tidy}
                 render={(controlProps) => <input {...controlProps} name={undefined} className={inputClass} />}
               />
-              {name !== undefined && <input type="hidden" name={name} value={iso} disabled={disabled} />}
               <span className={endSlotClass}>
                 <PopoverRoot open={open} onOpenChange={setOpen}>
                   <PopoverTrigger
@@ -414,6 +468,7 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
               </span>
             </>
           )}
+          {name !== undefined && <input ref={backingRef} type="text" hidden readOnly name={name} defaultValue={resetIso} disabled={disabled} />}
         </div>
       </Field>
     </FieldOwnerContext.Provider>

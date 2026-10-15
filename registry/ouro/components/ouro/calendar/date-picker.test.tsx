@@ -1,9 +1,11 @@
 import { createRef, useState, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
+import { flushSync } from "react-dom";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { DatePicker, type DatePickerProps } from "@/registry/ouro/components/ouro/calendar/date-picker";
+import { Form } from "@/registry/ouro/components/ouro/form/form";
 import { formatDateInput, parseDateInput } from "@/registry/ouro/components/ouro/calendar/date-picker-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
@@ -116,7 +118,7 @@ describe("DatePicker", () => {
     expect(input.hasAttribute("aria-invalid")).toBe(false);
     expect(input.disabled).toBe(true);
     expect(trigger().disabled).toBe(true);
-    expect(host.querySelector<HTMLInputElement>("input[type=hidden]")!.disabled).toBe(true);
+    expect(host.querySelector<HTMLInputElement>("input[hidden]")!.disabled).toBe(true);
   });
 
   it("puts the description and error ids and aria-invalid in the server HTML, and hydrates cleanly", async () => {
@@ -131,7 +133,7 @@ describe("DatePicker", () => {
     expect(ids.map((id) => host.querySelector(`#${CSS.escape(id)}`)!.textContent)).toEqual(["Weekdays only.", "Pick a date."]);
     expect(input.getAttribute("aria-invalid")).toBe("true");
     expect(input.value).toBe("10/11/2026");
-    expect(host.querySelector<HTMLInputElement>("input[type=hidden]")!.value).toBe("2026-10-11");
+    expect(host.querySelector<HTMLInputElement>("input[hidden]")!.value).toBe("2026-10-11");
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const recoverable = vi.fn();
     await act(async () => {
@@ -140,6 +142,190 @@ describe("DatePicker", () => {
     expect(recoverable).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
     expect(describedBy(input)).toEqual(ids);
+  });
+
+  it.each(["2026-10-11", undefined])("restores the uncontrolled default on native reset (%s), including immediately submitted data", async (defaultValue) => {
+    const onValueChange = vi.fn();
+    const { host, input } = await render(
+      <form><DatePicker label="Date" name="date" defaultValue={defaultValue} onValueChange={onValueChange} /></form>,
+    );
+    const form = host.querySelector("form")!;
+    await userEvent.fill(input, "10/14/2026");
+    expect(submitted(form).date).toBe("2026-10-14");
+    let atReset: FormDataEntryValue | undefined;
+    await act(async () => {
+      form.reset();
+      atReset = submitted(form).date;
+    });
+    expect(atReset).toBe(defaultValue ?? "");
+    expect(input.value).toBe(defaultValue ? "10/11/2026" : "");
+    expect(submitted(form).date).toBe(defaultValue ?? "");
+    expect(onValueChange).toHaveBeenLastCalledWith(defaultValue ?? "");
+    expect(input.validity.valid).toBe(true);
+  });
+
+  it("drops an invalid draft on reset without recommitting it on the next render", async () => {
+    const node = <form><DatePicker label="Date" name="date" defaultValue="2026-10-11" /></form>;
+    const { host, input, rerender } = await render(node);
+    await userEvent.fill(input, "not a date");
+    expect(input.validity.customError).toBe(true);
+    await act(async () => host.querySelector("form")!.reset());
+    await rerender(node);
+    expect(input.value).toBe("10/11/2026");
+    expect(input.validity.valid).toBe(true);
+    expect(submitted(host.querySelector("form")!).date).toBe("2026-10-11");
+  });
+
+  it("leaves the edited value and draft alone when reset is prevented", async () => {
+    const { host, input } = await render(
+      <form onReset={(event) => event.preventDefault()}><DatePicker label="Date" name="date" defaultValue="2026-10-11" /></form>,
+    );
+    await userEvent.fill(input, "10/14/2026");
+    await act(async () => host.querySelector("form")!.reset());
+    expect(input.value).toBe("10/14/2026");
+    expect(submitted(host.querySelector("form")!).date).toBe("2026-10-14");
+  });
+
+  it("keeps a controlled value owned by the app when the form resets", async () => {
+    const onValueChange = vi.fn();
+    const { host, input } = await render(
+      <form><DatePicker label="Date" name="date" value="2026-10-14" defaultValue="2026-10-11" onValueChange={onValueChange} /></form>,
+    );
+    await act(async () => host.querySelector("form")!.reset());
+    expect(input.value).toBe("10/14/2026");
+    expect(submitted(host.querySelector("form")!).date).toBe("2026-10-14");
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
+  it("preserves separate same-name ISO entries and hides readonly backing controls from focus", async () => {
+    const { host } = await render(
+      <form>
+        <DatePicker label="First date" name="dates" defaultValue="2026-10-11" />
+        <DatePicker label="Second date" name="dates" defaultValue="2026-10-20" />
+      </form>,
+    );
+    await userEvent.fill(page.getByRole("textbox", { name: "First date" }), "10/14/2026");
+    await userEvent.fill(page.getByRole("textbox", { name: "Second date" }), "10/22/2026");
+    const form = host.querySelector("form")!;
+    let immediate: FormDataEntryValue[] = [];
+    await act(async () => { form.reset(); immediate = new FormData(form).getAll("dates"); });
+    expect(immediate).toEqual(["2026-10-11", "2026-10-20"]);
+    expect(new FormData(form).getAll("dates")).toEqual(immediate);
+    const active = document.activeElement;
+    for (const backing of host.querySelectorAll<HTMLInputElement>("input[hidden]")) {
+      expect(backing.readOnly).toBe(true);
+      backing.focus();
+      expect(document.activeElement).toBe(active);
+    }
+  });
+
+  it("observes reset cancellation by a later native document listener", async () => {
+    const { host, input } = await render(<form><DatePicker label="Date" name="date" defaultValue="2026-10-11" /></form>);
+    await userEvent.fill(input, "10/14/2026");
+    const prevent = (event: Event) => event.preventDefault();
+    document.addEventListener("reset", prevent);
+    try {
+      await act(async () => host.querySelector("form")!.reset());
+    } finally {
+      document.removeEventListener("reset", prevent);
+    }
+    expect(input.value).toBe("10/14/2026");
+    expect(submitted(host.querySelector("form")!).date).toBe("2026-10-14");
+  });
+
+  it("keeps a new input that arrives after native reset but before its queued state synchronization", async () => {
+    const onValueChange = vi.fn();
+    const { host, input } = await render(<form><DatePicker label="Date" name="date" defaultValue="2026-10-11" onValueChange={onValueChange} /></form>);
+    await userEvent.fill(input, "10/14/2026");
+    onValueChange.mockClear();
+    await act(async () => {
+      host.querySelector("form")!.reset();
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, "10/20/2026");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    expect(input.value).toBe("10/20/2026");
+    expect(submitted(host.querySelector("form")!).date).toBe("2026-10-20");
+    expect(onValueChange.mock.calls).toEqual([["2026-10-20"]]);
+  });
+
+  it("coalesces successive resets without reporting the same value twice", async () => {
+    const onValueChange = vi.fn();
+    const { host, input } = await render(<form><DatePicker label="Date" name="date" defaultValue="2026-10-11" onValueChange={onValueChange} /></form>);
+    await userEvent.fill(input, "10/14/2026");
+    onValueChange.mockClear();
+    await act(async () => { host.querySelector("form")!.reset(); host.querySelector("form")!.reset(); });
+    expect(input.value).toBe("10/11/2026");
+    expect(onValueChange.mock.calls).toEqual([["2026-10-11"]]);
+  });
+
+  it("does not synchronize an input that was unmounted during reset", async () => {
+    const { host, input } = await render(<form><DatePicker label="Date" name="date" defaultValue="2026-10-11" /></form>);
+    await userEvent.fill(input, "10/14/2026");
+    await act(async () => { host.querySelector("form")!.reset(); flushSync(() => roots[0]!.render(<form />)); });
+    expect(host.querySelector("input")).toBeNull();
+  });
+
+  it.each(["min", "disabled"])("restores a now-disallowed default as an invalid draft, not a submitted date (%s)", async (constraint) => {
+    const node = (limited: boolean) => (
+      <form><DatePicker label="Date" name="date" defaultValue="2026-10-11"
+        min={limited && constraint === "min" ? "2026-10-15" : undefined}
+        isDateDisabled={limited && constraint === "disabled" ? (date) => date === "2026-10-11" : undefined} /></form>
+    );
+    const { host, input, rerender } = await render(node(false));
+    await userEvent.fill(input, "10/20/2026");
+    await rerender(node(true));
+    await act(async () => host.querySelector("form")!.reset());
+    expect(input.value).toBe("10/11/2026");
+    expect(input.validity.customError).toBe(true);
+    expect(submitted(host.querySelector("form")!).date).toBe("");
+    expect(host.querySelector("form")!.checkValidity()).toBe(false);
+  });
+
+  it("keeps a disallowed initial default visible but empty in both server and client submission controls", async () => {
+    const node = <form><DatePicker label="Date" name="date" defaultValue="2026-10-11" min="2026-10-15" /></form>;
+    const server = document.createElement("div");
+    server.innerHTML = renderToString(node);
+    expect(new FormData(server.querySelector("form")!).get("date")).toBe("");
+    const { host, input } = await render(node);
+    expect(input.value).toBe("10/11/2026");
+    expect(input.validity.customError).toBe(true);
+    expect(submitted(host.querySelector("form")!).date).toBe("");
+  });
+
+  it("clears a form-owned field refusal when a calendar pick changes its value", async () => {
+    const { host, input } = await render(
+      <Form errors={{ date: "Choose another date." }}><DatePicker label="Date" name="date" defaultValue="2026-10-11" /></Form>,
+    );
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+    await open();
+    await userEvent.click(day("2026-10-20"));
+    await expect.poll(() => popup()).toBeNull();
+    expect(input.getAttribute("aria-invalid")).toBeNull();
+    expect(submitted(host.querySelector("form")!).date).toBe("2026-10-20");
+  });
+
+  it("clears a current form refusal when reset changes the submitted value", async () => {
+    const node = (refused: boolean) => (
+      <Form errors={refused ? { date: "Choose another date." } : undefined}>
+        <DatePicker label="Date" name="date" defaultValue="2026-10-11" />
+      </Form>
+    );
+    const { host, input, rerender } = await render(node(false));
+    await userEvent.fill(input, "10/20/2026");
+    await rerender(node(true));
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+    await act(async () => host.querySelector("form")!.reset());
+    expect(submitted(host.querySelector("form")!).date).toBe("2026-10-11");
+    expect(input.getAttribute("aria-invalid")).toBeNull();
+  });
+
+  it("ignores another form's reset bubbling through its owning form", async () => {
+    const { host, input } = await render(<form><DatePicker label="Date" name="date" defaultValue="2026-10-11" /></form>);
+    const other = document.createElement("form");
+    host.querySelector("form")!.append(other);
+    await act(async () => other.reset());
+    expect(input.value).toBe("10/11/2026");
+    expect(submitted(host.querySelector("form")!).date).toBe("2026-10-11");
   });
 
   describe("the calendar popover", () => {
@@ -411,21 +597,26 @@ describe("DatePicker", () => {
       stubTouch();
       const onValueChange = vi.fn();
       const { host, input } = await render(
-        <DatePicker label="Date" name="date" defaultValue="2026-10-11" min="2026-10-01" max="2026-10-31" onValueChange={onValueChange} error="Pick a date." />,
+        <form><DatePicker label="Date" name="date" defaultValue="2026-10-11" min="2026-10-01" max="2026-10-31" onValueChange={onValueChange} error="Pick a date." /></form>,
       );
       expect(input.type).toBe("date");
       expect(input.value).toBe("2026-10-11");
       expect(input.min).toBe("2026-10-01");
       expect(input.max).toBe("2026-10-31");
-      expect(input.name).toBe("date");
+      expect(input.name).toBe("");
       expect(input.getAttribute("aria-invalid")).toBe("true");
       expect(host.querySelector("button")).toBeNull();
-      expect(host.querySelector("input[type=hidden]")).toBeNull();
+      const backing = host.querySelector<HTMLInputElement>("input[hidden]")!;
+      expect(backing.readOnly).toBe(true);
+      expect(backing.name).toBe("date");
+      expect(backing.value).toBe("2026-10-11");
+      expect(new FormData(host.querySelector("form")!).getAll("date")).toEqual(["2026-10-11"]);
       await act(async () => {
         Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, "2026-10-12");
         input.dispatchEvent(new Event("input", { bubbles: true }));
       });
       expect(onValueChange).toHaveBeenCalledWith("2026-10-12");
+      expect(new FormData(host.querySelector("form")!).getAll("date")).toEqual(["2026-10-12"]);
     });
 
     it("links the description and error to the native input", async () => {

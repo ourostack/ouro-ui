@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type JSX, type MouseEvent, type ReactElement, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, type JSX, type MouseEvent, type ReactElement, type ReactNode } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
 import { checkOpenMode } from "@/registry/ouro/lib/ouro/open-mode";
@@ -9,6 +9,7 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { DialogFrame } from "@/registry/ouro/components/ouro/dialog/dialog";
 import { Form, type FormErrors } from "@/registry/ouro/components/ouro/form/form";
 import { sheetHint } from "@/registry/ouro/components/ouro/sheet/sheet-styles";
+import { formErrors } from "@/registry/ouro/lib/ouro/form-answer";
 
 /**
  * Pressing Save or Cancel leaves focus in the field. On a phone, focus leaving the field
@@ -221,7 +222,7 @@ export function EditSheet(props: EditSheetProps): JSX.Element {
   const [ownOpen, setOwnOpen] = useState(false);
   const controlled = open !== undefined;
   const shown = controlled ? open : ownOpen;
-  const [errors, setErrors] = useState<FormErrors | undefined>();
+  const [answer, setAnswer] = useState<{ key: number; errors: FormErrors | undefined }>({ key: 0, errors: undefined });
   const [pending, setPending] = useState(false);
   const [confirming, setConfirming] = useState(false);
   // Each opening starts clean, however it opened (the app may set `open` itself).
@@ -232,7 +233,7 @@ export function EditSheet(props: EditSheetProps): JSX.Element {
   if (shown !== wasShown) {
     setWasShown(shown);
     if (shown) setOpening(opening + 1);
-    setErrors(undefined);
+    setAnswer((previous) => ({ ...previous, errors: undefined }));
     setPending(false);
     setConfirming(false);
   }
@@ -241,16 +242,13 @@ export function EditSheet(props: EditSheetProps): JSX.Element {
   // opening's form first mounts, so a render after an edit (a controlled field, a save that
   // failed) keeps the opening's values; a resize that swaps the dialog for the sheet mounts
   // a new form without retaking it. Closing clears it for the next opening.
-  const initial = useRef<string | undefined>(undefined);
+  const initial = useRef<{ opening: number; values: string } | undefined>(undefined);
   const formRef = useCallback((form: HTMLFormElement | null) => {
-    if (form && initial.current === undefined) initial.current = serialize(form);
-  }, []);
-  useEffect(() => {
-    if (!shown) initial.current = undefined;
-  }, [shown]);
+    if (form && initial.current?.opening !== opening) initial.current = { opening, values: serialize(form) };
+  }, [opening]);
   const edited = () => {
     const form = document.getElementById(formId) as HTMLFormElement | null;
-    return form !== null && serialize(form) !== initial.current;
+    return form !== null && serialize(form) !== initial.current?.values;
   };
   const keepRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -259,8 +257,10 @@ export function EditSheet(props: EditSheetProps): JSX.Element {
   // Each open and close bumps the attempt, so a save that settles after the user left
   // (Cancel, Escape) neither closes nor marks a sheet they have since reopened.
   const attempt = useRef(0);
-  useEffect(() => {
-    attempt.current++;
+  useLayoutEffect(() => {
+    const lifetime = attempt;
+    lifetime.current++;
+    return () => { lifetime.current++; };
   }, [shown]);
   const warnKey = useRef({});
 
@@ -283,14 +283,16 @@ export function EditSheet(props: EditSheetProps): JSX.Element {
   };
 
   // Nothing (or no errors) closes the sheet; errors stay on the fields, focus on the first.
+  const refuse = (errors: FormErrors) => setAnswer((previous) => ({ key: previous.key + 1, errors }));
   const finish = (result: EditSheetResult) => {
-    if (hasErrors(result)) setErrors(result);
+    if (hasErrors(result)) refuse(result);
     else setOpen(false);
   };
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (pending) return;
+    const current = attempt.current;
     let result: EditSheetResult | Promise<EditSheetResult>;
     try {
       result = onSubmit(new FormData(event.currentTarget));
@@ -299,11 +301,10 @@ export function EditSheet(props: EditSheetProps): JSX.Element {
       result = Promise.reject(error);
     }
     if (!(result instanceof Promise)) {
-      finish(result);
+      if (attempt.current === current) finish(result);
       return;
     }
-    const current = attempt.current;
-    setPending(true);
+    if (attempt.current === current) setPending(true);
     result.then(
       (value) => {
         if (attempt.current !== current) return;
@@ -314,7 +315,7 @@ export function EditSheet(props: EditSheetProps): JSX.Element {
         const stale = attempt.current !== current;
         if (!stale) {
           setPending(false);
-          setErrors({ form: failureMessage });
+          refuse({ form: failureMessage });
         }
         /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
         if (process.env.NODE_ENV !== "production") {
@@ -374,7 +375,7 @@ export function EditSheet(props: EditSheetProps): JSX.Element {
         )
       }
     >
-      <Form key={opening} ref={formRef} id={formId} errors={errors} onSubmit={submit}>
+      <Form key={opening} ref={formRef} id={formId} errors={formErrors(undefined, answer.errors, { key: answer.key })} onSubmit={submit}>
         {children}
       </Form>
     </DialogFrame>
