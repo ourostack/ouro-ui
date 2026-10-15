@@ -52,6 +52,22 @@ it("keeps the native picker, 16px text and a 44px box on a landscape phone, past
   expect(host.querySelector<HTMLElement>("[data-ouro-input-group]")!.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
 });
 
+it("restores the native picker and its submitted default when the form resets", async () => {
+  const host = await render(<form><DatePicker label="Date" name="date" defaultValue="2026-10-11" /></form>);
+  const input = host.querySelector("input")!;
+  const form = host.querySelector("form")!;
+  await choose(input, "2026-10-14");
+  let atReset: FormDataEntryValue | null = null;
+  await act(async () => {
+    form.reset();
+    atReset = new FormData(form).get("date");
+  });
+  expect(atReset).toBe("2026-10-11");
+  expect(input.value).toBe("2026-10-11");
+  expect(new FormData(form).get("date")).toBe("2026-10-11");
+  expect(input.validity.valid).toBe(true);
+});
+
 /** Sets the native input's value as the phone's picker does. */
 async function choose(input: HTMLInputElement, value: string) {
   await act(async () => {

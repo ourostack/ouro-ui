@@ -142,6 +142,59 @@ describe("DatePicker", () => {
     expect(describedBy(input)).toEqual(ids);
   });
 
+  it.each(["2026-10-11", undefined])("restores the uncontrolled default on native reset (%s), including immediately submitted data", async (defaultValue) => {
+    const onValueChange = vi.fn();
+    const { host, input } = await render(
+      <form><DatePicker label="Date" name="date" defaultValue={defaultValue} onValueChange={onValueChange} /></form>,
+    );
+    const form = host.querySelector("form")!;
+    await userEvent.fill(input, "10/14/2026");
+    expect(submitted(form).date).toBe("2026-10-14");
+    let atReset: FormDataEntryValue | undefined;
+    await act(async () => {
+      form.reset();
+      atReset = submitted(form).date;
+    });
+    expect(atReset).toBe(defaultValue ?? "");
+    expect(input.value).toBe(defaultValue ? "10/11/2026" : "");
+    expect(submitted(form).date).toBe(defaultValue ?? "");
+    expect(onValueChange).toHaveBeenLastCalledWith(defaultValue ?? "");
+    expect(input.validity.valid).toBe(true);
+  });
+
+  it("drops an invalid draft on reset without recommitting it on the next render", async () => {
+    const node = <form><DatePicker label="Date" name="date" defaultValue="2026-10-11" /></form>;
+    const { host, input, rerender } = await render(node);
+    await userEvent.fill(input, "not a date");
+    expect(input.validity.customError).toBe(true);
+    await act(async () => host.querySelector("form")!.reset());
+    await rerender(node);
+    expect(input.value).toBe("10/11/2026");
+    expect(input.validity.valid).toBe(true);
+    expect(submitted(host.querySelector("form")!).date).toBe("2026-10-11");
+  });
+
+  it("leaves the edited value and draft alone when reset is prevented", async () => {
+    const { host, input } = await render(
+      <form onReset={(event) => event.preventDefault()}><DatePicker label="Date" name="date" defaultValue="2026-10-11" /></form>,
+    );
+    await userEvent.fill(input, "10/14/2026");
+    await act(async () => host.querySelector("form")!.reset());
+    expect(input.value).toBe("10/14/2026");
+    expect(submitted(host.querySelector("form")!).date).toBe("2026-10-14");
+  });
+
+  it("keeps a controlled value owned by the app when the form resets", async () => {
+    const onValueChange = vi.fn();
+    const { host, input } = await render(
+      <form><DatePicker label="Date" name="date" value="2026-10-14" defaultValue="2026-10-11" onValueChange={onValueChange} /></form>,
+    );
+    await act(async () => host.querySelector("form")!.reset());
+    expect(input.value).toBe("10/14/2026");
+    expect(submitted(host.querySelector("form")!).date).toBe("2026-10-14");
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
   describe("the calendar popover", () => {
     it("opens on the selected day, and picking a day fills the box, closes and returns focus to the button", async () => {
       const onValueChange = vi.fn();

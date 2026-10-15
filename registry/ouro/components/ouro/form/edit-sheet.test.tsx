@@ -152,6 +152,45 @@ describe("EditSheet", () => {
     expect(popup()!.hasAttribute("data-open")).toBe(true);
   });
 
+  it.each(["fresh", "reused", "async fresh", "async reused"])("restores a cleared field for each accepted equal refusal (%s)", async (mode) => {
+    const refusal = { name: "Taken." };
+    const onSubmit = vi.fn(() => {
+      const answer = mode.endsWith("reused") ? refusal : { ...refusal };
+      return mode.startsWith("async") ? Promise.resolve(answer) : answer;
+    });
+    await open({ onSubmit });
+    await userEvent.click(dialogButton("Save"));
+    await expect.poll(() => field("name").getAttribute("aria-invalid")).toBe("true");
+    await userEvent.fill(page.getByRole("textbox", { name: "Name" }), "Stew");
+    expect(field("name").getAttribute("aria-invalid")).toBeNull();
+    expect(description(field("name"))).not.toContain("Taken.");
+    await userEvent.click(dialogButton("Save"));
+    expect(onSubmit).toHaveBeenCalledTimes(2);
+    await expect.poll(() => field("name").getAttribute("aria-invalid")).toBe("true");
+    expect(description(field("name"))).toContain("Taken.");
+    expect(document.activeElement).toBe(field("name"));
+  });
+
+  it("keeps a field cleared while an equal refusal is pending, then restores it on acceptance", async () => {
+    const first = deferred<FormErrors>();
+    const second = deferred<FormErrors>();
+    const refusal = { name: "Taken." };
+    const onSubmit = vi.fn().mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+    await open({ onSubmit });
+    await userEvent.click(dialogButton("Save"));
+    await act(async () => first.resolve(refusal));
+    await expect.poll(() => field("name").getAttribute("aria-invalid")).toBe("true");
+    await userEvent.fill(page.getByRole("textbox", { name: "Name" }), "Stew");
+    const focus = vi.spyOn(field("name"), "focus");
+    await userEvent.click(dialogButton("Save"));
+    expect(dialogButton("Save").element().getAttribute("aria-busy")).toBe("true");
+    expect(field("name").getAttribute("aria-invalid")).toBeNull();
+    expect(focus).not.toHaveBeenCalled();
+    await act(async () => second.resolve(refusal));
+    await expect.poll(() => field("name").getAttribute("aria-invalid")).toBe("true");
+    expect(focus).toHaveBeenCalledTimes(1);
+  });
+
   it("closes when the returned errors are empty", async () => {
     await open({ onSubmit: () => ({}) });
     await userEvent.click(dialogButton("Save"));
@@ -371,6 +410,40 @@ describe("EditSheet in a page Form (review fix round 1, finding 2)", () => {
 
 describe("EditSheet failures outside a field (review fix round 1, finding 3)", () => {
   const alert = () => popup()!.querySelector<HTMLElement>('[role="alert"]')!;
+
+  it.each(["throw", "reject"])("replaces and focuses the alert for each accepted equal failure (%s)", async (mode) => {
+    const onSubmit = vi.fn(() => {
+      if (mode === "throw") throw new Error("offline");
+      return Promise.reject(new Error("offline"));
+    });
+    await open({ onSubmit });
+    await userEvent.click(dialogButton("Save"));
+    await expect.poll(() => alert()?.textContent).toBe("Couldn't save. Try again.");
+    const first = alert();
+    await userEvent.click(dialogButton("Save"));
+    expect(onSubmit).toHaveBeenCalledTimes(2);
+    await expect.poll(alert).not.toBe(first);
+    expect(alert().textContent).toBe("Couldn't save. Try again.");
+    expect(document.activeElement).toBe(alert());
+  });
+
+  it("keeps the existing failure alert through pending renders and replaces it only when the next rejection arrives", async () => {
+    const first = deferred<void>();
+    const second = deferred<void>();
+    await open({ onSubmit: vi.fn().mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise) });
+    await userEvent.click(dialogButton("Save"));
+    await act(async () => first.reject(new Error("offline")));
+    await expect.poll(() => alert()?.textContent).toBe("Couldn't save. Try again.");
+    const oldAlert = alert();
+    const focus = vi.spyOn(oldAlert, "focus");
+    await userEvent.click(dialogButton("Save"));
+    expect(dialogButton("Save").element().getAttribute("aria-busy")).toBe("true");
+    expect(alert()).toBe(oldAlert);
+    expect(focus).not.toHaveBeenCalled();
+    await act(async () => second.reject(new Error("offline")));
+    await expect.poll(alert).not.toBe(oldAlert);
+    expect(document.activeElement).toBe(alert());
+  });
 
   it("shows the failure message in an alert and focuses it when onSubmit rejects", async () => {
     await open({ onSubmit: () => Promise.reject(new Error("Network down")) });

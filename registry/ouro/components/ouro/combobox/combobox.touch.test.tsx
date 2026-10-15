@@ -237,6 +237,48 @@ describe("Combobox on a phone", () => {
     expect(onValueChange).toHaveBeenLastCalledWith("Thai");
   });
 
+  it.each(["Italian", undefined])("keeps uncontrolled custom edits and clears across both responsive directions (%s)", async (defaultValue) => {
+    await rotate(844, 390);
+    const onValueChange = vi.fn();
+    const host = await render(
+      <form><Combobox label="Cuisine" name="cuisine" allowCustomValue defaultValue={defaultValue} items={["Italian", "Thai"]} placeholder="Any cuisine" onValueChange={onValueChange} /></form>,
+    );
+    const form = host.querySelector("form")!;
+    await userEvent.fill(host.querySelector<HTMLInputElement>('input[role="combobox"]')!, "Sushi");
+    expect(new FormData(form).get("cuisine")).toBe("Sushi");
+    const changes = onValueChange.mock.calls.length;
+    await rotate(390, 844);
+    await expect.poll(() => host.querySelector(TRIGGER)?.textContent).toContain("Sushi");
+    expect(new FormData(form).get("cuisine")).toBe("Sushi");
+    await rotate(844, 390);
+    const input = host.querySelector<HTMLInputElement>('input[role="combobox"]')!;
+    expect(input.value).toBe("Sushi");
+    expect(new FormData(form).get("cuisine")).toBe("Sushi");
+    expect(onValueChange).toHaveBeenCalledTimes(changes);
+    await userEvent.clear(input);
+    const clears = onValueChange.mock.calls.length;
+    await rotate(390, 844);
+    await expect.poll(() => host.querySelector(TRIGGER)?.textContent).toContain("Any cuisine");
+    expect(new FormData(form).get("cuisine")).toBe("");
+    await rotate(844, 390);
+    expect(host.querySelector<HTMLInputElement>('input[role="combobox"]')!.value).toBe("");
+    expect(onValueChange).toHaveBeenCalledTimes(clears);
+  });
+
+  it("keeps an app-controlled custom value and emits no change solely for a responsive swap", async () => {
+    const onValueChange = vi.fn();
+    const host = await render(
+      <form><Combobox label="Cuisine" name="cuisine" allowCustomValue value="Sushi" defaultValue="Italian" items={["Italian"]} onValueChange={onValueChange} /></form>,
+    );
+    expect(host.querySelector(TRIGGER)!.textContent).toContain("Sushi");
+    await rotate(844, 390);
+    expect(host.querySelector<HTMLInputElement>('input[role="combobox"]')!.value).toBe("Sushi");
+    expect(new FormData(host.querySelector("form")!).get("cuisine")).toBe("Sushi");
+    await rotate(390, 844);
+    expect(host.querySelector(TRIGGER)!.textContent).toContain("Sushi");
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
   it("clears typed text to an empty string with allowCustomValue", async () => {
     const onValueChange = vi.fn();
     function Cuisine() {
