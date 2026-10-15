@@ -1,0 +1,1 @@
+- Left and right sheets stay on their named physical edges in RTL layouts without changing content direction, corner shapes or swipe direction.
