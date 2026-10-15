@@ -1,0 +1,110 @@
+name: Frozen v0.8 cohort scores
+on:
+  push:
+    branches: [feat/agent-usability-marketing]
+    paths:
+      - "scripts/agent-usability/runs/**"
+      - "!scripts/agent-usability/runs/**/score/**"
+      - "!scripts/agent-usability/runs/**/results.md"
+permissions:
+  contents: read
+  actions: read
+jobs:
+  score:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        arm: [shadcn, shadcn-skill, ouro]
+        screen: [settings-form, recipe-list, command-palette, confirm-delete, app-shell]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Verify frozen scoring source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff 82bef5517790d3b46d136c4fe59d134a5e2d99e0 -- scripts/agent-usability ':!scripts/agent-usability/page.mts' ':!scripts/agent-usability/runs' test/install-fixture > "$RUNNER_TEMP/harness.diff"
+          test ! -s "$RUNNER_TEMP/harness.diff"
+      - name: Score the three independent builds in this cell
+        shell: bash
+        env:
+          ARM: ${{ matrix.arm }}
+          SCREEN: ${{ matrix.screen }}
+        run: |
+          set -euo pipefail
+          DATE=$(node --input-type=module -e 'import {readdirSync} from "node:fs"; const date=readdirSync("scripts/agent-usability/runs").filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x)).sort().at(-1); if(!date)process.exit(1);console.log(date)')
+          for run in 1 2 3; do
+            app="scripts/agent-usability/runs/$DATE/$ARM/$SCREEN/$run"
+            node scripts/agent-usability/score.mts "$ARM" "$SCREEN" "$app" --arm-record "scripts/agent-usability/runs/$DATE/arms/$ARM.json" | tee -a "$GITHUB_STEP_SUMMARY"
+            mkdir -p "$RUNNER_TEMP/cell-evidence/$run"
+            cp -R "$app/score" "$RUNNER_TEMP/cell-evidence/$run/score"
+          done
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: benchmark-v08-score-${{ matrix.arm }}-${{ matrix.screen }}
+          path: ${{ runner.temp }}/cell-evidence/
+          if-no-files-found: error
+  publication:
+    needs: score
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      - name: Assemble only this source's complete CI-scored cohort
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" --pattern 'benchmark-v08-score-*' --dir "$RUNNER_TEMP/cell-scores"
+          DATE=$(node --input-type=module -e 'import {readdirSync} from "node:fs"; const date=readdirSync("scripts/agent-usability/runs").filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x)).sort().at(-1); if(!date)process.exit(1);console.log(date)')
+          export DATE
+          for arm in shadcn shadcn-skill ouro; do
+            for screen in settings-form recipe-list command-palette confirm-delete app-shell; do
+              for run in 1 2 3; do
+                cp -R "$RUNNER_TEMP/cell-scores/benchmark-v08-score-$arm-$screen/$run/score" "scripts/agent-usability/runs/$DATE/$arm/$screen/$run/"
+              done
+            done
+          done
+          node --input-type=module <<'NODE'
+          import {readFileSync} from "node:fs";
+          import {arms} from "./scripts/agent-usability/prompt.mts";
+          import {screens} from "./scripts/agent-usability/screens.mts";
+          for (const arm of arms) for (const screen of screens) for (const run of [1, 2, 3]) {
+            const path = `scripts/agent-usability/runs/${process.env.DATE}/${arm}/${screen}/${run}/score/score.json`;
+            const score = JSON.parse(readFileSync(path, "utf8"));
+            if (score.arm !== arm || score.screen !== screen || score.versions.harness !== process.env.GITHUB_SHA) throw new Error(`Wrong score provenance: ${path}`);
+          }
+          console.log("Verified all 45 scores belong to this exact CI source");
+          NODE
+          node scripts/agent-usability/table.mts "scripts/agent-usability/runs/$DATE" --write | tee -a "$GITHUB_STEP_SUMMARY"
+          mkdir -p publication
+          node scripts/agent-usability/page.mts "scripts/agent-usability/runs/$DATE" publication/why-no-skill.md
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: benchmark-v08-publication
+          path: |
+            scripts/agent-usability/runs/*/results.md
+            publication/
+          if-no-files-found: error
