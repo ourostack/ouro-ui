@@ -1,3 +1,0 @@
-- Sidebar, Navbar and NavigationMenu mark the current page with a bar at the logical start edge, matching Menu in left-to-right and right-to-left layouts. Hover, open-panel and press highlights remain transient. Existing `currentPath`, `current` and `aria-current="page"` behavior is unchanged.
-
-- Current panel labels gain emphasis without bolding their descriptions. All four components keep the mark visible in forced-colors palettes; `ouro-testing` accepts `emulateMedia({ forcedColors: "active" })` for these checks. Component-local opt-in tests cover the marks, so installed tests verify the same convention.

@@ -1,1 +1,0 @@
-- ShowMore keeps each row's own key, and tells an appended page from a replaced list, when its `items` come from a Server Component and React hands them over as lazy wrappers.
