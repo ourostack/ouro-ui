@@ -49,11 +49,14 @@ async function mount(options?: Partial<DragOptions>) {
 
 let clock = 1000;
 /** Dispatches a pointer event `ms` after the last one. While the pointer is down its button is held, as a real one's is. */
-async function fire(target: EventTarget, type: string, x: number, y: number, ms = 16, init: PointerEventInit = {}) {
+async function fire(target: EventTarget, type: string, x: number, y: number, ms = 16, init: PointerEventInit = {}, coalesced?: PointerEvent[] | null) {
   clock += ms;
   const buttons = type === "pointerdown" || type === "pointermove" ? 1 : 0;
   const event = new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 1, pointerType: "touch", isPrimary: true, button: 0, buttons, clientX: x, clientY: y, ...init });
   Object.defineProperty(event, "timeStamp", { value: clock });
+  if (coalesced !== undefined) {
+    Object.defineProperty(event, "getCoalescedEvents", { value: coalesced === null ? undefined : () => coalesced });
+  }
   await act(async () => {
     target.dispatchEvent(event);
   });
@@ -182,6 +185,48 @@ describe("useDrag", () => {
     await fire(pad, "pointermove", 130, 50, 0);
     expect(calls.move.at(-1)!.velocity).toBe(0);
     await fire(pad, "pointerup", 130, 50, 0);
+  });
+
+  it.each(["x", "y"] as const)("reads a coalesced %s flick after the grab point has left the velocity window", async (axis) => {
+    const { calls, pad } = await mount({ axis });
+    const down = await fire(pad, "pointerdown", 100, 50);
+    const samples = Array.from({ length: 10 }, (_, index) => {
+      const delta = (index + 1) * 4;
+      const sample = new PointerEvent("pointermove", { clientX: axis === "x" ? 100 + delta : 100, clientY: axis === "y" ? 50 + delta : 50 });
+      Object.defineProperty(sample, "timeStamp", { value: down.timeStamp + (index + 1) * 10 + 0.1 });
+      return sample;
+    });
+    const x = axis === "x" ? 140 : 100;
+    const y = axis === "y" ? 90 : 50;
+    await fire(pad, "pointermove", x, y, 100.1, {}, samples);
+    await fire(pad, "pointerup", x, y, 0);
+    expect(calls.move).toHaveLength(1);
+    expect(calls.move[0]!.delta).toBe(40);
+    expect(calls.end[0]!.velocity).toBeCloseTo(0.4, 9);
+    expect(calls.end[0]!.flick).toBe(true);
+  });
+
+  it("prunes old coalesced points and still reads a slow release as slow", async () => {
+    const { calls, pad } = await mount();
+    const down = await fire(pad, "pointerdown", 100, 50);
+    const samples = Array.from({ length: 10 }, (_, index) => {
+      const sample = new PointerEvent("pointermove", { clientX: 100 + (index + 1) * 4, clientY: 50 });
+      Object.defineProperty(sample, "timeStamp", { value: down.timeStamp + (index + 1) * 60 + 0.1 });
+      return sample;
+    });
+    await fire(pad, "pointermove", 140, 50, 600.1, {}, samples);
+    await fire(pad, "pointerup", 140, 50, 0);
+    expect(calls.end[0]!.velocity).toBeCloseTo(4 / 60, 9);
+    expect(calls.end[0]!.flick).toBe(false);
+  });
+
+  it("keeps measuring individual moves when coalesced events are unavailable", async () => {
+    const { calls, pad } = await mount();
+    await fire(pad, "pointerdown", 100, 50);
+    await fire(pad, "pointermove", 120, 50, 20, {}, null);
+    await fire(pad, "pointerup", 120, 50, 0);
+    expect(calls.end[0]!.velocity).toBeCloseTo(1, 9);
+    expect(calls.end[0]!.flick).toBe(true);
   });
 
   it("reports a cancel as cancelled", async () => {
