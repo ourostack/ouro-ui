@@ -128,7 +128,7 @@ const observedTouchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, option
         };
       });
       appendFileSync(path, `${JSON.stringify({
-        profile, candidate: "7309c9d2e15a18024115b0df690e281e8d87efa4",
+        profile, candidate: "82bef5517790d3b46d136c4fe59d134a5e2d99e0",
         original: "0e61ad49e9faebd40bc2815e33bc6a9de27f0c17",
         proofSource: process.env["TOUCH_ACK_PROOF_SOURCE"],
         ackDelayMs: state.delay ? ackDelayMs : 0, options, packets: state.packets, dom,
