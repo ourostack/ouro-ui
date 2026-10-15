@@ -1,1 +1,0 @@
-- SwipeActions tests explicitly scope their LTR fixture while retaining RTL coverage, and Sheet tests await Base UI's frame-queued keyboard focus before checking containment and the exact tab order.
