@@ -26,10 +26,10 @@ jobs:
           set -euo pipefail
           mkdir -p state-evidence
           git rev-parse HEAD > state-evidence/source.txt
-          git merge-base --is-ancestor 3e9bd134aa3587c97c3964b9329e10c0f2b9ced1 HEAD
-          git diff 3e9bd134aa3587c97c3964b9329e10c0f2b9ced1 -- registry registry.json scripts/agent-usability changes/state-contracts.md > state-evidence/candidate.diff
+          git merge-base --is-ancestor fa383d277aa8c3efd11658b3c73959d7391796d7 HEAD
+          git diff fa383d277aa8c3efd11658b3c73959d7391796d7 -- registry registry.json scripts test changes > state-evidence/candidate.diff
           test ! -s state-evidence/candidate.diff
-          sha256sum registry/ouro/components/ouro/form/edit-sheet.tsx registry/ouro/components/ouro/calendar/date-picker.tsx registry/ouro/components/ouro/combobox/combobox.tsx registry/ouro/components/ouro/form/edit-sheet.test.tsx registry/ouro/components/ouro/calendar/date-picker.test.tsx registry/ouro/components/ouro/calendar/date-picker.touch.test.tsx registry/ouro/components/ouro/combobox/combobox.test.tsx registry/ouro/components/ouro/combobox/combobox.touch.test.tsx registry.json changes/state-contracts.md > state-evidence/digests.txt
+          sha256sum registry/ouro/components/ouro/form/edit-sheet.tsx registry/ouro/components/ouro/calendar/date-picker.tsx registry/ouro/components/ouro/combobox/combobox.tsx registry/ouro/components/ouro/form/edit-sheet.test.tsx registry/ouro/components/ouro/calendar/date-picker.test.tsx registry/ouro/components/ouro/calendar/date-picker.touch.test.tsx registry/ouro/components/ouro/combobox/combobox.test.tsx registry/ouro/components/ouro/combobox/combobox.touch.test.tsx registry.json changes/state-contracts.md test/install-fixture-next/src/app/sections/date-picker.tsx > state-evidence/digests.txt
           if pnpm exec vitest run --project=ouro-chromium --project=ouro-webkit --project=ouro-touch --coverage '--coverage.include=registry/ouro/components/ouro/{form/edit-sheet,calendar/date-picker,combobox/combobox}.tsx' --reporter=default --reporter=json --outputFile=state-evidence/results.json registry/ouro/components/ouro/form/edit-sheet.test.tsx registry/ouro/components/ouro/calendar/date-picker.test.tsx registry/ouro/components/ouro/calendar/date-picker.touch.test.tsx registry/ouro/components/ouro/combobox/combobox.test.tsx registry/ouro/components/ouro/combobox/combobox.touch.test.tsx > state-evidence/green.log 2>&1; then code=0; else code=$?; fi
           printf '%s\n' "$code" > state-evidence/green.exit
           test -s state-evidence/results.json
