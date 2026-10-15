@@ -337,6 +337,7 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
   // A typed date outside min and max, or one isDateDisabled names, is not a value: the field
   // reports `""` and shows why, as the browser blocks the submit.
   const onType = (event: ChangeEvent<HTMLInputElement>) => {
+    lastReset.current = undefined;
     const next = event.currentTarget.value;
     setText(next);
     commit(valueOf(next));
@@ -349,6 +350,7 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
   const [open, setOpen] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
   const pick = (date: string) => {
+    lastReset.current = undefined;
     commit(date);
     setText(formatDateInput(date, locale));
     setOpen(false);
@@ -386,6 +388,7 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
               max={high}
               readOnly={readOnly}
               onChange={(event) => {
+                lastReset.current = undefined;
                 const next = event.currentTarget.value;
                 setChosen(next);
                 commit(allowedOrEmpty(isIsoDate(next) ? next : null));

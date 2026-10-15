@@ -234,8 +234,10 @@ describe("DatePicker", () => {
   });
 
   it("keeps a new input that arrives after native reset but before its queued state synchronization", async () => {
-    const { host, input } = await render(<form><DatePicker label="Date" name="date" defaultValue="2026-10-11" /></form>);
+    const onValueChange = vi.fn();
+    const { host, input } = await render(<form><DatePicker label="Date" name="date" defaultValue="2026-10-11" onValueChange={onValueChange} /></form>);
     await userEvent.fill(input, "10/14/2026");
+    onValueChange.mockClear();
     await act(async () => {
       host.querySelector("form")!.reset();
       Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, "10/20/2026");
@@ -243,6 +245,7 @@ describe("DatePicker", () => {
     });
     expect(input.value).toBe("10/20/2026");
     expect(submitted(host.querySelector("form")!).date).toBe("2026-10-20");
+    expect(onValueChange.mock.calls).toEqual([["2026-10-20"]]);
   });
 
   it("coalesces successive resets without reporting the same value twice", async () => {
@@ -594,21 +597,26 @@ describe("DatePicker", () => {
       stubTouch();
       const onValueChange = vi.fn();
       const { host, input } = await render(
-        <DatePicker label="Date" name="date" defaultValue="2026-10-11" min="2026-10-01" max="2026-10-31" onValueChange={onValueChange} error="Pick a date." />,
+        <form><DatePicker label="Date" name="date" defaultValue="2026-10-11" min="2026-10-01" max="2026-10-31" onValueChange={onValueChange} error="Pick a date." /></form>,
       );
       expect(input.type).toBe("date");
       expect(input.value).toBe("2026-10-11");
       expect(input.min).toBe("2026-10-01");
       expect(input.max).toBe("2026-10-31");
-      expect(input.name).toBe("date");
+      expect(input.name).toBe("");
       expect(input.getAttribute("aria-invalid")).toBe("true");
       expect(host.querySelector("button")).toBeNull();
-      expect(host.querySelector("input[hidden]")).toBeNull();
+      const backing = host.querySelector<HTMLInputElement>("input[hidden]")!;
+      expect(backing.readOnly).toBe(true);
+      expect(backing.name).toBe("date");
+      expect(backing.value).toBe("2026-10-11");
+      expect(new FormData(host.querySelector("form")!).getAll("date")).toEqual(["2026-10-11"]);
       await act(async () => {
         Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, "2026-10-12");
         input.dispatchEvent(new Event("input", { bubbles: true }));
       });
       expect(onValueChange).toHaveBeenCalledWith("2026-10-12");
+      expect(new FormData(host.querySelector("form")!).getAll("date")).toEqual(["2026-10-12"]);
     });
 
     it("links the description and error to the native input", async () => {

@@ -252,6 +252,7 @@ describe("Combobox on a phone", () => {
     await expect.poll(() => host.querySelector(TRIGGER)?.textContent).toContain("Sushi");
     expect(new FormData(form).get("cuisine")).toBe("Sushi");
     await rotate(844, 390);
+    await expect.poll(() => host.querySelector('input[role="combobox"]')).not.toBeNull();
     const input = host.querySelector<HTMLInputElement>('input[role="combobox"]')!;
     expect(input.value).toBe("Sushi");
     expect(new FormData(form).get("cuisine")).toBe("Sushi");
@@ -262,6 +263,7 @@ describe("Combobox on a phone", () => {
     await expect.poll(() => host.querySelector(TRIGGER)?.textContent).toContain("Any cuisine");
     expect(new FormData(form).get("cuisine")).toBe("");
     await rotate(844, 390);
+    await expect.poll(() => host.querySelector('input[role="combobox"]')).not.toBeNull();
     expect(host.querySelector<HTMLInputElement>('input[role="combobox"]')!.value).toBe("");
     expect(onValueChange).toHaveBeenCalledTimes(clears);
   });
