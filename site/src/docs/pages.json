@@ -21,6 +21,48 @@
     "markdown": "docs/guides/testing.md"
   },
   {
+    "name": "why-no-skill-app-shell",
+    "title": "Comparison results: app-shell",
+    "kind": "guide",
+    "group": "Guides",
+    "markdown": "docs/guides/why-no-skill-app-shell.md"
+  },
+  {
+    "name": "why-no-skill-command-palette",
+    "title": "Comparison results: command-palette",
+    "kind": "guide",
+    "group": "Guides",
+    "markdown": "docs/guides/why-no-skill-command-palette.md"
+  },
+  {
+    "name": "why-no-skill-confirm-delete",
+    "title": "Comparison results: confirm-delete",
+    "kind": "guide",
+    "group": "Guides",
+    "markdown": "docs/guides/why-no-skill-confirm-delete.md"
+  },
+  {
+    "name": "why-no-skill-recipe-list",
+    "title": "Comparison results: recipe-list",
+    "kind": "guide",
+    "group": "Guides",
+    "markdown": "docs/guides/why-no-skill-recipe-list.md"
+  },
+  {
+    "name": "why-no-skill-settings-form",
+    "title": "Comparison results: settings-form",
+    "kind": "guide",
+    "group": "Guides",
+    "markdown": "docs/guides/why-no-skill-settings-form.md"
+  },
+  {
+    "name": "why-no-skill",
+    "title": "Why Ouro HX needs no skill",
+    "kind": "guide",
+    "group": "Guides",
+    "markdown": "docs/guides/why-no-skill.md"
+  },
+  {
     "name": "radio",
     "title": "Radio",
     "kind": "export",

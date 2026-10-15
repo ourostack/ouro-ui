@@ -196,9 +196,18 @@ describe("Tabs", () => {
       return [Math.round(a.left - b.left) + 0, Math.round(a.width - b.width) + 0];
     };
     expect(under(r.tabs[0]!)).toEqual([0, 0]);
-    await userEvent.click(r.tabs[2]!);
-    // The move is a transition, not a jump.
-    await expect.poll(() => indicator.getAnimations().length).toBeGreaterThan(0);
+    let translateStarted = false;
+    const record = (event: TransitionEvent) => {
+      if (event.target === indicator && event.propertyName === "translate") translateStarted = true;
+    };
+    indicator.addEventListener("transitionrun", record);
+    try {
+      await userEvent.click(r.tabs[2]!);
+      await settled(indicator);
+      await expect.poll(() => translateStarted).toBe(true);
+    } finally {
+      indicator.removeEventListener("transitionrun", record);
+    }
     await settled(indicator);
     expect(under(r.tabs[2]!)).toEqual([0, 0]);
   });

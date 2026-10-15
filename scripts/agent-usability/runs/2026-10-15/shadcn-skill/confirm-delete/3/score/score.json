@@ -1,0 +1,195 @@
+{
+  "arm": "shadcn-skill",
+  "screen": "confirm-delete",
+  "scoredAt": "2026-10-15T10:04:28.658Z",
+  "formulaVersion": 4,
+  "versions": {
+    "harness": "4bedf56c3fcf774b03b21b2253f136cca541afa6",
+    "node": "v24.21.0",
+    "axeCore": "4.13.0",
+    "playwright": "1.63.0",
+    "chromium": "153.0.8010.12"
+  },
+  "armRecord": "scripts/agent-usability/runs/2026-10-15/arms/shadcn-skill.json",
+  "checks": {
+    "typecheck": {
+      "pass": true,
+      "new": [],
+      "excused": 0,
+      "output": "tsc -b reported no error."
+    },
+    "lint": {
+      "pass": true,
+      "new": [],
+      "excused": 0,
+      "output": "oxlint reported no error."
+    },
+    "build": {
+      "pass": true,
+      "output": "vite build passed."
+    },
+    "fixtures": {
+      "pass": true,
+      "changed": []
+    },
+    "config": {
+      "changed": []
+    }
+  },
+  "axe": [
+    {
+      "viewport": "phone",
+      "width": 390,
+      "theme": "light",
+      "pass": true,
+      "states": [
+        {
+          "name": "initial",
+          "reached": true
+        },
+        {
+          "name": "dialog-open",
+          "reached": true
+        }
+      ],
+      "violations": [],
+      "advisories": []
+    },
+    {
+      "viewport": "phone",
+      "width": 390,
+      "theme": "dark",
+      "pass": true,
+      "states": [
+        {
+          "name": "initial",
+          "reached": true
+        },
+        {
+          "name": "dialog-open",
+          "reached": true
+        }
+      ],
+      "violations": [],
+      "advisories": []
+    },
+    {
+      "viewport": "desktop",
+      "width": 1280,
+      "theme": "light",
+      "pass": true,
+      "states": [
+        {
+          "name": "initial",
+          "reached": true
+        },
+        {
+          "name": "dialog-open",
+          "reached": true
+        }
+      ],
+      "violations": [],
+      "advisories": []
+    },
+    {
+      "viewport": "desktop",
+      "width": 1280,
+      "theme": "dark",
+      "pass": true,
+      "states": [
+        {
+          "name": "initial",
+          "reached": true
+        },
+        {
+          "name": "dialog-open",
+          "reached": true
+        }
+      ],
+      "violations": [],
+      "advisories": []
+    }
+  ],
+  "behavior": [
+    {
+      "id": "dialog-names-the-cookbook",
+      "title": "Each cookbook shows its recipe count, and \"Delete <name>\" opens a dialog titled \"Delete <name>?\" with Cancel and Delete cookbook",
+      "covers": [
+        1,
+        2
+      ],
+      "viewport": "desktop",
+      "gate": true,
+      "pass": true
+    },
+    {
+      "id": "focus-starts-on-cancel",
+      "title": "Focus starts on Cancel",
+      "covers": [
+        3
+      ],
+      "viewport": "desktop",
+      "gate": true,
+      "pass": true
+    },
+    {
+      "id": "cancel-and-escape-keep-it",
+      "title": "Escape and Cancel close the dialog without deleting, and focus returns to the button that opened it",
+      "covers": [
+        3
+      ],
+      "viewport": "desktop",
+      "gate": true,
+      "pass": true
+    },
+    {
+      "id": "deletes-once-and-announces",
+      "title": "Delete cookbook deletes once, is disabled or marked busy meanwhile, closes, removes the cookbook and announces it",
+      "covers": [
+        4
+      ],
+      "viewport": "desktop",
+      "gate": true,
+      "pass": true
+    },
+    {
+      "id": "refusal-stays-in-dialog",
+      "title": "When the server refuses, its message shows in the dialog, which stays open, and the cookbook stays",
+      "covers": [
+        5
+      ],
+      "viewport": "desktop",
+      "gate": true,
+      "pass": true
+    },
+    {
+      "id": "fits-a-phone",
+      "title": "At 390px wide the page does not scroll sideways",
+      "covers": [
+        6
+      ],
+      "viewport": "phone",
+      "gate": false,
+      "pass": true
+    }
+  ],
+  "screenshots": [
+    "screenshots/390-light-initial.png",
+    "screenshots/390-light-dialog-open.png",
+    "screenshots/390-dark-initial.png",
+    "screenshots/390-dark-dialog-open.png",
+    "screenshots/1280-light-initial.png",
+    "screenshots/1280-light-dialog-open.png",
+    "screenshots/1280-dark-initial.png",
+    "screenshots/1280-dark-dialog-open.png"
+  ],
+  "points": {
+    "typecheck": 20,
+    "lint": 10,
+    "axe": 20,
+    "behavior": 50,
+    "score": 100,
+    "max": 100
+  },
+  "failures": []
+}

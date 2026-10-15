@@ -69,7 +69,8 @@ export function installedPaths(markdown: string): string {
 /** The first sentence of the page's purpose paragraph, for the catalog. */
 export function summary(markdown: string): string {
   const purpose = markdown.replace(/<!--[\s\S]*?-->/g, "").split("\n").find((line) => line.trim() && !line.startsWith("#")) ?? "";
-  return purpose.match(/^.*?\.(?=\s|$)/)?.[0] ?? purpose;
+  const text = purpose.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+  return text.match(/^.*?\.(?=\s|$)/)?.[0] ?? text;
 }
 
 export const GITHUB = "https://github.com/ourostack/ouro-ui";

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page } from "vitest/browser";
 import { cleanupPage, describeViolations, renderPage, scan, setScheme, settle } from "../test/render";
 import { latestRelease, upgrading } from "./release";
-import { docsItems } from "./docs/items";
+import { docsItems, summary } from "./docs/items";
 import { docsPages } from "./docs/pages";
 import { unpinnedAddresses } from "../../scripts/addresses.mjs";
 import { parse } from "./docs/markdown";
@@ -125,6 +125,14 @@ describe("landing page", () => {
 });
 
 describe("docs", () => {
+  it("keeps linked guide summaries as text inside their catalog links", async () => {
+    expect(summary("# Guide\n\nRead [the `Form` guide](form.md). More detail.")).toBe("Read the `Form` guide.");
+    const host = await renderPage("/docs/");
+    expect(host.querySelector("a a")).toBeNull();
+    const comparison = host.querySelector<HTMLAnchorElement>('section[aria-labelledby="group-guides"] a[href$="/docs/why-no-skill-settings-form/"]');
+    expect(comparison?.textContent).toContain("Comparison overview, scores, protocol and limits");
+  });
+
   it("has a page for every registry item at docs/<name>", () => {
     const names = registry.items.filter((item) => item.type === "registry:ui").map((item) => item.name);
     expect(names).toEqual(expect.arrayContaining(["button", "text", "heading", "link", "field", "fieldset", "text-field", "text-area", "sheet", "dialog", "confirm-dialog"]));

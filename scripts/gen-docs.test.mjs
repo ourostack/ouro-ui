@@ -185,10 +185,11 @@ test("the catalog is grouped by job in README", async () => {
   assert.match(catalog, /- \*\*Button\*\* — A button, or a link styled as one\./);
 });
 
-test("no timestamps", () => {
+test("generated docs have no timestamps", () => {
   // Example dates in code (Calendar's `value="2026-10-11"`) are not timestamps; prose must have none.
+  // Guides are authored separately; a comparison's cohort dates are provenance, not build timestamps.
   const prose = (text) => text.replace(/```[\s\S]*?```/g, "").replace(/`[^`\n]*`/g, "");
-  for (const file of readdirSync(join(root, "docs"), { recursive: true }).filter((name) => name.endsWith(".md"))) {
+  for (const file of readdirSync(join(root, "docs")).filter((name) => name.endsWith(".md"))) {
     assert.doesNotMatch(prose(doc(file)), /\b20\d\d-\d\d-\d\d\b/, file);
   }
   assert.match(prose("Generated 2026-10-11."), /\b20\d\d-\d\d-\d\d\b/);

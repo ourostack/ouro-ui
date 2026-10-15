@@ -1,0 +1,776 @@
+{
+  "cohort": "2026-10-15",
+  "actualCells": 45,
+  "primaryModel": "claude-opus-5-5",
+  "effort": "high",
+  "cli": "2.1.299",
+  "peakCombined": 6,
+  "allCliExitZero": true,
+  "successfulSkillReadCells": 15,
+  "additionalReportedModelUsage": [
+    {
+      "arm": "shadcn-skill",
+      "screen": "command-palette",
+      "run": 1,
+      "models": [
+        "claude-opus-5-5",
+        "claude-haiku-5-5"
+      ]
+    },
+    {
+      "arm": "ouro",
+      "screen": "settings-form",
+      "run": 1,
+      "models": [
+        "claude-opus-5-5",
+        "claude-haiku-5-5"
+      ]
+    },
+    {
+      "arm": "ouro",
+      "screen": "settings-form",
+      "run": 3,
+      "models": [
+        "claude-opus-5-5",
+        "claude-haiku-5-5"
+      ]
+    },
+    {
+      "arm": "ouro",
+      "screen": "recipe-list",
+      "run": 2,
+      "models": [
+        "claude-opus-5-5",
+        "claude-haiku-5-5"
+      ]
+    },
+    {
+      "arm": "ouro",
+      "screen": "command-palette",
+      "run": 1,
+      "models": [
+        "claude-opus-5-5",
+        "claude-haiku-5-5"
+      ]
+    },
+    {
+      "arm": "ouro",
+      "screen": "command-palette",
+      "run": 3,
+      "models": [
+        "claude-opus-5-5",
+        "claude-haiku-5-5"
+      ]
+    },
+    {
+      "arm": "ouro",
+      "screen": "confirm-delete",
+      "run": 1,
+      "models": [
+        "claude-opus-5-5",
+        "claude-haiku-5-5"
+      ]
+    },
+    {
+      "arm": "ouro",
+      "screen": "confirm-delete",
+      "run": 2,
+      "models": [
+        "claude-opus-5-5",
+        "claude-haiku-5-5"
+      ]
+    },
+    {
+      "arm": "ouro",
+      "screen": "app-shell",
+      "run": 1,
+      "models": [
+        "claude-opus-5-5",
+        "claude-haiku-5-5"
+      ]
+    },
+    {
+      "arm": "ouro",
+      "screen": "app-shell",
+      "run": 3,
+      "models": [
+        "claude-opus-5-5",
+        "claude-haiku-5-5"
+      ]
+    }
+  ],
+  "secondaryModelRole": "Not established by the stream; no exposed Task or Agent calls observed",
+  "observedToolNames": [
+    "Bash",
+    "Edit",
+    "Read",
+    "TaskStop",
+    "ToolSearch",
+    "WebFetch",
+    "Write"
+  ],
+  "shadcnCliResolution": "Agents invoked @latest; exact resolved versions were not preserved per invocation",
+  "executionCaveats": {
+    "localBrowserSelfCheckCells": 45,
+    "outsideScratchWriteCommandCells": 45,
+    "portConflictReportedCells": 5,
+    "nameBasedCleanupCommandCells": 42,
+    "potentialOverlappingSharedScratchOrPortPairs": 46
+  },
+  "frozenHarness": {
+    "scripts/agent-usability/README.md": "8d69d2ddf24928269e91d7f8ad25fa257b455b6f14e7f9d88e39bc3a16488e33",
+    "scripts/agent-usability/arms/app-readme.md": "b68c18f107dfc69297733bfbb5b214e4400942af907f18442c903ad18a658b29",
+    "scripts/agent-usability/arms/create.sh": "9828f051f1eac0e7dfaae4050fc7382ee94eef3f413b482602d78e22f5eff194",
+    "scripts/agent-usability/checks/app-shell.mts": "9b94b6e56f63ba8cb8d7b0b6306db84792c80d5d4ee5c28c499b99d92d1e08b4",
+    "scripts/agent-usability/checks/command-palette.mts": "33e7baa4e5fb12e7e2b713234ef68c7e9be3fe155332727af33eb358da54f93b",
+    "scripts/agent-usability/checks/confirm-delete.mts": "29f63d7ee4fe6ef5b789c4e41ee701c39b3bef33c8df2608ed7b77a0b9eba598",
+    "scripts/agent-usability/checks/helpers.mts": "3b332c839fd934ca6cc59340b4dbf6f314b9ba9a9acc5b0f728fd07cbbd5258b",
+    "scripts/agent-usability/checks/index.mts": "492ac84fdc467690544647d72ea47e73e686b7615708aff426e16b80432d4d57",
+    "scripts/agent-usability/checks/recipe-list.mts": "5657535e9a4e245a7f56000714a185de624249397fb4d24209045a451af1a5b8",
+    "scripts/agent-usability/checks/settings-form.mts": "c971d61ab0b38bdc8ea1e384a51ad033bba91674500db0b99bf93af6f5033401",
+    "scripts/agent-usability/formula.mts": "c6a18e95ec510ee0e3c862f18f6b1d324b293758d6dda5ee00ce65c4e1cb70e4",
+    "scripts/agent-usability/preflight.mts": "1091bc31bd0638ae99e98347e36ae371f58f8b3f31e3fe7785aa22dd4a4f6a1a",
+    "scripts/agent-usability/prompt.mts": "a7510b486d9a65cdad1d8fe4bbdfa6a71b17e3563bf4eb8245f4adebca37920f",
+    "scripts/agent-usability/score-runs.mts": "d43fed0cd88721d14e3315db6363460406f69afcef63a63838fa1227b97cc182",
+    "scripts/agent-usability/score.mts": "aa04757c8c29a048e2ded4910577494038c9ad4bf8fb3ff89503c96ec169ab2c",
+    "scripts/agent-usability/score.test.mjs": "5f5f15cb813a48be0ae2ded75ef3c5a8446e2e39d81e156c803f1efd9e67f920",
+    "scripts/agent-usability/screens.mts": "4e3b5cc1fc043533fb1c469ceb4c806d8576bd99b4ba0bb3a39861cf82fc5850",
+    "scripts/agent-usability/screens/_shared/files/src/api/fake-backend.ts": "ac3e5d0094eb7044187dc06596410851e7843d67ebc062018413ba92d9c7e4ba",
+    "scripts/agent-usability/screens/app-shell/files/src/api/session.ts": "3d059583822b932abae78407681bc90596fcf6f2126a916adf85646e2a71fe1a",
+    "scripts/agent-usability/screens/app-shell/task.md": "020e38f4458a3303a03376f42db00bffe6aaa7590a058df1d7d03a171613c173",
+    "scripts/agent-usability/screens/command-palette/files/src/api/commands.ts": "e1509a3f983a3b521c6e55471b83881ca04a88121a8f6029b01180f868c985bb",
+    "scripts/agent-usability/screens/command-palette/task.md": "d2918539593734efac26d8a74ca0769230e90facee9fc9027f9972a4c272f23e",
+    "scripts/agent-usability/screens/confirm-delete/files/src/api/cookbooks.ts": "ebeca60399bafe0bd6b9d97f200a7acbcf47e6f19851a6a67aad78f32de9da03",
+    "scripts/agent-usability/screens/confirm-delete/task.md": "9375b5694f1e91f123f1bfbebb2f8708bdc141d549aa84495c117cb73c37e53f",
+    "scripts/agent-usability/screens/recipe-list/files/src/api/recipes.ts": "51a40c473caf53787eeb391dc9005491e452d426ca7ac8b99db642ba88ce185a",
+    "scripts/agent-usability/screens/recipe-list/task.md": "970fa8536f0c944b9182b41c09b9db7aa14dcd93120258bca3567379d64c30ff",
+    "scripts/agent-usability/screens/settings-form/files/src/api/settings.ts": "bba071f3c736fed392a2dbc84f5101cd4f285da9b3c6b73ef3cc91d6c60276d5",
+    "scripts/agent-usability/screens/settings-form/task.md": "c9613d5bf83daa9769b67462d49583505fc7737276170f86b8f20b45f582b1d1",
+    "scripts/agent-usability/static.mts": "84841ec85a42982c59ca4f648ca7837c029c99cc91e94b0c45af8c9a55017426",
+    "scripts/agent-usability/table.mts": "d8c30cb7d21cd0dd2087c12d4c66a6c5b6c7f5f9e6ef51741d82e788987d6e98",
+    "scripts/agent-usability/test/fixture-app/index.html": "fe3760b8fe70662c899c7988ab29d61f42489c2f4f32540caf4a6f69151a8c12",
+    "scripts/agent-usability/test/fixture-app/package.json": "cce928d0bd73f10c2bea2e2680ca3f60fed071af346957c47896c51a613fbb4e",
+    "scripts/agent-usability/test/fixture-app/src/index.css": "48cee2aaa5e5452d93964a859a295eaeea013ff9200597069c3df23e50337f5d",
+    "scripts/agent-usability/test/fixture-app/src/main.tsx": "a3e0bce9f9df6f7c5ab171612dd14cff47cd25030db90947fccd7fb8d4713cfd",
+    "scripts/agent-usability/test/fixture-app/tsconfig.app.json": "e1b23b56f0c933758bf7c0fe7cea7f4b03b1c5b0452148b1d03cd96238134e6f",
+    "scripts/agent-usability/test/fixture-app/tsconfig.json": "3031a294575822be484c7f9721b7a93f117de1841b5da3fc73d1e62db9741fde",
+    "scripts/agent-usability/test/fixture-app/tsconfig.node.json": "2555fec2bb225815551007aa53bdde82b835713a58aff16f39a1fefeb347ac3d",
+    "scripts/agent-usability/test/fixture-app/vite.config.ts": "23ccfdc62a166532ddfdbf8fbf538ebc6ca39d1865589d666364db1fb3dea46a",
+    "scripts/agent-usability/test/screens/actions-menu.base-ui.tsx": "2eb1da9b4be6fa5ddef232ab263b683f5d48844a9ca5f3accc8a790544254146",
+    "scripts/agent-usability/test/screens/actions-menu.broken-portal.tsx": "be0735e3473a75e520447685aed4ad5cf4f347a23f16677d445adcf1124331d9",
+    "scripts/agent-usability/test/screens/actions-menu.shadcn.tsx": "597c0307b040de30e5d7dbda2534cda5ca8b2df39fa98b401257864ab73ceb8a",
+    "scripts/agent-usability/test/screens/app-shell.tsx": "99c2e382e4cf1fc455329b324d981609236c0ce54c42c9e71eb0a3202f5882c4",
+    "scripts/agent-usability/test/screens/command-palette.tsx": "c628ab9ab0c1262880cbe92c8b205b5d39caaac168fa2fc5becc79812d4ac42e",
+    "scripts/agent-usability/test/screens/confirm-delete.tsx": "5a3f048a5618559975b8d60e5a0c0e1d8a025112d6f3a0fda360eabccc6e3383",
+    "scripts/agent-usability/test/screens/recipe-list.tsx": "1c1cc58350c1a2395db72d7ed40eadb171bbd7a64a3f5d3af8805cc393b17bd1",
+    "scripts/agent-usability/test/screens/settings-form.tsx": "22a0ec91d55ed6c0dcf761852d353c45bc495972377619a3e6f16475f9077d0d",
+    "scripts/agent-usability/workspace.mts": "777aa95646318439ce86f17d2c4a213846074bb666e7819e05ce04be19b8c2b7",
+    "test/install-fixture/README.md": "0f5ad237266f1a5308d8648ccec449f60412d02abe2c694d99e6cea9ea148791",
+    "test/install-fixture/index.html": "d1a1f002690866931d6fd2563b287fa98fe93d21a1e6ad004191d8e39bda7e30",
+    "test/install-fixture/package.json": "b45f9ca68131f9a2564484b5f975887f90192b02d8cd99a9d964271be9579e88",
+    "test/install-fixture/src/App.tsx": "9f3fb3d5133bad0f6a5cc036a4d52863d6822e8ee43011253488545837b773f4",
+    "test/install-fixture/src/index.css": "42070e0b45bb201b2b838a52aaaa6e965f964e0b542d97f1fe517fe59c4b75a8",
+    "test/install-fixture/src/main.tsx": "a3e0bce9f9df6f7c5ab171612dd14cff47cd25030db90947fccd7fb8d4713cfd",
+    "test/install-fixture/tsconfig.app.json": "e1b23b56f0c933758bf7c0fe7cea7f4b03b1c5b0452148b1d03cd96238134e6f",
+    "test/install-fixture/tsconfig.json": "3031a294575822be484c7f9721b7a93f117de1841b5da3fc73d1e62db9741fde",
+    "test/install-fixture/tsconfig.node.json": "2555fec2bb225815551007aa53bdde82b835713a58aff16f39a1fefeb347ac3d",
+    "test/install-fixture/vite.config.ts": "e33d9563b5023261dba907083b85a0dd6c5a70c6052b0daecdac6c64fa1f9940"
+  },
+  "cells": [
+    {
+      "arm": "shadcn",
+      "screen": "settings-form",
+      "run": 1,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 0
+    },
+    {
+      "arm": "shadcn",
+      "screen": "settings-form",
+      "run": 2,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 0
+    },
+    {
+      "arm": "shadcn",
+      "screen": "settings-form",
+      "run": 3,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 0
+    },
+    {
+      "arm": "shadcn",
+      "screen": "recipe-list",
+      "run": 1,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 0
+    },
+    {
+      "arm": "shadcn",
+      "screen": "recipe-list",
+      "run": 2,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 0
+    },
+    {
+      "arm": "shadcn",
+      "screen": "recipe-list",
+      "run": 3,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 0
+    },
+    {
+      "arm": "shadcn",
+      "screen": "command-palette",
+      "run": 1,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 0
+    },
+    {
+      "arm": "shadcn",
+      "screen": "command-palette",
+      "run": 2,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 0
+    },
+    {
+      "arm": "shadcn",
+      "screen": "command-palette",
+      "run": 3,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 0
+    },
+    {
+      "arm": "shadcn",
+      "screen": "confirm-delete",
+      "run": 1,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 0
+    },
+    {
+      "arm": "shadcn",
+      "screen": "confirm-delete",
+      "run": 2,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 0
+    },
+    {
+      "arm": "shadcn",
+      "screen": "confirm-delete",
+      "run": 3,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 0
+    },
+    {
+      "arm": "shadcn",
+      "screen": "app-shell",
+      "run": 1,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 0
+    },
+    {
+      "arm": "shadcn",
+      "screen": "app-shell",
+      "run": 2,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 0
+    },
+    {
+      "arm": "shadcn",
+      "screen": "app-shell",
+      "run": 3,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 0
+    },
+    {
+      "arm": "shadcn-skill",
+      "screen": "settings-form",
+      "run": 1,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 1
+    },
+    {
+      "arm": "shadcn-skill",
+      "screen": "settings-form",
+      "run": 2,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 1
+    },
+    {
+      "arm": "shadcn-skill",
+      "screen": "settings-form",
+      "run": 3,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 1
+    },
+    {
+      "arm": "shadcn-skill",
+      "screen": "recipe-list",
+      "run": 1,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 1
+    },
+    {
+      "arm": "shadcn-skill",
+      "screen": "recipe-list",
+      "run": 2,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 1
+    },
+    {
+      "arm": "shadcn-skill",
+      "screen": "recipe-list",
+      "run": 3,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 1
+    },
+    {
+      "arm": "shadcn-skill",
+      "screen": "command-palette",
+      "run": 1,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5",
+        "claude-haiku-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 1
+    },
+    {
+      "arm": "shadcn-skill",
+      "screen": "command-palette",
+      "run": 2,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 1
+    },
+    {
+      "arm": "shadcn-skill",
+      "screen": "command-palette",
+      "run": 3,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 1
+    },
+    {
+      "arm": "shadcn-skill",
+      "screen": "confirm-delete",
+      "run": 1,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 1
+    },
+    {
+      "arm": "shadcn-skill",
+      "screen": "confirm-delete",
+      "run": 2,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 1
+    },
+    {
+      "arm": "shadcn-skill",
+      "screen": "confirm-delete",
+      "run": 3,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 1
+    },
+    {
+      "arm": "shadcn-skill",
+      "screen": "app-shell",
+      "run": 1,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 2
+    },
+    {
+      "arm": "shadcn-skill",
+      "screen": "app-shell",
+      "run": 2,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 1
+    },
+    {
+      "arm": "shadcn-skill",
+      "screen": "app-shell",
+      "run": 3,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 1
+    },
+    {
+      "arm": "ouro",
+      "screen": "settings-form",
+      "run": 1,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5",
+        "claude-haiku-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 0
+    },
+    {
+      "arm": "ouro",
+      "screen": "settings-form",
+      "run": 2,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 0
+    },
+    {
+      "arm": "ouro",
+      "screen": "settings-form",
+      "run": 3,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5",
+        "claude-haiku-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 0
+    },
+    {
+      "arm": "ouro",
+      "screen": "recipe-list",
+      "run": 1,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 0
+    },
+    {
+      "arm": "ouro",
+      "screen": "recipe-list",
+      "run": 2,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5",
+        "claude-haiku-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 0
+    },
+    {
+      "arm": "ouro",
+      "screen": "recipe-list",
+      "run": 3,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 0
+    },
+    {
+      "arm": "ouro",
+      "screen": "command-palette",
+      "run": 1,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5",
+        "claude-haiku-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 0
+    },
+    {
+      "arm": "ouro",
+      "screen": "command-palette",
+      "run": 2,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 0
+    },
+    {
+      "arm": "ouro",
+      "screen": "command-palette",
+      "run": 3,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5",
+        "claude-haiku-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 0
+    },
+    {
+      "arm": "ouro",
+      "screen": "confirm-delete",
+      "run": 1,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5",
+        "claude-haiku-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 0
+    },
+    {
+      "arm": "ouro",
+      "screen": "confirm-delete",
+      "run": 2,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5",
+        "claude-haiku-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 0
+    },
+    {
+      "arm": "ouro",
+      "screen": "confirm-delete",
+      "run": 3,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 0
+    },
+    {
+      "arm": "ouro",
+      "screen": "app-shell",
+      "run": 1,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5",
+        "claude-haiku-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 0
+    },
+    {
+      "arm": "ouro",
+      "screen": "app-shell",
+      "run": 2,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 0
+    },
+    {
+      "arm": "ouro",
+      "screen": "app-shell",
+      "run": 3,
+      "model": "claude-opus-5-5",
+      "cli": "2.1.299",
+      "effort": "high",
+      "exitCode": 0,
+      "reportedModels": [
+        "claude-opus-5-5",
+        "claude-haiku-5-5"
+      ],
+      "successfulOriginalSkillReadToolCalls": 0
+    }
+  ]
+}

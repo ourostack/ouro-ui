@@ -1,0 +1,2 @@
+- Badge's installed tests check theme-token roles rather than assuming every color role is distinct, and ItemGroup's empty-state tests use exact text matches on Vitest 4 and 5.
+- SegmentedControl and Tabs' installed motion tests record the actual translate transition before the click, so a completed animation is not mistaken for a missing one on a busy runner.
