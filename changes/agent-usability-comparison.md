@@ -1,1 +1,0 @@
-- Publish the actual 45-build comparison and per-run CI evidence, with explicit exploratory-cohort, shared-host, model-usage and tool-version limitations, alongside the guide to Ouro HX's embedded component contracts.
