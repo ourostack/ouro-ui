@@ -1,7 +1,7 @@
 import { appendFileSync } from "node:fs";
 import type { BrowserContext, CDPSession, Page } from "playwright";
 import type { BrowserCommand } from "vitest/node";
-import { touchDrag as currentTouchDrag, type TouchDragOptions } from "../registry/ouro/lib/ouro/testing/commands.ts";
+import { restoreTouch, touchDrag as currentTouchDrag, type TouchDragOptions } from "../registry/ouro/lib/ouro/testing/commands.ts";
 import { touchDrag as originalTouchDrag } from "../.tmp/touch-legacy/registry/ouro/lib/ouro/testing/commands.ts";
 import base from "../vitest.config.ts";
 
@@ -24,6 +24,7 @@ interface Packet {
 }
 interface State {
   target: boolean;
+  delay: boolean;
   packets: Packet[];
 }
 
@@ -42,23 +43,23 @@ const states = new WeakMap<Page, State>();
 const installed = new WeakSet<BrowserContext>();
 const ackDelayMs = 650; // A transport reply delayed past Base UI's 500ms long-press deadline.
 
-const observedTouchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, options) => {
-  const context = ctx.page.context();
+function installTransport(page: Page) {
+  const context = page.context();
   if (!installed.has(context)) {
     const create = context.newCDPSession.bind(context);
     context.newCDPSession = async (target) => {
       const session = await create(target);
-      const page = "page" in target ? target.page() : target;
+      const sessionPage = "page" in target ? target.page() : target;
       const send = session.send.bind(session);
       const observedSend: CDPSession["send"] = async (method, params) => {
-        const state = states.get(page);
+        const state = states.get(sessionPage);
         const packet: Packet | undefined = state?.target && method === "Input.dispatchTouchEvent" && isTouchInput(params)
           ? { input: params, sent: Date.now() } : undefined;
         if (packet && state) state.packets.push(packet);
         const reply = await send(method, params);
         if (packet) {
           packet.nativeAck = Date.now();
-          if (packet.input.type === "touchStart") await new Promise((resolve) => setTimeout(resolve, ackDelayMs));
+          if (state?.delay && packet.input.type === "touchStart") await new Promise((resolve) => setTimeout(resolve, ackDelayMs));
           packet.returned = Date.now();
         }
         return reply;
@@ -68,15 +69,27 @@ const observedTouchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, option
     };
     installed.add(context);
   }
-  const target = options.durationMs === 600 && options.steps === 10 &&
-    options.to[0] - options.from[0] === -40 && options.to[1] === options.from[1];
-  const state: State = { target, packets: [] };
+}
+
+const observedRestoreTouch: BrowserCommand<[]> = async (ctx) => {
+  installTransport(ctx.page);
+  await restoreTouch(ctx);
+};
+
+const observedTouchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, options) => {
+  installTransport(ctx.page);
+  const target = (options.durationMs === 600 || options.durationMs === 100) && options.steps === 10 &&
+    Math.abs(options.to[0] - options.from[0]) === 40 && options.to[1] === options.from[1];
+  const state: State = { target, delay: options.durationMs === 600, packets: [] };
   states.set(ctx.page, state);
   if (target) {
     await ctx.iframe.locator("body").evaluate(() => {
       const rows: Array<Record<string, unknown>> = [];
       const record = (event: Event) => {
-        const point = event instanceof PointerEvent ? { x: event.clientX, y: event.clientY } :
+        const point = event instanceof PointerEvent ? {
+          x: event.clientX, y: event.clientY,
+          coalesced: event.getCoalescedEvents().map((sample) => ({ x: sample.clientX, y: sample.clientY, timestamp: sample.timeStamp })),
+        } :
           event instanceof TouchEvent ? { changed: [...event.changedTouches].map((touch) => ({ x: touch.clientX, y: touch.clientY })) } : {};
         rows.push({ kind: event.type, now: performance.now(), wall: Date.now(), timestamp: event.timeStamp, trusted: event.isTrusted, ...point });
       };
@@ -118,7 +131,7 @@ const observedTouchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, option
         profile, candidate: "7309c9d2e15a18024115b0df690e281e8d87efa4",
         original: "0e61ad49e9faebd40bc2815e33bc6a9de27f0c17",
         proofSource: process.env["TOUCH_ACK_PROOF_SOURCE"],
-        ackDelayMs, options, packets: state.packets, dom,
+        ackDelayMs: state.delay ? ackDelayMs : 0, options, packets: state.packets, dom,
       })}\n`);
     }
   }
@@ -138,7 +151,7 @@ export default {
           ...project.test,
           browser: {
             ...project.test?.browser,
-            commands: { ...project.test?.browser?.commands, touchDrag: observedTouchDrag },
+            commands: { ...project.test?.browser?.commands, restoreTouch: observedRestoreTouch, touchDrag: observedTouchDrag },
           },
         },
       };
