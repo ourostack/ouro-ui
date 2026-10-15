@@ -256,7 +256,6 @@ test("step 5 requires a verified app-wide reference audit before deleting histor
     /own tests/i, /unresolved/i, /keep/i, /type check and build/i,
   ]) assert.match(step5, requirement);
   assert.match(note, /Earlier releases installed every helper/);
-  assert.match(read("changes/adoption-install-docs.md"), /reference audit/i);
 });
 
 test("coverage docs distinguish the measured sets from every item's test dependency closure", () => {

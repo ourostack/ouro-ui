@@ -1,2 +1,0 @@
-- Fixed: lifting the finger from the long press that opened SwipeActions' menu is no longer a tap. Chromium could send one, which closed the menu when the finger stayed down more than half a second after the menu opened.
-- Fixed: SwipeActions' phone tests batch slow swipes into one command and keep the long-press clock still while a spring-catching finger starts moving, so command round trips do not turn the catch into a long press.
