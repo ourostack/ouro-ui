@@ -1,0 +1,6 @@
+@import "../app.css";
+
+:root {
+  --secondary: var(--muted);
+  --secondary-foreground: var(--foreground);
+}
