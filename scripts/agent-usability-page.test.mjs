@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -57,12 +58,27 @@ test("publication refuses a partial cohort rather than presenting it as the 45-b
 });
 
 test("publication includes each actual outcome and its run, not just aggregate scores", () => {
-  const page = whyNoSkillPage(cohort());
+  const dir = cohort();
+  const out = join(mkdtempSync(join(tmpdir(), "ouro-publication-pages-")), "comparison.md");
+  execFileSync(process.execPath, ["scripts/agent-usability/page.mts", dir, out]);
+  const page = readFileSync(out, "utf8");
   assert.match(page, /^# Why Ouro HX needs no skill\n\n[^\n]+\n/);
-  assert.equal((page.match(/Keeps the server refusal/g) ?? []).length, 45);
-  assert.equal((page.match(/390px dark/g) ?? []).length, 45);
-  assert.match(page, /app-shell.*run 3/);
-  assert.match(page, /Fixture-only behavior failure/);
+  assert.doesNotMatch(page, /Keeps the server refusal/);
+  for (const screen of screens) {
+    const filename = `comparison-${screen}.md`;
+    assert.ok(page.includes(`](${filename})`), `overview links to ${screen}`);
+    const appendix = readFileSync(join(out, "..", filename), "utf8");
+    assert.ok(appendix.includes("](comparison.md)"), `${screen} links back to the protocol and limits`);
+    assert.equal((appendix.match(/Keeps the server refusal/g) ?? []).length, 9);
+    assert.equal((appendix.match(/390px dark/g) ?? []).length, 9);
+    assert.equal((appendix.match(/Fixture-only behavior failure/g) ?? []).length, 9);
+    for (const arm of arms) for (const run of [1, 2, 3]) {
+      assert.ok(appendix.includes(`/${arm}/${screen}/${run}/score/screenshots`), `${arm}/${screen}/${run} evidence`);
+    }
+    for (const other of screens.filter((name) => name !== screen)) {
+      assert.ok(!appendix.includes(`/${other}/`), `${screen} does not inline ${other}'s results`);
+    }
+  }
   assert.match(page, /fixture-only-model/);
   assert.match(page, /v0\.8\.0/);
   assert.match(page, /https:\/\/ui\.shadcn\.com\/docs\/skills\.md/);

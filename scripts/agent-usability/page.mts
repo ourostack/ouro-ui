@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync } from "node:fs";
-import { basename, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runsPerCell } from "./formula.mts";
 import { arms } from "./prompt.mts";
@@ -11,10 +11,15 @@ import { resultsTable, runFolders } from "./table.mts";
 //
 // The publication renderer, not part of the scoring harness. Supply the complete CI-scored
 // cohort; partial runs stay useful to table.mts but cannot become this comparison page.
+// Also writes one sibling appendix per screen, keeping every run's checks readable.
 
 export function whyNoSkillPage(runsDir: string): string {
+  return publicationPages(runsDir, "why-no-skill.md")["why-no-skill.md"]!;
+}
+
+function publicationPages(runsDir: string, overviewFile: string): Record<string, string> {
   const expected = Array.from({ length: runsPerCell }, (_, index) => String(index + 1)).join(", ");
-  const details: string[] = [];
+  const details = new Map(screens.map((screen) => [screen, [] as string[]]));
   for (const arm of arms) for (const screen of screens) {
     const folders = runFolders(runsDir, arm, screen);
     if (folders.map((folder) => basename(folder)).join(", ") !== expected) {
@@ -24,10 +29,11 @@ export function whyNoSkillPage(runsDir: string): string {
       const result: ScoreResult = JSON.parse(readFileSync(join(folder, "score/score.json"), "utf8"));
       if (result.arm !== arm || result.screen !== screen) throw new Error(`${folder}/score/score.json identifies a different arm or screen`);
       const path = `scripts/agent-usability/runs/${basename(runsDir)}/${arm}/${screen}/${basename(folder)}/score`;
-      details.push(summary(result, path).replace(/^## (.*?):/, `### $1, run ${basename(folder)}:`));
+      details.get(screen)!.push(summary(result, path).replace(/^## (.*?):/, `### $1, run ${basename(folder)}:`));
     }
   }
-  return [
+  const appendixFile = (screen: string) => `${basename(overviewFile, ".md")}-${screen}.md`;
+  const overview = [
     "# Why Ouro HX needs no skill",
     "",
     "Ouro HX puts component guidance in the source an agent already reads: required props, compiler hints and development messages. No Ouro-specific skill is required; that is a design choice, not a promise that every agent will build every screen correctly.",
@@ -52,7 +58,7 @@ export function whyNoSkillPage(runsDir: string): string {
     "",
     `This is the ${basename(runsDir)} cohort: five screens, three arms and three fresh agent processes per arm and screen, for 45 builds. The arms are shadcn/ui, shadcn/ui with its official skill, and Ouro HX without a skill. The recorded model, effort, tool versions, installed sources and baseline findings follow the scores.`,
     "",
-    "The same frozen checks judge every arm: types, lint, WCAG A/AA scans and behavior. The arm's original configuration is restored before scoring; existing baseline findings cost nothing. A screen that does nothing, does not build or changes the backend stand-in scores zero. Screenshots are evidence, not points. The per-run results below include every behavior and accessibility check, not just the totals.",
+    "The same frozen checks judge every arm: types, lint, WCAG A/AA scans and behavior. The arm's original configuration is restored before scoring; existing baseline findings cost nothing. A screen that does nothing, does not build or changes the backend stand-in scores zero. Screenshots are evidence, not points. The linked per-screen results include every behavior and accessibility check, not just the totals.",
     "",
     "The protocol notes are part of the result. The formula grades the resulting apps, not operational safety or adherence to workspace instructions. Shared-host interference, additional tool-reported model usage and tool-version gaps disclosed in those notes limit how these numbers can be interpreted.",
     "",
@@ -68,8 +74,24 @@ export function whyNoSkillPage(runsDir: string): string {
     "",
     "## Every run and check",
     "",
-    ...details,
+    "Each screen has its own results page so the full checks stay readable on a phone. Each page includes all nine builds: three arms, three runs each. Nothing is omitted or collapsed.",
+    "",
+    ...screens.map((screen) => `- [${screen}: all nine runs and checks](${appendixFile(screen)})`),
   ].join("\n");
+  return {
+    [overviewFile]: overview,
+    ...Object.fromEntries(screens.map((screen) => [appendixFile(screen), [
+      `# Comparison results: ${screen}`,
+      "",
+      `[Comparison overview, scores, protocol and limits](${overviewFile})`,
+      "",
+      `All nine ${screen} builds from the ${basename(runsDir)} cohort follow unchanged: three arms, three runs each. These checks grade the resulting apps, not operational safety, complete accessibility or physical-device VoiceOver behavior. Read the overview's protocol notes and limits before comparing scores.`,
+      "",
+      "## Every run and check",
+      "",
+      ...details.get(screen)!,
+    ].join("\n")])),
+  };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
@@ -78,5 +100,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     console.error("usage: page.mts <runs/<date>> <out.md>");
     process.exit(1);
   }
-  writeFileSync(resolve(out), whyNoSkillPage(resolve(dir)));
+  const target = resolve(out);
+  for (const [file, markdown] of Object.entries(publicationPages(resolve(dir), basename(target)))) {
+    writeFileSync(join(dirname(target), file), markdown);
+  }
 }
