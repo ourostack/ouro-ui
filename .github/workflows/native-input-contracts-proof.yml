@@ -31,14 +31,14 @@ jobs:
           set -euo pipefail
           pnpm add -Dw --save-exact "vitest@$VITEST" "@vitest/browser-playwright@$VITEST" "@vitest/coverage-istanbul@$VITEST" "@playwright/test@1.64.0" "playwright@1.64.0" 2>&1 | tee contract-evidence/toolchain.log
       - run: pnpm exec playwright install --with-deps chromium webkit
-      - name: Prove permanent RTL geometry cases before changing runtime alignment
+      - name: Qualify fixed physical edges and native focus delivery
         shell: bash
         run: |
           set -euo pipefail
-          git merge-base --is-ancestor 80cb91815feb73bbe94963acf60f8c89aa9ee628 HEAD
-          git diff 80cb91815feb73bbe94963acf60f8c89aa9ee628 -- registry registry.json scripts test changes > contract-evidence/candidate.diff
+          git merge-base --is-ancestor dc31791605d84819b833c04287868588b1d389c0 HEAD
+          git diff dc31791605d84819b833c04287868588b1d389c0 -- registry registry.json scripts test changes > contract-evidence/candidate.diff
           test ! -s contract-evidence/candidate.diff
-          sha256sum registry/ouro/components/ouro/swipe-actions/{swipe-actions.tsx,swipe-actions.test.tsx} registry/ouro/components/ouro/sheet/{sheet.tsx,sheet.test.tsx} proof/native-sheet-focus-boundary.test.tsx proof/native-input-rtl.ts proof/native-input-contracts.config.ts > contract-evidence/digests.txt
+          sha256sum registry/ouro/components/ouro/swipe-actions/{swipe-actions.tsx,swipe-actions.test.tsx} registry/ouro/components/ouro/sheet/{sheet.tsx,sheet-parts.tsx,sheet.test.tsx} proof/native-sheet-focus-boundary.test.tsx proof/native-input-rtl.ts proof/native-input-contracts.config.ts > contract-evidence/digests.txt
           pnpm list vitest @vitest/browser-playwright playwright --depth 0 --json > contract-evidence/tools.json
           if pnpm exec vitest run --config proof/native-input-contracts.config.ts --project=ouro-chromium --project=ouro-webkit --reporter=default --reporter=json --outputFile=contract-evidence/results.json > contract-evidence/browser.log 2>&1; then code=0; else code=$?; fi
           printf '%s\n' "$code" > contract-evidence/browser.exit
