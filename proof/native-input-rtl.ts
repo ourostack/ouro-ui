@@ -1,0 +1,1 @@
+document.documentElement.dir = "rtl";
