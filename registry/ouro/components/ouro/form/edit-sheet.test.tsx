@@ -1,5 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { flushSync } from "react-dom";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, server, userEvent } from "vitest/browser";
@@ -284,6 +285,55 @@ describe("EditSheet", () => {
     expect(popup()!.hasAttribute("data-open")).toBe(true);
     expect(field("name").getAttribute("aria-invalid")).toBeNull();
     expect(dialogButton("Save").element().hasAttribute("aria-busy")).toBe(false);
+  });
+
+  it.each(["sync", "resolve", "reject"])("does not mark a new opening when onSubmit closes and reopens its own lifetime (%s)", async (mode) => {
+    const pending = deferred<FormErrors>();
+    function Controlled() {
+      const [shown, setShown] = useState(true);
+      return (
+        <EditSheet title="Edit recipe" open={shown} onOpenChange={setShown} onSubmit={() => {
+          flushSync(() => setShown(false));
+          flushSync(() => setShown(true));
+          return mode === "sync" ? { name: "Old refusal." } : pending.promise;
+        }}>
+          <Fields />
+        </EditSheet>
+      );
+    }
+    await render(<Controlled />);
+    await settled();
+    await userEvent.click(dialogButton("Save"));
+    await settled();
+    expect(field("name").getAttribute("aria-invalid")).toBeNull();
+    expect(dialogButton("Save").element().hasAttribute("aria-busy")).toBe(false);
+    if (mode === "resolve") await act(async () => pending.resolve({ name: "Old refusal." }));
+    if (mode === "reject") {
+      await act(async () => pending.reject(new Error("Old failure")));
+      await expect.poll(() => warn.mock.calls.some((call: unknown[]) => String(call[0]).includes("after the user had left"))).toBe(true);
+    }
+    expect(field("name").getAttribute("aria-invalid")).toBeNull();
+    expect(popup()!.querySelector('[role="alert"]')).toBeNull();
+    expect(dialogButton("Save").element().hasAttribute("aria-busy")).toBe(false);
+  });
+
+  it("invalidates a promise when onSubmit unmounts its sheet", async () => {
+    const pending = deferred<FormErrors>();
+    function Controlled() {
+      const [mounted, setMounted] = useState(true);
+      return mounted ? (
+        <EditSheet title="Edit recipe" open onOpenChange={() => {}} onSubmit={() => {
+          flushSync(() => setMounted(false));
+          return pending.promise;
+        }}><Fields /></EditSheet>
+      ) : null;
+    }
+    await render(<Controlled />);
+    await settled();
+    await userEvent.click(dialogButton("Save"));
+    expect(popup()).toBeNull();
+    await act(async () => pending.reject(new Error("Old failure")));
+    await expect.poll(() => warn.mock.calls.some((call: unknown[]) => String(call[0]).includes("after the user had left"))).toBe(true);
   });
 
   it("ignores a rejection that settles after the app closed the sheet, but still warns", async () => {
