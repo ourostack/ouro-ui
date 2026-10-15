@@ -624,16 +624,25 @@ describe("dragging (Chromium)", () => {
 });
 
 describe("sides", () => {
-  it.each([
-    ["top", (r: DOMRect) => Math.round(r.top) === 0 && Math.round(r.width) === innerWidth],
-    ["left", (r: DOMRect) => Math.round(r.left) === 0 && Math.round(r.height) === innerHeight],
-    ["right", (r: DOMRect) => Math.round(r.right) === innerWidth && Math.round(r.height) === innerHeight],
-  ] as const)("slides in from the %s edge", async (side, atEdge) => {
-    const sheet = await openUncontrolled({ side });
-    expect(sheet.getAttribute("data-side")).toBe(side);
-    expect(atEdge(sheet.getBoundingClientRect())).toBe(true);
-    expect(sheet.getBoundingClientRect().width).toBeLessThanOrEqual(innerWidth);
-  });
+  for (const direction of ["ltr", "rtl"]) {
+    it.each([
+      ["top", (r: DOMRect) => Math.round(r.top) === 0 && Math.round(r.width) === innerWidth],
+      ["left", (r: DOMRect) => Math.round(r.left) === 0 && Math.round(r.height) === innerHeight],
+      ["right", (r: DOMRect) => Math.round(r.right) === innerWidth && Math.round(r.height) === innerHeight],
+    ] as const)(`slides in from the %s edge in ${direction}`, async (side, atEdge) => {
+      const previous = document.documentElement.getAttribute("dir");
+      document.documentElement.dir = direction;
+      try {
+        const sheet = await openUncontrolled({ side });
+        expect(sheet.getAttribute("data-side")).toBe(side);
+        expect(atEdge(sheet.getBoundingClientRect())).toBe(true);
+        expect(sheet.getBoundingClientRect().width).toBeLessThanOrEqual(innerWidth);
+      } finally {
+        if (previous === null) document.documentElement.removeAttribute("dir");
+        else document.documentElement.setAttribute("dir", previous);
+      }
+    });
+  }
 });
 
 describe("close control", () => {
