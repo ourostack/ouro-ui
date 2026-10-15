@@ -167,7 +167,8 @@ describe("Accordion", () => {
 
   it("animates the panel to its measured height", async () => {
     const { triggers, host } = await render(<Accordion items={items} />);
-    const panel = host.querySelector<HTMLElement>(`[id="${triggers[0]!.getAttribute("aria-controls")}"]`)!;
+    const panel = host.querySelector<HTMLElement>(`[role="region"][aria-labelledby="${triggers[0]!.id}"]`)!;
+    expect(panel).not.toBeNull();
     let heightStarted = false;
     const record = (event: TransitionEvent) => {
       if (event.target === panel && event.propertyName === "height") heightStarted = true;
@@ -175,6 +176,7 @@ describe("Accordion", () => {
     panel.addEventListener("transitionrun", record);
     try {
       await userEvent.click(triggers[0]!);
+      expect(triggers[0]!.getAttribute("aria-controls")).toBe(panel.id);
       await expect.poll(() => heightStarted).toBe(true);
     } finally {
       panel.removeEventListener("transitionrun", record);
