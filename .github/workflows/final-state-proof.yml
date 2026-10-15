@@ -26,8 +26,8 @@ jobs:
           set -euo pipefail
           mkdir -p state-evidence
           git rev-parse HEAD > state-evidence/source.txt
-          git merge-base --is-ancestor fa383d277aa8c3efd11658b3c73959d7391796d7 HEAD
-          git diff fa383d277aa8c3efd11658b3c73959d7391796d7 -- registry registry.json scripts test changes > state-evidence/candidate.diff
+          git merge-base --is-ancestor fae031a0d0f22f478c7a5af21d46acf3f8c48e93 HEAD
+          git diff fae031a0d0f22f478c7a5af21d46acf3f8c48e93 -- registry registry.json scripts test changes > state-evidence/candidate.diff
           test ! -s state-evidence/candidate.diff
           sha256sum registry/ouro/components/ouro/form/edit-sheet.tsx registry/ouro/components/ouro/calendar/date-picker.tsx registry/ouro/components/ouro/combobox/combobox.tsx registry/ouro/components/ouro/form/edit-sheet.test.tsx registry/ouro/components/ouro/calendar/date-picker.test.tsx registry/ouro/components/ouro/calendar/date-picker.touch.test.tsx registry/ouro/components/ouro/combobox/combobox.test.tsx registry/ouro/components/ouro/combobox/combobox.touch.test.tsx registry.json changes/state-contracts.md test/install-fixture-next/src/app/sections/date-picker.tsx > state-evidence/digests.txt
           if pnpm exec vitest run --project=ouro-chromium --project=ouro-webkit --project=ouro-touch --coverage '--coverage.include=registry/ouro/components/ouro/{form/edit-sheet,calendar/date-picker,combobox/combobox}.tsx' --reporter=default --reporter=json --outputFile=state-evidence/results.json registry/ouro/components/ouro/form/edit-sheet.test.tsx registry/ouro/components/ouro/calendar/date-picker.test.tsx registry/ouro/components/ouro/calendar/date-picker.touch.test.tsx registry/ouro/components/ouro/combobox/combobox.test.tsx registry/ouro/components/ouro/combobox/combobox.touch.test.tsx > state-evidence/green.log 2>&1; then code=0; else code=$?; fi
