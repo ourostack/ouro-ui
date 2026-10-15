@@ -807,9 +807,23 @@ describe("SwipeActions", () => {
     const keys: string[] = [];
     const listener = (event: KeyboardEvent) => keys.push(event.key);
     document.addEventListener("keydown", listener);
+    const snapshot = (phase: string) => ({
+      phase,
+      direction: getComputedStyle(element).direction,
+      hostDirection: getComputedStyle(host).direction,
+      documentDirection: getComputedStyle(document.documentElement).direction,
+      hostDir: host.dir,
+      open: element.getAttribute("data-open"),
+      offset: offset(element),
+      settling: element.hasAttribute("data-ouro-settling"),
+      focus: document.activeElement?.outerHTML.slice(0, 600),
+    });
+    const trace = [snapshot("before swipe")];
     await swipe(element, -120);
+    trace.push(snapshot("after swipe"));
     await userEvent.keyboard("a");
-    expect(element.getAttribute("data-open")).toBe("trailing");
+    trace.push(snapshot("after key a"));
+    expect(element.getAttribute("data-open"), JSON.stringify(trace)).toBe("trailing");
     await userEvent.keyboard("{Escape}");
     await act(async () => {});
     expect(element.hasAttribute("data-open")).toBe(false);

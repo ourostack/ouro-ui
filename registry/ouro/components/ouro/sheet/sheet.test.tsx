@@ -549,9 +549,18 @@ describe("dragging (Chromium)", () => {
     await settled();
     const sheet = popup()!;
     const seen: string[] = [];
+    const focus = () => ({
+      active: document.activeElement?.outerHTML.slice(0, 600),
+      inside: sheet.contains(document.activeElement),
+      open: sheet.getAttribute("data-open"),
+      starting: sheet.hasAttribute("data-starting-style"),
+      animations: getAnimations(sheet),
+    });
+    const trace = [focus()];
     for (let i = 0; i < 4; i++) {
       await userEvent.keyboard("{Tab}");
-      expect(sheet.contains(document.activeElement)).toBe(true);
+      trace.push(focus());
+      expect(sheet.contains(document.activeElement), JSON.stringify({ step: i, trace })).toBe(true);
       seen.push(document.activeElement!.textContent ?? "");
     }
     // Close is the last control; Tab from it wraps back to the first.

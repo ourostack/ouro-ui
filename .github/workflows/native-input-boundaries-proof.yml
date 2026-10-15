@@ -1,0 +1,53 @@
+name: Native Input Boundaries Proof
+on:
+  push:
+    branches: [probe/final-state-contracts]
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        theme: [ouro, stock]
+        observation: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - run: mkdir -p input-evidence && git rev-parse HEAD > input-evidence/source.txt
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium webkit
+      - name: Observe whole source suites without changing input or assertions
+        shell: bash
+        env:
+          PROBE_STYLE: ${{ matrix.theme }}
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 9a8e0d86d3fdcfa746de1b3b2eb3cad0e5dbf226 HEAD
+          git diff 9a8e0d86d3fdcfa746de1b3b2eb3cad0e5dbf226 -- registry registry.json scripts test changes > input-evidence/diagnostic.diff
+          git diff 9a8e0d86d3fdcfa746de1b3b2eb3cad0e5dbf226 -- registry ':!registry/**/*.test.tsx' > input-evidence/runtime.diff
+          test ! -s input-evidence/runtime.diff
+          sha256sum registry/ouro/components/ouro/swipe-actions/{swipe-actions.tsx,swipe-actions.test.tsx} registry/ouro/components/ouro/sheet/{sheet.tsx,sheet.test.tsx} proof/native-input-boundaries.config.ts proof/native-input-stock.css > input-evidence/digests.txt
+          pnpm list vitest @vitest/browser-playwright playwright --depth 0 --json > input-evidence/tools.json
+          if pnpm exec vitest run --config proof/native-input-boundaries.config.ts --project=ouro-chromium --project=ouro-webkit --reporter=default --reporter=json --outputFile=input-evidence/results.json registry/ouro/components/ouro/swipe-actions/swipe-actions.test.tsx registry/ouro/components/ouro/sheet/sheet.test.tsx > input-evidence/browser.log 2>&1; then code=0; else code=$?; fi
+          printf '%s\n' "$code" > input-evidence/browser.exit
+          test -s input-evidence/results.json
+          exit "$code"
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: native-input-${{ matrix.theme }}-${{ matrix.observation }}
+          path: |
+            input-evidence/
+            .vitest/attachments/
+          if-no-files-found: error
