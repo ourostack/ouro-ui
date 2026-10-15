@@ -35,8 +35,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git merge-base --is-ancestor dc31791605d84819b833c04287868588b1d389c0 HEAD
-          git diff dc31791605d84819b833c04287868588b1d389c0 -- registry registry.json scripts test changes > contract-evidence/candidate.diff
+          git merge-base --is-ancestor bc47d8025a27b581a371fd3bdbbfcdda14cef7f6 HEAD
+          git diff bc47d8025a27b581a371fd3bdbbfcdda14cef7f6 -- registry registry.json scripts test changes > contract-evidence/candidate.diff
           test ! -s contract-evidence/candidate.diff
           sha256sum registry/ouro/components/ouro/swipe-actions/{swipe-actions.tsx,swipe-actions.test.tsx} registry/ouro/components/ouro/sheet/{sheet.tsx,sheet-parts.tsx,sheet.test.tsx} proof/native-sheet-focus-boundary.test.tsx proof/native-input-rtl.ts proof/native-input-contracts.config.ts > contract-evidence/digests.txt
           pnpm list vitest @vitest/browser-playwright playwright --depth 0 --json > contract-evidence/tools.json
