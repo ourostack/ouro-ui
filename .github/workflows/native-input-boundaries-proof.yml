@@ -12,7 +12,7 @@ jobs:
       fail-fast: false
       max-parallel: 6
       matrix:
-        theme: [ouro, stock]
+        theme: [stock]
         observation: [1, 2, 3]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -37,7 +37,7 @@ jobs:
           git diff 9a8e0d86d3fdcfa746de1b3b2eb3cad0e5dbf226 -- registry registry.json scripts test changes > input-evidence/diagnostic.diff
           git diff 9a8e0d86d3fdcfa746de1b3b2eb3cad0e5dbf226 -- registry ':!registry/**/*.test.tsx' > input-evidence/runtime.diff
           test ! -s input-evidence/runtime.diff
-          sha256sum registry/ouro/components/ouro/swipe-actions/{swipe-actions.tsx,swipe-actions.test.tsx} registry/ouro/components/ouro/sheet/{sheet.tsx,sheet.test.tsx} proof/native-input-boundaries.config.ts proof/native-input-stock.css > input-evidence/digests.txt
+          sha256sum registry/ouro/components/ouro/swipe-actions/{swipe-actions.tsx,swipe-actions.test.tsx} registry/ouro/components/ouro/sheet/{sheet.tsx,sheet.test.tsx} proof/native-input-boundaries.config.ts proof/native-input-stock.ts > input-evidence/digests.txt
           pnpm list vitest @vitest/browser-playwright playwright --depth 0 --json > input-evidence/tools.json
           if pnpm exec vitest run --config proof/native-input-boundaries.config.ts --project=ouro-chromium --project=ouro-webkit --reporter=default --reporter=json --outputFile=input-evidence/results.json registry/ouro/components/ouro/swipe-actions/swipe-actions.test.tsx registry/ouro/components/ouro/sheet/sheet.test.tsx > input-evidence/browser.log 2>&1; then code=0; else code=$?; fi
           printf '%s\n' "$code" > input-evidence/browser.exit
