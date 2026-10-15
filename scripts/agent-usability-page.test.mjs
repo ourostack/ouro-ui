@@ -66,6 +66,9 @@ test("publication includes each actual outcome and its run, not just aggregate s
   assert.match(page, /fixture-only-model/);
   assert.match(page, /v0\.8\.0/);
   assert.match(page, /https:\/\/ui\.shadcn\.com\/docs\/skills\.md/);
+  assert.match(page, /one primary model\/effort setting/);
+  assert.match(page, /formula grades the resulting apps, not operational safety/);
+  assert.match(page, /https:\/\/github\.com\/ourostack\/ouro-ui\/tree\/main\/scripts\/agent-usability\/runs\//);
 });
 
 test("publication rejects a missing score or a result copied into a different arm", () => {
