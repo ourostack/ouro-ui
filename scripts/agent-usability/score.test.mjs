@@ -502,6 +502,16 @@ test("score-runs.mts exits 1 when it can't score a run", () => {
   assert.match(source, /if \(broken\.length > 0\) process\.exitCode = 1;/);
 });
 
+test("the Ouro arm installs base tokens once before the runtime components", () => {
+  const create = readFileSync(join(here, "arms/create.sh"), "utf8");
+  const base = '"${shadcn[@]}" add --yes "ourostack/ouro-ui/ouro-base#$ouro_ref"';
+  const components = '"${shadcn[@]}" add --yes "${addresses[@]}"';
+  assert.equal(create.split(base).length - 1, 1);
+  assert.ok(create.indexOf(base) < create.indexOf(components));
+  const registry = JSON.parse(readFileSync(join(root, "registry.json"), "utf8"));
+  assert.equal(registry.items.find((item) => item.name === "ouro-base")?.type, "registry:item");
+});
+
 test("the arm script pins the shadcn CLI the install test verifies, the skills CLI and the skill's commit", () => {
   const create = readFileSync(join(here, "arms/create.sh"), "utf8");
   const install = readFileSync(join(root, "scripts/install-test.sh"), "utf8");
