@@ -16,10 +16,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { mode: full, iteration: cold, profile: none }
-          - { mode: touch-file, iteration: prestart, profile: prestart }
-          - { mode: touch-file, iteration: midmove, profile: midmove }
-          - { mode: touch-file, iteration: preend, profile: preend }
+          - { mode: full, iteration: origin-control, profile: none, offset: "0" }
+          - { mode: touch-file, iteration: future-1000, profile: future, offset: "1000" }
+          - { mode: touch-file, iteration: future-1005, profile: future, offset: "1005" }
+          - { mode: touch-file, iteration: future-1010, profile: future, offset: "1010" }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -38,6 +38,7 @@ jobs:
           MODE: ${{ matrix.mode }}
           ITERATION: ${{ matrix.iteration }}
           CAROUSEL_STALL_PROFILE: ${{ matrix.profile }}
+          CAROUSEL_TIMESTAMP_OFFSET_MS: ${{ matrix.offset }}
         run: |
           set -euo pipefail
           mkdir -p carousel-evidence

@@ -47,6 +47,7 @@ const recordCarouselTrace: BrowserCommand<[record: string]> = async (ctx, record
     writeFileSync(path.replace(/-browser\.jsonl$/, "-engine.json"), JSON.stringify({
       version: trace.version,
       profile: process.env["CAROUSEL_STALL_PROFILE"],
+      timestampOffsetMs: process.env["CAROUSEL_TIMESTAMP_OFFSET_MS"],
       probeSource: process.env["CAROUSEL_PROBE_SOURCE"],
       traceEvents: trace.events,
     }));

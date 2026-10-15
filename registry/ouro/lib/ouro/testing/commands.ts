@@ -519,11 +519,15 @@ export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from,
     session = await page.context().newCDPSession(page);
     cdpSessions.set(page, session);
   }
-  const start = Date.now() / 1000;
   const profile = durationMs === 30 ? process.env["CAROUSEL_STALL_PROFILE"] : undefined;
-  if (profile !== undefined && !["none", "prestart", "midmove", "preend"].includes(profile)) {
+  if (profile !== undefined && !["none", "prestart", "midmove", "preend", "future"].includes(profile)) {
     throw new Error(`Unknown Carousel diagnostic stall profile: ${profile}`);
   }
+  const offset = profile === "future" ? process.env["CAROUSEL_TIMESTAMP_OFFSET_MS"] : "0";
+  if (offset === undefined || !["0", "1000", "1005", "1010"].includes(offset)) {
+    throw new Error(`Unknown Carousel diagnostic timestamp offset: ${offset}`);
+  }
+  const start = (Date.now() + Number(offset)) / 1000;
   const packets: Array<{ type: string; x: number; y: number; timestamp: number | undefined; sent: number; acknowledged: number }> = [];
   const touch = async (type: "touchStart" | "touchMove" | "touchEnd", [x, y]: [number, number], t: number) => {
     const payload = {
@@ -553,7 +557,7 @@ export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from,
     });
   } finally {
     const path = process.env["CAROUSEL_PACKET_FILE"];
-    if (path) appendFileSync(path, `${JSON.stringify({ iteration: process.env["CAROUSEL_TRACE_ITERATION"], profile, from, to, steps, durationMs, packets })}\n`);
+    if (path) appendFileSync(path, `${JSON.stringify({ iteration: process.env["CAROUSEL_TRACE_ITERATION"], profile, offset, from, to, steps, durationMs, packets })}\n`);
   }
 };
 
