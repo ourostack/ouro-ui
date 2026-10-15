@@ -21,6 +21,13 @@
     "markdown": "docs/guides/testing.md"
   },
   {
+    "name": "why-no-skill",
+    "title": "Why Ouro HX needs no skill",
+    "kind": "guide",
+    "group": "Guides",
+    "markdown": "docs/guides/why-no-skill.md"
+  },
+  {
     "name": "radio",
     "title": "Radio",
     "kind": "export",

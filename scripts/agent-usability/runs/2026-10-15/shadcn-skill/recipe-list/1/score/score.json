@@ -1,0 +1,247 @@
+{
+  "arm": "shadcn-skill",
+  "screen": "recipe-list",
+  "scoredAt": "2026-10-15T10:03:06.701Z",
+  "formulaVersion": 4,
+  "versions": {
+    "harness": "4bedf56c3fcf774b03b21b2253f136cca541afa6",
+    "node": "v24.21.0",
+    "axeCore": "4.13.0",
+    "playwright": "1.63.0",
+    "chromium": "153.0.8010.12"
+  },
+  "armRecord": "scripts/agent-usability/runs/2026-10-15/arms/shadcn-skill.json",
+  "checks": {
+    "typecheck": {
+      "pass": true,
+      "new": [],
+      "excused": 0,
+      "output": "tsc -b reported no error."
+    },
+    "lint": {
+      "pass": true,
+      "new": [],
+      "excused": 0,
+      "output": "oxlint reported no error."
+    },
+    "build": {
+      "pass": true,
+      "output": "vite build passed."
+    },
+    "fixtures": {
+      "pass": true,
+      "changed": []
+    },
+    "config": {
+      "changed": []
+    }
+  },
+  "axe": [
+    {
+      "viewport": "phone",
+      "width": 390,
+      "theme": "light",
+      "pass": true,
+      "states": [
+        {
+          "name": "initial",
+          "reached": true
+        },
+        {
+          "name": "actions-menu-open",
+          "reached": true
+        }
+      ],
+      "violations": [],
+      "advisories": [
+        {
+          "id": "region",
+          "impact": "moderate",
+          "help": "All page content should be contained by landmarks",
+          "targets": [
+            "#_r_2_"
+          ],
+          "state": "actions-menu-open"
+        }
+      ]
+    },
+    {
+      "viewport": "phone",
+      "width": 390,
+      "theme": "dark",
+      "pass": true,
+      "states": [
+        {
+          "name": "initial",
+          "reached": true
+        },
+        {
+          "name": "actions-menu-open",
+          "reached": true
+        }
+      ],
+      "violations": [],
+      "advisories": [
+        {
+          "id": "region",
+          "impact": "moderate",
+          "help": "All page content should be contained by landmarks",
+          "targets": [
+            "#_r_2_"
+          ],
+          "state": "actions-menu-open"
+        }
+      ]
+    },
+    {
+      "viewport": "desktop",
+      "width": 1280,
+      "theme": "light",
+      "pass": true,
+      "states": [
+        {
+          "name": "initial",
+          "reached": true
+        },
+        {
+          "name": "actions-menu-open",
+          "reached": true
+        }
+      ],
+      "violations": [],
+      "advisories": [
+        {
+          "id": "region",
+          "impact": "moderate",
+          "help": "All page content should be contained by landmarks",
+          "targets": [
+            "#_r_2_"
+          ],
+          "state": "actions-menu-open"
+        }
+      ]
+    },
+    {
+      "viewport": "desktop",
+      "width": 1280,
+      "theme": "dark",
+      "pass": true,
+      "states": [
+        {
+          "name": "initial",
+          "reached": true
+        },
+        {
+          "name": "actions-menu-open",
+          "reached": true
+        }
+      ],
+      "violations": [],
+      "advisories": [
+        {
+          "id": "region",
+          "impact": "moderate",
+          "help": "All page content should be contained by landmarks",
+          "targets": [
+            "#_r_2_"
+          ],
+          "state": "actions-menu-open"
+        }
+      ]
+    }
+  ],
+  "behavior": [
+    {
+      "id": "ten-per-page",
+      "title": "The first page shows the first 10 recipes with their time and servings",
+      "covers": [
+        1
+      ],
+      "viewport": "desktop",
+      "gate": true,
+      "pass": true
+    },
+    {
+      "id": "pagination",
+      "title": "Pagination marks the current page, moves between pages, and disables Previous and Next at the ends",
+      "covers": [
+        2
+      ],
+      "viewport": "desktop",
+      "gate": true,
+      "pass": true
+    },
+    {
+      "id": "swipe-reveals-actions",
+      "title": "Swiping a row left reveals Archive and Delete, and swiping back hides them",
+      "covers": [
+        3
+      ],
+      "viewport": "phone",
+      "gate": true,
+      "pass": true
+    },
+    {
+      "id": "swipe-delete",
+      "title": "Tapping the revealed Delete deletes the recipe, removes the row and announces it",
+      "covers": [
+        3,
+        5
+      ],
+      "viewport": "phone",
+      "gate": true,
+      "pass": true
+    },
+    {
+      "id": "actions-menu-archives",
+      "title": "\"Actions for <title>\" opens a menu by keyboard whose Archive archives the recipe and announces it",
+      "covers": [
+        4,
+        5
+      ],
+      "viewport": "desktop",
+      "gate": true,
+      "pass": true
+    },
+    {
+      "id": "actions-menu-by-keyboard",
+      "title": "The actions menu works with the keyboard alone: arrow to Delete, press Enter",
+      "covers": [
+        4,
+        5
+      ],
+      "viewport": "desktop",
+      "gate": true,
+      "pass": true
+    },
+    {
+      "id": "fits-a-phone",
+      "title": "At 390px wide the page does not scroll sideways",
+      "covers": [
+        6
+      ],
+      "viewport": "phone",
+      "gate": false,
+      "pass": true
+    }
+  ],
+  "screenshots": [
+    "screenshots/390-light-initial.png",
+    "screenshots/390-light-actions-menu-open.png",
+    "screenshots/390-dark-initial.png",
+    "screenshots/390-dark-actions-menu-open.png",
+    "screenshots/1280-light-initial.png",
+    "screenshots/1280-light-actions-menu-open.png",
+    "screenshots/1280-dark-initial.png",
+    "screenshots/1280-dark-actions-menu-open.png"
+  ],
+  "points": {
+    "typecheck": 20,
+    "lint": 10,
+    "axe": 20,
+    "behavior": 50,
+    "score": 100,
+    "max": 100
+  },
+  "failures": []
+}

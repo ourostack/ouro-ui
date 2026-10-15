@@ -1,0 +1,204 @@
+{
+  "arm": "shadcn",
+  "screen": "settings-form",
+  "scoredAt": "2026-10-15T10:03:03.988Z",
+  "formulaVersion": 4,
+  "versions": {
+    "harness": "4bedf56c3fcf774b03b21b2253f136cca541afa6",
+    "node": "v24.21.0",
+    "axeCore": "4.13.0",
+    "playwright": "1.63.0",
+    "chromium": "153.0.8010.12"
+  },
+  "armRecord": "scripts/agent-usability/runs/2026-10-15/arms/shadcn.json",
+  "checks": {
+    "typecheck": {
+      "pass": true,
+      "new": [],
+      "excused": 0,
+      "output": "tsc -b reported no error."
+    },
+    "lint": {
+      "pass": true,
+      "new": [],
+      "excused": 0,
+      "output": "oxlint reported no error."
+    },
+    "build": {
+      "pass": true,
+      "output": "vite build passed."
+    },
+    "fixtures": {
+      "pass": true,
+      "changed": []
+    },
+    "config": {
+      "changed": []
+    }
+  },
+  "axe": [
+    {
+      "viewport": "phone",
+      "width": 390,
+      "theme": "light",
+      "pass": true,
+      "states": [
+        {
+          "name": "initial",
+          "reached": true
+        },
+        {
+          "name": "server-errors",
+          "reached": true
+        }
+      ],
+      "violations": [],
+      "advisories": []
+    },
+    {
+      "viewport": "phone",
+      "width": 390,
+      "theme": "dark",
+      "pass": true,
+      "states": [
+        {
+          "name": "initial",
+          "reached": true
+        },
+        {
+          "name": "server-errors",
+          "reached": true
+        }
+      ],
+      "violations": [],
+      "advisories": []
+    },
+    {
+      "viewport": "desktop",
+      "width": 1280,
+      "theme": "light",
+      "pass": true,
+      "states": [
+        {
+          "name": "initial",
+          "reached": true
+        },
+        {
+          "name": "server-errors",
+          "reached": true
+        }
+      ],
+      "violations": [],
+      "advisories": []
+    },
+    {
+      "viewport": "desktop",
+      "width": 1280,
+      "theme": "dark",
+      "pass": true,
+      "states": [
+        {
+          "name": "initial",
+          "reached": true
+        },
+        {
+          "name": "server-errors",
+          "reached": true
+        }
+      ],
+      "violations": [],
+      "advisories": []
+    }
+  ],
+  "behavior": [
+    {
+      "id": "fields-labelled-in-order",
+      "title": "The six fields have visible labels, come in order, show the loaded settings, and Bio has its hint",
+      "covers": [
+        1
+      ],
+      "viewport": "desktop",
+      "gate": true,
+      "pass": true
+    },
+    {
+      "id": "saves-once",
+      "title": "While saving, the button is disabled or marked busy and the form can't be sent again by click or Enter",
+      "covers": [
+        2
+      ],
+      "viewport": "desktop",
+      "gate": true,
+      "pass": true
+    },
+    {
+      "id": "server-error-on-its-field",
+      "title": "A server error shows under its field, marks it invalid, is read with it, and focus moves there",
+      "covers": [
+        3
+      ],
+      "viewport": "desktop",
+      "gate": true,
+      "pass": true
+    },
+    {
+      "id": "focus-on-first-error",
+      "title": "With two errors, each shows on its field and focus moves to the first",
+      "covers": [
+        3
+      ],
+      "viewport": "desktop",
+      "gate": true,
+      "pass": true
+    },
+    {
+      "id": "fixed-errors-clear",
+      "title": "Correcting the field and saving again clears its error",
+      "covers": [
+        4
+      ],
+      "viewport": "desktop",
+      "gate": true,
+      "pass": true
+    },
+    {
+      "id": "announces-saved",
+      "title": "\"Settings saved\" appears in a live region after a successful save",
+      "covers": [
+        5
+      ],
+      "viewport": "desktop",
+      "gate": true,
+      "pass": true
+    },
+    {
+      "id": "fits-a-phone",
+      "title": "At 390px wide the page does not scroll sideways",
+      "covers": [
+        6
+      ],
+      "viewport": "phone",
+      "gate": false,
+      "pass": true
+    }
+  ],
+  "screenshots": [
+    "screenshots/390-light-initial.png",
+    "screenshots/390-light-server-errors.png",
+    "screenshots/390-dark-initial.png",
+    "screenshots/390-dark-server-errors.png",
+    "screenshots/1280-light-initial.png",
+    "screenshots/1280-light-server-errors.png",
+    "screenshots/1280-dark-initial.png",
+    "screenshots/1280-dark-server-errors.png"
+  ],
+  "points": {
+    "typecheck": 20,
+    "lint": 10,
+    "axe": 20,
+    "behavior": 50,
+    "score": 100,
+    "max": 100
+  },
+  "failures": []
+}
