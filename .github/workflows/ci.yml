@@ -174,9 +174,9 @@ jobs:
           if-no-files-found: ignore
   install-github:
     # The install a user runs today: `shadcn add ourostack/ouro-ui/<item>` with no ref, so
-    # every item and its Ouro dependencies come from main. Runs after each push to main,
-    # once that commit's registry.json is on GitHub; type check and build.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # every item and its Ouro dependencies come from main. Runs on main pushes and manual
+    # dispatches, including Release's CI after its prepare-main merge; type check and build.
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
