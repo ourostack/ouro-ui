@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode: [natural, native-growth-phase, fonts-ready-control]
+        mode: [native-font-swap]
     env:
       OURO_PRESET: nova
       VITE_MESSAGE_TRACE: ${{ matrix.mode }}

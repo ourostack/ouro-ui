@@ -19,11 +19,13 @@ afterEach(async () => {
 
 async function render(node: ReactNode) {
   const host = document.createElement("div");
+  if (import.meta.env.VITE_MESSAGE_TRACE === "native-font-swap") host.style.fontFamily = "Arial, sans-serif";
   document.body.append(host);
   nodes.push(host);
   root = createRoot(host);
   await act(async () => root!.render(node));
   return {
+    host,
     rerender: (next: ReactNode) => act(async () => root!.render(next)),
     scroller: host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!,
   };
@@ -69,7 +71,7 @@ async function swipe(scroller: HTMLElement, dy: number) {
 
 const jumpButton = () => page.getByRole("button", { name: "Jump to latest" });
 
-async function traceInitialPinning(scroller: HTMLElement, mode: string): Promise<void> {
+async function traceInitialPinning(scroller: HTMLElement, mode: string, host: HTMLElement): Promise<void> {
   const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]");
   if (!content) throw new Error("Message diagnostic content is missing");
   const samples: Record<string, unknown>[] = [];
@@ -90,6 +92,7 @@ async function traceInitialPinning(scroller: HTMLElement, mode: string): Promise
       width: innerWidth,
       height: innerHeight,
       fonts: document.fonts.status,
+      fontFamily: getComputedStyle(content).fontFamily,
       jump: jumpButton().query() !== null,
     });
   };
@@ -106,6 +109,11 @@ async function traceInitialPinning(scroller: HTMLElement, mode: string): Promise
   observer.observe(content);
   try {
     capture("after-render");
+    const targetFontFamily = getComputedStyle(document.body).fontFamily;
+    if (mode === "native-font-swap") {
+      await document.fonts.load(`16px ${targetFontFamily}`, "Message 0 knead");
+      capture("target-font-loaded");
+    }
     if (mode === "fonts-ready-control") {
       await document.fonts.ready;
       capture("fonts-ready");
@@ -113,7 +121,7 @@ async function traceInitialPinning(scroller: HTMLElement, mode: string): Promise
     await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
     capture("initial-poll-satisfied");
     await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => {
-      if (mode === "native-growth-phase") content.style.paddingBottom = "276px";
+      if (mode === "native-font-swap") host.style.fontFamily = targetFontFamily;
       capture("second-animation-frame");
       resolve();
     })));
@@ -133,6 +141,7 @@ async function traceInitialPinning(scroller: HTMLElement, mode: string): Promise
       rootStyle: document.documentElement.style.cssText,
       bodyFont: getComputedStyle(document.body).font,
       contentFont: getComputedStyle(content).font,
+      targetFontFamily,
       truncated,
       samples,
     })}`;
@@ -150,8 +159,8 @@ async function traceInitialPinning(scroller: HTMLElement, mode: string): Promise
 
 it("keeps the reader's place on a phone once they swipe up, and jumps back with a 44px button", async () => {
   const items = texts(24);
-  const { scroller, rerender } = await render(<Chat items={items} />);
-  if (import.meta.env.VITE_MESSAGE_TRACE) await traceInitialPinning(scroller, import.meta.env.VITE_MESSAGE_TRACE);
+  const { host, scroller, rerender } = await render(<Chat items={items} />);
+  if (import.meta.env.VITE_MESSAGE_TRACE) await traceInitialPinning(scroller, import.meta.env.VITE_MESSAGE_TRACE, host);
   // Polled: this is the first render in the page, and a theme's web font can swap in just after
   // it and rewrap the messages. The list follows that growth in the next frame, before paint.
   await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
