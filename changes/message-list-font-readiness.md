@@ -1,0 +1,1 @@
+- MessageList's phone test waits for its current fonts before checking bottom-position stability; its strict scrolling assertions and runtime behavior are unchanged.
