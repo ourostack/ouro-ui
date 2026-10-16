@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode: [native-font-swap]
+        mode: [stable-font-control, follow-disabled-control]
     env:
       OURO_PRESET: nova
       VITE_MESSAGE_TRACE: ${{ matrix.mode }}
@@ -38,6 +38,18 @@ jobs:
             scripts/install-test.sh package.json pnpm-lock.yaml \
             registry/ouro/theme > message-runtime.diff
           test ! -s message-runtime.diff
+      - name: Disable only post-mount resize following for the negative control
+        if: matrix.mode == 'follow-disabled-control'
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("registry/ouro/components/ouro/message/message-list.tsx")
+          source = path.read_text()
+          original = "if (pinned.current) toBottom();"
+          assert source.count(original) == 1
+          path.write_text(source.replace(original, "if (pinned.current) { /* diagnostic: following disabled */ }"))
+          PY
+          git diff -- registry/ouro/components/ouro/message/message-list.tsx > message-negative-control.diff
       - name: Run actual Ouro Nova install context; intentional capture failure is not qualification
         run: |
           set -o pipefail
@@ -49,6 +61,7 @@ jobs:
           path: |
             message-diagnostic-source.log
             message-runtime.diff
+            message-negative-control.diff
             message-install-diagnostic.log
             ${{ runner.temp }}/app/src/index.css
             ${{ runner.temp }}/app/package.json

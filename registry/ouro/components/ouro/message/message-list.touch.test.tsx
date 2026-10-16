@@ -19,7 +19,7 @@ afterEach(async () => {
 
 async function render(node: ReactNode) {
   const host = document.createElement("div");
-  if (import.meta.env.VITE_MESSAGE_TRACE === "native-font-swap") host.style.fontFamily = "Arial, sans-serif";
+  if (import.meta.env.VITE_MESSAGE_TRACE) host.style.fontFamily = "Arial, sans-serif";
   document.body.append(host);
   nodes.push(host);
   root = createRoot(host);
@@ -107,34 +107,44 @@ async function traceInitialPinning(scroller: HTMLElement, mode: string, host: HT
   }
   observer.observe(scroller);
   observer.observe(content);
+  let originalDistance: number | undefined;
+  let assertionError: unknown;
   try {
     capture("after-render");
     const targetFontFamily = getComputedStyle(document.body).fontFamily;
-    if (mode === "native-font-swap") {
-      await document.fonts.load(`16px ${targetFontFamily}`, "Message 0 knead");
-      capture("target-font-loaded");
-    }
-    if (mode === "fonts-ready-control") {
-      await document.fonts.ready;
-      capture("fonts-ready");
-    }
+    await document.fonts.load(`16px ${targetFontFamily}`, "Message 0 knead");
+    capture("target-font-loaded");
+    // Mount and prove the initial position before inducing genuine intrinsic growth.
     await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
-    capture("initial-poll-satisfied");
-    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => {
-      if (mode === "native-font-swap") host.style.fontFamily = targetFontFamily;
-      capture("second-animation-frame");
-      resolve();
-    })));
-    const originalDistance = distanceFromBottom(scroller);
-    capture("original-assertion-point");
-    for (let frame = 0; frame < 8; frame++) {
-      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-      capture(`later-frame-${frame}`);
+    capture("arial-already-pinned");
+    host.style.fontFamily = targetFontFamily;
+    capture("intended-font-applied");
+    await document.fonts.ready;
+    capture("intended-font-ready");
+    try {
+      await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+      capture("initial-poll-satisfied");
+      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => {
+        capture("second-animation-frame");
+        resolve();
+      })));
+      originalDistance = distanceFromBottom(scroller);
+      capture("original-assertion-point");
+      expect(originalDistance).toBeLessThanOrEqual(1);
+      expect(jumpButton().query()).toBeNull();
+      for (let frame = 0; frame < 8; frame++) {
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+        capture(`later-frame-${frame}`);
+      }
+    } catch (error) {
+      assertionError = error;
+      capture("strict-assertion-failed");
     }
     const diagnostic = `MESSAGE_PINNING_DIAGNOSTIC ${JSON.stringify({
       mode,
       originalDistance,
-      originalCriterionPasses: originalDistance <= 1,
+      originalCriterionPasses: assertionError === undefined && originalDistance !== undefined && originalDistance <= 1,
+      assertionError: assertionError instanceof Error ? assertionError.message : assertionError,
       fakeTimers: vi.isFakeTimers(),
       dateNow: Date.now(),
       performanceTimeOrigin: performance.timeOrigin,
@@ -145,7 +155,6 @@ async function traceInitialPinning(scroller: HTMLElement, mode: string, host: HT
       truncated,
       samples,
     })}`;
-    expect(originalDistance, diagnostic).toBeLessThanOrEqual(1);
     throw new Error(diagnostic);
   } finally {
     observer.disconnect();
