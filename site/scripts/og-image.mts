@@ -30,8 +30,8 @@ body { width: 1200px; height: 630px; position: relative; overflow: hidden; backg
 .rule { position: absolute; inset: 0 0 auto 0; height: 6px; background: #1F6A37; }
 .text { position: absolute; left: 80px; top: 0; bottom: 120px; width: 680px; display: flex; flex-direction: column; justify-content: center; }
 .tag { font-size: 22px; letter-spacing: 0.22em; text-transform: uppercase; color: #A8352A; margin-bottom: 28px; }
-h1 { font-family: "Cormorant Garamond"; font-weight: 400; font-size: 72px; line-height: 1.04; letter-spacing: -0.01em; }
-p { font-size: 27px; line-height: 1.4; color: #3D4839; margin-top: 28px; }
+h1 { text-wrap: balance; font-family: "Cormorant Garamond"; font-weight: 400; font-size: 72px; line-height: 1.04; letter-spacing: -0.01em; }
+p { text-wrap: balance; font-size: 27px; line-height: 1.4; color: #3D4839; margin-top: 28px; }
 .mark { position: absolute; right: 72px; top: 0; bottom: 40px; width: 320px; display: flex; align-items: center; justify-content: center; }
 .word { position: absolute; left: 80px; bottom: 48px; display: flex; align-items: center; gap: 14px; font-family: "Cormorant Garamond"; font-size: 40px; }
 </style></head><body>
