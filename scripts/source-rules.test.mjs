@@ -14,6 +14,23 @@ const tracked = (...globs) =>
   execFileSync("git", ["ls-files", "--", ...globs], { cwd: root, encoding: "utf8" }).split("\n").filter(Boolean);
 const read = (path) => ({ path, text: readFileSync(join(root, path), "utf8") });
 
+test("Toaster emits the original named-only spacing scale without requiring a universal token", async () => {
+  const compiler = await compile("@theme { --spacing: initial; --spacing-4: 1rem; --spacing-6: 1.5rem; --spacing-90: 22.5rem; --breakpoint-sm: 40rem; } @tailwind utilities;");
+  const css = postcss.parse(compiler.build([...viewportClass.split(/\s+/), "start-4", "end-4", "end-6", "bottom-6", "w-90"]));
+  const values = new Map();
+  css.walkDecls((decl) => values.set(decl.prop, [...(values.get(decl.prop) ?? []), decl.value]));
+  for (const [originalProperty, viewportProperty, token] of [
+    ["inset-inline-start", "--ouro-toaster-start", "--spacing-4"],
+    ["inset-inline-end", "--ouro-toaster-end", "--spacing-4"],
+    ["inset-inline-end", "--ouro-toaster-end", "--spacing-6"],
+    ["bottom", "--ouro-toaster-bottom", "--spacing-6"],
+    ["width", "--ouro-toaster-width", "--spacing-90"],
+  ]) {
+    assert.ok(values.get(originalProperty).includes(`var(${token})`), `original utility consumes ${token}`);
+    assert.ok(values.get(viewportProperty)?.some((value) => value.includes(`var(${token}`)), `${viewportProperty} must still emit for ${token} when --spacing is absent`);
+  }
+});
+
 test("Toaster preserves named spacing tokens when Tailwind compiles an app's spacing scale", async () => {
   const compiler = await compile("@theme { --spacing: 0.25rem; --spacing-4: 1.125rem; --spacing-6: 1.75rem; --spacing-90: 25rem; --breakpoint-sm: 40rem; } @tailwind utilities;");
   const css = postcss.parse(compiler.build([...viewportClass.split(/\s+/), "start-4", "end-6", "w-90"]));
