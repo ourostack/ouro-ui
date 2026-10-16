@@ -431,10 +431,13 @@ describe("NumberField stepper press feedback", () => {
     const color = () => getComputedStyle(stepper).backgroundColor;
     const rest = color();
     await userEvent.hover(stepper);
+    await expect.poll(() => stepper.getAnimations().every((animation) => animation.playState !== "running")).toBe(true);
     await expect.poll(color).not.toBe(rest);
     const hovered = color();
     await commands.pointerPress({ selector: "[data-ouro-number-field-group] button:last-of-type", action: "down" });
     try {
+      await expect.poll(() => stepper.getAnimations().every((animation) => animation.playState !== "running")).toBe(true);
+      expect(stepper.matches(":active")).toBe(true);
       await expect.poll(color).not.toBe(hovered);
     } finally {
       await commands.pointerPress({ action: "up" });
