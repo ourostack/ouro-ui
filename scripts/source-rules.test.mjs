@@ -34,6 +34,21 @@ test("Toaster preserves named spacing tokens when Tailwind compiles an app's spa
   }
 });
 
+test("Toaster keeps inline spacing aliases evaluated at the viewport, like the original utilities", async () => {
+  const compiler = await compile("@theme inline { --spacing: 0.25rem; --spacing-4: var(--app-gap-4); --spacing-6: var(--app-gap-6); --spacing-90: var(--app-width); --breakpoint-sm: 40rem; } @tailwind utilities;");
+  const css = postcss.parse(compiler.build([...viewportClass.split(/\s+/), "start-4", "end-6", "w-90"]));
+  const values = new Map();
+  css.walkDecls((decl) => values.set(decl.prop, [...(values.get(decl.prop) ?? []), decl.value]));
+  for (const [originalProperty, viewportProperty, alias] of [
+    ["inset-inline-start", "--ouro-toaster-start", "--app-gap-4"],
+    ["inset-inline-end", "--ouro-toaster-end", "--app-gap-6"],
+    ["width", "--ouro-toaster-width", "--app-width"],
+  ]) {
+    assert.ok(values.get(originalProperty).includes(`var(${alias})`));
+    assert.ok(values.get(viewportProperty).some((value) => value.startsWith(`var(${alias}`)), `${viewportProperty} must evaluate ${alias} at the viewport, not inherit a pre-resolved theme alias`);
+  }
+});
+
 test("leadingComment finds a header and a first export's JSDoc, and nothing after the imports", () => {
   assert.equal(leadingComment("a.ts", "// header\nimport { a } from 'a';\n"), "// header");
   assert.equal(leadingComment("a.ts", "/** Doc. */\nexport const a = 1;\n"), "/** Doc. */");
