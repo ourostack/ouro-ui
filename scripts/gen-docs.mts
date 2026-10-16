@@ -371,15 +371,20 @@ function typesSection(texts: string[], skip: Set<string>): string {
   return `## Types\n\n${blocks.join("\n\n")}`;
 }
 
-const classNameRule = (hasAlign: boolean) =>
+const classNameRule = (hasAlign: boolean, isToaster: boolean) =>
   [
     "## `className` is for layout only",
     "",
     "Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your classes always win over Ouro UI's: each component merges `className` last with `cn` (tailwind-merge), so a class that conflicts with the component's own replaces it.",
     "",
-    "Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.",
+    (isToaster
+      ? "Toast appearance comes from each toast's `tone` and shared theme tokens, not viewport classes. In development, an appearance class warns once per Toaster instance with the theme-token fix. "
+      : "Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. ") +
+      "A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.",
     "",
-    hasAlign
+    isToaster
+      ? "Alignment classes (`text-center`) warn too: Toaster owns toast-content alignment. Use `<Toaster />` without the alignment class; a parent wrapper cannot align its portaled content."
+      : hasAlign
       ? "Alignment classes (`text-center`) warn too: use the `align` prop."
       : "Alignment classes (`text-center`) warn too: set alignment on a parent element.",
   ].join("\n");
@@ -455,7 +460,7 @@ function componentPage(page: Page, symbol: ts.Symbol, partFamilies: Set<string>)
       );
     }
     if (all.some((prop) => prop.name === "className")) {
-      sections.push(classNameRule(all.some((prop) => prop.name === "align")));
+      sections.push(classNameRule(all.some((prop) => prop.name === "align"), page.name === "Toaster"));
     }
   }
   if (partFamilies.has(page.name)) {

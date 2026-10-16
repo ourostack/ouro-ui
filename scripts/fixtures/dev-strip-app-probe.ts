@@ -10,12 +10,14 @@ import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { SheetPopup } from "@/registry/ouro/components/ouro/sheet/sheet-parts";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
+import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
 import { Form } from "@/registry/ouro/components/ouro/form/form";
 import { formErrors } from "@/registry/ouro/lib/ouro/form-answer";
 
 const Untyped = <P,>(component: P) => component as unknown as (props: Record<string, unknown>) => null;
 
 export const elements = [
+  createElement(Untyped(Toaster), { className: "text-center" }),
   createElement(Untyped(Button), { className: "bg-red-500", isLoading: true }, "Go"),
   createElement(Untyped(Button), { href: "/x", type: "submit" }, "Link"),
   createElement(Text, { className: "text-center" }, "Body"),

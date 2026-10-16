@@ -2,7 +2,7 @@
 
 # Toaster
 
-Shows the toasts you send with `toast("Saved")` from `@/lib/ouro/toast`: render it once, at the root of your app, inside `OuroProvider` if you use one, or alone. Every Ouro UI install has `toast`. Toasts stack at the bottom of the screen, full width on phones; up to three show, and later ones wait their turn, a `destructive` toast ahead of the others. They pause while the pointer is over them or a toast has focus, F6 moves focus to them, newest first, and a swipe down or sideways dismisses one: a toast follows the finger, a quick flick is enough, and one let go short of that springs back. Each toast is read to screen readers once: politely through this region, and a `destructive` toast assertively, so it interrupts.
+Shows the toasts you send with `toast("Saved")` from `@/lib/ouro/toast`: render it once, at the root of your app, inside `OuroProvider` if you use one, or alone. Every Ouro UI install has `toast`. Toasts stack at the bottom of the screen, full width on phones by default; `className` adjusts viewport layout/clearance, not each toast's appearance. Up to three show, and later ones wait their turn, a `destructive` toast ahead of the others. They pause while the pointer is over them or a toast has focus, F6 moves focus to them, newest first, and a swipe down or sideways dismisses one: a toast follows the finger, a quick flick is enough, and one let go short of that springs back. Each toast is read to screen readers once: politely through this region, and a `destructive` toast assertively, so it interrupts.
 
 ```tsx
 import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
@@ -23,6 +23,8 @@ toast("Recipe saved", { tone: "success" });
 
 Render one Toaster. A second one warns in development and shows nothing until the first unmounts, then takes over.
 
+The viewport is portaled to the body. A variable set only on an app-shell wrapper does not reach it: put app clearance variables on a real ancestor of the portal (such as `:root`) or declare them through the viewport's supplied classes. Do not construct arbitrary-value class names from runtime numbers. A width override changes the width, not the anchoring mode or centering. Bottom overrides replace the default phone safe-area expression; the app owns its clearance and safe area. Shared `--popover`, `--popover-foreground` and `--radius` theme tokens style the toast surface and also affect other components; a wrapper cannot style this portal.
+
 ## Use instead when
 
 - Use `Alert` instead for a message that stays on the page, and `Dialog` when the user must answer before going on.
@@ -33,6 +35,7 @@ Type: `ToasterProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
+| `className` | `string` |  | Layout classes on the actual portaled toast viewport, not on each toast. For example, `bottom-[calc(5rem+max(1rem,env(safe-area-inset-bottom)))]` clears persistent bottom controls. A bottom override replaces the default safe-area expression; include the appropriate inset in your own clearance. Use statically written classes matching your app's visibility/breakpoints, which need not match the Toaster's `sm` breakpoint. |
 | `closeLabel` | `string` | `"Dismiss"` | The accessible name of each toast's dismiss button, which shows an icon only. |
 | `label` | `string` | `"Notifications"` | The name screen readers give the region the toasts appear in. Translate it with the rest of your interface. |
 
@@ -41,6 +44,14 @@ Type: `ToasterProps`.
 These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
 - `duration`: Not a prop. Each toast takes its own `duration`: `toast("Saved", { duration: 8000 })`.
-- `position`: Not a prop. Toasts show at the bottom: full width on phones, at the bottom end from `sm`.
+- `position`: Not a prop. Toasts default to the bottom: full width on phones, at the bottom end from `sm`; className adjusts viewport layout.
 - `richColors`: Not a prop. Each toast takes its own `tone`: `toast("Saved", { tone: "success" })`.
 - `theme`: Not a prop. Dark mode follows the `.dark` class, as in shadcn.
+
+## `className` is for layout only
+
+Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your classes always win over Ouro UI's: each component merges `className` last with `cn` (tailwind-merge), so a class that conflicts with the component's own replaces it.
+
+Toast appearance comes from each toast's `tone` and shared theme tokens, not viewport classes. In development, an appearance class warns once per Toaster instance with the theme-token fix. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
+
+Alignment classes (`text-center`) warn too: Toaster owns toast-content alignment. Use `<Toaster />` without the alignment class; a parent wrapper cannot align its portaled content.
