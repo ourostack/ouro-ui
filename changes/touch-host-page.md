@@ -1,0 +1,1 @@
+- `ouroTestProjects({ page })` now sizes every Playwright host, including touch, so Vitest 4 landscape frames receive native input without CSS scaling. The touch frame stays logically 390x844 by default; an enlarged host intentionally changes outer-window/screen metrics, not component runtime behavior.

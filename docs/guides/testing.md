@@ -61,11 +61,13 @@ The tests are written for Vitest 5 and run on Vitest 4.1.11 or later with two ch
 ouroTestProjects({ css: "./src/index.css", page: { width: 1600, height: 1200 } })
 ```
 
-Vitest 4 scales the test frame down when the Playwright page is smaller than the viewport a test asks for, and the tests ask for up to 1280x844. A scaled frame moves real-mouse drags off their targets and makes measured sizes fractional, so the drag, sheet and sizing tests fail without this. Vitest 5 does not scale the frame and needs no `page`.
+Vitest 4 scales the test frame down when the Playwright host page is smaller than the viewport a test asks for, and the tests ask for up to 1280x844. A scaled frame moves native mouse and touch input off its targets and makes measured sizes fractional, so the drag, sheet, sizing and landscape touch tests fail without this. Choose a host page large enough for every requested viewport. Vitest 5 does not scale the frame and needs no `page`.
+
+`page` sizes the host of all three projects. The touch test frame still starts at 390x844 and rotates to 844x390; `hasTouch`, mobile mode and the coarse pointer remain enabled. With the example above, the host's outer window and screen are 1600x1200 and report landscape orientation even while the test frame is portrait. The frame's layout/media-query viewport is the phone-sized one. These are native input tests in a logical phone frame, not measurements of a physical phone's screen, orientation or safe-area insets. Without `page`, the touch host still defaults to 390x844.
 
 2. Use Playwright 1.64 or later, or skip two WebKit tests. Vitest 4 sizes the test frame with a CSS transform, and under it the WebKit that Playwright 1.58 ships measures `100dvh` a fraction of a pixel short (811.999939px of 812); with Playwright 1.64 it does not. Two tests in `sheet.test.tsx` compare that height exactly and fail there, in WebKit only: "sits at the bottom edge, fits its content and keeps clear of the top" and "covers the visible screen on a page scrolled 2000px". They pass in Chromium and in the touch project, and in WebKit on Vitest 5.
 
-Ouro UI's CI runs Vitest 5 only, so Vitest 4 is a stated minimum and not a tested one. The minimums are the versions the first app to adopt the tests runs v0.7.0's tests on, to 100% coverage, with its own equivalent of these two changes; the `page` option itself has not yet run on Vitest 4.
+Ouro UI's repository CI runs Vitest 5. The `page` option also has a native-input consumer regression on Vitest 4.1.11 with Playwright 1.64: portrait, landscape and portrait restoration keep scale 1 and origin 0, preserve coarse touch input, and run the unchanged SwipeActions touch tests. This is not coverage of every tooling/browser combination.
 
 ## Finding fields in tests
 
