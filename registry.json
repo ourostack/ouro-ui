@@ -1426,6 +1426,7 @@
         "@base-ui/react@^1.8.0"
       ],
       "registryDependencies": [
+        "ourostack/ouro-ui/lib-class-name-check",
         "ourostack/ouro-ui/lib-cn",
         "ourostack/ouro-ui/lib-dev",
         "ourostack/ouro-ui/lib-env",

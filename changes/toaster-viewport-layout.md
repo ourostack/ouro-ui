@@ -1,0 +1,1 @@
+- Toaster accepts a layout-only className on its portaled viewport, so apps can set bottom clearance and width at every breakpoint without changing toast appearance, announcements or gestures.

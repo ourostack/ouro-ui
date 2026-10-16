@@ -59,6 +59,7 @@ test("a Vite production bundle removes every dev message string", async () => {
 
 // The Fix code each component builds for an appearance class, and the message text.
 const APP_DEV_STRINGS = [
+  "Toaster owns toast-content alignment",
   "Fix:",
   "sets appearance",
   "className is for layout only",
