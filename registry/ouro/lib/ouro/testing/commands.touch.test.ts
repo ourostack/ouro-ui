@@ -236,13 +236,66 @@ test("on a page zoomed and panned by touch, the kit waits for the frame where th
     expect(await landed(100, 100)).toEqual([left + 100, top + 100]);
     // Panned far enough that a hit test at the unpanned point would miss the frame.
     expect(Math.min(left, top)).toBeGreaterThan(150);
-    const frame = await unwatchableFrame(Math.round(top) + 100);
+    const clippedPoint = (frame: HTMLIFrameElement): [number, number] => {
+      const rect = frame.getBoundingClientRect();
+      const clipLeft = Math.max(rect.left, left);
+      const clipRight = Math.min(rect.right, innerWidth);
+      const clipTop = Math.max(rect.top, top);
+      const clipBottom = Math.min(rect.bottom, innerHeight);
+      expect(clipRight).toBeGreaterThan(clipLeft);
+      expect(clipBottom).toBeGreaterThan(clipTop);
+      const x = Math.floor((clipLeft + clipRight) / 2 - left);
+      const y = Math.floor((clipTop + clipBottom) / 2 - top);
+      expect(left + x).toBeGreaterThan(clipLeft);
+      expect(left + x).toBeLessThan(clipRight);
+      expect(top + y).toBeGreaterThan(clipTop);
+      expect(top + y).toBeLessThan(clipBottom);
+      expect(document.elementFromPoint(left + x, top + y)).toBe(frame);
+      expect(document.elementFromPoint(x, y)).not.toBe(frame);
+      return [x, y];
+    };
+    const positive = await frameAt(document.body, Math.round(top) + 20, {
+      srcdoc: "<body style='margin:0'><div style='height:100px'></div></body>",
+    });
+    positive.style.left = `${Math.round(left) + 20}px`;
+    const point = clippedPoint(positive);
+    const delivered: Array<{ type: string; trusted: boolean }> = [];
+    const record = (event: Event) => delivered.push({ type: event.type, trusted: event.isTrusted });
+    const target = positive.contentWindow!;
+    for (const type of ["touchstart", "touchend"]) target.addEventListener(type, record);
+    try {
+      expect(await tapAt(target, ...point)).toEqual(["touchstart", "touchend"]);
+      expect(delivered).toEqual([
+        { type: "touchstart", trusted: true },
+        { type: "touchend", trusted: true },
+      ]);
+    } finally {
+      for (const type of ["touchstart", "touchend"]) target.removeEventListener(type, record);
+      positive.remove();
+    }
+    const frame = await unwatchableFrame(Math.round(top) + 20);
     frame.style.left = `${Math.round(left) + 20}px`;
-    await expect(commands.touchStep({ type: "touchStart", x: 170, y: 150 })).rejects.toThrow(refused(170, 150));
+    const [x, y] = clippedPoint(frame);
+    expect([x, y]).toEqual(point);
+    delivered.length = 0;
+    const unwatchable = frame.contentWindow!;
+    for (const type of ["touchstart", "touchend"]) unwatchable.addEventListener(type, record);
+    try {
+      const started = performance.now();
+      await expect(commands.touchStep({ type: "touchStart", x, y })).rejects.toThrow(refused(x, y));
+      expect(performance.now() - started).toBeGreaterThanOrEqual(5000);
+      expect(delivered).toEqual([]);
+    } finally {
+      for (const type of ["touchstart", "touchend"]) unwatchable.removeEventListener(type, record);
+    }
     // Beside it, the touch reaches the page.
-    expect(await tapAt(window, 10, 150)).toEqual(["touchstart", "touchend"]);
+    expect(await tapAt(window, 10, y)).toEqual(["touchstart", "touchend"]);
   } finally {
-    await commands.resetPageZoom();
+    try {
+      await commands.touchStep({ type: "touchEnd" });
+    } finally {
+      await commands.resetPageZoom();
+    }
   }
 });
 
