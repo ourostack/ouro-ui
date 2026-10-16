@@ -49,6 +49,22 @@ test("Toaster keeps inline spacing aliases evaluated at the viewport, like the o
   }
 });
 
+test("Toaster preserves an inline universal spacing multiplier instead of introducing a live global dependency", async () => {
+  const compiler = await compile("@theme inline { --spacing: 0.3rem; --breakpoint-sm: 40rem; } @tailwind utilities;");
+  const css = postcss.parse(compiler.build([...viewportClass.split(/\s+/), "start-4", "end-6", "w-90"]));
+  const values = new Map();
+  css.walkDecls((decl) => values.set(decl.prop, [...(values.get(decl.prop) ?? []), decl.value]));
+  for (const [originalProperty, viewportProperty, multiplier] of [
+    ["inset-inline-start", "--ouro-toaster-start", 4],
+    ["inset-inline-end", "--ouro-toaster-end", 6],
+    ["width", "--ouro-toaster-width", 90],
+  ]) {
+    const expected = `calc(0.3rem * ${multiplier})`;
+    assert.ok(values.get(originalProperty).includes(expected));
+    assert.ok(values.get(viewportProperty).some((value) => value.includes(expected)), `${viewportProperty} must preserve the inline spacing multiplier`);
+  }
+});
+
 test("leadingComment finds a header and a first export's JSDoc, and nothing after the imports", () => {
   assert.equal(leadingComment("a.ts", "// header\nimport { a } from 'a';\n"), "// header");
   assert.equal(leadingComment("a.ts", "/** Doc. */\nexport const a = 1;\n"), "/** Doc. */");
