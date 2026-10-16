@@ -1,1 +1,0 @@
-- Popover's installed placement tests own an integral-height surface, keeping exact edge assertions meaningful across consumer themes without changing runtime positioning, animation or pixel tolerances.
