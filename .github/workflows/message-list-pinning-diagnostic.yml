@@ -47,7 +47,7 @@ jobs:
           source = path.read_text()
           original = "if (pinned.current) toBottom();"
           assert source.count(original) == 1
-          path.write_text(source.replace(original, "if (pinned.current) { /* diagnostic: following disabled */ }"))
+          path.write_text(source.replace(original, 'if (pinned.current) { if (!scroller.hasAttribute("data-message-pinning-follow-disabled")) toBottom(); }'))
           PY
           git diff -- registry/ouro/components/ouro/message/message-list.tsx > message-negative-control.diff
       - name: Run actual Ouro Nova install context; intentional capture failure is not qualification

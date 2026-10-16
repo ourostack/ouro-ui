@@ -74,6 +74,7 @@ const jumpButton = () => page.getByRole("button", { name: "Jump to latest" });
 async function traceInitialPinning(scroller: HTMLElement, mode: string, host: HTMLElement): Promise<void> {
   const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]");
   if (!content) throw new Error("Message diagnostic content is missing");
+  if (mode === "follow-disabled-control") scroller.setAttribute("data-message-pinning-follow-disabled", "");
   const samples: Record<string, unknown>[] = [];
   let truncated = false;
   const capture = (event: string) => {
