@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { commands, page } from "vitest/browser";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
@@ -69,9 +69,89 @@ async function swipe(scroller: HTMLElement, dy: number) {
 
 const jumpButton = () => page.getByRole("button", { name: "Jump to latest" });
 
+async function traceInitialPinning(scroller: HTMLElement, mode: string): Promise<void> {
+  const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]");
+  if (!content) throw new Error("Message diagnostic content is missing");
+  const samples: Record<string, unknown>[] = [];
+  let truncated = false;
+  const capture = (event: string) => {
+    if (samples.length >= 60) {
+      truncated = true;
+      return;
+    }
+    samples.push({
+      event,
+      now: performance.now(),
+      top: scroller.scrollTop,
+      scrollHeight: scroller.scrollHeight,
+      clientHeight: scroller.clientHeight,
+      distance: distanceFromBottom(scroller),
+      contentHeight: content.getBoundingClientRect().height,
+      width: innerWidth,
+      height: innerHeight,
+      fonts: document.fonts.status,
+      jump: jumpButton().query() !== null,
+    });
+  };
+  const scroll = () => capture("scroll-capture");
+  const fonts = () => capture("font-loading-done");
+  const input = (event: Event) => capture(`input-${event.type}`);
+  const observer = new ResizeObserver(() => capture("resize-observer"));
+  scroller.addEventListener("scroll", scroll, { capture: true, passive: true });
+  document.fonts.addEventListener("loadingdone", fonts);
+  for (const name of ["touchstart", "touchmove", "wheel", "keydown", "pointerdown"]) {
+    document.addEventListener(name, input, { capture: true, passive: true });
+  }
+  observer.observe(scroller);
+  observer.observe(content);
+  try {
+    capture("after-render");
+    if (mode === "fonts-ready-control") {
+      await document.fonts.ready;
+      capture("fonts-ready");
+    }
+    await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    capture("initial-poll-satisfied");
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (mode === "native-growth-phase") content.style.paddingBottom = "276px";
+      capture("second-animation-frame");
+      resolve();
+    })));
+    const originalDistance = distanceFromBottom(scroller);
+    capture("original-assertion-point");
+    for (let frame = 0; frame < 8; frame++) {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      capture(`later-frame-${frame}`);
+    }
+    const diagnostic = `MESSAGE_PINNING_DIAGNOSTIC ${JSON.stringify({
+      mode,
+      originalDistance,
+      originalCriterionPasses: originalDistance <= 1,
+      fakeTimers: vi.isFakeTimers(),
+      dateNow: Date.now(),
+      performanceTimeOrigin: performance.timeOrigin,
+      rootStyle: document.documentElement.style.cssText,
+      bodyFont: getComputedStyle(document.body).font,
+      contentFont: getComputedStyle(content).font,
+      truncated,
+      samples,
+    })}`;
+    expect(originalDistance, diagnostic).toBeLessThanOrEqual(1);
+    throw new Error(diagnostic);
+  } finally {
+    observer.disconnect();
+    scroller.removeEventListener("scroll", scroll, true);
+    document.fonts.removeEventListener("loadingdone", fonts);
+    for (const name of ["touchstart", "touchmove", "wheel", "keydown", "pointerdown"]) {
+      document.removeEventListener(name, input, true);
+    }
+  }
+}
+
 it("keeps the reader's place on a phone once they swipe up, and jumps back with a 44px button", async () => {
   const items = texts(24);
   const { scroller, rerender } = await render(<Chat items={items} />);
+  if (import.meta.env.VITE_MESSAGE_TRACE) await traceInitialPinning(scroller, import.meta.env.VITE_MESSAGE_TRACE);
   // Polled: this is the first render in the page, and a theme's web font can swap in just after
   // it and rewrap the messages. The list follows that growth in the next frame, before paint.
   await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);

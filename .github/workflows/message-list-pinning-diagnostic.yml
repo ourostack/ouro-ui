@@ -1,0 +1,56 @@
+name: MessageList native pinning diagnostic
+on:
+  push:
+    branches: [probe/message-list-pinning-20261015]
+permissions:
+  contents: read
+defaults:
+  run:
+    shell: bash
+jobs:
+  install-context:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [natural, native-growth-phase, fonts-ready-control]
+    env:
+      OURO_PRESET: nova
+      VITE_MESSAGE_TRACE: ${{ matrix.mode }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      - name: Record exact source and unchanged MessageList runtime
+        run: |
+          git rev-parse HEAD > message-diagnostic-source.log
+          git diff ab557a659529bcffe95db03d2f91bfce7c95497e -- \
+            registry/ouro/components/ouro/message/message-list.tsx \
+            registry/ouro/components/ouro/message/message.tsx \
+            scripts/install-test.sh package.json pnpm-lock.yaml \
+            registry/ouro/theme > message-runtime.diff
+          test ! -s message-runtime.diff
+      - name: Run actual Ouro Nova install context; intentional capture failure is not qualification
+        run: |
+          set -o pipefail
+          scripts/install-test.sh ouro "$RUNNER_TEMP/app" "$GITHUB_SHA" 2>&1 | tee message-install-diagnostic.log
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: message-pinning-${{ matrix.mode }}
+          path: |
+            message-diagnostic-source.log
+            message-runtime.diff
+            message-install-diagnostic.log
+            ${{ runner.temp }}/app/src/index.css
+            ${{ runner.temp }}/app/package.json
+            ${{ runner.temp }}/app/.vitest/attachments/
+          if-no-files-found: error
