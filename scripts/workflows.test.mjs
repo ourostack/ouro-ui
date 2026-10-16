@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath, URL } from "node:url";
+import { runInNewContext } from "node:vm";
 
 // The workflows publish the registry and push to the repository, so what they run must not
 // change under them: every action is pinned to a commit, and only the release job keeps the
@@ -40,6 +41,28 @@ test("only release.yml, which pushes, keeps the checkout's credentials", () => {
   }
   assert.deepEqual(problems, [], "Set persist-credentials: false on every checkout that never pushes.");
 });
+
+for (const [event, ref, expected] of [
+  ["push", "refs/heads/main", true],
+  ["workflow_dispatch", "refs/heads/main", true],
+  ["pull_request", "refs/heads/main", false],
+  ["pull_request", "refs/pull/99/merge", false],
+  ["push", "refs/heads/feature", false],
+  ["workflow_dispatch", "refs/heads/release/v1.0.0", false],
+  ["workflow_dispatch", "refs/heads/prepare/after-v1.0.0", false],
+  ["workflow_dispatch", "refs/tags/v1.0.0", false],
+  ["push", "refs/tags/v1.0.0", false],
+]) {
+  test(`Unpinned GitHub install gate: ${event} ${ref} is ${expected ? "included" : "excluded"}`, () => {
+    const ci = workflows.find(({ file }) => file === "ci.yml").text;
+    const job = ci.split("\n  install-github:\n")[1]?.split(/\n {2}[\w-]+:\n/)[0];
+    const condition = job?.match(/^ {4}if: (.+)$/m)?.[1];
+    assert.ok(condition, "The actual install-github job must have a condition.");
+    // These canonical string comparisons share JavaScript's boolean semantics.
+    const actual = runInNewContext(condition, { github: { event_name: event, ref } }, { timeout: 100 });
+    assert.equal(actual, expected);
+  });
+}
 
 test("Form answer proof propagates a failing test command through both logged pipelines", () => {
   const proof = readFileSync(join(dir, "form-answer-proof.yml"), "utf8");
