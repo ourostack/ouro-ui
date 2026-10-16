@@ -1,1 +1,0 @@
-- Release qualification now checks unpinned GitHub installation on dispatched main CI as well as main pushes, including the CI run after preparing main for a release.
