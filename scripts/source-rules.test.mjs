@@ -4,12 +4,35 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { compile } from "tailwindcss";
+import postcss from "postcss";
+import { viewportClass } from "../registry/ouro/components/ouro/toast/toaster-styles.ts";
 import { alarmingFileName, alarmingTestTitle, comments, directTabPresses, duplicateTestNames, hasClientDirective, leadingComment, needsClientDirective, testNames, unpreservedHints } from "./source-rules.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const tracked = (...globs) =>
   execFileSync("git", ["ls-files", "--", ...globs], { cwd: root, encoding: "utf8" }).split("\n").filter(Boolean);
 const read = (path) => ({ path, text: readFileSync(join(root, path), "utf8") });
+
+test("Toaster preserves named spacing tokens when Tailwind compiles an app's spacing scale", async () => {
+  const compiler = await compile("@theme { --spacing: 0.25rem; --spacing-4: 1.125rem; --spacing-6: 1.75rem; --spacing-90: 25rem; --breakpoint-sm: 40rem; } @tailwind utilities;");
+  const css = postcss.parse(compiler.build([...viewportClass.split(/\s+/), "start-4", "end-6", "w-90"]));
+  const values = new Map();
+  css.walkDecls((decl) => values.set(decl.prop, [...(values.get(decl.prop) ?? []), decl.value]));
+  // The original utilities read the named token, not just the universal spacing multiplier.
+  assert.ok(values.get("inset-inline-start").includes("var(--spacing-4)"));
+  assert.ok(values.get("inset-inline-end").includes("var(--spacing-6)"));
+  assert.ok(values.get("width").includes("var(--spacing-90)"));
+  for (const [property, token] of [
+    ["--ouro-toaster-start", "--spacing-4"],
+    ["--ouro-toaster-end", "--spacing-4"],
+    ["--ouro-toaster-end", "--spacing-6"],
+    ["--ouro-toaster-bottom", "--spacing-6"],
+    ["--ouro-toaster-width", "--spacing-90"],
+  ]) {
+    assert.ok(values.get(property).some((value) => value.includes(`var(${token}`)), `${property} must consume ${token}, as the original spacing utility does`);
+  }
+});
 
 test("leadingComment finds a header and a first export's JSDoc, and nothing after the imports", () => {
   assert.equal(leadingComment("a.ts", "// header\nimport { a } from 'a';\n"), "// header");
