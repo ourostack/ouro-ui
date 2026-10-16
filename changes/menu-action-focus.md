@@ -1,0 +1,1 @@
+Menus leave focus with another control when an action has moved it there, including a confirmation dialog, instead of moving it back to the menu trigger when the menu finishes closing. Ordinary menu dismissal still restores focus to its trigger.
