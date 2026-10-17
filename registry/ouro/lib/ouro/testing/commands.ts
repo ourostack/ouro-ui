@@ -63,6 +63,24 @@ export interface FlickOptions {
 /** One CDP session per page, reused across flicks. */
 const cdpSessions = new WeakMap<object, CDPSession>();
 
+interface CarouselProbeOptions {
+  id: string;
+  preparationDelayMs: number;
+}
+interface CarouselProbeState {
+  options: CarouselProbeOptions;
+  log: Array<Record<string, unknown>>;
+}
+const carouselProbes = new WeakMap<object, CarouselProbeState>();
+const carouselProbe: BrowserCommand<[CarouselProbeOptions]> = async (ctx, options) => {
+  carouselProbes.set(ctx.page, { options, log: [] });
+};
+const carouselProbeRead: BrowserCommand<[]> = async (ctx) => {
+  const probe = carouselProbes.get(ctx.page);
+  carouselProbes.delete(ctx.page);
+  return probe;
+};
+
 /**
  * A mouse gesture with exact timing, for velocity tests (Chromium only). It
  * dispatches through CDP `Input.dispatchMouseEvent` with explicit timestamps,
@@ -513,6 +531,8 @@ export interface TouchDragOptions {
  */
 export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from, to, steps, durationMs }) => {
   const { page } = ctx;
+  const probe = carouselProbes.get(page);
+  probe?.log.push({ kind: "command-entry", wallMs: Date.now(), from, to, steps, durationMs });
   if (ctx.provider.name !== "playwright" || page.context().browser()?.browserType().name() !== "chromium") {
     throw new Error("touchDrag: CDP input is Chromium only");
   }
@@ -522,14 +542,28 @@ export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from,
     cdpSessions.set(page, session);
   }
   const start = Date.now() / 1000;
-  const touch = (type: "touchStart" | "touchMove" | "touchEnd", [x, y]: [number, number], t: number) =>
-    session.send("Input.dispatchTouchEvent", {
+  probe?.log.push({ kind: "chosen-time-origin", wallMs: Date.now(), start });
+  const touch = (type: "touchStart" | "touchMove" | "touchEnd", [x, y]: [number, number], t: number) => {
+    const payload = {
       type,
       touchPoints: type === "touchEnd" ? [] : [{ x, y, id: 1 }],
       ...(durationMs === undefined ? {} : { timestamp: start + (durationMs * t) / 1000 }),
-    });
+    };
+    probe?.log.push({ kind: "dispatch", wallMs: Date.now(), payload });
+    const delivery = session.send("Input.dispatchTouchEvent", payload);
+    void delivery.then(
+      () => probe?.log.push({ kind: "ack", wallMs: Date.now(), type, t }),
+      (error: unknown) => probe?.log.push({ kind: "ack-error", wallMs: Date.now(), type, t, error: String(error) }),
+    );
+    return delivery;
+  };
   await releaseFinger("touchDrag", page, session);
   await sendTouch("touchDrag", page, session, { type: "touchEnd", x: to[0], y: to[1] }, { point: { x: from[0], y: from[1] } }, async () => {
+    probe?.log.push({ kind: "watch-ready", wallMs: Date.now() });
+    if (probe && probe.options.preparationDelayMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, probe.options.preparationDelayMs));
+    }
+    probe?.log.push({ kind: "queue-start", wallMs: Date.now(), timeOriginAgeMs: Date.now() - start * 1000 });
     const deliveries: Promise<unknown>[] = [];
     const send = async (type: "touchStart" | "touchMove" | "touchEnd", point: [number, number], t: number) => {
       const delivery = touch(type, point, t);
@@ -687,10 +721,12 @@ export const touchStep: BrowserCommand<[TouchStepOptions]> = async (ctx, step) =
   }
 };
 
-export const commands = { emulateMedia, drag, flick, pageZoom, pointerPress, resetPageZoom, restoreTouch, setPageZoom, tap, touchDrag, touchStep };
+export const commands = { emulateMedia, drag, flick, pageZoom, pointerPress, resetPageZoom, restoreTouch, setPageZoom, tap, touchDrag, touchStep, carouselProbe, carouselProbeRead };
 
 declare module "vitest/browser" {
   interface BrowserCommands {
+    carouselProbe: (options: CarouselProbeOptions) => Promise<void>;
+    carouselProbeRead: () => Promise<CarouselProbeState | undefined>;
     emulateMedia: (options: EmulateMediaOptions) => Promise<void>;
     drag: (options: DragOptions) => Promise<void>;
     flick: (options: FlickOptions) => Promise<void>;

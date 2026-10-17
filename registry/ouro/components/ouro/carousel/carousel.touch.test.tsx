@@ -109,14 +109,55 @@ it("moves to the next slide with a horizontal swipe and reports it once", async 
   expect(scrollY).toBe(pageY);
 });
 
-it("lets a fast flick carry past the next slide, as the platform does, and reports it once", async () => {
-  const { viewport, onIndexChange } = await renderInPage();
+it.each(Array.from({ length: 24 }, (_, index) => index))("lets a fast flick carry past the next slide, as the platform does, and reports it once [observer %i]", async (index) => {
+  const events: Array<Record<string, unknown>> = [];
+  const onIndexChange = vi.fn((value: number) => {
+    events.push({ kind: "index", value, time: performance.now(), wallMs: Date.now() });
+  });
+  const { viewport } = await renderInPage(onIndexChange);
   const rect = viewport.getBoundingClientRect();
   const y = rect.top + rect.height / 2;
-  await commands.touchDrag({ from: [rect.right - 40, y], to: [rect.left + 40, y], steps: 12, durationMs: 30 });
-  await expect.poll(() => onIndexChange.mock.calls).toEqual([[2]]);
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  expect(onIndexChange.mock.calls).toEqual([[2]]);
+  let phase = "prepare";
+  const observe = (event: Event) => {
+    const point = event instanceof TouchEvent ? event.changedTouches[0] : event instanceof PointerEvent ? event : undefined;
+    events.push({
+      phase, type: event.type, trusted: event.isTrusted, time: event.timeStamp,
+      observedAt: performance.now(), wallMs: Date.now(),
+      target: event.target instanceof Element ? `${event.target.tagName}:${event.target.getAttribute("data-ouro-carousel-viewport") ?? ""}:${event.target.textContent?.slice(0, 60)}` : String(event.target),
+      insideViewport: event.target instanceof Node && viewport.contains(event.target),
+      x: point?.clientX, y: point?.clientY,
+      pointerType: event instanceof PointerEvent ? event.pointerType : undefined,
+      pointerId: event instanceof PointerEvent ? event.pointerId : undefined,
+      prevented: event.defaultPrevented,
+      coalesced: event instanceof PointerEvent ? event.getCoalescedEvents?.().map((sample) => ({ x: sample.clientX, y: sample.clientY, time: sample.timeStamp })) : undefined,
+    });
+  };
+  const types = ["pointerdown", "pointermove", "pointerup", "pointercancel", "touchstart", "touchmove", "touchend", "touchcancel", "scroll", "scrollend"];
+  for (const type of types) window.addEventListener(type, observe, { capture: true, passive: true });
+  const preparationDelayMs = index >= 12 ? 500 : 0;
+  await commands.carouselProbe({ id: String(index), preparationDelayMs });
+  try {
+    phase = "input";
+    await commands.touchDrag({ from: [rect.right - 40, y], to: [rect.left + 40, y], steps: 12, durationMs: 30 });
+    phase = "wait-for-index";
+    await expect.poll(() => onIndexChange.mock.calls).toEqual([[2]]);
+    phase = "after-index";
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(onIndexChange.mock.calls).toEqual([[2]]);
+  } finally {
+    for (const type of types) window.removeEventListener(type, observe, true);
+    const protocol = await commands.carouselProbeRead();
+    await commands.writeFile(`.carousel-observations/${index}.json`, JSON.stringify({
+      index, preparationDelayMs, phase, events, protocol, calls: onIndexChange.mock.calls,
+      input: { from: [rect.right - 40, y], to: [rect.left + 40, y], steps: 12, durationMs: 30 },
+      originalRect: rect.toJSON(), viewport: { width: innerWidth, height: innerHeight, dpr: devicePixelRatio, scale: visualViewport?.scale },
+      final: {
+        scrollLeft: viewport.scrollLeft, pageScrollY: scrollY, rect: viewport.getBoundingClientRect().toJSON(),
+        slides: [...viewport.children].map((slide) => slide.getBoundingClientRect().toJSON()),
+        snap: getComputedStyle(viewport).scrollSnapType,
+      },
+    }));
+  }
 });
 
 it("reports and announces nothing while a finger is held still mid-swipe", async () => {
