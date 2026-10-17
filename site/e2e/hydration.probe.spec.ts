@@ -43,6 +43,18 @@ for (const timing of ["before hydration", "after hydration"] as const) {
     const gate = new Promise<void>((done) => { allowResponse = done; });
     const request = new Promise<void>((done) => { sawRequest = done; });
     const network: { phase: string; at: number }[] = [];
+    const capture = async (label: string) => {
+      const browser = page.isClosed() ? { closedBeforeCapture: true } : await page.evaluate(() => ({
+        timeline: window.__siteHydrationProbe,
+        hydrated: document.querySelector<HTMLElement>('[data-site-demo="form"]')?.dataset["siteDemoHydrated"],
+        expanded: document.querySelector('[role="combobox"]')?.getAttribute("aria-expanded"),
+        options: [...document.querySelectorAll('[role="option"]')].map((option) => option.textContent),
+      }));
+      await info.attach(label, {
+        body: JSON.stringify({ timing, network, diagnostics, browser }, null, 2),
+        contentType: "application/json",
+      });
+    };
     await page.route("**/assets/form.demo-*.js", async (route) => {
       network.push({ phase: "chunk-requested", at: Date.now() });
       sawRequest();
@@ -65,7 +77,9 @@ for (const timing of ["before hydration", "after hydration"] as const) {
       }
       await page.getByRole("combobox", { name: "Course", exact: true }).click();
       if (timing === "before hydration") allowResponse();
-      await page.getByRole("option", { name: "Main", exact: true }).click();
+      await expect(page.locator('[data-site-demo="form"]')).toHaveAttribute("data-site-demo-hydrated", "true");
+      await capture("native-timeline-before-option-assertion");
+      await page.getByRole("option", { name: "Main", exact: true }).click({ timeout: 8000 });
       await page.getByRole("button", { name: "Save recipe", exact: true }).click();
       await expect(page.getByText("A recipe called Pasta already exists.", { exact: true })).toBeVisible();
       await expect(name).toHaveAttribute("id", before!);
@@ -79,16 +93,7 @@ for (const timing of ["before hydration", "after hydration"] as const) {
       expect(diagnostics).toEqual([]);
     } finally {
       allowResponse();
-      const browser = await page.evaluate(() => ({
-        timeline: window.__siteHydrationProbe,
-        hydrated: document.querySelector<HTMLElement>('[data-site-demo="form"]')?.dataset["siteDemoHydrated"],
-        expanded: document.querySelector('[role="combobox"]')?.getAttribute("aria-expanded"),
-        options: [...document.querySelectorAll('[role="option"]')].map((option) => option.textContent),
-      }));
-      await info.attach("native-hydration-timeline", {
-        body: JSON.stringify({ timing, network, diagnostics, browser }, null, 2),
-        contentType: "application/json",
-      });
+      await capture("native-hydration-timeline-final");
     }
   });
 }
