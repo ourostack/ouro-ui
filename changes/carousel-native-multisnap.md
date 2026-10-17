@@ -1,0 +1,1 @@
+- Make the optional Carousel multi-slide touch test measure native last-snap alignment before release and require one final index report, rather than assume a fixed browser fling distance; keep held-finger silence, native input ownership and the duplicate-report check without changing runtime behavior.
