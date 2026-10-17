@@ -26,9 +26,13 @@ class DemoBoundary extends Component<{ name: string; title: string; children: Re
 }
 
 function SelectedDemo({ name }: { name: string }): JSX.Element {
+  const host = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    host.current!.dataset["siteDemoHydrated"] = "true";
+  }, []);
   const Demo = Object.hasOwn(demos, name) ? demos[name] : undefined;
   if (!Demo) throw new Error(`No live example for "${name}"`);
-  return <div data-site-demo={name} className="flex w-full justify-center"><Demo /></div>;
+  return <div ref={host} data-site-demo={name} className="flex w-full justify-center"><Demo /></div>;
 }
 
 /** A single lazy example; React focus events also track its portal descendants. */
