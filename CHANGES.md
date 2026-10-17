@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Form error snapshots now declare their frozen message arrays readonly; Form, EditSheet and field error props accept readonly projections while mutable raw FormErrors/ErrorMessages builders remain supported. Annotate returned snapshots as FormErrorValue or ReadonlyFormErrors, not mutable FormErrors. TypeScript's Array.isArray narrowing to any[] can bypass readonly; unchanged runtime freezing still rejects container mutation and does not deeply freeze React nodes.
