@@ -188,6 +188,26 @@ export function Carousel(props: CarouselProps): JSX.Element {
   // press, has reached the slide the press is heading to.
   useEffect(() => {
     const viewport = viewportRef.current!;
+    const initial = viewport.getBoundingClientRect();
+    const reports: number[] = [];
+    const touches: Array<Record<string, unknown>> = [];
+    const observation = {
+      initial: initial.toJSON(),
+      initialAnnouncer: document.querySelector("[data-ouro-announcer]")?.textContent ?? "",
+      reports,
+      touches,
+    };
+    Object.defineProperty(viewport, "__carouselContractObservation", { value: observation, configurable: true });
+    const observeTouch = (event: TouchEvent) => {
+      const touch = event.changedTouches[0];
+      touches.push({
+        type: event.type, trusted: event.isTrusted, time: event.timeStamp,
+        wallMs: Date.now(), x: touch?.clientX, y: touch?.clientY,
+        inside: event.target instanceof Node && viewport.contains(event.target),
+        outsideInitial: touch !== undefined && touch.clientX < initial.left,
+      });
+    };
+    for (const type of ["touchstart", "touchmove", "touchend", "touchcancel"] as const) viewport.addEventListener(type, observeTouch, { passive: true });
     const fallback = !("onscrollend" in HTMLElement.prototype);
     let timer: ReturnType<typeof setTimeout> | undefined;
     let frame: number | undefined;
@@ -206,7 +226,14 @@ export function Carousel(props: CarouselProps): JSX.Element {
       focused.current = document.activeElement;
       settled.current = next;
       setIndex(next);
-      onIndexChange?.(next);
+      const mode = import.meta.env["VITE_CAROUSEL_MUTATION"];
+      const reported = mode === "cap" ? Math.min(next, 1) : next;
+      reports.push(reported);
+      onIndexChange?.(reported);
+      if (mode === "duplicate") {
+        reports.push(reported);
+        onIndexChange?.(reported);
+      }
       announce(fillTemplate(slideLabel, next + 1, total));
     };
     // After a pause: settle if the position holds for two frames, else keep waiting. A press's
@@ -246,6 +273,8 @@ export function Carousel(props: CarouselProps): JSX.Element {
       viewport.addEventListener("touchcancel", onTouchEnd, { passive: true });
     } else viewport.addEventListener("scrollend", settle);
     return () => {
+      for (const type of ["touchstart", "touchmove", "touchend", "touchcancel"] as const) viewport.removeEventListener(type, observeTouch);
+      Reflect.deleteProperty(viewport, "__carouselContractObservation");
       stopWaiting();
       viewport.removeEventListener("scroll", wait);
       viewport.removeEventListener("touchstart", onTouchStart);

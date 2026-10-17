@@ -480,7 +480,11 @@ echo "::endgroup::"
 
 echo "::group::Shipped Vitest browser tests"
 npx playwright install ${CI:+--with-deps} chromium webkit
-npx vitest run
+if [ "${CAROUSEL_CONTROL_ONLY:-}" = "1" ]; then
+  npx vitest run --project ouro-touch src/components/ouro/carousel/carousel.touch.test.tsx -t "crosses two native snap positions"
+else
+  npx vitest run
+fi
 echo "::endgroup::"
 
 echo "::group::Shipped Playwright specs"
