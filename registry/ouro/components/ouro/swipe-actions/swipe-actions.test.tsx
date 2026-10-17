@@ -820,6 +820,8 @@ describe("SwipeActions", () => {
     const observe = (event: Event) => events.push({
       phase, type: event.type, target: targetName(event.target), active: targetName(document.activeElement),
       open: element.getAttribute("data-open"), key: event instanceof KeyboardEvent ? event.key : undefined,
+      dragging: element.hasAttribute("data-dragging"), trusted: event.isTrusted,
+      eventTime: event.timeStamp, pointerType: event instanceof PointerEvent ? event.pointerType : undefined,
       time: performance.now(),
     });
     const nativeFocus = window.focus;
@@ -829,7 +831,7 @@ describe("SwipeActions", () => {
     };
     const observer = new MutationObserver(() => events.push({ phase, type: "open-mutation", open: element.getAttribute("data-open"), time: performance.now() }));
     observer.observe(element, { attributes: true, attributeFilter: ["data-open"] });
-    const types = ["scroll", "pointerdown", "keydown", "keyup", "focus", "blur"];
+    const types = ["scroll", "pointerdown", "pointermove", "pointerup", "pointercancel", "touchstart", "touchend", "contextmenu", "keydown", "keyup", "focus", "blur"];
     for (const type of types) window.addEventListener(type, observe, true);
     document.addEventListener("keydown", listener);
     try {

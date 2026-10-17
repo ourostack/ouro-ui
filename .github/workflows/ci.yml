@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        scope: [full-webkit, swipe-file]
+        scope: [full-root]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -21,16 +21,12 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps webkit
+      - run: pnpm exec playwright install --with-deps chromium webkit
       - name: Fixed diagnostic batch, never a retried qualification gate
         env:
           SCOPE: ${{ matrix.scope }}
         run: |
-          if [ "$SCOPE" = full-webkit ]; then
-            pnpm exec vitest run --project ouro-webkit --coverage.enabled false
-          else
-            pnpm exec vitest run --project ouro-webkit --coverage.enabled false registry/ouro/components/ouro/swipe-actions/swipe-actions.test.tsx
-          fi
+          pnpm test
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
