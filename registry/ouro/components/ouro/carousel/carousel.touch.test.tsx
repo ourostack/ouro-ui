@@ -11,6 +11,7 @@ let root: Root | undefined;
 const nodes: Element[] = [];
 const cleanups: Array<() => void> = [];
 const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+const announcer = () => document.querySelector("[data-ouro-announcer]")?.textContent ?? "";
 
 /** Waits until a swipe's momentum has stopped scrolling the page: two frames agree. */
 async function pageAtRest() {
@@ -35,7 +36,7 @@ afterEach(async () => {
 });
 
 /** A carousel between two tall blocks, so the page itself can scroll. */
-async function renderInPage(onIndexChange = vi.fn()) {
+async function renderInPage(onIndexChange = vi.fn(), width?: number) {
   const host = document.createElement("div");
   document.body.append(host);
   nodes.push(host);
@@ -44,13 +45,15 @@ async function renderInPage(onIndexChange = vi.fn()) {
     root!.render(
       <div style={{ padding: 16 }}>
         <div style={{ height: 300 }} />
-        <Carousel label="Recipe photos" onIndexChange={onIndexChange}>
-          {[1, 2, 3].map((n) => (
-            <div key={n} style={{ height: 200 }}>
-              Photo {n}
-            </div>
-          ))}
-        </Carousel>
+        <div dir={width === undefined ? undefined : "ltr"} style={{ width, marginLeft: "auto" }}>
+          <Carousel label="Recipe photos" onIndexChange={onIndexChange}>
+            {[1, 2, 3].map((n) => (
+              <div key={n} style={{ height: 200 }}>
+                Photo {n}
+              </div>
+            ))}
+          </Carousel>
+        </div>
         <div style={{ height: 1600 }} />
       </div>,
     ),
@@ -97,8 +100,7 @@ it("moves to the next slide with a horizontal swipe and reports it once", async 
   const rect = viewport.getBoundingClientRect();
   const y = rect.top + rect.height / 2;
   const pageY = scrollY;
-  // A swipe at a set, unhurried speed: the browser flings on from the speed at lift, and a
-  // fast flick carries past the next slide to the one after.
+  // An unhurried swipe ending nearer the next snap position.
   await commands.touchDrag({ from: [rect.right - 40, y], to: [rect.left + 40, y], steps: 12, durationMs: 400 });
   await expect.poll(() => onIndexChange.mock.calls).toEqual([[1]]);
   // Still once after the momentum and any late settling are over.
@@ -109,19 +111,69 @@ it("moves to the next slide with a horizontal swipe and reports it once", async 
   expect(scrollY).toBe(pageY);
 });
 
-it("lets a fast flick carry past the next slide, as the platform does, and reports it once", async () => {
-  const { viewport, onIndexChange } = await renderInPage();
+it("crosses two native snap positions and reports the final slide once", async () => {
+  const { viewport, onIndexChange } = await renderInPage(undefined, 96);
   const rect = viewport.getBoundingClientRect();
+  const slides = [...viewport.children];
+  const snapOffsets = slides.map((slide) => slide.getBoundingClientRect().left - rect.left);
+  const lastSlide = slides[2]!;
+  const lastSnap = snapOffsets[2]!;
+  expect(viewport.scrollLeft).toBe(0);
+  expect(snapOffsets[0]).toBe(0);
+  expect(snapOffsets[1]).toBeGreaterThan(0);
+  expect(lastSnap).toBeGreaterThan(snapOffsets[1]!);
+  expect(lastSnap).toBe(viewport.scrollWidth - viewport.clientWidth);
   const y = rect.top + rect.height / 2;
-  await commands.touchDrag({ from: [rect.right - 40, y], to: [rect.left + 40, y], steps: 12, durationMs: 30 });
+  const start = rect.right - 24;
+  const end = start - lastSnap - 40;
+  expect(rect.left).toBeGreaterThanOrEqual(0);
+  expect(rect.right).toBeLessThanOrEqual(innerWidth);
+  expect(hits(viewport, start, y)).toBe(true);
+  expect(end).toBeGreaterThanOrEqual(0);
+  expect(end).toBeLessThan(rect.left);
+  const pageY = scrollY;
+  const before = announcer();
+  let ownedStart = false;
+  let continuedOutside = false;
+  const onStart = (event: PointerEvent) => {
+    if (event.isTrusted && event.pointerType === "touch" && event.target instanceof Node && viewport.contains(event.target)) ownedStart = true;
+  };
+  const onMove = (event: TouchEvent) => {
+    const touch = event.changedTouches[0];
+    if (event.isTrusted && touch && touch.clientX < rect.left && event.target instanceof Node && viewport.contains(event.target)) continuedOutside = true;
+  };
+  window.addEventListener("pointerdown", onStart, true);
+  window.addEventListener("touchmove", onMove, { capture: true, passive: true });
+  try {
+    await commands.touchStep({ type: "touchStart", x: start, y });
+    expect(ownedStart).toBe(true);
+    for (let step = 1; step <= 12; step++) {
+      await commands.touchStep({ type: "touchMove", x: start + (end - start) * (step / 12), y });
+    }
+    expect(continuedOutside).toBe(true);
+    await expect.poll(() => viewport.scrollLeft).toBe(lastSnap);
+    const aligned = viewport.getBoundingClientRect();
+    const last = lastSlide.getBoundingClientRect();
+    expect(last.left).toBe(aligned.left);
+    expect(last.right).toBe(aligned.right);
+    expect(onIndexChange).not.toHaveBeenCalled();
+    expect(announcer()).toBe(before);
+  } finally {
+    try {
+      await commands.touchStep({ type: "touchEnd" });
+    } finally {
+      window.removeEventListener("pointerdown", onStart, true);
+      window.removeEventListener("touchmove", onMove, true);
+    }
+  }
   await expect.poll(() => onIndexChange.mock.calls).toEqual([[2]]);
   await new Promise((resolve) => setTimeout(resolve, 300));
   expect(onIndexChange.mock.calls).toEqual([[2]]);
+  expect(scrollY).toBe(pageY);
 });
 
 it("reports and announces nothing while a finger is held still mid-swipe", async () => {
   const { viewport, onIndexChange } = await renderInPage();
-  const announcer = () => document.querySelector("[data-ouro-announcer]")?.textContent ?? "";
   const before = announcer();
   const rect = viewport.getBoundingClientRect();
   const y = rect.top + rect.height / 2;
