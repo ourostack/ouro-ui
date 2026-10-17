@@ -154,7 +154,13 @@ export function useDrag(options: DragOptions): DragProps {
       if (moved.pointerId !== pointer || moved === seen) return;
       seen = moved;
       // A mouse moving with no button down was released where nothing heard it.
-      if (!started && moved.pointerType === "mouse" && moved.buttons === 0) return release();
+      if (!started && moved.pointerType === "mouse" && moved.buttons === 0) {
+        element.dispatchEvent(new CustomEvent("private-drag-observe", {
+          bubbles: true,
+          detail: { kind: "uncaptured-mouse-release", pointerId: pointer, movedPointerId: moved.pointerId, pointerType: moved.pointerType, buttons: moved.buttons, trusted: moved.isTrusted },
+        }));
+        return release();
+      }
       const { threshold = 10, crossAxis = "scroll", onStart, onMove } = latest.current;
       // A browser can deliver several physical moves as one event; keep their history,
       // without turning them into additional drag callbacks.

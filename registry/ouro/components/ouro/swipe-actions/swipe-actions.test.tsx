@@ -112,9 +112,10 @@ async function pointer(target: EventTarget, type: string, x: number, y: number, 
  * (unless `hold`) up. The finger rests before it lifts, so the distance decides, unless
  * `flick`, when it lifts while moving. Waits for the row to come to rest.
  */
-async function swipe(element: HTMLElement, dx: number, { hold = false, flick = false, init = {} as PointerEventInit } = {}) {
+async function swipe(element: HTMLElement, dx: number, { hold = false, flick = false, init = {} as PointerEventInit, interleaveMouse = false } = {}) {
   wait(1000);
   await pointer(content(element), "pointerdown", 200, 20, init);
+  if (interleaveMouse) await userEvent.hover(page.getByRole("link", { name: "Short ribs" }));
   for (let step = 1; step <= 4; step++) {
     wait(16);
     await pointer(window, "pointermove", 200 + (dx * step) / 4, 20, init);
@@ -815,24 +816,31 @@ describe("SwipeActions", () => {
       key: event instanceof KeyboardEvent ? event.key : undefined,
       detail: event instanceof CustomEvent ? event.detail : undefined,
       pointerType: event instanceof PointerEvent ? event.pointerType : undefined,
+      pointerId: event instanceof PointerEvent ? event.pointerId : undefined,
+      buttons: event instanceof PointerEvent ? event.buttons : undefined,
       x: event instanceof PointerEvent ? event.clientX : undefined,
       y: event instanceof PointerEvent ? event.clientY : undefined,
       trusted: event.isTrusted, eventTime: event.timeStamp, wallTime: Date.now(),
     });
-    const types = ["private-swipe-observe", "scroll", "pointerdown", "pointermove", "pointerup", "pointercancel", "touchstart", "touchend", "contextmenu", "keydown", "keyup", "focus", "blur"];
+    const types = ["private-swipe-observe", "private-drag-observe", "scroll", "pointerdown", "pointermove", "pointerup", "pointercancel", "touchstart", "touchend", "contextmenu", "keydown", "keyup", "focus", "blur"];
     for (const type of types) window.addEventListener(type, observe, true);
     const observer = new MutationObserver(() => events.push({ phase, type: "open-mutation", open: element.getAttribute("data-open"), wallTime: Date.now() }));
     observer.observe(element, { attributes: true, attributeFilter: ["data-open"] });
     const keyboardTarget = focus === "actions button" ? menuButton(element) : document.body;
     const keys: string[] = [];
     const listener = (event: KeyboardEvent) => keys.push(event.key);
+    const interleaveMouse = index >= 12;
     try {
       if (focus === "actions button") keyboardTarget.focus({ preventScroll: true });
       else await userEvent.keyboard("{Escape}");
       expect(document.activeElement).toBe(keyboardTarget);
       document.addEventListener("keydown", listener);
+      if (interleaveMouse) {
+        phase = "prepare-native-mouse";
+        await userEvent.hover(page.getByRole("button", { name: "Actions for Short ribs" }));
+      }
       phase = "swipe";
-      await swipe(element, -120);
+      await swipe(element, -120, { interleaveMouse });
       phase = "after-swipe";
       expect(element.getAttribute("data-open")).toBe("trailing");
       expect(document.activeElement).toBe(keyboardTarget);
@@ -853,7 +861,7 @@ describe("SwipeActions", () => {
       document.removeEventListener("keydown", listener);
       observer.disconnect();
       await commands.writeFile(`.escape-observations/${navigator.userAgent.includes("HeadlessChrome") ? "chromium" : "webkit"}-${focus.replaceAll(" ", "_")}-${index}.json`, JSON.stringify({
-        index, focus, userAgent: navigator.userAgent, phase, events, keys,
+        index, focus, interleaveMouse, userAgent: navigator.userAgent, phase, events, keys,
         finalOpen: element.getAttribute("data-open"), finalOffset: offset(element),
         geometryAfterInput: {
           root: element.getBoundingClientRect().toJSON(),
