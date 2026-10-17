@@ -4,9 +4,13 @@ on:
 permissions:
   contents: read
 jobs:
-  regression-red:
+  observe:
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        scope: [root-file, installed-nova]
     env:
       OURO_PRESET: nova
     steps:
@@ -19,14 +23,25 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium webkit
-      - name: Public-shaped native mouse regression before unique synthetic ID correction
-        run: pnpm exec vitest run --project ouro-chromium --project ouro-webkit --coverage.enabled false registry/ouro/components/ouro/swipe-actions/swipe-actions.test.tsx -t 'follows one finger'
+      - if: matrix.scope == 'root-file'
+        run: pnpm exec playwright install --with-deps chromium webkit
+      - if: matrix.scope == 'root-file'
+        name: Full original SwipeActions file with fixed native interleaving controls
+        run: pnpm exec vitest run --project ouro-chromium --project ouro-webkit --coverage.enabled false registry/ouro/components/ouro/swipe-actions/swipe-actions.test.tsx
+      - if: matrix.scope == 'installed-nova'
+        name: Full nova installer with the same native interleaving controls
+        run: scripts/install-test.sh shadcn "$RUNNER_TEMP/app" "$GITHUB_SHA"
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
-          name: swipe-native-regression-${{ github.run_id }}
+          name: swipe-native-${{ matrix.scope }}-${{ github.run_id }}
           include-hidden-files: true
           path: |
+            .escape-observations/
             .vitest/attachments/
+            ${{ runner.temp }}/app/.escape-observations/
+            ${{ runner.temp }}/app/.vitest/attachments/
+            ${{ runner.temp }}/app/package.json
+            ${{ runner.temp }}/app/package-lock.json
+            ${{ runner.temp }}/app/src/index.css
           if-no-files-found: error

@@ -91,6 +91,8 @@ const width = (element: HTMLElement, side: "leading" | "trailing") => hundredths
 
 /** The time the next dispatched event carries, in ms. */
 let clock = 1000;
+/** This fixture's touch is distinct from the native mouse it interleaves. */
+const syntheticPointerId = 1001;
 /** Lets `ms` pass before the next event: 16 is a finger still moving, 300 one that has rested. */
 const wait = (ms: number) => {
   clock += ms;
@@ -101,7 +103,7 @@ async function pointer(target: EventTarget, type: string, x: number, y: number, 
   await act(async () => {
     // While the pointer is down its button is held, as a real one's is.
     const buttons = type === "pointerdown" || type === "pointermove" ? 1 : 0;
-    const event = new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 1, pointerType: "touch", isPrimary: true, buttons, clientX: x, clientY: y, ...init });
+    const event = new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: syntheticPointerId, pointerType: "touch", isPrimary: true, buttons, clientX: x, clientY: y, ...init });
     Object.defineProperty(event, "timeStamp", { value: clock });
     target.dispatchEvent(event);
   });
@@ -443,7 +445,7 @@ describe("SwipeActions", () => {
     await pointer(window, "pointermove", 194, 20);
     expect(capture).not.toHaveBeenCalled();
     await pointer(window, "pointermove", 180, 20);
-    expect(capture.mock.calls).toEqual([[1]]);
+    expect(capture.mock.calls).toEqual([[syntheticPointerId]]);
     await pointer(window, "pointermove", 160, 20);
     expect(capture).toHaveBeenCalledTimes(1);
     wait(300);
