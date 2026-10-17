@@ -1,4 +1,4 @@
-import { Component, Suspense, useLayoutEffect, useRef, type JSX, type ReactNode, type RefObject } from "react";
+import { Component, Suspense, useLayoutEffect, useRef, useSyncExternalStore, type JSX, type ReactNode, type RefObject } from "react";
 import { demos } from "../docs/demos";
 import { href } from "../routes";
 
@@ -25,14 +25,20 @@ class DemoBoundary extends Component<{ name: string; title: string; children: Re
   }
 }
 
-function SelectedDemo({ name }: { name: string }): JSX.Element {
-  const host = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    host.current!.dataset["siteDemoHydrated"] = "true";
-  }, []);
+const noClientUpdates = () => () => undefined;
+
+function SelectedDemo({ name, title }: { name: string; title: string }): JSX.Element {
+  // The server snapshot also keeps the first hydration render disabled.
+  const hydrated = useSyncExternalStore(noClientUpdates, () => true, () => false);
   const Demo = Object.hasOwn(demos, name) ? demos[name] : undefined;
   if (!Demo) throw new Error(`No live example for "${name}"`);
-  return <div ref={host} data-site-demo={name} className="flex w-full justify-center"><Demo /></div>;
+  return (
+    <div data-site-demo={name} className="flex w-full justify-center">
+      <fieldset disabled={!hydrated} aria-label={`${title} example`} className="m-0 flex w-full min-w-0 [min-inline-size:0] justify-center border-0 p-0">
+        <Demo />
+      </fieldset>
+    </div>
+  );
 }
 
 /** A single lazy example; React focus events also track its portal descendants. */
@@ -66,7 +72,7 @@ export function LiveDemo({
     >
       <DemoBoundary key={name} name={name} title={title}>
         <Suspense fallback={<p role="status" data-site-demo-loading="">Loading {title} example...</p>}>
-          <SelectedDemo name={name} />
+          <SelectedDemo name={name} title={title} />
         </Suspense>
       </DemoBoundary>
     </div>

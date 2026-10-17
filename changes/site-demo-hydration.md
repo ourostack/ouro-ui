@@ -1,0 +1,1 @@
+- Prerendered live examples keep their native form controls disabled until hydration, so early clicks are not lost while the selected example loads; the static content remains readable without JavaScript.
