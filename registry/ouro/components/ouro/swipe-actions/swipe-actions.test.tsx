@@ -577,11 +577,23 @@ describe("SwipeActions", () => {
 
   it("follows one finger: other pointers neither start nor steer the swipe", async () => {
     const element = await render(row());
+    await userEvent.hover(page.getByRole("button", { name: "Actions for Short ribs" }));
     await pointer(content(element), "pointerdown", 200, 20, { isPrimary: false, pointerId: 7 });
     await pointer(window, "pointermove", 80, 20, { pointerId: 7 });
     expect(element.hasAttribute("data-dragging")).toBe(false);
 
     await pointer(content(element), "pointerdown", 200, 20);
+    let nativeMouseMoved = false;
+    const hearMouse = (event: PointerEvent) => {
+      if (event.isTrusted && event.pointerType === "mouse" && event.buttons === 0) nativeMouseMoved = true;
+    };
+    window.addEventListener("pointermove", hearMouse);
+    try {
+      await userEvent.hover(page.getByRole("link", { name: "Short ribs" }));
+    } finally {
+      window.removeEventListener("pointermove", hearMouse);
+    }
+    expect(nativeMouseMoved).toBe(true);
     // A second press during the gesture does not restart it.
     await pointer(content(element), "pointerdown", 400, 20, { pointerId: 2, isPrimary: false });
     await pointer(window, "pointermove", 20, 20, { pointerId: 2 });

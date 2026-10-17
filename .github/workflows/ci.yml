@@ -4,7 +4,7 @@ on:
 permissions:
   contents: read
 jobs:
-  observe-install:
+  regression-red:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
@@ -19,17 +19,14 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
-      - name: Exact nova installer with private observation, not a qualification retry
-        run: scripts/install-test.sh shadcn "$RUNNER_TEMP/app" "$GITHUB_SHA"
+      - run: pnpm exec playwright install --with-deps chromium webkit
+      - name: Public-shaped native mouse regression before unique synthetic ID correction
+        run: pnpm exec vitest run --project ouro-chromium --project ouro-webkit --coverage.enabled false registry/ouro/components/ouro/swipe-actions/swipe-actions.test.tsx -t 'follows one finger'
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
-          name: swipe-installed-preopen-${{ github.run_id }}
+          name: swipe-native-regression-${{ github.run_id }}
           include-hidden-files: true
           path: |
-            ${{ runner.temp }}/app/.escape-observations/
-            ${{ runner.temp }}/app/.vitest/attachments/
-            ${{ runner.temp }}/app/package.json
-            ${{ runner.temp }}/app/package-lock.json
-            ${{ runner.temp }}/app/src/index.css
+            .vitest/attachments/
           if-no-files-found: error
