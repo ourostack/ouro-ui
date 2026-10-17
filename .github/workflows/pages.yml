@@ -70,6 +70,8 @@ jobs:
             node scripts/latest-release.mjs set "$newest"
             pnpm run docs
           fi
+      # site:build draws og.png, the link-preview card, from the current homepage words.
+      - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm site:build && mkdir -p _site && cp -R site/dist/. _site/
       - run: pnpm build-storybook --output-dir _site/storybook
       - run: scripts/namespace.sh _site/r
