@@ -1,6 +1,6 @@
 import { createElement } from "react";
 import { expectTypeOf } from "vitest";
-import { Form, type FormErrors, type FormProps } from "@/registry/ouro/components/ouro/form/form";
+import { Form, type FormErrors, type FormProps, type ReadonlyFormErrors } from "@/registry/ouro/components/ouro/form/form";
 import { formErrors, formErrorIdentity, type FormErrorValue } from "@/registry/ouro/lib/ouro/form-answer";
 import { errorMessages, type ErrorMessage, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 
@@ -24,6 +24,9 @@ const rawErrors: FormErrors = { email: rawMessages };
 rawErrors.email = ["Replacement."];
 const readonlyErrors = { email: ["Taken."] as const };
 const snapshot = formErrors({}, readonlyErrors);
+expectTypeOf<FormErrors>().toExtend<ReadonlyFormErrors>();
+expectTypeOf<FormErrorValue>().toExtend<ReadonlyFormErrors>();
+expectTypeOf<ReadonlyFormErrors>().toExtend<NonNullable<FormProps["errors"]>>();
 formErrors("cached", readonlyErrors, { key: "accepted-2" });
 formErrorIdentity(readonlyErrors);
 formErrorIdentity(snapshot);

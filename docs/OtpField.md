@@ -31,7 +31,7 @@ Type: `OtpFieldProps`.
 | `defaultValue` | `string` |  | The code the field starts with, when it keeps its own state. |
 | `description` | `ReactNode` |  | Supporting text under the label ("We sent it to your phone"), read through `aria-describedby`. |
 | `disabled` | `boolean` |  | Disables every slot and fades the field. |
-| `error` | `ErrorMessages` |  | What is wrong ("That code has expired"), from your server action or client check. It shows under the slots, which get `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. |
+| `error` | `ReadonlyErrorMessages` |  | What is wrong ("That code has expired"), from your server action or client check. It shows under the slots, which get `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. |
 | `groupSize` | `number` |  | Shows the slots in groups of this many, with a dash between groups: `groupSize={3}` reads `123-456`. |
 | `hideLabel` | `boolean` |  | Hides the label visually; screen readers still read it. |
 | `label` (required) | `string` |  | What the code is ("Verification code"), shown above the slots and read as the first slot's name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. |
@@ -81,10 +81,10 @@ One error message: text, or a React element for a message that carries a link or
 type ErrorMessage = string | ReactElement;
 ```
 
-### `ErrorMessages`
+### `ReadonlyErrorMessages`
 
-What an `error` prop or a `Form` `errors` value takes: one message, or several as an array.
+A read-only message view accepted by fields and Form; mutable input arrays remain valid.
 
 ```ts
-type ErrorMessages = ErrorMessage | ErrorMessage[];
+type ReadonlyErrorMessages = ErrorMessage | readonly ErrorMessage[];
 ```

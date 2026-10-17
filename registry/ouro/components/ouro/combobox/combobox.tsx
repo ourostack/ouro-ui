@@ -9,7 +9,7 @@ import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-st
 import { SheetFrame } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { endSlotClass, groupClass, inputClass } from "@/registry/ouro/components/ouro/text-field/text-field-styles";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
-import { FieldOwnerContext, useField, useFormErrors, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
+import { FieldOwnerContext, useField, useFormErrors, type ReadonlyErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { usePickerSheet } from "@/registry/ouro/lib/ouro/use-sheet-presentation";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
@@ -51,7 +51,7 @@ export interface ComboboxBaseProps {
    * What is wrong, from your server action or client check. The message (or several, as a
    * list) shows under the field, which gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid.
    */
-  error?: ErrorMessages | undefined;
+  error?: ReadonlyErrorMessages | undefined;
   /** Something must be picked: the input gets `aria-required`, and the label a marker. */
   required?: boolean | undefined;
   /** Disables the field and its buttons, and fades it. */

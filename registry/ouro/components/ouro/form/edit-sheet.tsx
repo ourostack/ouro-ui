@@ -7,7 +7,7 @@ import { checkOpenMode } from "@/registry/ouro/lib/ouro/open-mode";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { DialogFrame } from "@/registry/ouro/components/ouro/dialog/dialog";
-import { Form, type FormErrors } from "@/registry/ouro/components/ouro/form/form";
+import { Form, type ReadonlyFormErrors } from "@/registry/ouro/components/ouro/form/form";
 import { sheetHint } from "@/registry/ouro/components/ouro/sheet/sheet-styles";
 import { formErrors } from "@/registry/ouro/lib/ouro/form-answer";
 
@@ -23,7 +23,7 @@ const keepFieldFocus = {
 };
 
 /** What `onSubmit` may return: nothing (saved), or errors by field name (not saved). */
-export type EditSheetResult = void | undefined | FormErrors;
+export type EditSheetResult = void | undefined | ReadonlyFormErrors;
 
 /** Props shared by both ways of opening an EditSheet. */
 export interface EditSheetBaseProps {
@@ -126,7 +126,7 @@ const serialize = (form: HTMLFormElement) =>
 const discardClass = "flex w-full flex-wrap items-center justify-end gap-2";
 
 /** Whether `onSubmit` returned errors to show, rather than nothing or an empty object. */
-const hasErrors = (result: EditSheetResult): result is FormErrors => Boolean(result) && Object.keys(result!).length > 0;
+const hasErrors = (result: EditSheetResult): result is ReadonlyFormErrors => Boolean(result) && Object.keys(result!).length > 0;
 
 /**
  * Edits something in a form inside a dialog: the whole interaction, done right. It opens
@@ -222,7 +222,7 @@ export function EditSheet(props: EditSheetProps): JSX.Element {
   const [ownOpen, setOwnOpen] = useState(false);
   const controlled = open !== undefined;
   const shown = controlled ? open : ownOpen;
-  const [answer, setAnswer] = useState<{ key: number; errors: FormErrors | undefined }>({ key: 0, errors: undefined });
+  const [answer, setAnswer] = useState<{ key: number; errors: ReadonlyFormErrors | undefined }>({ key: 0, errors: undefined });
   const [pending, setPending] = useState(false);
   const [confirming, setConfirming] = useState(false);
   // Each opening starts clean, however it opened (the app may set `open` itself).
@@ -283,7 +283,7 @@ export function EditSheet(props: EditSheetProps): JSX.Element {
   };
 
   // Nothing (or no errors) closes the sheet; errors stay on the fields, focus on the first.
-  const refuse = (errors: FormErrors) => setAnswer((previous) => ({ key: previous.key + 1, errors }));
+  const refuse = (errors: ReadonlyFormErrors) => setAnswer((previous) => ({ key: previous.key + 1, errors }));
   const finish = (result: EditSheetResult) => {
     if (hasErrors(result)) refuse(result);
     else setOpen(false);

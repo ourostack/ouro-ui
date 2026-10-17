@@ -102,7 +102,7 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 What `onSubmit` may return: nothing (saved), or errors by field name (not saved).
 
 ```ts
-type EditSheetResult = void | undefined | FormErrors;
+type EditSheetResult = void | undefined | ReadonlyFormErrors;
 ```
 
 ### `ErrorMessage`
@@ -113,18 +113,18 @@ One error message: text, or a React element for a message that carries a link or
 type ErrorMessage = string | ReactElement;
 ```
 
-### `ErrorMessages`
+### `ReadonlyErrorMessages`
 
-What an `error` prop or a `Form` `errors` value takes: one message, or several as an array.
+A read-only message view accepted by fields and Form; mutable input arrays remain valid.
 
 ```ts
-type ErrorMessages = ErrorMessage | ErrorMessage[];
+type ReadonlyErrorMessages = ErrorMessage | readonly ErrorMessage[];
 ```
 
-### `FormErrors`
+### `ReadonlyFormErrors`
 
-Display messages by field name; `form` holds messages about the whole form.
+A read-only display projection for Form and EditSheet; mutable raw `FormErrors` remain valid inputs.
 
 ```ts
-type FormErrors = Record<string, ErrorMessages | null | undefined>;
+type ReadonlyFormErrors = Readonly<Record<string, ReadonlyErrorMessages | null | undefined>>;
 ```

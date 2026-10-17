@@ -31,7 +31,7 @@ Type: `DatePickerProps`.
 | `defaultValue` | `string` |  | The date at first, as an ISO date, when you do not control `value`. |
 | `description` | `ReactNode` |  | Supporting text under the label, read after the label through `aria-describedby`. |
 | `disabled` | `boolean` |  | Disables the field and its calendar button, and fades it. |
-| `error` | `ErrorMessages` |  | What is wrong, from your server action or client check. The message (or several, as a list) shows under the field, which gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. |
+| `error` | `ReadonlyErrorMessages` |  | What is wrong, from your server action or client check. The message (or several, as a list) shows under the field, which gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. |
 | `hideLabel` | `boolean` |  | Hides the label visually; screen readers still read it as the field's name. |
 | `invalidDateMessage` | `string` | `"Enter a valid date."` | The browser's message for typed text that is not a date, or a date `isDateDisabled` names. Translate it with your app. |
 | `isDateDisabled` | `((date: string) => boolean)` |  | Marks single days unavailable: `isDateDisabled={(date) => booked.has(date)}`. It gets each day as an ISO date. Such a day, typed or picked in the phone's own picker, is invalid. |
@@ -85,10 +85,10 @@ One error message: text, or a React element for a message that carries a link or
 type ErrorMessage = string | ReactElement;
 ```
 
-### `ErrorMessages`
+### `ReadonlyErrorMessages`
 
-What an `error` prop or a `Form` `errors` value takes: one message, or several as an array.
+A read-only message view accepted by fields and Form; mutable input arrays remain valid.
 
 ```ts
-type ErrorMessages = ErrorMessage | ErrorMessage[];
+type ReadonlyErrorMessages = ErrorMessage | readonly ErrorMessage[];
 ```

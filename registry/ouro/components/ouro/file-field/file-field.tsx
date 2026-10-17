@@ -7,7 +7,7 @@ import { FieldControl } from "@/registry/ouro/components/ouro/field/field-parts"
 import { contractWarnings, errorClass } from "@/registry/ouro/components/ouro/field/field-styles";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
-import { FieldOwnerContext, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
+import { FieldOwnerContext, type ReadonlyErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import {
   acceptProblem,
@@ -45,7 +45,7 @@ export interface FileFieldProps {
    * What is wrong, from your server action or client check. It shows under the field, and
    * the input gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid.
    */
-  error?: ErrorMessages | undefined;
+  error?: ReadonlyErrorMessages | undefined;
   /** A file must be chosen before the form submits. */
   required?: boolean | undefined;
   /** Disables the input and the drop zone, and fades the field. */

@@ -6,7 +6,7 @@ import { FieldControl } from "@/registry/ouro/components/ouro/field/field-parts"
 import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-styles";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
-import { FieldOwnerContext, useField, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
+import { FieldOwnerContext, useField, type ReadonlyErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import {
   boxClass,
@@ -34,7 +34,7 @@ export interface ColorFieldProps {
    * What is wrong, from your server action or client check. It shows under the field, which
    * gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid.
    */
-  error?: ErrorMessages | undefined;
+  error?: ReadonlyErrorMessages | undefined;
   /**
    * Marks the field required: it gets `aria-required`, and the label a marker. A color always
    * has a value, so it never blocks a submit, even with the text cleared.
