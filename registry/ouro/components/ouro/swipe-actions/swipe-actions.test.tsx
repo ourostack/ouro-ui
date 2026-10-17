@@ -810,6 +810,9 @@ describe("SwipeActions", () => {
 
   it.each(Array.from({ length: 24 }, (_, index) => index))("closes on Escape only, and keeps that Escape from the page [observer %i]", async (index) => {
     const element = await render(row());
+    const keyboardTarget = menuButton(element);
+    keyboardTarget.focus({ preventScroll: true });
+    expect(document.activeElement).toBe(keyboardTarget);
     const keys: string[] = [];
     const listener = (event: KeyboardEvent) => keys.push(event.key);
     const events: unknown[] = [];
@@ -847,6 +850,8 @@ describe("SwipeActions", () => {
       phase = "swipe";
       await swipe(element, -120);
       events.push({ phase: "after-swipe", open: element.getAttribute("data-open"), active: targetName(document.activeElement), time: performance.now() });
+      expect(element.getAttribute("data-open")).toBe("trailing");
+      expect(document.activeElement).toBe(keyboardTarget);
       phase = "letter";
       await userEvent.keyboard("a");
       expect(element.getAttribute("data-open")).toBe("trailing");
