@@ -1,1 +1,0 @@
-- NumberField steppers keep their distinct pressed background while the pointer hovers over them; hover no longer overrides the held-press color.
