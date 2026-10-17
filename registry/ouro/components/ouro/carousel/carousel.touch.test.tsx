@@ -109,7 +109,7 @@ it("moves to the next slide with a horizontal swipe and reports it once", async 
   expect(scrollY).toBe(pageY);
 });
 
-it.each(Array.from({ length: 24 }, (_, index) => index))("lets a fast flick carry past the next slide, as the platform does, and reports it once [observer %i]", async (index) => {
+it.each(Array.from({ length: 64 }, (_, index) => index))("lets a fast flick carry past the next slide, as the platform does, and reports it once [observer %i]", async (index) => {
   const events: Array<Record<string, unknown>> = [];
   const onIndexChange = vi.fn((value: number) => {
     events.push({ kind: "index", value, time: performance.now(), wallMs: Date.now() });
@@ -135,8 +135,7 @@ it.each(Array.from({ length: 24 }, (_, index) => index))("lets a fast flick carr
   const types = ["pointerdown", "pointermove", "pointerup", "pointercancel", "touchstart", "touchmove", "touchend", "touchcancel", "scroll", "scrollend"];
   for (const type of types) window.addEventListener(type, observe, { capture: true, passive: true });
   const preparationDelayMs = 0;
-  const releaseDelayMs = index >= 12 ? 500 : 0;
-  await commands.carouselProbe({ id: String(index), preparationDelayMs, releaseDelayMs });
+  const releaseDelayMs = 0;
   try {
     phase = "input";
     await commands.touchDrag({ from: [rect.right - 40, y], to: [rect.left + 40, y], steps: 12, durationMs: 30 });

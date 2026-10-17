@@ -73,6 +73,7 @@ interface CarouselProbeState {
   log: Array<Record<string, unknown>>;
 }
 const carouselProbes = new WeakMap<object, CarouselProbeState>();
+let automaticCarouselProbe = 0;
 const carouselProbe: BrowserCommand<[CarouselProbeOptions]> = async (ctx, options) => {
   carouselProbes.set(ctx.page, { options, log: [] });
 };
@@ -532,7 +533,11 @@ export interface TouchDragOptions {
  */
 export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from, to, steps, durationMs }) => {
   const { page } = ctx;
-  const probe = carouselProbes.get(page);
+  let probe = carouselProbes.get(page);
+  if (durationMs === 30) {
+    probe = { options: { id: String(automaticCarouselProbe++), preparationDelayMs: 0, releaseDelayMs: 0 }, log: [] };
+    carouselProbes.set(page, probe);
+  }
   probe?.log.push({ kind: "command-entry", wallMs: Date.now(), from, to, steps, durationMs });
   if (ctx.provider.name !== "playwright" || page.context().browser()?.browserType().name() !== "chromium") {
     throw new Error("touchDrag: CDP input is Chromium only");
