@@ -1,1 +1,0 @@
-- The shipped SwipeActions native scrolling check starts on the row it verifies and uses a timed swipe, so slow input acknowledgements cannot turn the test gesture into a long press.
