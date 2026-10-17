@@ -5,6 +5,7 @@ import { defineConfig } from "vitest/config";
 import { fileURLToPath } from "node:url";
 import { commands } from "./registry/ouro/lib/ouro/testing/commands.ts";
 import { ouroTestProjects } from "./registry/ouro/lib/ouro/testing/vitest.ts";
+import { escapeObserverCommands } from "./.github/v1-escape-observer.ts";
 
 const visual = process.env["CI_VISUAL"] === "1";
 
@@ -69,7 +70,13 @@ export default defineConfig({
       thresholds: { lines: 100, branches: 100, functions: 100, statements: 100 },
     },
     projects: [
-      ...ouroTestProjects({ css, include: ["{registry,test}/**/*.test.{ts,tsx}"] }),
+      ...ouroTestProjects({ css, include: ["{registry,test}/**/*.test.{ts,tsx}"] }).map((project) => ({
+        ...project,
+        test: {
+          ...project.test,
+          browser: { ...project.test!.browser, commands: { ...commands, ...escapeObserverCommands } },
+        },
+      })),
       {
         // The landing page and docs site (site/), rendered at the widths it is built for. It
         // inherits this file's Vite setup (React, Tailwind, the `@` alias), which matches

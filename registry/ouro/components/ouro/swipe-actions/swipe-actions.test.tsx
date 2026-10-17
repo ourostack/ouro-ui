@@ -9,6 +9,12 @@ import { rubberband } from "@/registry/ouro/lib/ouro/spring";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { holdFrames, type HeldFrames } from "@/registry/ouro/lib/ouro/testing/frames";
 
+declare module "vitest/browser" {
+  interface BrowserCommands {
+    escapeEvidence(evidence: unknown): Promise<void>;
+  }
+}
+
 // Real touch swipes are in swipe-actions.touch.test.tsx. Here the pointer events are
 // dispatched, so the same paths run in Chromium and WebKit, with a pen and a mouse too,
 // and each event carries a time the test sets, so a release is as fast or slow as it says.
@@ -802,22 +808,52 @@ describe("SwipeActions", () => {
     expect(document.activeElement).toBe(menuButton(element));
   });
 
-  it("closes on Escape only, and keeps that Escape from the page", async () => {
+  it.each(Array.from({ length: 24 }, (_, index) => index))("closes on Escape only, and keeps that Escape from the page [observer %i]", async (index) => {
     const element = await render(row());
     const keys: string[] = [];
     const listener = (event: KeyboardEvent) => keys.push(event.key);
+    const events: unknown[] = [];
+    let phase = "rendered";
+    const targetName = (target: EventTarget | null) => target === window ? "window"
+      : target === document ? "document"
+        : target instanceof Element ? `${target.tagName}:${target.getAttribute("data-ouro") ?? ""}:${target.id}` : String(target);
+    const observe = (event: Event) => events.push({
+      phase, type: event.type, target: targetName(event.target), active: targetName(document.activeElement),
+      open: element.getAttribute("data-open"), key: event instanceof KeyboardEvent ? event.key : undefined,
+      time: performance.now(),
+    });
+    const nativeFocus = window.focus;
+    window.focus = () => {
+      events.push({ phase, type: "window.focus()", active: targetName(document.activeElement), open: element.getAttribute("data-open"), time: performance.now() });
+      nativeFocus.call(window);
+    };
+    const observer = new MutationObserver(() => events.push({ phase, type: "open-mutation", open: element.getAttribute("data-open"), time: performance.now() }));
+    observer.observe(element, { attributes: true, attributeFilter: ["data-open"] });
+    const types = ["scroll", "pointerdown", "keydown", "keyup", "focus", "blur"];
+    for (const type of types) window.addEventListener(type, observe, true);
     document.addEventListener("keydown", listener);
-    await swipe(element, -120);
-    await userEvent.keyboard("a");
-    expect(element.getAttribute("data-open")).toBe("trailing");
-    await userEvent.keyboard("{Escape}");
-    await act(async () => {});
-    expect(element.hasAttribute("data-open")).toBe(false);
-    await expect.poll(() => offset(element)).toBe(0);
-    // Closed, Escape is the page's again.
-    await userEvent.keyboard("{Escape}");
-    document.removeEventListener("keydown", listener);
-    expect(keys).toEqual(["a", "Escape"]);
+    try {
+      phase = "swipe";
+      await swipe(element, -120);
+      events.push({ phase: "after-swipe", open: element.getAttribute("data-open"), active: targetName(document.activeElement), time: performance.now() });
+      phase = "letter";
+      await userEvent.keyboard("a");
+      expect(element.getAttribute("data-open")).toBe("trailing");
+      phase = "escape-open";
+      await userEvent.keyboard("{Escape}");
+      await act(async () => {});
+      expect(element.hasAttribute("data-open")).toBe(false);
+      await expect.poll(() => offset(element)).toBe(0);
+      phase = "escape-closed";
+      await userEvent.keyboard("{Escape}");
+      expect(keys).toEqual(["a", "Escape"]);
+    } finally {
+      for (const type of types) window.removeEventListener(type, observe, true);
+      document.removeEventListener("keydown", listener);
+      window.focus = nativeFocus;
+      observer.disconnect();
+      await commands.escapeEvidence({ index, userAgent: navigator.userAgent, events, keys, final: element.getAttribute("data-open") });
+    }
   });
 
   it("closes on a press or a scroll outside the row, not on one inside it", async () => {
