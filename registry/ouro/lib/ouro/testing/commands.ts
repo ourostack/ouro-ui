@@ -673,24 +673,28 @@ export const touchStep: BrowserCommand<[TouchStepOptions]> = async (ctx, step) =
   if (step.type === "touchEnd") {
     const finger = fingersDown.get(page);
     const frame = finger?.frame ?? await ctx.frame();
-    const snapshot = await frame.evaluate<Record<string, unknown> | null>(`() => {
-      const viewport = document.querySelector("[data-ouro-carousel-viewport]");
-      if (!viewport || viewport.getBoundingClientRect().width !== 96) return null;
-      const observation = Object.getOwnPropertyDescriptor(viewport, "__carouselContractObservation")?.value;
-      return {
-        observation,
-        scrollLeft: viewport.scrollLeft,
-        maximum: viewport.scrollWidth - viewport.clientWidth,
-        rect: viewport.getBoundingClientRect().toJSON(),
-        slides: [...viewport.children].map((slide) => slide.getBoundingClientRect().toJSON()),
-        announcer: document.querySelector("[data-ouro-announcer]")?.textContent ?? "",
-      };
-    }`);
-    if (snapshot) appendFileSync(join(process.env["RUNNER_TEMP"]!, "carousel-contract-observations.jsonl"), `${JSON.stringify({
-      mode: process.env["VITE_CAROUSEL_MUTATION"], beforeNativeLift: Boolean(finger), finger: finger ? { x: finger.x, y: finger.y } : null,
-      wallMs: Date.now(), ...snapshot,
-    })}\n`);
-    return releaseFinger("touchStep", page, session);
+    try {
+      const snapshot = frame.isDetached() ? null : await frame.evaluate<Record<string, unknown> | null>(`(() => {
+        const viewport = document.querySelector("[data-ouro-carousel-viewport]");
+        if (!viewport || viewport.getBoundingClientRect().width !== 96) return null;
+        const observation = Object.getOwnPropertyDescriptor(viewport, "__carouselContractObservation")?.value;
+        return {
+          observation,
+          scrollLeft: viewport.scrollLeft,
+          maximum: viewport.scrollWidth - viewport.clientWidth,
+          rect: viewport.getBoundingClientRect().toJSON(),
+          slides: [...viewport.children].map((slide) => slide.getBoundingClientRect().toJSON()),
+          announcer: document.querySelector("[data-ouro-announcer]")?.textContent ?? "",
+        };
+      })()`);
+      if (snapshot) appendFileSync(join(process.env["RUNNER_TEMP"]!, "carousel-contract-observations.jsonl"), `${JSON.stringify({
+        mode: process.env["VITE_CAROUSEL_MUTATION"], beforeNativeLift: Boolean(finger), finger: finger ? { x: finger.x, y: finger.y } : null,
+        wallMs: Date.now(), ...snapshot,
+      })}\n`);
+    } finally {
+      await releaseFinger("touchStep", page, session);
+    }
+    return;
   }
   if (step.type === "touchStart") await releaseFinger("touchStep", page, session);
   const { type, x, y } = step;

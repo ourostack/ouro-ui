@@ -199,7 +199,7 @@ export function Carousel(props: CarouselProps): JSX.Element {
     };
     Object.defineProperty(viewport, "__carouselContractObservation", { value: observation, configurable: true });
     const observeTouch = (event: TouchEvent) => {
-      const touch = event.changedTouches[0];
+      const touch = event.changedTouches?.[0];
       touches.push({
         type: event.type, trusted: event.isTrusted, time: event.timeStamp,
         wallMs: Date.now(), x: touch?.clientX, y: touch?.clientY,
