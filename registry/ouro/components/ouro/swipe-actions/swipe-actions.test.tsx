@@ -802,31 +802,65 @@ describe("SwipeActions", () => {
     expect(document.activeElement).toBe(menuButton(element));
   });
 
-  it.each(["actions button", "page body"] as const)("closes on Escape only, and keeps that Escape from the page (%s focus)", async (focus) => {
+  it.each(Array.from({ length: 24 }, (_, index) => ({ index, focus: index % 2 === 0 ? "actions button" : "page body" })))("closes on Escape only, and keeps that Escape from the page ($focus, observer $index)", async ({ focus, index }) => {
     const element = await render(row());
+    const events: unknown[] = [];
+    let phase = "prepare-focus";
+    const targetName = (target: EventTarget | null) => target === window ? "window"
+      : target === document ? "document"
+        : target instanceof Element ? `${target.tagName}:${target.getAttribute("data-ouro") ?? ""}:${target.id}` : String(target);
+    const observe = (event: Event) => events.push({
+      phase, type: event.type, target: targetName(event.target), active: targetName(document.activeElement),
+      open: element.getAttribute("data-open"), dragging: element.hasAttribute("data-dragging"),
+      key: event instanceof KeyboardEvent ? event.key : undefined,
+      detail: event instanceof CustomEvent ? event.detail : undefined,
+      pointerType: event instanceof PointerEvent ? event.pointerType : undefined,
+      x: event instanceof PointerEvent ? event.clientX : undefined,
+      y: event instanceof PointerEvent ? event.clientY : undefined,
+      trusted: event.isTrusted, eventTime: event.timeStamp, wallTime: Date.now(),
+    });
+    const types = ["private-swipe-observe", "scroll", "pointerdown", "pointermove", "pointerup", "pointercancel", "touchstart", "touchend", "contextmenu", "keydown", "keyup", "focus", "blur"];
+    for (const type of types) window.addEventListener(type, observe, true);
+    const observer = new MutationObserver(() => events.push({ phase, type: "open-mutation", open: element.getAttribute("data-open"), wallTime: Date.now() }));
+    observer.observe(element, { attributes: true, attributeFilter: ["data-open"] });
     const keyboardTarget = focus === "actions button" ? menuButton(element) : document.body;
-    if (focus === "actions button") keyboardTarget.focus({ preventScroll: true });
-    // Activate the frame before opening even when Escape belongs to the whole page.
-    else await userEvent.keyboard("{Escape}");
-    expect(document.activeElement).toBe(keyboardTarget);
     const keys: string[] = [];
     const listener = (event: KeyboardEvent) => keys.push(event.key);
-    document.addEventListener("keydown", listener);
     try {
+      if (focus === "actions button") keyboardTarget.focus({ preventScroll: true });
+      else await userEvent.keyboard("{Escape}");
+      expect(document.activeElement).toBe(keyboardTarget);
+      document.addEventListener("keydown", listener);
+      phase = "swipe";
       await swipe(element, -120);
+      phase = "after-swipe";
       expect(element.getAttribute("data-open")).toBe("trailing");
       expect(document.activeElement).toBe(keyboardTarget);
+      phase = "letter";
       await userEvent.keyboard("a");
       expect(element.getAttribute("data-open")).toBe("trailing");
+      phase = "escape-open";
       await userEvent.keyboard("{Escape}");
       await act(async () => {});
       expect(element.hasAttribute("data-open")).toBe(false);
       await expect.poll(() => offset(element)).toBe(0);
       // Closed, Escape is the page's again.
+      phase = "escape-closed";
       await userEvent.keyboard("{Escape}");
       expect(keys).toEqual(["a", "Escape"]);
     } finally {
+      for (const type of types) window.removeEventListener(type, observe, true);
       document.removeEventListener("keydown", listener);
+      observer.disconnect();
+      await commands.writeFile(`.escape-observations/${navigator.userAgent.includes("HeadlessChrome") ? "chromium" : "webkit"}-${focus.replaceAll(" ", "_")}-${index}.json`, JSON.stringify({
+        index, focus, userAgent: navigator.userAgent, phase, events, keys,
+        finalOpen: element.getAttribute("data-open"), finalOffset: offset(element),
+        geometryAfterInput: {
+          root: element.getBoundingClientRect().toJSON(),
+          trailing: strip(element, "trailing")!.getBoundingClientRect().toJSON(),
+          scrollX, scrollY,
+        },
+      }));
     }
   });
 

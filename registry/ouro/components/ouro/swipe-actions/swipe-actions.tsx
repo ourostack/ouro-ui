@@ -315,6 +315,10 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
         // Focus on an action about to become inert moves to the actions button, not to the page.
         root.querySelector<HTMLElement>("[data-ouro-swipe-actions-menu] button")!.focus();
       }
+      root.dispatchEvent(new CustomEvent("private-swipe-observe", {
+        bubbles: true,
+        detail: { kind: "settle", side, target, from: x.current, swipe: { ...swipe.current }, stack: new Error().stack },
+      }));
       setOpen(side && strip ? side : null);
       if (x.current === target) return;
       const handle = spring({
@@ -391,6 +395,10 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
       if (side !== undefined) settle(side);
     },
     onStart: ({ event }) => {
+      rootRef.current!.dispatchEvent(new CustomEvent("private-swipe-observe", {
+        bubbles: true,
+        detail: { kind: "start", pointerType: event.pointerType, pressed, open },
+      }));
       // A mouse selects text and clicks; its way to the actions is the actions button.
       // A finger that has opened the long-press menu is choosing from it, not swiping.
       if (event.pointerType === "mouse" || pressed) return false;
@@ -438,7 +446,12 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
       if (full && (opening || !flick)) return run(primary, velocity, flick);
       // A flick goes the way it was moving, however short. A slow release goes by distance.
       const strip = side === "leading" ? leadingRef.current! : trailingRef.current!;
-      const opens = flick ? opening : Math.abs(offset) > strip.getBoundingClientRect().width / 2;
+      let measuredWidth: number | undefined;
+      const opens = flick ? opening : Math.abs(offset) > (measuredWidth = strip.getBoundingClientRect().width) / 2;
+      rootRef.current!.dispatchEvent(new CustomEvent("private-swipe-observe", {
+        bubbles: true,
+        detail: { kind: "end", offset, velocity, flick, opening, side, measuredWidth, opens, full, rtl },
+      }));
       settle(opens ? side : null, velocity, flick);
     },
   });
