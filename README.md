@@ -122,6 +122,8 @@ What an app on v0.1.0 has to know beyond these steps. The release notes list eve
 
 - **v1.0.0:** the first stable release keeps the component APIs, theme tokens, defaults and test-tool minimums from v0.8.4. An app already on v0.8.4 needs no component API migration: review the update with `--dry-run` and `--diff`, then overwrite only the items it already uses and reapply its local edits. Runtime components and their optional `-tests` items remain separate; keep your app-owned fixtures and test configuration. Apps on older releases still need the applicable migration steps above and below.
 
+- **After v1.0.1:** `formErrors` now declares its already-frozen message arrays readonly. Keep mutable `FormErrors` and `ErrorMessages` for raw builders; annotate returned snapshots as `FormErrorValue` or `ReadonlyFormErrors`, or let their type infer. Form, EditSheet, field `error` props and the normalization helper accept readonly projections. This corrects a false mutation permission, so a snapshot no longer fits a mutable raw-map annotation. TypeScript's `Array.isArray` narrows to `any[]` and can bypass readonly; unchanged runtime freezing still rejects container mutation, without deeply freezing React nodes.
+
 #### 0. Commit first
 
 `--overwrite` replaces every Ouro file, including files you edited. Commit before you start. Afterwards, `git diff` shows your own edits being overwritten, so reapply the ones you need.

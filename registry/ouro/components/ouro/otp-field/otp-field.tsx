@@ -4,7 +4,7 @@ import { OTPField } from "@base-ui/react/otp-field";
 import { Fragment, type JSX, type ReactNode, type Ref } from "react";
 import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-styles";
-import { FieldOwnerContext, useField, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
+import { FieldOwnerContext, useField, type ReadonlyErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import {
   defaultSlotLabel,
@@ -30,7 +30,7 @@ export interface OtpFieldProps {
    * What is wrong ("That code has expired"), from your server action or client check. It shows
    * under the slots, which get `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid.
    */
-  error?: ErrorMessages | undefined;
+  error?: ReadonlyErrorMessages | undefined;
   /** The code must be filled before the form submits. */
   required?: boolean | undefined;
   /** Disables every slot and fades the field. */

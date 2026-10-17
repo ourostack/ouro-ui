@@ -36,7 +36,7 @@ Props every mode takes. Type: `RadioGroupProps`.
 | `defaultValue` | `string` |  | The value chosen at first, for an uncontrolled group. Unset, nothing is chosen. |
 | `description` | `ReactNode` |  | Supporting text under the legend, read after it through `aria-describedby`. |
 | `disabled` | `boolean` |  | Disables every radio and fades the group. |
-| `error` | `ErrorMessages` |  | What is wrong, from your server action or client check, shown under the choices; every radio gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. |
+| `error` | `ReadonlyErrorMessages` |  | What is wrong, from your server action or client check, shown under the choices; every radio gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. |
 | `hideLegend` | `boolean` |  | Hides the legend visually; screen readers still read it as the group's name. |
 | `legend` (required) | `string` |  | What is being chosen, shown above the choices and read as the group's name. Required: a group of controls needs a name. To hide it visually, keep it and add `hideLegend`. |
 | `name` | `string` |  | The form field name the chosen value submits under. |
@@ -102,14 +102,6 @@ One error message: text, or a React element for a message that carries a link or
 type ErrorMessage = string | ReactElement;
 ```
 
-### `ErrorMessages`
-
-What an `error` prop or a `Form` `errors` value takes: one message, or several as an array.
-
-```ts
-type ErrorMessages = ErrorMessage | ErrorMessage[];
-```
-
 ### `RadioGroupOption`
 
 One choice in a `RadioGroup`'s `options`.
@@ -125,4 +117,12 @@ interface RadioGroupOption {
   /** Disables this one radio; the arrow keys skip it. */
   disabled?: boolean | undefined;
 }
+```
+
+### `ReadonlyErrorMessages`
+
+A read-only message view accepted by fields and Form; mutable input arrays remain valid.
+
+```ts
+type ReadonlyErrorMessages = ErrorMessage | readonly ErrorMessage[];
 ```

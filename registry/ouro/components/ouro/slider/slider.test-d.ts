@@ -1,6 +1,7 @@
 import { createElement } from "react";
 import { expectTypeOf } from "vitest";
 import { Slider, type SliderProps } from "@/registry/ouro/components/ouro/slider/slider";
+expectTypeOf<readonly ["Taken."]>().toExtend<NonNullable<SliderProps["error"]>>();
 
 // Type tests: `pnpm typecheck` compiles this file, and every `@ts-expect-error`
 // fails the check if the line below it stops being an error.

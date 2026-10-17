@@ -29,7 +29,7 @@ Type: `SliderProps<Value>`.
 | `defaultValue` | `Value` |  | The starting value, when the slider keeps its own. An array gives a range: `defaultValue={[20, 80]}`. |
 | `description` | `ReactNode` |  | Supporting text under the label, read after the label through `aria-describedby`. |
 | `disabled` | `boolean` |  | Disables the slider and fades it. |
-| `error` | `ErrorMessages` |  | What is wrong, from your server action or client check. The message (or several, as a list) shows under the slider, which gets `aria-invalid` and the destructive color. A message is text or a React node (one with a link); an empty string or array means valid. |
+| `error` | `ReadonlyErrorMessages` |  | What is wrong, from your server action or client check. The message (or several, as a list) shows under the slider, which gets `aria-invalid` and the destructive color. A message is text or a React node (one with a link); an empty string or array means valid. |
 | `format` | `Intl.NumberFormatOptions` |  | How the value reads, as `Intl.NumberFormat` options, for `showValue` and screen readers: `{ style: "percent" }`, `{ style: "currency", currency: "EUR" }`. |
 | `hideLabel` | `boolean` |  | Hides the label visually; screen readers still read it as the slider's name. |
 | `label` (required) | `string` |  | What the slider sets, shown above it and read as its name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. |
@@ -82,12 +82,12 @@ One error message: text, or a React element for a message that carries a link or
 type ErrorMessage = string | ReactElement;
 ```
 
-### `ErrorMessages`
+### `ReadonlyErrorMessages`
 
-What an `error` prop or a `Form` `errors` value takes: one message, or several as an array.
+A read-only message view accepted by fields and Form; mutable input arrays remain valid.
 
 ```ts
-type ErrorMessages = ErrorMessage | ErrorMessage[];
+type ReadonlyErrorMessages = ErrorMessage | readonly ErrorMessage[];
 ```
 
 ### `SliderOutput`

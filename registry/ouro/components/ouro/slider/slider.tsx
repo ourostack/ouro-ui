@@ -5,7 +5,7 @@ import { cloneElement, useId, useLayoutEffect, useMemo, useRef, type JSX, type R
 import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-styles";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
-import { FieldOwnerContext, useField, useFormErrors, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
+import { FieldOwnerContext, useField, useFormErrors, type ReadonlyErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import {
   controlClass,
@@ -38,7 +38,7 @@ export interface SliderProps<Value extends SliderValue = number> {
    * What is wrong, from your server action or client check. The message (or several, as a
    * list) shows under the slider, which gets `aria-invalid` and the destructive color. A message is text or a React node (one with a link); an empty string or array means valid.
    */
-  error?: ErrorMessages | undefined;
+  error?: ReadonlyErrorMessages | undefined;
   /** Disables the slider and fades it. */
   disabled?: boolean | undefined;
   /** The form field name the value submits under; a range submits one entry per thumb. */

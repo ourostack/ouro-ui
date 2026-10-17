@@ -7,7 +7,7 @@ import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { choicesClass, contractWarnings } from "@/registry/ouro/components/ouro/field/field-styles";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
-import { FieldOwnerContext, useField, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
+import { FieldOwnerContext, useField, type ReadonlyErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
 /** One choice in a {@link CheckboxGroup}'s `options`. */
@@ -37,7 +37,7 @@ export interface CheckboxGroupOwnProps {
    * What is wrong, from your server action or client check, shown under the choices; every
    * box gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid.
    */
-  error?: ErrorMessages | undefined;
+  error?: ReadonlyErrorMessages | undefined;
   /**
    * At least one box must be checked to submit the form: the legend gets a marker (and
    * `requiredLabel` for screen readers), and the browser shows `requiredMessage` until one is

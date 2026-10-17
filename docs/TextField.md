@@ -55,7 +55,7 @@ Type: `TextFieldProps`.
 | `description` | `ReactNode` |  | Supporting text under the label, read after the label through `aria-describedby`. |
 | `disabled` | `boolean` |  | Disables the field, its buttons included, and fades it. |
 | `endAdornment` | `ReactNode` |  | Text or an icon inside the box, after the input: `"kg"`, `<CheckIcon />`. Text is also read as part of the description. |
-| `error` | `ErrorMessages` |  | What is wrong, from your server action or client check. The message (or several, as a list) shows under the field, which gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. |
+| `error` | `ReadonlyErrorMessages` |  | What is wrong, from your server action or client check. The message (or several, as a list) shows under the field, which gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. |
 | `hideLabel` | `boolean` |  | Hides the label visually; screen readers still read it as the field's name. |
 | `label` (required) | `string` |  | What the field is for, shown above it and read as its name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. A placeholder is not a label. |
 | `name` | `string` |  | The form field name the value submits under. |
@@ -109,10 +109,10 @@ One error message: text, or a React element for a message that carries a link or
 type ErrorMessage = string | ReactElement;
 ```
 
-### `ErrorMessages`
+### `ReadonlyErrorMessages`
 
-What an `error` prop or a `Form` `errors` value takes: one message, or several as an array.
+A read-only message view accepted by fields and Form; mutable input arrays remain valid.
 
 ```ts
-type ErrorMessages = ErrorMessage | ErrorMessage[];
+type ReadonlyErrorMessages = ErrorMessage | readonly ErrorMessage[];
 ```

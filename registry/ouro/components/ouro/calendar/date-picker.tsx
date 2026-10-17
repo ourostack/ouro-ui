@@ -19,7 +19,7 @@ import {
 } from "@/registry/ouro/components/ouro/popover/popover-parts";
 import { endSlotClass, groupClass, inputClass } from "@/registry/ouro/components/ouro/text-field/text-field-styles";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
-import { FieldOwnerContext, useFormErrors, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
+import { FieldOwnerContext, useFormErrors, type ReadonlyErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
 
@@ -38,7 +38,7 @@ export interface DatePickerProps {
    * What is wrong, from your server action or client check. The message (or several, as a
    * list) shows under the field, which gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid.
    */
-  error?: ErrorMessages | undefined;
+  error?: ReadonlyErrorMessages | undefined;
   /** A date must be given: the field gets `required` and `aria-required`, and the label a marker. */
   required?: boolean | undefined;
   /** Disables the field and its calendar button, and fades it. */

@@ -7,7 +7,7 @@ import { FieldControl, type FieldControlProps } from "@/registry/ouro/components
 import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-styles";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
-import { FieldOwnerContext, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
+import { FieldOwnerContext, type ReadonlyErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { fitHeight, textAreaClass, textAreaSizes, textAreaVariants } from "@/registry/ouro/components/ouro/text-field/text-area-styles";
 import { controlSizeWarning, controlVariantWarning } from "@/registry/ouro/components/ouro/text-field/text-field-styles";
@@ -27,7 +27,7 @@ export interface TextAreaOwnProps {
    * What is wrong, from your server action or client check. The message (or several, as a
    * list) shows under the field, which gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid.
    */
-  error?: ErrorMessages | undefined;
+  error?: ReadonlyErrorMessages | undefined;
   /** The field must be filled: it gets `required` and `aria-required`, and the label a marker. */
   required?: boolean | undefined;
   /** Disables the field and fades it. */

@@ -4,7 +4,7 @@ import { NumberField as BaseNumberField } from "@base-ui/react/number-field";
 import type { ComponentPropsWithRef, JSX, ReactElement, ReactNode, Ref } from "react";
 import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-styles";
-import { FieldOwnerContext, useField, useFormErrors, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
+import { FieldOwnerContext, useField, useFormErrors, type ReadonlyErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
@@ -26,7 +26,7 @@ export interface NumberFieldProps {
    * What is wrong, from your server action or client check. The message (or several, as a
    * list) shows under the field, which gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid.
    */
-  error?: ErrorMessages | undefined;
+  error?: ReadonlyErrorMessages | undefined;
   /** The field must be filled: it gets `aria-required`, and the label a marker. */
   required?: boolean | undefined;
   /** Disables the field and its steppers, and fades it. */

@@ -51,7 +51,7 @@ Type: `FormProps`.
 | --- | --- | --- | --- |
 | `children` (required) | `ReactNode` |  | The fields and the submit button. |
 | `className` | `string` |  | Layout only: margins, width, grid placement. Fields stack with a gap by default; appearance classes warn in development. |
-| `errors` | `FormErrors \| FormErrorValue \| null` |  | Errors by field name. Bind an accepted server answer inside this single prop: `errors={formErrors(actionData, actionData?.errors)}` (import `formErrors` from `@/lib/ouro/form-answer`). Each changed answer, including an equal refusal, restores cleared messages, replaces its alert and moves focus once. Rebuilding the value or its mapped messages with the same answer never counts as arrival. Each one shows on the field with that `name`, which gets `aria-invalid` and links the message, in the server HTML too. A field's own `error` prop wins over it, and a message goes away once the user changes that field. When new errors arrive, focus moves to the first field with one, in page order. The `form` key shows in an alert at the top of the form, in the server HTML too; a key no rendered field is named joins it once the page hydrates, and warns in development. A message is text or a React node (a message with a link), and an array is several messages. With `formErrors`, a field stays cleared for that answer even if its key disappears and is re-added. Uncleared messages use the latest projection, including new React nodes/handlers, without resetting the mask, forcing an alert remount or moving focus. No answer (`null`/`undefined`) is not arrival and preserves the established mask. Cached/reused or primitive answers need `{ key: acceptedAnswerKey }`, advanced on actual acceptance, never submit start. Select this form's accepted source yourself; Form does not infer ownership or cancellation from a router's global data. Plain records still work for display/local errors and are compared by content. Fresh equal records cannot identify equal new answers; use `formErrors` for action answers, including the initial undefined-answer render. Changing between raw and answer-bearing values establishes a baseline with the existing mask, not an arrival. Construct the value beside Form on server and client. JSON/spread/structured cloning or server-component transport loses opaque identity and leaves a plain message record; reconstruct using the locally accepted source or a safely transported acceptance key. These errors only show: they never block the next submit, so the user can always send the form again (a server error may be fixed by changing another field, or by trying again). The browser's own checks (`required`, `type="email"`) still block a submit. |
+| `errors` | `ReadonlyFormErrors \| FormErrorValue \| null` |  | Errors by field name. Bind an accepted server answer inside this single prop: `errors={formErrors(actionData, actionData?.errors)}` (import `formErrors` from `@/lib/ouro/form-answer`). Each changed answer, including an equal refusal, restores cleared messages, replaces its alert and moves focus once. Rebuilding the value or its mapped messages with the same answer never counts as arrival. Each one shows on the field with that `name`, which gets `aria-invalid` and links the message, in the server HTML too. A field's own `error` prop wins over it, and a message goes away once the user changes that field. When new errors arrive, focus moves to the first field with one, in page order. The `form` key shows in an alert at the top of the form, in the server HTML too; a key no rendered field is named joins it once the page hydrates, and warns in development. A message is text or a React node (a message with a link), and an array is several messages. With `formErrors`, a field stays cleared for that answer even if its key disappears and is re-added. Uncleared messages use the latest projection, including new React nodes/handlers, without resetting the mask, forcing an alert remount or moving focus. No answer (`null`/`undefined`) is not arrival and preserves the established mask. Cached/reused or primitive answers need `{ key: acceptedAnswerKey }`, advanced on actual acceptance, never submit start. Select this form's accepted source yourself; Form does not infer ownership or cancellation from a router's global data. Plain records still work for display/local errors and are compared by content. Fresh equal records cannot identify equal new answers; use `formErrors` for action answers, including the initial undefined-answer render. Changing between raw and answer-bearing values establishes a baseline with the existing mask, not an arrival. Construct the value beside Form on server and client. JSON/spread/structured cloning or server-component transport loses opaque identity and leaves a plain message record; reconstruct using the locally accepted source or a safely transported acceptance key. These errors only show: they never block the next submit, so the user can always send the form again (a server error may be fixed by changing another field, or by trying again). The browser's own checks (`required`, `type="email"`) still block a submit. |
 
 ## Native attributes
 
@@ -82,26 +82,26 @@ One error message: text, or a React element for a message that carries a link or
 type ErrorMessage = string | ReactElement;
 ```
 
-### `ErrorMessages`
-
-What an `error` prop or a `Form` `errors` value takes: one message, or several as an array.
-
-```ts
-type ErrorMessages = ErrorMessage | ErrorMessage[];
-```
-
-### `FormErrors`
-
-Display messages by field name; `form` holds messages about the whole form.
-
-```ts
-type FormErrors = Record<string, ErrorMessages | null | undefined>;
-```
-
 ### `FormErrorValue`
 
-A read-only message snapshot with private, in-memory answer identity. Create it with `formErrors`; JSON, spread, structured cloning and server-component transport retain only the messages, not its identity. Reconstruct it beside Form in each environment. Array containers are snapshotted and frozen; React elements are retained, not cloned. React nodes are render inputs, not a promise that arbitrary node graphs JSON-serialize.
+A read-only message snapshot with private, in-memory answer identity. Create it with `formErrors`; JSON, spread, structured cloning and server-component transport retain only the messages, not its identity. Reconstruct it beside Form in each environment. Array containers are snapshotted and frozen; React elements are retained, not cloned. React nodes are render inputs, not a promise that arbitrary node graphs JSON-serialize. Snapshot arrays are readonly, so use this type or `ReadonlyFormErrors`, not a mutable `FormErrors` annotation. This is not deep immutability of React nodes. TypeScript's `Array.isArray` narrows to `any[]` and can bypass readonly; runtime freezing still rejects mutation.
 
 ```ts
-type FormErrorValue = Readonly<FormErrors> & { readonly [errorValueBrand]: true };
+type FormErrorValue = ReadonlyFormErrors & { readonly [errorValueBrand]: true };
+```
+
+### `ReadonlyErrorMessages`
+
+A read-only message view accepted by fields and Form; mutable input arrays remain valid.
+
+```ts
+type ReadonlyErrorMessages = ErrorMessage | readonly ErrorMessage[];
+```
+
+### `ReadonlyFormErrors`
+
+A read-only display projection for Form and EditSheet; mutable raw `FormErrors` remain valid inputs.
+
+```ts
+type ReadonlyFormErrors = Readonly<Record<string, ReadonlyErrorMessages | null | undefined>>;
 ```

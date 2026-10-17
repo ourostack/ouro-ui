@@ -33,7 +33,7 @@ Props every mode takes. Type: `ComboboxProps`.
 | `disabled` | `boolean` |  | Disables the field and its buttons, and fades it. |
 | `doneLabel` | `string` | `"Done"` | The label of the button that closes the sheet on a phone (a visible button with `multiple`). Translate it with your app. |
 | `emptyLabel` | `string` | `"No results"` | The text the list shows when nothing matches. Translate it with your app. |
-| `error` | `ErrorMessages` |  | What is wrong, from your server action or client check. The message (or several, as a list) shows under the field, which gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. |
+| `error` | `ReadonlyErrorMessages` |  | What is wrong, from your server action or client check. The message (or several, as a list) shows under the field, which gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. |
 | `hideLabel` | `boolean` |  | Hides the label visually; screen readers still read it as the field's name. |
 | `items` (required) | `readonly ComboboxItem[]` |  | What people pick from: strings, or `{ value, label }` objects. Combobox filters them as people type, unless you pass `onInputChange`, which makes them your search results. |
 | `label` (required) | `string` |  | What the field is for, shown above it and read as its name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. A placeholder is not a label. |
@@ -147,10 +147,10 @@ One error message: text, or a React element for a message that carries a link or
 type ErrorMessage = string | ReactElement;
 ```
 
-### `ErrorMessages`
+### `ReadonlyErrorMessages`
 
-What an `error` prop or a `Form` `errors` value takes: one message, or several as an array.
+A read-only message view accepted by fields and Form; mutable input arrays remain valid.
 
 ```ts
-type ErrorMessages = ErrorMessage | ErrorMessage[];
+type ReadonlyErrorMessages = ErrorMessage | readonly ErrorMessage[];
 ```

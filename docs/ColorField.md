@@ -29,7 +29,7 @@ Type: `ColorFieldProps`.
 | `defaultValue` | `string` | `"#000000"` | The color the field starts with, and goes back to when its form resets, as hex. |
 | `description` | `ReactNode` |  | Supporting text under the label, read through `aria-describedby`. |
 | `disabled` | `boolean` |  | Disables the swatch and the text, and fades the field. |
-| `error` | `ErrorMessages` |  | What is wrong, from your server action or client check. It shows under the field, which gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. |
+| `error` | `ReadonlyErrorMessages` |  | What is wrong, from your server action or client check. It shows under the field, which gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. |
 | `hideLabel` | `boolean` |  | Hides the label visually; screen readers still read it. |
 | `label` (required) | `string` |  | What the color is for ("Accent color"), shown above the field and read as the text input's name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. |
 | `name` | `string` |  | The form field name the color submits under, always as `#rrggbb`. |
@@ -72,10 +72,10 @@ One error message: text, or a React element for a message that carries a link or
 type ErrorMessage = string | ReactElement;
 ```
 
-### `ErrorMessages`
+### `ReadonlyErrorMessages`
 
-What an `error` prop or a `Form` `errors` value takes: one message, or several as an array.
+A read-only message view accepted by fields and Form; mutable input arrays remain valid.
 
 ```ts
-type ErrorMessages = ErrorMessage | ErrorMessage[];
+type ReadonlyErrorMessages = ErrorMessage | readonly ErrorMessage[];
 ```

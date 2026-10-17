@@ -30,7 +30,7 @@ Type: `CheckboxProps`.
 | `defaultChecked` | `boolean` |  | Whether it starts checked, for an uncontrolled checkbox. |
 | `description` | `ReactNode` |  | Supporting text under the label, read after it through `aria-describedby`. |
 | `disabled` | `boolean` |  | Disables the checkbox and fades it. |
-| `error` | `ErrorMessages` |  | What is wrong, from your server action or client check, shown under the label; the box gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. In a `CheckboxGroup`, pass it to the group. |
+| `error` | `ReadonlyErrorMessages` |  | What is wrong, from your server action or client check, shown under the label; the box gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. In a `CheckboxGroup`, pass it to the group. |
 | `hideLabel` | `boolean` |  | Hides the label visually; screen readers still read it as the checkbox's name. |
 | `indeterminate` | `boolean` |  | Shows a dash and announces "mixed": neither checked nor unchecked, as a "select all" box does when some of its items are checked. It is controlled: a click does not clear it, so clear it in `onCheckedChange`, as in `<Checkbox indeterminate={some} checked={all} onCheckedChange={toggleAll}>`. The box submits only while `checked`. |
 | `label` (required) | `string` |  | What checking it means, shown to the right of the box and read as its name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. |
@@ -74,10 +74,10 @@ One error message: text, or a React element for a message that carries a link or
 type ErrorMessage = string | ReactElement;
 ```
 
-### `ErrorMessages`
+### `ReadonlyErrorMessages`
 
-What an `error` prop or a `Form` `errors` value takes: one message, or several as an array.
+A read-only message view accepted by fields and Form; mutable input arrays remain valid.
 
 ```ts
-type ErrorMessages = ErrorMessage | ErrorMessage[];
+type ReadonlyErrorMessages = ErrorMessage | readonly ErrorMessage[];
 ```
