@@ -114,6 +114,9 @@ test("real production hydration keeps label/control IDs while the uncached selec
     expect(before).not.toBeNull();
     await expect(page.locator(`label[for="${before}"]`)).toHaveText("Recipe name");
     await expect(page.locator("[data-site-demo-loading]")).toHaveCount(0);
+    await expect(name).toBeDisabled();
+    await expect(page.getByRole("combobox", { name: "Course", exact: true })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Save recipe", exact: true })).toBeDisabled();
     release();
     await page.getByRole("combobox", { name: "Course", exact: true }).click();
     await page.getByRole("option", { name: "Main", exact: true }).click();
