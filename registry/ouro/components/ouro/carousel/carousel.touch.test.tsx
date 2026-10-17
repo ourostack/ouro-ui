@@ -134,8 +134,9 @@ it.each(Array.from({ length: 24 }, (_, index) => index))("lets a fast flick carr
   };
   const types = ["pointerdown", "pointermove", "pointerup", "pointercancel", "touchstart", "touchmove", "touchend", "touchcancel", "scroll", "scrollend"];
   for (const type of types) window.addEventListener(type, observe, { capture: true, passive: true });
-  const preparationDelayMs = index >= 12 ? 500 : 0;
-  await commands.carouselProbe({ id: String(index), preparationDelayMs });
+  const preparationDelayMs = 0;
+  const releaseDelayMs = index >= 12 ? 500 : 0;
+  await commands.carouselProbe({ id: String(index), preparationDelayMs, releaseDelayMs });
   try {
     phase = "input";
     await commands.touchDrag({ from: [rect.right - 40, y], to: [rect.left + 40, y], steps: 12, durationMs: 30 });
@@ -148,7 +149,7 @@ it.each(Array.from({ length: 24 }, (_, index) => index))("lets a fast flick carr
     for (const type of types) window.removeEventListener(type, observe, true);
     const protocol = await commands.carouselProbeRead();
     await commands.writeFile(`.carousel-observations/${index}.json`, JSON.stringify({
-      index, preparationDelayMs, phase, events, protocol, calls: onIndexChange.mock.calls,
+      index, preparationDelayMs, releaseDelayMs, phase, events, protocol, calls: onIndexChange.mock.calls,
       input: { from: [rect.right - 40, y], to: [rect.left + 40, y], steps: 12, durationMs: 30 },
       originalRect: rect.toJSON(), viewport: { width: innerWidth, height: innerHeight, dpr: devicePixelRatio, scale: visualViewport?.scale },
       final: {

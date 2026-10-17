@@ -66,6 +66,7 @@ const cdpSessions = new WeakMap<object, CDPSession>();
 interface CarouselProbeOptions {
   id: string;
   preparationDelayMs: number;
+  releaseDelayMs: number;
 }
 interface CarouselProbeState {
   options: CarouselProbeOptions;
@@ -574,6 +575,11 @@ export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from,
     for (let step = 1; step <= steps; step++) {
       const t = step / steps;
       await send("touchMove", [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t], t);
+    }
+    if (probe && probe.options.releaseDelayMs > 0) {
+      probe.log.push({ kind: "release-hold-start", wallMs: Date.now() });
+      await new Promise((resolve) => setTimeout(resolve, probe.options.releaseDelayMs));
+      probe.log.push({ kind: "release-hold-end", wallMs: Date.now() });
     }
     await send("touchEnd", to, 1);
     await Promise.all(deliveries);
