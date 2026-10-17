@@ -1,6 +1,7 @@
 import { createElement } from "react";
 import { expectTypeOf } from "vitest";
 import { TextField, type TextFieldProps } from "@/registry/ouro/components/ouro/text-field/text-field";
+expectTypeOf<readonly ["Taken."]>().toExtend<NonNullable<TextFieldProps["error"]>>();
 
 // Type tests: `pnpm typecheck` compiles this file, and every `@ts-expect-error`
 // fails the check if the line below it stops being an error.

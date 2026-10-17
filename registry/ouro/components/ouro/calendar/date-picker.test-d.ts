@@ -1,6 +1,7 @@
 import { createElement } from "react";
 import { expectTypeOf } from "vitest";
 import { DatePicker, type DatePickerProps } from "@/registry/ouro/components/ouro/calendar/date-picker";
+expectTypeOf<readonly ["Taken."]>().toExtend<NonNullable<DatePickerProps["error"]>>();
 
 // Type tests: `pnpm typecheck` compiles this file, and every `@ts-expect-error`
 // fails the check if the line below it stops being an error.

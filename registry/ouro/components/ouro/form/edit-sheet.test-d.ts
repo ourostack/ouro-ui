@@ -1,6 +1,7 @@
 import { createElement } from "react";
 import { expectTypeOf } from "vitest";
 import { EditSheet, type EditSheetProps } from "@/registry/ouro/components/ouro/form/edit-sheet";
+import { formErrors } from "@/registry/ouro/lib/ouro/form-answer";
 
 // Type tests: `pnpm typecheck` compiles this file, and every `@ts-expect-error`
 // fails the check if the line below it stops being an error.
@@ -29,6 +30,11 @@ expectTypeOf<{
   className: "mt-4";
 }>().toExtend<EditSheetProps>();
 createElement(EditSheet, { title: "Edit recipe", trigger, onSubmit: async () => {}, children: "Fields" });
+const readonlyErrors = { name: ["Required."] as const };
+createElement(EditSheet, { title: "Edit recipe", trigger, onSubmit: () => readonlyErrors, children: "Fields" });
+createElement(EditSheet, { title: "Edit recipe", trigger, onSubmit: async () => readonlyErrors, children: "Fields" });
+createElement(EditSheet, { title: "Edit recipe", trigger, onSubmit: () => formErrors({}, readonlyErrors), children: "Fields" });
+createElement(EditSheet, { title: "Edit recipe", trigger, onSubmit: async () => formErrors({}, readonlyErrors), children: "Fields" });
 
 // title and onSubmit are required.
 expectTypeOf<{ trigger: typeof trigger; onSubmit: typeof save; children: "Fields" }>().not.toExtend<EditSheetProps>();
