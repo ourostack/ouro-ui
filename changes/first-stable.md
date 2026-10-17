@@ -1,0 +1,3 @@
+- First stable release of the existing Ouro UI catalog: props-first Base UI components, required accessible names, token-owned appearance and motion, and copy-in source with optional component tests.
+- Keep the component APIs, theme tokens, defaults and test-tool minimums from v0.8.4; updating from that release requires no component API migration.
+- Document the first-stable upgrade scope: review and overwrite only the items an app already uses, reapply local edits, and retain app-owned fixtures and test configuration.
