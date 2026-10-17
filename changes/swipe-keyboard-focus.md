@@ -1,1 +1,1 @@
-- Establish keyboard focus before opening the SwipeActions keyboard-test fixture, retaining native body-focused Escape coverage and the existing dismissal and propagation assertions; runtime gesture and outside-scroll behavior are unchanged.
+- Keep SwipeActions' synthetic pointer identity distinct from the native mouse in its optional tests, cover a real mouse move during a pending touch, and establish keyboard focus before opening; retain exact pointer-capture, gesture, Escape and document-propagation assertions without changing runtime behavior.
