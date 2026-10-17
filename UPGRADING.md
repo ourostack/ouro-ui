@@ -16,6 +16,8 @@ What an app on v0.1.0 has to know beyond these steps. The release notes list eve
 
 - **After v0.8.2:** `ouroTestProjects({ page })` also sizes the touch project's Playwright host, preventing Vitest 4 from scaling landscape touch frames. The logical touch viewport still starts at 390x844 with mobile/touch input, but an explicitly enlarged host changes outer-window/screen dimensions and screen orientation; do not treat those as hardware-phone measurements. Without `page`, the touch host stays 390x844. On Vitest 4, retain a host large enough for every requested test viewport, such as the Testing guide's 1600x1200 example.
 
+- **v1.0.0:** the first stable release keeps the component APIs, theme tokens, defaults and test-tool minimums from v0.8.4. An app already on v0.8.4 needs no component API migration: review the update with `--dry-run` and `--diff`, then overwrite only the items it already uses and reapply its local edits. Runtime components and their optional `-tests` items remain separate; keep your app-owned fixtures and test configuration. Apps on older releases still need the applicable migration steps above and below.
+
 #### 0. Commit first
 
 `--overwrite` replaces every Ouro file, including files you edited. Commit before you start. Afterwards, `git diff` shows your own edits being overwritten, so reapply the ones you need.
