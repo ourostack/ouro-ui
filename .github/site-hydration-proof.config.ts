@@ -1,12 +1,14 @@
+import { resolve } from "node:path";
 import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "../site/e2e",
-  testMatch: "hydration.probe.spec.ts",
+  testMatch: "catalog.spec.ts",
+  grep: /uncached selected demo chunk is delayed/,
   forbidOnly: true,
   retries: 0,
   workers: 1,
-  reporter: [["list"], ["json", { outputFile: "site-hydration-tests.json" }]],
+  reporter: [["list"], ["json", { outputFile: resolve("site-hydration-tests.json") }]],
   use: {
     baseURL: "http://127.0.0.1:4179/ouro-ui/",
     trace: "retain-on-failure",
