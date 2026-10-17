@@ -1,0 +1,1 @@
+- Establish keyboard focus before opening the SwipeActions keyboard-test fixture, retaining native body-focused Escape coverage and the existing dismissal and propagation assertions; runtime gesture and outside-scroll behavior are unchanged.

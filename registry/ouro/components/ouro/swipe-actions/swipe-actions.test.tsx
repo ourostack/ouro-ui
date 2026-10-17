@@ -802,22 +802,32 @@ describe("SwipeActions", () => {
     expect(document.activeElement).toBe(menuButton(element));
   });
 
-  it("closes on Escape only, and keeps that Escape from the page", async () => {
+  it.each(["actions button", "page body"] as const)("closes on Escape only, and keeps that Escape from the page (%s focus)", async (focus) => {
     const element = await render(row());
+    const keyboardTarget = focus === "actions button" ? menuButton(element) : document.body;
+    if (focus === "actions button") keyboardTarget.focus({ preventScroll: true });
+    // Activate the frame before opening even when Escape belongs to the whole page.
+    else await userEvent.keyboard("{Escape}");
+    expect(document.activeElement).toBe(keyboardTarget);
     const keys: string[] = [];
     const listener = (event: KeyboardEvent) => keys.push(event.key);
     document.addEventListener("keydown", listener);
-    await swipe(element, -120);
-    await userEvent.keyboard("a");
-    expect(element.getAttribute("data-open")).toBe("trailing");
-    await userEvent.keyboard("{Escape}");
-    await act(async () => {});
-    expect(element.hasAttribute("data-open")).toBe(false);
-    await expect.poll(() => offset(element)).toBe(0);
-    // Closed, Escape is the page's again.
-    await userEvent.keyboard("{Escape}");
-    document.removeEventListener("keydown", listener);
-    expect(keys).toEqual(["a", "Escape"]);
+    try {
+      await swipe(element, -120);
+      expect(element.getAttribute("data-open")).toBe("trailing");
+      expect(document.activeElement).toBe(keyboardTarget);
+      await userEvent.keyboard("a");
+      expect(element.getAttribute("data-open")).toBe("trailing");
+      await userEvent.keyboard("{Escape}");
+      await act(async () => {});
+      expect(element.hasAttribute("data-open")).toBe(false);
+      await expect.poll(() => offset(element)).toBe(0);
+      // Closed, Escape is the page's again.
+      await userEvent.keyboard("{Escape}");
+      expect(keys).toEqual(["a", "Escape"]);
+    } finally {
+      document.removeEventListener("keydown", listener);
+    }
   });
 
   it("closes on a press or a scroll outside the row, not on one inside it", async () => {
