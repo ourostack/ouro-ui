@@ -825,9 +825,18 @@ describe("SwipeActions", () => {
       time: performance.now(),
     });
     const nativeFocus = window.focus;
+    const controlled = index >= 12;
+    let focusCalls = 0;
+    let injections = 0;
     window.focus = () => {
+      focusCalls++;
       events.push({ phase, type: "window.focus()", active: targetName(document.activeElement), open: element.getAttribute("data-open"), time: performance.now() });
       nativeFocus.call(window);
+      if (controlled && injections === 0) {
+        injections++;
+        events.push({ phase, type: "controlled-outside-scroll", open: element.getAttribute("data-open"), time: performance.now() });
+        window.dispatchEvent(new Event("scroll"));
+      }
     };
     const observer = new MutationObserver(() => events.push({ phase, type: "open-mutation", open: element.getAttribute("data-open"), time: performance.now() }));
     observer.observe(element, { attributes: true, attributeFilter: ["data-open"] });
@@ -854,7 +863,7 @@ describe("SwipeActions", () => {
       document.removeEventListener("keydown", listener);
       window.focus = nativeFocus;
       observer.disconnect();
-      await commands.escapeEvidence({ index, userAgent: navigator.userAgent, events, keys, final: element.getAttribute("data-open") });
+      await commands.escapeEvidence({ index, controlled, focusCalls, injections, userAgent: navigator.userAgent, events, keys, final: element.getAttribute("data-open") });
     }
   });
 

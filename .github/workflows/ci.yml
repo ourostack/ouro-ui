@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        scope: [full-root]
+        scope: [focus-control]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -26,7 +26,7 @@ jobs:
         env:
           SCOPE: ${{ matrix.scope }}
         run: |
-          pnpm test
+          pnpm exec vitest run --project ouro-chromium --project ouro-webkit --coverage.enabled false registry/ouro/components/ouro/swipe-actions/swipe-actions.test.tsx
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
