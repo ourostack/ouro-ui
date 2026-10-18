@@ -95,3 +95,18 @@ await page.getByRole("option", { name: "Main" }).click();
 ```
 
 A `Select` with `multiple` posts one entry per chosen value under its `name`; read them with `formData.getAll("tags")`.
+
+## Proving motion
+
+`lib/ouro/testing/motion.ts` proves what a state change animates, one part at a time. Change the state, then call `expectMotion` before any other `await`: it reads the CSS transitions and animations running on the element, fails unless they are exactly the properties you name (no missing and no extra property, with durations in milliseconds when you give them), and waits for them to end. `expectNoMotion` proves a part does not move, a frame after the change. The element needs a `data-ouro-part`; Ouro UI's animated parts carry one (Checkbox's `box` and `tick`).
+
+```ts
+const fast = parseDuration(getComputedStyle(document.documentElement).getPropertyValue("--ouro-duration-fast"));
+await act(() => box.click());
+await Promise.all([
+  expectMotion(tick, { stem: "checkbox", state: "data-checked", properties: { opacity: fast, scale: fast }, reduced: false }),
+  expectMotion(box, { stem: "checkbox", state: "data-checked", properties: ["background-color", "border-color"], reduced: false }),
+]);
+```
+
+`reduced` must match the page's reduced-motion setting (`commands.emulateMedia({ reducedMotion: "reduce" })`). A DOM `click()` keeps a pointer's press scale out of the motion you measure. Each helper also records what it proved in the test's meta; Ouro UI's own CI holds every component's declared motion to those records, and in your app nothing reads them.

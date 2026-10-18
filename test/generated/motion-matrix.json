@@ -1,0 +1,73 @@
+[
+  {
+    "item": "checkbox",
+    "stem": "checkbox",
+    "state": "data-checked",
+    "kind": "motion",
+    "part": "tick",
+    "properties": [
+      "opacity",
+      "scale"
+    ],
+    "reduced": [
+      "opacity"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/checkbox/checkbox.test.tsx::Checkbox look > grows the tick in from 95% as it fades in when checked, and only fades it with reduced motion"
+    ]
+  },
+  {
+    "item": "checkbox",
+    "stem": "checkbox",
+    "state": "data-checked",
+    "kind": "motion",
+    "part": "box",
+    "properties": [
+      "background-color",
+      "border-color"
+    ],
+    "reduced": [
+      "background-color",
+      "border-color"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/checkbox/checkbox.test.tsx::Checkbox look > grows the tick in from 95% as it fades in when checked, and only fades it with reduced motion"
+    ]
+  },
+  {
+    "item": "checkbox",
+    "stem": "checkbox",
+    "state": "data-indeterminate",
+    "kind": "none",
+    "part": null,
+    "properties": [],
+    "reduced": [],
+    "tests": [
+      "registry/ouro/components/ouro/checkbox/checkbox.test.tsx::Checkbox > announces the indeterminate state as mixed and shows a dash"
+    ]
+  },
+  {
+    "item": "checkbox",
+    "stem": "checkbox",
+    "state": "data-disabled",
+    "kind": "none",
+    "part": null,
+    "properties": [],
+    "reduced": [],
+    "tests": [
+      "registry/ouro/components/ouro/checkbox/checkbox.test.tsx::Checkbox > disables the box and fades it"
+    ]
+  },
+  {
+    "item": "checkbox",
+    "stem": "checkbox",
+    "state": "data-invalid",
+    "kind": "none",
+    "part": null,
+    "properties": [],
+    "reduced": [],
+    "tests": [
+      "registry/ouro/components/ouro/checkbox/checkbox.test.tsx::Checkbox > describes the box with its description and error, and marks it invalid"
+    ]
+  }
+]

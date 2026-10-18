@@ -1,8 +1,9 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { playwright } from "@vitest/browser-playwright";
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 import { fileURLToPath } from "node:url";
+import { MotionReporter } from "./scripts/motion-reporter.mts";
 import { commands } from "./registry/ouro/lib/ouro/testing/commands.ts";
 import { ouroTestProjects } from "./registry/ouro/lib/ouro/testing/vitest.ts";
 
@@ -61,6 +62,9 @@ export default defineConfig({
   },
   test: {
     passWithNoTests: true,
+    // Vitest's own reporters, and the motion evidence each run writes to .tmp/motion/ for
+    // `pnpm motion:coverage` (scripts/motion-reporter.mts).
+    reporters: [...configDefaults.reporters, new MotionReporter()],
     coverage: {
       provider: "istanbul",
       include: ["registry/**/*.{ts,tsx}"],

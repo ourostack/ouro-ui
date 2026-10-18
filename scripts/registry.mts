@@ -169,7 +169,7 @@ const foundation = [
     name: "ouro-testing",
     title: "Ouro testing",
     description:
-      "Installed with every -tests item; you don't need to add it. The test kit Ouro UI's tests use: Vitest browser projects with the drag, flick, tap, touchDrag, touchStep, pointerPress, emulateMedia, pageZoom, resetPageZoom, setPageZoom and restoreTouch commands, the rotate helper (which turns the phone viewport and resets Chromium's zoom; the ouro-touch project fails a test that leaves the page zoomed), the act helper, the holdFrames helper (which holds animation frames and the clock still so a test steps a spring itself), axeExclude, and the end-to-end story helper.",
+      "Installed with every -tests item; you don't need to add it. The test kit Ouro UI's tests use: Vitest browser projects with the drag, flick, tap, touchDrag, touchStep, pointerPress, emulateMedia, pageZoom, resetPageZoom, setPageZoom and restoreTouch commands, the rotate helper (which turns the phone viewport and resets Chromium's zoom; the ouro-touch project fails a test that leaves the page zoomed), the act helper, the holdFrames helper (which holds animation frames and the clock still so a test steps a spring itself), the motion helpers (expectMotion, expectNoMotion, expectGestureSettle, expectTransition and parseDuration, which prove exactly which CSS properties a state change runs on each part), axeExclude, and the end-to-end story helper.",
     // Completed in buildRegistry, which knows the versions CI runs.
     docs: "",
   },

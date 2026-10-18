@@ -1,0 +1,2 @@
+- Checkbox's tick carries `data-ouro-part="tick"` (beside the box's `box`), so a test or audit finds each animated part by identity.
+- The test kit (`ouro-testing`) adds `lib/ouro/testing/motion.ts`: `expectMotion` proves exactly which CSS properties a state change runs on one part (no missing and no extra property, with durations in milliseconds when given) and waits for them to end, `expectNoMotion` proves a part does not move, and `parseDuration` reads `"240ms"`, `"0.24s"` or a duration token; Checkbox's tests use them (see "Proving motion" in docs/guides/testing.md).

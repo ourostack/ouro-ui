@@ -1,16 +1,17 @@
 // The control matrix: one row per component stem, mode and interactive part, from each folder's
 // component.json (`modes`, `controls`; see scripts/components.mts) and the stories that render
 // each mode. test/controls.test.tsx imports the written JSON, never the manifests, so the browser
-// test stays free of Node modules.
+// test stays free of Node modules. Beside it, the motion matrix: one row per stem, state and
+// animated part from `motion` (readMotion), which test/motion.ts imports the same way.
 //
-//   node scripts/control-matrix.mts           write test/generated/control-matrix.json
-//   node scripts/control-matrix.mts --check   fail when the file is stale (CI)
-//   --out <file>                              write or check another file
+//   node scripts/control-matrix.mts           write test/generated/control-matrix.json and motion-matrix.json
+//   node scripts/control-matrix.mts --check   fail when either file is stale (CI)
+//   --out <file>, --motion-out <file>         write or check other files
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
-import { componentsDir, pascal, readComponents } from "./components.mts";
+import { componentsDir, MANIFEST, pascal, readComponents, readMotion } from "./components.mts";
 
 /** The mode of a component that declares none. */
 export const defaultMode = "default";
@@ -37,8 +38,35 @@ export interface StoryMode {
   mode?: string;
 }
 
+/** One state of a stem's motion map, for one animated part (or none, for a `none` state). */
+export interface MotionRow {
+  /** The registry item. */
+  item: string;
+  stem: string;
+  /** The state attribute, `data-checked`. */
+  state: string;
+  kind: "motion" | "gesture-settle" | "none";
+  /** The part's `data-ouro-part`; null for a `none` state, which has no parts. */
+  part: string | null;
+  properties: string[];
+  reduced: string[];
+  tests: string[];
+}
+
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const defaultOut = "test/generated/control-matrix.json";
+const defaultMotionOut = "test/generated/motion-matrix.json";
+
+/** Every row of the motion matrix: each declared state of each stem, once per part. */
+export function buildMotionMatrix(root: string = repoRoot): MotionRow[] {
+  return readMotion(root).flatMap(({ name, stem, motion }) =>
+    Object.entries(motion.states).flatMap(([state, declared]) =>
+      declared.parts === undefined
+        ? [{ item: name, stem, state, kind: declared.kind, part: null, properties: [], reduced: [], tests: declared.tests }]
+        : Object.entries(declared.parts).map(([part, { properties, reduced }]) => ({ item: name, stem, state, kind: declared.kind, part, properties, reduced, tests: declared.tests })),
+    ),
+  );
+}
 
 /** A property of an object literal, by name. */
 function property(object: ts.ObjectLiteralExpression, name: string): ts.Expression | undefined {
@@ -138,17 +166,34 @@ export interface SourceMarker {
   where: string;
 }
 
+/** A `data-ouro-part` on an element that is no control, a part the folder's `motion` declares (Checkbox's `tick`). */
+export interface AnimatedMarker {
+  folder: string;
+  part: string;
+  where: string;
+}
+
 /** `data-ouro-control` or `data-ouro-part`, in JSX (`="x"`), a props object (`": "x"`) or `setAttribute("…", "x")`. */
 const markerPattern = (name: string) => new RegExp(`${name}["']?\\s*[=:,]\\s*("[a-z-]+"|\\{[^}]*\\})`, "g");
 
+/** The parts a folder's component.json `motion` names, read raw (readMotion checks them). */
+function motionParts(file: string): Set<string> {
+  const manifest = join(dirname(file), MANIFEST);
+  const motion = existsSync(manifest) ? ((JSON.parse(readFileSync(manifest, "utf8")) as { motion?: Record<string, { states?: Record<string, { parts?: object }> }> }).motion ?? {}) : {};
+  return new Set(Object.values(motion).flatMap((map) => Object.values(map.states ?? {}).flatMap((state) => Object.keys(state.parts ?? {}))));
+}
+
 /**
  * Every control marker written in the components' runtime source: each `data-ouro-part` with the
- * `data-ouro-control` written just before it (in JSX, a props object or `setAttribute`), and each
- * call of a marker helper, `controlRef(item, part)` or a component's own `…Marker(item, part)`. A part in braces (`{high ? "alert" : "toast"}`) counts each string
- * after `?` or `:`. `problems` lists a part with no item beside it.
+ * `data-ouro-control` written just before it on the same element (in JSX, a props object or
+ * `setAttribute`), and each call of a marker helper, `controlRef(item, part)` or a component's own
+ * `…Marker(item, part)`. A part in braces (`{high ? "alert" : "toast"}`) counts each string
+ * after `?` or `:`. A part with no item beside it is `animated` when the folder's `motion` declares
+ * it, and otherwise one of the `problems`.
  */
-export function sourceMarkers(root: string = repoRoot): { markers: SourceMarker[]; problems: string[] } {
+export function sourceMarkers(root: string = repoRoot): { markers: SourceMarker[]; animated: AnimatedMarker[]; problems: string[] } {
   const markers: SourceMarker[] = [];
+  const animated: AnimatedMarker[] = [];
   const problems: string[] = [];
   const dir = join(root, componentsDir);
   const files = readdirSync(dir, { withFileTypes: true, recursive: true })
@@ -162,32 +207,39 @@ export function sourceMarkers(root: string = repoRoot): { markers: SourceMarker[
     for (const match of source.matchAll(markerPattern("data-ouro-part"))) {
       const value = match[1]!;
       const parts = value.startsWith("{") ? [...value.matchAll(/[?:]\s*"([a-z-]+)"/g)].map((part) => part[1]!) : [value.slice(1, -1)];
-      const control = controls.filter((entry) => entry.index < match.index && match.index - entry.index < 400).at(-1);
+      // Beside it: before it, and on the same element, with no JSX element opened in between.
+      const control = controls.filter((entry) => entry.index < match.index && match.index - entry.index < 400 && !/<[A-Za-z]/.test(source.slice(entry.index, match.index))).at(-1);
       if (!control) {
-        problems.push(`${where(match.index)} writes data-ouro-part ${parts.join(", ")} with no data-ouro-control beside it`);
+        const declared = motionParts(file);
+        if (parts.every((part) => declared.has(part))) {
+          for (const part of parts) animated.push({ folder: relative(join(root, componentsDir), dirname(file)), part, where: where(match.index) });
+        } else {
+          problems.push(`${where(match.index)} writes data-ouro-part ${parts.join(", ")} with no data-ouro-control beside it, and its component.json "motion" declares no such animated part`);
+        }
         continue;
       }
       for (const part of parts) markers.push({ item: control.item, part, where: where(match.index) });
     }
     for (const match of source.matchAll(/\b(?:controlRef|\w+Marker)\(\s*"([a-z-]+)",\s*"([a-z-]+)"\s*\)/g)) markers.push({ item: match[1]!, part: match[2]!, where: where(match.index) });
   }
-  return { markers, problems };
+  return { markers, animated, problems };
 }
 
 function main(argv: string[]): number {
-  const outIndex = argv.indexOf("--out");
-  const out = resolve(outIndex >= 0 ? argv[outIndex + 1]! : join(repoRoot, defaultOut));
-  const text = JSON.stringify(buildMatrix(), null, 2) + "\n";
+  const option = (name: string, fallback: string) => resolve(argv.includes(name) ? argv[argv.indexOf(name) + 1]! : join(repoRoot, fallback));
+  const files = [
+    { out: option("--out", defaultOut), text: JSON.stringify(buildMatrix(), null, 2) + "\n" },
+    { out: option("--motion-out", defaultMotionOut), text: JSON.stringify(buildMotionMatrix(), null, 2) + "\n" },
+  ];
   if (argv.includes("--check")) {
-    const current = existsSync(out) ? readFileSync(out, "utf8") : "";
-    if (current !== text) {
-      process.stderr.write(`${relative(process.cwd(), out)} is stale. Run pnpm controls:matrix and commit the result.\n`);
-      return 1;
-    }
-    return 0;
+    const stale = files.filter(({ out, text }) => (existsSync(out) ? readFileSync(out, "utf8") : "") !== text);
+    for (const { out } of stale) process.stderr.write(`${relative(process.cwd(), out)} is stale. Run pnpm controls:matrix and commit the result.\n`);
+    return stale.length > 0 ? 1 : 0;
   }
-  mkdirSync(dirname(out), { recursive: true });
-  writeFileSync(out, text);
+  for (const { out, text } of files) {
+    mkdirSync(dirname(out), { recursive: true });
+    writeFileSync(out, text);
+  }
   return 0;
 }
 

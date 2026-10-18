@@ -6,5 +6,31 @@
       {"part": "box", "role": "checkbox", "portal": false},
       {"part": "hidden-input", "role": "checkbox", "portal": false}
     ]
+  },
+  "motion": {
+    "checkbox": {
+      "states": {
+        "data-checked": {
+          "kind": "motion",
+          "parts": {
+            "tick": {"properties": ["opacity", "scale"], "reduced": ["opacity"]},
+            "box": {"properties": ["background-color", "border-color"], "reduced": ["background-color", "border-color"]}
+          },
+          "tests": ["registry/ouro/components/ouro/checkbox/checkbox.test.tsx::Checkbox look > grows the tick in from 95% as it fades in when checked, and only fades it with reduced motion"]
+        },
+        "data-indeterminate": {
+          "kind": "none",
+          "tests": ["registry/ouro/components/ouro/checkbox/checkbox.test.tsx::Checkbox > announces the indeterminate state as mixed and shows a dash"]
+        },
+        "data-disabled": {
+          "kind": "none",
+          "tests": ["registry/ouro/components/ouro/checkbox/checkbox.test.tsx::Checkbox > disables the box and fades it"]
+        },
+        "data-invalid": {
+          "kind": "none",
+          "tests": ["registry/ouro/components/ouro/checkbox/checkbox.test.tsx::Checkbox > describes the box with its description and error, and marks it invalid"]
+        }
+      }
+    }
   }
 }

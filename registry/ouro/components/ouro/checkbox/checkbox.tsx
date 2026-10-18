@@ -122,7 +122,7 @@ function CheckboxBox(props: {
       <TouchTarget />
       <BaseCheckbox.Indicator keepMounted className={indicatorClass}>
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="size-full">
-          <path d="M3.5 8.5 6.5 11.5 12.5 4.5" pathLength={1} className={tickClass} />
+          <path d="M3.5 8.5 6.5 11.5 12.5 4.5" pathLength={1} data-ouro-part="tick" className={tickClass} />
           <path d="M4 8h8" className={dashClass} />
         </svg>
       </BaseCheckbox.Indicator>

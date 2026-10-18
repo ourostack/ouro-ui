@@ -267,3 +267,38 @@ test("Release passes the verified main SHA to Pages and does not bypass the rule
 test("Scheduled install checks that the published llms.txt and README name the newest release", () => {
   assert.match(job("latest"), /node scripts\/published-release\.mjs "\$newest"/);
 });
+
+test("motion coverage runs after the browser test jobs, over the partitions they upload, expecting every project they run", async () => {
+  const ci = workflows.find(({ file }) => file === "ci.yml").text;
+  const jobs = Object.fromEntries(
+    ci
+      .split("\njobs:\n")[1]
+      .split(/\n(?= {2}[\w-]+:\n)/)
+      .map((block) => [block.match(/^ {2}([\w-]+):/)[1], block]),
+  );
+  // A browser test job runs `pnpm test` and uploads the partitions it wrote as its next step, before
+  // any other Vitest run in the job can rewrite them.
+  const browserJobs = Object.keys(jobs).filter((name) => /^ {6}- run: pnpm test$/m.test(jobs[name]));
+  assert.deepEqual(browserJobs, ["ci"]);
+  for (const name of browserJobs) {
+    assert.match(
+      jobs[name],
+      /^ {6}- run: pnpm test\n(?: {6}#.*\n)*^ {6}- uses: actions\/upload-artifact@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}name: motion-[\w-]+\n {10}path: \.tmp\/motion\/\n {10}include-hidden-files: true\n {10}if-no-files-found: error\n/m,
+      `${name} uploads .tmp/motion/ as a motion-* artifact right after pnpm test`,
+    );
+  }
+  const coverage = jobs["motion-coverage"];
+  assert.ok(coverage, "ci.yml has a motion-coverage job");
+  const needs = coverage.match(/^ {4}needs: \[([^\]]*)\]$/m)?.[1].split(",").map((name) => name.trim());
+  assert.deepEqual(needs, browserJobs, "motion-coverage runs after every browser test job");
+  assert.match(coverage, /- uses: actions\/download-artifact@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}pattern: motion-\*\n {10}path: \$\{\{ runner\.temp \}\}\/motion\n/);
+  assert.match(coverage, /^ {6}- run: pnpm motion:coverage --dir "\$RUNNER_TEMP\/motion" --expect "\$MOTION_PARTITIONS"$/m);
+  // The expected partitions: each project vitest.config.ts runs (CI_VISUAL unset, as in the ci
+  // job), once per shard. `pnpm test` runs unsharded, so each project has one.
+  assert.doesNotMatch(jobs.ci, /pnpm test.*--shard|strategy:/);
+  const config = (await import("../vitest.config.ts")).default;
+  const projects = config.test.projects.map((project) => project.test.name);
+  assert.deepEqual(projects, ["ouro-chromium", "ouro-webkit", "ouro-touch", "site"]);
+  const partitions = coverage.match(/^ {6}MOTION_PARTITIONS: (.+)$/m)?.[1];
+  assert.equal(partitions, projects.map((name) => `${name}:1`).join(","));
+});

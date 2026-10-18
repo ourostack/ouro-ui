@@ -7,6 +7,7 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Checkbox, type CheckboxProps } from "@/registry/ouro/components/ouro/checkbox/checkbox";
 import { Form, type FormErrors } from "@/registry/ouro/components/ouro/form/form";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { expectMotion, expectNoMotion, parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -140,6 +141,7 @@ describe("Checkbox", () => {
     const { box, host, rerender } = await render(<Checkbox label="All herbs" indeterminate />);
     expect(box.getAttribute("aria-checked")).toBe("mixed");
     expect(box.hasAttribute("data-indeterminate")).toBe(true);
+    await expectNoMotion(box, { stem: "checkbox", state: "data-indeterminate", reduced: false });
     const [tick, dash] = [...host.querySelectorAll("path")];
     expect(getComputedStyle(tick!).display).toBe("none");
     expect(getComputedStyle(dash!).display).not.toBe("none");
@@ -235,6 +237,8 @@ describe("Checkbox", () => {
     const { box } = await render(<Checkbox label="I accept the terms" description="You can read them first." error="Accept the terms to continue." />);
     expect(textOf(box, describedBy(box))).toEqual(["You can read them first.", "Accept the terms to continue."]);
     expect(box.getAttribute("aria-invalid")).toBe("true");
+    // The invalid state shows through aria-invalid; rendered invalid, the box does not animate into it.
+    await expectNoMotion(box, { stem: "checkbox", state: "data-invalid", reduced: false });
     // Some installed themes serialize the border as oklab, and a theme may transition it in.
     await expect.poll(() => pixel(getComputedStyle(box).borderTopColor)).toBe(pixel(themeColor("--destructive")));
     await expect
@@ -263,6 +267,7 @@ describe("Checkbox", () => {
     const { box, input } = await render(<Checkbox label="Basil" disabled onCheckedChange={onCheckedChange} />);
     expect(box.hasAttribute("data-disabled")).toBe(true);
     expect(input.disabled).toBe(true);
+    await expectNoMotion(box, { stem: "checkbox", state: "data-disabled", reduced: false });
     expect(getComputedStyle(box).opacity).toBe("0.5");
     await userEvent.click(box, { force: true });
     expect(onCheckedChange).not.toHaveBeenCalled();
@@ -322,19 +327,26 @@ describe("Checkbox look", () => {
 
   it("grows the tick in from 95% as it fades in when checked, and only fades it with reduced motion", async () => {
     const { box, host } = await render(<Checkbox label="Basil" />);
-    const tick = host.querySelector("path")!;
+    const tick = host.querySelector<SVGPathElement>('[data-ouro-part="tick"]')!;
+    const fast = parseDuration(getComputedStyle(document.documentElement).getPropertyValue("--ouro-duration-fast"));
     expect(getComputedStyle(tick).opacity).toBe("0");
     expect(Number.parseFloat(getComputedStyle(tick).scale)).toBeCloseTo(0.95, 2);
-    expect(getComputedStyle(tick).transitionProperty).toBe("opacity, scale");
     expect(getComputedStyle(tick).transitionTimingFunction).toBe("cubic-bezier(0.23, 1, 0.32, 1), cubic-bezier(0.23, 1, 0.32, 1)");
-    await userEvent.click(box);
-    await expect.poll(() => getComputedStyle(tick).opacity).toBe("1");
-    await expect.poll(() => Number.parseFloat(getComputedStyle(tick).scale) || 1).toBeCloseTo(1, 3);
-    await commands.emulateMedia({ reducedMotion: "reduce" });
-    expect(getComputedStyle(tick).transitionProperty).toBe("opacity");
+    // A click in the page, not a real pointer, so the box's press scale stays out of its motion.
+    await act(() => box.click());
+    await Promise.all([
+      expectMotion(tick, { stem: "checkbox", state: "data-checked", properties: { opacity: fast, scale: fast }, reduced: false }),
+      expectMotion(box, { stem: "checkbox", state: "data-checked", properties: { "background-color": fast, "border-color": fast }, reduced: false }),
+    ]);
     expect(getComputedStyle(tick).opacity).toBe("1");
-    await userEvent.click(box);
-    await expect.poll(() => getComputedStyle(tick).opacity).toBe("0");
+    expect(Number.parseFloat(getComputedStyle(tick).scale) || 1).toBeCloseTo(1, 3);
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    await act(() => box.click());
+    await Promise.all([
+      expectMotion(tick, { stem: "checkbox", state: "data-checked", properties: { opacity: fast }, reduced: true }),
+      expectMotion(box, { stem: "checkbox", state: "data-checked", properties: { "background-color": fast, "border-color": fast }, reduced: true }),
+    ]);
+    expect(getComputedStyle(tick).opacity).toBe("0");
     expect(Number.parseFloat(getComputedStyle(tick).scale) || 1).toBeCloseTo(1, 3);
   });
 

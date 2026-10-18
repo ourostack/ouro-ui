@@ -132,8 +132,10 @@ test("the reader rejects controls and modes that name nothing real", () => {
 });
 
 test("every control marker in the components' source names a part its item declares, and every declared part is marked", () => {
-  const { markers, problems } = sourceMarkers(root);
+  const { markers, animated, problems } = sourceMarkers(root);
   assert.deepEqual(problems, []);
+  // An animated part that is no control (Checkbox's tick) carries data-ouro-part alone, declared in "motion".
+  assert.deepEqual(animated.map((marker) => `${marker.folder}/${marker.part}`), ["checkbox/tick"]);
   const declared = new Set(components.flatMap((component) => (component.controls ?? []).map((control) => `${component.name}/${control.part}`)));
   const marked = new Set(markers.map((marker) => `${marker.item}/${marker.part}`));
   const undeclared = markers.filter((marker) => !declared.has(`${marker.item}/${marker.part}`)).map((marker) => `${marker.item}/${marker.part} (${marker.where})`);
@@ -151,5 +153,6 @@ test("the source scan reports a part with no item beside it", () => {
   const { markers, problems } = sourceMarkers(dir);
   assert.equal(problems.length, 1);
   assert.match(problems[0], /button\.tsx:1 .*data-ouro-part.*no data-ouro-control/);
+  assert.match(problems[0], /"motion" declares no such animated part/);
   assert.deepEqual(markers.map((marker) => `${marker.item}/${marker.part}`), ["button/extra"]);
 });
