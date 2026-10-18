@@ -61,6 +61,7 @@ export const States: Story = {
 
 /** Files that are too large are left out, and the app shows why with `error`. */
 export const Limits: Story = {
+  parameters: { mode: "multiple" },
   render: function Render() {
     const [rejected, setRejected] = useState<FileRejection[]>([]);
     return (

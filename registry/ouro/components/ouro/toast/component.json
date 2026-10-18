@@ -1,1 +1,12 @@
-{"order": 700, "components": ["toaster"]}
+{
+  "order": 700,
+  "components": ["toaster"],
+  "controls": {
+    "toaster": [
+      {"part": "toast", "role": "dialog", "portal": true},
+      {"part": "alert", "role": "alertdialog", "portal": true},
+      {"part": "action", "role": "button", "portal": true},
+      {"part": "close", "role": "button", "portal": true}
+    ]
+  }
+}

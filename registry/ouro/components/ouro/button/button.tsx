@@ -375,6 +375,8 @@ export function Button(props: ButtonProps): JSX.Element {
     const { onClick, type: _type, disabled: _disabled, ...anchorProps } = rest as Omit<ButtonLinkProps, keyof ButtonBaseProps>;
     return (
       <RouterLink
+        data-ouro-control="button"
+        data-ouro-part="root"
         {...anchorProps}
         onClick={loading ? preventDefault : onClick}
         onAuxClick={loading ? preventDefault : anchorProps.onAuxClick}
@@ -396,6 +398,8 @@ export function Button(props: ButtonProps): JSX.Element {
   const type = buttonTypes.includes(typeProp as (typeof buttonTypes)[number]) ? (typeProp as (typeof buttonTypes)[number]) : "button";
   return (
     <BaseButton
+      data-ouro-control="button"
+      data-ouro-part="root"
       {...buttonProps}
       ref={ref as Ref<HTMLElement> | undefined}
       type={type}

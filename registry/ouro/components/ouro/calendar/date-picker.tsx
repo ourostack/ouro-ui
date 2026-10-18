@@ -393,7 +393,7 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
                 setChosen(next);
                 commit(allowedOrEmpty(isIsoDate(next) ? next : null));
               }}
-              render={(controlProps) => <input {...controlProps} name={undefined} className={inputClass} />}
+              render={(controlProps) => <input {...controlProps} name={undefined} data-ouro-control="date-picker" data-ouro-part="input" className={inputClass} />}
             />
           ) : (
             <>
@@ -408,7 +408,7 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
                 spellCheck={false}
                 onChange={onType}
                 onBlur={tidy}
-                render={(controlProps) => <input {...controlProps} name={undefined} className={inputClass} />}
+                render={(controlProps) => <input {...controlProps} name={undefined} data-ouro-control="date-picker" data-ouro-part="input" className={inputClass} />}
               />
               <span className={endSlotClass}>
                 <PopoverRoot open={open} onOpenChange={setOpen}>
@@ -419,6 +419,8 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
                         tone="secondary"
                         size="sm"
                         data-ouro-choose-date=""
+                        data-ouro-control="date-picker"
+                        data-ouro-part="trigger"
                         disabled={disabled || readOnly}
                         className="aspect-square px-0"
                       >
@@ -468,7 +470,7 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
               </span>
             </>
           )}
-          {name !== undefined && <input ref={backingRef} type="text" hidden readOnly name={name} defaultValue={resetIso} disabled={disabled} />}
+          {name !== undefined && <input ref={backingRef} type="text" hidden readOnly data-ouro-control="date-picker" data-ouro-part="hidden-input" name={name} defaultValue={resetIso} disabled={disabled} />}
         </div>
       </Field>
     </FieldOwnerContext.Provider>

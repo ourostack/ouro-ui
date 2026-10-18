@@ -1,1 +1,9 @@
-{ "order": 2000, "components": ["chart"] }
+{
+  "order": 2000,
+  "components": ["chart"],
+  "controls": {
+    "chart": [
+      {"part": "plot", "role": "application", "portal": false}
+    ]
+  }
+}

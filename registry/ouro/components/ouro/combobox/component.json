@@ -1,1 +1,13 @@
-{"order": 520, "components": ["combobox"]}
+{
+  "order": 520,
+  "components": ["combobox"],
+  "controls": {
+    "combobox": [
+      {"part": "input", "role": "combobox", "portal": false},
+      {"part": "option", "role": "option", "portal": true},
+      {"part": "clear", "role": "button", "portal": false},
+      {"part": "chip-remove", "role": "button", "portal": false},
+      {"part": "hidden-input", "role": "textbox", "portal": false}
+    ]
+  }
+}

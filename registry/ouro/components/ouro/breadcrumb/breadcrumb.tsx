@@ -176,7 +176,7 @@ export function Breadcrumb(props: BreadcrumbProps): JSX.Element {
                   <Menu
                     closeLabel={closeLabel}
                     trigger={
-                      <button type="button" aria-label={moreLabel} className={more}>
+                      <button type="button" aria-label={moreLabel} data-ouro-control="breadcrumb" data-ouro-part="more" className={more}>
                         <span aria-hidden="true">…</span>
                       </button>
                     }
@@ -196,7 +196,7 @@ export function Breadcrumb(props: BreadcrumbProps): JSX.Element {
                   {content(item)}
                 </span>
               ) : (
-                <RouterLink data-ouro-breadcrumb-item="" href={item.href} className={crumb}>
+                <RouterLink data-ouro-breadcrumb-item="" data-ouro-control="breadcrumb" data-ouro-part="crumb" href={item.href} className={crumb}>
                   {content(item)}
                 </RouterLink>
               )}

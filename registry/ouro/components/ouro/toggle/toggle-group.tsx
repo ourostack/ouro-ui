@@ -240,6 +240,8 @@ export function ToggleGroup(props: ToggleGroupProps): JSX.Element {
               disabled={itemDisabled}
               aria-label={iconOnlyItem ? itemLabel : undefined}
               data-ouro-toggle=""
+              data-ouro-control="toggle-group"
+              data-ouro-part="item"
               data-variant={variant}
               className={cn(toggleBase, sizes[size], looks[variant], iconOnly && squareClass)}
             >

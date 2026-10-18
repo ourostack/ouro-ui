@@ -119,6 +119,7 @@ export const WithForm: Story = {
       <label style={{ ...stack, gap: 6, fontWeight: 500, fontSize: "14px", lineHeight: "20px" }}>
         Note
         <input
+          data-test-harness=""
           placeholder="Less salt next time"
           style={{
             fontWeight: 400, fontSize: "16px", lineHeight: "24px",

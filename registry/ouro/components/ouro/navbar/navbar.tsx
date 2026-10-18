@@ -209,6 +209,8 @@ export function Navbar(props: NavbarProps): JSX.Element {
       <RouterLink
         href={link.href}
         aria-current={link.current || link.href === marked ? "page" : undefined}
+        data-ouro-control="navbar"
+        data-ouro-part="sheet-link"
         onClick={() => setOpen(false)}
         className={cn(link_, sheetLink)}
       >
@@ -222,6 +224,8 @@ export function Navbar(props: NavbarProps): JSX.Element {
       <Button
         ref={menuButton}
         data-ouro-navbar-menu=""
+        data-ouro-control="navbar"
+        data-ouro-part="menu"
         variant="plain"
         tone="secondary"
         aria-label={menuLabel}

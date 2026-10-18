@@ -1,1 +1,9 @@
-{"order": 510, "components": ["slider"]}
+{
+  "order": 510,
+  "components": ["slider"],
+  "controls": {
+    "slider": [
+      {"part": "thumb", "role": "slider", "portal": false}
+    ]
+  }
+}

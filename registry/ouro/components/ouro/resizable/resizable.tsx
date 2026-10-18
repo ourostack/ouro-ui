@@ -470,6 +470,8 @@ export function ResizableHandle({ "aria-label": ariaLabel, withHandle }: Resizab
     <div
       role="separator"
       tabIndex={0}
+      data-ouro-control="resizable"
+      data-ouro-part="handle"
       aria-orientation={horizontal ? "vertical" : "horizontal"}
       aria-label={ariaLabel ?? handleLabel.replaceAll("{panel}", labels[index] ?? "")}
       aria-valuenow={Math.round(size)}

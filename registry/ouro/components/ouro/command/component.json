@@ -1,1 +1,11 @@
-{"order": 1010, "components": ["command"]}
+{
+  "order": 1010,
+  "components": ["command"],
+  "controls": {
+    "command": [
+      {"part": "input", "role": "combobox", "portal": true},
+      {"part": "item", "role": "option", "portal": true},
+      {"part": "hidden-input", "role": "textbox", "portal": true}
+    ]
+  }
+}

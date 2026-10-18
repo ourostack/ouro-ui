@@ -1,1 +1,19 @@
-{ "order": 1410, "components": ["sidebar", "sidebar-layout", "stacked-layout"] }
+{
+  "order": 1410,
+  "components": ["sidebar", "sidebar-layout", "stacked-layout"],
+  "controls": {
+    "sidebar": [
+      {"part": "menu", "role": "button", "portal": false},
+      {"part": "link", "role": "link", "portal": false},
+      {"part": "button", "role": "button", "portal": false},
+      {"part": "group", "role": "button", "portal": false},
+      {"part": "collapse", "role": "button", "portal": false}
+    ],
+    "sidebar-layout": [
+      {"part": "skip-link", "role": "link", "portal": false}
+    ],
+    "stacked-layout": [
+      {"part": "skip-link", "role": "link", "portal": false}
+    ]
+  }
+}

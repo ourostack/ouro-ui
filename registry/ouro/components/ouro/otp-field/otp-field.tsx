@@ -1,9 +1,10 @@
 "use client";
 
 import { OTPField } from "@base-ui/react/otp-field";
-import { Fragment, type JSX, type ReactNode, type Ref } from "react";
+import { Fragment, useLayoutEffect, useRef, type JSX, type ReactNode, type Ref } from "react";
 import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-styles";
+import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { FieldOwnerContext, useField, type ReadonlyErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import {
@@ -133,13 +134,23 @@ interface SlotsProps {
  */
 function Slots({ length, groupSize, slotLabel, onValueChange, onValueComplete, ref, ...rest }: SlotsProps): JSX.Element {
   const field = useField()!;
+  // Base UI renders the hidden input the code submits with beside the slots' group and takes no
+  // ref or props for it, so its control marker goes on directly.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const setRef = useMergedRef(ref, rootRef);
+  useLayoutEffect(() => {
+    for (const input of rootRef.current!.parentElement!.querySelectorAll(':scope > input[aria-hidden="true"]')) {
+      input.setAttribute("data-ouro-control", "otp-field");
+      input.setAttribute("data-ouro-part", "hidden-input");
+    }
+  });
   // The Field's invalid state: OtpField's own error, or a Form's error for this name.
   const invalid = field.invalid;
   const groups = groupSize && Number.isInteger(groupSize) && groupSize > 0 && groupSize < length ? groupSize : length;
   return (
     <OTPField.Root
       {...rest}
-      ref={ref}
+      ref={setRef}
       length={length}
       required={field.required}
       aria-describedby={field.describedBy}
@@ -152,6 +163,8 @@ function Slots({ length, groupSize, slotLabel, onValueChange, onValueComplete, r
           {index > 0 && index % groups === 0 && <OTPField.Separator data-ouro-otp-separator="" className={separatorClass} />}
           <OTPField.Input
             data-ouro-otp-slot=""
+            data-ouro-control="otp-field"
+            data-ouro-part="slot"
             aria-label={index === 0 ? undefined : slotLabel(index + 1, length)}
             aria-describedby={field.describedBy}
             {...(invalid ? { "aria-invalid": true } : {})}

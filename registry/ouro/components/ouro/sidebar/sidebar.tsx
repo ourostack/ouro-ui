@@ -314,6 +314,8 @@ export function Sidebar(props: SidebarProps): JSX.Element {
         <RouterLink
           href={item.href}
           aria-current={isCurrent(item) ? "page" : undefined}
+          data-ouro-control="sidebar"
+          data-ouro-part="link"
           onClick={(event) => {
             onNavigate?.();
             item.onClick?.(event);
@@ -325,6 +327,8 @@ export function Sidebar(props: SidebarProps): JSX.Element {
       ) : (
         <button
           type="button"
+          data-ouro-control="sidebar"
+          data-ouro-part="button"
           onClick={(event) => {
             onNavigate?.();
             item.onClick(event);
@@ -359,7 +363,7 @@ export function Sidebar(props: SidebarProps): JSX.Element {
                     closeLabel={closeLabel}
                     trigger={
                       <Tooltip content={item.label} side="right">
-                        <button type="button" data-current={holdsCurrent ? "" : undefined} className={cn(row, "data-current:text-foreground", railRow)}>
+                        <button type="button" data-current={holdsCurrent ? "" : undefined} data-ouro-control="sidebar" data-ouro-part="group" className={cn(row, "data-current:text-foreground", railRow)}>
                           {rowContent(item, true)}
                         </button>
                       </Tooltip>
@@ -388,6 +392,8 @@ export function Sidebar(props: SidebarProps): JSX.Element {
                   type="button"
                   aria-expanded={open}
                   aria-controls={`${id}${place}${key}`}
+                  data-ouro-control="sidebar"
+                  data-ouro-part="group"
                   data-current={holdsCurrent && !open ? "" : undefined}
                   onClick={() => setOpened({ ...opened, [key]: !open })}
                   className={cn(row, "data-current:text-foreground")}
@@ -425,6 +431,8 @@ export function Sidebar(props: SidebarProps): JSX.Element {
       <Button
         ref={menuButton}
         data-ouro-sidebar-menu=""
+        data-ouro-control="sidebar"
+        data-ouro-part="menu"
         variant="plain"
         tone="secondary"
         aria-label={menuLabel}
@@ -446,7 +454,7 @@ export function Sidebar(props: SidebarProps): JSX.Element {
           </div>
           {collapsible && (
             <div className="shrink-0 p-2">
-              <button type="button" aria-pressed={collapsed} onClick={toggle} className={cn(row, collapsed && railRow)}>
+              <button type="button" aria-pressed={collapsed} data-ouro-control="sidebar" data-ouro-part="collapse" onClick={toggle} className={cn(row, collapsed && railRow)}>
                 <span aria-hidden="true" className={iconSlot}>
                   <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="rtl:-scale-x-100">
                     <rect x="3" y="4" width="14" height="12" rx="2" />

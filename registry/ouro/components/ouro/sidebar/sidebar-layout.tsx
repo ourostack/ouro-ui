@@ -117,7 +117,7 @@ export function SidebarLayout(props: SidebarLayoutProps): JSX.Element {
       data-ouro="sidebar-layout"
       className={cn("relative grid min-h-dvh grid-cols-[auto_minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] bg-background text-foreground", className)}
     >
-      <a href={`#${mainId}`} onClick={() => main.current!.focus()} className={skip}>
+      <a href={`#${mainId}`} data-ouro-control="sidebar-layout" data-ouro-part="skip-link" onClick={() => main.current!.focus()} className={skip}>
         {skipLabel}
       </a>
       <div data-ouro-sidebar-layout-sidebar="" className={sidebarCell}>

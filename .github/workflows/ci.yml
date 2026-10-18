@@ -80,6 +80,7 @@ jobs:
           cache: pnpm
       - run: pnpm i --frozen-lockfile
       - run: pnpm registry --check
+      - run: pnpm controls:matrix --check
       - run: npx --yes $SHADCN registry validate ./registry.json
       - run: npx --yes $SHADCN registry validate "ourostack/ouro-ui#$REF"
       - run: npx --yes $SHADCN build --output "$RUNNER_TEMP/r"

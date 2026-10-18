@@ -1,1 +1,11 @@
-{"order": 10, "components": ["button"]}
+{
+  "order": 10,
+  "components": ["button"],
+  "modes": {"button": ["button", "link"]},
+  "controls": {
+    "button": [
+      {"part": "root", "role": "button", "portal": false, "modes": ["button"]},
+      {"part": "root", "role": "link", "portal": false, "modes": ["link"]}
+    ]
+  }
+}

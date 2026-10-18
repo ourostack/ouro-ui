@@ -1,1 +1,14 @@
-{"order": 1230, "components": ["collapsible", "show-more"]}
+{
+  "order": 1230,
+  "components": ["collapsible", "show-more"],
+  "modes": {"show-more": ["items", "lines", "load"]},
+  "controls": {
+    "collapsible": [
+      {"part": "trigger", "role": "button", "portal": false}
+    ],
+    "show-more": [
+      {"part": "toggle", "role": "button", "portal": false, "modes": ["items", "lines"]},
+      {"part": "toggle", "role": "link", "portal": false, "modes": ["load"]}
+    ]
+  }
+}

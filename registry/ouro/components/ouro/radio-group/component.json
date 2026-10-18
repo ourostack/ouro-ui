@@ -1,1 +1,10 @@
-{"order": 310, "components": ["radio-group"]}
+{
+  "order": 310,
+  "components": ["radio-group"],
+  "controls": {
+    "radio-group": [
+      {"part": "circle", "role": "radio", "portal": false},
+      {"part": "hidden-input", "role": "radio", "portal": false}
+    ]
+  }
+}

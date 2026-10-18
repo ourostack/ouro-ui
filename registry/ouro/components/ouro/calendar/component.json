@@ -1,1 +1,16 @@
-{ "order": 1800, "components": ["calendar", "date-picker"] }
+{
+  "order": 1800,
+  "components": ["calendar", "date-picker"],
+  "controls": {
+    "calendar": [
+      {"part": "previous", "role": "button", "portal": false},
+      {"part": "next", "role": "button", "portal": false},
+      {"part": "day", "role": "button", "portal": false}
+    ],
+    "date-picker": [
+      {"part": "input", "role": "textbox", "portal": false},
+      {"part": "trigger", "role": "button", "portal": false},
+      {"part": "hidden-input", "role": "textbox", "portal": false}
+    ]
+  }
+}

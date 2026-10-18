@@ -1,1 +1,10 @@
-{"order": 900, "components": ["popover"]}
+{
+  "order": 900,
+  "components": ["popover"],
+  "controls": {
+    "popover": [
+      {"part": "close", "role": "button", "portal": true},
+      {"part": "content", "role": "generic", "portal": true}
+    ]
+  }
+}

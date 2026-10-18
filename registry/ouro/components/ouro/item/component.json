@@ -1,1 +1,10 @@
-{"order": 1310, "components": ["item", "item-group"]}
+{
+  "order": 1310,
+  "components": ["item", "item-group"],
+  "modes": {"item": ["static", "link"]},
+  "controls": {
+    "item": [
+      {"part": "link", "role": "link", "portal": false, "modes": ["link"]}
+    ]
+  }
+}

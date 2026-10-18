@@ -1,1 +1,10 @@
-{ "order": 1640, "components": ["color-field"] }
+{
+  "order": 1640,
+  "components": ["color-field"],
+  "controls": {
+    "color-field": [
+      {"part": "picker", "role": "textbox", "portal": false},
+      {"part": "input", "role": "textbox", "portal": false}
+    ]
+  }
+}

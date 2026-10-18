@@ -150,6 +150,8 @@ export function Attachment(props: AttachmentProps): JSX.Element {
         <a
           href={href}
           download={download || undefined}
+          data-ouro-control="attachment"
+          data-ouro-part="link"
           className={cn(
             inner,
             "press rounded-[inherit] text-inherit no-underline pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground",
@@ -166,6 +168,8 @@ export function Attachment(props: AttachmentProps): JSX.Element {
         <button
           type="button"
           aria-label={removeLabel(name)}
+          data-ouro-control="attachment"
+          data-ouro-part="remove"
           onClick={onRemove}
           className={cn(
             "press relative m-0 box-border inline-flex size-11 shrink-0 pointer-fine:me-1.5 pointer-fine:size-7 items-center justify-center rounded-md border-0 bg-transparent p-0",

@@ -1,1 +1,9 @@
-{"order": 1210, "components": ["segmented-control"]}
+{
+  "order": 1210,
+  "components": ["segmented-control"],
+  "controls": {
+    "segmented-control": [
+      {"part": "segment", "role": "radio", "portal": false}
+    ]
+  }
+}

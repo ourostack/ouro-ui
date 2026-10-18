@@ -28,11 +28,11 @@ function RecipeForm() {
     <div style={stack}>
       <label style={{ ...stack, gap: 6, fontWeight: 500, fontSize: "14px", lineHeight: "20px" }}>
         Name
-        <input defaultValue="Shakshuka" style={input} />
+        <input data-test-harness="" defaultValue="Shakshuka" style={input} />
       </label>
       <label style={{ ...stack, gap: 6, fontWeight: 500, fontSize: "14px", lineHeight: "20px" }}>
         Serves
-        <input defaultValue="4" inputMode="numeric" style={input} />
+        <input data-test-harness="" defaultValue="4" inputMode="numeric" style={input} />
       </label>
     </div>
   );

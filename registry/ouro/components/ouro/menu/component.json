@@ -1,1 +1,14 @@
-{"order": 1000, "components": ["menu"]}
+{
+  "order": 1000,
+  "components": ["menu"],
+  "controls": {
+    "menu": [
+      {"part": "bar-trigger", "role": "menuitem", "portal": false},
+      {"part": "item", "role": "menuitem", "portal": true},
+      {"part": "checkbox-item", "role": "menuitemcheckbox", "portal": true},
+      {"part": "radio-item", "role": "menuitemradio", "portal": true},
+      {"part": "submenu-trigger", "role": "menuitem", "portal": true},
+      {"part": "close", "role": "menuitem", "portal": true}
+    ]
+  }
+}

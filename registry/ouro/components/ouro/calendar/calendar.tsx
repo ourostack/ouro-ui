@@ -383,6 +383,8 @@ export function Calendar<Range extends boolean = false>(props: CalendarProps<Ran
           tone="secondary"
           size="sm"
           aria-label={previousMonthLabel}
+          data-ouro-control="calendar"
+          data-ouro-part="previous"
           disabled={!canGoBack}
           className={navClass}
           onClick={() => turn(-1)}
@@ -399,6 +401,8 @@ export function Calendar<Range extends boolean = false>(props: CalendarProps<Ran
           tone="secondary"
           size="sm"
           aria-label={nextMonthLabel}
+          data-ouro-control="calendar"
+          data-ouro-part="next"
           disabled={!canGoForward}
           className={navClass}
           onClick={() => turn(1)}
@@ -439,6 +443,8 @@ export function Calendar<Range extends boolean = false>(props: CalendarProps<Ran
                     <button
                       type="button"
                       data-ouro-day={day}
+                      data-ouro-control="calendar"
+                      data-ouro-part="day"
                       tabIndex={day === focused ? 0 : -1}
                       aria-label={formats.full.format(utc(day))}
                       aria-current={day === today ? "date" : undefined}

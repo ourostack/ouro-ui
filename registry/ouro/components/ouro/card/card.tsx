@@ -214,6 +214,8 @@ export function Card(props: CardProps): JSX.Element {
           rel={external ? safeRel(undefined) : undefined}
           data-card-link=""
           data-stretched-link=""
+          data-ouro-control="card"
+          data-ouro-part="link"
           className={stretchedLinkClass}
         >
           {title}

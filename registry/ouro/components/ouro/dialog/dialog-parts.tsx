@@ -110,7 +110,7 @@ export function AlertDialogRoot(props: AlertDialog.Root.Props): JSX.Element {
 /** Part: the button that opens the dialog. Pass your button as `render={<Button>Open</Button>}`. */
 export function DialogTrigger(props: BaseDialog.Trigger.Props): JSX.Element {
   useDialogPart("DialogTrigger", "…");
-  return <BaseDialog.Trigger {...props} />;
+  return <BaseDialog.Trigger {...(props.render === undefined ? { "data-ouro-control": "dialog", "data-ouro-part": "trigger" } : {})} {...props} />;
 }
 
 /**
@@ -248,6 +248,8 @@ export function DialogContent({ className, ref, ...props }: DialogContentProps):
   );
   return (
     <div
+      data-ouro-control="dialog"
+      data-ouro-part="content"
       {...props}
       ref={scrollRef}
       data-ouro-dialog-content=""
@@ -277,5 +279,5 @@ export function DialogFooter(props: Omit<JSX.IntrinsicElements["div"], "classNam
 /** Part: closes the dialog. Pass your button as `render={<Button>Done</Button>}`. */
 export function DialogClose(props: BaseDialog.Close.Props): JSX.Element {
   useDialogPart("DialogClose", "<DialogTitle>…</DialogTitle><DialogFooter><DialogClose>…</DialogClose></DialogFooter>");
-  return <BaseDialog.Close {...props} />;
+  return <BaseDialog.Close {...(props.render === undefined ? { "data-ouro-control": "dialog", "data-ouro-part": "close" } : {})} {...props} />;
 }

@@ -107,6 +107,7 @@ function LiveChat() {
       <ChatHistory items={items} />
       <button
         type="button"
+        data-test-harness=""
         onClick={send}
         style={{
           justifySelf: "end",

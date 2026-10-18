@@ -1,1 +1,14 @@
-{"order": 70, "components": ["text-field", "text-area"]}
+{
+  "order": 70,
+  "components": ["text-field", "text-area"],
+  "controls": {
+    "text-field": [
+      {"part": "input", "role": "textbox", "portal": false},
+      {"part": "clear", "role": "button", "portal": false},
+      {"part": "show-password", "role": "button", "portal": false}
+    ],
+    "text-area": [
+      {"part": "input", "role": "textbox", "portal": false}
+    ]
+  }
+}

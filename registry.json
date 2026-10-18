@@ -181,6 +181,7 @@
         "ourostack/ouro-ui/lib-appearance-hints",
         "ourostack/ouro-ui/lib-class-name-check",
         "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-control-ref",
         "ourostack/ouro-ui/lib-current-path",
         "ourostack/ouro-ui/lib-dev",
         "ourostack/ouro-ui/lib-env",
@@ -397,6 +398,19 @@
           "path": "registry/ouro/lib/ouro/cn.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/cn.ts"
+        }
+      ]
+    },
+    {
+      "name": "lib-control-ref",
+      "type": "registry:lib",
+      "title": "lib-control-ref",
+      "description": "Installed with the components that import it; you don't need to add it. The helper lib/ouro/control-ref.ts.",
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/control-ref.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/control-ref.ts"
         }
       ]
     },
@@ -1110,6 +1124,7 @@
       ],
       "registryDependencies": [
         "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/lib-control-ref",
         "ourostack/ouro-ui/lib-dev",
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-touch-target",
@@ -1166,6 +1181,7 @@
       ],
       "registryDependencies": [
         "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/lib-control-ref",
         "ourostack/ouro-ui/lib-dev",
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-touch-target",
@@ -1196,6 +1212,7 @@
       ],
       "registryDependencies": [
         "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/lib-control-ref",
         "ourostack/ouro-ui/lib-dev",
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-touch-target",
@@ -1278,6 +1295,7 @@
       ],
       "registryDependencies": [
         "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/lib-control-ref",
         "ourostack/ouro-ui/lib-dev",
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-server-element",
@@ -1334,6 +1352,7 @@
       ],
       "registryDependencies": [
         "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/lib-control-ref",
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-touch-target",
         "ourostack/ouro-ui/lib-use-dev-messages",
@@ -1394,6 +1413,7 @@
       "registryDependencies": [
         "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/lib-control-ref",
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-refs",
         "ourostack/ouro-ui/lib-touch-target",
@@ -1774,6 +1794,7 @@
         "ourostack/ouro-ui/dialog",
         "ourostack/ouro-ui/kbd",
         "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-control-ref",
         "ourostack/ouro-ui/lib-dev",
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-floating",
@@ -2454,6 +2475,7 @@
       "registryDependencies": [
         "ourostack/ouro-ui/field",
         "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-refs",
         "ourostack/ouro-ui/lib-use-dev-messages",
         "ourostack/ouro-ui/lib-use-field"
       ],
@@ -2883,6 +2905,31 @@
           "path": "registry/ouro/lib/ouro/cn.test.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/cn.test.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "lib-control-ref-tests",
+      "type": "registry:item",
+      "title": "lib-control-ref tests",
+      "description": "Optional: the Vitest browser tests for lib-control-ref, and the tests of everything lib-control-ref installs, so the installed files reach 100% coverage. Add it beside lib-control-ref: add lib-control-ref lib-control-ref-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "devDependencies": [
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-control-ref",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/control-ref.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/control-ref.test.ts"
         }
       ],
       "meta": {
@@ -3658,6 +3705,7 @@
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-control-ref-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
@@ -3969,6 +4017,7 @@
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-control-ref-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
@@ -4031,6 +4080,7 @@
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-control-ref-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
@@ -4093,6 +4143,7 @@
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-control-ref-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
@@ -4157,6 +4208,7 @@
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-control-ref-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
@@ -4220,6 +4272,7 @@
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-control-ref-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-form-answer",
         "ourostack/ouro-ui/lib-form-answer-tests",
@@ -4295,6 +4348,7 @@
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-control-ref-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-form-answer",
         "ourostack/ouro-ui/lib-form-answer-tests",
@@ -4364,6 +4418,7 @@
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-control-ref-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
@@ -4489,6 +4544,7 @@
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-control-ref-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
@@ -4611,6 +4667,7 @@
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-control-ref-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
@@ -5427,6 +5484,7 @@
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-control-ref-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-floating-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
@@ -7843,6 +7901,7 @@
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-control-ref-tests",
         "ourostack/ouro-ui/lib-current-path-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-floating-tests",
@@ -7907,6 +7966,7 @@
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-control-ref-tests",
         "ourostack/ouro-ui/lib-current-path-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-floating-tests",

@@ -1,1 +1,10 @@
-{"order": 400, "components": ["form", "edit-sheet"]}
+{
+  "order": 400,
+  "components": ["form", "edit-sheet"],
+  "controls": {
+    "edit-sheet": [
+      {"part": "cancel", "role": "button", "portal": true},
+      {"part": "submit", "role": "button", "portal": true}
+    ]
+  }
+}

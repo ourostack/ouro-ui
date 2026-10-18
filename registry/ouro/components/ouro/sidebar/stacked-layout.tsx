@@ -101,7 +101,7 @@ export function StackedLayout(props: StackedLayoutProps): JSX.Element {
   const main = useRef<HTMLDivElement>(null);
   return (
     <div ref={ref} data-ouro="stacked-layout" className={cn("relative flex min-h-dvh flex-col bg-background text-foreground", className)}>
-      <a href={`#${mainId}`} onClick={() => main.current!.focus()} className={skip}>
+      <a href={`#${mainId}`} data-ouro-control="stacked-layout" data-ouro-part="skip-link" onClick={() => main.current!.focus()} className={skip}>
         {skipLabel}
       </a>
       <div data-ouro-stacked-layout-navbar="" className="sticky top-0 z-10">

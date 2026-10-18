@@ -1,1 +1,13 @@
-{ "order": 2010, "components": ["message", "message-list", "attachment"] }
+{
+  "order": 2010,
+  "components": ["message", "message-list", "attachment"],
+  "controls": {
+    "attachment": [
+      {"part": "link", "role": "link", "portal": false},
+      {"part": "remove", "role": "button", "portal": false}
+    ],
+    "message-list": [
+      {"part": "scroller", "role": "region", "portal": false}
+    ]
+  }
+}

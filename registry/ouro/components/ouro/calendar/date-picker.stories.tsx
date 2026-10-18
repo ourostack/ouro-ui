@@ -91,7 +91,7 @@ export const InForm: Story = {
           }}
         >
           <DatePicker label="Delivery date" name="delivery" defaultValue="2026-03-07" />
-          <button type="submit" style={{ justifySelf: "start" }}>
+          <button type="submit" data-test-harness="" style={{ justifySelf: "start" }}>
             Submit
           </button>
         </form>

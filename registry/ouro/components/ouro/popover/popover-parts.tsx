@@ -73,7 +73,7 @@ export function PopoverRoot(props: BasePopover.Root.Props): JSX.Element {
 export function PopoverTrigger({ style, ...props }: BasePopover.Trigger.Props): JSX.Element {
   usePopoverPart("PopoverTrigger", "…");
   const noScale = (own?: CSSProperties): CSSProperties => ({ ...own, ["--ouro-press-scale" as string]: 1 });
-  return <BasePopover.Trigger {...props} style={typeof style === "function" ? (state) => noScale(style(state)) : noScale(style)} />;
+  return <BasePopover.Trigger {...(props.render === undefined ? { "data-ouro-control": "popover", "data-ouro-part": "trigger" } : {})} {...props} style={typeof style === "function" ? (state) => noScale(style(state)) : noScale(style)} />;
 }
 
 /**
@@ -198,5 +198,5 @@ export function PopoverDescription(props: Omit<BasePopover.Description.Props, "c
  */
 export function PopoverClose(props: BasePopover.Close.Props): JSX.Element {
   usePopoverPart("PopoverClose", "<PopoverTitle>…</PopoverTitle><PopoverClose>Close</PopoverClose>");
-  return <BasePopover.Close {...(props.render === undefined ? { className: popoverCloseClass } : {})} {...props} />;
+  return <BasePopover.Close {...(props.render === undefined ? { className: popoverCloseClass, "data-ouro-control": "popover", "data-ouro-part": "close" } : {})} {...props} />;
 }

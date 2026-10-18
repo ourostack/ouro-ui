@@ -1,1 +1,9 @@
-{"order": 60, "components": ["link"]}
+{
+  "order": 60,
+  "components": ["link"],
+  "controls": {
+    "link": [
+      {"part": "root", "role": "link", "portal": false}
+    ]
+  }
+}

@@ -213,7 +213,7 @@ export function SheetRoot({ side: sideProp = "bottom", snapPoints, ...props }: S
 /** Part: the button that opens the sheet. Pass your button as `render={<Button>Open</Button>}`. */
 export function SheetTrigger(props: Drawer.Trigger.Props): JSX.Element {
   useSheetPart("SheetTrigger", "…");
-  return <Drawer.Trigger {...props} />;
+  return <Drawer.Trigger {...(props.render === undefined ? { "data-ouro-control": "sheet", "data-ouro-part": "trigger" } : {})} {...props} />;
 }
 
 /**
@@ -426,6 +426,8 @@ export function SheetContent({ className, ref, ...props }: SheetContentProps): J
   );
   return (
     <Drawer.Content
+      data-ouro-control="sheet"
+      data-ouro-part="content"
       {...props}
       ref={scrollRef}
       data-ouro-sheet-content=""
@@ -442,5 +444,5 @@ export function SheetContent({ className, ref, ...props }: SheetContentProps): J
 /** Part: closes the sheet. Pass your button as `render={<Button>Done</Button>}`. */
 export function SheetClose(props: Drawer.Close.Props): JSX.Element {
   useSheetPart("SheetClose", "<SheetContent><SheetClose>…</SheetClose></SheetContent>");
-  return <Drawer.Close {...props} />;
+  return <Drawer.Close {...(props.render === undefined ? { "data-ouro-control": "sheet", "data-ouro-part": "close" } : {})} {...props} />;
 }

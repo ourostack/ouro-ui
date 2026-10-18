@@ -293,7 +293,7 @@ export function NavigationMenuView(props: NavigationMenuViewProps): JSX.Element 
         {items.map((item, index) =>
           isPanel(item) ? (
             <BaseNavigationMenu.Item key={index} value={index}>
-              <BaseNavigationMenu.Trigger data-current={item.links?.some(isCurrent) ? "" : undefined} className={rowItem}>
+              <BaseNavigationMenu.Trigger data-current={item.links?.some(isCurrent) ? "" : undefined} data-ouro-control="navigation-menu" data-ouro-part="trigger" className={rowItem}>
                 {item.label}
                 <BaseNavigationMenu.Icon data-ouro-instant={instant ? "" : undefined} className={chevron}>
                   <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-3.5">
@@ -317,7 +317,7 @@ export function NavigationMenuView(props: NavigationMenuViewProps): JSX.Element 
                     <ul className={cn("m-0 grid list-none gap-1 p-0", item.columns === 2 && "sm:grid-cols-2")}>
                       {item.links.map((link, position) => (
                         <li key={position}>
-                          <BaseNavigationMenu.Link render={<RouterLink href={link.href} />} active={isCurrent(link)} closeOnClick className={panelLink}>
+                          <BaseNavigationMenu.Link render={<RouterLink href={link.href} />} active={isCurrent(link)} closeOnClick data-ouro-control="navigation-menu" data-ouro-part="panel-link" className={panelLink}>
                             <span className={cn("font-medium", isCurrent(link) && "font-semibold")}>{link.label}</span>
                             {link.description !== undefined && <span className="text-sm leading-5 text-muted-foreground">{link.description}</span>}
                           </BaseNavigationMenu.Link>
@@ -330,7 +330,7 @@ export function NavigationMenuView(props: NavigationMenuViewProps): JSX.Element 
             </BaseNavigationMenu.Item>
           ) : (
             <BaseNavigationMenu.Item key={index} value={index}>
-              <BaseNavigationMenu.Link render={<RouterLink href={item.href} />} active={isCurrent(item)} className={rowItem}>
+              <BaseNavigationMenu.Link render={<RouterLink href={item.href} />} active={isCurrent(item)} data-ouro-control="navigation-menu" data-ouro-part="link" className={rowItem}>
                 {item.label}
               </BaseNavigationMenu.Link>
             </BaseNavigationMenu.Item>

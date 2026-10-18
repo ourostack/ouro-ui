@@ -290,7 +290,7 @@ export function Carousel(props: CarouselProps): JSX.Element {
       tabIndex={-1}
       className={cn(rootClass, className)}
     >
-      <div data-ouro-carousel-viewport="" ref={viewportRef} tabIndex={0} className={cn(viewportClass, slidesPerViewClass[perView])}>
+      <div data-ouro-carousel-viewport="" data-ouro-control="carousel" data-ouro-part="viewport" ref={viewportRef} tabIndex={0} className={cn(viewportClass, slidesPerViewClass[perView])}>
         {slides.map((slide, position) => (
           <div
             key={position}
@@ -313,6 +313,8 @@ export function Carousel(props: CarouselProps): JSX.Element {
           tone="secondary"
           size="sm"
           aria-label={previousLabel}
+          data-ouro-control="carousel"
+          data-ouro-part="previous"
           disabled={total === 0 || (!loop && current === 0)}
           onClick={() => go(-1)}
         >
@@ -324,6 +326,8 @@ export function Carousel(props: CarouselProps): JSX.Element {
           tone="secondary"
           size="sm"
           aria-label={nextLabel}
+          data-ouro-control="carousel"
+          data-ouro-part="next"
           disabled={total === 0 || (!loop && current === lastIndex)}
           onClick={() => go(1)}
         >

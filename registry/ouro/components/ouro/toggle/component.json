@@ -1,1 +1,12 @@
-{ "order": 1600, "components": ["toggle", "toggle-group"] }
+{
+  "order": 1600,
+  "components": ["toggle", "toggle-group"],
+  "controls": {
+    "toggle": [
+      {"part": "root", "role": "button", "portal": false}
+    ],
+    "toggle-group": [
+      {"part": "item", "role": "button", "portal": false}
+    ]
+  }
+}
