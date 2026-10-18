@@ -112,16 +112,19 @@ const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve))
  * Waits, a frame at a time, for the part's motion to end. A browser cancels a running transition
  * when the element's style is recomputed mid-way and usually starts an equal one in its place:
  * a cancelled property counts only when an animation of it is running on the next read, or when
- * the cancelled one had already run 90% of its duration (WebKit cancels a transition that is about
+ * the cancelled one had already run 90% of its duration in time (WebKit cancels a transition that is about
  * to end on a restyle under load). A property cancelled earlier with nothing in its place fails,
  * and so does any other property that starts meanwhile.
  */
 async function settled(element: Element, where: string, first: Array<CSSTransition | CSSAnimation>, expected: Set<string>): Promise<void> {
   const reached = new Map<Animation, number>();
+  // Elapsed time, not progress: progress is eased, and --ouro-ease-out passes 90% early.
   const sample = (animations: Array<CSSTransition | CSSAnimation>) => {
     for (const animation of animations) {
-      const progress = animation.effect?.getComputedTiming().progress;
-      if (typeof progress === "number") reached.set(animation, Math.max(reached.get(animation) ?? 0, progress));
+      const timing = animation.effect?.getComputedTiming();
+      const local = Number(timing?.localTime ?? Number.NaN) - Number(timing?.delay ?? 0);
+      const active = Number(timing?.activeDuration ?? Number.NaN);
+      if (Number.isFinite(local) && Number.isFinite(active) && active > 0) reached.set(animation, Math.max(reached.get(animation) ?? 0, Math.min(1, Math.max(0, local / active))));
     }
   };
   for (const animation of first) animation.finished.catch(() => {});
@@ -139,7 +142,7 @@ async function settled(element: Element, where: string, first: Array<CSSTransiti
       if (next.includes(animation) || animation.playState !== "idle") continue;
       const progress = reached.get(animation) ?? 0;
       for (const name of namesOf(animation)) {
-        if (!replacing.has(name) && progress < 0.9) throw new Error(`${where}: ${name} was cancelled at ${Math.round(progress * 100)}% with nothing in its place.`);
+        if (!replacing.has(name) && progress < 0.9) throw new Error(`${where}: ${name} was cancelled ${Math.round(progress * 100)}% of the way through its duration with nothing in its place.`);
       }
     }
     const fresh = next.filter((animation) => !current.includes(animation));
@@ -149,11 +152,20 @@ async function settled(element: Element, where: string, first: Array<CSSTransiti
   }
 }
 
-/** Fails unless the part, or an element around it, carries the state's attribute (and value). */
+/**
+ * Fails unless the part, or an element around it inside the part's own component root
+ * (`[data-ouro]`), carries the state's attribute (and value), so a checked row or an open overlay
+ * around the component cannot stand in for the component's own state.
+ */
 function checkState(element: Element, where: string, state: string): void {
   const [attribute, value] = state.split("=");
   const selector = value === undefined ? `[${attribute}]` : `[${attribute}="${value}"]`;
-  if (!element.closest(selector)) throw new Error(`${where}: the part is not in ${state}: neither it nor an element around it has ${selector}. Call the helper after the change into that state.`);
+  const root = element.closest("[data-ouro]");
+  if (!root) throw new Error(`${where}: the part is in no component root ([data-ouro]), so its state has no component to belong to.`);
+  const match = element.closest(selector);
+  if (!match || !root.contains(match)) {
+    throw new Error(`${where}: the part is not in ${state}: neither it nor an element around it inside its [data-ouro="${root.getAttribute("data-ouro")}"] root has ${selector}. Call the helper after the change into that state.`);
+  }
 }
 
 const directionOf = (element: Element, dir: "ltr" | "rtl" | undefined): "ltr" | "rtl" => dir ?? (getComputedStyle(element).direction === "rtl" ? "rtl" : "ltr");
@@ -177,7 +189,7 @@ interface ExpectMotionOptions {
 /**
  * Proves a state change's motion on one part. Call it right after the change into `state`, with
  * no await in between (several parts at once with `Promise.all`): it fails unless the part or an
- * element around it carries the state's attribute, reads the CSS transitions and animations
+ * element around it inside its own component root (`[data-ouro]`) carries the state's attribute, reads the CSS transitions and animations
  * running on the element (its `data-ouro-part`), fails unless they are exactly `properties` (no
  * missing and no extra property, and the given durations in milliseconds), waits for them to
  * end (a transition the browser cancels and restarts on a restyle included), and records `{ stem, part, state, properties, reduced, dir }` for pnpm motion:coverage.
@@ -224,7 +236,7 @@ interface ExpectNoMotionOptions {
 
 /**
  * Proves that a state change runs nothing on one part, which must be in `state` (it or an element
- * around it carries the attribute): no CSS transition or animation right after
+ * around it inside its component root carries the attribute): no CSS transition or animation right after
  * the change, nor a style flush and a frame later. Records an explicit empty set, which is how a
  * `none` state, and a part whose `reduced` list is `[]`, are covered.
  *

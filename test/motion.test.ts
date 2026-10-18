@@ -19,10 +19,12 @@ afterEach(async () => {
 
 /**
  * A part that starts at `from`, styled with `transition`, ready to change, inside an element in the
- * states the fixtures claim (`data-checked`, `data-disabled`), as a component root would be.
+ * component root (`data-ouro="fixture"`) in the states the fixtures claim (`data-checked`,
+ * `data-disabled`).
  */
 function part(name: string, transition: string, from: Partial<CSSStyleDeclaration> = { opacity: "0" }, states: string[] = ["data-checked", "data-disabled"]): HTMLElement {
   const root = document.createElement("div");
+  root.dataset["ouro"] = "fixture";
   for (const state of states) root.setAttribute(state, "");
   const element = document.createElement("div");
   element.dataset["ouroPart"] = name;
@@ -100,7 +102,7 @@ describe("expectMotion", () => {
   it("fails when the part is not in the state it claims, and finds a state with a value on an element around it", async () => {
     const outside = part("tick", "opacity 400ms linear", { opacity: "0" }, []);
     outside.style.opacity = "1";
-    await expect(expectMotion(outside, { stem: "checkbox", state: "data-checked", properties: ["opacity"], reduced: false })).rejects.toThrow(/checkbox data-checked tick: the part is not in data-checked: neither it nor an element around it has \[data-checked\]/);
+    await expect(expectMotion(outside, { stem: "checkbox", state: "data-checked", properties: ["opacity"], reduced: false })).rejects.toThrow(/checkbox data-checked tick: the part is not in data-checked: neither it nor an element around it inside its \[data-ouro="fixture"\] root has \[data-checked\]/);
     await expect(expectNoMotion(outside, { stem: "checkbox", state: "data-disabled", reduced: false })).rejects.toThrow(/the part is not in data-disabled/);
     const swiped = part("thumb", "opacity 60ms linear", { opacity: "0" }, []);
     swiped.parentElement!.setAttribute("data-swiping", "right");
@@ -108,6 +110,28 @@ describe("expectMotion", () => {
     await expect(expectMotion(swiped, { stem: "checkbox", state: "data-swiping=left", properties: ["opacity"], reduced: false })).rejects.toThrow(/has \[data-swiping="left"\]/);
     await expectMotion(swiped, { stem: "checkbox", state: "data-swiping=right", properties: ["opacity"], reduced: false });
     expect(taken()).toEqual([{ kind: "state", stem: "checkbox", part: "thumb", state: "data-swiping=right", properties: ["opacity"], reduced: false, dir: "ltr" }]);
+  });
+
+  it("finds the state only inside the part's own component, not on a component or overlay around it", async () => {
+    // A Checkbox in a checked Checklist row: the row's data-checked is not the Checkbox's.
+    const tick = part("tick", "opacity 400ms linear", { opacity: "0" }, []);
+    const row = document.createElement("div");
+    row.dataset["ouro"] = "checklist";
+    row.setAttribute("data-checked", "");
+    row.setAttribute("data-open", "");
+    tick.parentElement!.replaceWith(row);
+    row.append(tick.parentElement!);
+    mounted.push(row);
+    tick.style.opacity = "1";
+    await expect(expectMotion(tick, { stem: "checkbox", state: "data-checked", properties: ["opacity"], reduced: false })).rejects.toThrow(/inside its \[data-ouro="fixture"\] root has \[data-checked\]/);
+    await expect(expectNoMotion(tick, { stem: "checkbox", state: "data-open", reduced: false })).rejects.toThrow(/the part is not in data-open/);
+    const loose = document.createElement("div");
+    loose.dataset["ouroPart"] = "tick";
+    loose.setAttribute("data-checked", "");
+    document.body.append(loose);
+    mounted.push(loose);
+    await expect(expectNoMotion(loose, { stem: "checkbox", state: "data-checked", reduced: false })).rejects.toThrow(/checkbox data-checked tick: the part is in no component root/);
+    expect(taken()).toEqual([]);
   });
 
   it("waits for a transition the browser restarts mid-way, and fails on another property that starts meanwhile", async () => {
@@ -135,22 +159,34 @@ describe("expectMotion", () => {
     await frame();
     tick.style.transition = "none";
     flushStyle(tick);
-    await expect(proof).rejects.toThrow(/checkbox data-checked tick: opacity was cancelled at \d+% with nothing in its place/);
+    await expect(proof).rejects.toThrow(/checkbox data-checked tick: opacity was cancelled \d+% of the way through its duration with nothing in its place/);
+    expect(taken()).toEqual([]);
+  });
+
+  /** Starts a 1s eased opacity transition, waits until `elapsed` of its time has passed, then cancels it. */
+  async function cancelAt(elapsed: number) {
+    const tick = part("tick", "opacity 1000ms var(--ouro-ease-out)");
+    tick.style.opacity = "1";
+    const [transition] = tick.getAnimations();
+    const proof = expectMotion(tick, { stem: "checkbox", state: "data-checked", properties: ["opacity"], reduced: false });
+    while (Number(transition!.currentTime ?? 0) < elapsed * 1000) await frame();
+    expect(transition!.playState).toBe("running");
+    // --ouro-ease-out is past 90% of its progress well before half its time.
+    if (elapsed < 0.9) expect(transition!.effect!.getComputedTiming().progress).toBeGreaterThan(0.9);
+    tick.style.transition = "none";
+    flushStyle(tick);
+    expect(transition!.playState).toBe("idle");
+    return proof;
+  }
+
+  it("measures a cancelled transition by the time it ran, not its eased progress", async () => {
+    await expect(cancelAt(0.5)).rejects.toThrow(/checkbox data-checked tick: opacity was cancelled (4[5-9]|5\d)% of the way through its duration with nothing in its place/);
     expect(taken()).toEqual([]);
   });
 
   it("lets a transition end that the browser cancels once it has run 90% of its duration", async () => {
-    const tick = part("tick", "opacity 1000ms linear");
-    tick.style.opacity = "1";
-    const [transition] = tick.getAnimations();
-    const proof = expectMotion(tick, { stem: "checkbox", state: "data-checked", properties: ["opacity"], reduced: false });
     // A frame is under 2% of the second, so the helper saw it past 90% too.
-    while ((transition!.effect!.getComputedTiming().progress ?? 1) < 0.95) await frame();
-    expect(transition!.playState).toBe("running");
-    tick.style.transition = "none";
-    flushStyle(tick);
-    expect(transition!.playState).toBe("idle");
-    await proof;
+    await cancelAt(0.95);
     expect(taken()).toHaveLength(1);
   });
 
