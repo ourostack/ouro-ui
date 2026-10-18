@@ -8,7 +8,8 @@
       {"part": "checkbox-item", "role": "menuitemcheckbox", "portal": true},
       {"part": "radio-item", "role": "menuitemradio", "portal": true},
       {"part": "submenu-trigger", "role": "menuitem", "portal": true},
-      {"part": "close", "role": "menuitem", "portal": true}
+      {"part": "close", "role": "menuitem", "portal": true},
+      {"part": "back", "role": "menuitem", "portal": true}
     ]
   }
 }

@@ -7,7 +7,11 @@
       {"part": "option", "role": "option", "portal": true},
       {"part": "clear", "role": "button", "portal": false},
       {"part": "chip-remove", "role": "button", "portal": false},
-      {"part": "hidden-input", "role": "textbox", "portal": false}
+      {"part": "hidden-input", "role": "textbox", "portal": false},
+      {"part": "dismiss", "role": "button", "portal": false},
+      {"part": "popup-dismiss", "role": "button", "portal": true},
+      {"part": "trigger", "role": "combobox", "portal": false, "touch": true},
+      {"part": "done", "role": "button", "portal": true, "touch": true}
     ]
   }
 }

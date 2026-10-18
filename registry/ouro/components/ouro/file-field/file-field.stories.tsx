@@ -81,3 +81,33 @@ export const Limits: Story = {
     );
   },
 };
+
+/** Chooses files the way a person does: puts them in the input and tells it they changed. */
+function choose(canvasElement: HTMLElement, names: string[]) {
+  const input = canvasElement.querySelector<HTMLInputElement>('input[type="file"]')!;
+  const files = new DataTransfer();
+  for (const name of names) files.items.add(new File([name], name, { type: "text/plain" }));
+  input.files = files.files;
+  input.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
+/** A chosen file is listed with a button that removes it. The story chooses one. */
+export const WithFile: Story = {
+  render: () => (
+    <Surface>
+      <FileField label="Recipe card" name="card" />
+    </Surface>
+  ),
+  play: async ({ canvasElement }) => choose(canvasElement, ["shakshuka.txt"]),
+};
+
+/** Chosen files are listed, each with a button that removes it. The story chooses two. */
+export const WithFiles: Story = {
+  parameters: { mode: "multiple" },
+  render: () => (
+    <Surface>
+      <FileField label="Attachments" name="attachments" multiple />
+    </Surface>
+  ),
+  play: async ({ canvasElement }) => choose(canvasElement, ["shopping-list.txt", "method.txt"]),
+};

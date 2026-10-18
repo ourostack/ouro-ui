@@ -1,28 +1,27 @@
-import { axeExclude } from "@/registry/ouro/lib/ouro/testing/axe";
-
 /**
  * Every element a person can focus or operate: native controls, links, editable regions, anything
- * in the tab order, and the ARIA widget roles. `collectControls` finds them; the census of an app
- * copies this string, so change it only with the copies.
+ * in the tab order, and the ARIA widget roles. `collectControls` finds them. An app's census of
+ * controls copies this string and `censusExclusions` together, so change them only with the copies.
  */
 export const interactiveSelector =
   'a[href], button, input:not([type="hidden"]), select, textarea, [contenteditable]:not([contenteditable="false"]), [tabindex]:not([tabindex="-1"]), [role="button"], [role="link"], [role="checkbox"], [role="switch"], [role="radio"], [role="tab"], [role="textbox"], [role="searchbox"], [role="combobox"], [role="slider"], [role="spinbutton"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="option"], [role="treeitem"]';
 
 /**
- * What Base UI renders inside a component that no prop or ref reaches, so it carries no control
- * marker: the focus guards that hand focus back into a modal (`axeExclude`), and the visually
- * hidden Dismiss button a combobox adds beside its input and its list for screen readers.
+ * The `interactiveSelector` matches that are no control: Base UI's focus guards, which hand focus
+ * back into a modal and that no prop reaches. Everything else an Ouro component renders, Base UI's
+ * own elements included, carries a control marker. An app's census copies this list with
+ * `interactiveSelector`.
  */
-export const baseUiInternals: readonly string[] = [...axeExclude, 'span[role="button"][aria-label="Dismiss"]'];
+export const censusExclusions: readonly string[] = ["[data-base-ui-focus-guard]"];
 
 /**
  * The controls under `root` (the whole page by default, portals included), in document order:
  * every `interactiveSelector` match except the controls a story renders itself
- * (`[data-test-harness]` and everything in it) and `baseUiInternals`.
+ * (`[data-test-harness]` and everything in it) and `censusExclusions`.
  */
 export function collectControls(root: ParentNode = document.body): Element[] {
   return [...root.querySelectorAll(interactiveSelector)].filter(
-    (element) => !element.closest("[data-test-harness]") && !baseUiInternals.some((selector) => element.matches(selector)),
+    (element) => !element.closest("[data-test-harness]") && !censusExclusions.some((selector) => element.matches(selector)),
   );
 }
 

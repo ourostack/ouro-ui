@@ -62,7 +62,11 @@ export interface OuroStoryParameters {
   mode?: string;
 }
 
-type ComposedStory = ComponentType & { parameters?: OuroStoryParameters };
+type ComposedStory = ComponentType & {
+  parameters?: OuroStoryParameters;
+  /** The story's play function, which brings it to the state it shows (a discard prompt, chosen files). */
+  play?: (context?: { canvasElement?: HTMLElement }) => Promise<void>;
+};
 
 /** One story, by `Component/StoryExport` id. Throws when there is none. */
 export function story(id: string): ComposedStory {
@@ -106,6 +110,8 @@ export async function renderStory(Story: ComponentType): Promise<HTMLElement> {
   const root = createRoot(host);
   roots.push(root);
   await act(async () => root.render(<Story />));
+  // A play function brings the story to the state it shows, as Storybook runs it after rendering.
+  await (Story as ComposedStory).play?.({ canvasElement: host });
   return host;
 }
 

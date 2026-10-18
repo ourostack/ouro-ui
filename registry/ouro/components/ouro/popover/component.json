@@ -4,7 +4,8 @@
   "controls": {
     "popover": [
       {"part": "close", "role": "button", "portal": true},
-      {"part": "content", "role": "generic", "portal": true}
+      {"part": "content", "role": "generic", "portal": true},
+      {"part": "trigger", "role": "button", "portal": false}
     ]
   }
 }

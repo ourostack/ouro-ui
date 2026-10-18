@@ -2,6 +2,17 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState, type CSSProperties } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
+import {
+  SheetBackdrop,
+  SheetClose,
+  SheetContent,
+  SheetPopup,
+  SheetPortal,
+  SheetRoot,
+  SheetTitle,
+  SheetTrigger,
+  SheetViewport,
+} from "@/registry/ouro/components/ouro/sheet/sheet-parts";
 
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names).
 
@@ -155,4 +166,25 @@ export const Controlled: Story = {
       </div>
     );
   },
+};
+
+/** Built from parts. A part given no `render` is a plain button of its own: here the trigger and the close button. */
+export const Parts: Story = {
+  render: () => (
+    <SheetRoot>
+      <SheetTrigger>Add note</SheetTrigger>
+      <SheetPortal>
+        <SheetBackdrop />
+        <SheetViewport>
+          <SheetPopup>
+            <SheetTitle>Add a note</SheetTitle>
+            <SheetContent>
+              Notes stay with this recipe.
+              <SheetClose>Close</SheetClose>
+            </SheetContent>
+          </SheetPopup>
+        </SheetViewport>
+      </SheetPortal>
+    </SheetRoot>
+  ),
 };

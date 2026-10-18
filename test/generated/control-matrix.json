@@ -6,6 +6,7 @@
     "part": "root",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "Button/Playground",
       "Button/TonesAndVariants",
@@ -22,6 +23,7 @@
     "part": "root",
     "role": "link",
     "portal": false,
+    "touch": false,
     "stories": [
       "Button/Links"
     ]
@@ -33,6 +35,7 @@
     "part": "close",
     "role": "button",
     "portal": true,
+    "touch": false,
     "stories": [
       "Sheet/Playground",
       "Sheet/WithDescription",
@@ -41,7 +44,8 @@
       "Sheet/SnapPoints",
       "Sheet/LongContent",
       "Sheet/WithForm",
-      "Sheet/Controlled"
+      "Sheet/Controlled",
+      "Sheet/Parts"
     ]
   },
   {
@@ -51,6 +55,7 @@
     "part": "content",
     "role": "generic",
     "portal": true,
+    "touch": false,
     "stories": [
       "Sheet/Playground",
       "Sheet/WithDescription",
@@ -59,7 +64,28 @@
       "Sheet/SnapPoints",
       "Sheet/LongContent",
       "Sheet/WithForm",
-      "Sheet/Controlled"
+      "Sheet/Controlled",
+      "Sheet/Parts"
+    ]
+  },
+  {
+    "item": "sheet",
+    "stem": "sheet",
+    "mode": "default",
+    "part": "trigger",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Sheet/Playground",
+      "Sheet/WithDescription",
+      "Sheet/HiddenTitle",
+      "Sheet/Sides",
+      "Sheet/SnapPoints",
+      "Sheet/LongContent",
+      "Sheet/WithForm",
+      "Sheet/Controlled",
+      "Sheet/Parts"
     ]
   },
   {
@@ -69,6 +95,7 @@
     "part": "close",
     "role": "button",
     "portal": true,
+    "touch": false,
     "stories": [
       "Dialog/Playground",
       "Dialog/WithFooter",
@@ -76,7 +103,8 @@
       "Dialog/Presentations",
       "Dialog/LongContent",
       "Dialog/HiddenTitle",
-      "Dialog/Controlled"
+      "Dialog/Controlled",
+      "Dialog/Parts"
     ]
   },
   {
@@ -86,6 +114,7 @@
     "part": "content",
     "role": "generic",
     "portal": true,
+    "touch": false,
     "stories": [
       "Dialog/Playground",
       "Dialog/WithFooter",
@@ -93,7 +122,27 @@
       "Dialog/Presentations",
       "Dialog/LongContent",
       "Dialog/HiddenTitle",
-      "Dialog/Controlled"
+      "Dialog/Controlled",
+      "Dialog/Parts"
+    ]
+  },
+  {
+    "item": "dialog",
+    "stem": "dialog",
+    "mode": "default",
+    "part": "trigger",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Dialog/Playground",
+      "Dialog/WithFooter",
+      "Dialog/Sizes",
+      "Dialog/Presentations",
+      "Dialog/LongContent",
+      "Dialog/HiddenTitle",
+      "Dialog/Controlled",
+      "Dialog/Parts"
     ]
   },
   {
@@ -103,6 +152,7 @@
     "part": "cancel",
     "role": "button",
     "portal": true,
+    "touch": false,
     "stories": [
       "ConfirmDialog/Destructive",
       "ConfirmDialog/FailingAction"
@@ -115,6 +165,7 @@
     "part": "confirm",
     "role": "button",
     "portal": true,
+    "touch": false,
     "stories": [
       "ConfirmDialog/Destructive",
       "ConfirmDialog/FailingAction"
@@ -127,6 +178,7 @@
     "part": "control",
     "role": "textbox",
     "portal": false,
+    "touch": false,
     "stories": [
       "Field/Playground",
       "Field/States",
@@ -142,6 +194,7 @@
     "part": "root",
     "role": "link",
     "portal": false,
+    "touch": false,
     "stories": [
       "Link/Playground",
       "Link/InContext",
@@ -155,6 +208,7 @@
     "part": "input",
     "role": "textbox",
     "portal": false,
+    "touch": false,
     "stories": [
       "TextField/Playground",
       "TextField/Types",
@@ -170,6 +224,7 @@
     "part": "clear",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "TextField/Playground",
       "TextField/Types",
@@ -185,6 +240,7 @@
     "part": "show-password",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "TextField/Playground",
       "TextField/Types",
@@ -200,6 +256,7 @@
     "part": "input",
     "role": "textbox",
     "portal": false,
+    "touch": false,
     "stories": [
       "TextArea/Playground",
       "TextArea/AutoGrow",
@@ -214,6 +271,7 @@
     "part": "box",
     "role": "checkbox",
     "portal": false,
+    "touch": false,
     "stories": [
       "Checkbox/Playground",
       "Checkbox/States",
@@ -227,6 +285,7 @@
     "part": "hidden-input",
     "role": "checkbox",
     "portal": false,
+    "touch": false,
     "stories": [
       "Checkbox/Playground",
       "Checkbox/States",
@@ -240,6 +299,7 @@
     "part": "circle",
     "role": "radio",
     "portal": false,
+    "touch": false,
     "stories": [
       "RadioGroup/Playground",
       "RadioGroup/Sizes",
@@ -254,6 +314,7 @@
     "part": "hidden-input",
     "role": "radio",
     "portal": false,
+    "touch": false,
     "stories": [
       "RadioGroup/Playground",
       "RadioGroup/Sizes",
@@ -268,6 +329,7 @@
     "part": "track",
     "role": "switch",
     "portal": false,
+    "touch": false,
     "stories": [
       "Switch/Playground",
       "Switch/Settings",
@@ -281,6 +343,7 @@
     "part": "hidden-input",
     "role": "checkbox",
     "portal": false,
+    "touch": false,
     "stories": [
       "Switch/Playground",
       "Switch/Settings",
@@ -294,9 +357,11 @@
     "part": "cancel",
     "role": "button",
     "portal": true,
+    "touch": false,
     "stories": [
       "EditSheet/Playground",
-      "EditSheet/Controlled"
+      "EditSheet/Controlled",
+      "EditSheet/DiscardPrompt"
     ]
   },
   {
@@ -306,9 +371,39 @@
     "part": "submit",
     "role": "button",
     "portal": true,
+    "touch": false,
     "stories": [
       "EditSheet/Playground",
-      "EditSheet/Controlled"
+      "EditSheet/Controlled",
+      "EditSheet/DiscardPrompt"
+    ]
+  },
+  {
+    "item": "edit-sheet",
+    "stem": "edit-sheet",
+    "mode": "default",
+    "part": "keep-editing",
+    "role": "button",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "EditSheet/Playground",
+      "EditSheet/Controlled",
+      "EditSheet/DiscardPrompt"
+    ]
+  },
+  {
+    "item": "edit-sheet",
+    "stem": "edit-sheet",
+    "mode": "default",
+    "part": "discard",
+    "role": "button",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "EditSheet/Playground",
+      "EditSheet/Controlled",
+      "EditSheet/DiscardPrompt"
     ]
   },
   {
@@ -318,6 +413,7 @@
     "part": "trigger",
     "role": "combobox",
     "portal": false,
+    "touch": false,
     "stories": [
       "Select/Playground",
       "Select/States",
@@ -333,6 +429,7 @@
     "part": "option",
     "role": "option",
     "portal": true,
+    "touch": false,
     "stories": [
       "Select/Playground",
       "Select/States",
@@ -348,6 +445,7 @@
     "part": "hidden-input",
     "role": "textbox",
     "portal": false,
+    "touch": false,
     "stories": [
       "Select/Playground",
       "Select/States",
@@ -363,6 +461,7 @@
     "part": "select",
     "role": "combobox",
     "portal": false,
+    "touch": false,
     "stories": [
       "NativeSelect/Playground",
       "NativeSelect/States"
@@ -375,6 +474,7 @@
     "part": "input",
     "role": "textbox",
     "portal": false,
+    "touch": false,
     "stories": [
       "NumberField/Playground",
       "NumberField/Formats",
@@ -388,6 +488,7 @@
     "part": "decrement",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "NumberField/Playground",
       "NumberField/Formats",
@@ -401,6 +502,7 @@
     "part": "increment",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "NumberField/Playground",
       "NumberField/Formats",
@@ -414,6 +516,7 @@
     "part": "hidden-input",
     "role": "spinbutton",
     "portal": false,
+    "touch": false,
     "stories": [
       "NumberField/Playground",
       "NumberField/Formats",
@@ -427,6 +530,7 @@
     "part": "thumb",
     "role": "slider",
     "portal": false,
+    "touch": false,
     "stories": [
       "Slider/Playground",
       "Slider/Range",
@@ -440,6 +544,7 @@
     "part": "input",
     "role": "combobox",
     "portal": false,
+    "touch": false,
     "stories": [
       "Combobox/Playground",
       "Combobox/Modes",
@@ -454,6 +559,7 @@
     "part": "option",
     "role": "option",
     "portal": true,
+    "touch": false,
     "stories": [
       "Combobox/Playground",
       "Combobox/Modes",
@@ -468,6 +574,7 @@
     "part": "clear",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "Combobox/Playground",
       "Combobox/Modes",
@@ -482,6 +589,7 @@
     "part": "chip-remove",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "Combobox/Playground",
       "Combobox/Modes",
@@ -496,6 +604,67 @@
     "part": "hidden-input",
     "role": "textbox",
     "portal": false,
+    "touch": false,
+    "stories": [
+      "Combobox/Playground",
+      "Combobox/Modes",
+      "Combobox/Search",
+      "Combobox/States"
+    ]
+  },
+  {
+    "item": "combobox",
+    "stem": "combobox",
+    "mode": "default",
+    "part": "dismiss",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Combobox/Playground",
+      "Combobox/Modes",
+      "Combobox/Search",
+      "Combobox/States"
+    ]
+  },
+  {
+    "item": "combobox",
+    "stem": "combobox",
+    "mode": "default",
+    "part": "popup-dismiss",
+    "role": "button",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "Combobox/Playground",
+      "Combobox/Modes",
+      "Combobox/Search",
+      "Combobox/States"
+    ]
+  },
+  {
+    "item": "combobox",
+    "stem": "combobox",
+    "mode": "default",
+    "part": "trigger",
+    "role": "combobox",
+    "portal": false,
+    "touch": true,
+    "stories": [
+      "Combobox/Playground",
+      "Combobox/Modes",
+      "Combobox/Search",
+      "Combobox/States"
+    ]
+  },
+  {
+    "item": "combobox",
+    "stem": "combobox",
+    "mode": "default",
+    "part": "done",
+    "role": "button",
+    "portal": true,
+    "touch": true,
     "stories": [
       "Combobox/Playground",
       "Combobox/Modes",
@@ -510,6 +679,7 @@
     "part": "toast",
     "role": "dialog",
     "portal": true,
+    "touch": false,
     "stories": [
       "Toaster/Playground",
       "Toaster/Tones",
@@ -524,6 +694,7 @@
     "part": "alert",
     "role": "alertdialog",
     "portal": true,
+    "touch": false,
     "stories": [
       "Toaster/Playground",
       "Toaster/Tones",
@@ -538,6 +709,7 @@
     "part": "action",
     "role": "button",
     "portal": true,
+    "touch": false,
     "stories": [
       "Toaster/Playground",
       "Toaster/Tones",
@@ -552,6 +724,7 @@
     "part": "close",
     "role": "button",
     "portal": true,
+    "touch": false,
     "stories": [
       "Toaster/Playground",
       "Toaster/Tones",
@@ -566,6 +739,7 @@
     "part": "root",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "Badge/Filters"
     ]
@@ -577,6 +751,7 @@
     "part": "root",
     "role": "link",
     "portal": false,
+    "touch": false,
     "stories": [
       "Badge/InContext"
     ]
@@ -588,6 +763,7 @@
     "part": "dismiss",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "Alert/Playground",
       "Alert/Tones",
@@ -601,11 +777,13 @@
     "part": "close",
     "role": "button",
     "portal": true,
+    "touch": false,
     "stories": [
       "Popover/Playground",
       "Popover/AutoPresentation",
       "Popover/Sides",
-      "Popover/Controlled"
+      "Popover/Controlled",
+      "Popover/Parts"
     ]
   },
   {
@@ -615,11 +793,29 @@
     "part": "content",
     "role": "generic",
     "portal": true,
+    "touch": false,
     "stories": [
       "Popover/Playground",
       "Popover/AutoPresentation",
       "Popover/Sides",
-      "Popover/Controlled"
+      "Popover/Controlled",
+      "Popover/Parts"
+    ]
+  },
+  {
+    "item": "popover",
+    "stem": "popover",
+    "mode": "default",
+    "part": "trigger",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Popover/Playground",
+      "Popover/AutoPresentation",
+      "Popover/Sides",
+      "Popover/Controlled",
+      "Popover/Parts"
     ]
   },
   {
@@ -629,6 +825,7 @@
     "part": "bar-trigger",
     "role": "menuitem",
     "portal": false,
+    "touch": false,
     "stories": [
       "Menu/Playground",
       "Menu/Items",
@@ -645,6 +842,7 @@
     "part": "item",
     "role": "menuitem",
     "portal": true,
+    "touch": false,
     "stories": [
       "Menu/Playground",
       "Menu/Items",
@@ -661,6 +859,7 @@
     "part": "checkbox-item",
     "role": "menuitemcheckbox",
     "portal": true,
+    "touch": false,
     "stories": [
       "Menu/Playground",
       "Menu/Items",
@@ -677,6 +876,7 @@
     "part": "radio-item",
     "role": "menuitemradio",
     "portal": true,
+    "touch": false,
     "stories": [
       "Menu/Playground",
       "Menu/Items",
@@ -693,6 +893,7 @@
     "part": "submenu-trigger",
     "role": "menuitem",
     "portal": true,
+    "touch": false,
     "stories": [
       "Menu/Playground",
       "Menu/Items",
@@ -709,6 +910,24 @@
     "part": "close",
     "role": "menuitem",
     "portal": true,
+    "touch": false,
+    "stories": [
+      "Menu/Playground",
+      "Menu/Items",
+      "Menu/Settings",
+      "Menu/IconTrigger",
+      "Menu/ContextMenu",
+      "Menu/Bar"
+    ]
+  },
+  {
+    "item": "menu",
+    "stem": "menu",
+    "mode": "default",
+    "part": "back",
+    "role": "menuitem",
+    "portal": true,
+    "touch": false,
     "stories": [
       "Menu/Playground",
       "Menu/Items",
@@ -725,6 +944,7 @@
     "part": "input",
     "role": "combobox",
     "portal": true,
+    "touch": false,
     "stories": [
       "Command/Playground",
       "Command/Shortcut",
@@ -739,6 +959,7 @@
     "part": "item",
     "role": "option",
     "portal": true,
+    "touch": false,
     "stories": [
       "Command/Playground",
       "Command/Shortcut",
@@ -753,6 +974,7 @@
     "part": "hidden-input",
     "role": "textbox",
     "portal": true,
+    "touch": false,
     "stories": [
       "Command/Playground",
       "Command/Shortcut",
@@ -767,6 +989,7 @@
     "part": "tab",
     "role": "tab",
     "portal": false,
+    "touch": false,
     "stories": [
       "Tabs/Playground",
       "Tabs/InContext",
@@ -781,6 +1004,7 @@
     "part": "panel",
     "role": "tabpanel",
     "portal": false,
+    "touch": false,
     "stories": [
       "Tabs/Playground",
       "Tabs/InContext",
@@ -795,6 +1019,7 @@
     "part": "segment",
     "role": "radio",
     "portal": false,
+    "touch": false,
     "stories": [
       "SegmentedControl/Playground",
       "SegmentedControl/InContext",
@@ -808,6 +1033,7 @@
     "part": "trigger",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "Accordion/Playground",
       "Accordion/InContext",
@@ -821,6 +1047,7 @@
     "part": "trigger",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "Collapsible/Playground",
       "Collapsible/InContext"
@@ -833,6 +1060,7 @@
     "part": "toggle",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "ShowMore/Playground"
     ]
@@ -844,6 +1072,7 @@
     "part": "toggle",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "ShowMore/InContext"
     ]
@@ -855,6 +1084,7 @@
     "part": "toggle",
     "role": "link",
     "portal": false,
+    "touch": false,
     "stories": [
       "ShowMore/LoadMore"
     ]
@@ -866,6 +1096,7 @@
     "part": "link",
     "role": "link",
     "portal": false,
+    "touch": false,
     "stories": [
       "Card/InContext",
       "Card/ShareOverCover"
@@ -878,6 +1109,7 @@
     "part": "link",
     "role": "link",
     "portal": false,
+    "touch": false,
     "stories": [
       "Item/InContext",
       "Item/RecipeList"
@@ -890,6 +1122,7 @@
     "part": "viewport",
     "role": "region",
     "portal": false,
+    "touch": false,
     "stories": [
       "ScrollArea/Playground",
       "ScrollArea/InContext"
@@ -902,6 +1135,7 @@
     "part": "menu",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "Navbar/Playground",
       "Navbar/InContext",
@@ -915,6 +1149,7 @@
     "part": "sheet-link",
     "role": "link",
     "portal": true,
+    "touch": false,
     "stories": [
       "Navbar/Playground",
       "Navbar/InContext",
@@ -928,6 +1163,7 @@
     "part": "menu",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "Sidebar/Playground",
       "Sidebar/InContext",
@@ -942,6 +1178,7 @@
     "part": "link",
     "role": "link",
     "portal": false,
+    "touch": false,
     "stories": [
       "Sidebar/Playground",
       "Sidebar/InContext",
@@ -956,6 +1193,7 @@
     "part": "button",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "Sidebar/Playground",
       "Sidebar/InContext",
@@ -970,6 +1208,7 @@
     "part": "group",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "Sidebar/Playground",
       "Sidebar/InContext",
@@ -984,6 +1223,7 @@
     "part": "collapse",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "Sidebar/Playground",
       "Sidebar/InContext",
@@ -998,6 +1238,7 @@
     "part": "skip-link",
     "role": "link",
     "portal": false,
+    "touch": false,
     "stories": [
       "SidebarLayout/Playground",
       "SidebarLayout/InContext"
@@ -1010,6 +1251,7 @@
     "part": "skip-link",
     "role": "link",
     "portal": false,
+    "touch": false,
     "stories": [
       "StackedLayout/Playground",
       "StackedLayout/InContext"
@@ -1022,6 +1264,7 @@
     "part": "crumb",
     "role": "link",
     "portal": false,
+    "touch": false,
     "stories": [
       "Breadcrumb/Playground",
       "Breadcrumb/InContext",
@@ -1035,6 +1278,7 @@
     "part": "more",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "Breadcrumb/Playground",
       "Breadcrumb/InContext",
@@ -1048,6 +1292,7 @@
     "part": "previous",
     "role": "link",
     "portal": false,
+    "touch": false,
     "stories": [
       "Pagination/Playground",
       "Pagination/InContext",
@@ -1061,6 +1306,7 @@
     "part": "page",
     "role": "link",
     "portal": false,
+    "touch": false,
     "stories": [
       "Pagination/Playground",
       "Pagination/InContext",
@@ -1074,6 +1320,7 @@
     "part": "next",
     "role": "link",
     "portal": false,
+    "touch": false,
     "stories": [
       "Pagination/Playground",
       "Pagination/InContext",
@@ -1087,6 +1334,7 @@
     "part": "previous",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "Pagination/Buttons"
     ]
@@ -1098,6 +1346,7 @@
     "part": "page",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "Pagination/Buttons"
     ]
@@ -1109,6 +1358,7 @@
     "part": "next",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "Pagination/Buttons"
     ]
@@ -1120,6 +1370,7 @@
     "part": "trigger",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "NavigationMenu/Playground",
       "NavigationMenu/InContext",
@@ -1133,6 +1384,7 @@
     "part": "link",
     "role": "link",
     "portal": false,
+    "touch": false,
     "stories": [
       "NavigationMenu/Playground",
       "NavigationMenu/InContext",
@@ -1146,6 +1398,7 @@
     "part": "panel-link",
     "role": "link",
     "portal": true,
+    "touch": false,
     "stories": [
       "NavigationMenu/Playground",
       "NavigationMenu/InContext",
@@ -1159,6 +1412,7 @@
     "part": "row-link",
     "role": "link",
     "portal": false,
+    "touch": false,
     "stories": [
       "Table/Playground",
       "Table/InContext",
@@ -1174,6 +1428,7 @@
     "part": "root",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "Toggle/Playground",
       "Toggle/States",
@@ -1187,6 +1442,7 @@
     "part": "item",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "ToggleGroup/Playground",
       "ToggleGroup/Modes",
@@ -1200,6 +1456,7 @@
     "part": "slot",
     "role": "textbox",
     "portal": false,
+    "touch": false,
     "stories": [
       "OtpField/Playground",
       "OtpField/States"
@@ -1212,6 +1469,7 @@
     "part": "hidden-input",
     "role": "textbox",
     "portal": false,
+    "touch": false,
     "stories": [
       "OtpField/Playground",
       "OtpField/States"
@@ -1224,9 +1482,25 @@
     "part": "input",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "FileField/Playground",
-      "FileField/States"
+      "FileField/States",
+      "FileField/WithFile"
+    ]
+  },
+  {
+    "item": "file-field",
+    "stem": "file-field",
+    "mode": "single",
+    "part": "remove",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "FileField/Playground",
+      "FileField/States",
+      "FileField/WithFile"
     ]
   },
   {
@@ -1236,8 +1510,23 @@
     "part": "input",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
-      "FileField/Limits"
+      "FileField/Limits",
+      "FileField/WithFiles"
+    ]
+  },
+  {
+    "item": "file-field",
+    "stem": "file-field",
+    "mode": "multiple",
+    "part": "remove",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "FileField/Limits",
+      "FileField/WithFiles"
     ]
   },
   {
@@ -1247,6 +1536,7 @@
     "part": "picker",
     "role": "textbox",
     "portal": false,
+    "touch": false,
     "stories": [
       "ColorField/Playground",
       "ColorField/States",
@@ -1260,6 +1550,7 @@
     "part": "input",
     "role": "textbox",
     "portal": false,
+    "touch": false,
     "stories": [
       "ColorField/Playground",
       "ColorField/States",
@@ -1273,6 +1564,7 @@
     "part": "action",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "SwipeActions/Playground",
       "SwipeActions/InContext"
@@ -1285,6 +1577,7 @@
     "part": "menu",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "SwipeActions/Playground",
       "SwipeActions/InContext"
@@ -1297,6 +1590,7 @@
     "part": "handle",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "Reorderable/Playground",
       "Reorderable/InContext",
@@ -1310,6 +1604,7 @@
     "part": "previous",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "Calendar/Playground",
       "Calendar/Range",
@@ -1324,6 +1619,7 @@
     "part": "next",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "Calendar/Playground",
       "Calendar/Range",
@@ -1338,6 +1634,7 @@
     "part": "day",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "Calendar/Playground",
       "Calendar/Range",
@@ -1352,6 +1649,7 @@
     "part": "input",
     "role": "textbox",
     "portal": false,
+    "touch": false,
     "stories": [
       "DatePicker/Playground",
       "DatePicker/States",
@@ -1366,6 +1664,7 @@
     "part": "trigger",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "DatePicker/Playground",
       "DatePicker/States",
@@ -1380,6 +1679,7 @@
     "part": "hidden-input",
     "role": "textbox",
     "portal": false,
+    "touch": false,
     "stories": [
       "DatePicker/Playground",
       "DatePicker/States",
@@ -1394,6 +1694,7 @@
     "part": "viewport",
     "role": "generic",
     "portal": false,
+    "touch": false,
     "stories": [
       "Carousel/Playground",
       "Carousel/Photos",
@@ -1407,6 +1708,7 @@
     "part": "previous",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "Carousel/Playground",
       "Carousel/Photos",
@@ -1420,6 +1722,7 @@
     "part": "next",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "Carousel/Playground",
       "Carousel/Photos",
@@ -1433,11 +1736,29 @@
     "part": "handle",
     "role": "separator",
     "portal": false,
+    "touch": false,
     "stories": [
       "Resizable/Playground",
       "Resizable/SideBySide",
       "Resizable/Stacked",
-      "Resizable/Parts"
+      "Resizable/Parts",
+      "Resizable/LongContent"
+    ]
+  },
+  {
+    "item": "resizable",
+    "stem": "resizable",
+    "mode": "default",
+    "part": "panel",
+    "role": "generic",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Resizable/Playground",
+      "Resizable/SideBySide",
+      "Resizable/Stacked",
+      "Resizable/Parts",
+      "Resizable/LongContent"
     ]
   },
   {
@@ -1447,6 +1768,7 @@
     "part": "plot",
     "role": "application",
     "portal": false,
+    "touch": false,
     "stories": [
       "Chart/Playground",
       "Chart/Lines",
@@ -1462,9 +1784,25 @@
     "part": "scroller",
     "role": "region",
     "portal": false,
+    "touch": false,
     "stories": [
       "MessageList/Conversation",
-      "MessageList/Live"
+      "MessageList/Live",
+      "MessageList/ScrolledBack"
+    ]
+  },
+  {
+    "item": "message-list",
+    "stem": "message-list",
+    "mode": "default",
+    "part": "jump",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "MessageList/Conversation",
+      "MessageList/Live",
+      "MessageList/ScrolledBack"
     ]
   },
   {
@@ -1474,6 +1812,7 @@
     "part": "link",
     "role": "link",
     "portal": false,
+    "touch": false,
     "stories": [
       "Attachment/Playground",
       "Attachment/Files",
@@ -1487,6 +1826,7 @@
     "part": "remove",
     "role": "button",
     "portal": false,
+    "touch": false,
     "stories": [
       "Attachment/Playground",
       "Attachment/Files",

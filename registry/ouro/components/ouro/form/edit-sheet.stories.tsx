@@ -5,6 +5,16 @@ import { EditSheet } from "@/registry/ouro/components/ouro/form/edit-sheet";
 import { Select } from "@/registry/ouro/components/ouro/select/select";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 
+/** Resolves with what `find` returns once it returns something, checking once a frame (a play function's wait). */
+async function frameUntil<T>(find: () => T | null | undefined): Promise<T> {
+  for (let frame = 0; frame < 600; frame++) {
+    const found = find();
+    if (found) return found;
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+  }
+  throw new Error("the story never reached the state it shows");
+}
+
 /** A stand-in for a save: it takes a moment, and turns down the name "Pasta". */
 const save = (data: FormData) =>
   new Promise<{ name: string } | undefined>((resolve) =>
@@ -76,5 +86,21 @@ export const Controlled: Story = {
         </EditSheet>
       </>
     );
+  },
+};
+
+/**
+ * Cancel after an edit asks first: Keep editing goes back to the form, Discard closes it. The
+ * story opens the sheet, renames the recipe and presses Cancel.
+ */
+export const DiscardPrompt: Story = {
+  play: async ({ canvasElement }) => {
+    const page = canvasElement.ownerDocument;
+    (await frameUntil(() => canvasElement.querySelector("button"))).click();
+    const name = await frameUntil(() => page.querySelector<HTMLInputElement>('input[name="name"]'));
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(name, "Shakshuka with feta");
+    name.dispatchEvent(new Event("input", { bubbles: true }));
+    (await frameUntil(() => [...page.querySelectorAll("button")].find((button) => button.textContent === "Cancel"))).click();
+    await frameUntil(() => [...page.querySelectorAll("button")].find((button) => button.textContent === "Discard"));
   },
 };

@@ -4,7 +4,8 @@
   "controls": {
     "dialog": [
       {"part": "close", "role": "button", "portal": true},
-      {"part": "content", "role": "generic", "portal": true}
+      {"part": "content", "role": "generic", "portal": true},
+      {"part": "trigger", "role": "button", "portal": false}
     ],
     "confirm-dialog": [
       {"part": "cancel", "role": "button", "portal": true},

@@ -312,6 +312,9 @@ export function ResizablePanel(props: ResizablePanelProps): JSX.Element {
       ref={scrollRef}
       id={group.ids[index]}
       data-ouro="resizable-panel"
+      // A panel whose content overflows is a tab stop (useKeyboardScrollable), so it is a control.
+      data-ouro-control="resizable"
+      data-ouro-part="panel"
       style={{ flexGrow: group.sizes[index], flexShrink: 1, flexBasis: 0 }}
       className={cn(panelClass, className)}
     >

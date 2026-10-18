@@ -4,7 +4,8 @@
   "modes": {"file-field": ["single", "multiple"]},
   "controls": {
     "file-field": [
-      {"part": "input", "role": "button", "portal": false}
+      {"part": "input", "role": "button", "portal": false},
+      {"part": "remove", "role": "button", "portal": false}
     ]
   }
 }

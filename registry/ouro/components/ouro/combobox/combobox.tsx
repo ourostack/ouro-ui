@@ -2,7 +2,7 @@
 
 import { Autocomplete as BaseAutocomplete } from "@base-ui/react/autocomplete";
 import { Combobox as BaseCombobox } from "@base-ui/react/combobox";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type JSX, type ReactNode, type Ref, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type JSX, type ReactNode, type Ref, type RefCallback, type RefObject } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-styles";
@@ -249,6 +249,28 @@ const owner = { name: "Combobox", data: "combobox" };
 /** Marks the hidden input Base UI submits a picked value with. */
 const markInput = controlRef("combobox", "hidden-input");
 
+/**
+ * A callback ref that marks the visually hidden Dismiss button Base UI adds for screen readers
+ * while the list is open, beside the input and beside the popup. Base UI takes no props or ref
+ * for it, so the marker goes on whenever one appears under the element.
+ */
+function dismissMarker(item: string, part: string): RefCallback<HTMLElement> {
+  return (element) => {
+    const mark = () => {
+      for (const dismiss of element!.querySelectorAll('span[role="button"]:not([data-base-ui-focus-guard])')) {
+        dismiss.setAttribute("data-ouro-control", item);
+        dismiss.setAttribute("data-ouro-part", part);
+      }
+    };
+    mark();
+    const observer = new MutationObserver(mark);
+    observer.observe(element!, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  };
+}
+const markDismiss = dismissMarker("combobox", "dismiss");
+const markPopupDismiss = dismissMarker("combobox", "popup-dismiss");
+
 const toOption = (item: ComboboxItem): Option => (typeof item === "string" ? { value: item, label: item } : item);
 
 /** Icons drawn in the text color at 16px, like the other Ouro icons. */
@@ -487,7 +509,7 @@ function ListBody({
 function Popup({ loading, children }: { loading: boolean | undefined; children: ReactNode }): JSX.Element {
   return (
     <BaseCombobox.Portal data-ouro="combobox-portal" className="relative isolate z-(--ouro-layer)">
-      <BaseCombobox.Positioner sideOffset={4} className="outline-none">
+      <BaseCombobox.Positioner ref={markPopupDismiss} sideOffset={4} className="outline-none">
         <BaseCombobox.Popup data-ouro="combobox-popup" aria-busy={loading || undefined} className={popupClass}>
           {children}
         </BaseCombobox.Popup>
@@ -704,7 +726,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
             }
           >
             <div data-ouro-combobox-search="" className={sheetInputClass}>
-              <div data-ouro-input-group="" className={groupClass}>
+              <div ref={markDismiss} data-ouro-input-group="" className={groupClass}>
                 {input(inputClass, { "aria-label": label })}
               </div>
             </div>
@@ -713,7 +735,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
         </div>
       ) : (
         <>
-          <BaseCombobox.InputGroup data-ouro-input-group="" className={multiple ? chipsGroupClass : groupClass}>
+          <BaseCombobox.InputGroup ref={markDismiss} data-ouro-input-group="" className={multiple ? chipsGroupClass : groupClass}>
             {multiple ? (
               <BaseCombobox.Chips className="contents">
                 <BaseCombobox.Value>
@@ -774,7 +796,7 @@ function AutocompleteControl(props: ControlProps): JSX.Element {
         if (details.reason !== "item-press") onInputChange?.(next);
       }}
     >
-      <BaseAutocomplete.InputGroup data-ouro-input-group="" className={groupClass}>
+      <BaseAutocomplete.InputGroup ref={markDismiss} data-ouro-input-group="" className={groupClass}>
         <BaseAutocomplete.Input
           ref={setInputRef}
           data-ouro-control="combobox"

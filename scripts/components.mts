@@ -17,7 +17,8 @@
 // props), the first being what a story renders unless its `parameters.mode` says otherwise.
 // `controls` lists every element of a component a person can focus or operate: the part name its
 // `data-ouro-part` carries, its ARIA role, whether it renders in a portal outside the component,
-// and the modes it appears in (all of them when left out).
+// the modes it appears in (all of them when left out), and `"touch": true` when only a coarse
+// pointer reaches it (Combobox's sheet), so the ouro-touch project checks it.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -50,6 +51,8 @@ export interface ControlPart {
   portal: boolean;
   /** The modes it renders in; every mode when left out. */
   modes?: string[];
+  /** Whether only a coarse pointer reaches it, so the ouro-touch project checks it. */
+  touch?: boolean;
 }
 
 const kebab = /^[a-z][a-z0-9-]*$/;
@@ -76,6 +79,7 @@ function readControls(where: string, stems: string[], manifest: { modes?: unknow
       if (typeof entry.part !== "string" || !kebab.test(entry.part) || typeof entry.role !== "string" || !/^[a-z]+$/.test(entry.role) || typeof entry.portal !== "boolean") {
         throw new Error(`${where} each of ${stem}'s "controls" needs a part, a role and portal: { "part": "trigger", "role": "button", "portal": false }.`);
       }
+      if (entry.touch !== undefined && entry.touch !== true) throw new Error(`${where} ${stem}'s ${entry.part} takes "touch": true or no "touch" at all.`);
       if (entry.modes !== undefined && !isNames(entry.modes)) throw new Error(`${where} ${stem}'s ${entry.part} needs "modes" to be a non-empty list of mode names.`);
       const partModes = (entry.modes as string[] | undefined) ?? (stemModes.length > 0 ? stemModes : [""]);
       for (const mode of partModes) {

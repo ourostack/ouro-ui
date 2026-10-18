@@ -1,57 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { commands, page } from "vitest/browser";
-import matrix from "./generated/control-matrix.json";
-import { collectControls, controlRole, interactiveSelector } from "./controls.ts";
-import { cleanupStories, closeOverlay, openOverlay, overlayOpeners, renderStory, settle, stories, story } from "./stories.tsx";
+import { commands } from "vitest/browser";
+import { describeRows, describeStories, rows } from "./control-suite.tsx";
+import { censusExclusions, collectControls, controlRole, interactiveSelector } from "./controls.ts";
+import { cleanupStories, renderStory } from "./stories.tsx";
 
-// Every element a person can focus or operate in a story carries `data-ouro-control` (the
-// registry item that rendered it) and `data-ouro-part` (which of that item's parts it is), and
-// every part an item declares in its component.json `controls` is found by that identity.
-// The rows come from test/generated/control-matrix.json (`pnpm controls:matrix`), so this test
-// never reads the manifests itself.
-
-interface ControlRow {
-  item: string;
-  stem: string;
-  mode: string;
-  part: string;
-  role: string;
-  portal: boolean;
-  stories: string[];
-}
-
-const rows = matrix as ControlRow[];
-
-/** The parts each item declares, by item name. */
-const declared = new Map<string, Set<string>>();
-for (const row of rows) declared.set(row.item, (declared.get(row.item) ?? new Set()).add(row.part));
-
-/** The widths the stories render at: a desktop, and a phone, where some controls move into sheets. */
-const widths = [
-  { width: 1280, height: 800 },
-  { width: 390, height: 844 },
-];
-
-/** The start of an element's markup, enough to find it in the story. */
-const snippet = (element: Element) => element.outerHTML.slice(0, 120);
-
-/** The controls in the page that lack a known item name or a part their item declares, described with the state they were found in. */
-function unmarked(state: string): string[] {
-  return collectControls()
-    .filter((element) => {
-      const item = element.getAttribute("data-ouro-control");
-      const part = element.getAttribute("data-ouro-part");
-      return item === null || part === null || !declared.get(item)?.has(part);
-    })
-    .map((element) => `${state}: ${snippet(element)}`);
-}
-
-/** Component roots a story's harness wraps: the harness may hold only the story's own controls. */
-function harnessedRoots(host: HTMLElement): string[] {
-  const found = [...document.querySelectorAll("[data-ouro]")].filter((element) => element.closest("[data-test-harness]")).map(snippet);
-  if (host.closest("[data-test-harness]")) found.push(`the story host: ${snippet(host)}`);
-  return found;
-}
+// The control marker checks (test/control-suite.tsx) at a desktop width and a phone width, where
+// some controls move into sheets; test/controls.touch.test.tsx runs them on a touch phone.
 
 beforeEach(async () => {
   await commands.emulateMedia({ reducedMotion: "no-preference" });
@@ -60,8 +14,13 @@ afterEach(async () => {
   await cleanupStories();
 });
 
+const sizes = [
+  { width: 1280, height: 800 },
+  { width: 390, height: 844 },
+];
+
 describe("finding controls", () => {
-  it("collects every control outside the harness, leaving out what Base UI renders on its own", async () => {
+  it("collects every control outside the harness, leaving out only Base UI's focus guards", async () => {
     const host = await renderStory(() => (
       <div>
         <button type="button">Inside</button>
@@ -75,8 +34,11 @@ describe("finding controls", () => {
         </div>
       </div>
     ));
-    expect(collectControls(host).map((element) => element.textContent)).toEqual(["Inside", "Link"]);
-    expect(collectControls().map((element) => element.textContent)).toEqual(["Inside", "Link"]);
+    // A screen reader's Dismiss button, such as the one Base UI adds to a combobox, is a control:
+    // only Base UI's focus guards (censusExclusions) are left out.
+    expect(collectControls(host).map((element) => element.textContent || element.getAttribute("aria-label"))).toEqual(["Inside", "Link", "Dismiss"]);
+    expect(collectControls().map((element) => element.textContent || element.getAttribute("aria-label"))).toEqual(["Inside", "Link", "Dismiss"]);
+    expect(censusExclusions).toEqual(["[data-base-ui-focus-guard]"]);
     expect(interactiveSelector).toContain('[role="option"]');
   });
 
@@ -130,59 +92,9 @@ describe("finding controls", () => {
   });
 });
 
-describe("every declared part is marked", () => {
-  it("has rows", () => {
-    expect(rows.length).toBeGreaterThan(0);
-  });
-
-  it.each(rows)("$item $stem $mode $part is marked", async (row) => {
-    const locator = `[data-ouro-control="${row.item}"][data-ouro-part="${row.part}"]`;
-    const misplaced: string[] = [];
-    /** Whether the part is in the page with its role, inside the story host or, for a portaled part, outside it. */
-    const found = (host: HTMLElement) =>
-      [...document.querySelectorAll(locator)].some((element) => {
-        if (controlRole(element) !== row.role) return false;
-        if (host.contains(element) === row.portal) {
-          misplaced.push(`${row.portal ? "inside" : "outside"} the story host, but portal is ${row.portal}: ${snippet(element)}`);
-          return false;
-        }
-        return true;
-      });
-    for (const { width, height } of widths) {
-      await page.viewport(width, height);
-      for (const id of row.stories) {
-        const host = await renderStory(story(id));
-        await settle();
-        if (found(host)) return;
-        if (row.portal) {
-          for (const opener of overlayOpeners(id, host)) {
-            await openOverlay(opener);
-            const hit = found(host);
-            await closeOverlay();
-            if (hit) return;
-          }
-        }
-        await cleanupStories();
-      }
-    }
-    expect.fail(`no element in ${row.stories.join(", ")} matches ${locator} with role "${row.role}"${misplaced.length ? `\n${misplaced.join("\n")}` : ""}`);
-  });
-});
-
-describe.each(widths)("no control is left unmarked at $width px", ({ width, height }) => {
-  it.each(stories)("$id leaves no control unmarked", async ({ id, Story }) => {
-    await page.viewport(width, height);
-    const host = await renderStory(Story);
-    await settle();
-    const found = unmarked("closed");
-    const harnessed = harnessedRoots(host);
-    for (const opener of overlayOpeners(id, host)) {
-      await openOverlay(opener);
-      found.push(...unmarked(`with "${opener.name}" open`));
-      harnessed.push(...harnessedRoots(host));
-      await closeOverlay();
-    }
-    expect(found.join("\n")).toBe("");
-    expect(harnessed.join("\n"), "a [data-test-harness] element holds a component").toBe("");
-  });
-});
+describeRows(
+  "every declared part is marked",
+  rows.filter((row) => !row.touch),
+  sizes,
+);
+describeStories((size) => `no control is left unmarked at ${size!.width} px`, sizes);

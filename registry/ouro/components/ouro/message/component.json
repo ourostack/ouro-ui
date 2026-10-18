@@ -7,7 +7,8 @@
       {"part": "remove", "role": "button", "portal": false}
     ],
     "message-list": [
-      {"part": "scroller", "role": "region", "portal": false}
+      {"part": "scroller", "role": "region", "portal": false},
+      {"part": "jump", "role": "button", "portal": false}
     ]
   }
 }

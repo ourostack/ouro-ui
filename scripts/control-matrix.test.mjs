@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { readComponents } from "./components.mts";
-import { buildMatrix, defaultMode, readStoryModes } from "./control-matrix.mts";
+import { buildMatrix, defaultMode, readStoryModes, sourceMarkers } from "./control-matrix.mts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const script = join(root, "scripts/control-matrix.mts");
@@ -106,7 +106,10 @@ test("each row is one part of one mode, found by its own stories, portaled parts
 test("the matrix holds only plain data a browser test can import", () => {
   const file = JSON.parse(readFileSync(join(root, "test/generated/control-matrix.json"), "utf8"));
   assert.deepEqual(file, matrix);
-  for (const row of file) assert.deepEqual(Object.keys(row), ["item", "stem", "mode", "part", "role", "portal", "stories"]);
+  for (const row of file) assert.deepEqual(Object.keys(row), ["item", "stem", "mode", "part", "role", "portal", "touch", "stories"]);
+  // A part only a coarse pointer reaches (Combobox's sheet) is checked in the ouro-touch project.
+  assert.ok(file.some((row) => row.stem === "combobox" && row.part === "done" && row.touch));
+  assert.ok(file.every((row) => typeof row.touch === "boolean"));
 });
 
 test("the reader rejects controls and modes that name nothing real", () => {
@@ -117,6 +120,7 @@ test("the reader rejects controls and modes that name nothing real", () => {
     [(manifest) => (manifest.controls = { button: [{ part: "Root", role: "button", portal: false }] }), /part, a role and portal/],
     [(manifest) => (manifest.controls = { button: [{ part: "root", role: "button" }] }), /part, a role and portal/],
     [(manifest) => (manifest.controls = { button: [] }), /non-empty list/],
+    [(manifest) => (manifest.controls.button[0].touch = false), /"touch": true or no "touch"/],
     [(manifest) => (manifest.controls.button[0].modes = ["menu"]), /mode menu, which button does not declare/],
     [(manifest) => manifest.controls.button.push({ ...manifest.controls.button[0] }), /lists button's root twice/],
   ];
@@ -125,4 +129,27 @@ test("the reader rejects controls and modes that name nothing real", () => {
     editManifest(dir, "button", edit);
     assert.throws(() => readComponents(dir), message);
   }
+});
+
+test("every control marker in the components' source names a part its item declares, and every declared part is marked", () => {
+  const { markers, problems } = sourceMarkers(root);
+  assert.deepEqual(problems, []);
+  const declared = new Set(components.flatMap((component) => (component.controls ?? []).map((control) => `${component.name}/${control.part}`)));
+  const marked = new Set(markers.map((marker) => `${marker.item}/${marker.part}`));
+  const undeclared = markers.filter((marker) => !declared.has(`${marker.item}/${marker.part}`)).map((marker) => `${marker.item}/${marker.part} (${marker.where})`);
+  assert.deepEqual(undeclared, [], "declare these parts in their component.json \"controls\"");
+  assert.deepEqual([...declared].filter((key) => !marked.has(key)), [], "these declared parts are marked nowhere in the source");
+  // Every way a marker is written is read: JSX, an object of props, setAttribute, controlRef and a
+  // component's own …Marker(item, part) helper.
+  for (const key of ["button/root", "dialog/trigger", "pagination/page", "checkbox/hidden-input", "slider/thumb", "toaster/alert", "toaster/toast", "combobox/dismiss", "combobox/popup-dismiss"]) assert.ok(marked.has(key), key);
+});
+
+test("the source scan reports a part with no item beside it", () => {
+  const dir = scratch();
+  const folder = join(dir, "registry/ouro/components/ouro/button");
+  writeFileSync(join(folder, "button.tsx"), 'export const a = <button data-ouro-part="root" />;\nexport const b = <a data-ouro-control="button" data-ouro-part="extra" />;\n');
+  const { markers, problems } = sourceMarkers(dir);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0], /button\.tsx:1 .*data-ouro-part.*no data-ouro-control/);
+  assert.deepEqual(markers.map((marker) => `${marker.item}/${marker.part}`), ["button/extra"]);
 });
