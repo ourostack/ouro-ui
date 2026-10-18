@@ -275,7 +275,8 @@
     "stories": [
       "Checkbox/Playground",
       "Checkbox/States",
-      "Checkbox/Indeterminate"
+      "Checkbox/Indeterminate",
+      "Checkbox/ReadOnly"
     ]
   },
   {
@@ -289,7 +290,8 @@
     "stories": [
       "Checkbox/Playground",
       "Checkbox/States",
-      "Checkbox/Indeterminate"
+      "Checkbox/Indeterminate",
+      "Checkbox/ReadOnly"
     ]
   },
   {

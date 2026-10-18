@@ -16,7 +16,7 @@ import { STATE_ATTRIBUTES } from "./motion-states.mts";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const components = readComponents(root);
 const checkboxTests = "registry/ouro/components/ouro/checkbox/checkbox.test.tsx";
-const tickTest = `${checkboxTests}::Checkbox look > grows the tick in from 95% as it fades in when checked, and only fades it with reduced motion`;
+const tickTest = `${checkboxTests}::Checkbox look > grows the tick in from 95% as it fades in when checked and shrinks it as it fades out when unchecked, and only fades it with reduced motion`;
 
 /** A scratch copy of every component.json (with empty component files) and the whole checkbox folder, under .tmp/. */
 function scratch() {
@@ -51,18 +51,19 @@ test("Checkbox declares today's motion, part by part, and no other component dec
     ["checkbox"],
   );
   const { states } = motion[0].motion;
-  assert.deepEqual(Object.keys(states).sort(), ["data-checked", "data-disabled", "data-indeterminate", "data-invalid"]);
-  assert.equal(states["data-checked"].kind, "motion");
-  assert.deepEqual(states["data-checked"].parts, {
-    tick: { properties: ["opacity", "scale"], reduced: ["opacity"] },
-    box: { properties: ["background-color", "border-color"], reduced: ["background-color", "border-color"] },
-  });
-  assert.deepEqual(states["data-checked"].tests, [tickTest]);
-  for (const state of ["data-indeterminate", "data-disabled", "data-invalid"]) {
-    assert.equal(states[state].kind, "none");
-    assert.equal(states[state].parts, undefined);
-    assert.ok(states[state].tests.length > 0, `${state} names the tests that render it`);
+  assert.deepEqual(Object.keys(states), ["data-checked", "data-unchecked", "data-indeterminate", "data-disabled", "data-invalid", "data-readonly"]);
+  const colours = ["background-color", "border-color"];
+  for (const state of ["data-checked", "data-unchecked"]) {
+    assert.equal(states[state].kind, "motion");
+    assert.deepEqual(states[state].parts, { tick: { properties: ["opacity", "scale"], reduced: ["opacity"] }, box: { properties: colours, reduced: colours } });
+    assert.deepEqual(states[state].tests, [tickTest]);
   }
+  // Entering these after the box renders runs the press utility's colour and opacity transitions.
+  assert.deepEqual(states["data-indeterminate"].parts, { box: { properties: colours, reduced: colours } });
+  assert.deepEqual(states["data-disabled"].parts, { box: { properties: ["opacity"], reduced: ["opacity"] } });
+  assert.deepEqual(states["data-invalid"].parts, { box: { properties: ["border-color"], reduced: ["border-color"] } });
+  assert.equal(states["data-readonly"].kind, "none");
+  for (const [name, state] of Object.entries(states)) assert.equal(state.tests.length, 1, name);
 });
 
 test("the state attributes are a closed list, and no other data-* attribute is a state", () => {
@@ -112,7 +113,7 @@ test("the reader rejects a motion map that names nothing real", () => {
     ["a reduced property listed twice", (manifest) => (checked(manifest).parts.box.reduced = ["border-color", "border-color"]), /checkbox's data-checked box lists border-color twice/],
     ["a property that is no CSS property name", (manifest) => (checked(manifest).parts.tick.properties = ["Opacity"]), /checkbox's data-checked tick needs "properties"/],
     ["an extra part the stem never renders", (manifest) => (checked(manifest).parts.glow = { properties: ["opacity"], reduced: [] }), /checkbox's data-checked names part glow, but checkbox never renders data-ouro-part="glow"/],
-    ["a none state that declares parts", (manifest) => (manifest.motion.checkbox.states["data-disabled"].parts = checked(manifest).parts), /checkbox's data-disabled is "none", so it declares no "parts"/],
+    ["a none state that declares parts", (manifest) => (manifest.motion.checkbox.states["data-readonly"].parts = checked(manifest).parts), /checkbox's data-readonly is "none", so it declares no "parts"/],
     ["a state attribute outside the closed list", (manifest) => (manifest.motion.checkbox.states["data-ouro-control"] = { kind: "none", tests: [tickTest] }), /checkbox's data-ouro-control is not a state attribute/],
     ["a malformed state value", (manifest) => (manifest.motion.checkbox.states["data-swiping=Left"] = { kind: "none", tests: [tickTest] }), /checkbox's data-swiping=Left is not a state attribute/],
     ["a stem the folder does not list", (manifest) => (manifest.motion.nope = manifest.motion.checkbox), /motion names nope, which "components" does not list/],
@@ -145,7 +146,16 @@ test("the motion matrix is plain data a browser test can import, one row per ste
   for (const row of rows) assert.deepEqual(Object.keys(row), ["item", "stem", "state", "kind", "part", "properties", "reduced", "tests"]);
   assert.deepEqual(
     rows.map((row) => `${row.stem} ${row.state} ${row.part ?? "-"}`),
-    ["checkbox data-checked tick", "checkbox data-checked box", "checkbox data-indeterminate -", "checkbox data-disabled -", "checkbox data-invalid -"],
+    [
+      "checkbox data-checked tick",
+      "checkbox data-checked box",
+      "checkbox data-unchecked tick",
+      "checkbox data-unchecked box",
+      "checkbox data-indeterminate box",
+      "checkbox data-disabled box",
+      "checkbox data-invalid box",
+      "checkbox data-readonly -",
+    ],
   );
 });
 

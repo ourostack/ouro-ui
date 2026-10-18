@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, onTestFinished } from "vitest";
 import { commands } from "vitest/browser";
-import { cleanupStories, renderStory, settle, stories } from "./stories.tsx";
-import { expectGestureSettle, expectMotion, expectNoMotion, expectTransition, motionRows, parseDuration, takeMotionRecords, type MotionRecord } from "./motion.ts";
+import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { cleanupStories, isVisible, renderStory, settle, stories } from "./stories.tsx";
+import { expectGestureSettle, expectMotion, expectNoMotion, expectTransition, motionRows, parseDuration, STATE_ATTRIBUTES, takeMotionRecords, type MotionRecord } from "./motion.ts";
 
 // The motion helpers each component test calls after a state change (the test kit's
 // testing/motion.ts). They read what runs on one part (`data-ouro-part`), fail on anything but the
@@ -16,17 +17,26 @@ afterEach(async () => {
   await commands.emulateMedia({ reducedMotion: "no-preference" });
 });
 
-/** A part that starts at `from`, styled with `transition`, ready to change. */
-function part(name: string, transition: string, from: Partial<CSSStyleDeclaration> = { opacity: "0" }): HTMLElement {
+/**
+ * A part that starts at `from`, styled with `transition`, ready to change, inside an element in the
+ * states the fixtures claim (`data-checked`, `data-disabled`), as a component root would be.
+ */
+function part(name: string, transition: string, from: Partial<CSSStyleDeclaration> = { opacity: "0" }, states: string[] = ["data-checked", "data-disabled"]): HTMLElement {
+  const root = document.createElement("div");
+  for (const state of states) root.setAttribute(state, "");
   const element = document.createElement("div");
   element.dataset["ouroPart"] = name;
   element.style.cssText = `width: 20px; height: 20px; transition: ${transition}`;
   Object.assign(element.style, from);
-  document.body.append(element);
-  mounted.push(element);
+  root.append(element);
+  document.body.append(root);
+  mounted.push(root);
   flushStyle(element);
   return element;
 }
+
+/** Waits for the next frame. */
+const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
 
 /** Makes the browser compute the element's style now, so a later change transitions from it. */
 const flushStyle = (element: Element) => void getComputedStyle(element).opacity;
@@ -87,8 +97,21 @@ describe("expectMotion", () => {
     await expect(expectMotion(tick, { stem: "checkbox", state: "data-checked", properties: { opacity: 240 }, reduced: false })).rejects.toThrow(/opacity runs for 400ms, not 240ms/);
   });
 
+  it("fails when the part is not in the state it claims, and finds a state with a value on an element around it", async () => {
+    const outside = part("tick", "opacity 400ms linear", { opacity: "0" }, []);
+    outside.style.opacity = "1";
+    await expect(expectMotion(outside, { stem: "checkbox", state: "data-checked", properties: ["opacity"], reduced: false })).rejects.toThrow(/checkbox data-checked tick: the part is not in data-checked: neither it nor an element around it has \[data-checked\]/);
+    await expect(expectNoMotion(outside, { stem: "checkbox", state: "data-disabled", reduced: false })).rejects.toThrow(/the part is not in data-disabled/);
+    const swiped = part("thumb", "opacity 60ms linear", { opacity: "0" }, []);
+    swiped.parentElement!.setAttribute("data-swiping", "right");
+    swiped.style.opacity = "1";
+    await expect(expectMotion(swiped, { stem: "checkbox", state: "data-swiping=left", properties: ["opacity"], reduced: false })).rejects.toThrow(/has \[data-swiping="left"\]/);
+    await expectMotion(swiped, { stem: "checkbox", state: "data-swiping=right", properties: ["opacity"], reduced: false });
+    expect(taken()).toEqual([{ kind: "state", stem: "checkbox", part: "thumb", state: "data-swiping=right", properties: ["opacity"], reduced: false, dir: "ltr" }]);
+  });
+
   it("waits for a transition the browser restarts mid-way, and fails on another property that starts meanwhile", async () => {
-    // A restyle mid-way (WebKit does it under load) cancels the transition and starts an equal one.
+    // A restyle mid-way cancels the transition and starts an equal one in its place.
     const restarted = part("tick", "opacity 120ms linear");
     restarted.style.opacity = "1";
     const proof = expectMotion(restarted, { stem: "checkbox", state: "data-checked", properties: ["opacity"], reduced: false });
@@ -103,6 +126,32 @@ describe("expectMotion", () => {
     strayed.style.scale = "0.5";
     await expect(failing).rejects.toThrow(/checkbox data-checked tick: scale started while the expected motion ran/);
     expect(taken()).toEqual([]);
+  });
+
+  it("fails when a transition is cancelled early with nothing in its place", async () => {
+    const tick = part("tick", "opacity 400ms linear");
+    tick.style.opacity = "1";
+    const proof = expectMotion(tick, { stem: "checkbox", state: "data-checked", properties: ["opacity"], reduced: false });
+    await frame();
+    tick.style.transition = "none";
+    flushStyle(tick);
+    await expect(proof).rejects.toThrow(/checkbox data-checked tick: opacity was cancelled at \d+% with nothing in its place/);
+    expect(taken()).toEqual([]);
+  });
+
+  it("lets a transition end that the browser cancels once it has run 90% of its duration", async () => {
+    const tick = part("tick", "opacity 1000ms linear");
+    tick.style.opacity = "1";
+    const [transition] = tick.getAnimations();
+    const proof = expectMotion(tick, { stem: "checkbox", state: "data-checked", properties: ["opacity"], reduced: false });
+    // A frame is under 2% of the second, so the helper saw it past 90% too.
+    while ((transition!.effect!.getComputedTiming().progress ?? 1) < 0.95) await frame();
+    expect(transition!.playState).toBe("running");
+    tick.style.transition = "none";
+    flushStyle(tick);
+    expect(transition!.playState).toBe("idle");
+    await proof;
+    expect(taken()).toHaveLength(1);
   });
 
   it("fails when nothing runs on the part", async () => {
@@ -202,11 +251,50 @@ describe("motion records", () => {
 describe("the motion matrix", () => {
   afterEach(cleanupStories);
 
+  const pascal = (stem: string) => stem.replace(/(^|-)([a-z])/g, (_, _dash: string, letter: string) => letter.toUpperCase());
+
+  // A state the component exposes on an animated part or its root must be in its map, or its
+  // motion goes unproved: every story, as it renders and after each of its controls is clicked once.
+  it.each([...new Set(motionRows.map((row) => row.stem))])("%s's stories expose no state its motion map leaves out", async (stem) => {
+    const declared = new Set(motionRows.filter((row) => row.stem === stem).map((row) => row.state));
+    const parts = new Set(motionRows.filter((row) => row.stem === stem && row.part !== null).map((row) => row.part!));
+    const own = stories.filter((entry) => entry.id.startsWith(`${pascal(stem)}/`));
+    expect(own.length).toBeGreaterThan(0);
+    const undeclared = new Set<string>();
+    const seen = new Set<string>();
+    const collect = (host: HTMLElement, where: string) => {
+      const roots = [...host.querySelectorAll(`[data-ouro="${stem}"]`)];
+      const animated = [...host.querySelectorAll("[data-ouro-part]")].filter((element) => parts.has(element.getAttribute("data-ouro-part")!) && element.closest("[data-ouro]")?.getAttribute("data-ouro") === stem);
+      for (const element of [...roots, ...animated]) {
+        for (const { name, value } of element.attributes) {
+          if (!STATE_ATTRIBUTES.includes(name)) continue;
+          const state = value ? `${name}=${value}` : name;
+          seen.add(name);
+          if (!declared.has(name) && !declared.has(state)) undeclared.add(`${state} on ${element.getAttribute("data-ouro-part") ?? "the root"} (${where})`);
+        }
+      }
+    };
+    for (const { id, Story } of own) {
+      const host = await renderStory(Story);
+      await settle();
+      collect(host, `${id} as rendered`);
+      const controls = [...host.querySelectorAll<HTMLElement>(`[data-ouro-control="${stem}"]`)].filter((element) => isVisible(element) && !element.closest('[aria-hidden="true"]') && element.tabIndex !== -1);
+      for (const [index, control] of controls.entries()) {
+        await act(() => control.click());
+        await settle();
+        collect(host, `${id} after clicking control ${index + 1}`);
+      }
+      await cleanupStories();
+    }
+    expect([...undeclared].sort(), `declare these states in ${stem}'s component.json "motion"`).toEqual([]);
+    // The scan reads the states the stories reach, so it found some.
+    expect(seen.size).toBeGreaterThan(0);
+  }, 60_000);
+
   // pnpm controls:matrix reads each component.json "motion"; the Node reader checks a part's
   // marker in the source, and this checks it in the rendered stories.
   it.each(motionRows.filter((row) => row.part !== null))("$stem renders its animated part $part", async ({ stem, part }) => {
-    const title = stem.replace(/(^|-)([a-z])/g, (_, _dash: string, letter: string) => letter.toUpperCase());
-    const own = stories.filter((entry) => entry.id.startsWith(`${title}/`));
+    const own = stories.filter((entry) => entry.id.startsWith(`${pascal(stem)}/`));
     expect(own.length).toBeGreaterThan(0);
     const host = await renderStory(own[0]!.Story);
     await settle();

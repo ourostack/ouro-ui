@@ -47,20 +47,23 @@ function running(element: Element): Array<CSSTransition | CSSAnimation> {
 
 const kebabCase = (name: string) => name.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
 
+/** The properties one animation runs, as the browser names them (longhands not folded). */
+function namesOf(animation: CSSTransition | CSSAnimation): string[] {
+  return animation instanceof CSSTransition
+    ? [animation.transitionProperty]
+    : (animation.effect as KeyframeEffect)
+        .getKeyframes()
+        .flatMap((keyframe) => Object.keys(keyframe))
+        .filter((key) => !["offset", "computedOffset", "easing", "composite"].includes(key))
+        .map(kebabCase);
+}
+
 /** Each running property with its duration in milliseconds, shorthand longhands folded back into their shorthand. */
 function runningProperties(animations: Array<CSSTransition | CSSAnimation>): Map<string, number> {
   const found = new Map<string, number>();
   for (const animation of animations) {
     const duration = Math.round(Number(animation.effect?.getComputedTiming().duration ?? 0));
-    const names =
-      animation instanceof CSSTransition
-        ? [animation.transitionProperty]
-        : (animation.effect as KeyframeEffect)
-            .getKeyframes()
-            .flatMap((keyframe) => Object.keys(keyframe))
-            .filter((key) => !["offset", "computedOffset", "easing", "composite"].includes(key))
-            .map(kebabCase);
-    for (const name of names) found.set(name, duration);
+    for (const name of namesOf(animation)) found.set(name, duration);
   }
   for (const [shorthand, longhands] of Object.entries(shorthands)) {
     const durations = longhands.map((longhand) => found.get(longhand));
@@ -103,21 +106,54 @@ function records(): MotionRecord[] {
   return pending;
 }
 
+const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+
 /**
- * Waits for the part's motion to end. A browser cancels a running transition when the element's
- * style is recomputed mid-way (WebKit does under load), and may start an equal one in its place,
- * so a cancelled animation counts as ended and its replacement is waited for; anything else that
- * starts fails.
+ * Waits, a frame at a time, for the part's motion to end. A browser cancels a running transition
+ * when the element's style is recomputed mid-way and usually starts an equal one in its place:
+ * a cancelled property counts only when an animation of it is running on the next read, or when
+ * the cancelled one had already run 90% of its duration (WebKit cancels a transition that is about
+ * to end on a restyle under load). A property cancelled earlier with nothing in its place fails,
+ * and so does any other property that starts meanwhile.
  */
 async function settled(element: Element, where: string, first: Array<CSSTransition | CSSAnimation>, expected: Set<string>): Promise<void> {
+  const reached = new Map<Animation, number>();
+  const sample = (animations: Array<CSSTransition | CSSAnimation>) => {
+    for (const animation of animations) {
+      const progress = animation.effect?.getComputedTiming().progress;
+      if (typeof progress === "number") reached.set(animation, Math.max(reached.get(animation) ?? 0, progress));
+    }
+  };
+  for (const animation of first) animation.finished.catch(() => {});
+  sample(first);
   let current = first;
-  for (let round = 0; current.length > 0; round++) {
-    await Promise.allSettled(current.map((animation) => animation.finished));
-    current = running(element);
-    const extra = [...runningProperties(current).keys()].filter((name) => !expected.has(name));
+  let restarts = 0;
+  while (current.length > 0) {
+    await nextFrame();
+    const next = running(element);
+    sample(next);
+    const extra = [...runningProperties(next).keys()].filter((name) => !expected.has(name));
     if (extra.length > 0) throw new Error(`${where}: ${list(extra)} started while the expected motion ran.`);
-    if (round === 20) throw new Error(`${where}: the motion kept restarting.`);
+    const replacing = new Set(next.flatMap(namesOf));
+    for (const animation of current) {
+      if (next.includes(animation) || animation.playState !== "idle") continue;
+      const progress = reached.get(animation) ?? 0;
+      for (const name of namesOf(animation)) {
+        if (!replacing.has(name) && progress < 0.9) throw new Error(`${where}: ${name} was cancelled at ${Math.round(progress * 100)}% with nothing in its place.`);
+      }
+    }
+    const fresh = next.filter((animation) => !current.includes(animation));
+    for (const animation of fresh) animation.finished.catch(() => {});
+    if (fresh.length > 0 && ++restarts > 20) throw new Error(`${where}: the motion kept restarting.`);
+    current = next;
   }
+}
+
+/** Fails unless the part, or an element around it, carries the state's attribute (and value). */
+function checkState(element: Element, where: string, state: string): void {
+  const [attribute, value] = state.split("=");
+  const selector = value === undefined ? `[${attribute}]` : `[${attribute}="${value}"]`;
+  if (!element.closest(selector)) throw new Error(`${where}: the part is not in ${state}: neither it nor an element around it has ${selector}. Call the helper after the change into that state.`);
 }
 
 const directionOf = (element: Element, dir: "ltr" | "rtl" | undefined): "ltr" | "rtl" => dir ?? (getComputedStyle(element).direction === "rtl" ? "rtl" : "ltr");
@@ -139,8 +175,9 @@ interface ExpectMotionOptions {
 }
 
 /**
- * Proves a state change's motion on one part. Call it right after the change, with no await in
- * between (several parts at once with `Promise.all`): it reads the CSS transitions and animations
+ * Proves a state change's motion on one part. Call it right after the change into `state`, with
+ * no await in between (several parts at once with `Promise.all`): it fails unless the part or an
+ * element around it carries the state's attribute, reads the CSS transitions and animations
  * running on the element (its `data-ouro-part`), fails unless they are exactly `properties` (no
  * missing and no extra property, and the given durations in milliseconds), waits for them to
  * end (a transition the browser cancels and restarts on a restyle included), and records `{ stem, part, state, properties, reduced, dir }` for pnpm motion:coverage.
@@ -157,6 +194,7 @@ async function expectMotion(element: Element, options: ExpectMotionOptions): Pro
   const { stem, state, reduced } = options;
   const part = partOf(element, `${stem} ${state}`);
   const where = `${stem} ${state} ${part}`;
+  checkState(element, where, state);
   checkReduced(where, reduced);
   const expected: Record<string, number | undefined> = Array.isArray(options.properties)
     ? Object.fromEntries((options.properties as readonly string[]).map((name) => [name, undefined]))
@@ -185,7 +223,8 @@ interface ExpectNoMotionOptions {
 }
 
 /**
- * Proves that a state change runs nothing on one part: no CSS transition or animation right after
+ * Proves that a state change runs nothing on one part, which must be in `state` (it or an element
+ * around it carries the attribute): no CSS transition or animation right after
  * the change, nor a style flush and a frame later. Records an explicit empty set, which is how a
  * `none` state, and a part whose `reduced` list is `[]`, are covered.
  *
@@ -197,6 +236,7 @@ async function expectNoMotion(element: Element, options: ExpectNoMotionOptions):
   const { stem, state, reduced } = options;
   const part = partOf(element, `${stem} ${state}`);
   const where = `${stem} ${state} ${part}`;
+  checkState(element, where, state);
   checkReduced(where, reduced);
   getComputedStyle(element).getPropertyValue("opacity");
   await new Promise((resolve) => requestAnimationFrame(resolve));
