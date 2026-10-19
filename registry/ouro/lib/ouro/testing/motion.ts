@@ -197,7 +197,7 @@ interface ExpectMotionOptions {
  * @example
  * await act(() => box.click());
  * await Promise.all([
- *   expectMotion(tick, { stem: "checkbox", state: "data-checked", properties: ["opacity", "scale"], reduced: false }),
+ *   expectMotion(tick, { stem: "checkbox", state: "data-checked", properties: ["stroke-dashoffset"], reduced: false }),
  *   expectMotion(box, { stem: "checkbox", state: "data-checked", properties: ["background-color", "border-color"], reduced: false }),
  * ]);
  */

@@ -53,6 +53,7 @@
           "--ouro-duration-press": "160ms",
           "--ouro-duration-fast": "150ms",
           "--ouro-duration-base": "200ms",
+          "--ouro-duration-draw": "240ms",
           "--ouro-duration-slow": "300ms",
           "--ouro-duration-sheet": "500ms",
           "--ouro-press-scale": "0.97",
