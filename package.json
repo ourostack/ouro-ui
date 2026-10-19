@@ -27,6 +27,7 @@
     "docs": "node scripts/gen-docs.mts",
     "test": "vitest run --coverage",
     "test:visual": "CI_VISUAL=1 vitest run --project visual",
+    "test:themes": "OURO_THEMES=1 vitest run --project themes",
     "typecheck": "tsc --noEmit && tsc -p scripts/fixtures/no-node-types",
     "lint": "eslint .",
     "storybook": "storybook dev -p 6006",

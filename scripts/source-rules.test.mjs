@@ -359,3 +359,37 @@ test("every hover style is gated on a fine pointer (pointer-fine:hover:), so a t
   const offenders = runtime.map(read).filter(({ text }) => ungatedHover(text).length > 0).map(({ path }) => path);
   assert.deepEqual(offenders, [], "Write hover as pointer-fine:hover:…; Tailwind's hover: checks (hover: hover) only.");
 });
+
+/**
+ * The class tokens in a file whose shadow ignores the theme: a standard shadow class, which
+ * Tailwind compiles to its fixed value (`shadow-lg`, not `shadow-(--shadow-lg)`), or a shadow
+ * written with a color of its own (`[box-shadow:0_8px_24px_rgb(0_0_0/0.12)]`).
+ */
+const fixedShadows = (text) =>
+  [
+    ...new Set(
+      text.split(/[\s"'`]+/).filter((token) => {
+        const base = token.replace(/^(?:[^[\]:]+:|\[[^\]]*\]:)*/, "");
+        if (/^!?(?:inset-)?shadow-(?:2xs|xs|sm|md|lg|xl|2xl)!?$/.test(base)) return true;
+        return /^(?:shadow-\[|\[box-shadow:)/.test(base) && /rgba?\(|hsla?\(|oklch\(|#[0-9a-f]{3,8}\b|\b(?:black|white)\b/i.test(base);
+      }),
+    ),
+  ];
+
+test("fixedShadows finds a shadow that does not read the theme's tokens", () => {
+  assert.deepEqual(fixedShadows('"shadow-lg data-dragging:shadow-md [box-shadow:0_8px_24px_rgb(0_0_0/0.12)] shadow-[0_1px_#000]"'), [
+    "shadow-lg",
+    "data-dragging:shadow-md",
+    "[box-shadow:0_8px_24px_rgb(0_0_0/0.12)]",
+    "shadow-[0_1px_#000]",
+  ]);
+  assert.deepEqual(fixedShadows('"shadow-(--shadow-lg) data-dragging:shadow-(--shadow-lg) [box-shadow:var(--ouro-shadow-sheet-left)] shadow-[inset_0_-1px_0_0_var(--border)] shadow-none"'), []);
+});
+
+test("every shadow reads the theme: shadcn's --shadow-* tokens or --ouro-shadow-sheet-*, never a fixed color", () => {
+  const runtime = tracked("registry/**/*.ts", "registry/**/*.tsx").filter(
+    (path) => !/\.(test|test-d|stories)\.tsx?$|\.d\.ts$|\/lib\/ouro\/testing\/|\/e2e\/|\/theme\//.test(path),
+  );
+  const offenders = runtime.map(read).flatMap(({ path, text }) => fixedShadows(text).map((token) => `${path}: ${token}`));
+  assert.deepEqual(offenders, [], "Write shadow-(--shadow-lg), so a theme's --shadow-lg applies; a sheet reads --ouro-shadow-sheet-<side>.");
+});

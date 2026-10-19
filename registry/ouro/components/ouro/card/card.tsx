@@ -94,7 +94,7 @@ const elements = ["div", "article", "section", "li"] as const;
 const levels = [2, 3, 4, 5, 6] as const;
 
 const variants = {
-  outline: "rounded-xl border border-border bg-card text-card-foreground shadow-xs",
+  outline: "rounded-xl border border-border bg-card text-card-foreground shadow-(--shadow-xs)",
   plain: "bg-transparent text-foreground",
 } as const;
 

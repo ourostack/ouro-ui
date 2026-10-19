@@ -45,6 +45,8 @@ const rootClass = "flex min-w-0 gap-4 data-[orientation=horizontal]:flex-col dat
  * The tab list. A hairline under the row (or beside the column) is an inset shadow, not a
  * border, so the row can scroll sideways on a narrow screen without clipping the indicator.
  * While it scrolls, a mask fades the side that hides more tabs (`data-fade`, set by TabsList).
+ * The mask's `#000` only means opaque: a gradient mask is read for its alpha (`mask-mode:
+ * match-source`), so no color of it reaches the page, whatever the theme.
  *
  * @internal
  */

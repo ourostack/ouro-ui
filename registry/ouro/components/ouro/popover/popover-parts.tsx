@@ -174,7 +174,7 @@ export function PopoverTitle({ visuallyHidden, ...props }: PopoverTitleProps): J
     <BasePopover.Title
       {...props}
       data-ouro-popover-title=""
-      className={visuallyHidden ? "sr-only" : "m-0 text-sm leading-5 font-semibold text-popover-foreground"}
+      className={visuallyHidden ? "sr-only" : "m-0 font-[family-name:var(--font-heading,inherit)] text-sm leading-5 font-semibold text-popover-foreground"}
     />
   );
 }

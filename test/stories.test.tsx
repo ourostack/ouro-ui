@@ -1,62 +1,13 @@
-import axe from "axe-core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page } from "vitest/browser";
 import { menuItemClass, menuSheetPopupClass, menuSheetPositionerClass } from "@/registry/ouro/components/ouro/menu/menu-styles";
-import { axeExclude } from "@/registry/ouro/lib/ouro/testing/axe";
-import {
-  cleanupStories,
-  closeOverlay,
-  openOverlay,
-  overlayOpeners,
-  renderStory,
-  setScheme,
-  settle,
-  stories,
-  storyFiles,
-} from "./stories.tsx";
+import { describeViolations, scan, scanStory, storyScanTimeout } from "./story-axe.ts";
+import { cleanupStories, closeOverlay, openOverlay, overlayOpeners, renderStory, setScheme, settle, stories, storyFiles } from "./stories.tsx";
 
 // Every Storybook story renders and passes axe with zero violations (spec §8:
 // "axe checks in every story"), closed and with each of its overlays open.
 // Runs in Chromium and WebKit, at a phone width and a desktop width, so both
 // of Dialog's presentations are scanned.
-
-/** axe's result as readable lines: rule, impact, help and the offending selectors. */
-function describeViolations(violations: axe.Result[]): string {
-  return violations
-    .map(
-      (violation) =>
-        `${violation.id} (${violation.impact}): ${violation.help}\n` +
-        violation.nodes.map((node) => `  ${node.target.join(" ")}: ${node.failureSummary}`).join("\n"),
-    )
-    .join("\n");
-}
-
-/**
- * Scans the page, or only `within` when given. A list's popup (Combobox, Select) is scanned on
- * its own: while it is open, Base UI hides the rest of the page from assistive tech with
- * `aria-hidden` (FloatingFocusManager), so axe would report the page's focusable fields as
- * hidden yet focusable (aria-hidden-focus). Focus stays in the input, and Tab closes the
- * popup and unhides the page; the closed scan covers the page itself.
- */
-async function scan(within?: HTMLElement): Promise<axe.Result[]> {
-  // Base UI's focus-trap guards are excluded, not a rule (axeExclude, which ships to
-  // apps): in WebKit they take `role="button"` on purpose, with no name, so
-  // VoiceOver's virtual cursor fires focus on them and the modal's trap catches it
-  // (Base UI utils/FocusGuard). They are visually hidden and never reached by Tab.
-  const context: axe.ElementContext = { include: [within ?? document.documentElement], exclude: axeExclude.map((selector) => [selector]) };
-  const result = await axe.run(context, {
-    resultTypes: ["violations"],
-    rules: {
-      // Page-structure rules, off as in Storybook's a11y addon: a story is a
-      // fragment of a page, so it has no `<main>`, no `<h1>` and no landmarks
-      // of its own. The app that places the component owns those.
-      "landmark-one-main": { enabled: false },
-      "page-has-heading-one": { enabled: false },
-      region: { enabled: false },
-    },
-  });
-  return result.violations;
-}
 
 beforeEach(async () => {
   await commands.emulateMedia({ reducedMotion: "no-preference" });
@@ -114,19 +65,8 @@ describe.each([
   describe.each(["light", "dark"] as const)("%s", (scheme) => {
     it.each(stories)("$id has no axe violations, closed and with each overlay open", async ({ id, Story }) => {
       setScheme(scheme);
-      const host = await renderStory(Story);
-      await settle();
-      const found: string[] = [];
-      const closed = await scan();
-      if (closed.length > 0) found.push(`closed:\n${describeViolations(closed)}`);
-      for (const opener of overlayOpeners(id, host)) {
-        const popup = await openOverlay(opener);
-        const open = await scan(popup.matches('[role="dialog"], [role="alertdialog"]') ? undefined : popup);
-        if (open.length > 0) found.push(`with "${opener.name}" open:\n${describeViolations(open)}`);
-        await closeOverlay();
-      }
-      expect(found.join("\n\n")).toBe("");
-    });
+      expect(await scanStory(id, Story)).toBe("");
+    }, storyScanTimeout);
   });
 });
 

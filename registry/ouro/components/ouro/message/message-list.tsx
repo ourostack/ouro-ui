@@ -50,7 +50,7 @@ const KEEP_SPOKEN = 5;
  */
 const jumpClass =
   "press pointer-events-auto relative m-0 box-border inline-flex h-9 items-center gap-1.5 rounded-full border border-solid border-border " +
-  "bg-background px-3.5 text-base font-medium text-foreground shadow-md pointer-fine:h-8 pointer-fine:text-sm whitespace-nowrap " +
+  "bg-background px-3.5 text-base font-medium text-foreground shadow-(--shadow-md) pointer-fine:h-8 pointer-fine:text-sm whitespace-nowrap " +
   "cursor-pointer touch-manipulation outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
   "pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground motion-safe:active:scale-(--ouro-press-scale) " +
   "transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) starting:opacity-0";

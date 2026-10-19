@@ -58,6 +58,10 @@
           "--ouro-press-scale": "0.97",
           "--ouro-backdrop-color": "#18181b",
           "--ouro-backdrop-max": "0.4",
+          "--ouro-shadow-sheet-bottom": "0 -1px 0 color-mix(in oklab, var(--border) 60%, transparent), 0 -8px 32px rgb(0 0 0 / 0.12)",
+          "--ouro-shadow-sheet-top": "0 1px 0 color-mix(in oklab, var(--border) 60%, transparent), 0 8px 32px rgb(0 0 0 / 0.12)",
+          "--ouro-shadow-sheet-left": "8px 0 32px rgb(0 0 0 / 0.12)",
+          "--ouro-shadow-sheet-right": "-8px 0 32px rgb(0 0 0 / 0.12)",
           "--ouro-layer": "50"
         },
         ".dark": {

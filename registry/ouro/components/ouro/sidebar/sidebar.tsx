@@ -141,8 +141,9 @@ const column =
   "box-border flex h-full w-(--ouro-sidebar-w) flex-col overflow-hidden border-0 border-e border-solid border-border bg-background text-foreground " +
   "[--ouro-sidebar-w:16rem] data-collapsed:[--ouro-sidebar-w:calc(3.75rem+1px)] max-sm:hidden";
 
-// A count or tag at the row's end.
-const badgeClass = "ms-auto shrink-0 rounded-sm bg-muted px-1.5 text-xs leading-5 font-medium text-muted-foreground tabular-nums";
+// A count or tag at the row's end. Its muted text is mixed 20% toward the foreground, so it keeps
+// 4.5:1 on the muted tag under shadcn's stock values too (plain text-muted-foreground is 4.34:1).
+const badgeClass = "ms-auto shrink-0 rounded-sm bg-muted px-1.5 text-xs leading-5 font-medium text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))] tabular-nums";
 
 // A row: 44px with 16px text on a coarse pointer at every width, 36px with 14px text with a
 // fine one. A full-width row highlights while pressed instead of scaling.

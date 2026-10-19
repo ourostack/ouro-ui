@@ -129,7 +129,7 @@ const chevron = cn("inline-flex motion-safe:transition-[rotate] motion-safe:dura
 const positioner = "box-border h-(--positioner-height) w-(--positioner-width) max-w-(--available-width)";
 const popup = cn(
   "relative box-border h-(--popup-height) w-(--popup-width) origin-(--transform-origin) rounded-lg bg-popover text-popover-foreground outline-none " +
-  "[box-shadow:0_0_0_1px_color-mix(in_oklab,var(--border)_60%,transparent),0_8px_24px_rgb(0_0_0/0.14)] " +
+  "ring-1 ring-border/60 shadow-(--shadow-lg) " +
   "transition-opacity duration-(--ouro-duration-base) data-starting-style:opacity-0 data-ending-style:opacity-0 data-ending-style:duration-(--ouro-duration-fast) " +
     "motion-safe:transition-[opacity,scale] motion-safe:data-starting-style:scale-96 motion-safe:data-ending-style:scale-96",
   easeOut,

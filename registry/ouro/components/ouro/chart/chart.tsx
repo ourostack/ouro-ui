@@ -423,7 +423,7 @@ function TooltipContent({ active, payload, label }: { active: boolean; payload: 
       data-ouro-chart-tooltip=""
       role="status"
       aria-live="polite"
-      className="grid min-w-32 gap-1.5 rounded-lg border border-solid border-border bg-popover px-2.5 py-1.5 text-xs text-popover-foreground shadow-lg"
+      className="grid min-w-32 gap-1.5 rounded-lg border border-solid border-border bg-popover px-2.5 py-1.5 text-xs text-popover-foreground shadow-(--shadow-lg)"
     >
       <div className="font-medium">{String(label ?? "")}</div>
       {entries.map(({ item, value }) => (

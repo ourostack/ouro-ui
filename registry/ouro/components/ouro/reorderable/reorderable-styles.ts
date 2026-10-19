@@ -31,7 +31,7 @@ const listClass = "group/reorder m-0 flex min-w-0 list-none flex-col p-0 data-dr
 const itemClass =
   "relative m-0 flex min-w-0 list-none items-center gap-2 p-0 pointer-coarse:min-h-11 " +
   "motion-safe:group-data-dragging/reorder:[&:not([data-dragging])]:[transition:transform_var(--ouro-duration-base)_var(--ouro-ease-out)] " +
-  "data-dragging:z-10 data-dragging:rounded-lg data-dragging:bg-background data-dragging:shadow-lg " +
+  "data-dragging:z-10 data-dragging:rounded-lg data-dragging:bg-background data-dragging:shadow-(--shadow-lg) " +
   "data-dropped:z-10 data-dropped:rounded-lg data-dropped:bg-background " +
   "data-grabbed:rounded-lg data-grabbed:outline-2 data-grabbed:outline-ring data-grabbed:outline-solid";
 

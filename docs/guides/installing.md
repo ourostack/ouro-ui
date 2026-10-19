@@ -15,7 +15,9 @@ npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.0.2
 
 - `--success`, `--warning`, their foregrounds and `--destructive-foreground`, with defaults that pass 4.5:1 on shadcn's stock themes.
 - `--input`, the border color of every field, and `--radius` with its `--radius-sm` to `--radius-4xl` scale, at shadcn's stock values. A theme without them draws fields with no visible border and square corners.
-- The `--ouro-*` motion tokens, `--ouro-layer` (the z-index of sheets and dialogs), the `press` utility and the keyframes for spinners, progress bars and skeletons.
+- The `--ouro-*` motion tokens, `--ouro-layer` (the z-index of sheets and dialogs), `--ouro-shadow-sheet-bottom`, `-top`, `-left` and `-right` (the shadow under a sheet from each side), the `press` utility and the keyframes for spinners, progress bars and skeletons.
+
+Every other shadow and font comes from shadcn's standard tokens, so a theme that sets them restyles the components: `--shadow-lg` under popovers, menus, selects, comboboxes, navigation menus and toasts, `--shadow-xl` under dialogs, `--shadow-sm` under the slider and switch thumbs and the segmented control's indicator, `--font-heading` for `Heading` and the dialog, sheet and popover titles (the surrounding font when your theme has none) and `--font-mono` for `Kbd`. Tailwind defines the shadows and `--font-mono` itself, so `ouro-base` adds none of them.
 
 A variable your stylesheet already has keeps your value: the CLI adds only the ones that are missing. It adds the radius scale to `@theme inline` the same way, so an app that never defined `--radius-lg` there gets shadcn's scale in place of Tailwind's defaults; set `--radius` to change it.
 
