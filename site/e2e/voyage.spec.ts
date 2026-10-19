@@ -73,6 +73,14 @@ test("a stored preset paints from the server HTML, before the client entry runs"
   await expect(bare.locator("html")).toHaveClass(/\bdark\b/);
   await expect(bare.locator("html[data-site-ready]")).toHaveCount(0);
   expect(await colours(bare)).toEqual(expected);
+  // The picker's label and the pressed preset are the stored one's too, before any hydration.
+  await expect(bare.locator("[data-site-theme-trigger]")).toHaveAccessibleName(/Abyss/);
+  await expect(bare.locator("[data-site-theme-trigger]")).not.toHaveAccessibleName(/Sleek/);
+  expect(await bare.locator("[data-site-sample] .site-window-bar").innerText()).toMatch(/^before-we-dive\.tsx\s+Abyss$/);
+  await expect(bare.locator('[data-site-preset="abyss"]')).toHaveAttribute("aria-pressed", "true");
+  await expect(bare.locator('[data-site-preset="sleek"]')).toHaveAttribute("aria-pressed", "false");
+  await expect(bare.locator('[data-site-preset="abyss"]')).toHaveCSS("box-shadow", /inset/);
+  await expect(bare.locator('[data-site-preset="sleek"]')).not.toHaveCSS("box-shadow", /inset/);
   await blocked.close();
 });
 

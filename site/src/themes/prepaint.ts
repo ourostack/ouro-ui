@@ -43,8 +43,21 @@ export function applyStoredTheme(
   return { preset, mode };
 }
 
-/** The inline script for <head>: the function above, called on the page. */
-export const prepaintScript = `try{(${applyStoredTheme.toString()})((function(){try{return localStorage}catch(e){return null}})(),document.documentElement,matchMedia("(prefers-color-scheme: dark)").matches,${JSON.stringify(PRESET_NAMES)})}catch(e){}`;
+/**
+ * Marks the stored preset's buttons pressed (`[data-site-preset]`, aria-pressed) once the body is
+ * parsed, so a screen reader hears the right one before the page hydrates; CSS keyed on
+ * html[data-theme] paints the same choice. Serialized like applyStoredTheme: self-contained.
+ */
+export function pressStoredPreset(document: { querySelectorAll(selector: string): ArrayLike<{ getAttribute(name: string): string | null; setAttribute(name: string, value: string): void }> }, preset: string): void {
+  const buttons = document.querySelectorAll("[data-site-preset]");
+  for (let index = 0; index < buttons.length; index++) {
+    const button = buttons[index]!;
+    button.setAttribute("aria-pressed", button.getAttribute("data-site-preset") === preset ? "true" : "false");
+  }
+}
+
+/** The inline script for <head>: the functions above, called on the page. */
+export const prepaintScript = `try{var t=(${applyStoredTheme.toString()})((function(){try{return localStorage}catch(e){return null}})(),document.documentElement,matchMedia("(prefers-color-scheme: dark)").matches,${JSON.stringify(PRESET_NAMES)});document.addEventListener("DOMContentLoaded",function(){(${pressStoredPreset.toString()})(document,t.preset)})}catch(e){}`;
 
 /** While the page is open, `.dark` follows the OS, unless the reader chose a mode. */
 export function followSystemScheme(): void {

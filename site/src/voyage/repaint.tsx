@@ -3,7 +3,7 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Checklist } from "@/registry/ouro/components/ouro/checklist/checklist";
 import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
-import { presetList, presetNamed, Swatch } from "./presets";
+import { ByPreset, presetList, presetNamed, Swatch } from "./presets";
 import { useSiteTheme } from "./theme-store";
 import { Container } from "./layout";
 
@@ -29,8 +29,6 @@ async function copyText(text: string, done: string, how: string): Promise<void> 
 function DiveWindow(): JSX.Element {
   const [checked, setChecked] = useState<ReadonlySet<string>>(() => new Set(["hatch"]));
   const [open, setOpen] = useState(false);
-  const { preset } = useSiteTheme();
-  const current = presetNamed(preset);
   return (
     <div className="site-window" data-site-sample="">
       <div className="site-window-bar">
@@ -41,8 +39,14 @@ function DiveWindow(): JSX.Element {
         </span>
         <span className="site-mono truncate">before-we-dive.tsx</span>
         <span className="ms-auto inline-flex items-center gap-2">
-          <Swatch preset={preset} />
-          {current.label}
+          <ByPreset>
+            {(item) => (
+              <span className="inline-flex items-center gap-2">
+                <Swatch preset={item.name} />
+                {item.label}
+              </span>
+            )}
+          </ByPreset>
         </span>
       </div>
       <div className="site-chart-grid grid gap-6 p-5 sm:p-8 md:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)]">
@@ -65,9 +69,13 @@ function DiveWindow(): JSX.Element {
         <div className="grid content-between gap-6">
           <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm">
             <dt className="text-muted-foreground">Headings</dt>
-            <dd className="m-0 truncate font-[family-name:var(--font-heading)] font-semibold">{current.heading}</dd>
+            <dd className="m-0 truncate font-[family-name:var(--font-heading)] font-semibold">
+              <ByPreset>{(item) => item.heading}</ByPreset>
+            </dd>
             <dt className="text-muted-foreground">Corners</dt>
-            <dd className="site-mono m-0">{current.radius}</dd>
+            <dd className="site-mono m-0">
+              <ByPreset>{(item) => item.radius}</ByPreset>
+            </dd>
             <dt className="text-muted-foreground">Colours</dt>
             <dd className="m-0 flex flex-wrap gap-1.5">
               <span className="sr-only">Background, primary, accent, highlight and border</span>
@@ -129,25 +137,24 @@ export function Repaint(): JSX.Element {
           </h2>
           <p className="site-lede mt-5 max-w-[34ch]">Same components. Plain shadcn tokens. Your theme works too.</p>
           <div role="group" aria-label="Presets" className="mt-8 grid grid-cols-2 gap-2 sm:grid-cols-3 [&>*]:min-w-0">
-            {presetList.map((item) => {
-              const selected = item.name === preset;
-              return (
-                <Button
-                  key={item.name}
-                  variant={selected ? "soft" : "outline"}
-                  tone={selected ? "primary" : "secondary"}
-                  aria-pressed={selected}
-                  onClick={() => setPreset(item.name)}
-                  className="h-auto min-h-12 justify-start gap-2.5 px-3 py-2.5"
-                >
-                  <Swatch preset={item.name} size="lg" />
-                  {item.label}
-                </Button>
-              );
-            })}
+            {presetList.map((item) => (
+              <Button
+                key={item.name}
+                variant="outline"
+                tone="secondary"
+                aria-pressed={item.name === preset}
+                // The pressed look is the site's, keyed on html[data-theme] (voyage.css), so it is right before hydration.
+                data-site-preset={item.name}
+                onClick={() => setPreset(item.name)}
+                className="h-auto min-h-12 justify-start gap-2.5 px-3 py-2.5"
+              >
+                <Swatch preset={item.name} size="lg" />
+                {item.label}
+              </Button>
+            ))}
           </div>
           <div className="mt-6 flex flex-wrap gap-3">
-            <Button onClick={() => void copyText(current.css.theme, `Copied the ${current.label} theme`, "Paste it after your Tailwind import. The fonts come with it.")}>
+            <Button onClick={() => void copyText(current.css.theme, `Copied the ${current.label} theme`, "Paste it at the end of your global CSS. The fonts come with it.")}>
               Copy theme
             </Button>
             <Button
@@ -159,8 +166,13 @@ export function Repaint(): JSX.Element {
             </Button>
           </div>
           <p className="mt-4 mb-0 max-w-[44ch] text-sm text-muted-foreground">
-            {current.label}: {current.mood.toLowerCase()}. Copy theme brings :root, .dark and @theme inline, plus @font-face for{" "}
-            {current.fonts.join(", ")}.
+            <ByPreset>
+              {(item) => (
+                <>
+                  {item.label}: {item.mood.toLowerCase()}. Copy theme brings :root, .dark and @theme inline, plus @font-face for {item.fonts.join(", ")}.
+                </>
+              )}
+            </ByPreset>
           </p>
         </div>
         <div className="lg:col-span-7">
