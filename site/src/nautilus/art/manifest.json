@@ -8,8 +8,8 @@
       "source": "original-svg",
       "published": "2026-10-18",
       "licence": "repository",
-      "sha256": "f4515fb67b1768a29e75e742a1bb79305da348506b8c1ed11d6453ab05d9a79e",
-      "modifications": "None: drawn for this site from Verne's text alone. Not after any film or later design: no riveted fish tail, no dorsal fins, no saw-tooth crest. Hull length to beam about 9 to 1 (232 by 26 feet). Colours come from the theme (stage.css).",
+      "sha256": "f67ece9a45618886f24c8c21f67486689f1927c3a70fc69ae84d86c9e9cb5a32",
+      "modifications": "None: drawn for this site from Verne's text alone, not after any film or later design: no conning tower, no fins, no riveted fish tail, no great eye-shaped window. Hull length to beam eight to one (232 by 26 feet), the platform very low and railed, the lantern on it and the steersman's small cage forward of it. Left out for clarity at this size: the long-boat and the diving planes. Colours come from the theme (stage.css).",
       "shape": [
         {
           "feature": "hull",
@@ -32,11 +32,6 @@
           "chapter": "Part One, Chapter XIII, “The Black River” (Project Gutenberg #164)"
         },
         {
-          "feature": "long-boat",
-          "quote": "Toward the middle of the platform the long-boat, half buried in the hull of the vessel, formed a slight excrescence.",
-          "chapter": "Part One, Chapter XIII, “The Black River” (Project Gutenberg #164)"
-        },
-        {
           "feature": "cages and lantern",
           "quote": "Fore and aft rose two cages of medium height with inclined sides, and partly closed by thick lenticular glasses; one destined for the steersman who directed the Nautilus, the other containing a brilliant lantern to give light on the road.",
           "chapter": "Part One, Chapter XIII, “The Black River” (Project Gutenberg #164)"
@@ -44,11 +39,6 @@
         {
           "feature": "reflector (the floodlight beam)",
           "quote": "Behind the steersman’s cage is placed a powerful electric reflector, the rays from which light up the sea for half a mile in front.",
-          "chapter": "Part One, Chapter XII, “Some Figures” (Project Gutenberg #164)"
-        },
-        {
-          "feature": "rudder and diving planes",
-          "quote": "I use an ordinary rudder fixed on the back of the stern-post … by means of two inclined planes fastened to its sides, opposite the centre of flotation",
           "chapter": "Part One, Chapter XII, “Some Figures” (Project Gutenberg #164)"
         },
         {
@@ -60,6 +50,11 @@
           "feature": "spur",
           "quote": "It is armed with a steel spur as good as Master Land’s harpoon, I imagine.",
           "chapter": "Part Two, Chapter XII, “Cachalots and Whales” (Project Gutenberg #164)"
+        },
+        {
+          "feature": "rudder",
+          "quote": "I use an ordinary rudder fixed on the back of the stern-post",
+          "chapter": "Part One, Chapter XII, “Some Figures” (Project Gutenberg #164)"
         }
       ]
     },
@@ -70,8 +65,8 @@
       "source": "original-svg",
       "published": "2026-10-18",
       "licence": "repository",
-      "sha256": "b2c632f58829d1993e5aeb6dae259038a425ce76eb188852ccbe97f72640b9bc",
-      "modifications": "None: the proportion grid nautilus.svg was drawn on (232 by 26 feet, the platform's height and the cages' places). Kept for review; the stage does not show it.",
+      "sha256": "aac39e299dcec39a62dbd1a01b1396d011c90e4222a1dc395f139dde658e7ff8",
+      "modifications": "None: the proportion grid nautilus.svg was drawn to (232 by 26 feet as 532 by 66 units, the platform's height, the lantern and the steersman's cage). Kept for review; the stage does not show it.",
       "shape": [
         {
           "feature": "hull",
