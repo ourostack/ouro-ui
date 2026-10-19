@@ -110,11 +110,12 @@ test("reflows at 320 CSS pixels (400% zoom) in every preset without scrolling si
 
 /**
  * HX parts that draw no boundary of their own under forced colours yet (a registry follow-up, noted
- * in the voyage PRs): a segmented control's segments sit in a group with no border, and a message
- * list's scroller is a region, not a control. The test fails once one of them gains a boundary, so
- * this list only shrinks.
+ * in the voyage PRs): a segmented control's segments sit in a group with no border, a message
+ * list's scroller is a region, not a control, and a collapsible's trigger is a line of text with a
+ * chevron (the ship's log fold). The test fails once one of them gains a boundary, so this list
+ * only shrinks.
  */
-const FORCED_COLOURS_GAPS = ["segmented-control/segment", "message-list/scroller"];
+const FORCED_COLOURS_GAPS = ["segmented-control/segment", "message-list/scroller", "collapsible/trigger"];
 
 test("keeps every control's boundary under forced colours", async ({ page }) => {
   await page.emulateMedia({ forcedColors: "active" });

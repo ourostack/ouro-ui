@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { BELL_TOASTS, LOG, STAGE_CONTROLS, STAGE_COPY } from "../src/voyage/stage/copy";
+import { BELL_TOASTS, LOG, STAGE_CONTROLS, STAGE_COPY, TANKS } from "../src/voyage/stage/copy";
 
 // The porthole stage against the production build (site-design.md, "Verification in CI"): each
 // control in STAGE_CONTROLS has a test named "control: <id>" that operates it and asserts what it
@@ -29,7 +29,8 @@ async function open(page: Page): Promise<void> {
 
 const scene = (page: Page) => page.locator(".stage-scene");
 const porthole = (page: Page) => page.locator(".stage-porthole");
-const lastLog = (page: Page) => page.locator(".stage-log [data-ouro='message']").last();
+const lastLog = (page: Page) => page.locator(".stage-log-newest [data-ouro='message']").last();
+const [FORE, MIDDLE, AFT] = TANKS;
 const tank = (page: Page, name: string) => page.getByRole("switch", { name, exact: true });
 const diveButton = (page: Page) => page.getByRole("button", { name: STAGE_COPY.dive, exact: true });
 
@@ -60,13 +61,22 @@ async function changesThePicture(page: Page, act: () => Promise<void>): Promise<
 }
 
 async function fillTanks(page: Page): Promise<void> {
-  for (const name of ["Fore", "Middle", "Aft"]) await tank(page, name).click();
+  for (const { name } of TANKS) await tank(page, name).click();
 }
 
 test.describe("each control on the stage", () => {
   test.beforeEach(async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.setViewportSize({ width: 1440, height: 900 });
+  });
+
+  test("control: xray outlines every HX component on the page, only when pressed", async ({ page }) => {
+    await open(page);
+    await expect(page.locator("[data-ouro-inspector-outline]")).toHaveCount(0);
+    await expect(page.getByText(STAGE_COPY.real)).toBeVisible();
+    await page.locator("[data-stage-control='xray']").getByRole("button", { name: STAGE_COPY.xray }).click();
+    await expect(page.getByRole("switch", { name: "X-ray" })).toBeChecked();
+    await expect.poll(() => page.locator("[data-ouro-inspector-outline]").count()).toBeGreaterThan(3);
   });
 
   test("control: depth takes the porthole down through the three waters", async ({ page }) => {
@@ -88,32 +98,37 @@ test.describe("each control on the stage", () => {
     expect(errors).toEqual([]);
   });
 
-  test("control: tank-fore floods the fore tank, and the Nautilus sits lower", async ({ page }) => {
+  test("control: tank-fore floods the forward tank, its gauge reads full, and the Nautilus sits lower", async ({ page }) => {
     await open(page);
-    await changesThePicture(page, () => tank(page, "Fore").click());
+    await changesThePicture(page, () => tank(page, FORE.name).click());
     await expect(scene(page)).toHaveAttribute("data-tanks", "1");
+    await expect(page.locator("[data-stage-control='tank-fore'] .stage-gauge")).toHaveAttribute("data-full", "");
     await expect(page.locator("#stage-dive-hint")).toHaveText(STAGE_COPY.diveHint(1));
-    await expect(lastLog(page)).toContainText("The fore tank is full of sea water.");
+    await expect(lastLog(page)).toContainText(LOG.tankFull(FORE.noun, 1).text);
   });
 
   test("control: tank-middle floods the middle tank, and the Nautilus sits lower", async ({ page }) => {
     await open(page);
-    await changesThePicture(page, () => tank(page, "Middle").click());
+    await changesThePicture(page, () => tank(page, MIDDLE.name).click());
     await expect(scene(page)).toHaveAttribute("data-tanks", "1");
-    await expect(lastLog(page)).toContainText("The middle tank is full of sea water.");
-    await changesThePicture(page, () => tank(page, "Middle").click());
+    await expect(lastLog(page)).toContainText(LOG.tankFull(MIDDLE.noun, 1).text);
+    await changesThePicture(page, () => tank(page, MIDDLE.name).click());
     await expect(scene(page)).toHaveAttribute("data-tanks", "0");
-    await expect(lastLog(page)).toContainText("The middle tank is empty again.");
+    await expect(page.locator("[data-stage-control='tank-middle'] .stage-gauge")).not.toHaveAttribute("data-full", "");
+    await expect(lastLog(page)).toContainText(LOG.tankEmpty(MIDDLE.noun).text);
   });
 
   test("control: tank-aft floods the aft tank, and the third full tank frees the Dive button", async ({ page }) => {
     await open(page);
-    await tank(page, "Fore").click();
-    await tank(page, "Middle").click();
+    await tank(page, FORE.name).click();
+    await tank(page, MIDDLE.name).click();
+    await expect(lastLog(page)).toContainText(LOG.tankFull(MIDDLE.noun, 2).text);
     await expect(diveButton(page)).toBeDisabled();
-    await changesThePicture(page, () => tank(page, "Aft").click());
+    await expect(page.locator("[data-stage-ready]")).toHaveCount(0);
+    await changesThePicture(page, () => tank(page, AFT.name).click());
     await expect(scene(page)).toHaveAttribute("data-tanks", "3");
     await expect(diveButton(page)).toBeEnabled();
+    await expect(page.locator("[data-stage-ready]")).toHaveText(STAGE_COPY.ready);
     await expect(lastLog(page)).toContainText(LOG.allFull.text);
   });
 
@@ -124,6 +139,8 @@ test.describe("each control on the stage", () => {
     await changesThePicture(page, () => diveButton(page).click());
     await expect(scene(page)).toHaveAttribute("data-dived", "");
     await expect(scene(page)).toHaveAttribute("data-band", "midnight");
+    await expect(page.locator(".stage-bubbles")).toHaveAttribute("data-streaming", "");
+    await expect(page.locator(".stage-specks")).toHaveCSS("opacity", "1");
     await expect(lastLog(page)).toContainText(LOG.dive.text);
     await changesThePicture(page, () => page.getByRole("button", { name: STAGE_COPY.surface, exact: true }).click());
     await expect(scene(page)).not.toHaveAttribute("data-dived", "");
@@ -164,11 +181,33 @@ test.describe("each control on the stage", () => {
     await expect(page.locator(".stage-hidden")).toHaveCSS("opacity", "0");
   });
 
-  test("control: bell brings a toast from the crew and a line in the log", async ({ page }) => {
+  test("control: log unfolds the earlier lines", async ({ page }) => {
+    await open(page);
+    const fold = page.getByRole("button", { name: /^Ship's log \(/ });
+    await expect(fold).toBeDisabled();
+    await page.getByRole("radio", { name: "Full" }).click();
+    await page.getByRole("radio", { name: "Stop" }).click();
+    await expect(fold).toHaveAccessibleName(STAGE_COPY.logFold(2));
+    const earlier = page.locator(".stage-log-fold").getByText(LOG.speed.full.text);
+    // Folded, the panel takes no room (WebKit, without hidden=until-found, still reports its text's box).
+    const height = () => page.locator(".stage-log-fold [data-ouro-collapsible-panel]").evaluate((panel) => panel.getBoundingClientRect().height);
+    await expect.poll(height).toBe(0);
+    await fold.click();
+    await expect(earlier).toBeVisible();
+    await expect.poll(height).toBeGreaterThan(40);
+    await fold.click();
+    await expect.poll(height).toBe(0);
+  });
+
+  test("control: bell brings a toast from the crew, rings, and sends rings through the water", async ({ page }) => {
     await open(page);
     await page.getByRole("button", { name: STAGE_COPY.bell }).click();
     await expect(page.getByText(`${BELL_TOASTS[0]!.name}: ${BELL_TOASTS[0]!.text}`)).toBeVisible();
     await expect(lastLog(page)).toContainText(LOG.bell.text);
+    await expect(page.locator("[data-stage-control='bell']")).toHaveAttribute("data-ring", "a");
+    await expect(page.locator(".stage-ripples ellipse")).toHaveCount(3);
+    // Under reduced motion the bell glows instead of swinging.
+    expect(await page.locator(".stage-bell-body").evaluate((element) => element.getAnimations().map((animation) => (animation as CSSAnimation).animationName))).toEqual(["stage-bell-glow-a"]);
   });
 });
 
@@ -204,10 +243,18 @@ for (const viewport of [
       await page.keyboard.press("End");
     }
     await expect(scene(page)).not.toHaveAttribute("data-band", "sunlit");
-    for (const name of ["Fore", "Middle", "Aft"]) await tank(page, name).tap();
+    for (const { name } of TANKS) await tank(page, name).tap();
     await expect(scene(page)).toHaveAttribute("data-tanks", "3");
     await diveButton(page).tap();
     await expect(scene(page)).toHaveAttribute("data-dived", "");
+    // The whole porthole is in view after Dive, below the sticky header.
+    const view = await porthole(page).evaluate((element) => {
+      const box = element.querySelector("svg")!.getBoundingClientRect();
+      const header = document.querySelector("header")!.getBoundingClientRect();
+      return { top: box.top, bottom: box.bottom, headerBottom: header.bottom, height: window.innerHeight };
+    });
+    expect(view.top).toBeGreaterThanOrEqual(view.headerBottom - 1);
+    expect(view.bottom).toBeLessThanOrEqual(view.height + 1);
     await page.getByRole("switch", { name: STAGE_COPY.lights }).tap();
     await expect(scene(page)).toHaveAttribute("data-lights", "");
     await page.getByRole("radio", { name: "Stop" }).tap();
@@ -220,22 +267,49 @@ for (const viewport of [
   });
 }
 
-test("under reduced motion the fish hold still and the Nautilus changes place without moving", async ({ page }) => {
+/** What each animation and transition that starts on the page changes: a CSS property, or an animation's keyframe properties. */
+async function recordMotion(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const moved: string[] = ((window as unknown as { __moved: string[] }).__moved = []);
+    document.addEventListener("transitionstart", (event) => moved.push(event.propertyName));
+    document.addEventListener("animationstart", (event) => {
+      const animation = (event.target as Element).getAnimations().find((each) => (each as CSSAnimation).animationName === event.animationName);
+      const keys = (animation?.effect as KeyframeEffect | undefined)?.getKeyframes().flatMap((frame) => Object.keys(frame)) ?? [];
+      moved.push(...new Set(keys.filter((key) => !["offset", "easing", "composite", "computedOffset"].includes(key)).map((key) => `${event.animationName}:${key}`)));
+    });
+  });
+}
+const moved = (page: Page) => page.evaluate(() => (window as unknown as { __moved: string[] }).__moved);
+
+test("under reduced motion the fish hold still and every payoff changes only colour and opacity", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await open(page);
   expect(await page.locator(".stage-drift").evaluateAll((elements) => elements.flatMap((element) => element.getAnimations()).length)).toBe(0);
-  await page.evaluate(() => {
-    (window as unknown as { __moved: string[] }).__moved = [];
-    document.addEventListener("transitionstart", (event) => (window as unknown as { __moved: string[] }).__moved.push(event.propertyName));
-    document.addEventListener("animationstart", (event) => (window as unknown as { __moved: string[] }).__moved.push(`animation:${event.animationName}`));
-  });
+  await recordMotion(page);
   await fillTanks(page);
   await diveButton(page).click();
   await page.getByRole("switch", { name: STAGE_COPY.lights }).click();
   await page.getByRole("radio", { name: "Full" }).click();
+  await page.getByRole("button", { name: STAGE_COPY.bell }).click();
   await settled(page);
-  const moved = await page.evaluate(() => (window as unknown as { __moved: string[] }).__moved);
-  expect(moved.filter((property) => !/^(opacity|color|background-color|border(-(top|right|bottom|left))?-color|outline-color|stop-color|stop-opacity|fill|stroke|box-shadow)$/.test(property))).toEqual([]);
+  const all = await moved(page);
+  expect(all.length).toBeGreaterThan(0);
+  expect(all.map((entry) => entry.replace(/^[\w-]+:/, "")).filter((property) => !/^(opacity|color|background-color|backgroundColor|border(-(top|right|bottom|left))?-color|outline-color|outlineColor|stop-color|stopColor|stop-opacity|stopOpacity|fill|stroke|box-shadow|boxShadow)$/.test(property))).toEqual([]);
+});
+
+test("without reduced motion, each payoff moves: bubbles, the needles, the Ready badge, the beam, the bell and the rings", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await open(page);
+  await recordMotion(page);
+  await fillTanks(page);
+  await expect(page.locator("[data-stage-ready]")).toBeVisible();
+  await settled(page);
+  await diveButton(page).click();
+  await page.getByRole("switch", { name: STAGE_COPY.lights }).click();
+  await page.getByRole("button", { name: STAGE_COPY.bell }).click();
+  await settled(page);
+  const all = await moved(page);
+  for (const expected of ["transform", "stage-pop:transform", "stage-bubble:transform", "stage-sweep:transform", "stage-bell-a:transform", "stage-ripple:transform"]) expect(all, all.join(" ")).toContain(expected);
 });
 
 test("the fish rest while the stage is off screen", async ({ page }) => {

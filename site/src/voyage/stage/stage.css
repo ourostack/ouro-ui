@@ -6,9 +6,11 @@
  * drift rests while the stage is off screen; with reduced motion only colour and opacity change.
  */
 .stage-scene {
-  --sea-surface: color-mix(in oklab, var(--primary) 58%, var(--background));
-  --sea-deep: color-mix(in oklab, var(--primary) 26%, oklch(0.12 0.03 255));
-  --sea-abyss: color-mix(in oklab, var(--primary) 10%, oklch(0.07 0.02 255));
+  /* The colour the sea is made from: the theme's primary, or the art direction's own (Brass). */
+  --sea-ink: var(--primary);
+  --sea-surface: color-mix(in oklab, var(--sea-ink) 58%, var(--background));
+  --sea-deep: color-mix(in oklab, var(--sea-ink) 26%, oklch(0.12 0.03 255));
+  --sea-abyss: color-mix(in oklab, var(--sea-ink) 10%, oklch(0.07 0.02 255));
   --sea-top: color-mix(in oklab, var(--sea-surface), var(--sea-abyss) calc(var(--d) * 100%));
   --sea-bottom: color-mix(in oklab, var(--sea-deep), var(--sea-abyss) calc(var(--d) * 100%));
   --ink: color-mix(in oklab, var(--foreground) 70%, transparent);
@@ -88,14 +90,14 @@
   transform: translateY(var(--rise));
 }
 .stage-sky {
-  fill: color-mix(in oklab, var(--background) 72%, var(--accent));
+  fill: color-mix(in oklab, var(--background) 80%, var(--sea-ink));
 }
 .dark .stage-sky {
-  fill: color-mix(in oklab, var(--background) 85%, var(--primary));
+  fill: color-mix(in oklab, var(--background) 85%, var(--sea-ink));
 }
 .stage-sun {
-  fill: var(--glow);
-  opacity: 0.85;
+  fill: color-mix(in oklab, var(--glow) 45%, oklch(0.95 0.08 88));
+  opacity: 0.9;
 }
 .stage-cloud {
   fill: color-mix(in oklab, var(--background) 92%, white);
@@ -230,14 +232,15 @@
   .stage-scene:not([data-band="midnight"]) .stage-band-midnight .stage-drift {
     animation-play-state: paused;
   }
-  .stage-nautilus {
+  .stage-nautilus,
+  .stage-ripples {
     transition: transform var(--ouro-duration-sheet) var(--ouro-ease-in-out);
   }
   .stage-surface-world {
     transition: transform var(--ouro-duration-slow) var(--ouro-ease-out);
   }
   .stage-bubbles circle {
-    animation: stage-bubble 1600ms var(--ouro-ease-out) calc(var(--bubble-delay) * 1s) 1 both;
+    animation: stage-bubble 2400ms var(--ouro-ease-out) calc(var(--bubble-delay) * 1s) 1 both;
   }
 }
 @keyframes stage-drift {
@@ -249,36 +252,58 @@
   }
 }
 @keyframes stage-bubble {
-  from {
-    transform: translateY(0);
-    opacity: 0.9;
+  0% {
+    transform: translate(0, 0) scale(0.6);
+    opacity: 0;
   }
-  to {
-    transform: translateY(-260px);
+  12% {
+    opacity: 0.95;
+  }
+  50% {
+    transform: translate(6px, -160px) scale(1);
+  }
+  100% {
+    transform: translate(-4px, -340px) scale(1.15);
     opacity: 0;
   }
 }
 .stage-bubbles {
-  fill: none;
+  fill: color-mix(in oklab, var(--background) 18%, transparent);
   stroke: color-mix(in oklab, var(--background) 80%, transparent);
-  stroke-width: 1.4;
+  stroke-width: 1.2;
+}
+.stage-bubbles circle {
+  opacity: 0;
 }
 @media (prefers-reduced-motion: reduce) {
-  .stage-bubbles {
-    display: none;
+  /* Still bubbles that show and fade where the moving ones would rise. */
+  .stage-bubbles circle {
+    animation: stage-fade-flash 1600ms ease calc(var(--bubble-delay) * 1s) 1 both;
+  }
+}
+@keyframes stage-fade-flash {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.9;
   }
 }
 
 /* The Nautilus: afloat at the top, a little lower for each full tank, then down beside us. */
-.stage-nautilus {
-  transform: translate(58px, calc(124px + var(--tanks) * 7px + min(var(--d) * 5, 1) * -700px));
+.stage-nautilus,
+.stage-ripples {
+  transform: translate(40px, calc(134px + var(--tanks) * 5px + min(var(--d) * 5, 1) * -700px));
 }
-.stage-scene[data-dived] .stage-nautilus {
-  transform: translate(24px, 226px);
+.stage-scene[data-dived] :is(.stage-nautilus, .stage-ripples) {
+  transform: translate(30px, 214px);
 }
 .stage-scene {
   --hull: color-mix(in oklab, var(--primary) 28%, oklch(0.34 0.025 250));
   --hull-trim: color-mix(in oklab, var(--primary) 22%, oklch(0.42 0.025 250));
+  /* Brass and glass: the lantern's frame, the lights' rims, the screw. */
+  --metal: color-mix(in oklab, var(--chart-3) 70%, var(--hull-trim));
 }
 .n-hull {
   fill: var(--hull);
@@ -300,38 +325,53 @@
 }
 .n-plates {
   fill: none;
-  stroke: color-mix(in oklab, var(--background) 30%, transparent);
-  stroke-width: 0.8;
+  stroke: color-mix(in oklab, var(--background) 22%, transparent);
+  stroke-width: 0.7;
 }
 .n-lights circle {
-  fill: color-mix(in oklab, var(--glow) 80%, var(--background));
+  fill: color-mix(in oklab, var(--glow) 70%, var(--background));
+  stroke: var(--metal);
+  stroke-width: 1.2;
 }
 .n-platform,
-.n-longboat,
-.n-cage path:first-child,
-.n-plane,
-.n-rudder {
+.n-cage,
+.n-rudder,
+.n-spur-collar {
   fill: var(--hull-trim);
   stroke: color-mix(in oklab, var(--background) 25%, transparent);
   stroke-width: 0.8;
 }
+.n-cage-cap {
+  fill: var(--metal);
+}
+.n-rail {
+  fill: none;
+  stroke: color-mix(in oklab, var(--hull-trim) 60%, var(--foreground));
+  stroke-width: 0.9;
+  opacity: 0.85;
+}
 .n-glass {
-  fill: color-mix(in oklab, var(--primary) 40%, var(--background));
+  fill: color-mix(in oklab, var(--primary) 35%, var(--background));
+  stroke: var(--metal);
+  stroke-width: 0.6;
 }
 .n-lantern {
   fill: var(--glow);
+  stroke: var(--metal);
+  stroke-width: 1;
 }
 .n-screw {
-  fill: color-mix(in oklab, var(--primary) 15%, oklch(0.3 0.02 255));
-  stroke: color-mix(in oklab, var(--primary) 15%, oklch(0.3 0.02 255));
+  fill: var(--metal);
+  stroke: var(--metal);
+  stroke-width: 1.4;
 }
 .n-spur {
-  fill: color-mix(in oklab, var(--background) 55%, var(--primary));
+  fill: color-mix(in oklab, var(--background) 60%, var(--primary));
 }
 .n-outline {
   fill: none;
-  stroke: color-mix(in oklab, var(--foreground) 55%, transparent);
-  stroke-width: 1.2;
+  stroke: color-mix(in oklab, var(--foreground) 45%, transparent);
+  stroke-width: 1;
 }
 .stage-glow-core {
   stop-color: var(--glow);
@@ -364,6 +404,128 @@
 .stage-scene[data-lights][data-dived]:not([data-band="sunlit"]) .stage-hidden {
   opacity: 1;
 }
+/* The lure: a slow glow while the lamps are on. */
+.stage-anglerfish .c-glow {
+  opacity: 0.5;
+}
+.stage-scene[data-lights] .stage-anglerfish .c-glow {
+  opacity: 1;
+}
+.stage-scene[data-lights]:not([data-band="sunlit"]) .stage-anglerfish .c-glow {
+  animation: stage-lure 1.8s ease-in-out infinite alternate;
+}
+.stage[data-offscreen] .stage-anglerfish .c-glow {
+  animation-play-state: paused;
+}
+@keyframes stage-lure {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+/* Glowing specks of life in the midnight water (and in Abyss's twilight too). */
+.stage-specks {
+  fill: color-mix(in oklab, var(--glow) 70%, white);
+  opacity: 0;
+  transition: opacity var(--stage-fade);
+}
+.stage-scene[data-band="midnight"] .stage-specks {
+  opacity: 1;
+}
+.stage-specks circle {
+  animation: stage-twinkle 3.2s ease-in-out var(--twinkle-delay) infinite alternate;
+}
+.stage[data-offscreen] .stage-specks circle,
+.stage-scene:not([data-band="midnight"]) .stage-specks circle {
+  animation-play-state: paused;
+}
+@keyframes stage-twinkle {
+  from {
+    opacity: 0.15;
+  }
+  to {
+    opacity: 0.9;
+  }
+}
+/* The bell's sound: rings spreading out from the hull. */
+.stage-ripples {
+  fill: none;
+  stroke: color-mix(in oklab, var(--glow) 55%, var(--background));
+  stroke-width: 1.5;
+}
+.stage-ripples ellipse {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* The beam sweeps out from the lantern, then holds. */
+  .stage-beam {
+    transform-origin: 186px 12px;
+  }
+  .stage-scene[data-lights] .stage-beam {
+    animation: stage-sweep 1300ms var(--ouro-ease-out) 1 both;
+  }
+  /* The fish dart away from the light. */
+  .stage-react {
+    transition: transform 900ms var(--ouro-ease-out);
+  }
+  .stage-scene[data-lights] .stage-react {
+    transform: translate(calc(var(--scatter) * 16px), calc(var(--scatter) * -10px)) rotate(calc(var(--scatter) * 8deg));
+  }
+  .stage-react {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  /* The octopus rises from the rocks into the light. */
+  .stage-octopus {
+    transform: translateY(36px);
+    transition: transform 1100ms var(--ouro-ease-out) 200ms;
+  }
+  .stage-scene[data-lights][data-dived]:not([data-band="sunlit"]) .stage-octopus {
+    transform: none;
+  }
+  .stage-ripples ellipse {
+    animation: stage-ripple 1500ms var(--ouro-ease-out) var(--ripple-delay) 1 both;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stage-ripples ellipse {
+    animation: stage-fade-flash 1500ms ease var(--ripple-delay) 1 both;
+  }
+  .stage-scene[data-lights] .stage-react {
+    opacity: 0.75;
+  }
+}
+@keyframes stage-sweep {
+  0% {
+    transform: rotate(-22deg);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  70% {
+    transform: rotate(5deg);
+  }
+  100% {
+    transform: rotate(0deg);
+    opacity: 1;
+  }
+}
+@keyframes stage-ripple {
+  0% {
+    transform: scale(0.4);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(3.2);
+    opacity: 0;
+  }
+}
 
 .stage-vignette {
   pointer-events: none;
@@ -377,39 +539,561 @@
   stroke-linecap: round;
 }
 
-/* The rim: quiet in Sleek, brass where the preset says so. */
+/* The rim: Nemo's motto engraved around the top, held by eight screws. */
 .stage-rim-ring {
   fill: none;
-  stroke: color-mix(in oklab, var(--card) 90%, var(--foreground));
+  stroke: var(--rim);
   stroke-width: 32;
-}
-.stage-porthole {
-  border-radius: 999px;
-  box-shadow: var(--shadow-xl);
-  /* Its own layer: a change in the rail doesn't repaint the sea, nor the sea the rail. */
-  will-change: transform;
 }
 .stage-rim-inner,
 .stage-rim-outer {
   fill: none;
-  stroke: color-mix(in oklab, var(--border) 80%, var(--foreground) 20%);
+  stroke: color-mix(in oklab, var(--border) 70%, var(--foreground) 30%);
   stroke-width: 1;
 }
-.stage-bolt {
-  fill: color-mix(in oklab, var(--muted-foreground) 50%, var(--card));
+.stage-rim-rule {
+  fill: none;
+  stroke: color-mix(in oklab, var(--rim) 70%, var(--foreground));
+  stroke-width: 0.6;
+  opacity: 0.6;
 }
-[data-theme="brass"] .stage-rim-ring,
-[data-theme="cookbook"] .stage-rim-ring {
-  stroke: color-mix(in oklab, var(--chart-3) 70%, var(--card));
+.stage-motto {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  fill: var(--engraving);
 }
-[data-theme="brass"] .stage-bolt,
-[data-theme="cookbook"] .stage-bolt {
-  fill: color-mix(in oklab, var(--chart-3) 40%, var(--foreground));
+.stage-bolt circle {
+  fill: color-mix(in oklab, var(--rim) 70%, var(--foreground));
+  stroke: color-mix(in oklab, var(--rim) 40%, var(--foreground));
+  stroke-width: 0.8;
+}
+.stage-bolt-slot {
+  stroke: color-mix(in oklab, var(--rim) 20%, var(--foreground));
+  stroke-width: 1.1;
+  stroke-linecap: round;
+}
+
+
+/*
+ * The exhibit: porthole and console in one frame. The porthole sits in a well at the top; the
+ * console reads like an instrument panel under it. Each preset is its own art direction (below):
+ * Sleek is glass and hairlines, Abyss glows, Brass is a Victorian instrument.
+ */
+.stage {
+  --rim: color-mix(in oklab, var(--card) 88%, var(--foreground));
+  --engraving: color-mix(in oklab, var(--foreground) 62%, var(--rim));
+  --panel: var(--card);
+  --panel-line: color-mix(in oklab, var(--border) 80%, transparent);
+  --dial: color-mix(in oklab, var(--muted) 70%, var(--card));
+  --numeral-font: var(--font-mono);
+  --numeral-glow: none;
+  container-type: inline-size;
+}
+.stage-frame {
+  position: relative;
+  border: 1px solid var(--panel-line);
+  border-radius: calc(var(--radius) * 2.2);
+  background: var(--panel);
+  color: var(--card-foreground);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+.stage-porthole {
+  position: relative;
+  max-width: 456px;
+  margin-inline: auto;
+  padding: 1.5rem 1.25rem 0.5rem;
+  border-radius: 999px;
+  /* Its own layer: a change in the console doesn't repaint the sea, nor the sea the console. */
+  will-change: transform;
+  scroll-margin-top: 4.5rem;
+}
+.stage-porthole::before {
+  /* The well the porthole sits in: a soft pool of the page's colour behind the glass. */
+  content: "";
+  position: absolute;
+  inset: 8% 6% -2%;
+  border-radius: 999px;
+  background: radial-gradient(closest-side, color-mix(in oklab, var(--primary) 18%, transparent), transparent);
+  filter: blur(18px);
+  z-index: -1;
+}
+.stage-frame::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 22rem;
+  background:
+    linear-gradient(to bottom, transparent, var(--panel)),
+    linear-gradient(color-mix(in oklab, var(--border) 45%, transparent) 1px, transparent 1px) 0 0 / 28px 28px,
+    linear-gradient(90deg, color-mix(in oklab, var(--border) 45%, transparent) 1px, transparent 1px) 0 0 / 28px 28px,
+    color-mix(in oklab, var(--muted) 45%, var(--panel));
+  pointer-events: none;
+}
+.stage-frame > * {
+  position: relative;
+}
+.stage-real {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem 0.375rem;
+  padding: 0.25rem 1rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+.stage-console {
+  display: grid;
+  gap: 1.75rem;
+  padding: 1.5rem 1.75rem 1.75rem;
+  border-top: 1px solid var(--panel-line);
+}
+.stage-group {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.stage-heading {
+  display: block;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  font-weight: 600;
+  color: var(--foreground);
+}
+.stage-depth-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.25rem;
+}
+.stage-depth-head .stage-heading {
+  margin: 0;
+}
+.stage-readout {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.375rem;
+  white-space: nowrap;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+.stage-numeral {
+  font-family: var(--numeral-font);
+  font-size: 1.625rem;
+  line-height: 1;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--foreground);
+  text-shadow: var(--numeral-glow);
+  min-width: 3ch;
+  text-align: right;
+}
+.stage-band-name {
+  margin-inline-start: 0.5rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--primary) 12%, transparent);
+  color: var(--foreground);
+  font-size: 0.8125rem;
+}
+.stage-console-row {
+  display: grid;
+  gap: 1.25rem;
+}
+@container (min-width: 34rem) {
+  .stage-console-row {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    gap: 1.5rem;
+  }
+  .stage-helm {
+    padding-inline-start: 1.5rem;
+    border-inline-start: 1px solid var(--panel-line);
+  }
+}
+.stage-tanks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+.stage-tank {
+  display: grid;
+  justify-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.25rem;
+  border: 1px solid var(--panel-line);
+  border-radius: calc(var(--radius) * 1.2);
+  background: color-mix(in oklab, var(--muted) 40%, var(--panel));
+  transition: border-color var(--ouro-duration-base, 200ms) ease, background-color var(--ouro-duration-base, 200ms) ease;
+}
+.stage-tank[data-full] {
+  border-color: color-mix(in oklab, var(--primary) 45%, var(--panel-line));
+  background: color-mix(in oklab, var(--primary) 8%, var(--panel));
+}
+.stage-tank-name {
+  font-size: 0.9375rem;
+  line-height: 1.3;
+  font-weight: 500;
+  color: var(--foreground);
+}
+.stage-gauge {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+.stage-gauge-face {
+  fill: var(--dial);
+  stroke: color-mix(in oklab, var(--foreground) 30%, transparent);
+  stroke-width: 1;
+}
+.stage-gauge-ticks {
+  stroke: var(--muted-foreground);
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+.stage-gauge-arc {
+  fill: none;
+  stroke: color-mix(in oklab, var(--primary) 70%, transparent);
+  stroke-width: 1.6;
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+  stroke-linecap: round;
+}
+.stage-gauge[data-full] .stage-gauge-arc {
+  stroke-dashoffset: 0;
+}
+.stage-gauge-needle {
+  fill: var(--foreground);
+  stroke: var(--foreground);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  transform: rotate(-112deg);
+  transform-origin: 16px 16px;
+}
+.stage-gauge[data-full] .stage-gauge-needle {
+  transform: rotate(112deg);
+  fill: var(--primary);
+  stroke: var(--primary);
+}
+.stage-dive {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-top: 0.75rem;
+}
+.stage-ready {
+  display: inline-flex;
+}
+.stage-hint {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+.stage-helm {
+  display: grid;
+  align-content: start;
+  gap: 1.25rem;
+}
+.stage-lights .stage-heading,
+.stage-speed .stage-heading {
+  margin-bottom: 0.375rem;
+}
+.stage-lights {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.stage-lights .stage-heading {
+  margin: 0;
+}
+.stage-logbook {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "now now" "fold bell";
+  align-items: start;
+  gap: 0.75rem 1rem;
+  padding-top: 1.25rem;
+  border-top: 1px dashed var(--panel-line);
+}
+.stage-log-now {
+  grid-area: now;
+  min-width: 0;
+}
+.stage-log-fold {
+  grid-area: fold;
+  min-width: 0;
+}
+.stage-bell {
+  grid-area: bell;
+}
+.stage-log {
+  max-height: 11rem;
+}
+.stage-log-newest {
+  max-height: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* The needle swings past full and settles. */
+  .stage-gauge-needle {
+    transition: transform 700ms cubic-bezier(0.34, 1.56, 0.64, 1), fill 300ms ease, stroke 300ms ease;
+  }
+  .stage-gauge-arc {
+    transition: stroke-dashoffset 600ms ease;
+  }
+  .stage-ready {
+    animation: stage-pop 520ms cubic-bezier(0.34, 1.56, 0.64, 1) 1 both;
+  }
+  .stage-bell[data-ring="a"] .stage-bell-body {
+    animation: stage-bell-a 900ms ease-out 1;
+  }
+  .stage-bell[data-ring="b"] .stage-bell-body {
+    animation: stage-bell-b 900ms ease-out 1;
+  }
+  .stage-bell-body {
+    transform-box: fill-box;
+    transform-origin: 50% 8%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stage-ready {
+    animation: stage-fade-in 400ms ease 1 both;
+  }
+  .stage-bell[data-ring="a"] .stage-bell-body {
+    animation: stage-bell-glow-a 900ms ease 1;
+  }
+  .stage-bell[data-ring="b"] .stage-bell-body {
+    animation: stage-bell-glow-b 900ms ease 1;
+  }
+}
+@keyframes stage-pop {
+  0% {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes stage-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes stage-bell-a {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  15% {
+    transform: rotate(22deg);
+  }
+  35% {
+    transform: rotate(-18deg);
+  }
+  55% {
+    transform: rotate(11deg);
+  }
+  75% {
+    transform: rotate(-5deg);
+  }
+}
+@keyframes stage-bell-b {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  15% {
+    transform: rotate(22deg);
+  }
+  35% {
+    transform: rotate(-18deg);
+  }
+  55% {
+    transform: rotate(11deg);
+  }
+  75% {
+    transform: rotate(-5deg);
+  }
+}
+@keyframes stage-bell-glow-a {
+  0%,
+  100% {
+    color: currentColor;
+  }
+  30% {
+    color: var(--primary);
+  }
+}
+@keyframes stage-bell-glow-b {
+  0%,
+  100% {
+    color: currentColor;
+  }
+  30% {
+    color: var(--primary);
+  }
+}
+
+@media (max-width: 40rem) {
+  .stage-frame {
+    border-radius: calc(var(--radius) * 1.6);
+  }
+  .stage-porthole {
+    padding: 0.75rem 0.5rem 0.25rem;
+  }
+  .stage-console {
+    gap: 1rem;
+    padding: 1rem;
+  }
+  .stage-heading,
+  .stage-tank-name {
+    font-size: 1rem;
+  }
+}
+
+/* Sleek: glass and ink. Cool hairlines, almost no glow. */
+[data-theme="sleek"] .stage {
+  --panel-line: color-mix(in oklab, var(--border) 90%, transparent);
+}
+[data-theme="sleek"] .stage-frame {
+  box-shadow: 0 1px 0 color-mix(in oklab, white 50%, transparent) inset, var(--shadow-sm);
+}
+[data-theme="sleek"] .stage-porthole::before {
+  opacity: 0.5;
+}
+
+/* Abyss: bioluminescent. Near-black panels, cyan light on the edges, glowing numbers. */
+[data-theme="abyss"] .stage {
+  --numeral-font: var(--font-heading);
+  --panel-line: color-mix(in oklab, var(--primary) 26%, transparent);
+  --rim: color-mix(in oklab, var(--card) 80%, var(--primary));
+  --engraving: color-mix(in oklab, var(--primary) 70%, var(--foreground));
+  --dial: color-mix(in oklab, var(--primary) 8%, var(--card));
+}
+[data-theme="abyss"].dark .stage,
+.dark[data-theme="abyss"] .stage {
+  --numeral-glow: 0 0 12px color-mix(in oklab, var(--primary) 70%, transparent);
+  --panel: color-mix(in oklab, var(--card) 85%, black);
+}
+[data-theme="abyss"] .stage-frame {
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--primary) 14%, transparent),
+    0 24px 80px -24px color-mix(in oklab, var(--primary) 35%, transparent);
+}
+[data-theme="abyss"] .stage-porthole::before {
+  background: radial-gradient(closest-side, color-mix(in oklab, var(--primary) 40%, transparent), transparent);
+}
+[data-theme="abyss"] .stage-tank[data-full] {
+  box-shadow: 0 0 18px -4px color-mix(in oklab, var(--primary) 60%, transparent);
+}
+[data-theme="abyss"] .stage-gauge[data-full] .stage-gauge-arc {
+  filter: drop-shadow(0 0 3px var(--primary));
+}
+[data-theme="abyss"] .stage-scene .stage-specks {
+  opacity: 0.55;
+}
+[data-theme="abyss"] .stage-scene[data-band="midnight"] .stage-specks {
+  opacity: 1;
+}
+[data-theme="abyss"] .stage-scene:not([data-band="sunlit"]) .stage-specks circle {
+  animation-play-state: running;
+}
+[data-theme="abyss"] .stage[data-offscreen] .stage-specks circle {
+  animation-play-state: paused;
+}
+
+/* Brass: a Victorian instrument. Brass bezel and screws, ivory dials, serif numerals, engraved rules. */
+[data-theme="brass"] .stage,
+[data-theme="cookbook"] .stage {
+  --rim: color-mix(in oklab, var(--chart-3) 72%, var(--card));
+  --engraving: color-mix(in oklab, var(--foreground) 78%, var(--chart-3));
+}
+[data-theme="brass"] .stage {
+  --numeral-font: var(--font-heading);
+  --panel-line: color-mix(in oklab, var(--chart-3) 45%, var(--border));
+  --dial: color-mix(in oklab, oklch(0.97 0.02 90) 85%, var(--chart-3));
+}
+[data-theme="brass"].dark .stage,
+.dark[data-theme="brass"] .stage {
+  --dial: color-mix(in oklab, oklch(0.9 0.035 88) 80%, var(--chart-3));
+}
+[data-theme="brass"] .stage-frame {
+  border-width: 2px;
+  border-color: color-mix(in oklab, var(--chart-3) 60%, var(--border));
+}
+[data-theme="brass"] .stage-frame::after {
+  /* An engraved rule inside the edge, and a screw in each corner. */
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px solid color-mix(in oklab, var(--chart-3) 55%, transparent);
+  border-radius: calc(var(--radius) * 2.2 - 6px);
+  pointer-events: none;
+  --screw: radial-gradient(circle at 40% 35%, color-mix(in oklab, var(--chart-3) 45%, white) 0 1.5px, color-mix(in oklab, var(--chart-3) 80%, black) 4px, transparent 4.5px);
+  background:
+    var(--screw) 8px 8px / 10px 10px no-repeat,
+    var(--screw) calc(100% - 8px) 8px / 10px 10px no-repeat,
+    var(--screw) 8px calc(100% - 8px) / 10px 10px no-repeat,
+    var(--screw) calc(100% - 8px) calc(100% - 8px) / 10px 10px no-repeat;
+}
+[data-theme="brass"] .stage-numeral {
+  font-size: 2rem;
+  font-weight: 600;
+}
+[data-theme="brass"] .stage-console {
+  border-top: 3px double color-mix(in oklab, var(--chart-3) 55%, transparent);
+}
+[data-theme="brass"] .stage-heading {
+  font-family: var(--font-heading);
+  font-size: 1.0625rem;
+  letter-spacing: 0.01em;
+}
+[data-theme="brass"] .stage-gauge-face {
+  stroke: color-mix(in oklab, var(--chart-3) 80%, black);
+  stroke-width: 2;
+}
+[data-theme="brass"] .stage-gauge-needle,
+[data-theme="brass"] .stage-gauge[data-full] .stage-gauge-needle {
+  fill: oklch(0.3 0.05 40);
+  stroke: oklch(0.3 0.05 40);
+}
+[data-theme="brass"] .stage-gauge-ticks {
+  stroke: oklch(0.35 0.04 60);
+}
+[data-theme="brass"] .stage-logbook {
+  border-top: 1px solid var(--panel-line);
+  box-shadow: inset 0 1px 0 color-mix(in oklab, var(--chart-3) 25%, transparent);
+}
+[data-theme="brass"] .stage-motto {
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.26em;
+}
+[data-theme="brass"] .stage-scene {
+  /* An old aquatint: verdigris water under a sepia sky. */
+  --sea-ink: color-mix(in oklab, var(--chart-2) 55%, var(--primary));
 }
 
 @media (forced-colors: active) {
   .stage-rim-ring,
   .stage-rim-outer {
     stroke: CanvasText;
+  }
+  .stage-frame {
+    border-color: CanvasText;
   }
 }

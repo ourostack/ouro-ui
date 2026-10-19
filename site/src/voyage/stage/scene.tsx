@@ -10,8 +10,10 @@ export interface SceneState {
   dived: boolean;
   lights: boolean;
   speed: Speed;
-  /** Bumped by each Dive press, so the bubbles rise again. */
+  /** Bumped by each Dive press and each dive of the depth lever, so a stream of bubbles rises again. */
   dives: number;
+  /** Bumped by each ring of the bell, so ripples spread again. */
+  rings: number;
 }
 
 /** A drawing from site/src/nautilus/art at a place and width in the scene, its height from its own proportions. */
@@ -32,10 +34,13 @@ function Drawing({ of, x, y, width, className }: { of: Art; x: number; y: number
 }
 
 /** A fish that drifts across the glass, from a rest place it keeps when nothing moves. */
-function Swimmer({ of, x, y, width, delay, className = "" }: { of: Art; x: number; y: number; width: number; delay: number; className?: string }): JSX.Element {
+function Swimmer({ of, x, y, width, delay, className = "", scatter = 0 }: { of: Art; x: number; y: number; width: number; delay: number; className?: string; scatter?: number }): JSX.Element {
   return (
     <g className={`stage-drift ${className}`} style={{ "--drift-delay": `${delay}` } as CSSProperties}>
-      <Drawing of={of} x={x} y={y} width={width} />
+      {/* When the floodlights come on, the fish dart away from the beam (stage.css). */}
+      <g className="stage-react" style={{ "--scatter": scatter } as CSSProperties}>
+        <Drawing of={of} x={x} y={y} width={width} />
+      </g>
     </g>
   );
 }
@@ -53,6 +58,13 @@ const TWILIGHT_SCHOOL: ReadonlyArray<[number, number, number]> = [
   [96, 196, 0.12], [132, 214, 0.2], [304, 176, 0.5], [340, 196, 0.58], [356, 222, 0.66],
 ];
 
+/** Glowing specks of life in the midnight water: [x, y, delay]. */
+const SPECKS: ReadonlyArray<[number, number, number]> = [
+  [44, 160, 0], [92, 236, 0.4], [130, 120, 1.1], [176, 300, 0.7], [214, 200, 1.6], [252, 120, 0.2], [290, 270, 1.3],
+  [334, 170, 0.9], [372, 300, 0.5], [418, 220, 1.8], [446, 130, 1.2], [70, 340, 1.5], [150, 400, 0.3], [236, 380, 1.0],
+  [318, 350, 0.6], [400, 390, 1.4], [196, 110, 0.8], [270, 330, 1.9],
+];
+
 const SNOW: ReadonlyArray<[number, number]> = [
   [62, 120], [118, 88], [170, 260], [212, 64], [268, 140], [320, 92], [372, 188], [420, 120], [96, 300], [150, 380],
   [240, 330], [300, 410], [356, 300], [410, 360], [60, 210], [446, 250], [200, 440], [280, 230], [128, 172], [392, 420],
@@ -67,7 +79,7 @@ const PLAYBACK: Record<Speed, number> = { stop: 1, half: 1, full: 2.4 };
  * --d (depth, 0 to 1) on the root; CSS does the rest. The layers themselves never re-render, so a
  * control costs a few attributes, not a new picture.
  */
-export function Scene({ state, label, description }: { state: SceneState; label: string; description: string }): JSX.Element {
+export function Scene({ state, label, description, motto }: { state: SceneState; label: string; description: string; motto: string }): JSX.Element {
   const d = state.depth / MAX_DEPTH;
   const root = useRef<SVGSVGElement>(null);
   // Speed changes the fish's playback rate, so they speed up from where they are instead of jumping.
@@ -88,6 +100,7 @@ export function Scene({ state, label, description }: { state: SceneState; label:
       data-lights={state.lights ? "" : undefined}
       data-speed={state.speed}
       data-tanks={state.tanks}
+      data-rings={state.rings}
       style={{ "--d": d.toFixed(3), "--tanks": state.tanks } as CSSProperties}
     >
       <Defs />
@@ -97,10 +110,11 @@ export function Scene({ state, label, description }: { state: SceneState; label:
           <Life />
           <Ship />
           <Bubbles dives={state.dives} />
+          <Ripples rings={state.rings} />
           <Glass />
         </g>
       </g>
-      <Rim />
+      <Rim motto={motto} />
     </svg>
   );
 }
@@ -162,6 +176,11 @@ const Sea = memo(function Sea(): JSX.Element {
         </g>
         <path className="stage-waves" d="M0 152 C20 146 40 158 60 152 C80 146 100 158 120 152 C140 146 160 158 180 152 C200 146 220 158 240 152 C260 146 280 158 300 152 C320 146 340 158 360 152 C380 146 400 158 420 152 C440 146 460 158 480 152 L480 162 L0 162 Z" />
       </g>
+      <g className="stage-specks" aria-hidden="true">
+        {SPECKS.map(([x, y, delay], index) => (
+          <circle key={index} cx={x} cy={y} r={index % 4 === 0 ? 2 : 1.3} style={{ "--twinkle-delay": `${delay}s` } as CSSProperties} />
+        ))}
+      </g>
       <g className="stage-floor">
         <g className="stage-kelp">
           <Drawing of={art.kelp} x={18} y={250} width={74} />
@@ -180,12 +199,12 @@ const Life = memo(function Life(): JSX.Element {
       <g className="stage-life">
         <g className="stage-band stage-band-sunlit">
           {SARDINES.map(([x, y, delay], index) => (
-            <Swimmer key={index} of={art.sardine} x={x} y={y} width={40} delay={delay} className="stage-sardine" />
+            <Swimmer key={index} of={art.sardine} x={x} y={y} width={40} delay={delay} className="stage-sardine" scatter={index % 2 ? 1 : -1} />
           ))}
         </g>
         <g className="stage-band stage-band-twilight">
           {TWILIGHT_SCHOOL.map(([x, y, delay], index) => (
-            <Swimmer key={index} of={art.sardine} x={x} y={y} width={30} delay={delay} className="stage-sardine stage-sardine-far" />
+            <Swimmer key={index} of={art.sardine} x={x} y={y} width={30} delay={delay} className="stage-sardine stage-sardine-far" scatter={index % 2 ? 1 : -1} />
           ))}
           <Swimmer of={art.ray} x={140} y={256} width={170} delay={0.2} className="stage-ray" />
           <Swimmer of={art.jellyfish} x={74} y={120} width={34} delay={0.55} className="stage-jelly" />
@@ -193,7 +212,7 @@ const Life = memo(function Life(): JSX.Element {
         </g>
         <g className="stage-band stage-band-midnight">
           {LANTERNFISH.map(([x, y, delay], index) => (
-            <Swimmer key={index} of={art.lanternfish} x={x} y={y} width={30} delay={delay} className="stage-lanternfish" />
+            <Swimmer key={index} of={art.lanternfish} x={x} y={y} width={30} delay={delay} className="stage-lanternfish" scatter={index % 2 ? 1 : -1} />
           ))}
           <Swimmer of={art.jellyfish} x={52} y={110} width={34} delay={0.35} className="stage-jelly stage-jelly-deep" />
         </g>
@@ -211,9 +230,9 @@ const Ship = memo(function Ship(): JSX.Element {
   return (
     <>
       <g className="stage-nautilus">
-        <path className="stage-beam" d="M222 17 L540 -96 L540 236 Z" fill="url(#stage-beam)" />
-        <Drawing of={art.nautilus} x={0} y={0} width={360} className="stage-ship" />
-        <circle className="stage-lantern-glow" cx="130" cy="19" r="16" fill="url(#stage-glow)" />
+        <path className="stage-beam" d="M186 12 L560 -96 L560 214 Z" fill="url(#stage-beam)" />
+        <Drawing of={art.nautilus} x={0} y={0} width={400} className="stage-ship" />
+        <circle className="stage-lantern-glow" cx="182.5" cy="12" r="16" fill="url(#stage-glow)" />
       </g>
       {/* The sea in front of the hull at the surface: the platform stands three feet out of the water. */}
       <g className="stage-surface-world stage-surface-front" aria-hidden="true">
@@ -224,13 +243,26 @@ const Ship = memo(function Ship(): JSX.Element {
   );
 });
 
+/** A stream of bubbles from the hull, rising as the porthole goes down. */
+const BUBBLES: ReadonlyArray<[number, number, number]> = [
+  [96, 0, 3], [128, 0.12, 4.5], [160, 0.3, 2.5], [190, 0.05, 4], [218, 0.4, 3], [246, 0.2, 5], [274, 0.5, 2.5],
+  [300, 0.1, 4], [326, 0.35, 3], [352, 0.6, 4.5], [140, 0.7, 2.5], [232, 0.8, 3.5], [318, 0.9, 2.5], [200, 1.0, 4],
+];
+
 const Bubbles = memo(function Bubbles({ dives }: { dives: number }): JSX.Element {
   return (
-    <g className="stage-bubbles" key={dives}>
+    <g className="stage-bubbles" key={dives} data-streaming={dives > 0 ? "" : undefined}>
       {dives > 0 &&
-        [[110, 0], [150, 0.15], [196, 0.05], [236, 0.25], [282, 0.1], [320, 0.3], [356, 0.2]].map(([x, delay], index) => (
-          <circle key={index} cx={x} cy={300} r={index % 2 ? 3 : 4.5} style={{ "--bubble-delay": delay } as CSSProperties} />
-        ))}
+        BUBBLES.map(([x, delay, r], index) => <circle key={index} cx={x} cy={330 - (index % 3) * 18} r={r} style={{ "--bubble-delay": delay } as CSSProperties} />)}
+    </g>
+  );
+});
+
+/** Rings of sound spreading through the water from the hull when the bell rings; they ride with the ship (stage.css). */
+const Ripples = memo(function Ripples({ rings }: { rings: number }): JSX.Element {
+  return (
+    <g className="stage-ripples" key={rings} data-rung={rings > 0 ? "" : undefined} aria-hidden="true">
+      {rings > 0 && [0, 0.22, 0.44].map((delay, index) => <ellipse key={index} cx="186" cy="40" rx="70" ry="16" style={{ "--ripple-delay": `${delay}s` } as CSSProperties} />)}
     </g>
   );
 });
@@ -244,15 +276,32 @@ const Glass = memo(function Glass(): JSX.Element {
   );
 });
 
-const Rim = memo(function Rim(): JSX.Element {
+/** The rim: Nemo's motto engraved around the top, and the screws that hold the glass. */
+const Rim = memo(function Rim({ motto }: { motto: string }): JSX.Element {
   return (
     <g className="stage-rim" aria-hidden="true">
+      <path id="stage-motto-path" d="M 280 280 m -256 0 a 256 256 0 0 1 512 0" fill="none" />
       <circle className="stage-rim-ring" cx="280" cy="280" r="256" />
       <circle className="stage-rim-inner" cx="280" cy="280" r="240" />
       <circle className="stage-rim-outer" cx="280" cy="280" r="272" />
-      {Array.from({ length: 12 }, (_, index) => {
-        const angle = (index / 12) * Math.PI * 2 + Math.PI / 12;
-        return <circle key={index} className="stage-bolt" cx={(280 + Math.cos(angle) * 256).toFixed(1)} cy={(280 + Math.sin(angle) * 256).toFixed(1)} r="4" />;
+      <circle className="stage-rim-rule" cx="280" cy="280" r="267" />
+      <circle className="stage-rim-rule" cx="280" cy="280" r="245" />
+      <text className="stage-motto" dy="4.5">
+        <textPath href="#stage-motto-path" startOffset="50%" textAnchor="middle">
+          {motto.toUpperCase()}
+        </textPath>
+      </text>
+      {/* Eight screws, 40 degrees apart, leaving the top of the ring clear for the motto. */}
+      {Array.from({ length: 8 }, (_, index) => {
+        const angle = ((310 + index * 40) * Math.PI) / 180;
+        const x = 280 + Math.cos(angle) * 256;
+        const y = 280 + Math.sin(angle) * 256;
+        return (
+          <g key={index} className="stage-bolt" transform={`translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${((angle * 180) / Math.PI + 40).toFixed(0)})`}>
+            <circle r="5" />
+            <path className="stage-bolt-slot" d="M-3.2 0 H3.2" />
+          </g>
+        );
       })}
     </g>
   );
