@@ -1,5 +1,5 @@
 import { voiceOverTest, type NVDAPlaywright, type VoiceOverPlaywright } from "@guidepup/playwright";
-import { test as base, expect, type Page, type PlaywrightTestArgs, type PlaywrightTestOptions, type PlaywrightWorkerArgs, type PlaywrightWorkerOptions, type TestType } from "@playwright/test";
+import { test as base, expect, type BrowserContext, type BrowserContextOptions, type Page, type PlaywrightTestArgs, type PlaywrightTestOptions, type PlaywrightWorkerArgs, type PlaywrightWorkerOptions, type TestType } from "@playwright/test";
 import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import { nvdaFor, startNVDA, stopNVDA } from "./nvda";
@@ -63,6 +63,25 @@ async function finishVoiceOver(voiceOver: VoiceOverPlaywright, page: Page): Prom
   await closeContext(page);
 }
 
+/**
+ * VoiceOver's tests each get a WebKit of their own, launched as Playwright's would be and closed
+ * after the test, once VoiceOver has stopped: a test's page must not shape what VoiceOver says on
+ * the next. VoiceOver said the Dialog's name as it opened in every run while Checkbox's test ran
+ * before it (13 of 13), and missed it in 4 of 8 once Checklist's did, in the same browser
+ * ("Shakshuka", then the text field's hint).
+ */
+const ownBrowserContext = async (
+  { playwright, browserName, launchOptions, headless, baseURL, viewport, userAgent, deviceScaleFactor, isMobile, hasTouch }: PlaywrightTestArgs & PlaywrightTestOptions & PlaywrightWorkerArgs & PlaywrightWorkerOptions,
+  provide: (context: BrowserContext) => Promise<void>,
+) => {
+  const browser = await playwright[browserName].launch({ ...launchOptions, headless });
+  const options = Object.fromEntries(Object.entries({ baseURL, viewport, userAgent, deviceScaleFactor, isMobile, hasTouch }).filter(([, value]) => value !== undefined));
+  const context = await browser.newContext(options as BrowserContextOptions);
+  await provide(context);
+  await context.close().catch(() => undefined);
+  await browser.close().catch((error: unknown) => note("the browser did not close", error));
+};
+
 /** The worker's NVDA (nvda.ts): it starts after the shared browser and quits before it closes. */
 interface NVDAWorker {
   nvdaWorker: void;
@@ -73,6 +92,7 @@ export const test: ScreenReaderTest =
   process.platform === "darwin"
     ? voiceOverTest.extend<Fixtures>({
         storyId: ["", { option: true }],
+        context: ownBrowserContext,
         page,
         sr: async ({ voiceOver, page }, provide) => {
           await provide(voiceOver);
