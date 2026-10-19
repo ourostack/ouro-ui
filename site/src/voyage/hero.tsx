@@ -1,4 +1,4 @@
-import type { JSX } from "react";
+import { Suspense, type JSX } from "react";
 import proof from "virtual:site-proof";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
@@ -89,7 +89,9 @@ export function Hero({ onXray }: { onXray: () => void }): JSX.Element {
           </p>
         </div>
         <div className="order-2 lg:order-none lg:col-span-7 lg:col-start-6 lg:row-span-2 lg:row-start-1">
-          <Stage />
+          <Suspense>
+            <Stage />
+          </Suspense>
         </div>
       </Container>
     </section>

@@ -130,16 +130,16 @@ describe("the stage's controls", () => {
       expect(scene().dataset.tanks).toBe(String(index + 1));
       if (index < 2) await expect.element(dive).toBeDisabled();
     }
-    expect(lastLog()).toContain(LOG.allFull.text);
+    await expect.poll(lastLog).toContain(LOG.allFull.text);
     await expect.element(dive).toBeEnabled();
     await userEvent.click(dive);
     expect(scene().hasAttribute("data-dived")).toBe(true);
     expect(scene().dataset.band).toBe("midnight");
-    expect(lastLog()).toContain(LOG.dive.text);
+    await expect.poll(lastLog).toContain(LOG.dive.text);
     await userEvent.click(page.getByRole("button", { name: STAGE_COPY.surface, exact: true }));
     expect(scene().hasAttribute("data-dived")).toBe(false);
     expect([scene().dataset.band, scene().dataset.tanks]).toEqual(["sunlit", "0"]);
-    expect(lastLog()).toContain(LOG.surface.text);
+    await expect.poll(lastLog).toContain(LOG.surface.text);
     for (const name of ["Fore", "Middle", "Aft"]) await expect.element(page.getByRole("switch", { name })).not.toBeChecked();
   });
 
@@ -149,16 +149,16 @@ describe("the stage's controls", () => {
     const lights = page.getByRole("switch", { name: STAGE_COPY.lights });
     await userEvent.click(lights);
     expect(scene().hasAttribute("data-lights")).toBe(true);
-    expect(lastLog()).toContain(LOG.lightsOn.text);
+    await expect.poll(lastLog).toContain(LOG.lightsOn.text);
     expect(hidden()).toBe(0);
     for (const name of ["Fore", "Middle", "Aft"]) await userEvent.click(page.getByRole("switch", { name }));
     await userEvent.click(page.getByRole("button", { name: STAGE_COPY.dive, exact: true }));
     await expect.poll(hidden).toBe(1);
     await userEvent.click(lights);
-    expect(lastLog()).toContain(LOG.lightsOff.text);
+    await expect.poll(lastLog).toContain(LOG.lightsOff.text);
     await expect.poll(hidden).toBe(0);
     await userEvent.click(lights);
-    expect(lastLog()).toContain(LOG.lightsOnDeep.text);
+    await expect.poll(lastLog).toContain(LOG.lightsOnDeep.text);
   });
 
   it("sets the fish's speed, and stops them", async () => {
@@ -166,7 +166,7 @@ describe("the stage's controls", () => {
     expect(scene().dataset.speed).toBe("half");
     await userEvent.click(page.getByRole("radio", { name: "Full" }));
     expect(scene().dataset.speed).toBe("full");
-    expect(lastLog()).toContain(LOG.speed.full.text);
+    await expect.poll(lastLog).toContain(LOG.speed.full.text);
     await userEvent.click(page.getByRole("radio", { name: "Stop" }));
     expect(scene().dataset.speed).toBe("stop");
     expect(scene().getAttribute("aria-label")).toContain("The fish hold still.");
@@ -177,7 +177,7 @@ describe("the stage's controls", () => {
     const bell = page.getByRole("button", { name: STAGE_COPY.bell });
     await userEvent.click(bell);
     await expect.element(page.getByText(`${BELL_TOASTS[0]!.name}: ${BELL_TOASTS[0]!.text}`)).toBeVisible();
-    expect(lastLog()).toContain(LOG.bell.text);
+    await expect.poll(lastLog).toContain(LOG.bell.text);
     await userEvent.click(bell);
     await expect.element(page.getByText(`${BELL_TOASTS[1]!.name}: ${BELL_TOASTS[1]!.text}`)).toBeVisible();
   });
@@ -185,9 +185,9 @@ describe("the stage's controls", () => {
   it("keeps the newest three lines in the log", async () => {
     await renderPage("/voyage/");
     for (const name of ["Full", "Stop", "Half", "Full"]) await userEvent.click(page.getByRole("radio", { name }));
+    await expect.poll(() => logText()[0]).toContain(LOG.speed.stop.text);
     expect(logText()).toHaveLength(3);
-    expect(logText()[0]).toContain(LOG.speed.stop.text);
-    expect(lastLog()).toContain(LOG.speed.full.text);
+    await expect.poll(lastLog).toContain(LOG.speed.full.text);
   });
 });
 

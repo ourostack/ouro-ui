@@ -1,4 +1,4 @@
-import { useState, type JSX } from "react";
+import { Suspense, useState, type JSX } from "react";
 import { Inspector } from "@/registry/ouro/components/ouro/inspector/inspector";
 import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
@@ -18,13 +18,20 @@ export default function VoyagePage(): JSX.Element {
   const [xray, setXray] = useState(false);
   return (
     <OuroProvider>
+      {/* Each boundary hydrates as its own task, so no single task blocks a tap for long. */}
       <div className="voyage min-h-dvh bg-background text-foreground">
-        <VoyageHeader xray={xray} onXrayChange={setXray} />
+        <Suspense>
+          <VoyageHeader xray={xray} onXrayChange={setXray} />
+        </Suspense>
         <main>
           <Hero onXray={() => setXray(true)} />
-          <Repaint />
+          <Suspense>
+            <Repaint />
+          </Suspense>
         </main>
-        <VoyageFooter />
+        <Suspense>
+          <VoyageFooter />
+        </Suspense>
       </div>
       <Inspector open={xray} onOpenChange={setXray} docsHref={(item) => href(`/docs/${item}/`)} />
       <Toaster />

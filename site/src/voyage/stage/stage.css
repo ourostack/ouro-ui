@@ -18,6 +18,8 @@
   width: 100%;
   height: auto;
   overflow: visible;
+  /* A picture, not a target: hit testing skips its shapes. */
+  pointer-events: none;
 }
 
 .stage-sea-top,
@@ -37,11 +39,11 @@
   stop-color: var(--sea-bottom);
 }
 .stage-shaft-top {
-  stop-color: var(--glow);
-  stop-opacity: 0.55;
+  stop-color: color-mix(in oklab, var(--glow) 35%, white);
+  stop-opacity: 0.4;
 }
 .stage-shaft-bottom {
-  stop-color: var(--glow);
+  stop-color: color-mix(in oklab, var(--glow) 35%, white);
   stop-opacity: 0;
 }
 .stage-beam-near {
@@ -108,8 +110,7 @@
   stroke-width: 1;
 }
 .stage-shafts {
-  opacity: max(0, calc(0.9 - var(--d) * 3));
-  mix-blend-mode: screen;
+  opacity: max(0, calc(0.75 - var(--d) * 3));
   transition: opacity var(--stage-fade);
 }
 
@@ -213,9 +214,6 @@
 .stage-drift {
   --drift: 22s;
 }
-.stage-scene[data-speed="full"] .stage-drift {
-  --drift: 9s;
-}
 .stage-ray,
 .stage-jelly {
   --drift-scale: 2;
@@ -224,8 +222,12 @@
   .stage-drift {
     animation: stage-drift calc(var(--drift) * var(--drift-scale, 1)) linear calc(var(--drift) * var(--drift-scale, 1) * var(--drift-delay) * -1) infinite;
   }
+  /* Stopped, off screen, or in water we are not looking at: the fish wait where they are. */
   .stage-scene[data-speed="stop"] .stage-drift,
-  .stage[data-offscreen] .stage-drift {
+  .stage[data-offscreen] .stage-drift,
+  .stage-scene:not([data-band="sunlit"]) .stage-band-sunlit .stage-drift,
+  .stage-scene:not([data-band="twilight"]) .stage-band-twilight .stage-drift,
+  .stage-scene:not([data-band="midnight"]) .stage-band-midnight .stage-drift {
     animation-play-state: paused;
   }
   .stage-nautilus {
@@ -347,7 +349,6 @@
 /* The floodlights: the lantern's beam, and what it finds in the deep. */
 .stage-beam {
   opacity: 0;
-  mix-blend-mode: screen;
   transition: opacity var(--stage-fade);
 }
 .stage-scene[data-lights] .stage-beam {
@@ -385,6 +386,8 @@
 .stage-porthole {
   border-radius: 999px;
   box-shadow: var(--shadow-xl);
+  /* Its own layer: a change in the rail doesn't repaint the sea, nor the sea the rail. */
+  will-change: transform;
 }
 .stage-rim-inner,
 .stage-rim-outer {

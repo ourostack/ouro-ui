@@ -131,13 +131,13 @@ test.describe("each control on the stage", () => {
     const drift = () =>
       page.locator(".stage-band-sunlit .stage-drift").first().evaluate((element) => {
         const animation = element.getAnimations()[0];
-        return animation ? { duration: Number(animation.effect?.getComputedTiming().duration), state: animation.playState } : undefined;
+        return animation ? { rate: animation.playbackRate, state: animation.playState } : undefined;
       });
     const half = await drift();
     expect(half?.state).toBe("running");
     await page.getByRole("radio", { name: "Full" }).click();
     await expect(scene(page)).toHaveAttribute("data-speed", "full");
-    await expect.poll(async () => (await drift())?.duration).toBeLessThan(half!.duration);
+    await expect.poll(async () => (await drift())?.rate).toBeGreaterThan(half!.rate);
     await expect(lastLog(page)).toContainText(LOG.speed.full.text);
     await page.getByRole("radio", { name: "Stop" }).click();
     await expect.poll(async () => (await drift())?.state).toBe("paused");
