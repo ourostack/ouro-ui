@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Card } from "@/registry/ouro/components/ouro/card/card";
 import { Checkbox } from "@/registry/ouro/components/ouro/checkbox/checkbox";
 import { Combobox } from "@/registry/ouro/components/ouro/combobox/combobox";
 import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
@@ -387,6 +388,48 @@ describe("Inspector", () => {
     cover.style.insetInlineEnd = "0";
     await expect.poll(() => live(tag)).toBe(true);
   });
+
+  it("keeps the tags of components inside a linked card, whose link stretches over them", async () => {
+    const { host } = await render(
+      <Page>
+        <Card title="Overnight oats" href="/recipes/oats">
+          <Badge>Vegan</Badge>
+        </Card>
+      </Page>,
+    );
+    await drawn(pageRoots(host).length);
+    const badge = host.querySelectorAll('[data-ouro="badge"]')[1]!;
+    // The card's link lies over the badge, but it is the card's own: the badge still shows its tag.
+    const box = badge.getBoundingClientRect();
+    expect(document.elementFromPoint(box.left + 4, box.top + 4)?.closest("[data-stretched-link]")).not.toBeNull();
+    await expect.poll(() => live(tagOn(badge))).toBe(true);
+    const tag = tagOn(badge)!;
+    const at = tag.getBoundingClientRect();
+    expect(document.elementFromPoint(at.left + at.width / 2, at.top + at.height / 2)).toBe(tag);
+  });
+
+  it("keeps its bar while a combobox list is open inside a popover, which leaves the page within reach", async () => {
+    await page.viewport(1280, 800);
+    await render(
+      <Page>
+        <Popover title="Filters" trigger={<Button>Filters</Button>}>
+          <Combobox label="Herb" items={["Basil", "Dill", "Thyme"]} />
+        </Popover>
+      </Page>,
+    );
+    await drawn(4);
+    await userEvent.click(page.getByRole("button", { name: "Filters" }));
+    await userEvent.click(page.getByRole("combobox", { name: "Herb" }));
+    await userEvent.keyboard("{ArrowDown}");
+    await expect.element(page.getByRole("listbox")).toBeVisible();
+    await settled();
+    // The open list hides the page from assistive technology, X-ray included, but no modal dialog shuts it off.
+    expect(layer()!.closest('[aria-hidden="true"], [inert]')).not.toBeNull();
+    await frame();
+    expect(layer()!.hasAttribute("data-modal")).toBe(false);
+    expect(getComputedStyle(layer()!.querySelector('[role="group"]')!).visibility).toBe("visible");
+    expect(tags().slice(0, 4).map((tag) => tag.textContent)).toEqual(["button", "badge", "checkbox", "button"]);
+  }, 15_000);
 
   it("keeps its bar while a popover is open, which leaves the page within reach", async () => {
     await page.viewport(1280, 800);

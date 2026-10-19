@@ -50,15 +50,20 @@ const keyOf = (element: Element) => {
 /** Whatever a modal dialog shuts off from the page while it is open: Base UI hides it from assistive technology, or makes it inert. */
 const shutOff = '[aria-hidden="true"], [inert]';
 
+/** The invisible backdrop Base UI lays over the page under a modal overlay, to catch a press outside it. Ouro's own backdrops carry a `data-ouro` name. */
+const catcher = '[role="presentation"][data-base-ui-inert]:not([data-ouro])';
+
 /**
  * Whether a modal dialog is open in front of the page, so what it shuts off is out of reach: X-ray's
- * own layer is shut off with the page. A popover leaves the page alone, and an open combobox list
- * hides the page from assistive technology but leaves it within reach, so it takes a dialog too
- * (X-ray's own list aside).
+ * own layer is shut off with the page, by a dialog whose portal holds Base UI's backdrop (a modal
+ * one; X-ray's own list aside). A popover leaves the page alone, and an open combobox list (in a
+ * popover too) hides the page from assistive technology but leaves it within reach.
  */
 const modalOpen = (own: Element) =>
   !!own.closest(shutOff) &&
-  [...document.querySelectorAll('[role="dialog"], [role="alertdialog"]')].some((dialog) => !dialog.closest(shutOff) && !dialog.querySelector("[data-ouro-inspector-list]"));
+  [...document.querySelectorAll('[role="dialog"], [role="alertdialog"]')].some(
+    (dialog) => !dialog.closest(shutOff) && !dialog.querySelector("[data-ouro-inspector-list]") && !!dialog.closest('[data-ouro$="-portal"]')?.querySelector(catcher),
+  );
 
 /**
  * Every visible Ouro component root in the page, in document order, but X-ray's own, one behind an
@@ -142,22 +147,33 @@ function visiblePart(element: Element, box: DOMRect, cache: Map<Element, Ancesto
 
 /**
  * The topmost element at a point on the screen, X-ray's own aside, and the invisible backdrop Base
- * UI lays over the page under a modal menu or list (to catch a press outside it), which covers
- * nothing a person sees. Ouro's own backdrops, which dim the page, carry a `data-ouro` name.
+ * UI lays over the page under a modal menu or list, which covers nothing a person sees. Ouro's own
+ * backdrops, which dim the page, count.
  */
-const topAt = (x: number, y: number, own: Element) =>
-  document.elementsFromPoint(x, y).find((element) => !own.contains(element) && !element.matches('[role="presentation"][data-base-ui-inert]:not([data-ouro])'));
+const topAt = (x: number, y: number, own: Element) => document.elementsFromPoint(x, y).find((element) => !own.contains(element) && !element.matches(catcher));
+
+/**
+ * The component an element is part of: for a control, the component it is a control of (a linked
+ * card's link, stretched over the card from inside its heading, is the card's), and otherwise the
+ * nearest one around it.
+ */
+function ownerOf(element: Element): Element | null {
+  const control = element.closest("[data-ouro-control]")?.getAttribute("data-ouro-control");
+  let owner = element.closest("[data-ouro]");
+  while (owner && control !== undefined && itemFor(owner.getAttribute("data-ouro")!) !== control) owner = owner.parentElement!.closest("[data-ouro]");
+  return owner;
+}
 
 /**
  * Whether something lies over a component where its tag goes, so the tag would sit on that
- * instead: at the component's corner by the tag, an element that is neither the component's own
- * nor the page around it showing through; or, over the tag itself, an overlay's popup (a menu, a
- * select list) the component is not in.
+ * instead: at the component's corner by the tag, an element that is neither the component's own,
+ * nor the page around it showing through, nor part of a component around it (a linked card's
+ * link); or, over the tag itself, an overlay's popup (a menu, a select list) the component is not in.
  */
 function covered(root: Element, part: Edges, rtl: boolean, inside: boolean, own: Element): boolean {
   const start = (offset: number) => (rtl ? part.right - offset : part.left + offset);
   const corner = topAt(start(Math.min(4, (part.right - part.left) / 2)), part.top + Math.min(4, (part.bottom - part.top) / 2), own);
-  if (corner && !root.contains(corner) && !corner.contains(root)) return true;
+  if (corner && !root.contains(corner) && !corner.contains(root) && !ownerOf(corner)?.contains(root)) return true;
   const overlay = topAt(start(12), inside ? part.top + 8 : part.top - 8, own)?.closest('[data-ouro$="-portal"]');
   return !!overlay && !overlay.contains(root);
 }

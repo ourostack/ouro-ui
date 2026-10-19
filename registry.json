@@ -8051,6 +8051,8 @@
         "ourostack/ouro-ui/badge-tests",
         "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/card",
+        "ourostack/ouro-ui/card-tests",
         "ourostack/ouro-ui/checkbox",
         "ourostack/ouro-ui/checkbox-tests",
         "ourostack/ouro-ui/checklist",
@@ -8060,6 +8062,7 @@
         "ourostack/ouro-ui/dialog",
         "ourostack/ouro-ui/dialog-tests",
         "ourostack/ouro-ui/field-tests",
+        "ourostack/ouro-ui/heading-tests",
         "ourostack/ouro-ui/inspector",
         "ourostack/ouro-ui/kbd-tests",
         "ourostack/ouro-ui/lib-announce-tests",
@@ -8089,7 +8092,8 @@
         "ourostack/ouro-ui/sheet-tests",
         "ourostack/ouro-ui/switch",
         "ourostack/ouro-ui/switch-tests",
-        "ourostack/ouro-ui/text-field-tests"
+        "ourostack/ouro-ui/text-field-tests",
+        "ourostack/ouro-ui/text-tests"
       ],
       "files": [
         {
