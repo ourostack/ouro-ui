@@ -280,10 +280,14 @@ describe("Inspector", () => {
     await expect.poll(() => document.getAnimations().filter((animation) => animation.playState === "running").length).toBe(0);
     // The page behind the modal is out of reach, so X-ray leaves it: only the dialog (a sheet at this width) and its button.
     await expect.poll(() => tags().map((tag) => tag.textContent)).toEqual(["sheet", "button"]);
-    expect(onTarget(outlines()[1]!, copy)).toBe(true);
+    await expect.poll(() => onTarget(outlines()[1]!, copy)).toBe(true);
     // Nothing of X-ray's lies over the dialog's controls, its bar included.
-    const box = copy.getBoundingClientRect();
-    expect(copy.contains(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2))).toBe(true);
+    await expect
+      .poll(() => {
+        const box = copy.getBoundingClientRect();
+        return copy.contains(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2));
+      })
+      .toBe(true);
     expect(getComputedStyle(layer()!.querySelector('[role="group"]')!).visibility).toBe("hidden");
     await userEvent.click(page.getByRole("button", { name: "Copy link" }));
     expect(onCopy).toHaveBeenCalledOnce();
