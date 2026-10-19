@@ -1,5 +1,5 @@
 import { expect } from "@playwright/test";
-import { describesFocus, heard, said, startReading, test } from "./screen-reader";
+import { describesFocus, heard, said, saysValue, startReading, test } from "./screen-reader";
 import { storyIds } from "./stories";
 
 test.use({ storyId: storyIds.select });
@@ -22,5 +22,5 @@ test("Select is announced with its label, role and state, and its new value when
   await said(sr, () => page.keyboard.press("Enter"), "as the list closes");
   await expect(course).toHaveText("Side");
   await expect(page.getByRole("listbox")).toBeHidden();
-  await describesFocus(sr, (phrase) => /\bside\b/i.test(phrase) && /\bcourse\b/i.test(phrase), '"Course" with "Side", the chosen value');
+  await describesFocus(sr, (phrase) => /\bcourse\b/i.test(phrase) && saysValue(sr, phrase, "Side", "Course"), '"Course" with "Side", the chosen value');
 });

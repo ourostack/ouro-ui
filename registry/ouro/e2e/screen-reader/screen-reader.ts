@@ -109,6 +109,20 @@ export async function describesFocus(sr: ScreenReader, matches: (phrase: string)
   throw new Error(`[sr] no utterance matched ${what}; heard: ${phrases.map((phrase) => `"${phrase}"`).join(" | ") || "nothing"}`);
 }
 
+/**
+ * Whether a phrase gives a combo box's value. NVDA says it whole. VoiceOver with WebKit says a
+ * combo box's value without its last three characters (", Choose a cou Course list box pop up",
+ * ", S Course list box pop up" for "Side"), in every run so far, while it reads the options whole:
+ * that form counts too, on VoiceOver only, and is logged as a finding
+ * (docs/guides/screen-reader-lane.md, "Known findings").
+ */
+export function saysValue(sr: ScreenReader, phrase: string, value: string, label: string): boolean {
+  if (new RegExp(`\\b${value}\\b`, "i").test(phrase)) return true;
+  const clipped = isVoiceOver(sr) && value.length > 3 && phrase.toLowerCase().includes(`, ${value.slice(0, -3)} ${label}`.toLowerCase());
+  if (clipped) console.log(`[sr] finding: VoiceOver read the value "${value}" as "${value.slice(0, -3)}"`);
+  return clipped;
+}
+
 /** "unchecked" (VoiceOver) or "not checked" (NVDA). */
 export const saysUnchecked = (phrase: string): boolean => /\b(unchecked|not checked)\b/i.test(phrase);
 

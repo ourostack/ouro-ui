@@ -18,6 +18,11 @@ The Checklist spec skips, with that reason, until `registry/ouro/components/ouro
 
 VoiceOver reads WebKit on `macos-15`; NVDA reads Chromium on `windows-2025`. Each phrase is matched loosely (VoiceOver says "unchecked" where NVDA says "not checked", and "checkbox" where NVDA says "check box"), so the specs hold for both.
 
+## Known findings
+
+- VoiceOver with WebKit says Select's value without its last three characters: ", Choose a cou, Course, list box pop up" for the placeholder "Choose a course", and ", S, Course" once "Side" is chosen, both as focus arrives and when asked to describe the control (VO-F4). It reads the options whole ("Main (2 of 4)"), and NVDA reads the value whole ("Course, combo box, Side, collapsed"). The Select spec accepts that clipped form on VoiceOver only and logs it as `[sr] finding:`; the next step is to tell WebKit's reading of a `button` with `role="combobox"` apart from the markup Base UI renders.
+- As the Select list opens, VoiceOver can read the first option before it has its name ("selectable (null)"); the spec only logs that moment and checks each move once the list is open.
+
 ## When it runs
 
 - Nightly, on main (`.github/workflows/screen-reader.yml`).
