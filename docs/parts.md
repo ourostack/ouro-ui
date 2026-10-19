@@ -225,6 +225,32 @@ Each part checks that it sits inside `<SheetRoot>`. Outside it, a part throws in
 | `SheetTrigger` | The button that opens the sheet. Pass your button as `render={<Button>Open</Button>}`. |
 | `SheetViewport` | The full-screen layer that positions the popup against its edge. A `ref` reaches the viewport element. |
 
+## Checklist parts
+
+The group a checklist built from parts renders its rows in, named by `label`. Use the `Checklist` component instead unless its `items` cannot express your rows; a row removed from a ChecklistRoot goes at once, while `Checklist` lets it leave.
+
+```tsx
+import {
+  ChecklistItem,
+  ChecklistRoot,
+} from "@/registry/ouro/components/ouro/checklist/checklist-parts";
+```
+
+### Required nesting
+
+```tsx
+<ChecklistRoot label="Steps">
+  <ChecklistItem label="Preheat the oven" checked={done.oven} onCheckedChange={(checked) => mark("oven", checked)} />
+</ChecklistRoot>
+```
+
+Each part checks that it sits inside `<ChecklistRoot>`. Outside it, a part throws in development with a message that shows this JSX shape.
+
+| Part | What it is |
+| --- | --- |
+| `ChecklistItem` | One row of a `ChecklistRoot`. The whole row but its `action` toggles it: a label holding the box, the text and the value, with the action beside it. Use the `Checklist` component instead unless its `items` cannot express your rows. |
+| `ChecklistRoot` | The group a checklist built from parts renders its rows in, named by `label`. Use the `Checklist` component instead unless its `items` cannot express your rows; a row removed from a ChecklistRoot goes at once, while `Checklist` lets it leave. |
+
 ## Tabs parts
 
 The state owner of tabs built from parts. Use the `Tabs` component instead unless its `items` cannot express your layout, such as a tab that holds a badge next to its label or a panel shared by two tabs.

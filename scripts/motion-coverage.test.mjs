@@ -254,6 +254,18 @@ test("motion:coverage merges the partitions under a folder and checks the reposi
         }
       }
     }
+    for (const { from, to, interrupt, tests: named } of motion.transitions ?? []) {
+      for (const testId of named) {
+        tests.add(testId);
+        records.push({ kind: "transition", stem, from, to, interrupt, testId });
+      }
+    }
+    for (const { name: gesture, tests: named } of motion.gestures ?? []) {
+      for (const testId of named) {
+        tests.add(testId);
+        records.push({ kind: "gesture", stem, gesture, testId });
+      }
+    }
   }
   mkdirSync(join(dir, "motion-ci"), { recursive: true });
   const chromium = partitionOf({ project: "ouro-chromium", shard: { index: 1, count: 1 }, worker: "a", cases: [...tests].map((testId) => ({ testId, state: "passed", records: records.filter((record) => record.testId === testId) })) });

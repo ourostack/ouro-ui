@@ -53,6 +53,7 @@
           "--ouro-duration-press": "160ms",
           "--ouro-duration-fast": "150ms",
           "--ouro-duration-base": "200ms",
+          "--ouro-duration-draw": "240ms",
           "--ouro-duration-slow": "300ms",
           "--ouro-duration-sheet": "500ms",
           "--ouro-press-scale": "0.97",
@@ -2828,6 +2829,69 @@
           "path": "registry/ouro/components/ouro/message/attachment.tsx",
           "type": "registry:ui",
           "target": "@components/ouro/message/attachment.tsx"
+        }
+      ]
+    },
+    {
+      "name": "checklist",
+      "type": "registry:ui",
+      "title": "Checklist",
+      "description": "A list of things to tick off, such as a recipe's ingredients or a shopping list: each row a checkbox the whole row toggles, with an optional value and action.",
+      "docs": "A list of things to tick off, such as a recipe's ingredients or a shopping list: each row a checkbox the whole row toggles, with an optional value and action. Import: import { Checklist } from \"@/components/ouro/checklist/checklist\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, checkbox, field, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/checklist.md",
+      "dependencies": [
+        "@base-ui/react@^1.8.0"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/checkbox",
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-control-ref",
+        "ourostack/ouro-ui/lib-dev",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-refs",
+        "ourostack/ouro-ui/lib-use-dev-messages"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/checklist/checklist-parts.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/checklist/checklist-parts.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/checklist/checklist-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/checklist/checklist-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/checklist/checklist.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/checklist/checklist.tsx"
+        }
+      ]
+    },
+    {
+      "name": "inspector",
+      "type": "registry:ui",
+      "title": "Inspector",
+      "description": "X-ray for a page built with Ouro HX: outlines every Ouro component on the page with its name, linked to its docs, and lists them all for keyboard and screen reader users.",
+      "docs": "X-ray for a page built with Ouro HX: outlines every Ouro component on the page with its name, linked to its docs, and lists them all for keyboard and screen reader users. Import: import { Inspector } from \"@/components/ouro/inspector/inspector\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, sheet, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/inspector.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-use-dev-messages",
+        "ourostack/ouro-ui/sheet"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/inspector/inspector-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/inspector/inspector-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/inspector/inspector.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/inspector/inspector.tsx"
         }
       ]
     },
@@ -7910,6 +7974,163 @@
       }
     },
     {
+      "name": "checklist-tests",
+      "type": "registry:item",
+      "title": "Checklist tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for checklist, and the tests of everything checklist installs, so the installed files reach 100% coverage. Add it beside checklist: add checklist checklist-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "checklist's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/checkbox-tests",
+        "ourostack/ouro-ui/checklist",
+        "ourostack/ouro-ui/field-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-control-ref-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/checklist/checklist.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/checklist/checklist.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/checklist/checklist.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/checklist/checklist.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/checklist/checklist.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/checklist/checklist.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/checklist/checklist.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/checklist/checklist.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/checklist.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/checklist.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "inspector-tests",
+      "type": "registry:item",
+      "title": "Inspector tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for inspector, and the tests of everything inspector installs, so the installed files reach 100% coverage. Add it beside inspector: add inspector inspector-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "inspector's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/badge",
+        "ourostack/ouro-ui/badge-tests",
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/card",
+        "ourostack/ouro-ui/card-tests",
+        "ourostack/ouro-ui/checkbox",
+        "ourostack/ouro-ui/checkbox-tests",
+        "ourostack/ouro-ui/checklist",
+        "ourostack/ouro-ui/checklist-tests",
+        "ourostack/ouro-ui/combobox",
+        "ourostack/ouro-ui/combobox-tests",
+        "ourostack/ouro-ui/dialog",
+        "ourostack/ouro-ui/dialog-tests",
+        "ourostack/ouro-ui/field-tests",
+        "ourostack/ouro-ui/heading-tests",
+        "ourostack/ouro-ui/inspector",
+        "ourostack/ouro-ui/kbd-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-control-ref-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-floating-tests",
+        "ourostack/ouro-ui/lib-key-shortcuts-tests",
+        "ourostack/ouro-ui/lib-last-input-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-server-element-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
+        "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
+        "ourostack/ouro-ui/menu",
+        "ourostack/ouro-ui/menu-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/popover",
+        "ourostack/ouro-ui/popover-tests",
+        "ourostack/ouro-ui/radio-group",
+        "ourostack/ouro-ui/radio-group-tests",
+        "ourostack/ouro-ui/select",
+        "ourostack/ouro-ui/select-tests",
+        "ourostack/ouro-ui/sheet-tests",
+        "ourostack/ouro-ui/switch",
+        "ourostack/ouro-ui/switch-tests",
+        "ourostack/ouro-ui/text-field-tests",
+        "ourostack/ouro-ui/text-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/inspector/inspector.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/inspector/inspector.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/inspector/inspector.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/inspector/inspector.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/inspector/inspector.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/inspector/inspector.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/inspector/inspector.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/inspector/inspector.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/inspector.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/inspector.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
       "name": "ouro-lib-tests",
       "type": "registry:item",
       "title": "Ouro lib tests",
@@ -7962,6 +8183,7 @@
         "ourostack/ouro-ui/chart-tests",
         "ourostack/ouro-ui/checkbox-group-tests",
         "ourostack/ouro-ui/checkbox-tests",
+        "ourostack/ouro-ui/checklist-tests",
         "ourostack/ouro-ui/collapsible-tests",
         "ourostack/ouro-ui/color-field-tests",
         "ourostack/ouro-ui/combobox-tests",
@@ -7978,6 +8200,7 @@
         "ourostack/ouro-ui/form-tests",
         "ourostack/ouro-ui/heading-tests",
         "ourostack/ouro-ui/hover-card-tests",
+        "ourostack/ouro-ui/inspector-tests",
         "ourostack/ouro-ui/item-group-tests",
         "ourostack/ouro-ui/item-tests",
         "ourostack/ouro-ui/kbd-tests",

@@ -1834,5 +1834,121 @@
       "Attachment/Files",
       "Attachment/Removable"
     ]
+  },
+  {
+    "item": "checklist",
+    "stem": "checklist",
+    "mode": "default",
+    "part": "box",
+    "role": "checkbox",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Checklist/Playground",
+      "Checklist/InContext",
+      "Checklist/LongList",
+      "Checklist/RTL",
+      "Checklist/Empty",
+      "Checklist/WithActions"
+    ]
+  },
+  {
+    "item": "checklist",
+    "stem": "checklist",
+    "mode": "default",
+    "part": "hidden-input",
+    "role": "checkbox",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Checklist/Playground",
+      "Checklist/InContext",
+      "Checklist/LongList",
+      "Checklist/RTL",
+      "Checklist/Empty",
+      "Checklist/WithActions"
+    ]
+  },
+  {
+    "item": "checklist",
+    "stem": "checklist",
+    "mode": "default",
+    "part": "clear",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Checklist/Playground",
+      "Checklist/InContext",
+      "Checklist/LongList",
+      "Checklist/RTL",
+      "Checklist/Empty",
+      "Checklist/WithActions"
+    ]
+  },
+  {
+    "item": "inspector",
+    "stem": "inspector",
+    "mode": "default",
+    "part": "tag",
+    "role": "link",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "Inspector/Playground",
+      "Inspector/InContext"
+    ]
+  },
+  {
+    "item": "inspector",
+    "stem": "inspector",
+    "mode": "default",
+    "part": "list",
+    "role": "button",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "Inspector/Playground",
+      "Inspector/InContext"
+    ]
+  },
+  {
+    "item": "inspector",
+    "stem": "inspector",
+    "mode": "default",
+    "part": "close",
+    "role": "button",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "Inspector/Playground",
+      "Inspector/InContext"
+    ]
+  },
+  {
+    "item": "inspector",
+    "stem": "inspector",
+    "mode": "default",
+    "part": "docs",
+    "role": "link",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "Inspector/Playground",
+      "Inspector/InContext"
+    ]
+  },
+  {
+    "item": "inspector",
+    "stem": "inspector",
+    "mode": "default",
+    "part": "source",
+    "role": "link",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "Inspector/Playground",
+      "Inspector/InContext"
+    ]
   }
 ]

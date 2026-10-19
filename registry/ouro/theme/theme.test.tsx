@@ -177,11 +177,11 @@ describe("motion tokens", () => {
     expect(tailwind.transitionTimingFunction).toBe("cubic-bezier(0, 0, 0.2, 1)");
   });
 
-  it("defines the durations: press 160ms, fast 150ms, base 200ms, slow 300ms, sheet 500ms", () => {
+  it("defines the durations: press 160ms, fast 150ms, base 200ms, draw 240ms, slow 300ms, sheet 500ms", () => {
     const durations = Object.fromEntries(
-      ["press", "fast", "base", "slow", "sheet"].map((name) => [name, root().getPropertyValue(`--ouro-duration-${name}`).trim()]),
+      ["press", "fast", "base", "draw", "slow", "sheet"].map((name) => [name, root().getPropertyValue(`--ouro-duration-${name}`).trim()]),
     );
-    expect(durations).toEqual({ press: "160ms", fast: "150ms", base: "200ms", slow: "300ms", sheet: "500ms" });
+    expect(durations).toEqual({ press: "160ms", fast: "150ms", base: "200ms", draw: "240ms", slow: "300ms", sheet: "500ms" });
   });
 });
 

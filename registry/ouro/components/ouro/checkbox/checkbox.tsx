@@ -133,7 +133,7 @@ function CheckboxBox(props: {
 /**
  * A labeled checkbox on the Field contract, with the label to its right: pass `label`, and
  * `checked` with `onCheckedChange` (or `defaultChecked`). Clicking the label toggles it,
- * Space toggles it from the keyboard, the tick fades in, and `indeterminate` shows a
+ * Space toggles it from the keyboard, the box fills and the tick draws, and `indeterminate` shows a
  * dash announced as "mixed". With `name`, a checked box submits `name=value` with its form.
  *
  * Use `CheckboxGroup` instead for several choices under one legend that submit together,
