@@ -3,7 +3,7 @@ import { createRoot, type Root, type RootOptions } from "react-dom/client";
 import type { ReactNode } from "react";
 import { expect } from "vitest";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
-import { App } from "../src/app";
+import { App, loadPage } from "../src/app";
 import { docsItems } from "../src/docs/items";
 import { axeExclude } from "@/registry/ouro/lib/ouro/testing/axe";
 
@@ -11,7 +11,8 @@ let mounted: { root: Root; host: HTMLElement } | undefined;
 
 /** Client-renders a page and waits for real docs demo content, not its loading shell. */
 export async function renderPage(path: string): Promise<HTMLElement> {
-  const host = await renderFixture(<App path={path} />);
+  const Page = await loadPage(path);
+  const host = await renderFixture(<App path={path} Page={Page} />);
   const name = /^\/docs\/([^/]+)\/$/.exec(path)?.[1];
   if (name && docsItems.some((item) => item.name === name)) {
     await expect.poll(() => host.querySelector(`[data-site-demo="${name}"]`)?.childElementCount ?? 0).toBeGreaterThan(0);

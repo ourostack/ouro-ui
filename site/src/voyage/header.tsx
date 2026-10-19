@@ -1,0 +1,175 @@
+import { useCallback, useRef, type JSX } from "react";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Command } from "@/registry/ouro/components/ouro/command/command";
+import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
+import { Navbar } from "@/registry/ouro/components/ouro/navbar/navbar";
+import {
+  PopoverClose,
+  PopoverDescription,
+  PopoverPopup,
+  PopoverPortal,
+  PopoverPositioner,
+  PopoverRoot,
+  PopoverTitle,
+  PopoverTrigger,
+} from "@/registry/ouro/components/ouro/popover/popover-parts";
+import { RadioGroup } from "@/registry/ouro/components/ouro/radio-group/radio-group";
+import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-control/segmented-control";
+import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
+import { useCommandShortcut } from "@/registry/ouro/lib/ouro/use-command-shortcut";
+import { OuroMark } from "../components/icons";
+import { GITHUB, href } from "../paths";
+import type { Mode, PresetName } from "../themes/prepaint";
+import { presetList, presetNamed, Swatch } from "./presets";
+import { useSiteTheme } from "./theme-store";
+
+/** Surfaced is light, Submerged is dark: the SegmentedControl's two segments. */
+export const MODE_ITEMS = [
+  { value: "light", label: "Surfaced" },
+  { value: "dark", label: "Submerged" },
+] as const;
+
+function ChevronIcon(): JSX.Element {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-3.5 opacity-60">
+      <path d="m4.5 6.5 3.5 3.5 3.5-3.5" />
+    </svg>
+  );
+}
+
+/**
+ * The six presets and Surfaced or Submerged, in a Popover from the header. Built from the
+ * Popover parts to focus the panel itself when it opens: the panel is not yet positioned on
+ * the frame Base UI moves focus in, so focusing its first radio scrolled the page to the
+ * popup's unplaced position. Tab reaches the presets from there.
+ */
+export function ThemePicker(): JSX.Element {
+  const { preset, mode, setPreset, setMode } = useSiteTheme();
+  const current = presetNamed(preset);
+  const popup = useRef<HTMLDivElement>(null);
+  return (
+    <PopoverRoot>
+      <PopoverTrigger
+        render={
+          <Button variant="plain" tone="secondary" size="sm" data-site-theme-trigger="">
+            <Swatch preset={preset} />
+            <span className="max-sm:sr-only">
+              <span className="sr-only">Theme: </span>
+              {current.label}
+            </span>
+            <ChevronIcon />
+          </Button>
+        }
+      />
+      <PopoverPortal>
+        <PopoverPositioner side="bottom" align="end">
+          <PopoverPopup ref={popup} initialFocus={popup} className="w-80">
+            <div className="grid gap-1">
+              <PopoverTitle>Theme</PopoverTitle>
+              <PopoverDescription>Every preset is a plain shadcn/ui theme.</PopoverDescription>
+            </div>
+            <div className="mt-2 grid gap-5">
+              <RadioGroup
+                legend="Preset"
+                hideLegend
+                value={preset}
+                onValueChange={(value) => setPreset(value as PresetName)}
+                options={presetList.map((item) => ({
+                  value: item.name,
+                  label: item.label,
+                  description: (
+                    <span className="inline-flex items-center gap-2">
+                      <Swatch preset={item.name} />
+                      {item.mood}
+                    </span>
+                  ),
+                }))}
+              />
+              <SegmentedControl label="Light or dark" fullWidth items={MODE_ITEMS} value={mode} onValueChange={(value) => setMode(value as Mode)} />
+            </div>
+            <PopoverClose />
+          </PopoverPopup>
+        </PopoverPositioner>
+      </PopoverPortal>
+    </PopoverRoot>
+  );
+}
+
+/** ⌘K: the pages, the presets, light and dark, and X-ray. */
+function SiteCommand({ onXray }: { onXray: () => void }): JSX.Element {
+  const [open, setOpen] = useCommandShortcut("mod+k");
+  const { setPreset, setMode } = useSiteTheme();
+  const go = useCallback((url: string) => () => window.location.assign(url), []);
+  return (
+    <>
+      <Button
+        variant="outline"
+        tone="secondary"
+        size="sm"
+        onClick={() => setOpen(true)}
+        aria-haspopup="dialog"
+        className="max-sm:hidden"
+        aria-keyshortcuts="Meta+K Control+K"
+      >
+        Search
+        <Kbd keys={["mod", "k"]} className="ms-1" />
+      </Button>
+      <Command
+        title="Command palette"
+        open={open}
+        onOpenChange={setOpen}
+        placeholder="Dive, repaint, or find a page…"
+        items={[
+          {
+            label: "Pages",
+            items: [
+              { label: "Docs", onSelect: go(href("/docs/installing/")), keywords: ["install", "guide"] },
+              { label: "Components", onSelect: go(href("/docs/")), keywords: ["catalog"] },
+              { label: "GitHub", onSelect: go(GITHUB), keywords: ["source", "repository"] },
+            ],
+          },
+          {
+            label: "Repaint",
+            items: [
+              ...presetList.map((item) => ({ label: `${item.label} theme`, onSelect: () => setPreset(item.name), keywords: [item.mood] })),
+              { label: "Surface (light)", onSelect: () => setMode("light"), keywords: ["light mode", "surfaced"] },
+              { label: "Submerge (dark)", onSelect: () => setMode("dark"), keywords: ["dark mode", "submerged"] },
+            ],
+          },
+          { label: "Tools", items: [{ label: "X-ray", onSelect: onXray, keywords: ["inspector", "outline", "components"] }] },
+        ]}
+      />
+    </>
+  );
+}
+
+/** The voyage page's header, built from Ouro HX: Navbar, Popover, RadioGroup, SegmentedControl, Switch, Command and Kbd. */
+export function VoyageHeader({ xray, onXrayChange }: { xray: boolean; onXrayChange: (on: boolean) => void }): JSX.Element {
+  return (
+    <Navbar
+      label="Site"
+      className="sticky top-0 z-40 ps-[max(1rem,calc(50%-600px))] pe-[max(1rem,calc(50%-600px))] sm:ps-[max(2rem,calc(50%-600px))] sm:pe-[max(2rem,calc(50%-600px))]"
+      brand={
+        <a href={href("/voyage/")} className="site-brand">
+          <OuroMark className="size-6 text-primary" />
+          Ouro HX
+        </a>
+      }
+      items={[
+        { label: "Docs", href: href("/docs/installing/") },
+        { label: "Components", href: href("/docs/") },
+        { label: "GitHub", href: GITHUB },
+      ]}
+      currentPath={href("/voyage/")}
+      actions={
+        <>
+          <ThemePicker />
+          <div className="max-sm:hidden">
+            <Switch label="X-ray" checked={xray} onCheckedChange={onXrayChange} />
+          </div>
+          <SiteCommand onXray={() => onXrayChange(true)} />
+        </>
+      }
+    />
+  );
+}

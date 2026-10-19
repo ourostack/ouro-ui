@@ -14,7 +14,11 @@ function buildManifest(): Record<string, BuildEntry> {
   return JSON.parse(readFileSync(resolve("site/dist/.vite/manifest.json"), "utf8")) as Record<string, BuildEntry>;
 }
 
-function initialFiles(manifest: Record<string, BuildEntry>): string[] {
+/**
+ * The JavaScript a page needs before it is interactive: the client entry's static closure and its
+ * page module's (site/src/app.tsx loads the module before hydrating; prerender.mts preloads it).
+ */
+function initialFiles(manifest: Record<string, BuildEntry>, kind: "landing" | "voyage" | "docs"): string[] {
   const entry = Object.entries(manifest).find(([key, value]) => key === "index.html" && value.isEntry);
   if (!entry) throw new Error("No production client entry in the build manifest");
   const files = new Set<string>();
@@ -26,8 +30,16 @@ function initialFiles(manifest: Record<string, BuildEntry>): string[] {
     for (const dependency of item.imports ?? []) visit(dependency);
   };
   visit(entry[0]);
+  visit(`src/pages/${kind}.tsx`);
   return [...files].sort();
 }
+
+/**
+ * Initial JavaScript ceilings, gzip bytes (site-design.md, Budgets). The landing page may not
+ * grow from 274,131 bytes, what it loaded on main at fdbaa9d2 before each page got its own chunk;
+ * the voyage preview gets 270 KB.
+ */
+const CEILINGS = { landing: 274_131, voyage: 270 * 1024, docs: 274_131 } as const;
 
 function diagnostics(page: Page): string[] {
   const errors: string[] = [];
@@ -154,7 +166,7 @@ test("initial landing JS excludes demos and each opened example requests only it
     await expect(page.getByRole("button", { name: `Show ${name} example`, exact: true })).toHaveAttribute("aria-expanded", "false");
   }
   const initial = await Promise.all(reads);
-  const expectedFiles = initialFiles(buildManifest());
+  const expectedFiles = initialFiles(buildManifest(), "landing");
   const moduleMap = JSON.parse(readFileSync(resolve("site/dist/.vite/chunk-modules.json"), "utf8")) as Record<string, string[]>;
   const initiallyLoadedModules = expectedFiles.flatMap((file) => {
     const modules = moduleMap[file];
@@ -204,5 +216,44 @@ test("initial landing JS excludes demos and each opened example requests only it
     body: JSON.stringify({ initial, metrics, modules: initiallyLoadedModules, increments }, null, 2),
     contentType: "application/json",
   });
+  expect(errors).toEqual([]);
+});
+
+test("each page loads only its own JavaScript closure, within its ceiling, and never Recharts first", async ({ page }, info) => {
+  const errors = diagnostics(page);
+  const manifest = buildManifest();
+  const moduleMap = JSON.parse(readFileSync(resolve("site/dist/.vite/chunk-modules.json"), "utf8")) as Record<string, string[]>;
+  const report: Record<string, unknown> = {};
+  for (const [kind, path, ready] of [
+    ["landing", "./", page.getByRole("button", { name: "Show Form example", exact: true })],
+    ["voyage", "voyage/", page.locator("html[data-site-ready]")],
+    ["docs", "docs/", page.getByRole("heading", { level: 1 })],
+  ] as const) {
+    const reads: string[] = [];
+    const listener = (response: { url(): string }) => {
+      const file = new URL(response.url()).pathname.replace(/^\/ouro-ui\//, "");
+      if (file.endsWith(".js")) reads.push(file);
+    };
+    page.on("response", listener);
+    await page.goto(path);
+    await expect(ready.first()).toBeAttached();
+    await page.waitForLoadState("networkidle");
+    page.off("response", listener);
+    const expected = initialFiles(manifest, kind);
+    const modules = expected.flatMap((file) => moduleMap[file] ?? []);
+    expect(modules.some((module) => module.startsWith("node_modules/recharts/")), `${kind} loads Recharts first`).toBe(false);
+    expect(modules.some((module) => /\/demos\/.*\.demo\.tsx$/.test(module)), `${kind} loads a docs demo first`).toBe(false);
+    if (kind === "voyage") {
+      // The preview never pulls the docs' generated Markdown or the landing page.
+      expect(modules.filter((module) => /site\/src\/(docs\/|pages\/(landing|docs)\.tsx)/.test(module))).toEqual([]);
+    }
+    if (kind === "landing") expect(modules).not.toContain("site/src/pages/voyage.tsx");
+    const loaded = [...new Set(reads)].filter((file) => !file.includes(".demo-"));
+    expect(loaded.sort(), `${kind} loads its closure and nothing else`).toEqual(expected);
+    const gzip = expected.reduce((sum, file) => sum + gzipSync(readFileSync(resolve("site/dist", file))).byteLength, 0);
+    report[kind] = { gzip, ceiling: CEILINGS[kind], files: expected.length };
+    expect(gzip, `${kind} initial JavaScript, gzip bytes`).toBeLessThanOrEqual(CEILINGS[kind]);
+  }
+  await info.attach("initial-js-by-page", { body: JSON.stringify(report, null, 2), contentType: "application/json" });
   expect(errors).toEqual([]);
 });
