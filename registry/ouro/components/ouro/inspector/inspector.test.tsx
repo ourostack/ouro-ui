@@ -86,11 +86,17 @@ function onTarget(outline: HTMLElement, target: Element) {
   return [a.left - b.left, a.top - b.top, a.width - b.width, a.height - b.height].every((delta) => Math.abs(delta) <= 1);
 }
 
-/** The tag of the outline on a component. */
-const tagOn = (target: Element) => outlines().find((outline) => onTarget(outline, target))!.querySelector<HTMLElement>('[data-ouro-part="tag"]')!;
+/** The tag of the outline on a component, once the outline is on it. */
+const tagOn = (target: Element) => outlines().find((outline) => onTarget(outline, target))?.querySelector<HTMLElement>('[data-ouro-part="tag"]');
 
 /** Whether a tag shows and takes a pointer. */
-const live = (tag: HTMLElement) => getComputedStyle(tag).visibility === "visible";
+const live = (tag: HTMLElement | null | undefined) => !!tag && getComputedStyle(tag).visibility === "visible";
+
+/** Whether the tag on a component, its outline on it, is hidden. */
+const hidden = (target: Element) => {
+  const tag = tagOn(target);
+  return !!tag && getComputedStyle(tag).visibility === "hidden";
+};
 
 /** Waits until nothing on the page is moving. */
 const settled = () => expect.poll(() => document.getAnimations().filter((animation) => animation.playState === "running").length).toBe(0);
@@ -299,12 +305,12 @@ describe("Inspector", () => {
     );
     await drawn(5);
     const under = page.getByRole("button", { name: "Under" }).element();
-    expect(live(tagOn(under))).toBe(true);
+    await expect.poll(() => live(tagOn(under))).toBe(true);
     await userEvent.click(page.getByRole("button", { name: "Actions" }));
     await expect.element(page.getByRole("menu")).toBeVisible();
     await settled();
-    await expect.poll(() => live(tagOn(under))).toBe(false);
-    expect(live(tagOn(page.getByRole("button", { name: "Actions" }).element()))).toBe(true);
+    await expect.poll(() => hidden(under)).toBe(true);
+    await expect.poll(() => live(tagOn(page.getByRole("button", { name: "Actions" }).element()))).toBe(true);
     await userEvent.click(page.getByRole("menuitem", { name: "Edit" }));
     expect(onEdit).toHaveBeenCalledOnce();
     // With the menu gone, the tag is back.
@@ -327,11 +333,11 @@ describe("Inspector", () => {
     );
     await drawn(5);
     const under = page.getByRole("button", { name: "Under" }).element();
-    expect(live(tagOn(under))).toBe(true);
+    await expect.poll(() => live(tagOn(under))).toBe(true);
     await userEvent.click(page.getByRole("combobox", { name: "Course" }));
     await expect.element(page.getByRole("listbox")).toBeVisible();
     await settled();
-    await expect.poll(() => live(tagOn(under))).toBe(false);
+    await expect.poll(() => hidden(under)).toBe(true);
     await userEvent.click(page.getByRole("option", { name: "Dessert" }));
     expect(onValueChange).toHaveBeenCalledWith("dessert");
   }, 15_000);
@@ -344,7 +350,8 @@ describe("Inspector", () => {
     );
     await drawn(4);
     const under = host.querySelectorAll('[data-ouro="button"]')[1]!;
-    const tag = tagOn(under);
+    await expect.poll(() => tagOn(under)).toBeTruthy();
+    const tag = tagOn(under)!;
     const box = tag.getBoundingClientRect();
     // An overlay's popup in its portal, lying over the tag but not the button.
     const portal = document.createElement("div");
@@ -367,7 +374,8 @@ describe("Inspector", () => {
       </Page>,
     );
     await drawn(4);
-    const tag = tagOn(host.querySelectorAll('[data-ouro="button"]')[1]!);
+    await expect.poll(() => tagOn(host.querySelectorAll('[data-ouro="button"]')[1]!)).toBeTruthy();
+    const tag = tagOn(host.querySelectorAll('[data-ouro="button"]')[1]!)!;
     await expect.poll(() => live(tag)).toBe(false);
     // Moved to the far end, the cover leaves the corner the tag points to.
     const cover = host.querySelector<HTMLElement>('[data-testid="cover"]')!;
