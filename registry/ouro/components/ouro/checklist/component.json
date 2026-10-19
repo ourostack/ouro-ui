@@ -1,0 +1,192 @@
+{
+  "order": 2020,
+  "components": [
+    "checklist"
+  ],
+  "controls": {
+    "checklist": [
+      {
+        "part": "box",
+        "role": "checkbox",
+        "portal": false
+      },
+      {
+        "part": "hidden-input",
+        "role": "checkbox",
+        "portal": false
+      },
+      {
+        "part": "clear",
+        "role": "button",
+        "portal": false
+      }
+    ]
+  },
+  "motion": {
+    "checklist": {
+      "states": {
+        "data-checked": {
+          "kind": "motion",
+          "parts": {
+            "tick": {
+              "properties": [
+                "stroke-dashoffset"
+              ],
+              "reduced": [
+                "opacity"
+              ]
+            },
+            "box": {
+              "properties": [
+                "background-color",
+                "border-color"
+              ],
+              "reduced": [
+                "background-color",
+                "border-color"
+              ]
+            },
+            "strike": {
+              "properties": [
+                "scale"
+              ],
+              "reduced": [
+                "opacity"
+              ]
+            },
+            "label": {
+              "properties": [
+                "color"
+              ],
+              "reduced": [
+                "color"
+              ]
+            },
+            "value": {
+              "properties": [
+                "color"
+              ],
+              "reduced": [
+                "color"
+              ]
+            }
+          },
+          "tests": [
+            "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > draws the tick, then the strike, and softens the text",
+            "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > mirrors the strike right to left"
+          ]
+        },
+        "data-unchecked": {
+          "kind": "motion",
+          "parts": {
+            "tick": {
+              "properties": [
+                "stroke-dashoffset"
+              ],
+              "reduced": [
+                "opacity"
+              ]
+            },
+            "box": {
+              "properties": [
+                "background-color",
+                "border-color"
+              ],
+              "reduced": [
+                "background-color",
+                "border-color"
+              ]
+            },
+            "strike": {
+              "properties": [
+                "scale"
+              ],
+              "reduced": [
+                "opacity"
+              ]
+            },
+            "label": {
+              "properties": [
+                "color"
+              ],
+              "reduced": [
+                "color"
+              ]
+            },
+            "value": {
+              "properties": [
+                "color"
+              ],
+              "reduced": [
+                "color"
+              ]
+            }
+          },
+          "tests": [
+            "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > draws the tick, then the strike, and softens the text"
+          ]
+        },
+        "data-disabled": {
+          "kind": "motion",
+          "parts": {
+            "box": {
+              "properties": [
+                "opacity"
+              ],
+              "reduced": [
+                "opacity"
+              ]
+            }
+          },
+          "tests": [
+            "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > fades the box when a row becomes disabled after it renders, with reduced motion too"
+          ]
+        },
+        "data-starting-style": {
+          "kind": "motion",
+          "parts": {
+            "row": {
+              "properties": [
+                "grid-template-rows",
+                "opacity"
+              ],
+              "reduced": [
+                "opacity"
+              ]
+            }
+          },
+          "tests": [
+            "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > brings a new row in"
+          ]
+        },
+        "data-ending-style": {
+          "kind": "motion",
+          "parts": {
+            "row": {
+              "properties": [
+                "grid-template-rows",
+                "opacity"
+              ],
+              "reduced": [
+                "opacity"
+              ]
+            }
+          },
+          "tests": [
+            "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > keeps a removed row until its exit finishes"
+          ]
+        }
+      },
+      "transitions": [
+        {
+          "from": "data-checked",
+          "to": "data-unchecked",
+          "interrupt": true,
+          "tests": [
+            "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > ends in the last state when toggled twice during its animation"
+          ]
+        }
+      ]
+    }
+  }
+}

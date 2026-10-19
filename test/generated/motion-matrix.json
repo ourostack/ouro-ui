@@ -130,5 +130,224 @@
     "tests": [
       "registry/ouro/components/ouro/checkbox/checkbox.test.tsx::Checkbox look > does not move when it becomes read-only after it renders"
     ]
+  },
+  {
+    "item": "checklist",
+    "stem": "checklist",
+    "state": "data-checked",
+    "kind": "motion",
+    "part": "tick",
+    "properties": [
+      "stroke-dashoffset"
+    ],
+    "reduced": [
+      "opacity"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > draws the tick, then the strike, and softens the text",
+      "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > mirrors the strike right to left"
+    ]
+  },
+  {
+    "item": "checklist",
+    "stem": "checklist",
+    "state": "data-checked",
+    "kind": "motion",
+    "part": "box",
+    "properties": [
+      "background-color",
+      "border-color"
+    ],
+    "reduced": [
+      "background-color",
+      "border-color"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > draws the tick, then the strike, and softens the text",
+      "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > mirrors the strike right to left"
+    ]
+  },
+  {
+    "item": "checklist",
+    "stem": "checklist",
+    "state": "data-checked",
+    "kind": "motion",
+    "part": "strike",
+    "properties": [
+      "scale"
+    ],
+    "reduced": [
+      "opacity"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > draws the tick, then the strike, and softens the text",
+      "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > mirrors the strike right to left"
+    ]
+  },
+  {
+    "item": "checklist",
+    "stem": "checklist",
+    "state": "data-checked",
+    "kind": "motion",
+    "part": "label",
+    "properties": [
+      "color"
+    ],
+    "reduced": [
+      "color"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > draws the tick, then the strike, and softens the text",
+      "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > mirrors the strike right to left"
+    ]
+  },
+  {
+    "item": "checklist",
+    "stem": "checklist",
+    "state": "data-checked",
+    "kind": "motion",
+    "part": "value",
+    "properties": [
+      "color"
+    ],
+    "reduced": [
+      "color"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > draws the tick, then the strike, and softens the text",
+      "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > mirrors the strike right to left"
+    ]
+  },
+  {
+    "item": "checklist",
+    "stem": "checklist",
+    "state": "data-unchecked",
+    "kind": "motion",
+    "part": "tick",
+    "properties": [
+      "stroke-dashoffset"
+    ],
+    "reduced": [
+      "opacity"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > draws the tick, then the strike, and softens the text"
+    ]
+  },
+  {
+    "item": "checklist",
+    "stem": "checklist",
+    "state": "data-unchecked",
+    "kind": "motion",
+    "part": "box",
+    "properties": [
+      "background-color",
+      "border-color"
+    ],
+    "reduced": [
+      "background-color",
+      "border-color"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > draws the tick, then the strike, and softens the text"
+    ]
+  },
+  {
+    "item": "checklist",
+    "stem": "checklist",
+    "state": "data-unchecked",
+    "kind": "motion",
+    "part": "strike",
+    "properties": [
+      "scale"
+    ],
+    "reduced": [
+      "opacity"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > draws the tick, then the strike, and softens the text"
+    ]
+  },
+  {
+    "item": "checklist",
+    "stem": "checklist",
+    "state": "data-unchecked",
+    "kind": "motion",
+    "part": "label",
+    "properties": [
+      "color"
+    ],
+    "reduced": [
+      "color"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > draws the tick, then the strike, and softens the text"
+    ]
+  },
+  {
+    "item": "checklist",
+    "stem": "checklist",
+    "state": "data-unchecked",
+    "kind": "motion",
+    "part": "value",
+    "properties": [
+      "color"
+    ],
+    "reduced": [
+      "color"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > draws the tick, then the strike, and softens the text"
+    ]
+  },
+  {
+    "item": "checklist",
+    "stem": "checklist",
+    "state": "data-disabled",
+    "kind": "motion",
+    "part": "box",
+    "properties": [
+      "opacity"
+    ],
+    "reduced": [
+      "opacity"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > fades the box when a row becomes disabled after it renders, with reduced motion too"
+    ]
+  },
+  {
+    "item": "checklist",
+    "stem": "checklist",
+    "state": "data-starting-style",
+    "kind": "motion",
+    "part": "row",
+    "properties": [
+      "grid-template-rows",
+      "opacity"
+    ],
+    "reduced": [
+      "opacity"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > brings a new row in"
+    ]
+  },
+  {
+    "item": "checklist",
+    "stem": "checklist",
+    "state": "data-ending-style",
+    "kind": "motion",
+    "part": "row",
+    "properties": [
+      "grid-template-rows",
+      "opacity"
+    ],
+    "reduced": [
+      "opacity"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > keeps a removed row until its exit finishes"
+    ]
   }
 ]

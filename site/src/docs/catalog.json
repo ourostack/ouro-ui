@@ -338,6 +338,13 @@
     "source": "registry/ouro/components/ouro/reorderable/reorderable.tsx"
   },
   {
+    "name": "checklist",
+    "title": "Checklist",
+    "group": "Lists",
+    "source": "registry/ouro/components/ouro/checklist/checklist.tsx",
+    "parts": "Checklist"
+  },
+  {
     "name": "scroll-area",
     "title": "ScrollArea",
     "group": "Layout",

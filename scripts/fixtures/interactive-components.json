@@ -8,6 +8,7 @@
   "text-field",
   "text-area",
   "checkbox",
+  "checklist",
   "radio-group",
   "switch",
   "edit-sheet",

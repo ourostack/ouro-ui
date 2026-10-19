@@ -332,8 +332,14 @@ describe("the motion matrix", () => {
   it.each(motionRows.filter((row) => row.part !== null))("$stem renders its animated part $part", async ({ stem, part }) => {
     const own = stories.filter((entry) => entry.id.startsWith(`${pascal(stem)}/`));
     expect(own.length).toBeGreaterThan(0);
-    const host = await renderStory(own[0]!.Story);
-    await settle();
-    expect(host.querySelector(`[data-ouro-part="${part}"]`), `${own[0]!.id} renders no data-ouro-part="${part}"`).not.toBeNull();
+    // Some story renders it (Checklist's Empty story renders no row).
+    const found: string[] = [];
+    for (const { id, Story } of own) {
+      const host = await renderStory(Story);
+      await settle();
+      if (host.querySelector(`[data-ouro-part="${part}"]`)) found.push(id);
+      await cleanupStories();
+    }
+    expect(found, `no ${stem} story renders data-ouro-part="${part}"`).not.toEqual([]);
   });
 });

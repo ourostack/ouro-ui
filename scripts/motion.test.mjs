@@ -31,7 +31,8 @@ function scratch() {
     cpSync(join(root, "registry/ouro/components/ouro", component.folder, "component.json"), join(folder, "component.json"));
     writeFileSync(join(folder, `${component.stem}.tsx`), "");
   }
-  cpSync(join(root, "registry/ouro/components/ouro/checkbox"), join(dir, "registry/ouro/components/ouro/checkbox"), { recursive: true });
+  // The folders whose component.json declares motion, whole: the reader checks their parts and test titles.
+  for (const folder of ["checkbox", "checklist"]) cpSync(join(root, "registry/ouro/components/ouro", folder), join(dir, "registry/ouro/components/ouro", folder), { recursive: true });
   return dir;
 }
 
@@ -46,11 +47,11 @@ function editCheckbox(dir, edit) {
 /** The checkbox's `data-checked` state in a manifest. */
 const checked = (manifest) => manifest.motion.checkbox.states["data-checked"];
 
-test("Checkbox declares today's motion, part by part, and no other component declares any yet", () => {
+test("Checkbox declares today's motion, part by part, and only Checklist besides it declares any yet", () => {
   const motion = readMotion(root);
   assert.deepEqual(
     motion.map((entry) => entry.stem),
-    ["checkbox"],
+    ["checkbox", "checklist"],
   );
   const { states } = motion[0].motion;
   assert.deepEqual(Object.keys(states), ["data-checked", "data-unchecked", "data-indeterminate", "data-disabled", "data-invalid", "data-readonly"]);
@@ -160,6 +161,19 @@ test("the motion matrix is plain data a browser test can import, one row per ste
       "checkbox data-disabled box",
       "checkbox data-invalid box",
       "checkbox data-readonly -",
+      "checklist data-checked tick",
+      "checklist data-checked box",
+      "checklist data-checked strike",
+      "checklist data-checked label",
+      "checklist data-checked value",
+      "checklist data-unchecked tick",
+      "checklist data-unchecked box",
+      "checklist data-unchecked strike",
+      "checklist data-unchecked label",
+      "checklist data-unchecked value",
+      "checklist data-disabled box",
+      "checklist data-starting-style row",
+      "checklist data-ending-style row",
     ],
   );
 });

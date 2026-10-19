@@ -1834,5 +1834,56 @@
       "Attachment/Files",
       "Attachment/Removable"
     ]
+  },
+  {
+    "item": "checklist",
+    "stem": "checklist",
+    "mode": "default",
+    "part": "box",
+    "role": "checkbox",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Checklist/Playground",
+      "Checklist/InContext",
+      "Checklist/LongList",
+      "Checklist/RTL",
+      "Checklist/Empty",
+      "Checklist/WithActions"
+    ]
+  },
+  {
+    "item": "checklist",
+    "stem": "checklist",
+    "mode": "default",
+    "part": "hidden-input",
+    "role": "checkbox",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Checklist/Playground",
+      "Checklist/InContext",
+      "Checklist/LongList",
+      "Checklist/RTL",
+      "Checklist/Empty",
+      "Checklist/WithActions"
+    ]
+  },
+  {
+    "item": "checklist",
+    "stem": "checklist",
+    "mode": "default",
+    "part": "clear",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Checklist/Playground",
+      "Checklist/InContext",
+      "Checklist/LongList",
+      "Checklist/RTL",
+      "Checklist/Empty",
+      "Checklist/WithActions"
+    ]
   }
 ]
