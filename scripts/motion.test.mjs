@@ -32,7 +32,7 @@ function scratch() {
     writeFileSync(join(folder, `${component.stem}.tsx`), "");
   }
   // The folders whose component.json declares motion, whole: the reader checks their parts and test titles.
-  for (const folder of ["checkbox", "checklist"]) cpSync(join(root, "registry/ouro/components/ouro", folder), join(dir, "registry/ouro/components/ouro", folder), { recursive: true });
+  for (const folder of ["checkbox", "checklist", "inspector"]) cpSync(join(root, "registry/ouro/components/ouro", folder), join(dir, "registry/ouro/components/ouro", folder), { recursive: true });
   return dir;
 }
 
@@ -47,11 +47,11 @@ function editCheckbox(dir, edit) {
 /** The checkbox's `data-checked` state in a manifest. */
 const checked = (manifest) => manifest.motion.checkbox.states["data-checked"];
 
-test("Checkbox declares today's motion, part by part, and only Checklist besides it declares any yet", () => {
+test("Checkbox declares today's motion, part by part, and only Checklist and Inspector besides it declare any yet", () => {
   const motion = readMotion(root);
   assert.deepEqual(
     motion.map((entry) => entry.stem),
-    ["checkbox", "checklist"],
+    ["checkbox", "checklist", "inspector"],
   );
   const { states } = motion[0].motion;
   assert.deepEqual(Object.keys(states), ["data-checked", "data-unchecked", "data-indeterminate", "data-disabled", "data-invalid", "data-readonly"]);
@@ -174,6 +174,7 @@ test("the motion matrix is plain data a browser test can import, one row per ste
       "checklist data-disabled box",
       "checklist data-starting-style row",
       "checklist data-ending-style row",
+      "inspector data-starting-style layer",
     ],
   );
 });

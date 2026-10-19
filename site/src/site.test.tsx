@@ -11,7 +11,7 @@ import { href, routes } from "./routes";
 import { AGENTS_COMING_SOON, HERO_SUBLINE, HERO_TITLE, SHADCN_LINE } from "./copy";
 import readme from "../../README.md?raw";
 import registry from "../../registry.json";
-import { groupOrder } from "../../scripts/catalog-groups.mts";
+import { siteGroups } from "../../scripts/catalog-groups.mts";
 
 const llmsResponse = await fetch(href("/llms.txt"));
 if (!llmsResponse.ok || !llmsResponse.headers.get("content-type")?.includes("text/plain")) {
@@ -138,7 +138,7 @@ describe("docs", () => {
     expect(names).toEqual(expect.arrayContaining(["button", "text", "heading", "link", "field", "fieldset", "text-field", "text-area", "sheet", "dialog", "confirm-dialog"]));
     expect(docsItems.map((item) => item.name).sort()).toEqual([...names].sort());
     // By catalog group, in registry order within a group.
-    const groups: readonly string[] = groupOrder;
+    const groups: readonly string[] = siteGroups;
     for (const item of docsItems) expect(groups, item.name).toContain(item.group);
     expect(docsItems.map((item) => groups.indexOf(item.group))).toEqual(docsItems.map((item) => groups.indexOf(item.group)).sort((a, b) => a - b));
     for (const name of names) expect(routes.map((route) => route.path)).toContain(`/docs/${name}/`);

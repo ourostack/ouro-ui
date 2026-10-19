@@ -1,4 +1,4 @@
-import type { CatalogGroup } from "../../../scripts/catalog-groups.mts";
+import type { SiteGroup } from "../../../scripts/catalog-groups.mts";
 import partsDoc from "../../../docs/parts.md?raw";
 import catalog from "./catalog.json";
 
@@ -12,8 +12,8 @@ export interface DocsItem {
   name: string;
   /** The component's export name. */
   title: string;
-  /** Catalog group, as in the README catalog. */
-  group: CatalogGroup;
+  /** Catalog group, as in the README catalog; App setup's components come last. */
+  group: SiteGroup;
   /** The registry source file, from the repo root. */
   source: string;
   /** docs/<title>.md, generated. */

@@ -298,9 +298,10 @@ describe("the motion matrix", () => {
     expect(own.length).toBeGreaterThan(0);
     const undeclared = new Set<string>();
     const seen = new Set<string>();
-    const collect = (host: HTMLElement, where: string) => {
-      const roots = [...host.querySelectorAll(`[data-ouro="${stem}"]`)];
-      const animated = [...host.querySelectorAll("[data-ouro-part]")].filter((element) => parts.has(element.getAttribute("data-ouro-part")!) && element.closest("[data-ouro]")?.getAttribute("data-ouro") === stem);
+    // The whole page, not only the story host: a component may keep its root in a portal (X-ray's layer).
+    const collect = (where: string) => {
+      const roots = [...document.querySelectorAll(`[data-ouro="${stem}"]`)];
+      const animated = [...document.querySelectorAll("[data-ouro-part]")].filter((element) => parts.has(element.getAttribute("data-ouro-part")!) && element.closest("[data-ouro]")?.getAttribute("data-ouro") === stem);
       for (const element of [...roots, ...animated]) {
         for (const { name, value } of element.attributes) {
           if (!STATE_ATTRIBUTES.includes(name)) continue;
@@ -311,14 +312,16 @@ describe("the motion matrix", () => {
       }
     };
     for (const { id, Story } of own) {
-      const host = await renderStory(Story);
+      await renderStory(Story);
+      // As it mounts too: a state may last only while the component enters (X-ray's data-starting-style).
+      collect(`${id} as it mounts`);
       await settle();
-      collect(host, `${id} as rendered`);
-      const controls = [...host.querySelectorAll<HTMLElement>(`[data-ouro-control="${stem}"]`)].filter((element) => isVisible(element) && !element.closest('[aria-hidden="true"]') && element.tabIndex !== -1);
+      collect(`${id} as rendered`);
+      const controls = [...document.querySelectorAll<HTMLElement>(`[data-ouro-control="${stem}"]`)].filter((element) => isVisible(element) && !element.closest('[aria-hidden="true"]') && element.tabIndex !== -1);
       for (const [index, control] of controls.entries()) {
         await act(() => control.click());
         await settle();
-        collect(host, `${id} after clicking control ${index + 1}`);
+        collect(`${id} after clicking control ${index + 1}`);
       }
       await cleanupStories();
     }
@@ -337,7 +340,7 @@ describe("the motion matrix", () => {
     for (const { id, Story } of own) {
       const host = await renderStory(Story);
       await settle();
-      if (host.querySelector(`[data-ouro-part="${part}"]`)) found.push(id);
+      if (host.ownerDocument.querySelector(`[data-ouro-part="${part}"]`)) found.push(id);
       await cleanupStories();
     }
     expect(found, `no ${stem} story renders data-ouro-part="${part}"`).not.toEqual([]);

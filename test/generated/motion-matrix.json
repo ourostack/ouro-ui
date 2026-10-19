@@ -349,5 +349,19 @@
     "tests": [
       "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > keeps a removed row until its exit finishes"
     ]
+  },
+  {
+    "item": "inspector",
+    "stem": "inspector",
+    "state": "data-starting-style",
+    "kind": "motion",
+    "part": "layer",
+    "properties": [
+      "opacity"
+    ],
+    "reduced": [],
+    "tests": [
+      "registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > fades in when it opens, and appears at once with reduced motion"
+    ]
   }
 ]

@@ -465,5 +465,11 @@
     "title": "Attachment",
     "group": "Chat",
     "source": "registry/ouro/components/ouro/message/attachment.tsx"
+  },
+  {
+    "name": "inspector",
+    "title": "Inspector",
+    "group": "App setup",
+    "source": "registry/ouro/components/ouro/inspector/inspector.tsx"
   }
 ]

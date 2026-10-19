@@ -52,5 +52,6 @@
   "resizable",
   "chart",
   "message-list",
-  "attachment"
+  "attachment",
+  "inspector"
 ]

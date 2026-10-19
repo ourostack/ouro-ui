@@ -9,5 +9,11 @@ export const groupOrder = ["Actions", "Text", "Forms", "Overlays", "Menus", "Fee
 /** A component's catalog group. */
 export type CatalogGroup = (typeof groupOrder)[number];
 
-/** The group after the components in README's catalog, for exports that set up the app (OuroProvider). */
+/** The group after the components in README's catalog, for exports that set up the app (OuroProvider, Inspector). */
 export const APP_SETUP = "App setup";
+
+/** The groups the site's docs list, in order: the component groups, then App setup's components (Inspector). */
+export const siteGroups = [...groupOrder, APP_SETUP] as const;
+
+/** A docs page's group on the site. */
+export type SiteGroup = (typeof siteGroups)[number];

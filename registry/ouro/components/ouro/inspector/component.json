@@ -1,0 +1,26 @@
+{
+  "order": 2030,
+  "components": ["inspector"],
+  "controls": {
+    "inspector": [
+      {"part": "tag", "role": "link", "portal": true},
+      {"part": "list", "role": "button", "portal": true},
+      {"part": "close", "role": "button", "portal": true},
+      {"part": "docs", "role": "link", "portal": true},
+      {"part": "source", "role": "link", "portal": true}
+    ]
+  },
+  "motion": {
+    "inspector": {
+      "states": {
+        "data-starting-style": {
+          "kind": "motion",
+          "parts": {
+            "layer": {"properties": ["opacity"], "reduced": []}
+          },
+          "tests": ["registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > fades in when it opens, and appears at once with reduced motion"]
+        }
+      }
+    }
+  }
+}

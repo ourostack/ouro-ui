@@ -5,7 +5,7 @@ import { agentExamples } from "../agents/examples";
 import { CodeBlock, Command, InlineCode } from "../components/code";
 import { DocsShell } from "../components/layout";
 import { LiveDemo } from "../components/live-demo";
-import { groupOrder } from "../../../scripts/catalog-groups.mts";
+import { siteGroups } from "../../../scripts/catalog-groups.mts";
 import { docsItems, GITHUB, installedPaths, partsSection, summary, type DocsItem } from "../docs/items";
 import { inline, Markdown, parse, type Block } from "../docs/markdown";
 import { exportPages, guidePages, publishedName, type DocsPage } from "../docs/pages";
@@ -135,8 +135,10 @@ export function DocsPageView({ page }: { page: DocsPage }): JSX.Element {
 }
 
 export function DocsIndex(): JSX.Element {
-  // Every catalog group that has a component, in catalog order.
-  const groups = groupOrder.filter((group) => docsItems.some((item) => item.group === group));
+  // Every catalog group that has a component, in catalog order, App setup last.
+  const groups = siteGroups.filter((group) => docsItems.some((item) => item.group === group));
+  /** An id for a group's heading: "App setup" has a space, which an id may not. */
+  const groupId = (group: string) => `group-${group.toLowerCase().replace(/\s+/g, "-")}`;
   const card =
     "group grid h-full gap-1.5 rounded-xl border border-border p-4 no-underline outline-ring transition-colors hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-offset-2";
   return (
@@ -147,8 +149,8 @@ export function DocsIndex(): JSX.Element {
         lead="Every Ouro HX component, with a live demo, install commands, its props and what to use instead. The same docs live in each component's JSDoc, so an agent reading the installed source sees them too."
       />
       {groups.map((group) => (
-        <section key={group} aria-labelledby={`group-${group}`} className="mt-10">
-          <Heading level={2} size="md" id={`group-${group}`} className="mb-4">
+        <section key={group} aria-labelledby={groupId(group)} className="mt-10">
+          <Heading level={2} size="md" id={groupId(group)} className="mb-4">
             {group}
           </Heading>
           <ul className="m-0 grid list-none gap-3 p-0 sm:grid-cols-2">
