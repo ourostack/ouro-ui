@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
-import { CHECKBOX, CHECKED, firstMatch, inOneSentence, MARK, nameAndRole, readRecords, readsBrowser, quietFor, saysValue, speechVerdict, spokenAfter, UNCHECKED, WATCH_LIMIT_SECONDS, withoutHints } from "../registry/ouro/e2e/screen-reader/phrases.ts";
+import { CHECKBOX, CHECKED, firstMatch, inOneSentence, MARK, nameAndRole, readRecords, readsBrowser, quietFor, readyForAction, saysValue, speechVerdict, spokenAfter, UNCHECKED, WATCH_LIMIT_SECONDS, withoutHints } from "../registry/ouro/e2e/screen-reader/phrases.ts";
 
 // The screen-reader specs' matchers (registry/ouro/e2e/screen-reader/phrases.ts), against phrases
 // VoiceOver and NVDA said in the lane's runs. A matcher takes one phrase at a time, without
@@ -171,4 +171,62 @@ test("before an action VoiceOver must have been quiet: no new phrase for the who
 test("only phrases after the last MARK count, so an old MARK cannot let earlier speech in", () => {
   const records = [MARK, "Edit dialog pop up button", MARK, "Edit recipe web dialog with 4 items Shakshuka"];
   assert.deepEqual(spokenAfter(records), ["Edit recipe web dialog with 4 items Shakshuka"]);
+});
+
+/**
+ * A fake VoiceOver watch on a fake clock: `next` moves time to the deadline it is given, and
+ * `say` (VoiceOver's `output` of MARK) appends MARK 100 ms later unless VoiceOver drops it.
+ */
+function fakeWatch({ dropped = 0, ended = null, first = ["Edit dialog pop up button"] } = {}) {
+  let now = 0;
+  const pending = [];
+  const records = [];
+  const stamps = [];
+  const deliver = () => {
+    while (pending.length > 0 && pending[0][0] <= now) {
+      records.push(pending.shift()[1]);
+      stamps.push(now);
+    }
+  };
+  for (const phrase of first) pending.push([0, phrase]);
+  let says = 0;
+  return {
+    state: {
+      records,
+      stamps,
+      now: () => now,
+      ended: () => ended,
+      next: async (deadline) => {
+        now = Math.max(now, Math.min(deadline, pending[0]?.[0] ?? deadline));
+        deliver();
+      },
+    },
+    say: async () => {
+      says += 1;
+      if (says > dropped) pending.push([now + 100, MARK]);
+    },
+    says: () => says,
+  };
+}
+
+test("VoiceOver is ready for the action once it is quiet and MARK is its last phrase; a MARK it drops is said again", async () => {
+  const ready = fakeWatch();
+  assert.equal(await readyForAction(ready.state, ready.say), null);
+  assert.equal(ready.says(), 1);
+  assert.equal(ready.state.records.at(-1), MARK);
+  // Run 39269919232: VoiceOver never said MARK once; the watch says it again rather than failing.
+  const once = fakeWatch({ dropped: 1 });
+  assert.equal(await readyForAction(once.state, once.say), null);
+  assert.equal(once.says(), 2);
+});
+
+test("a watch that cannot get VoiceOver ready says why, and not that it was stopped", async () => {
+  const never = fakeWatch({ dropped: 3 });
+  assert.equal(await readyForAction(never.state, never.say), `"${MARK}" was never VoiceOver's last phrase in 3 tries`);
+  const silent = fakeWatch({ first: [] });
+  assert.equal(await readyForAction(silent.state, silent.say), "VoiceOver said nothing within 10 s");
+  const broken = fakeWatch({ ended: { code: 1, detail: "osascript ended (exit 1): execution error (-1743)" } });
+  assert.equal(await readyForAction(broken.state, broken.say), "osascript ended (exit 1): execution error (-1743)");
+  const refused = fakeWatch();
+  assert.equal(await readyForAction(refused.state, async () => { throw new Error("Not authorized"); }), `VoiceOver did not say "${MARK}": Not authorized`);
 });

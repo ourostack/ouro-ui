@@ -173,3 +173,45 @@ export function quietFor(stamps: readonly number[], now: number, quietMs: number
   const last = stamps.at(-1);
   return last !== undefined && now - last >= quietMs;
 }
+
+/** What `readyForAction` reads of a VoiceOver watch (screen-reader.ts), so a fake can stand in. */
+export interface WatchState {
+  /** VoiceOver's last phrase each time it changed, and when the watch read it (`now()` time). */
+  readonly records: readonly string[];
+  readonly stamps: readonly number[];
+  now(): number;
+  ended(): WatchEnd | null;
+  /** Resolves when a phrase is read, the watch ends, or `deadline` passes. */
+  next(deadline: number): Promise<void>;
+}
+
+/**
+ * Gets VoiceOver ready for an action, returning null once it is, or why it could not be. It waits
+ * for VoiceOver to say something (10 s), then for quiet (2 s, at most 10 s of waiting), has it say
+ * MARK (`say`), waits up to 3 s for MARK to be its last phrase and then for a quiet second with MARK
+ * still last. VoiceOver dropped MARK once (run 39269919232), and can talk over it, so each of those
+ * tries again, three times in all.
+ */
+export async function readyForAction(watch: WatchState, say: () => Promise<void>): Promise<string | null> {
+  const until = async (done: () => boolean, ms: number) => {
+    const limit = watch.now() + ms;
+    while (!done() && watch.ended() === null && watch.now() < limit) await watch.next(Math.min(limit, watch.now() + 250));
+    return done();
+  };
+  const lastIsMark = () => clean(watch.records.at(-1) ?? "") === MARK;
+  if (!(await until(() => watch.records.length > 0, 10_000))) return watch.ended()?.detail ?? "VoiceOver said nothing within 10 s";
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await until(() => quietFor(watch.stamps, watch.now(), 2_000), 10_000);
+    try {
+      await say();
+    } catch (error) {
+      return `VoiceOver did not say "${MARK}": ${error instanceof Error ? error.message : String(error)}`;
+    }
+    const marked = await until(lastIsMark, 3_000);
+    if (marked) await until(() => !lastIsMark() || quietFor(watch.stamps, watch.now(), 1_000), 5_000);
+    const ended = watch.ended();
+    if (ended !== null) return ended.detail;
+    if (marked && lastIsMark()) return null;
+  }
+  return `"${MARK}" was never VoiceOver's last phrase in 3 tries`;
+}

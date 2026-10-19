@@ -3,7 +3,7 @@ import { test as base, expect, type BrowserContext, type BrowserContextOptions, 
 import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import { nvdaFor, startNVDA, stopNVDA } from "./nvda";
-import { firstMatch, MARK, readRecords, RECORD_END, RECORD_START, quietFor, saysValue as valueSaid, speechVerdict, spokenAfter, WATCH_LIMIT_SECONDS, type WatchEnd } from "./phrases";
+import { firstMatch, MARK, readRecords, RECORD_END, RECORD_START, readyForAction, saysValue as valueSaid, speechVerdict, spokenAfter, WATCH_LIMIT_SECONDS, type WatchEnd } from "./phrases";
 
 // The screen-reader lane's fixtures (playwright.screen-reader.config.ts): VoiceOver on macOS and
 // NVDA on Windows, through Guidepup. VoiceOver starts for each test; NVDA once for each worker
@@ -144,9 +144,8 @@ interface VoiceOverWatch {
  * Watches VoiceOver's last phrase, the only speech it lets AppleScript read, every 20 ms from one
  * osascript process (as Guidepup runs its own), until `stop()` ends it: its own limit,
  * WATCH_LIMIT_SECONDS, is longer than a whole test, so no check outlives it. It resolves once
- * VoiceOver is ready for the action: quiet for 2 s (at most 10 s of waiting), then saying MARK,
- * then quiet again for 1 s with MARK still its last phrase (or it says MARK again, up to three
- * times). What VoiceOver says after that is new, even the same words it said before. Guidepup's `capture` reads the last phrase again only after waiting
+ * VoiceOver is ready for the action (phrases.ts, `readyForAction`): quiet, then MARK as its last
+ * phrase. What VoiceOver says after that is new, even the same words it said before. Guidepup's `capture` reads the last phrase again only after waiting
  * as long as it takes to say, so after a long hint it missed the short phrase that named the
  * focused control and read the next hint instead.
  */
@@ -215,31 +214,14 @@ end repeat`;
       await exited;
     },
   };
-  const failed = async (why: string) => {
-    await watch.stop();
-    const read = records.map((record) => `"${record.trim()}"`).join(" | ") || "nothing";
-    return new Error(`[sr] infrastructure: VoiceOver's speech could not be read: ${(ended as WatchEnd | null)?.detail ?? why}; read: ${read}`);
-  };
-  /** Waits until `done()` or `ms` pass, waking on each phrase read. */
-  const until = async (done: () => boolean, ms: number) => {
-    const limit = Date.now() + ms;
-    while (!done() && ended === null && Date.now() < limit) await watch.next(Math.min(limit, Date.now() + 250));
-    return done();
-  };
-  const lastIsMark = () => records.at(-1)?.trim() === MARK;
-  if (!(await until(() => records.length > 0, 10_000))) throw await failed("no phrase within 10 s");
-  for (let attempt = 0; attempt < 3; attempt++) {
-    await until(() => quietFor(stamps, Date.now(), 2_000), 10_000);
-    try {
-      await run("/usr/bin/osascript", ["-e", `tell application "VoiceOver" to output "${MARK}"`]);
-    } catch (error) {
-      throw await failed(`VoiceOver did not say "${MARK}": ${error instanceof Error ? error.message : String(error)}`);
-    }
-    if (!(await until(lastIsMark, 10_000))) throw await failed(`"${MARK}" was not its last phrase within 10 s`);
-    await until(() => !lastIsMark() || quietFor(stamps, Date.now(), 1_000), 5_000);
-    if (lastIsMark()) return watch;
-  }
-  throw await failed(`VoiceOver kept talking over "${MARK}"`);
+  const why = await readyForAction({ records, stamps, now: Date.now, ended: () => ended, next }, async () => {
+    await run("/usr/bin/osascript", ["-e", `tell application "VoiceOver" to output "${MARK}"`]);
+  });
+  if (why === null) return watch;
+  // Why, before stopping the watcher: stopping it ends osascript, which says nothing about why.
+  const read = records.map((record) => `"${record.trim()}"`).join(" | ") || "nothing";
+  await watch.stop();
+  throw new Error(`[sr] infrastructure: VoiceOver's speech could not be read: ${why}; read: ${read}`);
 }
 
 /**
