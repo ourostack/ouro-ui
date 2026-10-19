@@ -4,7 +4,8 @@ import proof, { install } from "virtual:site-proof";
 import { cleanupPage, renderPage, setScheme } from "../../../test/render";
 import { fleschKincaid, syllables } from "../../../test/readability";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
-import { EYEBROW, INSTALL_CAPTION, INSTALL_COMMAND, INSTALL_SHOWN } from "../hero";
+import { EYEBROW, INSTALL_CAPTION, INSTALL_COMMAND } from "../hero";
+import { latestRelease } from "../../latest-release";
 import { allStageText, bandAt, BELL_TOASTS, describeScene, LOG, OPENING_LOG, STAGE_CONTROLS, STAGE_COPY, TANKS } from "./copy";
 import { art, parseArt } from "./art";
 
@@ -79,15 +80,15 @@ describe("the hero", () => {
     for (const claim of proof.claims) await expect.element(page.getByRole("link", { name: claim.text, exact: true })).toHaveAttribute("href", claim.href);
   });
 
-  it("shows the whole install command, for one component in the latest release, and copies it pinned", async () => {
+  it("shows the whole install command, for one component in the latest release, pinned to it", async () => {
     const writes: string[] = [];
     const spy = vi.spyOn(navigator.clipboard, "writeText").mockImplementation(async (text) => void writes.push(text));
     try {
       await renderPage("/voyage/");
-      expect(INSTALL_SHOWN).toBe(`npx shadcn@latest add ourostack/ouro-ui/${install.item}`);
-      expect(INSTALL_COMMAND).toBe(`${INSTALL_SHOWN}#${install.release}`);
+      expect(install.release).toBe(latestRelease);
+      expect(INSTALL_COMMAND).toBe(`npx shadcn@latest add ourostack/ouro-ui/${install.item}#${latestRelease}`);
       expect(INSTALL_CAPTION).toMatch(new RegExp(`^Add any component\\. ${install.item}`, "i"));
-      await expect.element(page.getByText(INSTALL_SHOWN, { exact: true })).toBeVisible();
+      await expect.element(page.getByText(INSTALL_COMMAND, { exact: true })).toBeVisible();
       await expect.element(page.getByText(INSTALL_CAPTION)).toBeVisible();
       const code = document.querySelector<HTMLElement>("[data-site-install]")!;
       expect(code.scrollWidth).toBeLessThanOrEqual(code.clientWidth);

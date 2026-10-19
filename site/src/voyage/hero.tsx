@@ -5,22 +5,23 @@ import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { HERO_SUBLINE, HERO_TITLE } from "../copy";
 import { href } from "../paths";
+import { latestRelease } from "../latest-release";
 import { Container } from "./layout";
 import { Stage } from "./stage/stage";
 
 /** What the hero says the library is, before anything else. */
 export const EYEBROW = "Ouro HX · Accessible React components for shadcn/ui apps";
 
-/** The install line the hero shows: one component that is in the latest release. */
-export const INSTALL_SHOWN = `npx shadcn@latest add ourostack/ouro-ui/${install.item}`;
-
-/** What Copy puts on the clipboard: the same line, pinned to that release. */
-export const INSTALL_COMMAND = `${INSTALL_SHOWN}#${install.release}`;
+/**
+ * The install line, whole and pinned: one component that is in the latest release (proof.mts picks
+ * it from that release's registry.json), at that release, so what you copy is what you read.
+ */
+export const INSTALL_COMMAND = `npx shadcn@latest add ourostack/ouro-ui/${install.item}#${latestRelease}`;
 
 const title = (item: string) => item.charAt(0).toUpperCase() + item.slice(1);
 
 /** Under the command, so nobody thinks it installs the whole library. */
-export const INSTALL_CAPTION = `Add any component. ${title(install.item)} is one of ${install.count} in ${install.release}.`;
+export const INSTALL_CAPTION = `Add any component. ${title(install.item)} is one of ${install.count} in ${latestRelease}.`;
 
 function CopyIcon(): JSX.Element {
   return (
@@ -40,7 +41,7 @@ function Install(): JSX.Element {
           $
         </span>
         <code tabIndex={0} className="site-mono site-install-command" data-site-install="">
-          {INSTALL_SHOWN}
+          {INSTALL_COMMAND}
         </code>
         <Button
           variant="soft"
@@ -49,7 +50,7 @@ function Install(): JSX.Element {
           className="shrink-0"
           onClick={() => {
             void navigator.clipboard.writeText(INSTALL_COMMAND).then(
-              () => toast("Copied the install command", { tone: "success", description: `Run it in your app's folder. It adds ${title(install.item)}, pinned to ${install.release}.` }),
+              () => toast("Copied the install command", { tone: "success", description: `Run it in your app's folder. It adds ${title(install.item)}.` }),
               () => toast("Couldn't copy", { tone: "destructive", description: "Select the command and copy it yourself." }),
             );
           }}
