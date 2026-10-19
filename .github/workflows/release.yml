@@ -33,11 +33,13 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-latest
-    # CI on the release commit (with the shadcn@latest install), the screen-reader lane on it (with
-    # one retry), CI on the pull request that prepares main, then a Pages deploy. The last 30
-    # releases' p95 was 89 minutes before the lane; the lane's own p95, twice for a retry, makes
-    # about 123; this is at least 1.5 times that (scripts/workflows.test.mjs).
-    timeout-minutes: 185
+    # CI on the release commit (with the shadcn@latest install, beside CI's other jobs), the
+    # screen-reader lane on it (once more after an infrastructure failure), CI on the pull request
+    # that prepares main, then a Pages deploy. The last 30 releases took 89 minutes at p95; the
+    # lane took at most 7 minutes from dispatch to its result over its first runs, so 8 twice
+    # makes 105, and 1.5 times that is 158. 180 leaves room for a macOS runner queue those runs
+    # did not meet (scripts/workflows.test.mjs).
+    timeout-minutes: 180
     env:
       GH_TOKEN: ${{ github.token }}
       VERSION: ${{ inputs.version }}

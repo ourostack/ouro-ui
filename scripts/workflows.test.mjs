@@ -673,10 +673,11 @@ test("the release's screen-reader gate refuses a run for another commit, and a l
 
 test("the release's time limit is at least 1.5 times its p95 with the screen-reader lane", () => {
   // Measured: the last 30 releases' p95 before the lane (ci-timings.json, Task 4), and the lane's
-  // p95 per OS from its runs on this branch, taken twice for one infrastructure retry; the
-  // shadcn@latest install runs beside CI's other jobs on the release commit and adds no time.
+  // longest run from dispatch to result on this branch (7 minutes over 5 runs, both OSes),
+  // rounded up and taken twice for one infrastructure retry; the shadcn@latest install runs
+  // beside CI's other jobs on the release commit and adds no time.
   const releaseP95 = 89;
-  const laneP95 = 17;
+  const laneP95 = 8;
   const limit = Number(workflow("release.yml").match(/^ {4}timeout-minutes: (\d+)$/m)?.[1]);
   assert.ok(limit >= Math.ceil(1.5 * (releaseP95 + 2 * laneP95)), `timeout-minutes ${limit}`);
   assert.ok(limit <= 360, "GitHub's limit for a job");

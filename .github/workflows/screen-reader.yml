@@ -10,9 +10,6 @@ name: Screen reader
 # for a pull request: a dispatch needs write access and tests only the tip of the dispatched branch
 # (docs/guides/screen-reader-lane.md).
 on:
-  # Temporary: registers the new workflow so it can be dispatched (removed in the next commit).
-  push:
-    branches: [feat/ci-selection-sr]
   schedule:
     - cron: "41 4 * * *"
   workflow_dispatch:
