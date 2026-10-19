@@ -20,7 +20,7 @@ import { useCommandShortcut } from "@/registry/ouro/lib/ouro/use-command-shortcu
 import { OuroMark } from "../components/icons";
 import { GITHUB, href } from "../paths";
 import type { Mode, PresetName } from "../themes/prepaint";
-import { presetList, presetNamed, Swatch } from "./presets";
+import { ByPreset, presetList, Swatch } from "./presets";
 import { useSiteTheme } from "./theme-store";
 
 /** Surfaced is light, Submerged is dark: the SegmentedControl's two segments. */
@@ -45,18 +45,23 @@ function ChevronIcon(): JSX.Element {
  */
 export function ThemePicker(): JSX.Element {
   const { preset, mode, setPreset, setMode } = useSiteTheme();
-  const current = presetNamed(preset);
   const popup = useRef<HTMLDivElement>(null);
   return (
     <PopoverRoot>
       <PopoverTrigger
         render={
           <Button variant="plain" tone="secondary" size="sm" data-site-theme-trigger="">
-            <Swatch preset={preset} />
-            <span className="max-sm:sr-only">
-              <span className="sr-only">Theme: </span>
-              {current.label}
-            </span>
+            <ByPreset>
+              {(item) => (
+                <span className="inline-flex items-center gap-2">
+                  <Swatch preset={item.name} />
+                  <span className="max-sm:sr-only">
+                    <span className="sr-only">Theme: </span>
+                    {item.label}
+                  </span>
+                </span>
+              )}
+            </ByPreset>
             <ChevronIcon />
           </Button>
         }

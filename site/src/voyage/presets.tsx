@@ -1,4 +1,4 @@
-import type { JSX } from "react";
+import type { JSX, ReactNode } from "react";
 import themes from "../themes/themes.json";
 import type { PresetName } from "../themes/prepaint";
 
@@ -31,5 +31,22 @@ export function Swatch({ preset, size = "sm" }: { preset: PresetName; size?: "sm
       <span className={`${dot} rounded-full bg-primary ring-1 ring-background`} />
       <span className={`${dot} rounded-full bg-chart-3 ring-1 ring-background`} />
     </span>
+  );
+}
+
+/**
+ * Words or marks that depend on the preset, rendered for every preset; voyage.css shows the one
+ * html[data-theme] names. The head script sets that attribute before paint, so the server-rendered
+ * page shows the reader's preset before it hydrates, and hydration changes nothing.
+ */
+export function ByPreset({ children }: { children: (preset: PresetInfo) => ReactNode }): JSX.Element {
+  return (
+    <>
+      {presetList.map((item) => (
+        <span key={item.name} data-site-when={item.name}>
+          {children(item)}
+        </span>
+      ))}
+    </>
   );
 }

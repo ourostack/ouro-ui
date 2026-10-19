@@ -66,8 +66,22 @@ describe("the theme before first paint", () => {
   it("runs from the inline script the head carries, first, on every page", () => {
     const fake = fakeRoot();
     const run = new Function("localStorage", "document", "matchMedia", prepaintScript);
-    run(storage('{"preset":"chart","mode":"dark"}'), { documentElement: fake }, () => ({ matches: false }));
+    // Once the body is parsed, the stored preset's buttons read as pressed, before any hydration.
+    const buttons = ["sleek", "chart"].map((name) => {
+      const attributes = new Map([["data-site-preset", name]]);
+      return { attributes, getAttribute: (key: string) => attributes.get(key) ?? null, setAttribute: (key: string, value: string) => void attributes.set(key, value) };
+    });
+    let parsed: (() => void) | undefined;
+    const fakeDocument = {
+      documentElement: fake,
+      addEventListener: (type: string, listener: () => void) => void (type === "DOMContentLoaded" && (parsed = listener)),
+      querySelectorAll: (selector: string) => (selector === "[data-site-preset]" ? buttons : []),
+    };
+    run(storage('{"preset":"chart","mode":"dark"}'), fakeDocument, () => ({ matches: false }));
     expect([fake.attributes.get("data-theme"), fake.classes.has("dark")]).toEqual(["chart", true]);
+    expect(buttons.map((button) => button.attributes.get("aria-pressed"))).toEqual([undefined, undefined]);
+    parsed!();
+    expect(buttons.map((button) => button.attributes.get("aria-pressed"))).toEqual(["false", "true"]);
     for (const path of ["/", "/voyage/", "/docs/"]) {
       const tags = headTags(routeFor(path)!, true);
       expect(tags[0]).toBe(`<script>${prepaintScript}</script>`);

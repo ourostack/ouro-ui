@@ -134,3 +134,41 @@
   --site-h1-tracking: -0.02em;
   --site-h2-tracking: -0.015em;
 }
+
+/*
+ * Preset-dependent words and marks (ByPreset in presets.tsx): every preset's is in the HTML, and the
+ * one html[data-theme] names shows, so the page is right before it hydrates.
+ */
+[data-site-when] {
+  display: none;
+}
+html[data-theme="sleek"] [data-site-when="sleek"],
+html[data-theme="abyss"] [data-site-when="abyss"],
+html[data-theme="brass"] [data-site-when="brass"],
+html[data-theme="chart"] [data-site-when="chart"],
+html[data-theme="coral"] [data-site-when="coral"],
+html[data-theme="cookbook"] [data-site-when="cookbook"],
+html:not([data-theme]) [data-site-when="sleek"] {
+  display: contents;
+}
+/* The chosen preset's button: a primary ring and wash, drawn from html[data-theme] so it is right before hydration. */
+html[data-theme="sleek"] [data-site-preset="sleek"],
+html[data-theme="abyss"] [data-site-preset="abyss"],
+html[data-theme="brass"] [data-site-preset="brass"],
+html[data-theme="chart"] [data-site-preset="chart"],
+html[data-theme="coral"] [data-site-preset="coral"],
+html[data-theme="cookbook"] [data-site-preset="cookbook"] {
+  box-shadow: inset 0 0 0 2px var(--primary);
+  background-color: color-mix(in oklab, var(--primary) 8%, var(--background));
+}
+@media (forced-colors: active) {
+  html[data-theme="sleek"] [data-site-preset="sleek"],
+  html[data-theme="abyss"] [data-site-preset="abyss"],
+  html[data-theme="brass"] [data-site-preset="brass"],
+  html[data-theme="chart"] [data-site-preset="chart"],
+  html[data-theme="coral"] [data-site-preset="coral"],
+  html[data-theme="cookbook"] [data-site-preset="cookbook"] {
+    outline: 3px solid Highlight;
+    outline-offset: -3px;
+  }
+}
