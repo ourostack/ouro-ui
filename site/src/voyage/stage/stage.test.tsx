@@ -134,11 +134,11 @@ describe("the stage's controls", () => {
     await expect.element(dive).toBeEnabled();
     await userEvent.click(dive);
     expect(scene().hasAttribute("data-dived")).toBe(true);
-    expect(scene().dataset.band).toBe("midnight");
+    await expect.poll(() => scene().dataset.band).toBe("midnight");
     await expect.poll(lastLog).toContain(LOG.dive.text);
     await userEvent.click(page.getByRole("button", { name: STAGE_COPY.surface, exact: true }));
     expect(scene().hasAttribute("data-dived")).toBe(false);
-    expect([scene().dataset.band, scene().dataset.tanks]).toEqual(["sunlit", "0"]);
+    await expect.poll(() => [scene().dataset.band, scene().dataset.tanks]).toEqual(["sunlit", "0"]);
     await expect.poll(lastLog).toContain(LOG.surface.text);
     for (const name of ["Fore", "Middle", "Aft"]) await expect.element(page.getByRole("switch", { name })).not.toBeChecked();
   });

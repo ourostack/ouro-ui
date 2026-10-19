@@ -101,16 +101,21 @@ export function Stage(): JSX.Element {
       write(LOG.surface);
     } else write(on ? (count === 3 ? LOG.allFull : LOG.tankFull(tank.noun)) : LOG.tankEmpty(tank.noun));
   });
+  // The ship moves and the button turns at once; the porthole's descent and the emptied tanks
+  // follow as a transition, so the press paints first.
   const onDive = useStable(() => {
     if (dived) {
       setDived(false);
-      setTanks(EMPTY);
-      goTo(0);
+      startTransition(() => {
+        setTanks(EMPTY);
+        goTo(0);
+      });
       write(LOG.surface);
     } else {
       setDived(true);
       setDives((count) => count + 1);
-      goTo(Math.max(depth, DIVE_DEPTH));
+      const down = Math.max(depth, DIVE_DEPTH);
+      startTransition(() => goTo(down));
       write(LOG.dive);
     }
   });
