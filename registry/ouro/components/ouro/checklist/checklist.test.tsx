@@ -55,6 +55,8 @@ async function render(node: ReactNode, attributes: Record<string, string> = {}) 
   const root = createRoot(host);
   roots.push(root);
   await act(async () => root.render(node));
+  // The rows are styled before a person can change them, so a change transitions from that style.
+  await frame();
   return {
     host,
     rerender: (next: ReactNode) => act(async () => root.render(next)),
@@ -367,6 +369,8 @@ describe("Checklist", () => {
     const base = duration("--ouro-duration-base");
     const fast = duration("--ouro-duration-fast");
     const milk = row("milk");
+    // A row a person sees has been styled, so its exit transitions from that style.
+    await frame();
     await act(() => setList((list) => list.filter((item) => item.id !== "milk")));
     expect(milk.isConnected).toBe(true);
     expect(milk).toHaveAttribute("data-ending-style");

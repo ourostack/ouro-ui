@@ -1,7 +1,7 @@
 import { expect, test } from "../ouro-fixtures";
 import { openStory } from "./story";
 
-test("Tab reaches each row, Space toggles it, and focus stays on the row", async ({ page }) => {
+test("Space toggles a focused row, and focus stays on it", async ({ page }) => {
   await openStory(page, "lists-checklist--in-context");
   const yogurt = page.getByRole("checkbox", { name: "Greek yogurt" });
   await expect(page.getByRole("group", { name: "Ingredients" })).toBeVisible();
@@ -23,7 +23,7 @@ test("a click on the amount toggles the row, and Clear checked clears it", async
   await expect(page.getByRole("button", { name: "Clear checked" })).toHaveCount(0);
 });
 
-test("removed rows leave, and the empty state follows the last", async ({ page }) => {
+test("checked rows leave when removed, and new rows arrive", async ({ page }) => {
   await openStory(page, "lists-checklist--long-list");
   await expect(page.getByRole("checkbox")).toHaveCount(12);
   await page.getByRole("button", { name: "Remove checked" }).click();
