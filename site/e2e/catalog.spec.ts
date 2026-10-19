@@ -16,7 +16,7 @@ function buildManifest(): Record<string, BuildEntry> {
 
 /**
  * The JavaScript a page needs before it is interactive: the client entry's static closure and its
- * page module's (site/src/app.tsx loads the module before hydrating; prerender.mts preloads it).
+ * page module's (site/src/app.tsx loads the module after the first paint, then hydrates).
  */
 function initialFiles(manifest: Record<string, BuildEntry>, kind: "landing" | "voyage" | "docs"): string[] {
   const entry = Object.entries(manifest).find(([key, value]) => key === "index.html" && value.isEntry);
@@ -99,6 +99,7 @@ test("every built docs demo has resolved static content, and native example cont
 test("literal dollar examples survive template serialization and real hydration", async ({ page }) => {
   const errors = diagnostics(page);
   await page.goto("docs/text-field/");
+  await expect(page.locator("html[data-site-ready]")).toBeAttached();
   await expect(page.locator("pre code").filter({ hasText: 'startAdornment="$"' }).first()).toBeVisible();
   const input = page.getByRole("textbox", { name: "Price", exact: true });
   await input.fill("7.25");
@@ -162,6 +163,8 @@ test("initial landing JS excludes demos and each opened example requests only it
     }
   });
   await page.goto("./");
+  await expect(page.locator("html[data-site-ready]")).toBeAttached();
+  await page.waitForLoadState("networkidle");
   for (const name of ["Form", "Sheet", "Menu", "Swipe actions", "Table"]) {
     await expect(page.getByRole("button", { name: `Show ${name} example`, exact: true })).toHaveAttribute("aria-expanded", "false");
   }
@@ -225,9 +228,9 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
   const moduleMap = JSON.parse(readFileSync(resolve("site/dist/.vite/chunk-modules.json"), "utf8")) as Record<string, string[]>;
   const report: Record<string, unknown> = {};
   for (const [kind, path, ready] of [
-    ["landing", "./", page.getByRole("button", { name: "Show Form example", exact: true })],
+    ["landing", "./", page.locator("html[data-site-ready]")],
     ["voyage", "voyage/", page.locator("html[data-site-ready]")],
-    ["docs", "docs/", page.getByRole("heading", { level: 1 })],
+    ["docs", "docs/", page.locator("html[data-site-ready]")],
   ] as const) {
     const reads: string[] = [];
     const listener = (response: { url(): string }) => {

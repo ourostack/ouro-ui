@@ -1,4 +1,4 @@
-import { useEffect, useState, type JSX } from "react";
+import { useState, type JSX } from "react";
 import { Inspector } from "@/registry/ouro/components/ouro/inspector/inspector";
 import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
@@ -16,11 +16,6 @@ import "../voyage/voyage.css";
  */
 export default function VoyagePage(): JSX.Element {
   const [xray, setXray] = useState(false);
-  // Hydrated: the controls answer from here on (the end-to-end specs wait for it).
-  useEffect(() => {
-    document.documentElement.setAttribute("data-site-ready", "");
-    return () => document.documentElement.removeAttribute("data-site-ready");
-  }, []);
   return (
     <OuroProvider>
       <div className="voyage min-h-dvh bg-background text-foreground">
