@@ -110,3 +110,17 @@ await Promise.all([
 ```
 
 The part, or an element around it inside the part's own component (`[data-ouro]`), must carry the state's attribute when you call a helper (`data-checked`, or `data-swiping=left` for a value), so render outside the state and change into it; a checked row or an open overlay around the component does not count. A transition the browser cancels mid-way counts only when an equal one takes its place or 90% of its duration had passed. `reduced` must match the page's reduced-motion setting (`commands.emulateMedia({ reducedMotion: "reduce" })`). A DOM `click()` keeps a pointer's press scale out of the motion you measure. Each helper also records what it proved in the test's meta; Ouro UI's own CI holds every component's declared motion to those records, and in your app nothing reads them.
+
+## Proving announcements
+
+`lib/ouro/testing/announcements.ts` records what live regions announce, so a test proves a screen reader hears a message once per change, in the right region. Start `watchAnnouncements()` before the change; it records text added to or changed inside any live region (`role="status"`, `role="alert"`, `role="log"` or `aria-live`, portals included), and leaves out text inside `aria-hidden="true"`, text outside a live region and a render that leaves the text as it was.
+
+```ts
+const announcements = watchAnnouncements();
+await userEvent.click(page.getByRole("button", { name: "Save" }));
+await expect.poll(() => announcements.count("Saved")).toBe(1);
+expect(announcements.matching("Saved")[0]!.region.getAttribute("role")).toBe("status");
+announcements.stop();
+```
+
+`changes` lists every announcement in order, each with its `region` and `text`; `matching(text)` and `count(text)` find those whose text includes `text`. Toast's tests use it.
