@@ -1,1 +1,10 @@
-{"order": 1200, "components": ["tabs"]}
+{
+  "order": 1200,
+  "components": ["tabs"],
+  "controls": {
+    "tabs": [
+      {"part": "tab", "role": "tab", "portal": false},
+      {"part": "panel", "role": "tabpanel", "portal": false}
+    ]
+  }
+}

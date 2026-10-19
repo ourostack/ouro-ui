@@ -1,1 +1,15 @@
-{"order": 40, "components": ["dialog", "confirm-dialog"]}
+{
+  "order": 40,
+  "components": ["dialog", "confirm-dialog"],
+  "controls": {
+    "dialog": [
+      {"part": "close", "role": "button", "portal": true},
+      {"part": "content", "role": "generic", "portal": true},
+      {"part": "trigger", "role": "button", "portal": false}
+    ],
+    "confirm-dialog": [
+      {"part": "cancel", "role": "button", "portal": true},
+      {"part": "confirm", "role": "button", "portal": true}
+    ]
+  }
+}

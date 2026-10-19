@@ -312,6 +312,9 @@ export function ResizablePanel(props: ResizablePanelProps): JSX.Element {
       ref={scrollRef}
       id={group.ids[index]}
       data-ouro="resizable-panel"
+      // A panel whose content overflows is a tab stop (useKeyboardScrollable), so it is a control.
+      data-ouro-control="resizable"
+      data-ouro-part="panel"
       style={{ flexGrow: group.sizes[index], flexShrink: 1, flexBasis: 0 }}
       className={cn(panelClass, className)}
     >
@@ -470,6 +473,8 @@ export function ResizableHandle({ "aria-label": ariaLabel, withHandle }: Resizab
     <div
       role="separator"
       tabIndex={0}
+      data-ouro-control="resizable"
+      data-ouro-part="handle"
       aria-orientation={horizontal ? "vertical" : "horizontal"}
       aria-label={ariaLabel ?? handleLabel.replaceAll("{panel}", labels[index] ?? "")}
       aria-valuenow={Math.round(size)}

@@ -241,7 +241,8 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
   const summaryId = `${id}-summary`;
   const state: ChartState = { byKey: new Map(series.map((item) => [item.key, item])), formatValue };
   const colors = Object.fromEntries(series.map((item) => [`--color-${item.key}`, item.color])) as CSSProperties;
-  const plotProps = { "aria-label": title, "aria-describedby": summaryId };
+  // Recharts makes the plot a tab stop (role "application"), so it carries the control marker.
+  const plotProps = { "aria-label": title, "aria-describedby": summaryId, "data-ouro-control": "chart", "data-ouro-part": "plot" };
   const child = Children.toArray(children).find(isValidElement) as ReactElement<{ data?: unknown }> | undefined;
   const plot = child ? (
     cloneElement(child, { data: child.props.data ?? data, ...plotProps })
@@ -422,7 +423,7 @@ function TooltipContent({ active, payload, label }: { active: boolean; payload: 
       data-ouro-chart-tooltip=""
       role="status"
       aria-live="polite"
-      className="grid min-w-32 gap-1.5 rounded-lg border border-solid border-border bg-popover px-2.5 py-1.5 text-xs text-popover-foreground shadow-lg"
+      className="grid min-w-32 gap-1.5 rounded-lg border border-solid border-border bg-popover px-2.5 py-1.5 text-xs text-popover-foreground shadow-(--shadow-lg)"
     >
       <div className="font-medium">{String(label ?? "")}</div>
       {entries.map(({ item, value }) => (

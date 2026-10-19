@@ -1,1 +1,10 @@
-{ "order": 1430, "components": ["breadcrumb"] }
+{
+  "order": 1430,
+  "components": ["breadcrumb"],
+  "controls": {
+    "breadcrumb": [
+      {"part": "crumb", "role": "link", "portal": false},
+      {"part": "more", "role": "button", "portal": false}
+    ]
+  }
+}

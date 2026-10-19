@@ -141,8 +141,9 @@ const column =
   "box-border flex h-full w-(--ouro-sidebar-w) flex-col overflow-hidden border-0 border-e border-solid border-border bg-background text-foreground " +
   "[--ouro-sidebar-w:16rem] data-collapsed:[--ouro-sidebar-w:calc(3.75rem+1px)] max-sm:hidden";
 
-// A count or tag at the row's end.
-const badgeClass = "ms-auto shrink-0 rounded-sm bg-muted px-1.5 text-xs leading-5 font-medium text-muted-foreground tabular-nums";
+// A count or tag at the row's end. Its muted text is mixed 20% toward the foreground, so it keeps
+// 4.5:1 on the muted tag under shadcn's stock values too (plain text-muted-foreground is 4.34:1).
+const badgeClass = "ms-auto shrink-0 rounded-sm bg-muted px-1.5 text-xs leading-5 font-medium text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))] tabular-nums";
 
 // A row: 44px with 16px text on a coarse pointer at every width, 36px with 14px text with a
 // fine one. A full-width row highlights while pressed instead of scaling.
@@ -314,6 +315,8 @@ export function Sidebar(props: SidebarProps): JSX.Element {
         <RouterLink
           href={item.href}
           aria-current={isCurrent(item) ? "page" : undefined}
+          data-ouro-control="sidebar"
+          data-ouro-part="link"
           onClick={(event) => {
             onNavigate?.();
             item.onClick?.(event);
@@ -325,6 +328,8 @@ export function Sidebar(props: SidebarProps): JSX.Element {
       ) : (
         <button
           type="button"
+          data-ouro-control="sidebar"
+          data-ouro-part="button"
           onClick={(event) => {
             onNavigate?.();
             item.onClick(event);
@@ -359,7 +364,7 @@ export function Sidebar(props: SidebarProps): JSX.Element {
                     closeLabel={closeLabel}
                     trigger={
                       <Tooltip content={item.label} side="right">
-                        <button type="button" data-current={holdsCurrent ? "" : undefined} className={cn(row, "data-current:text-foreground", railRow)}>
+                        <button type="button" data-current={holdsCurrent ? "" : undefined} data-ouro-control="sidebar" data-ouro-part="group" className={cn(row, "data-current:text-foreground", railRow)}>
                           {rowContent(item, true)}
                         </button>
                       </Tooltip>
@@ -388,6 +393,8 @@ export function Sidebar(props: SidebarProps): JSX.Element {
                   type="button"
                   aria-expanded={open}
                   aria-controls={`${id}${place}${key}`}
+                  data-ouro-control="sidebar"
+                  data-ouro-part="group"
                   data-current={holdsCurrent && !open ? "" : undefined}
                   onClick={() => setOpened({ ...opened, [key]: !open })}
                   className={cn(row, "data-current:text-foreground")}
@@ -425,6 +432,8 @@ export function Sidebar(props: SidebarProps): JSX.Element {
       <Button
         ref={menuButton}
         data-ouro-sidebar-menu=""
+        data-ouro-control="sidebar"
+        data-ouro-part="menu"
         variant="plain"
         tone="secondary"
         aria-label={menuLabel}
@@ -446,7 +455,7 @@ export function Sidebar(props: SidebarProps): JSX.Element {
           </div>
           {collapsible && (
             <div className="shrink-0 p-2">
-              <button type="button" aria-pressed={collapsed} onClick={toggle} className={cn(row, collapsed && railRow)}>
+              <button type="button" aria-pressed={collapsed} data-ouro-control="sidebar" data-ouro-part="collapse" onClick={toggle} className={cn(row, collapsed && railRow)}>
                 <span aria-hidden="true" className={iconSlot}>
                   <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="rtl:-scale-x-100">
                     <rect x="3" y="4" width="14" height="12" rx="2" />

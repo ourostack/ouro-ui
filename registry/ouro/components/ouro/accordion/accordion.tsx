@@ -231,7 +231,7 @@ export function Accordion(props: AccordionProps): JSX.Element {
       {items.map((item, index) => (
         <BaseAccordion.Item key={values[index]} value={values[index]} disabled={item.disabled === true} className={itemClass}>
           <BaseAccordion.Header render={<Heading />} className={headerClass}>
-            <BaseAccordion.Trigger className={triggerClass}>
+            <BaseAccordion.Trigger data-ouro-control="accordion" data-ouro-part="trigger" className={triggerClass}>
               {item.title}
               <Chevron />
             </BaseAccordion.Trigger>

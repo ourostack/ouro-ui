@@ -29,6 +29,16 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test
+      # The motion evidence that run wrote, one partition per Vitest project
+      # (scripts/motion-reporter.mts), uploaded before any later Vitest run in this job
+      # rewrites it. The motion-coverage job merges it.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: motion-ci
+          path: .tmp/motion/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
       # An app that installs some components with their tests reaches 100% of what it
       # installed: the button, the dialog, the sheet and the forms set, each alone and together.
       - run: node scripts/subset-coverage.mjs
@@ -38,6 +48,55 @@ jobs:
       - run: pnpm site:build
       - run: node scripts/links.mjs site/dist
       - run: pnpm build-storybook
+  motion-coverage:
+    # Holds every component.json "motion" map complete against the records the browser tests
+    # made (scripts/motion-coverage.mts): each declared property ran, nothing undeclared ran,
+    # each named test recorded its state, and each motion state was proved with reduced motion.
+    # --expect names each Vitest project the ci job's `pnpm test` runs, unsharded, so a missing
+    # or doubled partition fails (scripts/workflows.test.mjs derives the list from vitest.config.ts).
+    needs: [ci]
+    runs-on: ubuntu-latest
+    env:
+      MOTION_PARTITIONS: ouro-chromium:1,ouro-webkit:1,ouro-touch:1,site:1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      # Each browser test job's artifact lands in a folder of its own, so no partition overwrites another.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: motion-*
+          path: ${{ runner.temp }}/motion
+      - run: pnpm motion:coverage --dir "$RUNNER_TEMP/motion" --expect "$MOTION_PARTITIONS"
+  themes:
+    # Every story passes axe under shadcn's nova and vega presets and Spoonjoy's cookbook theme
+    # (test/theme-fixtures/), light and dark, closed and with each overlay open: the components
+    # read only shadcn's standard tokens, so a third-party theme carries through. One fixture per
+    # shard (test/themes/), in Chromium, beside the ci job.
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    name: themes (${{ matrix.shard }}/3)
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:themes --shard=${{ matrix.shard }}/3
   visual:
     # Compares screenshots with the committed baselines, on the image that produced them
     # (visual-baselines.yml). Kept apart from `ci` so that job can follow ubuntu-latest.
@@ -80,6 +139,7 @@ jobs:
           cache: pnpm
       - run: pnpm i --frozen-lockfile
       - run: pnpm registry --check
+      - run: pnpm controls:matrix --check
       - run: npx --yes $SHADCN registry validate ./registry.json
       - run: npx --yes $SHADCN registry validate "ourostack/ouro-ui#$REF"
       - run: npx --yes $SHADCN build --output "$RUNNER_TEMP/r"

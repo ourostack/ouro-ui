@@ -54,7 +54,9 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 /** Try every prop. */
-export const Playground: Story = {};
+export const Playground: Story = {
+  parameters: { plainOpeners: ["Recipes"] },
+};
 
 /** A site's main navigation: two panels of links and a plain link. */
 export const InContext: Story = {

@@ -1,1 +1,9 @@
-{"order": 820, "components": ["alert"]}
+{
+  "order": 820,
+  "components": ["alert"],
+  "controls": {
+    "alert": [
+      {"part": "dismiss", "role": "button", "portal": false}
+    ]
+  }
+}

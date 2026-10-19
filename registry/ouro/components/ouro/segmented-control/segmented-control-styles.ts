@@ -49,18 +49,20 @@ const thumbClass =
   "pointer-events-none absolute top-0.5 bottom-0.5 left-0.5 -z-1 rounded-md " +
   "w-[calc((100%-var(--spacing)*1)/var(--ouro-segment-count))] translate-x-[calc(var(--ouro-segment-index)*100%)] " +
   "bg-background dark:bg-[color-mix(in_oklab,var(--foreground)_16%,var(--muted))] " +
-  "shadow-[0_1px_3px_rgb(0_0_0/0.12),0_0_0_0.5px_rgb(0_0_0/0.06)] " +
+  "shadow-(--shadow-sm) " +
   "[transition:translate_var(--ouro-duration-base)_var(--ouro-ease-in-out),opacity_var(--ouro-duration-fast)_ease] " +
   "motion-reduce:[transition:opacity_var(--ouro-duration-fast)_ease] in-data-ouro-keyboard:[transition:none]";
 
 /**
- * A segment: muted text, the foreground when pressed.
+ * A segment: muted text, the foreground when pressed. The muted text is mixed 20% toward the
+ * foreground, so it keeps 4.5:1 on the muted track under shadcn's stock values too (plain
+ * `text-muted-foreground` there is 4.34:1).
  *
  * @internal
  */
 const segmentClass =
   "press relative m-0 box-border flex min-w-0 cursor-pointer items-center justify-center px-3 pointer-coarse:min-w-11 " +
-  "rounded-md border-0 bg-transparent text-base font-medium whitespace-nowrap text-muted-foreground sm:pointer-fine:text-sm " +
+  "rounded-md border-0 bg-transparent text-base font-medium whitespace-nowrap text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))] sm:pointer-fine:text-sm " +
   "select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "not-data-disabled:pointer-fine:hover:text-foreground data-pressed:text-foreground " +
   "motion-safe:not-data-disabled:active:scale-(--ouro-press-scale) " +

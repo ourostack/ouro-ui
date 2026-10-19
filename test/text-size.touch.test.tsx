@@ -33,8 +33,8 @@ const textEntry =
   ["checkbox", "radio", "range", "color", "file", "button", "submit", "reset", "image", "hidden"].map((type) => `[type="${type}"]`).join(", ") +
   '), textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"]';
 
-/** Elements an opener opens. */
-const popupSelector = '[role="dialog"], [role="alertdialog"], [role="listbox"], [role="menu"], [role="tree"], [role="grid"]';
+/** Elements an opener opens, a NavigationMenu's panel among them. */
+const popupSelector = '[role="dialog"], [role="alertdialog"], [role="listbox"], [role="menu"], [role="tree"], [role="grid"], [data-ouro="navigation-menu-popup"]';
 
 /** How many overlays deep the scan opens (an overlay inside an overlay inside an overlay). */
 const maxDepth = 3;
@@ -123,7 +123,7 @@ async function openVia(opener: Opener, where: string, timeout: number): Promise<
   await vi.waitFor(
     () => {
       added = visiblePopups().filter((popup) => !before.has(popup));
-      if (added.length === 0) throw new Error(`${where}: opening "${opener.name}" showed no dialog, listbox or menu`);
+      if (added.length === 0) throw new Error(`${where}: opening "${opener.name}" showed no dialog, listbox, menu or panel`);
     },
     { timeout, interval: 20 },
   );
@@ -417,7 +417,7 @@ describe("the 16px detector", () => {
   it("names the story when an opener shows nothing", async () => {
     const subject: Subject = { id: "Fixture/Dead", Subject: () => <button aria-haspopup="dialog">Nothing</button>, parameters: {}, demo: false };
     const start = performance.now();
-    await expect(scan(subject, [], maxDepth, { openTimeout: 500 })).rejects.toThrow('Fixture/Dead: opening "Nothing" showed no dialog, listbox or menu');
+    await expect(scan(subject, [], maxDepth, { openTimeout: 500 })).rejects.toThrow('Fixture/Dead: opening "Nothing" showed no dialog, listbox, menu or panel');
     expect(performance.now() - start).toBeLessThan(5_000);
   });
 

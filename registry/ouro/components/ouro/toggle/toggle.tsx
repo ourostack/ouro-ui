@@ -164,6 +164,8 @@ export function Toggle(props: ToggleProps): JSX.Element {
 
   return (
     <BaseToggle
+      data-ouro-control="toggle"
+      data-ouro-part="root"
       {...rest}
       ref={ref}
       pressed={pressed}

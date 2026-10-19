@@ -1,1 +1,12 @@
-{"order": 500, "components": ["number-field"]}
+{
+  "order": 500,
+  "components": ["number-field"],
+  "controls": {
+    "number-field": [
+      {"part": "input", "role": "textbox", "portal": false},
+      {"part": "decrement", "role": "button", "portal": false},
+      {"part": "increment", "role": "button", "portal": false},
+      {"part": "hidden-input", "role": "spinbutton", "portal": false}
+    ]
+  }
+}

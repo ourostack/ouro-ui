@@ -122,6 +122,8 @@ What an app on v0.1.0 has to know beyond these steps. The release notes list eve
 
 - **v1.0.0:** the first stable release keeps the component APIs, theme tokens, defaults and test-tool minimums from v0.8.4. An app already on v0.8.4 needs no component API migration: review the update with `--dry-run` and `--diff`, then overwrite only the items it already uses and reapply its local edits. Runtime components and their optional `-tests` items remain separate; keep your app-owned fixtures and test configuration. Apps on older releases still need the applicable migration steps above and below.
 
+- **After v1.0.2:** sheets, and a Menu shown as a bottom sheet, read their shadow from `--ouro-shadow-sheet-<side>`, which only a fresh `ouro-base` adds (step 1 adds it again); without it a sheet draws no shadow. Every other shadow reads shadcn's `--shadow-*` tokens, and headings and overlay titles `--font-heading`, so a theme that sets them now restyles Ouro too.
+
 - **After v1.0.1:** `formErrors` now declares its already-frozen message arrays readonly. Keep mutable `FormErrors` and `ErrorMessages` for raw builders; annotate returned snapshots as `FormErrorValue` or `ReadonlyFormErrors`, or let their type infer. Form, EditSheet, field `error` props and the normalization helper accept readonly projections. This corrects a false mutation permission, so a snapshot no longer fits a mutable raw-map annotation. TypeScript's `Array.isArray` narrows to `any[]` and can bypass readonly; unchanged runtime freezing still rejects container mutation, without deeply freezing React nodes.
 
 #### 0. Commit first
@@ -192,7 +194,7 @@ Each component has an optional `<name>-tests` item (`button-tests`) with its Vit
 
 Once per app: `ouro-base`, the tokens every component needs in your stylesheet. Optional: `ouro-theme`, the Ouro look.
 
-Helpers, one item per file in `lib/ouro`, each installed with the components that import it (you don't add them by name; `ouro-lib` is all of them, and a helper with tests has a `<name>-tests` item): `lib-announce`, `lib-appearance-hints`, `lib-class-name-check`, `lib-cn`, `lib-current-path`, `lib-dev`, `lib-env`, `lib-floating`, `lib-form-answer`, `lib-key-shortcuts`, `lib-last-input`, `lib-open-mode`, `lib-ouro-provider`, `lib-refs`, `lib-router-link`, `lib-server-element`, `lib-spring`, `lib-stretched-link`, `lib-toast`, `lib-tones`, `lib-touch-target`, `lib-use-backdrop-anchor`, `lib-use-command-shortcut`, `lib-use-dev-messages`, `lib-use-drag`, `lib-use-field`, `lib-use-keyboard-scrollable`, `lib-use-media-query`, `lib-use-ouro`, `lib-use-sheet-presentation`.
+Helpers, one item per file in `lib/ouro`, each installed with the components that import it (you don't add them by name; `ouro-lib` is all of them, and a helper with tests has a `<name>-tests` item): `lib-announce`, `lib-appearance-hints`, `lib-class-name-check`, `lib-cn`, `lib-control-ref`, `lib-current-path`, `lib-dev`, `lib-env`, `lib-floating`, `lib-form-answer`, `lib-key-shortcuts`, `lib-last-input`, `lib-open-mode`, `lib-ouro-provider`, `lib-refs`, `lib-router-link`, `lib-server-element`, `lib-spring`, `lib-stretched-link`, `lib-toast`, `lib-tones`, `lib-touch-target`, `lib-use-backdrop-anchor`, `lib-use-command-shortcut`, `lib-use-dev-messages`, `lib-use-drag`, `lib-use-field`, `lib-use-keyboard-scrollable`, `lib-use-media-query`, `lib-use-ouro`, `lib-use-sheet-presentation`.
 <!-- items:end -->
 
 ## For agents

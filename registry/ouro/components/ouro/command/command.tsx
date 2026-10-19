@@ -8,6 +8,7 @@ import { lastInput } from "@/registry/ouro/lib/ouro/last-input";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { ariaKeyShortcuts } from "@/registry/ouro/lib/ouro/key-shortcuts";
 import { checkOpenMode } from "@/registry/ouro/lib/ouro/open-mode";
+import { controlRef } from "@/registry/ouro/lib/ouro/control-ref";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { serverElement } from "@/registry/ouro/lib/ouro/server-element";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -182,6 +183,9 @@ function toGroups(entries: readonly CommandEntry[]): Group[] {
 }
 
 /** A 16px magnifier in the text color. */
+/** Marks the hidden input Base UI keeps the query in. */
+const markInput = controlRef("command", "hidden-input");
+
 function SearchIcon(): JSX.Element {
   return (
     <svg aria-hidden="true" viewBox="0 0 16 16" fill="none">
@@ -362,6 +366,7 @@ export function Command(props: CommandProps): JSX.Element {
       // A server search filters on the server: the items are already the results.
       filter={onQueryChange ? null : (item: CommandItem, text: string) => matchesQuery(item.label, item.keywords, text)}
       value={query}
+      inputRef={markInput}
       onValueChange={(next: string) => {
         setQuery(next);
         if (onQueryChange) search(next);
@@ -370,7 +375,7 @@ export function Command(props: CommandProps): JSX.Element {
       <div data-ouro="command" className="flex min-h-0 flex-1 flex-col">
         <div data-ouro-command-search="" className={inSheet ? commandSheetSearchClass : commandSearchClass}>
           <SearchIcon />
-          <Autocomplete.Input aria-label={searchLabel} placeholder={placeholder} className={commandInputClass} />
+          <Autocomplete.Input aria-label={searchLabel} placeholder={placeholder} data-ouro-control="command" data-ouro-part="input" className={commandInputClass} />
           {loading && (
             <span data-ouro-command-loading="" aria-hidden="true" className={commandLoadingClass}>
               {loadingLabel}
@@ -399,6 +404,8 @@ export function Command(props: CommandProps): JSX.Element {
                       value={item}
                       disabled={item.disabled}
                       onClick={() => run(item)}
+                      data-ouro-control="command"
+                      data-ouro-part="item"
                       className={commandItemClass}
                       {...(item.shortcut ? { "aria-keyshortcuts": ariaKeyShortcuts(item.shortcut) } : {})}
                     >

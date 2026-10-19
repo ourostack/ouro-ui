@@ -143,6 +143,8 @@ function Control({ color, onPick, onReset, pickerLabel, disabled, inputRef, text
           <TouchTarget />
           <input
             type="color"
+            data-ouro-control="color-field"
+            data-ouro-part="picker"
             value={color}
             aria-label={pickerLabel}
             aria-describedby={field.describedBy}
@@ -175,7 +177,7 @@ function Control({ color, onPick, onReset, pickerLabel, disabled, inputRef, text
         spellCheck={false}
         // A color always has a value (the form gets it from formdata), so the text is never
         // natively required; aria-required and the label's marker still say it is.
-        render={(controlProps) => <input {...controlProps} type="text" required={false} className={textClass} />}
+        render={(controlProps) => <input {...controlProps} type="text" required={false} data-ouro-control="color-field" data-ouro-part="input" className={textClass} />}
       />
     </div>
   );

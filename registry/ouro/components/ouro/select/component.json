@@ -1,1 +1,14 @@
-{"order": 401, "components": ["select", "native-select"]}
+{
+  "order": 401,
+  "components": ["select", "native-select"],
+  "controls": {
+    "select": [
+      {"part": "trigger", "role": "combobox", "portal": false},
+      {"part": "option", "role": "option", "portal": true},
+      {"part": "hidden-input", "role": "textbox", "portal": false}
+    ],
+    "native-select": [
+      {"part": "select", "role": "combobox", "portal": false}
+    ]
+  }
+}

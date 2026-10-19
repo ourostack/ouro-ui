@@ -1,1 +1,9 @@
-{"order": 1330, "components": ["scroll-area"]}
+{
+  "order": 1330,
+  "components": ["scroll-area"],
+  "controls": {
+    "scroll-area": [
+      {"part": "viewport", "role": "region", "portal": false}
+    ]
+  }
+}

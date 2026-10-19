@@ -3,6 +3,16 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
 
+/** Resolves with what `find` returns once it returns something, checking once a frame (a play function's wait). */
+async function frameUntil<T>(find: () => T | null | undefined): Promise<T> {
+  for (let frame = 0; frame < 600; frame++) {
+    const found = find();
+    if (found) return found;
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+  }
+  throw new Error("the story never reached the state it shows");
+}
+
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names).
 
 interface Item {
@@ -107,6 +117,7 @@ function LiveChat() {
       <ChatHistory items={items} />
       <button
         type="button"
+        data-test-harness=""
         onClick={send}
         style={{
           justifySelf: "end",
@@ -129,4 +140,18 @@ function LiveChat() {
 export const Live: Story = {
   args: { label: "Conversation with Ouro", children: null },
   render: () => <LiveChat />,
+};
+
+/** A reader who scrolls back through the conversation gets "Jump to latest". The story scrolls to the top. */
+export const ScrolledBack: Story = {
+  args: { label: "Conversation with Ouro", children: null },
+  render: () => (
+    <Surface>
+      <ChatHistory items={start} />
+    </Surface>
+  ),
+  play: async ({ canvasElement }) => {
+    canvasElement.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!.scrollTop = 0;
+    await frameUntil(() => canvasElement.querySelector("[data-ouro-message-list-jump]"));
+  },
 };

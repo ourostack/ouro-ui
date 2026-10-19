@@ -100,3 +100,23 @@ export const Parts: Story = {
     </Frame>
   ),
 };
+
+/** A panel whose content is taller than the panel scrolls, and takes focus so a keyboard can scroll it. */
+export const LongContent: Story = {
+  render: () => (
+    <Frame height={160}>
+      <Resizable>
+        <ResizablePanel label="Method" defaultSize={50}>
+          <Pane title="Method">
+            Soften the onion and peppers in olive oil over a medium heat for ten minutes. Stir in the garlic, cumin and paprika
+            for a minute, then add the tomatoes and simmer until thick. Make four wells, crack an egg into each, cover and cook
+            until the whites set. Scatter with feta and parsley, and serve from the pan with warm bread.
+          </Pane>
+        </ResizablePanel>
+        <ResizablePanel label="Notes">
+          <Pane title="Notes">Less salt next time.</Pane>
+        </ResizablePanel>
+      </Resizable>
+    </Frame>
+  ),
+};

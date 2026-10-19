@@ -50,7 +50,7 @@ const KEEP_SPOKEN = 5;
  */
 const jumpClass =
   "press pointer-events-auto relative m-0 box-border inline-flex h-9 items-center gap-1.5 rounded-full border border-solid border-border " +
-  "bg-background px-3.5 text-base font-medium text-foreground shadow-md pointer-fine:h-8 pointer-fine:text-sm whitespace-nowrap " +
+  "bg-background px-3.5 text-base font-medium text-foreground shadow-(--shadow-md) pointer-fine:h-8 pointer-fine:text-sm whitespace-nowrap " +
   "cursor-pointer touch-manipulation outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
   "pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground motion-safe:active:scale-(--ouro-press-scale) " +
   "transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) starting:opacity-0";
@@ -287,6 +287,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
         role="region"
         aria-label={label}
         data-ouro-message-list-scroller=""
+        data-ouro-control="message-list"
+        data-ouro-part="scroller"
         className="min-h-0 flex-1 overflow-y-auto overscroll-contain [overflow-anchor:none] outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid"
       >
         <div ref={contentRef} data-ouro-message-list-content="" className="flex flex-col gap-4 p-4">
@@ -301,7 +303,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       </div>
       {showJump && (
         <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
-          <button type="button" data-ouro-message-list-jump="" onClick={jump} className={jumpClass}>
+          <button type="button" data-ouro-message-list-jump="" data-ouro-control="message-list" data-ouro-part="jump" onClick={jump} className={jumpClass}>
             <TouchTarget />
             {jumpLabel}
             <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-4">

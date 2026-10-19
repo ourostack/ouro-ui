@@ -206,6 +206,8 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
             value={item.value}
             disabled={item.disabled}
             data-ouro-segment=""
+            data-ouro-control="segmented-control"
+            data-ouro-part="segment"
             className={segmentClass}
             // A radio, not a toggle button: pressing the checked one does not uncheck it.
             render={(segmentProps, state) => <button {...segmentProps} role="radio" aria-checked={state.pressed} aria-pressed={undefined} />}

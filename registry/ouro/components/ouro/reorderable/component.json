@@ -1,1 +1,9 @@
-{ "order": 1710, "components": ["reorderable"] }
+{
+  "order": 1710,
+  "components": ["reorderable"],
+  "controls": {
+    "reorderable": [
+      {"part": "handle", "role": "button", "portal": false}
+    ]
+  }
+}

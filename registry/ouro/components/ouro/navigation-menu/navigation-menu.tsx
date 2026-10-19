@@ -129,7 +129,7 @@ const chevron = cn("inline-flex motion-safe:transition-[rotate] motion-safe:dura
 const positioner = "box-border h-(--positioner-height) w-(--positioner-width) max-w-(--available-width)";
 const popup = cn(
   "relative box-border h-(--popup-height) w-(--popup-width) origin-(--transform-origin) rounded-lg bg-popover text-popover-foreground outline-none " +
-  "[box-shadow:0_0_0_1px_color-mix(in_oklab,var(--border)_60%,transparent),0_8px_24px_rgb(0_0_0/0.14)] " +
+  "ring-1 ring-border/60 shadow-(--shadow-lg) " +
   "transition-opacity duration-(--ouro-duration-base) data-starting-style:opacity-0 data-ending-style:opacity-0 data-ending-style:duration-(--ouro-duration-fast) " +
     "motion-safe:transition-[opacity,scale] motion-safe:data-starting-style:scale-96 motion-safe:data-ending-style:scale-96",
   easeOut,
@@ -293,7 +293,7 @@ export function NavigationMenuView(props: NavigationMenuViewProps): JSX.Element 
         {items.map((item, index) =>
           isPanel(item) ? (
             <BaseNavigationMenu.Item key={index} value={index}>
-              <BaseNavigationMenu.Trigger data-current={item.links?.some(isCurrent) ? "" : undefined} className={rowItem}>
+              <BaseNavigationMenu.Trigger data-current={item.links?.some(isCurrent) ? "" : undefined} data-ouro-control="navigation-menu" data-ouro-part="trigger" className={rowItem}>
                 {item.label}
                 <BaseNavigationMenu.Icon data-ouro-instant={instant ? "" : undefined} className={chevron}>
                   <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-3.5">
@@ -317,7 +317,7 @@ export function NavigationMenuView(props: NavigationMenuViewProps): JSX.Element 
                     <ul className={cn("m-0 grid list-none gap-1 p-0", item.columns === 2 && "sm:grid-cols-2")}>
                       {item.links.map((link, position) => (
                         <li key={position}>
-                          <BaseNavigationMenu.Link render={<RouterLink href={link.href} />} active={isCurrent(link)} closeOnClick className={panelLink}>
+                          <BaseNavigationMenu.Link render={<RouterLink href={link.href} />} active={isCurrent(link)} closeOnClick data-ouro-control="navigation-menu" data-ouro-part="panel-link" className={panelLink}>
                             <span className={cn("font-medium", isCurrent(link) && "font-semibold")}>{link.label}</span>
                             {link.description !== undefined && <span className="text-sm leading-5 text-muted-foreground">{link.description}</span>}
                           </BaseNavigationMenu.Link>
@@ -330,7 +330,7 @@ export function NavigationMenuView(props: NavigationMenuViewProps): JSX.Element 
             </BaseNavigationMenu.Item>
           ) : (
             <BaseNavigationMenu.Item key={index} value={index}>
-              <BaseNavigationMenu.Link render={<RouterLink href={item.href} />} active={isCurrent(item)} className={rowItem}>
+              <BaseNavigationMenu.Link render={<RouterLink href={item.href} />} active={isCurrent(item)} data-ouro-control="navigation-menu" data-ouro-part="link" className={rowItem}>
                 {item.label}
               </BaseNavigationMenu.Link>
             </BaseNavigationMenu.Item>

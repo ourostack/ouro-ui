@@ -58,6 +58,10 @@
           "--ouro-press-scale": "0.97",
           "--ouro-backdrop-color": "#18181b",
           "--ouro-backdrop-max": "0.4",
+          "--ouro-shadow-sheet-bottom": "0 -1px 0 color-mix(in oklab, var(--border) 60%, transparent), 0 -8px 32px rgb(0 0 0 / 0.12)",
+          "--ouro-shadow-sheet-top": "0 1px 0 color-mix(in oklab, var(--border) 60%, transparent), 0 8px 32px rgb(0 0 0 / 0.12)",
+          "--ouro-shadow-sheet-left": "8px 0 32px rgb(0 0 0 / 0.12)",
+          "--ouro-shadow-sheet-right": "-8px 0 32px rgb(0 0 0 / 0.12)",
           "--ouro-layer": "50"
         },
         ".dark": {
@@ -181,6 +185,7 @@
         "ourostack/ouro-ui/lib-appearance-hints",
         "ourostack/ouro-ui/lib-class-name-check",
         "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-control-ref",
         "ourostack/ouro-ui/lib-current-path",
         "ourostack/ouro-ui/lib-dev",
         "ourostack/ouro-ui/lib-env",
@@ -213,7 +218,7 @@
       "name": "ouro-testing",
       "type": "registry:lib",
       "title": "Ouro testing",
-      "description": "Installed with every -tests item; you don't need to add it. The test kit Ouro UI's tests use: Vitest browser projects with the drag, flick, tap, touchDrag, touchStep, pointerPress, emulateMedia, pageZoom, resetPageZoom, setPageZoom and restoreTouch commands, the rotate helper (which turns the phone viewport and resets Chromium's zoom; the ouro-touch project fails a test that leaves the page zoomed), the act helper, the holdFrames helper (which holds animation frames and the clock still so a test steps a spring itself), axeExclude, and the end-to-end story helper.",
+      "description": "Installed with every -tests item; you don't need to add it. The test kit Ouro UI's tests use: Vitest browser projects with the drag, flick, tap, touchDrag, touchStep, pointerPress, emulateMedia, pageZoom, resetPageZoom, setPageZoom and restoreTouch commands, the rotate helper (which turns the phone viewport and resets Chromium's zoom; the ouro-touch project fails a test that leaves the page zoomed), the act helper, the holdFrames helper (which holds animation frames and the clock still so a test steps a spring itself), the motion helpers (expectMotion, expectNoMotion, expectGestureSettle, expectTransition and parseDuration, which prove exactly which CSS properties a state change runs on each part), watchAnnouncements (which records what live regions announce, so a test proves a message is heard once per change), axeExclude, and the end-to-end story helper.",
       "docs": "Needs Vitest 4.1.11 or later in browser mode (@vitest/browser-playwright), Playwright 1.58.1 or later and, for the stories and specs, Storybook 10.2.10 or later. Ouro UI's CI runs Vitest 5.0.3, Playwright 1.63.0 and Storybook 10.6.1; on Vitest 4, read \"Vitest 4\" in https://ourostack.github.io/ouro-ui/docs/testing.md first. No item sets a version: the CLI installs a package only when your app lacks it.\nThe -tests items install Ouro UI's tests beside each component. To run the Vitest browser tests, add vitest.config.ts (use your components.json tailwind.css path for css), then run npx playwright install chromium webkit and npx vitest run:\n--- vitest.config.ts\nimport { defineConfig, mergeConfig } from \"vitest/config\";\nimport viteConfig from \"./vite.config.ts\";\nimport { ouroTestProjects } from \"./src/lib/ouro/testing/vitest.ts\";\n\nexport default mergeConfig(viteConfig, defineConfig({ test: { projects: ouroTestProjects({ css: \"./src/index.css\" }) } }));\n\nThe end-to-end specs in e2e/ouro open the Ouro stories in a Storybook. If your app has none, add these two files (use your stylesheet in preview.ts):\n--- .storybook/main.ts\nexport default { stories: [\"../src/**/*.stories.@(ts|tsx)\"], framework: \"@storybook/react-vite\" };\n--- .storybook/preview.ts\nimport \"../src/index.css\";\n\nIf your app has no Playwright config, add this one, which starts that Storybook and runs Chromium and WebKit:\n--- playwright.config.ts\nimport { defineConfig, devices } from \"@playwright/test\";\n\n// Starts the app's Storybook, where Ouro UI's specs (e2e/ouro) open their stories.\nexport default defineConfig({\n  testDir: \"e2e\",\n  projects: [\n    { name: \"chromium\", use: { ...devices[\"Desktop Chrome\"] } },\n    { name: \"webkit\", use: { ...devices[\"Desktop Safari\"] } },\n  ],\n  webServer: {\n    command: \"npx storybook dev -p 6006 --ci --no-open\",\n    url: \"http://localhost:6006/iframe.html\",\n    reuseExistingServer: !process.env[\"CI\"],\n    timeout: 180_000,\n  },\n});\n\nThe specs take test and expect from e2e/ouro-fixtures.ts, a file of yours that no item ships, so no add overwrites it. Add it once; export your own fixtures from it to run the specs with your setup:\n--- e2e/ouro-fixtures.ts\nexport { expect, test } from \"@playwright/test\";\n\n// Ouro UI's specs (e2e/ouro) take test and expect from this file. It is yours: export your\n// own fixtures here to run them with your setup. No Ouro UI item ships or overwrites it.\n\nThen run npx playwright test e2e/ouro. With a Playwright config of your own, start Storybook with npx storybook dev -p 6006 and run OURO_E2E_URL=http://localhost:6006 npx playwright test e2e/ouro.\nDocs: https://ourostack.github.io/ouro-ui/docs/testing.md",
       "devDependencies": [
         "@playwright/test",
@@ -231,6 +236,16 @@
           "path": "registry/ouro/lib/ouro/testing/act.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/testing/act.ts"
+        },
+        {
+          "path": "registry/ouro/lib/ouro/testing/announcements.test.tsx",
+          "type": "registry:lib",
+          "target": "@lib/ouro/testing/announcements.test.tsx"
+        },
+        {
+          "path": "registry/ouro/lib/ouro/testing/announcements.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/testing/announcements.ts"
         },
         {
           "path": "registry/ouro/lib/ouro/testing/axe.ts",
@@ -271,6 +286,11 @@
           "path": "registry/ouro/lib/ouro/testing/frames.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/testing/frames.ts"
+        },
+        {
+          "path": "registry/ouro/lib/ouro/testing/motion.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/testing/motion.ts"
         },
         {
           "path": "registry/ouro/lib/ouro/testing/page-css.ts",
@@ -397,6 +417,19 @@
           "path": "registry/ouro/lib/ouro/cn.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/cn.ts"
+        }
+      ]
+    },
+    {
+      "name": "lib-control-ref",
+      "type": "registry:lib",
+      "title": "lib-control-ref",
+      "description": "Installed with the components that import it; you don't need to add it. The helper lib/ouro/control-ref.ts.",
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/control-ref.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/control-ref.ts"
         }
       ]
     },
@@ -1110,6 +1143,7 @@
       ],
       "registryDependencies": [
         "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/lib-control-ref",
         "ourostack/ouro-ui/lib-dev",
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-touch-target",
@@ -1166,6 +1200,7 @@
       ],
       "registryDependencies": [
         "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/lib-control-ref",
         "ourostack/ouro-ui/lib-dev",
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-touch-target",
@@ -1196,6 +1231,7 @@
       ],
       "registryDependencies": [
         "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/lib-control-ref",
         "ourostack/ouro-ui/lib-dev",
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-touch-target",
@@ -1278,6 +1314,7 @@
       ],
       "registryDependencies": [
         "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/lib-control-ref",
         "ourostack/ouro-ui/lib-dev",
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-server-element",
@@ -1334,6 +1371,7 @@
       ],
       "registryDependencies": [
         "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/lib-control-ref",
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-touch-target",
         "ourostack/ouro-ui/lib-use-dev-messages",
@@ -1394,6 +1432,7 @@
       "registryDependencies": [
         "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/field",
+        "ourostack/ouro-ui/lib-control-ref",
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-refs",
         "ourostack/ouro-ui/lib-touch-target",
@@ -1774,6 +1813,7 @@
         "ourostack/ouro-ui/dialog",
         "ourostack/ouro-ui/kbd",
         "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-control-ref",
         "ourostack/ouro-ui/lib-dev",
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-floating",
@@ -2454,6 +2494,7 @@
       "registryDependencies": [
         "ourostack/ouro-ui/field",
         "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-refs",
         "ourostack/ouro-ui/lib-use-dev-messages",
         "ourostack/ouro-ui/lib-use-field"
       ],
@@ -2883,6 +2924,31 @@
           "path": "registry/ouro/lib/ouro/cn.test.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/cn.test.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "lib-control-ref-tests",
+      "type": "registry:item",
+      "title": "lib-control-ref tests",
+      "description": "Optional: the Vitest browser tests for lib-control-ref, and the tests of everything lib-control-ref installs, so the installed files reach 100% coverage. Add it beside lib-control-ref: add lib-control-ref lib-control-ref-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "devDependencies": [
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-control-ref",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/control-ref.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/control-ref.test.ts"
         }
       ],
       "meta": {
@@ -3658,6 +3724,7 @@
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-control-ref-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
@@ -3969,6 +4036,7 @@
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-control-ref-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
@@ -4031,6 +4099,7 @@
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-control-ref-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
@@ -4093,6 +4162,7 @@
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-control-ref-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
@@ -4157,6 +4227,7 @@
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-control-ref-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
@@ -4220,6 +4291,7 @@
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-control-ref-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-form-answer",
         "ourostack/ouro-ui/lib-form-answer-tests",
@@ -4295,6 +4367,7 @@
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-control-ref-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-form-answer",
         "ourostack/ouro-ui/lib-form-answer-tests",
@@ -4364,6 +4437,7 @@
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-control-ref-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
@@ -4489,6 +4563,7 @@
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-control-ref-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
@@ -4611,6 +4686,7 @@
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-control-ref-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
@@ -5427,6 +5503,7 @@
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-control-ref-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-floating-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
@@ -7843,6 +7920,7 @@
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-control-ref-tests",
         "ourostack/ouro-ui/lib-current-path-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-floating-tests",
@@ -7907,6 +7985,7 @@
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-control-ref-tests",
         "ourostack/ouro-ui/lib-current-path-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-floating-tests",

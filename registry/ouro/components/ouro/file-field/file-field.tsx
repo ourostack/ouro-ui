@@ -370,7 +370,7 @@ export function FileField(props: FileFieldProps): JSX.Element {
             capture={capture}
             onChange={(event) => take([...event.currentTarget.files!])}
             {...(rejecting ? { "aria-invalid": true, "aria-describedby": statusId } : {})}
-            render={(controlProps) => <input {...controlProps} type="file" className="sr-only" />}
+            render={(controlProps) => <input {...controlProps} type="file" data-ouro-control="file-field" data-ouro-part="input" className="sr-only" />}
           />
         </label>
         {files.length > 0 && (
@@ -400,6 +400,8 @@ export function FileField(props: FileFieldProps): JSX.Element {
                     tone="secondary"
                     size="sm"
                     data-ouro-file-remove=""
+                    data-ouro-control="file-field"
+                    data-ouro-part="remove"
                     disabled={disabled}
                     className="aspect-square px-0"
                     onClick={() => remove(file)}

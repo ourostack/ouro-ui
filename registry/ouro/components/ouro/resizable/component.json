@@ -1,1 +1,10 @@
-{ "order": 1910, "components": ["resizable"] }
+{
+  "order": 1910,
+  "components": ["resizable"],
+  "controls": {
+    "resizable": [
+      {"part": "handle", "role": "separator", "portal": false},
+      {"part": "panel", "role": "generic", "portal": false}
+    ]
+  }
+}

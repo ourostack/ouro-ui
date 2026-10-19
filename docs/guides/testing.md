@@ -95,3 +95,32 @@ await page.getByRole("option", { name: "Main" }).click();
 ```
 
 A `Select` with `multiple` posts one entry per chosen value under its `name`; read them with `formData.getAll("tags")`.
+
+## Proving motion
+
+`lib/ouro/testing/motion.ts` proves what a state change animates, one part at a time. Change the state, then call `expectMotion` before any other `await`: it reads the CSS transitions and animations running on the element, fails unless they are exactly the properties you name (no missing and no extra property, with durations in milliseconds when you give them), and waits for them to end. `expectNoMotion` proves a part does not move, a frame after the change. The element needs a `data-ouro-part`; Ouro UI's animated parts carry one (Checkbox's `box` and `tick`).
+
+```ts
+const fast = parseDuration(getComputedStyle(document.documentElement).getPropertyValue("--ouro-duration-fast"));
+await act(() => box.click());
+await Promise.all([
+  expectMotion(tick, { stem: "checkbox", state: "data-checked", properties: { opacity: fast, scale: fast }, reduced: false }),
+  expectMotion(box, { stem: "checkbox", state: "data-checked", properties: ["background-color", "border-color"], reduced: false }),
+]);
+```
+
+The part, or an element around it inside the part's own component (`[data-ouro]`), must carry the state's attribute when you call a helper (`data-checked`, or `data-swiping=left` for a value), so render outside the state and change into it; a checked row or an open overlay around the component does not count. A transition the browser cancels mid-way counts only when an equal one takes its place or 90% of its duration had passed. `reduced` must match the page's reduced-motion setting (`commands.emulateMedia({ reducedMotion: "reduce" })`). A DOM `click()` keeps a pointer's press scale out of the motion you measure. Each helper also records what it proved in the test's meta; Ouro UI's own CI holds every component's declared motion to those records, and in your app nothing reads them.
+
+## Proving announcements
+
+`lib/ouro/testing/announcements.ts` records what live regions announce, so a test proves a screen reader hears a message once per change, in the right region. Start `watchAnnouncements()` before the change. It records, once per region for each batch of DOM changes, the text added to or changed inside a live region already on the page (`role="status"`, `role="alert"`, `role="log"` or `aria-live`, portals included), and the text an assertive region (`role="alert"` or `aria-live="assertive"`) is added with. A polite region added with its text records nothing until that text changes, because screen readers generally don't announce a new polite region's first content; render the region empty and fill it, as Ouro's components do. Only exposed text counts: nothing under `aria-hidden="true"` or `aria-live="off"`, nothing outside the region (text added beside it in the same subtree), and nothing from a render that leaves the text as it was.
+
+```ts
+const announcements = watchAnnouncements();
+await userEvent.click(page.getByRole("button", { name: "Save" }));
+await expect.poll(() => announcements.count("Saved")).toBe(1);
+expect(announcements.matching("Saved")[0]!.region.getAttribute("role")).toBe("status");
+announcements.stop();
+```
+
+`changes` lists every announcement in order, each with its `region` and `text`; `matching(text)` and `count(text)` find those whose text includes `text`. Toast's tests use it.

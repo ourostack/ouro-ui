@@ -138,6 +138,22 @@ describe("dark mode", () => {
   });
 });
 
+describe("sheet shadows", () => {
+  it.each([
+    ["bottom", "up", (x: number, y: number) => x === 0 && y < 0],
+    ["top", "down", (x: number, y: number) => x === 0 && y > 0],
+    ["left", "right", (x: number, y: number) => x > 0 && y === 0],
+    ["right", "left", (x: number, y: number) => x < 0 && y === 0],
+  ] as const)("--ouro-shadow-sheet-%s casts its soft shadow %s, onto the page", (side, _direction, toward) => {
+    const element = mount(`<i style="box-shadow: var(--ouro-shadow-sheet-${side})"></i>`).firstElementChild!;
+    const layers = getComputedStyle(element).boxShadow.split(/,\s*(?![^(]*\))/);
+    // The last layer is the soft shadow: its color, then x, y and a blur of 32px.
+    const [, x, y, blur] = layers.at(-1)!.match(/\) (-?[\d.]+)px (-?[\d.]+)px ([\d.]+)px/) ?? [];
+    expect(toward(Number(x), Number(y))).toBe(true);
+    expect(Number(blur)).toBe(32);
+  });
+});
+
 describe("motion tokens", () => {
   const root = () => getComputedStyle(document.documentElement);
 

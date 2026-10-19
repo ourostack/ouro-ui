@@ -290,10 +290,12 @@ function SliderControl({
   // which would count it as a failed check and block the next submit.
   const invalid = field.invalid;
   // Base UI builds each thumb's range input itself and takes aria-invalid only from its own
-  // checks, so Ouro's state goes on the inputs directly.
+  // checks, so Ouro's state and the control marker go on the inputs directly.
   const rootRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     for (const input of rootRef.current!.querySelectorAll('input[type="range"]')) {
+      input.setAttribute("data-ouro-control", "slider");
+      input.setAttribute("data-ouro-part", "thumb");
       if (invalid) input.setAttribute("aria-invalid", "true");
       else input.removeAttribute("aria-invalid");
     }

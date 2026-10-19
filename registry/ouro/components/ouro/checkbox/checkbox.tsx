@@ -5,6 +5,7 @@ import type { JSX, ReactNode, Ref } from "react";
 import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-styles";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
+import { controlRef } from "@/registry/ouro/lib/ouro/control-ref";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { FieldOwnerContext, useField, type ReadonlyErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -89,6 +90,8 @@ export interface CheckboxProps {
 
 /** Field's messages and root name Checkbox, and put the box before its label. */
 const owner = { name: "Checkbox", data: "checkbox", layout: "inline" } as const;
+/** Marks the hidden input Base UI submits the box with. */
+const markInput = controlRef("checkbox", "hidden-input");
 
 /** The box, inside the Field: it takes its name, description and error ids from the field. */
 function CheckboxBox(props: {
@@ -105,6 +108,9 @@ function CheckboxBox(props: {
   return (
     <BaseCheckbox.Root
       {...rest}
+      inputRef={markInput}
+      data-ouro-control="checkbox"
+      data-ouro-part="box"
       onCheckedChange={onCheckedChange && ((checked) => onCheckedChange(checked))}
       required={field.required}
       // Set here, not left to Base UI's effects, so the server HTML names and describes the box.
@@ -116,7 +122,7 @@ function CheckboxBox(props: {
       <TouchTarget />
       <BaseCheckbox.Indicator keepMounted className={indicatorClass}>
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="size-full">
-          <path d="M3.5 8.5 6.5 11.5 12.5 4.5" pathLength={1} className={tickClass} />
+          <path d="M3.5 8.5 6.5 11.5 12.5 4.5" pathLength={1} data-ouro-part="tick" className={tickClass} />
           <path d="M4 8h8" className={dashClass} />
         </svg>
       </BaseCheckbox.Indicator>

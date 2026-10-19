@@ -1,1 +1,11 @@
-{ "order": 1630, "components": ["file-field"] }
+{
+  "order": 1630,
+  "components": ["file-field"],
+  "modes": {"file-field": ["single", "multiple"]},
+  "controls": {
+    "file-field": [
+      {"part": "input", "role": "button", "portal": false},
+      {"part": "remove", "role": "button", "portal": false}
+    ]
+  }
+}

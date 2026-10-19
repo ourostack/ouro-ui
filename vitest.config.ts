@@ -1,12 +1,17 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { playwright } from "@vitest/browser-playwright";
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 import { fileURLToPath } from "node:url";
+import { MotionReporter } from "./scripts/motion-reporter.mts";
 import { commands } from "./registry/ouro/lib/ouro/testing/commands.ts";
 import { ouroTestProjects } from "./registry/ouro/lib/ouro/testing/vitest.ts";
 
 const visual = process.env["CI_VISUAL"] === "1";
+// test/themes/: every story under each third-party theme fixture, heavy enough to run apart
+// (`pnpm test:themes`, CI's sharded `themes` job), so `pnpm test` leaves it out.
+const themes = process.env["OURO_THEMES"] === "1";
+const themeTests = "test/themes/**";
 
 // The repository as its own app: app.css compiles the registry source with Tailwind,
 // and `@/` is the repo root, as in an app's components.json, so registry imports resolve.
@@ -61,6 +66,10 @@ export default defineConfig({
   },
   test: {
     passWithNoTests: true,
+    // Vitest's own reporters, and the motion evidence each run writes to .tmp/motion/ for
+    // `pnpm motion:coverage` (scripts/motion-reporter.mts). A themes run proves no motion and
+    // writes none, so it leaves `pnpm test`'s partitions as they were.
+    reporters: [...configDefaults.reporters, ...(themes ? [] : [new MotionReporter()])],
     coverage: {
       provider: "istanbul",
       include: ["registry/**/*.{ts,tsx}"],
@@ -69,7 +78,10 @@ export default defineConfig({
       thresholds: { lines: 100, branches: 100, functions: 100, statements: 100 },
     },
     projects: [
-      ...ouroTestProjects({ css, include: ["{registry,test}/**/*.test.{ts,tsx}"] }),
+      ...ouroTestProjects({ css, include: ["{registry,test}/**/*.test.{ts,tsx}"] }).map((project) => ({
+        ...project,
+        test: { ...project.test, exclude: [...(project.test?.exclude ?? configDefaults.exclude), themeTests] },
+      })),
       {
         // The landing page and docs site (site/), rendered at the widths it is built for. It
         // inherits this file's Vite setup (React, Tailwind, the `@` alias), which matches
@@ -90,6 +102,26 @@ export default defineConfig({
           },
         },
       },
+      ...(themes
+        ? [
+            {
+              extends: true as const,
+              test: {
+                name: "themes",
+                expect: { poll: { timeout: 10_000 } },
+                setupFiles: [css, "./registry/ouro/lib/ouro/testing/setup.ts"],
+                include: [`${themeTests}/*.test.{ts,tsx}`],
+                browser: {
+                  enabled: true,
+                  headless: true,
+                  provider: playwright(),
+                  instances: [{ browser: "chromium" as const }],
+                  commands,
+                },
+              },
+            },
+          ]
+        : []),
       ...(visual
         ? [
             {

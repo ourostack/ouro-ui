@@ -1,1 +1,9 @@
-{"order": 50, "components": ["field", "fieldset"]}
+{
+  "order": 50,
+  "components": ["field", "fieldset"],
+  "controls": {
+    "field": [
+      {"part": "control", "role": "textbox", "portal": false}
+    ]
+  }
+}

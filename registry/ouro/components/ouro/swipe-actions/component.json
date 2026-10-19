@@ -1,1 +1,10 @@
-{ "order": 1700, "components": ["swipe-actions"] }
+{
+  "order": 1700,
+  "components": ["swipe-actions"],
+  "controls": {
+    "swipe-actions": [
+      {"part": "action", "role": "button", "portal": false},
+      {"part": "menu", "role": "button", "portal": false}
+    ]
+  }
+}

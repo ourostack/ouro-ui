@@ -1,1 +1,11 @@
-{"order": 30, "components": ["sheet"]}
+{
+  "order": 30,
+  "components": ["sheet"],
+  "controls": {
+    "sheet": [
+      {"part": "close", "role": "button", "portal": true},
+      {"part": "content", "role": "generic", "portal": true},
+      {"part": "trigger", "role": "button", "portal": false}
+    ]
+  }
+}

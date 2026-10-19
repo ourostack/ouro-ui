@@ -1,1 +1,10 @@
-{ "order": 1400, "components": ["navbar"] }
+{
+  "order": 1400,
+  "components": ["navbar"],
+  "controls": {
+    "navbar": [
+      {"part": "menu", "role": "button", "portal": false},
+      {"part": "sheet-link", "role": "link", "portal": true}
+    ]
+  }
+}

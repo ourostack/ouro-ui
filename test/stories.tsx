@@ -5,10 +5,15 @@ import { vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
-// Shared by the story accessibility test and the visual test. Stories render
+// Shared by the story accessibility test, the control marker test and the visual test. Stories render
 // through Storybook's `composeStories`, so a test sees exactly what Storybook
 // shows: the meta's args, the story's args and its render function. The
 // styles come from app.css, which the Vitest projects load (vitest.config.ts), as .storybook/preview.tsx does.
+//
+// A control the story renders itself, which is no Ouro component (an Open button beside the
+// component, a plain input standing in for an app's form), carries `data-test-harness`, so the
+// control marker test (test/controls.test.tsx) leaves it out. The attribute goes on that control
+// only: never on the story host or anything around an Ouro component.
 
 // No project annotations beyond React's own: the preview's only parameters (layout,
 // the a11y addon's mode) configure Storybook's UI, which these tests do not render.
@@ -39,6 +44,8 @@ for (const [path, module] of Object.entries(storyModules).sort(([a], [b]) => (pa
 /**
  * What the shared tests read from a story's `parameters`:
  *
+ * - `mode`: which of its component's `modes` (component.json) the story renders, when it is not
+ *   the first. `pnpm controls:matrix` reads it from the story file, so it is a string literal.
  * - `plainOpeners`: the accessible names of buttons that open an overlay but are not Base UI
  *   triggers (a controlled story opens from a plain button). Base UI triggers are found by their
  *   `aria-haspopup` attribute.
@@ -52,9 +59,14 @@ export interface OuroStoryParameters {
   plainOpeners?: string[];
   openShortcut?: string;
   screenshot?: { name: string; open?: boolean; focus?: boolean };
+  mode?: string;
 }
 
-type ComposedStory = ComponentType & { parameters?: OuroStoryParameters };
+type ComposedStory = ComponentType & {
+  parameters?: OuroStoryParameters;
+  /** The story's play function, which brings it to the state it shows (a discard prompt, chosen files). */
+  play?: (context?: { canvasElement?: HTMLElement }) => Promise<void>;
+};
 
 /** One story, by `Component/StoryExport` id. Throws when there is none. */
 export function story(id: string): ComposedStory {
@@ -98,6 +110,8 @@ export async function renderStory(Story: ComponentType): Promise<HTMLElement> {
   const root = createRoot(host);
   roots.push(root);
   await act(async () => root.render(<Story />));
+  // A play function brings the story to the state it shows, as Storybook runs it after rendering.
+  await (Story as ComposedStory).play?.({ canvasElement: host });
   return host;
 }
 
@@ -211,10 +225,10 @@ export async function settle(): Promise<void> {
 /** How long an overlay may take to open or close on a loaded CI runner. */
 const waitOptions = { timeout: 10_000, interval: 20 };
 
-/** The open overlay's popup (Dialog, ConfirmDialog or Sheet, in either presentation, or a list's popup). */
+/** The open overlay's popup (Dialog, ConfirmDialog or Sheet, in either presentation, a list's popup, or a NavigationMenu panel). */
 export function openPopup(): HTMLElement | null {
   return document.querySelector<HTMLElement>(
-    '[role="dialog"][data-open], [role="alertdialog"][data-open], [role="menu"][data-open], [data-ouro="select-popup"][data-open], [data-open]:has([role="listbox"])',
+    '[role="dialog"][data-open], [role="alertdialog"][data-open], [role="menu"][data-open], [data-ouro="select-popup"][data-open], [data-open]:has([role="listbox"]), [data-ouro="navigation-menu-popup"][data-open]',
   );
 }
 

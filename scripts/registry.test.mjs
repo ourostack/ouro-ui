@@ -45,13 +45,18 @@ const firstComponents = ["button", "text", "heading", "sheet", "dialog", "confir
 
 test("the components come from each folder's component.json, in order, with the first ones in their original order", () => {
   assert.deepEqual(
-    readComponents(root).slice(0, 3),
+    readComponents(root)
+      .slice(0, 3)
+      .map(({ name, folder, stem, title }) => ({ name, folder, stem, title })),
     [
       { name: "button", folder: "button", stem: "button", title: "Button" },
       { name: "text", folder: "text", stem: "text", title: "Text" },
       { name: "heading", folder: "text", stem: "heading", title: "Heading" },
     ],
   );
+  // The optional `modes` and `controls` come along (scripts/control-matrix.mts reads them).
+  assert.deepEqual(readComponents(root)[0].modes, ["button", "link"]);
+  assert.deepEqual(readComponents(root)[1].controls, undefined);
   assert.deepEqual(components.filter((name) => firstComponents.includes(name)), firstComponents);
   assert.equal(readComponents(root).find((entry) => entry.name === "confirm-dialog").title, "ConfirmDialog");
 });

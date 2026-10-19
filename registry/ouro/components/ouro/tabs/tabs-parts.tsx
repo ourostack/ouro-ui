@@ -158,7 +158,7 @@ export function TabsTab({ className, children, ...props }: TabsTabProps): JSX.El
   useTabsPart("TabsTab", '<TabsTab value="…">…</TabsTab>');
   usePartClassName("TabsTab", className);
   return (
-    <BaseTabs.Tab {...props} className={cn(tabClass, className)}>
+    <BaseTabs.Tab data-ouro-control="tabs" data-ouro-part="tab" {...props} className={cn(tabClass, className)}>
       <span className={tabFaceClass}>{children}</span>
     </BaseTabs.Tab>
   );
@@ -177,5 +177,5 @@ export type TabsPanelProps = Omit<BaseTabs.Panel.Props, "className"> & { classNa
 export function TabsPanel({ className, ...props }: TabsPanelProps): JSX.Element {
   useTabsPart("TabsPanel", '<TabsPanel value="…">…</TabsPanel>');
   usePartClassName("TabsPanel", className);
-  return <BaseTabs.Panel {...props} className={cn(panelClass, className)} />;
+  return <BaseTabs.Panel data-ouro-control="tabs" data-ouro-part="panel" {...props} className={cn(panelClass, className)} />;
 }

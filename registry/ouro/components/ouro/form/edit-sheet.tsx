@@ -350,11 +350,13 @@ export function EditSheet(props: EditSheetProps): JSX.Element {
             <p id={`${formId}-discard`} role="alert" className="m-0 me-auto text-sm leading-5 font-medium text-foreground">
               {discardMessage}
             </p>
-            <Button ref={keepRef} variant="outline" tone="secondary" onClick={() => setConfirming(false)}>
+            <Button ref={keepRef} variant="outline" tone="secondary" data-ouro-control="edit-sheet" data-ouro-part="keep-editing" onClick={() => setConfirming(false)}>
               {keepEditingLabel}
             </Button>
             <Button
               tone="destructive"
+              data-ouro-control="edit-sheet"
+              data-ouro-part="discard"
               onClick={() => {
                 onDiscard?.();
                 setOpen(false);
@@ -365,10 +367,10 @@ export function EditSheet(props: EditSheetProps): JSX.Element {
           </div>
         ) : (
           <>
-            <Button variant="outline" tone="secondary" disabled={pending} onClick={dismiss} {...keepFieldFocus}>
+            <Button variant="outline" tone="secondary" disabled={pending} data-ouro-control="edit-sheet" data-ouro-part="cancel" onClick={dismiss} {...keepFieldFocus}>
               {cancelLabel}
             </Button>
-            <Button type="submit" form={formId} loading={pending} {...keepFieldFocus}>
+            <Button type="submit" form={formId} loading={pending} data-ouro-control="edit-sheet" data-ouro-part="submit" {...keepFieldFocus}>
               {submitLabel}
             </Button>
           </>

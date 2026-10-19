@@ -1,1 +1,10 @@
-{ "order": 1620, "components": ["otp-field"] }
+{
+  "order": 1620,
+  "components": ["otp-field"],
+  "controls": {
+    "otp-field": [
+      {"part": "slot", "role": "textbox", "portal": false},
+      {"part": "hidden-input", "role": "textbox", "portal": false}
+    ]
+  }
+}

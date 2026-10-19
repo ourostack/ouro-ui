@@ -7,6 +7,7 @@ import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-st
 import { FieldOwnerContext, useField, useFormErrors, type ReadonlyErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
+import { controlRef } from "@/registry/ouro/lib/ouro/control-ref";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { groupClass, inputClass, scrubClass, stepperClass } from "@/registry/ouro/components/ouro/number-field/number-field-styles";
 
@@ -116,6 +117,9 @@ export interface NumberFieldProps {
 }
 
 /** Icons drawn in the text color at 16px, like the other Ouro icons. */
+/** Marks the hidden input Base UI submits the number with. */
+const markInput = controlRef("number-field", "hidden-input");
+
 function Icon({ children }: { children: ReactNode }): JSX.Element {
   return (
     <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -238,6 +242,7 @@ export function NumberField(props: NumberFieldProps): JSX.Element {
         locale={locale}
         required={required}
         readOnly={readOnly}
+        inputRef={markInput}
         className="contents"
       >
         {scrubbable ? (
@@ -322,7 +327,7 @@ function NumberFieldGroup({
   const invalid = field.invalid;
   return (
     <BaseNumberField.Group data-ouro-number-field-group="" className={groupClass}>
-      <BaseNumberField.Decrement data-ouro-decrement="" render={unlabelled} className={stepperClass}>
+      <BaseNumberField.Decrement data-ouro-decrement="" data-ouro-control="number-field" data-ouro-part="decrement" render={unlabelled} className={stepperClass}>
         <TouchTarget />
         <Icon>
           <path d="M3.5 8h9" />
@@ -331,6 +336,8 @@ function NumberFieldGroup({
       </BaseNumberField.Decrement>
       <BaseNumberField.Input
         ref={inputRef}
+        data-ouro-control="number-field"
+        data-ouro-part="input"
         inputMode={inputMode}
         placeholder={placeholder}
         aria-required={required || undefined}
@@ -338,7 +345,7 @@ function NumberFieldGroup({
         {...(invalid ? { "aria-invalid": true } : {})}
         className={inputClass}
       />
-      <BaseNumberField.Increment data-ouro-increment="" render={unlabelled} className={stepperClass}>
+      <BaseNumberField.Increment data-ouro-increment="" data-ouro-control="number-field" data-ouro-part="increment" render={unlabelled} className={stepperClass}>
         <TouchTarget />
         <Icon>
           <path d="M3.5 8h9M8 3.5v9" />

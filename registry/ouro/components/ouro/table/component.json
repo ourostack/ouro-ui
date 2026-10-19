@@ -1,1 +1,9 @@
-{"order": 1500, "components": ["table"]}
+{
+  "order": 1500,
+  "components": ["table"],
+  "controls": {
+    "table": [
+      {"part": "row-link", "role": "link", "portal": false}
+    ]
+  }
+}

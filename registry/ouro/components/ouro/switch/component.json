@@ -1,1 +1,10 @@
-{"order": 320, "components": ["switch"]}
+{
+  "order": 320,
+  "components": ["switch"],
+  "controls": {
+    "switch": [
+      {"part": "track", "role": "switch", "portal": false},
+      {"part": "hidden-input", "role": "checkbox", "portal": false}
+    ]
+  }
+}

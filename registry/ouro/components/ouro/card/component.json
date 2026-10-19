@@ -1,1 +1,10 @@
-{"order": 1300, "components": ["card"]}
+{
+  "order": 1300,
+  "components": ["card"],
+  "modes": {"card": ["static", "link"]},
+  "controls": {
+    "card": [
+      {"part": "link", "role": "link", "portal": false, "modes": ["link"]}
+    ]
+  }
+}

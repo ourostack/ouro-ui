@@ -1,1 +1,15 @@
-{ "order": 1440, "components": ["pagination"] }
+{
+  "order": 1440,
+  "components": ["pagination"],
+  "modes": {"pagination": ["link", "button"]},
+  "controls": {
+    "pagination": [
+      {"part": "previous", "role": "link", "portal": false, "modes": ["link"]},
+      {"part": "previous", "role": "button", "portal": false, "modes": ["button"]},
+      {"part": "page", "role": "link", "portal": false, "modes": ["link"]},
+      {"part": "page", "role": "button", "portal": false, "modes": ["button"]},
+      {"part": "next", "role": "link", "portal": false, "modes": ["link"]},
+      {"part": "next", "role": "button", "portal": false, "modes": ["button"]}
+    ]
+  }
+}

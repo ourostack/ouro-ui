@@ -479,6 +479,8 @@ export function TableCell(props: TableCellProps): JSX.Element {
           rel={row.external ? safeRel(undefined) : undefined}
           data-table-row-link=""
           data-stretched-link=""
+          data-ouro-control="table"
+          data-ouro-part="row-link"
           className={cn(stretchedLinkClass, rowLinkClass)}
         >
           {children}

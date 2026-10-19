@@ -606,6 +606,8 @@ export function Reorderable(props: ReorderableProps): JSX.Element {
                     ref={dragProps.ref}
                     type="button"
                     data-ouro-reorderable-handle=""
+                    data-ouro-control="reorderable"
+                    data-ouro-part="handle"
                     aria-label={fillLabel(handleLabel, item.label, index + 1, total)}
                     // A menu button, so no `aria-pressed`: a picked-up row is said by the announcer and by the handle's description.
                     aria-describedby={grabbed?.id === id ? heldId : instructionsId}

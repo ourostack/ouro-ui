@@ -1,1 +1,11 @@
-{ "order": 1445, "components": ["navigation-menu"] }
+{
+  "order": 1445,
+  "components": ["navigation-menu"],
+  "controls": {
+    "navigation-menu": [
+      {"part": "trigger", "role": "button", "portal": false},
+      {"part": "link", "role": "link", "portal": false},
+      {"part": "panel-link", "role": "link", "portal": true}
+    ]
+  }
+}

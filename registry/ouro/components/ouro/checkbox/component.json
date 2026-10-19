@@ -1,1 +1,57 @@
-{"order": 300, "components": ["checkbox", "checkbox-group"]}
+{
+  "order": 300,
+  "components": ["checkbox", "checkbox-group"],
+  "controls": {
+    "checkbox": [
+      {"part": "box", "role": "checkbox", "portal": false},
+      {"part": "hidden-input", "role": "checkbox", "portal": false}
+    ]
+  },
+  "motion": {
+    "checkbox": {
+      "states": {
+        "data-checked": {
+          "kind": "motion",
+          "parts": {
+            "tick": {"properties": ["opacity", "scale"], "reduced": ["opacity"]},
+            "box": {"properties": ["background-color", "border-color"], "reduced": ["background-color", "border-color"]}
+          },
+          "tests": ["registry/ouro/components/ouro/checkbox/checkbox.test.tsx::Checkbox look > grows the tick in from 95% as it fades in when checked and shrinks it as it fades out when unchecked, and only fades it with reduced motion"]
+        },
+        "data-unchecked": {
+          "kind": "motion",
+          "parts": {
+            "tick": {"properties": ["opacity", "scale"], "reduced": ["opacity"]},
+            "box": {"properties": ["background-color", "border-color"], "reduced": ["background-color", "border-color"]}
+          },
+          "tests": ["registry/ouro/components/ouro/checkbox/checkbox.test.tsx::Checkbox look > grows the tick in from 95% as it fades in when checked and shrinks it as it fades out when unchecked, and only fades it with reduced motion"]
+        },
+        "data-indeterminate": {
+          "kind": "motion",
+          "parts": {
+            "box": {"properties": ["background-color", "border-color"], "reduced": ["background-color", "border-color"]}
+          },
+          "tests": ["registry/ouro/components/ouro/checkbox/checkbox.test.tsx::Checkbox look > fills the box when it turns mixed after it renders, with reduced motion too"]
+        },
+        "data-disabled": {
+          "kind": "motion",
+          "parts": {
+            "box": {"properties": ["opacity"], "reduced": ["opacity"]}
+          },
+          "tests": ["registry/ouro/components/ouro/checkbox/checkbox.test.tsx::Checkbox look > fades the box when it becomes disabled after it renders, with reduced motion too"]
+        },
+        "data-invalid": {
+          "kind": "motion",
+          "parts": {
+            "box": {"properties": ["border-color"], "reduced": ["border-color"]}
+          },
+          "tests": ["registry/ouro/components/ouro/checkbox/checkbox.test.tsx::Checkbox look > turns the box's border red when an error arrives after it renders, with reduced motion too"]
+        },
+        "data-readonly": {
+          "kind": "none",
+          "tests": ["registry/ouro/components/ouro/checkbox/checkbox.test.tsx::Checkbox look > does not move when it becomes read-only after it renders"]
+        }
+      }
+    }
+  }
+}
