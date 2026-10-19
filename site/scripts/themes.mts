@@ -53,7 +53,7 @@ export interface Preset {
 
 /** The six presets, in the order the picker shows them. Sleek is the default. */
 export const presets: readonly Preset[] = [
-  { name: "sleek", label: "Sleek", mood: "Sea glass and deep navy", heading: "Geist" },
+  { name: "sleek", label: "Sleek", mood: "Cool greys, glass and ink", heading: "Geist" },
   { name: "abyss", label: "Abyss", mood: "Pale aqua, then a cyan glow in the dark", heading: "Space Grotesk" },
   { name: "brass", label: "Brass", mood: "Ivory, walnut and polished brass", heading: "Cormorant Garamond" },
   { name: "chart", label: "Chart", mood: "Parchment and ink, like a sea chart", heading: "Chart Fell" },
