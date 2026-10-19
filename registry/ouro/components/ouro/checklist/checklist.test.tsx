@@ -246,7 +246,8 @@ describe("Checklist", () => {
     await expect.poll(() => running(oats).length).toBe(0);
     // The strike is whole and only fades.
     expect(Number.parseFloat(getComputedStyle(partOf(oats, "strike")).scale) || 1).toBe(1);
-    expect(getComputedStyle(partOf(oats, "strike")).opacity).toBe("1");
+    // WebKit can report the fade done a frame before its last value lands.
+    await expect.poll(() => getComputedStyle(partOf(oats, "strike")).opacity).toBe("1");
   });
 
   it("mirrors the strike right to left", async () => {
