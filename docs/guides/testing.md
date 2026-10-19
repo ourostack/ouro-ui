@@ -113,7 +113,7 @@ The part, or an element around it inside the part's own component (`[data-ouro]`
 
 ## Proving announcements
 
-`lib/ouro/testing/announcements.ts` records what live regions announce, so a test proves a screen reader hears a message once per change, in the right region. Start `watchAnnouncements()` before the change; it records text added to or changed inside any live region (`role="status"`, `role="alert"`, `role="log"` or `aria-live`, portals included), and leaves out text inside `aria-hidden="true"`, text outside a live region and a render that leaves the text as it was.
+`lib/ouro/testing/announcements.ts` records what live regions announce, so a test proves a screen reader hears a message once per change, in the right region. Start `watchAnnouncements()` before the change. It records, once per region for each batch of DOM changes, the text added to or changed inside a live region already on the page (`role="status"`, `role="alert"`, `role="log"` or `aria-live`, portals included), and the text an assertive region (`role="alert"` or `aria-live="assertive"`) is added with. A polite region added with its text records nothing until that text changes, because screen readers generally don't announce a new polite region's first content; render the region empty and fill it, as Ouro's components do. Only exposed text counts: nothing under `aria-hidden="true"` or `aria-live="off"`, nothing outside the region (text added beside it in the same subtree), and nothing from a render that leaves the text as it was.
 
 ```ts
 const announcements = watchAnnouncements();

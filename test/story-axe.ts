@@ -50,21 +50,38 @@ export async function scan(within?: HTMLElement): Promise<axe.Result[]> {
  */
 export const storyScanTimeout = 30_000;
 
+/** One node axe flagged in a story: the phase it was scanned in, the rule and the node's selector. */
+export interface StoryViolation {
+  /** `closed`, or `with "<opener>" open`. */
+  phase: string;
+  rule: string;
+  target: string;
+}
+
 /**
- * Renders a story and scans it closed and with each of its overlays open. Returns the
- * violations as text, empty when there are none.
+ * Renders a story and scans it closed and with each of its overlays open. Returns each flagged
+ * node, and the scan as text (empty when there are none).
  */
-export async function scanStory(id: string, Story: ComponentType): Promise<string> {
+export async function scanStoryViolations(id: string, Story: ComponentType): Promise<{ violations: StoryViolation[]; text: string }> {
   const host = await renderStory(Story);
   await settle();
+  const violations: StoryViolation[] = [];
   const found: string[] = [];
-  const closed = await scan();
-  if (closed.length > 0) found.push(`closed:\n${describeViolations(closed)}`);
+  const record = (phase: string, results: axe.Result[]) => {
+    if (results.length === 0) return;
+    found.push(`${phase}:\n${describeViolations(results)}`);
+    for (const result of results) for (const node of result.nodes) violations.push({ phase, rule: result.id, target: node.target.join(" ") });
+  };
+  record("closed", await scan());
   for (const opener of overlayOpeners(id, host)) {
     const popup = await openOverlay(opener);
-    const open = await scan(popup.matches('[role="dialog"], [role="alertdialog"]') ? undefined : popup);
-    if (open.length > 0) found.push(`with "${opener.name}" open:\n${describeViolations(open)}`);
+    record(`with "${opener.name}" open`, await scan(popup.matches('[role="dialog"], [role="alertdialog"]') ? undefined : popup));
     await closeOverlay();
   }
-  return found.join("\n\n");
+  return { violations, text: found.join("\n\n") };
+}
+
+/** Renders a story and scans it closed and with each of its overlays open: the violations as text, empty when there are none. */
+export async function scanStory(id: string, Story: ComponentType): Promise<string> {
+  return (await scanStoryViolations(id, Story)).text;
 }
