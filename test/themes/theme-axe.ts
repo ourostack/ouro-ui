@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { commands, page } from "vitest/browser";
 import { scanStoryViolations, storyScanTimeout } from "../story-axe.ts";
-import { cleanupStories, setScheme, stories } from "../stories.tsx";
+import { cleanupStories, selectedStories, setScheme } from "../stories.tsx";
 import { applyThemeFixture } from "../theme-fixtures.ts";
 import { compareFinding, themeFindings } from "./theme-findings.ts";
 
@@ -28,7 +28,7 @@ export function describeThemeAxe(name: string): void {
     });
 
     describe.each(["light", "dark"] as const)(`${name} %s`, (scheme) => {
-      it.each(stories)(`$id has no axe violations under ${name} (${scheme})`, async ({ id, Story }) => {
+      it.each(selectedStories)(`$id has no axe violations under ${name} (${scheme})`, async ({ id, Story }) => {
         setScheme(scheme);
         const { violations, text } = await scanStoryViolations(id, Story);
         const finding = themeFindings[`${name} ${scheme} ${id}`];

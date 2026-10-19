@@ -268,23 +268,164 @@ test("Scheduled install checks that the published llms.txt and README name the n
   assert.match(job("latest"), /node scripts\/published-release\.mjs "\$newest"/);
 });
 
-test("motion coverage runs after the browser test jobs, over the partitions they upload, expecting every project they run", async () => {
-  const ci = workflows.find(({ file }) => file === "ci.yml").text;
-  const jobs = Object.fromEntries(
-    ci
+/** ci.yml's jobs, by name, each the text of its block. */
+const ciJobs = () =>
+  Object.fromEntries(
+    workflow("ci.yml")
       .split("\njobs:\n")[1]
       .split(/\n(?= {2}[\w-]+:\n)/)
       .map((block) => [block.match(/^ {2}([\w-]+):/)[1], block]),
   );
-  // A browser test job runs `pnpm test` and uploads the partitions it wrote as its next step, before
+
+/** The `run: |` script of the step with this name in a job's block, de-indented. */
+const stepScript = (block, name) => {
+  const start = block.search(new RegExp(`^ {6}(- | {2})name: ${name.replace(/[?]/g, "\\$&")}\n`, "m"));
+  assert.notEqual(start, -1, `no step named ${name}`);
+  const lines = block.slice(start).split("        run: |\n")[1].split("\n");
+  const end = lines.findIndex((line) => line !== "" && !line.startsWith(" ".repeat(10)));
+  return lines.slice(0, end === -1 ? undefined : end).map((line) => line.slice(10)).join("\n");
+};
+
+/** Runs a step's script under bash -e with stand-ins for pnpm and node, returning what it called and wrote. */
+function runStep(script, env, { nodeStatus = 0 } = {}) {
+  const scratch = join(root, ".tmp");
+  mkdirSync(scratch, { recursive: true });
+  const dir = mkdtempSync(join(scratch, "ci-step-"));
+  const output = join(dir, "output.txt");
+  writeFileSync(output, "");
+  const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", `
+    pnpm() { printf 'CALL pnpm %s\\n' "$*" >&2; printf 'OURO_STORIES=%s\\n' "\${OURO_STORIES-unset}" >&2; }
+    node() {
+      printf 'CALL node %s\\n' "$*" >&2
+      case "$2" in
+        stories) echo checkbox ;;
+        e2e) echo "registry/ouro/e2e/ouro/checkbox.spec.ts site/e2e/" ;;
+        plan) printf 'full=false\\ncomponents=checkbox\\n' >> "$GITHUB_OUTPUT" ;;
+      esac
+      return "$NODE_STATUS"
+    }
+    ${script}
+  `], { cwd: root, encoding: "utf8", env: { ...process.env, ...env, GITHUB_OUTPUT: output, NODE_STATUS: String(nodeStatus) } });
+  return { status: result.status, stdout: result.stdout, calls: result.stderr, output: Object.fromEntries(readFileSync(output, "utf8").trim().split("\n").filter(Boolean).map((line) => line.split(/=(.*)/).slice(0, 2))) };
+}
+
+// A pull request runs the tests its change can affect (scripts/test-impact.mjs); everything else
+// runs every test, and every required check reports either way.
+for (const [event, ref, baseRef, headRef, expected] of [
+  ["pull_request", "refs/pull/9/merge", "main", "feature", "planned"],
+  ["pull_request", "refs/pull/9/merge", "main", "release/v1.1.0", "full"],
+  ["pull_request", "refs/pull/9/merge", "release/v1.1.0", "fix", "full"],
+  ["push", "refs/heads/main", "", "", "full"],
+  ["merge_group", "refs/heads/gh-readonly-queue/main/pr-9-abc", "", "", "full"],
+  ["workflow_dispatch", "refs/heads/main", "", "", "full"],
+  ["workflow_dispatch", "refs/heads/release/v1.1.0", "", "", "full"],
+]) {
+  test(`CI's plan: ${event} ${headRef || ref}${baseRef ? ` into ${baseRef}` : ""} runs ${expected === "full" ? "everything" : "what the change can affect"}`, () => {
+    const { status, calls, output } = runStep(stepScript(ciJobs().plan, "Plan the tests"), { EVENT: event, REF: ref, BASE_REF: baseRef, HEAD_REF: headRef });
+    assert.equal(status, 0, calls);
+    if (expected === "full") {
+      assert.deepEqual(output, { full: "true" });
+      assert.doesNotMatch(calls, /CALL node/);
+    } else {
+      assert.match(calls, /^CALL node scripts\/test-impact\.mjs plan HEAD\^1 HEAD$/m);
+      assert.deepEqual(output, { full: "false", components: "checkbox" });
+    }
+  });
+}
+
+test("CI's plan runs everything when planning fails", () => {
+  const { status, stdout, output } = runStep(stepScript(ciJobs().plan, "Plan the tests"), { EVENT: "pull_request", REF: "refs/pull/9/merge", BASE_REF: "main", HEAD_REF: "feature" }, { nodeStatus: 1 });
+  assert.equal(status, 0);
+  assert.equal(output.full, "true");
+  assert.match(stdout, /::warning::Could not plan the tests, so everything runs/);
+});
+
+test("the plan's merge commit has its base: the checkout fetches the merge commit's parents", () => {
+  assert.match(ciJobs().plan, /- uses: actions\/checkout@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}persist-credentials: false\n(?: {10}#.*\n)* {10}fetch-depth: 2\n/);
+});
+
+test("every job that reads the plan runs whatever happened to it, and runs everything unless it says full=false", () => {
+  const jobs = ciJobs();
+  const readers = Object.keys(jobs).filter((name) => /needs\.plan\.outputs/.test(jobs[name]));
+  assert.deepEqual(readers.sort(), ["ci", "e2e", "themes"]);
+  for (const name of readers) {
+    assert.match(jobs[name], /^ {4}needs: \[plan\]\n {4}if: \$\{\{ !cancelled\(\) \}\}$/m, name);
+    const full = jobs[name].match(/^ {6}FULL: \$\{\{ (.+) \}\}$/m)?.[1];
+    assert.equal(full, "needs.plan.outputs.full != 'false'", name);
+    // A plan that failed or never ran leaves the output empty: everything runs.
+    for (const [value, expected] of [["", true], ["true", true], ["false", false]]) {
+      assert.equal(runInNewContext(full.replace("needs.plan.outputs.full", "value"), { value }), expected, `${name} with full=${JSON.stringify(value)}`);
+    }
+  }
+});
+
+test("every required check is still a job that reports, under the name the ruleset requires", () => {
+  const jobs = ciJobs();
+  const names = [];
+  for (const [id, block] of Object.entries(jobs)) {
+    const name = block.match(/^ {4}name: (.+)$/m)?.[1] ?? id;
+    const matrix = (key) => block.match(new RegExp(`^ {8}${key}: \\[([^\\]]*)\\]$`, "m"))?.[1].split(",").map((value) => value.trim());
+    if (/matrix\.shard/.test(name)) for (const shard of matrix("shard")) names.push(name.replace("${{ matrix.shard }}", shard));
+    else if (/matrix\.variant/.test(name)) {
+      for (const variant of matrix("variant")) for (const preset of matrix("preset")) names.push(name.replace("${{ matrix.variant }}", variant).replace("${{ matrix.preset }}", preset));
+      for (const [, variant, preset] of block.matchAll(/^ {10}- variant: (\w+)\n {12}preset: (\w+)$/gm)) names.push(name.replace("${{ matrix.variant }}", variant).replace("${{ matrix.preset }}", preset));
+    } else names.push(name);
+    // A job a required check names never skips itself: at most it runs whatever its needs did.
+    const condition = block.match(/^ {4}if: (.+)$/m)?.[1];
+    if (id !== "install-github" && id !== "plan") assert.ok(!condition || condition === "${{ !cancelled() }}", `${id} has if: ${condition}`);
+  }
+  const required = ["ci", "e2e", "visual", "registry", "install (shadcn, nova)", "install (shadcn, vega)", "install (ouro, nova)", "install (namespace, nova)", "install (next, nova)", "install-upgrade", "motion-coverage", "themes (1/3)", "themes (2/3)", "themes (3/3)"];
+  for (const check of required) assert.ok(names.includes(check), `${check} is not among ${names.join(", ")}`);
+});
+
+test("the ci job runs every browser test, or the reduced run, and says which for motion coverage", () => {
+  const script = stepScript(ciJobs().ci, "Browser tests");
+  const full = runStep(script, { FULL: "true", COMPONENTS: "" });
+  assert.equal(full.status, 0);
+  assert.match(full.calls, /^CALL pnpm test$/m);
+  assert.deepEqual(full.output, { reduced: "false", stems: "" });
+  const reduced = runStep(script, { FULL: "false", COMPONENTS: "checkbox,checkbox-group" });
+  assert.match(reduced.calls, /^CALL node scripts\/test-impact\.mjs vitest checkbox,checkbox-group$/m);
+  assert.doesNotMatch(reduced.calls, /CALL pnpm/);
+  const subsets = stepScript(ciJobs().ci, "Coverage of installed subsets");
+  assert.match(runStep(subsets, { FULL: "true" }).calls, /^CALL node scripts\/subset-coverage\.mjs$/m);
+  assert.match(runStep(subsets, { FULL: "false", COMPONENTS: "checkbox" }).calls, /^CALL node scripts\/subset-coverage\.mjs --touching checkbox$/m);
+});
+
+test("the themes shards pass as not affected when a pull request changes no component, and scan only the selected stories otherwise", () => {
+  const block = ciJobs().themes;
+  const affected = stepScript(block, "Is any story affected?");
+  const none = runStep(affected, { FULL: "false", COMPONENTS: "" });
+  assert.equal(none.status, 0);
+  assert.equal(none.output.run, "false");
+  assert.match(none.stdout, /^Not affected: /m);
+  assert.equal(runStep(affected, { FULL: "false", COMPONENTS: "dialog" }).output.run, "true");
+  assert.equal(runStep(affected, { FULL: "true", COMPONENTS: "" }).output.run, "true");
+  // Every later step waits on that answer; the job itself always runs and reports.
+  const later = block.slice(block.indexOf("name: Is any story affected?")).split(/\n {6}- /).slice(1);
+  for (const step of later) assert.match(step, /^if: steps\.affected\.outputs\.run == 'true'$/m, step);
+  const scan = stepScript(block, "Theme scans");
+  assert.match(runStep(scan, { FULL: "true", SHARD: "2" }).calls, /CALL pnpm test:themes --shard=2\/3\nOURO_STORIES=unset/);
+  assert.match(runStep(scan, { FULL: "false", COMPONENTS: "checkbox-group", SHARD: "2" }).calls, /CALL pnpm test:themes --shard=2\/3\nOURO_STORIES=checkbox$/m);
+});
+
+test("the e2e job runs every spec, or the selected components' and the site's", () => {
+  const script = stepScript(ciJobs().e2e, "End-to-end specs");
+  assert.match(runStep(script, { FULL: "true" }).calls, /^CALL pnpm test:e2e$/m);
+  assert.match(runStep(script, { FULL: "false", COMPONENTS: "checkbox" }).calls, /^CALL pnpm test:e2e registry\/ouro\/e2e\/ouro\/checkbox\.spec\.ts site\/e2e\/$/m);
+});
+
+test("motion coverage runs after the browser test jobs, over the partitions they upload, expecting every project they run", async () => {
+  const jobs = ciJobs();
+  // A browser test job runs Vitest and uploads the partitions it wrote as its next step, before
   // any other Vitest run in the job can rewrite them.
-  const browserJobs = Object.keys(jobs).filter((name) => /^ {6}- run: pnpm test$/m.test(jobs[name]));
+  const browserJobs = Object.keys(jobs).filter((name) => /^ {6}- id: tests\n {8}name: Browser tests\n/m.test(jobs[name]));
   assert.deepEqual(browserJobs, ["ci"]);
   for (const name of browserJobs) {
     assert.match(
       jobs[name],
-      /^ {6}- run: pnpm test\n(?: {6}#.*\n)*^ {6}- uses: actions\/upload-artifact@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}name: motion-[\w-]+\n {10}path: \.tmp\/motion\/\n {10}include-hidden-files: true\n {10}if-no-files-found: error\n/m,
-      `${name} uploads .tmp/motion/ as a motion-* artifact right after pnpm test`,
+      /^ {8}name: Browser tests\n {8}run: \|\n(?: {10}.*\n)+(?: {6}#.*\n)*^ {6}- uses: actions\/upload-artifact@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}name: motion-[\w-]+\n {10}path: \.tmp\/motion\/\n {10}include-hidden-files: true\n {10}if-no-files-found: error\n/m,
+      `${name} uploads .tmp/motion/ as a motion-* artifact right after its browser tests`,
     );
   }
   const coverage = jobs["motion-coverage"];
@@ -292,13 +433,24 @@ test("motion coverage runs after the browser test jobs, over the partitions they
   const needs = coverage.match(/^ {4}needs: \[([^\]]*)\]$/m)?.[1].split(",").map((name) => name.trim());
   assert.deepEqual(needs, browserJobs, "motion-coverage runs after every browser test job");
   assert.match(coverage, /- uses: actions\/download-artifact@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}pattern: motion-\*\n {10}path: \$\{\{ runner\.temp \}\}\/motion\n/);
-  assert.match(coverage, /^ {6}- run: pnpm motion:coverage --dir "\$RUNNER_TEMP\/motion" --expect "\$MOTION_PARTITIONS"$/m);
+  const check = stepScript(coverage, "Motion coverage");
+  // Full: every map complete. Reduced: every project still ran, and only the ci job's stems' maps must be complete.
+  assert.match(runStep(check, { REDUCED: "false", MOTION_PARTITIONS: "p:1", RUNNER_TEMP: "/r" }).calls, /^CALL pnpm motion:coverage --dir \/r\/motion --expect p:1$/m);
+  assert.match(runStep(check, { REDUCED: "true", STEMS: "checkbox,checkbox-group", MOTION_PARTITIONS: "p:1", RUNNER_TEMP: "/r" }).calls, /^CALL pnpm motion:coverage --dir \/r\/motion --expect p:1 --stems checkbox,checkbox-group$/m);
+  assert.match(runStep(check, { REDUCED: "", MOTION_PARTITIONS: "p:1", RUNNER_TEMP: "/r" }).calls, /^CALL pnpm motion:coverage --dir \/r\/motion --expect p:1$/m);
+  assert.match(coverage, /^ {6}REDUCED: \$\{\{ needs\.ci\.outputs\.reduced \}\}\n {6}STEMS: \$\{\{ needs\.ci\.outputs\.stems \}\}$/m);
+  assert.match(jobs.ci, /^ {6}reduced: \$\{\{ steps\.tests\.outputs\.reduced \}\}\n {6}stems: \$\{\{ steps\.tests\.outputs\.stems \}\}$/m);
   // The expected partitions: each project vitest.config.ts runs (CI_VISUAL unset, as in the ci
-  // job), once per shard. `pnpm test` runs unsharded, so each project has one.
-  assert.doesNotMatch(jobs.ci, /pnpm test.*--shard|strategy:/);
+  // job), once per shard. The browser tests run unsharded, so each project has one, and the
+  // reduced run names every one of them too (scripts/test-impact.mjs).
+  assert.doesNotMatch(jobs.ci, /--shard|strategy:/);
   const config = (await import("../vitest.config.ts")).default;
   const projects = config.test.projects.map((project) => project.test.name);
   assert.deepEqual(projects, ["ouro-chromium", "ouro-webkit", "ouro-touch", "site"]);
   const partitions = coverage.match(/^ {6}MOTION_PARTITIONS: (.+)$/m)?.[1];
   assert.equal(partitions, projects.map((name) => `${name}:1`).join(","));
+  const { vitestArgs } = await import("./test-impact.mjs");
+  for (const components of [[], ["checkbox"]]) {
+    assert.deepEqual(vitestArgs(components).filter((arg) => arg.startsWith("--project=")).map((arg) => arg.slice(10)), projects);
+  }
 });

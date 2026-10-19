@@ -73,6 +73,16 @@ test("a declared state, transition or gesture with no record from one of its tes
   }
 });
 
+test("a reduced run's --stems leaves other stems' maps alone, but still checks every record", () => {
+  const other = { stem: "other", motion: { states: { "data-open": { kind: "motion", parts: { panel: { properties: ["opacity"], reduced: [] } }, tests: [id("other opens")] } } } };
+  assert.deepEqual(checkCoverage([...maps(), other], merged(), new Set(["fixture"])), []);
+  assert.ok(checkCoverage([...maps(), other], merged()).some((problem) => /other data-open: names test .*other opens.* \(stale\)/.test(problem)));
+  // With no stem selected, no map need be complete; an undeclared record still fails.
+  assert.deepEqual(checkCoverage(maps(), merged([]), new Set()), []);
+  const stray = { kind: "state", stem: "nowhere", part: "root", state: "data-open", properties: [], reduced: false, dir: "ltr", testId: id("opens") };
+  assert.ok(checkCoverage(maps(), merged([stray]), new Set()).some((problem) => /nowhere data-open: .* names a stem with no motion map \(undeclared\)/.test(problem)));
+});
+
 test("a named test that no partition ran is stale", () => {
   const tests = allTests.filter((name) => name !== id("opens"));
   const problems = checkCoverage(maps(), merged(complete().filter((record) => record.testId !== id("opens")), tests));
@@ -263,6 +273,10 @@ test("motion:coverage merges the partitions under a folder and checks the reposi
   const unreduced = run();
   assert.equal(unreduced.status, 1);
   assert.match(unreduced.stderr, /checkbox data-checked tick: no reduced-motion record/);
+  // A reduced run that selected no motion map passes on the same evidence, and says what it checked.
+  const scoped = run("--stems", "");
+  assert.equal(scoped.status, 0, scoped.stderr);
+  assert.match(scoped.stdout, /0 motion maps \(of \d+; this run's stems: none\)/);
   assert.ok(existsSync(join(dir, "motion-ci")));
 });
 

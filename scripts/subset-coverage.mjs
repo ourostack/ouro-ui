@@ -7,6 +7,9 @@
 //   node scripts/subset-coverage.mjs            checks each set below
 //   node scripts/subset-coverage.mjs button     checks one set of items
 //   node scripts/subset-coverage.mjs --list button
+//   node scripts/subset-coverage.mjs --touching checkbox,checkbox-group
+//                                               checks only the sets that install one of these
+//                                               items (a pull request's reduced run in CI)
 //
 // For a set of components it reads registry.json as the shadcn CLI does: the install is the
 // closure of each `<name>-tests` item. It runs only the test files in that closure, in the
@@ -49,12 +52,21 @@ export function subset(registry, names) {
   return { items: [...items].sort(), runtime: files.filter(isRuntime).sort(), tests: files.filter(isTest).sort() };
 }
 
+/** The sets whose install brings any of `items` (a pull request's selected components, scripts/test-impact.mjs). */
+export function setsTouching(registry, items) {
+  return sets.filter((set) => subset(registry, set).items.some((name) => items.includes(name)));
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const args = process.argv.slice(2);
   const list = args[0] === "--list";
-  const names = args.filter((arg) => !arg.startsWith("--"));
+  const touching = args[0] === "--touching";
+  const names = touching ? [] : args.filter((arg) => !arg.startsWith("--"));
   const registry = JSON.parse(readFileSync(join(root, "registry.json"), "utf8"));
-  for (const set of names.length > 0 ? [names] : sets) {
+  const items = touching ? (args[1] ?? "").split(",").filter(Boolean) : [];
+  const chosen = touching ? setsTouching(registry, items) : names.length > 0 ? [names] : sets;
+  if (touching) console.log(chosen.length > 0 ? `Sets that install ${items.join(", ")}: ${chosen.map((set) => set.join(", ")).join("; ")}` : `No set installs ${items.join(", ") || "any selected component"}; nothing to check.`);
+  for (const set of chosen) {
     const { items, runtime, tests } = subset(registry, set);
     if (list) {
       console.log(JSON.stringify({ items, runtime, tests }, null, 2));
@@ -83,5 +95,5 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       process.exit(result.status ?? 1);
     }
   }
-  if (!list) console.log("Each set's installed tests cover its installed files to 100%.");
+  if (!list && chosen.length > 0) console.log("Each set's installed tests cover its installed files to 100%.");
 }

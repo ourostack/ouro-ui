@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import matrix from "./generated/control-matrix.json";
 import { collectControls, controlRole } from "./controls.ts";
-import { cleanupStories, openOverlay, openPopup, overlayOpeners, renderStory, settle, stories, story } from "./stories.tsx";
+import { cleanupStories, openOverlay, openPopup, overlayOpeners, renderStory, selectedStories, settle, story, storySelected } from "./stories.tsx";
 
 // The control marker checks test/controls.test.tsx runs in Chromium and WebKit and
 // test/controls.touch.test.tsx runs on a touch phone: every element a person can focus or operate
@@ -91,11 +91,15 @@ async function visitStates(id: string, host: HTMLElement, visit: (state: string)
   return false;
 }
 
-/** Each row's part, found by its marker and role over the whole page, in the row's stories, at each size. */
-export function describeRows(title: string, selected: ControlRow[], sizes: Size[]): void {
+/**
+ * Each row's part, found by its marker and role over the whole page, in the row's stories, at each
+ * size. A pull request's reduced run checks only the rows whose stories it renders (`storySelected`).
+ */
+export function describeRows(title: string, rowsToCheck: ControlRow[], sizes: Size[]): void {
+  const selected = rowsToCheck.filter((row) => row.stories.some(storySelected));
   describe(title, () => {
     it("has rows", () => {
-      expect(selected.length).toBeGreaterThan(0);
+      expect(rowsToCheck.length).toBeGreaterThan(0);
     });
 
     // A row may look through many stories and their overlays before it finds its part, hence the longer timeout.
@@ -133,7 +137,7 @@ export function describeRows(title: string, selected: ControlRow[], sizes: Size[
 export function describeStories(title: (size: Size) => string, sizes: Size[]): void {
   for (const size of sizes) {
     describe(title(size), () => {
-      it.each(stories)("$id leaves no control unmarked", async ({ id, Story }) => {
+      it.each(selectedStories)("$id leaves no control unmarked", async ({ id, Story }) => {
         if (size) await page.viewport(size.width, size.height);
         const host = await renderStory(Story);
         await settle();

@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { formsSet, sets, subset } from "./subset-coverage.mjs";
+import { formsSet, sets, setsTouching, subset } from "./subset-coverage.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const registry = JSON.parse(readFileSync(join(root, "registry.json"), "utf8"));
@@ -47,4 +47,12 @@ test("installing the button with its tests brings only the helpers it imports, e
     const own = registry.items.flatMap((item) => item.files ?? []).map((file) => file.path).filter((file) => file.startsWith(`${stem}.`) && /\.test\.tsx?$/.test(file));
     for (const file of own) assert.ok(tests.includes(file), `${file} is not installed with ${path}`);
   }
+});
+
+test("a pull request's reduced run checks only the sets that install a selected component", () => {
+  assert.deepEqual(setsTouching(registry, ["checkbox-group"]), [formsSet, sets[4]]);
+  assert.deepEqual(setsTouching(registry, ["dialog"]).at(0), ["dialog"]);
+  assert.ok(!setsTouching(registry, ["dialog"]).includes(formsSet) || subset(registry, formsSet).items.includes("dialog"));
+  assert.deepEqual(setsTouching(registry, ["chart"]), []);
+  assert.deepEqual(setsTouching(registry, []), []);
 });

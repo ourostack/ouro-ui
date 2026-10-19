@@ -1,7 +1,7 @@
 // Holds every component.json `motion` map (scripts/components.mts, readMotion) complete against
 // the evidence the browser tests wrote (scripts/motion-reporter.mts, test/motion.ts).
 //
-//   node scripts/motion-coverage.mts [--dir .tmp/motion] [--expect <project>:<shard count>,…]
+//   node scripts/motion-coverage.mts [--dir .tmp/motion] [--expect <project>:<shard count>,…] [--stems <stem>,…]
 //
 // It reads every partition under --dir, at any depth (CI downloads each job's artifact into a
 // folder of its own), and merges them deterministically: records sorted and de-duplicated by exact
@@ -16,7 +16,9 @@
 //   expectNoMotion when `reduced` is []), and a `none` state no recorded property;
 // - a record that names a stem, state, part, transition or gesture no map declares fails.
 //
-// Components without `motion` are out of scope until they declare one.
+// Components without `motion` are out of scope until they declare one. With --stems (a pull
+// request's reduced run, scripts/test-impact.mjs, which ran only those components' tests), only
+// those stems' maps must be complete; a record still may name no undeclared stem or state.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -91,8 +93,11 @@ function difference(declared: string[], recorded: string[]): string {
   return [missing.length > 0 && `missing ${list(missing)}`, extra.length > 0 && `extra ${list(extra)}`].filter(Boolean).join(", ");
 }
 
-/** Every way the evidence falls short of the maps, one line each, sorted. */
-export function checkCoverage(maps: MotionComponent[], merged: Pick<Merged, "records" | "tests">): string[] {
+/**
+ * Every way the evidence falls short of the maps, one line each, sorted. With `only`, the maps of
+ * other stems need not be complete (their tests did not run), but every record is still checked.
+ */
+export function checkCoverage(maps: MotionComponent[], merged: Pick<Merged, "records" | "tests">, only?: ReadonlySet<string>): string[] {
   const problems: string[] = [];
   const ran = new Set(merged.tests);
   const byStem = new Map(maps.map((entry) => [entry.stem, entry.motion]));
@@ -130,7 +135,7 @@ export function checkCoverage(maps: MotionComponent[], merged: Pick<Merged, "rec
     }
   };
 
-  for (const { stem, motion } of maps) {
+  for (const { stem, motion } of maps.filter((entry) => !only || only.has(entry.stem))) {
     for (const [name, state] of Object.entries(motion.states)) {
       const where = `${stem} ${name}`;
       const ofState = records.filter((record) => record.kind === "state" && record.stem === stem && record.state === name);
@@ -178,15 +183,18 @@ function main(argv: string[]): number {
   const dir = resolve(dirIndex >= 0 ? argv[dirIndex + 1]! : join(repoRoot, ".tmp/motion"));
   const expectIndex = argv.indexOf("--expect");
   const expected = expectIndex >= 0 ? parseExpect(argv[expectIndex + 1] ?? "") : undefined;
+  const stemsIndex = argv.indexOf("--stems");
+  const only = stemsIndex >= 0 ? new Set((argv[stemsIndex + 1] ?? "").split(",").filter(Boolean)) : undefined;
   const files = existsSync(dir) ? readPartitions(dir) : [];
   const merged = mergePartitions(files, expected);
   const maps = readMotion(repoRoot);
-  const problems = [...merged.problems, ...checkCoverage(maps, merged)];
+  const problems = [...merged.problems, ...checkCoverage(maps, merged, only)];
   if (problems.length > 0) {
     process.stderr.write(`Motion coverage failed (${relative(process.cwd(), dir) || "."}):\n${problems.map((problem) => `- ${problem}`).join("\n")}\n`);
     return 1;
   }
-  process.stdout.write(`Motion coverage: ${maps.length} motion map${maps.length === 1 ? "" : "s"} complete against ${files.length} partitions (${merged.records.length} records from ${merged.tests.length} tests).\n`);
+  const checked = only ? maps.filter((entry) => only.has(entry.stem)).length : maps.length;
+  process.stdout.write(`Motion coverage: ${checked} motion map${checked === 1 ? "" : "s"}${only ? ` (of ${maps.length}; this run's stems: ${[...only].sort().join(", ") || "none"})` : ""} complete against ${files.length} partitions (${merged.records.length} records from ${merged.tests.length} tests).\n`);
   return 0;
 }
 
