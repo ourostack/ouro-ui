@@ -109,8 +109,8 @@ test("the CLI prints SR_CLASS, writes the class as a step output and fails unles
 // on feat/first-visitor (run 39234254614, attempt 1) where the Dialog spec heard only VoiceOver's
 // hint as focus returned.
 const recorded = (name) => readFileSync(join(root, "scripts/fixtures/sr-logs", name), "utf8");
-const teardownAfterPass = recorded("nvda-teardown-after-pass.log");
-const hintOnly = recorded("voiceover-dialog-hint-only.log");
+const teardownAfterPass = recorded("nvda-teardown-after-pass.txt");
+const hintOnly = recorded("voiceover-dialog-hint-only.txt");
 
 test("a test that passed and then failed to close its browser context is infrastructure, with the reason", () => {
   assert.match(teardownAfterPass, /Error: browserContext\.close: Test ended\./);

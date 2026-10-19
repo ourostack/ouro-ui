@@ -1,0 +1,66 @@
+
+> ouro-ui@0.0.1 test:sr D:\a\ouro-ui\ouro-ui
+> playwright test --config playwright.screen-reader.config.ts "--project" "nvda"
+
+
+Running 6 tests using 1 worker
+
+  ok 1 [stories] › registry\ouro\e2e\screen-reader\stories.sr.setup.ts:6:1 › every story the screen-reader lane opens is in this Storybook (39ms)
+(node:3568) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[sr] first utterance: "check box, not checked, Email me new recipes"
+[sr] heard "Email me new recipes", checkbox, unchecked: "Email me new recipes, check box, not checked"
+[sr] heard checked, after Space: "checked"
+  ok 2 [nvda] › registry\ouro\e2e\screen-reader\checkbox.sr.spec.ts:8:1 › Checkbox is announced with its name, role and state, and its change when checked (12.9s)
+  -  3 [nvda] › registry\ouro\e2e\screen-reader\checklist.sr.spec.ts:9:1 › Checklist announces an item's name, role and state, and its change when ticked
+[sr] first utterance: "button, collapsed, opens dialog, Edit"
+[sr] heard "Edit", button: "Edit, button, collapsed, opens dialog"
+[sr] heard "Edit recipe", dialog, as it opens: "Edit recipe, dialog. Edit recipe, dialog. Name, edit, Shakshuka"
+[sr] heard "Edit", button, as focus returns: "blank. clickable, Edit, button, collapsed, opens dialog"
+  ok 4 [nvda] › registry\ouro\e2e\screen-reader\dialog.sr.spec.ts:8:1 › Dialog is announced with its title and role when it opens, and its trigger again when it closes (10.5s)
+[sr] first utterance: "clickable, Course"
+[sr] heard "Course", combo box, collapsed: "Course, combo box, Choose a course, collapsed, opens list"
+[sr] said as the list opens: "list. Starter, not selected, 1 of 4"
+[sr] heard "Main", the next option: "Main, not selected, 2 of 4"
+[sr] heard "Side", the option after it: "Side, not selected, 3 of 4"
+[sr] said as the list closes: "list. Side, 3 of 4. Course, combo box, Side, collapsed, opens list"
+[sr] heard "Course" with "Side", the chosen value: "Course, combo box, Side, focused, collapsed, opens list"
+  x  5 [nvda] › registry\ouro\e2e\screen-reader\select.sr.spec.ts:8:1 › Select is announced with its label, role and state, and its new value when one is chosen (14.5s)
+(node:7080) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[sr] first utterance: "out of region, clickable, button, Save recipe"
+[sr] heard "Save recipe", button: "Save recipe, button"
+[sr] heard "Recipe saved", the toast: "Recipe saved Find it in your cookbook.. Notifications"
+  ok 6 [nvda] › registry\ouro\e2e\screen-reader\toast.sr.spec.ts:8:1 › Toast is announced from its live region when it appears (11.0s)
+
+
+  1) [nvda] › registry\ouro\e2e\screen-reader\select.sr.spec.ts:8:1 › Select is announced with its label, role and state, and its new value when one is chosen 
+
+    Error: browserContext.close: Test ended.
+    Browser logs:
+
+    <launching> C:\Users\runneradmin\AppData\Local\ms-playwright\chromium-1243\chrome-win64\chrome.exe --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --no-sandbox --user-data-dir=C:\Users\RUNNER~1\AppData\Local\Temp\playwright_chromiumdev_profile-bM1yvH --remote-debugging-pipe --no-startup-window
+    <launched> pid=4564
+    [pid=4564][err] [4564:9744:1019/101547.367:ERROR:mojo\public\cpp\bindings\lib\interface_endpoint_client.cc:748] Message 0 rejected by interface blink.mojom.WidgetHost
+    [pid=4564][err] [4564:6784:1019/101553.945:ERROR:google_apis\gcm\engine\registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
+    [pid=4564][err] [4564:6784:1019/101617.572:ERROR:google_apis\gcm\engine\registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\screen-reader\select.sr-Select-is-announ-24c75-ew-value-when-one-is-chosen-nvda\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\screen-reader\select.sr-Select-is-announ-24c75-ew-value-when-one-is-chosen-nvda\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\screen-reader\select.sr-Select-is-announ-24c75-ew-value-when-one-is-chosen-nvda\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\screen-reader\select.sr-Select-is-announ-24c75-ew-value-when-one-is-chosen-nvda\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [nvda] › registry\ouro\e2e\screen-reader\select.sr.spec.ts:8:1 › Select is announced with its label, role and state, and its new value when one is chosen 
+  1 skipped
+  4 passed (1.1m)
+ ELIFECYCLE  Command failed with exit code 1.
