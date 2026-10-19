@@ -90,17 +90,24 @@ const clean = (phrase: string): string =>
     .replaceAll("@VOModifier()", "Control-Option")
     .replace(/\s\s+/g, " ");
 
+/** What the VoiceOver watcher has VoiceOver say before an action: its last phrase, until the action makes it say something. */
+export const MARK = "Speech check";
+
 /**
  * What VoiceOver said after an action, from the watcher's records of its last phrase: every
- * phrase it moved to after the first record, the one it was on as the action began, which never
- * counts. VoiceOver keeps only its last phrase, so a short phrase ("Edit dialog pop up button")
- * between two hints lasts only until the next hint: the watcher reads it every 50 ms, where
- * Guidepup's capture waits as long as the last phrase takes to say before reading again.
+ * phrase it moved to after MARK, which the watcher has it say just before the action. Nothing
+ * before MARK counts, so neither does what VoiceOver was saying before the action; and a phrase it
+ * says again (the control it was already on, as focus arrives) is still a change from MARK.
+ * VoiceOver keeps only its last phrase, so a short phrase ("Edit dialog pop up button") between
+ * two hints lasts only until the next hint: the watcher reads it every 50 ms, where Guidepup's
+ * capture waits as long as the last phrase takes to say before reading again.
  */
 export function spokenAfter(records: readonly string[]): string[] {
+  const start = records.findIndex((record) => clean(record) === MARK);
+  if (start === -1) return [];
   const phrases: string[] = [];
-  let previous = clean(records[0] ?? "");
-  for (const record of records.slice(1)) {
+  let previous = MARK;
+  for (const record of records.slice(start + 1)) {
     const phrase = clean(record);
     if (!phrase || phrase === previous) continue;
     phrases.push(phrase);

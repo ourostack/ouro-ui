@@ -2,7 +2,7 @@ import { nvdaTest, voiceOverTest, type NVDAPlaywright, type VoiceOverPlaywright 
 import { expect, type Page, type PlaywrightTestArgs, type PlaywrightTestOptions, type PlaywrightWorkerArgs, type PlaywrightWorkerOptions, type TestType } from "@playwright/test";
 import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
-import { firstMatch, readRecords, RECORD_END, RECORD_START, saysValue as valueSaid, spokenAfter } from "./phrases";
+import { firstMatch, MARK, readRecords, RECORD_END, RECORD_START, saysValue as valueSaid, spokenAfter } from "./phrases";
 
 // The screen-reader lane's fixtures (playwright.screen-reader.config.ts): VoiceOver on macOS and
 // NVDA on Windows, through Guidepup. `page` opens the spec's story and waits for its component
@@ -113,13 +113,15 @@ interface VoiceOverWatch {
 
 /**
  * Watches VoiceOver's last phrase, the only speech it lets AppleScript read, every 50 ms for up to
- * `seconds`, from one osascript process (as Guidepup runs its own), and resolves once the phrase
- * it is on now is known. Guidepup's `capture` reads it again only after waiting as long as the
- * last phrase takes to say, so after a long hint it missed the short phrase that named the
+ * `seconds`, from one osascript process (as Guidepup runs its own). It first has VoiceOver say
+ * MARK, and resolves once MARK is its last phrase: what VoiceOver says after that is new, even the
+ * same words it said before. Guidepup's `capture` reads the last phrase again only after waiting
+ * as long as it takes to say, so after a long hint it missed the short phrase that named the
  * focused control and read the next hint instead.
  */
 async function watchVoiceOver(seconds: number): Promise<VoiceOverWatch> {
-  const script = `set endAt to (current date) + ${seconds}
+  const script = `tell application "VoiceOver" to output "${MARK}"
+set endAt to (current date) + ${seconds}
 set previousText to missing value
 repeat while (current date) < endAt
   set spokenText to ""
@@ -180,10 +182,12 @@ end repeat`;
     },
   };
   const ready = Date.now() + 10_000;
-  while (records.length === 0 && ended === null && Date.now() < ready) await watch.next(ready);
-  if (records.length === 0) {
+  const marked = () => records.some((record) => record.trim() === MARK);
+  while (!marked() && ended === null && Date.now() < ready) await watch.next(ready);
+  if (!marked()) {
     await watch.stop();
-    throw new Error(`[sr] infrastructure: VoiceOver's speech could not be read: ${ended ?? "no phrase within 10 s"}`);
+    const read = records.map((record) => `"${record.trim()}"`).join(" | ") || "nothing";
+    throw new Error(`[sr] infrastructure: VoiceOver's speech could not be read: ${ended ?? `"${MARK}" was not its last phrase within 10 s`}; read: ${read}`);
   }
   return watch;
 }

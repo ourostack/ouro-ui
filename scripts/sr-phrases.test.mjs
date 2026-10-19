@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
-import { CHECKBOX, CHECKED, firstMatch, inOneSentence, nameAndRole, readRecords, saysValue, spokenAfter, UNCHECKED, withoutHints } from "../registry/ouro/e2e/screen-reader/phrases.ts";
+import { CHECKBOX, CHECKED, firstMatch, inOneSentence, MARK, nameAndRole, readRecords, saysValue, spokenAfter, UNCHECKED, withoutHints } from "../registry/ouro/e2e/screen-reader/phrases.ts";
 
 // The screen-reader specs' matchers (registry/ouro/e2e/screen-reader/phrases.ts), against phrases
 // VoiceOver and NVDA said in the lane's runs. A matcher takes one phrase at a time, without
@@ -30,13 +30,18 @@ test("VoiceOver's speech is every phrase it moved to after the action began, so 
   // for its length (about 4 s at 7.5 words a second) and then saw only the button's hint.
   const guidepupSaw = ["You are currently on a text field, inside of a web dialog. To enter text in this field, type. To exit this group, press Control-Option-Shift-Up Arrow.", "You are currently on a button. To display a list of options, press Control-Option-Space."];
   assert.equal(firstMatch(guidepupSaw, editTrigger), undefined);
-  // The watcher logs each change of VoiceOver's last phrase, the one it was on first.
-  const records = ["Edit recipe web dialog with 4 items Shakshuka", ...guidepupSaw.slice(0, 1), "Edit dialog pop up button", guidepupSaw[1]];
-  assert.deepEqual(spokenAfter(records), records.slice(1));
+  // The watcher logs each change of VoiceOver's last phrase, after making VoiceOver say MARK.
+  const records = ["Edit recipe web dialog with 4 items Shakshuka", MARK, ...guidepupSaw.slice(0, 1), "Edit dialog pop up button", guidepupSaw[1]];
+  assert.deepEqual(spokenAfter(records), records.slice(2));
   assert.equal(firstMatch(spokenAfter(records), editTrigger), "Edit dialog pop up button");
-  // What VoiceOver was already saying when the action began is not what the action made it say.
+  // This branch's first lane run: VoiceOver was already on the Edit button and said it again as
+  // focus arrived, the same text, so its last phrase never changed and only the hint was new.
+  // After MARK, saying it again is a change.
+  assert.deepEqual(spokenAfter(["Edit dialog pop up button", "You are currently on a button. To display a list of options, press Control-Option-Space."]), []);
+  assert.equal(firstMatch(spokenAfter(["Edit dialog pop up button", MARK, "Edit dialog pop up button", "You are currently on a button."]), editTrigger), "Edit dialog pop up button");
+  // Nothing before MARK counts, nor anything at all until MARK was read.
   assert.deepEqual(spokenAfter(["Edit dialog pop up button"]), []);
-  assert.deepEqual(spokenAfter(["a", "  missing value ", "b @VOModifier()-Space", "b Control-Option-Space", "a"]), ["b Control-Option-Space", "a"]);
+  assert.deepEqual(spokenAfter([MARK, "a", "  missing value ", "b @VOModifier()-Space", "b Control-Option-Space", "a"]), ["a", "b Control-Option-Space", "a"]);
 });
 
 test("the watcher's records are read whole, across chunks and lines, and an unfinished one waits", () => {
