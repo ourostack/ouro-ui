@@ -8055,6 +8055,8 @@
         "ourostack/ouro-ui/checkbox-tests",
         "ourostack/ouro-ui/checklist",
         "ourostack/ouro-ui/checklist-tests",
+        "ourostack/ouro-ui/combobox",
+        "ourostack/ouro-ui/combobox-tests",
         "ourostack/ouro-ui/dialog",
         "ourostack/ouro-ui/dialog-tests",
         "ourostack/ouro-ui/field-tests",
@@ -8077,7 +8079,8 @@
         "ourostack/ouro-ui/radio-group-tests",
         "ourostack/ouro-ui/sheet-tests",
         "ourostack/ouro-ui/switch",
-        "ourostack/ouro-ui/switch-tests"
+        "ourostack/ouro-ui/switch-tests",
+        "ourostack/ouro-ui/text-field-tests"
       ],
       "files": [
         {
@@ -8094,6 +8097,11 @@
           "path": "registry/ouro/components/ouro/inspector/inspector.test.tsx",
           "type": "registry:component",
           "target": "@components/ouro/inspector/inspector.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/inspector/inspector.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/inspector/inspector.touch.test.tsx"
         },
         {
           "path": "registry/ouro/e2e/ouro/inspector.spec.ts",

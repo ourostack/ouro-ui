@@ -7,6 +7,7 @@ import { commands, page, userEvent } from "vitest/browser";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Checkbox } from "@/registry/ouro/components/ouro/checkbox/checkbox";
+import { Combobox } from "@/registry/ouro/components/ouro/combobox/combobox";
 import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
 import { Inspector, type InspectorProps } from "@/registry/ouro/components/ouro/inspector/inspector";
 import { RadioGroup } from "@/registry/ouro/components/ouro/radio-group/radio-group";
@@ -111,10 +112,19 @@ describe("Inspector", () => {
     outlines().forEach((outline, index) => expect(onTarget(outline, components[index]!), `outline ${index}`).toBe(true));
   });
 
-  it("does not outline itself, an overlay's wrappers or a hidden component, and names a part's root by its item", async () => {
+  it("does not outline itself, an overlay's wrappers, a hidden component or a part apart from its component", async () => {
     const { host } = await render(
       <Page>
-        <RadioGroup legend="Size" defaultValue="s" options={[{ value: "s", label: "Small" }]} />
+        <RadioGroup
+          legend="Size"
+          defaultValue="s"
+          options={[
+            { value: "s", label: "Small" },
+            { value: "m", label: "Medium" },
+            { value: "l", label: "Large" },
+            { value: "xl", label: "Extra large" },
+          ]}
+        />
         <div hidden>
           <Button>Hidden</Button>
         </div>
@@ -124,9 +134,11 @@ describe("Inspector", () => {
         </span>
       </Page>,
     );
-    await drawn(5);
-    // A Radio's root is the radio-group item's.
-    expect(tags().map((tag) => tag.textContent)).toEqual(["button", "badge", "checkbox", "radio-group", "radio-group"]);
+    await drawn(4);
+    // A Radio's root is a part of the radio-group around it, so the group counts once, not once per option.
+    expect(host.querySelectorAll('[data-ouro="radio"]')).toHaveLength(4);
+    expect(tags().map((tag) => tag.textContent)).toEqual(["button", "badge", "checkbox", "radio-group"]);
+    await expect.element(page.getByRole("button", { name: "4 components", exact: true })).toBeVisible();
     // X-ray's own bar holds Buttons, which it leaves out.
     expect(layer()!.querySelectorAll('[data-ouro="button"]').length).toBeGreaterThan(0);
     expect(host.querySelector("[hidden] [data-ouro]")).not.toBeNull();
@@ -162,6 +174,102 @@ describe("Inspector", () => {
     (components[1] as HTMLElement).style.padding = "20px";
     await expect.poll(() => outlines().every((outline, index) => onTarget(outline, components[index]!))).toBe(true);
   });
+
+  it("hides the outline and tag of a component scrolled out of view inside a box, and clips one partly out", async () => {
+    const { host } = await render(
+      <Page>
+        <div data-testid="scroller" style={{ height: 80, overflow: "auto" }}>
+          <div style={{ height: 120 }} />
+          <Button>Deep</Button>
+          <div style={{ height: 120 }} />
+        </div>
+      </Page>,
+    );
+    const components = pageRoots(host);
+    await drawn(components.length);
+    const deep = outlines()[3]!;
+    const tag = tags()[3]!;
+    expect(tag.textContent).toBe("button");
+    // Below the box's bottom edge: nothing of it shows, so neither does its outline, and its tag takes no tap.
+    expect(getComputedStyle(deep).visibility).toBe("hidden");
+    const at = tag.getBoundingClientRect();
+    expect(document.elementFromPoint(at.left + at.width / 2, at.top + at.height / 2)).not.toBe(tag);
+    // Half in view: the outline shows only the part in the box.
+    const scroller = host.querySelector<HTMLElement>('[data-testid="scroller"]')!;
+    scroller.scrollTop = 60;
+    await expect.poll(() => getComputedStyle(deep).visibility).toBe("visible");
+    const frame = deep.querySelector<HTMLElement>("[data-ouro-inspector-frame]")!;
+    const box = scroller.getBoundingClientRect();
+    const visible = (components[3] as HTMLElement).getBoundingClientRect();
+    await expect.poll(() => Number.parseFloat(getComputedStyle(frame).clipPath.match(/inset\(([\d.]+)px ([\d.]+)px ([\d.]+)px/)?.[3] ?? "0")).toBeCloseTo(visible.bottom - box.bottom, 0);
+    // Its tag sits inside the part that shows.
+    expect(tag.getBoundingClientRect().top).toBeGreaterThanOrEqual(box.top - 1);
+    // All in view: no clip.
+    scroller.scrollTop = 90;
+    await expect.poll(() => getComputedStyle(frame).clipPath).toBe("none");
+    expect(onTarget(deep, components[3]!)).toBe(true);
+  });
+
+  it("clips by each box a component's overflow belongs to, from the start edge on either axis", async () => {
+    const { host } = await render(
+      <Page>
+        <div style={{ position: "relative" }}>
+          <div style={{ height: 40, overflow: "hidden" }}>
+            <div style={{ height: 60 }} />
+            <div style={{ position: "absolute", top: 50 }}>
+              <Button>Pinned</Button>
+            </div>
+            <div style={{ position: "fixed", right: 8, bottom: 80 }}>
+              <Badge>Fixed</Badge>
+            </div>
+          </div>
+          <div data-testid="across" style={{ overflowX: "clip", paddingTop: 24 }}>
+            <div style={{ marginInlineStart: -20 }}>
+              <Button>Across</Button>
+            </div>
+          </div>
+        </div>
+      </Page>,
+    );
+    const components = pageRoots(host);
+    await drawn(components.length);
+    // Out of the hidden box's overflow by their position, the pinned button and the fixed badge show in full.
+    for (const index of [3, 4]) {
+      expect(getComputedStyle(outlines()[index]!).visibility).toBe("visible");
+      expect(getComputedStyle(outlines()[index]!.querySelector("[data-ouro-inspector-frame]")!).clipPath).toBe("none");
+      expect(onTarget(outlines()[index]!, components[index]!)).toBe(true);
+    }
+    // Cut at its start edge, the button's outline starts at the box, and so does its tag.
+    const across = outlines()[5]!;
+    const box = host.querySelector('[data-testid="across"]')!.getBoundingClientRect();
+    expect(getComputedStyle(across.querySelector("[data-ouro-inspector-frame]")!).clipPath).toBe("inset(0px 0px 0px 20px)");
+    expect(tags()[5]!.getBoundingClientRect().left).toBeCloseTo(box.left, 0);
+  });
+
+  it("outlines only the components of an open modal, whose controls stay within reach", async () => {
+    await page.viewport(390, 844);
+    const onCopy = vi.fn();
+    await render(
+      <Page>
+        <Dialog title="Share" trigger={<Button>Share</Button>}>
+          <Button onClick={onCopy}>Copy link</Button>
+        </Dialog>
+      </Page>,
+    );
+    await drawn(4);
+    await userEvent.click(page.getByRole("button", { name: "Share" }));
+    const copy = page.getByRole("button", { name: "Copy link" }).element() as HTMLElement;
+    await expect.poll(() => document.getAnimations().filter((animation) => animation.playState === "running").length).toBe(0);
+    // The page behind the modal is out of reach, so X-ray leaves it: only the dialog (a sheet at this width) and its button.
+    await expect.poll(() => tags().map((tag) => tag.textContent)).toEqual(["sheet", "button"]);
+    expect(onTarget(outlines()[1]!, copy)).toBe(true);
+    // Nothing of X-ray's lies over the dialog's controls, its bar included.
+    const box = copy.getBoundingClientRect();
+    expect(copy.contains(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2))).toBe(true);
+    expect(getComputedStyle(layer()!.querySelector('[role="group"]')!).visibility).toBe("hidden");
+    await userEvent.click(page.getByRole("button", { name: "Copy link" }));
+    expect(onCopy).toHaveBeenCalledOnce();
+  }, 15_000);
 
   it("outlines a component added while it is open, and drops one that goes", async () => {
     const { rerender } = await render(<Page />);
@@ -269,6 +377,39 @@ describe("Inspector", () => {
     await expect.element(page.getByRole("dialog", { name: "Share" })).not.toBeInTheDocument();
     expect(onOpenChange).not.toHaveBeenCalled();
     expect(layer()).not.toBeNull();
+  }, 15_000);
+
+  it("leaves an Escape the page has handled", async () => {
+    await render(
+      <Page>
+        <input aria-label="Note" onKeyDown={(event) => event.key === "Escape" && event.preventDefault()} />
+      </Page>,
+    );
+    await drawn(3);
+    await userEvent.click(page.getByRole("textbox", { name: "Note" }));
+    await userEvent.keyboard("{Escape}");
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(layer()).not.toBeNull();
+  });
+
+  it("leaves Escape to an open combobox list, and closes on the next one", async () => {
+    await render(
+      <Page>
+        <Combobox label="Herb" items={["Basil", "Dill", "Thyme"]} />
+      </Page>,
+    );
+    await drawn(4);
+    const input = page.getByRole("combobox", { name: "Herb" });
+    await userEvent.click(input);
+    await userEvent.keyboard("{ArrowDown}");
+    await expect.element(page.getByRole("listbox")).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    await expect.element(page.getByRole("listbox")).not.toBeInTheDocument();
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(layer()).not.toBeNull();
+    await userEvent.keyboard("{Escape}");
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    await expect.poll(layer).toBeNull();
   }, 15_000);
 
   it("fades in when it opens, and appears at once with reduced motion", async () => {

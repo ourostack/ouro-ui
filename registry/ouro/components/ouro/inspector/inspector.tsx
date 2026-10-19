@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type JSX } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
-import { itemFor, layerClass, linkClass, listClass, outlineClass, pillClass, tagClass } from "@/registry/ouro/components/ouro/inspector/inspector-styles";
+import { frameClass, isPartOf, itemFor, layerClass, linkClass, listClass, outlineClass, pillClass, tagClass } from "@/registry/ouro/components/ouro/inspector/inspector-styles";
 import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
@@ -47,19 +47,89 @@ const keyOf = (element: Element) => {
   return key;
 };
 
-/** Every visible Ouro component root in the page, in document order, but X-ray's own. */
-function findComponents(own: Element): Found[] {
+/** Whatever a modal dialog shuts off from the page while it is open: Base UI hides it from assistive technology, or makes it inert. */
+const shutOff = '[aria-hidden="true"], [inert]';
+
+/** Whether a dialog is open in front of the page (X-ray's own list aside), so what it shuts off is out of reach. */
+const dialogOpen = () =>
+  [...document.querySelectorAll('[role="dialog"], [role="alertdialog"]')].some((dialog) => !dialog.closest(shutOff) && !dialog.querySelector("[data-ouro-inspector-list]"));
+
+/**
+ * Every visible Ouro component root in the page, in document order, but X-ray's own, one behind an
+ * open dialog, and a part's root inside its own component (a Radio in its RadioGroup counts once).
+ */
+function findComponents(own: Element, modal: boolean): Found[] {
   const found: Found[] = [];
   for (const element of document.querySelectorAll("[data-ouro]")) {
     if (own.contains(element) || element.closest('[data-ouro="sheet"]')?.querySelector("[data-ouro-inspector-list]")) continue;
-    const item = itemFor(element.getAttribute("data-ouro")!);
-    if (item === null || !element.checkVisibility({ visibilityProperty: true })) continue;
+    const name = element.getAttribute("data-ouro")!;
+    const item = itemFor(name);
+    if (item === null || isPartOf(name, element.parentElement?.closest("[data-ouro]")) || (modal && element.closest(shutOff))) continue;
+    if (!element.checkVisibility({ visibilityProperty: true })) continue;
     const box = element.getBoundingClientRect();
     // A visually hidden root (`sr-only`, one pixel square) has nothing to outline; a one-pixel line (a Separator) has.
     if (box.width <= 1 && box.height <= 1) continue;
     found.push({ key: keyOf(element), item, element });
   }
   return found;
+}
+
+/** A box's edges on the screen. */
+interface Edges {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+/** What X-ray reads once an update from an ancestor of a component: its position, and the edges it clips its overflow to on each axis. */
+interface Ancestor {
+  position: string;
+  x: [number, number] | null;
+  y: [number, number] | null;
+}
+
+const readAncestor = (element: Element, cache: Map<Element, Ancestor>): Ancestor => {
+  let ancestor = cache.get(element);
+  if (!ancestor) {
+    const style = getComputedStyle(element);
+    const box = element.getBoundingClientRect();
+    // Overflow clips to the padding box, inside the borders and any scrollbar.
+    const left = box.left + element.clientLeft;
+    const top = box.top + element.clientTop;
+    ancestor = {
+      position: style.position,
+      x: style.overflowX === "visible" ? null : [left, left + element.clientWidth],
+      y: style.overflowY === "visible" ? null : [top, top + element.clientHeight],
+    };
+    cache.set(element, ancestor);
+  }
+  return ancestor;
+};
+
+/**
+ * The part of a component's box that its ancestors let show: the box cut to every ancestor up its
+ * containing blocks that clips its overflow (a scrolling list, a card that hides its overflow).
+ * A positioned box escapes the overflow of the ancestors between it and its containing block, and a
+ * fixed one all of them.
+ */
+function visiblePart(element: Element, box: DOMRect, cache: Map<Element, Ancestor>): Edges {
+  const part = { top: box.top, right: box.right, bottom: box.bottom, left: box.left };
+  let position = readAncestor(element, cache).position;
+  for (let parent = element.parentElement; parent && parent !== document.body && position !== "fixed"; parent = parent.parentElement) {
+    const ancestor = readAncestor(parent, cache);
+    if (position === "absolute" && ancestor.position === "static") continue;
+    position = ancestor.position;
+    if (ancestor.x) {
+      part.left = Math.max(part.left, ancestor.x[0]);
+      part.right = Math.min(part.right, ancestor.x[1]);
+    }
+    if (ancestor.y) {
+      part.top = Math.max(part.top, ancestor.y[0]);
+      part.bottom = Math.min(part.bottom, ancestor.y[1]);
+    }
+  }
+  return part;
 }
 
 const sameComponents = (a: Found[], b: Found[]) => a.length === b.length && a.every((entry, index) => entry.key === b[index]!.key && entry.item === b[index]!.item);
@@ -83,7 +153,10 @@ const ouroDocs = (item: string) => `https://ourostack.github.io/ouro-ui/docs/${i
  * document order with its "Docs" and, from `sourceHref`, "Source" links. Outlines follow
  * their components through scrolling, resizing, overlays and changes to the page, measured once a
  * frame at most; they never take a pointer, so the page stays usable underneath, and only the tags
- * do. Escape or Close turns it off. It renders nothing on the server.
+ * do. X-ray shows only what a person can see and reach: an outline is cut to the part a scrolling
+ * box lets show, the page behind an open dialog is left alone, and a part (a Radio) counts with
+ * its component (its RadioGroup). Escape or Close turns it off, once Escape has closed any other
+ * overlay. It renders nothing on the server.
  *
  * Use your browser's developer tools instead when you need more than which component is where;
  * the `data-ouro`, `data-ouro-control` and `data-ouro-part` attributes X-ray reads are there too.
@@ -137,18 +210,32 @@ function InspectorLayer({ onOpenChange, docsHref, sourceHref, label }: Pick<Insp
   // Focus goes back where it was when X-ray closes from its own bar or Escape.
   const [returnFocus] = useState(() => document.activeElement);
 
-  /** Puts each outline over its component: every box read first, then every outline written, so the page lays out once. */
+  /**
+   * Puts each outline over its component, cut to the part of it that shows: every box read first,
+   * then every outline written, so the page lays out once. An outline with nothing showing hides,
+   * and so does its tag.
+   */
   const place = (components: Found[]) => {
+    const ancestors = new Map<Element, Ancestor>();
     const boxes = components.map((component) => component.element.getBoundingClientRect());
+    const parts = components.map((component, index) => visiblePart(component.element, boxes[index]!, ancestors));
     components.forEach((component, index) => {
       const outline = outlines.get(component.key);
       if (!outline) return;
       const box = boxes[index]!;
+      const part = parts[index]!;
       outline.style.transform = `translate(${box.left}px, ${box.top}px)`;
       outline.style.width = `${box.width}px`;
       outline.style.height = `${box.height}px`;
-      // At the top of the screen the tag goes inside the outline, where it can be seen.
-      outline.firstElementChild!.toggleAttribute("data-inside", box.top < 16);
+      outline.toggleAttribute("data-clipped", part.right <= part.left || part.bottom <= part.top);
+      const cut = [part.top - box.top, box.right - part.right, box.bottom - part.bottom, part.left - box.left];
+      (outline.firstElementChild as HTMLElement).style.clipPath = cut.some(Boolean) ? `inset(${cut.join("px ")}px)` : "";
+      // The tag sits on the part that shows, inside it where there is no room above (the top of the screen, or a cut top edge).
+      const tag = outline.lastElementChild as HTMLElement;
+      tag.toggleAttribute("data-inside", part.top < 16 || cut[0]! > 0);
+      tag.style.setProperty("--ouro-inspector-top", `${cut[0]}px`);
+      tag.style.setProperty("--ouro-inspector-left", `${cut[3]}px`);
+      tag.style.setProperty("--ouro-inspector-right", `${-cut[1]!}px`);
     });
   };
 
@@ -159,7 +246,10 @@ function InspectorLayer({ onOpenChange, docsHref, sourceHref, label }: Pick<Insp
     const resizes = new ResizeObserver(() => schedule());
     const update = () => {
       frame = 0;
-      const next = findComponents(own);
+      const modal = dialogOpen();
+      // While a dialog shuts off the page, the bar (shut off with it) steps aside so it never covers the dialog.
+      own.toggleAttribute("data-modal", modal);
+      const next = findComponents(own, modal);
       for (const component of next) {
         if (observed.has(component.element)) continue;
         observed.add(component.element);
@@ -219,15 +309,15 @@ function InspectorLayer({ onOpenChange, docsHref, sourceHref, label }: Pick<Insp
     closeRef.current = close;
   });
 
-  // Escape turns X-ray off, unless it closes something else first: X-ray's own list, or another overlay.
+  // Escape turns X-ray off, unless it closes something else first: X-ray's own list, or another
+  // overlay. Overlays close on Escape as it bubbles to the document, and stop it or mark it handled,
+  // so X-ray listens after them, on the window, and leaves an Escape anything has handled.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || event.defaultPrevented || document.querySelector("[data-ouro-inspector-list]")) return;
-      if (event.target instanceof Element && event.target.closest('[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]')) return;
-      closeRef.current();
+      if (event.key === "Escape" && !event.defaultPrevented) closeRef.current();
     };
-    document.addEventListener("keydown", onKeyDown, true);
-    return () => document.removeEventListener("keydown", onKeyDown, true);
+    addEventListener("keydown", onKeyDown);
+    return () => removeEventListener("keydown", onKeyDown);
   }, []);
 
   const count = `${found.length} ${found.length === 1 ? "component" : "components"}`;
@@ -244,6 +334,7 @@ function InspectorLayer({ onOpenChange, docsHref, sourceHref, label }: Pick<Insp
             data-ouro-inspector-outline=""
             className={outlineClass}
           >
+            <div data-ouro-inspector-frame="" className={frameClass} />
             <a data-ouro-control="inspector" data-ouro-part="tag" href={docsHref(component.item)} target="_blank" rel="noreferrer" tabIndex={-1} className={tagClass}>
               {component.item}
             </a>
