@@ -7,11 +7,17 @@ import { BELL_TOASTS, LOG, STAGE_CONTROLS, STAGE_COPY } from "../src/voyage/stag
 // element on the stage is one of those controls, touch works on phones, nothing moves under reduced
 // motion, the fish rest off screen, and each control answers within 100 ms on a 4× slower CPU.
 
+/**
+ * WebKit fetches a preloaded font again for its @font-face instead of using the preload, then warns
+ * a few seconds after load that the preload went unused. Chromium uses it; the warning is WebKit's.
+ */
+const WEBKIT_UNUSED_FONT_PRELOAD = /^The resource \S+\/fonts\/[\w.-]+\.woff2 was preloaded using link preload but not used within a few seconds/;
+
 function diagnostics(page: Page): string[] {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", (message) => {
-    if (message.type() === "error" || message.type() === "warning") errors.push(message.text());
+    if ((message.type() === "error" || message.type() === "warning") && !WEBKIT_UNUSED_FONT_PRELOAD.test(message.text())) errors.push(message.text());
   });
   return errors;
 }
