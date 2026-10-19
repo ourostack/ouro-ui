@@ -1,4 +1,5 @@
 import { useLayoutEffect, useState, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -275,7 +276,8 @@ describe("Inspector", () => {
     await render(<Page open={false} />);
     for (const reduced of [false, true]) {
       await commands.emulateMedia({ reducedMotion: reduced ? "reduce" : "no-preference" });
-      await act(() => setOpen(true));
+      // Opened synchronously, so the check runs before the frame in which a layer with nothing to fade drops its entering state.
+      flushSync(() => setOpen(true));
       const opened = layer()!;
       if (reduced) {
         await expectNoMotion(opened, { stem: "inspector", state: "data-starting-style", reduced });
