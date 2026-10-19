@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
-import { CHECKBOX, CHECKED, firstMatch, inOneSentence, MARK, nameAndRole, readRecords, readsBrowser, saysValue, spokenAfter, UNCHECKED, withoutHints } from "../registry/ouro/e2e/screen-reader/phrases.ts";
+import { CHECKBOX, CHECKED, firstMatch, inOneSentence, MARK, nameAndRole, readRecords, readsBrowser, saysValue, speechVerdict, spokenAfter, UNCHECKED, WATCH_LIMIT_SECONDS, withoutHints } from "../registry/ouro/e2e/screen-reader/phrases.ts";
 
 // The screen-reader specs' matchers (registry/ouro/e2e/screen-reader/phrases.ts), against phrases
 // VoiceOver and NVDA said in the lane's runs. A matcher takes one phrase at a time, without
@@ -124,4 +124,36 @@ test("NVDA is reading the page only when the window it reports is the page's, in
   assert.equal(readsBrowser("forms-dialog--playground ⋅ Storybook - Google Chrome for Testing", "forms-dialog--playground ⋅ Storybook"), true);
   assert.equal(readsBrowser("Google Chrome for Testing", ""), true);
   assert.equal(readsBrowser("overlays-dialog--playground - Storybook", "overlays-dialog--playground - Storybook"), true);
+});
+
+test("a VoiceOver check decides found, wait or fail: a missing phrase is an accessibility failure, a broken watcher infrastructure", () => {
+  const what = '"Edit", button';
+  const hint = "You are currently on a button. To display a list of options, press Control-Option-Space.";
+  const at = (now, ended = null) => speechVerdict([hint], editTrigger, what, { now, deadline: 1_000, ended });
+  assert.deepEqual(speechVerdict([hint, "Edit dialog pop up button"], editTrigger, what, { now: 5_000, deadline: 1_000, ended: { code: 1, detail: "x" } }), { found: "Edit dialog pop up button", heard: `"${hint}" | "Edit dialog pop up button"` });
+  assert.equal(at(500), "wait");
+  const missing = `[sr] no utterance matched ${what}; heard: "${hint}"`;
+  assert.deepEqual(at(1_001), { fail: missing });
+  // The watcher reached its own time limit (osascript ended 0): that is no more speech, not a broken
+  // runner, so the check waits out its deadline and a missing phrase stays an accessibility failure.
+  assert.equal(at(500, { code: 0, detail: "osascript ended (exit 0)" }), "wait");
+  assert.deepEqual(at(1_001, { code: 0, detail: "osascript ended (exit 0)" }), { fail: missing });
+  // The deadline is checked first: past it, even a watcher that failed decides nothing.
+  assert.deepEqual(at(1_001, { code: 1, detail: "osascript ended (exit 1): execution error (-1743)" }), { fail: missing });
+  // Before it, a watcher that failed (or never ran) is the runner's.
+  assert.deepEqual(at(500, { code: 1, detail: "osascript ended (exit 1): execution error (-1743)" }), { fail: `[sr] infrastructure: VoiceOver's speech stopped being read (osascript ended (exit 1): execution error (-1743)); heard: "${hint}"` });
+  assert.deepEqual(at(500, { code: null, detail: "osascript did not run: ENOENT" }).fail.startsWith("[sr] infrastructure:"), true);
+  assert.deepEqual(speechVerdict([], editTrigger, what, { now: 1_001, deadline: 1_000, ended: null }), { fail: `[sr] no utterance matched ${what}; heard: nothing` });
+});
+
+test("the VoiceOver watcher outlives every check: its own limit is longer than a whole test", async () => {
+  const { default: config } = await import("../playwright.screen-reader.config.ts");
+  assert.ok(WATCH_LIMIT_SECONDS * 1000 > config.timeout, `${WATCH_LIMIT_SECONDS} s against a test timeout of ${config.timeout} ms`);
+  const helpers = readFileSync(join(import.meta.dirname, "../registry/ouro/e2e/screen-reader/screen-reader.ts"), "utf8");
+  // The limit is that constant, not the check's timeout, and the deadline is checked in speechVerdict.
+  assert.match(helpers, /\(current date\) \+ \$\{WATCH_LIMIT_SECONDS\}/);
+  assert.doesNotMatch(helpers, /timeout \/ 1000/);
+  assert.match(helpers, /speechVerdict\(/);
+  // An orphaned watcher must not start VoiceOver again by asking it for its last phrase.
+  assert.match(helpers, /if application "VoiceOver" is running then/);
 });

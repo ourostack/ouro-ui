@@ -133,3 +133,32 @@ export function readsBrowser(windowTitle: string, pageTitle: string): boolean {
   const title = titleWords(pageTitle);
   return (title.length > 0 && window.startsWith(title)) || window.includes(titleWords(CHROMIUM));
 }
+
+/**
+ * How long the VoiceOver watcher's osascript may run (screen-reader.ts): longer than a whole test,
+ * so it outlives every check's deadline and only `stop()` ends it, but finite, so a watcher left
+ * behind by a worker that died ends too.
+ */
+export const WATCH_LIMIT_SECONDS = 600;
+
+/** How the VoiceOver watcher's osascript ended: its exit code (null when it never ran), and why. */
+export interface WatchEnd {
+  code: number | null;
+  detail: string;
+}
+
+/**
+ * What a VoiceOver check (screen-reader.ts, `heard`) does next with the phrases read so far: a
+ * phrase `matches` accepts is found, even late; past `deadline` a missing phrase fails as an
+ * accessibility finding, whatever became of the watcher; before it, a watcher that failed (exited
+ * non-zero, or never ran) fails as infrastructure, and otherwise the check waits for more speech.
+ * A watcher that ended cleanly has only stopped reading, so the check waits out its deadline.
+ */
+export function speechVerdict(phrases: readonly string[], matches: (phrase: string) => boolean, what: string, { now, deadline, ended }: { now: number; deadline: number; ended: WatchEnd | null }): { found: string; heard: string } | { fail: string } | "wait" {
+  const heard = phrases.map((phrase) => `"${phrase}"`).join(" | ") || "nothing";
+  const found = firstMatch(phrases, matches);
+  if (found !== undefined) return { found, heard };
+  if (now > deadline) return { fail: `[sr] no utterance matched ${what}; heard: ${heard}` };
+  if (ended !== null && ended.code !== 0) return { fail: `[sr] infrastructure: VoiceOver's speech stopped being read (${ended.detail}); heard: ${heard}` };
+  return "wait";
+}

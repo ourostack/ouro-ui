@@ -2,7 +2,7 @@ import { voiceOverTest, type NVDAPlaywright, type VoiceOverPlaywright } from "@g
 import { test as base, expect, type Page, type PlaywrightTestArgs, type PlaywrightTestOptions, type PlaywrightWorkerArgs, type PlaywrightWorkerOptions, type TestType } from "@playwright/test";
 import { spawn } from "node:child_process";
 import { nvdaFor, startNVDA, stopNVDA } from "./nvda";
-import { firstMatch, MARK, readRecords, RECORD_END, RECORD_START, saysValue as valueSaid, spokenAfter } from "./phrases";
+import { firstMatch, MARK, readRecords, RECORD_END, RECORD_START, saysValue as valueSaid, speechVerdict, spokenAfter, WATCH_LIMIT_SECONDS, type WatchEnd } from "./phrases";
 
 // The screen-reader lane's fixtures (playwright.screen-reader.config.ts): VoiceOver on macOS and
 // NVDA on Windows, through Guidepup. VoiceOver starts for each test; NVDA once for each worker
@@ -112,28 +112,31 @@ interface VoiceOverWatch {
   phrases(): string[];
   /** Resolves when VoiceOver says something new, the watch ends, or `deadline` passes. */
   next(deadline: number): Promise<void>;
-  /** Why the watch ended early, or null while it runs. */
-  failure(): string | null;
+  /** How the watcher ended, or null while it runs. */
+  ended(): WatchEnd | null;
   stop(): Promise<void>;
 }
 
 /**
- * Watches VoiceOver's last phrase, the only speech it lets AppleScript read, every 20 ms for up to
- * `seconds`, from one osascript process (as Guidepup runs its own). It first has VoiceOver say
+ * Watches VoiceOver's last phrase, the only speech it lets AppleScript read, every 20 ms from one
+ * osascript process (as Guidepup runs its own), until `stop()` ends it: its own limit,
+ * WATCH_LIMIT_SECONDS, is longer than a whole test, so no check outlives it. It first has VoiceOver say
  * MARK, and resolves once MARK is its last phrase: what VoiceOver says after that is new, even the
  * same words it said before. Guidepup's `capture` reads the last phrase again only after waiting
  * as long as it takes to say, so after a long hint it missed the short phrase that named the
  * focused control and read the next hint instead.
  */
-async function watchVoiceOver(seconds: number): Promise<VoiceOverWatch> {
+async function watchVoiceOver(): Promise<VoiceOverWatch> {
   const script = `tell application "VoiceOver" to output "${MARK}"
-set endAt to (current date) + ${seconds}
+set endAt to (current date) + ${WATCH_LIMIT_SECONDS}
 set previousText to missing value
 repeat while (current date) < endAt
   set spokenText to ""
-  try
-    tell application "VoiceOver" to set spokenText to content of last phrase
-  end try
+  if application "VoiceOver" is running then
+    try
+      tell application "VoiceOver" to set spokenText to content of last phrase
+    end try
+  end if
   if spokenText is missing value then set spokenText to ""
   considering case
     set changed to (previousText is missing value) or (spokenText is not previousText)
@@ -148,7 +151,7 @@ end repeat`;
   const records: string[] = [];
   let buffer = "";
   let errors = "";
-  let ended: string | null = null;
+  let ended: WatchEnd | null = null;
   let wake = () => {};
   child.stderr.setEncoding("utf8");
   child.stderr.on("data", (chunk: string) => {
@@ -160,13 +163,13 @@ end repeat`;
   });
   const exited = new Promise<void>((resolve) =>
     child.on("close", (code) => {
-      ended = `osascript ended (exit ${code})${errors.trim() ? `: ${errors.trim()}` : ""}`;
+      ended = { code, detail: `osascript ended (exit ${code})${errors.trim() ? `: ${errors.trim()}` : ""}` };
       wake();
       resolve();
     }),
   );
   child.on("error", (error) => {
-    ended = `osascript did not run: ${error.message}`;
+    ended = { code: null, detail: `osascript did not run: ${error.message}` };
     wake();
   });
   child.stdin.end(script);
@@ -180,8 +183,8 @@ end repeat`;
     });
   const watch: VoiceOverWatch = {
     phrases: () => spokenAfter(records),
-    next: (deadline) => (ended === null ? next(deadline) : Promise.resolve()),
-    failure: () => ended,
+    next,
+    ended: () => ended,
     stop: async () => {
       if (ended === null) child.kill();
       await exited;
@@ -193,7 +196,7 @@ end repeat`;
   if (!marked()) {
     await watch.stop();
     const read = records.map((record) => `"${record.trim()}"`).join(" | ") || "nothing";
-    throw new Error(`[sr] infrastructure: VoiceOver's speech could not be read: ${ended ?? `"${MARK}" was not its last phrase within 10 s`}; read: ${read}`);
+    throw new Error(`[sr] infrastructure: VoiceOver's speech could not be read: ${(ended as WatchEnd | null)?.detail ?? `"${MARK}" was not its last phrase within 10 s`}; read: ${read}`);
   }
   return watch;
 }
@@ -228,22 +231,18 @@ export async function heard(sr: ScreenReader, action: () => Promise<unknown>, ma
 
 /** `heard`, on VoiceOver: polls nothing itself, but wakes each time the watch reads a new phrase. */
 async function heardFromVoiceOver(action: () => Promise<unknown>, matches: (phrase: string) => boolean, what: string, timeout: number): Promise<string> {
-  const watch = await watchVoiceOver(Math.ceil(timeout / 1000) + 10);
+  const watch = await watchVoiceOver();
   try {
     await action();
     const deadline = Date.now() + timeout;
     for (;;) {
-      const phrases = watch.phrases();
-      const found = firstMatch(phrases, matches);
-      const heardSoFar = phrases.map((phrase) => `"${phrase}"`).join(" | ") || "nothing";
-      if (found !== undefined) {
-        console.log(`[sr] heard ${what}: "${found}" (VoiceOver said: ${heardSoFar})`);
-        return found;
+      const verdict = speechVerdict(watch.phrases(), matches, what, { now: Date.now(), deadline, ended: watch.ended() });
+      if (verdict === "wait") await watch.next(deadline);
+      else if ("fail" in verdict) throw new Error(verdict.fail);
+      else {
+        console.log(`[sr] heard ${what}: "${verdict.found}" (VoiceOver said: ${verdict.heard})`);
+        return verdict.found;
       }
-      const failure = watch.failure();
-      if (failure !== null) throw new Error(`[sr] infrastructure: VoiceOver's speech stopped being read (${failure}); heard: ${heardSoFar}`);
-      if (Date.now() > deadline) throw new Error(`[sr] no utterance matched ${what}; heard: ${heardSoFar}`);
-      await watch.next(deadline);
     }
   } finally {
     await watch.stop();
