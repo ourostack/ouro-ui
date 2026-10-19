@@ -86,6 +86,29 @@ export async function said(sr: ScreenReader, action: () => Promise<unknown>, wha
   return spokenPhrase;
 }
 
+/** VoiceOver on macOS; NVDA elsewhere (the fixture picks the same way). */
+const isVoiceOver = (reader: ScreenReader): reader is VoiceOverPlaywright => reader !== null && process.platform === "darwin";
+
+/**
+ * Asks the screen reader to describe the control with the keyboard focus, as a person checks a
+ * value (VoiceOver's VO-F4, NVDA's NVDA+Tab), until it says something `matches` accepts.
+ */
+export async function describesFocus(sr: ScreenReader, matches: (phrase: string) => boolean, what: string, attempts = 3): Promise<string> {
+  const phrases: string[] = [];
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    if (isVoiceOver(sr)) await sr.perform(sr.keyboardCommands.describeItemWithKeyboardFocus, { capture: true });
+    else await sr.perform(sr.keyboardCommands.reportCurrentFocus, { capture: true });
+    const phrase = (await sr.lastSpokenPhrase()).trim();
+    if (phrase && !phrases.includes(phrase)) phrases.push(phrase);
+    const found = phrases.find(matches);
+    if (found !== undefined) {
+      console.log(`[sr] heard ${what}: "${found}"`);
+      return found;
+    }
+  }
+  throw new Error(`[sr] no utterance matched ${what}; heard: ${phrases.map((phrase) => `"${phrase}"`).join(" | ") || "nothing"}`);
+}
+
 /** "unchecked" (VoiceOver) or "not checked" (NVDA). */
 export const saysUnchecked = (phrase: string): boolean => /\b(unchecked|not checked)\b/i.test(phrase);
 
