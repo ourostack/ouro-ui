@@ -55,14 +55,16 @@ export async function startReading(sr: ScreenReader, page: Page): Promise<void> 
 /**
  * Performs `action` (with Playwright) and waits up to `timeout` for the screen reader to say
  * something `matches` accepts, failing with every phrase it heard. Returns the matching phrase.
+ * The item text (what the screen reader shows for the item under its cursor) counts too: VoiceOver's
+ * spoken log can clip the start of a phrase it was still saying, which its item text keeps whole.
  */
 export async function heard(sr: ScreenReader, action: () => Promise<unknown>, matches: (phrase: string) => boolean, what: string, timeout = 15_000): Promise<string> {
   const phrases: string[] = [];
-  const add = (phrase: string) => {
-    const text = phrase.trim();
-    if (text && phrases.at(-1) !== text) phrases.push(text);
+  const add = (...texts: string[]) => {
+    for (const text of texts.map((phrase) => phrase.trim())) if (text && !phrases.includes(text)) phrases.push(text);
   };
-  add((await sr.capture(action, { capture: true })).spokenPhrase);
+  const first = await sr.capture(action, { capture: true });
+  add(first.spokenPhrase, first.itemText);
   const deadline = Date.now() + timeout;
   for (;;) {
     const found = phrases.find(matches) ?? (matches(phrases.join(" ")) ? phrases.join(" ") : undefined);
@@ -72,7 +74,8 @@ export async function heard(sr: ScreenReader, action: () => Promise<unknown>, ma
     }
     if (Date.now() > deadline) throw new Error(`[sr] no utterance matched ${what}; heard: ${phrases.map((phrase) => `"${phrase}"`).join(" | ") || "nothing"}`);
     // Speech that comes after the action (a live region) is read by capturing again.
-    add((await sr.capture(async () => undefined, { capture: true })).spokenPhrase);
+    const more = await sr.capture(async () => undefined, { capture: true });
+    add(more.spokenPhrase, more.itemText);
   }
 }
 
