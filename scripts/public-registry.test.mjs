@@ -114,6 +114,20 @@ test("a dependency not pointed at @ouro, other metadata, or a wrong schema fails
   assert.match(check(extra).join("\n"), /^lib-cn: extra is not in abc1234's registry\.json/m);
 });
 
+test("a long field that differs only at its end fails, in an item and in the index: fields compare in full", () => {
+  const long = (version) => `${"Every Ouro UI helper is in lib/ouro. OuroProvider is optional; it routes internal hrefs through your router's link. ".repeat(3)}Ouro UI v${version}.`;
+  assert.ok(long("9.9.9").length > 200);
+  const source = { ...registry, items: registry.items.map((item) => (item.name === "lib-cn" ? { ...item, docs: long("9.9.9") } : item)) };
+  const item = edit(built(source), "lib-cn.json", (json) => (json.docs = long("9.9.8")));
+  const itemProblems = check(item, sources, source);
+  assert.equal(itemProblems.length, 1, itemProblems.join("\n"));
+  assert.match(itemProblems[0], /^lib-cn: docs differs from character \d+: …".*Ouro UI v9\.9\.8\.", not …".*Ouro UI v9\.9\.9\."\.$/);
+  const index = edit(built(source), "registry.json", (json) => (json.items.find((entry) => entry.name === "lib-cn").docs = long("9.9.8")));
+  const indexProblems = check(index, sources, source);
+  assert.equal(indexProblems.length, 1, indexProblems.join("\n"));
+  assert.match(indexProblems[0], /^registry\.json: items\[2\]\.docs differs from character \d+: …".*Ouro UI v9\.9\.8\.", not …".*Ouro UI v9\.9\.9\."\.$/);
+});
+
 test("the namespace's index must be the commit's registry with its dependencies at @ouro", () => {
   const missing = built();
   missing.delete("registry.json");

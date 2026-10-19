@@ -66,7 +66,15 @@ function difference(expected, actual, path, ref) {
     const extra = Object.keys(actual).find((key) => !(key in expected));
     return extra === undefined ? undefined : `${at(extra)} is not in ${ref}'s registry.json`;
   }
-  return shown(expected) === shown(actual) ? undefined : `${path} is ${shown(actual)}, not ${shown(expected)}`;
+  if (JSON.stringify(expected) === JSON.stringify(actual)) return undefined;
+  if (typeof expected === "string" && typeof actual === "string" && (shown(expected) !== JSON.stringify(expected) || shown(actual) !== JSON.stringify(actual))) {
+    // Long strings: show where they part, not two identical truncated starts.
+    let at = 0;
+    while (at < expected.length && expected[at] === actual[at]) at += 1;
+    const around = (text) => `${at > 40 ? "…" : ""}${shown(text.slice(Math.max(0, at - 40)))}`;
+    return `${path} differs from character ${at}: ${around(actual)}, not ${around(expected)}`;
+  }
+  return `${path} is ${shown(actual)}, not ${shown(expected)}`;
 }
 
 const parse = (bytes) => {
