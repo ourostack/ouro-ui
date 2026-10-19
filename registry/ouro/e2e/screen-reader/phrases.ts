@@ -95,7 +95,7 @@ export const MARK = "Speech check";
 
 /**
  * What VoiceOver said after an action, from the watcher's records of its last phrase: every
- * phrase it moved to after MARK, which the watcher has it say just before the action. Nothing
+ * phrase it moved to after the last MARK, which the watcher has it say just before the action. Nothing
  * before MARK counts, so neither does what VoiceOver was saying before the action; and a phrase it
  * says again (the control it was already on, as focus arrives) is still a change from MARK.
  * VoiceOver keeps only its last phrase, so a short phrase ("Edit dialog pop up button") between
@@ -103,7 +103,7 @@ export const MARK = "Speech check";
  * capture waits as long as the last phrase takes to say before reading again.
  */
 export function spokenAfter(records: readonly string[]): string[] {
-  const start = records.findIndex((record) => clean(record) === MARK);
+  const start = records.findLastIndex((record) => clean(record) === MARK);
   if (start === -1) return [];
   const phrases: string[] = [];
   let previous = MARK;
@@ -161,4 +161,15 @@ export function speechVerdict(phrases: readonly string[], matches: (phrase: stri
   if (now > deadline) return { fail: `[sr] no utterance matched ${what}; heard: ${heard}` };
   if (ended !== null && ended.code !== 0) return { fail: `[sr] infrastructure: VoiceOver's speech stopped being read (${ended.detail}); heard: ${heard}` };
   return "wait";
+}
+
+/**
+ * Whether VoiceOver has been quiet for `quietMs` at `now`: the watcher read its last new phrase at
+ * the last of `stamps` (milliseconds), and nothing since. A check acts only once VoiceOver is quiet,
+ * as a person listens before pressing the next key: Enter pressed while VoiceOver was still
+ * speaking opened the dialog without VoiceOver ever saying its name.
+ */
+export function quietFor(stamps: readonly number[], now: number, quietMs: number): boolean {
+  const last = stamps.at(-1);
+  return last !== undefined && now - last >= quietMs;
 }

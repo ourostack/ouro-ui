@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
-import { CHECKBOX, CHECKED, firstMatch, inOneSentence, MARK, nameAndRole, readRecords, readsBrowser, saysValue, speechVerdict, spokenAfter, UNCHECKED, WATCH_LIMIT_SECONDS, withoutHints } from "../registry/ouro/e2e/screen-reader/phrases.ts";
+import { CHECKBOX, CHECKED, firstMatch, inOneSentence, MARK, nameAndRole, readRecords, readsBrowser, quietFor, saysValue, speechVerdict, spokenAfter, UNCHECKED, WATCH_LIMIT_SECONDS, withoutHints } from "../registry/ouro/e2e/screen-reader/phrases.ts";
 
 // The screen-reader specs' matchers (registry/ouro/e2e/screen-reader/phrases.ts), against phrases
 // VoiceOver and NVDA said in the lane's runs. A matcher takes one phrase at a time, without
@@ -156,4 +156,19 @@ test("the VoiceOver watcher outlives every check: its own limit is longer than a
   assert.match(helpers, /speechVerdict\(/);
   // An orphaned watcher must not start VoiceOver again by asking it for its last phrase.
   assert.match(helpers, /if application "VoiceOver" is running then/);
+});
+
+test("before an action VoiceOver must have been quiet: no new phrase for the whole window", () => {
+  // Runs 39262324426 and 39263264203: Enter came while VoiceOver was still speaking, and it never
+  // said the dialog's name; the check now waits for quiet first, as a person listens before a key.
+  assert.equal(quietFor([1_000, 2_500], 4_400, 2_000), false);
+  assert.equal(quietFor([1_000, 2_500], 4_500, 2_000), true);
+  assert.equal(quietFor([], 0, 2_000), false);
+  // Counting from the last phrase that was read, whenever that was.
+  assert.equal(quietFor([10], 2_010, 2_000), true);
+});
+
+test("only phrases after the last MARK count, so an old MARK cannot let earlier speech in", () => {
+  const records = [MARK, "Edit dialog pop up button", MARK, "Edit recipe web dialog with 4 items Shakshuka"];
+  assert.deepEqual(spokenAfter(records), ["Edit recipe web dialog with 4 items Shakshuka"]);
 });

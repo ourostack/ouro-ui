@@ -1,8 +1,9 @@
 import { voiceOverTest, type NVDAPlaywright, type VoiceOverPlaywright } from "@guidepup/playwright";
 import { test as base, expect, type Page, type PlaywrightTestArgs, type PlaywrightTestOptions, type PlaywrightWorkerArgs, type PlaywrightWorkerOptions, type TestType } from "@playwright/test";
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
+import { promisify } from "node:util";
 import { nvdaFor, startNVDA, stopNVDA } from "./nvda";
-import { firstMatch, MARK, readRecords, RECORD_END, RECORD_START, saysValue as valueSaid, speechVerdict, spokenAfter, WATCH_LIMIT_SECONDS, type WatchEnd } from "./phrases";
+import { firstMatch, MARK, readRecords, RECORD_END, RECORD_START, quietFor, saysValue as valueSaid, speechVerdict, spokenAfter, WATCH_LIMIT_SECONDS, type WatchEnd } from "./phrases";
 
 // The screen-reader lane's fixtures (playwright.screen-reader.config.ts): VoiceOver on macOS and
 // NVDA on Windows, through Guidepup. VoiceOver starts for each test; NVDA once for each worker
@@ -39,6 +40,8 @@ const page = async ({ page, storyId }: { page: Page; storyId: string }, provide:
   await openStory(page, storyId);
   await provide(page);
 };
+
+const run = promisify(execFile);
 
 /** Logs what went wrong after a test: `[sr] teardown:` never decides the lane's class. */
 const note = (what: string, error: unknown) => console.log(`[sr] teardown: ${what}: ${error instanceof Error ? error.message.split("\n")[0] : String(error)}`);
@@ -120,15 +123,15 @@ interface VoiceOverWatch {
 /**
  * Watches VoiceOver's last phrase, the only speech it lets AppleScript read, every 20 ms from one
  * osascript process (as Guidepup runs its own), until `stop()` ends it: its own limit,
- * WATCH_LIMIT_SECONDS, is longer than a whole test, so no check outlives it. It first has VoiceOver say
- * MARK, and resolves once MARK is its last phrase: what VoiceOver says after that is new, even the
- * same words it said before. Guidepup's `capture` reads the last phrase again only after waiting
+ * WATCH_LIMIT_SECONDS, is longer than a whole test, so no check outlives it. It resolves once
+ * VoiceOver is ready for the action: quiet for 2 s (at most 10 s of waiting), then saying MARK,
+ * then quiet again for 1 s with MARK still its last phrase (or it says MARK again, up to three
+ * times). What VoiceOver says after that is new, even the same words it said before. Guidepup's `capture` reads the last phrase again only after waiting
  * as long as it takes to say, so after a long hint it missed the short phrase that named the
  * focused control and read the next hint instead.
  */
 async function watchVoiceOver(): Promise<VoiceOverWatch> {
-  const script = `tell application "VoiceOver" to output "${MARK}"
-set endAt to (current date) + ${WATCH_LIMIT_SECONDS}
+  const script = `set endAt to (current date) + ${WATCH_LIMIT_SECONDS}
 set previousText to missing value
 repeat while (current date) < endAt
   set spokenText to ""
@@ -149,6 +152,7 @@ repeat while (current date) < endAt
 end repeat`;
   const child = spawn("/usr/bin/osascript", [], { stdio: ["pipe", "ignore", "pipe"] });
   const records: string[] = [];
+  const stamps: number[] = [];
   let buffer = "";
   let errors = "";
   let ended: WatchEnd | null = null;
@@ -158,6 +162,7 @@ end repeat`;
     const { records: read, rest } = readRecords(buffer + chunk);
     if (read.length === 0 && !(buffer + chunk).includes(RECORD_START)) errors += chunk;
     records.push(...read);
+    stamps.push(...read.map(() => Date.now()));
     buffer = rest;
     wake();
   });
@@ -190,15 +195,31 @@ end repeat`;
       await exited;
     },
   };
-  const ready = Date.now() + 10_000;
-  const marked = () => records.some((record) => record.trim() === MARK);
-  while (!marked() && ended === null && Date.now() < ready) await watch.next(ready);
-  if (!marked()) {
+  const failed = async (why: string) => {
     await watch.stop();
     const read = records.map((record) => `"${record.trim()}"`).join(" | ") || "nothing";
-    throw new Error(`[sr] infrastructure: VoiceOver's speech could not be read: ${(ended as WatchEnd | null)?.detail ?? `"${MARK}" was not its last phrase within 10 s`}; read: ${read}`);
+    return new Error(`[sr] infrastructure: VoiceOver's speech could not be read: ${(ended as WatchEnd | null)?.detail ?? why}; read: ${read}`);
+  };
+  /** Waits until `done()` or `ms` pass, waking on each phrase read. */
+  const until = async (done: () => boolean, ms: number) => {
+    const limit = Date.now() + ms;
+    while (!done() && ended === null && Date.now() < limit) await watch.next(Math.min(limit, Date.now() + 250));
+    return done();
+  };
+  const lastIsMark = () => records.at(-1)?.trim() === MARK;
+  if (!(await until(() => records.length > 0, 10_000))) throw await failed("no phrase within 10 s");
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await until(() => quietFor(stamps, Date.now(), 2_000), 10_000);
+    try {
+      await run("/usr/bin/osascript", ["-e", `tell application "VoiceOver" to output "${MARK}"`]);
+    } catch (error) {
+      throw await failed(`VoiceOver did not say "${MARK}": ${error instanceof Error ? error.message : String(error)}`);
+    }
+    if (!(await until(lastIsMark, 10_000))) throw await failed(`"${MARK}" was not its last phrase within 10 s`);
+    await until(() => !lastIsMark() || quietFor(stamps, Date.now(), 1_000), 5_000);
+    if (lastIsMark()) return watch;
   }
-  return watch;
+  throw await failed(`VoiceOver kept talking over "${MARK}"`);
 }
 
 /**
