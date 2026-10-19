@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { classify } from "./sr-classify.mjs";
+import { classify, why } from "./sr-classify.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -102,4 +102,35 @@ test("the CLI prints SR_CLASS, writes the class as a step output and fails unles
   assert.equal(missing.status, 1);
   assert.match(missing.stdout, /^SR_CLASS=infrastructure$/m);
   assert.equal(missing.output, "class=infrastructure\n");
+});
+
+// Recorded runs (scripts/fixtures/sr-logs/): the lane's log on main, run 39235687123, where NVDA's
+// Select test passed and Playwright then failed to close its browser context; and a VoiceOver run
+// on feat/first-visitor (run 39234254614, attempt 1) where the Dialog spec heard only VoiceOver's
+// hint as focus returned.
+const recorded = (name) => readFileSync(join(root, "scripts/fixtures/sr-logs", name), "utf8");
+const teardownAfterPass = recorded("nvda-teardown-after-pass.log");
+const hintOnly = recorded("voiceover-dialog-hint-only.log");
+
+test("a test that passed and then failed to close its browser context is infrastructure, with the reason", () => {
+  assert.match(teardownAfterPass, /Error: browserContext\.close: Test ended\./);
+  assert.equal(classify(teardownAfterPass, 1), "infrastructure");
+  assert.equal(why(teardownAfterPass), "the browser failed to close after a test, outside any assertion");
+  assert.equal(classify("  ✘  2 [nvda] › toast.sr.spec.ts:8:1 › Toast is announced\n    Error: browser.close: Test ended.\n  1 failed", 1), "infrastructure");
+});
+
+test("an expected utterance that never came stays accessibility, recorded or beside a teardown error", () => {
+  assert.equal(classify(hintOnly, 1), "accessibility");
+  // Both runs' failures together: the missing utterance decides.
+  assert.equal(classify(`${teardownAfterPass}\n${hintOnly}`, 1), "accessibility");
+  // The test body failed, and the close failed after it: the body's failure decides.
+  assert.equal(classify(teardownAfterPass.replace("    Error: browserContext.close: Test ended.", "    Error: expect(locator).toBeFocused() failed\n    Error: browserContext.close: Test ended."), 1), "accessibility");
+});
+
+test("a teardown error beside any other failure, or a timeout, is not taken for the runner's", () => {
+  const otherFailure = teardownAfterPass.replace("    Error: browserContext.close: Test ended.", "    Error: locator.focus: Timeout 30000ms exceeded.\n    Error: browserContext.close: Test ended.");
+  assert.equal(classify(otherFailure, 1), "accessibility");
+  assert.equal(classify(`${teardownAfterPass}\n    Test timeout of 180000ms exceeded.`, 1), "accessibility");
+  // A failed exit with no error at all is not a teardown failure either.
+  assert.equal(classify("[sr] first utterance: \"Save recipe, button\"\n  1 failed", 1), "accessibility");
 });

@@ -64,3 +64,47 @@ export function saysValue(sentence: string, value: string, label: string, voiceO
   if (new RegExp(`\\b${escape(value)}\\b`, "i").test(sentence)) return true;
   return voiceOver && value.length > 3 && sentence.toLowerCase().includes(`, ${value.slice(0, -3)} ${label}`.toLowerCase());
 }
+
+/** How screen-reader.ts's VoiceOver watcher marks each phrase it logs. */
+export const RECORD_START = "[[sr]]";
+export const RECORD_END = "[[/sr]]";
+
+/** The whole records in `buffer` (the watcher's output so far), and the unfinished rest. */
+export function readRecords(buffer: string): { records: string[]; rest: string } {
+  const records: string[] = [];
+  let rest = buffer;
+  for (;;) {
+    const start = rest.indexOf(RECORD_START);
+    const end = start === -1 ? -1 : rest.indexOf(RECORD_END, start);
+    if (end === -1) return { records, rest: start === -1 ? "" : rest.slice(start) };
+    records.push(rest.slice(start + RECORD_START.length, end));
+    rest = rest.slice(end + RECORD_END.length);
+  }
+}
+
+/** A phrase as Guidepup cleans VoiceOver's (`cleanSpokenPhrase`). */
+const clean = (phrase: string): string =>
+  phrase
+    .trim()
+    .replace(/^missing value$/, "")
+    .replaceAll("@VOModifier()", "Control-Option")
+    .replace(/\s\s+/g, " ");
+
+/**
+ * What VoiceOver said after an action, from the watcher's records of its last phrase: every
+ * phrase it moved to after the first record, the one it was on as the action began, which never
+ * counts. VoiceOver keeps only its last phrase, so a short phrase ("Edit dialog pop up button")
+ * between two hints lasts only until the next hint: the watcher reads it every 50 ms, where
+ * Guidepup's capture waits as long as the last phrase takes to say before reading again.
+ */
+export function spokenAfter(records: readonly string[]): string[] {
+  const phrases: string[] = [];
+  let previous = clean(records[0] ?? "");
+  for (const record of records.slice(1)) {
+    const phrase = clean(record);
+    if (!phrase || phrase === previous) continue;
+    phrases.push(phrase);
+    previous = phrase;
+  }
+  return phrases;
+}

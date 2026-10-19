@@ -14,7 +14,8 @@
 //   run and blocks a release.
 // - infrastructure: VoiceOver or NVDA did not start or could not be controlled, a TCC prompt
 //   appeared, a test timed out before the screen reader said anything, the Storybook server never
-//   became ready, or the runner image was broken. The nightly run opens or updates one
+//   became ready, the runner image was broken, or Playwright failed to close the browser after a
+//   test while nothing else failed (a test body's failure always decides first). The nightly run opens or updates one
 //   `screen-reader-infra` issue; a release retries once.
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -36,11 +37,25 @@ const infrastructure = [
   [/received a shutdown signal|lost communication with the server/i, "the runner went away"],
 ];
 
+/** Playwright closing a test's browser context, or the browser, after the test: fixture teardown. */
+const teardownError = /^\s*Error: (browserContext|browser)\.close: /;
+
+/**
+ * Whether every error the run reports is Playwright failing to close the browser after a test
+ * (recorded: NVDA's Select test passed, then `browserContext.close: Test ended.`), with no test
+ * timeout: the test bodies did not fail, so the runner did.
+ */
+function onlyTeardownFailed(log) {
+  const errors = log.split(/\r?\n/).filter((line) => /^\s*[A-Za-z]*Error: /.test(line));
+  return errors.length > 0 && errors.every((line) => teardownError.test(line)) && !/Test timeout of \d+ms exceeded/.test(log);
+}
+
 /** The lane's class for a log and `pnpm test:sr`'s exit code (null when it never ran). */
 export function classify(log, exitCode) {
   if (exitCode === 0) return "pass";
   if (exitCode === null || exitCode === undefined || log.trim() === "") return "infrastructure";
   if (assertion.test(log)) return "accessibility";
+  if (onlyTeardownFailed(log)) return "infrastructure";
   if (infrastructure.some(([pattern]) => pattern.test(log))) return "infrastructure";
   // A timeout before the screen reader said anything: it never started speaking.
   if (/Test timeout of \d+ms exceeded/.test(log) && !/\[sr\] first utterance:/.test(log)) return "infrastructure";
@@ -48,7 +63,12 @@ export function classify(log, exitCode) {
 }
 
 /** Why a log is infrastructure, for the summary. */
-const why = (log) => infrastructure.find(([pattern]) => pattern.test(log))?.[1] ?? (log.trim() === "" ? "the tests never ran" : "a timeout before the first utterance");
+export const why = (log) =>
+  log.trim() === ""
+    ? "the tests never ran"
+    : onlyTeardownFailed(log)
+      ? "the browser failed to close after a test, outside any assertion"
+      : (infrastructure.find(([pattern]) => pattern.test(log))?.[1] ?? "a timeout before the first utterance");
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const [file, code] = process.argv.slice(2);
