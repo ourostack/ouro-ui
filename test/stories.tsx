@@ -4,6 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { inject, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { storyFileSelected } from "./story-selection.ts";
 
 // Shared by the story accessibility test, the control marker test and the visual test. Stories render
 // through Storybook's `composeStories`, so a test sees exactly what Storybook
@@ -100,13 +101,9 @@ declare module "vitest" {
  */
 const selectedFolders = ((value) => (value === null ? null : new Set(value.split(",").filter(Boolean))))(inject("ouroStories"));
 
-/** The component folder of a story file, or null for a reference story (stories/). */
-const folderOfStory = (key: string) => /\/components\/ouro\/([\w-]+)\//.exec(storyPaths.get(key) ?? "")?.[1] ?? null;
-
-/** Whether the shared suites render this story (`Component/StoryExport`) in this run: see `selectedStories`. */
+/** Whether the shared suites render this story (`Component/StoryExport`) in this run: see `selectedStories` and test/story-selection.ts. */
 export function storySelected(id: string): boolean {
-  const folder = folderOfStory(id.split("/")[0] ?? "");
-  return selectedFolders === null || (folder !== null && selectedFolders.has(folder));
+  return storyFileSelected(storyPaths.get(id.split("/")[0] ?? "") ?? "", selectedFolders);
 }
 
 /** The folder of each component stem, from the component.json manifests. */
@@ -125,7 +122,7 @@ export function stemSelected(stem: string): boolean {
 /**
  * The stories the shared suites that render every story (axe, margins, control markers, theme
  * tokens, text size, the theme fixtures) iterate: every story, except on a pull request's
- * reduced run, which renders only the selected component folders' stories. `stories`,
+ * reduced run, which renders the selected component folders' stories and the reference stories. `stories`,
  * `storyFiles` and `story()` always hold every story, for the checks that look one up by id.
  */
 export const selectedStories: StoryEntry[] = stories.filter((entry) => storySelected(entry.id));

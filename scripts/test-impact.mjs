@@ -13,7 +13,7 @@
 // <components> is the plan's comma-separated list of component stems (item names), maybe empty.
 import { spawn as spawnChild, spawnSync } from "node:child_process";
 import { appendFileSync, existsSync, readdirSync, readFileSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { stripVTControlCharacters } from "node:util";
 import ts from "typescript";
@@ -32,7 +32,11 @@ const everything = [
   [/^vitest[^/]*\.config\.[cm]?[jt]s$/, "the Vitest configuration"],
   [/^(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml)$/, "the dependencies"],
   [/^\.github\//, "a workflow"],
+  // test/text-size.touch.test.tsx reads it with every demo.
+  [/^site\/src\/styles\.css$/, "the site's stylesheet, which the text-size scan reads with every demo"],
 ];
+
+const demosDir = "site/src/docs/demos/";
 
 /**
  * Paths no component's tests read: prose and generated files, which `pnpm run docs --check`,
@@ -62,27 +66,45 @@ function readFolders(root) {
 /** A component's tests, type tests, stories and specs: files that ship in its `-tests` item, not in the component. */
 const devFile = /\.test\.tsx?$|\.test-d\.ts$|\.stories\.tsx$|\.spec\.ts$/;
 
+/** A docs demo, named after its component: test/text-size.touch.test.tsx scans it with the component's stories. */
+const demo = /^site\/src\/docs\/demos\/(?:.*\/)?([\w-]+)\.demo\.tsx$/;
+
+/** Every docs demo, as a repository path. */
+const demoFiles = (root) =>
+  (existsSync(join(root, demosDir)) ? readdirSync(join(root, demosDir), { recursive: true }) : [])
+    .map(String)
+    .filter((file) => file.endsWith(".demo.tsx"))
+    .map((file) => `${demosDir}${file.split(sep).join("/")}`);
+
 /**
  * Each component folder's imports of other component folders, from the TypeScript source of every
- * file in it: `runtime` through the component's own files, `all` through any file, its tests and
- * stories included.
+ * file in it: `runtime` through the component's own files, `all` through any file, its tests,
+ * stories and docs demo (site/src/docs/demos/<stem>.demo.tsx) included.
  */
 function importGraph(root, folders) {
   const graph = new Map();
+  const demos = new Map();
+  for (const file of demoFiles(root)) {
+    const folder = folderOf(folders, demo.exec(file)[1]);
+    if (folder) demos.set(folder, [...(demos.get(folder) ?? []), file]);
+  }
   for (const folder of folders.keys()) {
     const runtime = new Set();
     const all = new Set();
     const base = join(root, componentsDir, folder);
-    for (const file of readdirSync(base, { recursive: true }).map(String)) {
-      if (!/\.(ts|tsx|mts)$/.test(file)) continue;
-      const path = join(base, file);
+    const files = readdirSync(base, { recursive: true })
+      .map(String)
+      .filter((file) => /\.(ts|tsx|mts)$/.test(file))
+      .map((file) => ({ path: join(base, file), dev: devFile.test(file) }));
+    for (const file of demos.get(folder) ?? []) files.push({ path: join(root, file), dev: true });
+    for (const { path, dev } of files) {
       for (const { fileName } of ts.preProcessFile(readFileSync(path, "utf8"), true, true).importedFiles) {
         const target = fileName.startsWith("@/") ? join(root, fileName.slice(2)) : fileName.startsWith(".") ? resolve(dirname(path), fileName) : null;
         if (!target) continue;
         const inside = relative(join(root, componentsDir), target).split(/[\\/]/);
         if (!inside[0] || inside[0] === ".." || inside[0] === folder || !folders.has(inside[0])) continue;
         all.add(inside[0]);
-        if (!devFile.test(file)) runtime.add(inside[0]);
+        if (!dev) runtime.add(inside[0]);
       }
     }
     graph.set(folder, { runtime, all });
@@ -94,11 +116,31 @@ function importGraph(root, folders) {
 const folderOf = (folders, stem) => [...folders].find(([, stems]) => stems.includes(stem))?.[0];
 
 /**
+ * The site's files, other than the demos themselves, that the docs demos load at run time,
+ * directly or through another: test/text-size.touch.test.tsx renders them with every demo.
+ */
+function siteFilesDemosLoad(root) {
+  const site = join(root, "site");
+  const asSiteFile = (target) =>
+    target.startsWith(site) ? (["", ".ts", ".tsx", ".mts", "/index.ts", "/index.tsx"].map((ending) => `${target}${ending}`).find((file) => /\.m?tsx?$/.test(file) && existsSync(file)) ?? null) : null;
+  const found = new Set();
+  const queue = demoFiles(root).map((file) => join(root, file));
+  while (queue.length > 0) {
+    for (const file of runtimeImports(queue.shift(), root).map(asSiteFile)) {
+      if (file === null || found.has(file)) continue;
+      found.add(file);
+      queue.push(file);
+    }
+  }
+  return new Set([...found].map((file) => relative(root, file).split(sep).join("/")).filter((file) => !demo.test(file)));
+}
+
+/**
  * What a change can affect. `full` is true when a changed file is shared by every component (the
  * theme, lib/, the test setup, scripts, configuration, dependencies, workflows) or cannot be
  * mapped; otherwise `components` is the stem of every component whose folder or end-to-end spec
  * changed, plus every component that imports one of them: through its own code, directly or
- * through another component, or from its tests and stories. With
+ * through another component, or from its tests, stories and docs demo. With
  * `full`, `components` lists every component. `reasons` says why, one line per file or importer.
  */
 export function testImpact(changedFiles, root = repoRoot) {
@@ -108,6 +150,7 @@ export function testImpact(changedFiles, root = repoRoot) {
   let full = changedFiles.length === 0;
   if (full) reasons.push("no changed file was found, so nothing can be ruled out");
   const changed = new Set();
+  const demoLoads = siteFilesDemosLoad(root);
   for (const path of changedFiles) {
     const shared = everything.find(([pattern]) => pattern.test(path));
     const none = noComponent.find(([pattern]) => pattern.test(path));
@@ -123,6 +166,18 @@ export function testImpact(changedFiles, root = repoRoot) {
         full = true;
         reasons.push(`${path}: ${folder} has no component.json at this commit, so everything runs`);
       }
+    } else if (demo.test(path)) {
+      const stem = demo.exec(path)[1];
+      if (folderOf(folders, stem)) {
+        changed.add(folderOf(folders, stem));
+        reasons.push(`${path}: ${stem}'s docs demo`);
+      } else {
+        full = true;
+        reasons.push(`${path}: a demo named after no component, so everything runs`);
+      }
+    } else if (demoLoads.has(path)) {
+      full = true;
+      reasons.push(`${path}: loaded by the docs demos the text-size scan renders, so everything runs`);
     } else if (path.startsWith(e2eDir) && folderOf(folders, path.slice(e2eDir.length).replace(/\.spec\.ts$/, ""))) {
       const stem = path.slice(e2eDir.length).replace(/\.spec\.ts$/, "");
       changed.add(folderOf(folders, stem));
@@ -157,7 +212,7 @@ export function testImpact(changedFiles, root = repoRoot) {
     const used = [...all].filter((folder) => changing.has(folder)).sort();
     if (used.length === 0) continue;
     selected.add(importer);
-    reasons.push(`${importer}: its tests or stories import ${used.join(", ")}`);
+    reasons.push(`${importer}: its tests, stories or docs demo import ${used.join(", ")}`);
   }
   return { full: false, reasons, components: [...selected].flatMap((folder) => folders.get(folder)).sort() };
 }
@@ -174,18 +229,89 @@ export const storyFolders = (components, root = repoRoot) => foldersFor(componen
 /** The Vitest projects every run has (vitest.config.ts; scripts/workflows.test.mjs checks the list). */
 const projects = ["ouro-chromium", "ouro-webkit", "ouro-touch", "site"];
 
+/** `folders` and every folder their own code imports, directly or through another. */
+function withImports(folders, root) {
+  const graph = importGraph(root, readFolders(root));
+  const all = new Set(folders);
+  const queue = [...folders];
+  while (queue.length > 0) {
+    for (const imported of graph.get(queue.shift())?.runtime ?? []) {
+      if (all.has(imported)) continue;
+      all.add(imported);
+      queue.push(imported);
+    }
+  }
+  return [...all].sort();
+}
+
+const libDir = "registry/ouro/lib/ouro/";
+
+/** The modules `path` loads at run time: every import and re-export but those of types alone. */
+function runtimeImports(path, root) {
+  const source = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest);
+  const specifiers = [];
+  for (const statement of source.statements) {
+    if (ts.isImportDeclaration(statement)) {
+      const clause = statement.importClause;
+      const bindings = clause?.namedBindings;
+      const typesOnly = clause !== undefined && (clause.isTypeOnly || (!clause.name && bindings !== undefined && ts.isNamedImports(bindings) && bindings.elements.length > 0 && bindings.elements.every((element) => element.isTypeOnly)));
+      if (!typesOnly) specifiers.push(statement.moduleSpecifier.text);
+    } else if (ts.isExportDeclaration(statement) && statement.moduleSpecifier && !statement.isTypeOnly) {
+      specifiers.push(statement.moduleSpecifier.text);
+    }
+  }
+  return specifiers.map((name) => (name.startsWith("@/") ? join(root, name.slice(2)) : name.startsWith(".") ? resolve(dirname(path), name) : null)).filter(Boolean);
+}
+
+/**
+ * The lib/ files (the test kit aside) that any file in `folders` (code, tests or stories) loads at
+ * run time, directly or through another lib/ file, as repository paths.
+ */
+function libFilesLoadedBy(folders, root) {
+  const lib = join(root, libDir);
+  const asLibFile = (target) => {
+    if (!target.startsWith(lib) || target.startsWith(join(lib, "testing"))) return null;
+    return [".ts", ".tsx"].map((extension) => `${target}${extension}`).find((file) => existsSync(file)) ?? null;
+  };
+  const found = new Set();
+  const queue = [];
+  const visit = (targets) => {
+    for (const file of targets.map(asLibFile)) {
+      if (file === null || found.has(file)) continue;
+      found.add(file);
+      queue.push(file);
+    }
+  };
+  for (const folder of folders) {
+    const base = join(root, componentsDir, folder);
+    for (const file of readdirSync(base, { recursive: true }).map(String)) if (/\.(ts|tsx|mts)$/.test(file)) visit(runtimeImports(join(base, file), root));
+  }
+  while (queue.length > 0) visit(runtimeImports(queue.shift(), root));
+  return [...found].map((file) => relative(root, file).split(sep).join("/")).sort();
+}
+
 /**
  * The reduced Vitest run's arguments: every project, so each still writes its motion partition;
- * the selected folders' tests, the shared suites in test/ (which render only the selected
- * folders' stories, given OURO_STORIES) and the site's tests; coverage over the selected
- * folders' files only, at the repository's thresholds.
+ * the tests of the selected folders and of every folder their code imports, directly or through
+ * another; the own tests of the lib/ files those folders load; the shared suites in test/ (which
+ * render only the selected folders' stories and the reference stories, given OURO_STORIES) and
+ * the site's tests. Coverage is measured over those folders and lib/ files at the repository's
+ * thresholds: a changed test may have been the only one to reach a branch in what its component
+ * imports, so that code is measured too. When a line there is reached only by an unselected
+ * component's tests, the full suite decides (runBrowserTests). The rest of lib/ is left out, as
+ * nothing the change touches loads it: measuring all of it would send every reduced run to the
+ * full suite (lib/ouro/toast.ts, for one, is reached only by the toast component's tests).
  */
 export function vitestArgs(components, root = repoRoot) {
-  const folders = foldersFor(components, root);
+  const folders = withImports(foldersFor(components, root), root);
+  const libFiles = libFilesLoadedBy(folders, root);
+  const libTests = libFiles.filter((file) => /\.tsx?$/.test(file) && [".test.ts", ".test.tsx"].some((suffix) => existsSync(join(root, file.replace(/\.tsx?$/, suffix)))));
+  const measured = folders.length > 0;
   return [
     ...projects.map((project) => `--project=${project}`),
-    ...(folders.length > 0 ? ["--coverage", ...folders.map((folder) => `--coverage.include=${componentsDir}${folder}/**`)] : []),
+    ...(measured ? ["--coverage", ...folders.map((folder) => `--coverage.include=${componentsDir}${folder}/**`), ...libFiles.map((file) => `--coverage.include=${file}`)] : []),
     ...folders.map((folder) => `${componentsDir}${folder}/`),
+    ...libTests.map((file) => file.replace(/\.tsx?$/, ".")),
     "test/",
     "site/",
   ];

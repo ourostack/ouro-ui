@@ -1,5 +1,6 @@
 import { expect } from "@playwright/test";
-import { accessibleName, heard, saysCheckbox, saysChecked, saysUnchecked, startReading, test } from "./screen-reader";
+import { CHECKBOX, CHECKED, inOneSentence, UNCHECKED } from "./phrases";
+import { accessibleName, heard, startReading, test } from "./screen-reader";
 import { checklistShipped, storyIds } from "./stories";
 
 test.skip(!checklistShipped, `${storyIds.checklist} arrives with Checklist (registry/ouro/components/ouro/checklist); this spec runs once that folder exists.`);
@@ -10,8 +11,8 @@ test("Checklist announces an item's name, role and state, and its change when ti
   const item = page.getByRole("checkbox").first();
   const name = await accessibleName(item);
   const before = await item.isChecked();
-  const said = (phrase: string) => phrase.toLowerCase().includes(name.toLowerCase()) && saysCheckbox(phrase) && (before ? saysChecked(phrase) : saysUnchecked(phrase));
-  await heard(sr, () => item.focus(), said, `"${name}", checkbox, ${before ? "checked" : "unchecked"}`);
-  await heard(sr, () => page.keyboard.press("Space"), before ? saysUnchecked : saysChecked, `${before ? "unchecked" : "checked"}, after Space`);
+  const named = (sentence: string) => sentence.toLowerCase().includes(name.toLowerCase());
+  await heard(sr, () => item.focus(), (phrase) => inOneSentence(phrase, named, CHECKBOX, before ? CHECKED : UNCHECKED), `"${name}", checkbox, ${before ? "checked" : "unchecked"}`);
+  await heard(sr, () => page.keyboard.press("Space"), (phrase) => inOneSentence(phrase, before ? UNCHECKED : CHECKED), `${before ? "unchecked" : "checked"}, after Space`);
   await expect(item).toBeChecked({ checked: !before });
 });

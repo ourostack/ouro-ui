@@ -1,5 +1,6 @@
 import { nvdaTest, voiceOverTest, type NVDAPlaywright, type VoiceOverPlaywright } from "@guidepup/playwright";
 import { expect, type Page, type PlaywrightTestArgs, type PlaywrightTestOptions, type PlaywrightWorkerArgs, type PlaywrightWorkerOptions, type TestType } from "@playwright/test";
+import { firstMatch, saysValue as valueSaid } from "./phrases";
 
 // The screen-reader lane's fixtures (playwright.screen-reader.config.ts): VoiceOver on macOS and
 // NVDA on Windows, through Guidepup. `page` opens the spec's story and waits for its component
@@ -53,29 +54,27 @@ export async function startReading(sr: ScreenReader, page: Page): Promise<void> 
 }
 
 /**
- * Performs `action` (with Playwright) and waits up to `timeout` for the screen reader to say
- * something `matches` accepts, failing with every phrase it heard. Returns the matching phrase.
- * The item text (what the screen reader shows for the item under its cursor) counts too: VoiceOver's
- * spoken log can clip the start of a phrase it was still saying, which its item text keeps whole.
+ * Performs `action` (with Playwright) and waits up to `timeout` for the screen reader to say one
+ * phrase `matches` accepts (build it with `inOneSentence`, phrases.ts), failing with every phrase it
+ * heard. Phrases are never joined, and the item text under the cursor never counts: only speech.
  */
 export async function heard(sr: ScreenReader, action: () => Promise<unknown>, matches: (phrase: string) => boolean, what: string, timeout = 15_000): Promise<string> {
   const phrases: string[] = [];
-  const add = (...texts: string[]) => {
-    for (const text of texts.map((phrase) => phrase.trim())) if (text && !phrases.includes(text)) phrases.push(text);
+  const add = (phrase: string) => {
+    const text = phrase.trim();
+    if (text && !phrases.includes(text)) phrases.push(text);
   };
-  const first = await sr.capture(action, { capture: true });
-  add(first.spokenPhrase, first.itemText);
+  add((await sr.capture(action, { capture: true })).spokenPhrase);
   const deadline = Date.now() + timeout;
   for (;;) {
-    const found = phrases.find(matches) ?? (matches(phrases.join(" ")) ? phrases.join(" ") : undefined);
+    const found = firstMatch(phrases, matches);
     if (found !== undefined) {
       console.log(`[sr] heard ${what}: "${found}"`);
       return found;
     }
     if (Date.now() > deadline) throw new Error(`[sr] no utterance matched ${what}; heard: ${phrases.map((phrase) => `"${phrase}"`).join(" | ") || "nothing"}`);
     // Speech that comes after the action (a live region) is read by capturing again.
-    const more = await sr.capture(async () => undefined, { capture: true });
-    add(more.spokenPhrase, more.itemText);
+    add((await sr.capture(async () => undefined, { capture: true })).spokenPhrase);
   }
 }
 
@@ -100,7 +99,7 @@ export async function describesFocus(sr: ScreenReader, matches: (phrase: string)
     else await sr.perform(sr.keyboardCommands.reportCurrentFocus, { capture: true });
     const phrase = (await sr.lastSpokenPhrase()).trim();
     if (phrase && !phrases.includes(phrase)) phrases.push(phrase);
-    const found = phrases.find(matches);
+    const found = firstMatch(phrases, matches);
     if (found !== undefined) {
       console.log(`[sr] heard ${what}: "${found}"`);
       return found;
@@ -109,28 +108,12 @@ export async function describesFocus(sr: ScreenReader, matches: (phrase: string)
   throw new Error(`[sr] no utterance matched ${what}; heard: ${phrases.map((phrase) => `"${phrase}"`).join(" | ") || "nothing"}`);
 }
 
-/**
- * Whether a phrase gives a combo box's value. NVDA says it whole. VoiceOver with WebKit says a
- * combo box's value without its last three characters (", Choose a cou Course list box pop up",
- * ", S Course list box pop up" for "Side"), in every run so far, while it reads the options whole:
- * that form counts too, on VoiceOver only, and is logged as a finding
- * (docs/guides/screen-reader-lane.md, "Known findings").
- */
-export function saysValue(sr: ScreenReader, phrase: string, value: string, label: string): boolean {
-  if (new RegExp(`\\b${value}\\b`, "i").test(phrase)) return true;
-  const clipped = isVoiceOver(sr) && value.length > 3 && phrase.toLowerCase().includes(`, ${value.slice(0, -3)} ${label}`.toLowerCase());
-  if (clipped) console.log(`[sr] finding: VoiceOver read the value "${value}" as "${value.slice(0, -3)}"`);
-  return clipped;
+/** Whether `sentence` gives the combo box's value, as this screen reader says it (phrases.ts, ourostack/ouro-ui#113). */
+export function saysValue(sr: ScreenReader, sentence: string, value: string, label: string): boolean {
+  const said = valueSaid(sentence, value, label, isVoiceOver(sr));
+  if (said && !new RegExp(`\\b${value}\\b`, "i").test(sentence)) console.log(`[sr] finding (ourostack/ouro-ui#113): VoiceOver read the value "${value}" as "${value.slice(0, -3)}"`);
+  return said;
 }
-
-/** "unchecked" (VoiceOver) or "not checked" (NVDA). */
-export const saysUnchecked = (phrase: string): boolean => /\b(unchecked|not checked)\b/i.test(phrase);
-
-/** "checked", and neither "unchecked" nor "not checked". */
-export const saysChecked = (phrase: string): boolean => /\bchecked\b/i.test(phrase) && !saysUnchecked(phrase);
-
-/** The role word for a checkbox: "checkbox" (VoiceOver) or "check box" (NVDA). */
-export const saysCheckbox = (phrase: string): boolean => /\bcheck ?box\b/i.test(phrase);
 
 /** A locator's accessible name, from its ARIA snapshot (`- checkbox "Rolled oats"`). */
 export async function accessibleName(locator: import("@playwright/test").Locator): Promise<string> {
