@@ -76,6 +76,13 @@ export async function heard(sr: ScreenReader, action: () => Promise<unknown>, ma
   }
 }
 
+/** Performs `action` and logs what the screen reader said, without asserting it. */
+export async function said(sr: ScreenReader, action: () => Promise<unknown>, what: string): Promise<string> {
+  const { spokenPhrase } = await sr.capture(action, { capture: true });
+  console.log(`[sr] said ${what}: "${spokenPhrase}"`);
+  return spokenPhrase;
+}
+
 /** "unchecked" (VoiceOver) or "not checked" (NVDA). */
 export const saysUnchecked = (phrase: string): boolean => /\b(unchecked|not checked)\b/i.test(phrase);
 

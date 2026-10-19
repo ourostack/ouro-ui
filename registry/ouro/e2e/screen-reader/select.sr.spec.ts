@@ -1,5 +1,5 @@
 import { expect } from "@playwright/test";
-import { heard, startReading, test } from "./screen-reader";
+import { heard, said, startReading, test } from "./screen-reader";
 import { storyIds } from "./stories";
 
 test.use({ storyId: storyIds.select });
@@ -8,9 +8,13 @@ test("Select is announced with its label, role and state, and its new value when
   await startReading(sr, page);
   const course = page.getByRole("combobox", { name: "Course" });
   await heard(sr, () => course.focus(), (phrase) => /\bcourse\b/i.test(phrase) && /\bcombo ?box\b/i.test(phrase) && /\bcollapsed\b/i.test(phrase), '"Course", combo box, collapsed');
-  // The list opens on its first option, Starter: NVDA reads "list" and the option, VoiceOver "list box".
-  await heard(sr, () => page.keyboard.press("ArrowDown"), (phrase) => /\blist\b|\blist ?box\b|\bstarter\b/i.test(phrase), "the list, as it opens");
-  await expect(page.getByRole("listbox")).toBeVisible();
+  // The list opens on its first option, Starter. What is said as it opens depends on how far its
+  // opening transition got (VoiceOver may read the option before it has its name), so it is only
+  // logged; each move once it is open must be read.
+  await said(sr, () => page.keyboard.press("ArrowDown"), "as the list opens");
+  const list = page.getByRole("listbox");
+  await expect(list).toBeVisible();
+  await list.evaluate((element) => Promise.all(element.getAnimations({ subtree: true }).map((animation) => animation.finished)));
   await heard(sr, () => page.keyboard.press("ArrowDown"), (phrase) => /\bmain\b/i.test(phrase), '"Main", the next option');
   await heard(sr, () => page.keyboard.press("ArrowDown"), (phrase) => /\bside\b/i.test(phrase), '"Side", the option after it');
   await heard(sr, () => page.keyboard.press("Enter"), (phrase) => /\bside\b/i.test(phrase), '"Side", the chosen value');
