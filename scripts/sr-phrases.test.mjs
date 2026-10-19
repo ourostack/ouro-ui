@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
-import { CHECKBOX, CHECKED, firstMatch, inOneSentence, MARK, nameAndRole, readRecords, saysValue, spokenAfter, UNCHECKED, withoutHints } from "../registry/ouro/e2e/screen-reader/phrases.ts";
+import { CHECKBOX, CHECKED, firstMatch, inOneSentence, MARK, nameAndRole, readRecords, readsBrowser, saysValue, spokenAfter, UNCHECKED, withoutHints } from "../registry/ouro/e2e/screen-reader/phrases.ts";
 
 // The screen-reader specs' matchers (registry/ouro/e2e/screen-reader/phrases.ts), against phrases
 // VoiceOver and NVDA said in the lane's runs. A matcher takes one phrase at a time, without
@@ -115,4 +115,13 @@ test("every spec's matcher goes through inOneSentence, and the lane counts only 
   const helpers = readFileSync(join(dir, "screen-reader.ts"), "utf8");
   assert.doesNotMatch(helpers, /itemText/);
   assert.match(helpers, /firstMatch\(phrases, matches\)/);
+});
+
+test("NVDA is reading the page only when the window it reports is the page's, in the browser", () => {
+  // Run 39253118106: NVDA read the Start window, and the Dialog spec hung until it timed out.
+  assert.equal(readsBrowser("Start, window", "forms-dialog--playground ⋅ Storybook"), false);
+  assert.equal(readsBrowser("Taskbar", ""), false);
+  assert.equal(readsBrowser("forms-dialog--playground ⋅ Storybook - Google Chrome for Testing", "forms-dialog--playground ⋅ Storybook"), true);
+  assert.equal(readsBrowser("Google Chrome for Testing", ""), true);
+  assert.equal(readsBrowser("overlays-dialog--playground - Storybook", "overlays-dialog--playground - Storybook"), true);
 });

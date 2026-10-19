@@ -1,11 +1,12 @@
-import { nvdaTest, voiceOverTest, type NVDAPlaywright, type VoiceOverPlaywright } from "@guidepup/playwright";
-import { expect, type BrowserContext, type BrowserContextOptions, type Page, type PlaywrightTestArgs, type PlaywrightTestOptions, type PlaywrightWorkerArgs, type PlaywrightWorkerOptions, type TestType } from "@playwright/test";
-import { execFile, spawn } from "node:child_process";
-import { promisify } from "node:util";
+import { voiceOverTest, type NVDAPlaywright, type VoiceOverPlaywright } from "@guidepup/playwright";
+import { test as base, expect, type Page, type PlaywrightTestArgs, type PlaywrightTestOptions, type PlaywrightWorkerArgs, type PlaywrightWorkerOptions, type TestType } from "@playwright/test";
+import { spawn } from "node:child_process";
+import { nvdaFor, startNVDA, stopNVDA } from "./nvda";
 import { firstMatch, MARK, readRecords, RECORD_END, RECORD_START, saysValue as valueSaid, spokenAfter } from "./phrases";
 
 // The screen-reader lane's fixtures (playwright.screen-reader.config.ts): VoiceOver on macOS and
-// NVDA on Windows, through Guidepup. `page` opens the spec's story and waits for its component
+// NVDA on Windows, through Guidepup. VoiceOver starts for each test; NVDA once for each worker
+// (nvda.ts). `page` opens the spec's story and waits for its component
 // before the screen reader starts, and `sr` is the running screen reader, at the start of the web
 // content. Lines starting `[sr]` are what scripts/sr-classify.mjs reads: `[sr] first utterance:`
 // shows the screen reader spoke, `[sr] no utterance matched` is an accessibility failure and
@@ -39,55 +40,30 @@ const page = async ({ page, storyId }: { page: Page; storyId: string }, provide:
   await provide(page);
 };
 
-const run = promisify(execFile);
-
-/** Whether NVDA's process is still running: Guidepup's `nvda.stop()` asks it to quit and returns at once. */
-async function nvdaRunning(): Promise<boolean> {
-  const { stdout } = await run("tasklist", ["/FI", "IMAGENAME eq nvda.exe", "/NH"]);
-  return /\bnvda\.exe\b/i.test(stdout);
-}
+/** Logs what went wrong after a test: `[sr] teardown:` never decides the lane's class. */
+const note = (what: string, error: unknown) => console.log(`[sr] teardown: ${what}: ${error instanceof Error ? error.message.split("\n")[0] : String(error)}`);
 
 /**
- * Ends a test in an order that cannot fail one that passed. The screen reader stops first; on
- * Windows the test waits (up to 30 s) until NVDA's process has gone, because NVDA quits after
- * `nvda.stop()` returns and unloads its helper from the browser as it goes, and a browser context
- * closed in the meantime failed to close ("browserContext.close: Test ended.", recorded on main).
- * Then the context closes here, so a failure to close is logged rather than failing the test, and
- * Guidepup's and Playwright's own teardown find nothing left to do (on Windows, `ownBrowserContext`
- * then closes the test's own browser).
+ * Closes the test's browser context here, so a failure to close is logged rather than failing a
+ * test that passed, and Playwright's own teardown finds nothing left to do.
  */
-async function finish(sr: ScreenReader, page: Page): Promise<void> {
-  const note = (what: string, error: unknown) => console.log(`[sr] teardown: ${what}: ${error instanceof Error ? error.message.split("\n")[0] : String(error)}`);
-  await sr.stop().catch((error: unknown) => note("the screen reader did not stop", error));
-  if (process.platform === "win32") {
-    const deadline = Date.now() + 30_000;
-    while ((await nvdaRunning().catch(() => false)) && Date.now() < deadline) await new Promise((resolve) => setTimeout(resolve, 250));
-    if (await nvdaRunning().catch(() => false)) note("NVDA was still running after 30 s", "closing the browser context anyway");
-  }
-  await page
+const closeContext = (page: Page) =>
+  page
     .context()
     .close()
     .catch((error: unknown) => note("the browser context did not close", error));
+
+/** Stops VoiceOver, giving up after 30 s, then closes the context: VoiceOver starts afresh for each test. */
+async function finishVoiceOver(voiceOver: VoiceOverPlaywright, page: Page): Promise<void> {
+  const stopped = await Promise.race([voiceOver.stop().then(() => true, (error: unknown) => (note("VoiceOver did not stop", error), true)), new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 30_000))]);
+  if (!stopped) note("VoiceOver did not stop", "voiceOver.stop() did not return within 30 s");
+  await closeContext(page);
 }
 
-/**
- * NVDA's tests each get a browser of their own, launched as Playwright's would be and closed after
- * the test, once NVDA has gone. NVDA unloads its helper from the browser as it quits, and that took
- * the shared browser down with it: the next test could not open a context ("browser.newContext:
- * Target page, context or browser has been closed", recorded on this lane). A failure to close it
- * is logged; the test has ended.
- */
-const ownBrowserContext = async (
-  { playwright, browserName, launchOptions, headless, baseURL, viewport, userAgent, deviceScaleFactor, isMobile, hasTouch }: PlaywrightTestArgs & PlaywrightTestOptions & PlaywrightWorkerArgs & PlaywrightWorkerOptions,
-  provide: (context: BrowserContext) => Promise<void>,
-) => {
-  const browser = await playwright[browserName].launch({ ...launchOptions, headless });
-  const options = Object.fromEntries(Object.entries({ baseURL, viewport, userAgent, deviceScaleFactor, isMobile, hasTouch }).filter(([, value]) => value !== undefined));
-  const context = await browser.newContext(options as BrowserContextOptions);
-  await provide(context);
-  await context.close().catch(() => undefined);
-  await browser.close().catch((error: unknown) => console.log(`[sr] teardown: the browser did not close: ${error instanceof Error ? error.message.split("\n")[0] : String(error)}`));
-};
+/** The worker's NVDA (nvda.ts): it starts after the shared browser and quits before it closes. */
+interface NVDAWorker {
+  nvdaWorker: void;
+}
 
 /** The test each spec uses: VoiceOver's on macOS, NVDA's on Windows. */
 export const test: ScreenReaderTest =
@@ -97,16 +73,25 @@ export const test: ScreenReaderTest =
         page,
         sr: async ({ voiceOver, page }, provide) => {
           await provide(voiceOver);
-          await finish(voiceOver, page);
+          await finishVoiceOver(voiceOver, page);
         },
       })
-    : nvdaTest.extend<Fixtures>({
+    : base.extend<Fixtures, NVDAWorker>({
+        nvdaWorker: [
+          async ({ browser }, provide) => {
+            void browser;
+            await startNVDA();
+            await provide();
+            for (const problem of await stopNVDA()) note("at the end of the worker", problem);
+          },
+          { scope: "worker", timeout: 120_000 },
+        ],
         storyId: ["", { option: true }],
-        context: ownBrowserContext,
         page,
-        sr: async ({ nvda, page }, provide) => {
-          await provide(nvda);
-          await finish(nvda, page);
+        sr: async ({ nvdaWorker, page }, provide) => {
+          void nvdaWorker;
+          await provide(nvdaFor(page));
+          await closeContext(page);
         },
       });
 

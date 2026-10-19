@@ -115,3 +115,21 @@ export function spokenAfter(records: readonly string[]): string[] {
   }
   return phrases;
 }
+
+/** The window title Chromium's window has under Playwright, as @guidepup/playwright names it. */
+const CHROMIUM = "Google Chrome For Testing";
+
+/** A window title as NVDA says it, without the symbols it reads differently from the page. */
+const titleWords = (text: string) =>
+  text
+    .toLowerCase()
+    .replace(/[|¦:;'"`\-‐–—·_()[\]{}\\^~]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+/** Whether the window NVDA reports (`windowTitle`) is the page's (`pageTitle`), in the browser (nvda.ts). */
+export function readsBrowser(windowTitle: string, pageTitle: string): boolean {
+  const window = titleWords(windowTitle);
+  const title = titleWords(pageTitle);
+  return (title.length > 0 && window.startsWith(title)) || window.includes(titleWords(CHROMIUM));
+}
