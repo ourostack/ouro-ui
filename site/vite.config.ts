@@ -2,6 +2,7 @@ import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
+import { proofPlugin } from "./scripts/proof.mts";
 
 // The landing page and docs site, built from the repository's own dependencies (no
 // package of its own). Pages serves it at https://ourostack.github.io/ouro-ui/.
@@ -36,7 +37,7 @@ export function chunkEvidence(root: string): Plugin {
 export default defineConfig(({ isSsrBuild }) => ({
   root: fileURLToPath(new URL(".", import.meta.url)),
   base: "/ouro-ui/",
-  plugins: [react(), tailwindcss(), chunkEvidence(repo)],
+  plugins: [react(), tailwindcss(), chunkEvidence(repo), proofPlugin()],
   // `@/` is the repo root, as in the registry source, so the site imports components the
   // way an app's components.json alias does.
   resolve: { alias: { "@": repo } },

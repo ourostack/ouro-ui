@@ -1,7 +1,7 @@
 import { docsItems, summary } from "./docs/items";
 import { docsPages } from "./docs/pages";
 import { HERO_COPY } from "./copy";
-import { latestRelease } from "./release";
+import { latestRelease } from "./latest-release";
 import { normalizePath } from "./paths";
 
 export { href, pathFromLocation } from "./paths";

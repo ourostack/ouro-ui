@@ -1,0 +1,412 @@
+/*
+ * The porthole stage (scene.tsx). Every colour comes from the theme: the water from --primary
+ * mixed toward the page and the deep, the light and the lantern from --chart-3, the kelp from
+ * --chart-2, the linework from --foreground. --d is the depth from 0 (the surface) to 1 (300
+ * fathoms). Motion: the fish drift and the Nautilus glides only without reduced motion, and the
+ * drift rests while the stage is off screen; with reduced motion only colour and opacity change.
+ */
+.stage-scene {
+  --sea-surface: color-mix(in oklab, var(--primary) 58%, var(--background));
+  --sea-deep: color-mix(in oklab, var(--primary) 26%, oklch(0.12 0.03 255));
+  --sea-abyss: color-mix(in oklab, var(--primary) 10%, oklch(0.07 0.02 255));
+  --sea-top: color-mix(in oklab, var(--sea-surface), var(--sea-abyss) calc(var(--d) * 100%));
+  --sea-bottom: color-mix(in oklab, var(--sea-deep), var(--sea-abyss) calc(var(--d) * 100%));
+  --ink: color-mix(in oklab, var(--foreground) 70%, transparent);
+  --glow: var(--chart-3);
+  --stage-fade: var(--ouro-duration-slow) ease;
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.stage-sea-top,
+.stage-sea-bottom,
+.stage-shaft-top,
+.stage-shaft-bottom,
+.stage-beam-near,
+.stage-beam-far,
+.stage-vignette-clear,
+.stage-vignette-edge {
+  transition: stop-color var(--stage-fade), stop-opacity var(--stage-fade);
+}
+.stage-sea-top {
+  stop-color: var(--sea-top);
+}
+.stage-sea-bottom {
+  stop-color: var(--sea-bottom);
+}
+.stage-shaft-top {
+  stop-color: var(--glow);
+  stop-opacity: 0.55;
+}
+.stage-shaft-bottom {
+  stop-color: var(--glow);
+  stop-opacity: 0;
+}
+.stage-beam-near {
+  stop-color: var(--glow);
+  stop-opacity: 0.7;
+}
+.stage-beam-far {
+  stop-color: var(--glow);
+  stop-opacity: 0;
+}
+.stage-vignette-clear {
+  stop-color: var(--sea-abyss);
+  stop-opacity: 0;
+}
+.stage-vignette-edge {
+  stop-color: var(--sea-abyss);
+  stop-opacity: calc(0.15 + min(var(--d) * 5, 1) * 0.4);
+}
+.stage-veil-top {
+  stop-color: var(--sea-surface);
+  stop-opacity: 0.45;
+}
+.stage-veil-bottom {
+  stop-color: var(--sea-surface);
+  stop-opacity: 0;
+}
+.stage-waterline {
+  fill: none;
+  stroke: color-mix(in oklab, var(--background) 70%, transparent);
+  stroke-width: 1.2;
+}
+
+.stage-snow {
+  fill: color-mix(in oklab, var(--background) 70%, var(--glow));
+  opacity: calc(0.15 + var(--d) * 0.6);
+  transition: opacity var(--stage-fade);
+}
+
+/* The surface world: sky, sun, waves and shafts, lifted out of view as the porthole goes down. */
+.stage-surface-world {
+  --rise: calc(min(var(--d) * 5, 1) * -700px);
+  transform: translateY(var(--rise));
+}
+.stage-sky {
+  fill: color-mix(in oklab, var(--background) 72%, var(--accent));
+}
+.dark .stage-sky {
+  fill: color-mix(in oklab, var(--background) 85%, var(--primary));
+}
+.stage-sun {
+  fill: var(--glow);
+  opacity: 0.85;
+}
+.stage-cloud {
+  fill: color-mix(in oklab, var(--background) 92%, white);
+  opacity: 0.95;
+}
+.stage-cloud-far {
+  opacity: 0.6;
+}
+.stage-waves {
+  fill: color-mix(in oklab, var(--sea-surface) 70%, var(--background));
+  stroke: color-mix(in oklab, var(--foreground) 25%, transparent);
+  stroke-width: 1;
+}
+.stage-shafts {
+  opacity: max(0, calc(0.9 - var(--d) * 3));
+  mix-blend-mode: screen;
+  transition: opacity var(--stage-fade);
+}
+
+.stage-floor {
+  opacity: max(0.35, calc(1 - var(--d) * 0.7));
+  transition: opacity var(--stage-fade);
+}
+.stage-kelp {
+  opacity: max(0, calc(1 - var(--d) * 3.2));
+  transition: opacity var(--stage-fade);
+}
+.k-stem {
+  fill: none;
+  stroke: color-mix(in oklab, var(--chart-2) 70%, var(--sea-deep));
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+.k-leaf {
+  fill: color-mix(in oklab, var(--chart-2) 75%, var(--sea-deep));
+}
+.s-rock {
+  fill: color-mix(in oklab, var(--sea-deep) 70%, var(--foreground) 6%);
+}
+.s-rock-near {
+  fill: color-mix(in oklab, var(--sea-abyss) 80%, var(--foreground) 4%);
+}
+.s-coral {
+  fill: none;
+  stroke: color-mix(in oklab, var(--chart-4) 70%, var(--sea-deep));
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+/* Creatures: silver in the light, dark with their own lights below. */
+.c-body {
+  fill: color-mix(in oklab, var(--background) 65%, var(--primary));
+  stroke: var(--ink);
+  stroke-width: 0.8;
+}
+.c-shade {
+  fill: color-mix(in oklab, var(--primary) 30%, transparent);
+}
+.c-line,
+.c-arm {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+}
+.c-eye,
+.c-pupil {
+  fill: var(--foreground);
+}
+.c-eye-big {
+  fill: var(--background);
+  stroke: var(--ink);
+}
+.c-glow,
+.c-glow-body {
+  fill: var(--glow);
+}
+.c-glow-body {
+  opacity: 0.55;
+}
+.stage-band-midnight .c-body,
+.stage-hidden .c-body {
+  fill: color-mix(in oklab, var(--sea-deep) 60%, var(--foreground) 14%);
+}
+.stage-hidden .c-arm {
+  stroke: color-mix(in oklab, var(--chart-4) 70%, var(--foreground));
+  stroke-width: 7;
+}
+.stage-hidden .c-body {
+  stroke: color-mix(in oklab, var(--glow) 60%, transparent);
+}
+.c-mouth {
+  fill: var(--sea-abyss);
+}
+.c-teeth {
+  fill: none;
+  stroke: var(--background);
+  stroke-width: 1.2;
+}
+
+.stage-sardine-far {
+  opacity: 0.7;
+}
+
+/* Which water we are in: one band of life shows at a time. */
+.stage-band {
+  opacity: 0;
+  transition: opacity var(--stage-fade);
+}
+.stage-scene[data-band="sunlit"] .stage-band-sunlit,
+.stage-scene[data-band="twilight"] .stage-band-twilight,
+.stage-scene[data-band="midnight"] .stage-band-midnight {
+  opacity: 1;
+}
+
+/* The drift: from off the glass on the right to off it on the left, while the stage is on screen. */
+.stage-drift {
+  --drift: 22s;
+}
+.stage-scene[data-speed="full"] .stage-drift {
+  --drift: 9s;
+}
+.stage-ray,
+.stage-jelly {
+  --drift-scale: 2;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .stage-drift {
+    animation: stage-drift calc(var(--drift) * var(--drift-scale, 1)) linear calc(var(--drift) * var(--drift-scale, 1) * var(--drift-delay) * -1) infinite;
+  }
+  .stage-scene[data-speed="stop"] .stage-drift,
+  .stage[data-offscreen] .stage-drift {
+    animation-play-state: paused;
+  }
+  .stage-nautilus {
+    transition: transform var(--ouro-duration-sheet) var(--ouro-ease-in-out);
+  }
+  .stage-surface-world {
+    transition: transform var(--ouro-duration-slow) var(--ouro-ease-out);
+  }
+  .stage-bubbles circle {
+    animation: stage-bubble 1600ms var(--ouro-ease-out) calc(var(--bubble-delay) * 1s) 1 both;
+  }
+}
+@keyframes stage-drift {
+  from {
+    transform: translateX(300px);
+  }
+  to {
+    transform: translateX(-340px);
+  }
+}
+@keyframes stage-bubble {
+  from {
+    transform: translateY(0);
+    opacity: 0.9;
+  }
+  to {
+    transform: translateY(-260px);
+    opacity: 0;
+  }
+}
+.stage-bubbles {
+  fill: none;
+  stroke: color-mix(in oklab, var(--background) 80%, transparent);
+  stroke-width: 1.4;
+}
+@media (prefers-reduced-motion: reduce) {
+  .stage-bubbles {
+    display: none;
+  }
+}
+
+/* The Nautilus: afloat at the top, a little lower for each full tank, then down beside us. */
+.stage-nautilus {
+  transform: translate(58px, calc(124px + var(--tanks) * 7px + min(var(--d) * 5, 1) * -700px));
+}
+.stage-scene[data-dived] .stage-nautilus {
+  transform: translate(24px, 226px);
+}
+.stage-scene {
+  --hull: color-mix(in oklab, var(--primary) 28%, oklch(0.34 0.025 250));
+  --hull-trim: color-mix(in oklab, var(--primary) 22%, oklch(0.42 0.025 250));
+}
+.n-hull {
+  fill: var(--hull);
+}
+.n-hull-shade {
+  opacity: 0.9;
+}
+.n-hull-sheen-top {
+  stop-color: color-mix(in oklab, var(--primary) 40%, var(--background));
+  stop-opacity: 0.6;
+}
+.n-hull-sheen-mid {
+  stop-color: var(--primary);
+  stop-opacity: 0;
+}
+.n-hull-sheen-bottom {
+  stop-color: oklch(0.08 0.02 255);
+  stop-opacity: 0.45;
+}
+.n-plates {
+  fill: none;
+  stroke: color-mix(in oklab, var(--background) 30%, transparent);
+  stroke-width: 0.8;
+}
+.n-lights circle {
+  fill: color-mix(in oklab, var(--glow) 80%, var(--background));
+}
+.n-platform,
+.n-longboat,
+.n-cage path:first-child,
+.n-plane,
+.n-rudder {
+  fill: var(--hull-trim);
+  stroke: color-mix(in oklab, var(--background) 25%, transparent);
+  stroke-width: 0.8;
+}
+.n-glass {
+  fill: color-mix(in oklab, var(--primary) 40%, var(--background));
+}
+.n-lantern {
+  fill: var(--glow);
+}
+.n-screw {
+  fill: color-mix(in oklab, var(--primary) 15%, oklch(0.3 0.02 255));
+  stroke: color-mix(in oklab, var(--primary) 15%, oklch(0.3 0.02 255));
+}
+.n-spur {
+  fill: color-mix(in oklab, var(--background) 55%, var(--primary));
+}
+.n-outline {
+  fill: none;
+  stroke: color-mix(in oklab, var(--foreground) 55%, transparent);
+  stroke-width: 1.2;
+}
+.stage-glow-core {
+  stop-color: var(--glow);
+  stop-opacity: 0.9;
+}
+.stage-glow-edge {
+  stop-color: var(--glow);
+  stop-opacity: 0;
+}
+.stage-lantern-glow {
+  opacity: 0.35;
+  transition: opacity var(--stage-fade);
+}
+
+/* The floodlights: the lantern's beam, and what it finds in the deep. */
+.stage-beam {
+  opacity: 0;
+  mix-blend-mode: screen;
+  transition: opacity var(--stage-fade);
+}
+.stage-scene[data-lights] .stage-beam {
+  opacity: 1;
+}
+.stage-scene[data-lights] .stage-lantern-glow {
+  opacity: 0.9;
+}
+.stage-hidden {
+  opacity: 0;
+  transition: opacity var(--ouro-duration-slow) ease 120ms;
+}
+.stage-scene[data-lights][data-dived]:not([data-band="sunlit"]) .stage-hidden {
+  opacity: 1;
+}
+
+.stage-vignette {
+  pointer-events: none;
+}
+.stage-glare {
+  fill: none;
+  stroke: color-mix(in oklab, white 22%, transparent);
+  stroke-width: 4;
+  opacity: calc(1 - min(var(--d) * 5, 1) * 0.6);
+  transition: opacity var(--stage-fade);
+  stroke-linecap: round;
+}
+
+/* The rim: quiet in Sleek, brass where the preset says so. */
+.stage-rim-ring {
+  fill: none;
+  stroke: color-mix(in oklab, var(--card) 90%, var(--foreground));
+  stroke-width: 32;
+}
+.stage-porthole {
+  border-radius: 999px;
+  box-shadow: var(--shadow-xl);
+}
+.stage-rim-inner,
+.stage-rim-outer {
+  fill: none;
+  stroke: color-mix(in oklab, var(--border) 80%, var(--foreground) 20%);
+  stroke-width: 1;
+}
+.stage-bolt {
+  fill: color-mix(in oklab, var(--muted-foreground) 50%, var(--card));
+}
+[data-theme="brass"] .stage-rim-ring,
+[data-theme="cookbook"] .stage-rim-ring {
+  stroke: color-mix(in oklab, var(--chart-3) 70%, var(--card));
+}
+[data-theme="brass"] .stage-bolt,
+[data-theme="cookbook"] .stage-bolt {
+  fill: color-mix(in oklab, var(--chart-3) 40%, var(--foreground));
+}
+
+@media (forced-colors: active) {
+  .stage-rim-ring,
+  .stage-rim-outer {
+    stroke: CanvasText;
+  }
+}
