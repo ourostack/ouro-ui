@@ -64,3 +64,164 @@ export function saysValue(sentence: string, value: string, label: string, voiceO
   if (new RegExp(`\\b${escape(value)}\\b`, "i").test(sentence)) return true;
   return voiceOver && value.length > 3 && sentence.toLowerCase().includes(`, ${value.slice(0, -3)} ${label}`.toLowerCase());
 }
+
+/** How screen-reader.ts's VoiceOver watcher marks each phrase it logs. */
+export const RECORD_START = "[[sr]]";
+export const RECORD_END = "[[/sr]]";
+
+/** The whole records in `buffer` (the watcher's output so far), and the unfinished rest. */
+export function readRecords(buffer: string): { records: string[]; rest: string } {
+  const records: string[] = [];
+  let rest = buffer;
+  for (;;) {
+    const start = rest.indexOf(RECORD_START);
+    const end = start === -1 ? -1 : rest.indexOf(RECORD_END, start);
+    if (end === -1) return { records, rest: start === -1 ? "" : rest.slice(start) };
+    records.push(rest.slice(start + RECORD_START.length, end));
+    rest = rest.slice(end + RECORD_END.length);
+  }
+}
+
+/** A phrase as Guidepup cleans VoiceOver's (`cleanSpokenPhrase`). */
+const clean = (phrase: string): string =>
+  phrase
+    .trim()
+    .replace(/^missing value$/, "")
+    .replaceAll("@VOModifier()", "Control-Option")
+    .replace(/\s\s+/g, " ");
+
+/** What the VoiceOver watcher has VoiceOver say before an action: its last phrase, until the action makes it say something. */
+export const MARK = "Speech check";
+
+/**
+ * What VoiceOver said after an action, from the watcher's records of its last phrase: every
+ * phrase it moved to after the last MARK, which the watcher has it say just before the action. Nothing
+ * before MARK counts, so neither does what VoiceOver was saying before the action; and a phrase it
+ * says again (the control it was already on, as focus arrives) is still a change from MARK.
+ * VoiceOver keeps only its last phrase, so a short phrase ("Edit dialog pop up button") between
+ * two hints lasts only until the next hint: the watcher reads it every 20 ms, where Guidepup's
+ * capture waits as long as the last phrase takes to say before reading again.
+ */
+export function spokenAfter(records: readonly string[]): string[] {
+  const start = records.findLastIndex((record) => clean(record) === MARK);
+  if (start === -1) return [];
+  const phrases: string[] = [];
+  let previous = MARK;
+  for (const record of records.slice(start + 1)) {
+    const phrase = clean(record);
+    if (!phrase || phrase === previous) continue;
+    phrases.push(phrase);
+    previous = phrase;
+  }
+  return phrases;
+}
+
+/** The window title Chromium's window has under Playwright, as @guidepup/playwright names it. */
+const CHROMIUM = "Google Chrome For Testing";
+
+/** A window title as NVDA says it, without the symbols it reads differently from the page. */
+const titleWords = (text: string) =>
+  text
+    .toLowerCase()
+    .replace(/[|¦:;'"`\-‐–—·_()[\]{}\\^~]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+/** Whether the window NVDA reports (`windowTitle`) is the page's (`pageTitle`), in the browser (nvda.ts). */
+export function readsBrowser(windowTitle: string, pageTitle: string): boolean {
+  const window = titleWords(windowTitle);
+  const title = titleWords(pageTitle);
+  return (title.length > 0 && window.startsWith(title)) || window.includes(titleWords(CHROMIUM));
+}
+
+/**
+ * How long the VoiceOver watcher's osascript may run (screen-reader.ts): longer than a whole test,
+ * so it outlives every check's deadline and only `stop()` ends it, but finite, so a watcher left
+ * behind by a worker that died ends too.
+ */
+export const WATCH_LIMIT_SECONDS = 600;
+
+/** How the VoiceOver watcher's osascript ended: its exit code (null when it never ran), and why. */
+export interface WatchEnd {
+  code: number | null;
+  detail: string;
+}
+
+/**
+ * What a VoiceOver check (screen-reader.ts, `heard`) does next with the phrases read so far: a
+ * phrase `matches` accepts is found, even late; past `deadline` a missing phrase fails as an
+ * accessibility finding, whatever became of the watcher; before it, a watcher that failed (exited
+ * non-zero, or never ran) fails as infrastructure, and otherwise the check waits for more speech.
+ * A watcher that ended cleanly has only stopped reading, so the check waits out its deadline.
+ */
+export function speechVerdict(phrases: readonly string[], matches: (phrase: string) => boolean, what: string, { now, deadline, ended }: { now: number; deadline: number; ended: WatchEnd | null }): { found: string; heard: string } | { fail: string } | "wait" {
+  const heard = phrases.map((phrase) => `"${phrase}"`).join(" | ") || "nothing";
+  const found = firstMatch(phrases, matches);
+  if (found !== undefined) return { found, heard };
+  if (now > deadline) return { fail: `[sr] no utterance matched ${what}; heard: ${heard}` };
+  if (ended !== null && ended.code !== 0) return { fail: `[sr] infrastructure: VoiceOver's speech stopped being read (${ended.detail}); heard: ${heard}` };
+  return "wait";
+}
+
+/**
+ * Whether VoiceOver has been quiet for `quietMs` at `now`: the watcher read its last new phrase at
+ * the last of `stamps` (milliseconds), and nothing since. A check acts only once VoiceOver is quiet,
+ * as a person listens before pressing the next key: Enter pressed while VoiceOver was still
+ * speaking opened the dialog without VoiceOver ever saying its name.
+ */
+export function quietFor(stamps: readonly number[], now: number, quietMs: number): boolean {
+  const last = stamps.at(-1);
+  return last !== undefined && now - last >= quietMs;
+}
+
+/** What `readyForAction` reads of a VoiceOver watch (screen-reader.ts), so a fake can stand in. */
+export interface WatchState {
+  /** VoiceOver's last phrase each time it changed, and when the watch read it (`now()` time). */
+  readonly records: readonly string[];
+  readonly stamps: readonly number[];
+  now(): number;
+  ended(): WatchEnd | null;
+  /** Resolves when a phrase is read, the watch ends, or `deadline` passes. */
+  next(deadline: number): Promise<void>;
+}
+
+/**
+ * Gets VoiceOver ready for an action, returning null once it is, or why it could not be. It waits
+ * for VoiceOver to say something (10 s), then for quiet (2 s, at most 10 s of waiting), has it say
+ * MARK (`say`), waits up to 3 s for MARK to be its last phrase and then for a quiet second with MARK
+ * still last. VoiceOver dropped MARK once (run 39269919232), and can talk over it, so each of those
+ * tries again, three times in all.
+ */
+export async function readyForAction(watch: WatchState, say: () => Promise<void>): Promise<string | null> {
+  const until = async (done: () => boolean, ms: number) => {
+    const limit = watch.now() + ms;
+    while (!done() && watch.ended() === null && watch.now() < limit) await watch.next(Math.min(limit, watch.now() + 250));
+    return done();
+  };
+  const lastIsMark = () => clean(watch.records.at(-1) ?? "") === MARK;
+  if (!(await until(() => watch.records.length > 0, 10_000))) return watch.ended()?.detail ?? "VoiceOver said nothing within 10 s";
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await until(() => quietFor(watch.stamps, watch.now(), 2_000), 10_000);
+    try {
+      await say();
+    } catch (error) {
+      return `VoiceOver did not say "${MARK}": ${error instanceof Error ? error.message : String(error)}`;
+    }
+    const marked = await until(lastIsMark, 3_000);
+    if (marked) await until(() => !lastIsMark() || quietFor(watch.stamps, watch.now(), 1_000), 5_000);
+    const ended = watch.ended();
+    if (ended !== null) return ended.detail;
+    if (marked && lastIsMark()) return null;
+  }
+  return `"${MARK}" was never VoiceOver's last phrase in 3 tries`;
+}
+
+/**
+ * Whether a check's error says the expected phrase never came (`[sr] no utterance matched`), the
+ * only failure after which the Checklist step may ask VoiceOver to describe the focus
+ * (screen-reader.ts, `heardOrDescribed`; ourostack/ouro-ui#118). The runner's failures and any
+ * other error stay what they are.
+ */
+export function missedPhrase(message: string): boolean {
+  return /^\[sr\] no utterance matched /.test(message);
+}
