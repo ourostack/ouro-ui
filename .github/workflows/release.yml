@@ -3,9 +3,10 @@ name: Release
 # off green main whose registry.json pins every same-repo registryDependency to the tag
 # (scripts/registry.mts --release), so `shadcn add ourostack/ouro-ui/<item>#v<version>`
 # installs every Ouro dependency at that tag while main stays unpinned. CI runs on that
-# commit; when it passes, the commit is tagged, the GitHub release is created and the
-# branch is deleted (the tag keeps the commit). Because main never receives the release
-# commit, the run then opens "Prepare main for the next release" against main: it deletes
+# commit (with the shadcn@latest install, ci.yml's install-latest job), then the screen-reader
+# lane (screen-reader.yml: VoiceOver and NVDA); when both pass, the commit is tagged, the
+# GitHub release is created and the branch is deleted (the tag keeps the commit). Because
+# main never receives the release commit, the run then opens "Prepare main for the next release" against main: it deletes
 # the change fragments this release used (changes/*.md) and makes the tag the newest release
 # (package.json ouro.latestRelease, scripts/latest-release.mjs). The run merges that pull
 # request itself once its checks pass, runs CI on main's new tip, deploys Pages, and last
@@ -25,13 +26,20 @@ permissions:
   contents: write # push the release branch and the tag, create the release
   actions: write # run CI on the release branch and the branch that prepares main
   pull-requests: write # open the PR that prepares main for the next release
+  issues: write # report a screen-reader lane that failed twice on infrastructure (scripts/sr-infra-issue.sh)
 concurrency:
   group: release
   cancel-in-progress: false
 jobs:
   release:
     runs-on: ubuntu-latest
-    timeout-minutes: 150 # CI on the release commit, CI on the pull request that prepares main, then a Pages deploy
+    # CI on the release commit (with the shadcn@latest install, beside CI's other jobs), the
+    # screen-reader lane on it (once more after an infrastructure failure), CI on the pull request
+    # that prepares main, then a Pages deploy. The last 30 releases took 89 minutes at p95; the
+    # lane took at most 7 minutes from dispatch to its result over its first runs, so 8 twice
+    # makes 105, and 1.5 times that is 158. 180 leaves room for a macOS runner queue those runs
+    # did not meet (scripts/workflows.test.mjs).
+    timeout-minutes: 180
     env:
       GH_TOKEN: ${{ github.token }}
       VERSION: ${{ inputs.version }}
@@ -108,6 +116,43 @@ jobs:
           done
           [ -n "$run" ] || { echo "::error::CI did not start on $BRANCH ($sha)"; exit 1; }
           gh run watch "$run" --exit-status --interval 30
+      - if: steps.check.outputs.new == 'true'
+        name: Pass the screen-reader lane on the release commit
+        run: |
+          # The release commit is tagged only when VoiceOver and NVDA pass on that exact commit
+          # (screen-reader.yml, dispatched on the release branch with source_sha set to it). An
+          # infrastructure failure (scripts/sr-classify.mjs) is dispatched once more; a second
+          # one, or an accessibility failure, stops the release.
+          sha=$(git rev-parse HEAD)
+          for attempt in 1 2; do
+            before=$(gh run list --workflow screen-reader.yml --branch "$BRANCH" --event workflow_dispatch --json databaseId --jq '[.[].databaseId] | max // 0')
+            gh workflow run screen-reader.yml --ref "$BRANCH" -f source_sha="$sha"
+            run=
+            for _ in $(seq 60); do
+              # The newest dispatched run for this exact commit created after this dispatch.
+              run=$(gh run list --workflow screen-reader.yml --branch "$BRANCH" --json databaseId,headSha,event,createdAt --jq "[.[] | select(.event == \"workflow_dispatch\" and .headSha == \"$sha\" and .databaseId > $before)] | sort_by(.createdAt) | last | .databaseId // empty")
+              [ -n "$run" ] && break
+              sleep "${POLL_SECONDS:-5}"
+            done
+            [ -n "$run" ] || { echo "::error::The screen-reader lane did not start on $BRANCH ($sha)."; exit 1; }
+            url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$run"
+            echo "Screen-reader lane, attempt $attempt: $url" >> "$GITHUB_STEP_SUMMARY"
+            if gh run watch "$run" --exit-status --interval 30 >/dev/null; then
+              verdict=$(gh run view "$run" --json conclusion,headSha --jq '"\(.conclusion) \(.headSha)"')
+              [ "$verdict" = "success $sha" ] || { echo "::error::Screen-reader run $url concluded '$verdict', not success for $sha."; exit 1; }
+              echo "VoiceOver and NVDA passed on $sha: $url"
+              exit 0
+            fi
+            classes=$(gh run view "$run" --log-failed | grep -o 'SR_CLASS=[a-z]*' | sort -u | tr '\n' ' ' | sed 's/ $//' || true)
+            if [ "$classes" != "SR_CLASS=infrastructure" ]; then
+              echo "::error::The screen-reader lane failed on $sha (${classes:-unclassified}): $url. An accessibility failure blocks the release; fix main and run Release again."
+              exit 1
+            fi
+            echo "::warning::The screen-reader lane could not drive its screen reader (attempt $attempt): $url"
+          done
+          issue=$(GH_REPO="$GITHUB_REPOSITORY" scripts/sr-infra-issue.sh "$url" "release $TAG" || true)
+          echo "::error::The screen-reader lane failed twice on infrastructure, so $TAG is not tagged: ${issue:-$url}"
+          exit 1
       - if: steps.check.outputs.new == 'true'
         name: Tag and publish the release
         run: |

@@ -14,6 +14,13 @@
     "markdown": "docs/guides/installing.md"
   },
   {
+    "name": "screen-reader-lane",
+    "title": "The screen-reader lane",
+    "kind": "guide",
+    "group": "Guides",
+    "markdown": "docs/guides/screen-reader-lane.md"
+  },
+  {
     "name": "testing",
     "title": "Testing",
     "kind": "guide",

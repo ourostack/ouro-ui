@@ -1,9 +1,10 @@
 import { composeStories, setProjectAnnotations } from "@storybook/react";
 import type { ComponentType } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { vi } from "vitest";
+import { inject, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { storyFileSelected } from "./story-selection.ts";
 
 // Shared by the story accessibility test, the control marker test and the visual test. Stories render
 // through Storybook's `composeStories`, so a test sees exactly what Storybook
@@ -86,6 +87,45 @@ export interface StoryEntry {
 export const stories: StoryEntry[] = Object.entries(storyFiles).flatMap(([file, composed]) =>
   Object.entries(composed).map(([name, Story]) => ({ id: `${file}/${name}`, Story, parameters: Story.parameters ?? {} })),
 );
+
+declare module "vitest" {
+  export interface ProvidedContext {
+    /** OURO_STORIES, from vitest.config.ts: see `selectedStories`. */
+    ouroStories: string | null;
+  }
+}
+
+/**
+ * The component folders a pull request's reduced run selected (scripts/test-impact.mjs passes them
+ * comma-separated in OURO_STORIES, maybe none), or null for every folder.
+ */
+const selectedFolders = ((value) => (value === null ? null : new Set(value.split(",").filter(Boolean))))(inject("ouroStories"));
+
+/** Whether the shared suites render this story (`Component/StoryExport`) in this run: see `selectedStories` and test/story-selection.ts. */
+export function storySelected(id: string): boolean {
+  return storyFileSelected(storyPaths.get(id.split("/")[0] ?? "") ?? "", selectedFolders);
+}
+
+/** The folder of each component stem, from the component.json manifests. */
+const stemFolders = new Map(
+  Object.entries(import.meta.glob<{ components: string[] }>("../registry/ouro/components/ouro/*/component.json", { eager: true, import: "default" })).flatMap(([path, manifest]) =>
+    manifest.components.map((stem) => [stem, path.split("/").at(-2)!] as const),
+  ),
+);
+
+/** Whether the shared suites render this component stem's subjects (its docs demo) in this run: see `selectedStories`. */
+export function stemSelected(stem: string): boolean {
+  const folder = stemFolders.get(stem);
+  return selectedFolders === null || (folder !== undefined && selectedFolders.has(folder));
+}
+
+/**
+ * The stories the shared suites that render every story (axe, margins, control markers, theme
+ * tokens, text size, the theme fixtures) iterate: every story, except on a pull request's
+ * reduced run, which renders the selected component folders' stories and the reference stories. `stories`,
+ * `storyFiles` and `story()` always hold every story, for the checks that look one up by id.
+ */
+export const selectedStories: StoryEntry[] = stories.filter((entry) => storySelected(entry.id));
 
 const roots: Root[] = [];
 const mounted: Element[] = [];

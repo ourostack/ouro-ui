@@ -5,6 +5,8 @@ import { defineConfig, devices } from "@playwright/test";
 // http://localhost:6006); here, this repository's own.
 export default defineConfig({
   testDir: "registry/ouro/e2e",
+  // The screen-reader specs need VoiceOver or NVDA: playwright.screen-reader.config.ts runs them.
+  testIgnore: /\.sr\.spec\.ts$/,
   forbidOnly: !!process.env["CI"],
   retries: process.env["CI"] ? 1 : 0,
   reporter: process.env["CI"] ? [["list"], ["html", { open: "never" }]] : "list",
