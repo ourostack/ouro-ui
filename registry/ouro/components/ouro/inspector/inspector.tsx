@@ -50,8 +50,14 @@ const keyOf = (element: Element) => {
 /** Whatever a modal dialog shuts off from the page while it is open: Base UI hides it from assistive technology, or makes it inert. */
 const shutOff = '[aria-hidden="true"], [inert]';
 
-/** Whether a dialog is open in front of the page (X-ray's own list aside), so what it shuts off is out of reach. */
-const dialogOpen = () =>
+/**
+ * Whether a modal dialog is open in front of the page, so what it shuts off is out of reach: X-ray's
+ * own layer is shut off with the page. A popover leaves the page alone, and an open combobox list
+ * hides the page from assistive technology but leaves it within reach, so it takes a dialog too
+ * (X-ray's own list aside).
+ */
+const modalOpen = (own: Element) =>
+  !!own.closest(shutOff) &&
   [...document.querySelectorAll('[role="dialog"], [role="alertdialog"]')].some((dialog) => !dialog.closest(shutOff) && !dialog.querySelector("[data-ouro-inspector-list]"));
 
 /**
@@ -82,9 +88,10 @@ interface Edges {
   left: number;
 }
 
-/** What X-ray reads once an update from an ancestor of a component: its position, and the edges it clips its overflow to on each axis. */
+/** What X-ray reads once an update from a component or an ancestor: its position and direction, and the edges it clips its overflow to on each axis. */
 interface Ancestor {
   position: string;
+  rtl: boolean;
   x: [number, number] | null;
   y: [number, number] | null;
 }
@@ -99,6 +106,7 @@ const readAncestor = (element: Element, cache: Map<Element, Ancestor>): Ancestor
     const top = box.top + element.clientTop;
     ancestor = {
       position: style.position,
+      rtl: style.direction === "rtl",
       x: style.overflowX === "visible" ? null : [left, left + element.clientWidth],
       y: style.overflowY === "visible" ? null : [top, top + element.clientHeight],
     };
@@ -132,6 +140,28 @@ function visiblePart(element: Element, box: DOMRect, cache: Map<Element, Ancesto
   return part;
 }
 
+/**
+ * The topmost element at a point on the screen, X-ray's own aside, and the invisible backdrop Base
+ * UI lays over the page under a modal menu or list (to catch a press outside it), which covers
+ * nothing a person sees. Ouro's own backdrops, which dim the page, carry a `data-ouro` name.
+ */
+const topAt = (x: number, y: number, own: Element) =>
+  document.elementsFromPoint(x, y).find((element) => !own.contains(element) && !element.matches('[role="presentation"][data-base-ui-inert]:not([data-ouro])'));
+
+/**
+ * Whether something lies over a component where its tag goes, so the tag would sit on that
+ * instead: at the component's corner by the tag, an element that is neither the component's own
+ * nor the page around it showing through; or, over the tag itself, an overlay's popup (a menu, a
+ * select list) the component is not in.
+ */
+function covered(root: Element, part: Edges, rtl: boolean, inside: boolean, own: Element): boolean {
+  const start = (offset: number) => (rtl ? part.right - offset : part.left + offset);
+  const corner = topAt(start(Math.min(4, (part.right - part.left) / 2)), part.top + Math.min(4, (part.bottom - part.top) / 2), own);
+  if (corner && !root.contains(corner) && !corner.contains(root)) return true;
+  const overlay = topAt(start(12), inside ? part.top + 8 : part.top - 8, own)?.closest('[data-ouro$="-portal"]');
+  return !!overlay && !overlay.contains(root);
+}
+
 const sameComponents = (a: Found[], b: Found[]) => a.length === b.length && a.every((entry, index) => entry.key === b[index]!.key && entry.item === b[index]!.item);
 
 /** Whether anything in the page outside X-ray is still moving, so its outline follows it frame by frame. */
@@ -154,7 +184,8 @@ const ouroDocs = (item: string) => `https://ourostack.github.io/ouro-ui/docs/${i
  * their components through scrolling, resizing, overlays and changes to the page, measured once a
  * frame at most; they never take a pointer, so the page stays usable underneath, and only the tags
  * do. X-ray shows only what a person can see and reach: an outline is cut to the part a scrolling
- * box lets show, the page behind an open dialog is left alone, and a part (a Radio) counts with
+ * box lets show, a tag hides while a menu or a list lies over it, the page behind an open modal
+ * dialog is left alone, and a part (a Radio) counts with
  * its component (its RadioGroup). Escape or Close turns it off, once Escape has closed any other
  * overlay. It renders nothing on the server.
  *
@@ -216,9 +247,13 @@ function InspectorLayer({ onOpenChange, docsHref, sourceHref, label }: Pick<Insp
    * and so does its tag.
    */
   const place = (components: Found[]) => {
+    const own = layer.current!;
     const ancestors = new Map<Element, Ancestor>();
     const boxes = components.map((component) => component.element.getBoundingClientRect());
     const parts = components.map((component, index) => visiblePart(component.element, boxes[index]!, ancestors));
+    // The tag sits on the part that shows, inside it where there is no room above (the top of the screen, or a cut top edge).
+    const inside = parts.map((part, index) => part.top < 16 || part.top > boxes[index]!.top);
+    const covers = components.map((component, index) => covered(component.element, parts[index]!, ancestors.get(component.element)!.rtl, inside[index]!, own));
     components.forEach((component, index) => {
       const outline = outlines.get(component.key);
       if (!outline) return;
@@ -230,9 +265,9 @@ function InspectorLayer({ onOpenChange, docsHref, sourceHref, label }: Pick<Insp
       outline.toggleAttribute("data-clipped", part.right <= part.left || part.bottom <= part.top);
       const cut = [part.top - box.top, box.right - part.right, box.bottom - part.bottom, part.left - box.left];
       (outline.firstElementChild as HTMLElement).style.clipPath = cut.some(Boolean) ? `inset(${cut.join("px ")}px)` : "";
-      // The tag sits on the part that shows, inside it where there is no room above (the top of the screen, or a cut top edge).
       const tag = outline.lastElementChild as HTMLElement;
-      tag.toggleAttribute("data-inside", part.top < 16 || cut[0]! > 0);
+      tag.toggleAttribute("data-inside", inside[index]!);
+      tag.toggleAttribute("data-covered", covers[index]!);
       tag.style.setProperty("--ouro-inspector-top", `${cut[0]}px`);
       tag.style.setProperty("--ouro-inspector-left", `${cut[3]}px`);
       tag.style.setProperty("--ouro-inspector-right", `${-cut[1]!}px`);
@@ -246,7 +281,7 @@ function InspectorLayer({ onOpenChange, docsHref, sourceHref, label }: Pick<Insp
     const resizes = new ResizeObserver(() => schedule());
     const update = () => {
       frame = 0;
-      const modal = dialogOpen();
+      const modal = modalOpen(own);
       // While a dialog shuts off the page, the bar (shut off with it) steps aside so it never covers the dialog.
       own.toggleAttribute("data-modal", modal);
       const next = findComponents(own, modal);

@@ -10,7 +10,10 @@ import { Checkbox } from "@/registry/ouro/components/ouro/checkbox/checkbox";
 import { Combobox } from "@/registry/ouro/components/ouro/combobox/combobox";
 import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
 import { Inspector, type InspectorProps } from "@/registry/ouro/components/ouro/inspector/inspector";
+import { Menu, MenuItem } from "@/registry/ouro/components/ouro/menu/menu";
+import { Popover } from "@/registry/ouro/components/ouro/popover/popover";
 import { RadioGroup } from "@/registry/ouro/components/ouro/radio-group/radio-group";
+import { Select } from "@/registry/ouro/components/ouro/select/select";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { expectMotion, expectNoMotion, parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
 
@@ -82,6 +85,15 @@ function onTarget(outline: HTMLElement, target: Element) {
   const b = target.getBoundingClientRect();
   return [a.left - b.left, a.top - b.top, a.width - b.width, a.height - b.height].every((delta) => Math.abs(delta) <= 1);
 }
+
+/** The tag of the outline on a component. */
+const tagOn = (target: Element) => outlines().find((outline) => onTarget(outline, target))!.querySelector<HTMLElement>('[data-ouro-part="tag"]')!;
+
+/** Whether a tag shows and takes a pointer. */
+const live = (tag: HTMLElement) => getComputedStyle(tag).visibility === "visible";
+
+/** Waits until nothing on the page is moving. */
+const settled = () => expect.poll(() => document.getAnimations().filter((animation) => animation.playState === "running").length).toBe(0);
 
 /** The page's own component roots, in document order, as X-ray should see them. */
 const pageRoots = (host: HTMLElement) => [...host.querySelectorAll('[data-ouro]:not([data-ouro$="-portal"])')];
@@ -269,6 +281,122 @@ describe("Inspector", () => {
     expect(getComputedStyle(layer()!.querySelector('[role="group"]')!).visibility).toBe("hidden");
     await userEvent.click(page.getByRole("button", { name: "Copy link" }));
     expect(onCopy).toHaveBeenCalledOnce();
+  }, 15_000);
+
+  it("hides the tag of a component an open menu covers, and leaves the menu's items within reach", async () => {
+    await page.viewport(1280, 800);
+    const onEdit = vi.fn();
+    await render(
+      <Page>
+        <Menu trigger={<Button>Actions</Button>}>
+          <MenuItem onClick={onEdit}>Edit</MenuItem>
+          <MenuItem>Print</MenuItem>
+          <MenuItem>Duplicate</MenuItem>
+          <MenuItem>Delete</MenuItem>
+        </Menu>
+        <Button>Under</Button>
+      </Page>,
+    );
+    await drawn(5);
+    const under = page.getByRole("button", { name: "Under" }).element();
+    expect(live(tagOn(under))).toBe(true);
+    await userEvent.click(page.getByRole("button", { name: "Actions" }));
+    await expect.element(page.getByRole("menu")).toBeVisible();
+    await settled();
+    await expect.poll(() => live(tagOn(under))).toBe(false);
+    expect(live(tagOn(page.getByRole("button", { name: "Actions" }).element()))).toBe(true);
+    await userEvent.click(page.getByRole("menuitem", { name: "Edit" }));
+    expect(onEdit).toHaveBeenCalledOnce();
+    // With the menu gone, the tag is back.
+    await expect.poll(() => live(tagOn(under))).toBe(true);
+  }, 15_000);
+
+  it("hides the tag of a component an open select list covers, and leaves its options within reach", async () => {
+    await page.viewport(1280, 800);
+    const onValueChange = vi.fn();
+    await render(
+      <Page>
+        <Select
+          label="Course"
+          placeholder="Choose a course"
+          onValueChange={onValueChange}
+          options={["Starter", "Main", "Side", "Dessert", "Drink"].map((label) => ({ value: label.toLowerCase(), label }))}
+        />
+        <Button>Under</Button>
+      </Page>,
+    );
+    await drawn(5);
+    const under = page.getByRole("button", { name: "Under" }).element();
+    expect(live(tagOn(under))).toBe(true);
+    await userEvent.click(page.getByRole("combobox", { name: "Course" }));
+    await expect.element(page.getByRole("listbox")).toBeVisible();
+    await settled();
+    await expect.poll(() => live(tagOn(under))).toBe(false);
+    await userEvent.click(page.getByRole("option", { name: "Dessert" }));
+    expect(onValueChange).toHaveBeenCalledWith("dessert");
+  }, 15_000);
+
+  it("hides a tag an overlay lies over though its component shows", async () => {
+    const { host } = await render(
+      <Page>
+        <Button>Under</Button>
+      </Page>,
+    );
+    await drawn(4);
+    const under = host.querySelectorAll('[data-ouro="button"]')[1]!;
+    const tag = tagOn(under);
+    const box = tag.getBoundingClientRect();
+    // An overlay's popup in its portal, lying over the tag but not the button.
+    const portal = document.createElement("div");
+    portal.setAttribute("data-ouro", "popover-portal");
+    portal.style.cssText = `position: fixed; left: ${box.left}px; top: ${box.top}px; width: ${box.width}px; height: ${box.height}px; background: white`;
+    document.body.append(portal);
+    mounted.push(portal);
+    await expect.poll(() => live(tag)).toBe(false);
+    portal.style.left = `${box.right + 40}px`;
+    await expect.poll(() => live(tag)).toBe(true);
+  });
+
+  it("hides the tag of a component the page covers where its tag points, right to left too", async () => {
+    const { host } = await render(
+      <Page>
+        <div dir="rtl" style={{ position: "relative" }}>
+          <Button>Covered</Button>
+          <div data-testid="cover" style={{ position: "absolute", top: 0, insetInlineStart: 0, width: 24, height: 24, background: "white" }} />
+        </div>
+      </Page>,
+    );
+    await drawn(4);
+    const tag = tagOn(host.querySelectorAll('[data-ouro="button"]')[1]!);
+    await expect.poll(() => live(tag)).toBe(false);
+    // Moved to the far end, the cover leaves the corner the tag points to.
+    const cover = host.querySelector<HTMLElement>('[data-testid="cover"]')!;
+    cover.style.insetInlineStart = "auto";
+    cover.style.insetInlineEnd = "0";
+    await expect.poll(() => live(tag)).toBe(true);
+  });
+
+  it("keeps its bar while a popover is open, which leaves the page within reach", async () => {
+    await page.viewport(1280, 800);
+    await render(
+      <Page>
+        <Popover title="Share recipe" trigger={<Button>Share</Button>}>
+          <p>Send it to a friend.</p>
+        </Popover>
+      </Page>,
+    );
+    await drawn(4);
+    await userEvent.click(page.getByRole("button", { name: "Share" }));
+    await expect.element(page.getByRole("dialog", { name: "Share recipe" })).toBeVisible();
+    await settled();
+    await frame();
+    expect(layer()!.hasAttribute("data-modal")).toBe(false);
+    const bar = layer()!.querySelector<HTMLElement>('[role="group"]')!;
+    expect(getComputedStyle(bar).visibility).toBe("visible");
+    // The page's own components keep their tags.
+    expect(tags().slice(0, 4).map((tag) => tag.textContent)).toEqual(["button", "badge", "checkbox", "button"]);
+    await userEvent.click(page.getByRole("group", { name: "X-ray" }).getByRole("button", { name: "Close" }));
+    expect(onOpenChange).toHaveBeenCalledWith(false);
   }, 15_000);
 
   it("outlines a component added while it is open, and drops one that goes", async () => {

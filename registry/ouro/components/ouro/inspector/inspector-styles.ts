@@ -67,7 +67,8 @@ const frameClass =
 
 /**
  * An outline's name tag, a link to its docs, above the start corner of the part that shows (inside
- * it at the top of the screen, or where its top is cut).
+ * it at the top of the screen, or where its top is cut). It hides, and takes no pointer, while
+ * something else (a menu, a select list) lies over it or its corner.
  *
  * @internal
  */
@@ -75,7 +76,7 @@ const tagClass =
   "pointer-events-auto absolute start-0 bottom-full z-1 inline-flex max-w-48 items-center truncate rounded-t-sm rounded-e-sm px-1.5 " +
   "font-mono text-[11px] leading-4 font-medium text-primary-foreground no-underline bg-primary " +
   "ltr:translate-x-(--ouro-inspector-left) rtl:translate-x-(--ouro-inspector-right) " +
-  "data-inside:top-(--ouro-inspector-top) data-inside:bottom-auto data-inside:rounded-none data-inside:rounded-ee-sm " +
+  "data-covered:invisible data-inside:top-(--ouro-inspector-top) data-inside:bottom-auto data-inside:rounded-none data-inside:rounded-ee-sm " +
   "outline-ring outline-offset-1 focus-visible:outline-2 focus-visible:outline-solid pointer-fine:hover:underline";
 
 /** The bar at the bottom of the screen: what X-ray shows, the list and the way out. It steps aside while a dialog is open. @internal */
