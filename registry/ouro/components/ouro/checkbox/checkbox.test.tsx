@@ -346,7 +346,7 @@ describe("Checkbox look", () => {
     /** Toggles with a click in the page, not a real pointer, so the box's press scale stays out of its motion. */
     const toggle = async (state: "data-checked" | "data-unchecked", reduced: boolean) => {
       await act(() => box.click());
-      const tickMotion = reduced ? { opacity: fast } : { "stroke-dashoffset": state === "data-checked" ? draw : fast };
+      const tickMotion: Record<string, number> = reduced ? { opacity: fast } : { "stroke-dashoffset": state === "data-checked" ? draw : fast };
       // Checking waits for the box to fill before the tick draws; unchecking takes the tick back at once.
       const delays = tick.getAnimations().map((animation) => animation.effect?.getComputedTiming().delay);
       expect(delays).toEqual([state === "data-checked" && !reduced ? fast : 0]);
