@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 import siteCss from "../site/src/styles.css?inline";
-import { accessibleName, cleanupStories, isVisible, overlayOpeners, renderStory, settle, stories, type Opener, type OuroStoryParameters } from "./stories.tsx";
+import { accessibleName, cleanupStories, isVisible, overlayOpeners, renderStory, settle, stemSelected, stories, storySelected, type Opener, type OuroStoryParameters } from "./stories.tsx";
 
 // Runs in the `touch` project: Chromium as a phone with a coarse pointer. iOS Safari zooms the
 // page when a text control under 16px takes focus, and does not zoom back; Chromium's emulation
@@ -112,6 +112,8 @@ const demoSubjects: Subject[] = Object.entries(demoModules).map(([path, module])
   demo: true,
 }));
 const subjects = [...storySubjects, ...demoSubjects];
+/** What this run scans: on a pull request's reduced run, only the selected components' stories and demos (test/stories.tsx). */
+const scanned = subjects.filter((subject) => (subject.demo ? stemSelected(subject.id.split("/").at(-1)!) : storySelected(subject.id)));
 
 const visiblePopups = () => [...document.querySelectorAll<HTMLElement>(popupSelector)].filter(isVisible);
 
@@ -456,7 +458,7 @@ describe.each([
   { orientation: "portrait", width: 390, height: 844 },
   { orientation: "landscape", width: 844, height: 390 },
 ])("$orientation ($width x $height)", ({ width, height }) => {
-  for (const subject of subjects) {
+  for (const subject of scanned) {
     const test = subject.id in knownViolations ? it.fails : it;
     test(`${subject.id} has no text-entry control under 16px, closed or with any overlay open`, async () => {
       await rotate(width, height);

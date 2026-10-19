@@ -1,0 +1,137 @@
+name: Screen reader
+# Real screen readers read the components: VoiceOver on macOS (WebKit) and NVDA on Windows
+# (Chromium), through Guidepup (playwright.screen-reader.config.ts, registry/ouro/e2e/screen-reader/).
+# Nightly on main, and dispatched by release.yml for its release commit, which is tagged only when
+# this passes for that exact commit. scripts/sr-classify.mjs sorts a failure into accessibility (an
+# utterance missing or wrong: it blocks a release) and infrastructure (the runner could not drive
+# its screen reader: a release retries once, and a nightly run opens or updates one
+# `screen-reader-infra` issue). Guidepup's setup rewrites VoiceOver and TCC settings, so the lane
+# runs only on GitHub's ephemeral hosted runners, with read-only contents and no secrets, and never
+# for a pull request: a dispatch needs write access and tests only the tip of the dispatched branch
+# (docs/guides/screen-reader-lane.md).
+on:
+  schedule:
+    - cron: "41 4 * * *"
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: "The commit to test: the full SHA of the dispatched branch's tip (release.yml passes its release commit)"
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: screen-reader-${{ github.ref }}-${{ inputs.source_sha || github.sha }}
+  cancel-in-progress: false
+jobs:
+  lane:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            project: voiceover
+          - os: windows-2025
+            project: nvda
+    name: ${{ matrix.project }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    env:
+      SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
+      PROJECT: ${{ matrix.project }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+          persist-credentials: false
+      - id: guard
+        name: Check the commit and the runner
+        env:
+          EVENT: ${{ github.event_name }}
+          DISPATCHED_SHA: ${{ github.sha }}
+          RUNNER_KIND: ${{ runner.environment }}
+        run: |
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::source_sha must be a full 40-character commit SHA in lower case, not '$SOURCE_SHA'."; exit 1; }
+          # Only the dispatched branch's own tip: never another commit fetched by SHA, such as a fork's.
+          [ "$EVENT" != workflow_dispatch ] || [ "$SOURCE_SHA" = "$DISPATCHED_SHA" ] || { echo "::error::source_sha $SOURCE_SHA is not the tip of the dispatched branch ($DISPATCHED_SHA)."; exit 1; }
+          head=$(git rev-parse HEAD)
+          [ "$head" = "$SOURCE_SHA" ] || { echo "::error::Checked out $head, not $SOURCE_SHA."; exit 1; }
+          # Guidepup's setup rewrites VoiceOver and TCC settings: only on a throwaway hosted runner.
+          [ "$RUNNER_KIND" = github-hosted ] || { echo "::error::The screen-reader lane runs only on GitHub-hosted runners, not '$RUNNER_KIND'."; exit 1; }
+          echo "Testing $SOURCE_SHA with $PROJECT on a GitHub-hosted runner."
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps webkit chromium
+      # @guidepup/setup's command, by the bin name its installed package.json declares.
+      - id: guidepup
+        name: Find Guidepup's setup command
+        run: echo "bin=$(node -p 'Object.keys(JSON.parse(require("fs").readFileSync("node_modules/@guidepup/setup/package.json", "utf8")).bin)[0]')" >> "$GITHUB_OUTPUT"
+      # Two phases, in this order: `setup --ci` configures the OS (macOS: VoiceOver's AppleScript
+      # control and TCC automation; Windows: the registry keys NVDA needs), then `install`
+      # downloads the screen reader assets this @guidepup/guidepup version needs (portable NVDA).
+      - name: Set up the OS for screen reader automation
+        env:
+          GUIDEPUP: ${{ steps.guidepup.outputs.bin }}
+        run: pnpm exec "$GUIDEPUP" setup --ci
+      - name: Install the screen reader assets
+        env:
+          GUIDEPUP: ${{ steps.guidepup.outputs.bin }}
+        run: pnpm exec "$GUIDEPUP" install
+      - id: sr
+        name: Screen-reader tests
+        run: |
+          set +e
+          pnpm test:sr --project "$PROJECT" 2>&1 | tee "$RUNNER_TEMP/sr.log"
+          echo "exit=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+      # Runs whatever failed before it (but not a failed guard): no log means the tests never ran.
+      - id: classify
+        name: Classify the result
+        if: always() && steps.guard.outcome == 'success'
+        env:
+          EXIT: ${{ steps.sr.outputs.exit }}
+        run: |
+          node scripts/sr-classify.mjs "$RUNNER_TEMP/sr.log" "$EXIT" | tee "$RUNNER_TEMP/sr-class.txt"
+          exit "${PIPESTATUS[0]}"
+      - if: always() && steps.classify.outcome != 'skipped'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: screen-reader-${{ matrix.project }}
+          path: |
+            ${{ runner.temp }}/sr.log
+            ${{ runner.temp }}/sr-class.txt
+            playwright-report/screen-reader/
+            test-results/screen-reader/
+          if-no-files-found: ignore
+          retention-days: 14
+  report:
+    # A nightly infrastructure failure opens one `screen-reader-infra` issue, or comments on it.
+    needs: [lane]
+    if: failure() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: screen-reader-*
+          path: ${{ runner.temp }}/sr
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if ! grep -rqs '^SR_CLASS=infrastructure$' "$RUNNER_TEMP/sr"; then
+            echo "No infrastructure failure: an accessibility failure fails the run without an issue."
+            exit 0
+          fi
+          scripts/sr-infra-issue.sh "$RUN_URL" "nightly"

@@ -66,6 +66,9 @@ export default defineConfig({
   },
   test: {
     passWithNoTests: true,
+    // A pull request's reduced run (scripts/test-impact.mjs) names the component folders whose
+    // stories the shared suites in test/ render; unset, they render every story (test/stories.tsx).
+    provide: { ouroStories: process.env["OURO_STORIES"] ?? null },
     // Vitest's own reporters, and the motion evidence each run writes to .tmp/motion/ for
     // `pnpm motion:coverage` (scripts/motion-reporter.mts). A themes run proves no motion and
     // writes none, so it leaves `pnpm test`'s partitions as they were.

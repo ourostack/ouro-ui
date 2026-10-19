@@ -3,7 +3,7 @@ import { commands, page } from "vitest/browser";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
-import { cleanupStories, closeOverlay, isVisible, openOverlay, openPopup, overlayOpeners, renderStory, settle, stories, story } from "./stories.tsx";
+import { cleanupStories, closeOverlay, isVisible, openOverlay, openPopup, overlayOpeners, renderStory, selectedStories, settle, story } from "./stories.tsx";
 import { storyScanTimeout } from "./story-axe.ts";
 import { applyThemeFixture, themeFixtures, topLevelBlocks } from "./theme-fixtures.ts";
 
@@ -124,7 +124,7 @@ describe("theme fixtures", () => {
 });
 
 describe("standard shadow and font tokens", () => {
-  it.each(stories)("$id reads its shadows and fonts from the theme, closed and with each overlay open", async ({ id, Story }) => {
+  it.each(selectedStories)("$id reads its shadows and fonts from the theme, closed and with each overlay open", async ({ id, Story }) => {
     setSentinels();
     const host = await renderStory(Story);
     await settle();

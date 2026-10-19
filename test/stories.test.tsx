@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page } from "vitest/browser";
 import { menuItemClass, menuSheetPopupClass, menuSheetPositionerClass } from "@/registry/ouro/components/ouro/menu/menu-styles";
 import { describeViolations, scan, scanStory, storyScanTimeout } from "./story-axe.ts";
-import { cleanupStories, closeOverlay, openOverlay, overlayOpeners, renderStory, setScheme, settle, stories, storyFiles } from "./stories.tsx";
+import { cleanupStories, closeOverlay, openOverlay, overlayOpeners, renderStory, selectedStories, setScheme, settle, stories, storyFiles } from "./stories.tsx";
 
 // Every Storybook story renders and passes axe with zero violations (spec §8:
 // "axe checks in every story"), closed and with each of its overlays open.
@@ -63,7 +63,7 @@ describe.each([
   });
 
   describe.each(["light", "dark"] as const)("%s", (scheme) => {
-    it.each(stories)("$id has no axe violations, closed and with each overlay open", async ({ id, Story }) => {
+    it.each(selectedStories)("$id has no axe violations, closed and with each overlay open", async ({ id, Story }) => {
       setScheme(scheme);
       expect(await scanStory(id, Story)).toBe("");
     }, storyScanTimeout);
@@ -74,7 +74,7 @@ describe.each([
 // parent's `space-y-4` puts it on its children with a zero-specificity rule, which any margin
 // class on the child, even `m-0`, would beat.
 describe("component roots leave their margin to the app", () => {
-  it.each(stories)("$id has no margin reset on a component root", async ({ id, Story }) => {
+  it.each(selectedStories)("$id has no margin reset on a component root", async ({ id, Story }) => {
     const host = await renderStory(Story);
     await settle();
     const resets = (root: ParentNode) =>

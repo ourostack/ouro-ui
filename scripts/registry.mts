@@ -52,6 +52,9 @@ const components = readComponents();
 /** Registry files that test this repository itself and never ship. */
 const repoOnly = new Set(["registry/ouro/theme/theme.test.tsx", "registry/ouro/e2e/ouro-fixtures.ts"]);
 
+/** Repository-only folders: the screen-reader lane's specs (playwright.screen-reader.config.ts) need VoiceOver or NVDA, which no app's CI has. */
+const repoOnlyDirs = ["registry/ouro/e2e/screen-reader/"];
+
 /** Packages every app already has. */
 const appPackages = new Set(["react", "react-dom"]);
 
@@ -240,7 +243,7 @@ function libItem(file: string): string {
 
 /** The item that ships a registry file, or null for a repository-only file. Throws for a file no item claims. */
 export function itemForFile(path: string): string | null {
-  if (repoOnly.has(path)) return null;
+  if (repoOnly.has(path) || repoOnlyDirs.some((dir) => path.startsWith(dir))) return null;
   const file = path.split("/").at(-1)!;
   if (path.startsWith(themeDir)) {
     const css = foundation.find((entry) => entry.css === path);
