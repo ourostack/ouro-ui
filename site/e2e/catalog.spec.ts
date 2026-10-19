@@ -41,6 +41,9 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "landing" | "v
  */
 const CEILINGS = { landing: 274_131, voyage: 270 * 1024, docs: 274_131 } as const;
 
+/** The CSS each page loads before it paints, gzip bytes: every stylesheet together (site-design.md, Budgets). */
+const CSS_CEILING = 40 * 1024;
+
 function diagnostics(page: Page): string[] {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
@@ -130,15 +133,13 @@ test("real production hydration keeps label/control IDs while the uncached selec
     await expect(name).toBeDisabled();
     await expect(page.getByRole("combobox", { name: "Course", exact: true })).toBeDisabled();
     await expect(page.getByRole("button", { name: "Save recipe", exact: true })).toBeDisabled();
+    await expect(page.locator("[data-site-demo-ready]")).toHaveCount(0);
     release();
-    // The demo goes live a render after its chunk arrives; under load WebKit can take the first
-    // press before Select listens, so press again only while the list is still shut.
-    const course = page.getByRole("combobox", { name: "Course", exact: true });
+    // The demo goes live a render after its chunk arrives, and says so once its handlers are attached.
+    await expect(page.locator('[data-site-demo="form"][data-site-demo-ready]')).toBeAttached();
+    await page.getByRole("combobox", { name: "Course", exact: true }).click();
     const main = page.getByRole("option", { name: "Main", exact: true });
-    await expect(async () => {
-      if (!(await main.isVisible())) await course.click();
-      await expect(main).toBeVisible({ timeout: 2_000 });
-    }).toPass();
+    await expect(main).toBeVisible();
     await main.click();
     await page.getByRole("button", { name: "Save recipe", exact: true }).click();
     await expect(page.getByText("A recipe called Pasta already exists.", { exact: true })).toBeVisible();
@@ -240,9 +241,11 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
     ["docs", "docs/", page.locator("html[data-site-ready]")],
   ] as const) {
     const reads: string[] = [];
+    const styles: string[] = [];
     const listener = (response: { url(): string }) => {
       const file = new URL(response.url()).pathname.replace(/^\/ouro-ui\//, "");
       if (file.endsWith(".js")) reads.push(file);
+      if (file.endsWith(".css")) styles.push(file);
     };
     page.on("response", listener);
     await page.goto(path);
@@ -261,8 +264,11 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
     const loaded = [...new Set(reads)].filter((file) => !file.includes(".demo-"));
     expect(loaded.sort(), `${kind} loads its closure and nothing else`).toEqual(expected);
     const gzip = expected.reduce((sum, file) => sum + gzipSync(readFileSync(resolve("site/dist", file))).byteLength, 0);
-    report[kind] = { gzip, ceiling: CEILINGS[kind], files: expected.length };
+    const css = [...new Set(styles)].reduce((sum, file) => sum + gzipSync(readFileSync(resolve("site/dist", file))).byteLength, 0);
+    report[kind] = { gzip, ceiling: CEILINGS[kind], files: expected.length, css, cssCeiling: CSS_CEILING };
     expect(gzip, `${kind} initial JavaScript, gzip bytes`).toBeLessThanOrEqual(CEILINGS[kind]);
+    expect(styles.length, `${kind} loads its stylesheets`).toBeGreaterThan(0);
+    expect(css, `${kind} CSS, gzip bytes`).toBeLessThanOrEqual(CSS_CEILING);
   }
   await info.attach("initial-js-by-page", { body: JSON.stringify(report, null, 2), contentType: "application/json" });
   expect(errors).toEqual([]);
