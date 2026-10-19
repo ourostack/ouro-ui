@@ -11,7 +11,7 @@ import { applyThemeFixture, themeFixtures, topLevelBlocks } from "./theme-fixtur
 // that sets them (a tweakcn export, Spoonjoy's cookbook) restyles every surface: popovers, menus,
 // selects, comboboxes and navigation menus `--shadow-lg`, dialogs `--shadow-xl`, the slider thumb
 // and segmented control's indicator `--shadow-sm`, sheets `--ouro-shadow-sheet-<side>` (from
-// ouro-base.css), headings and titles `--font-heading` and Kbd `--font-mono`. Each token is set
+// ouro-base.css), headings and titles `--font-heading`. Kbd keeps the surrounding font, as shadcn's does. Each token is set
 // to a sentinel on <html> and read back from the rendered elements; no shadow anywhere may stay
 // a fixed black. test/themes/ runs axe under the fixtures this file checks the shape of.
 
@@ -31,18 +31,16 @@ const shadowSentinels = {
 } as const;
 type ShadowToken = keyof typeof shadowSentinels;
 const headingFont = "Ouro Heading Sentinel";
-const monoFont = "Ouro Mono Sentinel";
 
 function setSentinels(): void {
   const style = document.documentElement.style;
   for (const [token, color] of Object.entries(shadowSentinels)) style.setProperty(token, `0 0 0 1px ${color}`);
   style.setProperty("--font-heading", `"${headingFont}"`);
-  style.setProperty("--font-mono", `"${monoFont}"`);
 }
 
 function clearSentinels(): void {
   const style = document.documentElement.style;
-  for (const token of [...Object.keys(shadowSentinels), "--font-heading", "--font-mono"]) style.removeProperty(token);
+  for (const token of [...Object.keys(shadowSentinels), "--font-heading"]) style.removeProperty(token);
 }
 
 beforeEach(async () => {
@@ -73,7 +71,7 @@ const titleSelector = '[data-ouro="heading"], [data-ouro-dialog-title], [data-ou
  */
 const uiFontHeadings = '[data-ouro="calendar"] h2, [data-ouro="accordion"] :is(h2, h3, h4, h5, h6)';
 
-/** What in the page ignores the sentinels: fixed black shadows, titles and Kbd in another font. */
+/** What in the page ignores the sentinels: fixed black shadows, and titles in another font. */
 function offenders(): string[] {
   const found: string[] = [];
   const describe = (element: Element) => element.outerHTML.slice(0, 120);
@@ -89,9 +87,6 @@ function offenders(): string[] {
   for (const heading of document.querySelectorAll<HTMLElement>("[data-ouro] :is(h1, h2, h3, h4, h6, h5)")) {
     if (heading.matches(titleSelector) || heading.matches(uiFontHeadings)) continue;
     if (!getComputedStyle(heading).fontFamily.includes(headingFont)) found.push(`heading without --font-heading: ${describe(heading)}`);
-  }
-  for (const kbd of document.querySelectorAll<HTMLElement>('[data-ouro="kbd"]')) {
-    if (!getComputedStyle(kbd).fontFamily.includes(monoFont)) found.push(`not --font-mono: ${describe(kbd)}`);
   }
   return found;
 }
@@ -182,17 +177,15 @@ describe("standard shadow and font tokens", () => {
     if (openPopup()) await closeOverlay();
   });
 
-  it("falls back to the inherited font for headings and a monospace font for Kbd when the theme names none", async () => {
+  it("falls back to the inherited font for headings when the theme names none, and Kbd always keeps it", async () => {
     const host = await renderStory(() => (
       <div style={{ fontFamily: "Georgia" }}>
         <Heading level={2}>Recipes</Heading>
         <Kbd keys={["mod", "k"]} />
       </div>
     ));
-    const style = document.documentElement.style;
-    style.setProperty("--font-mono", "initial");
     await act(async () => {});
     expect(getComputedStyle(host.querySelector('[data-ouro="heading"]')!).fontFamily).toBe("Georgia");
-    expect(getComputedStyle(host.querySelector('[data-ouro="kbd"]')!).fontFamily).toBe("ui-monospace, monospace");
+    expect(getComputedStyle(host.querySelector('[data-ouro="kbd"]')!).fontFamily).toBe("Georgia");
   });
 });
