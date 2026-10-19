@@ -566,10 +566,11 @@ const pageFunctions = (item: string) =>
   pages
     .filter((page) => /^[a-z]/.test(page.name) && componentGroups.has(page.group) && (tag(symbols.get(page.name)!, "see") ?? "").endsWith(`/docs/${item}`))
     .map((page) => page.name);
-// The site's docs pages (site/src/docs/items.ts): every component, by group, in registry order within a group.
+// The site's docs pages (site/src/docs/items.ts): every component, by group, in registry order within a group,
+// App setup's components (Inspector) last.
 const groupOf = new Map(pages.map((page) => [page.name, page.group]));
 const siteItems = components
-  .filter((entry) => componentGroups.has(groupOf.get(entry.title) ?? ""))
+  .filter((entry) => catalogGroups.includes(groupOf.get(entry.title) ?? ""))
   .map((entry) => ({
     name: entry.name,
     title: entry.title,

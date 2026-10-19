@@ -8,6 +8,7 @@
   "text-field",
   "text-area",
   "checkbox",
+  "checklist",
   "radio-group",
   "switch",
   "edit-sheet",
@@ -51,5 +52,6 @@
   "resizable",
   "chart",
   "message-list",
-  "attachment"
+  "attachment",
+  "inspector"
 ]

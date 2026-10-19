@@ -134,8 +134,8 @@ test("the reader rejects controls and modes that name nothing real", () => {
 test("every control marker in the components' source names a part its item declares, and every declared part is marked", () => {
   const { markers, animated, problems } = sourceMarkers(root);
   assert.deepEqual(problems, []);
-  // An animated part that is no control (Checkbox's tick) carries data-ouro-part alone, declared in "motion".
-  assert.deepEqual(animated.map((marker) => `${marker.folder}/${marker.part}`), ["checkbox/tick"]);
+  // An animated part that is no control (Checkbox's tick, a Checklist row's strike) carries data-ouro-part alone, declared in "motion".
+  assert.deepEqual(animated.map((marker) => `${marker.folder}/${marker.part}`), ["checkbox/tick", "checklist/row", "checklist/tick", "checklist/label", "checklist/strike", "checklist/value", "inspector/layer"]);
   const declared = new Set(components.flatMap((component) => (component.controls ?? []).map((control) => `${component.name}/${control.part}`)));
   const marked = new Set(markers.map((marker) => `${marker.item}/${marker.part}`));
   const undeclared = markers.filter((marker) => !declared.has(`${marker.item}/${marker.part}`)).map((marker) => `${marker.item}/${marker.part} (${marker.where})`);

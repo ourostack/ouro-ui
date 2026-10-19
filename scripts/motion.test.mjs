@@ -16,7 +16,9 @@ import { STATE_ATTRIBUTES } from "./motion-states.mts";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const components = readComponents(root);
 const checkboxTests = "registry/ouro/components/ouro/checkbox/checkbox.test.tsx";
-const tickTest = `${checkboxTests}::Checkbox look > grows the tick in from 95% as it fades in when checked and shrinks it as it fades out when unchecked, and only fades it with reduced motion`;
+const tickTest = `${checkboxTests}::Checkbox look > fills the box, then draws the tick along its path, and only fades and recolours with reduced motion`;
+const rtlTest = `${checkboxTests}::Checkbox look > draws the same way right to left`;
+const interruptTest = `${checkboxTests}::Checkbox look > ends in the last state when toggled during its animation`;
 
 /** A scratch copy of every component.json (with empty component files) and the whole checkbox folder, under .tmp/. */
 function scratch() {
@@ -29,7 +31,8 @@ function scratch() {
     cpSync(join(root, "registry/ouro/components/ouro", component.folder, "component.json"), join(folder, "component.json"));
     writeFileSync(join(folder, `${component.stem}.tsx`), "");
   }
-  cpSync(join(root, "registry/ouro/components/ouro/checkbox"), join(dir, "registry/ouro/components/ouro/checkbox"), { recursive: true });
+  // The folders whose component.json declares motion, whole: the reader checks their parts and test titles.
+  for (const folder of ["checkbox", "checklist", "inspector"]) cpSync(join(root, "registry/ouro/components/ouro", folder), join(dir, "registry/ouro/components/ouro", folder), { recursive: true });
   return dir;
 }
 
@@ -44,26 +47,29 @@ function editCheckbox(dir, edit) {
 /** The checkbox's `data-checked` state in a manifest. */
 const checked = (manifest) => manifest.motion.checkbox.states["data-checked"];
 
-test("Checkbox declares today's motion, part by part, and no other component declares any yet", () => {
+test("Checkbox declares today's motion, part by part, and only Checklist and Inspector besides it declare any yet", () => {
   const motion = readMotion(root);
   assert.deepEqual(
     motion.map((entry) => entry.stem),
-    ["checkbox"],
+    ["checkbox", "checklist", "inspector"],
   );
   const { states } = motion[0].motion;
   assert.deepEqual(Object.keys(states), ["data-checked", "data-unchecked", "data-indeterminate", "data-disabled", "data-invalid", "data-readonly"]);
   const colours = ["background-color", "border-color"];
   for (const state of ["data-checked", "data-unchecked"]) {
     assert.equal(states[state].kind, "motion");
-    assert.deepEqual(states[state].parts, { tick: { properties: ["opacity", "scale"], reduced: ["opacity"] }, box: { properties: colours, reduced: colours } });
-    assert.deepEqual(states[state].tests, [tickTest]);
+    // The tick draws along its path; with reduced motion nothing draws, and it only fades.
+    assert.deepEqual(states[state].parts, { tick: { properties: ["stroke-dashoffset"], reduced: ["opacity"] }, box: { properties: colours, reduced: colours } });
   }
+  assert.deepEqual(states["data-checked"].tests, [tickTest, rtlTest]);
+  assert.deepEqual(states["data-unchecked"].tests, [tickTest]);
+  assert.deepEqual(motion[0].motion.transitions, [{ from: "data-checked", to: "data-unchecked", interrupt: true, tests: [interruptTest] }]);
   // Entering these after the box renders runs the press utility's colour and opacity transitions.
   assert.deepEqual(states["data-indeterminate"].parts, { box: { properties: colours, reduced: colours } });
   assert.deepEqual(states["data-disabled"].parts, { box: { properties: ["opacity"], reduced: ["opacity"] } });
   assert.deepEqual(states["data-invalid"].parts, { box: { properties: ["border-color"], reduced: ["border-color"] } });
   assert.equal(states["data-readonly"].kind, "none");
-  for (const [name, state] of Object.entries(states)) assert.equal(state.tests.length, 1, name);
+  for (const [name, state] of Object.entries(states)) assert.equal(state.tests.length, name === "data-checked" ? 2 : 1, name);
 });
 
 test("the state attributes are a closed list, and no other data-* attribute is a state", () => {
@@ -155,6 +161,20 @@ test("the motion matrix is plain data a browser test can import, one row per ste
       "checkbox data-disabled box",
       "checkbox data-invalid box",
       "checkbox data-readonly -",
+      "checklist data-checked tick",
+      "checklist data-checked box",
+      "checklist data-checked strike",
+      "checklist data-checked label",
+      "checklist data-checked value",
+      "checklist data-unchecked tick",
+      "checklist data-unchecked box",
+      "checklist data-unchecked strike",
+      "checklist data-unchecked label",
+      "checklist data-unchecked value",
+      "checklist data-disabled box",
+      "checklist data-starting-style row",
+      "checklist data-ending-style row",
+      "inspector data-starting-style layer",
     ],
   );
 });

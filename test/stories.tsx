@@ -221,7 +221,9 @@ async function openFromKeyboard(element: HTMLElement): Promise<void> {
  * as SwipeActions' actions button is on a phone), then, at the top level, the plain openers by
  * accessible name and the shortcut. A disabled trigger (a disabled Select in a states story)
  * opens nothing, so it is left out, and so is an expanded one, whose popup is already open (a
- * combobox input over its inline list).
+ * combobox input over its inline list). At the top level the scope also takes the component
+ * roots a story keeps in a portal of their own while nothing is open (X-ray's bar), which are
+ * part of what it shows; an overlay's portals (`*-portal`) are not.
  * Throws when a plain opener is missing.
  */
 export function overlayOpeners(
@@ -230,7 +232,7 @@ export function overlayOpeners(
   parameters: OuroStoryParameters = story(id).parameters ?? {},
   top = true,
 ): Opener[] {
-  const roots = Array.isArray(scope) ? scope : [scope];
+  const roots = [...(Array.isArray(scope) ? scope : [scope]), ...(top ? [...document.querySelectorAll<HTMLElement>('body > [data-ouro]:not([data-ouro$="-portal"])')] : [])];
   const triggers = [...new Set(roots.flatMap((root) => [...root.querySelectorAll<HTMLElement>('[aria-haspopup]:not([aria-haspopup="false"]):not([aria-expanded="true"])')]))]
     .filter((element) => !element.matches(':disabled, [aria-disabled="true"], [data-disabled]') && isVisible(element))
     .map((element) => ({ name: accessibleName(element), open: () => (clipped(element) ? openFromKeyboard(element) : userEvent.click(element)) }));
