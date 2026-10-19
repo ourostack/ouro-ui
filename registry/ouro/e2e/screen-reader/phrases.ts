@@ -99,7 +99,7 @@ export const MARK = "Speech check";
  * before MARK counts, so neither does what VoiceOver was saying before the action; and a phrase it
  * says again (the control it was already on, as focus arrives) is still a change from MARK.
  * VoiceOver keeps only its last phrase, so a short phrase ("Edit dialog pop up button") between
- * two hints lasts only until the next hint: the watcher reads it every 50 ms, where Guidepup's
+ * two hints lasts only until the next hint: the watcher reads it every 20 ms, where Guidepup's
  * capture waits as long as the last phrase takes to say before reading again.
  */
 export function spokenAfter(records: readonly string[]): string[] {

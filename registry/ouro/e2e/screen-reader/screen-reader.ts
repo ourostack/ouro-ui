@@ -133,7 +133,7 @@ interface VoiceOverWatch {
 }
 
 /**
- * Watches VoiceOver's last phrase, the only speech it lets AppleScript read, every 50 ms for up to
+ * Watches VoiceOver's last phrase, the only speech it lets AppleScript read, every 20 ms for up to
  * `seconds`, from one osascript process (as Guidepup runs its own). It first has VoiceOver say
  * MARK, and resolves once MARK is its last phrase: what VoiceOver says after that is new, even the
  * same words it said before. Guidepup's `capture` reads the last phrase again only after waiting
@@ -157,7 +157,7 @@ repeat while (current date) < endAt
     log "${RECORD_START}" & spokenText & "${RECORD_END}"
     set previousText to spokenText
   end if
-  delay 0.05
+  delay 0.02
 end repeat`;
   const child = spawn("/usr/bin/osascript", [], { stdio: ["pipe", "ignore", "pipe"] });
   const records: string[] = [];
@@ -250,11 +250,11 @@ async function heardFromVoiceOver(action: () => Promise<unknown>, matches: (phra
     for (;;) {
       const phrases = watch.phrases();
       const found = firstMatch(phrases, matches);
+      const heardSoFar = phrases.map((phrase) => `"${phrase}"`).join(" | ") || "nothing";
       if (found !== undefined) {
-        console.log(`[sr] heard ${what}: "${found}"`);
+        console.log(`[sr] heard ${what}: "${found}" (VoiceOver said: ${heardSoFar})`);
         return found;
       }
-      const heardSoFar = phrases.map((phrase) => `"${phrase}"`).join(" | ") || "nothing";
       const failure = watch.failure();
       if (failure !== null) throw new Error(`[sr] infrastructure: VoiceOver's speech stopped being read (${failure}); heard: ${heardSoFar}`);
       if (Date.now() > deadline) throw new Error(`[sr] no utterance matched ${what}; heard: ${heardSoFar}`);
