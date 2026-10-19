@@ -229,11 +229,15 @@ export const storyFolders = (components, root = repoRoot) => foldersFor(componen
 /** The Vitest projects every run has (vitest.config.ts; scripts/workflows.test.mjs checks the list). */
 const projects = ["ouro-chromium", "ouro-webkit", "ouro-touch", "site"];
 
-/** `folders` and every folder their own code imports, directly or through another. */
+/**
+ * `folders`, every folder their tests, stories or docs demos import, and every folder the code of
+ * any of those imports, directly or through another.
+ */
 function withImports(folders, root) {
   const graph = importGraph(root, readFolders(root));
-  const all = new Set(folders);
-  const queue = [...folders];
+  // What their tests, stories and docs demos import, one step out: those run and reach that code.
+  const all = new Set([...folders, ...folders.flatMap((folder) => [...(graph.get(folder)?.all ?? [])])]);
+  const queue = [...all];
   while (queue.length > 0) {
     for (const imported of graph.get(queue.shift())?.runtime ?? []) {
       if (all.has(imported)) continue;
@@ -292,12 +296,13 @@ function libFilesLoadedBy(folders, root) {
 
 /**
  * The reduced Vitest run's arguments: every project, so each still writes its motion partition;
- * the tests of the selected folders and of every folder their code imports, directly or through
- * another; the own tests of the lib/ files those folders load; the shared suites in test/ (which
+ * the tests of the selected folders, of every folder their tests, stories or docs demos import
+ * and of every folder the code of any of those imports, directly or through another; the own
+ * tests of the lib/ files all those folders load; the shared suites in test/ (which
  * render only the selected folders' stories and the reference stories, given OURO_STORIES) and
  * the site's tests. Coverage is measured over those folders and lib/ files at the repository's
- * thresholds: a changed test may have been the only one to reach a branch in what its component
- * imports, so that code is measured too. When a line there is reached only by an unselected
+ * thresholds: a changed test may have been the only one to reach a branch in what it or its
+ * component imports, so that code is measured too. When a line there is reached only by an unselected
  * component's tests, the full suite decides (runBrowserTests). The rest of lib/ is left out, as
  * nothing the change touches loads it: measuring all of it would send every reduced run to the
  * full suite (lib/ouro/toast.ts, for one, is reached only by the toast component's tests).

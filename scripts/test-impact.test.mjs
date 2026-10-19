@@ -134,6 +134,24 @@ test("a folder the selected components import is measured and tested too: checkl
   assert.equal(storyFolders(["checklist"], fixture()), "checklist");
 });
 
+test("a folder only the selected components' tests or stories import is measured and tested too, one step out: field's test brings radio, and not radio's checkbox", () => {
+  const args = vitestArgs(["field"], fixture());
+  assert.ok(args.includes(`--coverage.include=${components}/radio/**`) && args.includes(`${components}/radio/`), args.join(" "));
+  // radio is reached by field's test, not changed: what radio's own test imports stays out.
+  assert.ok(!args.some((arg) => arg.includes("/checkbox/")), args.join(" "));
+  // form's story renders checklist, whose code renders checkbox: both are measured, with the lib/ files checkbox loads.
+  const form = vitestArgs(["form"], fixture());
+  for (const folder of ["checklist", "checkbox"]) assert.ok(form.includes(`--coverage.include=${components}/${folder}/**`), `${folder}: ${form.join(" ")}`);
+  assert.ok(form.includes("--coverage.include=registry/ouro/lib/ouro/cn.ts"), form.join(" "));
+});
+
+test("in this repository, a change to radio-group's tests measures form, which only radio-group's tests reach in places", () => {
+  const impact = testImpact([`${components}/radio-group/radio-group.test.tsx`]);
+  assert.equal(impact.full, false);
+  const args = vitestArgs(impact.components);
+  assert.ok(args.includes(`--coverage.include=${components}/form/**`) && args.includes(`${components}/form/`), args.join(" "));
+});
+
 test("in this repository, a change to dialog's tests measures button, sheet and the lib/ files they load too, so a branch only dialog's tests reached cannot drop out", () => {
   const impact = testImpact([`${components}/dialog/dialog.test.tsx`]);
   assert.equal(impact.full, false);
