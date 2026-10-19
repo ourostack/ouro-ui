@@ -312,8 +312,10 @@ describe("the motion matrix", () => {
       }
     };
     for (const { id, Story } of own) {
+      // As it changes too: a state may last only while the component enters (X-ray's data-starting-style).
+      const changes = new MutationObserver(() => collect(`${id} as it changes`));
+      changes.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: [...STATE_ATTRIBUTES] });
       await renderStory(Story);
-      // As it mounts too: a state may last only while the component enters (X-ray's data-starting-style).
       collect(`${id} as it mounts`);
       await settle();
       collect(`${id} as rendered`);
@@ -323,6 +325,7 @@ describe("the motion matrix", () => {
         await settle();
         collect(`${id} after clicking control ${index + 1}`);
       }
+      changes.disconnect();
       await cleanupStories();
     }
     expect([...undeclared].sort(), `declare these states in ${stem}'s component.json "motion"`).toEqual([]);
