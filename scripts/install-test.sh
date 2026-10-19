@@ -59,7 +59,10 @@ variant=${1:?$usage}
 app=${2:?$usage}
 root=$(cd "$(dirname "$0")/.." && pwd)
 ref=${3:-$(git -C "$root" rev-parse HEAD)}
+# The pinned CLI, or SHADCN_VERSION (CI's install-latest job sets "latest" on a release branch,
+# so a release is tagged only when every item also installs with the newest shadcn).
 shadcn=(npx --yes shadcn@4.21.1)
+[ -z "${SHADCN_VERSION:-}" ] || shadcn=(npx --yes "shadcn@$SHADCN_VERSION")
 # The README's init uses --preset nova. OURO_PRESET runs the same test with another of
 # shadcn's presets (CI runs vega too), so the docs can say which presets are verified.
 preset=${OURO_PRESET:-nova}

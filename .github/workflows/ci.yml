@@ -321,6 +321,25 @@ jobs:
             ${{ runner.temp }}/app/package.json
             ${{ runner.temp }}/app/playwright-report/
           if-no-files-found: ignore
+  install-latest:
+    # On a release branch only (release.yml dispatches CI there and tags only when it passes):
+    # the shadcn variant with the newest shadcn CLI instead of the pinned one, so a release
+    # installs with what `npx shadcn@latest` runs today. Here rather than in release.yml, so the
+    # unpinned CLI never runs in a job that holds a token able to push the tag.
+    if: startsWith(github.ref, 'refs/heads/release/')
+    runs-on: ubuntu-latest
+    name: install (shadcn@latest, nova)
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      - run: SHADCN_VERSION=latest scripts/install-test.sh shadcn "$RUNNER_TEMP/latest" ${{ github.sha }}
   install-upgrade:
     # An app on v0.1.0 (dialog from GitHub at #v0.1.0, with tests of its own) runs the
     # commands in UPGRADING.md against this commit's registry, in a src/ and an app/

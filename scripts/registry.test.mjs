@@ -252,6 +252,9 @@ test("every registry file ships in exactly one item, except the repository's own
   assert.equal(itemForFile("registry/ouro/lib/ouro/ouro-provider.test.tsx"), "lib-ouro-provider-tests");
   // The repository's stand-in for the fixtures file an app writes once and no item ships.
   assert.equal(itemForFile("registry/ouro/e2e/ouro-fixtures.ts"), null);
+  // The screen-reader lane's specs need VoiceOver or NVDA; they stay in this repository.
+  assert.equal(itemForFile("registry/ouro/e2e/screen-reader/checkbox.sr.spec.ts"), null);
+  assert.equal(itemForFile("registry/ouro/e2e/screen-reader/screen-reader.ts"), null);
   assert.equal(itemForFile("registry/ouro/e2e/ouro/story.ts"), "ouro-testing");
   assert.equal(itemForFile("registry/ouro/lib/ouro/testing/act.ts"), "ouro-testing");
   assert.equal(itemForFile("registry/ouro/theme/theme.test.tsx"), null);

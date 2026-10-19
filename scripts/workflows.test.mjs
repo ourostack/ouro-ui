@@ -372,7 +372,7 @@ test("every required check is still a job that reports, under the name the rules
     } else names.push(name);
     // A job a required check names never skips itself: at most it runs whatever its needs did.
     const condition = block.match(/^ {4}if: (.+)$/m)?.[1];
-    if (id !== "install-github" && id !== "plan") assert.ok(!condition || condition === "${{ !cancelled() }}", `${id} has if: ${condition}`);
+    if (!["install-github", "install-latest", "plan"].includes(id)) assert.ok(!condition || condition === "${{ !cancelled() }}", `${id} has if: ${condition}`);
   }
   const required = ["ci", "e2e", "visual", "registry", "install (shadcn, nova)", "install (shadcn, vega)", "install (ouro, nova)", "install (namespace, nova)", "install (next, nova)", "install-upgrade", "motion-coverage", "themes (1/3)", "themes (2/3)", "themes (3/3)"];
   for (const check of required) assert.ok(names.includes(check), `${check} is not among ${names.join(", ")}`);
@@ -453,4 +453,255 @@ test("motion coverage runs after the browser test jobs, over the partitions they
   for (const components of [[], ["checkbox"]]) {
     assert.deepEqual(vitestArgs(components).filter((arg) => arg.startsWith("--project=")).map((arg) => arg.slice(10)), projects);
   }
+});
+
+// The screen-reader lane (screen-reader.yml): real VoiceOver and NVDA through Guidepup, nightly and
+// before every release. Guidepup's setup rewrites VoiceOver and TCC settings, so the lane runs only
+// what it is asked to, on throwaway hosted runners, with nothing to leak.
+
+const screenReader = () => workflow("screen-reader.yml");
+const srJobs = () =>
+  Object.fromEntries(
+    screenReader()
+      .split("\njobs:\n")[1]
+      .split(/\n(?= {2}[\w-]+:\n)/)
+      .map((block) => [block.match(/^ {2}([\w-]+):/)[1], block]),
+  );
+
+test("the screen-reader lane runs nightly and on dispatch with a required source_sha, never for a pull request", () => {
+  const text = screenReader();
+  const on = text.split("\non:\n")[1].split(/\n(?=\S)/)[0];
+  assert.deepEqual([...on.matchAll(/^ {2}(\w+):/gm)].map((match) => match[1]), ["schedule", "workflow_dispatch"]);
+  assert.match(on, /^ {4}- cron: "[^"]+"$/m);
+  assert.match(on, /^ {6}source_sha:\n {8}description: .+\n {8}required: true$/m);
+  assert.doesNotMatch(text, /pull_request/);
+});
+
+test("the screen-reader lane reads the repository and nothing more, and holds no secret", () => {
+  const text = screenReader();
+  assert.match(text, /^permissions:\n {2}contents: read\nconcurrency:/m);
+  assert.doesNotMatch(text, /secrets\./);
+  const jobs = srJobs();
+  assert.doesNotMatch(jobs.lane, /permissions:/);
+  // Only the job that files the nightly infrastructure issue may write issues, and it runs no Guidepup.
+  assert.match(jobs.report, /^ {4}permissions:\n {6}contents: read\n {6}issues: write$/m);
+  assert.match(jobs.report, /^ {4}if: failure\(\) && github\.event_name == 'schedule'$/m);
+  assert.doesNotMatch(jobs.report, /guidepup|test:sr/i);
+  assert.match(jobs.report, /scripts\/sr-infra-issue\.sh "\$RUN_URL" "nightly"/);
+});
+
+test("the screen-reader lane runs VoiceOver on macos-15 and NVDA on windows-2025, at the commit it was given", () => {
+  const lane = srJobs().lane;
+  assert.match(lane, /- os: macos-15\n {12}project: voiceover\n {10}- os: windows-2025\n {12}project: nvda\n/);
+  assert.match(lane, /^ {4}runs-on: \$\{\{ matrix\.os \}\}$/m);
+  assert.match(lane, /- uses: actions\/checkout@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}ref: \$\{\{ inputs\.source_sha \|\| github\.sha \}\}\n {10}persist-credentials: false\n/);
+  assert.match(lane, /^ {6}SOURCE_SHA: \$\{\{ inputs\.source_sha \|\| github\.sha \}\}$/m);
+});
+
+const sha = "a".repeat(40);
+for (const [name, env, ok] of [
+  ["a dispatched branch tip on a hosted runner", { SOURCE_SHA: sha, EVENT: "workflow_dispatch", DISPATCHED_SHA: sha, RUNNER_KIND: "github-hosted", HEAD: sha }, true],
+  ["the nightly run of main", { SOURCE_SHA: sha, EVENT: "schedule", DISPATCHED_SHA: sha, RUNNER_KIND: "github-hosted", HEAD: sha }, true],
+  ["a short SHA", { SOURCE_SHA: "abc1234", EVENT: "workflow_dispatch", DISPATCHED_SHA: "abc1234", RUNNER_KIND: "github-hosted", HEAD: "abc1234" }, false],
+  ["an upper-case SHA", { SOURCE_SHA: "A".repeat(40), EVENT: "workflow_dispatch", DISPATCHED_SHA: "A".repeat(40), RUNNER_KIND: "github-hosted", HEAD: "A".repeat(40) }, false],
+  ["a SHA that is not the dispatched branch's tip", { SOURCE_SHA: sha, EVENT: "workflow_dispatch", DISPATCHED_SHA: "b".repeat(40), RUNNER_KIND: "github-hosted", HEAD: sha }, false],
+  ["a checkout of another commit", { SOURCE_SHA: sha, EVENT: "workflow_dispatch", DISPATCHED_SHA: sha, RUNNER_KIND: "github-hosted", HEAD: "c".repeat(40) }, false],
+  ["a self-hosted runner", { SOURCE_SHA: sha, EVENT: "workflow_dispatch", DISPATCHED_SHA: sha, RUNNER_KIND: "self-hosted", HEAD: sha }, false],
+]) {
+  test(`the screen-reader lane's guard ${ok ? "lets through" : "stops"} ${name}`, () => {
+    const guard = stepScript(srJobs().lane, "Check the commit and the runner");
+    const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", `git() { echo "$HEAD"; }\n${guard}`], { encoding: "utf8", env: { ...process.env, ...env, PROJECT: "voiceover" } });
+    assert.equal(result.status === 0, ok, result.stdout + result.stderr);
+    if (!ok) assert.match(result.stdout, /::error::/);
+  });
+}
+
+test("the screen-reader lane sets up Guidepup in two phases, setup --ci then install, through the bin its package declares", () => {
+  const lane = srJobs().lane;
+  const order = ["- run: pnpm i --frozen-lockfile", "- run: pnpm exec playwright install --with-deps webkit chromium", "name: Find Guidepup's setup command", 'run: pnpm exec "$GUIDEPUP" setup --ci', 'run: pnpm exec "$GUIDEPUP" install', 'pnpm test:sr --project "$PROJECT"', "node scripts/sr-classify.mjs"];
+  const at = order.map((line) => lane.indexOf(line));
+  assert.ok(at.every((index) => index > 0), order.filter((_, index) => at[index] <= 0).join(", "));
+  assert.deepEqual([...at].sort((a, b) => a - b), at, "in this order");
+  assert.match(lane, /readFileSync\("node_modules\/@guidepup\/setup\/package\.json", "utf8"\)\)\.bin\)\[0\]/);
+  const setup = JSON.parse(readFileSync(join(root, "node_modules/@guidepup/setup/package.json"), "utf8"));
+  assert.deepEqual(Object.keys(setup.bin), ["guidepup"]);
+  // The classification runs whatever failed before it, except the guard, and fails the job unless the lane passed.
+  assert.match(lane, /^ {8}if: always\(\) && steps\.guard\.outcome == 'success'$/m);
+});
+
+test("the screen-reader packages are pinned exactly, and test:sr runs its own config", () => {
+  const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+  for (const name of ["@guidepup/guidepup", "@guidepup/playwright", "@guidepup/setup"]) assert.match(pkg.devDependencies[name] ?? "", /^\d+\.\d+\.\d+$/, name);
+  assert.equal(pkg.scripts["test:sr"], "playwright test --config playwright.screen-reader.config.ts");
+  assert.match(pkg.scripts["test:scripts"], /scripts\/sr-classify\.test\.mjs/);
+});
+
+test("the main Playwright config never runs a screen-reader spec, and the screen-reader config runs only those, one at a time", async () => {
+  const main = (await import("../playwright.config.ts")).default;
+  assert.ok(main.testIgnore instanceof RegExp && main.testIgnore.test("registry/ouro/e2e/screen-reader/checkbox.sr.spec.ts"));
+  const sr = (await import("../playwright.screen-reader.config.ts")).default;
+  assert.equal(sr.testDir, "registry/ouro/e2e/screen-reader");
+  assert.ok(sr.testMatch.test("dialog.sr.spec.ts") && !sr.testMatch.test("dialog.spec.ts"));
+  assert.equal(sr.workers, 1);
+  assert.equal(sr.retries, 0);
+  assert.equal(sr.use.baseURL, "http://localhost:6006/");
+  assert.deepEqual(
+    { reuseExistingServer: sr.webServer.reuseExistingServer, url: sr.webServer.url, timeout: sr.webServer.timeout },
+    { reuseExistingServer: false, url: "http://localhost:6006/iframe.html", timeout: 300_000 },
+  );
+  assert.match(sr.webServer.command, /^pnpm build-storybook .* && pnpm exec vite preview .*--port 6006/);
+  const projects = Object.fromEntries(sr.projects.map((project) => [project.name, project]));
+  assert.equal(projects.voiceover.use.defaultBrowserType, "webkit");
+  assert.equal(projects.nvda.use.defaultBrowserType, "chromium");
+  for (const name of ["voiceover", "nvda"]) {
+    assert.equal(projects[name].use.headless, false, name);
+    assert.deepEqual(projects[name].dependencies, ["stories"], name);
+  }
+});
+
+test("a release installs with shadcn@latest in CI on its release commit, and only there", () => {
+  const latest = ciJobs()["install-latest"];
+  assert.ok(latest, "ci.yml has an install-latest job");
+  assert.match(latest, /^ {4}if: startsWith\(github\.ref, 'refs\/heads\/release\/'\)$/m);
+  assert.match(latest, /^ {6}- run: SHADCN_VERSION=latest scripts\/install-test\.sh shadcn "\$RUNNER_TEMP\/latest" \$\{\{ github\.sha \}\}$/m);
+  assert.doesNotMatch(latest, /permissions:/);
+  const install = readFileSync(join(root, "scripts/install-test.sh"), "utf8");
+  assert.match(install, /^shadcn=\(npx --yes shadcn@4\.21\.1\)\n\[ -z "\$\{SHADCN_VERSION:-\}" \] \|\| shadcn=\(npx --yes "shadcn@\$SHADCN_VERSION"\)$/m);
+  // The pinned CLI unless SHADCN_VERSION names another.
+  const line = install.split("\n").findIndex((text) => text.startsWith("shadcn=("));
+  for (const [version, expected] of [["", "shadcn@4.21.1"], ["latest", "shadcn@latest"]]) {
+    const result = spawnSync("bash", ["-c", `${install.split("\n").slice(line, line + 2).join("\n")}\necho "\${shadcn[2]}"`], { encoding: "utf8", env: { ...process.env, SHADCN_VERSION: version } });
+    assert.equal(result.stdout.trim(), expected);
+  }
+  for (const event of ["pull_request", "push", "workflow_dispatch"]) {
+    for (const [ref, expected] of [["refs/heads/main", false], ["refs/pull/9/merge", false], ["refs/heads/release/v1.1.0", true]]) {
+      const condition = latest.match(/^ {4}if: (.+)$/m)[1].replace(/startsWith\(github\.ref, '([^']+)'\)/, (_, prefix) => JSON.stringify(ref.startsWith(prefix)));
+      assert.equal(runInNewContext(condition, {}), expected, `${event} ${ref}`);
+    }
+  }
+});
+
+test("a release passes CI (with shadcn@latest), then the screen-reader lane on its own commit, before it tags", () => {
+  const release = workflow("release.yml");
+  const ci = release.indexOf("name: Run CI on the release commit");
+  const lane = release.indexOf("name: Pass the screen-reader lane on the release commit");
+  const tag = release.indexOf('git tag "$TAG"');
+  assert.ok(ci > release.indexOf("name: Push the release branch") && lane > ci && tag > lane, "push, CI, the screen-reader lane, then the tag");
+  const gate = releaseStep("Pass the screen-reader lane on the release commit");
+  assert.match(gate, /gh workflow run screen-reader\.yml --ref "\$BRANCH" -f source_sha="\$sha"/);
+  assert.match(gate, /gh run list --workflow screen-reader\.yml --branch "\$BRANCH" --json databaseId,headSha,event,createdAt/);
+  assert.match(gate, /gh run watch "\$run" --exit-status/);
+  assert.match(release, /^ {2}issues: write # /m);
+});
+
+/** Runs the release's screen-reader gate with a stand-in gh that plays the lane's runs in order. */
+function runReleaseGate(outcomes, { startsWith = true, headSha } = {}) {
+  const scratch = join(root, ".tmp");
+  mkdirSync(scratch, { recursive: true });
+  const dir = mkdtempSync(join(scratch, "release-sr-gate-"));
+  const summary = join(dir, "summary.md");
+  writeFileSync(summary, "");
+  writeFileSync(join(dir, "outcomes"), outcomes.join("\n") + "\n");
+  const gate = releaseStep("Pass the screen-reader lane on the release commit");
+  const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", `
+    git() { echo ${sha}; }
+    seq() { echo 1; }
+    sleep() { :; }
+    issue_script() { printf 'ISSUE %s\\n' "$*" >&2; echo https://github.com/ourostack/ouro-ui/issues/7; }
+    dispatched=0
+    outcome() { sed -n "\${dispatched}p" "$DIR/outcomes"; }
+    gh() {
+      printf 'CALL %s\\n' "$*" >&2
+      case "$*" in
+        "run list --workflow screen-reader.yml --branch release/v9.9.9 --event workflow_dispatch --json databaseId --jq "*) echo $((dispatched * 10)) ;;
+        "workflow run screen-reader.yml --ref release/v9.9.9 -f source_sha=${sha}") dispatched=$((dispatched + 1)) ;;
+        "run list --workflow screen-reader.yml --branch release/v9.9.9 --json databaseId,headSha,event,createdAt --jq "*)
+          if [ "$STARTS" = true ]; then echo $((dispatched * 10 + 1)); fi ;;
+        "run watch "*) [ "$(outcome)" = pass ] ;;
+        "run view "*"--json conclusion,headSha"*) echo "success \${HEAD_SHA:-${sha}}" ;;
+        "run view "*"--log-failed") case "$(outcome)" in infrastructure) printf 'voiceover\\tClassify\\tSR_CLASS=infrastructure\\nnvda\\tClassify\\tSR_CLASS=infrastructure\\n' ;; accessibility) printf 'nvda\\tClassify\\tSR_CLASS=accessibility\\nvoiceover\\tClassify\\tSR_CLASS=infrastructure\\n' ;; esac ;;
+        *) echo "Unexpected gh call: $*" >&2; return 99 ;;
+      esac
+    }
+    ${gate.replace("scripts/sr-infra-issue.sh", "issue_script")}
+  `], {
+    cwd: root, encoding: "utf8",
+    env: { ...process.env, DIR: dir, STARTS: String(startsWith), HEAD_SHA: headSha ?? "", BRANCH: "release/v9.9.9", TAG: "v9.9.9", GITHUB_STEP_SUMMARY: summary, GITHUB_SERVER_URL: "https://github.com", GITHUB_REPOSITORY: "ourostack/ouro-ui" },
+  });
+  assert.doesNotMatch(result.stderr, /Unexpected gh call/);
+  return { ...result, dispatches: (result.stderr.match(/CALL workflow run screen-reader\.yml/g) ?? []).length, summary: readFileSync(summary, "utf8") };
+}
+
+test("the release's screen-reader gate passes when the lane passes for the release commit", () => {
+  const result = runReleaseGate(["pass"]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.dispatches, 1);
+  assert.match(result.stdout, /VoiceOver and NVDA passed on a{40}/);
+  assert.match(result.summary, /attempt 1: https:\/\/github\.com\/ourostack\/ouro-ui\/actions\/runs\/11/);
+});
+
+test("the release's screen-reader gate retries one infrastructure failure", () => {
+  const result = runReleaseGate(["infrastructure", "pass"]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.dispatches, 2);
+  assert.match(result.stdout, /::warning::The screen-reader lane could not drive its screen reader \(attempt 1\)/);
+});
+
+test("the release's screen-reader gate stops after a second infrastructure failure, with the issue", () => {
+  const result = runReleaseGate(["infrastructure", "infrastructure"]);
+  assert.notEqual(result.status, 0);
+  assert.equal(result.dispatches, 2);
+  assert.match(result.stderr, /ISSUE https:\/\/github\.com\/ourostack\/ouro-ui\/actions\/runs\/21 release v9\.9\.9/);
+  assert.match(result.stdout, /::error::The screen-reader lane failed twice on infrastructure, so v9\.9\.9 is not tagged: https:\/\/github\.com\/ourostack\/ouro-ui\/issues\/7/);
+});
+
+test("the release's screen-reader gate stops at an accessibility failure without retrying", () => {
+  const result = runReleaseGate(["accessibility"]);
+  assert.notEqual(result.status, 0);
+  assert.equal(result.dispatches, 1);
+  assert.match(result.stdout, /::error::The screen-reader lane failed on a{40} \(SR_CLASS=accessibility SR_CLASS=infrastructure\)/);
+});
+
+test("the release's screen-reader gate refuses a run for another commit, and a lane that never starts", () => {
+  const other = runReleaseGate(["pass"], { headSha: "b".repeat(40) });
+  assert.notEqual(other.status, 0);
+  assert.match(other.stdout, /concluded 'success b{40}', not success for a{40}/);
+  const never = runReleaseGate(["pass"], { startsWith: false });
+  assert.notEqual(never.status, 0);
+  assert.match(never.stdout, /::error::The screen-reader lane did not start/);
+});
+
+test("the release's time limit is at least 1.5 times its p95 with the screen-reader lane", () => {
+  // Measured: the last 30 releases' p95 before the lane (ci-timings.json, Task 4), and the lane's
+  // p95 per OS from its runs on this branch, taken twice for one infrastructure retry; the
+  // shadcn@latest install runs beside CI's other jobs on the release commit and adds no time.
+  const releaseP95 = 89;
+  const laneP95 = 17;
+  const limit = Number(workflow("release.yml").match(/^ {4}timeout-minutes: (\d+)$/m)?.[1]);
+  assert.ok(limit >= Math.ceil(1.5 * (releaseP95 + 2 * laneP95)), `timeout-minutes ${limit}`);
+  assert.ok(limit <= 360, "GitHub's limit for a job");
+});
+
+test("sr-infra-issue.sh opens the screen-reader-infra issue once, then comments on it, and prints it", () => {
+  const scratch = join(root, ".tmp");
+  mkdirSync(scratch, { recursive: true });
+  const bin = mkdtempSync(join(scratch, "sr-issue-"));
+  const log = join(bin, "calls.log");
+  writeFileSync(join(bin, "gh"), `#!/usr/bin/env bash\nall="$*"\nprintf '%s\\n' "\${all//$'\\n'/ }" >> "${log}"\nif [ "$1 $2" = "issue list" ]; then printf '%s' "$OPEN"; fi\nif [ "$1 $2" = "issue create" ]; then echo https://github.com/o/r/issues/12; fi\n`);
+  chmodSync(join(bin, "gh"), 0o755);
+  const run = (open) =>
+    spawnSync("bash", [join(root, "scripts/sr-infra-issue.sh"), "https://github.com/o/r/actions/runs/1", "nightly"], {
+      encoding: "utf8",
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, OPEN: open, GH_REPO: "o/r" },
+    });
+  const first = run("");
+  assert.equal(first.status, 0, first.stderr);
+  assert.equal(first.stdout.trim(), "https://github.com/o/r/issues/12");
+  const again = run("12");
+  assert.equal(again.stdout.trim(), "https://github.com/o/r/issues/12");
+  const calls = readFileSync(log, "utf8").trim().split("\n");
+  assert.match(calls[0], /^label create screen-reader-infra /);
+  assert.match(calls[1], /^issue list --state open --label screen-reader-infra /);
+  assert.match(calls[2], /^issue create --title Screen-reader lane: infrastructure failure --label screen-reader-infra --body The screen-reader lane could not drive VoiceOver or NVDA \(nightly\): https:\/\/github\.com\/o\/r\/actions\/runs\/1/);
+  assert.equal(calls[5], "issue comment 12 --body Failed again (nightly): https://github.com/o/r/actions/runs/1");
 });

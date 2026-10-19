@@ -24,6 +24,15 @@ importers:
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.12.0(jiti@2.7.0))
+      '@guidepup/guidepup':
+        specifier: 0.35.0
+        version: 0.35.0
+      '@guidepup/playwright':
+        specifier: 0.19.1
+        version: 0.19.1(@guidepup/guidepup@0.35.0)(@playwright/test@1.63.0)
+      '@guidepup/setup':
+        specifier: 0.29.2
+        version: 0.29.2
       '@playwright/test':
         specifier: 1.63.0
         version: 1.63.0
@@ -281,6 +290,10 @@ packages:
   '@cacheable/utils@2.5.0':
     resolution: {integrity: sha1-U0yRETqkj+Q7rtsWlVC27gcO8wM=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/@cacheable/utils/-/utils-2.5.0.tgz}
 
+  '@derhuerst/http-basic@8.2.4':
+    resolution: {integrity: sha1-0CHruPZdVL6mga5vSoczzonn9Zs=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/@derhuerst/http-basic/-/http-basic-8.2.4.tgz}
+    engines: {node: '>=6.0.0'}
+
   '@emnapi/core@1.11.0':
     resolution: {integrity: sha1-imVQQtu7ENAmZnDJkDw0pwAccFs=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/@emnapi/core/-/core-1.11.0.tgz}
 
@@ -508,6 +521,22 @@ packages:
 
   '@floating-ui/utils@0.2.12':
     resolution: {integrity: sha1-r+/nhZSfFqxM3R5pWTWjIVct1Wo=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/@floating-ui/utils/-/utils-0.2.12.tgz}
+
+  '@guidepup/guidepup@0.35.0':
+    resolution: {integrity: sha512-US64a++RucCtLfoq/DqnjzaHYpKzERVYmhtsWViz38MyklICICDpb50AKLn9sbxUwTceK2rS0fjDy7fYpWK/QA==, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/@guidepup/guidepup/-/guidepup-0.35.0.tgz}
+
+  '@guidepup/playwright@0.19.1':
+    resolution: {integrity: sha1-hLLmZ9PVIJRg90fFeyNclmbsMOc=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/@guidepup/playwright/-/playwright-0.19.1.tgz}
+    peerDependencies:
+      '@guidepup/guidepup': '>=0.33.0'
+      '@playwright/test': ^1.57.0
+
+  '@guidepup/record@0.3.0':
+    resolution: {integrity: sha512-0PyoVl9yt/k34oYCWoo3WUKy452zsJDrz1xOq0SKeQM0RDD8M1emTRNEjuFU7+/BpZHisWaNXRRGIrnGvEkizg==, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/@guidepup/record/-/record-0.3.0.tgz}
+
+  '@guidepup/setup@0.29.2':
+    resolution: {integrity: sha512-RSAuCTd3LVTnxvv1+A33bu2y0h5Q6//Q+RoJI73JuVydRhpNd+jz62ElJT6oqgmzURKKEaM2tO572z33wyWcow==, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/@guidepup/setup/-/setup-0.29.2.tgz}
+    hasBin: true
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha1-qCcsoDsqz0kmcCIrIyC2xCG/3mA=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/@humanfs/core/-/core-0.19.2.tgz}
@@ -1330,6 +1359,9 @@ packages:
   '@types/mdx@2.0.14':
     resolution: {integrity: sha1-weVBEyZbFSAhqwr+BDTjyt2Qv+M=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/@types/mdx/-/mdx-2.0.14.tgz}
 
+  '@types/node@10.17.60':
+    resolution: {integrity: sha1-NfPWIT2u2V2n8Pc+dbzGmA6QWXs=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/@types/node/-/node-10.17.60.tgz}
+
   '@types/node@22.20.5':
     resolution: {integrity: sha512-U2+DNr+wSjpsTS/wZGYHq7GcwfuSmKiKvoPvK22zwTlRhU91yOniN4qRR5KhIjvif7ysw/dz/hKmfDH0Ris4aA==, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/@types/node/-/node-22.20.5.tgz}
 
@@ -1494,6 +1526,10 @@ packages:
   '@webcontainer/env@1.1.1':
     resolution: {integrity: sha1-IwIbK7JL7+7vU9uomW0YhrcBZRU=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/@webcontainer/env/-/env-1.1.1.tgz}
 
+  '@xmldom/xmldom@0.9.12':
+    resolution: {integrity: sha1-H4TAfLlczyggIpn3e1/X/CVxUeg=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/@xmldom/xmldom/-/xmldom-0.9.12.tgz}
+    engines: {node: '>=14.6'}
+
   acorn-jsx@5.3.2:
     resolution: {integrity: sha1-ftW7VZCLOy8bxVxq8WU7rafweTc=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/acorn-jsx/-/acorn-jsx-5.3.2.tgz}
     peerDependencies:
@@ -1504,11 +1540,19 @@ packages:
     engines: {node: '>=0.4.0'}
     hasBin: true
 
+  agent-base@6.0.2:
+    resolution: {integrity: sha1-Sf/1hXfP7j83F2/qtMIuAPhtf3c=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/agent-base/-/agent-base-6.0.2.tgz}
+    engines: {node: '>= 6.0.0'}
+
   ajv@6.15.0:
     resolution: {integrity: sha1-B+mCx0YmFnqnoklcU4F4ktcTlJI=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/ajv/-/ajv-6.15.0.tgz}
 
   ansi-regex@5.0.1:
     resolution: {integrity: sha1-CCyyyJyf6GWaMRpTvWpNxTAdswQ=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/ansi-regex/-/ansi-regex-5.0.1.tgz}
+    engines: {node: '>=8'}
+
+  ansi-styles@4.3.0:
+    resolution: {integrity: sha1-7dgDYornHATIWuegkG7a00tkiTc=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/ansi-styles/-/ansi-styles-4.3.0.tgz}
     engines: {node: '>=8'}
 
   ansi-styles@5.2.0:
@@ -1543,6 +1587,9 @@ packages:
     engines: {node: '>=6.0.0'}
     hasBin: true
 
+  bluebird@3.7.2:
+    resolution: {integrity: sha1-nyKcFb4nJFT/qXOs4NvueaGww28=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/bluebird/-/bluebird-3.7.2.tgz}
+
   brace-expansion@5.0.12:
     resolution: {integrity: sha512-YovQ3rzhaLMIrDjNDMkNS01tea93qhEhG5xy8f6+R0l+dw3Ki+5sCoIoI942iuLZTHWogWktgwVDhU09iNEimQ==, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/brace-expansion/-/brace-expansion-5.0.12.tgz}
     engines: {node: 20 || >=22}
@@ -1551,6 +1598,9 @@ packages:
     resolution: {integrity: sha512-1R4kiYKXGViqEN0CnoDrXc1StD9niAwu+j2dukWzrD4bJgsD4lDmEp0CRbc6E/vYJIfTHwPmwyaKtVSudICdPA==, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/browserslist/-/browserslist-4.29.3.tgz}
     engines: {node: ^6 || ^7 || ^8 || ^9 || ^10 || ^11 || ^12 || >=13.7}
     hasBin: true
+
+  buffer-from@1.1.2:
+    resolution: {integrity: sha1-KxRqb9cugLT1XSVfNe1Zo6mkG9U=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/buffer-from/-/buffer-from-1.1.2.tgz}
 
   bundle-name@4.1.1:
     resolution: {integrity: sha512-DdH81/zPLVS11EUgWq3tEu/xn+EzljlMYooDNdzWEnFha3R3NBMpMV1UqYIpjYHV/SgpFKMIX1Oh7o06SjM/oA==, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/bundle-name/-/bundle-name-4.1.1.tgz}
@@ -1562,6 +1612,9 @@ packages:
   caniuse-lite@1.0.30001814:
     resolution: {integrity: sha512-/Uaf1lAzr59XcMpW0o96WoEfr+VXK2OX4U9AgFoiSHsVJ4HppnIFUjtYzsyDH2+tgANaQb2/oxYGwCPapN1FpA==, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/caniuse-lite/-/caniuse-lite-1.0.30001814.tgz}
 
+  caseless@0.12.0:
+    resolution: {integrity: sha1-G2gcIf+EAzyCZUMJBolCDRhxUdw=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/caseless/-/caseless-0.12.0.tgz}
+
   chai@5.3.3:
     resolution: {integrity: sha1-3T2pVeJwkWpL0/Yl9LkZmWrafgY=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/chai/-/chai-5.3.3.tgz}
     engines: {node: '>=18'}
@@ -1569,6 +1622,10 @@ packages:
   chai@6.3.0:
     resolution: {integrity: sha512-XWAtwJ6OHO+tj0EKCs0Y2UamnyOxseZWltU4x2U2wh8g4AigdjwvtUjvLP2tqkA/avxHEtzxNaqGq/YGNwckKg==, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/chai/-/chai-6.3.0.tgz}
     engines: {node: '>=18'}
+
+  chalk@4.1.2:
+    resolution: {integrity: sha1-qsTit3NKdAhnrrFr8CqtVWoeegE=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/chalk/-/chalk-4.1.2.tgz}
+    engines: {node: '>=10'}
 
   check-error@2.1.3:
     resolution: {integrity: sha1-JCc2ERe3DMqNyJaA6tMrFXAZyvU=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/check-error/-/check-error-2.1.3.tgz}
@@ -1578,8 +1635,26 @@ packages:
     resolution: {integrity: sha1-7tOXyf2L2IK/sY3qtxAgSaLzKZk=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/clsx/-/clsx-2.1.1.tgz}
     engines: {node: '>=6'}
 
+  color-convert@2.0.1:
+    resolution: {integrity: sha1-ctOmjVmMm9s68q0ehPIdiWq9TeM=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/color-convert/-/color-convert-2.0.1.tgz}
+    engines: {node: '>=7.0.0'}
+
+  color-name@1.1.4:
+    resolution: {integrity: sha1-wqCah6y95pVD3m9j+jmVyCbFNqI=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/color-name/-/color-name-1.1.4.tgz}
+
+  commander@15.0.0:
+    resolution: {integrity: sha1-lvOWHxKtrBeZ7z+9i8YdQFctGxE=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/commander/-/commander-15.0.0.tgz}
+    engines: {node: '>=22.12.0'}
+
+  concat-stream@2.0.0:
+    resolution: {integrity: sha1-QUz1r3kKSMYKub5FJ9VtXkETPLE=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/concat-stream/-/concat-stream-2.0.0.tgz}
+    engines: {'0': node >= 6.0}
+
   convert-source-map@2.0.0:
     resolution: {integrity: sha1-S1YPZJ/E6RjdCrdc9JYei8iC2Co=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/convert-source-map/-/convert-source-map-2.0.0.tgz}
+
+  core-util-is@1.0.3:
+    resolution: {integrity: sha1-pgQtNjTCsn6TKPg3uWX6yDgI24U=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/core-util-is/-/core-util-is-1.0.3.tgz}
 
   cross-spawn@7.0.6:
     resolution: {integrity: sha1-ilj+ePANzXDDcEUXWd+/rwPo7p8=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/cross-spawn/-/cross-spawn-7.0.6.tgz}
@@ -1684,6 +1759,9 @@ packages:
   dom-accessibility-api@0.6.3:
     resolution: {integrity: sha1-mT6SXMHXPyxmLn113VpURSWaj9g=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/dom-accessibility-api/-/dom-accessibility-api-0.6.3.tgz}
 
+  duplexer2@0.1.4:
+    resolution: {integrity: sha1-ixLauHjA1p4+eJEFFmKjL8a93ME=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/duplexer2/-/duplexer2-0.1.4.tgz}
+
   electron-to-chromium@1.5.444:
     resolution: {integrity: sha512-5ss/uJfoDYDHT0lfJzT6FbcskIzROIOPf0BbbFkGcvDzoJU7i//9GDrwwIHQVmIsrAGiF3ihpADBRIsrEFt1rQ==, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/electron-to-chromium/-/electron-to-chromium-1.5.444.tgz}
 
@@ -1694,6 +1772,10 @@ packages:
   enhanced-resolve@5.26.0:
     resolution: {integrity: sha512-9vhedylFonb2YGogzUKX6+Ja72gOJbN1QHAqdrvqLwhdl/QWbKopzoUC9EbQNVsAns/bx/4uyqalrQAoy1IByw==, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/enhanced-resolve/-/enhanced-resolve-5.26.0.tgz}
     engines: {node: '>=10.13.0'}
+
+  env-paths@2.2.1:
+    resolution: {integrity: sha1-QgOZ1BbOH76bwKB8Yvpo1n/Q+PI=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/env-paths/-/env-paths-2.2.1.tgz}
+    engines: {node: '>=6'}
 
   es-errors@1.3.0:
     resolution: {integrity: sha1-BfdaJdq5jk+x3NXhRywFRtUFfI8=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/es-errors/-/es-errors-1.3.0.tgz}
@@ -1805,6 +1887,10 @@ packages:
   fflate@0.8.3:
     resolution: {integrity: sha1-vCfY6zA0PU1RKrsDSAICzmXYJfw=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/fflate/-/fflate-0.8.3.tgz}
 
+  ffmpeg-static@5.3.0:
+    resolution: {integrity: sha1-MIn8AdG7nFjL50YxmG/ay9htixQ=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/ffmpeg-static/-/ffmpeg-static-5.3.0.tgz}
+    engines: {node: '>=16'}
+
   file-entry-cache@11.1.5:
     resolution: {integrity: sha1-yCEOsFXeY+aGhcz7agF+OG1Fd9A=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/file-entry-cache/-/file-entry-cache-11.1.5.tgz}
 
@@ -1833,6 +1919,10 @@ packages:
       react-dom:
         optional: true
 
+  fs-extra@11.3.1:
+    resolution: {integrity: sha1-unofl6hflMbbLlL/aVcNs2cdWnQ=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/fs-extra/-/fs-extra-11.3.1.tgz}
+    engines: {node: '>=14.14'}
+
   fsevents@2.3.3:
     resolution: {integrity: sha1-ysZAd4XQNnWipeGlMFxpezR9kNY=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/fsevents/-/fsevents-2.3.3.tgz}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
@@ -1856,6 +1946,10 @@ packages:
   graceful-fs@4.2.11:
     resolution: {integrity: sha1-QYPk6L8Iu24Fu7L30uDI9xLKQOM=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/graceful-fs/-/graceful-fs-4.2.11.tgz}
 
+  has-flag@4.0.0:
+    resolution: {integrity: sha1-lEdx/ZyByBJlxNaUGGDaBrtZR5s=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/has-flag/-/has-flag-4.0.0.tgz}
+    engines: {node: '>=8'}
+
   hashery@1.5.1:
     resolution: {integrity: sha1-S6gq1UkRrGF0Z4cIRdV6n+UIpAA=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/hashery/-/hashery-1.5.1.tgz}
     engines: {node: '>=20'}
@@ -1875,6 +1969,13 @@ packages:
 
   hookified@2.2.0:
     resolution: {integrity: sha1-HQJKwWaJc91bzEqWq5zNt2Oe+NQ=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/hookified/-/hookified-2.2.0.tgz}
+
+  http-response-object@3.0.2:
+    resolution: {integrity: sha1-f0NbshBFTkNg0HTvH5idXqiqmBA=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/http-response-object/-/http-response-object-3.0.2.tgz}
+
+  https-proxy-agent@5.0.1:
+    resolution: {integrity: sha1-xZ7yJKBP6LdU89sAY6Jeow0ABdY=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/https-proxy-agent/-/https-proxy-agent-5.0.1.tgz}
+    engines: {node: '>= 6'}
 
   ignore@5.3.2:
     resolution: {integrity: sha1-PNQOcp82Q/2HywTlC/DrcivFlvU=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/ignore/-/ignore-5.3.2.tgz}
@@ -1897,6 +1998,9 @@ packages:
   indent-string@4.0.0:
     resolution: {integrity: sha1-Yk+PRJfWGbLZdoUx1Y9BIoVNclE=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/indent-string/-/indent-string-4.0.0.tgz}
     engines: {node: '>=8'}
+
+  inherits@2.0.4:
+    resolution: {integrity: sha1-D6LGT5MpF8NDOg3tVTY6rjdBa3w=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/inherits/-/inherits-2.0.4.tgz}
 
   internmap@2.0.3:
     resolution: {integrity: sha1-ZoXyN1XkPFJOJR0py8lySOMGEAk=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/internmap/-/internmap-2.0.3.tgz}
@@ -1927,6 +2031,9 @@ packages:
   is-wsl@3.1.1:
     resolution: {integrity: sha1-MniXsmgyo+sRfabCdJLQTKEyWU8=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/is-wsl/-/is-wsl-3.1.1.tgz}
     engines: {node: '>=16'}
+
+  isarray@1.0.0:
+    resolution: {integrity: sha1-u5NdSFgsuhaMBoNJV6VKPgcSTxE=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/isarray/-/isarray-1.0.0.tgz}
 
   isexe@2.0.0:
     resolution: {integrity: sha1-6PvzdNxVb/iUehDcsFctYz8s+hA=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/isexe/-/isexe-2.0.0.tgz}
@@ -1959,6 +2066,9 @@ packages:
 
   jsonc-parser@3.3.1:
     resolution: {integrity: sha1-8qUktPf9EePXkeVZl3rWC5i3mLQ=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/jsonc-parser/-/jsonc-parser-3.3.1.tgz}
+
+  jsonfile@6.2.1:
+    resolution: {integrity: sha1-tuMXF/Isw3MwsIHOAFHtXeU68vY=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/jsonfile/-/jsonfile-6.2.1.tgz}
 
   keyv@5.6.0:
     resolution: {integrity: sha1-AwRAdMa00HLQpix7n6ZJU3uvAQU=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/keyv/-/keyv-5.6.0.tgz}
@@ -2189,6 +2299,9 @@ packages:
   natural-compare@1.4.0:
     resolution: {integrity: sha1-Sr6/7tdUHywnrPspvbvRXI1bpPc=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/natural-compare/-/natural-compare-1.4.0.tgz}
 
+  node-int64@0.4.0:
+    resolution: {integrity: sha1-h6kGXNs1XTGC2PlM4RGIuCXGijs=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/node-int64/-/node-int64-0.4.0.tgz}
+
   node-releases@2.0.57:
     resolution: {integrity: sha512-kQK9LGGFiHtrWiNhZtA7Qbw17AQz+dmsEKODRIVTXA9+e5MS/2gZEBhYJt13GrAz5/IOZKddH/0Z3TP/Zgo+yw==, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/node-releases/-/node-releases-2.0.57.tgz}
     engines: {node: '>=18'}
@@ -2233,6 +2346,9 @@ packages:
     resolution: {integrity: sha1-g8gxXGeFAF470CGDlBHJ4RDm2DQ=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/p-locate/-/p-locate-5.0.0.tgz}
     engines: {node: '>=10'}
 
+  parse-cache-control@1.0.1:
+    resolution: {integrity: sha1-juqz5U+laSD+Fro493+iGqzC104=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/parse-cache-control/-/parse-cache-control-1.0.1.tgz}
+
   path-exists@4.0.0:
     resolution: {integrity: sha1-UTvb4tO5XXdi6METfvoZXGxhtbM=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/path-exists/-/path-exists-4.0.0.tgz}
     engines: {node: '>=8'}
@@ -2272,6 +2388,10 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
+  plist@4.0.0:
+    resolution: {integrity: sha1-qoBmQgSnK6YkGJYCSM9xe6ACi8M=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/plist/-/plist-4.0.0.tgz}
+    engines: {node: '>=18'}
+
   pngjs@7.0.0:
     resolution: {integrity: sha1-qLdEYCDrvGrHOdtsVBWmXRcJDiY=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/pngjs/-/pngjs-7.0.0.tgz}
     engines: {node: '>=14.19.0'}
@@ -2287,6 +2407,13 @@ packages:
   pretty-format@27.5.1:
     resolution: {integrity: sha1-IYGHn96lGnpYUfs52SD6pj8B2I4=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/pretty-format/-/pretty-format-27.5.1.tgz}
     engines: {node: ^10.13.0 || ^12.13.0 || ^14.15.0 || >=15.0.0}
+
+  process-nextick-args@2.0.1:
+    resolution: {integrity: sha1-eCDZsWEgzFXKmud5JoCufbptf+I=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/process-nextick-args/-/process-nextick-args-2.0.1.tgz}
+
+  progress@2.0.3:
+    resolution: {integrity: sha1-foz42PW48jnBvGi+tOt4Vn1XLvg=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/progress/-/progress-2.0.3.tgz}
+    engines: {node: '>=0.4.0'}
 
   punycode@2.3.1:
     resolution: {integrity: sha1-AnQi4vrsCyXhVJw+G9gwm5EztuU=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/punycode/-/punycode-2.3.1.tgz}
@@ -2332,6 +2459,13 @@ packages:
     resolution: {integrity: sha1-4gqjoUaHB1zoYzUbWHiwYIw/v7I=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/react/-/react-19.3.0.tgz}
     engines: {node: '>=0.10.0'}
 
+  readable-stream@2.3.8:
+    resolution: {integrity: sha1-kRJegEK7obmIf0k0X2J3Anzovps=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/readable-stream/-/readable-stream-2.3.8.tgz}
+
+  readable-stream@3.6.2:
+    resolution: {integrity: sha1-VqmzbqllwAxak+8x6xEaDxEFaWc=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/readable-stream/-/readable-stream-3.6.2.tgz}
+    engines: {node: '>= 6'}
+
   recast@0.23.21:
     resolution: {integrity: sha1-Re7Uz8qoqxck+zDrLAvRTzoNeXs=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/recast/-/recast-0.23.21.tgz}
     engines: {node: '>= 4'}
@@ -2375,6 +2509,12 @@ packages:
   run-applescript@7.1.0:
     resolution: {integrity: sha1-Lp5UxGZOwxBsW1Yw4knT1llcSRE=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/run-applescript/-/run-applescript-7.1.0.tgz}
     engines: {node: '>=18'}
+
+  safe-buffer@5.1.2:
+    resolution: {integrity: sha1-mR7GnSluAxN0fVm9/St0XDX4go0=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/safe-buffer/-/safe-buffer-5.1.2.tgz}
+
+  safe-buffer@5.2.1:
+    resolution: {integrity: sha1-Hq+fqb2x/dTsdfWPnNtOa3gn7sY=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/safe-buffer/-/safe-buffer-5.2.1.tgz}
 
   scheduler@0.28.0:
     resolution: {integrity: sha1-A9PKNIrq+LdQL2RGjyF7J1I/lpU=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/scheduler/-/scheduler-0.28.0.tgz}
@@ -2426,6 +2566,12 @@ packages:
       vite-plus:
         optional: true
 
+  string_decoder@1.1.1:
+    resolution: {integrity: sha1-nPFhG6YmhdcDCunkujQUnDrwP8g=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/string_decoder/-/string_decoder-1.1.1.tgz}
+
+  string_decoder@1.3.0:
+    resolution: {integrity: sha1-QvEUWUpGzxqOMLCoT1bHjD7awh4=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/string_decoder/-/string_decoder-1.3.0.tgz}
+
   strip-bom@3.0.0:
     resolution: {integrity: sha1-IzTBjpx1n3vdVv3vfprj1YjmjtM=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/strip-bom/-/strip-bom-3.0.0.tgz}
     engines: {node: '>=4'}
@@ -2437,6 +2583,10 @@ packages:
   strip-indent@4.1.1:
     resolution: {integrity: sha1-q6E94YnUrZoX9gUOdlVKwnWFx68=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/strip-indent/-/strip-indent-4.1.1.tgz}
     engines: {node: '>=12'}
+
+  supports-color@7.2.0:
+    resolution: {integrity: sha1-G33NyzK4E4gBs+R4umpRyqiWSNo=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/supports-color/-/supports-color-7.2.0.tgz}
+    engines: {node: '>=8'}
 
   supports-preserve-symlinks-flag@1.0.0:
     resolution: {integrity: sha1-btpL00SjyUrqN21MwxvHcxEDngk=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/supports-preserve-symlinks-flag/-/supports-preserve-symlinks-flag-1.0.0.tgz}
@@ -2504,6 +2654,9 @@ packages:
     resolution: {integrity: sha1-B7ggO/pwVsBlcFDjzNLDdzC6uPE=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/type-check/-/type-check-0.4.0.tgz}
     engines: {node: '>= 0.8.0'}
 
+  typedarray@0.0.6:
+    resolution: {integrity: sha1-hnrHTjhkGHsdPUfZlqeOxciDB3c=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/typedarray/-/typedarray-0.0.6.tgz}
+
   typescript-eslint@8.71.0:
     resolution: {integrity: sha512-fBdHYiqQ14RW6mOMXD14Svn82ZsCYAoQSzGRzyEjR59S5A2Krh/l7fGTOQ7iCr8gGy/mHVXtEF7s5fgjEdV0Pw==, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/typescript-eslint/-/typescript-eslint-8.71.0.tgz}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
@@ -2519,9 +2672,20 @@ packages:
   undici-types@6.21.0:
     resolution: {integrity: sha1-aR0ArzkJvpOn+qE75hs6W1DvEss=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/undici-types/-/undici-types-6.21.0.tgz}
 
+  undici@8.11.2:
+    resolution: {integrity: sha512-u4UB2/IrKdU6lFxumHmmo1a3fCQO5tzQllRorfoRS63txhrB7xTpSn1PftwC4qEHkOaqP95fCWW4lJzwErwzhQ==, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/undici/-/undici-8.11.2.tgz}
+    engines: {node: '>=22.19.0'}
+
+  universalify@2.0.1:
+    resolution: {integrity: sha1-Fo78IYCWTmOG0GHglN9hr+I5sY0=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/universalify/-/universalify-2.0.1.tgz}
+    engines: {node: '>= 10.0.0'}
+
   unplugin@2.3.11:
     resolution: {integrity: sha1-QR4CDdK6kOL74ee9Y6WjmebuO1Q=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/unplugin/-/unplugin-2.3.11.tgz}
     engines: {node: '>=18.12.0'}
+
+  unzipper@0.12.5:
+    resolution: {integrity: sha1-f8a0hi84MiAtH1zDrb7iZ53qr2w=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/unzipper/-/unzipper-0.12.5.tgz}
 
   update-browserslist-db@1.3.3:
     resolution: {integrity: sha512-pJ2sYawQS0R/WI928Gj5GlPhTGzbMelq0+4INtSYNDV9ErKJcX6xjGWkoG/VnB3dpUm00zALaqkrUD77pO5TDQ==, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/update-browserslist-db/-/update-browserslist-db-1.3.3.tgz}
@@ -2536,6 +2700,9 @@ packages:
     resolution: {integrity: sha1-bctm71aeAvGGr2s9V19BTOdG4Y8=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/use-sync-external-store/-/use-sync-external-store-1.7.0.tgz}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
+  util-deprecate@1.0.2:
+    resolution: {integrity: sha1-RQ1Nyfpw3nMnYvvS1KKJgUGaDM8=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/util-deprecate/-/util-deprecate-1.0.2.tgz}
 
   verkit@0.3.2:
     resolution: {integrity: sha1-BRHqYzEFUbYqIMAQqoIDUMXDUMY=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/verkit/-/verkit-0.3.2.tgz}
@@ -2660,6 +2827,10 @@ packages:
   wsl-utils@0.1.0:
     resolution: {integrity: sha1-h4PU32cdTVA2W+LuTHGRegVXuqs=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/wsl-utils/-/wsl-utils-0.1.0.tgz}
     engines: {node: '>=18'}
+
+  xmlbuilder@15.1.1:
+    resolution: {integrity: sha1-nc3OSe6mbY0QtCyulKecPI0MLsU=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/xmlbuilder/-/xmlbuilder-15.1.1.tgz}
+    engines: {node: '>=8.0'}
 
   yallist@3.1.1:
     resolution: {integrity: sha1-27fa+b/YusmrRev2ArjLrQ1dCP0=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/yallist/-/yallist-3.1.1.tgz}
@@ -2906,6 +3077,14 @@ snapshots:
       hashery: 1.5.1
       keyv: 5.6.0
 
+  '@derhuerst/http-basic@8.2.4':
+    dependencies:
+      caseless: 0.12.0
+      concat-stream: 2.0.0
+      http-response-object: 3.0.2
+      parse-cache-control: 1.0.1
+    optional: true
+
   '@emnapi/core@1.11.0':
     dependencies:
       '@emnapi/wasi-threads': 1.2.2
@@ -3066,6 +3245,37 @@ snapshots:
       react-dom: 19.3.0(react@19.3.0)
 
   '@floating-ui/utils@0.2.12': {}
+
+  '@guidepup/guidepup@0.35.0':
+    dependencies:
+      debug: 4.4.3
+      plist: 4.0.0
+    transitivePeerDependencies:
+      - supports-color
+
+  '@guidepup/playwright@0.19.1(@guidepup/guidepup@0.35.0)(@playwright/test@1.63.0)':
+    dependencies:
+      '@guidepup/guidepup': 0.35.0
+      '@playwright/test': 1.63.0
+
+  '@guidepup/record@0.3.0':
+    dependencies:
+      ffmpeg-static: 5.3.0
+    transitivePeerDependencies:
+      - supports-color
+    optional: true
+
+  '@guidepup/setup@0.29.2':
+    dependencies:
+      chalk: 4.1.2
+      commander: 15.0.0
+      semver: 7.8.5
+      undici: 8.11.2
+      unzipper: 0.12.5
+    optionalDependencies:
+      '@guidepup/record': 0.3.0
+    transitivePeerDependencies:
+      - supports-color
 
   '@humanfs/core@0.19.2':
     dependencies:
@@ -3657,6 +3867,9 @@ snapshots:
 
   '@types/mdx@2.0.14': {}
 
+  '@types/node@10.17.60':
+    optional: true
+
   '@types/node@22.20.5':
     dependencies:
       undici-types: 6.21.0
@@ -3888,11 +4101,20 @@ snapshots:
 
   '@webcontainer/env@1.1.1': {}
 
+  '@xmldom/xmldom@0.9.12': {}
+
   acorn-jsx@5.3.2(acorn@8.18.0):
     dependencies:
       acorn: 8.18.0
 
   acorn@8.18.0: {}
+
+  agent-base@6.0.2:
+    dependencies:
+      debug: 4.4.3
+    transitivePeerDependencies:
+      - supports-color
+    optional: true
 
   ajv@6.15.0:
     dependencies:
@@ -3902,6 +4124,10 @@ snapshots:
       uri-js: 4.4.1
 
   ansi-regex@5.0.1: {}
+
+  ansi-styles@4.3.0:
+    dependencies:
+      color-convert: 2.0.1
 
   ansi-styles@5.2.0: {}
 
@@ -3923,6 +4149,8 @@ snapshots:
 
   baseline-browser-mapping@2.11.27: {}
 
+  bluebird@3.7.2: {}
+
   brace-expansion@5.0.12:
     dependencies:
       balanced-match: 4.0.4
@@ -3934,6 +4162,9 @@ snapshots:
       electron-to-chromium: 1.5.444
       node-releases: 2.0.57
       update-browserslist-db: 1.3.3(browserslist@4.29.3)
+
+  buffer-from@1.1.2:
+    optional: true
 
   bundle-name@4.1.1:
     dependencies:
@@ -3949,6 +4180,9 @@ snapshots:
 
   caniuse-lite@1.0.30001814: {}
 
+  caseless@0.12.0:
+    optional: true
+
   chai@5.3.3:
     dependencies:
       assertion-error: 2.0.1
@@ -3959,11 +4193,34 @@ snapshots:
 
   chai@6.3.0: {}
 
+  chalk@4.1.2:
+    dependencies:
+      ansi-styles: 4.3.0
+      supports-color: 7.2.0
+
   check-error@2.1.3: {}
 
   clsx@2.1.1: {}
 
+  color-convert@2.0.1:
+    dependencies:
+      color-name: 1.1.4
+
+  color-name@1.1.4: {}
+
+  commander@15.0.0: {}
+
+  concat-stream@2.0.0:
+    dependencies:
+      buffer-from: 1.1.2
+      inherits: 2.0.4
+      readable-stream: 3.6.2
+      typedarray: 0.0.6
+    optional: true
+
   convert-source-map@2.0.0: {}
+
+  core-util-is@1.0.3: {}
 
   cross-spawn@7.0.6:
     dependencies:
@@ -4044,6 +4301,10 @@ snapshots:
 
   dom-accessibility-api@0.6.3: {}
 
+  duplexer2@0.1.4:
+    dependencies:
+      readable-stream: 2.3.8
+
   electron-to-chromium@1.5.444: {}
 
   empathic@2.1.0: {}
@@ -4052,6 +4313,9 @@ snapshots:
     dependencies:
       graceful-fs: 4.2.11
       tapable: 2.3.3
+
+  env-paths@2.2.1:
+    optional: true
 
   es-errors@1.3.0: {}
 
@@ -4193,6 +4457,16 @@ snapshots:
 
   fflate@0.8.3: {}
 
+  ffmpeg-static@5.3.0:
+    dependencies:
+      '@derhuerst/http-basic': 8.2.4
+      env-paths: 2.2.1
+      https-proxy-agent: 5.0.1
+      progress: 2.0.3
+    transitivePeerDependencies:
+      - supports-color
+    optional: true
+
   file-entry-cache@11.1.5:
     dependencies:
       flat-cache: 6.1.23
@@ -4221,6 +4495,12 @@ snapshots:
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
 
+  fs-extra@11.3.1:
+    dependencies:
+      graceful-fs: 4.2.11
+      jsonfile: 6.2.1
+      universalify: 2.0.1
+
   fsevents@2.3.3:
     optional: true
 
@@ -4240,6 +4520,8 @@ snapshots:
 
   graceful-fs@4.2.11: {}
 
+  has-flag@4.0.0: {}
+
   hashery@1.5.1:
     dependencies:
       hookified: 1.15.1
@@ -4258,6 +4540,19 @@ snapshots:
 
   hookified@2.2.0: {}
 
+  http-response-object@3.0.2:
+    dependencies:
+      '@types/node': 10.17.60
+    optional: true
+
+  https-proxy-agent@5.0.1:
+    dependencies:
+      agent-base: 6.0.2
+      debug: 4.4.3
+    transitivePeerDependencies:
+      - supports-color
+    optional: true
+
   ignore@5.3.2: {}
 
   ignore@7.0.12: {}
@@ -4269,6 +4564,8 @@ snapshots:
   imurmurhash@0.1.4: {}
 
   indent-string@4.0.0: {}
+
+  inherits@2.0.4: {}
 
   internmap@2.0.3: {}
 
@@ -4292,6 +4589,8 @@ snapshots:
     dependencies:
       is-inside-container: 1.0.0
 
+  isarray@1.0.0: {}
+
   isexe@2.0.0: {}
 
   jiti@2.7.0: {}
@@ -4309,6 +4608,12 @@ snapshots:
   json5@2.2.3: {}
 
   jsonc-parser@3.3.1: {}
+
+  jsonfile@6.2.1:
+    dependencies:
+      universalify: 2.0.1
+    optionalDependencies:
+      graceful-fs: 4.2.11
 
   keyv@5.6.0:
     dependencies:
@@ -4477,6 +4782,8 @@ snapshots:
 
   natural-compare@1.4.0: {}
 
+  node-int64@0.4.0: {}
+
   node-releases@2.0.57: {}
 
   obug@2.2.1: {}
@@ -4574,6 +4881,9 @@ snapshots:
     dependencies:
       p-limit: 3.1.0
 
+  parse-cache-control@1.0.1:
+    optional: true
+
   path-exists@4.0.0: {}
 
   path-key@3.1.1: {}
@@ -4599,6 +4909,11 @@ snapshots:
     dependencies:
       playwright-core: 1.63.0
 
+  plist@4.0.0:
+    dependencies:
+      '@xmldom/xmldom': 0.9.12
+      xmlbuilder: 15.1.1
+
   pngjs@7.0.0: {}
 
   postcss@8.5.28:
@@ -4614,6 +4929,11 @@ snapshots:
       ansi-regex: 5.0.1
       ansi-styles: 5.2.0
       react-is: 17.0.2
+
+  process-nextick-args@2.0.1: {}
+
+  progress@2.0.3:
+    optional: true
 
   punycode@2.3.1: {}
 
@@ -4659,6 +4979,23 @@ snapshots:
       redux: 5.0.1
 
   react@19.3.0: {}
+
+  readable-stream@2.3.8:
+    dependencies:
+      core-util-is: 1.0.3
+      inherits: 2.0.4
+      isarray: 1.0.0
+      process-nextick-args: 2.0.1
+      safe-buffer: 5.1.2
+      string_decoder: 1.1.1
+      util-deprecate: 1.0.2
+
+  readable-stream@3.6.2:
+    dependencies:
+      inherits: 2.0.4
+      string_decoder: 1.3.0
+      util-deprecate: 1.0.2
+    optional: true
 
   recast@0.23.21:
     dependencies:
@@ -4733,6 +5070,11 @@ snapshots:
 
   run-applescript@7.1.0: {}
 
+  safe-buffer@5.1.2: {}
+
+  safe-buffer@5.2.1:
+    optional: true
+
   scheduler@0.28.0: {}
 
   semver@6.3.1: {}
@@ -4783,6 +5125,15 @@ snapshots:
       - react
       - utf-8-validate
 
+  string_decoder@1.1.1:
+    dependencies:
+      safe-buffer: 5.1.2
+
+  string_decoder@1.3.0:
+    dependencies:
+      safe-buffer: 5.2.1
+    optional: true
+
   strip-bom@3.0.0: {}
 
   strip-indent@3.0.0:
@@ -4790,6 +5141,10 @@ snapshots:
       min-indent: 1.0.1
 
   strip-indent@4.1.1: {}
+
+  supports-color@7.2.0:
+    dependencies:
+      has-flag: 4.0.0
 
   supports-preserve-symlinks-flag@1.0.0: {}
 
@@ -4836,6 +5191,9 @@ snapshots:
     dependencies:
       prelude-ls: 1.2.1
 
+  typedarray@0.0.6:
+    optional: true
+
   typescript-eslint@8.71.0(eslint@10.12.0(jiti@2.7.0))(typescript@6.0.3):
     dependencies:
       '@typescript-eslint/eslint-plugin': 8.71.0(@typescript-eslint/parser@8.71.0(eslint@10.12.0(jiti@2.7.0))(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0))(typescript@6.0.3)
@@ -4851,12 +5209,24 @@ snapshots:
 
   undici-types@6.21.0: {}
 
+  undici@8.11.2: {}
+
+  universalify@2.0.1: {}
+
   unplugin@2.3.11:
     dependencies:
       '@jridgewell/remapping': 2.3.5
       acorn: 8.18.0
       picomatch: 4.0.7
       webpack-virtual-modules: 0.6.2
+
+  unzipper@0.12.5:
+    dependencies:
+      bluebird: 3.7.2
+      duplexer2: 0.1.4
+      fs-extra: 11.3.1
+      graceful-fs: 4.2.11
+      node-int64: 0.4.0
 
   update-browserslist-db@1.3.3(browserslist@4.29.3):
     dependencies:
@@ -4871,6 +5241,8 @@ snapshots:
   use-sync-external-store@1.7.0(react@19.3.0):
     dependencies:
       react: 19.3.0
+
+  util-deprecate@1.0.2: {}
 
   verkit@0.3.2: {}
 
@@ -4944,6 +5316,8 @@ snapshots:
   wsl-utils@0.1.0:
     dependencies:
       is-wsl: 3.1.1
+
+  xmlbuilder@15.1.1: {}
 
   yallist@3.1.1: {}
 
