@@ -2,7 +2,9 @@ name: Release
 # Cuts v<version>. The tag points at a release commit that main never receives: a branch
 # off green main whose registry.json pins every same-repo registryDependency to the tag
 # (scripts/registry.mts --release), so `shadcn add ourostack/ouro-ui/<item>#v<version>`
-# installs every Ouro dependency at that tag while main stays unpinned. CI runs on that
+# installs every Ouro dependency at that tag while main stays unpinned. The @ouro namespace
+# built from that commit must match its registry.json and files byte for byte
+# (scripts/public-registry.mjs verify-build). CI runs on that
 # commit (with the shadcn@latest install, ci.yml's install-latest job), then the screen-reader
 # lane (screen-reader.yml: VoiceOver and NVDA); when both pass, the commit is tagged, the
 # GitHub release is created and the branch is deleted (the tag keeps the commit). Because
@@ -12,7 +14,8 @@ name: Release
 # request itself once its checks pass, runs CI on main's new tip, deploys Pages, and last
 # checks that the site's llms.txt and main's README name this release
 # (scripts/published-release.mjs), so no install command names the release before this one
-# after the run ends. The next release refuses to start while changes/
+# after the run ends, and that Pages serves every @ouro item byte for byte as built from the
+# tag (scripts/public-registry.mjs verify-live). The next release refuses to start while changes/
 # lists no change or still lists this release's (scripts/changes.mjs). Rerunning is safe: a released tag exits
 # cleanly, a tag without a release fails with the fix, and a failed run deletes its
 # branch. Recovery: AGENTS.md, "Pages and releases".
@@ -104,6 +107,15 @@ jobs:
           git add CHANGES.md
           git commit -am "Release $TAG"
           git push --force origin "$BRANCH"
+      - if: steps.check.outputs.new == 'true'
+        name: Build and check the @ouro namespace for the release commit
+        run: |
+          # What Pages will serve at /r/ for this release: the namespace built from this commit
+          # (scripts/namespace.sh), checked against the commit's registry.json and files byte for
+          # byte, every item and no other (scripts/public-registry.mjs), before CI, the
+          # screen-reader lane and the tag.
+          scripts/namespace.sh "$RUNNER_TEMP/ns" "$TAG"
+          node scripts/public-registry.mjs verify-build "$RUNNER_TEMP/ns" HEAD
       - if: steps.check.outputs.new == 'true'
         name: Run CI on the release commit
         run: |
@@ -297,6 +309,9 @@ jobs:
           [ "$run" != "$before" ] || { echo "::error::Pages did not start. Run it by hand: gh workflow run pages.yml --ref main"; exit 1; }
           gh run watch "$run" --exit-status --interval 30
           node scripts/published-release.mjs "$TAG" --wait 900
+          # And the @ouro namespace Pages now serves is this release, every item byte for byte
+          # as built from the tag.
+          node scripts/public-registry.mjs verify-live "$TAG" --wait 900
       - if: failure() && steps.check.outputs.new == 'true'
         name: Clean up after a failure
         run: |

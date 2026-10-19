@@ -247,7 +247,7 @@ for (const scenario of ["success", "ci-failed", "ci-missing", "dispatch-failed",
       assert.equal(result.status, 0, result.stderr);
       assert.match(readFileSync(output, "utf8"), /main_sha=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/);
       assert.match(result.stderr, /CALL workflow run pages.yml --ref main/);
-      assert.match(result.stdout, /PUBLISHED scripts\/published-release.mjs v9.9.9 --wait 900/);
+      assert.match(result.stdout, /PUBLISHED scripts\/published-release.mjs v9.9.9 --wait 900\nPUBLISHED scripts\/public-registry.mjs verify-live v9.9.9 --wait 900\n/);
       assert.match(result.stderr, /CALL api -X DELETE repos\/ourostack\/ouro-ui\/git\/refs\/heads\/prepare\/after-v9.9.9/);
     } else {
       assert.notEqual(result.status, 0, result.stderr);
@@ -256,6 +256,32 @@ for (const scenario of ["success", "ci-failed", "ci-missing", "dispatch-failed",
     }
   });
 }
+
+test("a release builds the @ouro namespace from its commit and checks it byte for byte before CI, the screen-reader lane and the tag", () => {
+  const release = workflow("release.yml");
+  const push = release.indexOf("name: Push the release branch");
+  const build = release.indexOf("name: Build and check the @ouro namespace for the release commit");
+  const ci = release.indexOf("name: Run CI on the release commit");
+  const lane = release.indexOf("name: Pass the screen-reader lane on the release commit");
+  const tag = release.indexOf('git tag "$TAG"');
+  assert.ok(push > 0 && build > push && ci > build && lane > ci && tag > lane, "push, the namespace check, CI, the screen-reader lane, then the tag");
+  const step = releaseStep("Build and check the @ouro namespace for the release commit");
+  const lines = step.split("\n").filter((line) => line && !line.startsWith("#"));
+  assert.deepEqual(lines, ['scripts/namespace.sh "$RUNNER_TEMP/ns" "$TAG"', 'node scripts/public-registry.mjs verify-build "$RUNNER_TEMP/ns" HEAD']);
+});
+
+test("a release checks last that Pages serves the tag's @ouro namespace byte for byte, after the published pages", () => {
+  const deploy = releaseStep("Deploy Pages and check what is published");
+  const lines = deploy.trimEnd().split("\n");
+  assert.deepEqual(lines.filter((line) => line.startsWith("node ")), ['node scripts/published-release.mjs "$TAG" --wait 900', 'node scripts/public-registry.mjs verify-live "$TAG" --wait 900']);
+  assert.equal(lines.at(-1), 'node scripts/public-registry.mjs verify-live "$TAG" --wait 900');
+  assert.ok(deploy.indexOf("verify-live") > deploy.indexOf('gh run watch "$run"'), "after the Pages deploy finishes");
+});
+
+test("the release runs the public-registry tests with the script tests", () => {
+  const scripts = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).scripts["test:scripts"];
+  assert.match(scripts, / scripts\/public-registry\.test\.mjs /);
+});
 
 test("Release passes the verified main SHA to Pages and does not bypass the ruleset", () => {
   const release = workflow("release.yml");
@@ -677,11 +703,15 @@ test("the release's time limit is at least 1.5 times its p95 with the screen-rea
   // Measured: the last 30 releases' p95 before the lane (ci-timings.json, Task 4), and the lane's
   // longest run from dispatch to result on this branch (7 minutes over 5 runs, both OSes),
   // rounded up and taken twice for one infrastructure retry; the shadcn@latest install runs
-  // beside CI's other jobs on the release commit and adds no time.
+  // beside CI's other jobs on the release commit and adds no time. The namespace checks
+  // (scripts/public-registry.mjs) build the namespace twice, once from the release commit and
+  // once from the tag, and fetch every item once a deploy is live: under a minute each locally
+  // (11 s per build, 9 s for verify-live against v1.0.2), so 2 minutes with a cold npx cache.
   const releaseP95 = 89;
   const laneP95 = 8;
+  const namespaceChecks = 2;
   const limit = Number(workflow("release.yml").match(/^ {4}timeout-minutes: (\d+)$/m)?.[1]);
-  assert.ok(limit >= Math.ceil(1.5 * (releaseP95 + 2 * laneP95)), `timeout-minutes ${limit}`);
+  assert.ok(limit >= Math.ceil(1.5 * (releaseP95 + 2 * laneP95 + namespaceChecks)), `timeout-minutes ${limit}`);
   assert.ok(limit <= 360, "GitHub's limit for a job");
 });
 
