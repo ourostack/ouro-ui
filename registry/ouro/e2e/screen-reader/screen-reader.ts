@@ -254,22 +254,57 @@ export async function heard(sr: ScreenReader, action: () => Promise<unknown>, ma
 
 /**
  * `heard`, except that on VoiceOver a phrase that never came is not yet a failure: VoiceOver is then
- * asked to describe the focused element (`describesFocus`), and that description must pass
- * `described`, one phrase under the same strict rule; the miss is logged as `[sr] finding:` with
- * `finding`, the issue that tracks it. Only for a step VoiceOver is known to skip at times (the
- * Checklist toggle, ourostack/ouro-ui#118); on NVDA it is `heard`.
+ * asked to describe what the step changed, and that description must pass `described`, one phrase
+ * under the same strict rule; the miss is logged as `[sr] finding:` with `finding`, the issue that
+ * tracks it. `from: "focus"` describes the focused element (`describesFocus`); `from: "container"`
+ * describes the element around it (`describesContainer`). Only for a step VoiceOver is known to
+ * skip at times: the Checklist toggle (ourostack/ouro-ui#118) and the Dialog's opening
+ * (ourostack/ouro-ui#119). On NVDA it is `heard`.
  */
-export async function heardOrDescribed(sr: ScreenReader, action: () => Promise<unknown>, matches: (phrase: string) => boolean, described: (phrase: string) => boolean, what: string, finding: string): Promise<string> {
+export async function heardOrDescribed(
+  sr: ScreenReader,
+  action: () => Promise<unknown>,
+  matches: (phrase: string) => boolean,
+  described: (phrase: string) => boolean,
+  what: string,
+  { finding, from = "focus" }: { finding: string; from?: "focus" | "container" },
+): Promise<string> {
   if (!isVoiceOver(sr)) return heard(sr, action, matches, what);
   try {
     return await heard(sr, action, matches, what);
   } catch (error) {
     if (!(error instanceof Error) || !missedPhrase(error.message)) throw error;
-    const description = await describesFocus(sr, described, `${what}, described`);
+    const description = from === "container" ? await describesContainer(sr, described, `${what}, described`) : await describesFocus(sr, described, `${what}, described`);
     const spoke = error.message.slice(error.message.indexOf("; heard: ") + "; heard: ".length);
-    console.log(`[sr] finding: ${finding}: VoiceOver did not announce ${what} (it said: ${spoke}); described, the focus is "${description}"`);
+    console.log(`[sr] finding: ${finding}: VoiceOver did not announce ${what} (it said: ${spoke}); described, the ${from === "container" ? "focus's container" : "focus"} is "${description}"`);
     return description;
   }
+}
+
+/**
+ * Asks VoiceOver to describe the element around the focus, until it says something `matches`
+ * accepts: it stops interacting with the focused element once (VO-Shift-Up, as the field's own hint
+ * says, "To exit this group"), which moves the VoiceOver cursor, not the keyboard focus, up to the
+ * container and names it, then describes the item in the VoiceOver cursor (VO-F3) up to three times.
+ * Describing the focused field (VO-F4) names only the field. One step up, never more: a second
+ * would leave the container.
+ */
+export async function describesContainer(sr: VoiceOverPlaywright, matches: (phrase: string) => boolean, what: string, attempts = 3): Promise<string> {
+  const phrases: string[] = [];
+  const add = (phrase: string) => {
+    const text = phrase.trim();
+    if (text && !phrases.includes(text)) phrases.push(text);
+  };
+  await sr.stopInteracting({ capture: true });
+  add(await sr.lastSpokenPhrase());
+  for (let attempt = 0; attempt < attempts && firstMatch(phrases, matches) === undefined; attempt++) {
+    await sr.perform(sr.keyboardCommands.describeItem, { capture: true });
+    add(await sr.lastSpokenPhrase());
+  }
+  const found = firstMatch(phrases, matches);
+  if (found === undefined) throw new Error(`[sr] no utterance matched ${what}; heard: ${phrases.map((phrase) => `"${phrase}"`).join(" | ") || "nothing"}`);
+  console.log(`[sr] heard ${what}: "${found}"`);
+  return found;
 }
 
 /** `heard`, on VoiceOver: polls nothing itself, but wakes each time the watch reads a new phrase. */

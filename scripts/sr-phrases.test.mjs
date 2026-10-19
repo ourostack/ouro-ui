@@ -246,10 +246,34 @@ test("only a phrase that never came lets the Checklist step ask VoiceOver to des
   assert.equal(described("You are currently on a checkbox. rolled oats unchecked."), false);
 });
 
-test("the describe fallback is the Checklist toggle's alone, and cites #118", () => {
+test("the describe fallback is the Checklist toggle's (#118) and the Dialog opening's (#119) alone, once each", () => {
   const dir = join(import.meta.dirname, "../registry/ouro/e2e/screen-reader");
-  const users = readdirSync(dir).filter((file) => file.endsWith(".sr.spec.ts") && readFileSync(join(dir, file), "utf8").includes("heardOrDescribed("));
-  assert.deepEqual(users, ["checklist.sr.spec.ts"]);
-  assert.match(readFileSync(join(dir, "checklist.sr.spec.ts"), "utf8"), /ourostack\/ouro-ui#118/);
-  assert.match(readFileSync(join(import.meta.dirname, "../docs/guides/screen-reader-lane.md"), "utf8"), /ourostack\/ouro-ui#118/);
+  const uses = Object.fromEntries(
+    readdirSync(dir)
+      .filter((file) => file.endsWith(".sr.spec.ts"))
+      .map((file) => [file, (readFileSync(join(dir, file), "utf8").match(/heardOrDescribed\(/g) ?? []).length])
+      .filter(([, count]) => count > 0),
+  );
+  assert.deepEqual(uses, { "checklist.sr.spec.ts": 1, "dialog.sr.spec.ts": 1 });
+  const checklist = readFileSync(join(dir, "checklist.sr.spec.ts"), "utf8");
+  const dialog = readFileSync(join(dir, "dialog.sr.spec.ts"), "utf8");
+  assert.match(checklist, /ourostack\/ouro-ui#118/);
+  assert.match(dialog, /ourostack\/ouro-ui#119/);
+  // The Dialog's is its opening step, which describes the focus's container, not the closing one.
+  assert.match(dialog, /heardOrDescribed\(sr, \(\) => page\.keyboard\.press\("Enter"\)[^\n]*from: "container"/);
+  assert.doesNotMatch(checklist, /from: "container"/);
+  const guide = readFileSync(join(import.meta.dirname, "../docs/guides/screen-reader-lane.md"), "utf8");
+  assert.match(guide, /ourostack\/ouro-ui#118/);
+  assert.match(guide, /ourostack\/ouro-ui#119/);
+});
+
+test("the opened dialog, described, must name it as a web dialog in one sentence (#119)", () => {
+  const describedDialog = (phrase) => inOneSentence(phrase, /\bedit recipe\b/i, /\bweb dialog\b/i);
+  assert.equal(describedDialog("Edit recipe web dialog with 4 items"), true);
+  // What the focused field alone says, and the miss itself (runs 39282545974 and others), do not.
+  assert.equal(describedDialog("Name edit text Shakshuka has keyboard focus Insertion at beginning of text."), false);
+  assert.equal(describedDialog("Shakshuka"), false);
+  assert.equal(describedDialog("You are currently on a text field, inside of a web dialog. To enter text in this field, type."), false);
+  // The trigger's own name is not the dialog's.
+  assert.equal(describedDialog("Edit dialog pop up button"), false);
 });
