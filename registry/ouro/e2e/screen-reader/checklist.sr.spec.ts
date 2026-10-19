@@ -6,7 +6,7 @@ test.skip(!checklistShipped, `${storyIds.checklist} arrives with Checklist (regi
 test.use({ storyId: storyIds.checklist });
 
 test("Checklist announces an item's name, role and state, and its change when ticked", async ({ page, sr }) => {
-  await startReading(sr);
+  await startReading(sr, page);
   const item = page.getByRole("checkbox").first();
   const name = await accessibleName(item);
   const before = await item.isChecked();

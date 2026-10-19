@@ -5,7 +5,7 @@ import { storyIds } from "./stories";
 test.use({ storyId: storyIds.dialog });
 
 test("Dialog is announced with its title and role when it opens, and its trigger again when it closes", async ({ page, sr }) => {
-  await startReading(sr);
+  await startReading(sr, page);
   const trigger = page.getByRole("button", { name: "Edit", exact: true });
   const saysTrigger = (phrase: string) => /\bedit\b/i.test(phrase) && /\bbutton\b/i.test(phrase);
   await heard(sr, () => trigger.focus(), saysTrigger, '"Edit", button');

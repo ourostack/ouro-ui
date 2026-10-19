@@ -41,10 +41,15 @@ export const test: ScreenReaderTest =
     ? voiceOverTest.extend<Fixtures>({ storyId: ["", { option: true }], page, sr: async ({ voiceOver }, provide) => provide(voiceOver) })
     : nvdaTest.extend<Fixtures>({ storyId: ["", { option: true }], page, sr: async ({ nvda }, provide) => provide(nvda) });
 
-/** Moves the screen reader into the page and logs the first thing it says. */
-export async function startReading(sr: ScreenReader): Promise<void> {
+/**
+ * Moves the screen reader into the page and logs the first thing it says. Getting there can move
+ * the focus (NVDA tabs to the first control), so the focus goes back to the page: each spec's
+ * first move then announces its control.
+ */
+export async function startReading(sr: ScreenReader, page: Page): Promise<void> {
   await sr.navigateToWebContent();
   console.log(`[sr] first utterance: "${await sr.lastSpokenPhrase()}"`);
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
 }
 
 /**
