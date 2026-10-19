@@ -1,11 +1,11 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { BELL_TOASTS, LOG, STAGE_CONTROLS, STAGE_COPY } from "../src/voyage/stage/copy";
 
 // The porthole stage against the production build (site-design.md, "Verification in CI"): each
 // control in STAGE_CONTROLS has a test named "control: <id>" that operates it and asserts what it
 // visibly changes (site/scripts/stage-census.test.mjs fails when one is missing), every operable
 // element on the stage is one of those controls, touch works on phones, nothing moves under reduced
-// motion, the fish rest off screen, and each control answers within 100 ms on a 4× slower CPU.
+// motion, and the fish rest off screen. Each control's latency is stage.latency.spec.ts's.
 
 /**
  * WebKit fetches a preloaded font again for its @font-face instead of using the preload, then warns
@@ -248,63 +248,4 @@ test("the fish rest while the stage is off screen", async ({ page }) => {
   await expect.poll(state).toBe("paused");
   await page.evaluate(() => window.scrollTo(0, 0));
   await expect.poll(state).toBe("running");
-});
-
-test.describe("interaction latency", () => {
-  test.skip(({ browserName }) => browserName !== "chromium", "CPU throttling is a Chromium DevTools feature");
-
-  /** Each control's interaction, repeatable ten times in a row. */
-  const interactions: Record<(typeof STAGE_CONTROLS)[number], (page: Page, round: number) => Promise<Locator | void>> = {
-    depth: async (page, round) => {
-      await page.getByRole("slider", { name: STAGE_COPY.depth }).focus();
-      await page.keyboard.press(round % 2 ? "ArrowLeft" : "ArrowRight");
-    },
-    "tank-fore": (page) => tank(page, "Fore").click(),
-    "tank-middle": (page) => tank(page, "Middle").click(),
-    "tank-aft": (page) => tank(page, "Aft").click(),
-    dive: async (page, round) => {
-      if (round % 2 === 0) await diveButton(page).click();
-      else await page.getByRole("button", { name: STAGE_COPY.surface, exact: true }).click();
-    },
-    speed: (page, round) => page.getByRole("radio", { name: round % 2 ? "Half" : "Full" }).click(),
-    lights: (page) => page.getByRole("switch", { name: STAGE_COPY.lights }).click(),
-    bell: (page) => page.getByRole("button", { name: STAGE_COPY.bell }).click(),
-  };
-
-  for (const id of STAGE_CONTROLS) {
-    test(`${id} answers within 100 ms (p95 of 10) on a 4× slower CPU`, async ({ page }) => {
-      await page.setViewportSize({ width: 1440, height: 900 });
-      await open(page);
-      await page.evaluate(() => {
-        const store: number[] = [];
-        (window as unknown as { __latency: number[] }).__latency = store;
-        new PerformanceObserver((list) => {
-          for (const entry of list.getEntries() as PerformanceEventTiming[]) if (entry.interactionId) store.push(entry.duration);
-        }).observe({ type: "event", durationThreshold: 16, buffered: false } as PerformanceObserverInit);
-      });
-      const cdp = await page.context().newCDPSession(page);
-      await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
-      const samples: number[] = [];
-      // Two rounds to warm up (the first press of anything compiles code), then ten that count.
-      for (let round = -2; round < 10; round++) {
-        if (id === "dive" && (round + 2) % 2 === 0) {
-          await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
-          await fillTanks(page);
-          await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
-        }
-        await page.evaluate(() => ((window as unknown as { __latency: number[] }).__latency.length = 0));
-        await interactions[id](page, round + 2);
-        await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 50)))));
-        // Event Timing reports interactions of 16 ms or more; a quieter one counts as 16.
-        const durations = await page.evaluate(() => (window as unknown as { __latency: number[] }).__latency);
-        if (round >= 0) samples.push(Math.max(16, ...durations));
-        await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.());
-      }
-      await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
-      const sorted = samples.toSorted((a, b) => a - b);
-      const p95 = sorted[Math.ceil(sorted.length * 0.95) - 1]!;
-      test.info().annotations.push({ type: "latency", description: `${id}: p95 ${p95} ms (${samples.join(", ")})` });
-      expect(p95, `${id} samples: ${samples.join(", ")}`).toBeLessThanOrEqual(100);
-    });
-  }
 });
