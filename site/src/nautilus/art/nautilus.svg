@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 140">
+  <title>The Nautilus, in profile</title>
+  <!-- Original drawing for Ouro HX after Verne (manifest.json): a long spindle hull with conical
+       ends, length to beam about 9 to 1, a platform three feet out of the water, the steersman's
+       cage forward and the lantern cage aft, the long-boat half buried amidships, inclined diving
+       planes at the centre of flotation, rudder and screw at the stern, and a steel spur at the bow. -->
+  <defs>
+    <linearGradient id="nautilus-sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" class="n-hull-sheen-top" />
+      <stop offset="0.55" class="n-hull-sheen-mid" />
+      <stop offset="1" class="n-hull-sheen-bottom" />
+    </linearGradient>
+  </defs>
+  <g class="n-screw">
+    <ellipse cx="16" cy="66" rx="2.5" ry="7" />
+    <ellipse cx="16" cy="82" rx="2.5" ry="7" />
+    <circle cx="16" cy="74" r="2.5" />
+    <path d="M16 74 H32" />
+  </g>
+  <path class="n-rudder" d="M24 62 H32 L34 86 H26 Z" />
+  <path class="n-hull" d="M30 74 C76 52 156 45 254 44 L366 44 C454 45 514 53 552 74 C514 95 454 103 366 104 L254 104 C156 103 76 96 30 74 Z" />
+  <path class="n-hull-shade" d="M30 74 C76 52 156 45 254 44 L366 44 C454 45 514 53 552 74 C514 95 454 103 366 104 L254 104 C156 103 76 96 30 74 Z" fill="url(#nautilus-sheen)" />
+  <g class="n-plates">
+    <path d="M118 52 C112 64 112 84 118 96" />
+    <path d="M186 47 C180 62 180 86 186 101" />
+    <path d="M254 45 C248 61 248 87 254 103" />
+    <path d="M322 45 C316 61 316 87 322 103" />
+    <path d="M390 46 C384 62 384 86 390 102" />
+    <path d="M458 50 C452 63 452 85 458 98" />
+    <path d="M40 74 C160 70 420 70 546 74" />
+  </g>
+  <g class="n-lights">
+    <circle cx="232" cy="80" r="3" />
+    <circle cx="262" cy="80" r="3" />
+    <circle cx="292" cy="80" r="3" />
+    <circle cx="322" cy="80" r="3" />
+    <circle cx="352" cy="80" r="3" />
+  </g>
+  <path class="n-plane" d="M286 88 L336 88 L330 97 L292 97 Z" />
+  <rect class="n-platform" x="196" y="38" width="210" height="8" rx="2" />
+  <path class="n-longboat" d="M262 39 C266 31 314 31 318 39 Z" />
+  <g class="n-cage n-lantern-cage">
+    <path d="M200 39 L206 25 L226 25 L232 39 Z" />
+    <circle class="n-lantern" cx="216" cy="31" r="4.5" />
+  </g>
+  <g class="n-cage n-steersman">
+    <path d="M374 39 L380 23 L402 23 L408 39 Z" />
+    <path class="n-glass" d="M384 28 L399 28 L401 34 L382 34 Z" />
+  </g>
+  <path class="n-spur" d="M544 70 L596 74 L544 78 Z" />
+  <path class="n-outline" d="M30 74 C76 52 156 45 254 44 L366 44 C454 45 514 53 552 74 C514 95 454 103 366 104 L254 104 C156 103 76 96 30 74 Z" />
+</svg>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 80">
+  <title>Manta ray</title>
+  <!-- Original drawing for Ouro HX (manifest.json). A ray gliding through the blue middle water. -->
+  <path class="c-body" d="M70 14 C80 14 92 26 136 36 C98 42 84 48 74 62 L70 66 L66 62 C56 48 42 42 4 36 C48 26 60 14 70 14 Z" />
+  <path class="c-line" d="M70 66 C72 72 76 76 84 79" />
+  <path class="c-line" d="M62 18 C58 12 60 8 64 8 M78 18 C82 12 80 8 76 8" />
+  <path class="c-shade" d="M70 22 C76 22 82 30 84 40 C78 48 74 52 70 58 C66 52 62 48 56 40 C58 30 64 22 70 22 Z" />
+  <circle class="c-eye" cx="62" cy="22" r="1.5" />
+  <circle class="c-eye" cx="78" cy="22" r="1.5" />
+</svg>

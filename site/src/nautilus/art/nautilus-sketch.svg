@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 180" fill="none" stroke="currentColor" stroke-width="1">
+  <title>Construction sketch for nautilus.svg</title>
+  <!-- The source sketch the profile was drawn from (manifest.json): Verne's figures, 232 feet
+       stem to stern and 26 feet at the widest, scaled to 522 units by 58 (9 to 1); the
+       platform three feet (7 units) out of the water; the cages fore and aft on it. -->
+  <path d="M30 74 H552" stroke-dasharray="4 4" />
+  <path d="M30 120 H552 M30 116 V124 M552 116 V124" />
+  <text x="270" y="136" font-size="10" fill="currentColor" stroke="none">232 ft (522 units)</text>
+  <path d="M566 45 V103 M562 45 H570 M562 103 H570" />
+  <text x="572" y="78" font-size="10" fill="currentColor" stroke="none">26 ft</text>
+  <path d="M30 74 C76 52 156 45 254 44 L366 44 C454 45 514 53 552 74 C514 95 454 103 366 104 L254 104 C156 103 76 96 30 74 Z" />
+  <path d="M30 74 L254 44 M30 74 L254 104 M552 74 L366 44 M552 74 L366 104" stroke-dasharray="2 3" />
+  <rect x="196" y="38" width="210" height="8" />
+  <text x="196" y="160" font-size="10" fill="currentColor" stroke="none">platform: three feet out of water; lantern cage aft, steersman's cage fore</text>
+  <path d="M544 70 L596 74 L544 78 Z" />
+  <text x="520" y="30" font-size="10" fill="currentColor" stroke="none">steel spur</text>
+  <path d="M286 88 L336 88 L330 97 L292 97 Z" />
+  <text x="280" y="114" font-size="10" fill="currentColor" stroke="none">inclined planes</text>
+</svg>
