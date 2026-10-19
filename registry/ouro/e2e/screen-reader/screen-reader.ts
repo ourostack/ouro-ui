@@ -1,5 +1,5 @@
 import { nvdaTest, voiceOverTest, type NVDAPlaywright, type VoiceOverPlaywright } from "@guidepup/playwright";
-import { expect, type Page, type PlaywrightTestArgs, type PlaywrightTestOptions, type PlaywrightWorkerArgs, type PlaywrightWorkerOptions, type TestType } from "@playwright/test";
+import { expect, type BrowserContext, type BrowserContextOptions, type Page, type PlaywrightTestArgs, type PlaywrightTestOptions, type PlaywrightWorkerArgs, type PlaywrightWorkerOptions, type TestType } from "@playwright/test";
 import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import { firstMatch, MARK, readRecords, RECORD_END, RECORD_START, saysValue as valueSaid, spokenAfter } from "./phrases";
@@ -53,7 +53,8 @@ async function nvdaRunning(): Promise<boolean> {
  * `nvda.stop()` returns and unloads its helper from the browser as it goes, and a browser context
  * closed in the meantime failed to close ("browserContext.close: Test ended.", recorded on main).
  * Then the context closes here, so a failure to close is logged rather than failing the test, and
- * Guidepup's and Playwright's own teardown find nothing left to do.
+ * Guidepup's and Playwright's own teardown find nothing left to do (on Windows, `ownBrowserContext`
+ * then closes the test's own browser).
  */
 async function finish(sr: ScreenReader, page: Page): Promise<void> {
   const note = (what: string, error: unknown) => console.log(`[sr] teardown: ${what}: ${error instanceof Error ? error.message.split("\n")[0] : String(error)}`);
@@ -69,6 +70,25 @@ async function finish(sr: ScreenReader, page: Page): Promise<void> {
     .catch((error: unknown) => note("the browser context did not close", error));
 }
 
+/**
+ * NVDA's tests each get a browser of their own, launched as Playwright's would be and closed after
+ * the test, once NVDA has gone. NVDA unloads its helper from the browser as it quits, and that took
+ * the shared browser down with it: the next test could not open a context ("browser.newContext:
+ * Target page, context or browser has been closed", recorded on this lane). A failure to close it
+ * is logged; the test has ended.
+ */
+const ownBrowserContext = async (
+  { playwright, browserName, launchOptions, headless, baseURL, viewport, userAgent, deviceScaleFactor, isMobile, hasTouch }: PlaywrightTestArgs & PlaywrightTestOptions & PlaywrightWorkerArgs & PlaywrightWorkerOptions,
+  provide: (context: BrowserContext) => Promise<void>,
+) => {
+  const browser = await playwright[browserName].launch({ ...launchOptions, headless });
+  const options = Object.fromEntries(Object.entries({ baseURL, viewport, userAgent, deviceScaleFactor, isMobile, hasTouch }).filter(([, value]) => value !== undefined));
+  const context = await browser.newContext(options as BrowserContextOptions);
+  await provide(context);
+  await context.close().catch(() => undefined);
+  await browser.close().catch((error: unknown) => console.log(`[sr] teardown: the browser did not close: ${error instanceof Error ? error.message.split("\n")[0] : String(error)}`));
+};
+
 /** The test each spec uses: VoiceOver's on macOS, NVDA's on Windows. */
 export const test: ScreenReaderTest =
   process.platform === "darwin"
@@ -82,6 +102,7 @@ export const test: ScreenReaderTest =
       })
     : nvdaTest.extend<Fixtures>({
         storyId: ["", { option: true }],
+        context: ownBrowserContext,
         page,
         sr: async ({ nvda, page }, provide) => {
           await provide(nvda);

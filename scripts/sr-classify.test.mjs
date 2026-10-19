@@ -115,8 +115,19 @@ const hintOnly = recorded("voiceover-dialog-hint-only.txt");
 test("a test that passed and then failed to close its browser context is infrastructure, with the reason", () => {
   assert.match(teardownAfterPass, /Error: browserContext\.close: Test ended\./);
   assert.equal(classify(teardownAfterPass, 1), "infrastructure");
-  assert.equal(why(teardownAfterPass), "the browser failed to close after a test, outside any assertion");
+  assert.equal(why(teardownAfterPass), "the browser failed to open or close a test's context, outside any assertion");
   assert.equal(classify("  ✘  2 [nvda] › toast.sr.spec.ts:8:1 › Toast is announced\n    Error: browser.close: Test ended.\n  1 failed", 1), "infrastructure");
+});
+
+test("a test whose browser was gone before it began is infrastructure: NVDA's quit took the shared browser with it", () => {
+  // This branch, run 39244775421: Select passed, NVDA quit, and Toast could not open a context.
+  const browserGone = recorded("nvda-browser-gone-before-test.txt");
+  assert.match(browserGone, /Error: browser\.newContext: Target page, context or browser has been closed/);
+  assert.equal(classify(browserGone, 1), "infrastructure");
+  assert.equal(why(browserGone), "the browser failed to open or close a test's context, outside any assertion");
+  // Beside a missing utterance, or a failure in a test body, it decides nothing.
+  assert.equal(classify(`${browserGone}\n${hintOnly}`, 1), "accessibility");
+  assert.equal(classify(browserGone.replace("    Error: browser.newContext:", "    Error: locator.focus: Timeout 30000ms exceeded.\n    Error: browser.newContext:"), 1), "accessibility");
 });
 
 test("an expected utterance that never came stays accessibility, recorded or beside a teardown error", () => {

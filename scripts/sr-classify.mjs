@@ -14,8 +14,8 @@
 //   run and blocks a release.
 // - infrastructure: VoiceOver or NVDA did not start or could not be controlled, a TCC prompt
 //   appeared, a test timed out before the screen reader said anything, the Storybook server never
-//   became ready, the runner image was broken, or Playwright failed to close the browser after a
-//   test while nothing else failed (a test body's failure always decides first). The nightly run opens or updates one
+//   became ready, the runner image was broken, or the browser failed to open or close a test's
+//   context while nothing else failed (a test body's failure always decides first). The nightly run opens or updates one
 //   `screen-reader-infra` issue; a release retries once.
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -37,17 +37,21 @@ const infrastructure = [
   [/received a shutdown signal|lost communication with the server/i, "the runner went away"],
 ];
 
-/** Playwright closing a test's browser context, or the browser, after the test: fixture teardown. */
-const teardownError = /^\s*Error: (browserContext|browser)\.close: /;
+/**
+ * The browser opening or closing a test's context, or closing itself: only the fixtures around a
+ * test do that, never a spec's body.
+ */
+const browserLifecycleError = /^\s*Error: (browserContext\.(close|newPage)|browser\.(close|newContext)): /;
 
 /**
- * Whether every error the run reports is Playwright failing to close the browser after a test
- * (recorded: NVDA's Select test passed, then `browserContext.close: Test ended.`), with no test
- * timeout: the test bodies did not fail, so the runner did.
+ * Whether every error the run reports is the browser failing to open or close a test's context,
+ * with no test timeout: the test bodies did not fail, so the runner did. Recorded: NVDA's Select
+ * test passed, then `browserContext.close: Test ended.`; and NVDA's quit took the browser with it,
+ * so the next test's `browser.newContext` failed.
  */
-function onlyTeardownFailed(log) {
+function onlyBrowserLifecycleFailed(log) {
   const errors = log.split(/\r?\n/).filter((line) => /^\s*[A-Za-z]*Error: /.test(line));
-  return errors.length > 0 && errors.every((line) => teardownError.test(line)) && !/Test timeout of \d+ms exceeded/.test(log);
+  return errors.length > 0 && errors.every((line) => browserLifecycleError.test(line)) && !/Test timeout of \d+ms exceeded/.test(log);
 }
 
 /** The lane's class for a log and `pnpm test:sr`'s exit code (null when it never ran). */
@@ -55,7 +59,7 @@ export function classify(log, exitCode) {
   if (exitCode === 0) return "pass";
   if (exitCode === null || exitCode === undefined || log.trim() === "") return "infrastructure";
   if (assertion.test(log)) return "accessibility";
-  if (onlyTeardownFailed(log)) return "infrastructure";
+  if (onlyBrowserLifecycleFailed(log)) return "infrastructure";
   if (infrastructure.some(([pattern]) => pattern.test(log))) return "infrastructure";
   // A timeout before the screen reader said anything: it never started speaking.
   if (/Test timeout of \d+ms exceeded/.test(log) && !/\[sr\] first utterance:/.test(log)) return "infrastructure";
@@ -66,8 +70,8 @@ export function classify(log, exitCode) {
 export const why = (log) =>
   log.trim() === ""
     ? "the tests never ran"
-    : onlyTeardownFailed(log)
-      ? "the browser failed to close after a test, outside any assertion"
+    : onlyBrowserLifecycleFailed(log)
+      ? "the browser failed to open or close a test's context, outside any assertion"
       : (infrastructure.find(([pattern]) => pattern.test(log))?.[1] ?? "a timeout before the first utterance");
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

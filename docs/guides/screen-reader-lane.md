@@ -20,7 +20,7 @@ VoiceOver reads WebKit on `macos-15`; NVDA reads Chromium on `windows-2025`. Eac
 
 The specs wait for speech, never for a fixed time. NVDA's phrases come from Guidepup's capture, which logs everything NVDA says. VoiceOver lets AppleScript read only its last phrase, and Guidepup's capture reads it again only after waiting as long as that phrase takes to say: after a long hint, it missed the short phrase that named the newly focused control ("Edit dialog pop up button") and read the next hint, so the Dialog spec failed at random. On VoiceOver, `heard` instead watches the last phrase every 50 ms from one osascript process (`watchVoiceOver` in `screen-reader.ts`). The watch first has VoiceOver say "Speech check" (`MARK` in `phrases.ts`) and runs the action once that is VoiceOver's last phrase, so nothing said before the action counts, and a control VoiceOver was already on still counts when it says it again as focus arrives. Then it checks each new phrase as it is read, for up to 15 s.
 
-Each test ends by stopping the screen reader, waiting (up to 30 s) for NVDA's process to exit, because NVDA quits after `nvda.stop()` returns and a browser context closed meanwhile failed to close ("browserContext.close: Test ended."), and then closing the context itself. Anything that goes wrong there is logged as `[sr] teardown:` and does not fail a test that passed.
+Each test ends by stopping the screen reader, waiting (up to 30 s) for NVDA's process to exit, because NVDA quits after `nvda.stop()` returns and a browser context closed meanwhile failed to close ("browserContext.close: Test ended."), and then closing the context itself. On Windows each test also has a browser of its own, closed last: NVDA unloads its helper from the browser as it quits, and that took a shared browser down with it, so the next test could not open a context. Anything that goes wrong there is logged as `[sr] teardown:` and does not fail a test that passed.
 
 ## Known findings
 
@@ -40,7 +40,7 @@ It never runs for a pull request.
 `scripts/sr-classify.mjs` reads the log and the exit code of `pnpm test:sr`:
 
 - **accessibility**: an expected utterance was missing or wrong, or a story the lane opens is missing. This fails the run and blocks a release.
-- **infrastructure**: VoiceOver or NVDA did not start or could not be controlled, a TCC prompt appeared, a test timed out before the screen reader said anything, the Storybook server never became ready, the runner image was broken, or every error in the run is Playwright failing to close the browser after a test (a missing utterance, a failed `expect` or any other error in the run makes it **accessibility**). A nightly run opens, or comments on, one issue labelled `screen-reader-infra` (`scripts/sr-infra-issue.sh`); a release dispatches the lane once more and stops after a second infrastructure failure, with that issue.
+- **infrastructure**: VoiceOver or NVDA did not start or could not be controlled, a TCC prompt appeared, a test timed out before the screen reader said anything, the Storybook server never became ready, the runner image was broken, or every error in the run is the browser failing to open or close a test's context, which only the fixtures around a test do (a missing utterance, a failed `expect` or any other error in the run makes it **accessibility**). A nightly run opens, or comments on, one issue labelled `screen-reader-infra` (`scripts/sr-infra-issue.sh`); a release dispatches the lane once more and stops after a second infrastructure failure, with that issue.
 
 ## Running it
 
