@@ -131,8 +131,15 @@ test("real production hydration keeps label/control IDs while the uncached selec
     await expect(page.getByRole("combobox", { name: "Course", exact: true })).toBeDisabled();
     await expect(page.getByRole("button", { name: "Save recipe", exact: true })).toBeDisabled();
     release();
-    await page.getByRole("combobox", { name: "Course", exact: true }).click();
-    await page.getByRole("option", { name: "Main", exact: true }).click();
+    // The demo goes live a render after its chunk arrives; under load WebKit can take the first
+    // press before Select listens, so press again only while the list is still shut.
+    const course = page.getByRole("combobox", { name: "Course", exact: true });
+    const main = page.getByRole("option", { name: "Main", exact: true });
+    await expect(async () => {
+      if (!(await main.isVisible())) await course.click();
+      await expect(main).toBeVisible({ timeout: 2_000 });
+    }).toPass();
+    await main.click();
     await page.getByRole("button", { name: "Save recipe", exact: true }).click();
     await expect(page.getByText("A recipe called Pasta already exists.", { exact: true })).toBeVisible();
     await expect(name).toHaveAttribute("id", before!);
