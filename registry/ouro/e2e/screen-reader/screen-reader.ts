@@ -3,7 +3,7 @@ import { test as base, expect, type BrowserContext, type BrowserContextOptions, 
 import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import { nvdaFor, startNVDA, stopNVDA } from "./nvda";
-import { firstMatch, MARK, readRecords, RECORD_END, RECORD_START, readyForAction, saysValue as valueSaid, speechVerdict, spokenAfter, WATCH_LIMIT_SECONDS, type WatchEnd } from "./phrases";
+import { firstMatch, MARK, missedPhrase, readRecords, RECORD_END, RECORD_START, readyForAction, saysValue as valueSaid, speechVerdict, spokenAfter, WATCH_LIMIT_SECONDS, type WatchEnd } from "./phrases";
 
 // The screen-reader lane's fixtures (playwright.screen-reader.config.ts): VoiceOver on macOS and
 // NVDA on Windows, through Guidepup. VoiceOver starts for each test; NVDA once for each worker
@@ -249,6 +249,26 @@ export async function heard(sr: ScreenReader, action: () => Promise<unknown>, ma
     if (Date.now() > deadline) throw new Error(`[sr] no utterance matched ${what}; heard: ${phrases.map((phrase) => `"${phrase}"`).join(" | ") || "nothing"}`);
     // Speech that comes after the action (a live region) is read by capturing again.
     add((await sr.capture(async () => undefined, { capture: true })).spokenPhrase);
+  }
+}
+
+/**
+ * `heard`, except that on VoiceOver a phrase that never came is not yet a failure: VoiceOver is then
+ * asked to describe the focused element (`describesFocus`), and that description must pass
+ * `described`, one phrase under the same strict rule; the miss is logged as `[sr] finding:` with
+ * `finding`, the issue that tracks it. Only for a step VoiceOver is known to skip at times (the
+ * Checklist toggle, ourostack/ouro-ui#118); on NVDA it is `heard`.
+ */
+export async function heardOrDescribed(sr: ScreenReader, action: () => Promise<unknown>, matches: (phrase: string) => boolean, described: (phrase: string) => boolean, what: string, finding: string): Promise<string> {
+  if (!isVoiceOver(sr)) return heard(sr, action, matches, what);
+  try {
+    return await heard(sr, action, matches, what);
+  } catch (error) {
+    if (!(error instanceof Error) || !missedPhrase(error.message)) throw error;
+    const description = await describesFocus(sr, described, `${what}, described`);
+    const spoke = error.message.slice(error.message.indexOf("; heard: ") + "; heard: ".length);
+    console.log(`[sr] finding: ${finding}: VoiceOver did not announce ${what} (it said: ${spoke}); described, the focus is "${description}"`);
+    return description;
   }
 }
 

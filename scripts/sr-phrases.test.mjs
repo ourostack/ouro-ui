@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
-import { CHECKBOX, CHECKED, firstMatch, inOneSentence, MARK, nameAndRole, readRecords, readsBrowser, quietFor, readyForAction, saysValue, speechVerdict, spokenAfter, UNCHECKED, WATCH_LIMIT_SECONDS, withoutHints } from "../registry/ouro/e2e/screen-reader/phrases.ts";
+import { CHECKBOX, CHECKED, firstMatch, inOneSentence, MARK, missedPhrase, nameAndRole, readRecords, readsBrowser, quietFor, readyForAction, saysValue, speechVerdict, spokenAfter, UNCHECKED, WATCH_LIMIT_SECONDS, withoutHints } from "../registry/ouro/e2e/screen-reader/phrases.ts";
 
 // The screen-reader specs' matchers (registry/ouro/e2e/screen-reader/phrases.ts), against phrases
 // VoiceOver and NVDA said in the lane's runs. A matcher takes one phrase at a time, without
@@ -107,7 +107,7 @@ test("every spec's matcher goes through inOneSentence, and the lane counts only 
   for (const file of specs) {
     const source = readFileSync(join(dir, file), "utf8");
     // Every assertion on speech: heard(…) or describesFocus(…), each with an inOneSentence matcher.
-    const calls = [...source.matchAll(/(?:heard|describesFocus)\(sr, ([^\n]+)/g)].map((match) => match[1]);
+    const calls = [...source.matchAll(/(?:heard|heardOrDescribed|describesFocus)\(sr, ([^\n]+)/g)].map((match) => match[1]);
     assert.ok(calls.length > 0, file);
     for (const call of calls) assert.match(call, /inOneSentence\(|saysTrigger/, `${file}: ${call}`);
     assert.doesNotMatch(source, /\.test\(phrase\)/, file);
@@ -229,4 +229,27 @@ test("a watch that cannot get VoiceOver ready says why, and not that it was stop
   assert.equal(await readyForAction(broken.state, broken.say), "osascript ended (exit 1): execution error (-1743)");
   const refused = fakeWatch();
   assert.equal(await readyForAction(refused.state, async () => { throw new Error("Not authorized"); }), `VoiceOver did not say "${MARK}": Not authorized`);
+});
+
+test("only a phrase that never came lets the Checklist step ask VoiceOver to describe the focus (#118)", () => {
+  // Runs 39273820587 and 39278342203: after Space, VoiceOver said only the checkbox's hint.
+  assert.equal(missedPhrase('[sr] no utterance matched unchecked, after Space; heard: "You are currently on a checkbox. To select or deselect this checkbox, press Control-Option-Space."'), true);
+  // The runner's failures, and any other error, stay what they are.
+  assert.equal(missedPhrase("[sr] infrastructure: VoiceOver's speech stopped being read (osascript ended (exit 1)); heard: nothing"), false);
+  assert.equal(missedPhrase("[sr] infrastructure: VoiceOver's speech could not be read: no phrase within 10 s; read: nothing"), false);
+  assert.equal(missedPhrase("locator.focus: Timeout 30000ms exceeded."), false);
+  assert.equal(missedPhrase("Error: expect(locator).toBeChecked() failed"), false);
+  // The description must still give the row's name, the role and the new state in one sentence.
+  const described = (phrase) => inOneSentence(phrase, /\brolled oats\b/i, CHECKBOX, UNCHECKED);
+  assert.equal(described("rolled oats 1 cup unchecked checkbox has keyboard focus"), true);
+  assert.equal(described("rolled oats 1 cup checked checkbox has keyboard focus"), false);
+  assert.equal(described("You are currently on a checkbox. rolled oats unchecked."), false);
+});
+
+test("the describe fallback is the Checklist toggle's alone, and cites #118", () => {
+  const dir = join(import.meta.dirname, "../registry/ouro/e2e/screen-reader");
+  const users = readdirSync(dir).filter((file) => file.endsWith(".sr.spec.ts") && readFileSync(join(dir, file), "utf8").includes("heardOrDescribed("));
+  assert.deepEqual(users, ["checklist.sr.spec.ts"]);
+  assert.match(readFileSync(join(dir, "checklist.sr.spec.ts"), "utf8"), /ourostack\/ouro-ui#118/);
+  assert.match(readFileSync(join(import.meta.dirname, "../docs/guides/screen-reader-lane.md"), "utf8"), /ourostack\/ouro-ui#118/);
 });
