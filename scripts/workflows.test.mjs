@@ -539,6 +539,8 @@ test("the screen-reader packages are pinned exactly, and test:sr runs its own co
 test("the main Playwright config never runs a screen-reader spec, and the screen-reader config runs only those, one at a time", async () => {
   const main = (await import("../playwright.config.ts")).default;
   assert.ok(main.testIgnore instanceof RegExp && main.testIgnore.test("registry/ouro/e2e/screen-reader/checkbox.sr.spec.ts"));
+  // Importing Guidepup throws where no screen reader is supported, as on the Linux runner that runs these tests.
+  assert.doesNotMatch(readFileSync(join(root, "playwright.screen-reader.config.ts"), "utf8"), /@guidepup/);
   const sr = (await import("../playwright.screen-reader.config.ts")).default;
   assert.equal(sr.testDir, "registry/ouro/e2e/screen-reader");
   assert.ok(sr.testMatch.test("dialog.sr.spec.ts") && !sr.testMatch.test("dialog.spec.ts"));
