@@ -154,6 +154,31 @@ describe("TimerTray", () => {
     }
   });
 
+  it("lets the Timer's silent decide the alert for a timer that ended just before a reload, with both mounted in one commit", async () => {
+    const cases = [
+      { id: "reload-loud", timerSilent: false, traySilent: true, chimes: true },
+      { id: "reload-quiet", timerSilent: true, traySilent: false, chimes: false },
+    ];
+    const announced = watchAnnouncements();
+    try {
+      for (const { id, timerSilent, traySilent, chimes } of cases) {
+        tones = 0;
+        store(id, { status: "running", duration: 60, endsAt: Date.now() - 1000 });
+        await render(
+          <>
+            <TimerTray timers={[{ timerId: id, label: "Pasta", duration: 60 }]} silent={traySilent} />
+            <Timer label="Pasta" duration={60} timerId={id} silent={timerSilent} />
+          </>,
+        );
+        await advance(200);
+        expect(tones).toBe(chimes ? 3 : 0);
+      }
+      expect(announced.count("Pasta: Time's up")).toBe(2);
+    } finally {
+      announced.stop();
+    }
+  });
+
   it("alerts on its own when the timer's screen is gone, unless silent", async () => {
     store("tea", { status: "running", duration: 60, endsAt: Date.now() + 1000 });
     store("rest", { status: "running", duration: 60, endsAt: Date.now() + 2000 });

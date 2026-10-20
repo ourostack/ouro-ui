@@ -249,7 +249,11 @@ export function useTimer({ duration, timerId, onDone, fallback }: TimerOptions):
       };
       entry.listeners.add(onChange);
       entry.done.add(done);
-      settle(key, entry, true);
+      // Settled after this commit, once every component that shows the timer has subscribed, so a
+      // timer that ended while the page was closed alerts through the right one (a Timer over a tray).
+      queueMicrotask(() => {
+        if (entries.get(key) === entry) settle(key, entry, true);
+      });
       onChange();
       return () => {
         entry.listeners.delete(onChange);

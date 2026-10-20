@@ -1,4 +1,5 @@
 import { type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -212,6 +213,21 @@ describe("useTimer", () => {
     await act(async () => state.current.start());
     await advance(2000);
     expect(state.current.status).toBe("done");
+  });
+
+  it("leaves a stored timer alone when its only component goes before the timer is first settled", async () => {
+    localStorage.setItem("ouro-timer:gone", JSON.stringify({ status: "running", duration: 60, endsAt: Date.now() - 1000 }));
+    const onDone = vi.fn();
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    // Mounted and unmounted in one task: the settle deferred past the commit finds the timer gone.
+    flushSync(() => root.render(<Probe options={{ duration: 60, timerId: "gone", onDone }} report={() => {}} />));
+    root.unmount();
+    await act(async () => {});
+    expect(onDone).not.toHaveBeenCalled();
+    expect(JSON.parse(localStorage.getItem("ouro-timer:gone")!)).toMatchObject({ status: "running" });
   });
 
   it("forgets a timer without a timerId when its component goes, and stops its clock", async () => {
