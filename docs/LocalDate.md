@@ -2,7 +2,7 @@
 
 # LocalDate
 
-A date (and time) in the reader's own time zone and language, in a `<time>` that carries the exact instant. Only the browser knows the reader's time zone, so the server writes the instant in UTC, hydration repeats it so the markup matches, and the browser then shows the local one. A date then changes only when the instant falls near midnight, but a time (`time`, `datetime`) changes for every reader outside UTC, so the server's text names the zone ("9:30 AM UTC") until the browser takes over. A calendar date with no time ("2026-06-01") is the same day for everyone and is written the same on the server and in the browser.
+A date (and time) in the reader's own time zone and language, in a `<time>` that carries the exact instant. Only the browser knows the reader's time zone, so the server writes the instant in UTC, hydration repeats it so the markup matches, and the browser then shows the local one. A date then changes only when the instant falls near midnight, but a time (`time`, `datetime`) changes for every reader outside UTC, so the server's text names the zone ("9:30 AM UTC") until the browser takes over. A calendar date with no time ("2026-06-01") is the same day for everyone: it is written the same on the server and in the browser, and the `<time>` carries that date.
 
 ```tsx
 import { LocalDate } from "@/registry/ouro/components/ouro/local-date/local-date";

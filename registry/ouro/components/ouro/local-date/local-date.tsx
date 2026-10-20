@@ -42,7 +42,8 @@ export type LocalDateProps = Omit<TimeHTMLAttributes<HTMLTimeElement>, keyof Loc
  * local one. A date then changes only when the instant falls near midnight, but a time
  * (`time`, `datetime`) changes for every reader outside UTC, so the server's text names the
  * zone ("9:30 AM UTC") until the browser takes over. A calendar date with no time ("2026-06-01")
- * is the same day for everyone and is written the same on the server and in the browser.
+ * is the same day for everyone: it is written the same on the server and in the browser, and
+ * the `<time>` carries that date.
  *
  * Use `RelativeTime` instead for "3 days ago", and `Intl.DateTimeFormat` in your own text for
  * a date inside a sentence you build.
