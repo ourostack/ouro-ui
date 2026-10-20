@@ -4,13 +4,17 @@ import { useSyncExternalStore, type JSX, type Ref, type TimeHTMLAttributes } fro
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
-import { dateFormats, inBrowser, onServer, subscribeNever, toDate, type DateFormat } from "@/registry/ouro/components/ouro/local-date/local-date-styles";
+import { dateFormats, dateText, inBrowser, onServer, subscribeNever, toDate, type DateFormat } from "@/registry/ouro/components/ouro/local-date/local-date-styles";
 
 export type { DateFormat } from "@/registry/ouro/components/ouro/local-date/local-date-styles";
 
 /** The props LocalDate adds to the `<time>` attributes it passes through. */
 export interface LocalDateOwnProps {
-  /** The instant: a `Date`, an ISO string or a timestamp in milliseconds. */
+  /**
+   * The instant: a `Date`, an ISO string or a timestamp in milliseconds. A calendar date with no
+   * time ("2026-06-01", or "2026-06" with `format="month"`) is that day for every reader and is
+   * never moved into a time zone.
+   */
   value: Date | string | number;
   /** `date` "Jun 1, 2026", `month` "Jun 2026", `datetime` "Jun 1, 2026, 9:30 AM", `time` "9:30 AM". @default "date" */
   format?: DateFormat | (string & { 'Use "date", "month", "datetime" or "time"': never }) | undefined;
@@ -34,8 +38,11 @@ export type LocalDateProps = Omit<TimeHTMLAttributes<HTMLTimeElement>, keyof Loc
 /**
  * A date (and time) in the reader's own time zone and language, in a `<time>` that carries
  * the exact instant. Only the browser knows the reader's time zone, so the server writes the
- * UTC date, hydration repeats it so the markup matches, and the browser then shows the local
- * one; the two differ only near midnight.
+ * instant in UTC, hydration repeats it so the markup matches, and the browser then shows the
+ * local one. A date then changes only when the instant falls near midnight, but a time
+ * (`time`, `datetime`) changes for every reader outside UTC, so the server's text names the
+ * zone ("9:30 AM UTC") until the browser takes over. A calendar date with no time ("2026-06-01")
+ * is the same day for everyone and is written the same on the server and in the browser.
  *
  * Use `RelativeTime` instead for "3 days ago", and `Intl.DateTimeFormat` in your own text for
  * a date inside a sentence you build.
@@ -80,10 +87,10 @@ export function LocalDate(props: LocalDateProps): JSX.Element {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   const hydrated = useSyncExternalStore(subscribeNever, inBrowser, onServer);
-  const text = date ? new Intl.DateTimeFormat(locale, { ...dateFormats[format], ...(hydrated ? {} : { timeZone: "UTC" }) }).format(date) : "";
+  const written = dateText(value, format, locale, hydrated ? undefined : "UTC", !hydrated);
   return (
-    <time {...rest} data-ouro="local-date" dateTime={date?.toISOString()} className={cn(className)}>
-      {text}
+    <time {...rest} data-ouro="local-date" dateTime={written?.dateTime} className={cn(className)}>
+      {written?.text}
     </time>
   );
 }

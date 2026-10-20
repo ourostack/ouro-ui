@@ -3,6 +3,7 @@ import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LocalDate, type LocalDateProps } from "@/registry/ouro/components/ouro/local-date/local-date";
+import { dateText } from "@/registry/ouro/components/ouro/local-date/local-date-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 const roots: Root[] = [];
@@ -63,7 +64,7 @@ describe("LocalDate", () => {
     const node = <LocalDate value={instant} format="datetime" locale="en-US" />;
     const html = renderToString(node);
     const utc = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(instant);
-    expect(html).toContain(`>${utc}</time>`);
+    expect(html).toContain(`>${utc} UTC</time>`);
     const host = document.createElement("div");
     host.innerHTML = html;
     document.body.append(host);
@@ -74,12 +75,67 @@ describe("LocalDate", () => {
     expect(host.querySelector("time")!.textContent).toBe(local({ dateStyle: "medium", timeStyle: "short" }));
   });
 
+  it("labels a time UTC on the server, and drops the label once the browser shows the local time", async () => {
+    const node = <LocalDate value={instant} format="time" locale="en-US" />;
+    const html = renderToString(node);
+    const utc = new Intl.DateTimeFormat("en-US", { timeStyle: "short", timeZone: "UTC" }).format(instant);
+    expect(html).toContain(`>${utc} UTC</time>`);
+    const host = document.createElement("div");
+    host.innerHTML = html;
+    document.body.append(host);
+    mounted.push(host);
+    const onRecoverableError = vi.fn();
+    await act(async () => void roots.push(hydrateRoot(host, node, { onRecoverableError })));
+    expect(onRecoverableError).not.toHaveBeenCalled();
+    expect(host.querySelector("time")!.textContent).toBe(local({ timeStyle: "short" }));
+    expect(renderToString(<LocalDate value={instant} format="month" locale="en-US" />)).not.toContain("UTC");
+  });
+
+  it.each([
+    ["date", "2026-06-01", "Jun 1, 2026"],
+    ["month", "2026-06", "Jun 2026"],
+  ] as const)("writes a calendar %s as that day everywhere, on the server and in the browser", async (format, value, words) => {
+    expect(renderToString(<LocalDate value={value} format={format} locale="en-US" />)).toContain(`dateTime="${value}" class="">${words}</time>`);
+    const { time } = await render(<LocalDate value={value} format={format} locale="en-US" />);
+    expect(time.textContent).toBe(words);
+    expect(time.dateTime).toBe(value);
+  });
+
   it("forwards a ref and <time> attributes, and lets app layout classes win", async () => {
     let element: HTMLTimeElement | null = null;
     const { time } = await render(<LocalDate value={instant} id="due" className="ms-2" ref={(node) => void (element = node)} />);
     expect(element).toBe(time);
     expect(time.id).toBe("due");
     expect(getComputedStyle(time).marginInlineStart).toBe("8px");
+  });
+});
+
+describe("dateText", () => {
+  const west = "America/Los_Angeles";
+
+  it.each([
+    ["date", "2026-06-01", "Jun 1, 2026"],
+    ["month", "2026-06", "Jun 2026"],
+  ] as const)("keeps the calendar %s %s on its day west of UTC", (format, value, words) => {
+    const written = dateText(value, format, "en-US", west)!;
+    expect(written.text).toBe(words);
+    expect(written.dateTime).toBe(value);
+    // WebKit joins the date and time with "at".
+    expect(dateText(value, "datetime", "en-US", west)!.text.replace(/\s/g, " ")).toMatch(/^Jun 1, 2026(,| at) 12:00 AM$/);
+  });
+
+  it("moves an instant into the reader's time zone", () => {
+    const written = dateText("2026-06-01T09:30:00Z", "datetime", "en-US", west)!;
+    expect(written.text.replace(/\s/g, " ")).toMatch(/^Jun 1, 2026(,| at) 2:30 AM$/);
+    expect(written.dateTime).toBe("2026-06-01T09:30:00.000Z");
+    expect(dateText("2026-06-01T03:00:00Z", "date", "en-US", west)!.text).toBe("May 31, 2026");
+  });
+
+  it("treats only a whole calendar date as one", () => {
+    expect(dateText("2026-06-01T00:00", "date", "en-US", "UTC")!.dateTime).not.toBe("2026-06-01T00:00");
+    expect(dateText("June 1, 2026", "date", "en-US", "UTC")!.dateTime).toBe(new Date("June 1, 2026").toISOString());
+    expect(dateText(Date.UTC(2026, 5, 1), "date", "en-US", west)!.text).toBe("May 31, 2026");
+    expect(dateText("soon", "date", "en-US", west)).toBeNull();
   });
 });
 

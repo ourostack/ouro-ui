@@ -36,6 +36,15 @@ export const Formats: Story = {
   ),
 };
 
+/** A calendar date with no time of day, such as a due date: the same day for every reader, wherever they are. */
+export const CalendarDate: Story = {
+  render: () => (
+    <Text>
+      Due <LocalDate value="2026-06-01" />, billed for <LocalDate value="2026-06" format="month" />.
+    </Text>
+  ),
+};
+
 /** Inside a line of text, in other languages. */
 export const InContext: Story = {
   render: () => (
