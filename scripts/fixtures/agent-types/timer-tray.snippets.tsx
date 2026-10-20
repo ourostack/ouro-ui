@@ -2,4 +2,5 @@
 import { TimerTray } from "@/registry/ouro/components/ouro/timer/timer-tray";
 
 export const timerTray01 = <TimerTray timers={[]} items={[]} />;
-export const timerTrayOk01 = <TimerTray timers={[{ id: "pasta", label: "Pasta", duration: 600, href: "/steps/2" }]} label="Timers" silent className="sticky top-0" />;
+export const timerTray02 = <TimerTray timers={[{ id: "pasta", label: "Pasta", duration: 600 }]} />;
+export const timerTrayOk01 = <TimerTray timers={[{ timerId: "pasta", label: "Pasta", duration: 600, href: "/steps/2" }]} label="Timers" silent className="sticky top-0" />;

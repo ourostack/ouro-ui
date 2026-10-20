@@ -2,7 +2,7 @@
 
 # Timer
 
-A countdown timer with its own controls: the time left in large numbers, Start, then Pause and Cancel, Resume when paused, and at zero "Time's up" with Dismiss and Restart. It keeps time by the clock, so it stays right in a background tab and, with `id`, across a reload. At zero it chimes and vibrates (unless `silent`) and screen readers hear "Pasta: Time's up" once; the time itself is a `timer` region, read when the person asks rather than every second.
+A countdown timer with its own controls: the time left in large numbers, Start, then Pause and Cancel, Resume when paused, and at zero "Time's up" with Dismiss and Restart. It keeps time by the clock, so it stays right in a background tab and, with `timerId`, across a reload. At zero it chimes and vibrates (unless `silent`) and screen readers hear "Pasta: Time's up" once; the time itself is a `timer` region, read when the person asks rather than every second.
 
 ```tsx
 import { Timer } from "@/registry/ouro/components/ouro/timer/timer";
@@ -11,12 +11,12 @@ import { Timer } from "@/registry/ouro/components/ouro/timer/timer";
 ## Example
 
 ```tsx
-<Timer label="Pasta" duration={600} id="pasta" />
+<Timer label="Pasta" duration={600} timerId="pasta" />
 ```
 
 ## Usage
 
-Give timers that should outlive their screen an `id` and list them in a `TimerTray`, so a person who moves on can still see and stop them.
+Give timers that should outlive their screen a `timerId` and list them in a `TimerTray`, so a person who moves on can still see and stop them.
 
 ## Use instead when
 
@@ -30,13 +30,13 @@ Type: `TimerProps`.
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: margins, width (`mt-6`). Appearance classes warn in development. |
 | `duration` (required) | `number` |  | How long it runs, in seconds: `duration={600}` for ten minutes. |
-| `id` | `string` |  | Keeps the timer through a reload and a closed tab, and shares it with a `TimerTray` and every other `Timer` or `useTimer` given the same `id`. Without it the timer ends with the component. |
 | `label` (required) | `string` |  | What the timer is for, shown above the time and naming it for screen readers: "Pasta", "Break". |
 | `labels` | `TimerLabels` |  | The words it shows and says, for apps in other languages. |
 | `onDone` | `((event: TimerDoneEvent) => void)` |  | Called once when the timer reaches zero, including when it ended while the page was closed. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
 | `silent` | `boolean` |  | No chime and no vibration at zero; it still shows and says that the time is up. |
 | `size` | `"md" \| "lg"` | `"md"` | How large the time is: `md` beside other content, `lg` as a screen's focus. |
+| `timerId` | `string` |  | Keeps the timer through a reload and a closed tab, and shares it with a `TimerTray` and every other `Timer` or `useTimer` given the same `timerId`. Without it the timer ends with the component. (`id` is the element's, as on any `<div>`.) |
 
 ## Native attributes
 
@@ -46,11 +46,13 @@ Also accepts the attributes in React's `HTMLAttributes` (`id`, `aria-*`, event h
 
 These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
+- `autoSaveId`: Not a prop. A timer is kept and shared by `timerId`: `<Timer timerId="pasta" />`.
 - `minutes`: Not a prop. The length is `duration`, in seconds: `<Timer duration={10 * 60} />`.
 - `onComplete`: Not a prop. Ouro UI says `onDone`: `<Timer onDone={() => …} />`.
 - `onEnd`: Not a prop. Ouro UI says `onDone`: `<Timer onDone={() => …} />`.
 - `seconds`: Not a prop. The length is `duration`, in seconds: `<Timer duration={600} />`.
 - `sound`: Not a prop. Turn the sound off with `silent`: `<Timer silent />`.
+- `storageKey`: Not a prop. A timer is kept and shared by `timerId`: `<Timer timerId="pasta" />`.
 
 ## `className` is for layout only
 
@@ -72,7 +74,7 @@ interface TimerDoneEvent {
   endedAt: number;
   /**
    * Whether this `useTimer` is the one on the page that should sound the alert: the first with
-   * the timer's `id` to hear it, not counting `fallback` ones unless only those are mounted. When
+   * the timer's `timerId` to hear it, not counting `fallback` ones unless only those are mounted. When
    * a `Timer` and a `TimerTray` both show one timer, the `Timer` alerts, whichever mounted first.
    */
   first: boolean;

@@ -11,7 +11,7 @@ export interface TimerDoneEvent {
   endedAt: number;
   /**
    * Whether this `useTimer` is the one on the page that should sound the alert: the first with
-   * the timer's `id` to hear it, not counting `fallback` ones unless only those are mounted. When
+   * the timer's `timerId` to hear it, not counting `fallback` ones unless only those are mounted. When
    * a `Timer` and a `TimerTray` both show one timer, the `Timer` alerts, whichever mounted first.
    */
   first: boolean;
@@ -24,9 +24,11 @@ export interface TimerOptions {
   /**
    * Keeps the timer in `localStorage` under this name, so it carries on through a reload and
    * a closed tab, and shares it with every `useTimer`, `Timer` and `TimerTray` given the same
-   * `id`, in this tab and in others. Without it the timer lives as long as the component.
+   * `timerId`, in this tab and in others. Without it the timer lives as long as the component.
    */
-  id?: string | undefined;
+  timerId?: string | undefined;
+  /** Not an option. A timer is kept and shared by `timerId`: `useTimer({ duration: 600, timerId: "pasta" })`. */
+  id?: { 'Use timerId: "pasta"': never };
   /** Called once when the timer reaches zero, including when it ended while the page was closed. */
   onDone?: ((event: TimerDoneEvent) => void) | undefined;
   /**
@@ -205,9 +207,9 @@ function remainingOf(stored: Stored | null, duration: number, now: number): numb
 
 /**
  * A countdown timer that keeps time by the clock, not by ticks, so it stays right in a
- * background tab, across a reload (with `id`) and when the screen sleeps. It re-renders four
+ * background tab, across a reload (with `timerId`) and when the screen sleeps. It re-renders four
  * times a second while it runs, and calls `onDone` once at zero. Every `useTimer`, `Timer`
- * and `TimerTray` with the same `id` shares one timer, in this tab and in others.
+ * and `TimerTray` with the same `timerId` shares one timer, in this tab and in others.
  *
  * Use `Timer` instead for the whole control (the time, Start, Pause and the alert), and
  * this hook for a timer of your own design.
@@ -216,13 +218,13 @@ function remainingOf(stored: Stored | null, duration: number, now: number): numb
  * @see https://ourostack.github.io/ouro-ui/docs/timer
  *
  * @example
- * const timer = useTimer({ duration: 600, id: "pasta", onDone: () => chime() });
+ * const timer = useTimer({ duration: 600, timerId: "pasta", onDone: () => chime() });
  * <Button onClick={timer.start}>Start</Button>
  * <p>{formatDuration(timer.remaining)}</p>
  */
-export function useTimer({ duration, id, onDone, fallback }: TimerOptions): TimerControls {
+export function useTimer({ duration, timerId, onDone, fallback }: TimerOptions): TimerControls {
   const anonymous = useId();
-  const key = id ?? `local:${anonymous}`;
+  const key = timerId ?? `local:${anonymous}`;
   const onDoneRef = useRef(onDone);
   const fallbackRef = useRef(fallback);
   useEffect(() => {
@@ -232,7 +234,7 @@ export function useTimer({ duration, id, onDone, fallback }: TimerOptions): Time
 
   const subscribe = useCallback(
     (onChange: () => void) => {
-      const entry = entryFor(key, id !== undefined);
+      const entry = entryFor(key, timerId !== undefined);
       if (!entry.loaded) {
         entry.loaded = true;
         if (entry.persist) entry.stored = read(key);
@@ -255,12 +257,12 @@ export function useTimer({ duration, id, onDone, fallback }: TimerOptions): Time
         if (entry.listeners.size === 0) {
           clearTimeout(entry.timeout);
           entry.timeout = undefined;
-          // A timer kept in storage is read again next time; one without an id ends with its component.
+          // A timer kept in storage is read again next time; one without a timerId ends with its component.
           entries.delete(key);
         }
       };
     },
-    [key, id],
+    [key, timerId],
   );
   const stored = useSyncExternalStore(
     subscribe,
@@ -273,10 +275,10 @@ export function useTimer({ duration, id, onDone, fallback }: TimerOptions): Time
 
   const change = useCallback(
     (next: (current: Stored | null, now: number) => Stored | null) => {
-      const entry = entryFor(key, id !== undefined);
+      const entry = entryFor(key, timerId !== undefined);
       update(key, entry, next(entry.stored, Date.now()));
     },
-    [key, id],
+    [key, timerId],
   );
   const start = useCallback(() => change((_current, now) => ({ status: "running", duration, endsAt: now + duration * 1000 })), [change, duration]);
   const pause = useCallback(

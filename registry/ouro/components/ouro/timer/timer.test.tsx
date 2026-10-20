@@ -181,13 +181,13 @@ describe("Timer", () => {
     }
   });
 
-  it("keeps its time through a reload with an id, and stays quiet about a timer that ended long ago", async () => {
+  it("keeps its time through a reload with a timerId, and stays quiet about a timer that ended long ago", async () => {
     localStorage.setItem("ouro-timer:bread", JSON.stringify({ status: "running", duration: 3600, endsAt: Date.now() - 5 * 60_000 }));
     localStorage.setItem("ouro-timer:soup", JSON.stringify({ status: "running", duration: 1200, endsAt: Date.now() + 90_000 }));
     const announced = watchAnnouncements();
     try {
-      const bread = await render(<Timer label="Bread" duration={3600} id="bread" />);
-      const soup = await render(<Timer label="Soup" duration={1200} id="soup" />);
+      const bread = await render(<Timer label="Bread" duration={3600} timerId="bread" />);
+      const soup = await render(<Timer label="Soup" duration={1200} timerId="soup" />);
       expect(bread.caption().textContent).toBe("Time's up");
       expect(soup.time().textContent).toBe("1:30");
       await advance(200);
@@ -201,8 +201,8 @@ describe("Timer", () => {
   it("alerts once when two Timers show the same timer", async () => {
     const announced = watchAnnouncements();
     try {
-      const a = await render(<Timer label="Rice" duration={2} id="rice" />);
-      const b = await render(<Timer label="Rice" duration={2} id="rice" />);
+      const a = await render(<Timer label="Rice" duration={2} timerId="rice" />);
+      const b = await render(<Timer label="Rice" duration={2} timerId="rice" />);
       await press(a.primary());
       expect(b.primary().textContent).toBe("Pause");
       await advance(2000);
@@ -212,6 +212,17 @@ describe("Timer", () => {
     } finally {
       announced.stop();
     }
+  });
+
+  it("passes id to the element, and keeps and shares the timer only by timerId", async () => {
+    const { timer, primary } = await render(<Timer label="Tea" duration={60} id="tea-timer" />);
+    expect(timer().id).toBe("tea-timer");
+    await press(primary());
+    expect(localStorage.length).toBe(0);
+    const kept = await render(<Timer label="Tea" duration={60} id="tea-timer-2" timerId="tea" />);
+    await press(kept.primary());
+    expect(kept.timer().id).toBe("tea-timer-2");
+    expect(JSON.parse(localStorage.getItem("ouro-timer:tea")!)).toMatchObject({ status: "running", duration: 60 });
   });
 
   it("takes the words the app gives and keeps the rest", async () => {
@@ -249,11 +260,13 @@ describe("Timer development messages", () => {
     ["onComplete", { onComplete: () => {} }, "onComplete is not a prop", "<Timer onDone={() => {}} />"],
     ["onEnd", { onEnd: () => {} }, "onEnd is not a prop", "<Timer onDone={() => {}} />"],
     ["sound", { sound: false }, "sound is not a prop", "<Timer silent />"],
+    ["autoSaveId", { autoSaveId: "pasta" }, "autoSaveId is not a prop", '<Timer timerId="pasta" />'],
+    ["storageKey", { storageKey: "pasta" }, "storageKey is not a prop", '<Timer timerId="pasta" />'],
   ])("explains %s with the fix", async (_name, extra, problem, fix) => {
     const props = { label: "T", duration: 60, ...extra } as unknown as Parameters<typeof Timer>[0];
     const { timer } = await render(<Timer {...props} />);
     expect(warn).toHaveBeenCalledWith(`[ouro-ui] Timer: ${problem}. Fix: ${fix}.`);
-    for (const name of ["seconds", "minutes", "sound"]) expect(timer().hasAttribute(name)).toBe(false);
+    for (const name of ["seconds", "minutes", "sound", "autosaveid", "storagekey"]) expect(timer().hasAttribute(name)).toBe(false);
   });
 
   it.each([
@@ -267,7 +280,7 @@ describe("Timer development messages", () => {
 
   it("renders to a string at the full duration", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
-    const html = renderToString(<Timer label="Pasta" duration={600} id="pasta" />);
+    const html = renderToString(<Timer label="Pasta" duration={600} timerId="pasta" />);
     expect(html).toContain('data-ouro="timer"');
     expect(html).toContain("10:00");
     expect(error).not.toHaveBeenCalled();

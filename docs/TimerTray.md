@@ -2,7 +2,7 @@
 
 # TimerTray
 
-The timers that are running, paused or finished, in one strip, so a person who leaves a timer's screen can still see it count down, hear it at zero, and stop it. Pass every timer the app has, by the `id` its `Timer` uses; the tray shows only those not idle, and hides itself while none are. When a timer reaches zero while only the tray shows it, the tray chimes and says so; when its `Timer` is on the page too, the `Timer` alerts instead (with its own `silent`), whichever of the two mounted first.
+The timers that are running, paused or finished, in one strip, so a person who leaves a timer's screen can still see it count down, hear it at zero, and stop it. Pass every timer the app has, by the `timerId` its `Timer` uses; the tray shows only those not idle, and hides itself while none are. When a timer reaches zero while only the tray shows it, the tray chimes and says so; when its `Timer` is on the page too, the `Timer` alerts instead (with its own `silent`), whichever of the two mounted first.
 
 ```tsx
 import { TimerTray } from "@/registry/ouro/components/ouro/timer/timer-tray";
@@ -11,7 +11,7 @@ import { TimerTray } from "@/registry/ouro/components/ouro/timer/timer-tray";
 ## Example
 
 ```tsx
-<TimerTray timers={[{ id: "pasta", label: "Pasta", duration: 600, href: "/steps/2" }]} />
+<TimerTray timers={[{ timerId: "pasta", label: "Pasta", duration: 600, href: "/steps/2" }]} />
 ```
 
 ## Usage
@@ -34,7 +34,7 @@ Type: `TimerTrayProps`.
 | `labels` | `TimerLabels` |  | The words it shows and says, for apps in other languages. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 | `silent` | `boolean` |  | No chime and no vibration when a timer reaches zero while only the tray shows it. A `Timer` on the page that shows the same timer alerts instead of the tray, by its own `silent`. |
-| `timers` (required) | `readonly TimerTrayItem[]` |  | The timers to watch, by `id`. Only those that are running, paused or finished show. |
+| `timers` (required) | `readonly TimerTrayItem[]` |  | The timers to watch, by `timerId`. Only those that are running, paused or finished show. |
 
 ## Native attributes
 
@@ -45,7 +45,7 @@ Also accepts the attributes in React's `HTMLAttributes` (`id`, `aria-*`, event h
 These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
 - `hidden`: Not a prop. The tray shows only timers that are running, paused or finished; pass them all.
-- `items`: Not a prop. The tray lists `timers`: `<TimerTray timers={[{ id, label, duration }]} />`.
+- `items`: Not a prop. The tray lists `timers`: `<TimerTray timers={[{ timerId, label, duration }]} />`.
 
 ## `className` is for layout only
 
@@ -90,8 +90,10 @@ One timer a `TimerTray` watches.
 
 ```ts
 interface TimerTrayItem {
-  /** The `id` the timer's `Timer` or `useTimer` has. */
-  id: string;
+  /** The `timerId` the timer's `Timer` or `useTimer` has. */
+  timerId: string;
+  /** Not a key. A timer is named by `timerId`, as its `Timer` has it: `{ timerId: "pasta", label, duration }`. */
+  id?: { 'Use timerId: "pasta"': never };
   /** What it is for, as its `Timer` says it: "Pasta". */
   label: string;
   /** Its length in seconds, as its `Timer` has it. */

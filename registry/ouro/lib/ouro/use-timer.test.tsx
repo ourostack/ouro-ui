@@ -106,11 +106,11 @@ describe("useTimer", () => {
     expect(state.current).toMatchObject({ status: "running", remaining: 3 });
   });
 
-  it("keeps a timer with an id in localStorage and shares it with every hook that has the id", async () => {
+  it("keeps a timer with a timerId in localStorage and shares it with every hook that has the timerId", async () => {
     const first = vi.fn<(event: TimerDoneEvent) => void>();
     const second = vi.fn<(event: TimerDoneEvent) => void>();
-    const a = await renderTimer({ duration: 10, id: "tea", onDone: first });
-    const b = await renderTimer({ duration: 10, id: "tea", onDone: second });
+    const a = await renderTimer({ duration: 10, timerId: "tea", onDone: first });
+    const b = await renderTimer({ duration: 10, timerId: "tea", onDone: second });
     await act(async () => a.state.current.start());
     expect(b.state.current.status).toBe("running");
     expect(JSON.parse(localStorage.getItem("ouro-timer:tea")!)).toEqual({ status: "running", duration: 10, endsAt: Date.now() + 10_000 });
@@ -128,16 +128,16 @@ describe("useTimer", () => {
   it("gives first to a hook without fallback, whichever mounted first, and to the first fallback when only fallbacks watch", async () => {
     const watcher = vi.fn<(event: TimerDoneEvent) => void>();
     const owner = vi.fn<(event: TimerDoneEvent) => void>();
-    const a = await renderTimer({ duration: 1, id: "eggs", fallback: true, onDone: watcher });
-    await renderTimer({ duration: 1, id: "eggs", onDone: owner });
+    const a = await renderTimer({ duration: 1, timerId: "eggs", fallback: true, onDone: watcher });
+    await renderTimer({ duration: 1, timerId: "eggs", onDone: owner });
     await act(async () => a.state.current.start());
     await advance(1000);
     expect(owner).toHaveBeenCalledExactlyOnceWith({ endedAt: Date.now(), first: true });
     expect(watcher).toHaveBeenCalledExactlyOnceWith({ endedAt: Date.now(), first: false });
     const lone = vi.fn<(event: TimerDoneEvent) => void>();
     const other = vi.fn<(event: TimerDoneEvent) => void>();
-    const b = await renderTimer({ duration: 1, id: "toast", fallback: true, onDone: lone });
-    await renderTimer({ duration: 1, id: "toast", fallback: true, onDone: other });
+    const b = await renderTimer({ duration: 1, timerId: "toast", fallback: true, onDone: lone });
+    await renderTimer({ duration: 1, timerId: "toast", fallback: true, onDone: other });
     await act(async () => b.state.current.start());
     await advance(1000);
     expect(lone).toHaveBeenCalledExactlyOnceWith({ endedAt: Date.now(), first: true });
@@ -148,8 +148,8 @@ describe("useTimer", () => {
     localStorage.setItem("ouro-timer:oven", JSON.stringify({ status: "running", duration: 600, endsAt: Date.now() + 120_000 }));
     localStorage.setItem("ouro-timer:rice", JSON.stringify({ status: "running", duration: 600, endsAt: Date.now() - 30_000 }));
     const onDone = vi.fn();
-    const oven = await renderTimer({ duration: 300, id: "oven" });
-    const rice = await renderTimer({ duration: 600, id: "rice", onDone });
+    const oven = await renderTimer({ duration: 300, timerId: "oven" });
+    const rice = await renderTimer({ duration: 600, timerId: "rice", onDone });
     expect(oven.state.current).toMatchObject({ status: "running", remaining: 120, duration: 600 });
     expect(rice.state.current).toMatchObject({ status: "done", endedAt: Date.now() - 30_000 });
     expect(onDone).toHaveBeenCalledExactlyOnceWith({ endedAt: Date.now() - 30_000, first: true });
@@ -158,8 +158,8 @@ describe("useTimer", () => {
   it("reads a paused or finished stored timer as it was", async () => {
     localStorage.setItem("ouro-timer:a", JSON.stringify({ status: "paused", duration: 60, remainingMs: 15_500 }));
     localStorage.setItem("ouro-timer:b", JSON.stringify({ status: "done", duration: 60, endedAt: 5 }));
-    const a = await renderTimer({ duration: 60, id: "a" });
-    const b = await renderTimer({ duration: 60, id: "b" });
+    const a = await renderTimer({ duration: 60, timerId: "a" });
+    const b = await renderTimer({ duration: 60, timerId: "b" });
     expect(a.state.current).toMatchObject({ status: "paused", remaining: 16 });
     expect(b.state.current).toMatchObject({ status: "done", remaining: 0, endedAt: 5 });
   });
@@ -177,13 +177,13 @@ describe("useTimer", () => {
     ["a finished timer with no end", JSON.stringify({ status: "done", duration: 5 })],
   ])("treats %s in storage as no timer", async (_what, raw) => {
     localStorage.setItem("ouro-timer:bad", raw);
-    const { state } = await renderTimer({ duration: 5, id: "bad" });
+    const { state } = await renderTimer({ duration: 5, timerId: "bad" });
     expect(state.current.status).toBe("idle");
   });
 
   it("follows a timer another tab changes, without its alert", async () => {
     const onDone = vi.fn();
-    const { state } = await renderTimer({ duration: 60, id: "shared", onDone });
+    const { state } = await renderTimer({ duration: 60, timerId: "shared", onDone });
     const send = (value: unknown, key = "ouro-timer:shared") =>
       act(async () => void window.dispatchEvent(new StorageEvent("storage", { key, newValue: value === null ? null : JSON.stringify(value) })));
     await send({ status: "running", duration: 60, endsAt: Date.now() + 30_000 });
@@ -207,14 +207,14 @@ describe("useTimer", () => {
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new Error("full");
     });
-    const { state } = await renderTimer({ duration: 2, id: "private" });
+    const { state } = await renderTimer({ duration: 2, timerId: "private" });
     expect(state.current.status).toBe("idle");
     await act(async () => state.current.start());
     await advance(2000);
     expect(state.current.status).toBe("done");
   });
 
-  it("forgets a timer without an id when its component goes, and stops its clock", async () => {
+  it("forgets a timer without a timerId when its component goes, and stops its clock", async () => {
     const onDone = vi.fn();
     const { state, root } = await renderTimer({ duration: 5, onDone });
     await act(async () => state.current.start());
@@ -238,7 +238,7 @@ describe("useTimer", () => {
 
   it("is idle at the full duration on the server", () => {
     let seen: TimerControls | undefined;
-    renderToString(<Probe options={{ duration: 30, id: "server" }} report={(timer) => void (seen = timer)} />);
+    renderToString(<Probe options={{ duration: 30, timerId: "server" }} report={(timer) => void (seen = timer)} />);
     expect(seen).toMatchObject({ status: "idle", remaining: 30 });
   });
 });

@@ -2,8 +2,8 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Timer } from "@/registry/ouro/components/ouro/timer/timer";
 import { TimerTray } from "@/registry/ouro/components/ouro/timer/timer-tray";
 
-// Layout here uses inline styles and the theme's CSS variables (shadcn's names). Timers with an
-// `id` live in localStorage, so a story that shows one part way writes it before it renders.
+// Layout here uses inline styles and the theme's CSS variables (shadcn's names). Timers with a
+// `timerId` live in localStorage, so a story that shows one part way writes it before it renders.
 
 function stored(id: string, value: unknown) {
   localStorage.setItem(`ouro-timer:${id}`, JSON.stringify(value));
@@ -29,9 +29,9 @@ export const InContext: Story = {
     stored("story-sauce", { status: "paused", duration: 1200, remainingMs: 415_000 });
     return (
       <div style={{ display: "grid", gap: 16, maxWidth: 480, color: "var(--foreground)" }}>
-        <TimerTray timers={[{ id: "story-sauce", label: "Sauce", duration: 1200, href: "#step-1" }]} />
+        <TimerTray timers={[{ timerId: "story-sauce", label: "Sauce", duration: 1200, href: "#step-1" }]} />
         <p style={{ margin: 0 }}>Boil the pasta until it is just tender.</p>
-        <Timer label="Pasta" duration={600} id="story-pasta" />
+        <Timer label="Pasta" duration={600} timerId="story-pasta" />
       </div>
     );
   },
@@ -41,7 +41,7 @@ export const InContext: Story = {
 export const Paused: Story = {
   render: () => {
     stored("story-paused", { status: "paused", duration: 300, remainingMs: 125_000 });
-    return <Timer label="Rest" duration={300} id="story-paused" />;
+    return <Timer label="Rest" duration={300} timerId="story-paused" />;
   },
 };
 
@@ -49,7 +49,7 @@ export const Paused: Story = {
 export const Finished: Story = {
   render: () => {
     stored("story-finished", { status: "done", duration: 300, endedAt: Date.UTC(2026, 0, 1) });
-    return <Timer label="Bread" duration={300} id="story-finished" size="lg" />;
+    return <Timer label="Bread" duration={300} timerId="story-finished" size="lg" />;
   },
 };
 

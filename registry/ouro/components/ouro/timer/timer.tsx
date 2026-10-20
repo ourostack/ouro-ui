@@ -18,10 +18,10 @@ export interface TimerOwnProps {
   label: string;
   /**
    * Keeps the timer through a reload and a closed tab, and shares it with a `TimerTray` and
-   * every other `Timer` or `useTimer` given the same `id`. Without it the timer ends with the
-   * component.
+   * every other `Timer` or `useTimer` given the same `timerId`. Without it the timer ends with
+   * the component. (`id` is the element's, as on any `<div>`.)
    */
-  id?: string | undefined;
+  timerId?: string | undefined;
   /** Called once when the timer reaches zero, including when it ended while the page was closed. */
   onDone?: ((event: TimerDoneEvent) => void) | undefined;
   /** No chime and no vibration at zero; it still shows and says that the time is up. */
@@ -44,6 +44,10 @@ export interface TimerOwnProps {
   onEnd?: { 'Use onDone={() => ...}': never };
   /** Not a prop. Turn the sound off with `silent`: `<Timer silent />`. */
   sound?: { 'Use silent to turn the chime off': never };
+  /** Not a prop. A timer is kept and shared by `timerId`: `<Timer timerId="pasta" />`. */
+  autoSaveId?: { 'Use timerId="pasta"': never };
+  /** Not a prop. A timer is kept and shared by `timerId`: `<Timer timerId="pasta" />`. */
+  storageKey?: { 'Use timerId="pasta"': never };
 }
 
 /** Props for {@link Timer}: its own props and the `<div>` attributes it passes through. */
@@ -65,11 +69,11 @@ function lengthOf(seconds: number): string {
 /**
  * A countdown timer with its own controls: the time left in large numbers, Start, then Pause
  * and Cancel, Resume when paused, and at zero "Time's up" with Dismiss and Restart. It keeps
- * time by the clock, so it stays right in a background tab and, with `id`, across a reload.
+ * time by the clock, so it stays right in a background tab and, with `timerId`, across a reload.
  * At zero it chimes and vibrates (unless `silent`) and screen readers hear "Pasta: Time's up"
  * once; the time itself is a `timer` region, read when the person asks rather than every second.
  *
- * Give timers that should outlive their screen an `id` and list them in a `TimerTray`, so a
+ * Give timers that should outlive their screen a `timerId` and list them in a `TimerTray`, so a
  * person who moves on can still see and stop them.
  *
  * Use `Progress` instead for how far a task has got, and `useTimer` for a timer of your own design.
@@ -78,13 +82,13 @@ function lengthOf(seconds: number): string {
  * @see https://ourostack.github.io/ouro-ui/docs/timer
  *
  * @example
- * <Timer label="Pasta" duration={600} id="pasta" />
+ * <Timer label="Pasta" duration={600} timerId="pasta" />
  */
 export function Timer(props: TimerProps): JSX.Element {
   const {
     duration,
     label,
-    id,
+    timerId,
     onDone,
     silent,
     size: sizeProp = "md",
@@ -96,6 +100,8 @@ export function Timer(props: TimerProps): JSX.Element {
     onComplete,
     onEnd,
     sound,
+    autoSaveId,
+    storageKey,
     ...rest
   } = props;
   const size = sizeProp === "lg" ? "lg" : "md";
@@ -118,12 +124,14 @@ export function Timer(props: TimerProps): JSX.Element {
           onComplete !== undefined && ["onComplete is not a prop", "<Timer onDone={() => {}} />"],
           onEnd !== undefined && ["onEnd is not a prop", "<Timer onDone={() => {}} />"],
           sound !== undefined && ["sound is not a prop", "<Timer silent />"],
+          autoSaveId !== undefined && ["autoSaveId is not a prop", '<Timer timerId="pasta" />'],
+          storageKey !== undefined && ["storageKey is not a prop", '<Timer timerId="pasta" />'],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   const timer = useTimer({
     duration,
-    id,
+    timerId,
     onDone: (event) => {
       alertDone(label, words.done, event, silent === true);
       onDone?.(event);

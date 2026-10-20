@@ -288,7 +288,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **TimerTray** — The timers that are running, paused or finished, in one strip, so a person who leaves a timer's screen can still see it count down, hear it at zero, and stop it. [Docs](docs/TimerTray.md)
 - **toast** — Shows a toast: a short message that appears at the bottom of the screen, is read to screen readers once, and dismisses itself. [Docs](docs/toast.md)
 - **Toaster** — Shows the toasts you send with `toast("Saved")` from `@/lib/ouro/toast`: render it once, at the root of your app, inside `OuroProvider` if you use one, or alone. [Docs](docs/Toaster.md)
-- **useTimer** — A countdown timer that keeps time by the clock, not by ticks, so it stays right in a background tab, across a reload (with `id`) and when the screen sleeps. [Docs](docs/useTimer.md)
+- **useTimer** — A countdown timer that keeps time by the clock, not by ticks, so it stays right in a background tab, across a reload (with `timerId`) and when the screen sleeps. [Docs](docs/useTimer.md)
 
 ### Display
 

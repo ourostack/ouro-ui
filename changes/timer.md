@@ -1,1 +1,1 @@
-- New: `Timer`, a countdown with its own Start, Pause, Resume, Cancel and, at zero, Dismiss and Restart; it keeps time by the clock (and, with `id`, across reloads and tabs), chimes and vibrates at zero unless `silent`, and says "Time's up" once to screen readers.
+- New: `Timer`, a countdown with its own Start, Pause, Resume, Cancel and, at zero, Dismiss and Restart; it keeps time by the clock (and, with `timerId`, across reloads and tabs), chimes and vibrates at zero unless `silent`, and says "Time's up" once to screen readers.

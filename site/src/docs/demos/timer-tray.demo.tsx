@@ -7,8 +7,8 @@ import { TimerTray } from "@/registry/ouro/components/ouro/timer/timer-tray";
 export default function TimerTrayDemo(): JSX.Element {
   return (
     <div className="grid max-w-md gap-4">
-      <TimerTray timers={[{ id: "docs-tray-break", label: "Break", duration: 5 * 60 }]} />
-      <Timer label="Break" duration={5 * 60} id="docs-tray-break" />
+      <TimerTray timers={[{ timerId: "docs-tray-break", label: "Break", duration: 5 * 60 }]} />
+      <Timer label="Break" duration={5 * 60} timerId="docs-tray-break" />
     </div>
   );
 }

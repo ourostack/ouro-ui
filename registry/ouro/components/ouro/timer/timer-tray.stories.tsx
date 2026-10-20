@@ -21,9 +21,9 @@ const meta = {
         <TimerTray
           {...args}
           timers={[
-            { id: "story-tray-oven", label: "Oven", duration: 2400, href: "#oven" },
-            { id: "story-tray-eggs", label: "Eggs", duration: 420 },
-            { id: "story-tray-idle", label: "Not started", duration: 60 },
+            { timerId: "story-tray-oven", label: "Oven", duration: 2400, href: "#oven" },
+            { timerId: "story-tray-eggs", label: "Eggs", duration: 420 },
+            { timerId: "story-tray-idle", label: "Not started", duration: 60 },
           ]}
         />
         <p style={{ margin: 16 }}>The page's content goes on below the tray.</p>

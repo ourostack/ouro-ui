@@ -2,7 +2,7 @@
 
 # useTimer
 
-A countdown timer that keeps time by the clock, not by ticks, so it stays right in a background tab, across a reload (with `id`) and when the screen sleeps. It re-renders four times a second while it runs, and calls `onDone` once at zero. Every `useTimer`, `Timer` and `TimerTray` with the same `id` shares one timer, in this tab and in others.
+A countdown timer that keeps time by the clock, not by ticks, so it stays right in a background tab, across a reload (with `timerId`) and when the screen sleeps. It re-renders four times a second while it runs, and calls `onDone` once at zero. Every `useTimer`, `Timer` and `TimerTray` with the same `timerId` shares one timer, in this tab and in others.
 
 ```tsx
 import { useTimer } from "@/registry/ouro/lib/ouro/use-timer";
@@ -11,7 +11,7 @@ import { useTimer } from "@/registry/ouro/lib/ouro/use-timer";
 ## Example
 
 ```tsx
-const timer = useTimer({ duration: 600, id: "pasta", onDone: () => chime() });
+const timer = useTimer({ duration: 600, timerId: "pasta", onDone: () => chime() });
 <Button onClick={timer.start}>Start</Button>
 <p>{formatDuration(timer.remaining)}</p>
 ```
@@ -24,7 +24,7 @@ const timer = useTimer({ duration: 600, id: "pasta", onDone: () => chime() });
 
 | Parameter | Type | Default |
 | --- | --- | --- |
-| `{ duration, id, onDone, fallback }` | `TimerOptions` |  |
+| `{ duration, timerId, onDone, fallback }` | `TimerOptions` |  |
 
 ## Returns
 
@@ -66,7 +66,7 @@ interface TimerDoneEvent {
   endedAt: number;
   /**
    * Whether this `useTimer` is the one on the page that should sound the alert: the first with
-   * the timer's `id` to hear it, not counting `fallback` ones unless only those are mounted. When
+   * the timer's `timerId` to hear it, not counting `fallback` ones unless only those are mounted. When
    * a `Timer` and a `TimerTray` both show one timer, the `Timer` alerts, whichever mounted first.
    */
   first: boolean;
@@ -84,9 +84,11 @@ interface TimerOptions {
   /**
    * Keeps the timer in `localStorage` under this name, so it carries on through a reload and
    * a closed tab, and shares it with every `useTimer`, `Timer` and `TimerTray` given the same
-   * `id`, in this tab and in others. Without it the timer lives as long as the component.
+   * `timerId`, in this tab and in others. Without it the timer lives as long as the component.
    */
-  id?: string | undefined;
+  timerId?: string | undefined;
+  /** Not an option. A timer is kept and shared by `timerId`: `useTimer({ duration: 600, timerId: "pasta" })`. */
+  id?: { 'Use timerId: "pasta"': never };
   /** Called once when the timer reaches zero, including when it ended while the page was closed. */
   onDone?: ((event: TimerDoneEvent) => void) | undefined;
   /**

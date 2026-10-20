@@ -24,8 +24,8 @@ it("gives every timer control a 44px target on a touch screen", async () => {
   await act(async () =>
     root!.render(
       <>
-        <Timer label="Touch" duration={60} id="touch" />
-        <TimerTray timers={[{ id: "touch", label: "Touch", duration: 60, href: "#touch" }]} />
+        <Timer label="Touch" duration={60} timerId="touch" />
+        <TimerTray timers={[{ timerId: "touch", label: "Touch", duration: 60, href: "#touch" }]} />
       </>,
     ),
   );

@@ -33,8 +33,8 @@ afterAll(() => {
 });
 
 const timers: TimerTrayItem[] = [
-  { id: "pasta", label: "Pasta", duration: 600, href: "#step-2" },
-  { id: "sauce", label: "Sauce", duration: 900 },
+  { timerId: "pasta", label: "Pasta", duration: 600, href: "#step-2" },
+  { timerId: "sauce", label: "Sauce", duration: 900 },
 ];
 
 async function render(node: ReactNode) {
@@ -81,7 +81,7 @@ describe("TimerTray", () => {
   it("is a region listing the running, paused and finished timers with their time, and hides idle ones", async () => {
     store("pasta", { status: "running", duration: 600, endsAt: Date.now() + 125_000 });
     store("sauce", { status: "paused", duration: 900, remainingMs: 61_000 });
-    const { tray, rows } = await render(<TimerTray timers={[...timers, { id: "idle", label: "Idle", duration: 60 }]} label="Kitchen timers" />);
+    const { tray, rows } = await render(<TimerTray timers={[...timers, { timerId: "idle", label: "Idle", duration: 60 }]} label="Kitchen timers" />);
     expect(tray().tagName).toBe("SECTION");
     expect(tray().getAttribute("aria-label")).toBe("Kitchen timers");
     expect(getComputedStyle(tray()).display).not.toBe("none");
@@ -107,8 +107,8 @@ describe("TimerTray", () => {
   it("follows the Timer on the page, and alerts once at zero even when both show it", async () => {
     const announced = watchAnnouncements();
     try {
-      const page = await render(<Timer label="Pasta" duration={2} id="pasta" />);
-      const { rows } = await render(<TimerTray timers={[{ id: "pasta", label: "Pasta", duration: 2 }]} />);
+      const page = await render(<Timer label="Pasta" duration={2} timerId="pasta" />);
+      const { rows } = await render(<TimerTray timers={[{ timerId: "pasta", label: "Pasta", duration: 2 }]} />);
       await act(async () => page.host.querySelector<HTMLButtonElement>('[data-ouro-part="primary"]')!.click());
       expect(rows()).toHaveLength(1);
       await advance(2000);
@@ -138,8 +138,8 @@ describe("TimerTray", () => {
     try {
       for (const { id, timerSilent, traySilent, chimes } of cases) {
         tones = 0;
-        const timer = <Timer label="Pasta" duration={1} id={id} silent={timerSilent} />;
-        const tray = <TimerTray timers={[{ id, label: "Pasta", duration: 1 }]} silent={traySilent} />;
+        const timer = <Timer label="Pasta" duration={1} timerId={id} silent={timerSilent} />;
+        const tray = <TimerTray timers={[{ timerId: id, label: "Pasta", duration: 1 }]} silent={traySilent} />;
         const page = await render(firstMounted === "timer" ? timer : tray);
         const other = await render(firstMounted === "timer" ? tray : timer);
         const host = firstMounted === "timer" ? page.host : other.host;
@@ -159,8 +159,8 @@ describe("TimerTray", () => {
     store("rest", { status: "running", duration: 60, endsAt: Date.now() + 2000 });
     const announced = watchAnnouncements();
     try {
-      await render(<TimerTray timers={[{ id: "tea", label: "Tea", duration: 60 }]} labels={{ done: "Ready", cancel: undefined }} />);
-      await render(<TimerTray timers={[{ id: "rest", label: "Rest", duration: 60 }]} silent />);
+      await render(<TimerTray timers={[{ timerId: "tea", label: "Tea", duration: 60 }]} labels={{ done: "Ready", cancel: undefined }} />);
+      await render(<TimerTray timers={[{ timerId: "rest", label: "Rest", duration: 60 }]} silent />);
       await advance(1000);
       await advance(200);
       expect(announced.count("Tea: Ready")).toBe(1);
@@ -177,7 +177,7 @@ describe("TimerTray", () => {
   it("moves focus to the next timer's stop button when one is stopped, else the previous, else the tray", async () => {
     for (const id of ["one", "two", "three"]) store(id, { status: "running", duration: 600, endsAt: Date.now() + 60_000 });
     const { tray, rows } = await render(
-      <TimerTray timers={["one", "two", "three"].map((id) => ({ id, label: id, duration: 600 }))} />,
+      <TimerTray timers={["one", "two", "three"].map((id) => ({ timerId: id, label: id, duration: 600 }))} />,
     );
     const stopOf = (index: number) => rows()[index]!.querySelector<HTMLButtonElement>('[data-ouro-part="stop"]')!;
     const stop = async (button: HTMLButtonElement) => {
@@ -230,7 +230,8 @@ describe("TimerTray", () => {
 
 describe("TimerTray development messages", () => {
   it.each([
-    ["items", { items: [] }, "items is not a prop", "<TimerTray timers={[{ id, label, duration }]} />"],
+    ["items", { items: [] }, "items is not a prop", "<TimerTray timers={[{ timerId, label, duration }]} />"],
+    ["a timer's id", { timers: [{ id: "pasta", label: "Pasta", duration: 600 }] }, "id is not a key of a timer in timers", '<TimerTray timers={[{ timerId: "pasta", label, duration }]} />'],
     ["hidden", { hidden: true }, "hidden is not a prop; the tray hides itself while no timer is running", "<TimerTray timers={timers} />"],
   ])("explains %s with the fix", async (_name, extra, problem, fix) => {
     const props = { timers: [], ...extra } as unknown as Parameters<typeof TimerTray>[0];

@@ -3,15 +3,17 @@
 import type { HTMLAttributes, JSX, MouseEvent, Ref, RefObject } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
+import { useDevWarnings, type DevWarning } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { formatDuration, useTimer } from "@/registry/ouro/lib/ouro/use-timer";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { alertDone, doneText, wordsFor, type TimerLabels } from "@/registry/ouro/components/ouro/timer/timer-styles";
 
 /** One timer a {@link TimerTray} watches. */
 export interface TimerTrayItem {
-  /** The `id` the timer's `Timer` or `useTimer` has. */
-  id: string;
+  /** The `timerId` the timer's `Timer` or `useTimer` has. */
+  timerId: string;
+  /** Not a key. A timer is named by `timerId`, as its `Timer` has it: `{ timerId: "pasta", label, duration }`. */
+  id?: { 'Use timerId: "pasta"': never };
   /** What it is for, as its `Timer` says it: "Pasta". */
   label: string;
   /** Its length in seconds, as its `Timer` has it. */
@@ -22,7 +24,7 @@ export interface TimerTrayItem {
 
 /** The props TimerTray adds to the `<section>` attributes it passes through. */
 export interface TimerTrayOwnProps {
-  /** The timers to watch, by `id`. Only those that are running, paused or finished show. */
+  /** The timers to watch, by `timerId`. Only those that are running, paused or finished show. */
   timers: readonly TimerTrayItem[];
   /** Names the tray for screen readers, as a region. @default "Timers" */
   label?: string | undefined;
@@ -44,8 +46,8 @@ export interface TimerTrayOwnProps {
   className?: string | undefined;
   ref?: Ref<HTMLElement> | undefined;
 
-  /** Not a prop. The tray lists `timers`: `<TimerTray timers={[{ id, label, duration }]} />`. */
-  items?: { 'Use timers={[{ id, label, duration }]}': never };
+  /** Not a prop. The tray lists `timers`: `<TimerTray timers={[{ timerId, label, duration }]} />`. */
+  items?: { 'Use timers={[{ timerId, label, duration }]}': never };
   /** Not a prop. The tray shows only timers that are running, paused or finished; pass them all. */
   hidden?: { 'The tray hides itself while no timer is running': never };
 }
@@ -61,7 +63,7 @@ interface TrayRowProps {
 }
 
 function TrayRow({ item, words, silent, finalFocus }: TrayRowProps): JSX.Element | null {
-  const timer = useTimer({ duration: item.duration, id: item.id, fallback: true, onDone: (event) => alertDone(item.label, words.done, event, silent) });
+  const timer = useTimer({ duration: item.duration, timerId: item.timerId, fallback: true, onDone: (event) => alertDone(item.label, words.done, event, silent) });
   if (timer.status === "idle") return null;
   const done = timer.status === "done";
   // The row goes with the timer, so focus moves on first: to the next timer, the previous one, or out.
@@ -103,7 +105,7 @@ function TrayRow({ item, words, silent, finalFocus }: TrayRowProps): JSX.Element
 /**
  * The timers that are running, paused or finished, in one strip, so a person who leaves a
  * timer's screen can still see it count down, hear it at zero, and stop it. Pass every timer
- * the app has, by the `id` its `Timer` uses; the tray shows only those not idle, and hides
+ * the app has, by the `timerId` its `Timer` uses; the tray shows only those not idle, and hides
  * itself while none are. When a timer reaches zero while only the tray shows it, the tray
  * chimes and says so; when its `Timer` is on the page too, the `Timer` alerts instead (with its
  * own `silent`), whichever of the two mounted first.
@@ -117,7 +119,7 @@ function TrayRow({ item, words, silent, finalFocus }: TrayRowProps): JSX.Element
  * @see https://ourostack.github.io/ouro-ui/docs/timer-tray
  *
  * @example
- * <TimerTray timers={[{ id: "pasta", label: "Pasta", duration: 600, href: "/steps/2" }]} />
+ * <TimerTray timers={[{ timerId: "pasta", label: "Pasta", duration: 600, href: "/steps/2" }]} />
  */
 export function TimerTray(props: TimerTrayProps): JSX.Element {
   const {
@@ -143,8 +145,12 @@ export function TimerTray(props: TimerTrayProps): JSX.Element {
   useDevWarnings(
     "TimerTray",
     process.env.NODE_ENV !== "production"
-      ? () => [
-          items !== undefined && ["items is not a prop", "<TimerTray timers={[{ id, label, duration }]} />"],
+      ? (): DevWarning[] => [
+          items !== undefined && ["items is not a prop", "<TimerTray timers={[{ timerId, label, duration }]} />"],
+          ...timers.map((item): DevWarning => {
+            const { id } = item as { id?: unknown };
+            return id !== undefined && ["id is not a key of a timer in timers", `<TimerTray timers={[{ timerId: ${JSON.stringify(id)}, label, duration }]} />`];
+          }),
           hidden !== undefined && ["hidden is not a prop; the tray hides itself while no timer is running", "<TimerTray timers={timers} />"],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
@@ -158,8 +164,9 @@ export function TimerTray(props: TimerTrayProps): JSX.Element {
       className={cn("min-w-0 border-0 border-b border-solid border-border bg-background px-4 outline-none not-has-[li]:not-focus:hidden", className)}
     >
       <ul className="m-0 grid list-none divide-y divide-border p-0">
-        {timers.map((item) => (
-          <TrayRow key={item.id} item={item} words={words} silent={silent === true} finalFocus={finalFocus} />
+        {timers.map((item, index) => (
+          // A plain-JavaScript app may leave timerId out (development names the fix); the index keeps React's key.
+          <TrayRow key={item.timerId ?? `index:${index}`} item={item} words={words} silent={silent === true} finalFocus={finalFocus} />
         ))}
       </ul>
     </section>
