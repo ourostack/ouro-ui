@@ -1,8 +1,9 @@
 import { type ReactNode } from "react";
-import { createRoot, type Root } from "react-dom/client";
+import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { commands } from "vitest/browser";
+import { colorSchemeScript } from "@/registry/ouro/lib/ouro/color-scheme-script";
 import { ColorSchemeProvider, useColorScheme, type ColorSchemeValue } from "@/registry/ouro/lib/ouro/color-scheme";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -108,6 +109,35 @@ describe("ColorSchemeProvider", () => {
     await act(async () => window.dispatchEvent(new StorageEvent("storage", { key: "ouro-color-scheme", newValue: "dark" })));
     expect(dark()).toBe(true);
     expect(seen.at(-1)!.scheme).toBe("dark");
+  });
+
+  it("keeps the head script's dark class through hydration", async () => {
+    localStorage.setItem("ouro-color-scheme", "dark");
+    const page = (
+      <ColorSchemeProvider>
+        <p>Page</p>
+      </ColorSchemeProvider>
+    );
+    const host = document.createElement("div");
+    host.innerHTML = renderToString(page);
+    document.body.append(host);
+    mounted.push(host);
+    new Function(colorSchemeScript())();
+    expect(dark()).toBe(true);
+    const classes: (string | null)[] = [];
+    const observer = new MutationObserver((records) => {
+      for (const record of records) classes.push(record.oldValue);
+    });
+    observer.observe(html, { attributes: true, attributeFilter: ["class"], attributeOldValue: true });
+    await act(async () => {
+      roots.push(hydrateRoot(host, page));
+    });
+    classes.push(...observer.takeRecords().map((record) => record.oldValue));
+    observer.disconnect();
+    classes.push(html.getAttribute("class"));
+    // Every class value <html> held during hydration, the first one the script's.
+    expect(classes.filter((value) => !value?.split(" ").includes("dark"))).toEqual([]);
+    expect(html.style.colorScheme).toBe("dark");
   });
 
   it("renders the default on the server", () => {

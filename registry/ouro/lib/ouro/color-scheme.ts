@@ -117,8 +117,10 @@ export function ColorSchemeProvider({ children, storageKey = COLOR_SCHEME_DEFAUL
   );
   const dark = useSyncExternalStore(subscribeSystem, systemDark, serverFalse);
   const resolved = resolve(scheme, dark);
-  // Before paint, so a change of choice or of the system's setting never shows a frame of the old scheme.
-  useLayoutEffect(() => apply(resolved), [resolved]);
+  // Before paint, so a change of choice or of the system's setting never shows a frame of the old
+  // scheme. It reads the live choice and system setting, not the render's: while React hydrates,
+  // the render holds the server's default, and applying that would undo colorSchemeScript().
+  useLayoutEffect(() => apply(resolve(stored(storageKey, defaultScheme), systemDark())), [resolved, storageKey, defaultScheme]);
   return createElement(ColorSchemeContext.Provider, { value }, children);
 }
 
