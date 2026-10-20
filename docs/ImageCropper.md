@@ -2,7 +2,7 @@
 
 # ImageCropper
 
-A dialog for cropping a photo to a shape before it is used: drag the photo (or move it with the arrow keys) to choose what shows in the frame, zoom with the slider (or Plus and Minus), and Save hands the cropped image to `onCrop` as a `File`, ready for a form or an upload. The frame is a rectangle of `aspect`, or a circle for a profile photo. It always opens as a centered dialog, so dragging the photo never drags the dialog away.
+A dialog for cropping a photo to a shape before it is used: drag the photo (or move it the way the arrow keys point) to choose what shows in the frame, zoom with the slider (or Plus and Minus), and Save hands the cropped image to `onCrop` as a `File`, ready for a form or an upload. The frame is a rectangle of `aspect`, or a circle for a profile photo. It always opens as a centered dialog, so dragging the photo never drags the dialog away.
 
 ```tsx
 import { ImageCropper } from "@/registry/ouro/components/ouro/image-cropper/image-cropper";
@@ -28,6 +28,7 @@ Type: `ImageCropperProps`.
 | `image` (required) | `File \| Blob \| string \| null` |  | The image to crop: a `File` from a picker, a `Blob`, or a URL the page may read pixels from (same origin or CORS). |
 | `labels` | `ImageCropperLabels` |  | The words it shows and says. |
 | `onCrop` (required) | `(file: File) => void` |  | Called with the cropped image, as a `File`, when the person saves. The dialog then closes. |
+| `onError` | `((reason: ImageCropperFailure) => void)` |  | Called when the image cannot be opened or the crop cannot be saved. The cropper shows and announces `labels.openError` or `labels.saveError` itself; close it or offer another image. |
 | `onOpenChange` (required) | `(open: boolean) => void` |  | Called when it opens or closes: after Save, Cancel, Escape or the close button. |
 | `open` (required) | `boolean` |  | Whether the cropper's dialog is open. |
 | `outputWidth` | `number` | `1024` | The saved image's width in pixels; its height follows `aspect`. |
@@ -46,6 +47,14 @@ These are not props. Passing one fails the type check with the fix in the error,
 
 ## Types
 
+### `ImageCropperFailure`
+
+What went wrong: `open`, the browser cannot show the image (a format it cannot decode, or an address it may not read); `save`, it cannot encode the crop.
+
+```ts
+type ImageCropperFailure = "open" | "save";
+```
+
 ### `ImageCropperLabels`
 
 The words the cropper shows and says, for apps in other languages.
@@ -60,7 +69,11 @@ interface ImageCropperLabels {
   zoom?: string | undefined;
   /** The crop area's name for screen readers. @default "Photo to crop" */
   area?: string | undefined;
-  /** How to move the photo, read with the crop area. @default "Drag the photo, or use the arrow keys, to choose what shows. Plus and minus zoom." */
+  /** How to move the photo, read with the crop area. @default "Drag the photo, or move it with the arrow keys, to choose what shows. Plus and minus zoom." */
   instructions?: string | undefined;
+  /** Shown and announced when the browser cannot open the image. @default "This photo could not be opened. Choose another one." */
+  openError?: string | undefined;
+  /** Shown and announced when the browser cannot save the crop; Save can be tried again. @default "The photo could not be saved. Try again." */
+  saveError?: string | undefined;
 }
 ```

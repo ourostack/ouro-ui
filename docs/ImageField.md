@@ -2,7 +2,7 @@
 
 # ImageField
 
-A field for one photo, shown large: the photo already saved (`src`) or the one just chosen, with Choose photo (Change photo once one shows) and Remove. With `crop`, a chosen photo opens the cropper first, and the cropped image is what shows, what `onFileChange` gets and what the form submits. A file of the wrong type or over `maxSize` is turned away with a message under the field. The photo is in a real file input, so a plain form submits it.
+A field for one photo, shown large: the photo already saved (`src`) or the one just chosen, with Choose photo (Change photo once one shows) and Remove. With `crop`, a chosen photo opens the cropper first, and the cropped image is what shows, what `onFileChange` gets and what the form submits. A file of the wrong type, over `maxSize` or that the browser cannot open as a photo is turned away, keeping what showed, with a message under the field that screen readers announce. The photo is in a real file input, so a plain form submits it.
 
 ```tsx
 import { ImageField } from "@/registry/ouro/components/ouro/image-field/image-field";
@@ -38,7 +38,7 @@ Type: `ImageFieldProps`.
 | `label` (required) | `string` |  | What the image is, above it and naming the field: "Profile photo". |
 | `maxSize` | `number` |  | The largest file it takes, in bytes. |
 | `name` | `string` |  | The form field name the chosen (and cropped) photo submits under. |
-| `onFileChange` | `((file: File \| null) => void)` |  | Called with the chosen photo (cropped, with `crop`), or `null` when it is removed. |
+| `onFileChange` | `((file: File \| null) => void)` |  | Called with the chosen photo (cropped, with `crop`), or `null` when it is removed. A photo comes here once the browser has opened it. |
 | `onRemove` | `(() => void)` |  | Shows Remove while the field shows `src`, and is called when the person removes it. |
 | `ref` | `Ref<HTMLInputElement>` |  | Reaches the file input. |
 | `rejectMessage` | `((reason: ImageFieldRejection, file: File) => string)` |  | The message for a file turned away, for apps in other languages. |
@@ -92,10 +92,10 @@ interface ImageFieldCrop {
 
 ### `ImageFieldRejection`
 
-Why a chosen file was turned away.
+Why a chosen file was turned away: not a type `accept` takes, over `maxSize`, or a photo the browser cannot open (such as HEIC outside Safari).
 
 ```ts
-type ImageFieldRejection = "type" | "size";
+type ImageFieldRejection = "type" | "size" | "unreadable";
 ```
 
 ### `ReadonlyErrorMessages`

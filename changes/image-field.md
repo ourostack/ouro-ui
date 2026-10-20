@@ -1,1 +1,1 @@
-- New: `ImageField`, one photo shown large with Choose photo, Change photo and Remove; with `crop` a chosen photo is cropped first, and the photo stays in a real file input so a plain form submits it.
+- New: `ImageField`, one photo shown large with Choose photo, Change photo and Remove; with `crop` a chosen photo is cropped first, and the photo stays in a real file input so a plain form submits it. A file of the wrong type, over `maxSize` or that the browser cannot open as a photo (`"unreadable"`) is turned away, keeping what showed, and a status region announces why.

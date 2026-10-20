@@ -2920,8 +2920,8 @@
       "name": "image-cropper",
       "type": "registry:ui",
       "title": "ImageCropper",
-      "description": "A dialog for cropping a photo to a shape before it is used: drag the photo (or move it with the arrow keys) to choose what shows in the frame, zoom with the slider (or Plus and Minus), and Save hands the cropped image to `onCrop` as a `File`, ready for a form or an upload.",
-      "docs": "A dialog for cropping a photo to a shape before it is used: drag the photo (or move it with the arrow keys) to choose what shows in the frame, zoom with the slider (or Plus and Minus), and Save hands the cropped image to `onCrop` as a `File`, ready for a form or an upload. Import: import { ImageCropper } from \"@/components/ouro/image-cropper/image-cropper\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, dialog, field, sheet, slider, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/image-cropper.md",
+      "description": "A dialog for cropping a photo to a shape before it is used: drag the photo (or move it the way the arrow keys point) to choose what shows in the frame, zoom with the slider (or Plus and Minus), and Save hands the cropped image to `onCrop` as a `File`, ready for a form or an upload.",
+      "docs": "A dialog for cropping a photo to a shape before it is used: drag the photo (or move it the way the arrow keys point) to choose what shows in the frame, zoom with the slider (or Plus and Minus), and Save hands the cropped image to `onCrop` as a `File`, ready for a form or an upload. Import: import { ImageCropper } from \"@/components/ouro/image-cropper/image-cropper\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, dialog, field, sheet, slider, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/image-cropper.md",
       "registryDependencies": [
         "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/dialog",
@@ -8322,6 +8322,11 @@
           "target": "@components/ouro/image-cropper/image-cropper.test.tsx"
         },
         {
+          "path": "registry/ouro/components/ouro/image-cropper/image-cropper.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/image-cropper/image-cropper.touch.test.tsx"
+        },
+        {
           "path": "registry/ouro/e2e/ouro/image-cropper.spec.ts",
           "type": "registry:file",
           "target": "~/e2e/ouro/image-cropper.spec.ts"
@@ -8384,6 +8389,11 @@
           "path": "registry/ouro/components/ouro/image-field/image-field.test.tsx",
           "type": "registry:component",
           "target": "@components/ouro/image-field/image-field.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/image-field/image-field.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/image-field/image-field.touch.test.tsx"
         },
         {
           "path": "registry/ouro/e2e/ouro/image-field.spec.ts",

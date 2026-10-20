@@ -242,7 +242,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **Fieldset** — A titled group of related fields, such as an address, rendered as a `<fieldset>` named by its legend. [Docs](docs/Fieldset.md)
 - **FileField** — A labeled file input with a drop zone, on the Field contract. [Docs](docs/FileField.md)
 - **Form** — A form that validates with the browser's own constraints (`required`, `type="email"`, `pattern`) and shows server errors on the matching fields. [Docs](docs/Form.md)
-- **ImageCropper** — A dialog for cropping a photo to a shape before it is used: drag the photo (or move it with the arrow keys) to choose what shows in the frame, zoom with the slider (or Plus and Minus), and Save hands the cropped image to `onCrop` as a `File`, ready for a form or an upload. [Docs](docs/ImageCropper.md)
+- **ImageCropper** — A dialog for cropping a photo to a shape before it is used: drag the photo (or move it the way the arrow keys point) to choose what shows in the frame, zoom with the slider (or Plus and Minus), and Save hands the cropped image to `onCrop` as a `File`, ready for a form or an upload. [Docs](docs/ImageCropper.md)
 - **ImageField** — A field for one photo, shown large: the photo already saved (`src`) or the one just chosen, with Choose photo (Change photo once one shows) and Remove. [Docs](docs/ImageField.md)
 - **NativeSelect** — A labeled native `<select>` on the Field contract: pass `label`, `options` (or `<option>` children) and `error`. [Docs](docs/NativeSelect.md)
 - **NumberField** — A labeled number input on the Field contract: pass `label`, and `error` from your server action or client check. [Docs](docs/NumberField.md)
