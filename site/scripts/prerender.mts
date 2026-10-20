@@ -38,9 +38,9 @@ interface ManifestEntry {
 const manifest = JSON.parse(readFileSync(join(dist, ".vite/manifest.json"), "utf8")) as Record<string, ManifestEntry>;
 
 /**
- * Each page kind's own chunk (site/src/app.tsx loads it before hydrating): its JavaScript closure
- * as modulepreload links, so it downloads beside the entry instead of after it, and its
- * stylesheets, so the page is styled before the chunk runs.
+ * Each page kind's own chunk (site/src/app.tsx loads it before hydrating): its stylesheets, so the
+ * page is styled before the chunk runs. Its JavaScript is not preloaded: the entry asks for it
+ * after the first paint (entry-client.tsx), so the paint gets the bandwidth.
  */
 function closure(key: string): Set<string> {
   const files = new Set<string>();
@@ -69,10 +69,7 @@ function pageAssets(kind: string): string[] {
   };
   visit(key);
   const loaded = closure("index.html");
-  return [
-    ...[...css].filter((file) => !loaded.has(file)).map((file) => `<link rel="stylesheet" crossorigin href="/ouro-ui/${file}" />`),
-    ...[...files].filter((file) => !loaded.has(file)).map((file) => `<link rel="modulepreload" crossorigin href="/ouro-ui/${file}" />`),
-  ];
+  return [...css].filter((file) => !loaded.has(file)).map((file) => `<link rel="stylesheet" crossorigin href="/ouro-ui/${file}" />`);
 }
 
 async function page(route: Route, path: string, canonical: boolean): Promise<string> {

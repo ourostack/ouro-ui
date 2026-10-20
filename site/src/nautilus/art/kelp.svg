@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 280">
+  <title>Kelp</title>
+  <!-- Original drawing for Ouro HX (manifest.json). Kelp grows where the sun still reaches. -->
+  <path class="k-stem" d="M30 280 C22 230 40 190 28 140 C18 100 34 60 26 14" />
+  <path class="k-stem" d="M58 280 C66 240 50 200 62 160 C72 120 56 90 64 52" />
+  <g class="k-leaf">
+    <path d="M28 220 C12 214 6 200 10 190 C18 198 26 206 28 220 Z" />
+    <path d="M33 176 C50 170 58 156 54 146 C46 154 36 162 33 176 Z" />
+    <path d="M26 128 C10 122 4 108 8 98 C16 106 24 114 26 128 Z" />
+    <path d="M30 82 C46 76 54 62 50 52 C42 60 32 68 30 82 Z" />
+    <path d="M27 40 C12 34 8 22 12 14 C18 22 25 28 27 40 Z" />
+    <path d="M60 230 C76 224 84 212 80 202 C72 210 62 216 60 230 Z" />
+    <path d="M60 186 C44 180 38 168 42 158 C50 166 58 172 60 186 Z" />
+    <path d="M63 136 C78 130 84 118 80 108 C72 116 64 122 63 136 Z" />
+    <path d="M61 90 C46 84 42 72 46 64 C52 72 60 78 61 90 Z" />
+  </g>
+</svg>
