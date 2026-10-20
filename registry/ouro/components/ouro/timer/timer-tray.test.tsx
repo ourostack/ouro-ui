@@ -126,6 +126,34 @@ describe("TimerTray", () => {
     }
   });
 
+  it.each([
+    ["the tray first", "tray"],
+    ["the Timer first", "timer"],
+  ] as const)("lets the Timer's silent decide the alert when both show a timer, with %s", async (_order, firstMounted) => {
+    const cases = [
+      { id: "loud-timer", timerSilent: false, traySilent: true, chimes: true },
+      { id: "quiet-timer", timerSilent: true, traySilent: false, chimes: false },
+    ];
+    const announced = watchAnnouncements();
+    try {
+      for (const { id, timerSilent, traySilent, chimes } of cases) {
+        tones = 0;
+        const timer = <Timer label="Pasta" duration={1} id={id} silent={timerSilent} />;
+        const tray = <TimerTray timers={[{ id, label: "Pasta", duration: 1 }]} silent={traySilent} />;
+        const page = await render(firstMounted === "timer" ? timer : tray);
+        const other = await render(firstMounted === "timer" ? tray : timer);
+        const host = firstMounted === "timer" ? page.host : other.host;
+        await act(async () => host.querySelector<HTMLButtonElement>('[data-ouro-part="primary"]')!.click());
+        await advance(1000);
+        await advance(200);
+        expect(tones).toBe(chimes ? 3 : 0);
+      }
+      expect(announced.count("Pasta: Time's up")).toBe(2);
+    } finally {
+      announced.stop();
+    }
+  });
+
   it("alerts on its own when the timer's screen is gone, unless silent", async () => {
     store("tea", { status: "running", duration: 60, endsAt: Date.now() + 1000 });
     store("rest", { status: "running", duration: 60, endsAt: Date.now() + 2000 });

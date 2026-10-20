@@ -10,8 +10,9 @@ export interface TimerDoneEvent {
   /** When it reached zero, in milliseconds since the epoch: in the past when the page was closed at the time. */
   endedAt: number;
   /**
-   * Whether this is the first `useTimer` with the timer's `id` on the page to hear it. When a
-   * `Timer` and a `TimerTray` both show one timer, only the first should sound the alert.
+   * Whether this `useTimer` is the one on the page that should sound the alert: the first with
+   * the timer's `id` to hear it, not counting `fallback` ones unless only those are mounted. When
+   * a `Timer` and a `TimerTray` both show one timer, the `Timer` alerts, whichever mounted first.
    */
   first: boolean;
 }
@@ -28,6 +29,11 @@ export interface TimerOptions {
   id?: string | undefined;
   /** Called once when the timer reaches zero, including when it ended while the page was closed. */
   onDone?: ((event: TimerDoneEvent) => void) | undefined;
+  /**
+   * For a view that watches a timer shown elsewhere, as `TimerTray` does: its `onDone` hears
+   * `first: true` only while no `useTimer` without `fallback` shares the timer.
+   */
+  fallback?: boolean | undefined;
 }
 
 /** What {@link useTimer} returns. */
@@ -54,12 +60,17 @@ type Stored =
   | { status: "paused"; duration: number; remainingMs: number }
   | { status: "done"; duration: number; endedAt: number };
 
+interface DoneListener {
+  hear: (event: Omit<TimerDoneEvent, "first">, first: boolean) => void;
+  fallback: () => boolean;
+}
+
 interface Entry {
   stored: Stored | null;
   loaded: boolean;
   persist: boolean;
   listeners: Set<() => void>;
-  done: Set<(event: Omit<TimerDoneEvent, "first">, first: boolean) => void>;
+  done: Set<DoneListener>;
   timeout: ReturnType<typeof setTimeout> | undefined;
 }
 
@@ -160,11 +171,10 @@ function settle(key: string, entry: Entry, alert: boolean): void {
   write(key, entry);
   notify(entry);
   if (!alert) return;
-  let first = true;
-  for (const listener of [...entry.done]) {
-    listener({ endedAt: stored.endsAt }, first);
-    first = false;
-  }
+  const listeners = [...entry.done];
+  // The alert is the first listener's that is not a fallback, else the first fallback's.
+  const alerter = listeners.find((listener) => !listener.fallback()) ?? listeners[0];
+  for (const listener of listeners) listener.hear({ endedAt: stored.endsAt }, listener === alerter);
 }
 
 function update(key: string, entry: Entry, stored: Stored | null): void {
@@ -210,12 +220,14 @@ function remainingOf(stored: Stored | null, duration: number, now: number): numb
  * <Button onClick={timer.start}>Start</Button>
  * <p>{formatDuration(timer.remaining)}</p>
  */
-export function useTimer({ duration, id, onDone }: TimerOptions): TimerControls {
+export function useTimer({ duration, id, onDone, fallback }: TimerOptions): TimerControls {
   const anonymous = useId();
   const key = id ?? `local:${anonymous}`;
   const onDoneRef = useRef(onDone);
+  const fallbackRef = useRef(fallback);
   useEffect(() => {
     onDoneRef.current = onDone;
+    fallbackRef.current = fallback;
   });
 
   const subscribe = useCallback(
@@ -229,7 +241,10 @@ export function useTimer({ duration, id, onDone }: TimerOptions): TimerControls 
         listening = true;
         window.addEventListener("storage", onStorage);
       }
-      const done = (event: Omit<TimerDoneEvent, "first">, first: boolean) => onDoneRef.current?.({ ...event, first });
+      const done: DoneListener = {
+        hear: (event, first) => onDoneRef.current?.({ ...event, first }),
+        fallback: () => fallbackRef.current === true,
+      };
       entry.listeners.add(onChange);
       entry.done.add(done);
       settle(key, entry, true);

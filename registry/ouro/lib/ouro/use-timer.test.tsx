@@ -125,6 +125,25 @@ describe("useTimer", () => {
     expect(a.state.current.status).toBe("idle");
   });
 
+  it("gives first to a hook without fallback, whichever mounted first, and to the first fallback when only fallbacks watch", async () => {
+    const watcher = vi.fn<(event: TimerDoneEvent) => void>();
+    const owner = vi.fn<(event: TimerDoneEvent) => void>();
+    const a = await renderTimer({ duration: 1, id: "eggs", fallback: true, onDone: watcher });
+    await renderTimer({ duration: 1, id: "eggs", onDone: owner });
+    await act(async () => a.state.current.start());
+    await advance(1000);
+    expect(owner).toHaveBeenCalledExactlyOnceWith({ endedAt: Date.now(), first: true });
+    expect(watcher).toHaveBeenCalledExactlyOnceWith({ endedAt: Date.now(), first: false });
+    const lone = vi.fn<(event: TimerDoneEvent) => void>();
+    const other = vi.fn<(event: TimerDoneEvent) => void>();
+    const b = await renderTimer({ duration: 1, id: "toast", fallback: true, onDone: lone });
+    await renderTimer({ duration: 1, id: "toast", fallback: true, onDone: other });
+    await act(async () => b.state.current.start());
+    await advance(1000);
+    expect(lone).toHaveBeenCalledExactlyOnceWith({ endedAt: Date.now(), first: true });
+    expect(other).toHaveBeenCalledExactlyOnceWith({ endedAt: Date.now(), first: false });
+  });
+
   it("carries a stored timer on after a reload, and finishes one that ended while the page was closed", async () => {
     localStorage.setItem("ouro-timer:oven", JSON.stringify({ status: "running", duration: 600, endsAt: Date.now() + 120_000 }));
     localStorage.setItem("ouro-timer:rice", JSON.stringify({ status: "running", duration: 600, endsAt: Date.now() - 30_000 }));

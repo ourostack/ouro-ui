@@ -24,7 +24,7 @@ const timer = useTimer({ duration: 600, id: "pasta", onDone: () => chime() });
 
 | Parameter | Type | Default |
 | --- | --- | --- |
-| `{ duration, id, onDone }` | `TimerOptions` |  |
+| `{ duration, id, onDone, fallback }` | `TimerOptions` |  |
 
 ## Returns
 
@@ -65,8 +65,9 @@ interface TimerDoneEvent {
   /** When it reached zero, in milliseconds since the epoch: in the past when the page was closed at the time. */
   endedAt: number;
   /**
-   * Whether this is the first `useTimer` with the timer's `id` on the page to hear it. When a
-   * `Timer` and a `TimerTray` both show one timer, only the first should sound the alert.
+   * Whether this `useTimer` is the one on the page that should sound the alert: the first with
+   * the timer's `id` to hear it, not counting `fallback` ones unless only those are mounted. When
+   * a `Timer` and a `TimerTray` both show one timer, the `Timer` alerts, whichever mounted first.
    */
   first: boolean;
 }
@@ -88,6 +89,11 @@ interface TimerOptions {
   id?: string | undefined;
   /** Called once when the timer reaches zero, including when it ended while the page was closed. */
   onDone?: ((event: TimerDoneEvent) => void) | undefined;
+  /**
+   * For a view that watches a timer shown elsewhere, as `TimerTray` does: its `onDone` hears
+   * `first: true` only while no `useTimer` without `fallback` shares the timer.
+   */
+  fallback?: boolean | undefined;
 }
 ```
 

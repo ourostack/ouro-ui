@@ -26,7 +26,10 @@ export interface TimerTrayOwnProps {
   timers: readonly TimerTrayItem[];
   /** Names the tray for screen readers, as a region. @default "Timers" */
   label?: string | undefined;
-  /** No chime and no vibration when a timer reaches zero while only the tray shows it. */
+  /**
+   * No chime and no vibration when a timer reaches zero while only the tray shows it. A `Timer`
+   * on the page that shows the same timer alerts instead of the tray, by its own `silent`.
+   */
   silent?: boolean | undefined;
   /** The words it shows and says, for apps in other languages. */
   labels?: TimerLabels | undefined;
@@ -44,7 +47,7 @@ export interface TimerTrayOwnProps {
 export type TimerTrayProps = Omit<HTMLAttributes<HTMLElement>, keyof TimerTrayOwnProps> & TimerTrayOwnProps;
 
 function TrayRow({ item, words, silent }: { item: TimerTrayItem; words: ReturnType<typeof wordsFor>; silent: boolean }): JSX.Element | null {
-  const timer = useTimer({ duration: item.duration, id: item.id, onDone: (event) => alertDone(item.label, words.done, event, silent) });
+  const timer = useTimer({ duration: item.duration, id: item.id, fallback: true, onDone: (event) => alertDone(item.label, words.done, event, silent) });
   if (timer.status === "idle") return null;
   const done = timer.status === "done";
   return (
@@ -77,7 +80,8 @@ function TrayRow({ item, words, silent }: { item: TimerTrayItem; words: ReturnTy
  * timer's screen can still see it count down, hear it at zero, and stop it. Pass every timer
  * the app has, by the `id` its `Timer` uses; the tray shows only those not idle, and hides
  * itself while none are. When a timer reaches zero while only the tray shows it, the tray
- * chimes and says so.
+ * chimes and says so; when its `Timer` is on the page too, the `Timer` alerts instead (with its
+ * own `silent`), whichever of the two mounted first.
  *
  * Put it where it stays in view, such as under the header (`className="sticky top-0"`), and
  * leave out the timer on the screen in view.

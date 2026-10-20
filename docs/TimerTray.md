@@ -2,7 +2,7 @@
 
 # TimerTray
 
-The timers that are running, paused or finished, in one strip, so a person who leaves a timer's screen can still see it count down, hear it at zero, and stop it. Pass every timer the app has, by the `id` its `Timer` uses; the tray shows only those not idle, and hides itself while none are. When a timer reaches zero while only the tray shows it, the tray chimes and says so.
+The timers that are running, paused or finished, in one strip, so a person who leaves a timer's screen can still see it count down, hear it at zero, and stop it. Pass every timer the app has, by the `id` its `Timer` uses; the tray shows only those not idle, and hides itself while none are. When a timer reaches zero while only the tray shows it, the tray chimes and says so; when its `Timer` is on the page too, the `Timer` alerts instead (with its own `silent`), whichever of the two mounted first.
 
 ```tsx
 import { TimerTray } from "@/registry/ouro/components/ouro/timer/timer-tray";
@@ -32,7 +32,7 @@ Type: `TimerTrayProps`.
 | `label` | `string` | `"Timers"` | Names the tray for screen readers, as a region. |
 | `labels` | `TimerLabels` |  | The words it shows and says, for apps in other languages. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
-| `silent` | `boolean` |  | No chime and no vibration when a timer reaches zero while only the tray shows it. |
+| `silent` | `boolean` |  | No chime and no vibration when a timer reaches zero while only the tray shows it. A `Timer` on the page that shows the same timer alerts instead of the tray, by its own `silent`. |
 | `timers` (required) | `readonly TimerTrayItem[]` |  | The timers to watch, by `id`. Only those that are running, paused or finished show. |
 
 ## Native attributes
