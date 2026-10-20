@@ -135,7 +135,7 @@ test("every control marker in the components' source names a part its item decla
   const { markers, animated, problems } = sourceMarkers(root);
   assert.deepEqual(problems, []);
   // An animated part that is no control (Checkbox's tick, a Checklist row's strike) carries data-ouro-part alone, declared in "motion".
-  assert.deepEqual(animated.map((marker) => `${marker.folder}/${marker.part}`), ["checkbox/tick", "checklist/row", "checklist/tick", "checklist/label", "checklist/strike", "checklist/value", "inspector/layer", "route-progress/bar"]);
+  assert.deepEqual(animated.map((marker) => `${marker.folder}/${marker.part}`), ["checkbox/tick", "checklist/row", "checklist/tick", "checklist/label", "checklist/strike", "checklist/value", "inspector/layer", "route-progress/bar", "route-progress/indicator", "tab-bar/bar"]);
   const declared = new Set(components.flatMap((component) => (component.controls ?? []).map((control) => `${component.name}/${control.part}`)));
   const marked = new Set(markers.map((marker) => `${marker.item}/${marker.part}`));
   const undeclared = markers.filter((marker) => !declared.has(`${marker.item}/${marker.part}`)).map((marker) => `${marker.item}/${marker.part} (${marker.where})`);
