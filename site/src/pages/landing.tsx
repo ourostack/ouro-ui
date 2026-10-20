@@ -9,7 +9,7 @@ import { Container, SiteFooter, SiteHeader } from "../components/layout";
 import { LiveCatalog } from "../components/live-catalog";
 import generated from "../generated/agent-messages.json";
 import { AGENTS_COMING_SOON, HERO_SUBLINE, HERO_TITLE, SHADCN_BADGE, SHADCN_LINE } from "../copy";
-import { latestRelease } from "../release";
+import { latestRelease } from "../latest-release";
 import { href } from "../routes";
 
 /** A small label beside a heading: "Works with shadcn/ui", "Alpha". */

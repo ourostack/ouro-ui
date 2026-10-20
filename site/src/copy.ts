@@ -10,6 +10,18 @@ export const HERO_SUBLINE =
 /** The homepage's meta description, and the first lines of README.md and llms.txt. */
 export const HERO_COPY = `${HERO_TITLE} ${HERO_SUBLINE}`;
 
+/**
+ * The voyage hero's words (site-design.md, revision 4), which replace the ones above when the voyage
+ * becomes the landing page. The title is two sentences, one for the people using an app and one for
+ * the agents building it; the hero sets each on its own lines.
+ */
+export const VOYAGE_HERO = {
+  eyebrow: "Ouro HX · Under construction",
+  title: ["Feels right to the people using it.", "Obvious to the agents building it."],
+  subline:
+    "A React component library you copy into your app and own. Every tap, transition and screen-reader announcement is tested in real browsers.",
+} as const;
+
 export const SHADCN_BADGE = "Works with shadcn/ui";
 
 export const SHADCN_LINE =

@@ -1,7 +1,7 @@
 import { docsItems, summary } from "./docs/items";
 import { docsPages } from "./docs/pages";
-import { HERO_COPY } from "./copy";
-import { latestRelease } from "./release";
+import { HERO_COPY, VOYAGE_HERO } from "./copy";
+import { latestRelease } from "./latest-release";
 import { normalizePath } from "./paths";
 
 export { href, pathFromLocation } from "./paths";
@@ -16,11 +16,12 @@ export interface Route {
 }
 
 const DESCRIPTION = `${HERO_COPY} Ouro HX is the component library within Ouro UI. Under construction. React components you copy into your app and own; they install with the shadcn CLI.`;
+const VOYAGE_DESCRIPTION = `${VOYAGE_HERO.title.join(" ")} ${VOYAGE_HERO.subline} Ouro HX is the component library within Ouro UI. Under construction.`;
 
 export const routes: Route[] = [
   { path: "/", title: "Ouro HX", description: DESCRIPTION },
   // The new landing page, built in slices on this hidden route until it replaces "/".
-  { path: "/voyage/", title: "Mobilis in mobili · Ouro HX", description: DESCRIPTION, noindex: true },
+  { path: "/voyage/", title: "Mobilis in mobili · Ouro HX", description: VOYAGE_DESCRIPTION, noindex: true },
   { path: "/docs/", title: "Docs · Ouro HX", description: "Every Ouro HX component, with install commands, props and live demos." },
   ...docsItems.map((item) => ({
     path: `/docs/${item.name}/`,
