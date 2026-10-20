@@ -102,8 +102,8 @@ describe("CodeBlock", () => {
     );
     const [first, second] = host.querySelectorAll('[data-ouro="code-block"]');
     expect(first!.querySelector("figcaption")!.textContent).toBe("");
-    expect(first!.querySelector('[data-ouro-control="copy-button"]')).not.toBeNull();
-    expect(second!.querySelector('[data-ouro-control="copy-button"]')).toBeNull();
+    expect(first!.querySelector('[data-ouro-control="code-block"][data-ouro-part="copy"]')).not.toBeNull();
+    expect(second!.querySelector("button")).toBeNull();
   });
 
   it("copies the code exactly with its copy button", async () => {
@@ -112,7 +112,10 @@ describe("CodeBlock", () => {
     const button = page.getByRole("button", { name: "Copy the command" });
     await userEvent.click(button);
     await expect.poll(() => clipboard).toEqual([code]);
-    const copied = document.querySelector('[data-ouro-control="copy-button"]')!;
+    // The button is CodeBlock's own control, marked as its copy part rather than a CopyButton's trigger.
+    const copied = document.querySelector("button")!;
+    expect(copied.getAttribute("data-ouro-control")).toBe("code-block");
+    expect(copied.getAttribute("data-ouro-part")).toBe("copy");
     await expect.poll(() => copied.getAttribute("aria-label")).toBe("Copied");
   });
 

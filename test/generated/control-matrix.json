@@ -1977,5 +1977,19 @@
       "CodeBlock/InContext",
       "CodeBlock/Wrapped"
     ]
+  },
+  {
+    "item": "code-block",
+    "stem": "code-block",
+    "mode": "default",
+    "part": "copy",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "CodeBlock/Playground",
+      "CodeBlock/InContext",
+      "CodeBlock/Wrapped"
+    ]
   }
 ]

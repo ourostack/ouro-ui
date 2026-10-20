@@ -143,7 +143,7 @@ export function CodeBlock(props: CodeBlockProps): JSX.Element {
           className="flex min-h-11 items-center gap-2 border-0 border-b border-solid border-border ps-4 pe-1.5 text-xs leading-5 font-medium text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]"
         >
           <span className="min-w-0 flex-1 truncate">{caption}</span>
-          {copy ? <CopyButton value={code} label={copyLabel} hideLabel variant="plain" size="sm" /> : null}
+          {copy ? <CopyButton data-ouro-control="code-block" data-ouro-part="copy" value={code} label={copyLabel} hideLabel variant="plain" size="sm" /> : null}
         </figcaption>
       ) : null}
       <pre
