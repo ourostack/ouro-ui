@@ -114,8 +114,7 @@ async function writeClipboard(text: string): Promise<boolean> {
  * and "Couldn't copy" when the browser refuses), and screen readers hear the same, politely,
  * once. It uses the Clipboard API, and a text selection where that is not available.
  *
- * Use `CodeBlock` instead for code or a command shown with its own copy button, and
- * `ShareButton` to hand a link to the system's share sheet.
+ * Use `CodeBlock` instead for code or a command shown with its own copy button.
  *
  * @group Actions
  * @see https://ourostack.github.io/ouro-ui/docs/copy-button

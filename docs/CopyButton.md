@@ -17,7 +17,7 @@ import { CopyButton } from "@/registry/ouro/components/ouro/copy-button/copy-but
 
 ## Use instead when
 
-- Use `CodeBlock` instead for code or a command shown with its own copy button, and `ShareButton` to hand a link to the system's share sheet.
+- Use `CodeBlock` instead for code or a command shown with its own copy button.
 
 ## Props
 
