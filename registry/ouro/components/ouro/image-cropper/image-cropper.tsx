@@ -27,7 +27,7 @@ export interface ImageCropperLabels {
   zoom?: string | undefined;
   /** The crop area's name for screen readers. @default "Photo to crop" */
   area?: string | undefined;
-  /** How to move the photo, read with the crop area. @default "Drag the photo, or use the arrow keys, to choose what shows. Plus and minus zoom." */
+  /** How to move the photo, read with the crop area. @default "Drag the photo, or move it with the arrow keys, to choose what shows. Plus and minus zoom." */
   instructions?: string | undefined;
 }
 
@@ -65,7 +65,7 @@ export interface ImageCropperProps {
 }
 
 const FRAME_WIDTH = 288;
-const words = { save: "Save", cancel: "Cancel", zoom: "Zoom", area: "Photo to crop", instructions: "Drag the photo, or use the arrow keys, to choose what shows. Plus and minus zoom." };
+const words = { save: "Save", cancel: "Cancel", zoom: "Zoom", area: "Photo to crop", instructions: "Drag the photo, or move it with the arrow keys, to choose what shows. Plus and minus zoom." };
 
 /** Draws the chosen part of the image at the output size and returns it as a file. */
 async function crop(image: HTMLImageElement, natural: Size, frame: Size, scale: number, offset: Offset, width: number, type: string, name: string): Promise<File> {
@@ -82,8 +82,8 @@ async function crop(image: HTMLImageElement, natural: Size, frame: Size, scale: 
 }
 
 /**
- * A dialog for cropping a photo to a shape before it is used: drag the photo (or move it with
- * the arrow keys) to choose what shows in the frame, zoom with the slider (or Plus and Minus),
+ * A dialog for cropping a photo to a shape before it is used: drag the photo (or move it the
+ * way the arrow keys point) to choose what shows in the frame, zoom with the slider (or Plus and Minus),
  * and Save hands the cropped image to `onCrop` as a `File`, ready for a form or an upload.
  * The frame is a rectangle of `aspect`, or a circle for a profile photo. It always opens as a
  * centered dialog, so dragging the photo never drags the dialog away.
@@ -191,7 +191,7 @@ export function ImageCropper(props: ImageCropperProps): JSX.Element {
   };
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const step = event.shiftKey ? STEP * 10 : STEP;
-    const moves: Record<string, Offset> = { ArrowLeft: { x: step, y: 0 }, ArrowRight: { x: -step, y: 0 }, ArrowUp: { x: 0, y: step }, ArrowDown: { x: 0, y: -step } };
+    const moves: Record<string, Offset> = { ArrowLeft: { x: -step, y: 0 }, ArrowRight: { x: step, y: 0 }, ArrowUp: { x: 0, y: -step }, ArrowDown: { x: 0, y: step } };
     const by = moves[event.key];
     if (by) move({ x: offset.x + by.x, y: offset.y + by.y });
     else if (event.key === "+" || event.key === "=") zoomTo(zoom + 0.1);

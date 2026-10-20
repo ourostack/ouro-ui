@@ -97,7 +97,7 @@ describe("ImageCropper", () => {
     const file = await photo();
     await render(<Harness image={file} onCropped={() => {}} />);
     await expect.element(page.getByRole("dialog", { name: "Crop photo" })).toBeVisible();
-    await expect.element(page.getByRole("application", { name: "Photo to crop" })).toHaveAccessibleDescription(/arrow keys/);
+    await expect.element(page.getByRole("application", { name: "Photo to crop" })).toHaveAccessibleDescription("Drag the photo, or move it with the arrow keys, to choose what shows. Plus and minus zoom.");
     await expect.element(page.getByRole("slider", { name: "Zoom" })).toBeInTheDocument();
     await loaded();
     await expect.element(save()).toBeEnabled();
@@ -124,16 +124,16 @@ describe("ImageCropper", () => {
     expect(onOpen).toHaveBeenCalledWith(false);
   });
 
-  it("moves the photo with the arrow keys, ten times further with Shift, and never past its edge", async () => {
+  it("moves the photo the way the arrow keys point, ten times further with Shift, and never past its edge", async () => {
     const onCropped = vi.fn<(file: File) => void>();
     await render(<Harness image={await photo()} onCropped={onCropped} outputWidth={100} type="image/png" />);
     await loaded();
     area().focus();
     await userEvent.keyboard("{ArrowLeft}");
-    expect(offsetOf()).toEqual([10, 0]);
-    await userEvent.keyboard("{ArrowRight}{ArrowRight}{ArrowUp}{ArrowDown}");
     expect(offsetOf()).toEqual([-10, 0]);
-    await userEvent.keyboard("{Shift>}{ArrowLeft}{ArrowLeft}{ArrowLeft}{/Shift}");
+    await userEvent.keyboard("{ArrowRight}{ArrowRight}{ArrowUp}{ArrowDown}");
+    expect(offsetOf()).toEqual([10, 0]);
+    await userEvent.keyboard("{Shift>}{ArrowRight}{ArrowRight}{ArrowRight}{/Shift}");
     expect(offsetOf()).toEqual([144, 0]);
     await userEvent.keyboard("a");
     await userEvent.click(save());
