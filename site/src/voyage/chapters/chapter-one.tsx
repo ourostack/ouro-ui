@@ -434,12 +434,12 @@ function Articles(): JSX.Element {
   const [line, setLine] = useState<CrewLine>(SIGN.opening);
   const [pending, setPending] = useState<{ name: string; wants: readonly Want[] } | null>(null);
   useEffect(() => voyage.set({ you }), [voyage, you]);
-  // A new signing brings a new, empty form; focus goes to your row's Leave, clear of the toast.
+  // A new signing brings a new, empty form; focus goes to your row's Leave, and your row and
+  // Conseil's welcome under it are kept clear of the toast.
   useEffect(() => {
     if (signings === 0) return;
-    const leave = box.current?.querySelector<HTMLElement>("[data-chapter-control='leave'] button");
-    leave?.focus();
-    keepClearOfToasts(leave?.closest("li"));
+    box.current?.querySelector<HTMLElement>("[data-chapter-control='leave'] button")?.focus();
+    keepClearOfToasts(box.current?.querySelector("[data-chapter-crew]"));
   }, [signings]);
 
   const field = (name: string) => box.current?.querySelector<HTMLInputElement>(`input[name="${name}"]`);

@@ -329,6 +329,10 @@ test("on a phone, the shipyard and the articles work by touch, and nothing overf
   await oath(page).tap();
   await signButton(page).tap();
   await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length + 1));
+  // The toast never covers your row or Conseil's welcome under it.
+  const toast = page.locator('[data-ouro="toast"]').first();
+  await expect(toast).toBeVisible();
+  await expect.poll(async () => (await signCrew(page).boundingBox())!.y + (await signCrew(page).boundingBox())!.height <= (await toast.boundingBox())!.y).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   expect(errors).toEqual([]);
   await context.close();
