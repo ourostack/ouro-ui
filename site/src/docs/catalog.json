@@ -42,7 +42,8 @@
     "name": "copy-button",
     "title": "CopyButton",
     "group": "Actions",
-    "source": "registry/ouro/components/ouro/copy-button/copy-button.tsx"
+    "source": "registry/ouro/components/ouro/copy-button/copy-button.tsx",
+    "summary": "A button that puts a piece of text on the clipboard: an API key, a link, a command."
   },
   {
     "name": "text",
@@ -371,7 +372,8 @@
     "name": "code-block",
     "title": "CodeBlock",
     "group": "Display",
-    "source": "registry/ouro/components/ouro/code-block/code-block.tsx"
+    "source": "registry/ouro/components/ouro/code-block/code-block.tsx",
+    "summary": "Code or a command on a muted surface in the theme's monospace font, with a caption and a button that copies it."
   },
   {
     "name": "accordion",
@@ -469,7 +471,8 @@
     "name": "page-header",
     "title": "PageHeader",
     "group": "Layout",
-    "source": "registry/ouro/components/ouro/page-header/page-header.tsx"
+    "source": "registry/ouro/components/ouro/page-header/page-header.tsx",
+    "summary": "The top of a page: its title with an optional line above it (`eyebrow`), a description under it, the page's actions beside it, and a trail and an image above."
   },
   {
     "name": "tabs",
