@@ -89,7 +89,7 @@ describe("TabBar and the on-screen keyboard", () => {
     for (const reduced of [false, true]) {
       await commands.emulateMedia({ reducedMotion: reduced ? "reduce" : "no-preference" });
       const duration = token(reduced ? "--ouro-duration-fast" : "--ouro-duration-base");
-      const properties = reduced ? { opacity: duration } : { opacity: duration, translate: duration };
+      const properties: Record<string, number> = reduced ? { opacity: duration } : { opacity: duration, translate: duration };
       flushSync(() => field.focus());
       await expectMotion(nav, { stem: "tab-bar", state: "data-closed", properties, reduced });
       expect(getComputedStyle(nav).opacity).toBe("0");
