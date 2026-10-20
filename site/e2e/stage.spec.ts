@@ -60,6 +60,24 @@ async function changesThePicture(page: Page, act: () => Promise<void>): Promise<
   expect(after.equals(before), "the porthole looks different").toBe(false);
 }
 
+/**
+ * Records each CSS animation that starts from now on, and returns which ones started on the elements
+ * a selector matches. A test can't look for a one-off animation still running: it lasts under a
+ * second, less than the waits before the look can take on a busy runner.
+ */
+async function recordAnimations(page: Page): Promise<(selector: string) => Promise<string[]>> {
+  await page.evaluate(() => {
+    const started: Array<{ target: Element; name: string }> = [];
+    (window as unknown as { __started: typeof started }).__started = started;
+    document.addEventListener("animationstart", (event) => started.push({ target: event.target as Element, name: event.animationName }));
+  });
+  return (selector) =>
+    page.evaluate((selector) => {
+      const started = (window as unknown as { __started: Array<{ target: Element; name: string }> }).__started;
+      return [...new Set(started.filter(({ target }) => target.matches(selector)).map(({ name }) => name))];
+    }, selector);
+}
+
 async function fillTanks(page: Page): Promise<void> {
   for (const { name } of TANKS) await tank(page, name).click();
 }
@@ -204,13 +222,14 @@ test.describe("each control on the stage", () => {
 
   test("control: bell brings a toast from the crew, rings, and sends rings through the water", async ({ page }) => {
     await open(page);
+    const started = await recordAnimations(page);
     await page.getByRole("button", { name: STAGE_COPY.bell }).click();
     await expect(page.getByText(`${BELL_TOASTS[0]!.name}: ${BELL_TOASTS[0]!.text}`)).toBeVisible();
     await expect(lastLog(page)).toContainText(LOG.bell.text);
     await expect(page.locator("[data-stage-control='bell']")).toHaveAttribute("data-ring", "a");
     await expect(page.locator(".stage-ripples ellipse")).toHaveCount(3);
     // Under reduced motion the bell glows instead of swinging.
-    expect(await page.locator(".stage-bell-body").evaluate((element) => element.getAnimations().map((animation) => (animation as CSSAnimation).animationName))).toEqual(["stage-bell-glow-a"]);
+    await expect.poll(() => started(".stage-bell-body")).toEqual(["stage-bell-glow-a"]);
   });
 });
 
@@ -404,34 +423,35 @@ test.describe("the ballast manifold and the bell's payoffs", () => {
     const background = (locator: ReturnType<Page["locator"]>) => locator.evaluate((element) => getComputedStyle(element).backgroundColor);
     const solid = await background(page.getByRole("link", { name: "Come aboard" }));
     expect(await background(diveButton(page))).not.toBe(solid);
+    const started = await recordAnimations(page);
     await fillTanks(page);
     await expect(page.locator("[data-stage-control='dive']")).toHaveAttribute("data-ready", "");
     await expect.poll(() => background(diveButton(page))).toBe(solid);
-    expect(await diveButton(page).evaluate((element) => element.getAnimations().map((animation) => (animation as CSSAnimation).animationName))).toContain("stage-dive-ready");
+    await expect.poll(() => started("[data-stage-control='dive'] button")).toContain("stage-dive-ready");
   });
 
   test("the bell sends sonar through the water, the creatures start, and the crew answers", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await open(page);
+    const started = await recordAnimations(page);
     await page.getByRole("button", { name: STAGE_COPY.bell }).click();
     await expect(scene(page)).toHaveAttribute("data-ring", "a");
     await expect(page.getByText(`${BELL_TOASTS[0]!.name}: ${BELL_TOASTS[0]!.text}`)).toBeVisible();
     await expect(lastLog(page)).toContainText(LOG.bell.text);
-    const names = (selector: string) => page.locator(selector).evaluateAll((elements) => elements.flatMap((element) => element.getAnimations()).map((animation) => (animation as CSSAnimation).animationName));
-    expect(await names(".stage-ripples ellipse")).toContain("stage-ripple");
-    expect(await names(".stage-band-sunlit .stage-react")).toContain("stage-startle-a");
+    await expect.poll(() => started(".stage-ripples ellipse")).toContain("stage-ripple");
+    await expect.poll(() => started(".stage-band-sunlit .stage-react")).toContain("stage-startle-a");
     await page.getByRole("button", { name: STAGE_COPY.bell }).click();
     await expect(scene(page)).toHaveAttribute("data-ring", "b");
-    expect(await names(".stage-band-sunlit .stage-react")).toContain("stage-startle-b");
+    await expect.poll(() => started(".stage-band-sunlit .stage-react")).toContain("stage-startle-b");
   });
 
   test("under reduced motion the bell's creatures flicker instead of starting", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await open(page);
+    const started = await recordAnimations(page);
     await page.getByRole("button", { name: STAGE_COPY.bell }).click();
     await expect(scene(page)).toHaveAttribute("data-ring", "a");
-    const names = await page.locator(".stage-band-sunlit .stage-react").evaluateAll((elements) => elements.flatMap((element) => element.getAnimations()).map((animation) => (animation as CSSAnimation).animationName));
-    expect(names).toContain("stage-startle-fade-a");
+    await expect.poll(() => started(".stage-band-sunlit .stage-react")).toContain("stage-startle-fade-a");
   });
 });
 
