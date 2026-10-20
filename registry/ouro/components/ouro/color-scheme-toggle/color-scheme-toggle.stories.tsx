@@ -24,7 +24,7 @@ export const InContext: Story = {
     <div style={{ display: "grid", gap: 24, color: "var(--foreground)" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--border)", paddingBottom: 8 }}>
         <Text>
-          <strong>Spoonjoy</strong>
+          <strong>Field Notes</strong>
         </Text>
         <ColorSchemeToggle />
       </div>
