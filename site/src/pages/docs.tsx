@@ -9,7 +9,7 @@ import { siteGroups } from "../../../scripts/catalog-groups.mts";
 import { loadMarkdown } from "../docs/content";
 import { docsItems, GITHUB, installedPaths, itemFiles, itemMarkdown, partsSection, type DocsItem } from "../docs/items";
 import { inline, Markdown, parse, type Block } from "../docs/markdown";
-import { docsPages, exportPages, guidePages, pageMarkdown, publishedName, type DocsPage } from "../docs/pages";
+import { docsPages, exportPages, guidePages, pageMarkdown, publishedName, repositoryLink, type DocsPage } from "../docs/pages";
 import { href, routeFor } from "../routes";
 import { latestRelease, upgrading } from "../release";
 
@@ -105,10 +105,10 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
   );
 }
 
-/** Where a link in a docs Markdown file goes on the site: another docs file becomes its page. */
+/** Where a link in a docs Markdown file goes on the site: another docs file becomes its page, another repository file its page on GitHub. */
 function siteLink(target: string, from: string): string {
   const to = publishedName(target, from);
-  return to ? `${href(`/docs/${to.name}/`)}${to.fragment}` : target;
+  return to ? `${href(`/docs/${to.name}/`)}${to.fragment}` : (repositoryLink(target, from) ?? target);
 }
 
 /**

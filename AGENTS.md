@@ -102,6 +102,25 @@ The layout mirrors where shadcn installs files, so the CLI's import rewrite land
 - Custom browser commands live in `registry/ouro/lib/ouro/testing/commands.ts`: `commands.emulateMedia({ reducedMotion, colorScheme })`, `commands.drag({ from, to, steps, durationMs, hold })` (`hold` keeps the button down so a test can inspect the mid-drag state; release with `pointerPress({ action: "up" })`), `commands.flick`, `commands.tap`, `commands.touchDrag({ from, to, steps, durationMs })` (a one-finger drag with real touch input through CDP, for swipe gestures; Chromium only; pass `durationMs` whenever the result depends on the swipe's speed, as over scroll snap points, because without it the speed is whatever the machine manages), `commands.touchStep({ type, x, y })` (one step of such a gesture, for a finger held still mid-swipe; lift the finger with `touchEnd` in a `finally`, and a finger left down is lifted before the next gesture) `commands.pointerPress({ selector, action })` (holds the real mouse down so `:active` applies) and `commands.restoreTouch()` (turns Chromium's touch emulation back on; the `ouro-touch` setup calls it before every test, because a screenshot taller than the viewport, such as a failure screenshot of a tall page, drops it for the rest of the page's life, so read a burst of coarse-pointer failures in one touch worker on an older kit as one real failure plus fallout). Drag tests run in Chromium only.
 - Contributors need Node 22.18 or later (`devEngines`; `.node-version` pins 24) because the scripts run through Node's type stripping.
 
+## Claims
+
+A factual sentence is a claim, on every surface: Markdown, JSDoc, the site's copy, changes fragments, and a pull request's title and body.[^claim-surfaces] A claim carries its primary source and a machine check, so the next agent can trust it without rebuilding the proof ([guide](docs/guides/claims.md)).
+
+- Run `pnpm claims:check` before you push: it lints every surface and runs every claim's checks, as the `ci` job does.
+- Run `pnpm claims:lint --stdin --name "pull request body" < body.md` on a pull request's text before you open it; the Claims workflow lints the title and body on GitHub.
+- Run `pnpm claims:show <file>` to see a file's claims, their sources and whether each check holds.
+
+To make a claim, cite the source and add a check, as in this snippet:
+
+```md
+Ouro HX ships [73 components](registry.json "verify:count(registry:ui)=73").
+Every story passes axe.[^axe]
+
+[^axe]: test/stories.test.tsx verify:ciJob(ci)
+```
+
+In JSDoc, add `@claim <source> verify:<check>` to the comment; in TypeScript copy, wrap the string in `claim(text, { source, verify })` from `lib/ouro/claims.ts`. Do not reword a claim to dodge the lint: source it, correct it, or remove it.
+
 ## Registry
 
 - `registry.json` is generated; never edit it. Run `pnpm registry` after adding, renaming or moving a registry file, changing an import, a theme CSS file, a dependency version or a component's JSDoc purpose, and commit the result. CI fails on a stale file.
@@ -140,3 +159,5 @@ Then regenerate, never hand-merge: `pnpm run docs` (`docs/`, `README.md`, `site/
   - A wrong release was published: delete it with `gh release delete v<version> --cleanup-tag`, then release a new version (prefer a new version over reusing a published tag).
 - `ourostack/ouro-ui/<item>#v<version>` installs the item and all its Ouro dependencies at that tag, because the tagged `registry.json` names them with the same tag.
 - Install commands in the docs (`README.md`, `site/`, `site/public/llms.txt`, the release notes) use `npx shadcn@latest`, start with the `init` step (`init --base base --preset nova --yes --no-monorepo`) and pin the newest release tag. That tag has one source, `ouro.latestRelease` in `package.json` (`scripts/latest-release.mjs`): `pnpm run docs` writes it into README.md, llms.txt and package.json's description, the site imports it (`site/src/release.ts`), and Pages builds the namespace from it. Never edit a tag by hand: `scripts/latest-release.test.mjs` fails when a `#vX.Y.Z` or `@vX.Y.Z` literal in the docs names another tag. The same test and `site/src/site.test.tsx` fail on an install address with no ref or any ref but a release tag (`#main`, a branch, a commit; `scripts/addresses.mjs`), outside a sentence that says it is for contributors. release.yml sets the new tag on the release branch before it tags (`node scripts/latest-release.mjs set v<x.y.z>`, then `pnpm run docs`), so the tagged commit's README, llms.txt and site name that tag itself (UPGRADING.md keeps its placeholder) (`scripts/latest-release.test.mjs` runs those commands on a copy); its "Prepare main for the next release" PR does the same on main, and when it merges, the docs, the site and `@ouro` move to the release. On the release branch, before the tag exists, `scripts/namespace.sh` builds the namespace from the checkout, whose `registry.json` already is that release. Release advises deleting a tag only when GitHub answers "release not found"; any other error fails with the raw message. `pnpm registry --check` reads only `registry.json`, so a tag in the docs never fails it; `registry.json` on main stays unpinned. The install test and CI keep the exact `shadcn@4.21.1` they verify.
+
+[^claim-surfaces]: scripts/claims.mjs verify:testExists(scripts/claims.test.mjs::surfaces: every tracked prose file is linted or declared generated, evidence or input with a reason) verify:testExists(scripts/claims.test.mjs::the lint command reads a pull request's title and body from the environment)

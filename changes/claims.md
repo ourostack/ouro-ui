@@ -1,0 +1,1 @@
+- New: `lib-claims`, with `claim(text, { source, verify })`, which marks a sentence of your copy with the primary source it comes from and a check that it still holds. Add it by name; no component imports it.

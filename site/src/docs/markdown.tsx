@@ -2,11 +2,14 @@ import type { JSX, ReactNode } from "react";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { CodeBlock, InlineCode } from "../components/code";
+import { GITHUB } from "../paths";
 
 /**
  * Renders the Markdown that scripts/gen-docs.mts writes. It is a small, fixed subset,
  * so a parser this size covers it: `#` headings, paragraphs, fenced code, pipe tables,
- * `-` lists, inline code and links. Anything else would be a gen-docs change, and the
+ * `-` lists, inline code and links, and the claim syntax (docs/guides/claims.md): a link's
+ * `"verify:…"` title, and footnotes (`[^id]` with `[^id]: <source> verify:<check>`), which
+ * gather into a Sources list at the end. Anything else would be a gen-docs change, and the
  * docs tests would show it.
  */
 export type Block =
@@ -14,7 +17,8 @@ export type Block =
   | { kind: "paragraph"; text: string }
   | { kind: "code"; lang: string; text: string }
   | { kind: "list"; items: string[] }
-  | { kind: "table"; header: string[]; rows: string[][] };
+  | { kind: "table"; header: string[]; rows: string[][] }
+  | { kind: "sources"; items: Array<{ id: string; text: string }> };
 
 /** Splits a table row on unescaped pipes. */
 function cells(line: string): string[] {
@@ -28,11 +32,18 @@ function cells(line: string): string[] {
 export function parse(markdown: string): Block[] {
   const lines = markdown.replace(/<!--[\s\S]*?-->/g, "").split("\n");
   const blocks: Block[] = [];
+  const sources: Array<{ id: string; text: string }> = [];
   let i = 0;
   while (i < lines.length) {
     const line = lines[i]!;
+    const footnote = /^\[\^([^\]]+)\]:\s?(.*)$/.exec(line);
     if (line.trim() === "") {
       i++;
+    } else if (footnote) {
+      let text = footnote[2]!;
+      i++;
+      while (i < lines.length && /^\s{2,}\S/.test(lines[i]!)) text += ` ${lines[i++]!.trim()}`;
+      sources.push({ id: footnote[1]!, text });
     } else if (line.startsWith("```")) {
       const lang = line.slice(3).trim();
       const body: string[] = [];
@@ -55,11 +66,41 @@ export function parse(markdown: string): Block[] {
       blocks.push({ kind: "list", items });
     } else {
       const text: string[] = [];
-      while (i < lines.length && lines[i]!.trim() !== "" && !/^(#{1,6} |```|\||- )/.test(lines[i]!)) text.push(lines[i++]!.trim());
+      while (i < lines.length && lines[i]!.trim() !== "" && !/^(#{1,6} |```|\||- |\[\^[^\]]+\]:)/.test(lines[i]!)) text.push(lines[i++]!.trim());
       blocks.push({ kind: "paragraph", text: text.join(" ") });
     }
   }
+  if (sources.length > 0) blocks.push({ kind: "sources", items: sources });
   return blocks;
+}
+
+/**
+ * A claim's source (docs/guides/claims.md) as an address: a repository path (`path#L12@sha`),
+ * `test:<file>::<name>` or `evidence:<path>` opens the file on GitHub; an address is itself.
+ */
+export function sourceHref(source: string): string {
+  if (/^https?:\/\//.test(source)) return source;
+  const path = source.replace(/^test:/, "").replace(/::[\s\S]*$/, "").replace(/^evidence:/, "");
+  const [, file = "", line, commit] = /^([^#@]*)(?:#L(\d+))?(?:@(\w+))?$/.exec(path) ?? [];
+  return `${GITHUB}/blob/${commit ?? "main"}/${file}${line ? `#L${line}` : ""}`;
+}
+
+/** A footnote's body: its sources as links, then its checks as code. */
+function sourceBody(text: string): ReactNode[] {
+  const at = text.search(/(?:^|\s)verify:/);
+  const sources = (at === -1 ? text : text.slice(0, at)).split(/\s*;\s*/).map((source) => source.trim()).filter(Boolean);
+  const checks = at === -1 ? [] : text.slice(at).split(/(?:^|\s+)verify:/).map((check) => check.trim()).filter(Boolean);
+  const out: ReactNode[] = [];
+  sources.forEach((source, index) => {
+    if (index > 0) out.push("; ");
+    out.push(
+      <a key={`source-${index}`} href={sourceHref(source)} className="font-medium text-primary underline underline-offset-4 [overflow-wrap:anywhere]">
+        {source}
+      </a>,
+    );
+  });
+  for (const [index, check] of checks.entries()) out.push(" ", <InlineCode key={`check-${index}`}>{`verify:${check}`}</InlineCode>);
+  return out;
 }
 
 /** A heading's anchor: `Use instead when` becomes `use-instead-when`. */
@@ -74,15 +115,23 @@ export function slug(text: string): string {
 /** Inline code and links. `link` maps a Markdown href to the site's. */
 export function inline(text: string, link: (href: string) => string = (href) => href): ReactNode[] {
   const out: ReactNode[] = [];
-  const pattern = /`([^`]+)`|\[([^\]]+)\]\(([^)]+)\)/g;
+  const pattern = /`([^`]+)`|\[\^([^\]]+)\]|\[([^\]]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
   let last = 0;
   for (const match of text.matchAll(pattern)) {
     if (match.index > last) out.push(text.slice(last, match.index));
     if (match[1] !== undefined) out.push(<InlineCode key={match.index}>{match[1]}</InlineCode>);
+    else if (match[2] !== undefined)
+      out.push(
+        <sup key={match.index}>
+          <a href={`#source-${slug(match[2])}`} aria-label={`Source: ${match[2]}`} className="text-primary underline underline-offset-2">
+            {match[2]}
+          </a>
+        </sup>,
+      );
     else
       out.push(
-        <a key={match.index} href={link(match[3]!)} className="font-medium text-primary underline underline-offset-4">
-          {inline(match[2]!, link)}
+        <a key={match.index} href={link(match[4]!)} className="font-medium text-primary underline underline-offset-4">
+          {inline(match[3]!, link)}
         </a>,
       );
     last = match.index + match[0].length;
@@ -138,6 +187,23 @@ export function Markdown({ blocks, link }: { blocks: Block[]; link?: (href: stri
             );
           case "table":
             return <Table key={index} label={labels.get(index)!} header={block.header} rows={block.rows} link={link} />;
+          case "sources":
+            return (
+              <section key={index} aria-labelledby="sources" className="mt-14">
+                <Heading level={2} size="lg" id="sources" className="mb-4">
+                  Sources
+                </Heading>
+                <ul className="grid max-w-[68ch] gap-2">
+                  {block.items.map((item) => (
+                    <li key={item.id} id={`source-${slug(item.id)}`} className="scroll-mt-6">
+                      <Text as="span">
+                        <span className="font-medium text-foreground">{item.id}:</span> {sourceBody(item.text)}
+                      </Text>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            );
         }
       })}
     </>
