@@ -426,7 +426,9 @@ test.describe("the ballast manifold and the bell's payoffs", () => {
     await expect(scene(page)).toHaveAttribute("data-ring", "a");
     await expect(page.getByText(`${BELL_TOASTS[0]!.name}: ${BELL_TOASTS[0]!.text}`)).toBeVisible();
     await expect(lastLog(page)).toContainText(LOG.bell.text);
-    const names = (selector: string) => page.locator(selector).evaluateAll((elements) => elements.flatMap((element) => element.getAnimations()).map((animation) => (animation as CSSAnimation).animationName));
+    // Each payoff runs once and briefly (the toast's wait can outlast it), so read what each
+    // element is styled to play, not what is still running.
+    const names = (selector: string) => page.locator(selector).evaluateAll((elements) => elements.map((element) => getComputedStyle(element).animationName));
     expect(await names(".stage-ripples ellipse")).toContain("stage-ripple");
     expect(await names(".stage-band-sunlit .stage-react")).toContain("stage-startle-a");
     await page.getByRole("button", { name: STAGE_COPY.bell }).click();
@@ -439,7 +441,7 @@ test.describe("the ballast manifold and the bell's payoffs", () => {
     await open(page);
     await page.getByRole("button", { name: STAGE_COPY.bell }).click();
     await expect(scene(page)).toHaveAttribute("data-ring", "a");
-    const names = await page.locator(".stage-band-sunlit .stage-react").evaluateAll((elements) => elements.flatMap((element) => element.getAnimations()).map((animation) => (animation as CSSAnimation).animationName));
+    const names = await page.locator(".stage-band-sunlit .stage-react").evaluateAll((elements) => elements.map((element) => getComputedStyle(element).animationName));
     expect(names).toContain("stage-startle-fade-a");
   });
 });
