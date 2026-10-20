@@ -4,7 +4,7 @@ import proof, { install } from "virtual:site-proof";
 import { cleanupPage, renderPage, setScheme } from "../../../test/render";
 import { fleschKincaid, syllables } from "../../../test/readability";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
-import { EYEBROW, INSTALL_CAPTION, INSTALL_COMMAND } from "../hero";
+import { EYEBROW, INSTALL_CAPTION, INSTALL_COMMAND, RELEASE_HREF } from "../hero";
 import { latestRelease } from "../../latest-release";
 import { allStageText, bandAt, BELL_TOASTS, describeScene, LOG, OPENING_LOG, STAGE_CONTROLS, STAGE_COPY, TANKS } from "./copy";
 import { art, parseArt } from "./art";
@@ -73,6 +73,14 @@ describe("the hero", () => {
     expect(document.querySelector("[data-site-eyebrow]")!.textContent).toBe(EYEBROW);
     expect(document.querySelector(".stage-motto textPath")!.textContent).toBe("MOBILIS IN MOBILI");
     await expect.element(page.getByText(STAGE_COPY.real)).toBeVisible();
+  });
+
+  it("shows the release the command pins beside it, linking to that release", async () => {
+    await renderPage("/voyage/");
+    const release = page.getByRole("link", { name: `${latestRelease} · latest release` });
+    await expect.element(release).toHaveAttribute("href", `https://github.com/ourostack/ouro-ui/releases/tag/${latestRelease}`);
+    expect(RELEASE_HREF).toBe(`https://github.com/ourostack/ouro-ui/releases/tag/${latestRelease}`);
+    expect(release.element().closest(".site-install-block")).toBe(document.querySelector("[data-site-install]")!.closest(".site-install-block"));
   });
 
   it("links each proof claim, computed from the repository, to its evidence", async () => {

@@ -1,0 +1,318 @@
+import { expect, test, type Page } from "@playwright/test";
+import { ARTICLES, CHAPTER_ONE, CHAPTER_ONE_CONTROLS, CODE_SHEETS, CREW, PARTS, SHIPYARD, SIGN, YARD } from "../src/voyage/chapters/copy";
+
+// Chapter I, "Build the ship", against the production build (site-design.md, "Verification in
+// CI"): each control in CHAPTER_ONE_CONTROLS has a test named "control: <id>" that operates it and
+// asserts what it visibly changes (site/scripts/stage-census.test.mjs fails when one is missing),
+// every operable element in the chapter is one of those controls, the chapter is server-rendered
+// and loads its code only as it nears the screen, X-ray finds its HX components, phones work by
+// touch, and under reduced motion nothing moves. Each control's latency is stage.latency.spec.ts's.
+
+/**
+ * WebKit fetches a preloaded font again for its @font-face instead of using the preload, then warns
+ * a few seconds after load that the preload went unused. Chromium uses it; the warning is WebKit's.
+ */
+const WEBKIT_UNUSED_FONT_PRELOAD = /^The resource \S+\/fonts\/[\w.-]+\.woff2 was preloaded using link preload but not used within a few seconds/;
+
+function diagnostics(page: Page): string[] {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => {
+    if ((message.type() === "error" || message.type() === "warning") && !WEBKIT_UNUSED_FONT_PRELOAD.test(message.text())) errors.push(message.text());
+  });
+  return errors;
+}
+
+/** Opens the voyage and scrolls to Chapter I, waiting for it to hydrate. */
+async function open(page: Page): Promise<void> {
+  await page.goto("voyage/");
+  await expect(page.locator("html[data-site-ready]")).toBeAttached();
+  await page.locator("#chapter-one").scrollIntoViewIfNeeded();
+  await expect(page.locator("#chapter-one[data-chapter-ready]")).toBeAttached();
+}
+
+const shipyard = (page: Page) => page.locator("[data-composition='shipyard']");
+const articles = (page: Page) => page.locator("[data-composition='articles']");
+const plan = (page: Page) => page.locator(".site-blueprint");
+const yardCrew = (page: Page) => shipyard(page).locator("[data-chapter-crew]");
+const signCrew = (page: Page) => articles(page).locator("[data-chapter-crew]");
+const job = (page: Page, id: (typeof PARTS)[number]["id"]) => page.getByRole("checkbox", { name: PARTS.find((part) => part.id === id)!.job });
+const launchButton = (page: Page) => shipyard(page).locator("[data-chapter-control='launch'] button");
+const nameField = (page: Page) => page.getByRole("textbox", { name: ARTICLES.name });
+const tradeField = (page: Page) => page.getByRole("combobox", { name: ARTICLES.trade });
+const oath = (page: Page) => page.getByRole("checkbox", { name: ARTICLES.oath });
+const signButton = (page: Page) => page.getByRole("button", { name: ARTICLES.sign });
+
+/** Opens a composition's Code sheet: HX's part and the site's, the source, and focus back on close. */
+async function opensCodeSheet(page: Page, composition: (page: Page) => ReturnType<typeof shipyard>, sheet: { title: string; hx: readonly string[]; site: readonly string[] }): Promise<void> {
+  const errors = diagnostics(page);
+  await open(page);
+  const button = composition(page).getByRole("button", { name: CHAPTER_ONE.code });
+  await button.click();
+  const dialog = page.getByRole("dialog", { name: sheet.title });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: CODE_SHEETS.hxHeading })).toBeVisible();
+  for (const line of [...sheet.hx, ...sheet.site]) await expect(dialog.getByText(line, { exact: true })).toBeVisible();
+  await expect(dialog.getByRole("link", { name: new RegExp(CODE_SHEETS.source) })).toHaveAttribute("href", /\/tree\/main\/site\/src\/voyage\/chapters$/);
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(button).toBeFocused();
+  expect(errors).toEqual([]);
+}
+
+async function buildAll(page: Page): Promise<void> {
+  for (const part of PARTS) await job(page, part.id).click();
+}
+
+async function chooseTrade(page: Page, label: string): Promise<void> {
+  await tradeField(page).click();
+  await page.getByRole("option", { name: label }).click();
+}
+
+async function signOn(page: Page, name: string, trade = "Engineer"): Promise<void> {
+  await nameField(page).fill(name);
+  await chooseTrade(page, trade);
+  await oath(page).click();
+  await signButton(page).click();
+}
+
+/** The jobs' rows as the checklist shows them, top to bottom: the job and its day. */
+const jobRows = (page: Page) => shipyard(page).locator("[data-chapter-control='jobs'] [data-ouro-part='row']").allTextContents();
+
+test.describe("each control in Chapter I", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.setViewportSize({ width: 1440, height: 900 });
+  });
+
+  test("control: shipyard-code opens the shipyard's Code sheet, which says what is HX's and what is the site's", async ({ page }) => {
+    await opensCodeSheet(page, shipyard, CODE_SHEETS.shipyard);
+  });
+
+  test("control: articles-code opens the articles' Code sheet, which says what is HX's and what is the site's", async ({ page }) => {
+    await opensCodeSheet(page, articles, CODE_SHEETS.articles);
+  });
+
+  test("control: order moves a job, the days follow, and Conseil judges the plan", async ({ page }) => {
+    await open(page);
+    // The yard starts with the lantern first.
+    expect((await jobRows(page))[0]).toContain(PARTS[3].job);
+    const handle = page.getByRole("button", { name: /^Reorder Double hull/ });
+    await handle.click();
+    await page.getByRole("menuitem", { name: "Move to top" }).click();
+    await expect.poll(async () => (await jobRows(page))[0]).toContain(PARTS[0].job);
+    expect((await jobRows(page))[0]).toContain(SHIPYARD.day(1));
+    await expect(yardCrew(page)).toContainText(YARD.inOrder.text);
+    // From the keyboard: pick the organ up, carry it to the top, drop it.
+    await page.getByRole("button", { name: /^Reorder Organ/ }).focus();
+    await page.keyboard.press("Space");
+    for (let step = 0; step < 4; step++) await page.keyboard.press("ArrowUp");
+    await page.keyboard.press("Space");
+    await expect.poll(async () => (await jobRows(page))[0]).toContain(PARTS[4].job);
+    await expect(yardCrew(page)).toContainText(YARD.outOfOrder.organ.text);
+  });
+
+  test("control: jobs tick a job, the plan draws its part, the bar fills and the crew says so", async ({ page }) => {
+    await open(page);
+    const progress = shipyard(page).getByRole("progressbar", { name: SHIPYARD.progress });
+    await expect(progress).toHaveAttribute("aria-valuenow", "0");
+    await expect(plan(page).locator("[data-part='hull']")).toHaveCSS("opacity", "0.14");
+    await job(page, "lantern").click();
+    await expect(yardCrew(page)).toContainText(YARD.noHull("Lantern").text);
+    await job(page, "hull").click();
+    await expect(plan(page)).toHaveAttribute("data-built", "lantern hull");
+    await expect(plan(page).locator("[data-part='hull']")).toHaveCSS("opacity", "1");
+    await expect(plan(page)).toHaveAttribute("aria-label", /Drawn so far: double hull, lantern\./);
+    await expect(progress).toHaveAttribute("aria-valuenow", "40");
+    await expect(yardCrew(page)).toContainText(YARD.built.hull.text);
+    await job(page, "hull").click();
+    await expect(plan(page)).toHaveAttribute("data-built", "lantern");
+    await expect(yardCrew(page)).toContainText(YARD.undone("Double hull").text);
+  });
+
+  test("control: launch is off until every job is done, then floats the ship, and builds her again", async ({ page }) => {
+    await open(page);
+    await expect(launchButton(page)).toBeDisabled();
+    await expect(shipyard(page).locator("[data-chapter-launch-hint]")).toHaveText(SHIPYARD.launchHint(5));
+    await buildAll(page);
+    await expect(yardCrew(page)).toContainText(YARD.ready.text);
+    await expect(launchButton(page)).toBeEnabled();
+    await expect(launchButton(page)).toHaveText(SHIPYARD.launch);
+    await launchButton(page).click();
+    await expect(plan(page)).toHaveAttribute("data-launched", "");
+    await expect(plan(page)).toHaveAttribute("aria-label", "The Nautilus, built and afloat.");
+    await expect(plan(page).locator(".bp-grid")).toHaveCSS("opacity", "0");
+    await expect(yardCrew(page)).toContainText(YARD.launch.text);
+    await expect(launchButton(page)).toHaveText(SHIPYARD.again);
+    await launchButton(page).click();
+    await expect(plan(page)).not.toHaveAttribute("data-launched", "");
+    await expect(plan(page)).toHaveAttribute("data-built", "");
+    await expect(yardCrew(page)).toContainText(YARD.again.text);
+    await expect(launchButton(page)).toBeDisabled();
+  });
+
+  test("control: name is required, and a name already aboard is refused under the field", async ({ page }) => {
+    await open(page);
+    await signButton(page).click();
+    await expect(nameField(page)).toHaveAttribute("aria-invalid", "true");
+    await expect(nameField(page)).toBeFocused();
+    await signOn(page, "Ned Land", "Cook");
+    await expect(nameField(page)).toHaveAccessibleDescription(new RegExp(ARTICLES.taken("Ned Land").replace(".", "\\.")));
+    await expect(nameField(page)).toBeFocused();
+    await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length));
+    // Changing the field clears its message.
+    await nameField(page).fill("Ada");
+    await expect(nameField(page)).not.toHaveAttribute("aria-invalid", "true");
+  });
+
+  test("control: trade is required, and takes the trade you choose", async ({ page }) => {
+    await open(page);
+    await nameField(page).fill("Ada");
+    await oath(page).click();
+    await signButton(page).click();
+    await expect(tradeField(page)).toHaveAttribute("aria-invalid", "true");
+    await chooseTrade(page, "Cabin boy or girl");
+    await expect(tradeField(page)).toHaveText(/Cabin boy or girl/);
+    await expect(tradeField(page)).not.toHaveAttribute("aria-invalid", "true");
+  });
+
+  test("control: oath must be ticked before you can sign", async ({ page }) => {
+    await open(page);
+    await nameField(page).fill("Ada");
+    await chooseTrade(page, "Cook");
+    await signButton(page).click();
+    await expect(oath(page)).toHaveAttribute("aria-invalid", "true");
+    await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length));
+    await oath(page).click();
+    await expect(oath(page)).toBeChecked();
+    await signButton(page).click();
+    await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length + 1));
+  });
+
+  test("control: sign puts you on the crew list with your trade, and the crew says welcome", async ({ page }) => {
+    await open(page);
+    await expect(signCrew(page)).toContainText(SIGN.opening.text);
+    await signOn(page, "Ada Lovelace");
+    const roster = page.getByRole("list", { name: ARTICLES.roster });
+    await expect(roster.getByText("Ada Lovelace")).toBeVisible();
+    await expect(roster.getByText(ARTICLES.you, { exact: true })).toBeVisible();
+    await expect(roster.getByText("Engineer", { exact: true })).toBeVisible();
+    await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length + 1));
+    await expect(signCrew(page)).toContainText(SIGN.welcome("Ada Lovelace", "Engineer").text);
+    await expect(page.getByText(ARTICLES.signed("Ada Lovelace"))).toBeVisible();
+    // The articles are blank again for the next hand.
+    await expect(nameField(page)).toHaveValue("");
+  });
+
+  test("control: leave takes you off the crew list", async ({ page }) => {
+    await open(page);
+    await signOn(page, "Ada");
+    await articles(page).getByRole("button", { name: ARTICLES.leave }).click();
+    await expect(page.getByRole("list", { name: ARTICLES.roster }).getByText("Ada", { exact: true })).toHaveCount(0);
+    await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length));
+    await expect(signCrew(page)).toContainText(SIGN.left.text);
+  });
+});
+
+test("every operable element in Chapter I is one of its listed controls, in page order", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page);
+  await signOn(page, "Ada");
+  const found = await page.locator("#chapter-one").evaluate((chapter) => {
+    const operable = [...chapter.querySelectorAll<HTMLElement>("a[href], button, input:not([type='hidden']), select, textarea, [tabindex]:not([tabindex='-1']), [role='checkbox'], [role='combobox']")].filter((element) => element.checkVisibility());
+    const loose = operable.filter((element) => !element.closest("[data-chapter-control]")).map((element) => element.outerHTML.slice(0, 120));
+    const order = [...chapter.querySelectorAll("[data-chapter-control]")].map((element) => element.getAttribute("data-chapter-control"));
+    return { loose, order };
+  });
+  expect(found.loose).toEqual([]);
+  expect(found.order).toEqual([...CHAPTER_ONE_CONTROLS]);
+});
+
+test("Chapter I is in the server HTML, and its code loads only as it nears the screen", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const chunks: string[] = [];
+  page.on("request", (request) => {
+    if (/\/assets\/chapter-one-[\w-]+\.js$/.test(request.url())) chunks.push(request.url());
+  });
+  await page.goto("voyage/");
+  await expect(page.locator("html[data-site-ready]")).toBeAttached();
+  await page.waitForLoadState("networkidle");
+  // Readable already: the heading, the plan and the form are the server's.
+  await expect(page.getByRole("heading", { name: CHAPTER_ONE.title })).toBeAttached();
+  await expect(page.locator(".site-blueprint [data-part='hull']")).toBeAttached();
+  await expect(page.locator("#chapter-one")).not.toHaveAttribute("data-chapter-ready", "");
+  expect(chunks).toEqual([]);
+  await page.locator("#chapter-one").scrollIntoViewIfNeeded();
+  await expect(page.locator("#chapter-one[data-chapter-ready]")).toBeAttached();
+  expect(chunks).toHaveLength(1);
+});
+
+test("X-ray outlines Chapter I's HX components", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page);
+  await page.getByRole("switch", { name: "X-ray" }).click();
+  const tags = page.locator("[data-ouro-inspector-outline] [data-ouro-part='tag']");
+  await expect.poll(() => tags.count()).toBeGreaterThan(10);
+  const names = new Set(await tags.allTextContents());
+  for (const item of ["reorderable", "checklist", "progress", "form", "text-field", "select", "checkbox", "item-group", "avatar", "badge"]) expect(names, item).toContain(item);
+});
+
+test("on a phone, the shipyard and the articles work by touch, and nothing overflows", async ({ browser, browserName }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: browserName === "chromium", reducedMotion: "reduce", baseURL: test.info().project.use.baseURL! });
+  const page = await context.newPage();
+  const errors = diagnostics(page);
+  await open(page);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  for (const part of PARTS) await job(page, part.id).tap();
+  await expect(plan(page)).toHaveAttribute("data-built", PARTS.map((part) => part.id).join(" "));
+  await launchButton(page).tap();
+  await expect(plan(page)).toHaveAttribute("data-launched", "");
+  await nameField(page).tap();
+  await nameField(page).fill("Ada");
+  await tradeField(page).tap();
+  await page.getByRole("option", { name: "Cook" }).tap();
+  await oath(page).tap();
+  await signButton(page).tap();
+  await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length + 1));
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  expect(errors).toEqual([]);
+  await context.close();
+});
+
+test("under reduced motion, building, launching and signing change only colour and opacity", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page);
+  await page.evaluate(() => {
+    const moved: string[] = ((window as unknown as { __moved: string[] }).__moved = []);
+    const allowed = /^(opacity|color|background-color|border-.*color|outline-color|fill|stroke|text-decoration-color|box-shadow|stop-color|visibility|text-decoration-line|all)$/;
+    const chapter = document.getElementById("chapter-one")!;
+    document.addEventListener("transitionstart", (event) => {
+      if (chapter.contains(event.target as Node) && !allowed.test(event.propertyName)) moved.push(`${event.propertyName} on ${(event.target as Element).tagName}`);
+    });
+    document.addEventListener("animationstart", (event) => {
+      if (!chapter.contains(event.target as Node)) return;
+      const animation = (event.target as Element).getAnimations().find((each) => (each as CSSAnimation).animationName === event.animationName);
+      const keys = (animation?.effect as KeyframeEffect | undefined)?.getKeyframes().flatMap((frame) => Object.keys(frame)) ?? [];
+      for (const key of keys) if (!["offset", "easing", "composite", "computedOffset", "opacity", "color", "backgroundColor", "fill", "stroke", "strokeDashoffset"].includes(key)) moved.push(`${event.animationName}:${key}`);
+    });
+  });
+  await buildAll(page);
+  await launchButton(page).click();
+  await signOn(page, "Ada");
+  await page.waitForTimeout(600);
+  expect(await page.evaluate(() => (window as unknown as { __moved: string[] }).__moved)).toEqual([]);
+});
+
+test("without reduced motion, each part is lowered into place and the launched ship settles into the water", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page);
+  const offset = (part: string) => plan(page).locator(`[data-part='${part}']`).evaluate((group) => getComputedStyle(group).translate);
+  expect(await offset("hull")).toBe("0px -6px");
+  await job(page, "hull").click();
+  await expect.poll(() => offset("hull")).toBe("none");
+  for (const part of PARTS.slice(1)) await job(page, part.id).click();
+  await launchButton(page).click();
+  await expect.poll(() => offset("hull")).toBe("0px 10px");
+});

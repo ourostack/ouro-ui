@@ -18,8 +18,10 @@ import { fileURLToPath } from "node:url";
 const repo = join(dirname(fileURLToPath(import.meta.url)), "../..");
 export const artDir = join(repo, "site/src/nautilus/art");
 
-/** The hero's art budget: every drawing together, gzipped (site-design.md, Budgets). */
+/** The hero's art budget: its drawings together, gzipped (site-design.md, Budgets). */
 export const ART_BUDGET = 35 * 1024;
+/** Each chapter's art budget: the drawings whose entry names that chapter, gzipped. */
+export const CHAPTER_ART_BUDGET = 50 * 1024;
 
 export const LICENCES = ["repository", "public-domain"] as const;
 const ILLUSTRATORS = ["Alphonse de Neuville", "Édouard Riou"];
@@ -41,6 +43,8 @@ export interface ArtEntry {
   sha256: string;
   modifications: string;
   shape?: ShapeNote[];
+  /** The chapter that draws it ("I"); the hero's drawings name none. */
+  chapter?: string;
 }
 
 export interface ArtSet {
@@ -106,8 +110,14 @@ export function checkArt({ manifest, files }: ArtSet): string[] {
     }
   }
 
-  const total = gzipSync(Buffer.concat([...files.values()])).length;
+  const chapterOf = new Map(manifest.art.map((entry) => [entry.file, entry.chapter]));
+  const group = (chapter: string | undefined) => gzipSync(Buffer.concat([...files].filter(([name]) => chapterOf.get(name) === chapter).map(([, bytes]) => bytes))).length;
+  const total = group(undefined);
   if (total > ART_BUDGET) errors.push(`The drawings are ${total} bytes gzipped, over the hero's ${ART_BUDGET} byte gzip budget`);
+  for (const chapter of new Set(manifest.art.flatMap((entry) => (entry.chapter ? [entry.chapter] : [])))) {
+    const size = group(chapter);
+    if (size > CHAPTER_ART_BUDGET) errors.push(`Chapter ${chapter}'s drawings are ${size} bytes gzipped, over its ${CHAPTER_ART_BUDGET} byte gzip budget`);
+  }
   return errors;
 }
 

@@ -6,10 +6,10 @@
       "title": "The Nautilus, in profile",
       "creator": "Ouro HX contributors",
       "source": "original-svg",
-      "published": "2026-10-18",
+      "published": "2026-10-18, revised 2026-10-20",
       "licence": "repository",
       "sha256": "9ad33c7fe92ab70d6887158f9571cc5056c00fb83185eaa582284a96dcd717a8",
-      "modifications": "None: drawn for this site from Verne's text alone, not after any film or later design: no conning tower, sail or periscope, no fins, no riveted fish tail, no great eye-shaped window. Hull length to beam eight to one (232 by 26 feet), a spindle tapering to both ends; a long steel ram spur at the bow; the platform almost flush on the back; the lantern standing alone on it and the steersman's low glass just forward of it. Left out for clarity at this size: the long-boat, the platform's rail and the diving planes. Colours come from the theme (stage.css).",
+      "modifications": "None: drawn for this site from Verne's text alone, not after any film or later design: no conning tower, sail or periscope, no fins, no riveted fish tail, no great eye-shaped window. Hull length to beam eight to one (232 by 26 feet), a spindle tapering to both ends; a long steel ram spur at the bow; a low platform on the back; on it, fore and aft, two cages of medium height with inclined sides and lenticular glasses, the steersman's forward and the lantern's aft (standing a little taller, so the beam clears the other). Shaded as lit steel: a bright crown, the belly in shadow, the sea's light along the keel. Left out for clarity at this size: the long-boat, the platform's rail and the diving planes. Colours come from the theme (stage.css). Revised 2026-10-20 for S2: the cages drawn as Verne describes them, larger, so they read on a phone.",
       "shape": [
         {
           "feature": "hull",
@@ -84,6 +84,80 @@
           "chapter": "Part One, Chapter XIII, “The Black River” (Project Gutenberg #164)"
         }
       ]
+    },
+    {
+      "file": "nautilus-blueprint.svg",
+      "title": "The Nautilus, a shipwright's plan",
+      "creator": "Ouro HX contributors",
+      "source": "original-svg",
+      "published": "2026-10-20",
+      "licence": "repository",
+      "sha256": "c8f7e6f6c78f254ff73f139c48f4424c722a0d6adac72ecd59a320b195fc9528",
+      "chapter": "I",
+      "modifications": "None: drawn for this site from Verne's text alone, to the same proportions as nautilus.svg and its construction sketch (nautilus-sketch.svg). A side plan in five parts the shipyard draws as each job is ticked: the double hull (two hulls joined by T-shaped irons, no rivets), the saloon's two oblong crystal panels bound in copper and the steersman's cage with lenticular glass, the engine room aft with its electric cells and magnets on the screw's axle, the lantern's cage aft on the platform, and the organ in the saloon. No tower, fins or eye-shaped window. Colours come from the theme (chapters.css).",
+      "shape": [
+        {
+          "feature": "hull",
+          "quote": "It is an elongated cylinder with conical ends. It is very like a cigar in shape",
+          "chapter": "Part One, Chapter XII, “Some Figures” (Project Gutenberg #164)"
+        },
+        {
+          "feature": "proportions",
+          "quote": "The length of this cylinder, from stem to stern, is exactly 232 feet, and its maximum breadth is twenty-six feet.",
+          "chapter": "Part One, Chapter XII, “Some Figures” (Project Gutenberg #164)"
+        },
+        {
+          "feature": "double hull",
+          "quote": "The Nautilus is composed of two hulls, one inside, the other outside, joined by T-shaped irons, which render it very strong. Indeed, owing to this cellular arrangement it resists like a block, as if it were solid. Its sides cannot yield; it coheres spontaneously, and not by the closeness of its rivets",
+          "chapter": "Part One, Chapter XII, “Some Figures” (Project Gutenberg #164)"
+        },
+        {
+          "feature": "saloon windows",
+          "quote": "Suddenly light broke at each side of the saloon, through two oblong openings. The liquid mass appeared vividly lit up by the electric gleam. Two crystal plates separated us from the sea. At first I trembled at the thought that this frail partition might break, but strong bands of copper bound them",
+          "chapter": "Part One, Chapter XIII, “The Black River” (Project Gutenberg #164)"
+        },
+        {
+          "feature": "cages and lantern",
+          "quote": "Fore and aft rose two cages of medium height with inclined sides, and partly closed by thick lenticular glasses; one destined for the steersman who directed the Nautilus, the other containing a brilliant lantern to give light on the road.",
+          "chapter": "Part One, Chapter XIII, “The Black River” (Project Gutenberg #164)"
+        },
+        {
+          "feature": "engine",
+          "quote": "It was divided into two parts; the first contained the materials for producing electricity, and the second the machinery that connected it with the screw.",
+          "chapter": "Part One, Chapter XI, “All by Electricity” (Project Gutenberg #164)"
+        },
+        {
+          "feature": "magnets and screw",
+          "quote": "The electricity produced passes forward, where it works, by electro-magnets of great size, on a system of levers and cog-wheels that transmit the movement to the axle of the screw.",
+          "chapter": "Part One, Chapter XI, “All by Electricity” (Project Gutenberg #164)"
+        },
+        {
+          "feature": "organ",
+          "quote": "scattered over a large model piano-organ which occupied one of the panels of the drawing-room.",
+          "chapter": "Part One, Chapter X, “The Man of the Seas” (Project Gutenberg #164)"
+        },
+        {
+          "feature": "spur",
+          "quote": "It is armed with a steel spur as good as Master Land’s harpoon, I imagine.",
+          "chapter": "Part Two, Chapter XII, “Cachalots and Whales” (Project Gutenberg #164)"
+        },
+        {
+          "feature": "the yard",
+          "quote": "Professor, I had set up my workshops upon a desert island in the ocean. There my workmen, that is to say, the brave men that I instructed and educated, and myself have put together our Nautilus.",
+          "chapter": "Part One, Chapter XII, “Some Figures” (Project Gutenberg #164)"
+        }
+      ]
+    },
+    {
+      "file": "dividers.svg",
+      "title": "Dividers on a rolled plan",
+      "creator": "Ouro HX contributors",
+      "source": "original-svg",
+      "published": "2026-10-20",
+      "licence": "repository",
+      "sha256": "ce2210f374e92820abf92c5acda88559711b86f8a1303927fca27f97dc2297d3",
+      "chapter": "I",
+      "modifications": "None: drawn for this site as Chapter I's vignette, a shipwright's dividers on a half-rolled plan. Colour comes from the theme."
     },
     {
       "file": "sardine.svg",

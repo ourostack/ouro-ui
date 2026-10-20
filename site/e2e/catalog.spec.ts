@@ -273,3 +273,30 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
   await info.attach("initial-js-by-page", { body: JSON.stringify(report, null, 2), contentType: "application/json" });
   expect(errors).toEqual([]);
 });
+
+/** What a lazy island adds to its page when it loads, gzip bytes (site-design.md, Budgets: each chapter ≤ 60 KB). */
+const ISLAND_CEILING = 60 * 1024;
+
+test("Chapter I is an island: none of it is in the voyage's first load, and what it adds stays within 60 KB gzip without Recharts", () => {
+  const manifest = buildManifest();
+  const moduleMap = JSON.parse(readFileSync(resolve("site/dist/.vite/chunk-modules.json"), "utf8")) as Record<string, string[]>;
+  const voyage = new Set(initialFiles(manifest, "voyage"));
+  const island = new Set<string>();
+  const visit = (key: string) => {
+    const item = manifest[key];
+    if (!item) throw new Error(`Missing build manifest entry: ${key}`);
+    if (island.has(item.file)) return;
+    island.add(item.file);
+    for (const dependency of item.imports ?? []) visit(dependency);
+  };
+  visit("src/voyage/chapters/chapter-one.tsx");
+  const own = manifest["src/voyage/chapters/chapter-one.tsx"]!.file;
+  expect(voyage.has(own), "the chapter's own chunk is not in the voyage's first load").toBe(false);
+  expect([...voyage].flatMap((file) => moduleMap[file] ?? []).filter((module) => module.startsWith("site/src/voyage/chapters/chapter-one"))).toEqual([]);
+  const added = [...island].filter((file) => !voyage.has(file));
+  const modules = added.flatMap((file) => moduleMap[file] ?? []);
+  expect(modules.some((module) => module.startsWith("node_modules/recharts/"))).toBe(false);
+  const gzip = added.reduce((sum, file) => sum + gzipSync(readFileSync(resolve("site/dist", file))).byteLength, 0);
+  test.info().annotations.push({ type: "chapter-one", description: `${gzip} bytes gzip over ${added.length} files` });
+  expect(gzip, "Chapter I's island, gzip bytes").toBeLessThanOrEqual(ISLAND_CEILING);
+});
