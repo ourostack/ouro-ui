@@ -12,7 +12,7 @@ export type { DateFormat } from "@/registry/ouro/components/ouro/local-date/loca
 export interface LocalDateOwnProps {
   /**
    * The instant: a `Date`, an ISO string or a timestamp in milliseconds. A calendar date with no
-   * time ("2026-06-01", or "2026-06" with `format="month"`) is that day for every reader and is
+   * time (`"2026-06-01"`, or `"2026-06"` with `format="month"`) is that day for every reader and is
    * never moved into a time zone.
    */
   value: Date | string | number;
@@ -41,7 +41,7 @@ export type LocalDateProps = Omit<TimeHTMLAttributes<HTMLTimeElement>, keyof Loc
  * instant in UTC, hydration repeats it so the markup matches, and the browser then shows the
  * local one. A date then changes only when the instant falls near midnight, but a time
  * (`time`, `datetime`) changes for every reader outside UTC, so the server's text names the
- * zone ("9:30 AM UTC") until the browser takes over. A calendar date with no time ("2026-06-01")
+ * zone ("9:30 AM UTC") until the browser takes over. A calendar date with no time (`"2026-06-01"`)
  * is the same day for everyone: it is written the same on the server and in the browser, and
  * the `<time>` carries that date.
  *

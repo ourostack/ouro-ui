@@ -14,7 +14,7 @@ export function toDate(value: Date | string | number): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-/** A calendar date with no time of day: "2026-06-01", or "2026-06" for a month. It names the same day everywhere. */
+/** A calendar date with no time of day: `"2026-06-01"`, or `"2026-06"` for a month. It names the same day everywhere. */
 const calendarDate = /^\d{4}-\d{2}(-\d{2})?$/;
 
 /** What {@link LocalDate} writes: the text, and the `<time>` element's machine-readable `dateTime`. */
@@ -25,7 +25,7 @@ export interface DateText {
 
 /**
  * The text for `value` in `timeZone` (the reader's when undefined), or null when it is not a
- * date. An instant moves into the time zone. A calendar date ("2026-06-01", "2026-06") parses
+ * date. An instant moves into the time zone. A calendar date (`"2026-06-01"`, `"2026-06"`) parses
  * as UTC midnight, so it is always written in UTC and never moves: the 1st stays the 1st west
  * of UTC. `labelZone` adds the time zone's name after a time, for the server's UTC text.
  */
