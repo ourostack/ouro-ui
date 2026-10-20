@@ -26,7 +26,7 @@ export function headTags(route: Route, canonical: boolean): string[] {
     `<meta name="description" content="${description}" />`,
     route.noindex ? `<meta name="robots" content="noindex, nofollow" />` : "",
     canonical ? `<link rel="canonical" href="${SITE}${route.path}" />` : "",
-    `<link rel="icon" href="/ouro-ui/favicon.svg" type="image/svg+xml" />`,
+    `<link rel="icon" href="/ouro-ui/brand/ouro-hx.svg" type="image/svg+xml" />`,
     `<meta property="og:type" content="website" />`,
     `<meta property="og:site_name" content="Ouro HX" />`,
     `<meta property="og:title" content="${title}" />`,

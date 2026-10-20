@@ -17,7 +17,7 @@ import { RadioGroup } from "@/registry/ouro/components/ouro/radio-group/radio-gr
 import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-control/segmented-control";
 import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
 import { useCommandShortcut } from "@/registry/ouro/lib/ouro/use-command-shortcut";
-import { OuroMark } from "../components/icons";
+import { HxLogo } from "../components/brand";
 import { GITHUB, href } from "../paths";
 import type { Mode, PresetName } from "../themes/prepaint";
 import { ByPreset, presetList, Swatch } from "./presets";
@@ -156,7 +156,7 @@ export function VoyageHeader({ xray, onXrayChange }: { xray: boolean; onXrayChan
       className="sticky top-0 z-40 ps-[max(1rem,calc(50%-600px))] pe-[max(1rem,calc(50%-600px))] sm:ps-[max(2rem,calc(50%-600px))] sm:pe-[max(2rem,calc(50%-600px))]"
       brand={
         <a href={href("/voyage/")} className="site-brand">
-          <OuroMark className="size-6 text-primary" />
+          <HxLogo size={32} className="size-8" />
           Ouro HX
         </a>
       }
