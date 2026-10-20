@@ -876,7 +876,7 @@
 }
 .stage-console {
   display: grid;
-  gap: 1.625rem;
+  gap: 1.5rem;
   padding: 1rem 1.5rem 1.25rem;
 }
 .stage-group {
@@ -955,7 +955,7 @@
   justify-content: space-between;
   gap: 1rem;
   width: 100%;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 .stage-manifold {
   --glass: 2.75rem;

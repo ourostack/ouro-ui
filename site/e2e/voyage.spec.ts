@@ -129,6 +129,8 @@ test("keeps every control's boundary under forced colours", async ({ page }) => 
   await page.emulateMedia({ forcedColors: "active" });
   await page.setViewportSize({ width: 1440, height: 900 });
   await open(page);
+  // The ship's log shows its newest line only once something happens, so make something happen.
+  await page.getByRole("switch", { name: "Forward tank", exact: true }).click();
   const bare = await page.evaluate(() =>
     [...document.querySelectorAll<HTMLElement>("main [data-ouro-control], header [data-ouro-control]")]
       .filter((element) => element.checkVisibility() && element.getBoundingClientRect().width > 1)
