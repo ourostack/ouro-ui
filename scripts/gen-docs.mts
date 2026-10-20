@@ -7,7 +7,8 @@
 //   manifests and lib/ouro;
 // - site/src/docs/catalog.json, the site's page per registry item, and site/src/docs/pages.json,
 //   its page per other documented export (Radio, OuroProvider) and per guide (docs/guides/*.md,
-//   written by hand), so every docs page has an address: docs/<kebab-case name>;
+//   written by hand), so every docs page has an address: docs/<kebab-case name>; each with its
+//   summary, so the docs index lists the pages without loading their Markdown;
 // - README.md "Upgrading from v0.1.0", between <!-- upgrade:start --> and <!-- upgrade:end -->,
 //   copied from UPGRADING.md with its {{latestRelease}} placeholder filled in;
 // - the release tag in the install commands of README.md, site/public/llms.txt and
@@ -24,6 +25,7 @@ import { fillPlaceholder, latestRelease, syncedFiles, withRelease } from "./late
 import { noteBody } from "./upgrade-note.mjs";
 import { APP_SETUP, groupOrder } from "./catalog-groups.mts";
 import { componentsDir, pascal, readComponents } from "./components.mts";
+import { summary } from "./docs-summary.mts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -49,6 +51,8 @@ const componentFiles = [
   ...components.map((entry) => `${componentsDir}${entry.folder}/${entry.stem}.tsx`),
   "registry/ouro/lib/ouro/ouro-provider.tsx",
   "registry/ouro/lib/ouro/toast.ts",
+  "registry/ouro/lib/ouro/color-scheme.ts",
+  "registry/ouro/lib/ouro/color-scheme-script.ts",
   "registry/ouro/lib/ouro/use-timer.ts",
   "registry/ouro/lib/ouro/feedback.ts",
 ];
@@ -578,6 +582,7 @@ const siteItems = components
     title: entry.title,
     group: groupOf.get(entry.title)!,
     source: `${componentsDir}${entry.folder}/${entry.stem}.tsx`,
+    summary: summary(outputs.get(`docs/${entry.title}.md`)!),
     ...(partFiles[entry.title] ? { parts: entry.title } : {}),
     ...(pageFunctions(entry.name).length > 0 ? { functions: pageFunctions(entry.name) } : {}),
   }))
@@ -592,7 +597,7 @@ const kebab = (name: string) => name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLo
 const itemTitles = new Set(siteItems.map((item) => item.title));
 const exportPages = pages
   .filter((page) => !itemTitles.has(page.name))
-  .map((page) => ({ name: kebab(page.name), title: page.name, kind: "export" as const, group: page.group, markdown: `docs/${page.name}.md` }));
+  .map((page) => ({ name: kebab(page.name), title: page.name, kind: "export" as const, group: page.group, markdown: `docs/${page.name}.md`, summary: summary(outputs.get(`docs/${page.name}.md`)!.replace(/^# .*$/m, "")) }));
 const guidesDir = join(root, "docs/guides");
 const guidePages = (existsSync(guidesDir) ? readdirSync(guidesDir) : [])
   .filter((file) => file.endsWith(".md"))
@@ -601,7 +606,7 @@ const guidePages = (existsSync(guidesDir) ? readdirSync(guidesDir) : [])
     const text = readFileSync(join(guidesDir, file), "utf8");
     const title = /^# (.+)\n\n(.+)\n/.exec(text);
     if (!title) throw new Error(`docs/guides/${file} must start with "# Title", a blank line and a one-paragraph summary.`);
-    return { name: file.slice(0, -3), title: title[1]!, kind: "guide" as const, group: "Guides", markdown: `docs/guides/${file}` };
+    return { name: file.slice(0, -3), title: title[1]!, kind: "guide" as const, group: "Guides", markdown: `docs/guides/${file}`, summary: summary(text.replace(/^# .*$/m, "")) };
   });
 const sitePages = [...guidePages, ...exportPages];
 const taken = new Map<string, string>(siteItems.map((item) => [item.name, `the ${item.name} item`]));

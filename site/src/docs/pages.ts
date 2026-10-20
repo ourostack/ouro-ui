@@ -1,4 +1,5 @@
 import catalog from "./catalog.json";
+import { markdown } from "./content";
 import { installedPaths } from "./items";
 import pages from "./pages.json";
 
@@ -16,18 +17,22 @@ export interface DocsPage {
   kind: "guide" | "export";
   /** The catalog group of an export, or "Guides". */
   group: string;
-  /** The Markdown file, from the repository root. */
+  /** The Markdown file, from the repository root (`pageMarkdown`, once the docs route has loaded it). */
   file: string;
-  markdown: string;
+  /** The first sentence of its summary paragraph, for the catalog (written by `pnpm run docs`). */
+  summary: string;
 }
 
-const files = import.meta.glob<string>(["../../../docs/*.md", "../../../docs/guides/*.md"], { query: "?raw", import: "default", eager: true });
+export const docsPages: DocsPage[] = (pages as Array<Omit<DocsPage, "file"> & { markdown: string }>).map(({ markdown: file, ...page }) => ({
+  ...page,
+  kind: page.kind as DocsPage["kind"],
+  file,
+}));
 
-export const docsPages: DocsPage[] = (pages as Array<Omit<DocsPage, "markdown" | "file"> & { markdown: string }>).map((page) => {
-  const markdown = files[`../../../${page.markdown}`];
-  if (markdown === undefined) throw new Error(`${page.markdown} is missing; run pnpm run docs.`);
-  return { ...page, kind: page.kind as DocsPage["kind"], file: page.markdown, markdown };
-});
+/** A page's Markdown, once the docs route has loaded its file. */
+export function pageMarkdown(page: DocsPage): string {
+  return markdown(page.file);
+}
 
 export const guidePages = docsPages.filter((page) => page.kind === "guide");
 export const exportPages = docsPages.filter((page) => page.kind === "export");

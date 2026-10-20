@@ -365,6 +365,86 @@
     ]
   },
   {
+    "item": "tab-bar",
+    "stem": "tab-bar",
+    "state": "data-closed",
+    "kind": "motion",
+    "part": "bar",
+    "properties": [
+      "opacity",
+      "translate"
+    ],
+    "reduced": [
+      "opacity"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/tab-bar/tab-bar.touch.test.tsx::TabBar and the on-screen keyboard > slides away while the keyboard is up and comes back when it goes; with reduced motion it only fades"
+    ]
+  },
+  {
+    "item": "tab-bar",
+    "stem": "tab-bar",
+    "state": "data-open",
+    "kind": "motion",
+    "part": "bar",
+    "properties": [
+      "opacity",
+      "translate"
+    ],
+    "reduced": [
+      "opacity"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/tab-bar/tab-bar.touch.test.tsx::TabBar and the on-screen keyboard > slides away while the keyboard is up and comes back when it goes; with reduced motion it only fades"
+    ]
+  },
+  {
+    "item": "route-progress",
+    "stem": "route-progress",
+    "state": "data-open",
+    "kind": "motion",
+    "part": "bar",
+    "properties": [
+      "opacity"
+    ],
+    "reduced": [
+      "opacity"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/route-progress/route-progress.test.tsx::RouteProgress > fades in and grows when it shows, fills to the end and fades out when the navigation ends; with reduced motion it only fades"
+    ]
+  },
+  {
+    "item": "route-progress",
+    "stem": "route-progress",
+    "state": "data-open",
+    "kind": "motion",
+    "part": "indicator",
+    "properties": [
+      "scale"
+    ],
+    "reduced": [],
+    "tests": [
+      "registry/ouro/components/ouro/route-progress/route-progress.test.tsx::RouteProgress > fades in and grows when it shows, fills to the end and fades out when the navigation ends; with reduced motion it only fades"
+    ]
+  },
+  {
+    "item": "route-progress",
+    "stem": "route-progress",
+    "state": "data-closed",
+    "kind": "motion",
+    "part": "bar",
+    "properties": [
+      "opacity"
+    ],
+    "reduced": [
+      "opacity"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/route-progress/route-progress.test.tsx::RouteProgress > fades in and grows when it shows, fills to the end and fades out when the navigation ends; with reduced motion it only fades"
+    ]
+  },
+  {
     "item": "celebrate",
     "stem": "celebrate",
     "state": "data-open",

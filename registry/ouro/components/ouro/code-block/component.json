@@ -1,0 +1,10 @@
+{
+  "order": 2210,
+  "components": ["code-block"],
+  "controls": {
+    "code-block": [
+      {"part": "code", "role": "generic", "portal": false},
+      {"part": "copy", "role": "button", "portal": false}
+    ]
+  }
+}
