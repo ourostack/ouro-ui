@@ -193,12 +193,13 @@ export function SyncStatus(props: SyncStatusProps): JSX.Element {
   // is still on it then; once the commit is done, focus moves to the line instead of the page.
   const line = useRef<HTMLParagraphElement>(null);
   const retryHadFocus = useRef(false);
-  const retryRef = useCallback((node: HTMLButtonElement | null) => {
-    if (!node) return;
-    return () => {
+  // A ref that returns a cleanup is only ever called with the element.
+  const retryRef = useCallback(
+    (node: HTMLButtonElement | null) => () => {
       retryHadFocus.current = node === document.activeElement;
-    };
-  }, []);
+    },
+    [],
+  );
   useLayoutEffect(() => {
     if (!retryHadFocus.current) return;
     retryHadFocus.current = false;
