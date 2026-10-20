@@ -114,6 +114,187 @@
     font-size: 0.8125rem;
     font-feature-settings: normal;
   }
+
+  /* The hero: copy on the left, the exhibit on the right; stacked in reading order on a phone. */
+  .site-hero {
+    padding-block: 1.25rem 4rem;
+  }
+  .site-hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.75rem;
+  }
+  .site-hero-copy {
+    min-width: 0;
+  }
+  .site-hero-eyebrow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--muted-foreground);
+  }
+  .site-hero-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .site-hero-status::before {
+    /* A builder's marker: the library is under construction. */
+    content: "";
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    background: var(--chart-3);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--chart-3) 25%, transparent);
+  }
+  .site-hero-title {
+    max-width: 18ch;
+    font-size: clamp(2.125rem, 4.6vw, 3.75rem);
+    line-height: 1.04;
+  }
+  .site-hero-line {
+    display: block;
+  }
+  .site-hero-line-second {
+    color: var(--muted-foreground);
+  }
+  .site-hero-brand {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.625rem;
+    border: 1px solid color-mix(in oklab, var(--primary) 30%, var(--border));
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--primary) 8%, var(--background));
+    color: var(--foreground);
+    font-weight: 600;
+  }
+  /*
+   * The install command, whole at every width. Where the line fits, prompt, command and Copy sit in
+   * one row; where it doesn't, the command breaks after "add": the short first line beside Copy,
+   * the address under both. It never scrolls and never fades out.
+   */
+  .site-install-block {
+    display: grid;
+    gap: 0.5rem;
+    container-type: inline-size;
+  }
+  .site-install {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 0.5rem;
+    min-width: 0;
+    padding: 0.375rem 0.375rem 0.375rem 0.875rem;
+    border: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
+    border-radius: calc(var(--radius) * 1.4);
+    background: var(--card);
+    box-shadow: var(--shadow-xs);
+  }
+  .site-install-prompt {
+    grid-area: 1 / 1;
+    color: var(--muted-foreground);
+    user-select: none;
+  }
+  .site-install-command {
+    grid-area: 1 / 2;
+    min-width: 0;
+    padding-block: 0.5rem;
+    line-height: 1.5;
+    white-space: nowrap;
+    color: var(--foreground);
+  }
+  .site-install-address {
+    color: var(--primary);
+    font-weight: 500;
+  }
+  .site-install-copy {
+    grid-area: 1 / 3;
+  }
+  @container (max-width: 34.99rem) {
+    .site-install {
+      align-items: start;
+    }
+    .site-install-prompt,
+    .site-install-run {
+      display: flex;
+      align-items: center;
+      min-height: 2.5rem;
+    }
+    /* The command takes Copy's column too: its first line is short, and the address runs under Copy. */
+    .site-install-command {
+      grid-column: 2 / 4;
+      padding-block: 0 0.375rem;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+    .site-install-address {
+      display: block;
+    }
+    .site-install-copy {
+      align-self: start;
+    }
+  }
+  .site-install-caption {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+  }
+  .site-proof {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr));
+    gap: 0.5rem 1.25rem;
+    max-width: 36rem;
+    margin: 0;
+    padding: 1.25rem 0 0;
+    border-top: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
+    list-style: none;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    color: var(--muted-foreground);
+  }
+  .site-proof li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .site-proof-check {
+    flex-shrink: 0;
+    width: 1rem;
+    height: 1rem;
+    color: var(--primary);
+  }
+  @media (min-width: 64rem) {
+    .site-hero {
+      padding-block: 1rem 5rem;
+    }
+    .site-hero-grid {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      grid-template-rows: auto 1fr;
+      column-gap: 3.5rem;
+      row-gap: 2rem;
+    }
+    .site-hero-copy {
+      grid-column: 1;
+      grid-row: 1;
+      padding-top: 2.5rem;
+    }
+    .site-hero-stage {
+      grid-column: 2;
+      grid-row: 1 / span 2;
+    }
+    .site-proof {
+      grid-column: 1;
+      grid-row: 2;
+      align-self: end;
+      /* Level with the foot of the console's last row. */
+      margin-bottom: 1.125rem;
+    }
+  }
 }
 
 /* Display faces differ in how tight they set. */
@@ -151,6 +332,123 @@ html[data-theme="cookbook"] [data-site-when="cookbook"],
 html:not([data-theme]) [data-site-when="sleek"] {
   display: contents;
 }
+/*
+ * The preset specimens: six little cards of each preset's own UI, laid like paint chips on a
+ * bench, each a touch askew. Each card's corners, shadow and colours are its preset's own.
+ */
+.site-specimen-face {
+  display: grid;
+  gap: 0.5rem;
+  width: 100%;
+  text-align: start;
+}
+.site-specimen {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  align-content: center;
+  gap: 0.4375rem;
+  height: 5rem;
+  padding: 0.75rem;
+  border: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
+  border-radius: calc(var(--radius) * 1.4);
+  background: var(--card);
+  box-shadow: var(--shadow-md);
+  color: var(--foreground);
+  rotate: -1.25deg;
+}
+.site-specimens > :nth-child(3n + 2) .site-specimen {
+  rotate: 0.75deg;
+}
+.site-specimens > :nth-child(3n) .site-specimen {
+  rotate: -0.25deg;
+}
+.site-specimen::before {
+  /* The preset's primary, as the strip along a paint chip's top. */
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 0.3125rem;
+  background: var(--primary);
+}
+.site-specimen-ink {
+  display: block;
+  width: 72%;
+  height: 0.375rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--foreground) 75%, transparent);
+}
+.site-specimen-ink-short {
+  width: 46%;
+  background: color-mix(in oklab, var(--muted-foreground) 55%, transparent);
+}
+.site-specimen-row {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.125rem;
+}
+.site-specimen-pill {
+  width: 2.5rem;
+  height: 1rem;
+  border-radius: var(--radius);
+  background: var(--primary);
+}
+.site-specimen-switch {
+  position: relative;
+  width: 1.5rem;
+  height: 0.875rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--primary) 30%, var(--muted));
+}
+.site-specimen-switch::after {
+  content: "";
+  position: absolute;
+  inset: 0.125rem auto 0.125rem 0.125rem;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: var(--shadow-xs);
+}
+.site-specimen-dot {
+  width: 0.875rem;
+  height: 0.875rem;
+  margin-inline-start: auto;
+  border-radius: 999px;
+  background: var(--chart-3);
+}
+.site-specimen-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-inline: 0.25rem;
+  font-weight: 500;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .site-specimen {
+    transition:
+      rotate var(--ouro-duration-base, 200ms) var(--ouro-ease-out, ease),
+      translate var(--ouro-duration-base, 200ms) var(--ouro-ease-out, ease),
+      box-shadow var(--ouro-duration-base, 200ms) ease;
+  }
+  [data-site-preset]:hover .site-specimen {
+    rotate: 0deg;
+    translate: 0 -2px;
+    box-shadow: var(--shadow-lg);
+  }
+}
+/* The chosen one lies flat, pressed into the bench. */
+html[data-theme="sleek"] [data-site-preset="sleek"] .site-specimen,
+html[data-theme="abyss"] [data-site-preset="abyss"] .site-specimen,
+html[data-theme="brass"] [data-site-preset="brass"] .site-specimen,
+html[data-theme="chart"] [data-site-preset="chart"] .site-specimen,
+html[data-theme="coral"] [data-site-preset="coral"] .site-specimen,
+html[data-theme="cookbook"] [data-site-preset="cookbook"] .site-specimen {
+  rotate: 0deg;
+  translate: 0 1px;
+  box-shadow: var(--shadow-xs);
+}
+
 /* The chosen preset's button: a primary ring and wash, drawn from html[data-theme] so it is right before hydration. */
 html[data-theme="sleek"] [data-site-preset="sleek"],
 html[data-theme="abyss"] [data-site-preset="abyss"],

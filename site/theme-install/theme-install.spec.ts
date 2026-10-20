@@ -55,7 +55,12 @@ async function styles(page: Page, samples: typeof SAMPLES): Promise<Record<strin
 
 async function settle(page: Page): Promise<void> {
   await page.evaluate(() => document.fonts.ready);
-  await expect.poll(() => page.evaluate(() => document.getAnimations().filter((animation) => animation.playState === "running").length)).toBe(0);
+  // Endless animations (the stage's drifting fish) never settle; everything else must.
+  await expect
+    .poll(() =>
+      page.evaluate(() => document.getAnimations().filter((animation) => animation.playState === "running" && animation.effect?.getComputedTiming().iterations !== Infinity).length),
+    )
+    .toBe(0);
 }
 
 /** The sample on a page, closed and with its Dialog open, then the Dialog closed again. */

@@ -1,4 +1,4 @@
-import { Component, Suspense, useLayoutEffect, useRef, useSyncExternalStore, type JSX, type ReactNode, type RefObject } from "react";
+import { Component, Suspense, useEffect, useLayoutEffect, useRef, useSyncExternalStore, type JSX, type ReactNode, type RefObject } from "react";
 import { demos } from "../docs/demos";
 import { href } from "../routes";
 
@@ -30,10 +30,16 @@ const noClientUpdates = () => () => undefined;
 function SelectedDemo({ name, title }: { name: string; title: string }): JSX.Element {
   // The server snapshot also keeps the first hydration render disabled.
   const hydrated = useSyncExternalStore(noClientUpdates, () => true, () => false);
+  const root = useRef<HTMLDivElement>(null);
+  // Live: the controls are enabled and, since a parent's effects run after its children's, every
+  // handler the example attaches in an effect is attached. Tests wait for this, then press once.
+  useEffect(() => {
+    if (hydrated) root.current?.setAttribute("data-site-demo-ready", "");
+  }, [hydrated]);
   const Demo = Object.hasOwn(demos, name) ? demos[name] : undefined;
   if (!Demo) throw new Error(`No live example for "${name}"`);
   return (
-    <div data-site-demo={name} className="flex w-full justify-center">
+    <div ref={root} data-site-demo={name} className="flex w-full justify-center">
       <fieldset disabled={!hydrated} aria-label={`${title} example`} className="m-0 flex w-full min-w-0 [min-inline-size:0] justify-center border-0 p-0">
         <Demo />
       </fieldset>
