@@ -1,0 +1,61 @@
+{
+  "order": 2400,
+  "components": [
+    "choice-card"
+  ],
+  "controls": {
+    "choice-card": [
+      {
+        "part": "input",
+        "role": "radio",
+        "portal": false
+      }
+    ]
+  },
+  "motion": {
+    "choice-card": {
+      "states": {
+        "data-checked": {
+          "kind": "motion",
+          "parts": {
+            "card": {
+              "properties": [
+                "background-color",
+                "border-color"
+              ],
+              "reduced": [
+                "background-color",
+                "border-color"
+              ]
+            }
+          },
+          "tests": [
+            "registry/ouro/components/ouro/choice-card/choice-card.test.tsx::ChoiceCard > colours the chosen card's border and surface, with reduced motion too"
+          ]
+        },
+        "data-invalid": {
+          "kind": "motion",
+          "parts": {
+            "card": {
+              "properties": [
+                "border-color"
+              ],
+              "reduced": [
+                "border-color"
+              ]
+            }
+          },
+          "tests": [
+            "registry/ouro/components/ouro/choice-card/choice-card.test.tsx::ChoiceCard > turns the cards' borders red when an error arrives, with reduced motion too"
+          ]
+        },
+        "data-disabled": {
+          "kind": "none",
+          "tests": [
+            "registry/ouro/components/ouro/choice-card/choice-card.test.tsx::ChoiceCard > does not move when it becomes disabled"
+          ]
+        }
+      }
+    }
+  }
+}

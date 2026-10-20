@@ -1,0 +1,1 @@
+- New: `ImageField`, one photo shown large with Choose photo, Change photo and Remove; with `crop` a chosen photo is cropped first, and the photo stays in a real file input so a plain form submits it.

@@ -2896,6 +2896,78 @@
       ]
     },
     {
+      "name": "choice-card",
+      "type": "registry:ui",
+      "title": "ChoiceCard",
+      "description": "A set of choices shown as cards, each with a picture, a label and a line of description, for picking exactly one: a cover photo, a plan, a layout.",
+      "docs": "A set of choices shown as cards, each with a picture, a label and a line of description, for picking exactly one: a cover photo, a plan, a layout. Import: import { ChoiceCard } from \"@/components/ouro/choice-card/choice-card\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: the helpers it imports in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/choice-card.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-use-dev-messages",
+        "ourostack/ouro-ui/lib-use-field"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/choice-card/choice-card.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/choice-card/choice-card.tsx"
+        }
+      ]
+    },
+    {
+      "name": "image-cropper",
+      "type": "registry:ui",
+      "title": "ImageCropper",
+      "description": "A dialog for cropping a photo to a shape before it is used: drag the photo (or move it with the arrow keys) to choose what shows in the frame, zoom with the slider (or Plus and Minus), and Save hands the cropped image to `onCrop` as a `File`, ready for a form or an upload.",
+      "docs": "A dialog for cropping a photo to a shape before it is used: drag the photo (or move it with the arrow keys) to choose what shows in the frame, zoom with the slider (or Plus and Minus), and Save hands the cropped image to `onCrop` as a `File`, ready for a form or an upload. Import: import { ImageCropper } from \"@/components/ouro/image-cropper/image-cropper\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, dialog, field, sheet, slider, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/image-cropper.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/dialog",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-use-dev-messages",
+        "ourostack/ouro-ui/slider"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/image-cropper/image-cropper-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/image-cropper/image-cropper-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/image-cropper/image-cropper.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/image-cropper/image-cropper.tsx"
+        }
+      ]
+    },
+    {
+      "name": "image-field",
+      "type": "registry:ui",
+      "title": "ImageField",
+      "description": "A field for one photo, shown large: the photo already saved (`src`) or the one just chosen, with Choose photo (Change photo once one shows) and Remove.",
+      "docs": "A field for one photo, shown large: the photo already saved (`src`) or the one just chosen, with Choose photo (Change photo once one shows) and Remove. Import: import { ImageField } from \"@/components/ouro/image-field/image-field\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, dialog, field, file-field, image-cropper, sheet, slider, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/image-field.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/file-field",
+        "ourostack/ouro-ui/image-cropper",
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-use-dev-messages",
+        "ourostack/ouro-ui/lib-use-field"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/image-field/image-field.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/image-field/image-field.tsx"
+        }
+      ]
+    },
+    {
       "name": "lib-announce-tests",
       "type": "registry:item",
       "title": "lib-announce tests",
@@ -8131,6 +8203,203 @@
       }
     },
     {
+      "name": "choice-card-tests",
+      "type": "registry:item",
+      "title": "ChoiceCard tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for choice-card, and the tests of everything choice-card installs, so the installed files reach 100% coverage. Add it beside choice-card: add choice-card choice-card-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "choice-card's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/choice-card",
+        "ourostack/ouro-ui/dialog-tests",
+        "ourostack/ouro-ui/field-tests",
+        "ourostack/ouro-ui/file-field-tests",
+        "ourostack/ouro-ui/image-cropper-tests",
+        "ourostack/ouro-ui/image-field",
+        "ourostack/ouro-ui/image-field-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-last-input-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-server-element-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
+        "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/sheet-tests",
+        "ourostack/ouro-ui/slider-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/choice-card/choice-card.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/choice-card/choice-card.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/choice-card/choice-card.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/choice-card/choice-card.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/choice-card/choice-card.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/choice-card/choice-card.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/choice-card/choice-card.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/choice-card/choice-card.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/choice-card.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/choice-card.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "image-cropper-tests",
+      "type": "registry:item",
+      "title": "ImageCropper tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for image-cropper, and the tests of everything image-cropper installs, so the installed files reach 100% coverage. Add it beside image-cropper: add image-cropper image-cropper-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "image-cropper's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/dialog-tests",
+        "ourostack/ouro-ui/field-tests",
+        "ourostack/ouro-ui/image-cropper",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-last-input-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-server-element-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
+        "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/sheet-tests",
+        "ourostack/ouro-ui/slider-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/image-cropper/image-cropper.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/image-cropper/image-cropper.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/image-cropper/image-cropper.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/image-cropper/image-cropper.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/image-cropper/image-cropper.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/image-cropper/image-cropper.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/image-cropper.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/image-cropper.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "image-field-tests",
+      "type": "registry:item",
+      "title": "ImageField tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for image-field, and the tests of everything image-field installs, so the installed files reach 100% coverage. Add it beside image-field: add image-field image-field-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "image-field's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/dialog-tests",
+        "ourostack/ouro-ui/field-tests",
+        "ourostack/ouro-ui/file-field-tests",
+        "ourostack/ouro-ui/image-cropper-tests",
+        "ourostack/ouro-ui/image-field",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-last-input-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-server-element-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
+        "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/sheet-tests",
+        "ourostack/ouro-ui/slider-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/image-field/image-field.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/image-field/image-field.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/image-field/image-field.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/image-field/image-field.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/image-field/image-field.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/image-field/image-field.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/image-field.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/image-field.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
       "name": "ouro-lib-tests",
       "type": "registry:item",
       "title": "Ouro lib tests",
@@ -8184,6 +8453,7 @@
         "ourostack/ouro-ui/checkbox-group-tests",
         "ourostack/ouro-ui/checkbox-tests",
         "ourostack/ouro-ui/checklist-tests",
+        "ourostack/ouro-ui/choice-card-tests",
         "ourostack/ouro-ui/collapsible-tests",
         "ourostack/ouro-ui/color-field-tests",
         "ourostack/ouro-ui/combobox-tests",
@@ -8200,6 +8470,8 @@
         "ourostack/ouro-ui/form-tests",
         "ourostack/ouro-ui/heading-tests",
         "ourostack/ouro-ui/hover-card-tests",
+        "ourostack/ouro-ui/image-cropper-tests",
+        "ourostack/ouro-ui/image-field-tests",
         "ourostack/ouro-ui/inspector-tests",
         "ourostack/ouro-ui/item-group-tests",
         "ourostack/ouro-ui/item-tests",

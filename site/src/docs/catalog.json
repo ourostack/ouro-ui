@@ -164,6 +164,24 @@
     "source": "registry/ouro/components/ouro/calendar/date-picker.tsx"
   },
   {
+    "name": "choice-card",
+    "title": "ChoiceCard",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/choice-card/choice-card.tsx"
+  },
+  {
+    "name": "image-cropper",
+    "title": "ImageCropper",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/image-cropper/image-cropper.tsx"
+  },
+  {
+    "name": "image-field",
+    "title": "ImageField",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/image-field/image-field.tsx"
+  },
+  {
     "name": "sheet",
     "title": "Sheet",
     "group": "Overlays",

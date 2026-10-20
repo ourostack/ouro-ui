@@ -53,5 +53,8 @@
   "chart",
   "message-list",
   "attachment",
-  "inspector"
+  "inspector",
+  "choice-card",
+  "image-cropper",
+  "image-field"
 ]

@@ -1,0 +1,1 @@
+- New: `ImageCropper`, a dialog that crops a photo to a rectangle of `aspect` or a circle: drag or arrow keys move it, the slider or Plus and Minus zoom it, and Save hands the cropped image to `onCrop` as a `File`.
