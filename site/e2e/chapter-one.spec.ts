@@ -23,8 +23,10 @@ const WEBKIT_UNUSED_CHUNK_PRELOAD = /^The resource \S+\/assets\/[\w.-]+\.js was 
 function diagnostics(page: Page): string[] {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
+  // Only WebKit's heuristic is forgiven, and only in WebKit.
+  const webkit = page.context().browser()?.browserType().name() === "webkit";
   page.on("console", (message) => {
-    if ((message.type() === "error" || message.type() === "warning") && !WEBKIT_UNUSED_FONT_PRELOAD.test(message.text()) && !WEBKIT_UNUSED_CHUNK_PRELOAD.test(message.text())) errors.push(message.text());
+    if ((message.type() === "error" || message.type() === "warning") && !WEBKIT_UNUSED_FONT_PRELOAD.test(message.text()) && !(webkit && WEBKIT_UNUSED_CHUNK_PRELOAD.test(message.text()))) errors.push(message.text());
   });
   return errors;
 }
