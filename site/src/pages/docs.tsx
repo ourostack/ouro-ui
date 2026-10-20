@@ -1,4 +1,5 @@
 import type { JSX, ReactNode } from "react";
+import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { agentExamples } from "../agents/examples";
@@ -65,13 +66,14 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
       </Heading>
       <div className="grid gap-3">
         <Text size="sm" tone="muted">
-          Once per app, with Tailwind CSS v4 and an <InlineCode>@/*</InlineCode> path alias (Ouro HX is built on Base UI, so{" "}
+          {claim("Once per app, with Tailwind CSS v4", { source: { file: "test/install-fixture/package.json" }, verify: { fileLine: "test/install-fixture/package.json", pattern: '"tailwindcss": "\\^4\\.' } })} and an <InlineCode>@/*</InlineCode> path alias (Ouro HX is built on Base UI, so{" "}
           <InlineCode>--base base</InlineCode>; skip <InlineCode>-t</InlineCode> in an existing app):
         </Text>
         <Command command="npx shadcn@latest init --base base --preset nova --yes --no-monorepo" />
         <Command command={`npx shadcn@latest add ourostack/ouro-ui/ouro-base#${latestRelease}`} />
         <Text size="sm" tone="muted">
-          Then the component. From v0.8.0 it installs only the helpers it imports and never touches your stylesheet (
+          Then the component.{" "}
+          {claim("From v0.8.0 it installs only the helpers it imports and never touches your stylesheet", { source: { spec: "https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0" }, verify: [{ urlOk: "https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0" }, { testExists: "scripts/registry.test.mjs::only ouro-base and ouro-theme touch the app's stylesheet, and no other item installs them" }, { testExists: "scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports" }] })} (
           <a href={href("/docs/installing/")} className="text-primary underline underline-offset-4">Installing</a>):
         </Text>
         <Command command={`npx shadcn@latest add ourostack/ouro-ui/${item.name}#${latestRelease}`} />
@@ -81,8 +83,16 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
         </Text>
         <Command command={`npx shadcn@latest add @ouro/ouro-base @ouro/${item.name}`} />
         <Text size="sm" tone="muted">
-          Its tests, stories and Playwright spec are optional. They need Vitest 4.1.11 or later, and from v0.8.0 never change
-          a version your app has (<a href={href("/docs/testing/")} className="text-primary underline underline-offset-4">Testing</a>):
+          Its tests, stories and Playwright spec are optional.{" "}
+          {claim("They need Vitest 4.1.11 or later, and from v0.8.0 never change a version your app has", {
+            source: [{ file: "scripts/registry.mts" }, { spec: "https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0" }],
+            verify: [
+              { fileLine: "scripts/registry.mts", pattern: 'vitest: "4\\.1\\.11"' },
+              { urlOk: "https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0" },
+              { testExists: "scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has" },
+            ],
+          })}{" "}
+          (<a href={href("/docs/testing/")} className="text-primary underline underline-offset-4">Testing</a>):
         </Text>
         <Command command={`npx shadcn@latest add ourostack/ouro-ui/${item.name}#${latestRelease} ourostack/ouro-ui/${item.name}-tests#${latestRelease}`} />
         <CodeBlock code={importLine} className="mt-2" />
@@ -147,7 +157,10 @@ export function DocsIndex(): JSX.Element {
       <PageTitle
         eyebrow="Docs"
         title="Components"
-        lead="Every Ouro HX component, with a live demo, install commands, its props and what to use instead. The same docs live in each component's JSDoc, so an agent reading the installed source sees them too."
+        lead={claim("Every Ouro HX component, with a live demo, install commands, its props and what to use instead. The same docs live in each component's JSDoc, so an agent reading the installed source sees them too.", {
+          source: [{ file: "site/src/site.test.tsx" }, { file: "scripts/gen-docs.mts" }],
+          verify: [{ testExists: "site/src/site.test.tsx::docs > has a page for every registry item at docs/<name>" }, { fileLine: "scripts/gen-docs.mts", pattern: "from the JSDoc and prop types in" }],
+        })}
       />
       {groups.map((group) => (
         <section key={group} aria-labelledby={groupId(group)} className="mt-10">
@@ -335,12 +348,12 @@ export function Updating(): JSX.Element {
           <Command command="npx shadcn@latest add @ouro/sheet @ouro/sheet-tests --overwrite" />
           <Text size="sm" tone="muted">
             To add them, run the same command without <InlineCode>--overwrite</InlineCode>. <InlineCode>ouro-tests</InlineCode>{" "}
-            adds every component's tests.
+            {claim("adds every component's tests.", { source: { file: "registry.json" }, verify: { testExists: "scripts/registry.test.mjs::ouro-tests installs every -tests item: the whole suite in one command" } })}
           </Text>
         </li>
         <li className="grid gap-3">
           <Heading level={2} size="lg">
-            Upgrading from v0.1.0
+            {claim("Upgrading from v0.1.0", { source: { file: "UPGRADING.md" }, verify: [{ fileLine: "UPGRADING.md", line: 1, pattern: "^# Upgrading from v0\\.1\\.0$" }, { ciJob: "install-upgrade" }] })}
           </Heading>
           {/* UPGRADING.md, the same note as README.md and the release notes; CI runs its commands. */}
           <Markdown blocks={parse(upgrading).slice(1)} />
@@ -354,10 +367,12 @@ export function Updating(): JSX.Element {
           </Text>
           <Command command={`npx shadcn@latest add ourostack/ouro-ui/sheet#${latestRelease}`} />
           <Text size="sm" tone="muted">
-            A release tag pins the item and every Ouro dependency it brings (such as <InlineCode>button</InlineCode> and the
-            helpers in <InlineCode>lib/ouro</InlineCode>) to the same tag. Any other ref, <InlineCode>#&lt;sha&gt;</InlineCode> or{" "}
+            {claim("A release tag pins the item and every Ouro dependency it brings", { source: { file: "scripts/registry.mts" }, verify: { testExists: "scripts/registry.test.mjs::--release pins every same-repo dependency to the release tag and records the version" } })} (such as{" "}
+            <InlineCode>button</InlineCode> and the helpers in <InlineCode>lib/ouro</InlineCode>) to the same tag. Any other ref, <InlineCode>#&lt;sha&gt;</InlineCode> or{" "}
             <InlineCode>#&lt;branch&gt;</InlineCode>, pins only the item you name: its Ouro dependencies come from <InlineCode>main</InlineCode>.
-            The <InlineCode>@ouro</InlineCode> namespace serves the newest release, <InlineCode>{latestRelease}</InlineCode>. Without a ref, the GitHub address installs <InlineCode>main</InlineCode>, which is for contributors and can hold unreleased changes. Releases are listed on{" "}
+            The <InlineCode>@ouro</InlineCode>{" "}
+            {claim("namespace serves the newest release,", { source: { file: ".github/workflows/pages.yml" }, verify: { testExists: "scripts/workflows.test.mjs::Pages names GitHub's newest release before it builds, whatever main's package.json says" } })}{" "}
+            <InlineCode>{latestRelease}</InlineCode>. Without a ref, the GitHub address installs <InlineCode>main</InlineCode>, which is for contributors and can hold unreleased changes. Releases are listed on{" "}
             <a href={`${GITHUB}/releases`} className="text-primary underline underline-offset-4">GitHub</a>.
           </Text>
         </li>
@@ -369,7 +384,7 @@ export function Updating(): JSX.Element {
 export function NotFound(): JSX.Element {
   return (
     <DocsShell current="">
-      <PageTitle eyebrow="404" title="Page not found" lead={<>That page isn't here. The <a href={href("/docs/")} className="text-primary underline underline-offset-4">docs</a> list every component.</>} />
+      <PageTitle eyebrow="404" title="Page not found" lead={<>That page isn't here. The <a href={href("/docs/")} className="text-primary underline underline-offset-4">docs</a> {claim("list every component.", { source: { file: "site/src/site.test.tsx" }, verify: { testExists: "site/src/site.test.tsx::docs > has a page for every registry item at docs/<name>" } })}</>} />
     </DocsShell>
   );
 }

@@ -1,3 +1,4 @@
+import { claim } from "@/registry/ouro/lib/ouro/claims";
 import type { JSX, ReactNode } from "react";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { GITHUB, href } from "../paths";
@@ -26,8 +27,13 @@ export function VoyageFooter(): JSX.Element {
             . MIT license.
           </p>
           <p className="m-0">
-            The story is Jules Verne&rsquo;s <cite>Twenty Thousand Leagues Under the Seas</cite> (1870), in the public domain. Our
-            drawings are our own.
+            {claim("The story is Jules Verne’s", { source: { spec: "https://www.gutenberg.org/ebooks/164" }, verify: { urlOk: "https://www.gutenberg.org/ebooks/164" } })}{" "}
+            <cite>Twenty Thousand Leagues Under the Seas</cite>{" "}
+            {claim("(1870), in the public domain.", {
+              source: [{ spec: "https://www.gutenberg.org/ebooks/164" }, { spec: "https://en.wikipedia.org/wiki/Twenty_Thousand_Leagues_Under_the_Seas" }],
+              verify: [{ urlOk: "https://www.gutenberg.org/ebooks/164" }, { urlOk: "https://en.wikipedia.org/wiki/Twenty_Thousand_Leagues_Under_the_Seas" }],
+            })}{" "}
+            Our drawings are our own.
           </p>
         </div>
         <nav aria-label="Footer">

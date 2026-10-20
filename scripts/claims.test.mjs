@@ -5,6 +5,7 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import {
+  applyAllowed,
   checkClaims,
   isInstruction,
   lintMarkdown,
@@ -267,6 +268,16 @@ test("surfaces: every tracked prose file is linted or declared generated, eviden
   assert.equal(mode("docs/Button.md"), "generated");
   assert.equal(mode("registry/ouro/lib/ouro/claims.ts"), "lint");
   assert.equal(mode("site/src/copy.ts"), "lint");
+});
+
+test("the allow-list drops exact story sentences, and an entry that matches nothing fails", () => {
+  const allowed = [{ file: "a.ts", sentence: "All stop.", reason: "story" }, { file: "a.ts", sentence: "Gone.", reason: "story" }];
+  const findings = [{ file: "a.ts", sentence: "All stop.", kinds: ["all"], message: "m" }, { file: "a.ts", sentence: "All go.", kinds: ["all"], message: "n" }];
+  const result = applyAllowed(findings, allowed);
+  assert.deepEqual(result.findings.map((finding) => finding.sentence), ["All go."]);
+  assert.match(result.unused[0].message, /"Gone\." \(a\.ts\) matches no finding any more/);
+  // A malformed claim is never allowed, only an unsourced sentence.
+  assert.equal(applyAllowed([{ file: "a.ts", sentence: "All stop.", message: "bad claim" }], allowed).findings.length, 1);
 });
 
 test("checkClaims over a fixture: the CLI fails on an unsourced claim, then passes once it is sourced", () => {

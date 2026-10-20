@@ -1,1 +1,14 @@
-{}
+{
+  "https://en.wikipedia.org/wiki/Twenty_Thousand_Leagues_Under_the_Seas": {
+    "status": 200,
+    "checked": "2026-10-20"
+  },
+  "https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0": {
+    "status": 200,
+    "checked": "2026-10-20"
+  },
+  "https://www.gutenberg.org/ebooks/164": {
+    "status": 200,
+    "checked": "2026-10-20"
+  }
+}

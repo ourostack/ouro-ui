@@ -1,3 +1,5 @@
+import { claim } from "@/registry/ouro/lib/ouro/claims";
+
 /**
  * The words the homepage, the head tags (routes.ts), README.md and site/public/llms.txt
  * share. Change them here; site.test.tsx fails when README.md or llms.txt disagree.
@@ -18,11 +20,21 @@ export const HERO_COPY = `${HERO_TITLE} ${HERO_SUBLINE}`;
 export const VOYAGE_HERO = {
   eyebrow: "Ouro HX · Under construction",
   title: ["Feels right to the people using it.", "Obvious to the agents building it."],
-  subline:
-    "A React component library you copy into your app and own. Every tap, transition and screen-reader announcement is tested in real browsers.",
+  subline: claim("A React component library you copy into your app and own. Its taps, transitions and screen-reader announcements are tested in real browsers.", {
+    source: [{ file: "registry/ouro/lib/ouro/testing/vitest.ts" }, { file: "registry/ouro/lib/ouro/testing/announcements.ts" }, { file: ".github/workflows/screen-reader.yml" }],
+    verify: [
+      { fileLine: "registry/ouro/lib/ouro/testing/vitest.ts", pattern: "ouro-touch" },
+      { ciJob: "motion-coverage" },
+      { fileLine: "registry/ouro/lib/ouro/testing/announcements.ts", pattern: "watchAnnouncements" },
+      { ciJob: "lane", workflow: "screen-reader.yml" },
+    ],
+  }),
 } as const;
 
-export const SHADCN_BADGE = "Works with shadcn/ui";
+export const SHADCN_BADGE = claim("Works with shadcn/ui", {
+  source: { file: "scripts/install-test.sh" },
+  verify: [{ ciJob: "install" }, { fileLine: "scripts/install-test.sh", pattern: "Stock shadcn button beside Ouro's" }],
+});
 
 export const SHADCN_LINE =
   "Installs with the shadcn CLI, uses shadcn's theme tokens, and sits alongside the shadcn/ui components you already have.";

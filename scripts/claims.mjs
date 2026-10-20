@@ -757,6 +757,30 @@ export function surfaces(root) {
   return out;
 }
 
+/**
+ * Sentences that read as claims but state nothing about the world: the Nautilus story's
+ * narration on the voyage page. Exact sentences, each with its reason. Keep it short; an entry
+ * that no longer matches a finding fails, so it cannot outlive its sentence.
+ */
+export const ALLOWED = [
+  { file: "site/src/voyage/stage/copy.ts", sentence: "All three tanks are full.", reason: "the Nautilus story: Conseil and Nemo on the ship's ballast" },
+  { file: "site/src/voyage/stage/copy.ts", sentence: "All stop.", reason: "the Nautilus story: Captain Nemo's order" },
+  { file: "site/src/voyage/repaint.tsx", sentence: "All set.", reason: "the Nautilus story: the dive checklist is done" },
+  { file: "site/src/voyage/repaint.tsx", sentence: "At 300 fathoms the sea is dark and very quiet.", reason: "the Nautilus story: the dive dialog's narration" },
+];
+
+/** Findings without the allowed sentences, and the allowed entries that matched nothing. */
+export function applyAllowed(findings, allowed = ALLOWED, files) {
+  const used = new Set();
+  const kept = findings.filter((finding) => {
+    const entry = allowed.find((each) => each.file === finding.file && each.sentence === finding.sentence && finding.kinds);
+    if (entry) used.add(entry);
+    return !entry;
+  });
+  const unused = allowed.filter((entry) => !used.has(entry) && (!files || files.includes(entry.file)));
+  return { findings: kept, unused: unused.map((entry) => ({ message: `scripts/claims.mjs: the allowed sentence "${entry.sentence}" (${entry.file}) matches no finding any more. Remove it from ALLOWED.` })) };
+}
+
 /** Generated regions and sections each linted file leaves out, because a generator writes them from linted sources. */
 const GENERATED_REGIONS = {
   "README.md": { skip: ["catalog", "items", "upgrade"] },
@@ -796,20 +820,28 @@ async function verifyClaims(claims, context) {
   return failures;
 }
 
+/** Writes the addresses `--network` checked into scripts/claims-urls.json, sorted. */
+function saveUrlCache(context) {
+  if (context.cacheChanged) writeFileSync(join(context.root, URL_CACHE), `${JSON.stringify(Object.fromEntries(Object.entries(context.cache).sort()), null, 2)}\n`);
+}
+
 /** Lints every surface and runs every claim's checks. */
 export async function checkClaims({ root = repoRoot, network = false, files } = {}) {
   const context = { root, network };
   const listed = surfaces(root).filter((entry) => entry.mode === "lint" && (!files || files.includes(entry.file)));
   const claims = [];
   const failures = [];
+  const findings = [];
   for (const entry of listed) {
     const result = await readSurface(root, entry.file, entry.kind);
     claims.push(...result.claims);
-    failures.push(...result.findings);
+    findings.push(...result.findings);
   }
+  const allowed = applyAllowed(findings, root === repoRoot ? ALLOWED : [], listed.map((entry) => entry.file));
+  failures.push(...allowed.findings, ...allowed.unused);
   failures.push(...(await verifyClaims(claims, context)));
   if (!files) failures.push(...(await generatedFailures(root)));
-  if (context.cacheChanged) writeFileSync(join(root, URL_CACHE), `${JSON.stringify(Object.fromEntries(Object.entries(context.cache).sort()), null, 2)}\n`);
+  saveUrlCache(context);
   return { claims, failures, surfaces: listed.length };
 }
 
@@ -851,12 +883,19 @@ async function main(argv) {
       claims.push(...result.claims);
       failures.push(...result.findings);
     }
+    const modes = new Map(surfaces(root).map((entry) => [entry.file, entry]));
     for (const file of positional) {
+      const entry = modes.get(file);
+      if (entry && entry.mode !== "lint") {
+        process.stderr.write(`${file} is not linted: ${entry.mode}, ${entry.reason}.\n`);
+        continue;
+      }
       const result = await readSurface(root, file);
       claims.push(...result.claims);
-      failures.push(...result.findings);
+      failures.push(...applyAllowed(result.findings, ALLOWED, [file]).findings);
     }
     failures.push(...(await verifyClaims(claims, context)));
+    saveUrlCache(context);
     return report(failures, `${claims.length} claim${claims.length === 1 ? "" : "s"} verified; no unsourced claims.`);
   }
   if (command === "show") {
