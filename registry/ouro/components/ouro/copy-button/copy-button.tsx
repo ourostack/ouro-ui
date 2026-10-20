@@ -170,15 +170,24 @@ export function CopyButton(props: CopyButtonProps): JSX.Element {
   );
   const [status, setStatus] = useState<Status>("idle");
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  useEffect(() => () => clearTimeout(timer.current), []);
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      clearTimeout(timer.current);
+    };
+  }, []);
 
   const copy = async (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     const copied = await writeClipboard(value);
+    if (copied) onCopy?.(value);
+    // Gone before the clipboard answered: nothing is left to show or say it.
+    if (!mounted.current) return;
     clearTimeout(timer.current);
     setStatus(copied ? "copied" : "failed");
     announce(copied ? copiedLabel : failedLabel);
-    if (copied) onCopy?.(value);
     timer.current = setTimeout(() => setStatus("idle"), CONFIRM_MS);
   };
 

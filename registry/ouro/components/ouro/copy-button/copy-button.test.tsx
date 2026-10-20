@@ -183,12 +183,48 @@ describe("CopyButton", () => {
   });
 
   it("stops its timer when it unmounts before the confirmation ends", async () => {
+    const schedule = vi.spyOn(globalThis, "setTimeout");
     const clear = vi.spyOn(globalThis, "clearTimeout");
     const { root, button } = await render(<CopyButton value="x" />);
     await userEvent.click(button);
     await expect.poll(() => button.textContent).toBe("Copied");
+    const confirmation = schedule.mock.calls.findIndex(([, delay]) => delay === 2000);
+    expect(confirmation).toBeGreaterThanOrEqual(0);
+    const timer = schedule.mock.results[confirmation]!.value as ReturnType<typeof setTimeout>;
+    clear.mockClear();
     await act(async () => root.unmount());
-    expect(clear).toHaveBeenCalled();
+    expect(clear).toHaveBeenCalledWith(timer);
+  });
+
+  it("neither says Copied nor starts a timer when it unmounts while the clipboard is still writing", async () => {
+    let finish!: () => void;
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      get: () => ({ writeText: (text: string) => new Promise<void>((resolve) => (finish = () => (clipboard.push(text), resolve()))) }),
+    });
+    // Let an announcement an earlier test started land before watching.
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 300)));
+    const announced = watchAnnouncements();
+    const onCopy = vi.fn();
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const { root, button } = await render(<CopyButton value="sk-123" onCopy={onCopy} />);
+      await userEvent.click(button);
+      await expect.poll(() => typeof finish).toBe("function");
+      await act(async () => root.unmount());
+      const schedule = vi.spyOn(globalThis, "setTimeout");
+      await act(async () => finish());
+      // Longer than announce() waits before it speaks.
+      await act(async () => new Promise((resolve) => setTimeout(resolve, 300)));
+      expect(clipboard).toEqual(["sk-123"]);
+      // The text is on the clipboard, so the app still hears that it was copied.
+      expect(onCopy).toHaveBeenCalledExactlyOnceWith("sk-123");
+      expect(announced.count("Copied")).toBe(0);
+      expect(schedule.mock.calls.filter(([, delay]) => delay === 2000)).toEqual([]);
+      expect(error).not.toHaveBeenCalled();
+    } finally {
+      announced.stop();
+    }
   });
 });
 
