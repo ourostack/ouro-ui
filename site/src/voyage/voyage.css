@@ -175,8 +175,8 @@
   }
   /*
    * The install command, whole at every width. Where the line fits, prompt, command and Copy sit in
-   * one row; where it doesn't, the command breaks after "add" and Copy rides at the top right, beside
-   * the short first line. It never scrolls and never fades out.
+   * one row; where it doesn't, the command breaks after "add": the short first line beside Copy,
+   * the address under both. It never scrolls and never fades out.
    */
   .site-install-block {
     display: grid;
@@ -184,26 +184,24 @@
     container-type: inline-size;
   }
   .site-install {
-    position: relative;
-    display: flex;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
-    gap: 0.5rem;
+    column-gap: 0.5rem;
     min-width: 0;
-    padding: 0.375rem 0.375rem 0.375rem 1rem;
+    padding: 0.375rem 0.375rem 0.375rem 0.875rem;
     border: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
     border-radius: calc(var(--radius) * 1.4);
     background: var(--card);
     box-shadow: var(--shadow-xs);
   }
   .site-install-prompt {
-    align-self: flex-start;
-    padding-block: 0.5rem;
-    line-height: 1.5;
+    grid-area: 1 / 1;
     color: var(--muted-foreground);
     user-select: none;
   }
   .site-install-command {
-    flex: 1;
+    grid-area: 1 / 2;
     min-width: 0;
     padding-block: 0.5rem;
     line-height: 1.5;
@@ -215,28 +213,30 @@
     font-weight: 500;
   }
   .site-install-copy {
-    flex-shrink: 0;
+    grid-area: 1 / 3;
   }
-  @container (max-width: 35.99rem) {
+  @container (max-width: 34.99rem) {
     .site-install {
-      align-items: flex-start;
-      padding-block: 0.5rem;
+      align-items: start;
     }
+    .site-install-prompt,
+    .site-install-run {
+      display: flex;
+      align-items: center;
+      min-height: 2.5rem;
+    }
+    /* The command takes Copy's column too: its first line is short, and the address runs under Copy. */
     .site-install-command {
+      grid-column: 2 / 4;
+      padding-block: 0 0.375rem;
       white-space: normal;
       overflow-wrap: anywhere;
-    }
-    .site-install-run {
-      display: block;
-      padding-inline-end: 5.5rem;
     }
     .site-install-address {
       display: block;
     }
     .site-install-copy {
-      position: absolute;
-      top: 0.5rem;
-      inset-inline-end: 0.5rem;
+      align-self: start;
     }
   }
   .site-install-caption {
@@ -270,7 +270,7 @@
   }
   @media (min-width: 64rem) {
     .site-hero {
-      padding-block: 2.5rem 5rem;
+      padding-block: 1rem 5rem;
     }
     .site-hero-grid {
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -291,7 +291,8 @@
       grid-column: 1;
       grid-row: 2;
       align-self: end;
-      margin-bottom: 1.5rem;
+      /* Level with the foot of the console's last row. */
+      margin-bottom: 1.125rem;
     }
   }
 }

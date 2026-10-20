@@ -176,7 +176,12 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
           <DepthControl depth={depth} onChange={onDepth} onCommitted={onDepthCommitted} />
           <div className="stage-console-row">
             <fieldset className="stage-group stage-ballast">
-              <legend className="stage-heading">{STAGE_COPY.ballast}</legend>
+              <legend className="stage-heading stage-ballast-head">
+                {STAGE_COPY.ballast}
+                <span id="stage-tank-count" aria-hidden="true" className="stage-readout" data-stage-tank-count="">
+                  {STAGE_COPY.tankCount(full)}
+                </span>
+              </legend>
               <div className="stage-tanks">
                 {TANKS.map((tank) => (
                   <TankSwitch key={tank.id} id={tank.id} label={tank.label} name={tank.name} checked={tanks[tank.id]} onChange={onTank} />
@@ -260,7 +265,7 @@ const DiveControl = memo(function DiveControl({ full, dived, onPress }: { full: 
         disabled={full < 3}
         tone={dived ? "secondary" : "primary"}
         variant={dived ? "outline" : "solid"}
-        aria-describedby="stage-dive-hint"
+        aria-describedby="stage-dive-hint stage-tank-count"
         className="min-w-24"
         onClick={onPress}
       >
@@ -274,7 +279,7 @@ const DiveControl = memo(function DiveControl({ full, dived, onPress }: { full: 
         </span>
       ) : null}
       <span id="stage-dive-hint" className={full === 3 && !dived ? "sr-only" : "stage-hint"}>
-        {STAGE_COPY.diveHint(full)}
+        {dived ? STAGE_COPY.surfaceHint : STAGE_COPY.diveHint(full)}
       </span>
     </div>
   );

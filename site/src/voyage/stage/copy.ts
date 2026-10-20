@@ -56,7 +56,9 @@ export const STAGE_COPY = {
   ballast: "Ballast tanks",
   dive: "Dive",
   surface: "Surface",
-  diveHint: (full: number) => (full === 3 ? "All three tanks are full." : `Fill all three tanks to dive. ${full} of 3 full.`),
+  diveHint: (full: number) => (full === 3 ? "All three tanks are full." : "Fill all three to dive."),
+  tankCount: (full: number) => `${full} of 3 full`,
+  surfaceHint: "Surface empties the tanks.",
   lights: "Floodlights",
   speed: "Speed",
   bell: "Ring the bell",
@@ -79,7 +81,7 @@ export function describeScene(state: { band: Band; dived: boolean; lights: boole
 }
 
 export const OPENING_LOG: readonly LogLine[] = [
-  { name: "Captain Nemo", text: "Welcome aboard, Professor. Slide the depth lever, or fill the tanks to dive." },
+  { name: "Captain Nemo", text: "Welcome aboard, Professor! Fill the three tanks, then dive." },
 ];
 
 export const LOG = {
@@ -121,6 +123,7 @@ export function allStageText(): string[] {
     ...Object.values(STAGE_COPY).flatMap((value) => (typeof value === "string" ? [value] : [])),
     STAGE_COPY.diveHint(1),
     STAGE_COPY.diveHint(3),
+    STAGE_COPY.tankCount(1),
     STAGE_COPY.logFold(2),
     STAGE_COPY.logAll(3),
     ...BANDS.map((band) => band.label),
