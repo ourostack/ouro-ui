@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 90">
+  <title>Anglerfish</title>
+  <!-- Original drawing for Ouro HX (manifest.json). It hides in the dark with its own little lamp,
+       until the Nautilus's lantern finds it. -->
+  <path class="c-line" d="M34 34 C30 18 40 6 54 8" />
+  <circle class="c-glow" cx="56" cy="9" r="5" />
+  <path class="c-body" d="M14 52 C14 30 32 22 52 24 C72 26 88 34 98 44 L116 32 L112 52 L116 72 L98 60 C88 70 70 80 50 80 C30 80 14 72 14 52 Z" />
+  <path class="c-mouth" d="M16 56 C26 64 40 66 52 60 C44 72 26 72 16 62 Z" />
+  <path class="c-teeth" d="M22 59 L24 63 L26 60 L29 64 L31 61 L34 64.5 L36 61.5 L39 64 L41 61 L44 62" />
+  <circle class="c-eye-big" cx="40" cy="40" r="6" />
+  <circle class="c-pupil" cx="42" cy="40" r="2.6" />
+  <path class="c-line" d="M66 40 C70 48 70 58 66 66 M80 44 C83 50 83 56 80 62" />
+</svg>

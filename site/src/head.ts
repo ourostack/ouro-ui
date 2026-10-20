@@ -1,4 +1,6 @@
 import type { Route } from "./routes";
+import { prepaintScript } from "./themes/prepaint";
+import fonts from "./themes/fonts.json";
 
 /** Where Pages serves the site. */
 export const SITE = "https://ourostack.github.io/ouro-ui";
@@ -11,15 +13,20 @@ const escape = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;
  * (site/scripts/og-image.mts) as the image.
  */
 export function headTags(route: Route, canonical: boolean): string[] {
+  // A preview route is unlinked and unindexed: no canonical address, and a robots tag.
+  canonical = canonical && !route.noindex;
   const title = escape(route.title);
   const description = escape(route.description);
   const image = `${SITE}/og.png`;
   const alt = "Ouro HX, part of Ouro UI. Under construction. Designed down to the last tap and the last prop.";
   return [
+    // First, so the stored theme and dark mode are on <html> before anything paints.
+    `<script>${prepaintScript}</script>`,
     `<title>${title}</title>`,
     `<meta name="description" content="${description}" />`,
+    route.noindex ? `<meta name="robots" content="noindex, nofollow" />` : "",
     canonical ? `<link rel="canonical" href="${SITE}${route.path}" />` : "",
-    `<link rel="icon" href="/ouro-ui/favicon.svg" type="image/svg+xml" />`,
+    `<link rel="icon" href="/ouro-ui/brand/ouro-hx.svg" type="image/svg+xml" />`,
     `<meta property="og:type" content="website" />`,
     `<meta property="og:site_name" content="Ouro HX" />`,
     `<meta property="og:title" content="${title}" />`,
@@ -34,5 +41,9 @@ export function headTags(route: Route, canonical: boolean): string[] {
     `<meta name="twitter:description" content="${description}" />`,
     `<meta name="twitter:image" content="${image}" />`,
     `<meta name="twitter:image:alt" content="${alt}" />`,
+    // The voyage page sets its type in Geist and Geist Mono; only they are preloaded.
+    ...(route.path === "/voyage/"
+      ? fonts.filter((font) => font.preload).map((font) => `<link rel="preload" href="/ouro-ui/fonts/${font.file}" as="font" type="font/woff2" crossorigin />`)
+      : []),
   ].filter(Boolean);
 }
