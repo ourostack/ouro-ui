@@ -280,6 +280,7 @@ jobs:
           path: playwright-report/
           if-no-files-found: ignore
   theme-install:
+    name: theme-install
     # The copy-theme install proof (site/scripts/theme-install-test.sh): each site preset's "Copy
     # theme" CSS, pasted at the end of a clean shadcn app's stylesheet with Checklist and Dialog
     # added, renders the same computed colours, radii, fonts and shadows as the site, light and

@@ -15,7 +15,7 @@ export interface Route {
   noindex?: boolean;
 }
 
-const DESCRIPTION = `${HERO_COPY} Ouro HX is the component library within Ouro UI. Under construction. Copy-in React components for shadcn/ui apps.`;
+const DESCRIPTION = `${HERO_COPY} Ouro HX is the component library within Ouro UI. Under construction. React components you copy into your app and own; they install with the shadcn CLI.`;
 
 export const routes: Route[] = [
   { path: "/", title: "Ouro HX", description: DESCRIPTION },

@@ -214,7 +214,7 @@ export function buildPreset(preset: Preset, css: string, fonts: readonly Font[])
   const header = (withFonts: boolean) =>
     [
       "/*",
-      ` * Ouro HX "${preset.label}" theme for shadcn/ui: ${preset.mood.toLowerCase()}.`,
+      ` * Ouro HX "${preset.label}" theme, in shadcn/ui's standard tokens: ${preset.mood.toLowerCase()}.`,
       ` * From ${SITE}/voyage/. Paste it at the end of your global CSS, after the Tailwind import and`,
       " * your current theme: its :root, .dark and @theme inline values take over. Ouro HX components",
       " * also need ouro-base: npx shadcn@latest add ourostack/ouro-ui/ouro-base",
