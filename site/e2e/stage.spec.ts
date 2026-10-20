@@ -1,26 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
 import { BELL_TOASTS, LOG, STAGE_CONTROLS, STAGE_COPY, TANKS } from "../src/voyage/stage/copy";
+import { diagnostics } from "./diagnostics";
 
 // The porthole stage against the production build (site-design.md, "Verification in CI"): each
 // control in STAGE_CONTROLS has a test named "control: <id>" that operates it and asserts what it
 // visibly changes (site/scripts/stage-census.test.mjs fails when one is missing), every operable
 // element on the stage is one of those controls, touch works on phones, nothing moves under reduced
 // motion, and the fish rest off screen. Each control's latency is stage.latency.spec.ts's.
-
-/**
- * WebKit fetches a preloaded font again for its @font-face instead of using the preload, then warns
- * a few seconds after load that the preload went unused. Chromium uses it; the warning is WebKit's.
- */
-const WEBKIT_UNUSED_FONT_PRELOAD = /^The resource \S+\/fonts\/[\w.-]+\.woff2 was preloaded using link preload but not used within a few seconds/;
-
-function diagnostics(page: Page): string[] {
-  const errors: string[] = [];
-  page.on("pageerror", (error) => errors.push(error.message));
-  page.on("console", (message) => {
-    if ((message.type() === "error" || message.type() === "warning") && !WEBKIT_UNUSED_FONT_PRELOAD.test(message.text())) errors.push(message.text());
-  });
-  return errors;
-}
 
 async function open(page: Page): Promise<void> {
   await page.goto("voyage/");
@@ -395,6 +381,9 @@ test.describe("the ballast manifold and the bell's payoffs", () => {
   test("each tank floods visibly: its glass fills, the pipe fills a third, and the crew says so", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await open(page);
+    // A busy machine can style the page before its stylesheet arrives, and the glasses and the pipe
+    // then drain from unstyled (full) to empty through their transitions. Measure them at rest.
+    await settled(page);
     expect(await waterLevel(page, "fore")).toBe(0);
     expect(await pipeFill(page)).toBe(0);
     await tank(page, FORE.name).click();
