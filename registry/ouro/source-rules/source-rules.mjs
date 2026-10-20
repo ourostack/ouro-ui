@@ -1029,13 +1029,15 @@ export const defaultDeps = {
   readFile: (file) => readFileSync(file, "utf8"),
   readdir: (directory) => readdirSync(directory, { recursive: true }),
   writeFile: (file, text) => writeFileSync(file, text),
-  // The baseline file at a git ref, or undefined when that commit has none.
+  // A file at a git ref (or a folder's listing, for a path ending in "/"), by its path from `root`,
+  // or undefined when that commit has none. `./` keeps the path relative to `root` when the app sits
+  // below the repository root (apps/web/); without it git reads it from the repository root.
   gitShow: (root, ref, file) => {
     const git = (args) => spawnSync("git", args, { cwd: root, encoding: "utf8" });
     if (git(["rev-parse", "--verify", "--quiet", `${ref}^{commit}`]).status !== 0) {
       throw new Error(`ouro-source-rules: unknown base ref ${ref}`);
     }
-    const shown = git(["show", `${ref}:${file}`]);
+    const shown = git(["show", `${ref}:./${file}`]);
     return shown.status === 0 ? shown.stdout : undefined;
   },
 };

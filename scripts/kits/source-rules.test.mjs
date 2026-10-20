@@ -1666,6 +1666,64 @@ describe("defaults", () => {
             rmSync(root, { recursive: true, force: true });
         }
     });
+    it("reads the base from the app's own folder when the app sits below the repository root", () => {
+        const cache = path.join(process.cwd(), "node_modules", ".cache");
+        mkdirSync(cache, { recursive: true });
+        const repo = mkdtempSync(path.join(cache, "ouro-source-rules-monorepo-"));
+        const root = path.join(repo, "apps", "web");
+        const git = (...args) => {
+            const result = spawnSync("git", ["-c", "user.email=kit@example.com", "-c", "user.name=Kit", "-c", "commit.gpgsign=false", ...args], { cwd: repo, encoding: "utf8" });
+            expect(result.status).toBe(0);
+        };
+        const run = (argv) => {
+            const io = { log: vi.fn(), error: vi.fn() };
+            const exit = vi.fn();
+            const writeFile = vi.fn();
+            main(argv, { root, io, exit, writeFile });
+            return { io, exit, writeFile };
+        };
+        try {
+            mkdirSync(path.join(root, "src", "routes"), { recursive: true });
+            defaultDeps.writeFile(path.join(root, "src", "app.tsx"), "export const App = () => <a href=\"/\">Home</a>;\n");
+            defaultDeps.writeFile(path.join(root, "src", "routes", "page.tsx"), "export const Page = () => <button>Go</button>;\n");
+            defaultDeps.writeFile(path.join(root, CONFIG_PATH), `${JSON.stringify({ baseline: "rules.json" })}\n`);
+            main(["--write-baseline"], { root, io: { log: vi.fn(), error: vi.fn() } });
+            git("init", "--quiet");
+            git("add", ".");
+            git("commit", "--quiet", "-m", "base");
+            git("tag", "base");
+            expect(defaultDeps.gitShow(root, "base", CONFIG_PATH)).toContain("rules.json");
+            expect(defaultDeps.gitShow(root, "base", "src/")).toContain("app.tsx");
+            const clean = run(["--base", "base"]);
+            expect(clean.io.error).not.toHaveBeenCalled();
+            expect(clean.io.log).toHaveBeenCalledWith("ouro-source-rules: ratchet against base: 0 allowed regression(s), 0 move(s).");
+            // The pull request deletes the baseline to start over, and adds a control.
+            const baseline = readFileSync(path.join(root, "rules.json"), "utf8");
+            rmSync(path.join(root, "rules.json"));
+            defaultDeps.writeFile(path.join(root, "src", "more.tsx"), "export const More = () => <button>More</button>;\n");
+            const restart = run(["--write-baseline", "--base", "base"]);
+            expect(restart.writeFile).not.toHaveBeenCalled();
+            expect(restart.io.error).toHaveBeenCalledWith(expect.stringContaining("New hand-rolled control: src/more.tsx::More::raw-button::button:: (+1)"));
+            expect(restart.exit).toHaveBeenCalledWith(1);
+            // It moves the baseline instead.
+            defaultDeps.writeFile(path.join(root, CONFIG_PATH), `${JSON.stringify({ baseline: "moved.json" })}\n`);
+            defaultDeps.writeFile(path.join(root, "moved.json"), baseline);
+            const moved = run(["--base", "base"]);
+            expect(moved.io.error).toHaveBeenCalledWith(expect.stringContaining("moves the baseline from rules.json to moved.json"));
+            expect(moved.io.error).toHaveBeenCalledWith(expect.stringContaining("Regression against base: src/more.tsx::More::raw-button::button:: (+1)"));
+            expect(moved.exit).toHaveBeenCalledWith(1);
+            // Or it narrows the scan so the control is not read.
+            defaultDeps.writeFile(path.join(root, CONFIG_PATH), `${JSON.stringify({ baseline: "rules.json", exclude: ["src/routes/"] })}\n`);
+            defaultDeps.writeFile(path.join(root, "rules.json"), baseline);
+            rmSync(path.join(root, "src", "more.tsx"));
+            const narrowed = run(["--base", "base"]);
+            expect(narrowed.io.error).toHaveBeenCalledWith(expect.stringContaining("stops reading src/routes/ (exclude)"));
+            expect(narrowed.exit).toHaveBeenCalledWith(1);
+        }
+        finally {
+            rmSync(repo, { recursive: true, force: true });
+        }
+    });
     it("reads a baseline from git: present, missing at the ref, or an unknown ref", () => {
         expect(defaultDeps.gitShow(process.cwd(), "HEAD", "package.json")).toContain('"name"');
         expect(defaultDeps.gitShow(process.cwd(), "HEAD", "no-such-baseline.json")).toBeUndefined();
