@@ -5,7 +5,7 @@
 Whether the browser offers to install this web app, and the means to offer it at a good moment rather than when the browser chooses: `install()` opens the browser's own install dialog, `dismiss()` puts the offer away for two weeks. It is `available` only where the browser fires `beforeinstallprompt` (Chromium on Android and desktops; not Safari or Firefox), and never while the app already runs installed.
 
 ```tsx
-import { useInstallPrompt } from "@/registry/ouro/lib/ouro/install-prompt";
+import { useInstallPrompt } from "@/registry/ouro/lib/ouro/use-install-prompt";
 ```
 
 ## Example

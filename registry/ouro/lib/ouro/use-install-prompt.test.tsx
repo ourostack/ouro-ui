@@ -2,7 +2,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
-import { useInstallPrompt, type InstallPromptOptions, type InstallPromptState } from "@/registry/ouro/lib/ouro/install-prompt";
+import { useInstallPrompt, type InstallPromptOptions, type InstallPromptState } from "@/registry/ouro/lib/ouro/use-install-prompt";
 
 // The module keeps the browser's offer for the whole page, so these tests run in order and
 // each one uses up the offer it makes.

@@ -192,7 +192,6 @@
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-floating",
         "ourostack/ouro-ui/lib-form-answer",
-        "ourostack/ouro-ui/lib-install-prompt",
         "ourostack/ouro-ui/lib-key-shortcuts",
         "ourostack/ouro-ui/lib-last-input",
         "ourostack/ouro-ui/lib-open-mode",
@@ -211,6 +210,7 @@
         "ourostack/ouro-ui/lib-use-dev-messages",
         "ourostack/ouro-ui/lib-use-drag",
         "ourostack/ouro-ui/lib-use-field",
+        "ourostack/ouro-ui/lib-use-install-prompt",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable",
         "ourostack/ouro-ui/lib-use-media-query",
         "ourostack/ouro-ui/lib-use-ouro",
@@ -513,19 +513,6 @@
       ]
     },
     {
-      "name": "lib-install-prompt",
-      "type": "registry:lib",
-      "title": "lib-install-prompt",
-      "description": "Installed with the components that import it; you don't need to add it. The helper lib/ouro/install-prompt.ts.",
-      "files": [
-        {
-          "path": "registry/ouro/lib/ouro/install-prompt.ts",
-          "type": "registry:lib",
-          "target": "@lib/ouro/install-prompt.ts"
-        }
-      ]
-    },
-    {
       "name": "lib-key-shortcuts",
       "type": "registry:lib",
       "title": "lib-key-shortcuts",
@@ -782,6 +769,19 @@
           "path": "registry/ouro/lib/ouro/use-field.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/use-field.ts"
+        }
+      ]
+    },
+    {
+      "name": "lib-use-install-prompt",
+      "type": "registry:lib",
+      "title": "lib-use-install-prompt",
+      "description": "Installed with the components that import it; you don't need to add it. The helper lib/ouro/use-install-prompt.ts.",
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/use-install-prompt.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/use-install-prompt.ts"
         }
       ]
     },
@@ -3025,8 +3025,8 @@
         "ourostack/ouro-ui/card",
         "ourostack/ouro-ui/lib-class-name-check",
         "ourostack/ouro-ui/lib-env",
-        "ourostack/ouro-ui/lib-install-prompt",
-        "ourostack/ouro-ui/lib-use-dev-messages"
+        "ourostack/ouro-ui/lib-use-dev-messages",
+        "ourostack/ouro-ui/lib-use-install-prompt"
       ],
       "files": [
         {
@@ -3265,31 +3265,6 @@
       }
     },
     {
-      "name": "lib-install-prompt-tests",
-      "type": "registry:item",
-      "title": "lib-install-prompt tests",
-      "description": "Optional: the Vitest browser tests for lib-install-prompt, and the tests of everything lib-install-prompt installs, so the installed files reach 100% coverage. Add it beside lib-install-prompt: add lib-install-prompt lib-install-prompt-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
-      "devDependencies": [
-        "vitest"
-      ],
-      "registryDependencies": [
-        "ourostack/ouro-ui/lib-install-prompt",
-        "ourostack/ouro-ui/ouro-testing"
-      ],
-      "files": [
-        {
-          "path": "registry/ouro/lib/ouro/install-prompt.test.tsx",
-          "type": "registry:lib",
-          "target": "@lib/ouro/install-prompt.test.tsx"
-        }
-      ],
-      "meta": {
-        "requires": {
-          "vitest": ">=4.1.11"
-        }
-      }
-    },
-    {
       "name": "lib-key-shortcuts-tests",
       "type": "registry:item",
       "title": "lib-key-shortcuts tests",
@@ -3508,6 +3483,31 @@
           "path": "registry/ouro/lib/ouro/use-drag.test.tsx",
           "type": "registry:lib",
           "target": "@lib/ouro/use-drag.test.tsx"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "lib-use-install-prompt-tests",
+      "type": "registry:item",
+      "title": "lib-use-install-prompt tests",
+      "description": "Optional: the Vitest browser tests for lib-use-install-prompt, and the tests of everything lib-use-install-prompt installs, so the installed files reach 100% coverage. Add it beside lib-use-install-prompt: add lib-use-install-prompt lib-use-install-prompt-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "devDependencies": [
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-use-install-prompt",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/use-install-prompt.test.tsx",
+          "type": "registry:lib",
+          "target": "@lib/ouro/use-install-prompt.test.tsx"
         }
       ],
       "meta": {
@@ -8574,10 +8574,10 @@
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
-        "ourostack/ouro-ui/lib-install-prompt",
-        "ourostack/ouro-ui/lib-install-prompt-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/lib-use-install-prompt",
+        "ourostack/ouro-ui/lib-use-install-prompt-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/text-tests"
       ],
@@ -8632,7 +8632,6 @@
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-floating-tests",
         "ourostack/ouro-ui/lib-form-answer-tests",
-        "ourostack/ouro-ui/lib-install-prompt-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
@@ -8642,6 +8641,7 @@
         "ourostack/ouro-ui/lib-use-command-shortcut-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-drag-tests",
+        "ourostack/ouro-ui/lib-use-install-prompt-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
@@ -8702,7 +8702,6 @@
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-floating-tests",
         "ourostack/ouro-ui/lib-form-answer-tests",
-        "ourostack/ouro-ui/lib-install-prompt-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
@@ -8712,6 +8711,7 @@
         "ourostack/ouro-ui/lib-use-command-shortcut-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-drag-tests",
+        "ourostack/ouro-ui/lib-use-install-prompt-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",

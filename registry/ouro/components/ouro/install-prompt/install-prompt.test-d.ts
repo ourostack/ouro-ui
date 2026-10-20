@@ -1,7 +1,7 @@
 import { createElement, type ComponentProps } from "react";
 import { expectTypeOf } from "vitest";
 import { InstallPrompt, type InstallPromptProps } from "@/registry/ouro/components/ouro/install-prompt/install-prompt";
-import { useInstallPrompt, type InstallPromptState } from "@/registry/ouro/lib/ouro/install-prompt";
+import { useInstallPrompt, type InstallPromptState } from "@/registry/ouro/lib/ouro/use-install-prompt";
 
 // Type tests: `pnpm typecheck` compiles this file.
 

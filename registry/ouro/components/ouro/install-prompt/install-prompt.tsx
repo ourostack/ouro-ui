@@ -2,7 +2,7 @@
 
 import type { ComponentProps, JSX, ReactNode } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
-import { useInstallPrompt } from "@/registry/ouro/lib/ouro/install-prompt";
+import { useInstallPrompt } from "@/registry/ouro/lib/ouro/use-install-prompt";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Card } from "@/registry/ouro/components/ouro/card/card";
