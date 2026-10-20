@@ -112,6 +112,7 @@ export const ARTICLES = {
   /** Someone of that name is aboard already. */
   taken: (name: string) => `${name} is aboard already. Sign your own name.`,
   signed: (name: string) => `${name} signed on`,
+  onList: "Your name is on the crew list now.",
 } as const;
 
 export const SIGN = {

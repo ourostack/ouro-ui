@@ -302,7 +302,7 @@ function Articles(): JSX.Element {
     setYou({ name, trade });
     setSignings((count) => count + 1);
     setLine(SIGN.welcome(name, trade));
-    toast(ARTICLES.signed(name), { tone: "success", description: SIGN.welcome(name, trade).text });
+    toast(ARTICLES.signed(name), { tone: "success", description: ARTICLES.onList });
   };
   const leave = () => {
     setYou(null);

@@ -1678,7 +1678,7 @@
 [data-theme="brass"] .stage-console {
   border-top: 3px double color-mix(in oklab, var(--chart-3) 55%, transparent);
   /* Clear of the screws in the frame's corners. */
-  padding-bottom: 1.375rem;
+  padding-bottom: 1.75rem;
 }
 [data-theme="brass"] .stage-motto {
   font-family: var(--font-heading);
