@@ -21,6 +21,8 @@ test("the kits' tests pass and cover every line, branch and function of the kits
     process.execPath,
     [
       "--test",
+      // One report format on every Node version (Node 24 defaults to spec even when piped).
+      "--test-reporter=tap",
       "--experimental-test-coverage",
       "--test-coverage-include=registry/ouro/census/*.mjs",
       "--test-coverage-include=registry/ouro/source-rules/*.mjs",
