@@ -7,7 +7,7 @@ import { commands, page } from "vitest/browser";
 import { RouteProgress } from "@/registry/ouro/components/ouro/route-progress/route-progress";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
-import { expectMotion, parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
+import { expectMotion, expectNoMotion, parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -28,20 +28,41 @@ async function render(node: ReactNode) {
     get bar() {
       return host.querySelector<HTMLElement>('[data-ouro-part="bar"]')!;
     },
-    get sweep() {
-      return host.querySelector<HTMLElement>('[data-ouro-part="bar"] > div')!;
+    get indicator() {
+      return host.querySelector<HTMLElement>('[data-ouro-part="indicator"]')!;
     },
   };
 }
 
 const token = (name: string) => parseDuration(getComputedStyle(document.documentElement).getPropertyValue(name));
-const animationName = (element: Element) => getComputedStyle(element).animationName;
+
+/** Takes over the component's timers (its delay and its trickle), not animation frames or polling. */
+const fakeTimers = () => vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval"] });
+
+/** How far the bar is filled: the fraction of the width the indicator is heading to. */
+const progress = (indicator: HTMLElement) => Number(indicator.style.getPropertyValue("--ouro-route-progress"));
+
+/** Runs `check` the moment `attribute` appears on `element`, in the microtask after React sets it, before its transition has run. */
+function when(element: Element, attribute: string, check: () => Promise<unknown>): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    const observer = new MutationObserver(() => {
+      if (!element.hasAttribute(attribute)) return;
+      observer.disconnect();
+      check().then(resolve, reject);
+    });
+    observer.observe(element, { attributes: true, attributeFilter: [attribute] });
+  });
+}
+
+/** Resolves once nothing runs on the element: its transitions have ended. */
+const still = (element: Element) => expect.poll(() => element.getAnimations().length).toBe(0);
 
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 });
 afterEach(async () => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));
   for (const node of mounted) node.remove();
@@ -51,7 +72,7 @@ afterEach(async () => {
 
 describe("RouteProgress", () => {
   it("is a 2px bar fixed across the top of the screen in the primary color, which no click reaches", async () => {
-    const { region, bar, sweep } = await render(<RouteProgress active />);
+    const { region, bar, indicator } = await render(<RouteProgress active />);
     expect(getComputedStyle(region).position).toBe("fixed");
     const rect = region.getBoundingClientRect();
     expect(rect.top).toBe(0);
@@ -64,11 +85,11 @@ describe("RouteProgress", () => {
     probe.style.backgroundColor = "var(--primary)";
     document.body.append(probe);
     mounted.push(probe);
-    expect(getComputedStyle(sweep).backgroundColor).toBe(getComputedStyle(probe).backgroundColor);
-    expect(getComputedStyle(bar).opacity).toBe("1");
+    expect(getComputedStyle(indicator).backgroundColor).toBe(getComputedStyle(probe).backgroundColor);
+    await expect.poll(() => getComputedStyle(bar).opacity).toBe("1");
   });
 
-  it("is a status region that is empty while idle and says the label while active", async () => {
+  it("is a status region that is empty while idle and says the label once the bar shows", async () => {
     const { root, region } = await render(<RouteProgress active={false} />);
     expect(region.getAttribute("role")).toBe("status");
     expect(region.textContent).toBe("");
@@ -94,37 +115,157 @@ describe("RouteProgress", () => {
     }
   });
 
-  it("fades in when a navigation starts and out when it ends, faster with reduced motion", async () => {
-    const { root, bar } = await render(<RouteProgress active={false} />);
-    expect(getComputedStyle(bar).opacity).toBe("0");
-    for (const reduced of [false, true]) {
-      await commands.emulateMedia({ reducedMotion: reduced ? "reduce" : "no-preference" });
-      const duration = token(reduced ? "--ouro-duration-fast" : "--ouro-duration-base");
-      flushSync(() => root.render(<RouteProgress active />));
-      await expectMotion(bar, { stem: "route-progress", state: "data-open", properties: { opacity: duration }, reduced });
-      expect(getComputedStyle(bar).opacity).toBe("1");
-      flushSync(() => root.render(<RouteProgress active={false} />));
-      await expectMotion(bar, { stem: "route-progress", state: "data-closed", properties: { opacity: duration }, reduced });
+  it("waits 150ms before it shows or speaks, so a fast navigation shows and says nothing", async () => {
+    const { root, region, bar } = await render(<RouteProgress active={false} />);
+    const announcements = watchAnnouncements();
+    fakeTimers();
+    try {
+      await act(async () => root.render(<RouteProgress active />));
+      await act(async () => vi.advanceTimersByTime(149));
+      expect(bar.hasAttribute("data-closed")).toBe(true);
+      expect(region.textContent).toBe("");
+      await act(async () => root.render(<RouteProgress active={false} />));
+      await act(async () => vi.advanceTimersByTime(5000));
+      expect(bar.hasAttribute("data-closed")).toBe(true);
       expect(getComputedStyle(bar).opacity).toBe("0");
+      expect(announcements.changes).toEqual([]);
+      // A slower one shows at 150ms and is heard once, however long it runs.
+      await act(async () => root.render(<RouteProgress active />));
+      await act(async () => vi.advanceTimersByTime(149));
+      expect(bar.hasAttribute("data-open")).toBe(false);
+      await act(async () => vi.advanceTimersByTime(1));
+      expect(bar.hasAttribute("data-open")).toBe(true);
+      await expect.poll(() => announcements.count("Loading")).toBe(1);
+      await act(async () => vi.advanceTimersByTime(10_000));
+      expect(announcements.changes).toHaveLength(1);
+    } finally {
+      announcements.stop();
     }
   });
 
-  it("sweeps while active and pauses while hidden; with reduced motion it stays still and pulses", async () => {
-    const { root, sweep } = await render(<RouteProgress active />);
-    expect(animationName(sweep)).toBe("ouro-progress");
-    expect(getComputedStyle(sweep).animationPlayState).toBe("running");
-    expect(sweep.getBoundingClientRect().width).toBeCloseTo(innerWidth / 3, 0);
-    await act(async () => root.render(<RouteProgress active={false} />));
-    expect(getComputedStyle(sweep).animationPlayState).toBe("paused");
-    await commands.emulateMedia({ reducedMotion: "reduce" });
+  it("trickles toward 90%, more slowly the nearer it gets, and never reaches it", async () => {
+    const { root, indicator } = await render(<RouteProgress active={false} />);
+    fakeTimers();
     await act(async () => root.render(<RouteProgress active />));
-    expect(animationName(sweep)).toBe("ouro-pulse");
-    expect(sweep.getBoundingClientRect().width).toBe(innerWidth);
-    // Only its opacity changes: nothing moves.
-    for (const animation of sweep.getAnimations()) {
-      const keys = (animation.effect as KeyframeEffect).getKeyframes().flatMap((frame) => Object.keys(frame));
-      expect(new Set(keys.filter((key) => !["offset", "computedOffset", "easing", "composite"].includes(key)))).toEqual(new Set(["opacity"]));
+    expect(progress(indicator)).toBe(0);
+    await act(async () => vi.advanceTimersByTime(150));
+    const values = [progress(indicator)];
+    expect(values[0]).toBeGreaterThan(0);
+    // Every two seconds for a minute.
+    for (let sample = 0; sample < 30; sample++) {
+      await act(async () => vi.advanceTimersByTime(2000));
+      values.push(progress(indicator));
     }
+    const steps = values.slice(1).map((value, index) => value - values[index]!);
+    for (const [index, step] of steps.entries()) {
+      expect(step, `sample ${index + 1}`).toBeGreaterThan(0);
+      if (index > 0) expect(step, `sample ${index + 1}`).toBeLessThan(steps[index - 1]!);
+    }
+    expect(values.at(-1)).toBeGreaterThan(0.85);
+    expect(values.at(-1)).toBeLessThan(0.9);
+    // The bar shows that much of the width once its step has run.
+    vi.useRealTimers();
+    await still(indicator);
+    expect(indicator.getBoundingClientRect().width / innerWidth).toBeCloseTo(values.at(-1)!, 2);
+  });
+
+  it("fades in and grows when it shows, fills to the end and fades out when the navigation ends; with reduced motion it only fades", async () => {
+    const { root, bar, indicator } = await render(<RouteProgress active={false} />);
+    expect(getComputedStyle(bar).opacity).toBe("0");
+    fakeTimers();
+    for (const reduced of [false, true]) {
+      await commands.emulateMedia({ reducedMotion: reduced ? "reduce" : "no-preference" });
+      const opacity = token(reduced ? "--ouro-duration-fast" : "--ouro-duration-base");
+      const scale = token("--ouro-duration-slow");
+      await act(async () => root.render(<RouteProgress active />));
+      flushSync(() => vi.advanceTimersByTime(150));
+      await Promise.all([
+        expectMotion(bar, { stem: "route-progress", state: "data-open", properties: { opacity }, reduced }),
+        reduced
+          ? expectNoMotion(indicator, { stem: "route-progress", state: "data-open", reduced })
+          : expectMotion(indicator, { stem: "route-progress", state: "data-open", properties: { scale }, reduced }),
+      ]);
+      expect(getComputedStyle(bar).opacity).toBe("1");
+      // With reduced motion the bar is whole and still from the start.
+      if (reduced) expect(indicator.getBoundingClientRect().width).toBe(innerWidth);
+      const closed = when(bar, "data-closed", () => {
+        // Full, it holds still while the bar fades.
+        expect(indicator.getAnimations()).toEqual([]);
+        return expectMotion(bar, { stem: "route-progress", state: "data-closed", properties: { opacity }, reduced });
+      });
+      flushSync(() => root.render(<RouteProgress active={false} />));
+      if (reduced) {
+        await expectNoMotion(indicator, { stem: "route-progress", state: "data-open", reduced });
+      } else {
+        await expectMotion(indicator, { stem: "route-progress", state: "data-open", properties: { scale }, reduced });
+        expect(indicator.getBoundingClientRect().width).toBe(innerWidth);
+      }
+      await closed;
+      expect(getComputedStyle(bar).opacity).toBe("0");
+      // Hidden, it empties for the next navigation.
+      await expect.poll(() => progress(indicator)).toBe(0);
+    }
+  });
+
+  it("carries on at once when a navigation starts while the last one finishes", async () => {
+    const { root, region, bar, indicator } = await render(<RouteProgress active={false} />);
+    fakeTimers();
+    await act(async () => root.render(<RouteProgress active />));
+    await act(async () => vi.advanceTimersByTime(150));
+    const start = progress(indicator);
+    // While it fills to the end.
+    await act(async () => root.render(<RouteProgress active={false} />));
+    expect(progress(indicator)).toBe(1);
+    expect(region.textContent).toBe("");
+    await act(async () => root.render(<RouteProgress active />));
+    expect(bar.hasAttribute("data-open")).toBe(true);
+    expect(region.textContent).toBe("Loading");
+    expect(progress(indicator)).toBe(start);
+    // The fill it started never ends it.
+    await still(indicator);
+    expect(bar.hasAttribute("data-open")).toBe(true);
+    // While it fades out.
+    const faded = new Promise<void>((resolve) => void when(bar, "data-closed", async () => resolve()));
+    await act(async () => root.render(<RouteProgress active={false} />));
+    await faded;
+    await act(async () => root.render(<RouteProgress active />));
+    expect(bar.hasAttribute("data-open")).toBe(true);
+    expect(region.textContent).toBe("Loading");
+    await still(bar);
+    expect(bar.hasAttribute("data-open")).toBe(true);
+    expect(getComputedStyle(bar).opacity).toBe("1");
+    await act(async () => vi.advanceTimersByTime(400));
+    expect(progress(indicator)).toBeGreaterThan(start);
+  });
+
+  it("fills from the start edge in either direction", async () => {
+    fakeTimers();
+    for (const dir of ["ltr", "rtl"] as const) {
+      const { host, root, indicator } = await render(<RouteProgress active={false} />);
+      host.dir = dir;
+      await act(async () => root.render(<RouteProgress active />));
+      await act(async () => vi.advanceTimersByTime(150));
+      await still(indicator);
+      const rect = indicator.getBoundingClientRect();
+      expect(rect.width).toBeGreaterThan(0);
+      expect(rect.width).toBeLessThan(innerWidth / 2);
+      if (dir === "ltr") expect(rect.left).toBe(0);
+      else expect(rect.right).toBe(innerWidth);
+    }
+  });
+
+  it("clears its timers when it unmounts, while it waits and while it trickles", async () => {
+    fakeTimers();
+    const waiting = await render(<RouteProgress active />);
+    expect(vi.getTimerCount()).toBe(1);
+    await act(async () => waiting.root.unmount());
+    expect(vi.getTimerCount()).toBe(0);
+    const trickling = await render(<RouteProgress active />);
+    await act(async () => vi.advanceTimersByTime(150));
+    expect(trickling.bar.hasAttribute("data-open")).toBe(true);
+    expect(vi.getTimerCount()).toBe(1);
+    await act(async () => trickling.root.unmount());
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it("forwards a ref and lets app layout classes win", async () => {
@@ -176,7 +317,9 @@ describe("RouteProgress development messages", () => {
     const html = renderToString(<RouteProgress active className="bg-red-500" />);
     expect(html).toContain('data-ouro="route-progress"');
     expect(html).toContain('role="status"');
-    expect(html).toContain("Loading");
+    // Hidden and silent: the bar waits on the client before it shows.
+    expect(html).toContain("data-closed");
+    expect(html).not.toContain("Loading");
     expect(warn).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
   });

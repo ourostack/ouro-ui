@@ -3154,6 +3154,7 @@
       ],
       "registryDependencies": [
         "ourostack/ouro-ui/lib-color-scheme",
+        "ourostack/ouro-ui/lib-color-scheme-script",
         "ourostack/ouro-ui/lib-color-scheme-script-tests",
         "ourostack/ouro-ui/ouro-testing"
       ],

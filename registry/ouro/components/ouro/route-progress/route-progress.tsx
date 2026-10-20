@@ -1,6 +1,6 @@
 "use client";
 
-import type { JSX, Ref } from "react";
+import { useEffect, useReducer, useRef, useState, type CSSProperties, type JSX, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -30,23 +30,72 @@ export interface RouteProgressProps {
 
 // Class strings are literal so the app's Tailwind finds them when it compiles.
 const rootClass = "pointer-events-none fixed inset-x-0 top-0 z-(--ouro-layer) block h-0.5 print:hidden";
-// The bar fades in and out; with reduced motion it fades faster and never sweeps.
+// The bar fades in and out; with reduced motion it fades faster.
 const barClass =
   "group absolute inset-0 overflow-hidden transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) data-closed:opacity-0 " +
   "motion-reduce:duration-(--ouro-duration-fast)";
-// A third of the width sweeps across, as an indeterminate Progress does, and pauses while hidden. With reduced motion it is a still bar that pulses.
-const sweepClass =
-  "h-full w-1/3 bg-primary animate-[ouro-progress_1.4s_ease-in-out_infinite] group-data-closed:[animation-play-state:paused] " +
-  "motion-reduce:w-full motion-reduce:animate-[ouro-pulse_1.6s_ease-in-out_infinite] forced-colors:bg-[CanvasText]";
+// The filled part grows from the start edge to --ouro-route-progress of the width, easing into each step while
+// the bar shows. With reduced motion it is the whole width and never grows.
+const indicatorClass =
+  "h-full w-full origin-left rtl:origin-right bg-primary scale-x-(--ouro-route-progress) " +
+  "motion-safe:group-data-open:transition-[scale] motion-safe:group-data-open:duration-(--ouro-duration-slow) motion-safe:group-data-open:ease-(--ouro-ease-out) " +
+  "motion-reduce:scale-x-100 forced-colors:bg-[CanvasText]";
+
+/** How long a navigation runs before the bar shows, so a fast one shows and says nothing. */
+const DELAY = 150;
+/** How often the bar creeps on while it shows. */
+const TRICKLE = 400;
+/** Where the bar starts, where it creeps toward, and the share of the rest it covers each step. */
+const START = 0.15;
+const LIMIT = 0.9;
+const STEP = 0.1;
+
+/**
+ * `idle`: hidden. `waiting`: a navigation runs, but not yet for DELAY. `loading`: shown and creeping
+ * on. `completing`: the navigation ended, and the bar fills to the end. `fading`: full, it fades out.
+ */
+type Phase = "idle" | "waiting" | "loading" | "completing" | "fading";
+interface State {
+  phase: Phase;
+  /** The share of the width the bar is filled to. */
+  value: number;
+}
+type Action = "activate" | "deactivate" | "show" | "tick" | "settled";
+
+function reduce(state: State, action: Action): State {
+  switch (action) {
+    case "activate":
+      // A navigation that starts while the last one's bar is still on screen carries on at once.
+      return state.phase === "idle" ? { phase: "waiting", value: 0 } : { phase: "loading", value: START };
+    case "deactivate":
+      return state.phase === "waiting" ? { phase: "idle", value: 0 } : { phase: "completing", value: 1 };
+    case "show":
+      return { phase: "loading", value: START };
+    case "tick":
+      return { phase: "loading", value: state.value + (LIMIT - state.value) * STEP };
+    case "settled":
+      // Filled, it fades out; faded, it empties for the next navigation.
+      return state.phase === "completing" ? { phase: "fading", value: 1 } : { phase: "idle", value: 0 };
+  }
+}
+
+/** Resolves once the element's transitions have ended, including any that started meanwhile. */
+async function settled(element: Element): Promise<void> {
+  for (let running = element.getAnimations(); running.length > 0; running = element.getAnimations()) {
+    await Promise.allSettled(running.map((animation) => animation.finished));
+  }
+}
 
 const fix = '<RouteProgress active={navigation.state !== "idle"} />';
 
 /**
  * The thin bar across the top of the screen while the app loads the next page or submits
  * a form, so a click that waits on the server never feels frozen: one global affordance
- * instead of a pending state on every action. A third of the bar sweeps across while
- * `active`, fades out when the navigation ends, and screen readers hear "Loading" once as
- * it starts. With reduced motion the bar stays still and pulses.
+ * instead of a pending state on every action. Once `active` has held for 150ms the bar
+ * fades in, and screen readers hear "Loading" once; a faster navigation shows and says
+ * nothing. While it shows, it creeps toward 90% of the width, more slowly the nearer it
+ * gets; when `active` turns false it fills to the end and fades out. With reduced motion
+ * it is the whole width from the start and only fades.
  *
  * Render it once, in the root layout, with your router's navigation state.
  *
@@ -90,12 +139,47 @@ export function RouteProgress(props: RouteProgressProps): JSX.Element {
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
+  const [{ phase, value: filled }, dispatch] = useReducer(reduce, active, (on): State => ({ phase: on ? "waiting" : "idle", value: 0 }));
+  // A change of `active` moves the phase in the same render, so the bar answers it at once.
+  const [seen, setSeen] = useState(active);
+  if (seen !== active) {
+    setSeen(active);
+    dispatch(active ? "activate" : "deactivate");
+  }
+  const barRef = useRef<HTMLDivElement>(null);
+  const indicatorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    switch (phase) {
+      case "waiting": {
+        const timer = setTimeout(() => dispatch("show"), DELAY);
+        return () => clearTimeout(timer);
+      }
+      case "loading": {
+        const timer = setInterval(() => dispatch("tick"), TRICKLE);
+        return () => clearInterval(timer);
+      }
+      case "completing":
+      case "fading": {
+        // Waits for the fill, or the fade, to end; a new navigation meanwhile cancels the wait.
+        let current = true;
+        void settled((phase === "completing" ? indicatorRef : barRef).current!).then(() => {
+          if (current) dispatch("settled");
+        });
+        return () => {
+          current = false;
+        };
+      }
+      default:
+        return undefined;
+    }
+  }, [phase]);
+  const shown = phase === "loading" || phase === "completing";
   return (
     // A status region that is always there, so screen readers hear the label when it appears in it.
     <div ref={ref} role="status" data-ouro="route-progress" className={cn(rootClass, className)}>
-      <span className="sr-only">{active ? label : ""}</span>
-      <div aria-hidden="true" data-ouro-part="bar" data-open={active ? "" : undefined} data-closed={active ? undefined : ""} className={barClass}>
-        <div className={sweepClass} />
+      <span className="sr-only">{phase === "loading" ? label : ""}</span>
+      <div ref={barRef} aria-hidden="true" data-ouro-part="bar" data-open={shown ? "" : undefined} data-closed={shown ? undefined : ""} className={barClass}>
+        <div ref={indicatorRef} data-ouro-part="indicator" className={indicatorClass} style={{ "--ouro-route-progress": filled } as CSSProperties} />
       </div>
     </div>
   );

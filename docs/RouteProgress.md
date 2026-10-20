@@ -2,7 +2,7 @@
 
 # RouteProgress
 
-The thin bar across the top of the screen while the app loads the next page or submits a form, so a click that waits on the server never feels frozen: one global affordance instead of a pending state on every action. A third of the bar sweeps across while `active`, fades out when the navigation ends, and screen readers hear "Loading" once as it starts. With reduced motion the bar stays still and pulses.
+The thin bar across the top of the screen while the app loads the next page or submits a form, so a click that waits on the server never feels frozen: one global affordance instead of a pending state on every action. Once `active` has held for 150ms the bar fades in, and screen readers hear "Loading" once; a faster navigation shows and says nothing. While it shows, it creeps toward 90% of the width, more slowly the nearer it gets; when `active` turns false it fills to the end and fades out. With reduced motion it is the whole width from the start and only fades.
 
 ```tsx
 import { RouteProgress } from "@/registry/ouro/components/ouro/route-progress/route-progress";
