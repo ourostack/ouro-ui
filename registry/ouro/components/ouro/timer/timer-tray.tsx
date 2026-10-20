@@ -72,7 +72,7 @@ function TrayRow({ item, words, silent, finalFocus }: TrayRowProps): JSX.Element
     const focused = row.contains(document.activeElement);
     const neighbour = row.nextElementSibling ?? row.previousElementSibling;
     if (focused) {
-      if (neighbour) neighbour.querySelector<HTMLElement>('[data-ouro-part="stop"]')!.focus();
+      if (neighbour) neighbour.querySelector<HTMLElement>('[data-ouro-control="timer-tray"][data-ouro-part="stop"]')!.focus();
       else (finalFocus?.current ?? row.closest<HTMLElement>('[data-ouro="timer-tray"]')!).focus();
     }
     timer.reset();
