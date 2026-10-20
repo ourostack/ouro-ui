@@ -17,12 +17,18 @@ const axeSource = readFileSync(createRequire(import.meta.url).resolve("axe-core/
  * a few seconds after load that the preload went unused. Chromium uses it; the warning is WebKit's.
  */
 const WEBKIT_UNUSED_FONT_PRELOAD = /^The resource \S+\/fonts\/[\w.-]+\.woff2 was preloaded using link preload but not used within a few seconds/;
+/**
+ * Chapter I's island is fetched with Vite's modulepreload hints for its imports; on a busy runner
+ * WebKit can judge a hint "unused" when the island's import lands after its few-second window,
+ * though the import then uses it.
+ */
+const WEBKIT_UNUSED_CHUNK_PRELOAD = /^The resource \S+\/assets\/[\w.-]+\.js was preloaded using link preload but not used within a few seconds/;
 
 function diagnostics(page: Page): string[] {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", (message) => {
-    if ((message.type() === "error" || message.type() === "warning") && !WEBKIT_UNUSED_FONT_PRELOAD.test(message.text())) errors.push(message.text());
+    if ((message.type() === "error" || message.type() === "warning") && !WEBKIT_UNUSED_FONT_PRELOAD.test(message.text()) && !WEBKIT_UNUSED_CHUNK_PRELOAD.test(message.text())) errors.push(message.text());
   });
   return errors;
 }

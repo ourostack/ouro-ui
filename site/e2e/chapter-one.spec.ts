@@ -369,9 +369,10 @@ test("without reduced motion, each part is lowered into place and the launched s
   await launchButton(page).click();
   // She slides off the ways and rocks to rest in the water, her wake and bubbles behind her.
   const ship = plan(page).locator(".bp-ship");
-  expect(await ship.evaluate((group) => group.getAnimations().map((animation) => (animation as CSSAnimation).animationName))).toContain("bp-slide");
+  await expect(ship).toHaveCSS("animation-name", "bp-slide");
+  await expect(plan(page).locator(".bp-wake path").first()).toHaveCSS("animation-name", "bp-wake");
+  await expect(plan(page).locator(".bp-bubbles circle").first()).toHaveCSS("animation-name", "bp-bubble");
   await expect.poll(() => ship.evaluate((group) => getComputedStyle(group).translate)).toBe("0px 10px");
-  expect(await plan(page).locator(".bp-wake path").first().evaluate((path) => path.getAnimations().length)).toBeGreaterThan(0);
   await expect(plan(page).locator(".bp-launch")).toHaveCSS("opacity", "1");
 });
 
