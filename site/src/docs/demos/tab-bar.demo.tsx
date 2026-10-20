@@ -11,8 +11,8 @@ const icon = (path: string) => (
 );
 
 export default function TabBarDemo(): JSX.Element {
-  // The demo's own "router": a tab click changes the current path instead of leaving the page.
-  const [path, setPath] = useState("/recipes");
+  // The demo's own "router": a tab click changes the current tab instead of leaving the page.
+  const [path, setPath] = useState("#recipes");
   return (
     // The frame's transform makes it the bar's containing block, so the fixed bar sits at the frame's foot, not the page's.
     <div
@@ -30,11 +30,11 @@ export default function TabBarDemo(): JSX.Element {
         hideFrom="never"
         currentPath={path}
         items={[
-          { label: "Home", href: "/", icon: icon("M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z") },
-          { label: "Recipes", href: "/recipes", icon: icon("M4 19.5V4.5A1.5 1.5 0 0 1 5.5 3H20v16H5.5a1.5 1.5 0 0 0 0 3H20") },
-          { label: "Shopping", href: "/shopping-list", icon: icon("M6 7h12l-1 14H7zM9 7a3 3 0 0 1 6 0") },
+          { label: "Home", href: "#home", icon: icon("M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z") },
+          { label: "Recipes", href: "#recipes", icon: icon("M4 19.5V4.5A1.5 1.5 0 0 1 5.5 3H20v16H5.5a1.5 1.5 0 0 0 0 3H20") },
+          { label: "Shopping", href: "#shopping", icon: icon("M6 7h12l-1 14H7zM9 7a3 3 0 0 1 6 0") },
         ]}
-        accessory={{ label: "Search", href: "/search", icon: icon("M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM21 21l-5-5") }}
+        accessory={{ label: "Search", href: "#search", icon: icon("M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM21 21l-5-5") }}
       />
     </div>
   );
