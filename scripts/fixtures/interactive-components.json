@@ -54,6 +54,13 @@
   "message-list",
   "attachment",
   "inspector",
+  "skip-link",
+  "tab-bar",
+  "color-scheme-toggle",
+  "copy-button",
+  "code-block",
+  "timer",
+  "timer-tray",
   "choice-card",
   "image-cropper",
   "image-field"

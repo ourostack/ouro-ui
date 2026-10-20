@@ -1,0 +1,1 @@
+- New: `CopyButton`, a button that copies a value to the clipboard, says "Copied" for two seconds and announces it once to screen readers; it falls back to a text selection where the Clipboard API is unavailable.

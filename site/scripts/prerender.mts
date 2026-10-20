@@ -23,7 +23,7 @@ const { render, routes, docsItems, docsPages, publishedMarkdown, headTags, pageK
   headTags: (route: Route, canonical: boolean) => string[];
   routes: Route[];
   docsItems: Array<{ name: string; title: string }>;
-  docsPages: Array<{ name: string; title: string; file: string; markdown: string }>;
+  docsPages: Array<{ name: string; title: string; file: string }>;
   publishedMarkdown: (markdown: string, from: string) => string;
 };
 
@@ -100,7 +100,7 @@ for (const item of docsItems) {
   writeFileSync(join(dist, "docs", `${item.name}.md`), publishedMarkdown(readFileSync(join(repo, from), "utf8"), from));
 }
 // The guides (docs/guides) and the exports with no item of their own (Radio, OuroProvider).
-for (const page of docsPages) writeFileSync(join(dist, "docs", `${page.name}.md`), publishedMarkdown(page.markdown, page.file));
+for (const page of docsPages) writeFileSync(join(dist, "docs", `${page.name}.md`), publishedMarkdown(readFileSync(join(repo, page.file), "utf8"), page.file));
 writeFileSync(join(dist, "docs", "parts.md"), publishedMarkdown(readFileSync(join(repo, "docs", "parts.md"), "utf8"), "docs/parts.md"));
 
 // The built site must have a page at every docs URL the registry advertises.
