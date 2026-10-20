@@ -404,28 +404,6 @@
 .stage-scene[data-speed="stop"] .stage-wake {
   opacity: 0;
 }
-@media (prefers-reduced-motion: no-preference) {
-  .stage-wake circle {
-    animation: stage-wake 1.6s linear var(--wake-delay) infinite;
-  }
-  .stage-scene[data-speed="full"] .stage-wake circle {
-    animation-duration: 0.8s;
-  }
-  .stage[data-offscreen] .stage-wake circle,
-  .stage-scene[data-speed="stop"] .stage-wake circle {
-    animation-play-state: paused;
-  }
-}
-@keyframes stage-wake {
-  from {
-    transform: translateX(0);
-    opacity: 0.9;
-  }
-  to {
-    transform: translateX(-46px);
-    opacity: 0;
-  }
-}
 .n-outline {
   fill: none;
   stroke: color-mix(in oklab, var(--foreground) 45%, transparent);

@@ -62,9 +62,12 @@ test.describe("interaction latency", () => {
       const samples: number[] = [];
       // Two rounds to warm up (the first press of anything compiles code), then ten that count.
       // Setting up a press runs at full speed: it isn't what's measured.
+      // Its tail (the porthole's deferred repaint) finishes at full speed too, so a
+      // press is measured from a settled stage, as a person's would be a beat later.
       const unthrottled = async (setUp: () => Promise<unknown>) => {
         await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
         await setUp();
+        await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 100)))));
         await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
       };
       if (id === "log") await unthrottled(() => page.getByRole("radio", { name: "Full" }).click());

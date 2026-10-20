@@ -267,7 +267,11 @@ const Ship = memo(function Ship(): JSX.Element {
   );
 });
 
-/** The screw's wake: a trail of small bubbles streaming aft, so which way she sails is plain. */
+/**
+ * The screw's wake: a trail of small bubbles fading aft, so which way she sails is plain. Still, not
+ * animated: a moving SVG shape beside the hull repaints the hull, the beam and the glass every frame,
+ * and that frame budget belongs to the controls (stage.latency.spec.ts).
+ */
 const WAKE: ReadonlyArray<[number, number, number]> = [
   [10, 44, 1.8], [2, 50, 1.2], [-6, 40, 1.4], [-14, 48, 1], [-22, 43, 1.3], [-30, 50, 0.9],
 ];
@@ -275,7 +279,7 @@ const Wake = memo(function Wake(): JSX.Element {
   return (
     <g className="stage-wake" aria-hidden="true">
       {WAKE.map(([x, y, r], index) => (
-        <circle key={index} cx={x} cy={y} r={r} style={{ "--wake-delay": `${index * -0.35}s` } as CSSProperties} />
+        <circle key={index} cx={x} cy={y} r={r} opacity={0.9 - index * 0.13} />
       ))}
     </g>
   );

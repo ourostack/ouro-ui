@@ -147,8 +147,10 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
   const onBell = useStable(() => {
     const line = BELL_TOASTS[rings % BELL_TOASTS.length]!;
     setRings((count) => count + 1);
-    toast(`${line.name}: ${line.text}`);
     write(LOG.bell);
+    // The crew answers once the bell has swung: the toast stack measures and re-lays itself out, so
+    // it waits for the press's own paint rather than holding it up.
+    requestAnimationFrame(() => setTimeout(() => toast(`${line.name}: ${line.text}`)));
   });
 
   // The picture follows the controls a frame later: a press repaints its own control first, then
