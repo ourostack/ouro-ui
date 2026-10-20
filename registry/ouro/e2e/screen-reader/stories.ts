@@ -8,9 +8,14 @@ import { fileURLToPath } from "node:url";
  */
 export const storyIds = {
   checkbox: "forms-checkbox--playground",
+  celebrate: "feedback-celebrate--in-context",
   checklist: "lists-checklist--in-context",
+  colorSchemeToggle: "actions-colorschemetoggle--segmented",
   dialog: "overlays-dialog--playground",
+  routeProgress: "feedback-routeprogress--in-context",
   select: "forms-select--playground",
+  syncStatus: "feedback-syncstatus--in-context",
+  timer: "feedback-timer--short",
   toast: "feedback-toast--playground",
 } as const;
 

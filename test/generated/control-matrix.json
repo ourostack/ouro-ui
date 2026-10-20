@@ -1950,5 +1950,307 @@
       "Inspector/Playground",
       "Inspector/InContext"
     ]
+  },
+  {
+    "item": "skip-link",
+    "stem": "skip-link",
+    "mode": "default",
+    "part": "root",
+    "role": "link",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "SkipLink/Playground",
+      "SkipLink/InContext"
+    ]
+  },
+  {
+    "item": "tab-bar",
+    "stem": "tab-bar",
+    "mode": "default",
+    "part": "tab",
+    "role": "link",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "TabBar/Playground",
+      "TabBar/InContext"
+    ]
+  },
+  {
+    "item": "tab-bar",
+    "stem": "tab-bar",
+    "mode": "default",
+    "part": "accessory",
+    "role": "link",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "TabBar/Playground",
+      "TabBar/InContext"
+    ]
+  },
+  {
+    "item": "color-scheme-toggle",
+    "stem": "color-scheme-toggle",
+    "mode": "menu",
+    "part": "trigger",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "ColorSchemeToggle/Playground",
+      "ColorSchemeToggle/InContext"
+    ]
+  },
+  {
+    "item": "copy-button",
+    "stem": "copy-button",
+    "mode": "default",
+    "part": "trigger",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "CopyButton/Playground",
+      "CopyButton/InContext"
+    ]
+  },
+  {
+    "item": "code-block",
+    "stem": "code-block",
+    "mode": "default",
+    "part": "code",
+    "role": "generic",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "CodeBlock/Playground",
+      "CodeBlock/InContext",
+      "CodeBlock/Wrapped"
+    ]
+  },
+  {
+    "item": "code-block",
+    "stem": "code-block",
+    "mode": "default",
+    "part": "copy",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "CodeBlock/Playground",
+      "CodeBlock/InContext",
+      "CodeBlock/Wrapped"
+    ]
+  },
+  {
+    "item": "timer",
+    "stem": "timer",
+    "mode": "default",
+    "part": "primary",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Timer/Playground",
+      "Timer/InContext",
+      "Timer/Paused",
+      "Timer/Finished",
+      "Timer/Short"
+    ]
+  },
+  {
+    "item": "timer",
+    "stem": "timer",
+    "mode": "default",
+    "part": "secondary",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Timer/Playground",
+      "Timer/InContext",
+      "Timer/Paused",
+      "Timer/Finished",
+      "Timer/Short"
+    ]
+  },
+  {
+    "item": "timer-tray",
+    "stem": "timer-tray",
+    "mode": "default",
+    "part": "go-to",
+    "role": "link",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "TimerTray/Playground",
+      "TimerTray/InContext"
+    ]
+  },
+  {
+    "item": "timer-tray",
+    "stem": "timer-tray",
+    "mode": "default",
+    "part": "stop",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "TimerTray/Playground",
+      "TimerTray/InContext"
+    ]
+  },
+  {
+    "item": "choice-card",
+    "stem": "choice-card",
+    "mode": "default",
+    "part": "input",
+    "role": "radio",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "ChoiceCard/Playground",
+      "ChoiceCard/InContext",
+      "ChoiceCard/Invalid"
+    ]
+  },
+  {
+    "item": "image-cropper",
+    "stem": "image-cropper",
+    "mode": "default",
+    "part": "area",
+    "role": "application",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "ImageCropper/Playground",
+      "ImageCropper/InContext",
+      "ImageCropper/Wide"
+    ]
+  },
+  {
+    "item": "image-cropper",
+    "stem": "image-cropper",
+    "mode": "default",
+    "part": "cancel",
+    "role": "button",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "ImageCropper/Playground",
+      "ImageCropper/InContext",
+      "ImageCropper/Wide"
+    ]
+  },
+  {
+    "item": "image-cropper",
+    "stem": "image-cropper",
+    "mode": "default",
+    "part": "save",
+    "role": "button",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "ImageCropper/Playground",
+      "ImageCropper/InContext",
+      "ImageCropper/Wide"
+    ]
+  },
+  {
+    "item": "image-field",
+    "stem": "image-field",
+    "mode": "default",
+    "part": "input",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "ImageField/Playground",
+      "ImageField/InContext",
+      "ImageField/Invalid"
+    ]
+  },
+  {
+    "item": "image-field",
+    "stem": "image-field",
+    "mode": "default",
+    "part": "choose",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "ImageField/Playground",
+      "ImageField/InContext",
+      "ImageField/Invalid"
+    ]
+  },
+  {
+    "item": "image-field",
+    "stem": "image-field",
+    "mode": "default",
+    "part": "remove",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "ImageField/Playground",
+      "ImageField/InContext",
+      "ImageField/Invalid"
+    ]
+  },
+  {
+    "item": "share-button",
+    "stem": "share-button",
+    "mode": "default",
+    "part": "trigger",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "ShareButton/Playground",
+      "ShareButton/InContext"
+    ]
+  },
+  {
+    "item": "sync-status",
+    "stem": "sync-status",
+    "mode": "default",
+    "part": "retry",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "SyncStatus/Playground",
+      "SyncStatus/States",
+      "SyncStatus/InContext"
+    ]
+  },
+  {
+    "item": "install-prompt",
+    "stem": "install-prompt",
+    "mode": "default",
+    "part": "install",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "InstallPrompt/Playground",
+      "InstallPrompt/InContext"
+    ]
+  },
+  {
+    "item": "install-prompt",
+    "stem": "install-prompt",
+    "mode": "default",
+    "part": "dismiss",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "InstallPrompt/Playground",
+      "InstallPrompt/InContext"
+    ]
   }
 ]

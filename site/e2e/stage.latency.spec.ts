@@ -1,12 +1,12 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { STAGE_CONTROLS, STAGE_COPY, TANKS } from "../src/voyage/stage/copy";
+import { LATENCY, expectWithinBudget, measure, medianCeiling, type Presses } from "./latency";
 
-// Each stage control answers within 100 ms, click to next paint (p95 of 10 after two warm-up
-// presses), on a CPU throttled 4× (site-design.md, "Verification in CI"). Run alone, one worker, by
-// `pnpm test:latency` (playwright.latency.config.ts) and CI's latency job: beside other workers the
-// runner's CPU is shared and the numbers measure the neighbours. Every press must happen, and produce
-// an Event Timing entry unless it took under 16 ms (the API's floor); neither is a broken
-// measurement, and fails.
+// Each stage control answers within budget, click to next paint, on a slower CPU: latency.ts holds
+// the budget (of 20 presses after two warm-ups at 4× throttle, the p95 within 100 ms and the median
+// within its ceiling from the baselines below) and the measurement. Run
+// alone, one worker, by `pnpm test:latency` (playwright.latency.config.ts) and CI's latency job:
+// beside other workers the runner's CPU is shared and the numbers measure the neighbours.
 
 async function open(page: Page): Promise<void> {
   await page.goto("voyage/");
@@ -20,78 +20,67 @@ async function fillTanks(page: Page): Promise<void> {
   for (const { name } of TANKS) await tank(page, name).click();
 }
 
-/** How many interactions the page has had (Event Timing's count, which has no duration floor). */
-const interactionCount = (page: Page) => page.evaluate(() => (performance as Performance & { interactionCount: number }).interactionCount);
+/**
+ * Each control's baseline: the highest median, in ms, of six CI runs of this spec (#134, 2026-10-20;
+ * every run prints its samples). Re-measure and update a control's line when a change makes it
+ * faster or knowingly slower.
+ */
+const BASELINE_MEDIAN: Record<(typeof STAGE_CONTROLS)[number], number> = {
+  xray: 64,
+  depth: 72,
+  speed: 48,
+  "tank-fore": 56,
+  "tank-middle": 56,
+  "tank-aft": 56,
+  dive: 64,
+  lights: 56,
+  log: 48,
+  bell: 40,
+};
 
 test.describe("interaction latency", () => {
   test.skip(({ browserName }) => browserName !== "chromium", "CPU throttling is a Chromium DevTools feature");
 
-  /** Each control's interaction, repeatable ten times in a row. */
-  const interactions: Record<(typeof STAGE_CONTROLS)[number], (page: Page, round: number) => Promise<Locator | void>> = {
-    xray: (page) => page.locator("[data-stage-control='xray']").getByRole("button", { name: STAGE_COPY.xray }).click(),
-    depth: async (page, round) => {
-      await page.getByRole("slider", { name: STAGE_COPY.depth }).focus();
-      await page.keyboard.press(round % 2 ? "ArrowLeft" : "ArrowRight");
-    },
-    "tank-fore": (page) => tank(page, TANKS[0].name).click(),
-    "tank-middle": (page) => tank(page, TANKS[1].name).click(),
-    "tank-aft": (page) => tank(page, TANKS[2].name).click(),
-    dive: async (page, round) => {
-      if (round % 2 === 0) await diveButton(page).click();
-      else await page.getByRole("button", { name: STAGE_COPY.surface, exact: true }).click();
-    },
-    speed: (page, round) => page.getByRole("radio", { name: round % 2 ? "Half" : "Full" }).click(),
-    lights: (page) => page.getByRole("switch", { name: STAGE_COPY.lights }).click(),
-    log: (page) => page.getByRole("button", { name: /^Ship's log \(/ }).click(),
-    bell: (page) => page.getByRole("button", { name: STAGE_COPY.bell }).click(),
+  /** Each control's presses, repeatable as many times in a row as the budget measures. */
+  const controls: Record<(typeof STAGE_CONTROLS)[number], (page: Page) => Presses> = {
+    // X-ray's press turns it on; switching it off again is set-up.
+    xray: (page) => ({
+      press: () => page.locator("[data-stage-control='xray']").getByRole("button", { name: STAGE_COPY.xray }).click(),
+      setUp: async (index) => {
+        if (index > 0) await page.getByRole("switch", { name: "X-ray" }).click();
+      },
+    }),
+    depth: (page) => ({
+      press: async (index) => {
+        await page.getByRole("slider", { name: STAGE_COPY.depth }).focus();
+        await page.keyboard.press(index % 2 ? "ArrowLeft" : "ArrowRight");
+      },
+    }),
+    "tank-fore": (page) => ({ press: () => tank(page, TANKS[0].name).click() }),
+    "tank-middle": (page) => ({ press: () => tank(page, TANKS[1].name).click() }),
+    "tank-aft": (page) => ({ press: () => tank(page, TANKS[2].name).click() }),
+    // Dive, then Surface (which empties the tanks), so each Dive needs the tanks filled first.
+    dive: (page) => ({
+      press: (index) => (index % 2 === 0 ? diveButton(page) : page.getByRole("button", { name: STAGE_COPY.surface, exact: true })).click(),
+      setUp: async (index) => {
+        if (index % 2 === 0) await fillTanks(page);
+      },
+    }),
+    speed: (page) => ({ press: (index) => page.getByRole("radio", { name: index % 2 ? "Half" : "Full" }).click() }),
+    lights: (page) => ({ press: () => page.getByRole("switch", { name: STAGE_COPY.lights }).click() }),
+    // The fold holds lines once something has happened.
+    log: (page) => ({
+      prepare: () => page.getByRole("radio", { name: "Full" }).click(),
+      press: () => page.getByRole("button", { name: /^Ship's log \(/ }).click(),
+    }),
+    bell: (page) => ({ press: () => page.getByRole("button", { name: STAGE_COPY.bell }).click() }),
   };
 
   for (const id of STAGE_CONTROLS) {
-    test(`${id} answers within 100 ms (p95 of 10) on a 4× slower CPU`, async ({ page }) => {
+    test(`${id} answers within ${LATENCY.p95} ms (p95 of ${LATENCY.samples}, median within ${medianCeiling(BASELINE_MEDIAN[id])} ms) on a ${LATENCY.throttle}× slower CPU`, async ({ page }) => {
       await page.setViewportSize({ width: 1440, height: 900 });
       await open(page);
-      await page.evaluate(() => {
-        const store: number[] = [];
-        (window as unknown as { __latency: number[] }).__latency = store;
-        new PerformanceObserver((list) => {
-          for (const entry of list.getEntries() as PerformanceEventTiming[]) if (entry.interactionId) store.push(entry.duration);
-        }).observe({ type: "event", durationThreshold: 16, buffered: false } as PerformanceObserverInit);
-      });
-      const cdp = await page.context().newCDPSession(page);
-      await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
-      const samples: number[] = [];
-      // Two rounds to warm up (the first press of anything compiles code), then ten that count.
-      // Setting up a press runs at full speed: it isn't what's measured.
-      // Its tail (the porthole's deferred repaint) finishes at full speed too, so a
-      // press is measured from a settled stage, as a person's would be a beat later.
-      const unthrottled = async (setUp: () => Promise<unknown>) => {
-        await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
-        await setUp();
-        await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 100)))));
-        await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
-      };
-      if (id === "log") await unthrottled(() => page.getByRole("radio", { name: "Full" }).click());
-      for (let round = -2; round < 10; round++) {
-        if (id === "dive" && (round + 2) % 2 === 0) await unthrottled(() => fillTanks(page));
-        if (id === "xray" && round > -2) await unthrottled(() => page.getByRole("switch", { name: "X-ray" }).click());
-        await page.evaluate(() => ((window as unknown as { __latency: number[] }).__latency.length = 0));
-        const before = await interactionCount(page);
-        await interactions[id](page, round + 2);
-        await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 50)))));
-        const durations = await page.evaluate(() => (window as unknown as { __latency: number[] }).__latency);
-        // Event Timing reports nothing under 16 ms (its durationThreshold floor), so no entry can
-        // mean a fast press. The browser's interaction count says whether the press happened: if it
-        // did, it counts as 16 ms; if neither it nor an entry is there, the measurement is broken.
-        const pressed = (await interactionCount(page)) > before;
-        expect(durations.length > 0 || pressed, `${id}, round ${round}: the press happened and Event Timing saw it or it was under 16 ms`).toBe(true);
-        if (round >= 0) samples.push(durations.length > 0 ? Math.max(...durations) : 16);
-        await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.());
-      }
-      await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
-      const sorted = samples.toSorted((a, b) => a - b);
-      const p95 = sorted[Math.ceil(sorted.length * 0.95) - 1]!;
-      test.info().annotations.push({ type: "latency", description: `${id}: p95 ${p95} ms (${samples.join(", ")})` });
-      expect(p95, `${id} samples: ${samples.join(", ")}`).toBeLessThanOrEqual(100);
+      expectWithinBudget(id, await measure(page, id, controls[id](page)), BASELINE_MEDIAN[id]);
     });
   }
 });

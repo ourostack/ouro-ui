@@ -1,0 +1,14 @@
+{
+  "order": 2300,
+  "components": ["timer", "timer-tray"],
+  "controls": {
+    "timer": [
+      {"part": "primary", "role": "button", "portal": false},
+      {"part": "secondary", "role": "button", "portal": false}
+    ],
+    "timer-tray": [
+      {"part": "go-to", "role": "link", "portal": false},
+      {"part": "stop", "role": "button", "portal": false}
+    ]
+  }
+}

@@ -4,6 +4,8 @@ import { resolve } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import { pressTab } from "../../registry/ouro/e2e/ouro/story";
 import { PRESET_NAMES, THEME_KEY } from "../src/themes/prepaint";
+import { LOG, STAGE_COPY, TANKS } from "../src/voyage/stage/copy";
+import { diagnostics } from "./diagnostics";
 
 // The voyage preview against the production build (site-design.md, "Verification in CI"): the
 // stored theme paints before any JavaScript, every preset passes axe in light and dark, the page
@@ -11,21 +13,6 @@ import { PRESET_NAMES, THEME_KEY } from "../src/themes/prepaint";
 // motion, loads only the fonts it shows, and the header works from the keyboard.
 
 const axeSource = readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
-
-/**
- * WebKit fetches a preloaded font again for its @font-face instead of using the preload, then warns
- * a few seconds after load that the preload went unused. Chromium uses it; the warning is WebKit's.
- */
-const WEBKIT_UNUSED_FONT_PRELOAD = /^The resource \S+\/fonts\/[\w.-]+\.woff2 was preloaded using link preload but not used within a few seconds/;
-
-function diagnostics(page: Page): string[] {
-  const errors: string[] = [];
-  page.on("pageerror", (error) => errors.push(error.message));
-  page.on("console", (message) => {
-    if ((message.type() === "error" || message.type() === "warning") && !WEBKIT_UNUSED_FONT_PRELOAD.test(message.text())) errors.push(message.text());
-  });
-  return errors;
-}
 
 async function store(page: Page, value: { preset?: string; mode?: string }): Promise<void> {
   await page.addInitScript(([key, json]) => localStorage.setItem(key, json), [THEME_KEY, JSON.stringify(value)] as const);
@@ -130,7 +117,10 @@ test("keeps every control's boundary under forced colours", async ({ page }) => 
   await page.setViewportSize({ width: 1440, height: 900 });
   await open(page);
   // The ship's log shows its newest line only once something happens, so make something happen.
+  // The stage writes that line in a transition, after the switch's own paint, so the click
+  // returns before it; scan once the line (and its message list) is on screen.
   await page.getByRole("switch", { name: "Forward tank", exact: true }).click();
+  await expect(page.getByRole("region", { name: `${STAGE_COPY.log}, newest line`, exact: true })).toContainText(LOG.tankFull(TANKS[0].noun, 1).text);
   const bare = await page.evaluate(() =>
     [...document.querySelectorAll<HTMLElement>("main [data-ouro-control], header [data-ouro-control]")]
       .filter((element) => element.checkVisibility() && element.getBoundingClientRect().width > 1)

@@ -1,0 +1,1 @@
+- New: `TimerTray`, the timers that are running, paused or finished in one strip, with Go to and Cancel or Dismiss; it hides itself while none are, and alerts at zero when the timer's own screen is gone.

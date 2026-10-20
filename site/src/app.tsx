@@ -9,15 +9,23 @@ export type PageComponent = (props: { path: string }) => JSX.Element;
  * only their own JavaScript (site/e2e/catalog.spec.ts measures each closure). The client entry
  * loads the module after the server HTML has painted, then hydrates.
  */
-const modules: Record<PageKind, () => Promise<{ default: PageComponent }>> = {
+/** A page module: its component and, if it has one, what it loads before it renders (a docs page's Markdown). */
+interface PageModule {
+  default: PageComponent;
+  prepare?: (path: string) => Promise<void>;
+}
+
+const modules: Record<PageKind, () => Promise<PageModule>> = {
   landing: () => import("./pages/landing"),
   voyage: () => import("./pages/voyage"),
   docs: () => import("./pages/docs"),
 };
 
-/** The component that renders a path, from its page module. */
+/** The component that renders a path, from its page module, once the module has loaded what the path's page needs. */
 export async function loadPage(path: string): Promise<PageComponent> {
-  return (await modules[pageKind(path)]()).default;
+  const page = await modules[pageKind(path)]();
+  await page.prepare?.(path);
+  return page.default;
 }
 
 /** The page for a site path (relative to the base). The server prerenders it; the client hydrates the same tree. */

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page } from "vitest/browser";
 import { cleanupPage, describeViolations, renderPage, scan, setScheme, settle } from "../test/render";
 import { latestRelease, upgrading } from "./release";
-import { docsItems, summary } from "./docs/items";
+import { docsItems, itemMarkdown, summary } from "./docs/items";
 import { docsPages } from "./docs/pages";
 import { unpinnedAddresses } from "../../scripts/addresses.mjs";
 import { parse } from "./docs/markdown";
@@ -165,9 +165,9 @@ describe("docs", () => {
   it("documents toast() on the Toaster page, after the component", async () => {
     await renderPage("/docs/toaster/");
     await expect.element(page.getByRole("heading", { name: "toast()", level: 2 })).toBeVisible();
-    const toaster = docsItems.find((item) => item.name === "toaster")!;
-    expect(toaster.markdown.indexOf("## toast()")).toBeGreaterThan(toaster.markdown.indexOf("# Toaster"));
-    expect(toaster.markdown).not.toMatch(/^# toast$/m);
+    const toaster = itemMarkdown(docsItems.find((item) => item.name === "toaster")!);
+    expect(toaster.indexOf("## toast()")).toBeGreaterThan(toaster.indexOf("# Toaster"));
+    expect(toaster).not.toMatch(/^# toast$/m);
   });
 
   it("has the Switching from shadcn and Updating pages", async () => {

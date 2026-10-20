@@ -6,9 +6,10 @@ import { CodeBlock, Command, InlineCode } from "../components/code";
 import { DocsShell } from "../components/layout";
 import { LiveDemo } from "../components/live-demo";
 import { siteGroups } from "../../../scripts/catalog-groups.mts";
-import { docsItems, GITHUB, installedPaths, partsSection, summary, type DocsItem } from "../docs/items";
+import { loadMarkdown } from "../docs/content";
+import { docsItems, GITHUB, installedPaths, itemFiles, itemMarkdown, partsSection, type DocsItem } from "../docs/items";
 import { inline, Markdown, parse, type Block } from "../docs/markdown";
-import { docsPages, exportPages, guidePages, publishedName, type DocsPage } from "../docs/pages";
+import { docsPages, exportPages, guidePages, pageMarkdown, publishedName, type DocsPage } from "../docs/pages";
 import { href, routeFor } from "../routes";
 import { latestRelease, upgrading } from "../release";
 
@@ -28,7 +29,7 @@ function PageTitle({ eyebrow, title, lead }: { eyebrow: string; title: string; l
 
 /** The generated page's blocks, split into its purpose, its import line and the rest. */
 function pageBlocks(item: DocsItem): { purpose: string; importLine: string; body: Block[] } {
-  const blocks = parse(installedPaths(item.markdown));
+  const blocks = parse(installedPaths(itemMarkdown(item)));
   const [, purpose, importBlock, ...rest] = blocks;
   if (purpose?.kind !== "paragraph" || importBlock?.kind !== "code") throw new Error(`docs/${item.title}.md changed shape`);
   // The "Parts" section links to docs/parts.md; the site shows that nesting in place.
@@ -115,7 +116,7 @@ function siteLink(target: string, from: string): string {
  * item of its own (Radio, OuroProvider). Links between Markdown files go to the site's pages.
  */
 export function DocsPageView({ page }: { page: DocsPage }): JSX.Element {
-  const [, lead, ...body] = parse(installedPaths(page.markdown));
+  const [, lead, ...body] = parse(installedPaths(pageMarkdown(page)));
   if (lead?.kind !== "paragraph") throw new Error(`${page.file} must start with a title and a one-paragraph summary`);
   const link = (target: string) => siteLink(target, page.file);
   return (
@@ -160,7 +161,7 @@ export function DocsIndex(): JSX.Element {
                 <li key={item.name}>
                   <a href={href(`/docs/${item.name}/`)} className={card}>
                     <span className="font-medium text-foreground">{item.title}</span>
-                    <span className="text-sm leading-6 text-muted-foreground">{inline(summary(item.markdown))}</span>
+                    <span className="text-sm leading-6 text-muted-foreground">{inline(item.summary)}</span>
                   </a>
                 </li>
               ))}
@@ -193,7 +194,7 @@ export function DocsIndex(): JSX.Element {
             <li key={page.name}>
               <a href={href(`/docs/${page.name}/`)} className={card}>
                 <span className="font-medium text-foreground">{page.title}</span>
-                <span className="text-sm leading-6 text-muted-foreground">{inline(summary(page.markdown.replace(/^# .*$/m, "")))}</span>
+                <span className="text-sm leading-6 text-muted-foreground">{inline(page.summary)}</span>
               </a>
             </li>
           ))}
@@ -373,14 +374,28 @@ export function NotFound(): JSX.Element {
   );
 }
 
+/** The component's or the page's entry for a path, if it is one's page. */
+function docFor(path: string): { item: DocsItem } | { page: DocsPage } | undefined {
+  const route = routeFor(path)?.path;
+  const item = docsItems.find((doc) => route === `/docs/${doc.name}/`);
+  if (item) return { item };
+  const page = docsPages.find((doc) => route === `/docs/${doc.name}/`);
+  return page ? { page } : undefined;
+}
+
+/** Loads the Markdown a path's page shows, before it renders or hydrates (`loadPage` calls it). */
+export async function prepare(path: string): Promise<void> {
+  const doc = docFor(path);
+  if (doc) await loadMarkdown("item" in doc ? itemFiles(doc.item) : [doc.page.file]);
+}
+
 /** The docs module's page for a path: the index, a guide, a component's page, or Not found. */
 export default function DocsRoute({ path }: { path: string }): JSX.Element {
   const route = routeFor(path)?.path;
   if (route === "/docs/") return <DocsIndex />;
   if (route === "/docs/switching-from-shadcn/") return <Switching />;
   if (route === "/docs/updating/") return <Updating />;
-  const item = docsItems.find((doc) => route === `/docs/${doc.name}/`);
-  if (item) return <DocsComponent item={item} />;
-  const page = docsPages.find((doc) => route === `/docs/${doc.name}/`);
-  return page ? <DocsPageView page={page} /> : <NotFound />;
+  const doc = docFor(path);
+  if (doc && "item" in doc) return <DocsComponent item={doc.item} />;
+  return doc ? <DocsPageView page={doc.page} /> : <NotFound />;
 }

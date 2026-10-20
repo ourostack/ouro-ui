@@ -53,5 +53,18 @@
   "chart",
   "message-list",
   "attachment",
-  "inspector"
+  "inspector",
+  "skip-link",
+  "tab-bar",
+  "color-scheme-toggle",
+  "copy-button",
+  "code-block",
+  "timer",
+  "timer-tray",
+  "choice-card",
+  "image-cropper",
+  "image-field",
+  "share-button",
+  "sync-status",
+  "install-prompt"
 ]

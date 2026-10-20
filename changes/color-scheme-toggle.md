@@ -1,0 +1,1 @@
+- New: `ColorSchemeToggle`, the light, dark and system switch (an icon button with a menu, or segmented), with `ColorSchemeProvider`, `useColorScheme` and `colorSchemeScript` (lib `color-scheme` and `color-scheme-script`), which keep the choice and set it before the first paint.

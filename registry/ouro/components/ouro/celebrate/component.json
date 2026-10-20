@@ -1,0 +1,18 @@
+{
+  "order": 2310,
+  "components": ["celebrate"],
+  "motion": {
+    "celebrate": {
+      "states": {
+        "data-open": {
+          "kind": "motion",
+          "parts": {
+            "piece": {"properties": ["opacity", "transform"], "reduced": []},
+            "message": {"properties": ["opacity"], "reduced": ["opacity"]}
+          },
+          "tests": ["registry/ouro/components/ouro/celebrate/celebrate.test.tsx::Celebrate > bursts its pieces outward and fades in its message, and with reduced motion only fades the message in"]
+        }
+      }
+    }
+  }
+}
