@@ -132,13 +132,31 @@ describe("ImageField", () => {
     await expect.element(page.getByRole("button", { name: "Choose photo" })).toHaveAccessibleDescription("Photo A photo is required.");
     await pick(input(), new File(["notes"], "notes.txt", { type: "text/plain" }));
     const message = "notes.txt is not an image this field takes.";
-    expect(status().textContent).toBe(message);
+    await expect.poll(() => status().textContent).toBe(message);
     await expect.element(page.getByText(message)).toBeVisible();
     await expect.element(page.getByRole("button", { name: "Choose photo" })).toHaveAccessibleDescription(`Photo A photo is required. ${message}`);
     await pick(input(), await photo(2, 2, "dot.png"));
     await expect.poll(() => status().textContent).toBe("");
     await expect.element(page.getByRole("button", { name: "Change photo" })).toHaveAccessibleDescription("Photo A photo is required.");
     expect(announced.count(message)).toBe(1);
+    announced.stop();
+  });
+
+  it("announces the same turned-away file again each time it is chosen", async () => {
+    const announced = watchAnnouncements();
+    const { input, status } = await render(<ImageField label="Photo" maxSize={1000} />);
+    const notes = new File(["notes"], "notes.txt", { type: "text/plain" });
+    const typeMessage = "notes.txt is not an image this field takes.";
+    await pick(input(), notes);
+    await expect.poll(() => announced.count(typeMessage)).toBe(1);
+    await pick(input(), notes);
+    await expect.poll(() => announced.count(typeMessage)).toBe(2);
+    const huge = await photo(800, 800, "huge.png");
+    await pick(input(), huge);
+    await expect.poll(() => announced.matching("huge.png is larger than").length).toBe(1);
+    await pick(input(), huge);
+    await expect.poll(() => announced.matching("huge.png is larger than").length).toBe(2);
+    expect(status().textContent).toMatch(/^huge\.png is larger than /);
     announced.stop();
   });
 

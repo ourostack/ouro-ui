@@ -184,9 +184,12 @@ export function ImageField(props: ImageFieldProps): JSX.Element {
   const [rejection, setRejection] = useState<string | null>(null);
   // Counts the checks that open a chosen photo, so only the newest one, while mounted, takes effect.
   const check = useRef(0);
+  // The frame that shows a turned-away file's message, after the status region has emptied.
+  const frame = useRef(0);
   useEffect(
     () => () => {
       check.current++;
+      cancelAnimationFrame(frame.current);
     },
     [],
   );
@@ -216,14 +219,16 @@ export function ImageField(props: ImageFieldProps): JSX.Element {
     const chosen = event.target.files?.[0];
     if (!chosen) return;
     const ticket = ++check.current;
+    cancelAnimationFrame(frame.current);
     // The input keeps what showed before until the photo is opened (and, with crop, cropped).
     setInputFile(event.target, file);
+    // Empty the status region first, so the same message for the same file is announced again.
+    setRejection(null);
     const reason: ImageFieldRejection | null = !matchesAccept(chosen, accept) ? "type" : maxSize !== undefined && chosen.size > maxSize ? "size" : null;
     if (reason) {
-      turnAway(reason, chosen);
+      frame.current = requestAnimationFrame(() => turnAway(reason, chosen));
       return;
     }
-    setRejection(null);
     if (crop) {
       // The cropper opens the photo and says when it cannot.
       setPending(chosen);
@@ -245,6 +250,7 @@ export function ImageField(props: ImageFieldProps): JSX.Element {
   };
   const remove = () => {
     check.current++;
+    cancelAnimationFrame(frame.current);
     setRejection(null);
     if (file) take(null);
     else onRemove?.();
