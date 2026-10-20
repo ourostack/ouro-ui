@@ -1,4 +1,4 @@
-import { createContext, memo, startTransition, use, useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition, type FormEvent, type JSX, type ReactNode } from "react";
+import { createContext, memo, startTransition, use, useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition, type FormEvent, type JSX, type ReactNode, type Ref } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -282,9 +282,9 @@ function Crew({ line, cheer = false }: { line: CrewLine; cheer?: boolean }): JSX
 }
 
 /** The engraved plan: each built part drawn in, and the finished ship in the sea once launched. */
-const Plan = memo(function Plan({ built, launched }: { built: ReadonlySet<PartId>; launched: boolean }): JSX.Element {
+const Plan = memo(function Plan({ built, launched, ref }: { built: ReadonlySet<PartId>; launched: boolean; ref: Ref<HTMLElement> }): JSX.Element {
   return (
-    <figure className="m-0 border-b border-border/70">
+    <figure ref={ref} className="m-0 border-b border-border/70" style={{ scrollMarginTop: "5rem" }}>
       <svg
         className="site-blueprint"
         viewBox={blueprint.viewBox}
@@ -317,6 +317,7 @@ function describePlan(built: ReadonlySet<PartId>, launched: boolean): string {
 function Shipyard(): JSX.Element {
   const voyage = useVoyageStore();
   const jobs = useRef<HTMLDivElement>(null);
+  const drawing = useRef<HTMLElement>(null);
   const [order, setOrder] = useState<readonly PartId[]>(START_ORDER);
   const [built, setBuilt] = useState<ReadonlySet<PartId>>(() => new Set());
   const [launched, setLaunched] = useState(false);
@@ -363,12 +364,15 @@ function Shipyard(): JSX.Element {
     } else {
       setLaunched(true);
       say(YARD.launch);
+      // On a phone the plan is above the button, out of sight: bring it in to watch her go.
+      const plan = drawing.current;
+      if (plan && plan.getBoundingClientRect().bottom < 120) plan.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
     }
   };
 
   return (
     <div>
-      <Plan built={plan.built} launched={plan.launched} />
+      <Plan ref={drawing} built={plan.built} launched={plan.launched} />
       <div className="grid gap-6 p-4 sm:grid-cols-2 sm:p-6">
         <div data-chapter-control="order">
           <p className="site-eyebrow mb-2" aria-hidden="true">

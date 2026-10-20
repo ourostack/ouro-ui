@@ -320,6 +320,8 @@ test("on a phone, the shipyard and the articles work by touch, and nothing overf
   await expect(plan(page)).toHaveAttribute("data-built", PARTS.map((part) => part.id).join(" "));
   await launchButton(page).tap();
   await expect(plan(page)).toHaveAttribute("data-launched", "");
+  // The plan is above the button on a phone: Launch brings it into view to watch her float.
+  await expect.poll(async () => { const box = (await plan(page).boundingBox())!; return box.y >= 56 && box.y + box.height <= 844; }).toBe(true);
   await nameField(page).tap();
   await nameField(page).fill("Ada");
   await tradeField(page).tap();
