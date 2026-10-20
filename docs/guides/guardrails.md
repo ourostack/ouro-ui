@@ -5,7 +5,7 @@ Two optional kits hold an app to Ouro UI the way Ouro UI holds itself: every con
 Add them from the same place and release tag as your components:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-census ourostack/ouro-ui/ouro-source-rules
+npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.1.0 ourostack/ouro-ui/ouro-source-rules#v1.1.0
 ```
 
 `ouro-census` installs `e2e/ouro-census/` and names `@playwright/test` and `axe-core` as devDependencies. `ouro-source-rules` installs `scripts/ouro-source-rules.mjs` and names `typescript` and `postcss`. Like the test kit, they carry no version, so the CLI installs a package only when your app lacks it.

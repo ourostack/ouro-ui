@@ -90,6 +90,8 @@ test("the registry is named ouro and lists every item", () => {
     ...components.map((name) => `${name}-tests`),
     "ouro-lib-tests",
     "ouro-tests",
+    "ouro-census",
+    "ouro-source-rules",
   ]);
 });
 
