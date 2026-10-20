@@ -1,19 +1,27 @@
 import { docsItems, summary } from "./docs/items";
 import { docsPages } from "./docs/pages";
-import { HERO_COPY } from "./copy";
-import { latestRelease } from "./release";
+import { HERO_COPY, VOYAGE_HERO } from "./copy";
+import { latestRelease } from "./latest-release";
+import { normalizePath } from "./paths";
+
+export { href, pathFromLocation } from "./paths";
 
 /** Every page the site builds. Paths are relative to the base (`/ouro-ui/`) and end in `/`. */
 export interface Route {
   path: string;
   title: string;
   description: string;
+  /** A preview page that search engines must not index and no page links to (`/voyage/`). */
+  noindex?: boolean;
 }
 
-const DESCRIPTION = `${HERO_COPY} Ouro HX is the component library within Ouro UI. Under construction. Copy-in React components for shadcn/ui apps.`;
+const DESCRIPTION = `${HERO_COPY} Ouro HX is the component library within Ouro UI. Under construction. React components you copy into your app and own; they install with the shadcn CLI.`;
+const VOYAGE_DESCRIPTION = `${VOYAGE_HERO.title.join(" ")} ${VOYAGE_HERO.subline} Ouro HX is the component library within Ouro UI. Under construction.`;
 
 export const routes: Route[] = [
   { path: "/", title: "Ouro HX", description: DESCRIPTION },
+  // The new landing page, built in slices on this hidden route until it replaces "/".
+  { path: "/voyage/", title: "Mobilis in mobili · Ouro HX", description: VOYAGE_DESCRIPTION, noindex: true },
   { path: "/docs/", title: "Docs · Ouro HX", description: "Every Ouro HX component, with install commands, props and live demos." },
   ...docsItems.map((item) => ({
     path: `/docs/${item.name}/`,
@@ -39,16 +47,6 @@ export const routes: Route[] = [
 
 /** The route for a path, tolerating a missing trailing slash and `index.html`. */
 export function routeFor(path: string): Route | undefined {
-  const normalized = `${path.replace(/index\.html$/, "").replace(/\/+$/, "")}/`;
+  const normalized = normalizePath(path);
   return routes.find((route) => route.path === normalized);
-}
-
-/** The site path for a browser pathname under the base. */
-export function pathFromLocation(pathname: string, base: string): string {
-  return pathname.startsWith(base) ? `/${pathname.slice(base.length)}` : pathname;
-}
-
-/** A site path as an href under the base, for links. */
-export function href(path: string): string {
-  return `${import.meta.env.BASE_URL.replace(/\/$/, "")}${path}`;
 }

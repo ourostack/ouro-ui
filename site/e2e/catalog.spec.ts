@@ -14,7 +14,11 @@ function buildManifest(): Record<string, BuildEntry> {
   return JSON.parse(readFileSync(resolve("site/dist/.vite/manifest.json"), "utf8")) as Record<string, BuildEntry>;
 }
 
-function initialFiles(manifest: Record<string, BuildEntry>): string[] {
+/**
+ * The JavaScript a page needs before it is interactive: the client entry's static closure and its
+ * page module's (site/src/app.tsx loads the module after the first paint, then hydrates).
+ */
+function initialFiles(manifest: Record<string, BuildEntry>, kind: "landing" | "voyage" | "docs"): string[] {
   const entry = Object.entries(manifest).find(([key, value]) => key === "index.html" && value.isEntry);
   if (!entry) throw new Error("No production client entry in the build manifest");
   const files = new Set<string>();
@@ -26,8 +30,19 @@ function initialFiles(manifest: Record<string, BuildEntry>): string[] {
     for (const dependency of item.imports ?? []) visit(dependency);
   };
   visit(entry[0]);
+  visit(`src/pages/${kind}.tsx`);
   return [...files].sort();
 }
+
+/**
+ * Initial JavaScript ceilings, gzip bytes (site-design.md, Budgets). The landing page may not
+ * grow from 274,131 bytes, what it loaded on main at fdbaa9d2 before each page got its own chunk;
+ * the voyage preview gets 270 KB.
+ */
+const CEILINGS = { landing: 274_131, voyage: 270 * 1024, docs: 274_131 } as const;
+
+/** The CSS each page loads before it paints, gzip bytes: every stylesheet together (site-design.md, Budgets). */
+const CSS_CEILING = 40 * 1024;
 
 function diagnostics(page: Page): string[] {
   const errors: string[] = [];
@@ -87,6 +102,7 @@ test("every built docs demo has resolved static content, and native example cont
 test("literal dollar examples survive template serialization and real hydration", async ({ page }) => {
   const errors = diagnostics(page);
   await page.goto("docs/text-field/");
+  await expect(page.locator("html[data-site-ready]")).toBeAttached();
   await expect(page.locator("pre code").filter({ hasText: 'startAdornment="$"' }).first()).toBeVisible();
   const input = page.getByRole("textbox", { name: "Price", exact: true });
   await input.fill("7.25");
@@ -117,9 +133,14 @@ test("real production hydration keeps label/control IDs while the uncached selec
     await expect(name).toBeDisabled();
     await expect(page.getByRole("combobox", { name: "Course", exact: true })).toBeDisabled();
     await expect(page.getByRole("button", { name: "Save recipe", exact: true })).toBeDisabled();
+    await expect(page.locator("[data-site-demo-ready]")).toHaveCount(0);
     release();
+    // The demo goes live a render after its chunk arrives, and says so once its handlers are attached.
+    await expect(page.locator('[data-site-demo="form"][data-site-demo-ready]')).toBeAttached();
     await page.getByRole("combobox", { name: "Course", exact: true }).click();
-    await page.getByRole("option", { name: "Main", exact: true }).click();
+    const main = page.getByRole("option", { name: "Main", exact: true });
+    await expect(main).toBeVisible();
+    await main.click();
     await page.getByRole("button", { name: "Save recipe", exact: true }).click();
     await expect(page.getByText("A recipe called Pasta already exists.", { exact: true })).toBeVisible();
     await expect(name).toHaveAttribute("id", before!);
@@ -150,11 +171,13 @@ test("initial landing JS excludes demos and each opened example requests only it
     }
   });
   await page.goto("./");
+  await expect(page.locator("html[data-site-ready]")).toBeAttached();
+  await page.waitForLoadState("networkidle");
   for (const name of ["Form", "Sheet", "Menu", "Swipe actions", "Table"]) {
     await expect(page.getByRole("button", { name: `Show ${name} example`, exact: true })).toHaveAttribute("aria-expanded", "false");
   }
   const initial = await Promise.all(reads);
-  const expectedFiles = initialFiles(buildManifest());
+  const expectedFiles = initialFiles(buildManifest(), "landing");
   const moduleMap = JSON.parse(readFileSync(resolve("site/dist/.vite/chunk-modules.json"), "utf8")) as Record<string, string[]>;
   const initiallyLoadedModules = expectedFiles.flatMap((file) => {
     const modules = moduleMap[file];
@@ -204,5 +227,49 @@ test("initial landing JS excludes demos and each opened example requests only it
     body: JSON.stringify({ initial, metrics, modules: initiallyLoadedModules, increments }, null, 2),
     contentType: "application/json",
   });
+  expect(errors).toEqual([]);
+});
+
+test("each page loads only its own JavaScript closure, within its ceiling, and never Recharts first", async ({ page }, info) => {
+  const errors = diagnostics(page);
+  const manifest = buildManifest();
+  const moduleMap = JSON.parse(readFileSync(resolve("site/dist/.vite/chunk-modules.json"), "utf8")) as Record<string, string[]>;
+  const report: Record<string, unknown> = {};
+  for (const [kind, path, ready] of [
+    ["landing", "./", page.locator("html[data-site-ready]")],
+    ["voyage", "voyage/", page.locator("html[data-site-ready]")],
+    ["docs", "docs/", page.locator("html[data-site-ready]")],
+  ] as const) {
+    const reads: string[] = [];
+    const styles: string[] = [];
+    const listener = (response: { url(): string }) => {
+      const file = new URL(response.url()).pathname.replace(/^\/ouro-ui\//, "");
+      if (file.endsWith(".js")) reads.push(file);
+      if (file.endsWith(".css")) styles.push(file);
+    };
+    page.on("response", listener);
+    await page.goto(path);
+    await expect(ready.first()).toBeAttached();
+    await page.waitForLoadState("networkidle");
+    page.off("response", listener);
+    const expected = initialFiles(manifest, kind);
+    const modules = expected.flatMap((file) => moduleMap[file] ?? []);
+    expect(modules.some((module) => module.startsWith("node_modules/recharts/")), `${kind} loads Recharts first`).toBe(false);
+    expect(modules.some((module) => /\/demos\/.*\.demo\.tsx$/.test(module)), `${kind} loads a docs demo first`).toBe(false);
+    if (kind === "voyage") {
+      // The preview never pulls the docs' generated Markdown or the landing page.
+      expect(modules.filter((module) => /site\/src\/(docs\/|pages\/(landing|docs)\.tsx)/.test(module))).toEqual([]);
+    }
+    if (kind === "landing") expect(modules).not.toContain("site/src/pages/voyage.tsx");
+    const loaded = [...new Set(reads)].filter((file) => !file.includes(".demo-"));
+    expect(loaded.sort(), `${kind} loads its closure and nothing else`).toEqual(expected);
+    const gzip = expected.reduce((sum, file) => sum + gzipSync(readFileSync(resolve("site/dist", file))).byteLength, 0);
+    const css = [...new Set(styles)].reduce((sum, file) => sum + gzipSync(readFileSync(resolve("site/dist", file))).byteLength, 0);
+    report[kind] = { gzip, ceiling: CEILINGS[kind], files: expected.length, css, cssCeiling: CSS_CEILING };
+    expect(gzip, `${kind} initial JavaScript, gzip bytes`).toBeLessThanOrEqual(CEILINGS[kind]);
+    expect(styles.length, `${kind} loads its stylesheets`).toBeGreaterThan(0);
+    expect(css, `${kind} CSS, gzip bytes`).toBeLessThanOrEqual(CSS_CEILING);
+  }
+  await info.attach("initial-js-by-page", { body: JSON.stringify(report, null, 2), contentType: "application/json" });
   expect(errors).toEqual([]);
 });

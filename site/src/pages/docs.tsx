@@ -8,8 +8,8 @@ import { LiveDemo } from "../components/live-demo";
 import { siteGroups } from "../../../scripts/catalog-groups.mts";
 import { docsItems, GITHUB, installedPaths, partsSection, summary, type DocsItem } from "../docs/items";
 import { inline, Markdown, parse, type Block } from "../docs/markdown";
-import { exportPages, guidePages, publishedName, type DocsPage } from "../docs/pages";
-import { href } from "../routes";
+import { docsPages, exportPages, guidePages, publishedName, type DocsPage } from "../docs/pages";
+import { href, routeFor } from "../routes";
 import { latestRelease, upgrading } from "../release";
 
 function PageTitle({ eyebrow, title, lead }: { eyebrow: string; title: string; lead: ReactNode }): JSX.Element {
@@ -371,4 +371,16 @@ export function NotFound(): JSX.Element {
       <PageTitle eyebrow="404" title="Page not found" lead={<>That page isn't here. The <a href={href("/docs/")} className="text-primary underline underline-offset-4">docs</a> list every component.</>} />
     </DocsShell>
   );
+}
+
+/** The docs module's page for a path: the index, a guide, a component's page, or Not found. */
+export default function DocsRoute({ path }: { path: string }): JSX.Element {
+  const route = routeFor(path)?.path;
+  if (route === "/docs/") return <DocsIndex />;
+  if (route === "/docs/switching-from-shadcn/") return <Switching />;
+  if (route === "/docs/updating/") return <Updating />;
+  const item = docsItems.find((doc) => route === `/docs/${doc.name}/`);
+  if (item) return <DocsComponent item={item} />;
+  const page = docsPages.find((doc) => route === `/docs/${doc.name}/`);
+  return page ? <DocsPageView page={page} /> : <NotFound />;
 }

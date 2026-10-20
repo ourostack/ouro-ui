@@ -2,6 +2,7 @@ import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
+import { proofPlugin } from "./scripts/proof.mts";
 
 // The landing page and docs site, built from the repository's own dependencies (no
 // package of its own). Pages serves it at https://ourostack.github.io/ouro-ui/.
@@ -33,13 +34,22 @@ export function chunkEvidence(root: string): Plugin {
   };
 }
 
-export default defineConfig({
+export default defineConfig(({ isSsrBuild }) => ({
   root: fileURLToPath(new URL(".", import.meta.url)),
   base: "/ouro-ui/",
-  plugins: [react(), tailwindcss(), chunkEvidence(repo)],
+  plugins: [react(), tailwindcss(), chunkEvidence(repo), proofPlugin()],
   // `@/` is the repo root, as in the registry source, so the site imports components the
   // way an app's components.json alias does.
   resolve: { alias: { "@": repo } },
   server: { fs: { allow: [repo] } },
-  build: { outDir: "dist", emptyOutDir: true, manifest: true },
-});
+  build: {
+    outDir: "dist",
+    emptyOutDir: true,
+    manifest: true,
+    // Each page's chunk is imported dynamically (site/src/app.tsx), and Vite's preload helper adds a
+    // modulepreload link for every chunk it imports, the entry too (it holds React). The entry is
+    // already running, and WebKit fetches it again for that link, so the helper leaves it out.
+    modulePreload: { resolveDependencies: (_file, deps) => deps.filter((dep) => !/(^|\/)entry-[\w-]+\.js$/.test(dep)) },
+    ...(isSsrBuild ? {} : { rollupOptions: { output: { entryFileNames: "assets/entry-[hash].js" } } }),
+  },
+}));

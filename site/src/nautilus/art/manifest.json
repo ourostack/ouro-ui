@@ -1,0 +1,169 @@
+{
+  "$comment": "Where each drawing in this folder came from. node site/scripts/art.mts checks it: every file listed, checksums, licences, and the public-domain rules (Verne's own illustrators, published by 1871, from Commons or Gallica). Verne quotes follow Project Gutenberg #164, which numbers chapters differently from some editions.",
+  "art": [
+    {
+      "file": "nautilus.svg",
+      "title": "The Nautilus, in profile",
+      "creator": "Ouro HX contributors",
+      "source": "original-svg",
+      "published": "2026-10-18",
+      "licence": "repository",
+      "sha256": "bcfb499c639778756eb850763aee5d3230593202894754404b3db1160748f0e0",
+      "modifications": "None: drawn for this site from Verne's text alone, not after any film or later design: no conning tower, sail or periscope, no fins, no riveted fish tail, no great eye-shaped window. Hull length to beam eight to one (232 by 26 feet), a spindle tapering to both ends; a long steel ram spur at the bow; the platform almost flush on the back; the lantern standing alone on it and the steersman's low glass just forward of it. Left out for clarity at this size: the long-boat, the platform's rail and the diving planes. Colours come from the theme (stage.css).",
+      "shape": [
+        {
+          "feature": "hull",
+          "quote": "It is an elongated cylinder with conical ends. It is very like a cigar in shape",
+          "chapter": "Part One, Chapter XII, “Some Figures” (Project Gutenberg #164)"
+        },
+        {
+          "feature": "proportions",
+          "quote": "The length of this cylinder, from stem to stern, is exactly 232 feet, and its maximum breadth is twenty-six feet.",
+          "chapter": "Part One, Chapter XII, “Some Figures” (Project Gutenberg #164)"
+        },
+        {
+          "feature": "platform",
+          "quote": "The platform was only three feet out of water. The front and back of the Nautilus was of that spindle-shape which caused it justly to be compared to a cigar.",
+          "chapter": "Part One, Chapter XIII, “The Black River” (Project Gutenberg #164)"
+        },
+        {
+          "feature": "plates",
+          "quote": "I noticed that its iron plates, slightly overlaying each other, resembled the shell which clothes the bodies of our large terrestrial reptiles.",
+          "chapter": "Part One, Chapter XIII, “The Black River” (Project Gutenberg #164)"
+        },
+        {
+          "feature": "cages and lantern",
+          "quote": "Fore and aft rose two cages of medium height with inclined sides, and partly closed by thick lenticular glasses; one destined for the steersman who directed the Nautilus, the other containing a brilliant lantern to give light on the road.",
+          "chapter": "Part One, Chapter XIII, “The Black River” (Project Gutenberg #164)"
+        },
+        {
+          "feature": "reflector (the floodlight beam)",
+          "quote": "Behind the steersman’s cage is placed a powerful electric reflector, the rays from which light up the sea for half a mile in front.",
+          "chapter": "Part One, Chapter XII, “Some Figures” (Project Gutenberg #164)"
+        },
+        {
+          "feature": "screw",
+          "quote": "The Nautilus, by the action of its screw, slid down the inclined planes and buried itself in the lowest depths of the sea.",
+          "chapter": "Part Two, Chapter VII, “The Mediterranean in Forty-eight Hours” (Project Gutenberg #164)"
+        },
+        {
+          "feature": "spur",
+          "quote": "It is armed with a steel spur as good as Master Land’s harpoon, I imagine.",
+          "chapter": "Part Two, Chapter XII, “Cachalots and Whales” (Project Gutenberg #164)"
+        },
+        {
+          "feature": "rudder",
+          "quote": "I use an ordinary rudder fixed on the back of the stern-post",
+          "chapter": "Part One, Chapter XII, “Some Figures” (Project Gutenberg #164)"
+        }
+      ]
+    },
+    {
+      "file": "nautilus-sketch.svg",
+      "title": "Construction sketch for the Nautilus profile",
+      "creator": "Ouro HX contributors",
+      "source": "original-svg",
+      "published": "2026-10-18",
+      "licence": "repository",
+      "sha256": "aac39e299dcec39a62dbd1a01b1396d011c90e4222a1dc395f139dde658e7ff8",
+      "modifications": "None: the proportion grid nautilus.svg was drawn to (232 by 26 feet as 532 by 66 units, the platform's height, the lantern and the steersman's cage). Kept for review; the stage does not show it.",
+      "shape": [
+        {
+          "feature": "hull",
+          "quote": "It is an elongated cylinder with conical ends. It is very like a cigar in shape",
+          "chapter": "Part One, Chapter XII, “Some Figures” (Project Gutenberg #164)"
+        },
+        {
+          "feature": "proportions",
+          "quote": "The length of this cylinder, from stem to stern, is exactly 232 feet, and its maximum breadth is twenty-six feet.",
+          "chapter": "Part One, Chapter XII, “Some Figures” (Project Gutenberg #164)"
+        },
+        {
+          "feature": "platform",
+          "quote": "The platform was only three feet out of water. The front and back of the Nautilus was of that spindle-shape which caused it justly to be compared to a cigar.",
+          "chapter": "Part One, Chapter XIII, “The Black River” (Project Gutenberg #164)"
+        }
+      ]
+    },
+    {
+      "file": "sardine.svg",
+      "title": "Sardine",
+      "creator": "Ouro HX contributors",
+      "source": "original-svg",
+      "published": "2026-10-18",
+      "licence": "repository",
+      "sha256": "2a88ea61e5e53b8df6442af4f1817d1e938d579fe3d838f0f5cce03147e56984",
+      "modifications": "None: drawn for this site."
+    },
+    {
+      "file": "ray.svg",
+      "title": "Manta ray",
+      "creator": "Ouro HX contributors",
+      "source": "original-svg",
+      "published": "2026-10-18",
+      "licence": "repository",
+      "sha256": "4bf88b6c9bc8282848f38d6c58a0836fcf1148c9cfe9d90f52829bc6ea46e27c",
+      "modifications": "None: drawn for this site."
+    },
+    {
+      "file": "jellyfish.svg",
+      "title": "Jellyfish",
+      "creator": "Ouro HX contributors",
+      "source": "original-svg",
+      "published": "2026-10-18",
+      "licence": "repository",
+      "sha256": "1dec200bd3556e3480420dad8a100ec29caf6e59e9be0b44c8f4e1c7bc3e1613",
+      "modifications": "None: drawn for this site."
+    },
+    {
+      "file": "lanternfish.svg",
+      "title": "Lanternfish",
+      "creator": "Ouro HX contributors",
+      "source": "original-svg",
+      "published": "2026-10-18",
+      "licence": "repository",
+      "sha256": "5c660d7ff2f141dab33bc286631f9a9b8c010ccabcc66662700173d4ede8d39f",
+      "modifications": "None: drawn for this site."
+    },
+    {
+      "file": "anglerfish.svg",
+      "title": "Anglerfish",
+      "creator": "Ouro HX contributors",
+      "source": "original-svg",
+      "published": "2026-10-18",
+      "licence": "repository",
+      "sha256": "15fb8926b635f27e108a53de7db708950ce548b388641883ab57d0a3c764dd62",
+      "modifications": "None: drawn for this site. Friendly enough for a nine-year-old: big eye, small teeth."
+    },
+    {
+      "file": "octopus.svg",
+      "title": "Octopus",
+      "creator": "Ouro HX contributors",
+      "source": "original-svg",
+      "published": "2026-10-18",
+      "licence": "repository",
+      "sha256": "aba01d4df389f881f73782b0463b944f52ce619422dad1695816ef12ee51f5a8",
+      "modifications": "None: drawn for this site. A small, smiling one; the giant poulps of Part Two wait for a later chapter."
+    },
+    {
+      "file": "kelp.svg",
+      "title": "Kelp",
+      "creator": "Ouro HX contributors",
+      "source": "original-svg",
+      "published": "2026-10-18",
+      "licence": "repository",
+      "sha256": "c46b5baf556e657ecfd0616811bf0e5a601a3f27e87cc367e8ae224a3ab065f2",
+      "modifications": "None: drawn for this site."
+    },
+    {
+      "file": "seabed.svg",
+      "title": "Seabed",
+      "creator": "Ouro HX contributors",
+      "source": "original-svg",
+      "published": "2026-10-18",
+      "licence": "repository",
+      "sha256": "3e342d7097de34511a980991cf84a63c72d1a6d6beaef019af2b0be1b8ea8018",
+      "modifications": "None: drawn for this site."
+    }
+  ]
+}
