@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type HTMLAttributes, type JSX, type Ref } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, type HTMLAttributes, type JSX, type Ref } from "react";
 import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
@@ -83,7 +83,19 @@ const icons: Record<SyncState, JSX.Element> = {
   ),
 };
 
-function Line({ state, label, retry, onRetry }: { state: SyncState; label: string; retry: string; onRetry: (() => void) | undefined }): JSX.Element {
+function Line({
+  state,
+  label,
+  retry,
+  onRetry,
+  retryRef,
+}: {
+  state: SyncState;
+  label: string;
+  retry: string;
+  onRetry: (() => void) | undefined;
+  retryRef?: Ref<HTMLButtonElement> | undefined;
+}): JSX.Element {
   const hasRetry = onRetry !== undefined && problems.has(state);
   return (
     <>
@@ -102,6 +114,7 @@ function Line({ state, label, retry, onRetry }: { state: SyncState; label: strin
       <span>{label}</span>
       {hasRetry ? (
         <button
+          ref={retryRef}
           type="button"
           data-ouro-control="sync-status"
           data-ouro-part="retry"
@@ -121,6 +134,8 @@ function Line({ state, label, retry, onRetry }: { state: SyncState; label: strin
  * device) or Couldn't save, each with its icon, and Retry while there is a problem. Screen
  * readers hear it only when a problem starts and when it clears, so every save is not
  * narrated. It keeps the height of its longest state, so a change never moves the page.
+ * When Retry goes away while it has focus (the save it started is under way), focus moves to
+ * the status line, so the person stays where they were rather than at the top of the page.
  *
  * Use `toast()` instead to confirm a single action, and `Alert` for a problem that blocks the page.
  *
@@ -174,6 +189,22 @@ export function SyncStatus(props: SyncStatusProps): JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
+  // Retry leaves with its problem. React detaches its ref before it removes the button, so focus
+  // is still on it then; once the commit is done, focus moves to the line instead of the page.
+  const line = useRef<HTMLParagraphElement>(null);
+  const retryHadFocus = useRef(false);
+  const retryRef = useCallback((node: HTMLButtonElement | null) => {
+    if (!node) return;
+    return () => {
+      retryHadFocus.current = node === document.activeElement;
+    };
+  }, []);
+  useLayoutEffect(() => {
+    if (!retryHadFocus.current) return;
+    retryHadFocus.current = false;
+    line.current!.focus();
+  });
+
   return (
     <div {...rest} data-ouro="sync-status" data-status={status} className={cn("grid min-w-0 text-sm leading-5", className)}>
       {states.map((reserved) => (
@@ -182,8 +213,12 @@ export function SyncStatus(props: SyncStatusProps): JSX.Element {
           {onRetry && problems.has(reserved) ? <span className="ms-2 font-medium">{word.retry}</span> : null}
         </p>
       ))}
-      <p className={cn("m-0 [grid-area:1/1]", tones[status])}>
-        <Line state={status} label={word[status]} retry={word.retry} onRetry={onRetry} />
+      <p
+        ref={line}
+        tabIndex={-1}
+        className={cn("m-0 rounded-sm outline-ring outline-offset-2 [grid-area:1/1] focus-visible:outline-2 focus-visible:outline-solid", tones[status])}
+      >
+        <Line state={status} label={word[status]} retry={word.retry} onRetry={onRetry} retryRef={retryRef} />
       </p>
     </div>
   );

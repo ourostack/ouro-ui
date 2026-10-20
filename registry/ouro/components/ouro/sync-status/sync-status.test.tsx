@@ -1,9 +1,9 @@
-import { type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { SyncStatus, type SyncStatusProps } from "@/registry/ouro/components/ouro/sync-status/sync-status";
+import { SyncStatus, type SyncState, type SyncStatusProps } from "@/registry/ouro/components/ouro/sync-status/sync-status";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
@@ -161,6 +161,62 @@ describe("SyncStatus", () => {
     expect(getComputedStyle(button).outlineStyle).toBe("solid");
     await userEvent.keyboard("{Enter}");
     expect(onRetry).toHaveBeenCalledOnce();
+  });
+
+  it("keeps focus on the status line when Retry, pressed from the keyboard, goes away", async () => {
+    function Editor() {
+      const [status, setStatus] = useState<SyncState>("error");
+      return (
+        <>
+          <SyncStatus status={status} onRetry={() => setStatus("saving")} />
+          <button type="button" data-test-harness onClick={() => setStatus("saved")}>
+            Finish
+          </button>
+        </>
+      );
+    }
+    const { host, line } = await render(<Editor />);
+    const button = host.querySelector<HTMLButtonElement>('[data-ouro-control="sync-status"]')!;
+    document.body.focus();
+    await pressTab();
+    expect(document.activeElement).toBe(button);
+    await userEvent.keyboard("{Enter}");
+    expect(host.querySelector('[data-ouro-control="sync-status"]')).toBeNull();
+    expect(document.activeElement).not.toBe(document.body);
+    expect(document.activeElement).toBe(line);
+    expect(line.tabIndex).toBe(-1);
+    await act(async () => host.querySelector<HTMLButtonElement>("[data-test-harness]")!.click());
+    expect(line.textContent).toBe("Saved");
+    await act(async () => line.focus());
+    expect(document.activeElement).toBe(line);
+    await pressTab();
+    expect(document.activeElement).toBe(host.querySelector("[data-test-harness]"));
+  });
+
+  it("leaves focus alone when Retry goes away without focus", async () => {
+    const { host, rerender } = await render(
+      <>
+        <SyncStatus status="error" onRetry={() => {}} />
+        <input aria-label="Notes" data-test-harness />
+      </>,
+    );
+    const input = host.querySelector("input")!;
+    input.focus();
+    await rerender(
+      <>
+        <SyncStatus status="saving" onRetry={() => {}} />
+        <input aria-label="Notes" data-test-harness />
+      </>,
+    );
+    expect(document.activeElement).toBe(input);
+  });
+
+  it("does not move focus when it unmounts with Retry focused", async () => {
+    const { host, root } = await render(<SyncStatus status="error" onRetry={() => {}} />);
+    host.querySelector<HTMLButtonElement>('[data-ouro-control="sync-status"]')!.focus();
+    await act(async () => root.render(null));
+    expect(host.innerHTML).toBe("");
+    expect(document.activeElement).toBe(document.body);
   });
 
   it("takes words in another language, and keeps the defaults for the rest", async () => {
