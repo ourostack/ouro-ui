@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { gzipSync } from "node:zlib";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import { diagnostics } from "./diagnostics";
 
 interface BuildEntry {
   file: string;
@@ -43,15 +44,6 @@ const CEILINGS = { landing: 274_131, voyage: 270 * 1024, docs: 274_131 } as cons
 
 /** The CSS each page loads before it paints, gzip bytes: every stylesheet together (site-design.md, Budgets). */
 const CSS_CEILING = 40 * 1024;
-
-function diagnostics(page: Page): string[] {
-  const errors: string[] = [];
-  page.on("pageerror", (error) => errors.push(error.message));
-  page.on("console", (message) => {
-    if (message.type() === "error" || message.type() === "warning") errors.push(message.text());
-  });
-  return errors;
-}
 
 test("every built docs demo has resolved static content, and native example content is visible without JS", async ({ browser, request, baseURL }) => {
   const names = Object.keys(buildManifest())
@@ -137,10 +129,18 @@ test("real production hydration keeps label/control IDs while the uncached selec
     release();
     // The demo goes live a render after its chunk arrives, and says so once its handlers are attached.
     await expect(page.locator('[data-site-demo="form"][data-site-demo-ready]')).toBeAttached();
-    await page.getByRole("combobox", { name: "Course", exact: true }).click();
-    const main = page.getByRole("option", { name: "Main", exact: true });
-    await expect(main).toBeVisible();
-    await main.click();
+    const course = page.getByRole("combobox", { name: "Course", exact: true });
+    await course.click();
+    // The popup scales in; on a busy machine a click during that can press one option and release
+    // on another, which picks the wrong one or none. Pick once it is open and still.
+    const popup = page.locator('[data-ouro="select-popup"]');
+    await expect(popup).toHaveAttribute("data-open", "");
+    await expect(popup).not.toHaveAttribute("data-starting-style");
+    await popup.evaluate((element) => Promise.all(element.getAnimations().map((animation) => animation.finished)));
+    await page.getByRole("option", { name: "Main", exact: true }).click();
+    await expect(course).toHaveText(/Main/);
+    // While it closes, its backdrop still takes the page's clicks; press Save once it has gone.
+    await expect(popup).toBeHidden();
     await page.getByRole("button", { name: "Save recipe", exact: true }).click();
     await expect(page.getByText("A recipe called Pasta already exists.", { exact: true })).toBeVisible();
     await expect(name).toHaveAttribute("id", before!);
