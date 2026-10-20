@@ -144,15 +144,17 @@ describe("CodeBlock", () => {
     );
     await act(async () => new Promise(requestAnimationFrame));
     expect(pre.getAttribute("tabindex")).toBe("0");
+    // Once focus leaves, the tab stop goes without waiting for a resize.
     pre.blur();
-    await act(async () =>
-      root.render(
-        <div style={{ width: 330 }}>
-          <CodeBlock code="short" />
-        </div>,
-      ),
-    );
-    await expect.poll(() => pre.hasAttribute("tabindex")).toBe(false);
+    await act(async () => new Promise(requestAnimationFrame));
+    expect(pre.hasAttribute("tabindex")).toBe(false);
+  });
+
+  it("stops listening for focus leaving when it unmounts", async () => {
+    const { root, pre } = await render(<CodeBlock code="x" />);
+    const removed = vi.spyOn(pre, "removeEventListener");
+    await act(async () => root.unmount());
+    expect(removed).toHaveBeenCalledWith("blur", expect.any(Function));
   });
 
   it("wraps long lines with wrap, so nothing scrolls sideways", async () => {

@@ -55,13 +55,18 @@ function useScrollableCode(): RefCallback<HTMLPreElement> {
     const update = () => {
       const overflows = element.scrollWidth > element.clientWidth || element.scrollHeight > element.clientHeight;
       if (overflows) element.setAttribute("tabindex", "0");
+      // Removing the focused block's tab stop would drop focus to <body>; it goes once focus leaves.
       else if (element !== document.activeElement) element.removeAttribute("tabindex");
     };
     const observer = new ResizeObserver(update);
     observer.observe(element);
     observer.observe(element.firstElementChild!);
+    element.addEventListener("blur", update);
     update();
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      element.removeEventListener("blur", update);
+    };
   }, []);
 }
 
