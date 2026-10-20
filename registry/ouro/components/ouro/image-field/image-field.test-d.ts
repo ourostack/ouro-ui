@@ -1,6 +1,6 @@
 import { createElement, type ComponentProps } from "react";
 import { expectTypeOf } from "vitest";
-import { ImageField, type ImageFieldProps } from "@/registry/ouro/components/ouro/image-field/image-field";
+import { ImageField, type ImageFieldProps, type ImageFieldRejection } from "@/registry/ouro/components/ouro/image-field/image-field";
 
 // Type tests: `pnpm typecheck` compiles this file.
 
@@ -8,6 +8,7 @@ expectTypeOf<{ label: "Photo" }>().toExtend<ImageFieldProps>();
 expectTypeOf<{ label: "Photo"; name: "photo"; src: null; shape: "circle"; aspect: 1; crop: { outputWidth: 512 }; maxSize: 1024; onFileChange: (file: File | null) => void; onRemove: () => void; className: "mt-6" }>().toExtend<ImageFieldProps>();
 expectTypeOf<{ label: "Photo"; crop: true }>().toExtend<ImageFieldProps>();
 expectTypeOf<ComponentProps<typeof ImageField>>().toEqualTypeOf<ImageFieldProps>();
+expectTypeOf<ImageFieldRejection>().toEqualTypeOf<"type" | "size" | "unreadable">();
 
 // label is required.
 expectTypeOf<{ name: "photo" }>().not.toExtend<ImageFieldProps>();
