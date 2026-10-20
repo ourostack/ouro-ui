@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState, type JSX, type KeyboardEvent, type PointerEvent } from "react";
+import { useCallback, useId, useRef, useState, type JSX, type KeyboardEvent, type PointerEvent } from "react";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -29,7 +29,14 @@ export interface ImageCropperLabels {
   area?: string | undefined;
   /** How to move the photo, read with the crop area. @default "Drag the photo, or move it with the arrow keys, to choose what shows. Plus and minus zoom." */
   instructions?: string | undefined;
+  /** Shown and announced when the browser cannot open the image. @default "This photo could not be opened. Choose another one." */
+  openError?: string | undefined;
+  /** Shown and announced when the browser cannot save the crop; Save can be tried again. @default "The photo could not be saved. Try again." */
+  saveError?: string | undefined;
 }
+
+/** What went wrong: `open`, the browser cannot show the image (a format it cannot decode, or an address it may not read); `save`, it cannot encode the crop. */
+export type ImageCropperFailure = "open" | "save";
 
 /** Props for {@link ImageCropper}. */
 export interface ImageCropperProps {
@@ -53,6 +60,8 @@ export interface ImageCropperProps {
   type?: "image/jpeg" | "image/png" | "image/webp" | (string & { 'Use "image/jpeg", "image/png" or "image/webp"': never }) | undefined;
   /** The words it shows and says. */
   labels?: ImageCropperLabels | undefined;
+  /** Called when the image cannot be opened or the crop cannot be saved. The cropper shows and announces `labels.openError` or `labels.saveError` itself; close it or offer another image. */
+  onError?: ((reason: ImageCropperFailure) => void) | undefined;
 
   /** Not a prop. The cropped image comes to `onCrop`: `<ImageCropper onCrop={(file) => …} />`. */
   onChange?: { 'Use onCrop={(file) => ...}': never };
@@ -65,7 +74,15 @@ export interface ImageCropperProps {
 }
 
 const FRAME_WIDTH = 288;
-const words = { save: "Save", cancel: "Cancel", zoom: "Zoom", area: "Photo to crop", instructions: "Drag the photo, or move it with the arrow keys, to choose what shows. Plus and minus zoom." };
+const words = {
+  save: "Save",
+  cancel: "Cancel",
+  zoom: "Zoom",
+  area: "Photo to crop",
+  instructions: "Drag the photo, or move it with the arrow keys, to choose what shows. Plus and minus zoom.",
+  openError: "This photo could not be opened. Choose another one.",
+  saveError: "The photo could not be saved. Try again.",
+};
 
 /** Draws the chosen part of the image at the output size and returns it as a file. */
 async function crop(image: HTMLImageElement, natural: Size, frame: Size, scale: number, offset: Offset, width: number, type: string, name: string): Promise<File> {
@@ -109,6 +126,7 @@ export function ImageCropper(props: ImageCropperProps): JSX.Element {
     outputWidth = 1024,
     type: typeProp = "image/jpeg",
     labels,
+    onError,
     // Guard props (hint types), never used.
     onChange,
     src: srcProp,
@@ -139,6 +157,8 @@ export function ImageCropper(props: ImageCropperProps): JSX.Element {
   const [zoom, setZoom] = useState(MIN_ZOOM);
   const [offset, setOffset] = useState<Offset>({ x: 0, y: 0 });
   const [saving, setSaving] = useState(false);
+  const [failure, setFailure] = useState<ImageCropperFailure | null>(null);
+  const statusId = useId();
   const img = useRef<HTMLImageElement>(null);
   const drag = useRef<{ x: number; y: number; from: Offset } | null>(null);
   // A File or Blob is shown through an object URL that lives as long as its <img>.
@@ -164,6 +184,7 @@ export function ImageCropper(props: ImageCropperProps): JSX.Element {
     setNatural(null);
     setZoom(MIN_ZOOM);
     setOffset({ x: 0, y: 0 });
+    setFailure(null);
   }
 
   const scale = natural ? coverScale(natural, frame) * zoom : 1;
@@ -200,17 +221,26 @@ export function ImageCropper(props: ImageCropperProps): JSX.Element {
     event.preventDefault();
   };
 
+  const fail = (reason: ImageCropperFailure) => {
+    setFailure(reason);
+    onError?.(reason);
+  };
   const save = async () => {
     setSaving(true);
+    setFailure(null);
+    let file: File;
     try {
-      const name = image instanceof File ? image.name : "photo";
-      onCrop(await crop(img.current!, natural!, frame, scale, offset, outputWidth, type, name));
-      onOpenChange(false);
+      file = await crop(img.current!, natural!, frame, scale, offset, outputWidth, type, image instanceof File ? image.name : "photo");
     } catch {
       // The browser could not encode the image; the dialog stays open, so Save can be tried again.
-    } finally {
       setSaving(false);
+      fail("save");
+      return;
     }
+    setSaving(false);
+    // Outside the try, so an error the app's onCrop throws reaches the app.
+    onCrop(file);
+    onOpenChange(false);
   };
 
   return (
@@ -237,8 +267,8 @@ export function ImageCropper(props: ImageCropperProps): JSX.Element {
           data-ouro-part="area"
           role="application"
           aria-label={word.area}
-          aria-describedby="ouro-image-cropper-instructions"
-          aria-busy={natural ? undefined : true}
+          aria-describedby={failure ? `ouro-image-cropper-instructions ${statusId}` : "ouro-image-cropper-instructions"}
+          aria-busy={natural || failure === "open" ? undefined : true}
           tabIndex={0}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
@@ -260,6 +290,7 @@ export function ImageCropper(props: ImageCropperProps): JSX.Element {
               draggable={false}
               crossOrigin={typeof image === "string" ? "anonymous" : undefined}
               onLoad={(event) => setNatural({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })}
+              onError={() => fail("open")}
               className="pointer-events-none absolute top-1/2 left-1/2 max-w-none"
               style={{
                 width: natural ? natural.width * scale : undefined,
@@ -272,6 +303,10 @@ export function ImageCropper(props: ImageCropperProps): JSX.Element {
         </div>
         <p id="ouro-image-cropper-instructions" className="sr-only">
           {word.instructions}
+        </p>
+        {/* A polite status region from the first render, so a failure is announced once when it appears; hidden while empty. */}
+        <p id={statusId} role="status" className={cn("m-0 text-center text-sm leading-5 text-destructive", !failure && "sr-only")}>
+          {failure === "open" ? word.openError : failure === "save" ? word.saveError : null}
         </p>
         <Slider label={word.zoom} min={MIN_ZOOM} max={MAX_ZOOM} step={0.01} value={zoom} onValueChange={zoomTo} disabled={!natural} format={{ style: "percent" }} className="w-full max-w-72" />
       </div>

@@ -6,6 +6,7 @@ import { commands, page, server, userEvent } from "vitest/browser";
 import { ImageCropper, type ImageCropperProps } from "@/registry/ouro/components/ouro/image-cropper/image-cropper";
 import { clampOffset, coverScale, cropRect } from "@/registry/ouro/components/ouro/image-cropper/image-cropper-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -65,6 +66,8 @@ async function render(node: ReactNode) {
 const area = () => document.querySelector<HTMLElement>('[data-ouro-part="area"]')!;
 const image = () => area().querySelector("img")!;
 const save = () => page.getByRole("button", { name: "Save" });
+/** The cropper's own status region, apart from the zoom slider's. */
+const status = () => document.querySelector<HTMLElement>('[data-ouro="image-cropper"] > p[role="status"]')!;
 const loaded = () => expect.poll(() => area().hasAttribute("aria-busy")).toBe(false);
 /** The photo's offset from the frame's centre, in pixels, from its `translate`. */
 const offsetOf = () => [...image().style.translate.matchAll(/([+-])\s*(\d+(?:\.\d+)?)px/g)].map(([, sign, value]) => (sign === "-" ? -Number(value) : Number(value)));
@@ -246,19 +249,95 @@ describe("ImageCropper", () => {
     expect(area().getAttribute("aria-busy")).toBe("true");
   });
 
-  it("closes on Cancel without cropping, and stays open when the browser cannot encode the image", async () => {
+  it("closes on Cancel without cropping", async () => {
     const onCropped = vi.fn();
     const onOpen = vi.fn();
-    const file = await photo();
-    vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation((callback) => callback(null));
-    await render(<Harness image={file} onCropped={onCropped} onOpen={onOpen} labels={{ save: "Use photo", cancel: undefined }} />);
+    await render(<Harness image={await photo()} onCropped={onCropped} onOpen={onOpen} labels={{ cancel: undefined }} />);
     await loaded();
-    await userEvent.click(page.getByRole("button", { name: "Use photo" }));
-    await expect.element(page.getByRole("button", { name: "Use photo" })).toBeEnabled();
-    expect(onCropped).not.toHaveBeenCalled();
-    expect(onOpen).not.toHaveBeenCalled();
     await userEvent.click(page.getByRole("button", { name: "Cancel" }));
     expect(onOpen).toHaveBeenCalledExactlyOnceWith(false);
+    expect(onCropped).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["a file the browser cannot decode", () => new File(["not a picture"], "scan.heic", { type: "image/heic" })],
+    ["an address it cannot read", () => "data:image/png;base64,AAAA"],
+  ])("says so, stops waiting and tells the app when it cannot open %s", async (_name, make) => {
+    const announced = watchAnnouncements();
+    const onError = vi.fn();
+    await render(<Harness image={make()} onCropped={() => {}} onError={onError} />);
+    await expect.poll(() => onError.mock.calls).toEqual([["open"]]);
+    const message = "This photo could not be opened. Choose another one.";
+    await expect.poll(() => status().textContent).toBe(message);
+    await expect.element(page.getByText(message)).toBeVisible();
+    expect(area().hasAttribute("aria-busy")).toBe(false);
+    await expect.element(page.getByRole("application", { name: "Photo to crop" })).toHaveAccessibleDescription(/could not be opened/);
+    await expect.element(save()).toBeDisabled();
+    await expect.element(page.getByRole("slider", { name: "Zoom" })).toBeDisabled();
+    expect(area().querySelector("img")!.style.visibility).toBe("hidden");
+    expect(announced.count(message)).toBe(1);
+    announced.stop();
+  });
+
+  it("says so and stays open, so Save can be tried again, when the browser cannot encode the image", async () => {
+    const announced = watchAnnouncements();
+    const onCropped = vi.fn();
+    const onOpen = vi.fn();
+    const onError = vi.fn();
+    const file = await photo();
+    const toBlob = vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation((callback) => callback(null));
+    await render(<Harness image={file} onCropped={onCropped} onOpen={onOpen} onError={onError} labels={{ save: "Use photo", saveError: "Nicht gespeichert." }} />);
+    await loaded();
+    await userEvent.click(page.getByRole("button", { name: "Use photo" }));
+    await expect.poll(() => status().textContent).toBe("Nicht gespeichert.");
+    await expect.element(page.getByRole("button", { name: "Use photo" })).toBeEnabled();
+    expect(onError).toHaveBeenCalledExactlyOnceWith("save");
+    expect(announced.count("Nicht gespeichert.")).toBe(1);
+    await userEvent.click(page.getByRole("button", { name: "Use photo" }));
+    await expect.poll(() => onError.mock.calls.length).toBe(2);
+    await expect.poll(() => announced.count("Nicht gespeichert.")).toBe(2);
+    expect(onCropped).not.toHaveBeenCalled();
+    expect(onOpen).not.toHaveBeenCalled();
+    toBlob.mockRestore();
+    await userEvent.click(page.getByRole("button", { name: "Use photo" }));
+    await expect.poll(() => onCropped.mock.calls.length).toBe(1);
+    expect(onOpen).toHaveBeenCalledExactlyOnceWith(false);
+    announced.stop();
+  });
+
+  it("lets an error thrown by onCrop reach the app instead of hiding it", async () => {
+    const thrown = new Error("upload failed");
+    const reasons: unknown[] = [];
+    const listener = (event: PromiseRejectionEvent) => {
+      event.preventDefault();
+      reasons.push(event.reason);
+    };
+    // Vitest prints an unhandled rejection that a page listener also sees.
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    window.addEventListener("unhandledrejection", listener);
+    try {
+      const onError = vi.fn();
+      const onOpen = vi.fn();
+      await render(
+        <Harness
+          image={await photo()}
+          onCropped={() => {
+            throw thrown;
+          }}
+          onOpen={onOpen}
+          onError={onError}
+        />,
+      );
+      await loaded();
+      await userEvent.click(save());
+      await expect.poll(() => reasons).toEqual([thrown]);
+      expect(onError).not.toHaveBeenCalled();
+      expect(onOpen).not.toHaveBeenCalled();
+      expect(status().textContent).toBe("");
+      await expect.element(save()).toBeEnabled();
+    } finally {
+      window.removeEventListener("unhandledrejection", listener);
+    }
   });
 });
 
