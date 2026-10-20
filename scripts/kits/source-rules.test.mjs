@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
@@ -1250,9 +1251,10 @@ describe("main", () => {
             return store[file];
         });
         const readdir = vi.fn((directory) => {
-            if (directory !== "/repo/app")
+            const inside = Object.keys(store).filter((f) => f.startsWith(`${directory}/`));
+            if (inside.length === 0)
                 throw Object.assign(new Error(`ENOENT: ${directory}`), { code: "ENOENT" });
-            return Object.keys(store).filter((f) => f.startsWith("/repo/app/")).map((f) => f.slice("/repo/app/".length));
+            return inside.map((f) => f.slice(directory.length + 1));
         });
         const writeFile = vi.fn();
         const io = { log: vi.fn(), error: vi.fn() };
@@ -1261,6 +1263,8 @@ describe("main", () => {
         return { deps: { root: "/repo", readFile, readdir, writeFile, io, exit, gitShow }, writeFile, io, exit, gitShow };
     };
     const baselineOf = (offenders, allowedRegressions) => `${JSON.stringify(allowedRegressions ? { allowedRegressions, offenders } : { offenders }, null, 2)}\n`;
+    // The files at the base ref, by path from the root (a folder's path ends in "/").
+    const atBase = (tree) => (_root, _ref, file) => tree[file];
     const A = "app/routes/a.tsx::A::raw-button::button::type=button";
     const B = "app/routes/b.tsx::B::raw-anchor::a::";
     const matching = `${JSON.stringify({ offenders: { "app/routes/a.tsx::A::raw-button::button::type=button": 1 } }, null, 2)}\n`;
@@ -1340,7 +1344,7 @@ describe("main", () => {
     it("writes against a base ref, keeping this pull request's earlier reasons", () => {
         const extra = { "/repo/app/routes/b.tsx": `const B = () => <a href="/" />;` };
         const { deps, writeFile, gitShow, exit } = setup(baselineOf({ [A]: 1, [B]: 1 }, [{ fingerprint: B, count: 1, reason: "earlier in this PR" }]), extra);
-        gitShow.mockReturnValue(baselineOf({ [A]: 1 }));
+        gitShow.mockImplementation(atBase({ [BASELINE_PATH]: baselineOf({ [A]: 1 }) }));
         main(["--write-baseline", "--base", "origin/main"], deps);
         expect(gitShow).toHaveBeenCalledWith("/repo", "origin/main", BASELINE_PATH);
         expect(writeFile).toHaveBeenCalledWith(baselineFile, baselineOf({ [A]: 1, [B]: 1 }, [{ fingerprint: B, count: 1, reason: "earlier in this PR" }]));
@@ -1351,18 +1355,18 @@ describe("main", () => {
             "/repo/app/routes/b.tsx": `const B = () => <><a href="/" /><a href="/" /></>;`,
         };
         const larger = setup(baselineOf({ [A]: 1, [B]: 2 }, [{ fingerprint: B, count: 1, reason: "earlier in this PR" }]), extra);
-        larger.gitShow.mockReturnValue(baselineOf({ [A]: 1 }));
+        larger.gitShow.mockImplementation(atBase({ [BASELINE_PATH]: baselineOf({ [A]: 1 }) }));
         main(["--write-baseline", "--base", "origin/main"], larger.deps);
         expect(larger.writeFile).not.toHaveBeenCalled();
         expect(larger.exit).toHaveBeenCalledWith(1);
         const entry = { fingerprint: B, count: 2, reason: "spent on main" };
         const spent = setup(baselineOf({ [A]: 1, [B]: 2 }, [entry]), extra);
-        spent.gitShow.mockReturnValue(baselineOf({ [A]: 1 }, [entry]));
+        spent.gitShow.mockImplementation(atBase({ [BASELINE_PATH]: baselineOf({ [A]: 1 }, [entry]) }));
         main(["--write-baseline", "--base", "origin/main"], spent.deps);
         expect(spent.writeFile).not.toHaveBeenCalled();
         expect(spent.exit).toHaveBeenCalledWith(1);
         const renewed = setup(baselineOf({ [A]: 1, [B]: 2 }, [entry]), extra);
-        renewed.gitShow.mockReturnValue(baselineOf({ [A]: 1 }, [entry]));
+        renewed.gitShow.mockImplementation(atBase({ [BASELINE_PATH]: baselineOf({ [A]: 1 }, [entry]) }));
         main(["--write-baseline", "--base", "origin/main", "--allow-regression", "a new reason"], renewed.deps);
         expect(renewed.writeFile).toHaveBeenCalledWith(baselineFile, baselineOf({ [A]: 1, [B]: 2 }, [{ fingerprint: B, count: 2, reason: "a new reason" }]));
     });
@@ -1380,7 +1384,7 @@ describe("main", () => {
     it("refuses to write a rise against the base ref without a reason", () => {
         const extra = { "/repo/app/routes/b.tsx": `const B = () => <a href="/" />;` };
         const { deps, writeFile, gitShow, exit } = setup(baselineOf({ [A]: 1, [B]: 1 }), extra);
-        gitShow.mockReturnValue(baselineOf({ [A]: 1 }));
+        gitShow.mockImplementation(atBase({ [BASELINE_PATH]: baselineOf({ [A]: 1 }) }));
         main(["--write-baseline", "--base", "origin/main"], deps);
         expect(writeFile).not.toHaveBeenCalled();
         expect(exit).toHaveBeenCalledWith(1);
@@ -1389,33 +1393,33 @@ describe("main", () => {
         const extra = { "/repo/app/routes/b.tsx": `const B = () => <a href="/" />;` };
         it("passes with no rise against the base, counting moves", () => {
             const { deps, io, exit, gitShow } = setup(matching);
-            gitShow.mockReturnValue(baselineOf({ "app/routes/old.tsx::A::raw-button::button::type=button": 1 }));
+            gitShow.mockImplementation(atBase({ [BASELINE_PATH]: baselineOf({ "app/routes/old.tsx::A::raw-button::button::type=button": 1 }) }));
             main(["--base", "abc123"], deps);
             expect(io.log).toHaveBeenCalledWith("ouro-source-rules: ratchet against abc123: 0 allowed regression(s), 1 move(s).");
             expect(exit).not.toHaveBeenCalled();
         });
         it("fails a rise the new baseline does not allow, with the command to record why", () => {
             const { deps, io, exit, gitShow } = setup(baselineOf({ [A]: 1, [B]: 1 }), extra);
-            gitShow.mockReturnValue(matching);
+            gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
             main(["--base", "abc123"], deps);
             expect(io.error).toHaveBeenCalledWith(`Regression against abc123: ${B} (+1) at app/routes/b.tsx:1. Use an Ouro component instead, or record why: node scripts/ouro-source-rules.mjs --write-baseline --base abc123 --allow-regression "<reason>"`);
             expect(exit).toHaveBeenCalledWith(1);
         });
         it("passes a rise the new baseline allows with a reason and count, and not an empty reason or a smaller count", () => {
             const allowed = setup(baselineOf({ [A]: 1, [B]: 1 }, [{ fingerprint: B, count: 1, reason: "measured" }]), extra);
-            allowed.gitShow.mockReturnValue(matching);
+            allowed.gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
             main(["--base", "abc123"], allowed.deps);
             expect(allowed.exit).not.toHaveBeenCalled();
             expect(allowed.io.log).toHaveBeenCalledWith("ouro-source-rules: ratchet against abc123: 1 allowed regression(s), 0 move(s).");
             for (const entry of [{ fingerprint: B, count: 1, reason: " " }, { fingerprint: B, count: 1 }]) {
                 const empty = setup(baselineOf({ [A]: 1, [B]: 1 }, [entry]), extra);
-                empty.gitShow.mockReturnValue(matching);
+                empty.gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
                 main(["--base", "abc123"], empty.deps);
                 expect(empty.exit).toHaveBeenCalledWith(1);
             }
             for (const entry of [{ fingerprint: B, count: 0, reason: "too small" }, { fingerprint: B, reason: "no count" }]) {
                 const small = setup(baselineOf({ [A]: 1, [B]: 1 }, [entry]), extra);
-                small.gitShow.mockReturnValue(matching);
+                small.gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
                 main(["--base", "abc123"], small.deps);
                 expect(small.io.error).toHaveBeenCalledWith(`Regression against abc123: ${B} (+1) at app/routes/b.tsx:1, but its allowed regression permits ${entry.count ?? 0}. Use an Ouro component instead, or record why: node scripts/ouro-source-rules.mjs --write-baseline --base abc123 --allow-regression "<reason>"`);
                 expect(small.exit).toHaveBeenCalledWith(1);
@@ -1425,19 +1429,19 @@ describe("main", () => {
             const entry = { fingerprint: B, count: 1, reason: "spent" };
             const stale = "ouro-source-rules: 1 stale allowed regression(s) from an earlier pull request are ignored; the next --write-baseline drops them.";
             const { deps, io, exit, gitShow } = setup(baselineOf({ [A]: 1, [B]: 1 }, [entry]), extra);
-            gitShow.mockReturnValue(baselineOf({ [A]: 1 }, [entry]));
+            gitShow.mockImplementation(atBase({ [BASELINE_PATH]: baselineOf({ [A]: 1 }, [entry]) }));
             main(["--base", "abc123"], deps);
             expect(io.error).toHaveBeenCalledTimes(1);
             expect(io.error).toHaveBeenCalledWith(expect.stringContaining(`Regression against abc123: ${B} (+1)`));
             expect(exit).toHaveBeenCalledWith(1);
             const sameBaseline = setup(baselineOf({ [A]: 1, [B]: 1 }, [entry]), extra);
-            sameBaseline.gitShow.mockReturnValue(baselineOf({ [A]: 1, [B]: 1 }, [entry]));
+            sameBaseline.gitShow.mockImplementation(atBase({ [BASELINE_PATH]: baselineOf({ [A]: 1, [B]: 1 }, [entry]) }));
             main(["--base", "abc123"], sameBaseline.deps);
             expect(sameBaseline.io.error).not.toHaveBeenCalled();
             expect(sameBaseline.io.log).toHaveBeenCalledWith(stale);
             expect(sameBaseline.exit).not.toHaveBeenCalled();
             const other = setup(baselineOf({ [A]: 1, [B]: 1 }, [{ ...entry, reason: "this pull request" }]), extra);
-            other.gitShow.mockReturnValue(baselineOf({ [A]: 1 }, [entry]));
+            other.gitShow.mockImplementation(atBase({ [BASELINE_PATH]: baselineOf({ [A]: 1 }, [entry]) }));
             main(["--base", "abc123"], other.deps);
             expect(other.exit).not.toHaveBeenCalled();
             expect(other.io.log).not.toHaveBeenCalledWith(stale);
@@ -1450,10 +1454,134 @@ describe("main", () => {
         });
         it("still requires the scan to equal the committed baseline", () => {
             const { deps, io, exit, gitShow } = setup(matching, extra);
-            gitShow.mockReturnValue(baselineOf({ [A]: 1, [B]: 1 }));
+            gitShow.mockImplementation(atBase({ [BASELINE_PATH]: baselineOf({ [A]: 1, [B]: 1 }) }));
             main(["--base", "abc123"], deps);
             expect(io.error).toHaveBeenCalledWith(expect.stringContaining("New hand-rolled control"));
             expect(exit).toHaveBeenCalledWith(1);
+        });
+    });
+    describe("--base: the settings at the base ref", () => {
+        const settingsFile = path.join("/repo", CONFIG_PATH);
+        const settings = (value) => ({ [settingsFile]: JSON.stringify(value) });
+        const extra = { "/repo/app/routes/b.tsx": `const B = () => <a href="/" />;` };
+        const change = (text) => `Settings change against abc123: ${CONFIG_PATH} ${text}. Revert it, or record why: node scripts/ouro-source-rules.mjs --write-baseline --base abc123 --allow-regression "<reason>"`;
+        const refusal = "ouro-source-rules: the settings may only widen the scan against the base. Revert the change, or pass --allow-regression <reason> for review.";
+        it("reads the settings and the baseline at the base's own paths, and fails a moved baseline", () => {
+            const moved = path.join("/repo", "test/rules.json");
+            const { deps, io, exit, gitShow } = setup(undefined, { ...extra, ...settings({ baseline: "test/rules.json" }), [moved]: baselineOf({ [A]: 1, [B]: 1 }) });
+            gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
+            main(["--base", "abc123"], deps);
+            expect(gitShow).toHaveBeenCalledWith("/repo", "abc123", CONFIG_PATH);
+            expect(gitShow).toHaveBeenCalledWith("/repo", "abc123", "src/");
+            expect(gitShow).toHaveBeenCalledWith("/repo", "abc123", BASELINE_PATH);
+            expect(gitShow).not.toHaveBeenCalledWith("/repo", "abc123", "test/rules.json");
+            expect(io.error).toHaveBeenCalledWith(change(`moves the baseline from ${BASELINE_PATH} to test/rules.json`));
+            expect(io.error).toHaveBeenCalledWith(expect.stringContaining(`Regression against abc123: ${B} (+1)`));
+            expect(io.log).not.toHaveBeenCalledWith(expect.stringContaining("nothing to ratchet against"));
+            expect(exit).toHaveBeenCalledWith(1);
+        });
+        it("fails each setting that narrows the scan: src, an added exclude or ouroDirs entry, a set or changed hookPrefix", () => {
+            const cases = [
+                [undefined, { src: "app/routes" }, {}, ["reads app/routes/ instead of app/", "stops reading app/routes/components/ouro/ (ouroDirs)", "stops reading app/routes/lib/ouro/ (ouroDirs)"]],
+                [undefined, {}, { "/repo/src/main.tsx": "export const M = 1;" }, ["reads src/ instead of app/", "stops reading src/components/ouro/ (ouroDirs)", "stops reading src/lib/ouro/ (ouroDirs)"]],
+                [undefined, {}, {}, ["reads app/ instead of src/", "stops reading app/components/ouro/ (ouroDirs)", "stops reading app/lib/ouro/ (ouroDirs)"], { "src/": "tree src/" }],
+                [{ exclude: ["app/generated/"] }, { exclude: ["app/generated/", "app/routes/"] }, {}, ["stops reading app/routes/ (exclude)"]],
+                [undefined, { ouroDirs: ["app/components/ouro", "app/lib/ouro/", "app/routes/"] }, {}, ["stops reading app/routes/ (ouroDirs)"]],
+                [undefined, { hookPrefix: "app" }, {}, [`sets hookPrefix to "app", so stylesheets count control state only on .app- and [data-app- hooks`]],
+                [{ hookPrefix: "app" }, { hookPrefix: "nf" }, {}, [`sets hookPrefix to "nf", so stylesheets count control state only on .nf- and [data-nf- hooks`]],
+            ];
+            for (const [before, after, files, changes, tree = {}] of cases) {
+                const { deps, io, exit, gitShow } = setup(baselineOf({}), { ...settings(after), ...files });
+                gitShow.mockImplementation(atBase({ ...tree, [BASELINE_PATH]: baselineOf({}), ...(before && { [CONFIG_PATH]: JSON.stringify(before) }) }));
+                main(["--base", "abc123"], deps);
+                for (const text of changes)
+                    expect(io.error).toHaveBeenCalledWith(change(text));
+                expect(io.error.mock.calls.filter(([line]) => line.startsWith("Settings change")).length).toBe(changes.length);
+                expect(exit).toHaveBeenCalledWith(1);
+            }
+        });
+        it("passes settings that widen the scan or keep it", () => {
+            const before = { exclude: ["app/generated/"], ouroDirs: ["app/components/ouro/", "app/lib/ouro/", "app/ui/"], hookPrefix: "app" };
+            for (const after of [{ exclude: ["app/generated/client/"], ouroDirs: ["app/components/ouro/", "app/lib/ouro/", "app/ui/kit/"] }, before, { ...before, hookPrefix: "" }]) {
+                const { deps, io, exit, gitShow } = setup(matching, settings(after));
+                gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching, [CONFIG_PATH]: JSON.stringify(before) }));
+                main(["--base", "abc123"], deps);
+                expect(io.error).not.toHaveBeenCalled();
+                expect(exit).not.toHaveBeenCalled();
+            }
+        });
+        it("records a narrowing with a reason for this pull request, and never honours one already on the base", () => {
+            const fingerprint = `${CONFIG_PATH}::exclude::app/generated/`;
+            const refused = setup(matching, settings({ exclude: ["app/generated/"] }));
+            refused.gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
+            main(["--write-baseline", "--base", "abc123"], refused.deps);
+            expect(refused.writeFile).not.toHaveBeenCalled();
+            expect(refused.io.error).toHaveBeenCalledWith(`Settings change against abc123: ${CONFIG_PATH} stops reading app/generated/ (exclude).`);
+            expect(refused.io.error).toHaveBeenCalledWith(refusal);
+            expect(refused.io.error).not.toHaveBeenCalledWith(expect.stringContaining("the baseline only shrinks"));
+            expect(refused.exit).toHaveBeenCalledWith(1);
+            const written = setup(matching, settings({ exclude: ["app/generated/"] }));
+            written.gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
+            main(["--write-baseline", "--base", "abc123", "--allow-regression", "generated client"], written.deps);
+            const recorded = baselineOf({ [A]: 1 }, [{ fingerprint, count: 1, reason: "generated client" }]);
+            expect(written.writeFile).toHaveBeenCalledWith(baselineFile, recorded);
+            expect(written.io.log).toHaveBeenCalledWith(`ouro-source-rules: wrote ${BASELINE_PATH} with 1 hand-rolled control(s), 0 move(s) and 1 allowed regression(s).`);
+            const kept = setup(recorded, settings({ exclude: ["app/generated/"] }));
+            kept.gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
+            main(["--write-baseline", "--base", "abc123"], kept.deps);
+            expect(kept.writeFile).toHaveBeenCalledWith(baselineFile, recorded);
+            const checked = setup(recorded, settings({ exclude: ["app/generated/"] }));
+            checked.gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
+            main(["--base", "abc123"], checked.deps);
+            expect(checked.io.error).not.toHaveBeenCalled();
+            expect(checked.io.log).toHaveBeenCalledWith("ouro-source-rules: ratchet against abc123: 1 allowed regression(s), 0 move(s).");
+            expect(checked.exit).not.toHaveBeenCalled();
+            const spent = setup(recorded, settings({ exclude: ["app/generated/"] }));
+            spent.gitShow.mockImplementation(atBase({ [BASELINE_PATH]: recorded }));
+            main(["--base", "abc123"], spent.deps);
+            expect(spent.io.error).toHaveBeenCalledWith(change("stops reading app/generated/ (exclude)"));
+            expect(spent.exit).toHaveBeenCalledWith(1);
+        });
+        it("does not let a deleted and moved baseline start over", () => {
+            const moved = settings({ baseline: "test/rules.json" });
+            const write = setup(undefined, { ...extra, ...moved });
+            write.gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
+            main(["--write-baseline", "--base", "abc123"], write.deps);
+            expect(write.writeFile).not.toHaveBeenCalled();
+            expect(write.io.error).toHaveBeenCalledWith(expect.stringContaining(`New hand-rolled control: ${B} (+1)`));
+            expect(write.io.error).toHaveBeenCalledWith(`Settings change against abc123: ${CONFIG_PATH} moves the baseline from ${BASELINE_PATH} to test/rules.json.`);
+            expect(write.exit).toHaveBeenCalledWith(1);
+            const check = setup(undefined, { ...extra, ...moved });
+            check.gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
+            main(["--base", "abc123"], check.deps);
+            expect(check.io.error).toHaveBeenCalledWith(change(`moves the baseline from ${BASELINE_PATH} to test/rules.json`));
+            expect(check.exit).toHaveBeenCalledWith(1);
+        });
+        it("adopts the rule with any settings when the base has neither the settings nor a baseline", () => {
+            const adopted = settings({ exclude: ["app/generated/"], hookPrefix: "app", baseline: "test/rules.json" });
+            const rules = path.join("/repo", "test/rules.json");
+            const write = setup(undefined, adopted);
+            main(["--write-baseline", "--base", "abc123"], write.deps);
+            expect(write.writeFile).toHaveBeenCalledWith(rules, baselineOf({ [A]: 1 }));
+            expect(write.io.log).toHaveBeenCalledWith("ouro-source-rules: wrote test/rules.json with 1 hand-rolled control(s), 0 move(s) and 0 allowed regression(s); it is the first baseline, so it records where the app starts.");
+            expect(write.exit).not.toHaveBeenCalled();
+            const check = setup(undefined, { ...adopted, [rules]: baselineOf({ [A]: 1 }) });
+            main(["--base", "abc123"], check.deps);
+            expect(check.io.error).not.toHaveBeenCalled();
+            expect(check.io.log).toHaveBeenCalledWith("ouro-source-rules: abc123 has no baseline; nothing to ratchet against.");
+            expect(check.exit).not.toHaveBeenCalled();
+        });
+        it("does not treat a missing baseline as the first when the base already has the settings", () => {
+            const refused = setup(undefined);
+            refused.gitShow.mockImplementation(atBase({ [CONFIG_PATH]: "{}" }));
+            main(["--write-baseline", "--base", "abc123"], refused.deps);
+            expect(refused.writeFile).not.toHaveBeenCalled();
+            expect(refused.io.error).toHaveBeenCalledWith(expect.stringContaining(`New hand-rolled control: ${A} (+1)`));
+            expect(refused.exit).toHaveBeenCalledWith(1);
+            const written = setup(undefined);
+            written.gitShow.mockImplementation(atBase({ [CONFIG_PATH]: "{}" }));
+            main(["--write-baseline", "--base", "abc123", "--allow-regression", "measured"], written.deps);
+            expect(written.writeFile).toHaveBeenCalledWith(baselineFile, baselineOf({ [A]: 1 }));
         });
     });
     it("rejects --allow-regression or --base without a value, and unknown arguments", () => {
@@ -1508,9 +1636,41 @@ describe("defaults", () => {
             rmSync(root, { recursive: true, force: true });
         }
     });
+    it("ratchets a real repository against the base's own baseline, however the pull request moves it", () => {
+        const cache = path.join(process.cwd(), "node_modules", ".cache");
+        mkdirSync(cache, { recursive: true });
+        const root = mkdtempSync(path.join(cache, "ouro-source-rules-git-"));
+        const git = (...args) => {
+            const result = spawnSync("git", ["-c", "user.email=kit@example.com", "-c", "user.name=Kit", "-c", "commit.gpgsign=false", ...args], { cwd: root, encoding: "utf8" });
+            expect(result.status).toBe(0);
+        };
+        try {
+            mkdirSync(path.join(root, "src"), { recursive: true });
+            defaultDeps.writeFile(path.join(root, "src", "app.tsx"), "export const App = () => <a href=\"/\">Home</a>;\n");
+            main(["--write-baseline"], { root, io: { log: vi.fn(), error: vi.fn() } });
+            git("init", "--quiet");
+            git("add", ".");
+            git("commit", "--quiet", "-m", "base");
+            git("tag", "base");
+            defaultDeps.writeFile(path.join(root, "src", "more.tsx"), "export const More = () => <button>More</button>;\n");
+            defaultDeps.writeFile(path.join(root, CONFIG_PATH), `${JSON.stringify({ baseline: "moved.json" })}\n`);
+            main(["--write-baseline"], { root, io: { log: vi.fn(), error: vi.fn() } });
+            const io = { log: vi.fn(), error: vi.fn() };
+            const exit = vi.fn();
+            main(["--base", "base"], { root, io, exit });
+            expect(io.error).toHaveBeenCalledWith(expect.stringContaining(`moves the baseline from ${BASELINE_PATH} to moved.json`));
+            expect(io.error).toHaveBeenCalledWith(expect.stringContaining("Regression against base: src/more.tsx::More::raw-button::button:: (+1)"));
+            expect(exit).toHaveBeenCalledWith(1);
+        }
+        finally {
+            rmSync(root, { recursive: true, force: true });
+        }
+    });
     it("reads a baseline from git: present, missing at the ref, or an unknown ref", () => {
         expect(defaultDeps.gitShow(process.cwd(), "HEAD", "package.json")).toContain('"name"');
         expect(defaultDeps.gitShow(process.cwd(), "HEAD", "no-such-baseline.json")).toBeUndefined();
+        expect(defaultDeps.gitShow(process.cwd(), "HEAD", "registry/ouro/")).toContain("source-rules/");
+        expect(defaultDeps.gitShow(process.cwd(), "HEAD", "package.json/")).toBeUndefined();
         expect(() => defaultDeps.gitShow(process.cwd(), "refs/heads/no-such-ref-for-ouro-source-rules", BASELINE_PATH)).toThrow("ouro-source-rules: unknown base ref refs/heads/no-such-ref-for-ouro-source-rules");
     });
     it("defaultExit sets the process exit code", () => {

@@ -108,6 +108,8 @@ node scripts/ouro-source-rules.mjs --base origin/main # on a pull request: also 
 
 A new offender fails: use an Ouro component instead, or add the missing one to Ouro UI first. A fixed one fails until `--write-baseline` removes it. Against `--base`, a rise needs `--write-baseline --base <ref> --allow-regression "<reason>"`, which records it for that pull request only. Moving code is neutral: an offender removed and added with the same category, tag and literal props, in the same file or the same component, pairs one-to-one.
 
+Against `--base`, the settings are read at the base too: its `baseline` setting says where its baseline is, and a pull request may only widen what is read. Moving the baseline, another `src`, an `ouroDirs` or `exclude` entry the base did not already skip, or a set or changed `hookPrefix` fails like a rise, and needs the same `--allow-regression "<reason>"`, which records it. A missing baseline is a first baseline, written without a reason, only when the base has neither `ouro-source-rules.json` nor a baseline.
+
 Settings are optional, in `ouro-source-rules.json` at the root:
 
 | Setting | Default | What it sets |

@@ -58,6 +58,13 @@ import ts from "typescript";
 // the file, refusing a rise unless `--allow-regression <reason>` records why; when the base has
 // no baseline it records nothing.
 //
+// Against `--base` the base's own ouro-source-rules.json names its baseline, and the pull request's
+// settings may only widen the scan: moving the baseline, another `src`, an `ouroDirs` or `exclude`
+// entry the base did not already skip, or a set or changed `hookPrefix` fails like a rise, and
+// needs `--allow-regression <reason>`, recorded the same way (`ouro-source-rules.json::<setting>::
+// <value>`). A missing baseline is the first one, recorded without a reason, only when the base has
+// neither the settings file nor a baseline.
+//
 // Settings, all optional, come from ouro-source-rules.json at the root:
 // `{ "src": "app", "ouroDirs": ["app/components/ouro/", "app/lib/ouro/"], "exclude": ["app/lib/generated/"], "hookPrefix": "app", "baseline": "test/ouro-source-rules.baseline.json" }`.
 //
@@ -176,7 +183,7 @@ const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
  * when the app has one, else app/.
  * @param {string} root
  * @param {{ readFile?: (file: string) => string, readdir?: (directory: string) => unknown[] }} [deps]
- * @returns {{ src: string, ouroDirs: string[], exclude: string[], hook: RegExp, baseline: string }}
+ * @returns {{ src: string, ouroDirs: string[], exclude: string[], hookPrefix: string, hook: RegExp, baseline: string }}
  */
 export function loadConfig(root, { readFile = defaultDeps.readFile, readdir = defaultDeps.readdir } = {}) {
   let settings = {};
@@ -199,9 +206,61 @@ export function loadConfig(root, { readFile = defaultDeps.readFile, readdir = de
     src,
     ouroDirs: (settings.ouroDirs ?? [`${src}/components/ouro/`, `${src}/lib/ouro/`]).map(folder),
     exclude: settings.exclude ?? [],
+    hookPrefix: settings.hookPrefix || "",
     hook: settings.hookPrefix ? new RegExp(`\\.${escapeRegExp(settings.hookPrefix)}-|\\[data-${escapeRegExp(settings.hookPrefix)}-`) : ANY_HOOK,
     baseline: settings.baseline ?? BASELINE_PATH,
   };
+}
+
+/**
+ * The settings at a git ref: its ouro-source-rules.json over the defaults, with `src` defaulting by
+ * the folders that ref has. `found` says whether the ref has the settings file.
+ * @param {string} root
+ * @param {string} ref
+ * @param {(root: string, ref: string, file: string) => string | undefined} gitShow
+ */
+export function loadConfigAt(root, ref, gitShow) {
+  const show = (file, suffix = "") => gitShow(root, ref, `${path.relative(root, file).split(path.sep).join("/")}${suffix}`);
+  const missing = (file) => Object.assign(new Error(`ENOENT: ${ref}:${file}`), { code: "ENOENT" });
+  let found = false;
+  const config = loadConfig(root, {
+    readFile: (file) => {
+      const text = show(file);
+      if (text === undefined) throw missing(file);
+      found = true;
+      return text;
+    },
+    readdir: (directory) => {
+      if (show(directory, "/") === undefined) throw missing(directory);
+      return [];
+    },
+  });
+  return { ...config, found };
+}
+
+/**
+ * How `head`'s settings narrow the scan, or move the baseline, against `base`'s (both loadConfig):
+ * another `src`, an `ouroDirs` or `exclude` entry no prefix at the base already skipped, or a
+ * hookPrefix set or changed. Each change carries a fingerprint, so a reason can be recorded for it
+ * the way it is for a rise. Widening (fewer skips, no hookPrefix) is not a change.
+ * @returns {{ fingerprint: string, change: string }[]}
+ */
+export function narrowedSettings(base, head) {
+  const changes = [];
+  const add = (setting, value, change) => changes.push({ fingerprint: `${CONFIG_PATH}::${setting}::${value}`, change });
+  if (head.baseline !== base.baseline) add("baseline", head.baseline, `moves the baseline from ${base.baseline} to ${head.baseline}`);
+  if (head.src !== base.src) add("src", head.src, `reads ${head.src}/ instead of ${base.src}/`);
+  const skipped = [...base.ouroDirs, ...base.exclude];
+  for (const setting of ["ouroDirs", "exclude"]) {
+    for (const prefix of head[setting]) {
+      if (!skipped.some((known) => prefix.startsWith(known))) add(setting, prefix, `stops reading ${prefix} (${setting})`);
+    }
+  }
+  if (head.hookPrefix !== "" && head.hookPrefix !== base.hookPrefix) {
+    const prefix = head.hookPrefix;
+    add("hookPrefix", prefix, `sets hookPrefix to "${prefix}", so stylesheets count control state only on .${prefix}- and [data-${prefix}- hooks`);
+  }
+  return changes;
 }
 
 export function isThirdPartyControlModule(specifier) {
@@ -1043,8 +1102,12 @@ export function main(argv, deps) {
   const offenders = findOffenders(files, { root, readFile, hook: config.hook });
   const baselineFile = path.join(root, config.baseline);
   const committed = readBaseline(baselineFile, readFile);
-  const baseText = options.base === undefined ? undefined : gitShow(root, options.base, config.baseline);
+  // The base's own settings name its baseline, so moving the baseline in a pull request cannot hide
+  // it, and they are what the scan may not narrow.
+  const baseConfig = options.base === undefined ? undefined : loadConfigAt(root, options.base, gitShow);
+  const baseText = baseConfig === undefined ? undefined : gitShow(root, options.base, baseConfig.baseline);
   const base = baseText === undefined ? undefined : parseBaseline(baseText);
+  const changes = base ? narrowedSettings(baseConfig, config) : [];
 
   if (options.write) {
     // Against the base ref's baseline when there is one, keeping this pull request's earlier
@@ -1057,29 +1120,41 @@ export function main(argv, deps) {
         .filter((entry) => !spent.has(entryKey(entry)))
         .map((entry) => [entry.fingerprint, entry]),
     );
-    const allowed = regressions.map(({ fingerprint, count }) => {
+    const explain = ({ fingerprint, count }) => {
       const prior = earlier.get(fingerprint);
       const reason = prior?.count >= count && hasReason(prior.reason) ? prior.reason : options.reason;
       return { fingerprint, count, reason };
-    });
-    // The first baseline records where the app starts; every later write may only shrink it.
-    const first = committed.first === true && !base;
+    };
+    const allowed = regressions.map(explain);
+    const allowedSettings = changes.map(({ fingerprint }) => explain({ fingerprint, count: 1 }));
+    // The first baseline records where the app starts; every later write may only shrink it. A base
+    // ref with the settings or a baseline has already started.
+    const first = committed.first === true && (baseConfig === undefined || (!baseConfig.found && !base));
     const unexplained = first ? [] : regressions.filter((_, index) => !hasReason(allowed[index].reason));
-    if (unexplained.length > 0) {
+    const unexplainedSettings = changes.filter((_, index) => !hasReason(allowedSettings[index].reason));
+    if (unexplained.length > 0 || unexplainedSettings.length > 0) {
       for (const line of formatComparison({ added: unexplained, removed: [] })) io.error(line);
-      io.error(
-        "ouro-source-rules: the baseline only shrinks. Replace the new controls with Ouro components, or pass --allow-regression <reason> for review.",
-      );
+      for (const { change } of unexplainedSettings) io.error(`Settings change against ${options.base}: ${CONFIG_PATH} ${change}.`);
+      if (unexplained.length > 0) {
+        io.error(
+          "ouro-source-rules: the baseline only shrinks. Replace the new controls with Ouro components, or pass --allow-regression <reason> for review.",
+        );
+      }
+      if (unexplainedSettings.length > 0) {
+        io.error(
+          "ouro-source-rules: the settings may only widen the scan against the base. Revert the change, or pass --allow-regression <reason> for review.",
+        );
+      }
       exit(1);
       return;
     }
     // With no baseline at the base ref nothing ratchets, so nothing is recorded.
-    const recorded = first || (options.base !== undefined && !base) ? [] : allowed;
+    const recorded = first || (options.base !== undefined && !base) ? [] : [...allowedSettings, ...allowed];
     const unrecorded = first
       ? "; it is the first baseline, so it records where the app starts"
-      : recorded === allowed
-        ? ""
-        : `; ${options.base} has no baseline, so nothing is recorded to ratchet against`;
+      : options.base !== undefined && !base
+        ? `; ${options.base} has no baseline, so nothing is recorded to ratchet against`
+        : "";
     writeFile(baselineFile, serializeBaseline(offenders, recorded));
     io.log(
       `ouro-source-rules: wrote ${config.baseline} with ${offenders.length} hand-rolled control(s), ${moves.length} move(s) and ${recorded.length} allowed regression(s)${unrecorded}.`,
@@ -1109,6 +1184,15 @@ export function main(argv, deps) {
         .map((entry) => [entry.fingerprint, entry]),
     );
     let allowedCount = 0;
+    for (const { fingerprint, change } of changes) {
+      if (fresh.get(fingerprint)?.count >= 1) {
+        allowedCount += 1;
+        continue;
+      }
+      lines.push(
+        `Settings change against ${options.base}: ${CONFIG_PATH} ${change}. Revert it, or record why: ${UPDATE_COMMAND} --base ${options.base} --allow-regression "<reason>"`,
+      );
+    }
     for (const { fingerprint, count, at } of regressions) {
       const entry = fresh.get(fingerprint);
       if (entry?.count >= count) {
