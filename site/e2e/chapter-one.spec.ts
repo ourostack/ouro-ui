@@ -383,6 +383,8 @@ test("without reduced motion, each part is lowered into place and the launched s
 });
 
 test("the rail beside the chapter shows how the voyage stands, and the yard on the island grows with it", async ({ page }) => {
+  // It builds, launches and signs on: a long walk for WebKit on a shared runner.
+  test.slow();
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 1440, height: 900 });
   await open(page);
@@ -446,7 +448,18 @@ test.describe("by keyboard alone", () => {
     await page.keyboard.press("Enter");
     const cook = page.getByRole("option", { name: "Cook" });
     await expect(cook).toBeVisible();
-    for (let step = 0; step < 8 && (await cook.getAttribute("data-highlighted")) === null; step++) await page.keyboard.press("ArrowDown");
+    // The list takes focus as it opens; then arrow down, one option at a time, until Cook is the
+    // one. (WebKit can drop a key pressed in the frame the list takes focus: a move not seen is
+    // pressed again.)
+    await expect(page.locator("[role='listbox'] :focus, [role='listbox']:focus")).toHaveCount(1);
+    const highlighted = page.locator("[role='option'][data-highlighted]");
+    const now = async () => ((await highlighted.count()) ? await highlighted.textContent() : null);
+    for (let step = 0; step < 12 && (await now()) !== "Cook"; step++) {
+      const before = await now();
+      await page.keyboard.press("ArrowDown");
+      await expect.poll(now, { timeout: 1000 }).not.toBe(before).catch(() => undefined);
+    }
+    await expect(cook).toHaveAttribute("data-highlighted", "");
     await page.keyboard.press("Enter");
     await expect(tradeField(page)).toBeFocused();
     await expect(tradeField(page)).toHaveText(/Cook/);
