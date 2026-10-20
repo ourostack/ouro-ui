@@ -1,0 +1,1 @@
+- New: `ouro-census`, the census journey kit: a Playwright spec of yours lists every page and every state a person can open on it, and the census holds the exact set of visible controls in each to a committed baseline, fails an enrolled journey on any control that is not an Ouro control, and lets the unmarked count only fall.

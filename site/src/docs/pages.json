@@ -7,6 +7,13 @@
     "markdown": "docs/guides/forms.md"
   },
   {
+    "name": "guardrails",
+    "title": "Guardrails",
+    "kind": "guide",
+    "group": "Guides",
+    "markdown": "docs/guides/guardrails.md"
+  },
+  {
     "name": "installing",
     "title": "Installing",
     "kind": "guide",

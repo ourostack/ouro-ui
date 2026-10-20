@@ -1,0 +1,1 @@
+- New: `ouro-source-rules`, the hand-rolled-control source rule: it finds the controls an app still builds by hand (raw elements, handlers on plain elements, other UI libraries, control-state styling) and every component that wraps one, held to a committed baseline that may only shrink, with a ratchet against a base ref for pull requests.
