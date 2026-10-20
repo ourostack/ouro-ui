@@ -89,16 +89,26 @@ function typing(): boolean {
   return field instanceof HTMLElement && field.isContentEditable;
 }
 
+/** The tallest the layout viewport has been at its current width; a turn of the phone starts again. */
+let layout = { width: 0, height: 0 };
+
 /**
  * Whether the on-screen keyboard is up. Where it covers the page (iOS, and Android by default),
- * it shrinks the visual viewport below the layout viewport; a pinch zoom shrinks it too, so it
- * is measured at the zoom's scale. Where it resizes the page instead, a focused text field on a
- * touch screen is the sign.
+ * it shrinks the visual viewport below the layout viewport, and that alone decides: a field
+ * keeps its focus when the keyboard is put away (Android's back gesture, iPad's hide-keyboard
+ * key), so focus would keep the bar away. A pinch zoom shrinks the visual viewport too, so it
+ * is measured at the zoom's scale. Where the keyboard resizes the page instead, the layout
+ * viewport shrinks well below the tallest it has been at this width, with a text field focused
+ * on a touch screen. With no visual viewport to read, the focused field is the only sign.
  */
 function keyboardUp(): boolean {
   const viewport = window.visualViewport;
-  if (viewport !== null && innerHeight - viewport.height * viewport.scale > KEYBOARD) return true;
-  return matchMedia("(pointer: coarse)").matches && typing();
+  const field = matchMedia("(pointer: coarse)").matches && typing();
+  if (viewport === null) return field;
+  if (innerHeight - viewport.height * viewport.scale > KEYBOARD) return true;
+  if (innerWidth === layout.width) layout.height = Math.max(layout.height, innerHeight);
+  else layout = { width: innerWidth, height: innerHeight };
+  return field && layout.height - innerHeight > KEYBOARD;
 }
 
 function subscribeKeyboard(listener: () => void): () => void {
