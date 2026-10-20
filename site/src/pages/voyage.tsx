@@ -1,4 +1,4 @@
-import { Suspense, useDeferredValue, useEffect, type JSX } from "react";
+import { Suspense, useEffect, useState, type JSX } from "react";
 import { Inspector } from "@/registry/ouro/components/ouro/inspector/inspector";
 import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
@@ -14,13 +14,24 @@ import "../voyage/voyage.css";
 const docsHref = (item: string) => href(`/docs/${item}/`);
 
 /**
- * X-ray: HX Inspector over the page. It opens a frame after the press, because it measures every HX
- * component on the page, so the Switch or the button paints first; it closes at once.
+ * X-ray: HX Inspector over the page. It opens in the frame after the press has painted (two
+ * animation frames), because it measures every HX component on the page, so the Switch or the
+ * button answers first; it closes at once.
  */
 function Xray(): JSX.Element {
   const on = useXray();
-  const opened = useDeferredValue(on);
-  return <Inspector open={on && opened} onOpenChange={setXray} docsHref={docsHref} />;
+  const [painted, setPainted] = useState(false);
+  useEffect(() => {
+    if (!on) return;
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => setPainted(true));
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      setPainted(false);
+    };
+  }, [on]);
+  return <Inspector open={on && painted} onOpenChange={setXray} docsHref={docsHref} />;
 }
 
 /**
