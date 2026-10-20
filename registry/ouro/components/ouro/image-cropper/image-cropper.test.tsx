@@ -142,6 +142,32 @@ describe("ImageCropper", () => {
     expect(await pixel(onCropped.mock.calls[0]![0], 95, 50)).toEqual([255, 0, 0]);
   });
 
+  it("centres the photo in a right-to-left page and saves the part that shows", async () => {
+    document.documentElement.dir = "rtl";
+    try {
+      const onCropped = vi.fn<(file: File) => void>();
+      await render(<Harness image={await photo()} onCropped={onCropped} outputWidth={100} type="image/png" />);
+      await loaded();
+      const centre = (rect: DOMRect) => [rect.left + rect.width / 2, rect.top + rect.height / 2];
+      await expect.poll(() => centre(image().getBoundingClientRect()).map(Math.round)).toEqual(centre(area().getBoundingClientRect()).map(Math.round));
+      area().focus();
+      await userEvent.keyboard("{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}");
+      // Where the red half meets the blue one, across the frame, as it shows on screen.
+      const photoBox = image().getBoundingClientRect();
+      const frameBox = area().getBoundingClientRect();
+      const seam = ((photoBox.left + photoBox.width / 2 - frameBox.left) / frameBox.width) * 100;
+      expect(seam).toBeGreaterThan(60);
+      expect(seam).toBeLessThan(75);
+      await userEvent.click(save());
+      await expect.poll(() => onCropped.mock.calls.length).toBe(1);
+      const cropped = onCropped.mock.calls[0]![0];
+      expect(await pixel(cropped, Math.floor(seam) - 3, 50)).toEqual([255, 0, 0]);
+      expect(await pixel(cropped, Math.ceil(seam) + 3, 50)).toEqual([0, 0, 255]);
+    } finally {
+      document.documentElement.removeAttribute("dir");
+    }
+  });
+
   it("zooms with Plus and Minus and the slider, between one and three times", async () => {
     await render(<Harness image={await photo()} onCropped={() => {}} />);
     await loaded();

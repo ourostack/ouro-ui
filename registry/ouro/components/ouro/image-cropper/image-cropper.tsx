@@ -252,6 +252,7 @@ export function ImageCropper(props: ImageCropperProps): JSX.Element {
             shape === "circle" ? "rounded-full" : "rounded-lg",
           )}
         >
+          {/* `left`, not `start`: the offset and the crop are in screen pixels in either direction. */}
           {image !== null ? (
             <img
               ref={attach}
@@ -259,7 +260,7 @@ export function ImageCropper(props: ImageCropperProps): JSX.Element {
               draggable={false}
               crossOrigin={typeof image === "string" ? "anonymous" : undefined}
               onLoad={(event) => setNatural({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })}
-              className="pointer-events-none absolute start-1/2 top-1/2 max-w-none"
+              className="pointer-events-none absolute top-1/2 left-1/2 max-w-none"
               style={{
                 width: natural ? natural.width * scale : undefined,
                 height: natural ? natural.height * scale : undefined,
