@@ -255,6 +255,30 @@ test.describe("each control in Chapter I", () => {
     await expect(signCrew(page)).toContainText(SIGN.welcome("Ada", "Cook").text);
   });
 
+  test("control: sign with the name taken away again rubs out the pencilled name", async ({ page }) => {
+    await open(page);
+    const pencilled = articles(page).locator("[data-chapter-pending]");
+    // Emptied: the browser's own check stops the signing, and the waiting row goes.
+    await nameField(page).fill("Ada");
+    await signButton(page).click();
+    await expect(pencilled).toContainText("Ada");
+    await nameField(page).fill("");
+    await signButton(page).click();
+    await expect(pencilled).toHaveCount(0);
+    await expect(signCrew(page)).toContainText(SIGN.needName.text);
+    // Spaces only: the browser lets it through, the site refuses it, and the waiting row goes.
+    await nameField(page).fill("Ada");
+    await signButton(page).click();
+    await expect(pencilled).toContainText("Ada");
+    await nameField(page).fill("   ");
+    await chooseTrade(page, "Cook");
+    await oath(page).click();
+    await signButton(page).click();
+    await expect(nameField(page)).toHaveAccessibleDescription(new RegExp(ARTICLES.blank.replace(".", "\\.")));
+    await expect(pencilled).toHaveCount(0);
+    await expect(signCrew(page)).toContainText(SIGN.needName.text);
+  });
+
   test("control: leave takes you off the crew list", async ({ page }) => {
     await open(page);
     await signOn(page, "Ada");

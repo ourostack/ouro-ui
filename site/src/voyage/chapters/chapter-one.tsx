@@ -448,7 +448,9 @@ function Articles(): JSX.Element {
   const check = () => {
     const name = field("name")?.value.trim() ?? "";
     const wants = WANTS.filter((key) => field(key)?.validity.valid === false);
+    // With no name there is nothing to pencil in: the row waiting from an earlier try goes.
     if (!name) {
+      setPending(null);
       setLine(SIGN.needName);
     } else if (wants.length) {
       setPending({ name, wants });
@@ -461,6 +463,7 @@ function Articles(): JSX.Element {
     const name = String(data.get("name") ?? "").trim();
     if (!name) {
       setAnswer({ errors: { name: ARTICLES.blank } });
+      setPending(null);
       setLine(SIGN.needName);
       return;
     }
