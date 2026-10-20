@@ -12,7 +12,7 @@ afterEach(async () => {
   for (const node of nodes.splice(0)) node.remove();
 });
 
-it("is at least 44px square to a finger, with or without its label", async () => {
+it("keeps ShareButton at least 44px square to a finger, with or without its label", async () => {
   expect(matchMedia("(pointer: coarse)").matches).toBe(true);
   const host = document.createElement("div");
   document.body.append(host);
