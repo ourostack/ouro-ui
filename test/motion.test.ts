@@ -172,14 +172,23 @@ describe("expectMotion", () => {
     expect(taken()).toEqual([]);
   });
 
-  /** Starts a 1s eased opacity transition, waits until `elapsed` of its time has passed, then cancels it. */
+  /**
+   * Starts a 1s eased opacity transition, lets the helper see it with exactly `elapsed` of its time
+   * run, then cancels it while it runs. The transition is held at that time for the frame the
+   * helper reads it in: waiting for frames to carry it there lets one slow frame carry it past
+   * the mark, or to its end before it can be cancelled.
+   */
   async function cancelAt(elapsed: number) {
     const tick = part("tick", "opacity 1000ms var(--ouro-ease-out)");
     tick.style.opacity = "1";
     const [transition] = tick.getAnimations();
     const proof = expectMotion(tick, { stem: "checkbox", state: "data-checked", properties: ["opacity"], reduced: false });
-    while (Number(transition!.currentTime ?? 0) < elapsed * 1000) await frame();
+    transition!.pause();
+    transition!.currentTime = elapsed * 1000;
+    await frame();
+    transition!.play();
     expect(transition!.playState).toBe("running");
+    expect(transition!.currentTime).toBe(elapsed * 1000);
     // --ouro-ease-out is past 90% of its progress well before half its time.
     if (elapsed < 0.9) expect(transition!.effect!.getComputedTiming().progress).toBeGreaterThan(0.9);
     tick.style.transition = "none";
@@ -189,12 +198,11 @@ describe("expectMotion", () => {
   }
 
   it("measures a cancelled transition by the time it ran, not its eased progress", async () => {
-    await expect(cancelAt(0.5)).rejects.toThrow(/checkbox data-checked tick: opacity was cancelled (4[5-9]|5\d)% of the way through its duration with nothing in its place/);
+    await expect(cancelAt(0.5)).rejects.toThrow(/checkbox data-checked tick: opacity was cancelled 50% of the way through its duration with nothing in its place/);
     expect(taken()).toEqual([]);
   });
 
   it("lets a transition end that the browser cancels once it has run 90% of its duration", async () => {
-    // A frame is under 2% of the second, so the helper saw it past 90% too.
     await cancelAt(0.95);
     expect(taken()).toHaveLength(1);
   });
