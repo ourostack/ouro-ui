@@ -110,7 +110,7 @@ A new offender fails: use an Ouro component instead, or add the missing one to O
 
 Settings are optional, in `ouro-source-rules.json` at the root:
 
-| Setting | Default | |
+| Setting | Default | What it sets |
 | --- | --- | --- |
 | `src` | `src`, or `app` without one | The folder it reads. |
 | `ouroDirs` | `<src>/components/ouro/`, `<src>/lib/ouro/` | Where your app installs Ouro UI; never read. |
