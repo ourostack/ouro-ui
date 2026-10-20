@@ -308,6 +308,7 @@ jobs:
             site/theme-install/playwright-report/
           if-no-files-found: ignore
   latency:
+    name: latency
     # Each voyage stage control answers within 100 ms (p95 of 10) on a 4x slower CPU
     # (site/e2e/stage.latency.spec.ts), measured alone so no other test shares the CPU.
     runs-on: ubuntu-latest
@@ -330,6 +331,7 @@ jobs:
           path: playwright-report/latency/
           if-no-files-found: ignore
   lighthouse:
+    name: lighthouse
     # Lighthouse CI on the voyage preview (site/lighthouserc.json, the thresholds in site-design.md:
     # mobile, simulated; performance 90, accessibility 100, best practices 95, LCP 2 s, CLS 0.05,
     # TBT 150 ms), with the build served as Pages serves it: HTTP/2 over TLS, gzipped
