@@ -9,7 +9,9 @@
        the engine room aft, its electric cells and great magnets turning the screw's axle; the
        lantern's cage aft on the platform, its beam forward; the organ in the saloon. No tower,
        no fins, no eye-shaped window. Each part is a group, data-part, that the page shows when its
-       job is ticked; colour comes from the theme (chapters.css). -->
+       job is ticked; at the launch the whole ship (bp-ship) slides into the sea with a wake,
+       bubbles and a flash of the lantern (bp-launch, bp-flash). Colour comes from the theme
+       (chapters.css, chapter-one.css). -->
   <defs>
     <pattern id="bp-grid" width="20" height="20" patternUnits="userSpaceOnUse">
       <path d="M20 0H0V20" stroke-width="0.8" />
@@ -42,6 +44,24 @@
       <text x="606" y="228.5">SCALE 1:240</text>
     </g>
   </g>
+  <g class="bp-launch" opacity="0">
+    <g class="bp-wake" stroke-width="1.4">
+      <path d="M88 110 C70 106 52 108 34 104 C24 102 14 103 4 106" pathLength="60" />
+      <path d="M88 140 C70 144 52 143 34 147 C24 149 14 148 4 145" pathLength="60" />
+      <path d="M62 126 C48 124 32 127 16 126" pathLength="60" stroke-width="0.9" />
+    </g>
+    <g class="bp-bubbles" fill="currentColor" stroke="none">
+      <circle cx="74" cy="168" r="2.2" />
+      <circle cx="104" cy="182" r="1.6" />
+      <circle cx="160" cy="176" r="2" />
+      <circle cx="236" cy="190" r="1.5" />
+      <circle cx="312" cy="180" r="2.2" />
+      <circle cx="420" cy="192" r="1.7" />
+      <circle cx="514" cy="178" r="2" />
+      <circle cx="586" cy="168" r="1.5" />
+    </g>
+  </g>
+  <g class="bp-ship">
   <g class="bp-part" data-part="hull">
     <path class="bp-fill" d="M90 120 C170 92 260 88 345 88 C450 88 540 96 600 120 C540 144 450 152 345 152 C260 152 170 148 90 120 Z" stroke="none" />
     <path d="M90 120 C170 92 260 88 345 88 C450 88 540 96 600 120 C540 144 450 152 345 152 C260 152 170 148 90 120 Z" stroke-width="1.8" />
@@ -108,5 +128,7 @@
       <text x="430" y="170">ORGAN</text>
     </g>
     <path class="bp-note" d="M440 162 L428 136" stroke-width="0.9" />
+  </g>
+    <circle class="bp-flash" cx="311" cy="72" r="22" fill="currentColor" stroke="none" opacity="0" />
   </g>
 </svg>

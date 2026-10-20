@@ -5,6 +5,12 @@
  */
 import type { CrewName } from "../stage/copy";
 
+/** One thing Ouro HX does in an exhibit, and the line of the exhibit that asks it to. */
+export interface SheetLine {
+  text: string;
+  code: string;
+}
+
 /**
  * Every control in Chapter I, by the `data-chapter-control` its wrapper carries, in page order.
  * site/e2e/chapter-one.spec.ts operates each in a test named "control: <id>" and asserts what it
@@ -24,6 +30,20 @@ export const CHAPTER_ONE = {
   intro: "Captain Nemo is building a submarine in secret, on a far island. Help him finish it.",
   next: "Then sign on. A ship needs a crew.",
   code: "Code",
+  /** Over the course line from the themes into the chapter. */
+  handoff: "Before she can sail, she must be built.",
+} as const;
+
+/** The rail beside the chapter: how the voyage stands, as the yard and the articles change it. */
+export const EXPEDITION = {
+  label: "How the voyage stands",
+  picture: "The yard on the island",
+  build: "Build her",
+  built: (count: number) => (count === PARTS.length ? "All five jobs done." : `${count} of ${PARTS.length} jobs done.`),
+  launch: "Launch her",
+  afloat: (afloat: boolean) => (afloat ? "She is afloat." : "Still on the slip."),
+  sign: "Sign on",
+  signed: (you: { name: string; trade: string } | null) => (you ? `${you.name}, ${you.trade.toLowerCase()}.` : "Not yet."),
 } as const;
 
 /** The parts of the Nautilus, in the order a sound plan puts them: the hull first. */
@@ -35,6 +55,9 @@ export const PARTS = [
   { id: "organ", name: "Organ", job: "Tune the organ" },
 ] as const;
 export type PartId = (typeof PARTS)[number]["id"];
+
+/** The order the yard starts in: the lantern before the hull, so there is something to put right. */
+export const START_ORDER: readonly PartId[] = ["lantern", "hull", "windows", "organ", "engine"];
 
 export const SHIPYARD = {
   title: "The shipyard",
@@ -73,7 +96,7 @@ export const YARD = {
   },
   inOrder: { name: "Conseil", text: "Hull first. A good plan. I have sorted it." },
   ready: { name: "Captain Nemo", text: "Every job is done. Press Launch!" },
-  launch: { name: "Captain Nemo", text: "She floats! Mobilis in mobili." },
+  launch: { name: "Ned Land", text: "Hurrah! Look at her float!" },
   again: { name: "Conseil", text: "Back to the first plank, then." },
 } as const satisfies Record<string, unknown>;
 
@@ -111,6 +134,10 @@ export const ARTICLES = {
   leave: "Leave the crew",
   /** Someone of that name is aboard already. */
   taken: (name: string) => `${name} is aboard already. Sign your own name.`,
+  /** A name of spaces only. */
+  blank: "Write your name.",
+  /** Someone has started to sign but the articles are not done. */
+  pending: "Not signed yet",
   signed: (name: string) => `${name} signed on`,
   onList: "Your name is on the crew list now.",
 } as const;
@@ -119,6 +146,17 @@ export const SIGN = {
   opening: { name: "Conseil", text: "Sign below, and I will add you to the list." },
   welcome: (name: string, trade: string): CrewLine => ({ name: "Conseil", text: `Welcome, ${name}. I have you down as: ${trade}.` }),
   left: { name: "Ned Land", text: "Gone so soon? The sea is not for all." },
+  /** Conseil will not write you down without a name. */
+  needName: { name: "Conseil", text: "If you please, I need a name to write down." },
+  /** Conseil, polite but firm, until the trade and the oath are given. */
+  refuse: (wants: readonly ("trade" | "oath")[]): CrewLine => ({
+    name: "Conseil",
+    text: wants.length === 2 ? "Forgive me. I may not sign you on without your trade and the oath." : wants[0] === "trade" ? "Forgive me. I may not sign you on without your trade." : "Forgive me. You must swear the oath first.",
+  }),
+  /** What the pending line on the list waits for. */
+  waiting: (wants: readonly ("trade" | "oath")[]) => (wants.length === 2 ? "Waiting for your trade and the oath." : wants[0] === "trade" ? "Waiting for your trade." : "Waiting for the oath."),
+  /** The one aboard with that name, when you sign as them. */
+  mine: (name: CrewName): CrewLine => ({ name, text: "That is my name! Sign your own." }),
 } as const satisfies Record<string, unknown>;
 
 /** What each composition's Code sheet says: which part is Ouro HX's and which is this site's own. */
@@ -127,11 +165,11 @@ export const CODE_SHEETS = {
     title: "How the shipyard is built",
     description: "Ouro HX does the controls. The site does the ship.",
     hx: [
-      "Reorderable: the drag, the moves by key and by menu, and what screen readers hear.",
-      "Checklist: the ticks, the line through each done job, and the day on each row.",
-      "Progress: the bar, and the number screen readers read.",
-      "Button: the press, and Launch kept off until the work is done.",
-      "Sheet: this panel.",
+      { text: "Reorderable: the drag, the moves by key and by menu, and what screen readers hear.", code: `<Reorderable label="Order of work" items={plan} onReorder={reorder} />` },
+      { text: "Checklist: the ticks, the line through each done job, and the day on each row.", code: `<Checklist label="Jobs" items={jobs} onCheckedChange={tick} />` },
+      { text: "Progress: the bar, and the number screen readers read.", code: `<Progress label="Ship built" value={built * 20} showValue />` },
+      { text: "Button: the press, and Launch kept off until the work is done.", code: `<Button disabled={left > 0} onClick={launch}>Launch</Button>` },
+      { text: "Sheet: this panel.", code: `<Sheet title="How the shipyard is built" side="right" open={open} onOpenChange={setOpen}>` },
     ],
     site: ["The plan of the ship, and the parts it draws.", "The rule for a good order, and what the crew says.", "The launch."],
   },
@@ -139,12 +177,12 @@ export const CODE_SHEETS = {
     title: "How the articles are built",
     description: "Ouro HX does the form. The site does the crew.",
     hx: [
-      "Form: it checks each field when you sign, puts each note under its field, and takes you to the first.",
-      "TextField, Select and Checkbox: the labels, the marks on what you must fill in, and the notes.",
-      "ItemGroup, Item, Avatar and Badge: the crew list.",
-      "Toast: the note when you sign on.",
+      { text: "Form: it checks each field when you sign, puts each note under its field, and takes you to the first.", code: `<Form errors={formErrors(answer, answer?.errors)} onSubmit={sign}>` },
+      { text: "TextField, Select and Checkbox: the labels, the marks on what you must fill in, and the notes.", code: `<TextField label="Your name" name="name" required />\n<Select label="Your trade" name="trade" options={trades} required />\n<Checkbox label="I will keep the Nautilus a secret." name="oath" required />` },
+      { text: "ItemGroup, Item, Avatar and Badge: the crew list.", code: `<ItemGroup aria-label="Crew list">\n  <Item media={<Avatar name={name} />} title={name} actions={<Badge>{trade}</Badge>} />\n</ItemGroup>` },
+      { text: "Toast: the note when you sign on.", code: `toast(\`\${name} signed on\`, { tone: "success" })` },
     ],
-    site: ["Who is aboard already.", "The list of names, and you on it."],
+    site: ["Who is aboard already.", "The list of names, and you on it.", "What Conseil says when the articles are not done."],
   },
   hxHeading: "Ouro HX does",
   siteHeading: "The site does",
@@ -170,6 +208,17 @@ export function allChapterOneText(): string[] {
     YARD.ready.text,
     YARD.launch.text,
     YARD.again.text,
+    EXPEDITION.label,
+    EXPEDITION.picture,
+    EXPEDITION.build,
+    EXPEDITION.built(3),
+    EXPEDITION.built(5),
+    EXPEDITION.launch,
+    EXPEDITION.afloat(true),
+    EXPEDITION.afloat(false),
+    EXPEDITION.sign,
+    EXPEDITION.signed({ name: "Ada", trade: "Cook" }),
+    EXPEDITION.signed(null),
     ...TRADES.map((trade) => trade.label),
     ...CREW.flatMap((member) => [member.name, member.trade]),
     ...Object.values(ARTICLES).flatMap((value) => (typeof value === "string" ? [value] : [])),
@@ -179,7 +228,15 @@ export function allChapterOneText(): string[] {
     SIGN.welcome("Ada", "Cook").text,
     SIGN.opening.text,
     SIGN.left.text,
-    ...[CODE_SHEETS.shipyard, CODE_SHEETS.articles].flatMap((sheet) => [sheet.title, sheet.description, ...sheet.hx, ...sheet.site]),
+    SIGN.needName.text,
+    SIGN.refuse(["trade", "oath"]).text,
+    SIGN.refuse(["trade"]).text,
+    SIGN.refuse(["oath"]).text,
+    SIGN.waiting(["trade", "oath"]),
+    SIGN.waiting(["trade"]),
+    SIGN.waiting(["oath"]),
+    SIGN.mine("Ned Land").text,
+    ...[CODE_SHEETS.shipyard, CODE_SHEETS.articles].flatMap((sheet) => [sheet.title, sheet.description, ...sheet.hx.map((line) => line.text), ...sheet.site]),
     CODE_SHEETS.hxHeading,
     CODE_SHEETS.siteHeading,
     CODE_SHEETS.source,

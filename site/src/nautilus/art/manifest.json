@@ -92,7 +92,7 @@
       "source": "original-svg",
       "published": "2026-10-20",
       "licence": "repository",
-      "sha256": "04dd1d6e7dc6cc704a306eddae65b233b30b3bfb98bd3e716ace60d7c7e6aa87",
+      "sha256": "07a1ecf3c11e2991d441b038a82f7a859264e1a14653a9a67e64207f3b56380f",
       "chapter": "I",
       "modifications": "None: drawn for this site from Verne's text alone, to the same proportions as nautilus.svg and its construction sketch (nautilus-sketch.svg). A side plan in five parts the shipyard draws as each job is ticked: the double hull (two hulls joined by T-shaped irons, no rivets), the saloon's two oblong crystal panels bound in copper and the steersman's cage with lenticular glass, the engine room aft with its electric cells and magnets on the screw's axle, the lantern's cage aft on the platform, and the organ in the saloon. No tower, fins or eye-shaped window. Colours come from the theme (chapters.css).",
       "shape": [
@@ -158,6 +158,17 @@
       "sha256": "cb925cabd5738e1c5de49da128d8b03eda6fc1709f64202d95141d2551be4001",
       "chapter": "I",
       "modifications": "None: drawn for this site as Chapter I's vignette, a shipwright's dividers on a half-rolled plan. Colour comes from the theme."
+    },
+    {
+      "file": "island-yard.svg",
+      "title": "The yard on the island",
+      "creator": "Ouro HX contributors",
+      "source": "original-svg",
+      "published": "2026-10-20",
+      "licence": "repository",
+      "sha256": "6245df1fee681f9281a69a3ec5b9d51a575e7ecd301e9c6c04e4c1d85c9c814a",
+      "chapter": "I",
+      "modifications": "None: drawn for this site from Verne's text alone as Chapter I's rail: the desert island where the Nautilus was put together (Twenty Thousand Leagues, ch. XII), a berth under two sheer-legs, and the same spindle hull as nautilus.svg in small, with its spur, low platform, lantern's cage, saloon windows and screw, plus a note for the organ. Each part is ghosted until its job is ticked; once launched she lies in the sea off the slip, and a pennant flies when you have signed on. No tower, fins or eye-shaped window. Colour comes from the theme (chapter-one.css)."
     },
     {
       "file": "sardine.svg",

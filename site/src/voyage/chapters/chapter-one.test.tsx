@@ -3,8 +3,8 @@ import { commands, page, userEvent } from "vitest/browser";
 import { cleanupPage, renderPage, setScheme } from "../../../test/render";
 import { fleschKincaid } from "../../../test/readability";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
-import { ARTICLES, allChapterOneText, CHAPTER_ONE, CHAPTER_ONE_CONTROLS, CREW, PARTS, YARD } from "./copy";
-import { START_ORDER } from "./chapter-one";
+import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
+import { ARTICLES, allChapterOneText, CHAPTER_ONE, CHAPTER_ONE_CONTROLS, CREW, PARTS, SIGN, START_ORDER, YARD } from "./copy";
 
 // Chapter I (site-design.md, slice S2): its words read at grade 6 or under, it renders in the page
 // with each control marked, and the shipyard and the articles do what they say. The end-to-end spec
@@ -72,5 +72,27 @@ describe("Chapter I", () => {
     await userEvent.click(page.getByRole("checkbox", { name: ARTICLES.oath }));
     await userEvent.click(page.getByRole("button", { name: ARTICLES.sign }));
     await expect.element(name).toHaveAccessibleDescription(new RegExp(ARTICLES.taken(CREW[0].name)));
+  });
+
+  it("says the signing aloud once: the toast, and Conseil's welcome", async () => {
+    await renderPage("/voyage/");
+    await userEvent.fill(page.getByRole("textbox", { name: ARTICLES.name }), "Ada");
+    await userEvent.click(page.getByRole("combobox", { name: ARTICLES.trade }));
+    await userEvent.click(page.getByRole("option", { name: "Cook" }));
+    await userEvent.click(page.getByRole("checkbox", { name: ARTICLES.oath }));
+    const announced = watchAnnouncements();
+    await userEvent.click(page.getByRole("button", { name: ARTICLES.sign }));
+    await expect.poll(() => announced.count(ARTICLES.signed("Ada"))).toBe(1);
+    await expect.poll(() => announced.count(SIGN.welcome("Ada", "Cook").text)).toBe(1);
+    announced.stop();
+  });
+
+  it("has Conseil refuse aloud, politely, while the articles want a trade and the oath", async () => {
+    await renderPage("/voyage/");
+    await userEvent.fill(page.getByRole("textbox", { name: ARTICLES.name }), "Ada");
+    const announced = watchAnnouncements();
+    await userEvent.click(page.getByRole("button", { name: ARTICLES.sign }));
+    await expect.poll(() => announced.count(SIGN.refuse(["trade", "oath"]).text)).toBe(1);
+    announced.stop();
   });
 });

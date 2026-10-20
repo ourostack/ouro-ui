@@ -32,7 +32,11 @@ type Step = (page: Page, round: number) => Promise<unknown>;
 /** Each control's press, and what readies it (unthrottled) before each round and tidies after. */
 const presses: Record<(typeof CHAPTER_ONE_CONTROLS)[number], { press: Step; before?: Step; after?: Step }> = {
   "shipyard-code": { press: (page) => shipyard(page).getByRole("button", { name: CHAPTER_ONE.code }).click(), after: (page) => page.keyboard.press("Escape") },
-  order: { press: (page) => page.getByRole("button", { name: /^Reorder Double hull/ }).click(), after: (page) => page.keyboard.press("Escape") },
+  // The reorder itself: the handle's menu opens unthrottled, then "Move to top" and "Move to bottom" take turns.
+  order: {
+    before: (page) => page.getByRole("button", { name: /^Reorder Double hull/ }).click(),
+    press: (page, round) => page.getByRole("menuitem", { name: round % 2 ? "Move to bottom" : "Move to top" }).click(),
+  },
   jobs: { press: (page) => page.getByRole("checkbox", { name: PARTS[0].job }).click() },
   launch: {
     before: async (page, round) => {

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { ARTICLES, CHAPTER_ONE, CHAPTER_ONE_CONTROLS, CODE_SHEETS, CREW, PARTS, SHIPYARD, SIGN, YARD } from "../src/voyage/chapters/copy";
+import { ARTICLES, CHAPTER_ONE, CHAPTER_ONE_CONTROLS, CODE_SHEETS, CREW, EXPEDITION, PARTS, SHIPYARD, SIGN, START_ORDER, YARD } from "../src/voyage/chapters/copy";
 
 // Chapter I, "Build the ship", against the production build (site-design.md, "Verification in
 // CI"): each control in CHAPTER_ONE_CONTROLS has a test named "control: <id>" that operates it and
@@ -43,8 +43,11 @@ const tradeField = (page: Page) => page.getByRole("combobox", { name: ARTICLES.t
 const oath = (page: Page) => page.getByRole("checkbox", { name: ARTICLES.oath });
 const signButton = (page: Page) => page.getByRole("button", { name: ARTICLES.sign });
 
-/** Opens a composition's Code sheet: HX's part and the site's, the source, and focus back on close. */
-async function opensCodeSheet(page: Page, composition: (page: Page) => ReturnType<typeof shipyard>, sheet: { title: string; hx: readonly string[]; site: readonly string[] }): Promise<void> {
+/**
+ * Opens a composition's Code sheet: each thing HX does over its line of code, the site's part, the
+ * source, and focus back on close. No line of code runs off the panel's edge.
+ */
+async function opensCodeSheet(page: Page, composition: (page: Page) => ReturnType<typeof shipyard>, sheet: { title: string; hx: readonly { text: string; code: string }[]; site: readonly string[] }): Promise<void> {
   const errors = diagnostics(page);
   await open(page);
   const button = composition(page).getByRole("button", { name: CHAPTER_ONE.code });
@@ -52,7 +55,13 @@ async function opensCodeSheet(page: Page, composition: (page: Page) => ReturnTyp
   const dialog = page.getByRole("dialog", { name: sheet.title });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole("heading", { name: CODE_SHEETS.hxHeading })).toBeVisible();
-  for (const line of [...sheet.hx, ...sheet.site]) await expect(dialog.getByText(line, { exact: true })).toBeVisible();
+  for (const line of [...sheet.hx.map((each) => each.text), ...sheet.site]) await expect(dialog.getByText(line, { exact: true })).toBeVisible();
+  const code = dialog.locator("[data-chapter-code]");
+  expect(await code.allTextContents()).toEqual(sheet.hx.map((each) => each.code));
+  for (const line of await code.all()) {
+    await expect(line).toBeVisible();
+    expect(await line.evaluate((element) => element.scrollWidth <= element.clientWidth && element.getBoundingClientRect().right <= element.closest("[role='dialog']")!.getBoundingClientRect().right)).toBe(true);
+  }
   await expect(dialog.getByRole("link", { name: new RegExp(CODE_SHEETS.source) })).toHaveAttribute("href", /\/tree\/main\/site\/src\/voyage\/chapters$/);
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
@@ -144,21 +153,33 @@ test.describe("each control in Chapter I", () => {
     await expect(plan(page).locator(".bp-grid")).toHaveCSS("opacity", "0");
     await expect(yardCrew(page)).toContainText(YARD.launch.text);
     await expect(launchButton(page)).toHaveText(SHIPYARD.again);
+    await expect(shipyard(page).locator("[data-chapter-cheer] [data-ouro='avatar']")).toHaveCount(CREW.length);
     await launchButton(page).click();
     await expect(plan(page)).not.toHaveAttribute("data-launched", "");
     await expect(plan(page)).toHaveAttribute("data-built", "");
     await expect(yardCrew(page)).toContainText(YARD.again.text);
+    // Launch waits for the work again, and focus is where the next build starts.
     await expect(launchButton(page)).toBeDisabled();
+    await expect(job(page, "lantern")).toBeFocused();
   });
 
-  test("control: name is required, and a name already aboard is refused under the field", async ({ page }) => {
+  test("control: name is required, a blank name and a name already aboard are refused under the field", async ({ page }) => {
     await open(page);
     await signButton(page).click();
     await expect(nameField(page)).toHaveAttribute("aria-invalid", "true");
     await expect(nameField(page)).toBeFocused();
-    await signOn(page, "Ned Land", "Cook");
+    await expect(signCrew(page)).toContainText(SIGN.needName.text);
+    // Spaces pass the browser's check, but are no name: the site refuses it under the field.
+    await signOn(page, "   ", "Cook");
+    await expect(nameField(page)).toHaveAccessibleDescription(new RegExp(ARTICLES.blank.replace(".", "\\.")));
+    await expect(nameField(page)).toBeFocused();
+    await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length));
+    await expect(page.getByRole("list", { name: ARTICLES.roster }).getByRole("listitem")).toHaveCount(CREW.length);
+    await nameField(page).fill("Ned Land");
+    await signButton(page).click();
     await expect(nameField(page)).toHaveAccessibleDescription(new RegExp(ARTICLES.taken("Ned Land").replace(".", "\\.")));
     await expect(nameField(page)).toBeFocused();
+    await expect(signCrew(page)).toContainText(SIGN.mine("Ned Land").text);
     await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length));
     // Changing the field clears its message.
     await nameField(page).fill("Ada");
@@ -171,6 +192,7 @@ test.describe("each control in Chapter I", () => {
     await oath(page).click();
     await signButton(page).click();
     await expect(tradeField(page)).toHaveAttribute("aria-invalid", "true");
+    await expect(signCrew(page)).toContainText(SIGN.refuse(["trade"]).text);
     await chooseTrade(page, "Cabin boy or girl");
     await expect(tradeField(page)).toHaveText(/Cabin boy or girl/);
     await expect(tradeField(page)).not.toHaveAttribute("aria-invalid", "true");
@@ -182,6 +204,7 @@ test.describe("each control in Chapter I", () => {
     await chooseTrade(page, "Cook");
     await signButton(page).click();
     await expect(oath(page)).toHaveAttribute("aria-invalid", "true");
+    await expect(signCrew(page)).toContainText(SIGN.refuse(["oath"]).text);
     await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length));
     await oath(page).click();
     await expect(oath(page)).toBeChecked();
@@ -200,8 +223,30 @@ test.describe("each control in Chapter I", () => {
     await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length + 1));
     await expect(signCrew(page)).toContainText(SIGN.welcome("Ada Lovelace", "Engineer").text);
     await expect(page.getByText(ARTICLES.signed("Ada Lovelace"))).toBeVisible();
-    // The articles are blank again for the next hand.
+    // The articles are blank again for the next hand, and focus is on your row, clear of the toast.
     await expect(nameField(page)).toHaveValue("");
+    const leave = articles(page).getByRole("button", { name: ARTICLES.leave });
+    await expect(leave).toBeFocused();
+    await expect.poll(async () => (await leave.boundingBox())!.y + 40 <= (await page.locator('[data-ouro="toast"]').first().boundingBox())!.y || (await leave.boundingBox())!.x + 200 <= (await page.locator('[data-ouro="toast"]').first().boundingBox())!.x).toBe(true);
+  });
+
+  test("control: sign, while the articles are not done, has Conseil refuse politely and pencil you in", async ({ page }) => {
+    await open(page);
+    await nameField(page).fill("Ada");
+    await signButton(page).click();
+    await expect(tradeField(page)).toHaveAttribute("aria-invalid", "true");
+    await expect(oath(page)).toHaveAttribute("aria-invalid", "true");
+    await expect(signCrew(page)).toContainText(SIGN.refuse(["trade", "oath"]).text);
+    const pencilled = articles(page).locator("[data-chapter-pending]");
+    await expect(pencilled).toContainText("Ada");
+    await expect(pencilled).toContainText(SIGN.waiting(["trade", "oath"]));
+    await expect(pencilled).toContainText(ARTICLES.pending);
+    await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length));
+    await chooseTrade(page, "Cook");
+    await oath(page).click();
+    await signButton(page).click();
+    await expect(pencilled).toHaveCount(0);
+    await expect(signCrew(page)).toContainText(SIGN.welcome("Ada", "Cook").text);
   });
 
   test("control: leave takes you off the crew list", async ({ page }) => {
@@ -209,6 +254,8 @@ test.describe("each control in Chapter I", () => {
     await signOn(page, "Ada");
     await articles(page).getByRole("button", { name: ARTICLES.leave }).click();
     await expect(page.getByRole("list", { name: ARTICLES.roster }).getByText("Ada", { exact: true })).toHaveCount(0);
+    // Back to the articles, to sign again.
+    await expect(nameField(page)).toBeFocused();
     await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length));
     await expect(signCrew(page)).toContainText(SIGN.left.text);
   });
@@ -314,5 +361,98 @@ test("without reduced motion, each part is lowered into place and the launched s
   await expect.poll(() => offset("hull")).toBe("none");
   for (const part of PARTS.slice(1)) await job(page, part.id).click();
   await launchButton(page).click();
-  await expect.poll(() => offset("hull")).toBe("0px 10px");
+  // She slides off the ways and rocks to rest in the water, her wake and bubbles behind her.
+  const ship = plan(page).locator(".bp-ship");
+  expect(await ship.evaluate((group) => group.getAnimations().map((animation) => (animation as CSSAnimation).animationName))).toContain("bp-slide");
+  await expect.poll(() => ship.evaluate((group) => getComputedStyle(group).translate)).toBe("0px 10px");
+  expect(await plan(page).locator(".bp-wake path").first().evaluate((path) => path.getAnimations().length)).toBeGreaterThan(0);
+  await expect(plan(page).locator(".bp-launch")).toHaveCSS("opacity", "1");
+});
+
+test("the rail beside the chapter shows how the voyage stands, and the yard on the island grows with it", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page);
+  const rail = page.getByRole("list", { name: EXPEDITION.label });
+  const yard = page.locator(".site-yard");
+  await expect(rail).toContainText(EXPEDITION.built(0));
+  await expect(rail).toContainText(EXPEDITION.afloat(false));
+  await expect(rail).toContainText(EXPEDITION.signed(null));
+  await expect(yard.locator("[data-part='hull']")).toHaveCSS("opacity", "0.35");
+  await job(page, "hull").click();
+  await expect(rail).toContainText(EXPEDITION.built(1));
+  await expect(yard).toHaveAttribute("data-built", "hull");
+  await expect(yard.locator("[data-part='hull']")).toHaveCSS("opacity", "1");
+  for (const part of PARTS.slice(1)) await job(page, part.id).click();
+  await launchButton(page).click();
+  await expect(rail).toContainText(EXPEDITION.afloat(true));
+  await expect(yard).toHaveAttribute("data-launched", "");
+  await signOn(page, "Ada", "Cook");
+  await expect(rail).toContainText(EXPEDITION.signed({ name: "Ada", trade: "Cook" }));
+  await expect(yard.locator(".yd-flag")).toHaveCSS("opacity", "1");
+  // Held in view beside both applications as you work down them.
+  await articles(page).scrollIntoViewIfNeeded();
+  const box = (await rail.boundingBox())!;
+  expect(box.y).toBeGreaterThanOrEqual(0);
+  expect(box.y + box.height).toBeLessThanOrEqual(900);
+});
+
+test.describe("by keyboard alone", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.setViewportSize({ width: 1440, height: 900 });
+  });
+
+  test("the shipyard: Tab to each job, Space to tick it, Enter to launch, and Enter to build her again", async ({ page }) => {
+    await open(page);
+    await page.getByRole("button", { name: /^Reorder Electric engine/ }).focus();
+    for (const id of START_ORDER) {
+      await page.keyboard.press("Tab");
+      await expect(job(page, id)).toBeFocused();
+      await page.keyboard.press("Space");
+      await expect(job(page, id)).toBeChecked();
+    }
+    await page.keyboard.press("Tab");
+    await expect(launchButton(page)).toBeFocused();
+    await expect(launchButton(page)).toHaveText(SHIPYARD.launch);
+    await page.keyboard.press("Enter");
+    await expect(plan(page)).toHaveAttribute("data-launched", "");
+    await expect(launchButton(page)).toBeFocused();
+    await expect(launchButton(page)).toHaveText(SHIPYARD.again);
+    await page.keyboard.press("Enter");
+    await expect(plan(page)).toHaveAttribute("data-built", "");
+    await expect(job(page, START_ORDER[0]!)).toBeFocused();
+  });
+
+  test("the articles: fill them in, Enter to sign, and Enter to leave", async ({ page }) => {
+    await open(page);
+    await nameField(page).focus();
+    await page.keyboard.type("Ada");
+    await page.keyboard.press("Tab");
+    await expect(tradeField(page)).toBeFocused();
+    await page.keyboard.press("Enter");
+    const cook = page.getByRole("option", { name: "Cook" });
+    await expect(cook).toBeVisible();
+    for (let step = 0; step < 8 && (await cook.getAttribute("data-highlighted")) === null; step++) await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("Enter");
+    await expect(tradeField(page)).toBeFocused();
+    await expect(tradeField(page)).toHaveText(/Cook/);
+    await page.keyboard.press("Tab");
+    await expect(oath(page)).toBeFocused();
+    await page.keyboard.press("Space");
+    await expect(oath(page)).toBeChecked();
+    await page.keyboard.press("Tab");
+    await expect(signButton(page)).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length + 1));
+    const leave = articles(page).getByRole("button", { name: ARTICLES.leave });
+    await expect(leave).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length));
+    await expect(nameField(page)).toBeFocused();
+    // Enter in the name field signs too, and Conseil says what is still wanting.
+    await page.keyboard.type("Ada");
+    await page.keyboard.press("Enter");
+    await expect(signCrew(page)).toContainText(SIGN.refuse(["trade", "oath"]).text);
+  });
 });

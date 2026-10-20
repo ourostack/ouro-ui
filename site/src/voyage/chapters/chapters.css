@@ -1,9 +1,9 @@
 /*
- * Chapter I's own drawing: the shipwright's plan (nautilus-blueprint.svg, inlined by
- * chapter-one.tsx). Everything else in the chapter is laid out with utilities. Every colour is the
- * theme's, so each preset repaints the plan. Each part is ghosted until its job is ticked
- * (data-built), then drawn in; Launch (data-launched) turns the plan into the finished ship in the
- * sea. Under reduced motion only opacity and colour change.
+ * Chapter I as the server draws it, before it answers: the shipwright's plan
+ * (nautilus-blueprint.svg, inlined by chapter-one.tsx) with every part ghosted, and the rail's
+ * picture. Everything else is laid out with utilities, and everything that changes once the
+ * chapter answers (parts drawn in, the launch) is in chapter-one.css, which loads with the island.
+ * Every colour is the theme's, so each preset repaints the plan.
  */
 .site-blueprint {
   --bp-ink: color-mix(in oklab, var(--primary) 78%, var(--foreground));
@@ -11,12 +11,6 @@
   width: 100%;
   height: auto;
   color: var(--bp-ink);
-  transition: color var(--ouro-duration-slow) ease;
-}
-.site-blueprint :is(.bp-paper, .bp-sea, .bp-fill, .bp-light, .bp-grid, .bp-frame, .bp-dims, .bp-part, .bp-note) {
-  transition:
-    fill var(--ouro-duration-slow) ease,
-    opacity var(--ouro-duration-slow) ease;
 }
 .bp-paper {
   fill: color-mix(in oklab, var(--primary) 7%, var(--card));
@@ -35,32 +29,11 @@
 .bp-part {
   opacity: 0.14;
 }
-.site-blueprint[data-built~="hull"] [data-part="hull"],
-.site-blueprint[data-built~="windows"] [data-part="windows"],
-.site-blueprint[data-built~="engine"] [data-part="engine"],
-.site-blueprint[data-built~="lantern"] [data-part="lantern"],
-.site-blueprint[data-built~="organ"] [data-part="organ"] {
-  opacity: 1;
-}
-.site-blueprint[data-built~="lantern"] .bp-light {
-  fill: var(--chart-3);
-}
-
-/* Launched: the plan's paper becomes the sea, the hull is steel, and the plan's lines go. */
-.site-blueprint[data-launched] {
-  --bp-ink: color-mix(in oklab, white 82%, var(--primary));
-}
-.site-blueprint[data-launched] .bp-paper {
-  fill: color-mix(in oklab, var(--primary) 45%, oklch(0.4 0.03 250));
-}
-.site-blueprint[data-launched] .bp-sea {
-  fill: color-mix(in oklab, var(--primary) 70%, oklch(0.25 0.04 250));
-}
-.site-blueprint[data-launched] .bp-fill {
-  fill: color-mix(in oklab, var(--primary) 30%, oklch(0.3 0.03 250));
-}
-.site-blueprint[data-launched] :is(.bp-grid, .bp-frame, .bp-dims, .bp-note) {
-  opacity: 0;
+/* Each part hangs just above its place until its job is ticked (chapter-one.css lowers it in). */
+@media (prefers-reduced-motion: no-preference) {
+  .bp-part {
+    translate: 0 -6px;
+  }
 }
 /* On a phone the plan's small print would be specks: the parts speak for themselves. */
 @media (max-width: 40rem) {
@@ -68,26 +41,22 @@
     display: none;
   }
 }
-@media (prefers-reduced-motion: no-preference) {
-  /* A part is lowered into place, and the launched ship settles into the water. */
-  .site-blueprint .bp-part {
-    translate: 0 -6px;
-    transition:
-      opacity var(--ouro-duration-slow) ease,
-      translate var(--ouro-duration-slow) var(--ouro-ease-out);
-  }
-  .site-blueprint[data-built~="hull"] [data-part="hull"],
-  .site-blueprint[data-built~="windows"] [data-part="windows"],
-  .site-blueprint[data-built~="engine"] [data-part="engine"],
-  .site-blueprint[data-built~="lantern"] [data-part="lantern"],
-  .site-blueprint[data-built~="organ"] [data-part="organ"] {
-    translate: none;
-  }
-  .site-blueprint[data-launched] .bp-part {
-    translate: 0 10px;
-  }
+.site-yard {
+  display: block;
+  width: 100%;
+  height: auto;
+  color: color-mix(in oklab, var(--primary) 60%, var(--foreground));
 }
-
+.site-step-mark {
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.125rem;
+  color: var(--muted-foreground);
+}
+[data-done] > .site-step-mark {
+  color: var(--primary);
+}
 /* A button that waits for the work (Launch) stays readable: it is the next thing to do. */
 #chapter-one button:disabled {
   opacity: 0.72;

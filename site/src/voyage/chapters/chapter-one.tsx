@@ -1,4 +1,4 @@
-import { memo, startTransition, useDeferredValue, useEffect, useMemo, useRef, useState, useTransition, type FormEvent, type JSX, type ReactNode } from "react";
+import { createContext, memo, startTransition, use, useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition, type FormEvent, type JSX, type ReactNode } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -17,19 +17,51 @@ import { formErrors } from "@/registry/ouro/lib/ouro/form-answer";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import blueprintSource from "../../nautilus/art/nautilus-blueprint.svg?raw";
 import dividersSource from "../../nautilus/art/dividers.svg?raw";
+import islandSource from "../../nautilus/art/island-yard.svg?raw";
 import { GITHUB } from "../../paths";
+import { keepClearOfToasts } from "../clear-of-toasts";
 import { Container } from "../layout";
 import { parseArt } from "../stage/art";
-import { ARTICLES, CHAPTER_ONE, CODE_SHEETS, CREW, PARTS, SHIPYARD, SIGN, TRADES, YARD, type CrewLine, type PartId } from "./copy";
+import type { CrewName } from "../stage/copy";
+import { ARTICLES, CHAPTER_ONE, CODE_SHEETS, CREW, EXPEDITION, PARTS, SHIPYARD, SIGN, START_ORDER, TRADES, YARD, type CrewLine, type PartId, type SheetLine } from "./copy";
+// What only changes once the chapter answers (each part drawn in, the launch, the yard's picture,
+// the crew's cheer): it comes inside this island's script and goes into the page as the island
+// hydrates, so it costs the first paint nothing and holds up no part of the island's loading.
+import chapterStyles from "./chapter-one.css?inline";
 
 const blueprint = parseArt(blueprintSource);
 const dividers = parseArt(dividersSource);
+const island = parseArt(islandSource);
+
+/** How the voyage stands: the shipyard and the articles write it, the rail beside them reads it. */
+interface Voyage {
+  built: ReadonlySet<PartId>;
+  launched: boolean;
+  you: { name: string; trade: string } | null;
+}
+
+function createVoyage() {
+  let state: Voyage = { built: new Set(), launched: false, you: null };
+  const listeners = new Set<() => void>();
+  return {
+    get: () => state,
+    set(next: Partial<Voyage>) {
+      state = { ...state, ...next };
+      for (const listener of listeners) listener();
+    },
+    subscribe(listener: () => void) {
+      listeners.add(listener);
+      return () => void listeners.delete(listener);
+    },
+  };
+}
+type VoyageStore = ReturnType<typeof createVoyage>;
+const VoyageContext = createContext<VoyageStore | null>(null);
+const useVoyageStore = () => use(VoyageContext)!;
 
 /** Where Chapter I's own source lives, for each Code sheet. */
 export const CHAPTER_SOURCE = `${GITHUB}/tree/main/site/src/voyage/chapters`;
 
-/** The order the yard starts in: the lantern before the hull, so there is something to put right. */
-export const START_ORDER: readonly PartId[] = ["lantern", "hull", "windows", "organ", "engine"];
 
 const partNamed = (id: PartId) => PARTS.find((part) => part.id === id)!;
 
@@ -40,66 +72,136 @@ const partNamed = (id: PartId) => PARTS.find((part) => part.id === id)!;
  * and which the site's. The page hydrates it only as it nears the screen (pages/voyage.tsx); the
  * server HTML reads the same before then.
  */
+const STYLES_ID = "chapter-one-styles";
+
 export default function ChapterOne(): JSX.Element {
   const root = useRef<HTMLElement>(null);
-  // Hydrated: the chapter answers from here on (the end-to-end specs wait for it before they press).
+  const [voyage] = useState(createVoyage);
+  // Hydrated: the chapter's own styles go in, and it answers from here on (the end-to-end specs
+  // wait for it before they press).
   useEffect(() => {
+    if (!document.getElementById(STYLES_ID)) {
+      const style = document.createElement("style");
+      style.id = STYLES_ID;
+      style.textContent = chapterStyles;
+      document.head.append(style);
+    }
     root.current?.setAttribute("data-chapter-ready", "");
   }, []);
   return (
-    <section ref={root} id="chapter-one" aria-labelledby="chapter-one-title" className="border-t border-border/60 py-20 lg:py-32" data-chapter="one">
-      <Container className="grid grid-cols-[minmax(0,1fr)] gap-x-6 gap-y-12 lg:grid-cols-12">
-        <header className="lg:sticky lg:top-24 lg:col-span-4 lg:self-start">
-          <p className="site-eyebrow">{CHAPTER_ONE.number}</p>
-          <h2 id="chapter-one-title" className="site-h2 mt-3">
-            {CHAPTER_ONE.title}
-          </h2>
-          <p className="site-lede mt-4">{CHAPTER_ONE.intro}</p>
-          <svg
-            className="mt-8 hidden w-32 text-muted-foreground lg:block"
-            viewBox={dividers.viewBox}
-            aria-hidden="true"
-            fill="none"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            dangerouslySetInnerHTML={{ __html: dividers.inner }}
-          />
-        </header>
-        <div className="grid gap-20 lg:col-span-8">
-          <Composition id="shipyard" title={SHIPYARD.title} intro={SHIPYARD.intro} file={SHIPYARD.file} sheet={CODE_SHEETS.shipyard} snippet={SHIPYARD_SNIPPET}>
-            <Shipyard />
-          </Composition>
-          <Composition id="articles" title={ARTICLES.title} intro={ARTICLES.intro} file={ARTICLES.file} sheet={CODE_SHEETS.articles} snippet={ARTICLES_SNIPPET}>
-            <Articles />
-          </Composition>
-        </div>
-      </Container>
+    <section ref={root} id="chapter-one" aria-labelledby="chapter-one-title" className="pb-20 lg:pb-32" data-chapter="one">
+      <Handoff />
+      <VoyageContext value={voyage}>
+        <Container className="grid grid-cols-[minmax(0,1fr)] gap-x-6 gap-y-12 lg:grid-cols-12">
+          <header className="lg:sticky lg:top-24 lg:col-span-4 lg:self-start">
+            <p className="site-eyebrow">{CHAPTER_ONE.number}</p>
+            <h2 id="chapter-one-title" className="site-h2 mt-3">
+              {CHAPTER_ONE.title}
+            </h2>
+            <p className="site-lede mt-4">{CHAPTER_ONE.intro}</p>
+            <Expedition />
+          </header>
+          <div className="grid gap-20 lg:col-span-8">
+            <Composition id="shipyard" title={SHIPYARD.title} intro={SHIPYARD.intro} file={SHIPYARD.file} sheet={CODE_SHEETS.shipyard}>
+              <Shipyard />
+            </Composition>
+            <Composition id="articles" title={ARTICLES.title} intro={ARTICLES.intro} file={ARTICLES.file} sheet={CODE_SHEETS.articles}>
+              <Articles />
+            </Composition>
+          </div>
+        </Container>
+      </VoyageContext>
     </section>
   );
 }
 
-const SHIPYARD_SNIPPET = `<Reorderable label="Order of work" items={plan} onReorder={setOrder} />
-<Checklist label="Jobs" items={jobs} onCheckedChange={tick} />
-<Progress label="Ship built" value={built} showValue />
-<Button disabled={left > 0} onClick={launch}>Launch</Button>`;
+/** From the themes into the chapter: a course line with the shipwright's dividers on it, and the line that turns the page. */
+function Handoff(): JSX.Element {
+  return (
+    <Container className="flex items-center gap-4 py-12 text-muted-foreground lg:py-16" data-chapter-handoff="">
+      <span className="h-px flex-1 bg-border" aria-hidden="true" />
+      <svg
+        className="w-16 shrink-0"
+        viewBox={dividers.viewBox}
+        aria-hidden="true"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        dangerouslySetInnerHTML={{ __html: dividers.inner }}
+      />
+      <p className="m-0 text-sm italic">{CHAPTER_ONE.handoff}</p>
+      <span className="h-px flex-1 bg-border" aria-hidden="true" />
+    </Container>
+  );
+}
 
-const ARTICLES_SNIPPET = `<Form errors={formErrors(answer, answer?.errors)} onSubmit={sign}>
-  <TextField label="Your name" name="name" required />
-  <Select label="Your trade" name="trade" options={trades} required />
-  <Checkbox label="I will keep the Nautilus a secret." name="oath" required />
-  <Button type="submit">Sign the articles</Button>
-</Form>`;
+/**
+ * The rail beside the chapter, held in view while you work: the yard on the island, drawn in as
+ * the jobs are ticked, the ship in the sea once launched and a pennant once you sign on; under it,
+ * how the voyage stands in words. On a phone the chapter runs in one column and the rail is left out.
+ */
+function Expedition(): JSX.Element {
+  const voyage = useVoyageStore();
+  const { built, launched, you } = useSyncExternalStore(voyage.subscribe, voyage.get, voyage.get);
+  const steps = [
+    { label: EXPEDITION.build, done: built.size === PARTS.length, status: EXPEDITION.built(built.size) },
+    { label: EXPEDITION.launch, done: launched, status: EXPEDITION.afloat(launched) },
+    { label: EXPEDITION.sign, done: you !== null, status: EXPEDITION.signed(you) },
+  ];
+  return (
+    <div className="mt-10 hidden lg:block" data-chapter-expedition="">
+      <svg
+        className="site-yard"
+        viewBox={island.viewBox}
+        aria-hidden="true"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        data-built={[...built].join(" ")}
+        data-launched={launched ? "" : undefined}
+        data-signed={you ? "" : undefined}
+        dangerouslySetInnerHTML={{ __html: island.inner }}
+      />
+      <ol className="m-0 mt-6 grid list-none gap-4 p-0" aria-label={EXPEDITION.label}>
+        {steps.map((step) => (
+          <li key={step.label} className="flex items-start gap-3" data-done={step.done ? "" : undefined}>
+            <StepMark done={step.done} />
+            <span className="grid gap-0.5">
+              <span className="font-medium">{step.label}</span>
+              <span className="text-sm text-muted-foreground">{step.status}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+/** A step's mark: an open ring, or a ring with a tick once it is done. */
+function StepMark({ done }: { done: boolean }): JSX.Element {
+  return (
+    <svg className="site-step-mark" viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="10" cy="10" r="8.5" />
+      {done ? <path d="M6 10.5l2.75 2.75L14 7.5" /> : null}
+    </svg>
+  );
+}
 
 interface SheetCopy {
   title: string;
   description: string;
-  hx: readonly string[];
+  hx: readonly SheetLine[];
   site: readonly string[];
 }
 
-/** One framed application: its title and line above, window chrome with a Code button, and the Code sheet. */
-function Composition({ id, title, intro, file, sheet, snippet, children }: { id: string; title: string; intro: string; file: string; sheet: SheetCopy; snippet: string; children: ReactNode }): JSX.Element {
+/**
+ * One framed application: its title and line above, window chrome with a Code button, and the Code
+ * sheet, where each thing HX does sits over the line of the exhibit that asks it to (wrapped, never
+ * cut off at the panel's edge).
+ */
+function Composition({ id, title, intro, file, sheet, children }: { id: string; title: string; intro: string; file: string; sheet: SheetCopy; children: ReactNode }): JSX.Element {
   const [open, setOpen] = useState(false);
   return (
     <article aria-labelledby={`${id}-title`} data-composition={id}>
@@ -129,9 +231,14 @@ function Composition({ id, title, intro, file, sheet, snippet, children }: { id:
             <h4 id={`${id}-hx`} className="site-eyebrow mb-2">
               {CODE_SHEETS.hxHeading}
             </h4>
-            <ul className="m-0 grid list-disc gap-2 ps-5">
+            <ul className="m-0 grid list-none gap-4 p-0">
               {sheet.hx.map((line) => (
-                <li key={line}>{line}</li>
+                <li key={line.text} className="grid gap-1.5">
+                  <span>{line.text}</span>
+                  <pre className="site-mono site-code-line m-0 rounded-lg bg-muted px-3 py-2" data-chapter-code="">
+                    <code>{line.code}</code>
+                  </pre>
+                </li>
               ))}
             </ul>
           </section>
@@ -145,9 +252,6 @@ function Composition({ id, title, intro, file, sheet, snippet, children }: { id:
               ))}
             </ul>
           </section>
-          <pre className="site-mono m-0 overflow-x-auto rounded-lg bg-muted p-4" tabIndex={0} aria-label={`${title}: the HX part, in short`}>
-            <code>{snippet}</code>
-          </pre>
           <Link href={CHAPTER_SOURCE} external>
             {CODE_SHEETS.source}
           </Link>
@@ -157,11 +261,19 @@ function Composition({ id, title, intro, file, sheet, snippet, children }: { id:
   );
 }
 
-/** A crew member's line, read out when it changes. */
-function Crew({ line }: { line: CrewLine }): JSX.Element {
+/** A crew member's line, read out when it changes; at the launch the whole crew turns out to cheer. */
+function Crew({ line, cheer = false }: { line: CrewLine; cheer?: boolean }): JSX.Element {
   return (
     <p className="m-0 flex min-h-[2.75lh] items-center gap-2.5 text-sm" aria-live="polite" aria-atomic="true" data-chapter-crew="">
-      <Avatar name={line.name} alt="" size="sm" />
+      {cheer ? (
+        <span className="site-cheer" data-chapter-cheer="">
+          {CREW.map((member) => (
+            <Avatar key={member.name} name={member.name} alt="" size="sm" />
+          ))}
+        </span>
+      ) : (
+        <Avatar name={line.name} alt="" size="sm" />
+      )}
       <span>
         <span className="font-semibold">{line.name}:</span> {line.text}
       </span>
@@ -203,6 +315,8 @@ function describePlan(built: ReadonlySet<PartId>, launched: boolean): string {
  * the order, the ticks and the plan; HX owns how each control behaves and what it announces.
  */
 function Shipyard(): JSX.Element {
+  const voyage = useVoyageStore();
+  const jobs = useRef<HTMLDivElement>(null);
   const [order, setOrder] = useState<readonly PartId[]>(START_ORDER);
   const [built, setBuilt] = useState<ReadonlySet<PartId>>(() => new Set());
   const [launched, setLaunched] = useState(false);
@@ -213,6 +327,8 @@ function Shipyard(): JSX.Element {
   // The plan follows the controls a frame later: a press repaints its own control first, then the
   // drawing (a deferred render), so no press waits on the plan's repaint.
   const plan = useDeferredValue(useMemo(() => ({ built, launched }), [built, launched]));
+  // The rail follows the plan.
+  useEffect(() => voyage.set(plan), [voyage, plan]);
 
   // The crew's line follows the control's own change by a frame: it's a transition, so the press
   // paints first.
@@ -236,9 +352,11 @@ function Shipyard(): JSX.Element {
     else if (part.id !== "hull" && !next.has("hull")) say(YARD.noHull(part.name));
     else say(YARD.built[part.id]);
   };
-  // Launch turns the button at once; emptying the yard for another build follows as a transition.
+  // Launch turns the button at once; emptying the yard for another build follows as a transition,
+  // and focus goes to the first job, where the next build starts.
   const launch = () => {
     if (launched) {
+      jobs.current?.querySelector<HTMLElement>("[role='checkbox']")?.focus();
       setLaunched(false);
       startEmptying(() => setBuilt(new Set()));
       say(YARD.again);
@@ -258,7 +376,7 @@ function Shipyard(): JSX.Element {
           </p>
           <Reorderable label={SHIPYARD.order} items={order.map((id) => ({ id, label: partNamed(id).name, }))} onReorder={reorder} />
         </div>
-        <div data-chapter-control="jobs">
+        <div ref={jobs} data-chapter-control="jobs">
           <p className="site-eyebrow mb-2" aria-hidden="true">
             {SHIPYARD.jobs}
           </p>
@@ -273,7 +391,7 @@ function Shipyard(): JSX.Element {
       <div className="grid gap-4 border-t border-border/70 p-4 sm:p-6">
         <Progress label={SHIPYARD.progress} value={(built.size / PARTS.length) * 100} showValue />
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <Crew line={line} />
+          <Crew line={line} cheer={launched} />
           <div className="flex shrink-0 items-center gap-3" data-chapter-control="launch">
             <span className="text-sm text-muted-foreground" data-chapter-launch-hint="">
               {launched ? SHIPYARD.launched : SHIPYARD.launchHint(emptying ? PARTS.length : left)}
@@ -291,44 +409,81 @@ function Shipyard(): JSX.Element {
 const tradeLabel = (value: string) => TRADES.find((trade) => trade.value === value)?.label ?? value;
 
 /** Whether a name is someone aboard already: their whole name, or the last word of it ("Nemo"). */
-function aboard(name: string): string | undefined {
+function aboard(name: string): CrewName | undefined {
   const asked = name.trim().toLowerCase();
   return CREW.find((member) => member.name.toLowerCase() === asked || member.name.split(" ").at(-1)!.toLowerCase() === asked)?.name;
 }
 
 /**
  * The ship's articles: an HX Form (name, trade and the oath, each required) signs you on to the crew
- * list beside Nemo, Aronnax, Conseil and Ned. The browser's own checks run first; the site's check
- * (a name already aboard) answers through the Form's `errors`, as a server would.
+ * list beside Nemo, Aronnax, Conseil and Ned. The browser's own checks run first, and Conseil, who
+ * keeps the list, says politely what is still wanting (your name waits on the list until then);
+ * the site's checks (a blank name, a name already aboard) answer through the Form's `errors`, as a
+ * server would.
  */
 function Articles(): JSX.Element {
+  const voyage = useVoyageStore();
+  const box = useRef<HTMLDivElement>(null);
   const [you, setYou] = useState<{ name: string; trade: string } | null>(null);
   const [answer, setAnswer] = useState<{ errors: FormErrors | undefined }>();
   const [signings, setSignings] = useState(0);
   const [line, setLine] = useState<CrewLine>(SIGN.opening);
+  const [pending, setPending] = useState<{ name: string; wants: readonly Want[] } | null>(null);
+  useEffect(() => voyage.set({ you }), [voyage, you]);
+  // A new signing brings a new, empty form; focus goes to your row's Leave, clear of the toast.
+  useEffect(() => {
+    if (signings === 0) return;
+    const leave = box.current?.querySelector<HTMLElement>("[data-chapter-control='leave'] button");
+    leave?.focus();
+    keepClearOfToasts(leave?.closest("li"));
+  }, [signings]);
+
+  const field = (name: string) => box.current?.querySelector<HTMLInputElement>(`input[name="${name}"]`);
+  // Before the browser's checks stop a short signing, Conseil says what it still wants. (Enter in a
+  // field presses Sign too, so this hears every attempt.)
+  const check = () => {
+    const name = field("name")?.value.trim() ?? "";
+    const wants = WANTS.filter((key) => field(key)?.validity.valid === false);
+    if (!name) {
+      setLine(SIGN.needName);
+    } else if (wants.length) {
+      setPending({ name, wants });
+      setLine(SIGN.refuse(wants));
+    }
+  };
   const sign = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const name = String(data.get("name") ?? "").trim();
+    if (!name) {
+      setAnswer({ errors: { name: ARTICLES.blank } });
+      setLine(SIGN.needName);
+      return;
+    }
     const taken = aboard(name);
     if (taken) {
       setAnswer({ errors: { name: ARTICLES.taken(taken) } });
+      setPending(null);
+      setLine(SIGN.mine(taken));
       return;
     }
     const trade = tradeLabel(String(data.get("trade")));
     setAnswer({ errors: undefined });
+    setPending(null);
     setYou({ name, trade });
     setSignings((count) => count + 1);
     setLine(SIGN.welcome(name, trade));
     toast(ARTICLES.signed(name), { tone: "success", description: ARTICLES.onList });
   };
+  // Off the list, and back to the articles' first field to sign again.
   const leave = () => {
+    field("name")?.focus();
     setYou(null);
     setLine(SIGN.left);
   };
   const count = CREW.length + (you ? 1 : 0);
   return (
-    <div className="grid gap-8 p-4 sm:p-6 md:grid-cols-2">
+    <div ref={box} className="grid gap-8 p-4 sm:p-6 md:grid-cols-2">
       {/* A new Form for each signing, so the fields start empty again. */}
       <Form key={signings} aria-label={ARTICLES.form} errors={formErrors(answer, answer?.errors)} onSubmit={sign}>
         <div data-chapter-control="name">
@@ -341,7 +496,9 @@ function Articles(): JSX.Element {
           <Checkbox label={ARTICLES.oath} name="oath" required />
         </div>
         <div data-chapter-control="sign">
-          <Button type="submit">{ARTICLES.sign}</Button>
+          <Button type="submit" onClick={check}>
+            {ARTICLES.sign}
+          </Button>
         </div>
       </Form>
       <div>
@@ -379,6 +536,20 @@ function Articles(): JSX.Element {
                 </span>
               }
             />
+          ) : pending ? (
+            <Item
+              key="pending"
+              size="sm"
+              data-chapter-pending=""
+              media={<Avatar name={pending.name} alt="" />}
+              title={pending.name}
+              description={SIGN.waiting(pending.wants)}
+              actions={
+                <Badge tone="secondary" variant="outline">
+                  {ARTICLES.pending}
+                </Badge>
+              }
+            />
           ) : null}
         </ItemGroup>
         <Crew line={line} />
@@ -386,3 +557,6 @@ function Articles(): JSX.Element {
     </div>
   );
 }
+
+type Want = "trade" | "oath";
+const WANTS: readonly Want[] = ["trade", "oath"];
