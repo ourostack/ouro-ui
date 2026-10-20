@@ -176,6 +176,22 @@ describe("TabBar", () => {
     }
   }
 
+  it("stays in place when a field takes focus under a fine pointer, which brings up no on-screen keyboard", async () => {
+    const { host, nav } = await render(<TabBar label="Main" items={items} />);
+    const field = document.createElement("input");
+    field.setAttribute("aria-label", "Title");
+    field.setAttribute("data-test-harness", "");
+    host.before(field);
+    mounted.push(field);
+    expect(matchMedia("(pointer: fine)").matches).toBe(true);
+    await act(async () => field.focus());
+    expect(document.activeElement).toBe(field);
+    expect(nav.hasAttribute("data-open")).toBe(true);
+    expect(nav.hasAttribute("data-closed")).toBe(false);
+    expect(nav.inert).toBe(false);
+    expect(getComputedStyle(nav).opacity).toBe("1");
+  });
+
   it("scales a tab while pressed, and not with reduced motion", async () => {
     const { tabs, accessory } = await render(<TabBar label="Main" items={items} accessory={search} />);
     for (const link of [tabs[0]!, accessory!]) link.addEventListener("click", (event) => event.preventDefault());
@@ -230,6 +246,9 @@ describe("TabBar development messages", () => {
     const html = renderToString(<TabBar label="Main" items={items} accessory={search} currentPath="/recipes/12" className="bg-red-500" />);
     expect(html).toContain('data-ouro="tab-bar"');
     expect(html).toMatch(/aria-current="page"[^>]*>.*Recipes/);
+    // In place: only the browser knows whether the keyboard is up.
+    expect(html).toMatch(/<nav[^>]*data-open=""/);
+    expect(html).not.toContain("data-closed=");
     expect(warn).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
   });

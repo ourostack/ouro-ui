@@ -6,5 +6,25 @@
       {"part": "tab", "role": "link", "portal": false},
       {"part": "accessory", "role": "link", "portal": false}
     ]
+  },
+  "motion": {
+    "tab-bar": {
+      "states": {
+        "data-closed": {
+          "kind": "motion",
+          "parts": {
+            "bar": {"properties": ["opacity", "translate"], "reduced": ["opacity"]}
+          },
+          "tests": ["registry/ouro/components/ouro/tab-bar/tab-bar.touch.test.tsx::TabBar and the on-screen keyboard > slides away while a field has the keyboard up and comes back when it goes; with reduced motion it only fades"]
+        },
+        "data-open": {
+          "kind": "motion",
+          "parts": {
+            "bar": {"properties": ["opacity", "translate"], "reduced": ["opacity"]}
+          },
+          "tests": ["registry/ouro/components/ouro/tab-bar/tab-bar.touch.test.tsx::TabBar and the on-screen keyboard > slides away while a field has the keyboard up and comes back when it goes; with reduced motion it only fades"]
+        }
+      }
+    }
   }
 }

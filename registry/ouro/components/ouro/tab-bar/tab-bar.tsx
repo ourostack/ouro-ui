@@ -1,6 +1,6 @@
 "use client";
 
-import type { JSX, ReactNode, Ref } from "react";
+import { useSyncExternalStore, type JSX, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { currentHref } from "@/registry/ouro/lib/ouro/current-path";
@@ -76,6 +76,49 @@ export interface TabBarProps {
 
 const example = '<TabBar label="Main" items={[{ label: "Recipes", href: "/recipes", icon: <BookOpen /> }]} />';
 
+/** How much of the screen a keyboard covers, at the least: more than a browser's own toolbars, which also shrink the visual viewport. */
+const KEYBOARD = 150;
+/** Input types that bring up no on-screen keyboard. */
+const keyless = new Set(["button", "checkbox", "color", "file", "hidden", "image", "radio", "range", "reset", "submit"]);
+
+/** Whether the focused element takes typing: a text field, a text area or an editable region. */
+function typing(): boolean {
+  const field = document.activeElement;
+  if (field instanceof HTMLTextAreaElement) return !field.readOnly;
+  if (field instanceof HTMLInputElement) return !field.readOnly && !keyless.has(field.type);
+  return field instanceof HTMLElement && field.isContentEditable;
+}
+
+/**
+ * Whether the on-screen keyboard is up. Where it covers the page (iOS, and Android by default),
+ * it shrinks the visual viewport below the layout viewport; a pinch zoom shrinks it too, so it
+ * is measured at the zoom's scale. Where it resizes the page instead, a focused text field on a
+ * touch screen is the sign.
+ */
+function keyboardUp(): boolean {
+  const viewport = window.visualViewport;
+  if (viewport !== null && innerHeight - viewport.height * viewport.scale > KEYBOARD) return true;
+  return matchMedia("(pointer: coarse)").matches && typing();
+}
+
+function subscribeKeyboard(listener: () => void): () => void {
+  const viewport = window.visualViewport;
+  // Focus moving from one field to the next leaves nothing focused for a moment; the focusin that follows reports it.
+  const left = (event: FocusEvent) => {
+    if (event.relatedTarget === null) listener();
+  };
+  viewport?.addEventListener("resize", listener);
+  document.addEventListener("focusin", listener);
+  document.addEventListener("focusout", left);
+  return () => {
+    viewport?.removeEventListener("resize", listener);
+    document.removeEventListener("focusin", listener);
+    document.removeEventListener("focusout", left);
+  };
+}
+
+const serverFalse = () => false;
+
 /** Every path a tab owns, with the tab's index, for `currentHref`. */
 function ownedPaths(items: readonly TabBarItem[]): Array<{ path: string; index: number }> {
   return items.flatMap((item, index) => [item.href, ...(item.paths ?? [])].map((path) => ({ path, index })));
@@ -91,8 +134,11 @@ function ownedPaths(items: readonly TabBarItem[]): Array<{ path: string; index: 
  * The bar is fixed to the bottom of the screen, clear of the home indicator, and the
  * component keeps its room at the end of the page, so render it last in the layout and the
  * content scrolls clear of it. It hides from `hideFrom` (640px by default), where the app's
- * `Navbar` or `Sidebar` takes over, and when printing. To hide it on a page that fills the
- * screen (a full-screen editor, a single decision), don't render it there.
+ * `Navbar` or `Sidebar` takes over, and when printing. While the on-screen keyboard is up it
+ * slides away below the screen (with reduced motion it fades), so it never rides on the
+ * keyboard over the field a person types in, and it comes back when the keyboard goes. To
+ * hide it on a page that fills the screen (a full-screen editor, a single decision), don't
+ * render it there.
  *
  * Tabs render through `OuroProvider`'s `linkComponent`, so your router navigates. Each tab
  * is 64px tall, well over the 44px a finger needs.
@@ -172,10 +218,20 @@ export function TabBar(props: TabBarProps): JSX.Element {
     current = match === undefined ? -1 : owned.find((entry) => entry.path === match)!.index;
   }
   const isCurrent = (index: number) => (index === current ? ("page" as const) : undefined);
+  // The server cannot know, so the bar renders in place and steps aside after hydration if the keyboard is up.
+  const aside = useSyncExternalStore(subscribeKeyboard, keyboardUp, serverFalse);
 
   return (
     <div data-ouro="tab-bar" className={cn(rootClass, breakpoints[hideFrom], className)}>
-      <nav ref={ref} aria-label={label} className={barClass}>
+      <nav
+        ref={ref}
+        aria-label={label}
+        data-ouro-part="bar"
+        data-open={aside ? undefined : ""}
+        data-closed={aside ? "" : undefined}
+        inert={aside}
+        className={barClass}
+      >
         <ul className={listClass}>
           {items.map((item, index) => (
             <li key={index} className="flex min-w-0 flex-1">

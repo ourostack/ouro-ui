@@ -18,9 +18,16 @@ const breakpoints = {
   never: "",
 } as const;
 
+/**
+ * The bar, fixed to the bottom of the screen. While the on-screen keyboard is up
+ * (`data-closed`) it slides below the screen and fades; with reduced motion it fades in place.
+ */
 const barClass =
   "fixed inset-x-0 bottom-0 z-(--ouro-layer) mx-auto mb-[max(1rem,env(safe-area-inset-bottom,0px))] box-border flex max-w-lg items-center gap-2 " +
-  "ps-[max(0.75rem,env(safe-area-inset-left,0px))] pe-[max(0.75rem,env(safe-area-inset-right,0px))]";
+  "ps-[max(0.75rem,env(safe-area-inset-left,0px))] pe-[max(0.75rem,env(safe-area-inset-right,0px))] " +
+  "transition-[translate,opacity] duration-(--ouro-duration-base) ease-(--ouro-ease-out) " +
+  "data-closed:pointer-events-none data-closed:translate-y-[calc(100%+max(1rem,env(safe-area-inset-bottom,0px)))] data-closed:opacity-0 " +
+  "motion-reduce:transition-opacity motion-reduce:duration-(--ouro-duration-fast) motion-reduce:data-closed:translate-y-0";
 
 /** One solid surface for the tabs and the accessory, so no page content shows through. */
 const surface = "bg-popover text-muted-foreground ring-1 ring-border/60 shadow-(--shadow-lg) forced-colors:border forced-colors:border-solid";

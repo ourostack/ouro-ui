@@ -25,7 +25,7 @@ import { TabBar } from "@/registry/ouro/components/ouro/tab-bar/tab-bar";
 
 ## Usage
 
-The bar is fixed to the bottom of the screen, clear of the home indicator, and the component keeps its room at the end of the page, so render it last in the layout and the content scrolls clear of it. It hides from `hideFrom` (640px by default), where the app's `Navbar` or `Sidebar` takes over, and when printing. To hide it on a page that fills the screen (a full-screen editor, a single decision), don't render it there.
+The bar is fixed to the bottom of the screen, clear of the home indicator, and the component keeps its room at the end of the page, so render it last in the layout and the content scrolls clear of it. It hides from `hideFrom` (640px by default), where the app's `Navbar` or `Sidebar` takes over, and when printing. While the on-screen keyboard is up it slides away below the screen (with reduced motion it fades), so it never rides on the keyboard over the field a person types in, and it comes back when the keyboard goes. To hide it on a page that fills the screen (a full-screen editor, a single decision), don't render it there.
 
 Tabs render through `OuroProvider`'s `linkComponent`, so your router navigates. Each tab is 64px tall, well over the 44px a finger needs.
 
