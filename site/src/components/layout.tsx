@@ -5,6 +5,7 @@ import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { docsItems, GITHUB } from "../docs/items";
 import { guidePages } from "../docs/pages";
 import { href } from "../routes";
+import { HxLogo } from "./brand";
 import { MenuIcon } from "./icons";
 
 export const STORYBOOK = "https://ourostack.github.io/ouro-ui/storybook/";
@@ -26,15 +27,7 @@ export function SiteHeader(): JSX.Element {
           href={href("/")}
           className="-ms-1 inline-flex min-h-11 items-center gap-2 rounded-md px-1 font-semibold tracking-tight text-foreground no-underline outline-ring focus-visible:outline-2 focus-visible:outline-offset-2"
         >
-          <img
-            src={href("/ouro-hx-render-128.webp")}
-            srcSet={`${href("/ouro-hx-render-128.webp")} 128w, ${href("/ouro-hx-render-256.webp")} 256w, ${href("/ouro-hx-render.webp")} 1024w`}
-            sizes="40px"
-            width={40}
-            height={40}
-            alt=""
-            className="size-10 shrink-0"
-          />
+          <HxLogo size={40} className="size-10" />
           Ouro HX
         </a>
         <nav aria-label="Site">

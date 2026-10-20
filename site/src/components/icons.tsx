@@ -46,13 +46,3 @@ export function MenuIcon(props: IconProps): JSX.Element {
     </svg>
   );
 }
-
-/** The Ouro mark: a ring that meets its own tail. */
-export function OuroMark(props: IconProps): JSX.Element {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-      <path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" />
-      <circle cx="18.6" cy="8.4" r="2" fill="currentColor" />
-    </svg>
-  );
-}
