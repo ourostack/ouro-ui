@@ -43,9 +43,6 @@
 .site-blueprint[data-launched] .bp-launch {
   opacity: 1;
 }
-.site-blueprint[data-launched] .bp-ship {
-  translate: 0 10px;
-}
 .bp-flash {
   fill: var(--chart-3);
 }
@@ -67,6 +64,10 @@
   .site-blueprint[data-built~="lantern"] [data-part="lantern"],
   .site-blueprint[data-built~="organ"] [data-part="organ"] {
     translate: none;
+  }
+  /* Launched, she sits a little lower, in the water. (Under reduced motion she stays put and the sea comes up round her.) */
+  .site-blueprint[data-launched] .bp-ship {
+    translate: 0 10px;
   }
   /* The launch: the finished hull slides stern first off the ways into the sea and rocks to rest,
      her wake drawn out behind the screw, bubbles rising off her keel, the lantern flashing. */
@@ -173,10 +174,9 @@
 .site-yard[data-launched] .yd-ripples {
   opacity: 0.8;
 }
-/* Afloat off the slip, a little further out (so a little smaller). */
-.site-yard[data-launched] .yd-ship {
-  translate: 157px 42px;
-  scale: 0.8;
+/* The second ship, drawn afloat, shows only under reduced motion (below). */
+.site-yard .yd-afloat {
+  opacity: 0;
 }
 .site-yard[data-signed] .yd-flag {
   opacity: 1;
@@ -184,11 +184,28 @@
 .yd-pennant {
   color: var(--primary);
 }
+/* Launched, she leaves the slip for the sea, a little further out (so a little smaller). */
 @media (prefers-reduced-motion: no-preference) {
   .site-yard .yd-ship {
     transition:
       translate 1.6s var(--ouro-ease-in-out),
       scale 1.6s var(--ouro-ease-in-out);
+  }
+  .site-yard[data-launched] .yd-ship {
+    translate: 157px 42px;
+    scale: 0.8;
+  }
+}
+/* Under reduced motion nothing moves: the ship on the slip fades out and the one afloat fades in. */
+@media (prefers-reduced-motion: reduce) {
+  .site-yard :is(.yd-ship, .yd-afloat) {
+    transition: opacity var(--ouro-duration-slow) ease;
+  }
+  .site-yard[data-launched] .yd-ship {
+    opacity: 0;
+  }
+  .site-yard[data-launched] .yd-afloat {
+    opacity: 1;
   }
 }
 

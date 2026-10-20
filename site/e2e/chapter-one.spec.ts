@@ -338,10 +338,31 @@ test("on a phone, the shipyard and the articles work by touch, and nothing overf
   await context.close();
 });
 
-test("under reduced motion, building, launching and signing change only colour and opacity", async ({ page }) => {
+test("under reduced motion, building, launching and signing change only colour and opacity, and nothing moves", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 1440, height: 900 });
   await open(page);
+  /**
+   * Every element of the site's own in the chapter (the plan, the yard, the crew, the layout) and
+   * where its transforms put it, so a jump with no transition is caught too. An HX component's
+   * insides are its own: a Progress fill or a Checklist's strike-through shows its value by a
+   * transform, set without a transition under reduced motion, and HX's tests hold those.
+   */
+  const placed = () =>
+    page.locator("#chapter-one").evaluate((chapter) => {
+      const marks = (window as unknown as { __marks?: WeakMap<Element, number> }).__marks ?? new WeakMap<Element, number>();
+      (window as unknown as { __marks: WeakMap<Element, number> }).__marks = marks;
+      let next = 0;
+      const places: Record<string, string> = {};
+      for (const element of [chapter, ...chapter.querySelectorAll("*")]) {
+        if (element.closest("[data-ouro]")) continue;
+        if (!marks.has(element)) marks.set(element, 1_000_000 + next++);
+        const style = getComputedStyle(element);
+        places[`${marks.get(element)}:${element.tagName}.${element.getAttribute("class") ?? ""}`] = [style.transform, style.translate, style.scale, style.rotate].join(" | ");
+      }
+      return places;
+    });
+  const before = await placed();
   await page.evaluate(() => {
     const moved: string[] = ((window as unknown as { __moved: string[] }).__moved = []);
     const allowed = /^(opacity|color|background-color|border-.*color|outline-color|fill|stroke|text-decoration-color|box-shadow|stop-color|visibility|text-decoration-line|all)$/;
@@ -361,6 +382,13 @@ test("under reduced motion, building, launching and signing change only colour a
   await signOn(page, "Ada");
   await page.waitForTimeout(600);
   expect(await page.evaluate(() => (window as unknown as { __moved: string[] }).__moved)).toEqual([]);
+  // No element that was there before sits anywhere else now, by transition or by a jump.
+  const after = await placed();
+  const jumped = Object.keys(before).filter((key) => key in after && after[key] !== before[key]).map((key) => `${key}: ${before[key]} -> ${after[key]}`);
+  expect(jumped).toEqual([]);
+  // The launch still shows: the ship afloat in the yard fades in.
+  await expect(page.locator(".site-yard .yd-afloat")).toHaveCSS("opacity", "1");
+  await expect(page.locator(".site-yard .yd-ship")).toHaveCSS("opacity", "0");
 });
 
 test("without reduced motion, each part is lowered into place and the launched ship settles into the water", async ({ page }) => {
@@ -404,7 +432,9 @@ test("the rail beside the chapter shows how the voyage stands, and the yard on t
   await expect(yard).toHaveAttribute("data-launched", "");
   await signOn(page, "Ada", "Cook");
   await expect(rail).toContainText(EXPEDITION.signed({ name: "Ada", trade: "Cook" }));
-  await expect(yard.locator(".yd-flag")).toHaveCSS("opacity", "1");
+  // The pennant flies on both ships: the one that sails off, and the one drawn afloat for reduced motion.
+  for (const flag of await yard.locator(".yd-flag").all()) await expect(flag).toHaveCSS("opacity", "1");
+  await expect(yard.locator(".yd-afloat")).toHaveCSS("opacity", "1");
   // Held in view beside both applications as you work down them.
   await articles(page).scrollIntoViewIfNeeded();
   const box = (await rail.boundingBox())!;
