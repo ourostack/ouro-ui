@@ -673,6 +673,15 @@
 .stage-real-dash {
   color: color-mix(in oklab, var(--muted-foreground) 60%, transparent);
 }
+/* Where the line can't fit, the label and its link stack, so no dash ends or starts a line. */
+@container (max-width: 33.99rem) {
+  .stage-real {
+    flex-direction: column;
+  }
+  .stage-real-dash {
+    display: none;
+  }
+}
 .stage-console {
   display: grid;
   gap: 1rem;
@@ -1022,13 +1031,6 @@
     gap: 1.125rem;
     padding: 1rem;
   }
-  /* On a phone the label and its link stack, so no dash starts a line. */
-  .stage-real-dash {
-    display: none;
-  }
-  .stage-real {
-    flex-direction: column;
-  }
   /* Every word on the console is at least 16px on a phone. */
   .stage-real,
   .stage-heading,
@@ -1164,11 +1166,12 @@
     var(--screw) calc(100% - 8px) calc(100% - 8px) / 10px 10px no-repeat;
 }
 [data-theme="brass"] .stage-numeral {
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: 600;
 }
 [data-theme="brass"] .stage-console {
   border-top: 3px double color-mix(in oklab, var(--chart-3) 55%, transparent);
+  padding-top: 0.75rem;
 }
 [data-theme="brass"] .stage-heading {
   font-family: var(--font-heading);
