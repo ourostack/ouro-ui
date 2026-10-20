@@ -13,3 +13,4 @@ _site/
 .vitest/
 test-results/
 playwright-report/
+.lighthouseci/
