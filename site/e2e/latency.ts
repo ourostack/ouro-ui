@@ -11,7 +11,11 @@ import { expect, test, type Page } from "@playwright/test";
 export const LATENCY = {
   /** The 95th percentile of the counted presses, in ms: the nearest-rank one, the 19th of 20. */
   p95: 100,
-  /** The median of the counted presses, in ms (of 20, the mean of the 10th and 11th). */
+  /**
+   * The median of the counted presses, in ms (of 20, the mean of the 10th and 11th). CI's runners
+   * vary: the stage's medians run from 24 ms (the bell) to 72 ms (depth) on a typical one and reach
+   * 88 ms on a slow one, so a bound below that fails on the runner, not the code.
+   */
   median: 90,
   /** Presses that count. */
   samples: 20,
