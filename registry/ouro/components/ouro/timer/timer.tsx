@@ -61,8 +61,10 @@ const sizes = {
 /** "10 min", "1 h 30 min", "45 s": the length beside the label. */
 function lengthOf(seconds: number): string {
   if (seconds < 60) return `${seconds} s`;
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.round((seconds % 3600) / 60);
+  // Round the whole length to minutes first, so 59 min 30 s reads "1 h", never "60 min".
+  const total = Math.round(seconds / 60);
+  const hours = Math.floor(total / 60);
+  const minutes = total % 60;
   return hours > 0 ? `${hours} h${minutes ? ` ${minutes} min` : ""}` : `${minutes} min`;
 }
 

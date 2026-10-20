@@ -105,6 +105,9 @@ describe("Timer", () => {
     [60, "1 min"],
     [5400, "1 h 30 min"],
     [7200, "2 h"],
+    [3569, "59 min"],
+    [3570, "1 h"],
+    [7170, "2 h"],
   ])("says a length of %s seconds as %s", async (duration, text) => {
     const { caption } = await render(<Timer label="Tea" duration={duration} />);
     expect(caption().textContent).toBe(`Tea · ${text}`);
