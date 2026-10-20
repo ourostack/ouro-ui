@@ -4,8 +4,9 @@ import { STAGE_CONTROLS, STAGE_COPY, TANKS } from "../src/voyage/stage/copy";
 // Each stage control answers within 100 ms, click to next paint (p95 of 10 after two warm-up
 // presses), on a CPU throttled 4× (site-design.md, "Verification in CI"). Run alone, one worker, by
 // `pnpm test:latency` (playwright.latency.config.ts) and CI's latency job: beside other workers the
-// runner's CPU is shared and the numbers measure the neighbours. Every press must produce an Event
-// Timing entry: one that doesn't is a broken measurement, and fails.
+// runner's CPU is shared and the numbers measure the neighbours. Every press must happen, and produce
+// an Event Timing entry unless it took under 16 ms (the API's floor); neither is a broken
+// measurement, and fails.
 
 async function open(page: Page): Promise<void> {
   await page.goto("voyage/");
@@ -18,6 +19,9 @@ const diveButton = (page: Page) => page.getByRole("button", { name: STAGE_COPY.d
 async function fillTanks(page: Page): Promise<void> {
   for (const { name } of TANKS) await tank(page, name).click();
 }
+
+/** How many interactions the page has had (Event Timing's count, which has no duration floor). */
+const interactionCount = (page: Page) => page.evaluate(() => (performance as Performance & { interactionCount: number }).interactionCount);
 
 test.describe("interaction latency", () => {
   test.skip(({ browserName }) => browserName !== "chromium", "CPU throttling is a Chromium DevTools feature");
@@ -68,11 +72,16 @@ test.describe("interaction latency", () => {
         if (id === "dive" && (round + 2) % 2 === 0) await unthrottled(() => fillTanks(page));
         if (id === "xray" && round > -2) await unthrottled(() => page.getByRole("switch", { name: "X-ray" }).click());
         await page.evaluate(() => ((window as unknown as { __latency: number[] }).__latency.length = 0));
+        const before = await interactionCount(page);
         await interactions[id](page, round + 2);
         await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 50)))));
         const durations = await page.evaluate(() => (window as unknown as { __latency: number[] }).__latency);
-        expect(durations.length, `${id}, round ${round}: Event Timing reported the press`).toBeGreaterThan(0);
-        if (round >= 0) samples.push(Math.max(...durations));
+        // Event Timing reports nothing under 16 ms (its durationThreshold floor), so no entry can
+        // mean a fast press. The browser's interaction count says whether the press happened: if it
+        // did, it counts as 16 ms; if neither it nor an entry is there, the measurement is broken.
+        const pressed = (await interactionCount(page)) > before;
+        expect(durations.length > 0 || pressed, `${id}, round ${round}: the press happened and Event Timing saw it or it was under 16 ms`).toBe(true);
+        if (round >= 0) samples.push(durations.length > 0 ? Math.max(...durations) : 16);
         await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.());
       }
       await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
