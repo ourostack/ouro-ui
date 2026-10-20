@@ -4,19 +4,17 @@ import { expect, test, type Page } from "@playwright/test";
 // `pnpm test:latency`, playwright.latency.config.ts, and CI's latency job). Each control is pressed
 // LATENCY.warmUps times to warm up (the first press of anything compiles code), then LATENCY.samples
 // times on a CPU throttled LATENCY.throttle×. The control passes when its 95th percentile (the 19th of
-// 20, so one slow frame on a shared runner is not a failure) and its median are within budget; the
-// median catches a control that got slower everywhere while the percentile still allows one outlier.
+// 20, so one slow frame on a shared runner is not a failure) is within LATENCY.p95, the hard ceiling
+// for every control, and its median is within its own ceiling, set from the median it measures on CI
+// (medianCeiling): that catches a fast control that got much slower but stays under 100 ms.
+//
+// Event Timing reports durations in 8 ms steps, so every sample is a multiple of 8 and a median of
+// 20 a multiple of 4: a bound sits between steps or it is really the step below it.
 
 /** The budget, the number of presses and the throttle every latency spec measures with. */
 export const LATENCY = {
   /** The 95th percentile of the counted presses, in ms: the nearest-rank one, the 19th of 20. */
   p95: 100,
-  /**
-   * The median of the counted presses, in ms (of 20, the mean of the 10th and 11th). CI's runners
-   * vary: the stage's medians run from 24 ms (the bell) to 72 ms (depth) on a typical one and reach
-   * 88 ms on a slow one, so a bound below that fails on the runner, not the code.
-   */
-  median: 90,
   /** Presses that count. */
   samples: 20,
   /** Presses before them that don't. */
@@ -35,14 +33,25 @@ export interface Presses {
   setUp?: (index: number) => Promise<unknown>;
 }
 
+/**
+ * The most a control's median may be, in ms, given its baseline: the highest median it measured
+ * across recorded CI runs. Twice the baseline, or 24 ms (three Event Timing steps) over it if that is
+ * more, so a slower runner passes and a control that got twice as slow does not. Above 100 ms the
+ * p95 ceiling already holds the median, so for slower controls this only guards the fast ones.
+ */
+export function medianCeiling(baseline: number): number {
+  return Math.max(2 * baseline, baseline + 24);
+}
+
 /** The 95th percentile and the median of a control's samples, and whether they are within budget. */
-export function summarise(samples: readonly number[]): { p95: number; median: number; within: boolean; report: string } {
+export function summarise(samples: readonly number[], baseline: number): { p95: number; median: number; within: boolean; report: string } {
   const sorted = samples.toSorted((a, b) => a - b);
   const p95 = sorted[Math.ceil(sorted.length * 0.95) - 1]!;
   const middle = sorted.length / 2;
   const median = sorted.length % 2 ? sorted[Math.floor(middle)]! : (sorted[middle - 1]! + sorted[middle]!) / 2;
-  const within = p95 <= LATENCY.p95 && median <= LATENCY.median;
-  return { p95, median, within, report: `p95 ${p95} ms (≤ ${LATENCY.p95}), median ${median} ms (≤ ${LATENCY.median}); samples in order: ${samples.join(", ")}` };
+  const ceiling = medianCeiling(baseline);
+  const within = p95 <= LATENCY.p95 && median <= ceiling;
+  return { p95, median, within, report: `p95 ${p95} ms (≤ ${LATENCY.p95}), median ${median} ms (≤ ${ceiling}, baseline ${baseline}); samples in order: ${samples.join(", ")}` };
 }
 
 /**
@@ -90,11 +99,11 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
   return samples;
 }
 
-/** Holds a control's samples to the budget, reporting every sample, pass or fail. */
-export function expectWithinBudget(label: string, samples: readonly number[]): void {
-  const { p95, median, report } = summarise(samples);
+/** Holds a control's samples to the budget and its baseline's median ceiling, reporting every sample, pass or fail. */
+export function expectWithinBudget(label: string, samples: readonly number[], baseline: number): void {
+  const { p95, median, report } = summarise(samples, baseline);
   test.info().annotations.push({ type: "latency", description: `${label}: ${report}` });
   console.log(`latency ${label}: ${report}`);
   expect(p95, `${label} ${report}`).toBeLessThanOrEqual(LATENCY.p95);
-  expect(median, `${label} ${report}`).toBeLessThanOrEqual(LATENCY.median);
+  expect(median, `${label} ${report}`).toBeLessThanOrEqual(medianCeiling(baseline));
 }
