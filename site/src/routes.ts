@@ -1,4 +1,4 @@
-import { docsItems, summary } from "./docs/items";
+import { docsItems } from "./docs/items";
 import { docsPages } from "./docs/pages";
 import { HERO_COPY, VOYAGE_HERO } from "./copy";
 import { latestRelease } from "./latest-release";
@@ -31,7 +31,7 @@ export const routes: Route[] = [
   ...docsPages.map((page) => ({
     path: `/docs/${page.name}/`,
     title: `${page.title} · Ouro HX`,
-    description: summary(page.markdown.replace(/^# .*$/m, "")).replace(/`/g, ""),
+    description: page.summary.replace(/`/g, ""),
   })),
   {
     path: "/docs/switching-from-shadcn/",
