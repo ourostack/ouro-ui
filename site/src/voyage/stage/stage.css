@@ -291,10 +291,13 @@
   }
 }
 
-/* The Nautilus: afloat at the top, a little lower for each full tank, then down beside us. */
+/*
+ * The Nautilus: afloat at the top, riding high enough that the spur shows at the waterline, a
+ * little lower for each full tank, then down beside us.
+ */
 .stage-nautilus,
 .stage-ripples {
-  transform: translate(20px, calc(118px + var(--tanks) * 6px + min(var(--d) * 5, 1) * -700px));
+  transform: translate(20px, calc(108px + var(--tanks) * 6px + min(var(--d) * 5, 1) * -700px));
 }
 .stage-scene[data-dived] :is(.stage-nautilus, .stage-ripples) {
   transform: translate(10px, 195px);
@@ -374,9 +377,9 @@
   stroke-width: 1.4;
 }
 .n-spur {
-  fill: color-mix(in oklab, var(--background) 80%, var(--hull-trim));
-  stroke: color-mix(in oklab, var(--foreground) 45%, transparent);
-  stroke-width: 0.8;
+  fill: color-mix(in oklab, white 82%, var(--hull-trim));
+  stroke: color-mix(in oklab, var(--foreground) 55%, transparent);
+  stroke-width: 1;
 }
 .n-spur-edge {
   stroke: white;
@@ -908,6 +911,13 @@
   color: var(--foreground);
   text-wrap: pretty;
 }
+/* On a wide stage every crew line fits on one line, so one is kept. */
+@container (min-width: 32rem) {
+  .stage-crew {
+    min-height: calc(1lh + 1.25rem);
+    padding-block: 0.625rem;
+  }
+}
 .stage-crew > :first-child {
   flex-shrink: 0;
 }
@@ -915,6 +925,10 @@
   font-weight: 600;
 }
 
+/* A button that waits for the tanks (Dive) stays readable: it says what comes next. */
+.stage button:disabled {
+  opacity: 0.72;
+}
 .stage-console {
   display: grid;
   padding: var(--row-gap) 1.5rem;
@@ -1497,7 +1511,7 @@
   }
   /* The crew's strip is the head of the console's pane: one pane of glass under the porthole. */
   [data-theme="sleek"] .stage-crew {
-    margin-top: 1.25rem;
+    margin-top: 0.75rem;
     border: 1px solid var(--panel-line);
     border-bottom: 0;
     border-radius: calc(var(--radius) * 2.2) calc(var(--radius) * 2.2) 0 0;

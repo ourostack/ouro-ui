@@ -273,11 +273,11 @@ const Ship = memo(function Ship(): JSX.Element {
   return (
     <>
       <g className="stage-nautilus">
-        <path className="stage-beam" d="M193 14 L600 -110 L600 238 Z" fill="url(#stage-beam)" />
+        <path className="stage-beam" d="M194 16 L600 -110 L600 238 Z" fill="url(#stage-beam)" />
         <Wake />
         <ellipse className="stage-hull-shadow" cx="208" cy="76" rx="180" ry="12" fill="url(#stage-shadow)" />
         <Drawing of={art.nautilus} x={0} y={0} width={440} className="stage-ship" />
-        <circle className="stage-lantern-glow" cx="193" cy="14" r="24" fill="url(#stage-glow)" />
+        <circle className="stage-lantern-glow" cx="194" cy="16" r="30" fill="url(#stage-glow)" />
       </g>
       {/* The sea in front of the hull at the surface: the platform stands three feet out of the water. */}
       <g className="stage-surface-world stage-surface-front" aria-hidden="true">

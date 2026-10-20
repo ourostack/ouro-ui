@@ -22,11 +22,11 @@
   fill: color-mix(in oklab, var(--primary) 7%, var(--card));
 }
 .bp-grid {
-  opacity: 0.16;
+  opacity: 0.22;
 }
 .bp-frame,
 .bp-dims {
-  opacity: 0.6;
+  opacity: 0.8;
 }
 .bp-sea,
 .bp-fill {
@@ -86,4 +86,9 @@
   .site-blueprint[data-launched] .bp-part {
     translate: 0 10px;
   }
+}
+
+/* A button that waits for the work (Launch) stays readable: it is the next thing to do. */
+#chapter-one button:disabled {
+  opacity: 0.72;
 }

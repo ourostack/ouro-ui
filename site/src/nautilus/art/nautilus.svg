@@ -3,9 +3,9 @@
   <!-- Original drawing for Ouro HX after Verne alone (manifest.json): an elongated cylinder with
        conical ends, 232 feet by 26 (eight to one), drawn as a spindle that tapers at both ends; a
        long steel ram spur forward, so the bow is plain; a low platform on the back, three feet out
-       of the water; on it, fore and aft, two cages of medium height with inclined sides and thick
-       lenticular glasses, the steersman's forward and the lantern's aft, the lantern's standing a
-       little taller so its beam clears the other; a four-bladed screw and a rudder aft; the iron
+       of the water; on it, fore and aft, two low cages with thick lenticular glasses: the
+       steersman's forward, a shallow dome no taller than the deck is wide, and the lantern's aft,
+       broader, with a big lens, standing a little taller so its beam clears the other; a four-bladed screw and a rudder aft; the iron
        plates drawn quietly, overlapping like a reptile's shell. Shaded as a lit steel body: light
        from above, the hull's belly in shadow, the sea's light thrown back along the keel.
        No tower, no sail, no periscope, no fins, no rivets, no great eye window. -->
@@ -48,14 +48,14 @@
   <path class="n-platform" d="M230 35 C240 28.5 398 28.5 410 35 Z" />
   <path class="n-deck-edge" d="M236 30.5 H404" />
   <g class="n-beacon">
-    <path class="n-cage" d="M266 30 L270 13 L292 13 L296 30 Z" />
-    <path class="n-cage-cap" d="M268 13.5 L281 8 L294 13.5 Z" />
-    <rect class="n-lantern" x="273" y="16" width="16" height="10" rx="4" />
+    <path class="n-cage" d="M262 30 L265.5 18 L298.5 18 L302 30 Z" />
+    <path class="n-cage-cap" d="M265 18.5 C268 12.5 296 12.5 299 18.5 Z" />
+    <rect class="n-lantern" x="268" y="19.5" width="28" height="8.5" rx="4.25" />
   </g>
   <g class="n-steersman">
-    <path class="n-cage" d="M370 30.5 L374 20 L394 20 L398 30.5 Z" />
-    <ellipse class="n-glass" cx="380" cy="25.2" rx="3.4" ry="2.6" />
-    <ellipse class="n-glass" cx="389" cy="25.2" rx="3.4" ry="2.6" />
+    <path class="n-cage" d="M370 30.5 C372.5 24.5 395.5 24.5 398 30.5 Z" />
+    <ellipse class="n-glass" cx="379" cy="28" rx="3" ry="1.8" />
+    <ellipse class="n-glass" cx="389" cy="28" rx="3" ry="1.8" />
   </g>
   <path class="n-spur-collar" d="M548 58 L560 59.5 L560 72.5 L548 74 Z" />
   <path class="n-spur" d="M560 60 L638 66 L560 72 Z" />
