@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 100">
+  <title>Seabed</title>
+  <!-- Original drawing for Ouro HX (manifest.json). Rocks and a little coral along the bottom. -->
+  <path class="s-rock" d="M0 70 C40 52 70 60 96 48 C124 36 150 56 180 54 C214 52 230 34 268 40 C300 46 312 62 350 58 C384 54 400 38 436 44 C470 50 492 64 520 58 L520 100 L0 100 Z" />
+  <path class="s-rock-near" d="M0 86 C50 74 84 84 128 76 C170 68 200 82 250 80 C304 78 330 66 376 72 C420 78 470 86 520 80 L520 100 L0 100 Z" />
+  <g class="s-coral">
+    <path d="M150 56 C150 44 146 38 140 34 M150 48 C154 42 160 40 164 36 M150 52 C146 48 140 48 136 46" />
+    <path d="M380 56 C380 46 386 40 392 38 M380 50 C376 44 370 42 366 38" />
+  </g>
+</svg>

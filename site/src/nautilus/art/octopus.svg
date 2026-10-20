@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <title>Octopus</title>
+  <!-- Original drawing for Ouro HX (manifest.json). Shy, curious, and only out when the lights are on. -->
+  <path class="c-body" d="M50 6 C70 6 80 20 78 38 C77 48 72 54 66 58 L34 58 C28 54 23 48 22 38 C20 20 30 6 50 6 Z" />
+  <path class="c-arm" d="M36 56 C30 70 18 72 12 66 C8 62 12 56 16 60" />
+  <path class="c-arm" d="M44 58 C42 74 34 86 26 88 C20 90 18 84 22 82" />
+  <path class="c-arm" d="M56 58 C58 74 66 86 74 88 C80 90 82 84 78 82" />
+  <path class="c-arm" d="M64 56 C70 70 82 72 88 66 C92 62 88 56 84 60" />
+  <circle class="c-eye-big" cx="40" cy="34" r="6" />
+  <circle class="c-eye-big" cx="60" cy="34" r="6" />
+  <circle class="c-pupil" cx="41" cy="35" r="2.6" />
+  <circle class="c-pupil" cx="61" cy="35" r="2.6" />
+  <path class="c-line" d="M44 46 C48 49 52 49 56 46" />
+</svg>

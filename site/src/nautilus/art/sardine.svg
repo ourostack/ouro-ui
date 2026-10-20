@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 14">
+  <title>Sardine</title>
+  <!-- Original drawing for Ouro HX (manifest.json). A small silver fish of the sunlit water. -->
+  <path class="c-body" d="M2 7 C8 1.5 22 1.5 31 6 L38 2 L36.5 7 L38 12 L31 8 C22 12.5 8 12.5 2 7 Z" />
+  <path class="c-line" d="M6 7.4 C14 8.6 22 8.4 30 7" />
+  <circle class="c-eye" cx="7.5" cy="5.8" r="1.2" />
+</svg>

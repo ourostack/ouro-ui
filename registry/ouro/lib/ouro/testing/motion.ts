@@ -108,11 +108,65 @@ function records(): MotionRecord[] {
 
 const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
 
+/** One CSS transition (by property) or CSS animation (by name) beginning or ending on an element. */
+interface Ran {
+  kind: "transition" | "animation";
+  name: string;
+  event: "run" | "end" | "cancel";
+}
+
+const ranEvents = {
+  transitionrun: "run",
+  transitionend: "end",
+  transitioncancel: "cancel",
+  animationstart: "run",
+  animationend: "end",
+  animationcancel: "cancel",
+} as const;
+
+/**
+ * Logs, in order, the CSS transitions and animations the browser reports beginning and ending
+ * on the element itself (not its children or pseudo-elements) until `stop()`.
+ */
+function watchRan(element: Element): { log: Ran[]; stop: () => void } {
+  const log: Ran[] = [];
+  const record = (event: Event) => {
+    if (event.target !== element || !event.isTrusted) return;
+    const { pseudoElement } = event as TransitionEvent | AnimationEvent;
+    if (pseudoElement) return;
+    const type = event.type as keyof typeof ranEvents;
+    log.push(
+      event instanceof TransitionEvent
+        ? { kind: "transition", name: event.propertyName, event: ranEvents[type] }
+        : { kind: "animation", name: (event as AnimationEvent).animationName, event: ranEvents[type] },
+    );
+  };
+  for (const type of Object.keys(ranEvents)) element.addEventListener(type, record);
+  return { log, stop: () => Object.keys(ranEvents).forEach((type) => element.removeEventListener(type, record)) };
+}
+
+/**
+ * Whether the log, from `from` on, holds a transition of the property (or a CSS animation of the
+ * name) that began and then ended without being cancelled. An element runs one transition of a
+ * property at a time, and the cancelled one never ends, so such a transition began after it.
+ */
+function endedInPlace(log: readonly Ran[], from: number, kind: Ran["kind"], name: string): boolean {
+  let open = false;
+  for (const entry of log.slice(from)) {
+    if (entry.kind !== kind || entry.name !== name) continue;
+    if (entry.event === "end" && open) return true;
+    open = entry.event === "run";
+  }
+  return false;
+}
+
 /**
  * Waits, a frame at a time, for the part's motion to end. A browser cancels a running transition
  * when the element's style is recomputed mid-way and usually starts an equal one in its place:
- * a cancelled property counts only when an animation of it is running on the next read, or when
- * the cancelled one had already run 90% of its duration in time (WebKit cancels a transition that is about
+ * a cancelled property counts only when an animation of it is running on the next read, when one
+ * of it (a CSS animation: of its name) began and ended, uncancelled, since the last read (on a
+ * slow frame the replacement can run its whole course between two reads), or when the cancelled
+ * one had already run 90% of its duration in time (WebKit cancels a transition that is about
  * to end on a restyle under load). A property cancelled earlier with nothing in its place fails,
  * and so does any other property that starts meanwhile.
  */
@@ -129,26 +183,36 @@ async function settled(element: Element, where: string, first: Array<CSSTransiti
   };
   for (const animation of first) animation.finished.catch(() => {});
   sample(first);
-  let current = first;
-  let restarts = 0;
-  while (current.length > 0) {
-    await nextFrame();
-    const next = running(element);
-    sample(next);
-    const extra = [...runningProperties(next).keys()].filter((name) => !expected.has(name));
-    if (extra.length > 0) throw new Error(`${where}: ${list(extra)} started while the expected motion ran.`);
-    const replacing = new Set(next.flatMap(namesOf));
-    for (const animation of current) {
-      if (next.includes(animation) || animation.playState !== "idle") continue;
-      const progress = reached.get(animation) ?? 0;
-      for (const name of namesOf(animation)) {
-        if (!replacing.has(name) && progress < 0.9) throw new Error(`${where}: ${name} was cancelled ${Math.round(progress * 100)}% of the way through its duration with nothing in its place.`);
+  const ran = watchRan(element);
+  try {
+    let current = first;
+    let restarts = 0;
+    // Where the log stood at the last read, when every animation in `current` still ran.
+    let mark = 0;
+    while (current.length > 0) {
+      await nextFrame();
+      const next = running(element);
+      sample(next);
+      const extra = [...runningProperties(next).keys()].filter((name) => !expected.has(name));
+      if (extra.length > 0) throw new Error(`${where}: ${list(extra)} started while the expected motion ran.`);
+      const replacing = new Set(next.flatMap(namesOf));
+      for (const animation of current) {
+        if (next.includes(animation) || animation.playState !== "idle") continue;
+        const progress = reached.get(animation) ?? 0;
+        const replaced = (name: string) =>
+          animation instanceof CSSTransition ? endedInPlace(ran.log, mark, "transition", name) : endedInPlace(ran.log, mark, "animation", animation.animationName);
+        for (const name of namesOf(animation)) {
+          if (!replacing.has(name) && progress < 0.9 && !replaced(name)) throw new Error(`${where}: ${name} was cancelled ${Math.round(progress * 100)}% of the way through its duration with nothing in its place.`);
+        }
       }
+      const fresh = next.filter((animation) => !current.includes(animation));
+      for (const animation of fresh) animation.finished.catch(() => {});
+      if (fresh.length > 0 && ++restarts > 20) throw new Error(`${where}: the motion kept restarting.`);
+      current = next;
+      mark = ran.log.length;
     }
-    const fresh = next.filter((animation) => !current.includes(animation));
-    for (const animation of fresh) animation.finished.catch(() => {});
-    if (fresh.length > 0 && ++restarts > 20) throw new Error(`${where}: the motion kept restarting.`);
-    current = next;
+  } finally {
+    ran.stop();
   }
 }
 
@@ -192,7 +256,8 @@ interface ExpectMotionOptions {
  * element around it inside its own component root (`[data-ouro]`) carries the state's attribute, reads the CSS transitions and animations
  * running on the element (its `data-ouro-part`), fails unless they are exactly `properties` (no
  * missing and no extra property, and the given durations in milliseconds), waits for them to
- * end (a transition the browser cancels and restarts on a restyle included), and records `{ stem, part, state, properties, reduced, dir }` for pnpm motion:coverage.
+ * end (a transition the browser cancels and restarts on a restyle included, even when the
+ * restarted one runs its whole course between two frames), and records `{ stem, part, state, properties, reduced, dir }` for pnpm motion:coverage.
  *
  * @example
  * await act(() => box.click());
