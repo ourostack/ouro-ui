@@ -5,9 +5,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { ImageField } from "@/registry/ouro/components/ouro/image-field/image-field";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
+/** A file named and typed as an image that no browser can decode. */
+const broken = () => new File(["not a picture"], "scan.heic", { type: "image/heic" });
 const saved = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Crect width='60' height='60' fill='%23888'/%3E%3C/svg%3E";
 
 async function photo(width = 300, height = 200, name = "garden.png"): Promise<File> {
@@ -34,6 +37,7 @@ async function render(node: ReactNode) {
     field: () => host.querySelector<HTMLElement>('[data-ouro="image-field"]')!,
     input: () => host.querySelector<HTMLInputElement>('input[type="file"]')!,
     preview: () => host.querySelector<HTMLImageElement>('[data-ouro="image-field"] img'),
+    status: () => host.querySelector<HTMLElement>('[data-ouro="image-field"] [role="status"]')!,
   };
 }
 
@@ -96,7 +100,7 @@ describe("ImageField", () => {
     );
     const file = await photo();
     await pick(input(), file);
-    expect(onFileChange).toHaveBeenCalledExactlyOnceWith(file);
+    await expect.poll(() => onFileChange.mock.calls).toEqual([[file]]);
     expect(preview()!.src).toMatch(/^blob:/);
     expect(new FormData(host.querySelector("form")!).get("photo")).toBe(input().files![0]);
     expect(input().files![0]!.name).toBe("garden.png");
@@ -116,10 +120,81 @@ describe("ImageField", () => {
     await expect.element(page.getByText(/^huge\.png is larger than /)).toBeVisible();
     expect(onFileChange).not.toHaveBeenCalled();
     expect(input().files).toHaveLength(0);
-    const small = new File([new Uint8Array(10)], "dot.png", { type: "image/png" });
-    await pick(input(), small);
+    await pick(input(), await photo(2, 2, "dot.png"));
     expect(field().hasAttribute("data-invalid")).toBe(false);
-    expect(onFileChange).toHaveBeenCalledExactlyOnceWith(small);
+    await expect.poll(() => onFileChange.mock.calls.map(([file]) => file?.name)).toEqual(["dot.png"]);
+  });
+
+  it("announces a turned-away file once from a status region that is always there, and describes Choose photo with it", async () => {
+    const announced = watchAnnouncements();
+    const { input, status } = await render(<ImageField label="Photo" error="A photo is required." />);
+    expect(status().textContent).toBe("");
+    await expect.element(page.getByRole("button", { name: "Choose photo" })).toHaveAccessibleDescription("Photo A photo is required.");
+    await pick(input(), new File(["notes"], "notes.txt", { type: "text/plain" }));
+    const message = "notes.txt is not an image this field takes.";
+    expect(status().textContent).toBe(message);
+    await expect.element(page.getByText(message)).toBeVisible();
+    await expect.element(page.getByRole("button", { name: "Choose photo" })).toHaveAccessibleDescription(`Photo A photo is required. ${message}`);
+    await pick(input(), await photo(2, 2, "dot.png"));
+    await expect.poll(() => status().textContent).toBe("");
+    await expect.element(page.getByRole("button", { name: "Change photo" })).toHaveAccessibleDescription("Photo A photo is required.");
+    expect(announced.count(message)).toBe(1);
+    announced.stop();
+  });
+
+  it("turns away a photo the browser cannot open, keeping what showed, and says why", async () => {
+    const announced = watchAnnouncements();
+    const onFileChange = vi.fn();
+    const { input, preview, field } = await render(<ImageField label="Photo" src={saved} onFileChange={onFileChange} />);
+    await pick(input(), broken());
+    const message = "scan.heic could not be opened as a photo.";
+    await expect.poll(() => announced.count(message)).toBe(1);
+    expect(field().hasAttribute("data-invalid")).toBe(true);
+    expect(onFileChange).not.toHaveBeenCalled();
+    expect(input().files).toHaveLength(0);
+    expect(preview()!.getAttribute("src")).toBe(saved);
+    announced.stop();
+  });
+
+  it("keeps only the last of two photos chosen quickly, and drops a check that ends after it unmounts", async () => {
+    const decoded: Array<() => void> = [];
+    vi.spyOn(HTMLImageElement.prototype, "decode").mockImplementation(() => new Promise<void>((resolve) => decoded.push(resolve)));
+    const onFileChange = vi.fn<(file: File | null) => void>();
+    const { root, input } = await render(<ImageField label="Photo" onFileChange={onFileChange} />);
+    await pick(input(), await photo(4, 4, "first.png"));
+    await pick(input(), await photo(4, 4, "second.png"));
+    await act(async () => decoded[1]!());
+    await act(async () => decoded[0]!());
+    expect(onFileChange.mock.calls.map(([file]) => file?.name)).toEqual(["second.png"]);
+    await pick(input(), await photo(4, 4, "third.png"));
+    await act(async () => root.unmount());
+    roots.splice(roots.indexOf(root), 1);
+    await act(async () => decoded[2]!());
+    expect(onFileChange).toHaveBeenCalledOnce();
+  });
+
+  it("turns away a photo the cropper cannot open, closing it, in the app's words", async () => {
+    const onFileChange = vi.fn();
+    const { input, status } = await render(<ImageField label="Photo" crop onFileChange={onFileChange} rejectMessage={(reason, file) => `${reason}: ${file.name}`} />);
+    await pick(input(), broken());
+    await expect.poll(() => status().textContent).toBe("unreadable: scan.heic");
+    await expect.element(page.getByRole("dialog")).not.toBeInTheDocument();
+    expect(onFileChange).not.toHaveBeenCalled();
+    expect(input().files).toHaveLength(0);
+  });
+
+  it("leaves a crop the browser cannot save to the cropper, which stays open to try again", async () => {
+    const onFileChange = vi.fn();
+    const { input, status } = await render(<ImageField label="Photo" crop onFileChange={onFileChange} />);
+    const file = await photo();
+    vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation((callback) => callback(null));
+    await pick(input(), file);
+    await expect.poll(() => document.querySelector('[data-ouro-part="area"]')?.hasAttribute("aria-busy")).toBe(false);
+    await userEvent.click(page.getByRole("button", { name: "Save" }));
+    await expect.element(page.getByText("The photo could not be saved. Try again.")).toBeVisible();
+    await expect.element(page.getByRole("dialog", { name: "Crop photo" })).toBeVisible();
+    expect(status().textContent).toBe("");
+    expect(onFileChange).not.toHaveBeenCalled();
   });
 
   it("words a turned-away file the app's way, and shows the app's error too", async () => {

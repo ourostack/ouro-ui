@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useId, useRef, useState, type ChangeEvent, type JSX, type ReactNode, type Ref } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type ChangeEvent, type JSX, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -19,8 +19,8 @@ export interface ImageFieldCrop {
   title?: string | undefined;
 }
 
-/** Why a chosen file was turned away. */
-export type ImageFieldRejection = "type" | "size";
+/** Why a chosen file was turned away: not a type `accept` takes, over `maxSize`, or a photo the browser cannot open (such as HEIC outside Safari). */
+export type ImageFieldRejection = "type" | "size" | "unreadable";
 
 /** Props for {@link ImageField}. */
 export interface ImageFieldProps {
@@ -52,7 +52,7 @@ export interface ImageFieldProps {
   shape?: "rect" | "circle" | (string & { 'Use "rect" or "circle"': never }) | undefined;
   /** Opens the cropper on every chosen photo, so it fits `aspect` and `shape`: `crop` or `crop={{ outputWidth: 512 }}`. */
   crop?: boolean | ImageFieldCrop | undefined;
-  /** Called with the chosen photo (cropped, with `crop`), or `null` when it is removed. */
+  /** Called with the chosen photo (cropped, with `crop`), or `null` when it is removed. A photo comes here once the browser has opened it. */
   onFileChange?: ((file: File | null) => void) | undefined;
   /** Shows Remove while the field shows `src`, and is called when the person removes it. */
   onRemove?: (() => void) | undefined;
@@ -102,8 +102,9 @@ function setInputFile(input: HTMLInputElement, file: File | null): void {
  * A field for one photo, shown large: the photo already saved (`src`) or the one just chosen,
  * with Choose photo (Change photo once one shows) and Remove. With `crop`, a chosen photo
  * opens the cropper first, and the cropped image is what shows, what `onFileChange` gets and
- * what the form submits. A file of the wrong type or over `maxSize` is turned away with a
- * message under the field. The photo is in a real file input, so a plain form submits it.
+ * what the form submits. A file of the wrong type, over `maxSize` or that the browser cannot
+ * open as a photo is turned away, keeping what showed, with a message under the field that
+ * screen readers announce. The photo is in a real file input, so a plain form submits it.
  *
  * Use `FileField` instead for other files, several files or a drop zone, and `ImageCropper`
  * alone to crop an image you already have.
@@ -181,6 +182,14 @@ export function ImageField(props: ImageFieldProps): JSX.Element {
   const [file, setFile] = useState<File | null>(null);
   const [pending, setPending] = useState<File | null>(null);
   const [rejection, setRejection] = useState<string | null>(null);
+  // Counts the checks that open a chosen photo, so only the newest one, while mounted, takes effect.
+  const check = useRef(0);
+  useEffect(
+    () => () => {
+      check.current++;
+    },
+    [],
+  );
 
   const attach = useCallback(
     (image: HTMLImageElement | null) => {
@@ -198,33 +207,53 @@ export function ImageField(props: ImageFieldProps): JSX.Element {
     setFile(next);
     onFileChange?.(next);
   };
+  const turnAway = (reason: ImageFieldRejection, chosen: File) => {
+    const fallback = () =>
+      reason === "type" ? `${chosen.name} is not an image this field takes.` : reason === "size" ? `${chosen.name} is larger than ${formatSize(maxSize!)}.` : `${chosen.name} could not be opened as a photo.`;
+    setRejection(rejectMessage ? rejectMessage(reason, chosen) : fallback());
+  };
   const choose = (event: ChangeEvent<HTMLInputElement>) => {
     const chosen = event.target.files?.[0];
     if (!chosen) return;
+    const ticket = ++check.current;
+    // The input keeps what showed before until the photo is opened (and, with crop, cropped).
+    setInputFile(event.target, file);
     const reason: ImageFieldRejection | null = !matchesAccept(chosen, accept) ? "type" : maxSize !== undefined && chosen.size > maxSize ? "size" : null;
     if (reason) {
-      setRejection(rejectMessage ? rejectMessage(reason, chosen) : reason === "type" ? `${chosen.name} is not an image this field takes.` : `${chosen.name} is larger than ${formatSize(maxSize!)}.`);
-      setInputFile(event.target, file);
+      turnAway(reason, chosen);
       return;
     }
     setRejection(null);
     if (crop) {
-      // The input keeps what showed before until the crop is saved.
-      setInputFile(event.target, file);
+      // The cropper opens the photo and says when it cannot.
       setPending(chosen);
       return;
     }
-    take(chosen);
+    const url = URL.createObjectURL(chosen);
+    const probe = new Image();
+    probe.src = url;
+    const opened = (ok: boolean) => {
+      URL.revokeObjectURL(url);
+      if (ticket !== check.current) return;
+      if (ok) take(chosen);
+      else turnAway("unreadable", chosen);
+    };
+    probe.decode().then(
+      () => opened(true),
+      () => opened(false),
+    );
   };
   const remove = () => {
+    check.current++;
     setRejection(null);
     if (file) take(null);
     else onRemove?.();
   };
 
   const showing = file !== null || Boolean(src);
-  const messages = [...errorMessages(error), ...(rejection ? [rejection] : [])];
-  const invalid = messages.length > 0;
+  const errors = errorMessages(error);
+  const invalid = errors.length > 0 || rejection !== null;
+  const problems = [errors.length > 0 ? `${id}-error` : "", rejection ? `${id}-status` : ""];
   const cropOptions = typeof crop === "object" ? crop : {};
 
   return (
@@ -232,7 +261,7 @@ export function ImageField(props: ImageFieldProps): JSX.Element {
       data-ouro="image-field"
       role="group"
       aria-labelledby={`${id}-label`}
-      aria-describedby={[description != null ? `${id}-description` : "", invalid ? `${id}-error` : ""].join(" ").trim() || undefined}
+      aria-describedby={[description != null ? `${id}-description` : "", ...problems].filter(Boolean).join(" ") || undefined}
       data-disabled={disabled ? "" : undefined}
       data-invalid={invalid ? "" : undefined}
       className={cn("grid min-w-0 justify-items-start gap-3", className)}
@@ -271,7 +300,7 @@ export function ImageField(props: ImageFieldProps): JSX.Element {
           tone="secondary"
           size="sm"
           disabled={disabled}
-          aria-describedby={`${id}-label`}
+          aria-describedby={[`${id}-label`, ...problems].filter(Boolean).join(" ")}
           onClick={() => input.current!.click()}
         >
           {showing ? changeLabel : chooseLabel}
@@ -295,15 +324,22 @@ export function ImageField(props: ImageFieldProps): JSX.Element {
         hidden
         onChange={choose}
       />
-      {invalid ? (
-        <div id={`${id}-error`} className="grid gap-1 text-sm leading-5 text-destructive">
-          {messages.map((message, index) => (
-            <p key={index} className="m-0">
-              {message}
-            </p>
-          ))}
-        </div>
-      ) : null}
+      <div className={cn("grid gap-1 text-sm leading-5 text-destructive", !invalid && "sr-only")}>
+        {errors.length > 0 ? (
+          <div id={`${id}-error`} className="grid gap-1">
+            {errors.map((message, index) => (
+              <p key={index} className="m-0">
+                {message}
+              </p>
+            ))}
+          </div>
+        ) : null}
+        {/* Why a file was turned away: a polite status region from the first render, so screen
+            readers announce the message once when it appears; hidden while empty. */}
+        <p id={`${id}-status`} role="status" className={cn("m-0", !rejection && "sr-only")}>
+          {rejection}
+        </p>
+      </div>
       {crop ? (
         <ImageCropper
           open={pending !== null}
@@ -316,6 +352,11 @@ export function ImageField(props: ImageFieldProps): JSX.Element {
           type={cropOptions.type}
           title={cropOptions.title}
           onCrop={take}
+          onError={(reason) => {
+            if (reason !== "open") return;
+            turnAway("unreadable", pending!);
+            setPending(null);
+          }}
         />
       ) : null}
     </div>
