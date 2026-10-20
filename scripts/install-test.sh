@@ -47,6 +47,13 @@
 #         steps 1 to 3 in <app-dir>-without-tests. Each must type check, build, keep the app's
 #         own test and config, add no component and keep no v0.1.0 token line.
 #
+# shadcn and ouro end with the shipped tests. Two settings let CI split and narrow that run
+# (.github/workflows/ci.yml); the install, type check and build before it always run in full:
+#   OURO_SHARD=<index>/<count>  runs only that shard of the shipped Vitest files and Playwright specs.
+#   OURO_COMPONENTS             set (maybe empty) on a pull request's reduced run: the shipped tests
+#                               of those components' folders and their specs, or none when it is
+#                               empty (scripts/test-impact.mjs). Unset: every shipped test.
+#
 # Same-repo registryDependencies are written without a ref (ourostack/ouro-ui/<item>), so
 # shadcn resolves them on the default branch; refs are not inherited. To install this
 # commit's items with this commit's dependencies, the script builds a temporary copy of
@@ -481,11 +488,33 @@ npx vite build
 node "$root/scripts/install-check.mjs" "$app" "$variant" tests
 echo "::endgroup::"
 
+# The shipped tests to run: every one, or a reduced run's (OURO_COMPONENTS), in one shard (OURO_SHARD).
+vitest_filters=()
+spec_filters=(e2e/ouro)
+if [ -n "${OURO_COMPONENTS+set}" ]; then
+  if [ -z "$OURO_COMPONENTS" ]; then
+    echo "Reduced run with no component selected: this change cannot affect a shipped test, so none runs here."
+    exit 0
+  fi
+  # Vitest and Playwright take path filters: each selected folder's tests and each selected stem's spec.
+  # shellcheck disable=SC2207 # folder and spec names have no spaces
+  vitest_filters=($(node "$root/scripts/test-impact.mjs" stories "$OURO_COMPONENTS" | tr ',' '\n' | sed 's|^\(.*\)$|components/ouro/\1/|'))
+  # shellcheck disable=SC2207
+  spec_filters=($(node "$root/scripts/test-impact.mjs" e2e "$OURO_COMPONENTS" | tr ' ' '\n' | sed -n 's|^registry/ouro/\(e2e/ouro/.*\.spec\.ts\)$|\1|p'))
+  echo "Reduced run: the shipped tests of ${vitest_filters[*]:-no folder} and the specs ${spec_filters[*]:-(none)}."
+fi
+shard=()
+[ -z "${OURO_SHARD:-}" ] || shard=(--shard="$OURO_SHARD")
+
 echo "::group::Shipped Vitest browser tests"
 npx playwright install ${CI:+--with-deps} chromium webkit
-npx vitest run
+npx vitest run --passWithNoTests ${shard[@]+"${shard[@]}"} ${vitest_filters[@]+"${vitest_filters[@]}"}
 echo "::endgroup::"
 
 echo "::group::Shipped Playwright specs"
-npx playwright test e2e/ouro
+if [ "${#spec_filters[@]}" -gt 0 ]; then
+  npx playwright test --pass-with-no-tests ${shard[@]+"${shard[@]}"} "${spec_filters[@]}"
+else
+  echo "No selected component has a spec."
+fi
 echo "::endgroup::"

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page } from "vitest/browser";
 import { cleanupPage, describeViolations, renderPage, scan, setScheme, settle } from "../test/render";
+import { sliced } from "../../test/slice";
 import { latestRelease, upgrading } from "./release";
 import { docsItems, itemMarkdown, summary } from "./docs/items";
 import { docsPages } from "./docs/pages";
@@ -144,7 +145,7 @@ describe("docs", () => {
     for (const name of names) expect(routes.map((route) => route.path)).toContain(`/docs/${name}/`);
   });
 
-  it.each(docsItems)("docs/$name shows a live demo, the init step, both install commands, the tests item and the guard props", async ({ name }) => {
+  it.each(sliced(docsItems))("docs/$name shows a live demo, the init step, both install commands, the tests item and the guard props", async ({ name }) => {
     await renderPage(`/docs/${name}/`);
     await expect.element(page.getByText(INIT, { exact: true })).toBeVisible();
     await expect.element(page.getByText(`npx shadcn@latest add ourostack/ouro-ui/${name}#${latestRelease}`, { exact: true })).toBeVisible();
@@ -197,7 +198,7 @@ describe.each([
   });
 
   describe.each(["light", "dark"] as const)("%s", (scheme) => {
-    it.each(routes)("$path has zero axe violations", async ({ path }) => {
+    it.each(sliced(routes))("$path has zero axe violations", async ({ path }) => {
       setScheme(scheme);
       await renderPage(path);
       await settle();
@@ -206,7 +207,7 @@ describe.each([
     });
   });
 
-  it.each(routes)("$path does not overflow horizontally", async ({ path }) => {
+  it.each(sliced(routes))("$path does not overflow horizontally", async ({ path }) => {
     await renderPage(path);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(width);
   });

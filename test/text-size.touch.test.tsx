@@ -4,6 +4,7 @@ import { userEvent } from "vitest/browser";
 import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 import siteCss from "../site/src/styles.css?inline";
 import { accessibleName, cleanupStories, isVisible, overlayOpeners, renderStory, settle, stemSelected, stories, storySelected, type Opener, type OuroStoryParameters } from "./stories.tsx";
+import { sliced } from "./slice.ts";
 
 // Runs in the `touch` project: Chromium as a phone with a coarse pointer. iOS Safari zooms the
 // page when a text control under 16px takes focus, and does not zoom back; Chromium's emulation
@@ -112,8 +113,11 @@ const demoSubjects: Subject[] = Object.entries(demoModules).map(([path, module])
   demo: true,
 }));
 const subjects = [...storySubjects, ...demoSubjects];
-/** What this run scans: on a pull request's reduced run, only the selected components' stories and demos (test/stories.tsx). */
-const scanned = subjects.filter((subject) => (subject.demo ? stemSelected(subject.id.split("/").at(-1)!) : storySelected(subject.id)));
+/**
+ * What this run scans: on a pull request's reduced run, only the selected components' stories and
+ * demos (test/stories.tsx); in a CI shard, its slice of them (test/slice.ts).
+ */
+const scanned = sliced(subjects.filter((subject) => (subject.demo ? stemSelected(subject.id.split("/").at(-1)!) : storySelected(subject.id))));
 
 const visiblePopups = () => [...document.querySelectorAll<HTMLElement>(popupSelector)].filter(isVisible);
 
