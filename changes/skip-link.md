@@ -1,0 +1,1 @@
+- New: `SkipLink`, the "Skip to main content" link that is the first tab stop on a page; it moves focus to the main content without a history entry.

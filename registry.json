@@ -2896,6 +2896,26 @@
       ]
     },
     {
+      "name": "skip-link",
+      "type": "registry:ui",
+      "title": "SkipLink",
+      "description": "The \"Skip to main content\" link a keyboard or screen-reader user meets first on every page, so one Tab and Enter jump past the header and navigation.",
+      "docs": "The \"Skip to main content\" link a keyboard or screen-reader user meets first on every page, so one Tab and Enter jump past the header and navigation. Import: import { SkipLink } from \"@/components/ouro/skip-link/skip-link\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: the helpers it imports in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/skip-link.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-use-dev-messages"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/skip-link/skip-link.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/skip-link/skip-link.tsx"
+        }
+      ]
+    },
+    {
       "name": "lib-announce-tests",
       "type": "registry:item",
       "title": "lib-announce tests",
@@ -8131,6 +8151,66 @@
       }
     },
     {
+      "name": "skip-link-tests",
+      "type": "registry:item",
+      "title": "SkipLink tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for skip-link, and the tests of everything skip-link installs, so the installed files reach 100% coverage. Add it beside skip-link: add skip-link skip-link-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "skip-link's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/link",
+        "ourostack/ouro-ui/link-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/skip-link",
+        "ourostack/ouro-ui/text",
+        "ourostack/ouro-ui/text-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/skip-link/skip-link.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/skip-link/skip-link.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/skip-link/skip-link.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/skip-link/skip-link.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/skip-link/skip-link.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/skip-link/skip-link.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/skip-link/skip-link.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/skip-link/skip-link.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/skip-link.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/skip-link.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
       "name": "ouro-lib-tests",
       "type": "registry:item",
       "title": "Ouro lib tests",
@@ -8249,6 +8329,7 @@
         "ourostack/ouro-ui/sidebar-layout-tests",
         "ourostack/ouro-ui/sidebar-tests",
         "ourostack/ouro-ui/skeleton-tests",
+        "ourostack/ouro-ui/skip-link-tests",
         "ourostack/ouro-ui/slider-tests",
         "ourostack/ouro-ui/spinner-tests",
         "ourostack/ouro-ui/stack-tests",

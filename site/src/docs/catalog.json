@@ -436,6 +436,12 @@
     "source": "registry/ouro/components/ouro/navigation-menu/navigation-menu.tsx"
   },
   {
+    "name": "skip-link",
+    "title": "SkipLink",
+    "group": "Navigation",
+    "source": "registry/ouro/components/ouro/skip-link/skip-link.tsx"
+  },
+  {
     "name": "table",
     "title": "Table",
     "group": "Data",
