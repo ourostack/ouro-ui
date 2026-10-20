@@ -84,6 +84,14 @@ test("a lower coverage threshold lowers the claim to the lowest of the four", ()
 test("losing the coverage thresholds over registry/ is an error, not a quiet claim", () => {
   const files = sources();
   assert.throws(() => deriveProof({ ...files, vitestConfig: files.vitestConfig.replace(/thresholds: \{[^}]*\}/, "thresholds: {}") }), /coverage thresholds/);
+  assert.throws(() => deriveProof({ ...files, vitestConfig: files.vitestConfig.replace('include: ["registry/**/*.{ts,tsx}"', 'include: ["registry/ouro/lib/**/*.ts"') }), /coverage thresholds/);
+});
+
+test("coverage that also names files beyond registry/'s sources still claims every line", () => {
+  const files = sources();
+  const vitestConfig = files.vitestConfig.replace(/include: \["registry\/\*\*\/\*\.\{ts,tsx\}"[^\]]*\]/, 'include: ["registry/**/*.{ts,tsx}", "a.mjs", "b.mjs"]');
+  assert.match(vitestConfig, /"a\.mjs", "b\.mjs"/);
+  assert.match(deriveProof({ ...files, vitestConfig }).line, /every line covered/);
 });
 
 test("a single engine, or no touch project, is said as such", () => {
