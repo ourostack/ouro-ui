@@ -1,0 +1,1 @@
+- New: `SyncStatus`, one line that says whether changes are saved, saving, kept offline on the device or refused, with Retry while there is a problem; screen readers hear only when a problem starts and when it clears, and the line keeps one height so the page never moves.

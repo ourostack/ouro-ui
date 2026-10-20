@@ -2199,5 +2199,58 @@
       "ImageField/InContext",
       "ImageField/Invalid"
     ]
+  },
+  {
+    "item": "share-button",
+    "stem": "share-button",
+    "mode": "default",
+    "part": "trigger",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "ShareButton/Playground",
+      "ShareButton/InContext"
+    ]
+  },
+  {
+    "item": "sync-status",
+    "stem": "sync-status",
+    "mode": "default",
+    "part": "retry",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "SyncStatus/Playground",
+      "SyncStatus/States",
+      "SyncStatus/InContext"
+    ]
+  },
+  {
+    "item": "install-prompt",
+    "stem": "install-prompt",
+    "mode": "default",
+    "part": "install",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "InstallPrompt/Playground",
+      "InstallPrompt/InContext"
+    ]
+  },
+  {
+    "item": "install-prompt",
+    "stem": "install-prompt",
+    "mode": "default",
+    "part": "dismiss",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "InstallPrompt/Playground",
+      "InstallPrompt/InContext"
+    ]
   }
 ]

@@ -1,0 +1,9 @@
+{
+  "order": 2500,
+  "components": ["share-button"],
+  "controls": {
+    "share-button": [
+      {"part": "trigger", "role": "button", "portal": false}
+    ]
+  }
+}

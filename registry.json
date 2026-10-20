@@ -202,6 +202,7 @@
         "ourostack/ouro-ui/lib-refs",
         "ourostack/ouro-ui/lib-router-link",
         "ourostack/ouro-ui/lib-server-element",
+        "ourostack/ouro-ui/lib-share",
         "ourostack/ouro-ui/lib-spring",
         "ourostack/ouro-ui/lib-stretched-link",
         "ourostack/ouro-ui/lib-toast",
@@ -212,6 +213,7 @@
         "ourostack/ouro-ui/lib-use-dev-messages",
         "ourostack/ouro-ui/lib-use-drag",
         "ourostack/ouro-ui/lib-use-field",
+        "ourostack/ouro-ui/lib-use-install-prompt",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable",
         "ourostack/ouro-ui/lib-use-media-query",
         "ourostack/ouro-ui/lib-use-ouro",
@@ -662,6 +664,19 @@
       ]
     },
     {
+      "name": "lib-share",
+      "type": "registry:lib",
+      "title": "lib-share",
+      "description": "Installed with the components that import it; you don't need to add it. The helper lib/ouro/share.ts.",
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/share.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/share.ts"
+        }
+      ]
+    },
+    {
       "name": "lib-spring",
       "type": "registry:lib",
       "title": "lib-spring",
@@ -800,6 +815,19 @@
           "path": "registry/ouro/lib/ouro/use-field.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/use-field.ts"
+        }
+      ]
+    },
+    {
+      "name": "lib-use-install-prompt",
+      "type": "registry:lib",
+      "title": "lib-use-install-prompt",
+      "description": "Installed with the components that import it; you don't need to add it. The helper lib/ouro/use-install-prompt.ts.",
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/use-install-prompt.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/use-install-prompt.ts"
         }
       ]
     },
@@ -3256,6 +3284,124 @@
       ]
     },
     {
+      "name": "share-button",
+      "type": "registry:ui",
+      "title": "ShareButton",
+      "description": "A button that shares a link: through the system's share sheet where there is one (phones, Safari), and by copying it where there is not, when it says \"Link copied\" for two seconds and screen readers hear it once.",
+      "docs": "A button that shares a link: through the system's share sheet where there is one (phones, Safari), and by copying it where there is not, when it says \"Link copied\" for two seconds and screen readers hear it once. Import: import { ShareButton } from \"@/components/ouro/share-button/share-button\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/share-button.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/lib-announce",
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-share",
+        "ourostack/ouro-ui/lib-use-dev-messages"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/share-button/share-button.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/share-button/share-button.tsx"
+        }
+      ]
+    },
+    {
+      "name": "sync-status",
+      "type": "registry:ui",
+      "title": "SyncStatus",
+      "description": "One line that says where the person's changes are: Saved, Saving…, Offline (kept on this device) or Couldn't save, each with its icon, and Retry while there is a problem.",
+      "docs": "One line that says where the person's changes are: Saved, Saving…, Offline (kept on this device) or Couldn't save, each with its icon, and Retry while there is a problem. Import: import { SyncStatus } from \"@/components/ouro/sync-status/sync-status\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: the helpers it imports in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/sync-status.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-announce",
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-touch-target",
+        "ourostack/ouro-ui/lib-use-dev-messages"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/sync-status/sync-status.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/sync-status/sync-status.tsx"
+        }
+      ]
+    },
+    {
+      "name": "local-date",
+      "type": "registry:ui",
+      "title": "LocalDate",
+      "description": "A date (and time) in the reader's own time zone and language, in a `<time>` that carries the exact instant.",
+      "docs": "A date (and time) in the reader's own time zone and language, in a `<time>` that carries the exact instant. Import: import { LocalDate } from \"@/components/ouro/local-date/local-date\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: the helpers it imports in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/local-date.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-use-dev-messages"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/local-date/local-date-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/local-date/local-date-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/local-date/local-date.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/local-date/local-date.tsx"
+        }
+      ]
+    },
+    {
+      "name": "relative-time",
+      "type": "registry:ui",
+      "title": "RelativeTime",
+      "description": "How long ago (or how soon) something happens, in the reader's language: \"3 days ago\", \"yesterday\", \"in 5 minutes\", \"now\", kept current while it shows.",
+      "docs": "How long ago (or how soon) something happens, in the reader's language: \"3 days ago\", \"yesterday\", \"in 5 minutes\", \"now\", kept current while it shows. Import: import { RelativeTime } from \"@/components/ouro/relative-time/relative-time\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: local-date, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/relative-time.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-use-dev-messages",
+        "ourostack/ouro-ui/local-date"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/relative-time/relative-time-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/relative-time/relative-time-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/relative-time/relative-time.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/relative-time/relative-time.tsx"
+        }
+      ]
+    },
+    {
+      "name": "install-prompt",
+      "type": "registry:ui",
+      "title": "InstallPrompt",
+      "description": "A quiet offer to install the web app, shown only where the browser can install it (Chromium on Android and desktops), never while it already runs installed, and not again for two weeks after Not now.",
+      "docs": "A quiet offer to install the web app, shown only where the browser can install it (Chromium on Android and desktops), never while it already runs installed, and not again for two weeks after Not now. Import: import { InstallPrompt } from \"@/components/ouro/install-prompt/install-prompt\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, card, heading, text, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/install-prompt.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/card",
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-use-dev-messages",
+        "ourostack/ouro-ui/lib-use-install-prompt"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/install-prompt/install-prompt.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/install-prompt/install-prompt.tsx"
+        }
+      ]
+    },
+    {
       "name": "lib-announce-tests",
       "type": "registry:item",
       "title": "lib-announce tests",
@@ -3662,6 +3808,31 @@
       }
     },
     {
+      "name": "lib-share-tests",
+      "type": "registry:item",
+      "title": "lib-share tests",
+      "description": "Optional: the Vitest browser tests for lib-share, and the tests of everything lib-share installs, so the installed files reach 100% coverage. Add it beside lib-share: add lib-share lib-share-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "devDependencies": [
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-share",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/share.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/share.test.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
       "name": "lib-spring-tests",
       "type": "registry:item",
       "title": "lib-spring tests",
@@ -3754,6 +3925,31 @@
           "path": "registry/ouro/lib/ouro/use-drag.test.tsx",
           "type": "registry:lib",
           "target": "@lib/ouro/use-drag.test.tsx"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "lib-use-install-prompt-tests",
+      "type": "registry:item",
+      "title": "lib-use-install-prompt tests",
+      "description": "Optional: the Vitest browser tests for lib-use-install-prompt, and the tests of everything lib-use-install-prompt installs, so the installed files reach 100% coverage. Add it beside lib-use-install-prompt: add lib-use-install-prompt lib-use-install-prompt-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "devDependencies": [
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-use-install-prompt",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/use-install-prompt.test.tsx",
+          "type": "registry:lib",
+          "target": "@lib/ouro/use-install-prompt.test.tsx"
         }
       ],
       "meta": {
@@ -9400,6 +9596,306 @@
       }
     },
     {
+      "name": "share-button-tests",
+      "type": "registry:item",
+      "title": "ShareButton tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for share-button, and the tests of everything share-button installs, so the installed files reach 100% coverage. Add it beside share-button: add share-button share-button-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "share-button's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-share",
+        "ourostack/ouro-ui/lib-share-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/share-button",
+        "ourostack/ouro-ui/text",
+        "ourostack/ouro-ui/text-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/share-button/share-button.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/share-button/share-button.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/share-button/share-button.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/share-button/share-button.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/share-button/share-button.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/share-button/share-button.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/share-button/share-button.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/share-button/share-button.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/share-button.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/share-button.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "sync-status-tests",
+      "type": "registry:item",
+      "title": "SyncStatus tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for sync-status, and the tests of everything sync-status installs, so the installed files reach 100% coverage. Add it beside sync-status: add sync-status sync-status-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "sync-status's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/field-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-control-ref-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/switch",
+        "ourostack/ouro-ui/switch-tests",
+        "ourostack/ouro-ui/sync-status",
+        "ourostack/ouro-ui/text-area",
+        "ourostack/ouro-ui/text-area-tests",
+        "ourostack/ouro-ui/text-field-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/sync-status/sync-status.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/sync-status/sync-status.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/sync-status/sync-status.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/sync-status/sync-status.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/sync-status/sync-status.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/sync-status/sync-status.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/sync-status/sync-status.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/sync-status/sync-status.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/sync-status.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/sync-status.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "local-date-tests",
+      "type": "registry:item",
+      "title": "LocalDate tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for local-date, and the tests of everything local-date installs, so the installed files reach 100% coverage. Add it beside local-date: add local-date local-date-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "local-date's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/local-date",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/text",
+        "ourostack/ouro-ui/text-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/local-date/local-date.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/local-date/local-date.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/local-date/local-date.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/local-date/local-date.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/local-date/local-date.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/local-date/local-date.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/local-date.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/local-date.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "relative-time-tests",
+      "type": "registry:item",
+      "title": "RelativeTime tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for relative-time, and the tests of everything relative-time installs, so the installed files reach 100% coverage. Add it beside relative-time: add relative-time relative-time-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "relative-time's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/local-date-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/relative-time",
+        "ourostack/ouro-ui/text",
+        "ourostack/ouro-ui/text-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/relative-time/relative-time.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/relative-time/relative-time.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/relative-time/relative-time.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/relative-time/relative-time.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/relative-time/relative-time.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/relative-time/relative-time.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/relative-time.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/relative-time.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "install-prompt-tests",
+      "type": "registry:item",
+      "title": "InstallPrompt tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for install-prompt, and the tests of everything install-prompt installs, so the installed files reach 100% coverage. Add it beside install-prompt: add install-prompt install-prompt-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "install-prompt's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/card-tests",
+        "ourostack/ouro-ui/heading-tests",
+        "ourostack/ouro-ui/install-prompt",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/lib-use-install-prompt",
+        "ourostack/ouro-ui/lib-use-install-prompt-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/text-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/install-prompt/install-prompt.focus.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/install-prompt/install-prompt.focus.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/install-prompt/install-prompt.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/install-prompt/install-prompt.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/install-prompt/install-prompt.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/install-prompt/install-prompt.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/install-prompt/install-prompt.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/install-prompt/install-prompt.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/install-prompt/install-prompt.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/install-prompt/install-prompt.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/install-prompt.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/install-prompt.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
       "name": "ouro-lib-tests",
       "type": "registry:item",
       "title": "Ouro lib tests",
@@ -9422,10 +9918,12 @@
         "ourostack/ouro-ui/lib-last-input-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-server-element-tests",
+        "ourostack/ouro-ui/lib-share-tests",
         "ourostack/ouro-ui/lib-spring-tests",
         "ourostack/ouro-ui/lib-use-command-shortcut-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-drag-tests",
+        "ourostack/ouro-ui/lib-use-install-prompt-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
@@ -9481,6 +9979,7 @@
         "ourostack/ouro-ui/image-cropper-tests",
         "ourostack/ouro-ui/image-field-tests",
         "ourostack/ouro-ui/inspector-tests",
+        "ourostack/ouro-ui/install-prompt-tests",
         "ourostack/ouro-ui/item-group-tests",
         "ourostack/ouro-ui/item-tests",
         "ourostack/ouro-ui/kbd-tests",
@@ -9500,15 +9999,18 @@
         "ourostack/ouro-ui/lib-last-input-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-server-element-tests",
+        "ourostack/ouro-ui/lib-share-tests",
         "ourostack/ouro-ui/lib-spring-tests",
         "ourostack/ouro-ui/lib-use-command-shortcut-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-drag-tests",
+        "ourostack/ouro-ui/lib-use-install-prompt-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/lib-use-timer-tests",
         "ourostack/ouro-ui/link-tests",
+        "ourostack/ouro-ui/local-date-tests",
         "ourostack/ouro-ui/menu-tests",
         "ourostack/ouro-ui/message-list-tests",
         "ourostack/ouro-ui/message-tests",
@@ -9522,6 +10024,7 @@
         "ourostack/ouro-ui/popover-tests",
         "ourostack/ouro-ui/progress-tests",
         "ourostack/ouro-ui/radio-group-tests",
+        "ourostack/ouro-ui/relative-time-tests",
         "ourostack/ouro-ui/reorderable-tests",
         "ourostack/ouro-ui/resizable-tests",
         "ourostack/ouro-ui/route-progress-tests",
@@ -9530,6 +10033,7 @@
         "ourostack/ouro-ui/segmented-control-tests",
         "ourostack/ouro-ui/select-tests",
         "ourostack/ouro-ui/separator-tests",
+        "ourostack/ouro-ui/share-button-tests",
         "ourostack/ouro-ui/sheet-tests",
         "ourostack/ouro-ui/show-more-tests",
         "ourostack/ouro-ui/sidebar-layout-tests",
@@ -9542,6 +10046,7 @@
         "ourostack/ouro-ui/stacked-layout-tests",
         "ourostack/ouro-ui/swipe-actions-tests",
         "ourostack/ouro-ui/switch-tests",
+        "ourostack/ouro-ui/sync-status-tests",
         "ourostack/ouro-ui/tab-bar-tests",
         "ourostack/ouro-ui/table-tests",
         "ourostack/ouro-ui/tabs-tests",

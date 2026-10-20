@@ -14,6 +14,7 @@ export const storyIds = {
   dialog: "overlays-dialog--playground",
   routeProgress: "feedback-routeprogress--in-context",
   select: "forms-select--playground",
+  syncStatus: "feedback-syncstatus--in-context",
   timer: "feedback-timer--short",
   toast: "feedback-toast--playground",
 } as const;

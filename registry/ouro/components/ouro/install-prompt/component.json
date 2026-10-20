@@ -1,0 +1,10 @@
+{
+  "order": 2540,
+  "components": ["install-prompt"],
+  "controls": {
+    "install-prompt": [
+      {"part": "install", "role": "button", "portal": false},
+      {"part": "dismiss", "role": "button", "portal": false}
+    ]
+  }
+}
