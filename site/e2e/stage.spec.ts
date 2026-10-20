@@ -210,8 +210,8 @@ test.describe("each control on the stage", () => {
     await expect(lastLog(page)).toContainText(LOG.bell.text);
     await expect(page.locator("[data-stage-control='bell']")).toHaveAttribute("data-ring", "a");
     await expect(page.locator(".stage-ripples ellipse")).toHaveCount(3);
-    // Under reduced motion the bell glows instead of swinging.
-    expect(await page.locator(".stage-bell-body").evaluate((element) => element.getAnimations().map((animation) => (animation as CSSAnimation).animationName))).toEqual(["stage-bell-glow-a"]);
+    // Under reduced motion the bell glows instead of swinging. The glow is 900ms and runs once, so read the style rather than the running animations.
+    await expect(page.locator(".stage-bell-body")).toHaveCSS("animation-name", "stage-bell-glow-a");
   });
 });
 
