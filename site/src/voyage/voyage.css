@@ -332,6 +332,123 @@ html[data-theme="cookbook"] [data-site-when="cookbook"],
 html:not([data-theme]) [data-site-when="sleek"] {
   display: contents;
 }
+/*
+ * The preset specimens: six little cards of each preset's own UI, laid like paint chips on a
+ * bench, each a touch askew. Each card's corners, shadow and colours are its preset's own.
+ */
+.site-specimen-face {
+  display: grid;
+  gap: 0.5rem;
+  width: 100%;
+  text-align: start;
+}
+.site-specimen {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  align-content: center;
+  gap: 0.4375rem;
+  height: 5rem;
+  padding: 0.75rem;
+  border: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
+  border-radius: calc(var(--radius) * 1.4);
+  background: var(--card);
+  box-shadow: var(--shadow-md);
+  color: var(--foreground);
+  rotate: -1.25deg;
+}
+.site-specimens > :nth-child(3n + 2) .site-specimen {
+  rotate: 0.75deg;
+}
+.site-specimens > :nth-child(3n) .site-specimen {
+  rotate: -0.25deg;
+}
+.site-specimen::before {
+  /* The preset's primary, as the strip along a paint chip's top. */
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 0.3125rem;
+  background: var(--primary);
+}
+.site-specimen-ink {
+  display: block;
+  width: 72%;
+  height: 0.375rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--foreground) 75%, transparent);
+}
+.site-specimen-ink-short {
+  width: 46%;
+  background: color-mix(in oklab, var(--muted-foreground) 55%, transparent);
+}
+.site-specimen-row {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.125rem;
+}
+.site-specimen-pill {
+  width: 2.5rem;
+  height: 1rem;
+  border-radius: var(--radius);
+  background: var(--primary);
+}
+.site-specimen-switch {
+  position: relative;
+  width: 1.5rem;
+  height: 0.875rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--primary) 30%, var(--muted));
+}
+.site-specimen-switch::after {
+  content: "";
+  position: absolute;
+  inset: 0.125rem auto 0.125rem 0.125rem;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: var(--shadow-xs);
+}
+.site-specimen-dot {
+  width: 0.875rem;
+  height: 0.875rem;
+  margin-inline-start: auto;
+  border-radius: 999px;
+  background: var(--chart-3);
+}
+.site-specimen-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-inline: 0.25rem;
+  font-weight: 500;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .site-specimen {
+    transition:
+      rotate var(--ouro-duration-base, 200ms) var(--ouro-ease-out, ease),
+      translate var(--ouro-duration-base, 200ms) var(--ouro-ease-out, ease),
+      box-shadow var(--ouro-duration-base, 200ms) ease;
+  }
+  [data-site-preset]:hover .site-specimen {
+    rotate: 0deg;
+    translate: 0 -2px;
+    box-shadow: var(--shadow-lg);
+  }
+}
+/* The chosen one lies flat, pressed into the bench. */
+html[data-theme="sleek"] [data-site-preset="sleek"] .site-specimen,
+html[data-theme="abyss"] [data-site-preset="abyss"] .site-specimen,
+html[data-theme="brass"] [data-site-preset="brass"] .site-specimen,
+html[data-theme="chart"] [data-site-preset="chart"] .site-specimen,
+html[data-theme="coral"] [data-site-preset="coral"] .site-specimen,
+html[data-theme="cookbook"] [data-site-preset="cookbook"] .site-specimen {
+  rotate: 0deg;
+  translate: 0 1px;
+  box-shadow: var(--shadow-xs);
+}
+
 /* The chosen preset's button: a primary ring and wash, drawn from html[data-theme] so it is right before hydration. */
 html[data-theme="sleek"] [data-site-preset="sleek"],
 html[data-theme="abyss"] [data-site-preset="abyss"],
