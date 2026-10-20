@@ -2,7 +2,7 @@
 
 # InstallPrompt
 
-A quiet offer to install the web app, shown only where the browser can install it (Chromium on Android and desktops), never while it already runs installed, and not again for two weeks after Not now. Install opens the browser's own install dialog. It renders nothing otherwise, so it can sit in a layout unconditionally. The browser's install event is caught as soon as the module loads, so an offer is never missed because the page mounted late.
+A quiet offer to install the web app, shown only where the browser can install it (Chromium on Android and desktops), never while it already runs installed, and not again for two weeks after Not now. Install opens the browser's own install dialog. It renders nothing otherwise, so it can sit in a layout unconditionally. The browser's install event is caught as soon as the module loads, so an offer is never missed because the page mounted late. When Install or Not now takes the card away while it has focus, focus goes back where it was before the card, or to the next control on the page when that is gone.
 
 ```tsx
 import { InstallPrompt } from "@/registry/ouro/components/ouro/install-prompt/install-prompt";

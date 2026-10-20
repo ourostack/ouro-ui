@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComponentProps, JSX, ReactNode } from "react";
+import { useCallback, useLayoutEffect, useRef, type ComponentProps, type FocusEvent, type JSX, type ReactNode } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { useInstallPrompt } from "@/registry/ouro/lib/ouro/use-install-prompt";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -36,12 +36,24 @@ export interface InstallPromptProps {
   onAccept?: { 'Use onInstall={(outcome) => ...}': never };
 }
 
+const tabbable =
+  'a[href], button:not(:disabled), input:not(:disabled):not([type="hidden"]), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])';
+
+/** Where focus goes when the card leaves with it: back where it came from, else the next control, else the one before. */
+function returnTarget(card: HTMLElement, cameFrom: HTMLElement | null): HTMLElement | null {
+  if (cameFrom?.isConnected) return cameFrom;
+  const outside = [...document.querySelectorAll<HTMLElement>(tabbable)].filter((element) => !card.contains(element) && element.checkVisibility());
+  return outside.find((element) => card.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING) ?? outside.at(-1) ?? null;
+}
+
 /**
  * A quiet offer to install the web app, shown only where the browser can install it (Chromium
  * on Android and desktops), never while it already runs installed, and not again for two weeks
  * after Not now. Install opens the browser's own install dialog. It renders nothing otherwise,
  * so it can sit in a layout unconditionally. The browser's install event is caught as soon as
- * the module loads, so an offer is never missed because the page mounted late.
+ * the module loads, so an offer is never missed because the page mounted late. When Install or
+ * Not now takes the card away while it has focus, focus goes back where it was before the card,
+ * or to the next control on the page when that is gone.
  *
  * Use `useInstallPrompt` instead to offer installing from a control of your own, such as a menu item.
  *
@@ -83,13 +95,33 @@ export function InstallPrompt(props: InstallPromptProps): JSX.Element | null {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   const { available, install, dismiss } = useInstallPrompt({ remindAfterDays, storageKey });
+  // The card leaves on its own answer. React detaches its ref before it removes the card, so
+  // focus is still inside then; once the commit is done, focus goes to the target picked there.
+  const cameFrom = useRef<HTMLElement | null>(null);
+  const returnTo = useRef<HTMLElement | null>(null);
+  // A ref that returns a cleanup is only ever called with the element.
+  const cardRef = useCallback(
+    (node: HTMLDivElement | null) => () => {
+      returnTo.current = node!.contains(document.activeElement) ? returnTarget(node!, cameFrom.current) : null;
+    },
+    [],
+  );
+  useLayoutEffect(() => {
+    const target = returnTo.current;
+    returnTo.current = null;
+    target?.focus();
+  });
+  const enter = (event: FocusEvent<HTMLDivElement>) => {
+    const from = event.relatedTarget;
+    if (!event.currentTarget.contains(from)) cameFrom.current = from instanceof HTMLElement ? from : null;
+  };
   if (!available) return null;
   const accept = async () => {
     const outcome = await install();
     if (outcome !== "unavailable") onInstall?.(outcome);
   };
   return (
-    <div data-ouro="install-prompt" className={className}>
+    <div ref={cardRef} data-ouro="install-prompt" className={className} onFocus={enter}>
       <Card
         title={title}
         description={description}
