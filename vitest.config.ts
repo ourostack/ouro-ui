@@ -7,12 +7,18 @@ import { MotionReporter } from "./scripts/motion-reporter.mts";
 import { proofPlugin } from "./site/scripts/proof.mts";
 import { commands } from "./registry/ouro/lib/ouro/testing/commands.ts";
 import { ouroTestProjects } from "./registry/ouro/lib/ouro/testing/vitest.ts";
+import { conformanceCommands } from "./test/conformance/commands.ts";
 
 const visual = process.env["CI_VISUAL"] === "1";
 // test/themes/: every story under each third-party theme fixture, heavy enough to run apart
 // (`pnpm test:themes`, CI's sharded `themes` job), so `pnpm test` leaves it out.
 const themes = process.env["OURO_THEMES"] === "1";
 const themeTests = "test/themes/**";
+// test/conformance/: the conformance matrix, every story through each recurring-finding check
+// (focus, hydration under foreign time zones and locales, right-to-left, forced colours,
+// announcements), only with OURO_CONFORMANCE=1 (`pnpm conformance`, CI's sharded `conformance` job).
+const conformance = process.env["OURO_CONFORMANCE"] === "1";
+const conformanceTests = "test/conformance/**";
 
 // The repository as its own app: app.css compiles the registry source with Tailwind,
 // and `@/` is the repo root, as in an app's components.json, so registry imports resolve.
@@ -69,11 +75,11 @@ export default defineConfig({
     passWithNoTests: true,
     // A pull request's reduced run (scripts/test-impact.mjs) names the component folders whose
     // stories the shared suites in test/ render; unset, they render every story (test/stories.tsx).
-    provide: { ouroStories: process.env["OURO_STORIES"] ?? null },
+    provide: { ouroStories: process.env["OURO_STORIES"] ?? null, ouroShard: process.env["OURO_CONFORMANCE_SHARD"] ?? null },
     // Vitest's own reporters, and the motion evidence each run writes to .tmp/motion/ for
-    // `pnpm motion:coverage` (scripts/motion-reporter.mts). A themes run proves no motion and
-    // writes none, so it leaves `pnpm test`'s partitions as they were.
-    reporters: [...configDefaults.reporters, ...(themes ? [] : [new MotionReporter()])],
+    // `pnpm motion:coverage` (scripts/motion-reporter.mts). A themes or conformance run proves
+    // no motion and writes none, so it leaves `pnpm test`'s partitions as they were.
+    reporters: [...configDefaults.reporters, ...(themes || conformance ? [] : [new MotionReporter()])],
     coverage: {
       provider: "istanbul",
       include: ["registry/**/*.{ts,tsx}"],
@@ -84,7 +90,7 @@ export default defineConfig({
     projects: [
       ...ouroTestProjects({ css, include: ["{registry,test}/**/*.test.{ts,tsx}"] }).map((project) => ({
         ...project,
-        test: { ...project.test, exclude: [...(project.test?.exclude ?? configDefaults.exclude), themeTests] },
+        test: { ...project.test, exclude: [...(project.test?.exclude ?? configDefaults.exclude), themeTests, conformanceTests] },
       })),
       {
         // The landing page and docs site (site/), rendered at the widths it is built for. It
@@ -123,6 +129,26 @@ export default defineConfig({
                   provider: playwright(),
                   instances: [{ browser: "chromium" as const }],
                   commands,
+                },
+              },
+            },
+          ]
+        : []),
+      ...(conformance
+        ? [
+            {
+              extends: true as const,
+              test: {
+                name: "conformance",
+                expect: { poll: { timeout: 10_000 } },
+                setupFiles: [css, "./registry/ouro/lib/ouro/testing/setup.ts"],
+                include: [`${conformanceTests}/*.test.{ts,tsx}`],
+                browser: {
+                  enabled: true,
+                  headless: true,
+                  provider: playwright(),
+                  instances: [{ browser: "chromium" as const }],
+                  commands: { ...commands, ...conformanceCommands },
                 },
               },
             },

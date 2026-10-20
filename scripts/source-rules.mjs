@@ -20,6 +20,12 @@
 //   links on a plain Tab unless a system setting is on, so tests use pressTab() (testing/tab.ts,
 //   e2e/ouro/story.ts), which works whatever the setting.
 //
+// - physicalUtilities: a class that places, pads, borders or rounds a part by a physical side
+//   (`left-2`, `ml-2`, `pr-4`, `border-l`, `rounded-r-xl`, `text-left`), which stays on that
+//   side in a right-to-left page. Components use the logical side (`start-2`, `ms-2`, `pe-4`,
+//   `border-s`, `rounded-e-xl`, `text-start`), unless `physicalAllowed` lists the class with why
+//   it must follow the screen, not the text.
+//
 // scripts/source-rules.test.mjs applies them to the repository; scripts/install-check.mjs
 // compares the comments of each installed file with its source.
 import ts from "typescript";
@@ -227,4 +233,77 @@ export function alarmingTestTitle(name) {
 export function directTabPresses(text) {
   const press = /(keyboard|press)\(\s*["'`]([^"'`]*[{+])?Tab[}"'`]|userEvent\.tab\(/;
   return text.split("\n").flatMap((line, index) => (press.test(line) && !/^\s*(\*|\/\/)/.test(line) ? [`${index + 1}: ${line.trim()}`] : []));
+}
+
+/**
+ * A Tailwind class whose side is physical, after its variants and `!`: inset (`left-*`,
+ * `right-*`), margin, padding and scroll margin and padding on one side (`ml-*`, `pr-*`,
+ * `scroll-ml-*`), one side's border (`border-l`, `border-r-2`), one side's or corner's radius
+ * (`rounded-l-*`, `rounded-tr-*`), and alignment, float and clear (`text-left`, `float-right`).
+ */
+const physicalClass =
+  /^-?(?:(?:left|right|ml|mr|pl|pr|scroll-ml|scroll-mr|scroll-pl|scroll-pr)-(?:\d+(?:\.\d+)?|\d+\/\d+|px|full|auto|\[.+\]|\(.+\))|(?:border|rounded)-(?:l|r|tl|tr|bl|br)(?:-.+)?|(?:text|float|clear)-(?:left|right))$/;
+
+/** A class token's utility, without its variants (split on `:` outside `[...]`) and its `!`. */
+function utilityOf(token) {
+  let depth = 0;
+  let start = 0;
+  for (let index = 0; index < token.length; index++) {
+    const char = token[index];
+    if (char === "[" || char === "(") depth++;
+    else if (char === "]" || char === ")") depth--;
+    else if (char === ":" && depth === 0) start = index + 1;
+  }
+  return token.slice(start).replace(/^!|!$/g, "");
+}
+
+/**
+ * The physical-side classes allowed in a file, by path and then by class, each with why the class
+ * must follow the screen rather than the direction of the text.
+ */
+export const physicalAllowed = {
+  "registry/ouro/lib/ouro/touch-target.tsx": {
+    "left-1/2": "centres the target with -translate-1/2, which lands in the same place in either direction",
+  },
+  "registry/ouro/components/ouro/image-cropper/image-cropper.tsx": {
+    "left-1/2": "centres the image in the frame by its measured offset, which is the same in either direction",
+  },
+  "registry/ouro/components/ouro/inspector/inspector-styles.ts": {
+    "left-0": "an outline is moved onto its component by a transform from the component's measured screen position",
+  },
+  "registry/ouro/components/ouro/tabs/tabs-styles.ts": {
+    "data-[orientation=horizontal]:left-0": "the indicator moves by Base UI's --active-tab-left, the tab's measured distance from the list's left edge",
+  },
+  "registry/ouro/components/ouro/dialog/dialog-parts.tsx": {
+    "pr-[max(1rem,env(safe-area-inset-right,0px))]": "keeps the dialog clear of the screen's right-hand cut-out, which is physical",
+    "pl-[max(1rem,env(safe-area-inset-left,0px))]": "keeps the dialog clear of the screen's left-hand cut-out, which is physical",
+  },
+  "registry/ouro/components/ouro/sheet/sheet-parts.tsx": {
+    "rounded-r-xl": 'a sheet from side="left" rounds the edge that faces the page; the side prop is physical',
+    "pl-[env(safe-area-inset-left,0px)]": 'a sheet from side="left" stays clear of the screen\'s left-hand cut-out',
+    "after:right-[calc(100%-1px)]": 'the overscroll fill behind a sheet from side="left" sits off its left edge',
+    "rounded-l-xl": 'a sheet from side="right" rounds the edge that faces the page; the side prop is physical',
+    "pr-[env(safe-area-inset-right,0px)]": 'a sheet from side="right" stays clear of the screen\'s right-hand cut-out',
+    "after:left-[calc(100%-1px)]": 'the overscroll fill behind a sheet from side="right" sits off its right edge',
+  },
+};
+
+/**
+ * The physical-side class tokens in a file's string literals and template text, as "line: token",
+ * leaving out the ones `allowed` lists for the file (`physicalAllowed[path]`).
+ */
+export function physicalUtilities(path, text, allowed = physicalAllowed[path] ?? {}) {
+  const source = parse(path, text);
+  const found = [];
+  const visit = (node) => {
+    if (ts.isStringLiteralLike(node) || ts.isTemplateHead(node) || ts.isTemplateMiddle(node) || ts.isTemplateTail(node)) {
+      const line = source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
+      for (const token of node.text.split(/\s+/)) {
+        if (token && physicalClass.test(utilityOf(token)) && !Object.hasOwn(allowed, token)) found.push(`${line}: ${token}`);
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return found;
 }

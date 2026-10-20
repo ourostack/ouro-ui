@@ -55,12 +55,39 @@ for (const [path, module] of Object.entries(storyModules).sort(([a], [b]) => (pa
  * - `screenshot`: the story is a screenshot subject (test/screenshots.visual.test.tsx), under
  *   this baseline name, with its overlay open when `open` is set, or with its first control
  *   focused from the keyboard when `focus` is set (which shows a Tooltip or HoverCard).
+ * - `conformance`: what the conformance matrix (test/conformance/, `pnpm conformance`) must
+ *   know about the story that it cannot see: see `ConformanceParameters`.
  */
 export interface OuroStoryParameters {
   plainOpeners?: string[];
   openShortcut?: string;
   screenshot?: { name: string; open?: boolean; focus?: boolean };
   mode?: string;
+  conformance?: ConformanceParameters;
+}
+
+/**
+ * A story's declarations for the conformance matrix (docs/guides/conformance.md). Each one is an
+ * exception the story states on purpose, with its reason, so a check never has to guess.
+ */
+export interface ConformanceParameters {
+  /**
+   * Controls, by accessible name, whose action deliberately takes focus out of the page (a link
+   * that leaves it), mapped to why. Focus landing on `<body>` after any other action fails, and
+   * so does a declared control whose action keeps focus, so the declaration never goes stale.
+   */
+  focusExit?: Record<string, string>;
+  /**
+   * Controls, by accessible name, mapped to the text one action on them must announce through a
+   * live region exactly once.
+   */
+  announces?: Record<string, string>;
+  /**
+   * Why the story cannot render on a server (it portals during its first render, as a
+   * repository-only reference does), so its hydration is not checked. The check fails once the
+   * story does render on a server, so the declaration never outlives its reason.
+   */
+  clientOnly?: string;
 }
 
 type ComposedStory = ComponentType & {
