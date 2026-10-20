@@ -9,7 +9,7 @@ expectTypeOf<{ active: false; label: "Opening"; className: "top-14" }>().toExten
 expectTypeOf<ComponentProps<typeof RouteProgress>>().toEqualTypeOf<RouteProgressProps>();
 
 // active is required.
-expectTypeOf<{}>().not.toExtend<RouteProgressProps>();
+expectTypeOf<Record<never, never>>().not.toExtend<RouteProgressProps>();
 
 // Guessed props name the fix.
 expectTypeOf<{ active: true; loading: true }>().not.toExtend<RouteProgressProps>();

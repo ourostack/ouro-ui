@@ -4,7 +4,7 @@ import { SkipLink, type SkipLinkProps } from "@/registry/ouro/components/ouro/sk
 
 // Type tests: `pnpm typecheck` compiles this file.
 
-expectTypeOf<{}>().toExtend<SkipLinkProps>();
+expectTypeOf<Record<never, never>>().toExtend<SkipLinkProps>();
 expectTypeOf<{ target: "recipes"; children: "Skip to recipes" }>().toExtend<SkipLinkProps>();
 expectTypeOf<ComponentProps<typeof SkipLink>>().toEqualTypeOf<SkipLinkProps>();
 

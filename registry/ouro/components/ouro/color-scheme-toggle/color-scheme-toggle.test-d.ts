@@ -6,7 +6,7 @@ import { ColorSchemeProvider, useColorScheme, type ColorSchemeValue } from "@/re
 
 // Type tests: `pnpm typecheck` compiles this file.
 
-expectTypeOf<{}>().toExtend<ColorSchemeToggleProps>();
+expectTypeOf<Record<never, never>>().toExtend<ColorSchemeToggleProps>();
 expectTypeOf<{ variant: "segmented"; label: "Appearance"; labels: { dark: "Night" }; className: "ms-auto" }>().toExtend<ColorSchemeToggleProps>();
 expectTypeOf<ComponentProps<typeof ColorSchemeToggle>>().toEqualTypeOf<ColorSchemeToggleProps>();
 
