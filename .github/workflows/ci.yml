@@ -309,8 +309,10 @@ jobs:
           if-no-files-found: ignore
   latency:
     name: latency
-    # Each voyage stage control answers within 100 ms (p95 of 10) on a 4x slower CPU
-    # (site/e2e/stage.latency.spec.ts), measured alone so no other test shares the CPU.
+    # Each voyage stage control answers within budget on a 4x slower CPU: of 20 presses after two
+    # warm-ups, the 19th (p95) within 100 ms and the median within its ceiling from the control's CI
+    # baseline (site/e2e/latency.ts, site/e2e/stage.latency.spec.ts), measured alone so no other
+    # test shares the CPU.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
