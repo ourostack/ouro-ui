@@ -96,6 +96,14 @@
     "summary": "The person's color scheme, the scheme the page shows, and the setter that changes both, for a control of your own."
   },
   {
+    "name": "claim",
+    "title": "claim",
+    "kind": "export",
+    "group": "Text",
+    "markdown": "docs/claim.md",
+    "summary": "Marks a sentence of copy as a claim, with the primary source it comes from and a check that it still holds."
+  },
+  {
     "name": "radio",
     "title": "Radio",
     "kind": "export",

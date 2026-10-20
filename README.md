@@ -194,7 +194,7 @@ Each component has an optional `<name>-tests` item (`button-tests`) with its Vit
 
 Once per app: `ouro-base`, the tokens every component needs in your stylesheet. Optional: `ouro-theme`, the Ouro look.
 
-Helpers, one item per file in `lib/ouro`, each installed with the components that import it (you don't add them by name; `ouro-lib` is all of them, and a helper with tests has a `<name>-tests` item): `lib-announce`, `lib-appearance-hints`, `lib-class-name-check`, `lib-cn`, `lib-color-scheme`, `lib-color-scheme-script`, `lib-control-ref`, `lib-current-path`, `lib-dev`, `lib-env`, `lib-feedback`, `lib-floating`, `lib-form-answer`, `lib-key-shortcuts`, `lib-last-input`, `lib-open-mode`, `lib-ouro-provider`, `lib-refs`, `lib-router-link`, `lib-server-element`, `lib-spring`, `lib-stretched-link`, `lib-toast`, `lib-tones`, `lib-touch-target`, `lib-use-backdrop-anchor`, `lib-use-command-shortcut`, `lib-use-dev-messages`, `lib-use-drag`, `lib-use-field`, `lib-use-keyboard-scrollable`, `lib-use-media-query`, `lib-use-ouro`, `lib-use-sheet-presentation`, `lib-use-timer`.
+Helpers, one item per file in `lib/ouro`, each installed with the components that import it (you don't add them by name; `ouro-lib` is all of them, and a helper with tests has a `<name>-tests` item): `lib-announce`, `lib-appearance-hints`, `lib-claims`, `lib-class-name-check`, `lib-cn`, `lib-color-scheme`, `lib-color-scheme-script`, `lib-control-ref`, `lib-current-path`, `lib-dev`, `lib-env`, `lib-feedback`, `lib-floating`, `lib-form-answer`, `lib-key-shortcuts`, `lib-last-input`, `lib-open-mode`, `lib-ouro-provider`, `lib-refs`, `lib-router-link`, `lib-server-element`, `lib-spring`, `lib-stretched-link`, `lib-toast`, `lib-tones`, `lib-touch-target`, `lib-use-backdrop-anchor`, `lib-use-command-shortcut`, `lib-use-dev-messages`, `lib-use-drag`, `lib-use-field`, `lib-use-keyboard-scrollable`, `lib-use-media-query`, `lib-use-ouro`, `lib-use-sheet-presentation`, `lib-use-timer`. No component imports `lib-claims`: add it by name to mark your own copy's claims with `claim()`.
 <!-- items:end -->
 
 ## For agents
@@ -228,6 +228,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ### Text
 
+- **claim** — Marks a sentence of copy as a claim, with the primary source it comes from and a check that it still holds. [Docs](docs/claim.md)
 - **Heading** — A section title, `<h1>` to `<h6>`, in the theme's foreground color. [Docs](docs/Heading.md)
 - **Kbd** — A keyboard shortcut, in the reader's platform's notation: `keys={["mod", "k"]}` shows ⌘K on a Mac, iPhone or iPad and Ctrl+K elsewhere. [Docs](docs/Kbd.md)
 - **Link** — A text link that navigates through your router. [Docs](docs/Link.md)

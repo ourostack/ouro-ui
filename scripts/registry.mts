@@ -400,7 +400,9 @@ export function buildRegistry(root: string): Registry {
       description:
         name === "lib-ouro-provider"
           ? "OuroProvider, which routes every href through your router's link and groups tooltips. It comes with every component that renders links and with tooltip; add it by name when your app has neither and you want the provider. The helper lib/ouro/ouro-provider.tsx."
-          : `Installed with the components that import it; you don't need to add it. The helper lib/ouro/${libFile(name)}.`,
+          : name === "lib-claims"
+            ? "claim(), which marks a sentence of your copy with its primary source and a check scripts can run. No component imports it; add it by name. The helper lib/ouro/claims.ts."
+            : `Installed with the components that import it; you don't need to add it. The helper lib/ouro/${libFile(name)}.`,
       docs: undefined as string | undefined,
     })),
     ...components.map((entry) => ({
@@ -608,7 +610,7 @@ export function withLlmsItems(llms: string, registry: Registry): string {
   const lines = registry.items
     .filter((item) => !helper(item.name))
     .map((item) => `- \`${item.name}\`: ${item.description}${names.has(item.name) ? ` Docs: ${DOCS_URL}/${item.name}.md` : ""}`);
-  lines.push(`- Helpers, one item per file in lib/ouro, each installed with the components that import it (and \`<name>-tests\` for a helper with tests): ${helpers.join(", ")}.`);
+  lines.push(`- Helpers, one item per file in lib/ouro, each installed with the components that import it (and \`<name>-tests\` for a helper with tests): ${helpers.join(", ")}. No component imports \`lib-claims\`: add it by name to mark your own copy's claims with \`claim()\`.`);
   if (!/\n## Items\n\n[\s\S]*?\n\n## /.test(llms)) throw new Error("site/public/llms.txt needs an ## Items section followed by another ## section.");
   return llms.replace(/(\n## Items\n\n)[\s\S]*?(\n\n## )/, (_, head: string, tail: string) => `${head}${lines.join("\n")}${tail}`);
 }

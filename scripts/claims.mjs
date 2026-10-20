@@ -21,6 +21,7 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import ts from "typescript";
 import { parseClaimCheck, parseClaimSource } from "../registry/ouro/lib/ouro/claims.ts";
+import { syncedFiles } from "./latest-release.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const URL_CACHE = "scripts/claims-urls.json";
@@ -762,9 +763,14 @@ const GENERATED_REGIONS = {
   "site/public/llms.txt": { skipSections: ["Items"] },
 };
 
-/** Lints one file by its kind. */
+/**
+ * Lints one file by its kind. In the files `pnpm run docs` keeps on the newest release
+ * (scripts/latest-release.mjs), each `#vX.Y.Z` or `@vX.Y.Z` tag is already a checked claim:
+ * `pnpm run docs --check` fails unless it names package.json's `ouro.latestRelease`.
+ */
 async function readSurface(root, file, kind = modeOf(file)) {
-  const text = readFileSync(join(root, file), "utf8");
+  const raw = readFileSync(join(root, file), "utf8");
+  const text = syncedFiles.includes(file) ? raw.replace(/([#@])v\d+\.\d+\.\d+\b/g, (tag) => tag[0] + "§".repeat(tag.length - 1)) : raw;
   if (kind === "markdown") return readMarkdown(text, { file, ...GENERATED_REGIONS[file] });
   return lintTypeScript(text, { file, jsdoc: kind === "jsdoc", copy: kind === "copy" });
 }

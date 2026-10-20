@@ -184,6 +184,7 @@
       "registryDependencies": [
         "ourostack/ouro-ui/lib-announce",
         "ourostack/ouro-ui/lib-appearance-hints",
+        "ourostack/ouro-ui/lib-claims",
         "ourostack/ouro-ui/lib-class-name-check",
         "ourostack/ouro-ui/lib-cn",
         "ourostack/ouro-ui/lib-color-scheme",
@@ -388,6 +389,19 @@
           "path": "registry/ouro/lib/ouro/appearance-hints.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/appearance-hints.ts"
+        }
+      ]
+    },
+    {
+      "name": "lib-claims",
+      "type": "registry:lib",
+      "title": "lib-claims",
+      "description": "claim(), which marks a sentence of your copy with its primary source and a check scripts can run. No component imports it; add it by name. The helper lib/ouro/claims.ts.",
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/claims.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/claims.ts"
         }
       ]
     },
@@ -3297,6 +3311,31 @@
           "path": "registry/ouro/lib/ouro/appearance-hints.test.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/appearance-hints.test.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "lib-claims-tests",
+      "type": "registry:item",
+      "title": "lib-claims tests",
+      "description": "Optional: the Vitest browser tests for lib-claims, and the tests of everything lib-claims installs, so the installed files reach 100% coverage. Add it beside lib-claims: add lib-claims lib-claims-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "devDependencies": [
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-claims",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/claims.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/claims.test.ts"
         }
       ],
       "meta": {
@@ -9408,6 +9447,7 @@
       "registryDependencies": [
         "ourostack/ouro-ui/lib-announce-tests",
         "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-claims-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-color-scheme-script-tests",
@@ -9486,6 +9526,7 @@
         "ourostack/ouro-ui/kbd-tests",
         "ourostack/ouro-ui/lib-announce-tests",
         "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-claims-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-color-scheme-script-tests",

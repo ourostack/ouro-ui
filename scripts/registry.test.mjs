@@ -312,10 +312,12 @@ test("each item has a one-line description and a docs message with its docs URL"
   assert.match(item("heading").docs, /import \{ Heading \} from "@\/components\/ouro\/text\/heading"/);
   // ouro-base is the one item an app adds by hand, once; the helpers come with what imports them.
   assert.match(item("ouro-base").description, /^Add it once per app, before your first component; no component installs it, /);
-  for (const name of libs.filter((each) => each !== "lib-ouro-provider")) assert.match(item(name).description, /^Installed with the components that import it; you don't need to add it\. /, name);
+  for (const name of libs.filter((each) => !["lib-ouro-provider", "lib-claims"].includes(each))) assert.match(item(name).description, /^Installed with the components that import it; you don't need to add it\. /, name);
   // OuroProvider is imported only by the app, so its description says when to add it by name.
   assert.doesNotMatch(item("lib-ouro-provider").description, /you don't need to add it/);
   assert.match(item("lib-ouro-provider").description, /add it by name/);
+  // claim() is for an app's own copy, and no component imports it.
+  assert.match(item("lib-claims").description, /^claim\(\), .* No component imports it; add it by name\. /);
   assert.match(item("ouro-testing").description, /^Installed with every -tests item; you don't need to add it\. /);
   assert.match(item("sheet-tests").docs, /https:\/\/ourostack\.github\.io\/ouro-ui\/docs\/testing\.md$/);
   for (const name of components) {

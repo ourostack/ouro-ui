@@ -55,6 +55,7 @@ const componentFiles = [
   "registry/ouro/lib/ouro/color-scheme-script.ts",
   "registry/ouro/lib/ouro/use-timer.ts",
   "registry/ouro/lib/ouro/feedback.ts",
+  "registry/ouro/lib/ouro/claims.ts",
 ];
 /** Part files (`<folder>/<stem>-parts.tsx`), by the family their parts are named after (the stem in PascalCase). */
 const partFiles: Record<string, string> = Object.fromEntries(
@@ -651,7 +652,7 @@ const readmeItems = [
   "",
   "Once per app: `ouro-base`, the tokens every component needs in your stylesheet. Optional: `ouro-theme`, the Ouro look.",
   "",
-  `Helpers, one item per file in \`lib/ouro\`, each installed with the components that import it (you don't add them by name; \`ouro-lib\` is all of them, and a helper with tests has a \`<name>-tests\` item): ${helperItems.map(code).join(", ")}.`,
+  `Helpers, one item per file in \`lib/ouro\`, each installed with the components that import it (you don't add them by name; \`ouro-lib\` is all of them, and a helper with tests has a \`<name>-tests\` item): ${helperItems.map(code).join(", ")}. No component imports \`lib-claims\`: add it by name to mark your own copy's claims with \`claim()\`.`,
   "<!-- items:end -->",
 ].join("\n");
 
