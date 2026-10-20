@@ -889,24 +889,20 @@
 }
 
 /*
- * The crew's newest line: a face and a sentence on a plate over the foot of the porthole's rim,
- * like a caption. Two lines are kept for it, so nothing under it moves when it changes.
+ * The crew's newest line: a face and a sentence on a strip of its own between the porthole and the
+ * console, in the page's flow. Two lines are kept for it, so nothing under it moves when it
+ * changes, and it never lies over a control.
  */
 .stage-crew {
-  position: relative;
-  z-index: 1;
   display: flex;
   align-items: center;
   gap: 0.625rem;
   box-sizing: border-box;
-  width: min(30rem, calc(100% - 2rem));
-  min-height: calc(2lh + 1rem);
-  margin: -2rem auto 0;
-  padding: 0.5rem 1rem 0.5rem 0.5rem;
-  border: 1px solid var(--panel-line);
-  border-radius: calc(var(--radius) * 1.6);
-  background: var(--card);
-  box-shadow: var(--shadow-md);
+  min-height: calc(2lh + 1.5rem);
+  margin: 0.75rem 0 0;
+  padding: 0.75rem 1.5rem;
+  border-top: 1px solid var(--panel-line);
+  background: color-mix(in oklab, var(--muted) 40%, var(--panel));
   font-size: 0.9375rem;
   line-height: 1.375;
   color: var(--foreground);
@@ -1411,14 +1407,18 @@
     border-radius: calc(var(--radius) * 1.6);
   }
   .stage-porthole {
-    padding: 0.5rem 0.5rem 0;
+    padding: 0.375rem 0.5rem 0;
   }
   .stage-crew {
-    width: calc(100% - 1.5rem);
-    margin-top: -1.75rem;
+    min-height: calc(2lh + 0.75rem);
+    margin-top: 0.375rem;
+    padding: 0.375rem 1rem;
   }
   .stage-console {
-    padding: var(--row-gap) 1rem;
+    padding: 0.625rem 1rem var(--row-gap);
+  }
+  .stage-instruments {
+    row-gap: 0.25rem;
   }
   /* Every sentence on the console is at least 16px on a phone; the small-capital labels stay labels. */
   .stage-crew,
@@ -1446,21 +1446,16 @@
  */
 @media (max-width: 63.99rem) and (min-height: 36rem) {
   .stage {
-    --porthole: min(400px, 28svh);
+    --porthole: min(400px, 21svh);
   }
+  /* Pinned, the window has a hard lower edge: the console passes under it as under the header. */
   .stage-window {
     position: sticky;
     top: 3.5rem;
     z-index: 2;
     background: var(--panel);
-  }
-  .stage-window::after {
-    content: "";
-    position: absolute;
-    inset: 100% 0 auto;
-    height: 1rem;
-    background: linear-gradient(var(--panel), transparent);
-    pointer-events: none;
+    border-bottom: 1px solid var(--panel-line);
+    box-shadow: 0 10px 14px -12px color-mix(in oklab, black 35%, transparent);
   }
   .stage-porthole {
     max-width: calc(var(--porthole) + 1rem);
@@ -1471,7 +1466,8 @@
    * on each focusable one.
    */
   .stage-frame :is(a, button, input, [tabindex], [role="slider"], [role="switch"], [role="radio"]) {
-    scroll-margin-top: calc(3.5rem + var(--porthole) + 5rem);
+    /* The header, the glass, the crew's strip and a row's label above its control. */
+    scroll-margin-top: calc(3.5rem + var(--porthole) + 8.5rem);
     scroll-margin-bottom: 1rem;
   }
 }
@@ -1499,24 +1495,34 @@
   [data-theme="sleek"] .stage-window {
     background: none;
   }
+  /* The crew's strip is the head of the console's pane: one pane of glass under the porthole. */
+  [data-theme="sleek"] .stage-crew {
+    margin-top: 1.25rem;
+    border: 1px solid var(--panel-line);
+    border-bottom: 0;
+    border-radius: calc(var(--radius) * 2.2) calc(var(--radius) * 2.2) 0 0;
+    background: color-mix(in oklab, var(--card) 70%, transparent);
+    box-shadow: 0 1px 0 color-mix(in oklab, white 55%, transparent) inset;
+  }
   [data-theme="sleek"] .stage-console {
     border: 1px solid var(--panel-line);
-    border-radius: calc(var(--radius) * 2.2);
-    background: linear-gradient(to bottom, color-mix(in oklab, var(--card) 62%, transparent), color-mix(in oklab, var(--card) 92%, transparent) 40%);
+    border-radius: 0 0 calc(var(--radius) * 2.2) calc(var(--radius) * 2.2);
+    background: linear-gradient(to bottom, color-mix(in oklab, var(--card) 70%, transparent), color-mix(in oklab, var(--card) 92%, transparent) 40%);
     box-shadow:
-      0 1px 0 color-mix(in oklab, white 55%, transparent) inset,
       0 28px 56px -32px color-mix(in oklab, var(--primary) 40%, transparent),
       var(--shadow-sm);
   }
   [data-theme="sleek"].dark .stage-console,
   .dark[data-theme="sleek"] .stage-console {
-    box-shadow:
-      0 1px 0 color-mix(in oklab, white 8%, transparent) inset,
-      0 28px 56px -28px color-mix(in oklab, black 60%, transparent);
+    box-shadow: 0 28px 56px -28px color-mix(in oklab, black 60%, transparent);
+  }
+  [data-theme="sleek"].dark .stage-crew,
+  .dark[data-theme="sleek"] .stage-crew {
+    box-shadow: 0 1px 0 color-mix(in oklab, white 8%, transparent) inset;
   }
 }
 @media (min-width: 64rem) and ((prefers-reduced-transparency: reduce) or (prefers-contrast: more)) {
-  [data-theme="sleek"] .stage-console {
+  [data-theme="sleek"] :is(.stage-crew, .stage-console) {
     background: var(--card);
   }
 }

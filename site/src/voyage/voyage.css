@@ -136,13 +136,28 @@
     .site-hero {
       background: linear-gradient(to bottom, var(--site-sea), var(--background) 60%);
     }
-    /* A phone's first screen holds the headline, the command, both buttons and the porthole. */
+  }
+  /*
+   * A phone's first screen holds the headline, the command, both buttons, the whole porthole, the
+   * crew's line and the depth control under it: everything above the stage is set close.
+   */
+  @media (max-width: 40rem) {
+    .site-hero {
+      padding-top: 0.5rem;
+    }
+    .site-hero-grid {
+      gap: 0.75rem;
+    }
     .site-hero .site-lede {
       font-size: 1rem;
-      line-height: 1.5;
+      line-height: 1.45;
     }
-    .site-hero-title {
-      font-size: clamp(2rem, 8.2vw, 3rem);
+    /* The release sits on the caption's line; the count is in the proof under the stage. */
+    .site-install-foot {
+      flex-wrap: nowrap;
+    }
+    .site-install-count {
+      display: none;
     }
   }
   .site-hero-grid {
@@ -188,6 +203,11 @@
   }
   .site-hero-line-second {
     color: var(--muted-foreground);
+  }
+  @media (max-width: 40rem) {
+    .site-hero-title {
+      font-size: clamp(1.75rem, 7.7vw, 2.25rem);
+    }
   }
   .site-hero-brand {
     display: inline-flex;

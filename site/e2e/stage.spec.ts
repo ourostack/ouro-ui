@@ -456,3 +456,61 @@ test("on a phone, keyboard focus on the stage always stops below the pinned port
   }
   await context.close();
 });
+
+for (const mode of ["light", "dark"] as const) {
+  test(`on a phone (${mode}), the crew's line sits between the porthole and the console, over nothing, at rest and after a dive`, async ({ browser }) => {
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, colorScheme: mode, baseURL: test.info().project.use.baseURL! });
+    await context.addInitScript((m) => localStorage.setItem("ouro-site-theme", JSON.stringify({ preset: "sleek", mode: m })), mode);
+    const page = await context.newPage();
+    await open(page);
+    /** Where the crew's line, the porthole and the console's first row are, and what is drawn on top at the first row's label and readout. */
+    const layout = () =>
+      page.evaluate(() => {
+        const box = (selector: string) => document.querySelector(selector)!.getBoundingClientRect();
+        const row = document.querySelector(".stage-instruments")!;
+        const onTop = [".stage-depth-head .stage-heading", "[data-stage-readout]", "[data-stage-control='depth'] [data-ouro-slider-control]"].map((selector) => {
+          const part = document.querySelector(selector)!.getBoundingClientRect();
+          return row.contains(document.elementFromPoint(part.left + part.width / 2, part.top + part.height / 2));
+        });
+        return { crew: box("[data-stage-crew]"), glass: box(".stage-porthole svg"), row: box(".stage-instruments"), slider: box("[data-stage-control='depth'] [data-ouro-slider-control]"), onTop, height: innerHeight };
+      });
+    const inFlow = (place: Awaited<ReturnType<typeof layout>>) => {
+      expect(place.crew.top, "the crew's line is under the glass").toBeGreaterThanOrEqual(place.glass.bottom - 1);
+      expect(place.crew.bottom, "the console's first row starts below the crew's line").toBeLessThanOrEqual(place.row.top + 1);
+      expect(place.onTop, "nothing lies over Depth's label, readout or lever").toEqual([true, true, true]);
+    };
+    const rest = await layout();
+    inFlow(rest);
+    // The first screen shows a control to use, under the whole porthole and the captain's cue.
+    expect(rest.slider.bottom).toBeLessThanOrEqual(rest.height);
+    for (const { name } of TANKS) await tank(page, name).tap();
+    await diveButton(page).tap();
+    await page.getByRole("switch", { name: STAGE_COPY.lights }).tap();
+    await page.getByRole("slider", { name: STAGE_COPY.depth }).focus();
+    await page.keyboard.press("End");
+    await expect(scene(page)).toHaveAttribute("data-band", "midnight");
+    await expect(lastLog(page)).not.toContainText(OPENING_LOG.at(-1)!.text);
+    // Focus on the lever brings its row out from under the pinned glass (the page scrolls smoothly).
+    await expect.poll(async () => { const place = await layout(); return place.crew.bottom <= place.row.top + 1 && place.onTop.every(Boolean); }).toBe(true);
+    inFlow(await layout());
+    await context.close();
+  });
+}
+
+test("on a phone, the bell's toast never covers the bell", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, baseURL: test.info().project.use.baseURL! });
+  const page = await context.newPage();
+  await open(page);
+  const bell = page.getByRole("button", { name: STAGE_COPY.bell });
+  await bell.evaluate((element) => element.scrollIntoView({ block: "end" }));
+  await bell.tap();
+  const toast = page.locator('[data-ouro="toast"]').first();
+  await expect(toast).toBeVisible();
+  await expect
+    .poll(async () => {
+      const [b, t] = await Promise.all([bell.boundingBox(), toast.boundingBox()]);
+      return b!.y + b!.height <= t!.y;
+    })
+    .toBe(true);
+  await context.close();
+});

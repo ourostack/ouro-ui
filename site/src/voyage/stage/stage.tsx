@@ -9,6 +9,7 @@ import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-cont
 import { Slider } from "@/registry/ouro/components/ouro/slider/slider";
 import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
+import { keepClearOfToasts } from "../clear-of-toasts";
 import { GITHUB } from "../../paths";
 import { bandAt, BANDS, BELL_TOASTS, describeScene, LOG, MAX_DEPTH, OPENING_LOG, SPEEDS, STAGE_COPY, TANKS, type LogLine, type Speed } from "./copy";
 import { Scene } from "./scene";
@@ -156,7 +157,12 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
     write(LOG.bell);
     // The crew answers once the bell has swung: the toast stack measures and re-lays itself out, so
     // it waits for the press's own paint rather than holding it up.
-    requestAnimationFrame(() => setTimeout(() => toast(`${line.name}: ${line.text}`)));
+    requestAnimationFrame(() =>
+      setTimeout(() => {
+        toast(`${line.name}: ${line.text}`);
+        keepClearOfToasts(root.current?.querySelector("[data-stage-control='bell']"));
+      }),
+    );
   });
 
   // The picture follows the controls a frame later: a press repaints its own control first, then
