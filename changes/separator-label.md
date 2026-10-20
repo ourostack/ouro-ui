@@ -1,0 +1,1 @@
+- New: `Separator` takes `label`, a word such as "or" in the middle of a horizontal line; its text is read in place and the lines are hidden from screen readers. Text children now point to `label` in their type error and development message.

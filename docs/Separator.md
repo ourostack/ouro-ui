@@ -2,7 +2,7 @@
 
 # Separator
 
-A thin line in the theme's border color between groups of content, horizontal or vertical. Built on Base UI's Separator, so it is a `role="separator"` with its orientation for screen readers, unless `decorative`.
+A thin line in the theme's border color between groups of content, horizontal or vertical. Built on Base UI's Separator, so it is a `role="separator"` with its orientation for screen readers, unless `decorative`. With `label` it is a horizontal line with a word in its middle, such as "or" between two ways to sign in.
 
 ```tsx
 import { Separator } from "@/registry/ouro/components/ouro/separator/separator";
@@ -17,6 +17,7 @@ import { Separator } from "@/registry/ouro/components/ouro/separator/separator";
   <Separator orientation="vertical" />
   <Button variant="plain">Share</Button>
 </div>
+<Separator label="or" className="my-6" />
 ```
 
 ## Use instead when
@@ -31,6 +32,7 @@ Type: `SeparatorProps`.
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: margins, width, flex sizing (`my-4`, `flex-1`). Appearance classes warn in development. |
 | `decorative` | `boolean` |  | Hides the line from screen readers (`role="none"`). Use it when the line only decorates, such as between a heading and its text; leave it off when it divides two groups of content a reader should hear as separate. |
+| `label` | `ReactNode` |  | A word or two in the middle of a horizontal line, such as "or" between two ways to sign in: `<Separator label="or" />`. The label is read as text in its place, and the lines on either side are hidden from screen readers. Only for `horizontal`. |
 | `orientation` | `"vertical" \| "horizontal"` | `"horizontal"` | `horizontal` spans the width of its container between stacked content; `vertical` stands as tall as its row between side-by-side items (put it in a flex row). |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
 
@@ -42,7 +44,8 @@ Also accepts the attributes in React's `HTMLAttributes` (`id`, `aria-*`, event h
 
 These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
-- `children`: Not a prop. A separator has no content; put a label beside it.
+- `children`: Not a prop. The text in the middle of the line is `label`: `<Separator label="or" />`.
+- `text`: Not a prop. The text in the middle of the line is `label`: `<Separator label="or" />`.
 - `vertical`: Not a prop. Ouro UI uses `orientation`: `<Separator orientation="vertical" />`.
 
 ## `className` is for layout only

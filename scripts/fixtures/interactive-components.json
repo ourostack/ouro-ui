@@ -53,5 +53,7 @@
   "chart",
   "message-list",
   "attachment",
-  "inspector"
+  "inspector",
+  "copy-button",
+  "code-block"
 ]

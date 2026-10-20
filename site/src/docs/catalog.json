@@ -24,6 +24,12 @@
     "source": "registry/ouro/components/ouro/button-group/button-group.tsx"
   },
   {
+    "name": "copy-button",
+    "title": "CopyButton",
+    "group": "Actions",
+    "source": "registry/ouro/components/ouro/copy-button/copy-button.tsx"
+  },
+  {
     "name": "text",
     "title": "Text",
     "group": "Text",
@@ -296,6 +302,12 @@
     "source": "registry/ouro/components/ouro/carousel/carousel.tsx"
   },
   {
+    "name": "code-block",
+    "title": "CodeBlock",
+    "group": "Display",
+    "source": "registry/ouro/components/ouro/code-block/code-block.tsx"
+  },
+  {
     "name": "accordion",
     "title": "Accordion",
     "group": "Lists",
@@ -373,6 +385,12 @@
     "title": "Resizable",
     "group": "Layout",
     "source": "registry/ouro/components/ouro/resizable/resizable.tsx"
+  },
+  {
+    "name": "page-header",
+    "title": "PageHeader",
+    "group": "Layout",
+    "source": "registry/ouro/components/ouro/page-header/page-header.tsx"
   },
   {
     "name": "tabs",
