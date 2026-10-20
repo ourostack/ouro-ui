@@ -1,71 +1,52 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 110">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 120">
   <title>The Nautilus, in profile</title>
   <!-- Original drawing for Ouro HX after Verne alone (manifest.json): an elongated cylinder with
-       conical ends, 232 feet by 26 (eight to one); a very low railed platform midships, three feet
-       out of the water; the lantern on it, and the steersman's small low cage forward of it with
-       thick lenticular glass; a sharp steel spur at the bow; a simple screw and rudder at the
-       stern; iron plates that overlap, drawn quietly. No tower, no fins, no great eye window. -->
+       conical ends, 232 feet by 26 (eight to one), drawn as a spindle that tapers at both ends; a
+       long steel ram spur forward, so the bow is plain; a platform lying almost flush on the back,
+       three feet out of the water; the lantern standing alone on it, and the steersman's low glass
+       just forward of it; a four-bladed screw and a rudder aft; the iron plates drawn quietly.
+       No tower, no sail, no periscope, no fins, no great eye window. -->
   <defs>
     <linearGradient id="nautilus-sheen" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" class="n-hull-sheen-top" />
-      <stop offset="0.5" class="n-hull-sheen-mid" />
+      <stop offset="0.45" class="n-hull-sheen-mid" />
       <stop offset="1" class="n-hull-sheen-bottom" />
     </linearGradient>
   </defs>
+  <path class="n-rudder" d="M10 50 L18 50 L18 82 L10 82 Z" />
   <g class="n-screw">
-    <path d="M34 62 H16" />
-    <ellipse cx="18" cy="55" rx="2.2" ry="6.5" />
-    <ellipse cx="18" cy="69" rx="2.2" ry="6.5" />
-    <circle cx="18" cy="62" r="2.4" />
+    <path d="M46 66 H24" />
+    <ellipse cx="27" cy="57" rx="2.6" ry="8" />
+    <ellipse cx="27" cy="75" rx="2.6" ry="8" />
+    <circle cx="27" cy="66" r="3" />
   </g>
-  <path class="n-rudder" d="M8 50 H13 L13 74 H8 Z" />
-  <path class="n-hull" d="M34 62 C90 40 170 29 260 29 L382 29 C474 29 540 42 566 62 C540 82 474 95 382 95 L260 95 C170 95 90 84 34 62 Z" />
-  <path class="n-hull-shade" d="M34 62 C90 40 170 29 260 29 L382 29 C474 29 540 42 566 62 C540 82 474 95 382 95 L260 95 C170 95 90 84 34 62 Z" fill="url(#nautilus-sheen)" />
+  <path class="n-hull" d="M44 66 C120 41 206 33 300 33 C404 33 498 42 556 66 C498 90 404 99 300 99 C206 99 120 91 44 66 Z" />
+  <path class="n-hull-shade" d="M44 66 C120 41 206 33 300 33 C404 33 498 42 556 66 C498 90 404 99 300 99 C206 99 120 91 44 66 Z" fill="url(#nautilus-sheen)" />
   <g class="n-plates">
-    <path d="M120 41 C115 52 115 72 120 83" />
-    <path d="M190 32 C185 48 185 76 190 92" />
-    <path d="M260 29 C255 46 255 78 260 95" />
-    <path d="M330 29 C325 46 325 78 330 95" />
-    <path d="M400 30 C395 47 395 77 400 94" />
-    <path d="M468 35 C463 50 463 74 468 89" />
-    <path d="M44 62 C170 59 430 59 556 62" />
+    <path d="M140 46 C135 56 135 76 140 86" />
+    <path d="M220 37 C215 52 215 80 220 95" />
+    <path d="M300 33 C295 50 295 82 300 99" />
+    <path d="M380 34 C375 51 375 81 380 98" />
+    <path d="M460 42 C455 55 455 77 460 90" />
+    <path d="M56 66 C180 63 420 63 544 66" />
   </g>
+  <path class="n-highlight" d="M92 54 C170 41 248 37 300 37 C380 37 456 42 516 54" />
   <g class="n-lights">
-    <circle cx="236" cy="66" r="3.4" />
-    <circle cx="268" cy="66" r="3.4" />
-    <circle cx="300" cy="66" r="3.4" />
-    <circle cx="332" cy="66" r="3.4" />
-    <circle cx="364" cy="66" r="3.4" />
+    <circle cx="246" cy="74" r="3.6" />
+    <circle cx="278" cy="74" r="3.6" />
+    <circle cx="310" cy="74" r="3.6" />
+    <circle cx="342" cy="74" r="3.6" />
+    <circle cx="374" cy="74" r="3.6" />
   </g>
-  <path class="n-platform" d="M226 29 L228 25 L414 25 L416 29 Z" />
-  <g class="n-rail">
-    <path d="M232 18 H404" />
-    <path d="M232 25 V18" />
-    <path d="M244 25 V18" />
-    <path d="M256 25 V18" />
-    <path d="M268 25 V18" />
-    <path d="M280 25 V18" />
-    <path d="M292 25 V18" />
-    <path d="M304 25 V18" />
-    <path d="M316 25 V18" />
-    <path d="M328 25 V18" />
-    <path d="M340 25 V18" />
-    <path d="M352 25 V18" />
-    <path d="M364 25 V18" />
-    <path d="M376 25 V18" />
-    <path d="M388 25 V18" />
-    <path d="M400 25 V18" />
+  <path class="n-platform" d="M232 34 C268 29.5 356 29.5 392 34 Z" />
+  <path class="n-glass" d="M396 33 C400 27.5 414 27.5 418 33 Z" />
+  <g class="n-beacon">
+    <path class="n-mast" d="M328.6 31 V17 H331.4 V31 Z" />
+    <path class="n-cage-cap" d="M321 6.5 L330 1 L339 6.5 Z" />
+    <rect class="n-lantern" x="323" y="6" width="14" height="12" rx="3" />
   </g>
-  <g class="n-lantern-house">
-    <path class="n-cage" d="M282 25 L284 13 L300 13 L302 25 Z" />
-    <path class="n-cage-cap" d="M281 13 L292 8 L303 13 Z" />
-    <circle class="n-lantern" cx="292" cy="19" r="4.2" />
-  </g>
-  <g class="n-steersman">
-    <path class="n-cage" d="M352 25 L355 18 L377 18 L380 25 Z" />
-    <path class="n-glass" d="M358 20.5 H374 L375.5 23.5 H356.5 Z" />
-  </g>
-  <path class="n-spur" d="M560 59 L630 62 L560 65 Z" />
-  <path class="n-spur-collar" d="M556 56 L564 57 L564 67 L556 68 Z" />
-  <path class="n-outline" d="M34 62 C90 40 170 29 260 29 L382 29 C474 29 540 42 566 62 C540 82 474 95 382 95 L260 95 C170 95 90 84 34 62 Z" />
+  <path class="n-spur-collar" d="M548 58 L560 59.5 L560 72.5 L548 74 Z" />
+  <path class="n-spur" d="M560 60 L636 66 L560 72 Z" />
+  <path class="n-spur-edge" d="M562 66 H630" />
+  <path class="n-outline" d="M44 66 C120 41 206 33 300 33 C404 33 498 42 556 66 C498 90 404 99 300 99 C206 99 120 91 44 66 Z" />
 </svg>

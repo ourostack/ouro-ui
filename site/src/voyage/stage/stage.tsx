@@ -1,5 +1,4 @@
-import { memo, startTransition, useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState, type JSX, type SVGProps } from "react";
-import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
+import { memo, startTransition, useCallback, useDeferredValue, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type JSX, type SVGProps } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Collapsible } from "@/registry/ouro/components/ouro/collapsible/collapsible";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
@@ -175,28 +174,16 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
           </Button>
         </div>
         <section aria-label={STAGE_COPY.rail} className="stage-console">
-          <DepthControl depth={depth} onChange={onDepth} onCommitted={onDepthCommitted} />
-          <div className="stage-console-row">
-            <fieldset className="stage-group stage-ballast">
-              <legend className="stage-heading stage-ballast-head">
-                {STAGE_COPY.ballast}
-                <span id="stage-tank-count" aria-hidden="true" className="stage-readout" data-stage-tank-count="">
-                  {STAGE_COPY.tankCount(full)}
-                </span>
-              </legend>
-              <div className="stage-tanks">
-                {TANKS.map((tank) => (
-                  <TankSwitch key={tank.id} id={tank.id} label={tank.label} name={tank.name} checked={tanks[tank.id]} onChange={onTank} />
-                ))}
-              </div>
-              <DiveControl full={full} dived={dived} onPress={onDive} />
-            </fieldset>
-            <div className="stage-group stage-helm">
-              <SpeedControl speed={speed} onChange={onSpeed} />
-              <LightsControl lights={lights} onChange={onLights} />
-            </div>
+          {/* One instrument row: how deep, in what water, and how fast. */}
+          <div className="stage-instruments">
+            <DepthControl depth={depth} onChange={onDepth} onCommitted={onDepthCommitted} />
+            <SpeedControl speed={speed} onChange={onSpeed} />
           </div>
-          <ShipLog log={log} rings={rings} onRing={onBell} />
+          <Ballast tanks={tanks} full={full} dived={dived} onTank={onTank} onDive={onDive} />
+          <div className="stage-deck">
+            <LightsControl lights={lights} onChange={onLights} />
+            <ShipLog log={log} rings={rings} onRing={onBell} />
+          </div>
         </section>
       </div>
     </div>
@@ -212,10 +199,10 @@ const DepthControl = memo(function DepthControl({ depth, onChange, onCommitted }
           {STAGE_COPY.depth}
         </span>
         <output className="stage-readout" aria-live="off" data-stage-readout="">
-          <span className="stage-numeral">{depth}</span> <span className="stage-unit">fathoms</span>
           <span className="stage-band-name" data-stage-band="">
             {bandLabel}
           </span>
+          <span className="stage-numeral">{depth}</span> <span className="stage-unit">fathoms</span>
         </output>
       </div>
       <Slider
@@ -232,17 +219,30 @@ const DepthControl = memo(function DepthControl({ depth, onChange, onCommitted }
   );
 });
 
-/** A ballast tank's dial: the needle swings from empty to full and settles. */
-function Gauge({ full }: { full: boolean }): JSX.Element {
+/**
+ * A ballast tank's sight glass: the water inside rises when the tank floods, with a few bubbles,
+ * and drains when it empties. Its shape and glow come from the preset (stage.css).
+ */
+function SightGlass({ full }: { full: boolean }): JSX.Element {
+  const clip = useId();
   return (
-    <svg className="stage-gauge" viewBox="0 0 32 32" aria-hidden="true" data-full={full ? "" : undefined}>
-      <circle className="stage-gauge-face" cx="16" cy="16" r="14" />
-      <path className="stage-gauge-ticks" d="M5.4 20.3 L3.8 20.9 M5.0 13.0 L3.2 12.6 M9.1 6.9 L8.1 5.5 M16.0 4.6 L16.0 2.8 M22.9 6.9 L23.9 5.5 M27.0 13.0 L28.8 12.6 M26.6 20.3 L28.2 20.9" />
-      <path className="stage-gauge-arc" d="M6.73 19.75 A10 10 0 1 1 25.27 19.75" />
-      <g className="stage-gauge-needle">
-        <path d="M16 16 L16 6.8" />
-        <circle cx="16" cy="16" r="1.8" />
+    <svg className="stage-gauge" viewBox="0 0 44 44" aria-hidden="true" data-full={full ? "" : undefined}>
+      <defs>
+        <clipPath id={clip}>
+          <rect className="stage-gauge-shape" x="5" y="5" width="34" height="34" rx="17" />
+        </clipPath>
+      </defs>
+      <rect className="stage-gauge-face" x="5" y="5" width="34" height="34" rx="17" />
+      <g clipPath={`url(#${clip})`}>
+        <rect className="stage-gauge-water" x="5" y="5" width="34" height="34" />
+        <path className="stage-gauge-surface" d="M5 12 Q13.5 9.5 22 12 T39 12" />
+        <circle className="stage-gauge-bubble" cx="15" cy="34" r="1.7" />
+        <circle className="stage-gauge-bubble" cx="24" cy="36" r="1.2" />
+        <circle className="stage-gauge-bubble" cx="30" cy="33" r="1.5" />
       </g>
+      <path className="stage-gauge-ticks" d="M9 15 H12.5 M9 22 H14 M9 29 H12.5" />
+      <rect className="stage-gauge-bezel" x="3" y="3" width="38" height="38" rx="19" />
+      <path className="stage-gauge-glint" d="M14 10.5 Q22 7.5 30 10.5" />
     </svg>
   );
 }
@@ -250,7 +250,7 @@ function Gauge({ full }: { full: boolean }): JSX.Element {
 const TankSwitch = memo(function TankSwitch({ id, label, name, checked, onChange }: { id: TankId; label: string; name: string; checked: boolean; onChange: (id: TankId, on: boolean) => void }): JSX.Element {
   return (
     <div className="stage-tank" data-stage-control={`tank-${id}`} data-full={checked ? "" : undefined}>
-      <Gauge full={checked} />
+      <SightGlass full={checked} />
       <span className="stage-tank-name" aria-hidden="true">
         {label}
       </span>
@@ -259,32 +259,59 @@ const TankSwitch = memo(function TankSwitch({ id, label, name, checked, onChange
   );
 });
 
+/** Dive: quiet until the tanks are full, then the panel's one bright button. */
 const DiveControl = memo(function DiveControl({ full, dived, onPress }: { full: number; dived: boolean; onPress: () => void }): JSX.Element {
+  const ready = full === 3 && !dived;
   return (
-    <div className="stage-dive" data-stage-control="dive">
+    <div className="stage-dive" data-stage-control="dive" data-ready={ready ? "" : undefined}>
       <Button
-        size="md"
+        size="lg"
         disabled={full < 3}
         tone={dived ? "secondary" : "primary"}
-        variant={dived ? "outline" : "solid"}
+        variant={dived ? "outline" : ready ? "solid" : "soft"}
         aria-describedby="stage-dive-hint stage-tank-count"
-        className="min-w-24"
+        className="min-w-28"
         onClick={onPress}
       >
         {dived ? STAGE_COPY.surface : STAGE_COPY.dive}
       </Button>
-      {full === 3 && !dived ? (
-        <span className="stage-ready" data-stage-ready="">
-          <Badge tone="success" variant="soft" icon={ChimeIcon}>
-            {STAGE_COPY.ready}
-          </Badge>
+      {ready ? (
+        <span id="stage-dive-hint" className="stage-ready" data-stage-ready="">
+          <ChimeIcon className="size-4" />
+          {STAGE_COPY.ready}
         </span>
-      ) : null}
-      {/* Beside the Ready badge a wide screen keeps the hint for screen readers only; a phone shows it instead of the badge, at 16px (stage.css). */}
-      <span id="stage-dive-hint" className={full === 3 && !dived ? "stage-hint stage-hint-ready" : "stage-hint"}>
-        {dived ? STAGE_COPY.surfaceHint : STAGE_COPY.diveHint(full)}
-      </span>
+      ) : (
+        <span id="stage-dive-hint" className="stage-hint">
+          {dived ? STAGE_COPY.surfaceHint : STAGE_COPY.diveHint(full)}
+        </span>
+      )}
     </div>
+  );
+});
+
+/**
+ * The ballast manifold, one instrument: three sight glasses on a pipe that runs to Dive. The pipe
+ * fills with water a third at a time as the tanks flood, and the count says how many are full.
+ */
+const Ballast = memo(function Ballast({ tanks, full, dived, onTank, onDive }: { tanks: Record<TankId, boolean>; full: number; dived: boolean; onTank: (id: TankId, on: boolean) => void; onDive: () => void }): JSX.Element {
+  return (
+    <fieldset className="stage-group stage-ballast" style={{ "--fill": full / 3 } as CSSProperties}>
+      <legend className="stage-heading stage-ballast-head">
+        {STAGE_COPY.ballast}
+        <span id="stage-tank-count" aria-hidden="true" className="stage-readout" data-stage-tank-count="">
+          {STAGE_COPY.tankCount(full)}
+        </span>
+      </legend>
+      <div className="stage-manifold">
+        <span className="stage-pipe" aria-hidden="true">
+          <span className="stage-pipe-water" />
+        </span>
+        {TANKS.map((tank) => (
+          <TankSwitch key={tank.id} id={tank.id} label={tank.label} name={tank.name} checked={tanks[tank.id]} onChange={onTank} />
+        ))}
+        <DiveControl full={full} dived={dived} onPress={onDive} />
+      </div>
+    </fieldset>
   );
 });
 
@@ -319,17 +346,20 @@ const LogEntry = memo(function LogEntry({ entry }: { entry: Entry }): JSX.Elemen
 });
 
 /**
- * The ship's log. On a wide screen the newest line is in view and the older ones fold under "Ship's
- * log (n more)"; on a phone every line folds under "Ship's log", so the console stays short under
- * the porthole (stage.css shows one or the other). The bell rings from here.
+ * The ship's log. It stays folded under "Ship's log" until something happens; then, on a wide
+ * screen, the newest line shows and the older ones fold under "Ship's log (n more)". A phone keeps
+ * every line folded, so the console stays short under the porthole (stage.css shows one fold or the
+ * other). The bell rings from here.
  */
 const ShipLog = memo(function ShipLog({ log, rings, onRing }: { log: Entry[]; rings: number; onRing: () => void }): JSX.Element {
   const [open, setOpen] = useState(false);
   const [openAll, setOpenAll] = useState(false);
-  const older = log.slice(0, -1);
-  const newest = log.slice(-1);
+  // Something has happened once the newest line is not one the log opened with.
+  const heard = log.at(-1)!.id >= OPENING_LOG.length;
+  const folded = heard ? log.slice(0, -1) : log;
+  const newest = heard ? log.slice(-1) : [];
   return (
-    <div className="stage-logbook">
+    <div className="stage-logbook" data-heard={heard ? "" : undefined}>
       <div className="stage-log-now">
         <MessageList label={`${STAGE_COPY.log}, newest line`} className="stage-log stage-log-newest">
           {newest.map((entry) => (
@@ -339,9 +369,9 @@ const ShipLog = memo(function ShipLog({ log, rings, onRing }: { log: Entry[]; ri
       </div>
       <div className="stage-log-fold" data-stage-control="log">
         <div className="stage-fold-wide">
-          <Collapsible title={STAGE_COPY.logFold(older.length)} open={open} onOpenChange={setOpen} disabled={older.length === 0}>
-            <MessageList label={`${STAGE_COPY.log}, earlier lines`} className="stage-log">
-              {older.map((entry) => (
+          <Collapsible title={heard ? STAGE_COPY.logFold(folded.length) : STAGE_COPY.logAll(folded.length)} open={open} onOpenChange={setOpen} disabled={folded.length === 0}>
+            <MessageList label={heard ? `${STAGE_COPY.log}, earlier lines` : STAGE_COPY.log} className="stage-log">
+              {folded.map((entry) => (
                 <LogEntry key={entry.id} entry={entry} />
               ))}
             </MessageList>

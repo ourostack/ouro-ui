@@ -131,7 +131,7 @@ export function Hero({ onXray }: { onXray: () => void }): JSX.Element {
               <span className="sr-only"> · </span>
               <span className="site-hero-status">{EYEBROW.split(" · ")[1]}</span>
             </p>
-            <h1 id="hero-title" className="site-h1 site-hero-title mt-5">
+            <h1 id="hero-title" className="site-h1 site-hero-title mt-4 lg:mt-5">
               {VOYAGE_HERO.title.map((sentence, index) => (
                 <span key={sentence} className={index === 0 ? "site-hero-line" : "site-hero-line site-hero-line-second"}>
                   {sentence}
@@ -139,11 +139,11 @@ export function Hero({ onXray }: { onXray: () => void }): JSX.Element {
                 </span>
               ))}
             </h1>
-            <p className="site-lede mt-5 max-w-[44ch]">{VOYAGE_HERO.subline}</p>
-            <div className="mt-7 max-w-[36rem]">
+            <p className="site-lede mt-4 max-w-[44ch] lg:mt-5">{VOYAGE_HERO.subline}</p>
+            <div className="mt-5 max-w-[36rem] lg:mt-7">
               <Install />
             </div>
-            <div className="mt-6 flex flex-wrap gap-3">
+            <div className="mt-5 flex flex-wrap gap-3 lg:mt-6">
               <Button href={href("/docs/installing/")} size="lg">
                 Come aboard
               </Button>

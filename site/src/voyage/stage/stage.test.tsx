@@ -208,7 +208,9 @@ describe("the stage's controls", () => {
   it("keeps the newest three lines in the log: the newest in view, the rest folded", async () => {
     await renderPage("/voyage/");
     const fold = page.getByRole("button", { name: /^Ship's log \(/ });
-    await expect.element(fold).toBeDisabled();
+    // Folded until something happens: the welcome is under "Ship's log (1)", and no line shows.
+    await expect.element(fold).toHaveAccessibleName(STAGE_COPY.logAll(1));
+    expect(document.querySelectorAll(".stage-log-newest [data-ouro='message']")).toHaveLength(0);
     for (const name of ["Full", "Stop", "Half", "Full"]) await userEvent.click(page.getByRole("radio", { name }));
     await expect.poll(() => logText()[0]).toContain(LOG.speed.stop.text);
     expect(logText()).toHaveLength(3);

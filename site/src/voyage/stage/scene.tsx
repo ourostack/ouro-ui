@@ -101,6 +101,7 @@ export const Scene = memo(function Scene({ state, label, description, motto }: {
       data-speed={state.speed}
       data-tanks={state.tanks}
       data-rings={state.rings}
+      data-ring={state.rings === 0 ? undefined : state.rings % 2 ? "a" : "b"}
       style={{ "--d": d.toFixed(3), "--tanks": state.tanks } as CSSProperties}
     >
       <Defs />
@@ -108,6 +109,7 @@ export const Scene = memo(function Scene({ state, label, description, motto }: {
         <g clipPath="url(#stage-glass)">
           <Sea />
           <Life />
+          <rect className="stage-haze" width="480" height="480" fill="url(#stage-haze)" />
           <Ship />
           <Bubbles dives={state.dives} />
           <Ripples rings={state.rings} />
@@ -145,6 +147,18 @@ const Defs = memo(function Defs(): JSX.Element {
         <stop offset="0" className="stage-glow-core" />
         <stop offset="1" className="stage-glow-edge" />
       </radialGradient>
+      <linearGradient id="stage-haze" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0.35" className="stage-haze-clear" />
+        <stop offset="1" className="stage-haze-deep" />
+      </linearGradient>
+      <linearGradient id="stage-sheen" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" className="stage-sheen-bright" />
+        <stop offset="0.6" className="stage-sheen-clear" />
+      </linearGradient>
+      <radialGradient id="stage-shadow">
+        <stop offset="0" className="stage-shadow-core" />
+        <stop offset="1" className="stage-shadow-edge" />
+      </radialGradient>
       <radialGradient id="stage-vignette" cx="0.5" cy="0.5" r="0.5">
         <stop offset="0.72" className="stage-vignette-clear" />
         <stop offset="1" className="stage-vignette-edge" />
@@ -174,6 +188,12 @@ const Sea = memo(function Sea(): JSX.Element {
           <path d="M292 156 L332 156 L404 480 L322 480 Z" />
           <path d="M392 156 L414 156 L512 480 L462 480 Z" />
         </g>
+        {/* Caustics: the sun's net of light on the water just under the surface. */}
+        <g className="stage-caustics">
+          <path d="M-20 178 C20 170 40 186 80 178 S140 170 180 180 S250 188 290 176 S360 168 400 180 S470 188 520 176" />
+          <path d="M-20 200 C30 192 60 208 100 198 S170 190 210 202 S280 210 320 198 S390 190 430 202 S490 208 520 198" />
+          <path d="M-20 224 C24 218 56 232 96 224 S168 216 208 228 S276 234 316 222 S384 216 424 228 S488 232 520 222" />
+        </g>
         <path className="stage-waves" d="M0 152 C20 146 40 158 60 152 C80 146 100 158 120 152 C140 146 160 158 180 152 C200 146 220 158 240 152 C260 146 280 158 300 152 C320 146 340 158 360 152 C380 146 400 158 420 152 C440 146 460 158 480 152 L480 162 L0 162 Z" />
       </g>
       <g className="stage-specks" aria-hidden="true">
@@ -181,6 +201,8 @@ const Sea = memo(function Sea(): JSX.Element {
           <circle key={index} cx={x} cy={y} r={index % 4 === 0 ? 2 : 1.3} style={{ "--twinkle-delay": `${delay}s` } as CSSProperties} />
         ))}
       </g>
+      {/* The far reef, faint in the water's own colour: the first of the depth's layers. */}
+      <path className="stage-far" d="M0 392 C40 360 92 372 136 350 C176 332 214 360 256 346 C300 330 340 356 380 340 C420 326 452 348 480 340 L480 480 L0 480 Z" />
       <g className="stage-floor">
         <g className="stage-kelp">
           <Drawing of={art.kelp} x={18} y={250} width={74} />
@@ -219,7 +241,7 @@ const Life = memo(function Life(): JSX.Element {
       </g>
       {/* Found only by the lantern: they live where the Nautilus dives. */}
       <g className="stage-hidden" aria-hidden="true">
-        <Drawing of={art.anglerfish} x={372} y={188} width={100} className="stage-anglerfish" />
+        <Drawing of={art.anglerfish} x={360} y={136} width={96} className="stage-anglerfish" />
         <Drawing of={art.octopus} x={352} y={318} width={62} className="stage-octopus" />
       </g>
     </>
@@ -230,9 +252,11 @@ const Ship = memo(function Ship(): JSX.Element {
   return (
     <>
       <g className="stage-nautilus">
-        <path className="stage-beam" d="M186 12 L560 -96 L560 214 Z" fill="url(#stage-beam)" />
-        <Drawing of={art.nautilus} x={0} y={0} width={400} className="stage-ship" />
-        <circle className="stage-lantern-glow" cx="182.5" cy="12" r="16" fill="url(#stage-glow)" />
+        <path className="stage-beam" d="M232 8 L600 -112 L600 228 Z" fill="url(#stage-beam)" />
+        <Wake />
+        <ellipse className="stage-hull-shadow" cx="208" cy="76" rx="180" ry="12" fill="url(#stage-shadow)" />
+        <Drawing of={art.nautilus} x={0} y={0} width={440} className="stage-ship" />
+        <circle className="stage-lantern-glow" cx="227" cy="8" r="22" fill="url(#stage-glow)" />
       </g>
       {/* The sea in front of the hull at the surface: the platform stands three feet out of the water. */}
       <g className="stage-surface-world stage-surface-front" aria-hidden="true">
@@ -240,6 +264,20 @@ const Ship = memo(function Ship(): JSX.Element {
         <path className="stage-waterline" d="M0 152 C20 146 40 158 60 152 C80 146 100 158 120 152 C140 146 160 158 180 152 C200 146 220 158 240 152 C260 146 280 158 300 152 C320 146 340 158 360 152 C380 146 400 158 420 152 C440 146 460 158 480 152" />
       </g>
     </>
+  );
+});
+
+/** The screw's wake: a trail of small bubbles streaming aft, so which way she sails is plain. */
+const WAKE: ReadonlyArray<[number, number, number]> = [
+  [10, 44, 1.8], [2, 50, 1.2], [-6, 40, 1.4], [-14, 48, 1], [-22, 43, 1.3], [-30, 50, 0.9],
+];
+const Wake = memo(function Wake(): JSX.Element {
+  return (
+    <g className="stage-wake" aria-hidden="true">
+      {WAKE.map(([x, y, r], index) => (
+        <circle key={index} cx={x} cy={y} r={r} style={{ "--wake-delay": `${index * -0.35}s` } as CSSProperties} />
+      ))}
+    </g>
   );
 });
 
@@ -262,7 +300,7 @@ const Bubbles = memo(function Bubbles({ dives }: { dives: number }): JSX.Element
 const Ripples = memo(function Ripples({ rings }: { rings: number }): JSX.Element {
   return (
     <g className="stage-ripples" key={rings} data-rung={rings > 0 ? "" : undefined} aria-hidden="true">
-      {rings > 0 && [0, 0.22, 0.44].map((delay, index) => <ellipse key={index} cx="186" cy="40" rx="70" ry="16" style={{ "--ripple-delay": `${delay}s` } as CSSProperties} />)}
+      {rings > 0 && [0, 0.35, 0.7].map((delay, index) => <ellipse key={index} cx="208" cy="45" rx="44" ry="44" style={{ "--ripple-delay": `${delay}s` } as CSSProperties} />)}
     </g>
   );
 });
@@ -271,7 +309,12 @@ const Glass = memo(function Glass(): JSX.Element {
   return (
     <>
       <rect className="stage-vignette" width="480" height="480" fill="url(#stage-vignette)" />
+      {/* The glass: a broad sheen across the upper left, a bright arc, a glint, and the shadow of the rim on the water. */}
+      <path className="stage-sheen" d="M24 214 C30 112 108 32 212 22 C150 52 98 110 80 196 C62 206 42 210 24 214 Z" fill="url(#stage-sheen)" />
       <path className="stage-glare" d="M70 120 C92 74 140 40 196 28" />
+      <circle className="stage-glint" cx="214" cy="40" r="3.5" />
+      <path className="stage-glare stage-glare-low" d="M396 392 C372 420 340 440 300 452" />
+      <circle className="stage-rim-shade" cx="240" cy="240" r="236" />
     </>
   );
 });

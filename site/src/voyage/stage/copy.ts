@@ -9,7 +9,7 @@
  * site/e2e/stage.spec.ts operates each one in a test named "control: <id>" and asserts what it
  * changes; site/scripts/stage-census.test.mjs fails when one here has no such test.
  */
-export const STAGE_CONTROLS = ["xray", "depth", "tank-fore", "tank-middle", "tank-aft", "dive", "speed", "lights", "log", "bell"] as const;
+export const STAGE_CONTROLS = ["xray", "depth", "speed", "tank-fore", "tank-middle", "tank-aft", "dive", "lights", "log", "bell"] as const;
 export type StageControl = (typeof STAGE_CONTROLS)[number];
 
 export type CrewName = "Captain Nemo" | "Professor Aronnax" | "Conseil" | "Ned Land";

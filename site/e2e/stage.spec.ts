@@ -184,7 +184,9 @@ test.describe("each control on the stage", () => {
   test("control: log unfolds the earlier lines", async ({ page }) => {
     await open(page);
     const fold = page.getByRole("button", { name: /^Ship's log \(/ });
-    await expect(fold).toBeDisabled();
+    // Folded until something happens: no line shows, and the welcome waits under "Ship's log (1)".
+    await expect(fold).toHaveAccessibleName(STAGE_COPY.logAll(1));
+    await expect(page.locator(".stage-log-newest [data-ouro='message']")).toHaveCount(0);
     await page.getByRole("radio", { name: "Full" }).click();
     await page.getByRole("radio", { name: "Stop" }).click();
     await expect(fold).toHaveAccessibleName(STAGE_COPY.logFold(2));
@@ -354,4 +356,102 @@ test("the fish rest while the stage is off screen", async ({ page }) => {
   await expect.poll(state).toBe("paused");
   await page.evaluate(() => window.scrollTo(0, 0));
   await expect.poll(state).toBe("running");
+});
+
+test.describe("the ballast manifold and the bell's payoffs", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+  });
+
+  /** How far up a tank's sight glass the water stands, 0 (empty) to 1 (brim), from its drawn box. */
+  const waterLevel = (page: Page, id: string) =>
+    page.locator(`[data-stage-control='tank-${id}'] .stage-gauge`).evaluate((gauge) => {
+      const glass = gauge.querySelector(".stage-gauge-face")!.getBoundingClientRect();
+      const water = gauge.querySelector(".stage-gauge-water")!.getBoundingClientRect();
+      return Math.round(Math.min(1, Math.max(0, (glass.bottom - water.top) / glass.height)) * 100) / 100;
+    });
+  const pipeFill = (page: Page) =>
+    page.locator(".stage-pipe").evaluate((pipe) => Math.round((pipe.querySelector(".stage-pipe-water")!.getBoundingClientRect().width / pipe.getBoundingClientRect().width) * 100) / 100);
+
+  test("each tank floods visibly: its glass fills, the pipe fills a third, and the crew says so", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await open(page);
+    expect(await waterLevel(page, "fore")).toBe(0);
+    expect(await pipeFill(page)).toBe(0);
+    await tank(page, FORE.name).click();
+    await expect.poll(() => waterLevel(page, "fore")).toBeGreaterThan(0.75);
+    await expect.poll(() => pipeFill(page)).toBeCloseTo(1 / 3, 1);
+    await expect(lastLog(page)).toContainText(LOG.tankFull(FORE.noun, 1).text);
+    await tank(page, MIDDLE.name).click();
+    await expect.poll(() => pipeFill(page)).toBeCloseTo(2 / 3, 1);
+    await tank(page, FORE.name).click();
+    await expect.poll(() => waterLevel(page, "fore")).toBe(0);
+    await expect(lastLog(page)).toContainText(LOG.tankEmpty(FORE.noun).text);
+  });
+
+  test("under reduced motion a flooded glass's water fades in instead of rising", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await open(page);
+    const water = page.locator("[data-stage-control='tank-aft'] .stage-gauge-water");
+    await expect(water).toHaveCSS("opacity", "0");
+    await tank(page, AFT.name).click();
+    await expect(water).toHaveCSS("opacity", "1");
+  });
+
+  test("full tanks make Dive the panel's one bright button, ringed and breathing", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await open(page);
+    const background = (locator: ReturnType<Page["locator"]>) => locator.evaluate((element) => getComputedStyle(element).backgroundColor);
+    const solid = await background(page.getByRole("link", { name: "Come aboard" }));
+    expect(await background(diveButton(page))).not.toBe(solid);
+    await fillTanks(page);
+    await expect(page.locator("[data-stage-control='dive']")).toHaveAttribute("data-ready", "");
+    await expect.poll(() => background(diveButton(page))).toBe(solid);
+    expect(await diveButton(page).evaluate((element) => element.getAnimations().map((animation) => (animation as CSSAnimation).animationName))).toContain("stage-dive-ready");
+  });
+
+  test("the bell sends sonar through the water, the creatures start, and the crew answers", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await open(page);
+    await page.getByRole("button", { name: STAGE_COPY.bell }).click();
+    await expect(scene(page)).toHaveAttribute("data-ring", "a");
+    await expect(page.getByText(`${BELL_TOASTS[0]!.name}: ${BELL_TOASTS[0]!.text}`)).toBeVisible();
+    await expect(lastLog(page)).toContainText(LOG.bell.text);
+    const names = (selector: string) => page.locator(selector).evaluateAll((elements) => elements.flatMap((element) => element.getAnimations()).map((animation) => (animation as CSSAnimation).animationName));
+    expect(await names(".stage-ripples ellipse")).toContain("stage-ripple");
+    expect(await names(".stage-band-sunlit .stage-react")).toContain("stage-startle-a");
+    await page.getByRole("button", { name: STAGE_COPY.bell }).click();
+    await expect(scene(page)).toHaveAttribute("data-ring", "b");
+    expect(await names(".stage-band-sunlit .stage-react")).toContain("stage-startle-b");
+  });
+
+  test("under reduced motion the bell's creatures flicker instead of starting", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await open(page);
+    await page.getByRole("button", { name: STAGE_COPY.bell }).click();
+    await expect(scene(page)).toHaveAttribute("data-ring", "a");
+    const names = await page.locator(".stage-band-sunlit .stage-react").evaluateAll((elements) => elements.flatMap((element) => element.getAnimations()).map((animation) => (animation as CSSAnimation).animationName));
+    expect(names).toContain("stage-startle-fade-a");
+  });
+});
+
+test("on a phone, keyboard focus on the stage always stops below the pinned porthole", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce", baseURL: test.info().project.use.baseURL! });
+  const page = await context.newPage();
+  await open(page);
+  await diveButton(page).evaluate((element) => {
+    // Dive is disabled until the tanks are full; focus the first tank's switch after it instead.
+    (element.closest(".stage-manifold")!.querySelector("[role='switch']") as HTMLElement).focus();
+  });
+  for (let step = 0; step < 4; step++) {
+    await page.keyboard.press("Shift+Tab");
+    const place = await page.evaluate(() => {
+      const focused = document.activeElement as HTMLElement;
+      if (!focused.closest("[data-stage]")) return null;
+      return { top: focused.getBoundingClientRect().top, glass: document.querySelector(".stage-window")!.getBoundingClientRect().bottom, name: focused.getAttribute("aria-label") ?? focused.textContent };
+    });
+    if (!place) break;
+    expect(place.top, `${place.name} is below the porthole`).toBeGreaterThanOrEqual(place.glass - 1);
+  }
+  await context.close();
 });

@@ -8,8 +8,8 @@
       "source": "original-svg",
       "published": "2026-10-18",
       "licence": "repository",
-      "sha256": "f67ece9a45618886f24c8c21f67486689f1927c3a70fc69ae84d86c9e9cb5a32",
-      "modifications": "None: drawn for this site from Verne's text alone, not after any film or later design: no conning tower, no fins, no riveted fish tail, no great eye-shaped window. Hull length to beam eight to one (232 by 26 feet), the platform very low and railed, the lantern on it and the steersman's small cage forward of it. Left out for clarity at this size: the long-boat and the diving planes. Colours come from the theme (stage.css).",
+      "sha256": "bcfb499c639778756eb850763aee5d3230593202894754404b3db1160748f0e0",
+      "modifications": "None: drawn for this site from Verne's text alone, not after any film or later design: no conning tower, sail or periscope, no fins, no riveted fish tail, no great eye-shaped window. Hull length to beam eight to one (232 by 26 feet), a spindle tapering to both ends; a long steel ram spur at the bow; the platform almost flush on the back; the lantern standing alone on it and the steersman's low glass just forward of it. Left out for clarity at this size: the long-boat, the platform's rail and the diving planes. Colours come from the theme (stage.css).",
       "shape": [
         {
           "feature": "hull",

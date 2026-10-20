@@ -117,12 +117,12 @@
 
   /* The hero: copy on the left, the exhibit on the right; stacked in reading order on a phone. */
   .site-hero {
-    padding-block: 2rem 4rem;
+    padding-block: 1.25rem 4rem;
   }
   .site-hero-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    gap: 2.5rem;
+    gap: 1.75rem;
   }
   .site-hero-copy {
     min-width: 0;
@@ -154,7 +154,7 @@
   }
   .site-hero-title {
     max-width: 18ch;
-    font-size: clamp(2.375rem, 4.6vw, 3.75rem);
+    font-size: clamp(2.125rem, 4.6vw, 3.75rem);
     line-height: 1.04;
   }
   .site-hero-line {
