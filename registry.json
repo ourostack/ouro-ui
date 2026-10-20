@@ -186,6 +186,8 @@
         "ourostack/ouro-ui/lib-appearance-hints",
         "ourostack/ouro-ui/lib-class-name-check",
         "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-color-scheme",
+        "ourostack/ouro-ui/lib-color-scheme-script",
         "ourostack/ouro-ui/lib-control-ref",
         "ourostack/ouro-ui/lib-current-path",
         "ourostack/ouro-ui/lib-dev",
@@ -418,6 +420,35 @@
           "path": "registry/ouro/lib/ouro/cn.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/cn.ts"
+        }
+      ]
+    },
+    {
+      "name": "lib-color-scheme",
+      "type": "registry:lib",
+      "title": "lib-color-scheme",
+      "description": "Installed with the components that import it; you don't need to add it. The helper lib/ouro/color-scheme.ts.",
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-color-scheme-script"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/color-scheme.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/color-scheme.ts"
+        }
+      ]
+    },
+    {
+      "name": "lib-color-scheme-script",
+      "type": "registry:lib",
+      "title": "lib-color-scheme-script",
+      "description": "Installed with the components that import it; you don't need to add it. The helper lib/ouro/color-scheme-script.ts.",
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/color-scheme-script.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/color-scheme-script.ts"
         }
       ]
     },
@@ -2916,6 +2947,77 @@
       ]
     },
     {
+      "name": "tab-bar",
+      "type": "registry:ui",
+      "title": "TabBar",
+      "description": "The bar of tabs at the bottom of a phone screen: two to five of the app's top-level pages, each an icon over a short label, with the current page marked `aria-current=\"page\"` and an accent wash.",
+      "docs": "The bar of tabs at the bottom of a phone screen: two to five of the app's top-level pages, each an icon over a short label, with the current page marked `aria-current=\"page\"` and an accent wash. Import: import { TabBar } from \"@/components/ouro/tab-bar/tab-bar\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: the helpers it imports in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/tab-bar.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-current-path",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-router-link",
+        "ourostack/ouro-ui/lib-use-dev-messages"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/tab-bar/tab-bar-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/tab-bar/tab-bar-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/tab-bar/tab-bar.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/tab-bar/tab-bar.tsx"
+        }
+      ]
+    },
+    {
+      "name": "route-progress",
+      "type": "registry:ui",
+      "title": "RouteProgress",
+      "description": "The thin bar across the top of the screen while the app loads the next page or submits a form, so a click that waits on the server never feels frozen: one global affordance instead of a pending state on every action.",
+      "docs": "The thin bar across the top of the screen while the app loads the next page or submits a form, so a click that waits on the server never feels frozen: one global affordance instead of a pending state on every action. Import: import { RouteProgress } from \"@/components/ouro/route-progress/route-progress\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: the helpers it imports in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/route-progress.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-use-dev-messages"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/route-progress/route-progress.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/route-progress/route-progress.tsx"
+        }
+      ]
+    },
+    {
+      "name": "color-scheme-toggle",
+      "type": "registry:ui",
+      "title": "ColorSchemeToggle",
+      "description": "The control that switches the app between light, dark and the system's scheme, and keeps the choice.",
+      "docs": "The control that switches the app between light, dark and the system's scheme, and keeps the choice. Import: import { ColorSchemeToggle } from \"@/components/ouro/color-scheme-toggle/color-scheme-toggle\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, kbd, menu, segmented-control, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/color-scheme-toggle.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-color-scheme",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-use-dev-messages",
+        "ourostack/ouro-ui/menu",
+        "ourostack/ouro-ui/segmented-control"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/color-scheme-toggle/color-scheme-toggle.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/color-scheme-toggle/color-scheme-toggle.tsx"
+        }
+      ]
+    },
+    {
       "name": "lib-announce-tests",
       "type": "registry:item",
       "title": "lib-announce tests",
@@ -3008,6 +3110,57 @@
           "path": "registry/ouro/lib/ouro/cn.test.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/cn.test.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "lib-color-scheme-script-tests",
+      "type": "registry:item",
+      "title": "lib-color-scheme-script tests",
+      "description": "Optional: the Vitest browser tests for lib-color-scheme-script, and the tests of everything lib-color-scheme-script installs, so the installed files reach 100% coverage. Add it beside lib-color-scheme-script: add lib-color-scheme-script lib-color-scheme-script-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "devDependencies": [
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-color-scheme-script",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/color-scheme-script.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/color-scheme-script.test.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "lib-color-scheme-tests",
+      "type": "registry:item",
+      "title": "lib-color-scheme tests",
+      "description": "Optional: the Vitest browser tests for lib-color-scheme, and the tests of everything lib-color-scheme installs, so the installed files reach 100% coverage. Add it beside lib-color-scheme: add lib-color-scheme lib-color-scheme-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "devDependencies": [
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-color-scheme",
+        "ourostack/ouro-ui/lib-color-scheme-script-tests",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/color-scheme.test.tsx",
+          "type": "registry:lib",
+          "target": "@lib/ouro/color-scheme.test.tsx"
         }
       ],
       "meta": {
@@ -8211,6 +8364,193 @@
       }
     },
     {
+      "name": "tab-bar-tests",
+      "type": "registry:item",
+      "title": "TabBar tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for tab-bar, and the tests of everything tab-bar installs, so the installed files reach 100% coverage. Add it beside tab-bar: add tab-bar tab-bar-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "tab-bar's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-current-path-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-ouro-provider",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/tab-bar",
+        "ourostack/ouro-ui/text",
+        "ourostack/ouro-ui/text-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/tab-bar/tab-bar.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/tab-bar/tab-bar.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/tab-bar/tab-bar.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/tab-bar/tab-bar.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/tab-bar/tab-bar.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/tab-bar/tab-bar.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/tab-bar/tab-bar.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/tab-bar.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/tab-bar.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "route-progress-tests",
+      "type": "registry:item",
+      "title": "RouteProgress tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for route-progress, and the tests of everything route-progress installs, so the installed files reach 100% coverage. Add it beside route-progress: add route-progress route-progress-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "route-progress's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/field-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-control-ref-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/route-progress",
+        "ourostack/ouro-ui/switch",
+        "ourostack/ouro-ui/switch-tests",
+        "ourostack/ouro-ui/text",
+        "ourostack/ouro-ui/text-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/route-progress/route-progress.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/route-progress/route-progress.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/route-progress/route-progress.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/route-progress/route-progress.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/route-progress/route-progress.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/route-progress/route-progress.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/route-progress.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/route-progress.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "color-scheme-toggle-tests",
+      "type": "registry:item",
+      "title": "ColorSchemeToggle tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for color-scheme-toggle, and the tests of everything color-scheme-toggle installs, so the installed files reach 100% coverage. Add it beside color-scheme-toggle: add color-scheme-toggle color-scheme-toggle-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "color-scheme-toggle's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/color-scheme-toggle",
+        "ourostack/ouro-ui/kbd-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-color-scheme",
+        "ourostack/ouro-ui/lib-color-scheme-script",
+        "ourostack/ouro-ui/lib-color-scheme-script-tests",
+        "ourostack/ouro-ui/lib-color-scheme-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-floating-tests",
+        "ourostack/ouro-ui/lib-key-shortcuts-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
+        "ourostack/ouro-ui/menu-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/segmented-control-tests",
+        "ourostack/ouro-ui/text",
+        "ourostack/ouro-ui/text-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/color-scheme-toggle/color-scheme-toggle.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/color-scheme-toggle/color-scheme-toggle.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/color-scheme-toggle/color-scheme-toggle.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/color-scheme-toggle/color-scheme-toggle.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/color-scheme-toggle/color-scheme-toggle.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/color-scheme-toggle/color-scheme-toggle.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/color-scheme-toggle/color-scheme-toggle.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/color-scheme-toggle/color-scheme-toggle.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/color-scheme-toggle.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/color-scheme-toggle.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
       "name": "ouro-lib-tests",
       "type": "registry:item",
       "title": "Ouro lib tests",
@@ -8221,6 +8561,8 @@
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-color-scheme-script-tests",
+        "ourostack/ouro-ui/lib-color-scheme-tests",
         "ourostack/ouro-ui/lib-control-ref-tests",
         "ourostack/ouro-ui/lib-current-path-tests",
         "ourostack/ouro-ui/lib-dev-tests",
@@ -8266,6 +8608,7 @@
         "ourostack/ouro-ui/checklist-tests",
         "ourostack/ouro-ui/collapsible-tests",
         "ourostack/ouro-ui/color-field-tests",
+        "ourostack/ouro-ui/color-scheme-toggle-tests",
         "ourostack/ouro-ui/combobox-tests",
         "ourostack/ouro-ui/command-tests",
         "ourostack/ouro-ui/confirm-dialog-tests",
@@ -8288,6 +8631,8 @@
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-color-scheme-script-tests",
+        "ourostack/ouro-ui/lib-color-scheme-tests",
         "ourostack/ouro-ui/lib-control-ref-tests",
         "ourostack/ouro-ui/lib-current-path-tests",
         "ourostack/ouro-ui/lib-dev-tests",
@@ -8319,6 +8664,7 @@
         "ourostack/ouro-ui/radio-group-tests",
         "ourostack/ouro-ui/reorderable-tests",
         "ourostack/ouro-ui/resizable-tests",
+        "ourostack/ouro-ui/route-progress-tests",
         "ourostack/ouro-ui/row-tests",
         "ourostack/ouro-ui/scroll-area-tests",
         "ourostack/ouro-ui/segmented-control-tests",
@@ -8336,6 +8682,7 @@
         "ourostack/ouro-ui/stacked-layout-tests",
         "ourostack/ouro-ui/swipe-actions-tests",
         "ourostack/ouro-ui/switch-tests",
+        "ourostack/ouro-ui/tab-bar-tests",
         "ourostack/ouro-ui/table-tests",
         "ourostack/ouro-ui/tabs-tests",
         "ourostack/ouro-ui/text-area-tests",

@@ -1,0 +1,10 @@
+{
+  "order": 2110,
+  "components": ["tab-bar"],
+  "controls": {
+    "tab-bar": [
+      {"part": "tab", "role": "link", "portal": false},
+      {"part": "accessory", "role": "link", "portal": false}
+    ]
+  }
+}

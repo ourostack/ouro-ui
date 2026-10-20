@@ -10,6 +10,7 @@ export const storyIds = {
   checkbox: "forms-checkbox--playground",
   checklist: "lists-checklist--in-context",
   dialog: "overlays-dialog--playground",
+  routeProgress: "feedback-routeprogress--in-context",
   select: "forms-select--playground",
   toast: "feedback-toast--playground",
 } as const;

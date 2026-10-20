@@ -363,5 +363,37 @@
     "tests": [
       "registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > fades in when it opens, and appears at once with reduced motion"
     ]
+  },
+  {
+    "item": "route-progress",
+    "stem": "route-progress",
+    "state": "data-open",
+    "kind": "motion",
+    "part": "bar",
+    "properties": [
+      "opacity"
+    ],
+    "reduced": [
+      "opacity"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/route-progress/route-progress.test.tsx::RouteProgress > fades in when a navigation starts and out when it ends, faster with reduced motion"
+    ]
+  },
+  {
+    "item": "route-progress",
+    "stem": "route-progress",
+    "state": "data-closed",
+    "kind": "motion",
+    "part": "bar",
+    "properties": [
+      "opacity"
+    ],
+    "reduced": [
+      "opacity"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/route-progress/route-progress.test.tsx::RouteProgress > fades in when a navigation starts and out when it ends, faster with reduced motion"
+    ]
   }
 ]

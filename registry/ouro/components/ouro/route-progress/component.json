@@ -1,0 +1,24 @@
+{
+  "order": 2120,
+  "components": ["route-progress"],
+  "motion": {
+    "route-progress": {
+      "states": {
+        "data-open": {
+          "kind": "motion",
+          "parts": {
+            "bar": {"properties": ["opacity"], "reduced": ["opacity"]}
+          },
+          "tests": ["registry/ouro/components/ouro/route-progress/route-progress.test.tsx::RouteProgress > fades in when a navigation starts and out when it ends, faster with reduced motion"]
+        },
+        "data-closed": {
+          "kind": "motion",
+          "parts": {
+            "bar": {"properties": ["opacity"], "reduced": ["opacity"]}
+          },
+          "tests": ["registry/ouro/components/ouro/route-progress/route-progress.test.tsx::RouteProgress > fades in when a navigation starts and out when it ends, faster with reduced motion"]
+        }
+      }
+    }
+  }
+}

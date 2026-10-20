@@ -1,0 +1,1 @@
+- New: `RouteProgress`, the thin bar across the top of the screen while the app loads the next page or submits a form; screen readers hear "Loading" once as it starts.
