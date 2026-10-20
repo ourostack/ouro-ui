@@ -11,6 +11,7 @@ export const storyIds = {
   checklist: "lists-checklist--in-context",
   dialog: "overlays-dialog--playground",
   select: "forms-select--playground",
+  syncStatus: "feedback-syncstatus--in-context",
   toast: "feedback-toast--playground",
 } as const;
 

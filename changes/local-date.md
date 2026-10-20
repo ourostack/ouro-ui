@@ -1,0 +1,1 @@
+- New: `LocalDate`, a date or time in the reader's own time zone and language, in a `<time>` with the exact instant; the server writes the UTC date and the browser the local one, without a hydration mismatch.

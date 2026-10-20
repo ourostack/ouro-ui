@@ -70,6 +70,27 @@
     "markdown": "docs/guides/why-no-skill.md"
   },
   {
+    "name": "can-share",
+    "title": "canShare",
+    "kind": "export",
+    "group": "Actions",
+    "markdown": "docs/canShare.md"
+  },
+  {
+    "name": "copy-text",
+    "title": "copyText",
+    "kind": "export",
+    "group": "Actions",
+    "markdown": "docs/copyText.md"
+  },
+  {
+    "name": "share",
+    "title": "share",
+    "kind": "export",
+    "group": "Actions",
+    "markdown": "docs/share.md"
+  },
+  {
     "name": "radio",
     "title": "Radio",
     "kind": "export",
@@ -138,6 +159,13 @@
     "kind": "export",
     "group": "Feedback",
     "markdown": "docs/toast.md"
+  },
+  {
+    "name": "use-install-prompt",
+    "title": "useInstallPrompt",
+    "kind": "export",
+    "group": "Feedback",
+    "markdown": "docs/useInstallPrompt.md"
   },
   {
     "name": "avatar-group",

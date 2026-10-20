@@ -1,0 +1,125 @@
+"use client";
+
+import { useSyncExternalStore, type JSX, type Ref, type TimeHTMLAttributes } from "react";
+import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
+import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
+import { dateFormats, toDate } from "@/registry/ouro/components/ouro/local-date/local-date-styles";
+
+/** The props RelativeTime adds to the `<time>` attributes it passes through. */
+export interface RelativeTimeOwnProps {
+  /** The instant: a `Date`, an ISO string or a timestamp in milliseconds. */
+  value: Date | string | number;
+  /** The language and region to write it in. @default the reader's */
+  locale?: Intl.LocalesArgument | undefined;
+  /** `auto` says "yesterday" and "now"; `always` says "1 day ago" and "in 0 seconds". @default "auto" */
+  numeric?: "auto" | "always" | (string & { 'Use "auto" or "always"': never }) | undefined;
+  /** Layout only. Appearance classes warn in development. */
+  className?: string | undefined;
+  ref?: Ref<HTMLTimeElement> | undefined;
+
+  /** Not a prop. The instant is `value`: `<RelativeTime value={comment.createdAt} />`. */
+  date?: { 'Use value={date}': never };
+  /** Not a prop. The time updates itself; nothing to pass. */
+  now?: { 'RelativeTime keeps itself current; remove now': never };
+}
+
+/** Props for {@link RelativeTime}: its own props and the `<time>` attributes it passes through. */
+export type RelativeTimeProps = Omit<TimeHTMLAttributes<HTMLTimeElement>, keyof RelativeTimeOwnProps> & RelativeTimeOwnProps;
+
+const units: [Intl.RelativeTimeFormatUnit, number][] = [
+  ["year", 365 * 24 * 3600],
+  ["month", 30 * 24 * 3600],
+  ["week", 7 * 24 * 3600],
+  ["day", 24 * 3600],
+  ["hour", 3600],
+  ["minute", 60],
+  ["second", 1],
+];
+
+// One clock for every RelativeTime on the page, moved on every 30 seconds while any shows.
+let now = 0;
+const listeners = new Set<() => void>();
+let interval: ReturnType<typeof setInterval> | undefined;
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener);
+  now = Date.now();
+  interval ??= setInterval(() => {
+    now = Date.now();
+    for (const each of [...listeners]) each();
+  }, 30_000);
+  return () => {
+    listeners.delete(listener);
+    if (listeners.size > 0) return;
+    clearInterval(interval);
+    interval = undefined;
+  };
+}
+const readNow = () => now;
+const serverNow = () => 0;
+
+/** "3 days ago", "in 5 minutes", "now": the largest whole unit, rounded. */
+function relative(date: Date, at: number, locale: Intl.LocalesArgument, numeric: "auto" | "always"): string {
+  const seconds = (date.getTime() - at) / 1000;
+  const [unit, size] = units.find(([, length]) => Math.abs(seconds) >= length) ?? ["second", 1];
+  const amount = unit === "second" && Math.abs(seconds) < 45 ? 0 : Math.round(seconds / size);
+  return new Intl.RelativeTimeFormat(locale, { numeric }).format(amount, unit);
+}
+
+/**
+ * How long ago (or how soon) something happens, in the reader's language: "3 days ago",
+ * "yesterday", "in 5 minutes", "now", kept current while it shows. It is a `<time>` with the
+ * exact instant, and its `title` gives the full local date and time. The server writes the UTC
+ * date and hydration repeats it, so the markup matches; the browser then shows the relative time.
+ *
+ * Use `LocalDate` instead where the date itself matters, such as a due date.
+ *
+ * @group Text
+ * @see https://ourostack.github.io/ouro-ui/docs/relative-time
+ *
+ * @example
+ * <RelativeTime value={comment.createdAt} />
+ */
+export function RelativeTime(props: RelativeTimeProps): JSX.Element {
+  const {
+    value,
+    locale,
+    numeric: numericProp = "auto",
+    className,
+    title,
+    // Guard props (hint types), dropped here so they never reach the DOM.
+    date: dateProp,
+    now: nowProp,
+    ...rest
+  } = props;
+  const numeric = numericProp === "always" ? "always" : "auto";
+  const date = toDate(value);
+  useAppearanceClassNameCheck(
+    "RelativeTime",
+    className,
+    process.env.NODE_ENV !== "production"
+      ? (token: string) => `remove "${token}"; style the text around it instead`
+      : /* istanbul ignore next @preserve -- production only */ "",
+  );
+  useDevWarnings(
+    "RelativeTime",
+    process.env.NODE_ENV !== "production"
+      ? () => [
+          numeric !== numericProp && [`numeric="${String(numericProp)}" is not an option; use "auto" or "always"`, '<RelativeTime numeric="always" />'],
+          date === null && [`value={${JSON.stringify(value)}} is not a date`, "<RelativeTime value={new Date()} />"],
+          dateProp !== undefined && ["date is not a prop", "<RelativeTime value={date} />"],
+          nowProp !== undefined && ["now is not a prop; RelativeTime keeps itself current", "<RelativeTime value={date} />"],
+        ]
+      : /* istanbul ignore next @preserve -- production only */ undefined,
+  );
+  const at = useSyncExternalStore(subscribe, readNow, serverNow);
+  const hydrated = at !== 0;
+  let text = "";
+  if (date) text = hydrated ? relative(date, at, locale, numeric) : new Intl.DateTimeFormat(locale, { ...dateFormats.date, timeZone: "UTC" }).format(date);
+  const full = date && hydrated ? new Intl.DateTimeFormat(locale, dateFormats.datetime).format(date) : undefined;
+  return (
+    <time {...rest} data-ouro="relative-time" dateTime={date?.toISOString()} title={title ?? full} className={cn(className)}>
+      {text}
+    </time>
+  );
+}

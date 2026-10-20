@@ -24,6 +24,17 @@
     "source": "registry/ouro/components/ouro/button-group/button-group.tsx"
   },
   {
+    "name": "share-button",
+    "title": "ShareButton",
+    "group": "Actions",
+    "source": "registry/ouro/components/ouro/share-button/share-button.tsx",
+    "functions": [
+      "canShare",
+      "copyText",
+      "share"
+    ]
+  },
+  {
     "name": "text",
     "title": "Text",
     "group": "Text",
@@ -46,6 +57,18 @@
     "title": "Kbd",
     "group": "Text",
     "source": "registry/ouro/components/ouro/kbd/kbd.tsx"
+  },
+  {
+    "name": "local-date",
+    "title": "LocalDate",
+    "group": "Text",
+    "source": "registry/ouro/components/ouro/local-date/local-date.tsx"
+  },
+  {
+    "name": "relative-time",
+    "title": "RelativeTime",
+    "group": "Text",
+    "source": "registry/ouro/components/ouro/relative-time/relative-time.tsx"
   },
   {
     "name": "field",
@@ -240,6 +263,21 @@
     "title": "Progress",
     "group": "Feedback",
     "source": "registry/ouro/components/ouro/progress/progress.tsx"
+  },
+  {
+    "name": "sync-status",
+    "title": "SyncStatus",
+    "group": "Feedback",
+    "source": "registry/ouro/components/ouro/sync-status/sync-status.tsx"
+  },
+  {
+    "name": "install-prompt",
+    "title": "InstallPrompt",
+    "group": "Feedback",
+    "source": "registry/ouro/components/ouro/install-prompt/install-prompt.tsx",
+    "functions": [
+      "useInstallPrompt"
+    ]
   },
   {
     "name": "skeleton",

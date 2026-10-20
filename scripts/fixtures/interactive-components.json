@@ -53,5 +53,8 @@
   "chart",
   "message-list",
   "attachment",
-  "inspector"
+  "inspector",
+  "share-button",
+  "sync-status",
+  "install-prompt"
 ]
