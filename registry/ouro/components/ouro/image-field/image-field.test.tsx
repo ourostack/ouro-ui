@@ -41,12 +41,18 @@ async function render(node: ReactNode) {
   };
 }
 
-/** Chooses files as the system picker would: they land in the input, which then changes. */
+/**
+ * Chooses files as the system picker would: they land in the input, which then changes. Waits a
+ * frame inside `act`, because a turned-away file's message shows on the next frame.
+ */
 async function pick(input: HTMLInputElement, ...files: File[]) {
   const data = new DataTransfer();
   for (const file of files) data.items.add(file);
   input.files = data.files;
-  await act(async () => void input.dispatchEvent(new Event("change", { bubbles: true })));
+  await act(async () => {
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+  });
 }
 
 let warn: ReturnType<typeof vi.spyOn>;
