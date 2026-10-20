@@ -2,7 +2,7 @@
 
 # chime
 
-Plays a short alert, three soft tones, for something that just finished: a timer at zero. It resolves `true` once the tones are scheduled and `false` when the browser has no Web Audio or keeps the page silent (no interaction yet), so the caller can rely on what shows on screen instead. It never throws. Pair it with `buzz()` for phones on silent.
+Plays a short alert, three soft tones, for something that just finished: a timer at zero. It resolves `true` once the tones are scheduled and `false` when the browser has no Web Audio or keeps the page silent (no interaction yet), so the caller can rely on what shows on screen instead. It settles within about 300 ms even when the browser never lets sound start, and a context it made for itself is always closed. It never throws. Pair it with `buzz()` for phones on silent.
 
 ```tsx
 import { chime } from "@/registry/ouro/lib/ouro/feedback";

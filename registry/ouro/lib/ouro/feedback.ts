@@ -22,10 +22,24 @@ const TONE_SECONDS = 0.18;
 const GAP_SECONDS = 0.12;
 const TONES = 3;
 const PATTERN: readonly number[] = [200, 100, 200, 100, 400];
+/** How long a suspended context gets to resume: a browser that keeps the page silent may never settle it. */
+const RESUME_MS = 300;
 
 function constructor(): AudioContextConstructor | null {
   const scope = globalThis as unknown as { AudioContext?: AudioContextConstructor; webkitAudioContext?: AudioContextConstructor };
   return scope.AudioContext ?? scope.webkitAudioContext ?? null;
+}
+
+/** Asks a suspended context to resume, giving up after {@link RESUME_MS}; the caller reads its state after. */
+async function resumeWithin(audio: AudioContext): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  await Promise.race([
+    audio.resume().catch(() => undefined),
+    new Promise<void>((settle) => {
+      timer = setTimeout(settle, RESUME_MS);
+    }),
+  ]);
+  clearTimeout(timer);
 }
 
 /**
@@ -57,7 +71,9 @@ function createChimeContext(): AudioContext | null {
  * Plays a short alert, three soft tones, for something that just finished: a timer at zero.
  * It resolves `true` once the tones are scheduled and `false` when the browser has no Web
  * Audio or keeps the page silent (no interaction yet), so the caller can rely on what shows
- * on screen instead. It never throws. Pair it with `buzz()` for phones on silent.
+ * on screen instead. It settles within about 300 ms even when the browser never lets sound
+ * start, and a context it made for itself is always closed. It never throws. Pair it with
+ * `buzz()` for phones on silent.
  *
  * Use `toast()` instead to tell the person something in words; a chime only draws their
  * attention back to the screen.
@@ -77,7 +93,8 @@ async function chime({ context }: ChimeOptions = {}): Promise<boolean> {
     if (own) void audio.close().catch(() => undefined);
   };
   try {
-    if (audio.state === "suspended") await audio.resume();
+    if (audio.state === "suspended") await resumeWithin(audio);
+    // Still not running after the wait: stay silent now rather than play late.
     if (audio.state !== "running") {
       done();
       return false;

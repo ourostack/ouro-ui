@@ -6,14 +6,17 @@ const scope = globalThis as unknown as Scope;
 const real = { AudioContext: scope.AudioContext, webkitAudioContext: scope.webkitAudioContext };
 
 /** A stand-in AudioContext that records the tones it is asked for. */
-function fakeContext(state: AudioContextState = "running", { resumesTo = "running" as AudioContextState, failOn = "" } = {}) {
+function fakeContext(state: AudioContextState = "running", { resumesTo = "running" as AudioContextState, failOn = "", resumeAfter = 0 } = {}) {
   const tones: { frequency: number; start: number; stop: number; oscillator: { onended: (() => void) | null } }[] = [];
   const context = {
     state,
     currentTime: 2,
     destination: {},
     closed: 0,
+    // A browser that keeps the page silent may leave resume() pending; Infinity never settles.
     resume: vi.fn(async () => {
+      if (resumeAfter === Infinity) return new Promise<void>(() => {});
+      if (resumeAfter > 0) await new Promise((settle) => setTimeout(settle, resumeAfter));
       context.state = resumesTo;
     }),
     close: vi.fn(async () => {
@@ -107,6 +110,57 @@ describe("chime", () => {
     expect(await chime({ context })).toBe(false);
     expect(tones).toHaveLength(0);
     expect(context.close).not.toHaveBeenCalled();
+  });
+
+  it("resolves false soon when the browser never settles resume, and plays nothing when it settles late", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      const never = fakeContext("suspended", { resumeAfter: Infinity });
+      const pending = chime({ context: never.context });
+      await vi.advanceTimersByTimeAsync(300);
+      expect(await pending).toBe(false);
+      expect(never.context.close).not.toHaveBeenCalled();
+      const late = fakeContext("suspended", { resumeAfter: 1000 });
+      const playing = chime({ context: late.context });
+      await vi.advanceTimersByTimeAsync(300);
+      expect(await playing).toBe(false);
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(late.context.state).toBe("running");
+      expect(late.tones).toHaveLength(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("closes a context it made for itself when the browser never settles resume", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      let last: ReturnType<typeof fakeContext> | undefined;
+      useConstructor(function () {
+        last = fakeContext("suspended", { resumeAfter: Infinity });
+        return last.context;
+      });
+      const pending = chime();
+      await vi.advanceTimersByTimeAsync(300);
+      expect(await pending).toBe(false);
+      expect(last!.context.close).toHaveBeenCalledOnce();
+      expect(last!.tones).toHaveLength(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("resolves false, and closes its own context, when resume is refused", async () => {
+    let last: ReturnType<typeof fakeContext> | undefined;
+    useConstructor(function () {
+      last = fakeContext("suspended");
+      last.context.resume = vi.fn(async () => {
+        throw new Error("not allowed");
+      });
+      return last.context;
+    });
+    expect(await chime()).toBe(false);
+    expect(last!.context.close).toHaveBeenCalledOnce();
   });
 
   it("resolves false, without throwing, when Web Audio fails", async () => {
