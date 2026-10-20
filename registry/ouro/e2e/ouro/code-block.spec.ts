@@ -16,6 +16,8 @@ test("a code block shows its caption and copies its code", async ({ page, browse
   const blocks = page.getByRole("figure");
   await expect(blocks).toHaveCount(2);
   await expect(blocks.nth(1).locator("figcaption")).toHaveText("vite.config.ts");
+  // The caption names the figure; the copy button beside it does not.
+  await expect(page.getByRole("figure", { name: "vite.config.ts", exact: true })).toBeVisible();
   await blocks.first().getByRole("button", { name: "Copy code" }).click();
   await expect(blocks.first().getByRole("button", { name: "Copied" })).toBeVisible();
   const copied =

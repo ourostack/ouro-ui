@@ -31,7 +31,7 @@ Type: `CodeBlockProps`.
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: margins, width, a maximum height that scrolls (`max-h-80`). Appearance classes warn in development. |
 | `code` (required) | `string` |  | The code, as plain text. It shows exactly as given, whitespace and all, and is what the copy button copies. |
-| `copy` | `boolean` | `true` | The copy button in the caption. Turn it off for code nobody should paste, such as output. |
+| `copy` | `boolean` | `true` | The copy button in the bar above the code. Turn it off for code nobody should paste, such as output. |
 | `copyLabel` | `string` | `"Copy code"` | The copy button's name for screen readers. |
 | `language` | `string` |  | The language, shown in the block's caption when there is no `title` and set as `data-language` on the block for a highlighter of your own: `language="bash"`. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |

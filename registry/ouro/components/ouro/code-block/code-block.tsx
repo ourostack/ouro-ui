@@ -18,7 +18,7 @@ export interface CodeBlockOwnProps {
   /** A caption above the code, such as its file name: `title="vite.config.ts"`. */
   title?: ReactNode;
   /**
-   * The copy button in the caption. Turn it off for code nobody should paste, such as
+   * The copy button in the bar above the code. Turn it off for code nobody should paste, such as
    * output. @default true
    */
   copy?: boolean | undefined;
@@ -126,6 +126,9 @@ export function CodeBlock(props: CodeBlockProps): JSX.Element {
   );
   const scrollable = useScrollableCode();
   const caption = title ?? language;
+  const bar = caption != null || copy;
+  // The caption and the copy button share the bar above the code as siblings in the grid: a
+  // <figcaption> names the figure, so the button stays out of it.
   return (
     <figure
       {...rest}
@@ -133,25 +136,38 @@ export function CodeBlock(props: CodeBlockProps): JSX.Element {
       data-ouro="code-block"
       data-language={language}
       className={cn(
-        "[@layer_ouro-reset]:m-0 flex min-w-0 flex-col overflow-hidden rounded-lg border border-solid border-border bg-muted text-foreground",
+        "[@layer_ouro-reset]:m-0 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] overflow-hidden rounded-lg border border-solid border-border bg-muted text-foreground",
+        bar ? "grid-rows-[minmax(calc(var(--spacing)*11),auto)_minmax(0,1fr)]" : "grid-rows-[minmax(0,1fr)]",
         className,
       )}
     >
-      {caption != null || copy ? (
+      {caption != null ? (
         <figcaption
           data-slot="caption"
-          className="flex min-h-11 items-center gap-2 border-0 border-b border-solid border-border ps-4 pe-1.5 text-xs leading-5 font-medium text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]"
+          className="col-start-1 row-start-1 flex min-w-0 items-center ps-4 pe-2 text-xs leading-5 font-medium text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]"
         >
-          <span className="min-w-0 flex-1 truncate">{caption}</span>
-          {copy ? <CopyButton data-ouro-control="code-block" data-ouro-part="copy" value={code} label={copyLabel} hideLabel variant="plain" size="sm" /> : null}
+          <span className="min-w-0 truncate">{caption}</span>
         </figcaption>
+      ) : null}
+      {copy ? (
+        <CopyButton
+          data-ouro-control="code-block"
+          data-ouro-part="copy"
+          value={code}
+          label={copyLabel}
+          hideLabel
+          variant="plain"
+          size="sm"
+          className="col-start-2 row-start-1 self-center me-1.5"
+        />
       ) : null}
       <pre
         ref={scrollable}
         data-ouro-control="code-block"
         data-ouro-part="code"
         className={cn(
-          "m-0 min-h-0 flex-1 overflow-auto p-4 font-mono text-sm leading-6 outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid",
+          "col-span-2 m-0 min-h-0 overflow-auto p-4 font-mono text-sm leading-6 outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid",
+          bar && "row-start-2 border-0 border-t border-solid border-border",
           wrap ? "whitespace-pre-wrap break-words" : "whitespace-pre",
         )}
       >

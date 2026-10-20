@@ -87,13 +87,31 @@ describe("CodeBlock", () => {
     expect(block.getAttribute("data-language")).toBe("ts");
   });
 
+  it("is a figure named by its caption alone, never by its copy button", async () => {
+    const { host } = await render(
+      <>
+        <CodeBlock title="vite.config.ts" code="export default {};" />
+        <CodeBlock language="bash" code="npm test" />
+        <CodeBlock code="ok" />
+      </>,
+    );
+    const figures = page.getByRole("figure");
+    await expect.element(figures.nth(0)).toHaveAccessibleName("vite.config.ts");
+    await expect.element(figures.nth(1)).toHaveAccessibleName("bash");
+    await expect.element(figures.nth(2)).toHaveAccessibleName("");
+    for (const caption of host.querySelectorAll("figcaption")) expect(caption.querySelector("button")).toBeNull();
+    // The figure's own name stands when the app gives one.
+    await act(async () => roots.at(-1)!.render(<CodeBlock title="vite.config.ts" code="x" aria-label="Vite config" />));
+    await expect.element(page.getByRole("figure")).toHaveAccessibleName("Vite config");
+  });
+
   it("has no caption when it has no title, no language and no copy button", async () => {
     const { caption, block } = await render(<CodeBlock code="ok" copy={false} />);
     expect(caption).toBeNull();
     expect(block.hasAttribute("data-language")).toBe(false);
   });
 
-  it("keeps a caption for the copy button alone, and shows no copy button with copy={false}", async () => {
+  it("shows the copy button in the bar above the code without a caption, and no copy button with copy={false}", async () => {
     const { host } = await render(
       <>
         <CodeBlock code="a" />
@@ -101,7 +119,12 @@ describe("CodeBlock", () => {
       </>,
     );
     const [first, second] = host.querySelectorAll('[data-ouro="code-block"]');
-    expect(first!.querySelector("figcaption")!.textContent).toBe("");
+    expect(first!.querySelector("figcaption")).toBeNull();
+    const button = first!.querySelector("button")!.getBoundingClientRect();
+    const code = first!.querySelector("pre")!.getBoundingClientRect();
+    expect(button.bottom).toBeLessThanOrEqual(code.top);
+    expect(code.top - first!.getBoundingClientRect().top).toBeGreaterThanOrEqual(44);
+    expect(second!.querySelector("figcaption")!.textContent).toBe("txt");
     expect(first!.querySelector('[data-ouro-control="code-block"][data-ouro-part="copy"]')).not.toBeNull();
     expect(second!.querySelector("button")).toBeNull();
   });
