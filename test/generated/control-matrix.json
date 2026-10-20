@@ -2101,5 +2101,103 @@
       "TimerTray/Playground",
       "TimerTray/InContext"
     ]
+  },
+  {
+    "item": "choice-card",
+    "stem": "choice-card",
+    "mode": "default",
+    "part": "input",
+    "role": "radio",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "ChoiceCard/Playground",
+      "ChoiceCard/InContext",
+      "ChoiceCard/Invalid"
+    ]
+  },
+  {
+    "item": "image-cropper",
+    "stem": "image-cropper",
+    "mode": "default",
+    "part": "area",
+    "role": "application",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "ImageCropper/Playground",
+      "ImageCropper/InContext",
+      "ImageCropper/Wide"
+    ]
+  },
+  {
+    "item": "image-cropper",
+    "stem": "image-cropper",
+    "mode": "default",
+    "part": "cancel",
+    "role": "button",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "ImageCropper/Playground",
+      "ImageCropper/InContext",
+      "ImageCropper/Wide"
+    ]
+  },
+  {
+    "item": "image-cropper",
+    "stem": "image-cropper",
+    "mode": "default",
+    "part": "save",
+    "role": "button",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "ImageCropper/Playground",
+      "ImageCropper/InContext",
+      "ImageCropper/Wide"
+    ]
+  },
+  {
+    "item": "image-field",
+    "stem": "image-field",
+    "mode": "default",
+    "part": "input",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "ImageField/Playground",
+      "ImageField/InContext",
+      "ImageField/Invalid"
+    ]
+  },
+  {
+    "item": "image-field",
+    "stem": "image-field",
+    "mode": "default",
+    "part": "choose",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "ImageField/Playground",
+      "ImageField/InContext",
+      "ImageField/Invalid"
+    ]
+  },
+  {
+    "item": "image-field",
+    "stem": "image-field",
+    "mode": "default",
+    "part": "remove",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "ImageField/Playground",
+      "ImageField/InContext",
+      "ImageField/Invalid"
+    ]
   }
 ]

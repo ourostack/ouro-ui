@@ -47,11 +47,11 @@ function editCheckbox(dir, edit) {
 /** The checkbox's `data-checked` state in a manifest. */
 const checked = (manifest) => manifest.motion.checkbox.states["data-checked"];
 
-test("Checkbox declares today's motion, part by part, and only Checklist, Inspector, TabBar, RouteProgress and Celebrate besides it declare any yet", () => {
+test("Checkbox declares today's motion, part by part, and only Checklist, Inspector, TabBar, RouteProgress, Celebrate and ChoiceCard besides it declare any yet", () => {
   const motion = readMotion(root);
   assert.deepEqual(
     motion.map((entry) => entry.stem),
-    ["checkbox", "checklist", "inspector", "tab-bar", "route-progress", "celebrate"],
+    ["checkbox", "checklist", "inspector", "tab-bar", "route-progress", "celebrate", "choice-card"],
   );
   const { states } = motion[0].motion;
   assert.deepEqual(Object.keys(states), ["data-checked", "data-unchecked", "data-indeterminate", "data-disabled", "data-invalid", "data-readonly"]);
@@ -182,6 +182,9 @@ test("the motion matrix is plain data a browser test can import, one row per ste
       "route-progress data-closed bar",
       "celebrate data-open piece",
       "celebrate data-open message",
+      "choice-card data-checked card",
+      "choice-card data-invalid card",
+      "choice-card data-disabled -",
     ],
   );
 });

@@ -209,6 +209,27 @@
     "summary": "A labeled date field."
   },
   {
+    "name": "choice-card",
+    "title": "ChoiceCard",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/choice-card/choice-card.tsx",
+    "summary": "A set of choices shown as cards, each with a picture, a label and a line of description, for picking exactly one: a cover photo, a plan, a layout."
+  },
+  {
+    "name": "image-cropper",
+    "title": "ImageCropper",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/image-cropper/image-cropper.tsx",
+    "summary": "A dialog for cropping a photo to a shape before it is used: drag the photo (or move it the way the arrow keys point) to choose what shows in the frame, zoom with the slider (or Plus and Minus), and Save hands the cropped image to `onCrop` as a `File`, ready for a form or an upload."
+  },
+  {
+    "name": "image-field",
+    "title": "ImageField",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/image-field/image-field.tsx",
+    "summary": "A field for one photo, shown large: the photo already saved (`src`) or the one just chosen, with Choose photo (Change photo once one shows) and Remove."
+  },
+  {
     "name": "sheet",
     "title": "Sheet",
     "group": "Overlays",

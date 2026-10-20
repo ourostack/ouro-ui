@@ -60,5 +60,8 @@
   "copy-button",
   "code-block",
   "timer",
-  "timer-tray"
+  "timer-tray",
+  "choice-card",
+  "image-cropper",
+  "image-field"
 ]
