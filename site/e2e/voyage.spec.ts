@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import { pressTab } from "../../registry/ouro/e2e/ouro/story";
 import { PRESET_NAMES, THEME_KEY } from "../src/themes/prepaint";
+import { LOG, STAGE_COPY, TANKS } from "../src/voyage/stage/copy";
 
 // The voyage preview against the production build (site-design.md, "Verification in CI"): the
 // stored theme paints before any JavaScript, every preset passes axe in light and dark, the page
@@ -130,7 +131,10 @@ test("keeps every control's boundary under forced colours", async ({ page }) => 
   await page.setViewportSize({ width: 1440, height: 900 });
   await open(page);
   // The ship's log shows its newest line only once something happens, so make something happen.
+  // The stage writes that line in a transition, after the switch's own paint, so the click
+  // returns before it; scan once the line (and its message list) is on screen.
   await page.getByRole("switch", { name: "Forward tank", exact: true }).click();
+  await expect(page.getByRole("region", { name: `${STAGE_COPY.log}, newest line`, exact: true })).toContainText(LOG.tankFull(TANKS[0].noun, 1).text);
   const bare = await page.evaluate(() =>
     [...document.querySelectorAll<HTMLElement>("main [data-ouro-control], header [data-ouro-control]")]
       .filter((element) => element.checkVisibility() && element.getBoundingClientRect().width > 1)
