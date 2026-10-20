@@ -70,6 +70,20 @@
     "markdown": "docs/guides/why-no-skill.md"
   },
   {
+    "name": "color-scheme-script",
+    "title": "colorSchemeScript",
+    "kind": "export",
+    "group": "Actions",
+    "markdown": "docs/colorSchemeScript.md"
+  },
+  {
+    "name": "use-color-scheme",
+    "title": "useColorScheme",
+    "kind": "export",
+    "group": "Actions",
+    "markdown": "docs/useColorScheme.md"
+  },
+  {
     "name": "radio",
     "title": "Radio",
     "kind": "export",
@@ -187,6 +201,13 @@
     "kind": "export",
     "group": "Data",
     "markdown": "docs/ChartTooltip.md"
+  },
+  {
+    "name": "color-scheme-provider",
+    "title": "ColorSchemeProvider",
+    "kind": "export",
+    "group": "App setup",
+    "markdown": "docs/ColorSchemeProvider.md"
   },
   {
     "name": "ouro-provider",

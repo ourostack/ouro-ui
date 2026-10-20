@@ -49,6 +49,8 @@ const componentFiles = [
   ...components.map((entry) => `${componentsDir}${entry.folder}/${entry.stem}.tsx`),
   "registry/ouro/lib/ouro/ouro-provider.tsx",
   "registry/ouro/lib/ouro/toast.ts",
+  "registry/ouro/lib/ouro/color-scheme.ts",
+  "registry/ouro/lib/ouro/color-scheme-script.ts",
 ];
 /** Part files (`<folder>/<stem>-parts.tsx`), by the family their parts are named after (the stem in PascalCase). */
 const partFiles: Record<string, string> = Object.fromEntries(

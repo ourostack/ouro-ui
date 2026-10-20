@@ -1950,5 +1950,57 @@
       "Inspector/Playground",
       "Inspector/InContext"
     ]
+  },
+  {
+    "item": "skip-link",
+    "stem": "skip-link",
+    "mode": "default",
+    "part": "root",
+    "role": "link",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "SkipLink/Playground",
+      "SkipLink/InContext"
+    ]
+  },
+  {
+    "item": "tab-bar",
+    "stem": "tab-bar",
+    "mode": "default",
+    "part": "tab",
+    "role": "link",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "TabBar/Playground",
+      "TabBar/InContext"
+    ]
+  },
+  {
+    "item": "tab-bar",
+    "stem": "tab-bar",
+    "mode": "default",
+    "part": "accessory",
+    "role": "link",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "TabBar/Playground",
+      "TabBar/InContext"
+    ]
+  },
+  {
+    "item": "color-scheme-toggle",
+    "stem": "color-scheme-toggle",
+    "mode": "menu",
+    "part": "trigger",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "ColorSchemeToggle/Playground",
+      "ColorSchemeToggle/InContext"
+    ]
   }
 ]

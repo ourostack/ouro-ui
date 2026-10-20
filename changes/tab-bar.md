@@ -1,0 +1,1 @@
+- New: `TabBar`, the bar of tabs at the bottom of a phone screen, with an accessory set apart (Search), the current tab from the path, the room it needs kept at the end of the page, and a step aside below the screen while the on-screen keyboard is up.
