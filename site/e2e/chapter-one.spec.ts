@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { ARTICLES, CHAPTER_ONE, CHAPTER_ONE_CONTROLS, CODE_SHEETS, CREW, EXPEDITION, PARTS, SHIPYARD, SIGN, START_ORDER, YARD } from "../src/voyage/chapters/copy";
+import { diagnostics } from "./diagnostics";
 
 // Chapter I, "Build the ship", against the production build (site-design.md, "Verification in
 // CI"): each control in CHAPTER_ONE_CONTROLS has a test named "control: <id>" that operates it and
@@ -7,29 +8,6 @@ import { ARTICLES, CHAPTER_ONE, CHAPTER_ONE_CONTROLS, CODE_SHEETS, CREW, EXPEDIT
 // every operable element in the chapter is one of those controls, the chapter is server-rendered
 // and loads its code only as it nears the screen, X-ray finds its HX components, phones work by
 // touch, and under reduced motion nothing moves. Each control's latency is stage.latency.spec.ts's.
-
-/**
- * WebKit fetches a preloaded font again for its @font-face instead of using the preload, then warns
- * a few seconds after load that the preload went unused. Chromium uses it; the warning is WebKit's.
- */
-const WEBKIT_UNUSED_FONT_PRELOAD = /^The resource \S+\/fonts\/[\w.-]+\.woff2 was preloaded using link preload but not used within a few seconds/;
-/**
- * The island's chunk is fetched with Vite's modulepreload hints for its imports; on a busy runner
- * WebKit can judge a hint "unused" when the island's import lands after its few-second window,
- * though the import then uses it. The chapter hydrating is what the specs check.
- */
-const WEBKIT_UNUSED_CHUNK_PRELOAD = /^The resource \S+\/assets\/[\w.-]+\.js was preloaded using link preload but not used within a few seconds/;
-
-function diagnostics(page: Page): string[] {
-  const errors: string[] = [];
-  page.on("pageerror", (error) => errors.push(error.message));
-  // Only WebKit's heuristic is forgiven, and only in WebKit.
-  const webkit = page.context().browser()?.browserType().name() === "webkit";
-  page.on("console", (message) => {
-    if ((message.type() === "error" || message.type() === "warning") && !WEBKIT_UNUSED_FONT_PRELOAD.test(message.text()) && !(webkit && WEBKIT_UNUSED_CHUNK_PRELOAD.test(message.text()))) errors.push(message.text());
-  });
-  return errors;
-}
 
 /** Opens the voyage and scrolls to Chapter I, waiting for it to hydrate. */
 async function open(page: Page): Promise<void> {
