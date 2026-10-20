@@ -29,6 +29,7 @@ Type: `TimerTrayProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: margins, sticky placement (`sticky top-0`). Appearance classes warn in development. |
+| `finalFocus` | `RefObject<HTMLElement \| null>` |  | Where focus goes when Cancel or Dismiss stops the tray's last timer, such as the page heading (give it `tabIndex={-1}`): `finalFocus={headingRef}`. Stopping any other timer moves focus to the next timer's button, or the previous one's. Without it focus goes to the tray, which stays in view, empty, until focus leaves it. |
 | `label` | `string` | `"Timers"` | Names the tray for screen readers, as a region. |
 | `labels` | `TimerLabels` |  | The words it shows and says, for apps in other languages. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |

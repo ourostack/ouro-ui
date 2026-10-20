@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { createRef, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -172,6 +172,50 @@ describe("TimerTray", () => {
     } finally {
       announced.stop();
     }
+  });
+
+  it("moves focus to the next timer's stop button when one is stopped, else the previous, else the tray", async () => {
+    for (const id of ["one", "two", "three"]) store(id, { status: "running", duration: 600, endsAt: Date.now() + 60_000 });
+    const { tray, rows } = await render(
+      <TimerTray timers={["one", "two", "three"].map((id) => ({ id, label: id, duration: 600 }))} />,
+    );
+    const stopOf = (index: number) => rows()[index]!.querySelector<HTMLButtonElement>('[data-ouro-part="stop"]')!;
+    const stop = async (button: HTMLButtonElement) => {
+      button.focus();
+      await act(async () => button.click());
+    };
+    await stop(stopOf(1));
+    expect(rows()).toHaveLength(2);
+    expect(document.activeElement).toBe(stopOf(1));
+    expect(stopOf(1).textContent).toBe("Cancel three");
+    await stop(stopOf(1));
+    expect(rows()).toHaveLength(1);
+    expect(document.activeElement).toBe(stopOf(0));
+    await stop(stopOf(0));
+    expect(rows()).toHaveLength(0);
+    expect(document.activeElement).toBe(tray());
+    expect(tray().tabIndex).toBe(-1);
+    expect(getComputedStyle(tray()).display).not.toBe("none");
+    await act(async () => tray().blur());
+    expect(getComputedStyle(tray()).display).toBe("none");
+  });
+
+  it("moves focus to finalFocus when the last timer is stopped", async () => {
+    store("pasta", { status: "running", duration: 600, endsAt: Date.now() + 60_000 });
+    const heading = createRef<HTMLHeadingElement>();
+    const { tray, rows } = await render(
+      <>
+        <h2 ref={heading} tabIndex={-1}>
+          Steps
+        </h2>
+        <TimerTray timers={timers} finalFocus={heading} />
+      </>,
+    );
+    const stop = rows()[0]!.querySelector<HTMLButtonElement>('[data-ouro-part="stop"]')!;
+    stop.focus();
+    await act(async () => stop.click());
+    expect(document.activeElement).toBe(heading.current);
+    expect(getComputedStyle(tray()).display).toBe("none");
   });
 
   it("forwards a ref, passes attributes through, and lets layout classes win", async () => {

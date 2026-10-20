@@ -1,6 +1,6 @@
 "use client";
 
-import type { HTMLAttributes, JSX, Ref } from "react";
+import type { HTMLAttributes, JSX, MouseEvent, Ref, RefObject } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -33,6 +33,13 @@ export interface TimerTrayOwnProps {
   silent?: boolean | undefined;
   /** The words it shows and says, for apps in other languages. */
   labels?: TimerLabels | undefined;
+  /**
+   * Where focus goes when Cancel or Dismiss stops the tray's last timer, such as the page
+   * heading (give it `tabIndex={-1}`): `finalFocus={headingRef}`. Stopping any other timer
+   * moves focus to the next timer's button, or the previous one's. Without it focus goes to
+   * the tray, which stays in view, empty, until focus leaves it.
+   */
+  finalFocus?: RefObject<HTMLElement | null> | undefined;
   /** Layout only: margins, sticky placement (`sticky top-0`). Appearance classes warn in development. */
   className?: string | undefined;
   ref?: Ref<HTMLElement> | undefined;
@@ -46,10 +53,28 @@ export interface TimerTrayOwnProps {
 /** Props for {@link TimerTray}: its own props and the `<section>` attributes it passes through. */
 export type TimerTrayProps = Omit<HTMLAttributes<HTMLElement>, keyof TimerTrayOwnProps> & TimerTrayOwnProps;
 
-function TrayRow({ item, words, silent }: { item: TimerTrayItem; words: ReturnType<typeof wordsFor>; silent: boolean }): JSX.Element | null {
+interface TrayRowProps {
+  item: TimerTrayItem;
+  words: ReturnType<typeof wordsFor>;
+  silent: boolean;
+  finalFocus: RefObject<HTMLElement | null> | undefined;
+}
+
+function TrayRow({ item, words, silent, finalFocus }: TrayRowProps): JSX.Element | null {
   const timer = useTimer({ duration: item.duration, id: item.id, fallback: true, onDone: (event) => alertDone(item.label, words.done, event, silent) });
   if (timer.status === "idle") return null;
   const done = timer.status === "done";
+  // The row goes with the timer, so focus moves on first: to the next timer, the previous one, or out.
+  const stop = (event: MouseEvent<HTMLButtonElement>) => {
+    const row = event.currentTarget.closest("li")!;
+    const focused = row.contains(document.activeElement);
+    const neighbour = row.nextElementSibling ?? row.previousElementSibling;
+    if (focused) {
+      if (neighbour) neighbour.querySelector<HTMLElement>('[data-ouro-part="stop"]')!.focus();
+      else (finalFocus?.current ?? row.closest<HTMLElement>('[data-ouro="timer-tray"]')!).focus();
+    }
+    timer.reset();
+  };
   return (
     <li data-status={timer.status} className="flex min-h-12 flex-wrap items-center gap-x-4 gap-y-2 py-2">
       <div className="min-w-40 flex-1">
@@ -66,7 +91,7 @@ function TrayRow({ item, words, silent }: { item: TimerTrayItem; words: ReturnTy
             <span className="sr-only"> {item.label}</span>
           </Button>
         ) : null}
-        <Button data-ouro-control="timer-tray" data-ouro-part="stop" onClick={timer.reset} variant={done ? "solid" : "outline"} tone={done ? "destructive" : "secondary"} size="sm">
+        <Button data-ouro-control="timer-tray" data-ouro-part="stop" onClick={stop} variant={done ? "solid" : "outline"} tone={done ? "destructive" : "secondary"} size="sm">
           {done ? words.dismiss : words.cancel}
           <span className="sr-only"> {item.label}</span>
         </Button>
@@ -100,6 +125,7 @@ export function TimerTray(props: TimerTrayProps): JSX.Element {
     label = "Timers",
     silent,
     labels,
+    finalFocus,
     className,
     // Guard props (hint types), dropped here so they never reach the DOM.
     items,
@@ -125,14 +151,15 @@ export function TimerTray(props: TimerTrayProps): JSX.Element {
   );
   return (
     <section
+      tabIndex={-1}
       {...rest}
       data-ouro="timer-tray"
       aria-label={label}
-      className={cn("min-w-0 border-0 border-b border-solid border-border bg-background px-4 not-has-[li]:hidden", className)}
+      className={cn("min-w-0 border-0 border-b border-solid border-border bg-background px-4 outline-none not-has-[li]:not-focus:hidden", className)}
     >
       <ul className="m-0 grid list-none divide-y divide-border p-0">
         {timers.map((item) => (
-          <TrayRow key={item.id} item={item} words={words} silent={silent === true} />
+          <TrayRow key={item.id} item={item} words={words} silent={silent === true} finalFocus={finalFocus} />
         ))}
       </ul>
     </section>

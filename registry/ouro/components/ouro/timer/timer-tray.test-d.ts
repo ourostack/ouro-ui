@@ -1,4 +1,4 @@
-import { createElement, type ComponentProps } from "react";
+import { createElement, type ComponentProps, type RefObject } from "react";
 import { expectTypeOf } from "vitest";
 import { TimerTray, type TimerTrayProps } from "@/registry/ouro/components/ouro/timer/timer-tray";
 
@@ -6,6 +6,7 @@ import { TimerTray, type TimerTrayProps } from "@/registry/ouro/components/ouro/
 
 expectTypeOf<{ timers: [] }>().toExtend<TimerTrayProps>();
 expectTypeOf<{ timers: [{ id: "pasta"; label: "Pasta"; duration: 600; href: "/steps/2" }]; label: "Timers"; silent: true; labels: { goTo: "Open" }; className: "sticky top-0" }>().toExtend<TimerTrayProps>();
+expectTypeOf<{ timers: []; finalFocus: RefObject<HTMLHeadingElement | null> }>().toExtend<TimerTrayProps>();
 expectTypeOf<ComponentProps<typeof TimerTray>>().toEqualTypeOf<TimerTrayProps>();
 
 // timers is required, and each needs its id, label and duration.
