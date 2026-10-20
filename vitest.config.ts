@@ -4,6 +4,7 @@ import { playwright } from "@vitest/browser-playwright";
 import { configDefaults, defineConfig } from "vitest/config";
 import { fileURLToPath } from "node:url";
 import { MotionReporter } from "./scripts/motion-reporter.mts";
+import { proofPlugin } from "./site/scripts/proof.mts";
 import { commands } from "./registry/ouro/lib/ouro/testing/commands.ts";
 import { ouroTestProjects } from "./registry/ouro/lib/ouro/testing/vitest.ts";
 
@@ -91,6 +92,8 @@ export default defineConfig({
         // site/vite.config.ts.
         extends: true as const,
         publicDir: fileURLToPath(new URL("./site/public", import.meta.url)),
+        // The hero's proof line, computed from the repository (site/scripts/proof.mts).
+        plugins: [proofPlugin()],
         test: {
           name: "site",
           expect: { poll: { timeout: 10_000 } },

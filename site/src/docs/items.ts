@@ -73,4 +73,4 @@ export function summary(markdown: string): string {
   return text.match(/^.*?\.(?=\s|$)/)?.[0] ?? text;
 }
 
-export const GITHUB = "https://github.com/ourostack/ouro-ui";
+export { GITHUB } from "../paths";
