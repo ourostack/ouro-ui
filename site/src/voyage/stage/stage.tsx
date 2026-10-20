@@ -1,4 +1,4 @@
-import { memo, startTransition, useCallback, useDeferredValue, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type JSX, type SVGProps } from "react";
+import { memo, startTransition, useCallback, useDeferredValue, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type JSX, type SVGProps } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Collapsible } from "@/registry/ouro/components/ouro/collapsible/collapsible";
@@ -72,7 +72,7 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
   const [dived, setDived] = useState(false);
   const [stream, setStream] = useState(0);
   const [rings, setRings] = useState(0);
-  const [logOpen, setLogOpen] = useState(false);
+  const [logOpen] = useState(createFlag);
   const [lights, setLights] = useState(false);
   const [speed, setSpeed] = useState<Speed>("half");
   const [log, setLog] = useState<Entry[]>(() => OPENING_LOG.map((line, index) => ({ ...line, id: index })));
@@ -178,7 +178,7 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
           <div className="stage-porthole">
             <Scene state={scene} label={STAGE_COPY.sceneLabel} description={describeScene(scene)} motto={STAGE_COPY.motto} />
           </div>
-          <CrewLine entry={log.at(-1)!} live={!logOpen} />
+          <CrewLine entry={log.at(-1)!} logOpen={logOpen} />
         </div>
         <section aria-label={STAGE_COPY.rail} className="stage-console">
           {/* Row one: how deep, in what water, and how fast. Labels share a baseline, controls a centre line. */}
@@ -193,7 +193,7 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
           <Ballast tanks={tanks} full={full} dived={dived} onTank={onTank} onDive={onDive} />
           <div className="stage-row stage-deck">
             <LightsControl lights={lights} onChange={onLights} />
-            <ShipLog log={log} rings={rings} onRing={onBell} open={logOpen} onOpenChange={setLogOpen} />
+            <ShipLog log={log} rings={rings} onRing={onBell} logOpen={logOpen} />
           </div>
           <div className="stage-row stage-real" data-stage-control="xray">
             <span>{STAGE_COPY.real}</span>
@@ -218,9 +218,10 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
  * rest it is the captain's welcome, which says what to do first. While the ship's log is open, the
  * log's own list reads each new line instead, so no line is read twice.
  */
-const CrewLine = memo(function CrewLine({ entry, live }: { entry: Entry; live: boolean }): JSX.Element {
+const CrewLine = memo(function CrewLine({ entry, logOpen }: { entry: Entry; logOpen: Flag }): JSX.Element {
+  const quiet = useSyncExternalStore(logOpen.subscribe, logOpen.get, logOpen.get);
   return (
-    <p className="stage-crew" data-stage-crew="" aria-live={live ? "polite" : "off"} aria-atomic="true">
+    <p className="stage-crew" data-stage-crew="" aria-live={quiet ? "off" : "polite"} aria-atomic="true">
       <Avatar name={entry.name} alt="" size="sm" />
       <span className="stage-crew-words">
         <span className="stage-crew-name">{entry.name}:</span> {entry.text}
@@ -381,6 +382,24 @@ const LightsControl = memo(function LightsControl({ lights, onChange }: { lights
   );
 });
 
+/** A yes or no that two parts of the stage share without re-rendering the rest: whether the log is open. */
+function createFlag() {
+  let value = false;
+  const listeners = new Set<() => void>();
+  return {
+    get: () => value,
+    set(next: boolean) {
+      value = next;
+      for (const listener of listeners) listener();
+    },
+    subscribe(listener: () => void) {
+      listeners.add(listener);
+      return () => void listeners.delete(listener);
+    },
+  };
+}
+type Flag = ReturnType<typeof createFlag>;
+
 const LogEntry = memo(function LogEntry({ entry }: { entry: Entry }): JSX.Element {
   return (
     <Message role="assistant" name={entry.name}>
@@ -393,7 +412,12 @@ const LogEntry = memo(function LogEntry({ entry }: { entry: Entry }): JSX.Elemen
  * The ship's log: every line the crew has said lately, folded under "Ship's log (n)" (the newest
  * also shows under the porthole). The bell rings from here.
  */
-const ShipLog = memo(function ShipLog({ log, rings, onRing, open, onOpenChange }: { log: Entry[]; rings: number; onRing: () => void; open: boolean; onOpenChange: (open: boolean) => void }): JSX.Element {
+const ShipLog = memo(function ShipLog({ log, rings, onRing, logOpen }: { log: Entry[]; rings: number; onRing: () => void; logOpen: Flag }): JSX.Element {
+  const [open, setOpen] = useState(false);
+  const onOpenChange = (next: boolean) => {
+    setOpen(next);
+    logOpen.set(next);
+  };
   return (
     <>
       <div className="stage-log-fold" data-stage-control="log">
