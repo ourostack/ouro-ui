@@ -1106,6 +1106,16 @@
   align-items: center;
   gap: 0.5rem;
 }
+/* Narrow: each tank's name sits over its switch, so three fit across. */
+@container (max-width: 29.99rem) {
+  .stage-tank {
+    grid-template-rows: var(--glass) auto;
+  }
+  .stage-tank-row {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+}
 .stage-tank-name {
   font-size: 0.875rem;
   line-height: 1.25rem;
@@ -1667,6 +1677,8 @@
 /* An engraved double rule between the porthole and the console: the one rule Brass keeps. */
 [data-theme="brass"] .stage-console {
   border-top: 3px double color-mix(in oklab, var(--chart-3) 55%, transparent);
+  /* Clear of the screws in the frame's corners. */
+  padding-bottom: 1.375rem;
 }
 [data-theme="brass"] .stage-motto {
   font-family: var(--font-heading);
