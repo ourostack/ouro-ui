@@ -1,1 +1,1 @@
-- New: `RelativeTime`, "3 days ago", "in 5 minutes" or "now" in the reader's language, kept current on one shared clock, in a `<time>` titled with the full local date and time.
+- New: `RelativeTime`, "3 days ago", "in 5 minutes" or "now" in the reader's language, kept current on one shared clock, in a `<time>` titled with the full local date and time; a calendar date with no time (`"2026-06-02"`) counts whole days from the reader's own today ("tomorrow") and is titled with that day.

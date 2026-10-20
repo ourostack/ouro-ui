@@ -17,6 +17,11 @@ export function toDate(value: Date | string | number): Date | null {
 /** A calendar date with no time of day: `"2026-06-01"`, or `"2026-06"` for a month. It names the same day everywhere. */
 const calendarDate = /^\d{4}-\d{2}(-\d{2})?$/;
 
+/** Whether `value` is a calendar date with no time of day (`"2026-06-01"`, `"2026-06"`), which no time zone moves. */
+export function isCalendarDate(value: Date | string | number): value is string {
+  return typeof value === "string" && calendarDate.test(value);
+}
+
 /** What {@link LocalDate} writes: the text, and the `<time>` element's machine-readable `dateTime`. */
 export interface DateText {
   text: string;
@@ -32,7 +37,7 @@ export interface DateText {
 export function dateText(value: Date | string | number, format: DateFormat, locale: Intl.LocalesArgument, timeZone: string | undefined, labelZone = false): DateText | null {
   const date = toDate(value);
   if (!date) return null;
-  if (typeof value === "string" && calendarDate.test(value)) {
+  if (isCalendarDate(value)) {
     return { text: new Intl.DateTimeFormat(locale, { ...dateFormats[format], timeZone: "UTC" }).format(date), dateTime: value };
   }
   let text = new Intl.DateTimeFormat(locale, { ...dateFormats[format], timeZone }).format(date);

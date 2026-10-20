@@ -4,11 +4,16 @@ import { useSyncExternalStore, type JSX, type Ref, type TimeHTMLAttributes } fro
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
-import { dateFormats, toDate } from "@/registry/ouro/components/ouro/local-date/local-date-styles";
+import { dateText, isCalendarDate, type DateFormat } from "@/registry/ouro/components/ouro/local-date/local-date-styles";
+import { calendarRelative, relative } from "@/registry/ouro/components/ouro/relative-time/relative-time-styles";
 
 /** The props RelativeTime adds to the `<time>` attributes it passes through. */
 export interface RelativeTimeOwnProps {
-  /** The instant: a `Date`, an ISO string or a timestamp in milliseconds. */
+  /**
+   * The instant: a `Date`, an ISO string or a timestamp in milliseconds. A calendar date with no
+   * time (`"2026-06-01"`, or `"2026-06"` for a month) counts whole days (or months) in the
+   * reader's own calendar and is never moved into a time zone.
+   */
   value: Date | string | number;
   /** The language and region to write it in. @default the reader's */
   locale?: Intl.LocalesArgument | undefined;
@@ -26,16 +31,6 @@ export interface RelativeTimeOwnProps {
 
 /** Props for {@link RelativeTime}: its own props and the `<time>` attributes it passes through. */
 export type RelativeTimeProps = Omit<TimeHTMLAttributes<HTMLTimeElement>, keyof RelativeTimeOwnProps> & RelativeTimeOwnProps;
-
-const units: [Intl.RelativeTimeFormatUnit, number][] = [
-  ["year", 365 * 24 * 3600],
-  ["month", 30 * 24 * 3600],
-  ["week", 7 * 24 * 3600],
-  ["day", 24 * 3600],
-  ["hour", 3600],
-  ["minute", 60],
-  ["second", 1],
-];
 
 // One clock for every RelativeTime on the page, moved on every 30 seconds while any shows.
 let now = 0;
@@ -58,19 +53,14 @@ function subscribe(listener: () => void): () => void {
 const readNow = () => now;
 const serverNow = () => 0;
 
-/** "3 days ago", "in 5 minutes", "now": the largest whole unit, rounded. */
-function relative(date: Date, at: number, locale: Intl.LocalesArgument, numeric: "auto" | "always"): string {
-  const seconds = (date.getTime() - at) / 1000;
-  const [unit, size] = units.find(([, length]) => Math.abs(seconds) >= length) ?? ["second", 1];
-  const amount = unit === "second" && Math.abs(seconds) < 45 ? 0 : Math.round(seconds / size);
-  return new Intl.RelativeTimeFormat(locale, { numeric }).format(amount, unit);
-}
-
 /**
  * How long ago (or how soon) something happens, in the reader's language: "3 days ago",
  * "yesterday", "in 5 minutes", "now", kept current while it shows. It is a `<time>` with the
  * exact instant, and its `title` gives the full local date and time. The server writes the UTC
  * date and hydration repeats it, so the markup matches; the browser then shows the relative time.
+ * A calendar date with no time (`"2026-06-01"`) counts whole days from the reader's own today
+ * ("tomorrow", "in 3 days"), and its `title` and `<time>` carry that day, never moved into a
+ * time zone.
  *
  * Use `LocalDate` instead where the date itself matters, such as a due date.
  *
@@ -93,7 +83,9 @@ export function RelativeTime(props: RelativeTimeProps): JSX.Element {
     ...rest
   } = props;
   const numeric = numericProp === "always" ? "always" : "auto";
-  const date = toDate(value);
+  const calendar = isCalendarDate(value);
+  const shape: DateFormat = calendar && value.length === 7 ? "month" : "date";
+  const written = dateText(value, shape, locale, "UTC");
   useAppearanceClassNameCheck(
     "RelativeTime",
     className,
@@ -106,7 +98,7 @@ export function RelativeTime(props: RelativeTimeProps): JSX.Element {
     process.env.NODE_ENV !== "production"
       ? () => [
           numeric !== numericProp && [`numeric="${String(numericProp)}" is not an option; use "auto" or "always"`, '<RelativeTime numeric="always" />'],
-          date === null && [`value={${JSON.stringify(value)}} is not a date`, "<RelativeTime value={new Date()} />"],
+          written === null && [`value={${JSON.stringify(value)}} is not a date`, "<RelativeTime value={new Date()} />"],
           dateProp !== undefined && ["date is not a prop", "<RelativeTime value={date} />"],
           nowProp !== undefined && ["now is not a prop; RelativeTime keeps itself current", "<RelativeTime value={date} />"],
         ]
@@ -114,11 +106,14 @@ export function RelativeTime(props: RelativeTimeProps): JSX.Element {
   );
   const at = useSyncExternalStore(subscribe, readNow, serverNow);
   const hydrated = at !== 0;
-  let text = "";
-  if (date) text = hydrated ? relative(date, at, locale, numeric) : new Intl.DateTimeFormat(locale, { ...dateFormats.date, timeZone: "UTC" }).format(date);
-  const full = date && hydrated ? new Intl.DateTimeFormat(locale, dateFormats.datetime).format(date) : undefined;
+  let text = written?.text;
+  let full: string | undefined;
+  if (written && hydrated) {
+    text = calendar ? calendarRelative(value, at, locale, numeric) : relative(new Date(value), at, locale, numeric);
+    full = dateText(value, calendar ? shape : "datetime", locale, undefined)!.text;
+  }
   return (
-    <time {...rest} data-ouro="relative-time" dateTime={date?.toISOString()} title={title ?? full} className={cn(className)}>
+    <time {...rest} data-ouro="relative-time" dateTime={written?.dateTime} title={title ?? full} className={cn(className)}>
       {text}
     </time>
   );

@@ -3,6 +3,7 @@ import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RelativeTime, type RelativeTimeProps } from "@/registry/ouro/components/ouro/relative-time/relative-time";
+import { calendarRelative } from "@/registry/ouro/components/ouro/relative-time/relative-time-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 const roots: Root[] = [];
@@ -103,12 +104,70 @@ describe("RelativeTime", () => {
     expect(host.querySelector("time")!.textContent).toBe("2 days ago");
   });
 
+  it("counts a calendar date in whole days of the reader's calendar, titled with that day", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    // Noon on June 1 where the reader is, whatever their time zone.
+    vi.setSystemTime(new Date(2026, 5, 1, 12));
+    const { host } = await render(
+      <>
+        <RelativeTime value="2026-06-02" locale="en-US" />
+        <RelativeTime value="2026-06-01" locale="en-US" />
+        <RelativeTime value="2026-05-29" locale="en-US" numeric="always" />
+        <RelativeTime value="2026-06" locale="en-US" />
+      </>,
+    );
+    const [tomorrow, today, ago, month] = host.querySelectorAll("time");
+    expect(tomorrow!.textContent).toBe("tomorrow");
+    expect(tomorrow!.title).toBe("Jun 2, 2026");
+    expect(tomorrow!.dateTime).toBe("2026-06-02");
+    expect(today!.textContent).toBe("today");
+    expect(ago!.textContent).toBe("3 days ago");
+    expect(month!.textContent).toBe("this month");
+    expect(month!.title).toBe("Jun 2026");
+    expect(month!.dateTime).toBe("2026-06");
+  });
+
+  it("writes a calendar date as that day on the server", () => {
+    expect(renderToString(<RelativeTime value="2026-06-02" locale="en-US" />)).toContain('dateTime="2026-06-02" class="">Jun 2, 2026</time>');
+  });
+
   it("forwards a ref and <time> attributes, and lets app layout classes win", async () => {
     let element: HTMLTimeElement | null = null;
     const { time } = await render(<RelativeTime value={Date.now()} id="posted" className="ms-2" ref={(node) => void (element = node)} />);
     expect(element).toBe(time);
     expect(time.id).toBe("posted");
     expect(getComputedStyle(time).marginInlineStart).toBe("8px");
+  });
+});
+
+describe("calendarRelative", () => {
+  const west = "America/Los_Angeles";
+  const east = "Asia/Tokyo";
+  // 03:00 UTC on June 1: 8 PM on May 31 in Los Angeles, noon on June 1 in Tokyo.
+  const morning = Date.UTC(2026, 5, 1, 3);
+  // 20:00 UTC on June 1: 1 PM on June 1 in Los Angeles, 5 AM on June 2 in Tokyo.
+  const evening = Date.UTC(2026, 5, 1, 20);
+
+  it.each([
+    ["2026-06-01", morning, west, "tomorrow"],
+    ["2026-06-01", morning, east, "today"],
+    ["2026-06-04", morning, west, "in 4 days"],
+    ["2026-06-04", morning, east, "in 3 days"],
+    ["2026-06-01", evening, west, "today"],
+    ["2026-06-01", evening, east, "yesterday"],
+    ["2026-05-18", evening, west, "2 weeks ago"],
+    ["2026-08-01", evening, west, "in 2 months"],
+    ["2024-06-01", evening, east, "2 years ago"],
+    ["2026-06", morning, west, "next month"],
+    ["2026-06", morning, east, "this month"],
+    ["2025-05", evening, east, "last year"],
+    ["2028-01", evening, west, "in 2 years"],
+  ] as const)("says %s as seen at %i in %s: %s", (value, at, zone, words) => {
+    expect(calendarRelative(value, at, "en-US", "auto", zone)).toBe(words);
+  });
+
+  it("says today as in 0 days when numeric is always", () => {
+    expect(calendarRelative("2026-06-01", evening, "en-US", "always", west)).toBe("in 0 days");
   });
 });
 

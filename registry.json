@@ -3008,6 +3008,11 @@
       ],
       "files": [
         {
+          "path": "registry/ouro/components/ouro/relative-time/relative-time-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/relative-time/relative-time-styles.ts"
+        },
+        {
           "path": "registry/ouro/components/ouro/relative-time/relative-time.tsx",
           "type": "registry:ui",
           "target": "@components/ouro/relative-time/relative-time.tsx"

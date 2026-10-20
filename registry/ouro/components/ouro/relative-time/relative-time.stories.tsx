@@ -47,3 +47,12 @@ export const InContext: Story = {
     </ul>
   ),
 };
+
+/** A calendar date with no time of day, such as a due date: whole days from the reader's own today. Hover it for the date. */
+export const CalendarDate: Story = {
+  render: () => (
+    <Text>
+      Library books due <RelativeTime value="2026-06-02" />.
+    </Text>
+  ),
+};
