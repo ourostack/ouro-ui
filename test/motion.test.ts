@@ -43,6 +43,13 @@ const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
 /** Makes the browser compute the element's style now, so a later change transitions from it. */
 const flushStyle = (element: Element) => void getComputedStyle(element).opacity;
 
+/**
+ * The element's animations that have not finished. Not `getAnimations()` alone: WebKit lists a
+ * finished transition there until its next animation update, and for a composited one (opacity,
+ * scale) that update is set by a timer that can trail the frame in which it finished.
+ */
+const unfinished = (element: Element) => element.getAnimations().filter((animation) => animation.playState !== "finished");
+
 /** The records this test made so far, taken out of its meta. */
 const taken = (): MotionRecord[] => takeMotionRecords();
 
@@ -66,8 +73,10 @@ describe("expectMotion", () => {
   it("passes when exactly the declared properties run, waits for them and records them on the part", async () => {
     const tick = part("tick", "opacity 120ms linear, scale 120ms linear", { opacity: "0", scale: "0.5" });
     Object.assign(tick.style, { opacity: "1", scale: "1" });
+    const started = tick.getAnimations();
     await expectMotion(tick, { stem: "checkbox", state: "data-checked", properties: ["scale", "opacity"], reduced: false });
-    expect(tick.getAnimations()).toEqual([]);
+    expect(started.map((animation) => animation.playState)).toEqual(["finished", "finished"]);
+    expect(unfinished(tick)).toEqual([]);
     expect(taken()).toEqual([{ kind: "state", stem: "checkbox", part: "tick", state: "data-checked", properties: ["opacity", "scale"], reduced: false, dir: "ltr" }]);
   });
 
@@ -142,7 +151,7 @@ describe("expectMotion", () => {
     restarted.style.opacity = "0.9";
     flushStyle(restarted);
     await proof;
-    expect(restarted.getAnimations()).toEqual([]);
+    expect(unfinished(restarted)).toEqual([]);
     expect(taken()).toHaveLength(1);
     const strayed = part("tick", "opacity 80ms linear, scale 400ms linear");
     strayed.style.opacity = "1";
