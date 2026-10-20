@@ -1,6 +1,6 @@
 import { expect } from "@playwright/test";
 import { CHECKBOX, CHECKED, inOneSentence, UNCHECKED } from "./phrases";
-import { accessibleName, heard, startReading, test } from "./screen-reader";
+import { accessibleName, heard, heardOrDescribed, startReading, test } from "./screen-reader";
 import { checklistShipped, storyIds } from "./stories";
 
 test.skip(!checklistShipped, `${storyIds.checklist} arrives with Checklist (registry/ouro/components/ouro/checklist); this spec runs once that folder exists.`);
@@ -13,6 +13,9 @@ test("Checklist announces an item's name, role and state, and its change when ti
   const before = await item.isChecked();
   const named = (sentence: string) => sentence.toLowerCase().includes(name.toLowerCase());
   await heard(sr, () => item.focus(), (phrase) => inOneSentence(phrase, named, CHECKBOX, before ? CHECKED : UNCHECKED), `"${name}", checkbox, ${before ? "checked" : "unchecked"}`);
-  await heard(sr, () => page.keyboard.press("Space"), (phrase) => inOneSentence(phrase, before ? UNCHECKED : CHECKED), `${before ? "unchecked" : "checked"}, after Space`);
+  const after = before ? UNCHECKED : CHECKED;
+  // VoiceOver at times says only the checkbox's hint after Space (ourostack/ouro-ui#118): it is then
+  // asked to describe the focused row, which must give its name, role and new state in one sentence.
+  await heardOrDescribed(sr, () => page.keyboard.press("Space"), (phrase) => inOneSentence(phrase, after), (phrase) => inOneSentence(phrase, named, CHECKBOX, after), `${before ? "unchecked" : "checked"}, after Space`, { finding: "ourostack/ouro-ui#118" });
   await expect(item).toBeChecked({ checked: !before });
 });
