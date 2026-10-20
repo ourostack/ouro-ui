@@ -1,0 +1,33 @@
+{
+  "mark": "Ouro HX",
+  "approved": "2026-10-13",
+  "approvedBy": "Ari Mendelow",
+  "approvedSource": {
+    "file": "ouro-hx-render.png",
+    "sha256": "7fdaabb2cc0717eccc9bca967891dcaef206ef4963109205b0e7e60675ce1f25"
+  },
+  "origin": "arimendelow/desk@3ab5eed1f9062895609ada2684a3774ff2475e8f:ouro-public-web/public-pages-holistic-plan/icons/final/",
+  "rules": "ouro-ui-hx-ax-handoff.md: byte-identical copies, never recoloured or redrawn; preserve the aspect ratio and transparency; alt=\"\" beside a visible \"Ouro HX\" label; the silhouette only for tiny placements such as the favicon.",
+  "files": [
+    {
+      "file": "ouro-hx-render.webp",
+      "use": "The approved rich render, 1024×1024, lossless and transparent.",
+      "sha256": "065a65cb6f9c05902530c5a9cb9e9c6786457ee1d4bc5405870a78de2495904e"
+    },
+    {
+      "file": "ouro-hx-render-256.webp",
+      "use": "Responsive export of the same render, 256×256.",
+      "sha256": "5d7f9bbe131e7011bfc8b28aed197b250730f59823fef5b6175ed5d0ef2686e9"
+    },
+    {
+      "file": "ouro-hx-render-128.webp",
+      "use": "Responsive export of the same render, 128×128, for the header's 32px and 40px placements.",
+      "sha256": "9308d742818eb8cf7911970f8ce9f612c7d43c892821de286a8d85033f02355b"
+    },
+    {
+      "file": "ouro-hx.svg",
+      "use": "Derived one-colour silhouette, for the favicon only (not separately accepted by Ari).",
+      "sha256": "35a5ad301e3391088a90633091882911599c1482a9772bc0d47ae88d7f48961e"
+    }
+  ]
+}
