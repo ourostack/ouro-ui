@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent, type JSX, type ReactNode } from "react";
+import { memo, startTransition, useDeferredValue, useEffect, useMemo, useRef, useState, useTransition, type FormEvent, type JSX, type ReactNode } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -169,6 +169,27 @@ function Crew({ line }: { line: CrewLine }): JSX.Element {
   );
 }
 
+/** The engraved plan: each built part drawn in, and the finished ship in the sea once launched. */
+const Plan = memo(function Plan({ built, launched }: { built: ReadonlySet<PartId>; launched: boolean }): JSX.Element {
+  return (
+    <figure className="m-0 border-b border-border/70">
+      <svg
+        className="site-blueprint"
+        viewBox={blueprint.viewBox}
+        role="img"
+        aria-label={describePlan(built, launched)}
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        data-built={[...built].join(" ")}
+        data-launched={launched ? "" : undefined}
+        dangerouslySetInnerHTML={{ __html: blueprint.inner }}
+      />
+    </figure>
+  );
+});
+
 /** What the plan shows, in words, for screen readers. */
 function describePlan(built: ReadonlySet<PartId>, launched: boolean): string {
   if (launched) return "The Nautilus, built and afloat.";
@@ -186,13 +207,21 @@ function Shipyard(): JSX.Element {
   const [built, setBuilt] = useState<ReadonlySet<PartId>>(() => new Set());
   const [launched, setLaunched] = useState(false);
   const [line, setLine] = useState<CrewLine>(YARD.opening);
+  const [emptying, startEmptying] = useTransition();
   const left = PARTS.length - built.size;
+  const ready = left === 0 && !launched && !emptying;
+  // The plan follows the controls a frame later: a press repaints its own control first, then the
+  // drawing (a deferred render), so no press waits on the plan's repaint.
+  const plan = useDeferredValue(useMemo(() => ({ built, launched }), [built, launched]));
 
+  // The crew's line follows the control's own change by a frame: it's a transition, so the press
+  // paints first.
+  const say = (next: CrewLine) => startTransition(() => setLine(next));
   const reorder = (ids: string[]) => {
     const next = ids as PartId[];
     setOrder(next);
     const first = next[0]!;
-    setLine(first === "hull" ? YARD.inOrder : YARD.outOfOrder[first]);
+    say(first === "hull" ? YARD.inOrder : YARD.outOfOrder[first]);
   };
   const tick = (id: string, checked: boolean) => {
     const part = partNamed(id as PartId);
@@ -200,39 +229,28 @@ function Shipyard(): JSX.Element {
     if (checked) next.add(part.id);
     else next.delete(part.id);
     setBuilt(next);
-    if (!checked) setLine(YARD.undone(part.name));
-    else if (next.size === PARTS.length) setLine(YARD.ready);
-    else if (part.id !== "hull" && !next.has("hull")) setLine(YARD.noHull(part.name));
-    else setLine(YARD.built[part.id]);
+    // Taking a part off a launched ship brings her back to the yard.
+    if (launched) setLaunched(false);
+    if (!checked) say(YARD.undone(part.name));
+    else if (next.size === PARTS.length) say(YARD.ready);
+    else if (part.id !== "hull" && !next.has("hull")) say(YARD.noHull(part.name));
+    else say(YARD.built[part.id]);
   };
+  // Launch turns the button at once; emptying the yard for another build follows as a transition.
   const launch = () => {
     if (launched) {
       setLaunched(false);
-      setBuilt(new Set());
-      setLine(YARD.again);
+      startEmptying(() => setBuilt(new Set()));
+      say(YARD.again);
     } else {
       setLaunched(true);
-      setLine(YARD.launch);
+      say(YARD.launch);
     }
   };
 
   return (
     <div>
-      <figure className="m-0 border-b border-border/70">
-        <svg
-          className="site-blueprint"
-          viewBox={blueprint.viewBox}
-          role="img"
-          aria-label={describePlan(built, launched)}
-          fill="none"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          data-built={[...built].join(" ")}
-          data-launched={launched ? "" : undefined}
-          dangerouslySetInnerHTML={{ __html: blueprint.inner }}
-        />
-      </figure>
+      <Plan built={plan.built} launched={plan.launched} />
       <div className="grid gap-6 p-4 sm:grid-cols-2 sm:p-6">
         <div data-chapter-control="order">
           <p className="site-eyebrow mb-2" aria-hidden="true">
@@ -247,7 +265,7 @@ function Shipyard(): JSX.Element {
           <Checklist
             label={SHIPYARD.jobs}
             hideLabel
-            items={order.map((id, index) => ({ id, label: partNamed(id).job, value: SHIPYARD.day(index + 1), checked: built.has(id), disabled: launched }))}
+            items={order.map((id, index) => ({ id, label: partNamed(id).job, value: SHIPYARD.day(index + 1), checked: built.has(id) }))}
             onCheckedChange={tick}
           />
         </div>
@@ -258,10 +276,10 @@ function Shipyard(): JSX.Element {
           <Crew line={line} />
           <div className="flex shrink-0 items-center gap-3" data-chapter-control="launch">
             <span className="text-sm text-muted-foreground" data-chapter-launch-hint="">
-              {launched ? SHIPYARD.launched : SHIPYARD.launchHint(left)}
+              {launched ? SHIPYARD.launched : SHIPYARD.launchHint(emptying ? PARTS.length : left)}
             </span>
-            <Button size="md" disabled={!launched && left > 0} variant={left === 0 && !launched ? "solid" : "outline"} tone={left === 0 && !launched ? "primary" : "secondary"} onClick={launch}>
-              {launched ? SHIPYARD.again : SHIPYARD.launch}
+            <Button size="md" disabled={emptying || (!launched && left > 0)} variant={ready ? "solid" : "outline"} tone={ready ? "primary" : "secondary"} onClick={launch}>
+              {launched || emptying ? SHIPYARD.again : SHIPYARD.launch}
             </Button>
           </div>
         </div>
