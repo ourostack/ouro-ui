@@ -1,0 +1,136 @@
+"use client";
+
+import type { HTMLAttributes, JSX, Ref } from "react";
+import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
+import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
+import { formatDuration, useTimer } from "@/registry/ouro/lib/ouro/use-timer";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { alertDone, doneText, wordsFor, type TimerLabels } from "@/registry/ouro/components/ouro/timer/timer-styles";
+
+/** One timer a {@link TimerTray} watches. */
+export interface TimerTrayItem {
+  /** The `id` the timer's `Timer` or `useTimer` has. */
+  id: string;
+  /** What it is for, as its `Timer` says it: "Pasta". */
+  label: string;
+  /** Its length in seconds, as its `Timer` has it. */
+  duration: number;
+  /** Where the timer's own screen is, for a "Go to" link. */
+  href?: string | undefined;
+}
+
+/** The props TimerTray adds to the `<section>` attributes it passes through. */
+export interface TimerTrayOwnProps {
+  /** The timers to watch, by `id`. Only those that are running, paused or finished show. */
+  timers: readonly TimerTrayItem[];
+  /** Names the tray for screen readers, as a region. @default "Timers" */
+  label?: string | undefined;
+  /** No chime and no vibration when a timer reaches zero while only the tray shows it. */
+  silent?: boolean | undefined;
+  /** The words it shows and says, for apps in other languages. */
+  labels?: TimerLabels | undefined;
+  /** Layout only: margins, sticky placement (`sticky top-0`). Appearance classes warn in development. */
+  className?: string | undefined;
+  ref?: Ref<HTMLElement> | undefined;
+
+  /** Not a prop. The tray lists `timers`: `<TimerTray timers={[{ id, label, duration }]} />`. */
+  items?: { 'Use timers={[{ id, label, duration }]}': never };
+  /** Not a prop. The tray shows only timers that are running, paused or finished; pass them all. */
+  hidden?: { 'The tray hides itself while no timer is running': never };
+}
+
+/** Props for {@link TimerTray}: its own props and the `<section>` attributes it passes through. */
+export type TimerTrayProps = Omit<HTMLAttributes<HTMLElement>, keyof TimerTrayOwnProps> & TimerTrayOwnProps;
+
+function TrayRow({ item, words, silent }: { item: TimerTrayItem; words: ReturnType<typeof wordsFor>; silent: boolean }): JSX.Element | null {
+  const timer = useTimer({ duration: item.duration, id: item.id, onDone: (event) => alertDone(item.label, words.done, event, silent) });
+  if (timer.status === "idle") return null;
+  const done = timer.status === "done";
+  return (
+    <li data-status={timer.status} className="flex min-h-12 flex-wrap items-center gap-x-4 gap-y-2 py-2">
+      <div className="min-w-40 flex-1">
+        <p className="m-0 truncate text-sm leading-5 font-medium text-foreground">{item.label}</p>
+        <p role="timer" className={cn("m-0 text-lg leading-7 font-semibold tabular-nums", done ? doneText : "text-foreground")}>
+          {done ? words.done : formatDuration(timer.remaining)}
+          {timer.status === "paused" ? <span className="ms-2 text-sm font-medium text-muted-foreground">{words.paused}</span> : null}
+        </p>
+      </div>
+      <div className="flex gap-2">
+        {item.href !== undefined ? (
+          <Button data-ouro-control="timer-tray" data-ouro-part="go-to" href={item.href} variant="plain" tone="secondary" size="sm">
+            {words.goTo}
+            <span className="sr-only"> {item.label}</span>
+          </Button>
+        ) : null}
+        <Button data-ouro-control="timer-tray" data-ouro-part="stop" onClick={timer.reset} variant={done ? "solid" : "outline"} tone={done ? "destructive" : "secondary"} size="sm">
+          {done ? words.dismiss : words.cancel}
+          <span className="sr-only"> {item.label}</span>
+        </Button>
+      </div>
+    </li>
+  );
+}
+
+/**
+ * The timers that are running, paused or finished, in one strip, so a person who leaves a
+ * timer's screen can still see it count down, hear it at zero, and stop it. Pass every timer
+ * the app has, by the `id` its `Timer` uses; the tray shows only those not idle, and hides
+ * itself while none are. When a timer reaches zero while only the tray shows it, the tray
+ * chimes and says so.
+ *
+ * Put it where it stays in view, such as under the header (`className="sticky top-0"`), and
+ * leave out the timer on the screen in view.
+ *
+ * Use `Timer` instead for one timer with all its controls.
+ *
+ * @group Feedback
+ * @see https://ourostack.github.io/ouro-ui/docs/timer-tray
+ *
+ * @example
+ * <TimerTray timers={[{ id: "pasta", label: "Pasta", duration: 600, href: "/steps/2" }]} />
+ */
+export function TimerTray(props: TimerTrayProps): JSX.Element {
+  const {
+    timers,
+    label = "Timers",
+    silent,
+    labels,
+    className,
+    // Guard props (hint types), dropped here so they never reach the DOM.
+    items,
+    hidden,
+    ...rest
+  } = props;
+  const words = wordsFor(labels);
+  useAppearanceClassNameCheck(
+    "TimerTray",
+    className,
+    process.env.NODE_ENV !== "production"
+      ? (token: string) => `remove "${token}"; TimerTray sets its own look from the theme`
+      : /* istanbul ignore next @preserve -- production only */ "",
+  );
+  useDevWarnings(
+    "TimerTray",
+    process.env.NODE_ENV !== "production"
+      ? () => [
+          items !== undefined && ["items is not a prop", "<TimerTray timers={[{ id, label, duration }]} />"],
+          hidden !== undefined && ["hidden is not a prop; the tray hides itself while no timer is running", "<TimerTray timers={timers} />"],
+        ]
+      : /* istanbul ignore next @preserve -- production only */ undefined,
+  );
+  return (
+    <section
+      {...rest}
+      data-ouro="timer-tray"
+      aria-label={label}
+      className={cn("min-w-0 border-0 border-b border-solid border-border bg-background px-4 not-has-[li]:hidden", className)}
+    >
+      <ul className="m-0 grid list-none divide-y divide-border p-0">
+        {timers.map((item) => (
+          <TrayRow key={item.id} item={item} words={words} silent={silent === true} />
+        ))}
+      </ul>
+    </section>
+  );
+}

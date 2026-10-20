@@ -1950,5 +1950,63 @@
       "Inspector/Playground",
       "Inspector/InContext"
     ]
+  },
+  {
+    "item": "timer",
+    "stem": "timer",
+    "mode": "default",
+    "part": "primary",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Timer/Playground",
+      "Timer/InContext",
+      "Timer/Paused",
+      "Timer/Finished",
+      "Timer/Short"
+    ]
+  },
+  {
+    "item": "timer",
+    "stem": "timer",
+    "mode": "default",
+    "part": "secondary",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Timer/Playground",
+      "Timer/InContext",
+      "Timer/Paused",
+      "Timer/Finished",
+      "Timer/Short"
+    ]
+  },
+  {
+    "item": "timer-tray",
+    "stem": "timer-tray",
+    "mode": "default",
+    "part": "go-to",
+    "role": "link",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "TimerTray/Playground",
+      "TimerTray/InContext"
+    ]
+  },
+  {
+    "item": "timer-tray",
+    "stem": "timer-tray",
+    "mode": "default",
+    "part": "stop",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "TimerTray/Playground",
+      "TimerTray/InContext"
+    ]
   }
 ]

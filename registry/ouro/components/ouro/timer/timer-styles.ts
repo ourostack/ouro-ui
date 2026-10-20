@@ -1,0 +1,66 @@
+import { announce } from "@/registry/ouro/lib/ouro/announce";
+import { buzz, chime, createChimeContext } from "@/registry/ouro/lib/ouro/feedback";
+import type { TimerDoneEvent } from "@/registry/ouro/lib/ouro/use-timer";
+
+/** The words a timer shows and says, for apps in other languages. */
+export interface TimerLabels {
+  /** @default "Start" */
+  start?: string | undefined;
+  /** @default "Pause" */
+  pause?: string | undefined;
+  /** @default "Resume" */
+  resume?: string | undefined;
+  /** @default "Cancel" */
+  cancel?: string | undefined;
+  /** @default "Dismiss" */
+  dismiss?: string | undefined;
+  /** @default "Restart" */
+  restart?: string | undefined;
+  /** What it shows, and screen readers hear, at zero. @default "Time's up" */
+  done?: string | undefined;
+  /** What it shows after the time while paused. @default "Paused" */
+  paused?: string | undefined;
+  /** TimerTray's link to the timer's page. @default "Go to" */
+  goTo?: string | undefined;
+}
+
+export const timerWords = {
+  start: "Start",
+  pause: "Pause",
+  resume: "Resume",
+  cancel: "Cancel",
+  dismiss: "Dismiss",
+  restart: "Restart",
+  done: "Time's up",
+  paused: "Paused",
+  goTo: "Go to",
+} as const satisfies Required<TimerLabels>;
+
+/** The words to use: the app's where it gave them, else the defaults. */
+export function wordsFor(labels: TimerLabels | undefined): Required<{ [Key in keyof TimerLabels]: string }> {
+  return { ...timerWords, ...Object.fromEntries(Object.entries(labels ?? {}).filter(([, word]) => word !== undefined)) };
+}
+
+/** A finished timer sounds only when it ended a moment ago, not when a page opens long after. */
+const FRESH_MS = 60_000;
+
+// One audio context for every timer on the page, made in the click that starts a timer, which
+// is when browsers allow sound to start.
+let context: AudioContext | null | undefined;
+
+/** Makes the page's chime context, from a click. */
+export function primeAlert(): void {
+  context ??= createChimeContext();
+}
+
+/** The alert at zero: said once, and chimed and buzzed unless silent or stale. */
+export function alertDone(label: string, done: string, event: TimerDoneEvent, silent: boolean): void {
+  if (!event.first) return;
+  announce(`${label}: ${done}`);
+  if (silent || Date.now() - event.endedAt > FRESH_MS) return;
+  void chime({ context });
+  buzz();
+}
+
+/** The time in a tone that keeps 4.5:1 on the page when it is up. */
+export const doneText = "text-[color-mix(in_oklab,var(--destructive)_80%,var(--foreground))]";

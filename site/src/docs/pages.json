@@ -133,11 +133,46 @@
     "markdown": "docs/MenuSub.md"
   },
   {
+    "name": "buzz",
+    "title": "buzz",
+    "kind": "export",
+    "group": "Feedback",
+    "markdown": "docs/buzz.md"
+  },
+  {
+    "name": "chime",
+    "title": "chime",
+    "kind": "export",
+    "group": "Feedback",
+    "markdown": "docs/chime.md"
+  },
+  {
+    "name": "create-chime-context",
+    "title": "createChimeContext",
+    "kind": "export",
+    "group": "Feedback",
+    "markdown": "docs/createChimeContext.md"
+  },
+  {
+    "name": "format-duration",
+    "title": "formatDuration",
+    "kind": "export",
+    "group": "Feedback",
+    "markdown": "docs/formatDuration.md"
+  },
+  {
     "name": "toast",
     "title": "toast",
     "kind": "export",
     "group": "Feedback",
     "markdown": "docs/toast.md"
+  },
+  {
+    "name": "use-timer",
+    "title": "useTimer",
+    "kind": "export",
+    "group": "Feedback",
+    "markdown": "docs/useTimer.md"
   },
   {
     "name": "avatar-group",

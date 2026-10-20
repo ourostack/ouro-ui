@@ -242,6 +242,31 @@
     "source": "registry/ouro/components/ouro/progress/progress.tsx"
   },
   {
+    "name": "timer",
+    "title": "Timer",
+    "group": "Feedback",
+    "source": "registry/ouro/components/ouro/timer/timer.tsx",
+    "functions": [
+      "buzz",
+      "chime",
+      "createChimeContext",
+      "formatDuration",
+      "useTimer"
+    ]
+  },
+  {
+    "name": "timer-tray",
+    "title": "TimerTray",
+    "group": "Feedback",
+    "source": "registry/ouro/components/ouro/timer/timer-tray.tsx"
+  },
+  {
+    "name": "celebrate",
+    "title": "Celebrate",
+    "group": "Feedback",
+    "source": "registry/ouro/components/ouro/celebrate/celebrate.tsx"
+  },
+  {
     "name": "skeleton",
     "title": "Skeleton",
     "group": "Display",

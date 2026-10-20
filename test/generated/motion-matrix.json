@@ -363,5 +363,36 @@
     "tests": [
       "registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > fades in when it opens, and appears at once with reduced motion"
     ]
+  },
+  {
+    "item": "celebrate",
+    "stem": "celebrate",
+    "state": "data-open",
+    "kind": "motion",
+    "part": "piece",
+    "properties": [
+      "opacity",
+      "transform"
+    ],
+    "reduced": [],
+    "tests": [
+      "registry/ouro/components/ouro/celebrate/celebrate.test.tsx::Celebrate > bursts its pieces outward and fades in its message, and with reduced motion only fades the message in"
+    ]
+  },
+  {
+    "item": "celebrate",
+    "stem": "celebrate",
+    "state": "data-open",
+    "kind": "motion",
+    "part": "message",
+    "properties": [
+      "opacity"
+    ],
+    "reduced": [
+      "opacity"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/celebrate/celebrate.test.tsx::Celebrate > bursts its pieces outward and fades in its message, and with reduced motion only fades the message in"
+    ]
   }
 ]
