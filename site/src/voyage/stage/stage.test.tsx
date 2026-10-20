@@ -9,8 +9,9 @@ import { latestRelease } from "../../latest-release";
 import { allStageText, bandAt, BELL_TOASTS, describeScene, LOG, OPENING_LOG, STAGE_CONTROLS, STAGE_COPY, TANKS } from "./copy";
 import { art, parseArt } from "./art";
 
-// The porthole stage (site-design.md, slice S1): every control changes the scene and the log, the
-// copy reads at grade 6 or under, the theme paints the sea, and the hero's install line and proof
+// The porthole stage (site-design.md, slice S1): every control changes the scene (a frame later, as
+// a deferred render, so the tests poll it) and the log, the copy reads at grade 6 or under, the
+// theme paints the sea, and the hero's install line and proof
 // line say what they should.
 
 const root = document.documentElement;
@@ -122,7 +123,7 @@ describe("the stage's controls", () => {
     (depth.element() as HTMLElement).focus();
     await userEvent.keyboard("{End}");
     await expect.poll(() => scene().dataset.band).toBe("midnight");
-    expect(scene().style.getPropertyValue("--d")).toBe("1.000");
+    await expect.poll(() => scene().style.getPropertyValue("--d")).toBe("1.000");
     await expect.element(page.getByText("300", { exact: true })).toBeVisible();
     await expect.element(page.getByText("Midnight water")).toBeVisible();
     await expect.poll(lastLog).toContain(LOG.band.midnight.text);
@@ -138,7 +139,7 @@ describe("the stage's controls", () => {
     await expect.element(page.getByText(STAGE_COPY.diveHint(0))).toBeVisible();
     for (const [index, name] of TANK_NAMES.entries()) {
       await userEvent.click(page.getByRole("switch", { name }));
-      expect(scene().dataset.tanks).toBe(String(index + 1));
+      await expect.poll(() => scene().dataset.tanks).toBe(String(index + 1));
       if (index < 2) await expect.element(dive).toBeDisabled();
     }
     await expect.poll(lastLog).toContain(LOG.allFull.text);
@@ -147,13 +148,13 @@ describe("the stage's controls", () => {
     expect(document.querySelectorAll(".stage-gauge[data-full]")).toHaveLength(3);
     await expect.element(page.getByText(STAGE_COPY.ready)).toBeVisible();
     await userEvent.click(dive);
-    expect(scene().hasAttribute("data-dived")).toBe(true);
-    expect(document.querySelector(".stage-bubbles")!.hasAttribute("data-streaming")).toBe(true);
+    await expect.poll(() => scene().hasAttribute("data-dived")).toBe(true);
+    await expect.poll(() => document.querySelector(".stage-bubbles")!.hasAttribute("data-streaming")).toBe(true);
     expect(document.querySelector("[data-stage-ready]")).toBeNull();
     await expect.poll(() => scene().dataset.band).toBe("midnight");
     await expect.poll(lastLog).toContain(LOG.dive.text);
     await userEvent.click(page.getByRole("button", { name: STAGE_COPY.surface, exact: true }));
-    expect(scene().hasAttribute("data-dived")).toBe(false);
+    await expect.poll(() => scene().hasAttribute("data-dived")).toBe(false);
     await expect.poll(() => [scene().dataset.band, scene().dataset.tanks]).toEqual(["sunlit", "0"]);
     await expect.poll(lastLog).toContain(LOG.surface.text);
     for (const name of TANK_NAMES) await expect.element(page.getByRole("switch", { name })).not.toBeChecked();
@@ -164,7 +165,7 @@ describe("the stage's controls", () => {
     const hidden = () => Number(getComputedStyle(document.querySelector(".stage-hidden")!).opacity);
     const lights = page.getByRole("switch", { name: STAGE_COPY.lights });
     await userEvent.click(lights);
-    expect(scene().hasAttribute("data-lights")).toBe(true);
+    await expect.poll(() => scene().hasAttribute("data-lights")).toBe(true);
     await expect.poll(lastLog).toContain(LOG.lightsOn.text);
     expect(hidden()).toBe(0);
     for (const name of TANK_NAMES) await userEvent.click(page.getByRole("switch", { name }));
@@ -181,11 +182,11 @@ describe("the stage's controls", () => {
     await renderPage("/voyage/");
     expect(scene().dataset.speed).toBe("half");
     await userEvent.click(page.getByRole("radio", { name: "Full" }));
-    expect(scene().dataset.speed).toBe("full");
+    await expect.poll(() => scene().dataset.speed).toBe("full");
     await expect.poll(lastLog).toContain(LOG.speed.full.text);
     await userEvent.click(page.getByRole("radio", { name: "Stop" }));
-    expect(scene().dataset.speed).toBe("stop");
-    expect(scene().getAttribute("aria-label")).toContain("The fish hold still.");
+    await expect.poll(() => scene().dataset.speed).toBe("stop");
+    await expect.poll(() => scene().getAttribute("aria-label")).toContain("The fish hold still.");
   });
 
   it("rings the bell: a toast from the crew, in turn, and a line in the log", async () => {
@@ -198,7 +199,7 @@ describe("the stage's controls", () => {
     await expect.poll(lastLog).toContain(LOG.bell.text);
     // The bell swings and the water rings, again on each press.
     expect(ring()).toBe("a");
-    expect(document.querySelectorAll(".stage-ripples ellipse")).toHaveLength(3);
+    await expect.poll(() => document.querySelectorAll(".stage-ripples ellipse").length).toBe(3);
     await userEvent.click(bell);
     await expect.element(page.getByText(`${BELL_TOASTS[1]!.name}: ${BELL_TOASTS[1]!.text}`)).toBeVisible();
     expect(ring()).toBe("b");

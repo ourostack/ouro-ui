@@ -1,4 +1,4 @@
-import { memo, startTransition, useCallback, useEffect, useLayoutEffect, useRef, useState, type JSX, type SVGProps } from "react";
+import { memo, startTransition, useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState, type JSX, type SVGProps } from "react";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Collapsible } from "@/registry/ouro/components/ouro/collapsible/collapsible";
@@ -152,7 +152,9 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
     write(LOG.bell);
   });
 
-  const scene = { depth, band, tanks: full, dived, lights, speed, dives: stream, rings };
+  // The picture follows the controls a frame later: a press repaints its own control first, then
+  // the sea (a deferred render), so no press waits on the porthole's repaint.
+  const scene = useDeferredValue(useMemo(() => ({ depth, band, tanks: full, dived, lights, speed, dives: stream, rings }), [depth, band, full, dived, lights, speed, stream, rings]));
 
   return (
     <div ref={root} className="stage" data-stage="" data-offscreen={offscreen ? "" : undefined}>

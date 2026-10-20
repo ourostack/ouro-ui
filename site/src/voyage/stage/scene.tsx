@@ -79,7 +79,7 @@ const PLAYBACK: Record<Speed, number> = { stop: 1, half: 1, full: 2.4 };
  * --d (depth, 0 to 1) on the root; CSS does the rest. The layers themselves never re-render, so a
  * control costs a few attributes, not a new picture.
  */
-export function Scene({ state, label, description, motto }: { state: SceneState; label: string; description: string; motto: string }): JSX.Element {
+export const Scene = memo(function Scene({ state, label, description, motto }: { state: SceneState; label: string; description: string; motto: string }): JSX.Element {
   const d = state.depth / MAX_DEPTH;
   const root = useRef<SVGSVGElement>(null);
   // Speed changes the fish's playback rate, so they speed up from where they are instead of jumping.
@@ -117,7 +117,7 @@ export function Scene({ state, label, description, motto }: { state: SceneState;
       <Rim motto={motto} />
     </svg>
   );
-}
+});
 
 const Defs = memo(function Defs(): JSX.Element {
   return (

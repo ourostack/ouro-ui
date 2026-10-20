@@ -22,6 +22,7 @@ import { GITHUB, href } from "../paths";
 import type { Mode, PresetName } from "../themes/prepaint";
 import { ByPreset, presetList, Swatch } from "./presets";
 import { useSiteTheme } from "./theme-store";
+import { openXray, setXray, useXray } from "./xray-store";
 
 /** Surfaced is light, Submerged is dark: the SegmentedControl's two segments. */
 export const MODE_ITEMS = [
@@ -101,7 +102,7 @@ export function ThemePicker(): JSX.Element {
 }
 
 /** ⌘K: the pages, the presets, light and dark, and X-ray. */
-function SiteCommand({ onXray }: { onXray: () => void }): JSX.Element {
+function SiteCommand(): JSX.Element {
   const [open, setOpen] = useCommandShortcut("mod+k");
   const { setPreset, setMode } = useSiteTheme();
   const go = useCallback((url: string) => () => window.location.assign(url), []);
@@ -141,15 +142,20 @@ function SiteCommand({ onXray }: { onXray: () => void }): JSX.Element {
               { label: "Submerge (dark)", onSelect: () => setMode("dark"), keywords: ["dark mode", "submerged"] },
             ],
           },
-          { label: "Tools", items: [{ label: "X-ray", onSelect: onXray, keywords: ["inspector", "outline", "components"] }] },
+          { label: "Tools", items: [{ label: "X-ray", onSelect: openXray, keywords: ["inspector", "outline", "components"] }] },
         ]}
       />
     </>
   );
 }
 
+/** X-ray's Switch: the only part of the header that reads it, so turning it on re-renders only this. */
+function XraySwitch(): JSX.Element {
+  return <Switch label="X-ray" checked={useXray()} onCheckedChange={setXray} />;
+}
+
 /** The voyage page's header, built from Ouro HX: Navbar, Popover, RadioGroup, SegmentedControl, Switch, Command and Kbd. */
-export function VoyageHeader({ xray, onXrayChange }: { xray: boolean; onXrayChange: (on: boolean) => void }): JSX.Element {
+export function VoyageHeader(): JSX.Element {
   return (
     <Navbar
       label="Site"
@@ -170,9 +176,9 @@ export function VoyageHeader({ xray, onXrayChange }: { xray: boolean; onXrayChan
         <>
           <ThemePicker />
           <div className="max-sm:hidden">
-            <Switch label="X-ray" checked={xray} onCheckedChange={onXrayChange} />
+            <XraySwitch />
           </div>
-          <SiteCommand onXray={() => onXrayChange(true)} />
+          <SiteCommand />
         </>
       }
     />
