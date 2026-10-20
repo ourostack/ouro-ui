@@ -172,6 +172,104 @@ describe("expectMotion", () => {
     expect(taken()).toEqual([]);
   });
 
+  /** What the browser reports beginning and ending on the element itself, as `"<event> <property or animation name>"`. */
+  function heard(element: Element): string[] {
+    const events: string[] = [];
+    for (const type of ["transitionrun", "transitionend", "transitioncancel", "animationstart", "animationend", "animationcancel"]) {
+      element.addEventListener(type, (event) => {
+        if (event.target === element) events.push(`${type} ${event instanceof TransitionEvent ? event.propertyName : (event as AnimationEvent).animationName}`);
+      });
+    }
+    return events;
+  }
+
+  // A restyle cancels a transition and starts one in its place; on a slow frame that one can run
+  // its whole course before the helper reads again. Finishing it (`finish()`) stands for that frame.
+  it("waits for a transition restarted and ended between two reads", async () => {
+    const tick = part("tick", "opacity 400ms linear");
+    const ran = heard(tick);
+    tick.style.opacity = "1";
+    const [cancelled] = tick.getAnimations();
+    const proof = expectMotion(tick, { stem: "checkbox", state: "data-checked", properties: ["opacity"], reduced: false });
+    tick.style.opacity = "0.5";
+    flushStyle(tick);
+    const [replacement] = tick.getAnimations();
+    expect(replacement).not.toBe(cancelled);
+    expect(cancelled!.playState).toBe("idle");
+    replacement!.finish();
+    await proof;
+    expect(ran).toEqual(expect.arrayContaining(["transitionrun opacity", "transitionend opacity"]));
+    expect(taken()).toHaveLength(1);
+  });
+
+  it("waits for a CSS animation restarted and ended between two reads", async () => {
+    const style = document.createElement("style");
+    style.textContent = "@keyframes ouro-motion-restart { from { opacity: 0 } to { opacity: 1 } }";
+    document.head.append(style);
+    mounted.push(style);
+    const tick = part("tick", "none");
+    const ran = heard(tick);
+    tick.style.animation = "ouro-motion-restart 400ms linear";
+    const [cancelled] = tick.getAnimations();
+    const proof = expectMotion(tick, { stem: "checkbox", state: "data-checked", properties: ["opacity"], reduced: false });
+    tick.style.animation = "none";
+    flushStyle(tick);
+    tick.style.animation = "ouro-motion-restart 400ms linear";
+    flushStyle(tick);
+    const [replacement] = tick.getAnimations();
+    expect(replacement).not.toBe(cancelled);
+    replacement!.finish();
+    await proof;
+    expect(ran).toEqual(expect.arrayContaining(["animationstart ouro-motion-restart", "animationend ouro-motion-restart"]));
+    expect(taken()).toHaveLength(1);
+  });
+
+  it("fails when a transition is cancelled before the next read with nothing in its place", async () => {
+    const tick = part("tick", "opacity 400ms linear");
+    tick.style.opacity = "1";
+    const proof = expectMotion(tick, { stem: "checkbox", state: "data-checked", properties: ["opacity"], reduced: false });
+    tick.style.transition = "none";
+    flushStyle(tick);
+    await expect(proof).rejects.toThrow(/checkbox data-checked tick: opacity was cancelled 0% of the way through its duration with nothing in its place/);
+    expect(taken()).toEqual([]);
+  });
+
+  it("fails when what ran and ended between two reads in a cancelled transition's place is another property", async () => {
+    const tick = part("tick", "opacity 400ms linear, scale 400ms linear", { opacity: "0", scale: "0.5" });
+    const ran = heard(tick);
+    tick.style.opacity = "1";
+    const proof = expectMotion(tick, { stem: "checkbox", state: "data-checked", properties: ["opacity"], reduced: false });
+    tick.style.transition = "scale 400ms linear";
+    tick.style.scale = "1";
+    flushStyle(tick);
+    const [scale] = tick.getAnimations();
+    expect((scale as CSSTransition).transitionProperty).toBe("scale");
+    scale!.finish();
+    await expect(proof).rejects.toThrow(/checkbox data-checked tick: opacity was cancelled 0% of the way through its duration with nothing in its place/);
+    expect(ran).toContain("transitionend scale");
+    expect(taken()).toEqual([]);
+  });
+
+  it("fails when the transition that took a cancelled one's place is itself cancelled before the next read", async () => {
+    const tick = part("tick", "opacity 400ms linear");
+    const ran = heard(tick);
+    tick.style.opacity = "1";
+    // Runs in the next frame before the helper reads it: after the browser has started the
+    // replacement (its transitionrun is sent first), it cancels it.
+    requestAnimationFrame(() => {
+      tick.style.transition = "none";
+      flushStyle(tick);
+    });
+    const proof = expectMotion(tick, { stem: "checkbox", state: "data-checked", properties: ["opacity"], reduced: false });
+    tick.style.opacity = "0.5";
+    flushStyle(tick);
+    await expect(proof).rejects.toThrow(/checkbox data-checked tick: opacity was cancelled 0% of the way through its duration with nothing in its place/);
+    expect(ran).toContain("transitionrun opacity");
+    await expect.poll(() => ran).toContain("transitioncancel opacity");
+    expect(ran).not.toContain("transitionend opacity");
+    expect(taken()).toEqual([]);
+  });
+
   /**
    * Starts a 1s eased opacity transition, lets the helper see it with exactly `elapsed` of its time
    * run, then cancels it while it runs. The transition is held at that time for the frame the
