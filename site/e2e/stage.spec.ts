@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { BELL_TOASTS, LOG, STAGE_CONTROLS, STAGE_COPY, TANKS } from "../src/voyage/stage/copy";
+import { BELL_TOASTS, LOG, OPENING_LOG, STAGE_CONTROLS, STAGE_COPY, TANKS } from "../src/voyage/stage/copy";
 
 // The porthole stage against the production build (site-design.md, "Verification in CI"): each
 // control in STAGE_CONTROLS has a test named "control: <id>" that operates it and asserts what it
@@ -29,7 +29,8 @@ async function open(page: Page): Promise<void> {
 
 const scene = (page: Page) => page.locator(".stage-scene");
 const porthole = (page: Page) => page.locator(".stage-porthole");
-const lastLog = (page: Page) => page.locator(".stage-log-newest [data-ouro='message']").last();
+/** The crew's newest line, under the porthole. */
+const lastLog = (page: Page) => page.locator("[data-stage-crew]");
 const [FORE, MIDDLE, AFT] = TANKS;
 const tank = (page: Page, name: string) => page.getByRole("switch", { name, exact: true });
 const diveButton = (page: Page) => page.getByRole("button", { name: STAGE_COPY.dive, exact: true });
@@ -181,19 +182,19 @@ test.describe("each control on the stage", () => {
     await expect(page.locator(".stage-hidden")).toHaveCSS("opacity", "0");
   });
 
-  test("control: log unfolds the earlier lines", async ({ page }) => {
+  test("control: log unfolds the crew's lines", async ({ page }) => {
     await open(page);
     const fold = page.getByRole("button", { name: /^Ship's log \(/ });
-    // Folded until something happens: no line shows, and the welcome waits under "Ship's log (1)".
+    // At rest the captain's welcome shows under the porthole, and the log holds it.
     await expect(fold).toHaveAccessibleName(STAGE_COPY.logAll(1));
-    await expect(page.locator(".stage-log-newest [data-ouro='message']")).toHaveCount(0);
+    await expect(lastLog(page)).toContainText(OPENING_LOG[0]!.text);
     await page.getByRole("radio", { name: "Full" }).click();
     await page.getByRole("radio", { name: "Stop" }).click();
-    await expect(fold).toHaveAccessibleName(STAGE_COPY.logFold(2));
-    // A wide screen's fold (a phone folds the whole log in another, which this width hides).
-    const earlier = page.locator(".stage-fold-wide").getByText(LOG.speed.full.text);
+    await expect(fold).toHaveAccessibleName(STAGE_COPY.logAll(3));
+    await expect(lastLog(page)).toContainText(LOG.speed.stop.text);
+    const earlier = page.locator(".stage-log-fold").getByText(LOG.speed.full.text);
     // Folded, the panel takes no room (WebKit, without hidden=until-found, still reports its text's box).
-    const height = () => page.locator(".stage-fold-wide [data-ouro-collapsible-panel]").evaluate((panel) => panel.getBoundingClientRect().height);
+    const height = () => page.locator(".stage-log-fold [data-ouro-collapsible-panel]").evaluate((panel) => panel.getBoundingClientRect().height);
     await expect.poll(height).toBe(0);
     await fold.click();
     await expect(earlier).toBeVisible();

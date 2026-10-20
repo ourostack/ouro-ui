@@ -1,12 +1,15 @@
 import { memo, startTransition, useCallback, useDeferredValue, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type JSX, type SVGProps } from "react";
+import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Collapsible } from "@/registry/ouro/components/ouro/collapsible/collapsible";
+import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
 import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-control/segmented-control";
 import { Slider } from "@/registry/ouro/components/ouro/slider/slider";
 import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
+import { GITHUB } from "../../paths";
 import { bandAt, BANDS, BELL_TOASTS, describeScene, LOG, MAX_DEPTH, OPENING_LOG, SPEEDS, STAGE_COPY, TANKS, type LogLine, type Speed } from "./copy";
 import { Scene } from "./scene";
 import "./stage.css";
@@ -18,8 +21,11 @@ interface Entry extends LogLine {
 /** Where a dive takes the porthole: the top of the midnight water, where the lantern finds things. */
 const DIVE_DEPTH = 200;
 
-/** The ship's log keeps its newest three lines; the newest shows, the rest fold away. */
-const KEEP = 3;
+/** The ship's log keeps its newest five lines; the newest is the crew line under the porthole. */
+const KEEP = 5;
+
+/** Where the stage's own source lives, for "Source" beside "See how it's built". */
+export const STAGE_SOURCE = `${GITHUB}/tree/main/site/src/voyage/stage`;
 
 function BellIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
   return (
@@ -160,31 +166,39 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
   return (
     <div ref={root} className="stage" data-stage="" data-offscreen={offscreen ? "" : undefined}>
       <div className="stage-frame">
-        {/* On a phone the porthole stays under the header while the console scrolls beneath it (stage.css), so every press shows its effect without the page jumping. */}
+        {/* On a phone the porthole and the crew's newest line stay under the header while the console scrolls beneath them (stage.css), so every press shows its effect without the page jumping. */}
         <div className="stage-window">
           <div className="stage-porthole">
             <Scene state={scene} label={STAGE_COPY.sceneLabel} description={describeScene(scene)} motto={STAGE_COPY.motto} />
           </div>
-        </div>
-        <div className="stage-real" data-stage-control="xray">
-          <span>{STAGE_COPY.real}</span>
-          <span aria-hidden="true" className="stage-real-dash">
-            —
-          </span>
-          <Button variant="plain" tone="primary" size="md" className="h-auto min-h-0 px-1" onClick={onXray}>
-            {STAGE_COPY.xray}
-          </Button>
+          <CrewLine entry={log.at(-1)!} />
         </div>
         <section aria-label={STAGE_COPY.rail} className="stage-console">
-          {/* One instrument row: how deep, in what water, and how fast. */}
-          <div className="stage-instruments">
+          {/* Row one: how deep, in what water, and how fast. Labels share a baseline, controls a centre line. */}
+          <div className="stage-row stage-instruments">
+            <DepthReadout depth={depth} />
+            <span className="stage-heading stage-speed-head" aria-hidden="true">
+              {STAGE_COPY.speed}
+            </span>
             <DepthControl depth={depth} onChange={onDepth} onCommitted={onDepthCommitted} />
             <SpeedControl speed={speed} onChange={onSpeed} />
           </div>
           <Ballast tanks={tanks} full={full} dived={dived} onTank={onTank} onDive={onDive} />
-          <div className="stage-deck">
+          <div className="stage-row stage-deck">
             <LightsControl lights={lights} onChange={onLights} />
             <ShipLog log={log} rings={rings} onRing={onBell} />
+          </div>
+          <div className="stage-row stage-real" data-stage-control="xray">
+            <span>{STAGE_COPY.real}</span>
+            <span className="stage-real-links">
+              <Button variant="plain" tone="primary" size="sm" className="h-auto min-h-0 px-1" onClick={onXray}>
+                {STAGE_COPY.xray}
+              </Button>
+              <span aria-hidden="true">·</span>
+              <Link href={STAGE_SOURCE} external tone="primary" className="px-1">
+                {STAGE_COPY.source}
+              </Link>
+            </span>
           </div>
         </section>
       </div>
@@ -192,21 +206,42 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
   );
 }
 
-const DepthControl = memo(function DepthControl({ depth, onChange, onCommitted }: { depth: number; onChange: (value: number) => void; onCommitted: (value: number) => void }): JSX.Element {
+/**
+ * The crew's newest line, under the porthole: who said it and what, read out when it changes. At
+ * rest it is the captain's welcome, which says what to do first.
+ */
+const CrewLine = memo(function CrewLine({ entry }: { entry: Entry }): JSX.Element {
+  return (
+    <p className="stage-crew" data-stage-crew="" aria-live="polite" aria-atomic="true">
+      <Avatar name={entry.name} alt="" size="sm" />
+      <span className="stage-crew-words">
+        <span className="stage-crew-name">{entry.name}:</span> {entry.text}
+      </span>
+    </p>
+  );
+});
+
+/** Depth's label and its readout: the water's name and the fathoms, on the label's baseline. */
+const DepthReadout = memo(function DepthReadout({ depth }: { depth: number }): JSX.Element {
   const bandLabel = BANDS.find((entry) => entry.band === bandAt(depth))!.label;
   return (
-    <div className="stage-group stage-depth" data-stage-control="depth">
-      <div className="stage-depth-head">
-        <span className="stage-heading" aria-hidden="true">
-          {STAGE_COPY.depth}
+    <div className="stage-depth-head">
+      <span className="stage-heading" aria-hidden="true">
+        {STAGE_COPY.depth}
+      </span>
+      <output className="stage-readout" aria-live="off" data-stage-readout="">
+        <span className="stage-band-name" data-stage-band="">
+          {bandLabel}
         </span>
-        <output className="stage-readout" aria-live="off" data-stage-readout="">
-          <span className="stage-band-name" data-stage-band="">
-            {bandLabel}
-          </span>
-          <span className="stage-numeral">{depth}</span> <span className="stage-unit">fathoms</span>
-        </output>
-      </div>
+        <span className="stage-numeral">{depth}</span> <span className="stage-unit">fathoms</span>
+      </output>
+    </div>
+  );
+});
+
+const DepthControl = memo(function DepthControl({ depth, onChange, onCommitted }: { depth: number; onChange: (value: number) => void; onCommitted: (value: number) => void }): JSX.Element {
+  return (
+    <div className="stage-depth" data-stage-control="depth">
       <Slider
         label={STAGE_COPY.depth}
         hideLabel
@@ -253,10 +288,12 @@ const TankSwitch = memo(function TankSwitch({ id, label, name, checked, onChange
   return (
     <div className="stage-tank" data-stage-control={`tank-${id}`} data-full={checked ? "" : undefined}>
       <SightGlass full={checked} />
-      <span className="stage-tank-name" aria-hidden="true">
-        {label}
+      <span className="stage-tank-row">
+        <span className="stage-tank-name" aria-hidden="true">
+          {label}
+        </span>
+        <Switch label={name} hideLabel checked={checked} onCheckedChange={(on) => onChange(id, on)} />
       </span>
-      <Switch label={name} hideLabel checked={checked} onCheckedChange={(on) => onChange(id, on)} />
     </div>
   );
 });
@@ -267,10 +304,10 @@ const DiveControl = memo(function DiveControl({ full, dived, onPress }: { full: 
   return (
     <div className="stage-dive" data-stage-control="dive" data-ready={ready ? "" : undefined}>
       <Button
-        size="lg"
+        size="md"
         disabled={full < 3}
-        tone={dived ? "secondary" : "primary"}
-        variant={dived ? "outline" : ready ? "solid" : "soft"}
+        tone={ready ? "primary" : "secondary"}
+        variant={ready ? "solid" : "outline"}
         aria-describedby="stage-dive-hint stage-tank-count"
         className="min-w-28"
         onClick={onPress}
@@ -297,7 +334,7 @@ const DiveControl = memo(function DiveControl({ full, dived, onPress }: { full: 
  */
 const Ballast = memo(function Ballast({ tanks, full, dived, onTank, onDive }: { tanks: Record<TankId, boolean>; full: number; dived: boolean; onTank: (id: TankId, on: boolean) => void; onDive: () => void }): JSX.Element {
   return (
-    <fieldset className="stage-group stage-ballast" style={{ "--fill": full / 3 } as CSSProperties}>
+    <fieldset className="stage-row stage-group stage-ballast" style={{ "--fill": full / 3 } as CSSProperties}>
       <legend className="stage-heading stage-ballast-head">
         {STAGE_COPY.ballast}
         <span id="stage-tank-count" aria-hidden="true" className="stage-readout" data-stage-tank-count="">
@@ -320,9 +357,6 @@ const Ballast = memo(function Ballast({ tanks, full, dived, onTank, onDive }: { 
 const SpeedControl = memo(function SpeedControl({ speed, onChange }: { speed: Speed; onChange: (value: Speed) => void }): JSX.Element {
   return (
     <div className="stage-speed" data-stage-control="speed">
-      <span className="stage-heading" aria-hidden="true">
-        {STAGE_COPY.speed}
-      </span>
       <SegmentedControl label={STAGE_COPY.speed} hideLabel items={SPEEDS} value={speed} onValueChange={(value) => onChange(value as Speed)} />
     </div>
   );
@@ -348,52 +382,27 @@ const LogEntry = memo(function LogEntry({ entry }: { entry: Entry }): JSX.Elemen
 });
 
 /**
- * The ship's log. It stays folded under "Ship's log" until something happens; then, on a wide
- * screen, the newest line shows and the older ones fold under "Ship's log (n more)". A phone keeps
- * every line folded, so the console stays short under the porthole (stage.css shows one fold or the
- * other). The bell rings from here.
+ * The ship's log: every line the crew has said lately, folded under "Ship's log (n)" (the newest
+ * also shows under the porthole). The bell rings from here.
  */
 const ShipLog = memo(function ShipLog({ log, rings, onRing }: { log: Entry[]; rings: number; onRing: () => void }): JSX.Element {
   const [open, setOpen] = useState(false);
-  const [openAll, setOpenAll] = useState(false);
-  // Something has happened once the newest line is not one the log opened with.
-  const heard = log.at(-1)!.id >= OPENING_LOG.length;
-  const folded = heard ? log.slice(0, -1) : log;
-  const newest = heard ? log.slice(-1) : [];
   return (
-    <div className="stage-logbook" data-heard={heard ? "" : undefined}>
-      <div className="stage-log-now">
-        <MessageList label={`${STAGE_COPY.log}, newest line`} className="stage-log stage-log-newest">
-          {newest.map((entry) => (
-            <LogEntry key={entry.id} entry={entry} />
-          ))}
-        </MessageList>
-      </div>
+    <>
       <div className="stage-log-fold" data-stage-control="log">
-        <div className="stage-fold-wide">
-          <Collapsible title={heard ? STAGE_COPY.logFold(folded.length) : STAGE_COPY.logAll(folded.length)} open={open} onOpenChange={setOpen} disabled={folded.length === 0}>
-            <MessageList label={heard ? `${STAGE_COPY.log}, earlier lines` : STAGE_COPY.log} className="stage-log">
-              {folded.map((entry) => (
-                <LogEntry key={entry.id} entry={entry} />
-              ))}
-            </MessageList>
-          </Collapsible>
-        </div>
-        <div className="stage-fold-narrow">
-          <Collapsible title={STAGE_COPY.logAll(log.length)} open={openAll} onOpenChange={setOpenAll}>
-            <MessageList label={STAGE_COPY.log} className="stage-log">
-              {log.map((entry) => (
-                <LogEntry key={entry.id} entry={entry} />
-              ))}
-            </MessageList>
-          </Collapsible>
-        </div>
+        <Collapsible title={STAGE_COPY.logAll(log.length)} open={open} onOpenChange={setOpen}>
+          <MessageList label={STAGE_COPY.log} className="stage-log">
+            {log.map((entry) => (
+              <LogEntry key={entry.id} entry={entry} />
+            ))}
+          </MessageList>
+        </Collapsible>
       </div>
       <div className="stage-bell" data-stage-control="bell" data-ring={rings === 0 ? undefined : rings % 2 ? "a" : "b"}>
         <Button variant="soft" tone="secondary" size="md" startIcon={BellIcon} onClick={onRing}>
           {STAGE_COPY.bell}
         </Button>
       </div>
-    </div>
+    </>
   );
 });

@@ -1,10 +1,11 @@
 import { Suspense, type JSX } from "react";
 import proof, { install } from "virtual:site-proof";
+import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { VOYAGE_HERO } from "../copy";
-import { href } from "../paths";
+import { GITHUB, href } from "../paths";
 import { latestRelease } from "../latest-release";
 import { Container } from "./layout";
 import { Stage } from "./stage/stage";
@@ -25,6 +26,9 @@ const title = (item: string) => item.charAt(0).toUpperCase() + item.slice(1);
  * installs the whole library. The count is the release's (proof.mts), never typed in.
  */
 export const INSTALL_CAPTION = `Installs with the shadcn CLI. ${title(install.item)} is one of ${install.count}.`;
+
+/** The release the command pins, beside it, linking to that release's notes. */
+export const RELEASE_HREF = `${GITHUB}/releases/tag/${latestRelease}`;
 
 function CopyIcon(): JSX.Element {
   return (
@@ -88,9 +92,14 @@ function Install(): JSX.Element {
           Copy
         </Button>
       </div>
-      <p className="site-install-caption" data-site-install-caption="">
-        {INSTALL_CAPTION}
-      </p>
+      <div className="site-install-foot">
+        <p className="site-install-caption" data-site-install-caption="">
+          {INSTALL_CAPTION}
+        </p>
+        <Badge href={RELEASE_HREF} tone="primary" variant="soft" data-site-release="">
+          {`${latestRelease} · latest release`}
+        </Badge>
+      </div>
     </div>
   );
 }
@@ -131,7 +140,7 @@ export function Hero({ onXray }: { onXray: () => void }): JSX.Element {
               <span className="sr-only"> · </span>
               <span className="site-hero-status">{EYEBROW.split(" · ")[1]}</span>
             </p>
-            <h1 id="hero-title" className="site-h1 site-hero-title mt-4 lg:mt-5">
+            <h1 id="hero-title" className="site-h1 site-hero-title mt-3 lg:mt-5">
               {VOYAGE_HERO.title.map((sentence, index) => (
                 <span key={sentence} className={index === 0 ? "site-hero-line" : "site-hero-line site-hero-line-second"}>
                   {sentence}
@@ -139,11 +148,11 @@ export function Hero({ onXray }: { onXray: () => void }): JSX.Element {
                 </span>
               ))}
             </h1>
-            <p className="site-lede mt-4 max-w-[44ch] lg:mt-5">{VOYAGE_HERO.subline}</p>
-            <div className="mt-5 max-w-[36rem] lg:mt-7">
+            <p className="site-lede mt-3 max-w-[44ch] lg:mt-5">{VOYAGE_HERO.subline}</p>
+            <div className="mt-4 max-w-[36rem] lg:mt-7">
               <Install />
             </div>
-            <div className="mt-5 flex flex-wrap gap-3 lg:mt-6">
+            <div className="mt-4 flex flex-wrap gap-3 lg:mt-6">
               <Button href={href("/docs/installing/")} size="lg">
                 Come aboard
               </Button>

@@ -115,14 +115,40 @@
     font-feature-settings: normal;
   }
 
-  /* The hero: copy on the left, the exhibit on the right; stacked in reading order on a phone. */
+  /*
+   * The hero: copy on the left, the exhibit on the right; stacked in reading order on a phone. Its
+   * sea: a quiet wash of the primary colour, brightest behind the porthole, so the stage lights
+   * the page around it (each preset's own primary).
+   */
   .site-hero {
-    padding-block: 1.25rem 4rem;
+    --site-sea: color-mix(in oklab, var(--primary) 5%, var(--background));
+    --site-sea-light: color-mix(in oklab, var(--primary) 16%, transparent);
+    padding-block: 1rem 4rem;
+    background:
+      radial-gradient(52rem 34rem at 76% 30%, var(--site-sea-light), transparent 70%),
+      linear-gradient(to bottom, var(--site-sea), var(--background) 92%);
+  }
+  .dark .site-hero {
+    --site-sea: color-mix(in oklab, var(--primary) 7%, var(--background));
+    --site-sea-light: color-mix(in oklab, var(--primary) 14%, transparent);
+  }
+  @media (max-width: 63.99rem) {
+    .site-hero {
+      background: linear-gradient(to bottom, var(--site-sea), var(--background) 60%);
+    }
+    /* A phone's first screen holds the headline, the command, both buttons and the porthole. */
+    .site-hero .site-lede {
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+    .site-hero-title {
+      font-size: clamp(2rem, 8.2vw, 3rem);
+    }
   }
   .site-hero-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    gap: 1.75rem;
+    gap: 1rem;
   }
   .site-hero-copy {
     min-width: 0;
@@ -239,6 +265,13 @@
       align-self: start;
     }
   }
+  .site-install-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.375rem 1rem;
+  }
   .site-install-caption {
     margin: 0;
     font-size: 0.875rem;
@@ -270,7 +303,7 @@
   }
   @media (min-width: 64rem) {
     .site-hero {
-      padding-block: 1rem 5rem;
+      padding-block: 1.5rem 5rem;
     }
     .site-hero-grid {
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -278,10 +311,11 @@
       column-gap: 3.5rem;
       row-gap: 2rem;
     }
+    /* The eyebrow and the stage's top share a line; below it, the two columns share bands. */
     .site-hero-copy {
       grid-column: 1;
       grid-row: 1;
-      padding-top: 2.5rem;
+      padding-top: 0.75rem;
     }
     .site-hero-stage {
       grid-column: 2;
