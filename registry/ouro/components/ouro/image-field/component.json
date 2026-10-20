@@ -1,0 +1,11 @@
+{
+  "order": 2420,
+  "components": ["image-field"],
+  "controls": {
+    "image-field": [
+      {"part": "input", "role": "button", "portal": false},
+      {"part": "choose", "role": "button", "portal": false},
+      {"part": "remove", "role": "button", "portal": false}
+    ]
+  }
+}

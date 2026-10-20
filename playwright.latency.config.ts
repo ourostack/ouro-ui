@@ -8,6 +8,8 @@ export default defineConfig({
   testMatch: /\.latency\.spec\.ts$/,
   outputDir: "test-results/latency",
   workers: 1,
+  // Each control is pressed 22 times, each press settling before the next (site/e2e/latency.ts).
+  timeout: 120_000,
   fullyParallel: false,
   retries: 0,
   forbidOnly: !!process.env["CI"],

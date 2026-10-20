@@ -1,26 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
 import { BELL_TOASTS, LOG, STAGE_CONTROLS, STAGE_COPY, TANKS } from "../src/voyage/stage/copy";
+import { diagnostics } from "./diagnostics";
 
 // The porthole stage against the production build (site-design.md, "Verification in CI"): each
 // control in STAGE_CONTROLS has a test named "control: <id>" that operates it and asserts what it
 // visibly changes (site/scripts/stage-census.test.mjs fails when one is missing), every operable
 // element on the stage is one of those controls, touch works on phones, nothing moves under reduced
 // motion, and the fish rest off screen. Each control's latency is stage.latency.spec.ts's.
-
-/**
- * WebKit fetches a preloaded font again for its @font-face instead of using the preload, then warns
- * a few seconds after load that the preload went unused. Chromium uses it; the warning is WebKit's.
- */
-const WEBKIT_UNUSED_FONT_PRELOAD = /^The resource \S+\/fonts\/[\w.-]+\.woff2 was preloaded using link preload but not used within a few seconds/;
-
-function diagnostics(page: Page): string[] {
-  const errors: string[] = [];
-  page.on("pageerror", (error) => errors.push(error.message));
-  page.on("console", (message) => {
-    if ((message.type() === "error" || message.type() === "warning") && !WEBKIT_UNUSED_FONT_PRELOAD.test(message.text())) errors.push(message.text());
-  });
-  return errors;
-}
 
 async function open(page: Page): Promise<void> {
   await page.goto("voyage/");
@@ -58,6 +44,24 @@ async function changesThePicture(page: Page, act: () => Promise<void>): Promise<
   await act();
   const after = await picture(page);
   expect(after.equals(before), "the porthole looks different").toBe(false);
+}
+
+/**
+ * Records each CSS animation that starts from now on, and returns which ones started on the elements
+ * a selector matches. A test can't look for a one-off animation still running: it lasts under a
+ * second, less than the waits before the look can take on a busy runner.
+ */
+async function recordAnimations(page: Page): Promise<(selector: string) => Promise<string[]>> {
+  await page.evaluate(() => {
+    const started: Array<{ target: Element; name: string }> = [];
+    (window as unknown as { __started: typeof started }).__started = started;
+    document.addEventListener("animationstart", (event) => started.push({ target: event.target as Element, name: event.animationName }));
+  });
+  return (selector) =>
+    page.evaluate((selector) => {
+      const started = (window as unknown as { __started: Array<{ target: Element; name: string }> }).__started;
+      return [...new Set(started.filter(({ target }) => target.matches(selector)).map(({ name }) => name))];
+    }, selector);
 }
 
 async function fillTanks(page: Page): Promise<void> {
@@ -204,13 +208,14 @@ test.describe("each control on the stage", () => {
 
   test("control: bell brings a toast from the crew, rings, and sends rings through the water", async ({ page }) => {
     await open(page);
+    const started = await recordAnimations(page);
     await page.getByRole("button", { name: STAGE_COPY.bell }).click();
     await expect(page.getByText(`${BELL_TOASTS[0]!.name}: ${BELL_TOASTS[0]!.text}`)).toBeVisible();
     await expect(lastLog(page)).toContainText(LOG.bell.text);
     await expect(page.locator("[data-stage-control='bell']")).toHaveAttribute("data-ring", "a");
     await expect(page.locator(".stage-ripples ellipse")).toHaveCount(3);
     // Under reduced motion the bell glows instead of swinging.
-    expect(await page.locator(".stage-bell-body").evaluate((element) => element.getAnimations().map((animation) => (animation as CSSAnimation).animationName))).toEqual(["stage-bell-glow-a"]);
+    await expect.poll(() => started(".stage-bell-body")).toEqual(["stage-bell-glow-a"]);
   });
 });
 
@@ -376,6 +381,9 @@ test.describe("the ballast manifold and the bell's payoffs", () => {
   test("each tank floods visibly: its glass fills, the pipe fills a third, and the crew says so", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await open(page);
+    // A busy machine can style the page before its stylesheet arrives, and the glasses and the pipe
+    // then drain from unstyled (full) to empty through their transitions. Measure them at rest.
+    await settled(page);
     expect(await waterLevel(page, "fore")).toBe(0);
     expect(await pipeFill(page)).toBe(0);
     await tank(page, FORE.name).click();
@@ -404,34 +412,35 @@ test.describe("the ballast manifold and the bell's payoffs", () => {
     const background = (locator: ReturnType<Page["locator"]>) => locator.evaluate((element) => getComputedStyle(element).backgroundColor);
     const solid = await background(page.getByRole("link", { name: "Come aboard" }));
     expect(await background(diveButton(page))).not.toBe(solid);
+    const started = await recordAnimations(page);
     await fillTanks(page);
     await expect(page.locator("[data-stage-control='dive']")).toHaveAttribute("data-ready", "");
     await expect.poll(() => background(diveButton(page))).toBe(solid);
-    expect(await diveButton(page).evaluate((element) => element.getAnimations().map((animation) => (animation as CSSAnimation).animationName))).toContain("stage-dive-ready");
+    await expect.poll(() => started("[data-stage-control='dive'] button")).toContain("stage-dive-ready");
   });
 
   test("the bell sends sonar through the water, the creatures start, and the crew answers", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await open(page);
+    const started = await recordAnimations(page);
     await page.getByRole("button", { name: STAGE_COPY.bell }).click();
     await expect(scene(page)).toHaveAttribute("data-ring", "a");
     await expect(page.getByText(`${BELL_TOASTS[0]!.name}: ${BELL_TOASTS[0]!.text}`)).toBeVisible();
     await expect(lastLog(page)).toContainText(LOG.bell.text);
-    const names = (selector: string) => page.locator(selector).evaluateAll((elements) => elements.flatMap((element) => element.getAnimations()).map((animation) => (animation as CSSAnimation).animationName));
-    expect(await names(".stage-ripples ellipse")).toContain("stage-ripple");
-    expect(await names(".stage-band-sunlit .stage-react")).toContain("stage-startle-a");
+    await expect.poll(() => started(".stage-ripples ellipse")).toContain("stage-ripple");
+    await expect.poll(() => started(".stage-band-sunlit .stage-react")).toContain("stage-startle-a");
     await page.getByRole("button", { name: STAGE_COPY.bell }).click();
     await expect(scene(page)).toHaveAttribute("data-ring", "b");
-    expect(await names(".stage-band-sunlit .stage-react")).toContain("stage-startle-b");
+    await expect.poll(() => started(".stage-band-sunlit .stage-react")).toContain("stage-startle-b");
   });
 
   test("under reduced motion the bell's creatures flicker instead of starting", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await open(page);
+    const started = await recordAnimations(page);
     await page.getByRole("button", { name: STAGE_COPY.bell }).click();
     await expect(scene(page)).toHaveAttribute("data-ring", "a");
-    const names = await page.locator(".stage-band-sunlit .stage-react").evaluateAll((elements) => elements.flatMap((element) => element.getAnimations()).map((animation) => (animation as CSSAnimation).animationName));
-    expect(names).toContain("stage-startle-fade-a");
+    await expect.poll(() => started(".stage-band-sunlit .stage-react")).toContain("stage-startle-fade-a");
   });
 });
 
@@ -445,10 +454,17 @@ test("on a phone, keyboard focus on the stage always stops below the pinned port
   });
   for (let step = 0; step < 4; step++) {
     await page.keyboard.press("Shift+Tab");
-    const place = await page.evaluate(() => {
+    const place = await page.evaluate(async () => {
+      // WebKit scrolls to a newly focused element from a zero-delay timer, not during focus
+      // (LocalFrameView::scheduleScrollToFocusedElement), and reading layout doesn't run it early. On a
+      // busy runner this script can run before that timer and see where the element was before the
+      // scroll. Measure after it: a zero-delay timer set now fires after the one focus set.
+      await new Promise((resolve) => setTimeout(resolve, 0));
       const focused = document.activeElement as HTMLElement;
       if (!focused.closest("[data-stage]")) return null;
-      return { top: focused.getBoundingClientRect().top, glass: document.querySelector(".stage-window")!.getBoundingClientRect().bottom, name: focused.getAttribute("aria-label") ?? focused.textContent };
+      const labelledBy = focused.getAttribute("aria-labelledby");
+      const name = focused.getAttribute("aria-label") ?? (labelledBy && document.getElementById(labelledBy)?.textContent) ?? focused.textContent;
+      return { top: focused.getBoundingClientRect().top, glass: document.querySelector(".stage-window")!.getBoundingClientRect().bottom, name };
     });
     if (!place) break;
     expect(place.top, `${place.name} is below the porthole`).toBeGreaterThanOrEqual(place.glass - 1);

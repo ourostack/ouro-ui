@@ -1,0 +1,1 @@
+- Fixed: Navbar's overflow tests use labels too long to fit at 768px in any font, so they pass in an app whose theme sets a narrower font.

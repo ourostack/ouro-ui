@@ -1,0 +1,11 @@
+{
+  "order": 2410,
+  "components": ["image-cropper"],
+  "controls": {
+    "image-cropper": [
+      {"part": "area", "role": "application", "portal": true},
+      {"part": "cancel", "role": "button", "portal": true},
+      {"part": "save", "role": "button", "portal": true}
+    ]
+  }
+}

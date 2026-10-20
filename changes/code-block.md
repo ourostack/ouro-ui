@@ -1,0 +1,1 @@
+- New: `CodeBlock`, code or a command in the theme's monospace font on a muted surface, with a caption and a copy button; long lines scroll sideways (or wrap with `wrap`) and an overflowing block is a keyboard tab stop.

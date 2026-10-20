@@ -1,0 +1,1 @@
+- New: `useTimer` and `formatDuration` (`lib-use-timer`), the clock-anchored countdown under `Timer`, shared by `timerId` across components and tabs; and `chime`, `createChimeContext` and `buzz` (`lib-feedback`), a short alert sound and vibration that never throw.

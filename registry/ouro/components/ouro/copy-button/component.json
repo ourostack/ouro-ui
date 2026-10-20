@@ -1,0 +1,9 @@
+{
+  "order": 2200,
+  "components": ["copy-button"],
+  "controls": {
+    "copy-button": [
+      {"part": "trigger", "role": "button", "portal": false}
+    ]
+  }
+}
