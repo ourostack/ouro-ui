@@ -2,7 +2,7 @@
 
 # RelativeTime
 
-How long ago (or how soon) something happens, in the reader's language: "3 days ago", "yesterday", "in 5 minutes", "now", kept current while it shows. It is a `<time>` with the exact instant, and its `title` gives the full local date and time. The server writes the UTC date and hydration repeats it, so the markup matches; the browser then shows the relative time. A calendar date with no time (`"2026-06-01"`) counts whole days from the reader's own today ("tomorrow", "in 3 days"), and its `title` and `<time>` carry that day, never moved into a time zone.
+How long ago (or how soon) something happens, in the reader's language: "3 days ago", "yesterday", "in 5 minutes", "now", kept current while it shows. It is a `<time>` with the exact instant, and its `title` gives the full local date and time. The server writes the UTC date (in en-US unless `locale` is set) and hydration repeats it, so the markup matches; the browser then shows the relative time in the reader's language. A calendar date with no time (`"2026-06-01"`) counts whole days from the reader's own today ("tomorrow", "in 3 days"), and its `title` and `<time>` carry that day, never moved into a time zone.
 
 ```tsx
 import { RelativeTime } from "@/registry/ouro/components/ouro/relative-time/relative-time";
@@ -25,7 +25,7 @@ Type: `RelativeTimeProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only. Appearance classes warn in development. |
-| `locale` | `Intl.LocalesArgument` | the reader's | The language and region to write it in. |
+| `locale` | `Intl.LocalesArgument` | the reader's (en-US in the server's text, until the browser takes over) | The language and region to write it in. |
 | `numeric` | `"auto" \| "always"` | `"auto"` | `auto` says "yesterday" and "now"; `always` says "1 day ago" and "in 0 seconds". |
 | `ref` | `Ref<HTMLTimeElement>` |  | Reaches the rendered element. |
 | `value` (required) | `Date \| string \| number` |  | The instant: a `Date`, an ISO string or a timestamp in milliseconds. A calendar date with no time (`"2026-06-01"`, or `"2026-06"` for a month) counts whole days (or months) in the reader's own calendar and is never moved into a time zone. |

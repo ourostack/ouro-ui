@@ -18,7 +18,7 @@ export interface LocalDateOwnProps {
   value: Date | string | number;
   /** `date` "Jun 1, 2026", `month` "Jun 2026", `datetime` "Jun 1, 2026, 9:30 AM", `time` "9:30 AM". @default "date" */
   format?: DateFormat | (string & { 'Use "date", "month", "datetime" or "time"': never }) | undefined;
-  /** The language and region to write it in. @default the reader's */
+  /** The language and region to write it in. @default the reader's (en-US in the server's text, until the browser takes over) */
   locale?: Intl.LocalesArgument | undefined;
   /** Layout only. Appearance classes warn in development. */
   className?: string | undefined;
@@ -37,9 +37,9 @@ export type LocalDateProps = Omit<TimeHTMLAttributes<HTMLTimeElement>, keyof Loc
 
 /**
  * A date (and time) in the reader's own time zone and language, in a `<time>` that carries
- * the exact instant. Only the browser knows the reader's time zone, so the server writes the
- * instant in UTC, hydration repeats it so the markup matches, and the browser then shows the
- * local one. A date then changes only when the instant falls near midnight, but a time
+ * the exact instant. Only the browser knows the reader's time zone and language, so the server
+ * writes the instant in UTC (in en-US unless `locale` is set), hydration repeats it so the
+ * markup matches, and the browser then shows the local one. A date then changes only when the instant falls near midnight, but a time
  * (`time`, `datetime`) changes for every reader outside UTC, so the server's text names the
  * zone ("9:30 AM UTC") until the browser takes over. A calendar date with no time (`"2026-06-01"`)
  * is the same day for everyone: it is written the same on the server and in the browser, and
@@ -88,7 +88,9 @@ export function LocalDate(props: LocalDateProps): JSX.Element {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   const hydrated = useSyncExternalStore(subscribeNever, inBrowser, onServer);
-  const written = dateText(value, format, locale, hydrated ? undefined : "UTC", !hydrated);
+  // The server's language is not the reader's, so the server and hydration write en-US in UTC;
+  // the browser then switches to the reader's language and time zone.
+  const written = hydrated ? dateText(value, format, locale, undefined) : dateText(value, format, locale ?? "en-US", "UTC", true);
   return (
     <time {...rest} data-ouro="local-date" dateTime={written?.dateTime} className={cn(className)}>
       {written?.text}

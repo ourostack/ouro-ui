@@ -2,7 +2,7 @@
 
 # LocalDate
 
-A date (and time) in the reader's own time zone and language, in a `<time>` that carries the exact instant. Only the browser knows the reader's time zone, so the server writes the instant in UTC, hydration repeats it so the markup matches, and the browser then shows the local one. A date then changes only when the instant falls near midnight, but a time (`time`, `datetime`) changes for every reader outside UTC, so the server's text names the zone ("9:30 AM UTC") until the browser takes over. A calendar date with no time (`"2026-06-01"`) is the same day for everyone: it is written the same on the server and in the browser, and the `<time>` carries that date.
+A date (and time) in the reader's own time zone and language, in a `<time>` that carries the exact instant. Only the browser knows the reader's time zone and language, so the server writes the instant in UTC (in en-US unless `locale` is set), hydration repeats it so the markup matches, and the browser then shows the local one. A date then changes only when the instant falls near midnight, but a time (`time`, `datetime`) changes for every reader outside UTC, so the server's text names the zone ("9:30 AM UTC") until the browser takes over. A calendar date with no time (`"2026-06-01"`) is the same day for everyone: it is written the same on the server and in the browser, and the `<time>` carries that date.
 
 ```tsx
 import { LocalDate } from "@/registry/ouro/components/ouro/local-date/local-date";
@@ -26,7 +26,7 @@ Type: `LocalDateProps`.
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only. Appearance classes warn in development. |
 | `format` | `"date" \| "month" \| "datetime" \| "time"` | `"date"` | `date` "Jun 1, 2026", `month` "Jun 2026", `datetime` "Jun 1, 2026, 9:30 AM", `time` "9:30 AM". |
-| `locale` | `Intl.LocalesArgument` | the reader's | The language and region to write it in. |
+| `locale` | `Intl.LocalesArgument` | the reader's (en-US in the server's text, until the browser takes over) | The language and region to write it in. |
 | `ref` | `Ref<HTMLTimeElement>` |  | Reaches the rendered element. |
 | `value` (required) | `Date \| string \| number` |  | The instant: a `Date`, an ISO string or a timestamp in milliseconds. A calendar date with no time (`"2026-06-01"`, or `"2026-06"` with `format="month"`) is that day for every reader and is never moved into a time zone. |
 

@@ -22,6 +22,27 @@ async function render(node: ReactNode) {
   return { host, root, time: host.querySelector<HTMLTimeElement>('[data-ouro="relative-time"]')! };
 }
 
+/**
+ * Makes `locale` the language Intl falls back to when none is passed, as a server's (Node's
+ * en-US) or a reader's browser's own differs from this test browser's. Returns the undo.
+ */
+function defaultLocale(locale: string): () => void {
+  const { DateTimeFormat, RelativeTimeFormat } = Intl;
+  Object.assign(Intl, {
+    DateTimeFormat: class extends DateTimeFormat {
+      constructor(locales?: Intl.LocalesArgument, options?: Intl.DateTimeFormatOptions) {
+        super(locales ?? locale, options);
+      }
+    },
+    RelativeTimeFormat: class extends RelativeTimeFormat {
+      constructor(locales?: Intl.LocalesArgument, options?: Intl.RelativeTimeFormatOptions) {
+        super(locales ?? locale, options);
+      }
+    },
+  });
+  return () => void Object.assign(Intl, { DateTimeFormat, RelativeTimeFormat });
+}
+
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -129,6 +150,34 @@ describe("RelativeTime", () => {
 
   it("writes a calendar date as that day on the server", () => {
     expect(renderToString(<RelativeTime value="2026-06-02" locale="en-US" />)).toContain('dateTime="2026-06-02" class="">Jun 2, 2026</time>');
+  });
+
+  it("hydrates without a mismatch when the reader's language is not the server's, then writes the reader's", async () => {
+    const value = new Date(Date.now() - 2 * DAY);
+    const node = <RelativeTime value={value} />;
+    let undo = defaultLocale("en-US");
+    let html: string;
+    try {
+      html = renderToString(node);
+    } finally {
+      undo();
+    }
+    expect(html).toContain(`>${new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone: "UTC" }).format(value)}</time>`);
+    const host = document.createElement("div");
+    host.innerHTML = html;
+    document.body.append(host);
+    mounted.push(host);
+    const onRecoverableError = vi.fn();
+    undo = defaultLocale("de-DE");
+    try {
+      await act(async () => void roots.push(hydrateRoot(host, node, { onRecoverableError })));
+      expect(onRecoverableError).not.toHaveBeenCalled();
+      const time = host.querySelector("time")!;
+      expect(time.textContent).toBe("vorgestern");
+      expect(time.title).toBe(new Intl.DateTimeFormat("de-DE", { dateStyle: "medium", timeStyle: "short" }).format(value));
+    } finally {
+      undo();
+    }
   });
 
   it("forwards a ref and <time> attributes, and lets app layout classes win", async () => {

@@ -22,6 +22,27 @@ async function render(node: ReactNode) {
 
 const local = (options: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("en-US", options).format(instant);
 
+/**
+ * Makes `locale` the language Intl falls back to when none is passed, as a server's (Node's
+ * en-US) or a reader's browser's own differs from this test browser's. Returns the undo.
+ */
+function defaultLocale(locale: string): () => void {
+  const { DateTimeFormat, RelativeTimeFormat } = Intl;
+  Object.assign(Intl, {
+    DateTimeFormat: class extends DateTimeFormat {
+      constructor(locales?: Intl.LocalesArgument, options?: Intl.DateTimeFormatOptions) {
+        super(locales ?? locale, options);
+      }
+    },
+    RelativeTimeFormat: class extends RelativeTimeFormat {
+      constructor(locales?: Intl.LocalesArgument, options?: Intl.RelativeTimeFormatOptions) {
+        super(locales ?? locale, options);
+      }
+    },
+  });
+  return () => void Object.assign(Intl, { DateTimeFormat, RelativeTimeFormat });
+}
+
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -99,6 +120,31 @@ describe("LocalDate", () => {
     const { time } = await render(<LocalDate value={value} format={format} locale="en-US" />);
     expect(time.textContent).toBe(words);
     expect(time.dateTime).toBe(value);
+  });
+
+  it("hydrates without a mismatch when the reader's language is not the server's, then writes the reader's", async () => {
+    const node = <LocalDate value={instant} format="datetime" />;
+    let undo = defaultLocale("en-US");
+    let html: string;
+    try {
+      html = renderToString(node);
+    } finally {
+      undo();
+    }
+    expect(html).toContain("Jun 1, 2026");
+    const host = document.createElement("div");
+    host.innerHTML = html;
+    document.body.append(host);
+    mounted.push(host);
+    const onRecoverableError = vi.fn();
+    undo = defaultLocale("de-DE");
+    try {
+      await act(async () => void roots.push(hydrateRoot(host, node, { onRecoverableError })));
+      expect(onRecoverableError).not.toHaveBeenCalled();
+      expect(host.querySelector("time")!.textContent).toBe(new Intl.DateTimeFormat("de-DE", { dateStyle: "medium", timeStyle: "short" }).format(instant));
+    } finally {
+      undo();
+    }
   });
 
   it("forwards a ref and <time> attributes, and lets app layout classes win", async () => {

@@ -15,7 +15,7 @@ export interface RelativeTimeOwnProps {
    * reader's own calendar and is never moved into a time zone.
    */
   value: Date | string | number;
-  /** The language and region to write it in. @default the reader's */
+  /** The language and region to write it in. @default the reader's (en-US in the server's text, until the browser takes over) */
   locale?: Intl.LocalesArgument | undefined;
   /** `auto` says "yesterday" and "now"; `always` says "1 day ago" and "in 0 seconds". @default "auto" */
   numeric?: "auto" | "always" | (string & { 'Use "auto" or "always"': never }) | undefined;
@@ -57,7 +57,8 @@ const serverNow = () => 0;
  * How long ago (or how soon) something happens, in the reader's language: "3 days ago",
  * "yesterday", "in 5 minutes", "now", kept current while it shows. It is a `<time>` with the
  * exact instant, and its `title` gives the full local date and time. The server writes the UTC
- * date and hydration repeats it, so the markup matches; the browser then shows the relative time.
+ * date (in en-US unless `locale` is set) and hydration repeats it, so the markup matches; the
+ * browser then shows the relative time in the reader's language.
  * A calendar date with no time (`"2026-06-01"`) counts whole days from the reader's own today
  * ("tomorrow", "in 3 days"), and its `title` and `<time>` carry that day, never moved into a
  * time zone.
@@ -85,7 +86,9 @@ export function RelativeTime(props: RelativeTimeProps): JSX.Element {
   const numeric = numericProp === "always" ? "always" : "auto";
   const calendar = isCalendarDate(value);
   const shape: DateFormat = calendar && value.length === 7 ? "month" : "date";
-  const written = dateText(value, shape, locale, "UTC");
+  // What the server writes, and hydration repeats: the date in UTC, in en-US unless the app set a
+  // language, because the server's own is not the reader's.
+  const written = dateText(value, shape, locale ?? "en-US", "UTC");
   useAppearanceClassNameCheck(
     "RelativeTime",
     className,
