@@ -25,7 +25,7 @@ export interface RouteProgressProps {
   /** Not a prop. Ouro UI uses `active`: `<RouteProgress active={navigation.state !== "idle"} />`. */
   isLoading?: { 'Use <RouteProgress active={navigation.state !== "idle"} />': never };
   /** Not a prop. RouteProgress shows that something is loading, not how much; use `Progress` for a known amount. */
-  value?: { "RouteProgress has no amount; use <Progress value={50}> for a known one": never };
+  value?: { 'RouteProgress has no amount; use <Progress value={50}> for a known one': never };
 }
 
 // Class strings are literal so the app's Tailwind finds them when it compiles.

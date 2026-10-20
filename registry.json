@@ -2935,6 +2935,7 @@
       "registryDependencies": [
         "ourostack/ouro-ui/lib-class-name-check",
         "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-dev",
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-use-dev-messages"
       ],

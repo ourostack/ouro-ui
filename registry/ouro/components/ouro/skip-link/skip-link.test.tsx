@@ -183,9 +183,12 @@ describe("SkipLink development messages", () => {
     expect(link.hasAttribute("to")).toBe(false);
   });
 
-  it("names the target a page lacks", async () => {
-    await render(<SkipLink target="content" />);
-    expect(warn).toHaveBeenCalledWith('[ouro-ui] SkipLink: no element has id="content", so the link skips nowhere. Fix: <main id="content">.');
+  it("names the target a page lacks once, when the link is used", async () => {
+    const { link } = await render(<SkipLink target="content" />);
+    expect(warn).not.toHaveBeenCalled();
+    clickLeftToBrowser(link);
+    clickLeftToBrowser(link);
+    expect(warn).toHaveBeenCalledExactlyOnceWith('[ouro-ui] SkipLink: no element has id="content", so the link skips nowhere. Fix: <main id="content">.');
   });
 
   it.each([

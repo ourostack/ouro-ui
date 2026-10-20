@@ -67,11 +67,11 @@ export interface TabBarProps {
   /** Not a prop. Ouro UI uses `items`: `<TabBar label="Main" items={[{ label, href, icon }]} />`. */
   links?: { 'Use <TabBar label="Main" items={[{ label: "Recipes", href: "/recipes", icon: <BookOpen /> }]} />': never };
   /** Not a prop. Ouro UI uses `currentPath`: `<TabBar currentPath={pathname}>`. */
-  pathname?: { "Use <TabBar currentPath={pathname}>": never };
+  pathname?: { 'Use <TabBar currentPath={pathname}>': never };
   /** Not a prop. The current tab follows `currentPath`, or an item's `current`: `<TabBar currentPath={pathname}>`. */
-  value?: { "Use <TabBar currentPath={pathname}>, or current: true on the item": never };
+  value?: { 'Use <TabBar currentPath={pathname}>, or current: true on the item': never };
   /** Not rendered. The bar is `items` and `accessory`. */
-  children?: { "Use items={[{ label, href, icon }]} and accessory={{ label, href, icon }}": never };
+  children?: { 'Use items={[{ label, href, icon }]} and accessory={{ label, href, icon }}': never };
 }
 
 const example = '<TabBar label="Main" items={[{ label: "Recipes", href: "/recipes", icon: <BookOpen /> }]} />';

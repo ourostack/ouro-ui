@@ -38,11 +38,11 @@ export interface ColorSchemeToggleProps {
   ref?: Ref<HTMLElement> | undefined;
 
   /** Not a prop. The toggle keeps the scheme itself, through `ColorSchemeProvider`; read it with `useColorScheme()`. */
-  value?: { "The toggle keeps the scheme; read it with useColorScheme()": never };
+  value?: { 'The toggle keeps the scheme; read it with useColorScheme()': never };
   /** Not a prop. The toggle applies the choice itself; to react to it, read `useColorScheme().resolved`. */
-  onChange?: { "The toggle applies the choice; read useColorScheme().resolved to react to it": never };
+  onChange?: { 'The toggle applies the choice; read useColorScheme().resolved to react to it': never };
   /** Not a prop. Ouro UI says color scheme: `<ColorSchemeToggle />` with `ColorSchemeProvider` around the app. */
-  theme?: { "Use <ColorSchemeToggle /> inside <ColorSchemeProvider>": never };
+  theme?: { 'Use <ColorSchemeToggle /> inside <ColorSchemeProvider>': never };
 }
 
 const variants = ["menu", "segmented"] as const;

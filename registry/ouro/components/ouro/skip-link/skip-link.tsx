@@ -1,8 +1,9 @@
 "use client";
 
-import type { AnchorHTMLAttributes, JSX, MouseEvent, ReactNode, Ref } from "react";
+import { useRef, type AnchorHTMLAttributes, type JSX, type MouseEvent, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { devWarn } from "@/registry/ouro/lib/ouro/dev";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
 /** The props SkipLink adds to the anchor attributes it passes through. */
@@ -24,7 +25,7 @@ export interface SkipLinkOwnProps {
   /** Not a prop. SkipLink takes the id: `<SkipLink target="main" />`. */
   to?: { 'Use <SkipLink target="main" />': never };
   /** Not a prop. The link's text is its children: `<SkipLink>Skip to recipes</SkipLink>`. */
-  label?: { "Use <SkipLink>Skip to recipes</SkipLink>": never };
+  label?: { 'Use <SkipLink>Skip to recipes</SkipLink>': never };
 }
 
 /** Props for {@link SkipLink}: its own props and the anchor attributes it passes through. */
@@ -95,16 +96,21 @@ export function SkipLink(props: SkipLinkProps): JSX.Element {
           to !== undefined && ["to is not a prop", '<SkipLink target="main" />'],
           label !== undefined && ["label is not a prop", `<SkipLink>${typeof label === "string" ? label : "Skip to main content"}</SkipLink>`],
           target.startsWith("#") && [`target="${target}" starts with #`, `<SkipLink target="${id}" />`],
-          !document.getElementById(id) && [`no element has id="${id}", so the link skips nowhere`, `<main id="${id}">`],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
+  // Each link names a missing target once, when it is used: the target may render after the link.
+  const instance = useRef({});
   const skip = (event: MouseEvent<HTMLAnchorElement>) => {
     onClick?.(event);
     // A modified click (a new tab or window) keeps the browser's own behaviour.
     if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.altKey || event.ctrlKey || event.shiftKey) return;
     const element = document.getElementById(id);
-    if (!element) return;
+    if (!element) {
+      /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
+      if (process.env.NODE_ENV !== "production") devWarn("SkipLink", `no element has id="${id}", so the link skips nowhere`, `<main id="${id}">`, instance.current);
+      return;
+    }
     event.preventDefault();
     if (!focusable(element)) element.setAttribute("tabindex", "-1");
     element.focus({ preventScroll: true });
