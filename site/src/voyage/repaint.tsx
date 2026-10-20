@@ -3,6 +3,7 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Checklist } from "@/registry/ouro/components/ouro/checklist/checklist";
 import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
+import type { PresetName } from "../themes/prepaint";
 import { ByPreset, presetList, presetNamed, Swatch } from "./presets";
 import { useSiteTheme } from "./theme-store";
 import { Container } from "./layout";
@@ -123,6 +124,24 @@ function DiveWindow(): JSX.Element {
   );
 }
 
+/**
+ * A preset's specimen: a little card of its own UI, drawn in its own variables (the span carries
+ * `data-theme`), so each shows its own page, ink, primary, highlight, corners and shadow.
+ */
+function Specimen({ preset }: { preset: PresetName }): JSX.Element {
+  return (
+    <span data-theme={preset} aria-hidden="true" className="site-specimen">
+      <span className="site-specimen-ink" />
+      <span className="site-specimen-ink site-specimen-ink-short" />
+      <span className="site-specimen-row">
+        <span className="site-specimen-pill" />
+        <span className="site-specimen-switch" />
+        <span className="site-specimen-dot" />
+      </span>
+    </span>
+  );
+}
+
 /** "Repaint the Nautilus": the six presets, Copy theme and Copy tokens only, over a live sample. */
 export function Repaint(): JSX.Element {
   const { preset, setPreset } = useSiteTheme();
@@ -136,20 +155,22 @@ export function Repaint(): JSX.Element {
             Repaint the Nautilus
           </h2>
           <p className="site-lede mt-5 max-w-[34ch]">Same components. Plain shadcn tokens. Your theme works too.</p>
-          <div role="group" aria-label="Presets" className="mt-8 grid grid-cols-2 gap-2 sm:grid-cols-3 [&>*]:min-w-0">
+          <div role="group" aria-label="Presets" className="site-specimens mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 [&>*]:min-w-0">
             {presetList.map((item) => (
               <Button
                 key={item.name}
-                variant="outline"
+                variant="plain"
                 tone="secondary"
                 aria-pressed={item.name === preset}
                 // The pressed look is the site's, keyed on html[data-theme] (voyage.css), so it is right before hydration.
                 data-site-preset={item.name}
                 onClick={() => setPreset(item.name)}
-                className="h-auto min-h-12 justify-start gap-2.5 px-3 py-2.5"
+                className="h-auto w-full p-1.5"
               >
-                <Swatch preset={item.name} size="lg" />
-                {item.label}
+                <span className="site-specimen-face">
+                  <Specimen preset={item.name} />
+                  <span className="site-specimen-name">{item.label}</span>
+                </span>
               </Button>
             ))}
           </div>
