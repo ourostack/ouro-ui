@@ -6,7 +6,7 @@ Under construction. Ouro HX is the component library within Ouro UI. Ouro AX is 
 
 ## Install
 
-In an existing Vite or Next.js app with Tailwind CSS v4 and an "@/*" path alias, run shadcn init once, with the Base UI base and without -t/--template, then add items:
+In an existing Vite or Next.js app with Tailwind CSS v4[^tailwind-4] and an "@/*" path alias, run shadcn init once, with the Base UI base and without -t/--template, then add items:
 
 ```sh
 npx shadcn@latest init --base base --preset nova --yes --no-monorepo
@@ -17,15 +17,15 @@ npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.1.0
 npx shadcn@latest add ourostack/ouro-ui/dialog#v1.1.0     # install a component
 ```
 
-- Add ouro-base once, before the first component. No component installs it, so no later add changes the app's stylesheet (in v0.7.0 every component still installs it, and an add can rewrite the stylesheet). Without it nothing fails to build: overlays have no backdrop or motion and fields no border, and in development the first component to mount logs the command to run.
+- Add ouro-base once, before the first component. No component installs it, so no later add changes the app's stylesheet (in v0.7.0 every component still installs it, and an add can rewrite the stylesheet).[^ouro-base-only][^v0.7.0] Without it nothing fails to build: overlays have no backdrop or motion and fields no border, and in development the first component to mount logs the command to run.
 
-- A new Vite app needs @tailwindcss/vite, @import "tailwindcss";, a Vite @ alias, and "paths": { "@/*": ["./src/*"] } in both tsconfig.json and tsconfig.app.json (no baseUrl on TypeScript 6) before init: shadcn reads the root file, and tsc -b builds the app one.
+- A new Vite app needs @tailwindcss/vite, @import "tailwindcss";, a Vite @ alias, and "paths": { "@/*": ["./src/*"] } in both tsconfig.json and tsconfig.app.json (no baseUrl on TypeScript 6) before init: shadcn reads the root file, and tsc -b builds the app one.[^vite-app]
 - --preset nova lets init run without prompts. It sets shadcn's starting theme, font and icons, which Ouro components read like any shadcn theme. The install test runs nova and vega; other presets are untested.
 - A GitHub source is owner/repo#ref; an item is owner/repo/item#ref. @v1.1.0, github: and /tree/ URLs do not work.
-- A release tag (#v1.1.0) installs the item and every Ouro dependency at that tag. Without a ref, items come from main, which is for contributors and can hold unreleased changes; use a release tag or @ouro.
+- A release tag (#v1.1.0) installs the item and every Ouro dependency at that tag.[^release-pins] Without a ref, items come from main, which is for contributors and can hold unreleased changes; use a release tag or @ouro.
 - Components land in components/ouro/<component>/ and the helpers they import in lib/ouro/, one file each. Ouro UI never writes to components/ui/, so do not pass --overwrite on a first install.
-- Tests are optional: add <item>-tests beside the item (npx shadcn@latest add ourostack/ouro-ui/dialog#v1.1.0 ourostack/ouro-ui/dialog-tests#v1.1.0), or ouro-tests for all of them. They need Vitest 4.1.11 or later in browser mode, Playwright 1.58.1 or later and Storybook 10.2.10 or later, and never change a version the app already has (v0.7.0's items still carry versions: after add, restore the versions you had pinned). Ouro UI's own CI runs them on Vitest 5 only; Vitest 4 is the stated minimum, not a tested one. The ouro-testing install message lists the config files to add.
-- The @ouro namespace serves the newest release (the same code as #v1.1.0): add "registries": { "@ouro": "https://ourostack.github.io/ouro-ui/r/{name}.json" } to components.json, then npx shadcn@latest add @ouro/ouro-base @ouro/dialog (ouro-base once per app).
+- Tests are optional: add <item>-tests beside the item (npx shadcn@latest add ourostack/ouro-ui/dialog#v1.1.0 ourostack/ouro-ui/dialog-tests#v1.1.0), or ouro-tests for all of them.[^ouro-tests] They need Vitest 4.1.11 or later in browser mode, Playwright 1.58.1 or later and Storybook 10.2.10 or later, and never change a version the app already has (v0.7.0's items still carry versions: after add, restore the versions you had pinned).[^minimums][^v0.7.0] Ouro UI's own CI runs them on Vitest 5 only; Vitest 4 is the stated minimum, not a tested one.[^vitest-5][^minimums] The ouro-testing install message lists the config files to add.
+- The @ouro namespace serves the newest release (the same code as #v1.1.0)[^namespace]: add "registries": { "@ouro": "https://ourostack.github.io/ouro-ui/r/{name}.json" } to components.json, then npx shadcn@latest add @ouro/ouro-base @ouro/dialog (ouro-base once per app).
 
 ## Items
 
@@ -221,8 +221,23 @@ npx shadcn@latest add ourostack/ouro-ui/dialog#v1.1.0     # install a component
 
 - [Docs](https://ourostack.github.io/ouro-ui/docs/): one page per component, with props and examples. Each page is also Markdown at https://ourostack.github.io/ouro-ui/docs/<item>.md, the URL each item above ends with.
 - [Installing](https://ourostack.github.io/ouro-ui/docs/installing.md): what ouro-base writes, what an add changes in package.json, and the "use client" notice in Vite builds.
-- [Testing](https://ourostack.github.io/ouro-ui/docs/testing.md): what the shipped tests need, Vitest 4, and how to find Ouro UI's fields in an app's own tests.
+- [Testing](https://ourostack.github.io/ouro-ui/docs/testing.md): what the shipped tests need, Vitest 4, and how to find Ouro UI's fields in an app's own tests.[^testing-guide]
 - [Forms](https://ourostack.github.io/ouro-ui/docs/forms.md): which component shows which message, and how each control posts its value.
-- [OuroProvider](https://ourostack.github.io/ouro-ui/docs/ouro-provider.md): routing every href through the app's router, with the React Router adapter and the Next.js provider file in full. It installs with every component that renders links and with tooltip; otherwise add lib-ouro-provider by name (v0.7.0 has no such item: there it comes with every component).
+- [OuroProvider](https://ourostack.github.io/ouro-ui/docs/ouro-provider.md): routing every href through the app's router, with the React Router adapter and the Next.js provider file in full.[^provider-page] It installs with every component that renders links and with tooltip; otherwise add lib-ouro-provider by name (v0.7.0 has no such item: there it comes with every component).[^provider-deps][^v0.7.0]
 - [Parts](https://ourostack.github.io/ouro-ui/docs/parts.md): the building-block parts of Sheet, Dialog and Field, for layouts the props do not cover.
 - [README](https://github.com/ourostack/ouro-ui#readme)
+
+## Sources
+
+[^tailwind-4]: test/install-fixture/package.json verify:fileLine(test/install-fixture/package.json, /"tailwindcss": "\^4\./) verify:ciJob(install)
+[^ouro-base-only]: scripts/registry.mts verify:testExists(scripts/registry.test.mjs::only ouro-base and ouro-theme touch the app's stylesheet, and no other item installs them)
+[^v0.7.0]: https://github.com/ourostack/ouro-ui/releases/tag/v0.7.0 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v0.7.0)
+[^vite-app]: test/install-fixture/package.json; test/install-fixture/tsconfig.json; test/install-fixture/tsconfig.app.json verify:fileLine(test/install-fixture/package.json, /"typescript": "~6\./) verify:fileLine(test/install-fixture/tsconfig.app.json, /"paths"/) verify:fileLine(test/install-fixture/vite.config.ts, /tailwindcss\(\)/) verify:ciJob(install)
+[^release-pins]: scripts/registry.mts verify:testExists(scripts/registry.test.mjs::--release pins every same-repo dependency to the release tag and records the version)
+[^ouro-tests]: scripts/registry.mts verify:testExists(scripts/registry.test.mjs::ouro-tests installs every -tests item: the whole suite in one command)
+[^minimums]: scripts/registry.mts verify:fileLine(scripts/registry.mts, /vitest: "4\.1\.11"/) verify:fileLine(scripts/registry.mts, /playwright: "1\.58\.1"/) verify:fileLine(scripts/registry.mts, /storybook: "10\.2\.10"/) verify:testExists(scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has)
+[^vitest-5]: package.json verify:fileLine(package.json, /"vitest": "5\./) verify:fileLine(.github/workflows/ci.yml, /pnpm test/)
+[^namespace]: .github/workflows/pages.yml verify:testExists(scripts/workflows.test.mjs::Pages names GitHub's newest release before it builds, whatever main's package.json says)
+[^testing-guide]: docs/guides/testing.md verify:fileLine(docs/guides/testing.md, /Vitest 4/)
+[^provider-page]: docs/OuroProvider.md verify:testExists(site/src/site.test.tsx::guides and exports without an item > renders the OuroProvider page with the React Router adapter and the Next.js provider file)
+[^provider-deps]: scripts/registry.mts verify:testExists(scripts/registry.test.mjs::a component that renders links brings OuroProvider, which only the app imports)

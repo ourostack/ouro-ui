@@ -220,8 +220,7 @@ function blocks(text, { skip = [], skipSections = [] } = {}) {
         section = heading[1].length;
         continue;
       }
-      push(line, heading[1].length + 1, heading[2], true);
-      end();
+      // A heading is a label, and a claim marker in it would change its anchor: the section's sentences carry the claims.
       continue;
     }
     if (/^\s*\|/.test(raw)) {
@@ -259,7 +258,7 @@ function maskBlock(text, definitions) {
       const parsed = parseEvidence(`${target.replace(/^<|>$/g, "")} ${title.trim()}`);
       markers.push({ at: offset, text: match, ...parsed });
     }
-    return ` ${label}${" ".repeat(match.length - label.length - 1)}`;
+    return `[${label}]${" ".repeat(match.length - label.length - 2)}`;
   });
   masked = masked.replace(/\[\^([^\]]+)\]/g, (match, id, offset) => {
     const definition = definitions.get(id);
@@ -281,7 +280,7 @@ function maskBlock(text, definitions) {
 function sentenceSpans(masked) {
   const spans = [];
   let start = 0;
-  for (const match of masked.matchAll(/[.!?]["'”’)*_¹]*\s+(?=[A-Z0-9"'“‘(\[*_§¹])/g)) {
+  for (const match of masked.matchAll(/[.!?]["'”’)*_¹]*\s+(?=[A-Z0-9"'“‘(\[*_§¹]|v\d)/g)) {
     const stop = match.index + match[0].trimEnd().length;
     spans.push([start, stop]);
     start = match.index + match[0].length;

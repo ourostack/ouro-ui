@@ -111,7 +111,7 @@ test("Markdown: a malformed or unverified claim marker is an error, not a pass",
   assert.match(messages(badCheck)[0], /"trust\(me\)" is not a check/);
 });
 
-test("Markdown: code, generated regions, tables and headings are handled", () => {
+test("Markdown: code, generated regions and tables are read; headings are labels", () => {
   const text = [
     "```sh",
     "pnpm add every 73 things",
@@ -127,7 +127,8 @@ test("Markdown: code, generated regions, tables and headings are handled", () =>
     "",
   ].join("\n");
   const findings = lintMarkdown(text, { file: "README.md", skip: ["catalog"] });
-  assert.deepEqual(findings.map((finding) => [finding.line, finding.sentence]), [[7, "Every run"], [11, "100/100"]]);
+  // A heading is a label (a claim marker would change its anchor), so only the table cell fails.
+  assert.deepEqual(findings.map((finding) => [finding.line, finding.sentence]), [[11, "100/100"]]);
 });
 
 test("plain text (a pull request title) is linted as one paragraph", () => {
