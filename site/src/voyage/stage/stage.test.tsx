@@ -4,6 +4,7 @@ import proof, { install } from "virtual:site-proof";
 import { cleanupPage, renderPage, setScheme } from "../../../test/render";
 import { fleschKincaid, syllables } from "../../../test/readability";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
+import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { EYEBROW, INSTALL_CAPTION, INSTALL_COMMAND, RELEASE_HREF } from "../hero";
 import { latestRelease } from "../../latest-release";
 import { allStageText, bandAt, BELL_TOASTS, describeScene, LOG, OPENING_LOG, STAGE_CONTROLS, STAGE_COPY, TANKS } from "./copy";
@@ -227,6 +228,21 @@ describe("the stage's controls", () => {
     await expect.element(log().getByText(LOG.speed.half.text)).not.toBeVisible();
     await userEvent.click(fold);
     await expect.element(log().getByText(LOG.speed.half.text)).toBeVisible();
+  });
+
+  it("reads each crew line once, with the ship's log folded or open", async () => {
+    await renderPage("/voyage/");
+    const announced = watchAnnouncements();
+    // A folded panel is hidden, and a screen reader hears nothing from a live region inside it.
+    const heard = (text: string) => announced.matching(text).filter((each) => !each.region.closest("[hidden]")).length;
+    await userEvent.click(page.getByRole("radio", { name: "Full" }));
+    await expect.poll(() => heard(LOG.speed.full.text)).toBe(1);
+    await userEvent.click(page.getByRole("button", { name: /^Ship's log \(/ }));
+    await userEvent.click(page.getByRole("radio", { name: "Stop" }));
+    await expect.poll(() => heard(LOG.speed.stop.text)).toBe(1);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect([heard(LOG.speed.full.text), heard(LOG.speed.stop.text)]).toEqual([1, 1]);
+    announced.stop();
   });
 
   it("keeps the crew's line with the porthole on a phone, pinned under the header", async () => {

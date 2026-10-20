@@ -72,6 +72,7 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
   const [dived, setDived] = useState(false);
   const [stream, setStream] = useState(0);
   const [rings, setRings] = useState(0);
+  const [logOpen, setLogOpen] = useState(false);
   const [lights, setLights] = useState(false);
   const [speed, setSpeed] = useState<Speed>("half");
   const [log, setLog] = useState<Entry[]>(() => OPENING_LOG.map((line, index) => ({ ...line, id: index })));
@@ -177,7 +178,7 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
           <div className="stage-porthole">
             <Scene state={scene} label={STAGE_COPY.sceneLabel} description={describeScene(scene)} motto={STAGE_COPY.motto} />
           </div>
-          <CrewLine entry={log.at(-1)!} />
+          <CrewLine entry={log.at(-1)!} live={!logOpen} />
         </div>
         <section aria-label={STAGE_COPY.rail} className="stage-console">
           {/* Row one: how deep, in what water, and how fast. Labels share a baseline, controls a centre line. */}
@@ -192,7 +193,7 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
           <Ballast tanks={tanks} full={full} dived={dived} onTank={onTank} onDive={onDive} />
           <div className="stage-row stage-deck">
             <LightsControl lights={lights} onChange={onLights} />
-            <ShipLog log={log} rings={rings} onRing={onBell} />
+            <ShipLog log={log} rings={rings} onRing={onBell} open={logOpen} onOpenChange={setLogOpen} />
           </div>
           <div className="stage-row stage-real" data-stage-control="xray">
             <span>{STAGE_COPY.real}</span>
@@ -214,11 +215,12 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
 
 /**
  * The crew's newest line, under the porthole: who said it and what, read out when it changes. At
- * rest it is the captain's welcome, which says what to do first.
+ * rest it is the captain's welcome, which says what to do first. While the ship's log is open, the
+ * log's own list reads each new line instead, so no line is read twice.
  */
-const CrewLine = memo(function CrewLine({ entry }: { entry: Entry }): JSX.Element {
+const CrewLine = memo(function CrewLine({ entry, live }: { entry: Entry; live: boolean }): JSX.Element {
   return (
-    <p className="stage-crew" data-stage-crew="" aria-live="polite" aria-atomic="true">
+    <p className="stage-crew" data-stage-crew="" aria-live={live ? "polite" : "off"} aria-atomic="true">
       <Avatar name={entry.name} alt="" size="sm" />
       <span className="stage-crew-words">
         <span className="stage-crew-name">{entry.name}:</span> {entry.text}
@@ -391,12 +393,11 @@ const LogEntry = memo(function LogEntry({ entry }: { entry: Entry }): JSX.Elemen
  * The ship's log: every line the crew has said lately, folded under "Ship's log (n)" (the newest
  * also shows under the porthole). The bell rings from here.
  */
-const ShipLog = memo(function ShipLog({ log, rings, onRing }: { log: Entry[]; rings: number; onRing: () => void }): JSX.Element {
-  const [open, setOpen] = useState(false);
+const ShipLog = memo(function ShipLog({ log, rings, onRing, open, onOpenChange }: { log: Entry[]; rings: number; onRing: () => void; open: boolean; onOpenChange: (open: boolean) => void }): JSX.Element {
   return (
     <>
       <div className="stage-log-fold" data-stage-control="log">
-        <Collapsible title={STAGE_COPY.logAll(log.length)} open={open} onOpenChange={setOpen}>
+        <Collapsible title={STAGE_COPY.logAll(log.length)} open={open} onOpenChange={onOpenChange}>
           <MessageList label={STAGE_COPY.log} className="stage-log">
             {log.map((entry) => (
               <LogEntry key={entry.id} entry={entry} />
