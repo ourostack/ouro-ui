@@ -222,7 +222,8 @@ describe("ImageCropper", () => {
       reader.onload = () => resolve(String(reader.result));
       reader.readAsDataURL(file);
     });
-    await act(async () => root.render(<Harness image={address} onCropped={onCropped} type="image/webp" />));
+    // Save closed the first dialog; a new one opens on the address.
+    await act(async () => root.render(<Harness key="address" image={address} onCropped={onCropped} type="image/webp" />));
     await loaded();
     expect(image().src).toBe(address);
     expect(image().crossOrigin).toBe("anonymous");
