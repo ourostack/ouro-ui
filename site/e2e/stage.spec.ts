@@ -188,9 +188,10 @@ test.describe("each control on the stage", () => {
     await page.getByRole("radio", { name: "Full" }).click();
     await page.getByRole("radio", { name: "Stop" }).click();
     await expect(fold).toHaveAccessibleName(STAGE_COPY.logFold(2));
-    const earlier = page.locator(".stage-log-fold").getByText(LOG.speed.full.text);
+    // A wide screen's fold (a phone folds the whole log in another, which this width hides).
+    const earlier = page.locator(".stage-fold-wide").getByText(LOG.speed.full.text);
     // Folded, the panel takes no room (WebKit, without hidden=until-found, still reports its text's box).
-    const height = () => page.locator(".stage-log-fold [data-ouro-collapsible-panel]").evaluate((panel) => panel.getBoundingClientRect().height);
+    const height = () => page.locator(".stage-fold-wide [data-ouro-collapsible-panel]").evaluate((panel) => panel.getBoundingClientRect().height);
     await expect.poll(height).toBe(0);
     await fold.click();
     await expect(earlier).toBeVisible();
@@ -235,7 +236,8 @@ for (const viewport of [
     await open(page);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     const control = page.locator("[data-stage-control='depth'] [data-ouro-slider-control]");
-    await control.scrollIntoViewIfNeeded();
+    // As a reader would: scroll the console up under the porthole until the lever is in view.
+    await control.evaluate((element) => element.scrollIntoView({ block: "end" }));
     const box = await control.boundingBox();
     if (box) await page.touchscreen.tap(box.x + box.width - 2, box.y + box.height / 2);
     else {
@@ -245,8 +247,10 @@ for (const viewport of [
     await expect(scene(page)).not.toHaveAttribute("data-band", "sunlit");
     for (const { name } of TANKS) await tank(page, name).tap();
     await expect(scene(page)).toHaveAttribute("data-tanks", "3");
+    await diveButton(page).evaluate((element) => element.scrollIntoView({ block: "end" }));
     const scrolled = await page.evaluate(() => window.scrollY);
-    await diveButton(page).tap();
+    const dive = (await diveButton(page).boundingBox())!;
+    await page.touchscreen.tap(dive.x + dive.width / 2, dive.y + dive.height / 2);
     await expect(scene(page)).toHaveAttribute("data-dived", "");
     // Dive doesn't move the page: the porthole is already in view, held under the sticky header.
     expect(await page.evaluate(() => window.scrollY)).toBe(scrolled);

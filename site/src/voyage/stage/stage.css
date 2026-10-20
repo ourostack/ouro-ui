@@ -1072,6 +1072,10 @@
   .stage-porthole {
     max-width: min(396px, 46svh);
   }
+  /* A control the keyboard or the browser scrolls to stops below the glass, not under it. */
+  .stage-console [data-stage-control] {
+    scroll-margin-top: calc(3.5rem + min(396px, 46svh));
+  }
 }
 
 /* Sleek: glass and ink. Cool hairlines, almost no glow. */
