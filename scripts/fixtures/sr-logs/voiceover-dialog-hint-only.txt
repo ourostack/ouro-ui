@@ -1,0 +1,64 @@
+Running 6 tests using 1 worker
+
+  ✓  1 [stories] › registry/ouro/e2e/screen-reader/stories.sr.setup.ts:6:1 › every story the screen-reader lane opens is in this Storybook (38ms)
+[sr] first utterance: "Email me new recipes unchecked checkbox"
+[sr] heard "Email me new recipes", checkbox, unchecked: "Email me new recipes unchecked checkbox. You are currently on a checkbox, inside of web content. To select or deselect this checkbox, press Control-Option-Space. To exit this web area, press Control-Option-Shift-Up Arrow."
+[sr] heard checked, after Space: "checked Email me new recipes checkbox"
+  ✓  2 [voiceover] › registry/ouro/e2e/screen-reader/checkbox.sr.spec.ts:8:1 › Checkbox is announced with its name, role and state, and its change when checked (34.0s)
+[sr] first utterance: "heading level 2 Overnight oats"
+[sr] heard "rolled oats", checkbox, checked: "rolled oats 1 cup checked checkbox Ingredients group"
+[sr] heard unchecked, after Space: "unchecked rolled oats 1 cup checkbox"
+  ✓  3 [voiceover] › registry/ouro/e2e/screen-reader/checklist.sr.spec.ts:9:1 › Checklist announces an item's name, role and state, and its change when ticked (22.5s)
+[sr] first utterance: "Edit dialog pop up button"
+[sr] heard "Edit", button: "Edit dialog pop up button. You are currently on a button. To display a list of options, press Control-Option-Space."
+[sr] heard "Edit recipe", dialog, as it opens: "You are currently on a button. To display a list of options, press Control-Option-Space.. Edit recipe web dialog with 4 items Shakshuka. You are currently on a text field, inside of a web dialog. To enter text in this field, type. To exit this group, press Control-Option-Shift-Up Arrow."
+  ✘  4 [voiceover] › registry/ouro/e2e/screen-reader/dialog.sr.spec.ts:8:1 › Dialog is announced with its title and role when it opens, and its trigger again when it closes (59.9s)
+[sr] first utterance: "Course"
+[sr] heard "Course", combo box, collapsed: ", Choose a cou Course list box pop up collapsed combo box"
+[sr] said as the list opens: "You are currently on a selectable (null), inside of a list box."
+[sr] heard "Main", the next option: "Main (2 of 4) completion selected"
+[sr] heard "Side", the option after it: "Side (3 of 4) completion selected"
+[sr] said as the list closes: "side. , S Course list box pop up collapsed combo box"
+[sr] finding (ourostack/ouro-ui#113): VoiceOver read the value "Side" as "S"
+[sr] heard "Course" with "Side", the chosen value: ", S Course list box pop up collapsed combo box has keyboard focus Insertion at beginning of text."
+  ✓  5 [voiceover] › registry/ouro/e2e/screen-reader/select.sr.spec.ts:8:1 › Select is announced with its label, role and state, and its new value when one is chosen (42.9s)
+[sr] first utterance: "Save recipe button"
+[sr] heard "Save recipe", button: "Save recipe button. You are currently on a button, inside of web content. To click this button, press Control-Option-Space. To exit this web area, press Control-Option-Shift-Up Arrow."
+[sr] heard "Recipe saved", the toast: "Recipe saved Find it in your cookbook."
+  ✓  6 [voiceover] › registry/ouro/e2e/screen-reader/toast.sr.spec.ts:8:1 › Toast is announced from its live region when it appears (27.4s)
+
+
+  1) [voiceover] › registry/ouro/e2e/screen-reader/dialog.sr.spec.ts:8:1 › Dialog is announced with its title and role when it opens, and its trigger again when it closes 
+
+    Error: [sr] no utterance matched "Edit", button, as focus returns; heard: "You are currently on a text field, inside of a web dialog. To enter text in this field, type. To exit this group, press Control-Option-Shift-Up Arrow.. You are currently on a button. To display a list of options, press Control-Option-Space." | "You are currently on a button. To display a list of options, press Control-Option-Space."
+
+       at screen-reader.ts:75
+
+      73 |       return found;
+      74 |     }
+    > 75 |     if (Date.now() > deadline) throw new Error(`[sr] no utterance matched ${what}; heard: ${phrases.map((phrase) => `"${phrase}"`).join(" | ") || "nothing"}`);
+         |                                      ^
+      76 |     // Speech that comes after the action (a live region) is read by capturing again.
+      77 |     add((await sr.capture(async () => undefined, { capture: true })).spokenPhrase);
+      78 |   }
+        at heard (/Users/runner/work/ouro-ui/ouro-ui/registry/ouro/e2e/screen-reader/screen-reader.ts:75:38)
+        at /Users/runner/work/ouro-ui/ouro-ui/registry/ouro/e2e/screen-reader/dialog.sr.spec.ts:16:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/screen-reader/dialog.sr-Dialog-is-announ-619c7-rigger-again-when-it-closes-voiceover/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/screen-reader/dialog.sr-Dialog-is-announ-619c7-rigger-again-when-it-closes-voiceover/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/screen-reader/dialog.sr-Dialog-is-announ-619c7-rigger-again-when-it-closes-voiceover/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/screen-reader/dialog.sr-Dialog-is-announ-619c7-rigger-again-when-it-closes-voiceover/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [voiceover] › registry/ouro/e2e/screen-reader/dialog.sr.spec.ts:8:1 › Dialog is announced with its title and role when it opens, and its trigger again when it closes 
+  5 passed (3.3m)
+ ELIFECYCLE  Command failed with exit code 1.
