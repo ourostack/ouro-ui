@@ -3019,6 +3019,70 @@
       ]
     },
     {
+      "name": "page-header",
+      "type": "registry:ui",
+      "title": "PageHeader",
+      "description": "The top of a page: its title with an optional line above it (`eyebrow`), a description under it, the page's actions beside it, and a trail and an image above.",
+      "docs": "The top of a page: its title with an optional line above it (`eyebrow`), a description under it, the page's actions beside it, and a trail and an image above. Import: import { PageHeader } from \"@/components/ouro/page-header/page-header\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: heading, text, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/page-header.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/heading",
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-use-dev-messages"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/page-header/page-header.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/page-header/page-header.tsx"
+        }
+      ]
+    },
+    {
+      "name": "copy-button",
+      "type": "registry:ui",
+      "title": "CopyButton",
+      "description": "A button that puts a piece of text on the clipboard: an API key, a link, a command.",
+      "docs": "A button that puts a piece of text on the clipboard: an API key, a link, a command. Import: import { CopyButton } from \"@/components/ouro/copy-button/copy-button\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/copy-button.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/lib-announce",
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-use-dev-messages"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/copy-button/copy-button.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/copy-button/copy-button.tsx"
+        }
+      ]
+    },
+    {
+      "name": "code-block",
+      "type": "registry:ui",
+      "title": "CodeBlock",
+      "description": "Code or a command on a muted surface in the theme's monospace font, with a caption and a button that copies it.",
+      "docs": "Code or a command on a muted surface in the theme's monospace font, with a caption and a button that copies it. Import: import { CodeBlock } from \"@/components/ouro/code-block/code-block\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, copy-button, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/code-block.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/copy-button",
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-use-dev-messages"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/code-block/code-block.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/code-block/code-block.tsx"
+        }
+      ]
+    },
+    {
       "name": "lib-announce-tests",
       "type": "registry:item",
       "title": "lib-announce tests",
@@ -8553,6 +8617,189 @@
       }
     },
     {
+      "name": "page-header-tests",
+      "type": "registry:item",
+      "title": "PageHeader tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for page-header, and the tests of everything page-header installs, so the installed files reach 100% coverage. Add it beside page-header: add page-header page-header-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "page-header's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/badge",
+        "ourostack/ouro-ui/badge-tests",
+        "ourostack/ouro-ui/breadcrumb",
+        "ourostack/ouro-ui/breadcrumb-tests",
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/heading-tests",
+        "ourostack/ouro-ui/kbd-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-floating-tests",
+        "ourostack/ouro-ui/lib-key-shortcuts-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
+        "ourostack/ouro-ui/menu-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/page-header",
+        "ourostack/ouro-ui/text",
+        "ourostack/ouro-ui/text-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/page-header/page-header.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/page-header/page-header.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/page-header/page-header.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/page-header/page-header.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/page-header/page-header.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/page-header/page-header.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/page-header.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/page-header.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "copy-button-tests",
+      "type": "registry:item",
+      "title": "CopyButton tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for copy-button, and the tests of everything copy-button installs, so the installed files reach 100% coverage. Add it beside copy-button: add copy-button copy-button-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "copy-button's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/copy-button",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/text",
+        "ourostack/ouro-ui/text-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/copy-button/copy-button.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/copy-button/copy-button.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/copy-button/copy-button.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/copy-button/copy-button.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/copy-button/copy-button.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/copy-button/copy-button.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/copy-button/copy-button.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/copy-button/copy-button.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/copy-button.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/copy-button.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "code-block-tests",
+      "type": "registry:item",
+      "title": "CodeBlock tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for code-block, and the tests of everything code-block installs, so the installed files reach 100% coverage. Add it beside code-block: add code-block code-block-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "code-block's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/code-block",
+        "ourostack/ouro-ui/copy-button-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/text",
+        "ourostack/ouro-ui/text-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/code-block/code-block.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/code-block/code-block.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/code-block/code-block.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/code-block/code-block.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/code-block/code-block.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/code-block/code-block.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/code-block.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/code-block.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
       "name": "ouro-lib-tests",
       "type": "registry:item",
       "title": "Ouro lib tests",
@@ -8608,12 +8855,14 @@
         "ourostack/ouro-ui/checkbox-group-tests",
         "ourostack/ouro-ui/checkbox-tests",
         "ourostack/ouro-ui/checklist-tests",
+        "ourostack/ouro-ui/code-block-tests",
         "ourostack/ouro-ui/collapsible-tests",
         "ourostack/ouro-ui/color-field-tests",
         "ourostack/ouro-ui/color-scheme-toggle-tests",
         "ourostack/ouro-ui/combobox-tests",
         "ourostack/ouro-ui/command-tests",
         "ourostack/ouro-ui/confirm-dialog-tests",
+        "ourostack/ouro-ui/copy-button-tests",
         "ourostack/ouro-ui/date-picker-tests",
         "ourostack/ouro-ui/description-list-tests",
         "ourostack/ouro-ui/dialog-tests",
@@ -8660,6 +8909,7 @@
         "ourostack/ouro-ui/navigation-menu-tests",
         "ourostack/ouro-ui/number-field-tests",
         "ourostack/ouro-ui/otp-field-tests",
+        "ourostack/ouro-ui/page-header-tests",
         "ourostack/ouro-ui/pagination-tests",
         "ourostack/ouro-ui/popover-tests",
         "ourostack/ouro-ui/progress-tests",

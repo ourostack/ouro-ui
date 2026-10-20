@@ -2002,5 +2002,46 @@
       "ColorSchemeToggle/Playground",
       "ColorSchemeToggle/InContext"
     ]
+  },
+  {
+    "item": "copy-button",
+    "stem": "copy-button",
+    "mode": "default",
+    "part": "trigger",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "CopyButton/Playground",
+      "CopyButton/InContext"
+    ]
+  },
+  {
+    "item": "code-block",
+    "stem": "code-block",
+    "mode": "default",
+    "part": "code",
+    "role": "generic",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "CodeBlock/Playground",
+      "CodeBlock/InContext",
+      "CodeBlock/Wrapped"
+    ]
+  },
+  {
+    "item": "code-block",
+    "stem": "code-block",
+    "mode": "default",
+    "part": "copy",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "CodeBlock/Playground",
+      "CodeBlock/InContext",
+      "CodeBlock/Wrapped"
+    ]
   }
 ]

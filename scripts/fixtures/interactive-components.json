@@ -56,5 +56,7 @@
   "inspector",
   "skip-link",
   "tab-bar",
-  "color-scheme-toggle"
+  "color-scheme-toggle",
+  "copy-button",
+  "code-block"
 ]

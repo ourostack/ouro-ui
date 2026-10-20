@@ -20,6 +20,10 @@ export default function SeparatorDemo(): JSX.Element {
           Share
         </Button>
       </div>
+      <Separator label="or" />
+      <Button variant="outline" tone="secondary">
+        Continue with email
+      </Button>
     </div>
   );
 }
