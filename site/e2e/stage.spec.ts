@@ -445,10 +445,17 @@ test("on a phone, keyboard focus on the stage always stops below the pinned port
   });
   for (let step = 0; step < 4; step++) {
     await page.keyboard.press("Shift+Tab");
-    const place = await page.evaluate(() => {
+    const place = await page.evaluate(async () => {
+      // WebKit scrolls to a newly focused element from a zero-delay timer, not during focus
+      // (LocalFrameView::scheduleScrollToFocusedElement), and reading layout doesn't run it early. On a
+      // busy runner this script can run before that timer and see where the element was before the
+      // scroll. Measure after it: a zero-delay timer set now fires after the one focus set.
+      await new Promise((resolve) => setTimeout(resolve, 0));
       const focused = document.activeElement as HTMLElement;
       if (!focused.closest("[data-stage]")) return null;
-      return { top: focused.getBoundingClientRect().top, glass: document.querySelector(".stage-window")!.getBoundingClientRect().bottom, name: focused.getAttribute("aria-label") ?? focused.textContent };
+      const labelledBy = focused.getAttribute("aria-labelledby");
+      const name = focused.getAttribute("aria-label") ?? (labelledBy && document.getElementById(labelledBy)?.textContent) ?? focused.textContent;
+      return { top: focused.getBoundingClientRect().top, glass: document.querySelector(".stage-window")!.getBoundingClientRect().bottom, name };
     });
     if (!place) break;
     expect(place.top, `${place.name} is below the porthole`).toBeGreaterThanOrEqual(place.glass - 1);
