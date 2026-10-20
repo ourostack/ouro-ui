@@ -343,7 +343,7 @@ function ComingSoon(): JSX.Element {
   );
 }
 
-export function Landing(): JSX.Element {
+export default function Landing(): JSX.Element {
   return (
     <>
       <SiteHeader />
