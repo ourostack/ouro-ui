@@ -306,6 +306,34 @@
     "summary": "The thin bar across the top of the screen while the app loads the next page or submits a form, so a click that waits on the server never feels frozen: one global affordance instead of a pending state on every action."
   },
   {
+    "name": "timer",
+    "title": "Timer",
+    "group": "Feedback",
+    "source": "registry/ouro/components/ouro/timer/timer.tsx",
+    "summary": "A countdown timer with its own controls: the time left in large numbers, Start, then Pause and Cancel, Resume when paused, and at zero \"Time's up\" with Dismiss and Restart.",
+    "functions": [
+      "buzz",
+      "chime",
+      "createChimeContext",
+      "formatDuration",
+      "useTimer"
+    ]
+  },
+  {
+    "name": "timer-tray",
+    "title": "TimerTray",
+    "group": "Feedback",
+    "source": "registry/ouro/components/ouro/timer/timer-tray.tsx",
+    "summary": "The timers that are running, paused or finished, in one strip, so a person who leaves a timer's screen can still see it count down, hear it at zero, and stop it."
+  },
+  {
+    "name": "celebrate",
+    "title": "Celebrate",
+    "group": "Feedback",
+    "source": "registry/ouro/components/ouro/celebrate/celebrate.tsx",
+    "summary": "A small moment of celebration for something the person finished: confetti bursts from a badge with the message (\"List cleared\") and screen readers hear the message once."
+  },
+  {
     "name": "skeleton",
     "title": "Skeleton",
     "group": "Display",

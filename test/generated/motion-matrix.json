@@ -443,5 +443,36 @@
     "tests": [
       "registry/ouro/components/ouro/route-progress/route-progress.test.tsx::RouteProgress > fades in and grows when it shows, fills to the end and fades out when the navigation ends; with reduced motion it only fades"
     ]
+  },
+  {
+    "item": "celebrate",
+    "stem": "celebrate",
+    "state": "data-open",
+    "kind": "motion",
+    "part": "piece",
+    "properties": [
+      "opacity",
+      "transform"
+    ],
+    "reduced": [],
+    "tests": [
+      "registry/ouro/components/ouro/celebrate/celebrate.test.tsx::Celebrate > bursts its pieces outward and fades in its message, and with reduced motion only fades the message in"
+    ]
+  },
+  {
+    "item": "celebrate",
+    "stem": "celebrate",
+    "state": "data-open",
+    "kind": "motion",
+    "part": "message",
+    "properties": [
+      "opacity"
+    ],
+    "reduced": [
+      "opacity"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/celebrate/celebrate.test.tsx::Celebrate > bursts its pieces outward and fades in its message, and with reduced motion only fades the message in"
+    ]
   }
 ]

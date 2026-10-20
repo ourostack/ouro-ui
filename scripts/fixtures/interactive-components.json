@@ -58,5 +58,7 @@
   "tab-bar",
   "color-scheme-toggle",
   "copy-button",
-  "code-block"
+  "code-block",
+  "timer",
+  "timer-tray"
 ]

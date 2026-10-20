@@ -168,12 +168,52 @@
     "summary": "A nested menu in a `Menu`: an item that opens more items beside it, on hover, click or the arrow key."
   },
   {
+    "name": "buzz",
+    "title": "buzz",
+    "kind": "export",
+    "group": "Feedback",
+    "markdown": "docs/buzz.md",
+    "summary": "Vibrates the device in a short alert pattern, where it can (most Android phones; not iOS or desktops)."
+  },
+  {
+    "name": "chime",
+    "title": "chime",
+    "kind": "export",
+    "group": "Feedback",
+    "markdown": "docs/chime.md",
+    "summary": "Plays a short alert, three soft tones, for something that just finished: a timer at zero."
+  },
+  {
+    "name": "create-chime-context",
+    "title": "createChimeContext",
+    "kind": "export",
+    "group": "Feedback",
+    "markdown": "docs/createChimeContext.md",
+    "summary": "Makes an audio context for `chime`, or returns `null` where the browser has no Web Audio."
+  },
+  {
+    "name": "format-duration",
+    "title": "formatDuration",
+    "kind": "export",
+    "group": "Feedback",
+    "markdown": "docs/formatDuration.md",
+    "summary": "Seconds as a clock reads them: `9:05`, or `1:02:03` from an hour up."
+  },
+  {
     "name": "toast",
     "title": "toast",
     "kind": "export",
     "group": "Feedback",
     "markdown": "docs/toast.md",
     "summary": "Shows a toast: a short message that appears at the bottom of the screen, is read to screen readers once, and dismisses itself."
+  },
+  {
+    "name": "use-timer",
+    "title": "useTimer",
+    "kind": "export",
+    "group": "Feedback",
+    "markdown": "docs/useTimer.md",
+    "summary": "A countdown timer that keeps time by the clock, not by ticks, so it stays right in a background tab, across a reload (with `timerId`) and when the screen sleeps."
   },
   {
     "name": "avatar-group",

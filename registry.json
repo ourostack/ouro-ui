@@ -192,6 +192,7 @@
         "ourostack/ouro-ui/lib-current-path",
         "ourostack/ouro-ui/lib-dev",
         "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-feedback",
         "ourostack/ouro-ui/lib-floating",
         "ourostack/ouro-ui/lib-form-answer",
         "ourostack/ouro-ui/lib-key-shortcuts",
@@ -214,7 +215,8 @@
         "ourostack/ouro-ui/lib-use-keyboard-scrollable",
         "ourostack/ouro-ui/lib-use-media-query",
         "ourostack/ouro-ui/lib-use-ouro",
-        "ourostack/ouro-ui/lib-use-sheet-presentation"
+        "ourostack/ouro-ui/lib-use-sheet-presentation",
+        "ourostack/ouro-ui/lib-use-timer"
       ]
     },
     {
@@ -504,6 +506,19 @@
           "path": "registry/ouro/lib/ouro/env.d.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/env.d.ts"
+        }
+      ]
+    },
+    {
+      "name": "lib-feedback",
+      "type": "registry:lib",
+      "title": "lib-feedback",
+      "description": "Installed with the components that import it; you don't need to add it. The helper lib/ouro/feedback.ts.",
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/feedback.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/feedback.ts"
         }
       ]
     },
@@ -840,6 +855,19 @@
           "path": "registry/ouro/lib/ouro/use-sheet-presentation.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/use-sheet-presentation.ts"
+        }
+      ]
+    },
+    {
+      "name": "lib-use-timer",
+      "type": "registry:lib",
+      "title": "lib-use-timer",
+      "description": "Installed with the components that import it; you don't need to add it. The helper lib/ouro/use-timer.ts.",
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/use-timer.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/use-timer.ts"
         }
       ]
     },
@@ -3083,6 +3111,79 @@
       ]
     },
     {
+      "name": "timer",
+      "type": "registry:ui",
+      "title": "Timer",
+      "description": "A countdown timer with its own controls: the time left in large numbers, Start, then Pause and Cancel, Resume when paused, and at zero \"Time's up\" with Dismiss and Restart.",
+      "docs": "A countdown timer with its own controls: the time left in large numbers, Start, then Pause and Cancel, Resume when paused, and at zero \"Time's up\" with Dismiss and Restart. Import: import { Timer } from \"@/components/ouro/timer/timer\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/timer.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/lib-announce",
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-feedback",
+        "ourostack/ouro-ui/lib-use-dev-messages",
+        "ourostack/ouro-ui/lib-use-timer"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/timer/timer-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/timer/timer-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/timer/timer.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/timer/timer.tsx"
+        }
+      ]
+    },
+    {
+      "name": "timer-tray",
+      "type": "registry:ui",
+      "title": "TimerTray",
+      "description": "The timers that are running, paused or finished, in one strip, so a person who leaves a timer's screen can still see it count down, hear it at zero, and stop it.",
+      "docs": "The timers that are running, paused or finished, in one strip, so a person who leaves a timer's screen can still see it count down, hear it at zero, and stop it. Import: import { TimerTray } from \"@/components/ouro/timer/timer-tray\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, timer, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/timer-tray.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-use-dev-messages",
+        "ourostack/ouro-ui/lib-use-timer",
+        "ourostack/ouro-ui/timer"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/timer/timer-tray.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/timer/timer-tray.tsx"
+        }
+      ]
+    },
+    {
+      "name": "celebrate",
+      "type": "registry:ui",
+      "title": "Celebrate",
+      "description": "A small moment of celebration for something the person finished: confetti bursts from a badge with the message (\"List cleared\") and screen readers hear the message once.",
+      "docs": "A small moment of celebration for something the person finished: confetti bursts from a badge with the message (\"List cleared\") and screen readers hear the message once. Import: import { Celebrate } from \"@/components/ouro/celebrate/celebrate\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: the helpers it imports in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/celebrate.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-announce",
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-use-dev-messages"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/celebrate/celebrate.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/celebrate/celebrate.tsx"
+        }
+      ]
+    },
+    {
       "name": "lib-announce-tests",
       "type": "registry:item",
       "title": "lib-announce tests",
@@ -3302,6 +3403,31 @@
           "path": "registry/ouro/lib/ouro/dev.test.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/dev.test.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "lib-feedback-tests",
+      "type": "registry:item",
+      "title": "lib-feedback tests",
+      "description": "Optional: the Vitest browser tests for lib-feedback, and the tests of everything lib-feedback installs, so the installed files reach 100% coverage. Add it beside lib-feedback: add lib-feedback lib-feedback-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "devDependencies": [
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-feedback",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/feedback.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/feedback.test.ts"
         }
       ],
       "meta": {
@@ -3632,6 +3758,31 @@
           "path": "registry/ouro/lib/ouro/use-sheet-presentation.test.tsx",
           "type": "registry:lib",
           "target": "@lib/ouro/use-sheet-presentation.test.tsx"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "lib-use-timer-tests",
+      "type": "registry:item",
+      "title": "lib-use-timer tests",
+      "description": "Optional: the Vitest browser tests for lib-use-timer, and the tests of everything lib-use-timer installs, so the installed files reach 100% coverage. Add it beside lib-use-timer: add lib-use-timer lib-use-timer-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "devDependencies": [
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-use-timer",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/use-timer.test.tsx",
+          "type": "registry:lib",
+          "target": "@lib/ouro/use-timer.test.tsx"
         }
       ],
       "meta": {
@@ -8800,6 +8951,176 @@
       }
     },
     {
+      "name": "timer-tests",
+      "type": "registry:item",
+      "title": "Timer tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for timer, and the tests of everything timer installs, so the installed files reach 100% coverage. Add it beside timer: add timer timer-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "timer's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-feedback-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/lib-use-timer",
+        "ourostack/ouro-ui/lib-use-timer-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/timer",
+        "ourostack/ouro-ui/timer-tray",
+        "ourostack/ouro-ui/timer-tray-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/timer/timer.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/timer/timer.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/timer/timer.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/timer/timer.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/timer/timer.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/timer/timer.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/timer/timer.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/timer/timer.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/timer.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/timer.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "timer-tray-tests",
+      "type": "registry:item",
+      "title": "TimerTray tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for timer-tray, and the tests of everything timer-tray installs, so the installed files reach 100% coverage. Add it beside timer-tray: add timer-tray timer-tray-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "timer-tray's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-feedback-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/lib-use-timer-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/timer",
+        "ourostack/ouro-ui/timer-tests",
+        "ourostack/ouro-ui/timer-tray"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/timer/timer-tray.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/timer/timer-tray.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/timer/timer-tray.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/timer/timer-tray.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/timer/timer-tray.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/timer/timer-tray.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/timer-tray.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/timer-tray.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "celebrate-tests",
+      "type": "registry:item",
+      "title": "Celebrate tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for celebrate, and the tests of everything celebrate installs, so the installed files reach 100% coverage. Add it beside celebrate: add celebrate celebrate-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "celebrate's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/celebrate",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/celebrate/celebrate.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/celebrate/celebrate.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/celebrate/celebrate.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/celebrate/celebrate.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/celebrate/celebrate.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/celebrate/celebrate.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/celebrate.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/celebrate.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
       "name": "ouro-lib-tests",
       "type": "registry:item",
       "title": "Ouro lib tests",
@@ -8815,6 +9136,7 @@
         "ourostack/ouro-ui/lib-control-ref-tests",
         "ourostack/ouro-ui/lib-current-path-tests",
         "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-feedback-tests",
         "ourostack/ouro-ui/lib-floating-tests",
         "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
@@ -8828,6 +9150,7 @@
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
+        "ourostack/ouro-ui/lib-use-timer-tests",
         "ourostack/ouro-ui/ouro-lib"
       ]
     },
@@ -8851,6 +9174,7 @@
         "ourostack/ouro-ui/calendar-tests",
         "ourostack/ouro-ui/card-tests",
         "ourostack/ouro-ui/carousel-tests",
+        "ourostack/ouro-ui/celebrate-tests",
         "ourostack/ouro-ui/chart-tests",
         "ourostack/ouro-ui/checkbox-group-tests",
         "ourostack/ouro-ui/checkbox-tests",
@@ -8887,6 +9211,7 @@
         "ourostack/ouro-ui/lib-control-ref-tests",
         "ourostack/ouro-ui/lib-current-path-tests",
         "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-feedback-tests",
         "ourostack/ouro-ui/lib-floating-tests",
         "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
@@ -8900,6 +9225,7 @@
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
+        "ourostack/ouro-ui/lib-use-timer-tests",
         "ourostack/ouro-ui/link-tests",
         "ourostack/ouro-ui/menu-tests",
         "ourostack/ouro-ui/message-list-tests",
@@ -8940,6 +9266,8 @@
         "ourostack/ouro-ui/text-area-tests",
         "ourostack/ouro-ui/text-field-tests",
         "ourostack/ouro-ui/text-tests",
+        "ourostack/ouro-ui/timer-tests",
+        "ourostack/ouro-ui/timer-tray-tests",
         "ourostack/ouro-ui/toaster-tests",
         "ourostack/ouro-ui/toggle-group-tests",
         "ourostack/ouro-ui/toggle-tests",
