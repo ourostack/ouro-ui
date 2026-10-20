@@ -54,6 +54,9 @@
   "message-list",
   "attachment",
   "inspector",
+  "skip-link",
+  "tab-bar",
+  "color-scheme-toggle",
   "copy-button",
   "code-block"
 ]

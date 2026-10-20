@@ -24,6 +24,16 @@
     "source": "registry/ouro/components/ouro/button-group/button-group.tsx"
   },
   {
+    "name": "color-scheme-toggle",
+    "title": "ColorSchemeToggle",
+    "group": "Actions",
+    "source": "registry/ouro/components/ouro/color-scheme-toggle/color-scheme-toggle.tsx",
+    "functions": [
+      "colorSchemeScript",
+      "useColorScheme"
+    ]
+  },
+  {
     "name": "copy-button",
     "title": "CopyButton",
     "group": "Actions",
@@ -248,6 +258,12 @@
     "source": "registry/ouro/components/ouro/progress/progress.tsx"
   },
   {
+    "name": "route-progress",
+    "title": "RouteProgress",
+    "group": "Feedback",
+    "source": "registry/ouro/components/ouro/route-progress/route-progress.tsx"
+  },
+  {
     "name": "skeleton",
     "title": "Skeleton",
     "group": "Display",
@@ -452,6 +468,18 @@
     "title": "NavigationMenu",
     "group": "Navigation",
     "source": "registry/ouro/components/ouro/navigation-menu/navigation-menu.tsx"
+  },
+  {
+    "name": "skip-link",
+    "title": "SkipLink",
+    "group": "Navigation",
+    "source": "registry/ouro/components/ouro/skip-link/skip-link.tsx"
+  },
+  {
+    "name": "tab-bar",
+    "title": "TabBar",
+    "group": "Navigation",
+    "source": "registry/ouro/components/ouro/tab-bar/tab-bar.tsx"
   },
   {
     "name": "table",

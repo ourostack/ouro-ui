@@ -1,0 +1,9 @@
+{
+  "order": 2100,
+  "components": ["skip-link"],
+  "controls": {
+    "skip-link": [
+      {"part": "root", "role": "link", "portal": false}
+    ]
+  }
+}
