@@ -320,10 +320,20 @@ describe("the motion matrix", () => {
       await settle();
       collect(`${id} as rendered`);
       const controls = [...document.querySelectorAll<HTMLElement>(`[data-ouro-control="${stem}"]`)].filter((element) => isVisible(element) && !element.closest('[aria-hidden="true"]') && element.tabIndex !== -1);
-      for (const [index, control] of controls.entries()) {
-        await act(() => control.click());
-        await settle();
-        collect(`${id} after clicking control ${index + 1}`);
+      // A control that is a link (TabBar's tabs) would take the test's page away; the scan needs only the states its click leaves.
+      // On the window, after the component's own handlers, so they see the click as a person's.
+      const stay = (event: MouseEvent) => {
+        if (event.target instanceof Element && event.target.closest("a[href]")) event.preventDefault();
+      };
+      window.addEventListener("click", stay);
+      try {
+        for (const [index, control] of controls.entries()) {
+          await act(() => control.click());
+          await settle();
+          collect(`${id} after clicking control ${index + 1}`);
+        }
+      } finally {
+        window.removeEventListener("click", stay);
       }
       changes.disconnect();
       await cleanupStories();
