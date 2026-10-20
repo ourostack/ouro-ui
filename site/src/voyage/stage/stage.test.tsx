@@ -15,9 +15,9 @@ import { art, parseArt } from "./art";
 
 const root = document.documentElement;
 const scene = () => document.querySelector<SVGSVGElement>(".stage-scene")!;
-// The log's lines, oldest first: the folded earlier lines, then the newest one.
+// The log's lines on a wide screen, oldest first: the folded earlier lines, then the newest one.
 const logText = () =>
-  [...document.querySelectorAll(".stage-log-fold [data-ouro='message']"), ...document.querySelectorAll(".stage-log-newest [data-ouro='message']")].map((message) => message.textContent ?? "");
+  [...document.querySelectorAll(".stage-fold-wide [data-ouro='message']"), ...document.querySelectorAll(".stage-log-newest [data-ouro='message']")].map((message) => message.textContent ?? "");
 const TANK_NAMES = TANKS.map((tank) => tank.name);
 const lastLog = () => logText().at(-1) ?? "";
 
@@ -68,7 +68,8 @@ describe("the drawings", () => {
 describe("the hero", () => {
   it("says what HX is first, and engraves the motto on the porthole's ring", async () => {
     await renderPage("/voyage/");
-    expect(EYEBROW).toBe("Ouro HX · Accessible React components for shadcn/ui apps");
+    expect(EYEBROW).toBe("Ouro HX · Under construction");
+    expect(document.querySelector("h1")!.textContent).toBe("Feels right to the people using it. Obvious to the agents building it.");
     expect(document.querySelector("[data-site-eyebrow]")!.textContent).toBe(EYEBROW);
     expect(document.querySelector(".stage-motto textPath")!.textContent).toBe("MOBILIS IN MOBILI");
     await expect.element(page.getByText(STAGE_COPY.real)).toBeVisible();
@@ -87,7 +88,7 @@ describe("the hero", () => {
       await renderPage("/voyage/");
       expect(install.release).toBe(latestRelease);
       expect(INSTALL_COMMAND).toBe(`npx shadcn@latest add ourostack/ouro-ui/${install.item}#${latestRelease}`);
-      expect(INSTALL_CAPTION).toMatch(new RegExp(`^Add any component\\. ${install.item}`, "i"));
+      expect(INSTALL_CAPTION).toBe(`Installs with the shadcn CLI. ${install.item.charAt(0).toUpperCase()}${install.item.slice(1)} is one of ${install.count}.`);
       await expect.element(page.getByText(INSTALL_COMMAND, { exact: true })).toBeVisible();
       await expect.element(page.getByText(INSTALL_CAPTION)).toBeVisible();
       const code = document.querySelector<HTMLElement>("[data-site-install]")!;
@@ -211,10 +212,27 @@ describe("the stage's controls", () => {
     await expect.poll(() => logText()[0]).toContain(LOG.speed.stop.text);
     expect(logText()).toHaveLength(3);
     await expect.poll(lastLog).toContain(LOG.speed.full.text);
-    await expect.element(page.getByText(LOG.speed.stop.text)).not.toBeVisible();
+    const wide = () => page.elementLocator(document.querySelector(".stage-fold-wide")!);
+    await expect.element(wide().getByText(LOG.speed.stop.text)).not.toBeVisible();
     await userEvent.click(fold);
-    await expect.element(page.getByText(LOG.speed.stop.text)).toBeVisible();
+    await expect.element(wide().getByText(LOG.speed.stop.text)).toBeVisible();
     await expect.element(fold).toHaveAccessibleName(STAGE_COPY.logFold(2));
+  });
+
+  it("folds the whole log behind \"Ship's log\" on a phone, so the console stays short", async () => {
+    await page.viewport(390, 844);
+    await renderPage("/voyage/");
+    const fold = page.getByRole("button", { name: /^Ship's log \(/ });
+    await expect.element(fold).toHaveAccessibleName(STAGE_COPY.logAll(1));
+    // A fresh locator each time: it is built from the element's text, which changes.
+    const narrow = () => page.elementLocator(document.querySelector(".stage-fold-narrow")!);
+    expect(getComputedStyle(document.querySelector(".stage-log-now")!).display).toBe("none");
+    await expect.element(narrow().getByText(OPENING_LOG[0]!.text)).not.toBeVisible();
+    await userEvent.click(page.getByRole("radio", { name: "Full" }));
+    await expect.element(fold).toHaveAccessibleName(STAGE_COPY.logAll(2));
+    await userEvent.click(fold);
+    await expect.element(narrow().getByText(OPENING_LOG[0]!.text)).toBeVisible();
+    await expect.element(narrow().getByText(LOG.speed.full.text)).toBeVisible();
   });
 });
 

@@ -72,7 +72,6 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
   const nextId = useRef(OPENING_LOG.length);
   const depthAtLastLog = useRef(0);
   const root = useRef<HTMLDivElement>(null);
-  const porthole = useRef<HTMLDivElement>(null);
   const [offscreen, setOffscreen] = useState(false);
 
   const band = bandAt(depth);
@@ -112,6 +111,8 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
     setTanks(next);
     const tank = TANKS.find((entry) => entry.id === id)!;
     const count = TANKS.filter((entry) => next[entry.id]).length;
+    // The third full tank is a small celebration: the tanks gurgle and the hull's lights come up.
+    if (on && count === 3) setStream((streams) => streams + 1);
     if (!on && dived) {
       setDived(false);
       goTo(0);
@@ -135,9 +136,6 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
       startTransition(() => goTo(down));
       write(LOG.dive);
     }
-    // Keep the whole porthole in view, under the sticky header, on a phone.
-    const box = porthole.current?.getBoundingClientRect();
-    if (box && (box.top < 72 || box.bottom > window.innerHeight)) porthole.current!.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   });
   const onLights = useStable((on: boolean) => {
     setLights(on);
@@ -159,11 +157,17 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
   return (
     <div ref={root} className="stage" data-stage="" data-offscreen={offscreen ? "" : undefined}>
       <div className="stage-frame">
-        <div ref={porthole} className="stage-porthole">
-          <Scene state={scene} label={STAGE_COPY.sceneLabel} description={describeScene(scene)} motto={STAGE_COPY.motto} />
+        {/* On a phone the porthole stays under the header while the console scrolls beneath it (stage.css), so every press shows its effect without the page jumping. */}
+        <div className="stage-window">
+          <div className="stage-porthole">
+            <Scene state={scene} label={STAGE_COPY.sceneLabel} description={describeScene(scene)} motto={STAGE_COPY.motto} />
+          </div>
         </div>
         <div className="stage-real" data-stage-control="xray">
           <span>{STAGE_COPY.real}</span>
+          <span aria-hidden="true" className="stage-real-dash">
+            —
+          </span>
           <Button variant="plain" tone="primary" size="sm" className="h-auto min-h-0 px-1" onClick={onXray}>
             {STAGE_COPY.xray}
           </Button>
@@ -306,9 +310,14 @@ const LogEntry = memo(function LogEntry({ entry }: { entry: Entry }): JSX.Elemen
   );
 });
 
-/** The newest line in view; the older ones fold under "Ship's log". The bell rings from here. */
+/**
+ * The ship's log. On a wide screen the newest line is in view and the older ones fold under "Ship's
+ * log (n more)"; on a phone every line folds under "Ship's log", so the console stays short under
+ * the porthole (stage.css shows one or the other). The bell rings from here.
+ */
 const ShipLog = memo(function ShipLog({ log, rings, onRing }: { log: Entry[]; rings: number; onRing: () => void }): JSX.Element {
   const [open, setOpen] = useState(false);
+  const [openAll, setOpenAll] = useState(false);
   const older = log.slice(0, -1);
   const newest = log.slice(-1);
   return (
@@ -321,13 +330,24 @@ const ShipLog = memo(function ShipLog({ log, rings, onRing }: { log: Entry[]; ri
         </MessageList>
       </div>
       <div className="stage-log-fold" data-stage-control="log">
-        <Collapsible title={STAGE_COPY.logFold(older.length)} open={open} onOpenChange={setOpen} disabled={older.length === 0}>
-          <MessageList label={`${STAGE_COPY.log}, earlier lines`} className="stage-log">
-            {older.map((entry) => (
-              <LogEntry key={entry.id} entry={entry} />
-            ))}
-          </MessageList>
-        </Collapsible>
+        <div className="stage-fold-wide">
+          <Collapsible title={STAGE_COPY.logFold(older.length)} open={open} onOpenChange={setOpen} disabled={older.length === 0}>
+            <MessageList label={`${STAGE_COPY.log}, earlier lines`} className="stage-log">
+              {older.map((entry) => (
+                <LogEntry key={entry.id} entry={entry} />
+              ))}
+            </MessageList>
+          </Collapsible>
+        </div>
+        <div className="stage-fold-narrow">
+          <Collapsible title={STAGE_COPY.logAll(log.length)} open={openAll} onOpenChange={setOpenAll}>
+            <MessageList label={STAGE_COPY.log} className="stage-log">
+              {log.map((entry) => (
+                <LogEntry key={entry.id} entry={entry} />
+              ))}
+            </MessageList>
+          </Collapsible>
+        </div>
       </div>
       <div className="stage-bell" data-stage-control="bell" data-ring={rings === 0 ? undefined : rings % 2 ? "a" : "b"}>
         <Button variant="soft" tone="secondary" size="sm" startIcon={BellIcon} onClick={onRing}>

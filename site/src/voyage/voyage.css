@@ -138,6 +138,31 @@
     text-transform: none;
     color: var(--muted-foreground);
   }
+  .site-hero-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .site-hero-status::before {
+    /* A builder's marker: the library is under construction. */
+    content: "";
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    background: var(--chart-3);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--chart-3) 25%, transparent);
+  }
+  .site-hero-title {
+    max-width: 18ch;
+    font-size: clamp(2.375rem, 4.6vw, 3.75rem);
+    line-height: 1.04;
+  }
+  .site-hero-line {
+    display: block;
+  }
+  .site-hero-line-second {
+    color: var(--muted-foreground);
+  }
   .site-hero-brand {
     display: inline-flex;
     align-items: center;
@@ -148,7 +173,18 @@
     color: var(--foreground);
     font-weight: 600;
   }
+  /*
+   * The install command, whole at every width. Where the line fits, prompt, command and Copy sit in
+   * one row; where it doesn't, the command breaks after "add" and Copy rides at the top right, beside
+   * the short first line. It never scrolls and never fades out.
+   */
+  .site-install-block {
+    display: grid;
+    gap: 0.5rem;
+    container-type: inline-size;
+  }
   .site-install {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -160,29 +196,48 @@
     box-shadow: var(--shadow-xs);
   }
   .site-install-prompt {
+    align-self: flex-start;
+    padding-block: 0.5rem;
+    line-height: 1.5;
     color: var(--muted-foreground);
     user-select: none;
   }
   .site-install-command {
     flex: 1;
     min-width: 0;
-    overflow-x: auto;
     padding-block: 0.5rem;
+    line-height: 1.5;
     white-space: nowrap;
     color: var(--foreground);
-    scrollbar-width: thin;
-    /* On a phone the command scrolls sideways; the fade says there is more. */
-    mask-image: linear-gradient(to right, black calc(100% - 1.5rem), transparent);
   }
-  @media (min-width: 40rem) {
-    .site-install-command {
-      mask-image: none;
+  .site-install-address {
+    color: var(--primary);
+    font-weight: 500;
+  }
+  .site-install-copy {
+    flex-shrink: 0;
+  }
+  @container (max-width: 35.99rem) {
+    .site-install {
+      align-items: flex-start;
+      padding-block: 0.5rem;
     }
-  }
-  .site-install-command:focus-visible {
-    outline: 2px solid var(--ring);
-    outline-offset: 2px;
-    border-radius: 4px;
+    .site-install-command {
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+    .site-install-run {
+      display: block;
+      padding-inline-end: 5.5rem;
+    }
+    .site-install-address {
+      display: block;
+    }
+    .site-install-copy {
+      position: absolute;
+      top: 0.5rem;
+      inset-inline-end: 0.5rem;
+    }
   }
   .site-install-caption {
     margin: 0;

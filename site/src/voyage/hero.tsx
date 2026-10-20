@@ -3,14 +3,14 @@ import proof, { install } from "virtual:site-proof";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
-import { HERO_SUBLINE, HERO_TITLE } from "../copy";
+import { VOYAGE_HERO } from "../copy";
 import { href } from "../paths";
 import { latestRelease } from "../latest-release";
 import { Container } from "./layout";
 import { Stage } from "./stage/stage";
 
-/** What the hero says the library is, before anything else. */
-export const EYEBROW = "Ouro HX · Accessible React components for shadcn/ui apps";
+/** What the hero says the library is, before anything else: HX, and that it is under construction. */
+export const EYEBROW = VOYAGE_HERO.eyebrow;
 
 /**
  * The install line, whole and pinned: one component that is in the latest release (proof.mts picks
@@ -20,8 +20,11 @@ export const INSTALL_COMMAND = `npx shadcn@latest add ourostack/ouro-ui/${instal
 
 const title = (item: string) => item.charAt(0).toUpperCase() + item.slice(1);
 
-/** Under the command, so nobody thinks it installs the whole library. */
-export const INSTALL_CAPTION = `Add any component. ${title(install.item)} is one of ${install.count} in ${latestRelease}.`;
+/**
+ * Under the command: how it installs, and that it adds one component of many, so nobody thinks it
+ * installs the whole library. The count is the release's (proof.mts), never typed in.
+ */
+export const INSTALL_CAPTION = `Installs with the shadcn CLI. ${title(install.item)} is one of ${install.count}.`;
 
 function CopyIcon(): JSX.Element {
   return (
@@ -32,22 +35,48 @@ function CopyIcon(): JSX.Element {
   );
 }
 
-/** The install command, whole: it scrolls sideways on a phone and never cuts off, with Copy beside it. */
+/** Where the command may wrap on a narrow screen: after "add", and after each slash of the address. */
+function CommandText(): JSX.Element {
+  const [run, address] = INSTALL_COMMAND.split(" add ") as [string, string];
+  const parts = address.split("/");
+  return (
+    <>
+      <span className="site-install-run">{run} add</span>{" "}
+      <span className="site-install-address">
+        {parts.map((part, index) => (
+          <span key={index}>
+            {part}
+            {index < parts.length - 1 ? (
+              <>
+                /<wbr />
+              </>
+            ) : null}
+          </span>
+        ))}
+      </span>
+    </>
+  );
+}
+
+/**
+ * The install command, whole at every width: on one line where it fits, on two (the run, then the
+ * address) where it doesn't, never cut off or scrolled. Copy sits beside it.
+ */
 function Install(): JSX.Element {
   return (
-    <div className="grid gap-2">
+    <div className="site-install-block">
       <div className="site-install">
         <span aria-hidden="true" className="site-mono site-install-prompt">
           $
         </span>
-        <code tabIndex={0} className="site-mono site-install-command" data-site-install="">
-          {INSTALL_COMMAND}
+        <code className="site-mono site-install-command" data-site-install="">
+          <CommandText />
         </code>
         <Button
           variant="soft"
           tone="secondary"
           size="sm"
-          className="shrink-0"
+          className="site-install-copy"
           onClick={() => {
             void navigator.clipboard.writeText(INSTALL_COMMAND).then(
               () => toast("Copied the install command", { tone: "success", description: `Run it in your app's folder. It adds ${title(install.item)}.` }),
@@ -100,12 +129,17 @@ export function Hero({ onXray }: { onXray: () => void }): JSX.Element {
             <p className="site-eyebrow site-hero-eyebrow" data-site-eyebrow="">
               <span className="site-hero-brand">{EYEBROW.split(" · ")[0]}</span>
               <span className="sr-only"> · </span>
-              <span>{EYEBROW.split(" · ")[1]}</span>
+              <span className="site-hero-status">{EYEBROW.split(" · ")[1]}</span>
             </p>
-            <h1 id="hero-title" className="site-h1 mt-4 max-w-[15ch]">
-              {HERO_TITLE}
+            <h1 id="hero-title" className="site-h1 site-hero-title mt-5">
+              {VOYAGE_HERO.title.map((sentence, index) => (
+                <span key={sentence} className={index === 0 ? "site-hero-line" : "site-hero-line site-hero-line-second"}>
+                  {sentence}
+                  {index < VOYAGE_HERO.title.length - 1 ? " " : null}
+                </span>
+              ))}
             </h1>
-            <p className="site-lede mt-5 max-w-[40ch]">{HERO_SUBLINE}</p>
+            <p className="site-lede mt-5 max-w-[44ch]">{VOYAGE_HERO.subline}</p>
             <div className="mt-7 max-w-[36rem]">
               <Install />
             </div>
