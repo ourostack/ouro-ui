@@ -64,20 +64,21 @@ const steps: Record<(typeof CHAPTER_ONE_CONTROLS)[number], { press: Step; before
 };
 
 /**
- * Each control's baseline: the highest median, in ms, of its CI runs (every run prints its samples).
- * Provisional, at the p95 budget, until six CI runs of this spec have measured it.
+ * Each control's baseline: the highest median, in ms, of six CI runs of this spec (#131, 2026-10-20;
+ * every run prints its samples). Re-measure and update a control's line when a change makes it
+ * faster or knowingly slower.
  */
 const BASELINE_MEDIAN: Record<(typeof CHAPTER_ONE_CONTROLS)[number], number> = {
-  "shipyard-code": 100,
-  order: 100,
-  jobs: 100,
-  launch: 100,
-  "articles-code": 100,
-  name: 100,
-  trade: 100,
-  oath: 100,
-  sign: 100,
-  leave: 100,
+  "shipyard-code": 72,
+  order: 76,
+  jobs: 52,
+  launch: 80,
+  "articles-code": 72,
+  name: 24,
+  trade: 28,
+  oath: 40,
+  sign: 72,
+  leave: 64,
 };
 
 /** A control's presses for latency.ts: its set-up readies each press, after tidying the one before. */
