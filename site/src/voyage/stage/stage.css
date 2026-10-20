@@ -865,6 +865,14 @@
   line-height: 1.35;
   color: var(--muted-foreground);
 }
+.stage-hint-ready {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 .stage-helm {
   display: grid;
   align-content: start;
@@ -1041,8 +1049,17 @@
     font-size: 1rem;
   }
   .stage-log-now,
-  .stage-fold-wide {
+  .stage-fold-wide,
+  .stage-ready {
     display: none;
+  }
+  .stage-hint-ready {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
   }
   .stage-fold-narrow {
     display: block;

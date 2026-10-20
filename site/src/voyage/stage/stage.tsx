@@ -170,7 +170,7 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
           <span aria-hidden="true" className="stage-real-dash">
             —
           </span>
-          <Button variant="plain" tone="primary" size="sm" className="h-auto min-h-0 px-1" onClick={onXray}>
+          <Button variant="plain" tone="primary" size="md" className="h-auto min-h-0 px-1" onClick={onXray}>
             {STAGE_COPY.xray}
           </Button>
         </div>
@@ -280,7 +280,8 @@ const DiveControl = memo(function DiveControl({ full, dived, onPress }: { full: 
           </Badge>
         </span>
       ) : null}
-      <span id="stage-dive-hint" className={full === 3 && !dived ? "sr-only" : "stage-hint"}>
+      {/* Beside the Ready badge a wide screen keeps the hint for screen readers only; a phone shows it instead of the badge, at 16px (stage.css). */}
+      <span id="stage-dive-hint" className={full === 3 && !dived ? "stage-hint stage-hint-ready" : "stage-hint"}>
         {dived ? STAGE_COPY.surfaceHint : STAGE_COPY.diveHint(full)}
       </span>
     </div>
@@ -357,7 +358,7 @@ const ShipLog = memo(function ShipLog({ log, rings, onRing }: { log: Entry[]; ri
         </div>
       </div>
       <div className="stage-bell" data-stage-control="bell" data-ring={rings === 0 ? undefined : rings % 2 ? "a" : "b"}>
-        <Button variant="soft" tone="secondary" size="sm" startIcon={BellIcon} onClick={onRing}>
+        <Button variant="soft" tone="secondary" size="md" startIcon={BellIcon} onClick={onRing}>
           {STAGE_COPY.bell}
         </Button>
       </div>
