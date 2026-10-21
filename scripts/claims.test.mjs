@@ -462,6 +462,26 @@ test("verify: each check passes on what holds and explains what does not", async
   assert.match((await failures({ urlOk: "https://example.com/new" }))[0], /has not been checked\. Run the check with --network/);
 });
 
+test("verify: urlOk refuses a GitHub file or folder link that follows a branch, and passes a commit permalink", async () => {
+  const pinned = "https://github.com/shadcn-ui/ui/blob/3502dbcde11d1eaf967a47ac375744dc336641f3/apps/v4/registry/bases/base/ui/dialog.tsx#L33";
+  const branch = "https://github.com/shadcn-ui/ui/blob/main/apps/v4/registry/bases/base/ui/dialog.tsx";
+  const folder = "https://github.com/shadcn-ui/ui/tree/main/packages/registry/src/utils/updaters";
+  const tag = "https://github.com/vitejs/vite-plugin-react/blob/plugin-react@6.1.1/packages/common/warning.ts";
+  const short = "https://github.com/shadcn-ui/ui/blob/3502dbc/apps/v4/registry/bases/base/ui/dialog.tsx";
+  const root = fixture({
+    "claims-urls.json": JSON.stringify(Object.fromEntries([pinned, branch, folder, tag, short, "https://github.com/vitejs/vite/issues/15012"].map((url) => [url, { status: 200, checked: "2026-10-20" }]))),
+  });
+  const context = { root, urlCache: "claims-urls.json", network: false };
+  const failures = async (check) => (await verify([check], context)).map((failure) => failure.message);
+  assert.deepEqual(await failures({ urlOk: pinned }), []);
+  assert.deepEqual(await failures({ urlOk: "https://github.com/vitejs/vite/issues/15012" }), []);
+  for (const url of [branch, folder, tag, short]) {
+    const messages = await failures({ urlOk: url });
+    assert.equal(messages.length, 1, url);
+    assert.match(messages[0], /follows a branch or tag, so it answers after the file changes and backs nothing in it\. Pin it to a commit: https:\/\/github\.com\/<owner>\/<repo>\/blob\/<40-character commit hash>\/<path>#L<line>\./);
+  }
+});
+
 test("verify: sources must exist where they can be checked offline", async () => {
   const root = verifyFixture();
   const context = { root, urlCache: "claims-urls.json", network: false };

@@ -942,6 +942,12 @@ export async function verify(checks, context, sources = []) {
       const problem = testProblem(root, check.testExists, config);
       if (problem) fail(problem);
     } else if ("urlOk" in check) {
+      // A file or folder on GitHub at a branch or tag still answers after its contents change.
+      const ref = /^https:\/\/github\.com\/[^/]+\/[^/]+\/(?:blob|tree)\/([^/#?]+)/.exec(check.urlOk)?.[1];
+      if (ref !== undefined && !/^[0-9a-f]{40}$/.test(ref)) {
+        fail(`${check.urlOk} follows a branch or tag, so it answers after the file changes and backs nothing in it. Pin it to a commit: https://github.com/<owner>/<repo>/blob/<40-character commit hash>/<path>#L<line>.`);
+        continue;
+      }
       const before = cache[check.urlOk];
       if (network === true || (network === "changed" && context.refresh?.has(check.urlOk))) {
         const status = await fetchStatus(check.urlOk);

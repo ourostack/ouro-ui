@@ -139,19 +139,23 @@
     "status": 200,
     "checked": "2026-10-21"
   },
-  "https://github.com/shadcn-ui/ui/blob/main/apps/v4/registry/new-york-v4/ui/dialog.tsx": {
+  "https://github.com/shadcn-ui/ui/blob/3502dbcde11d1eaf967a47ac375744dc336641f3/apps/v4/registry/bases/base/ui/dialog.tsx#L33-L53": {
     "status": 200,
     "checked": "2026-10-21"
   },
-  "https://github.com/shadcn-ui/ui/blob/main/packages/registry/src/transformers/transform-rsc.ts": {
+  "https://github.com/shadcn-ui/ui/blob/3502dbcde11d1eaf967a47ac375744dc336641f3/packages/registry/src/utils/transformers/transform-rsc.ts#L4-L15": {
     "status": 200,
     "checked": "2026-10-21"
   },
-  "https://github.com/shadcn-ui/ui/tree/main/packages/shadcn/src/utils/updaters": {
+  "https://github.com/shadcn-ui/ui/blob/3502dbcde11d1eaf967a47ac375744dc336641f3/packages/registry/src/utils/updaters/update-css-vars.ts#L91-L124": {
     "status": 200,
     "checked": "2026-10-21"
   },
-  "https://github.com/vitejs/vite-plugin-react/blob/main/packages/common/warning.ts": {
+  "https://github.com/shadcn-ui/ui/blob/3502dbcde11d1eaf967a47ac375744dc336641f3/packages/registry/src/utils/updaters/update-dependencies.ts#L177-L206": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
+  "https://github.com/vitejs/vite-plugin-react/blob/04cac5020e349f452d76c5a4f6d788ad4b38930a/packages/common/warning.ts#L8-L22": {
     "status": 200,
     "checked": "2026-10-21"
   },
