@@ -36,11 +36,12 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "landing" | "v
 }
 
 /**
- * Initial JavaScript ceilings, gzip bytes (site-design.md, Budgets). The landing page may not
- * grow from 274,131 bytes, what it loaded on main at fdbaa9d2 before each page got its own chunk;
- * the voyage preview gets 270 KB.
+ * Initial JavaScript ceilings, gzip bytes (site-design.md, Budgets). The landing page and the docs
+ * may not grow: each is what it loaded on CI at 46311d0f (#141, on main at f738c722, after the docs
+ * stopped loading every page's Markdown first), 156,055 and 164,074 bytes, plus 1 KiB. The voyage
+ * preview gets 270 KB.
  */
-const CEILINGS = { landing: 156_068 + 1024, voyage: 270 * 1024, docs: 160_758 + 1024 } as const;
+const CEILINGS = { landing: 156_055 + 1024, voyage: 270 * 1024, docs: 164_074 + 1024 } as const;
 
 /** The CSS each page loads before it paints, gzip bytes: every stylesheet together (site-design.md, Budgets). */
 const CSS_CEILING = 40 * 1024;
@@ -269,8 +270,7 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
     const gzip = expected.reduce((sum, file) => sum + gzipSync(readFileSync(resolve("site/dist", file))).byteLength, 0);
     const css = [...new Set(styles)].reduce((sum, file) => sum + gzipSync(readFileSync(resolve("site/dist", file))).byteLength, 0);
     report[kind] = { gzip, ceiling: CEILINGS[kind], files: expected.length, css, cssCeiling: CSS_CEILING };
-    console.log(`MEASURE ${kind} ${gzip}`);
-    expect.soft(gzip, `${kind} initial JavaScript, gzip bytes`).toBeLessThanOrEqual(CEILINGS[kind]);
+    expect(gzip, `${kind} initial JavaScript, gzip bytes`).toBeLessThanOrEqual(CEILINGS[kind]);
     expect(styles.length, `${kind} loads its stylesheets`).toBeGreaterThan(0);
     expect(css, `${kind} CSS, gzip bytes`).toBeLessThanOrEqual(CSS_CEILING);
   }
