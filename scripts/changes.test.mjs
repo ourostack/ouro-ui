@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { HEADING, assemble, changesProblem, fragmentProblems, listed } from "./changes.mjs";
+import { scratchDir } from "./scratch.mjs";
 
 // changes/*.md hold one release's behaviour changes, one fragment per change, so parallel
 // pull requests never edit the same file. release.yml assembles them into the notes' "Changes
@@ -20,7 +20,7 @@ const NEXT = `${HEADING}\n`;
 const changes = `${NEXT}\nRe-add your Ouro items.\n\n- Sheets stack at --ouro-layer.\n- ConfirmDialog resets on reopen.\n`;
 /** A changes/ folder with these fragments. */
 const fragments = (files) => {
-  const dir = join(mkdtempSync(join(tmpdir(), "changes-")), "changes");
+  const dir = join(scratchDir("changes-"), "changes");
   mkdirSync(dir);
   for (const [name, text] of Object.entries(files)) writeFileSync(join(dir, name), text);
   return dir;
@@ -65,7 +65,7 @@ test("new changes pass, with or without a last release", () => {
 const run = (...args) => spawnSync(process.execPath, [script, ...args], { encoding: "utf8" });
 
 test("`check` exits 1 with a GitHub error for a problem, and 0 otherwise", () => {
-  const notes = join(mkdtempSync(join(tmpdir(), "changes-")), "notes.md");
+  const notes = join(scratchDir("changes-"), "notes.md");
   writeFileSync(notes, lastNotes);
 
   let result = run("check", fragments({}), notes);
@@ -112,7 +112,7 @@ test("release.yml checks the changes against the last release before it pushes a
 });
 
 test("`check` fails on a fragment line that is not a top-level change, naming the file and line", () => {
-  const notes = join(mkdtempSync(join(tmpdir(), "changes-")), "notes.md");
+  const notes = join(scratchDir("changes-"), "notes.md");
   writeFileSync(notes, "");
   const dir = fragments({ "ok.md": "- Fine.\n\n", "wrapped.md": "- Wrapped bullet that\n  continues here.\n  - sub item\n" });
   assert.deepEqual(fragmentProblems(dir), ["changes/wrapped.md:2:   continues here.", "changes/wrapped.md:3:   - sub item"]);
@@ -160,7 +160,7 @@ const runApproval = (mode) => {
   const from = body.indexOf("          sha=$(git rev-parse HEAD)");
   assert.notEqual(from, -1);
   const script = body.slice(from).replace(/^ {10}/gm, "");
-  const dir = mkdtempSync(join(tmpdir(), "ouro-approve-"));
+  const dir = scratchDir("ouro-approve-");
   const log = join(dir, "calls.log");
   const summary = join(dir, "summary.md");
   const output = join(dir, "output.txt");
@@ -269,7 +269,7 @@ test("preparing main deletes the fragments the release used and keeps one added 
   const to = body.indexOf("\n", body.indexOf("git rm "));
   assert.ok(from !== -1 && to > from);
   const lines = body.slice(from, to).replace(/^ {10}/gm, "");
-  const repo = mkdtempSync(join(tmpdir(), "ouro-race-"));
+  const repo = scratchDir("ouro-race-");
   const git = (...args) => {
     const result = spawnSync("git", args, { cwd: repo, encoding: "utf8" });
     assert.equal(result.status, 0, `git ${args.join(" ")}: ${result.stderr}`);

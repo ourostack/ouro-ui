@@ -1,15 +1,15 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { whyNoSkillPage } from "./agent-usability/page.mts";
 import { arms } from "./agent-usability/prompt.mts";
 import { screens } from "./agent-usability/screens.mts";
+import { scratchDir } from "./scratch.mjs";
 
 function cohort() {
-  const dir = mkdtempSync(join(tmpdir(), "ouro-publication-fixture-"));
+  const dir = scratchDir("ouro-publication-fixture-");
   mkdirSync(join(dir, "arms"));
   writeFileSync(join(dir, "run.md"), [
     "- Model: fixture-only-model",
@@ -59,7 +59,7 @@ test("publication refuses a partial cohort rather than presenting it as the 45-b
 
 test("publication includes each actual outcome and its run, not just aggregate scores", () => {
   const dir = cohort();
-  const out = join(mkdtempSync(join(tmpdir(), "ouro-publication-pages-")), "comparison.md");
+  const out = join(scratchDir("ouro-publication-pages-"), "comparison.md");
   execFileSync(process.execPath, ["scripts/agent-usability/page.mts", dir, out]);
   const page = readFileSync(out, "utf8");
   assert.match(page, /^# Why Ouro HX needs no skill\n\n[^\n]+\n/);

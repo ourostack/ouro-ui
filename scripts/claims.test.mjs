@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { scratchDir } from "./scratch.mjs";
 import {
   applyAllowed,
   checkClaims,
@@ -26,10 +27,9 @@ import {
 const repo = join(dirname(fileURLToPath(import.meta.url)), "..");
 const script = join(repo, "scripts/claims.mjs");
 
-/** A throwaway repository under .tmp/ (ignored), holding `files`. */
+/** A throwaway repository holding `files`, removed after this file's tests. */
 function fixture(files) {
-  mkdirSync(join(repo, ".tmp"), { recursive: true });
-  const dir = mkdtempSync(join(repo, ".tmp/claims-"));
+  const dir = scratchDir("ouro-claims-");
   for (const [path, text] of Object.entries(files)) {
     mkdirSync(dirname(join(dir, path)), { recursive: true });
     writeFileSync(join(dir, path), text);
@@ -671,6 +671,8 @@ test("the claims checker ships in lib-claims and runs in an app", () => {
     "src/checkout.test.tsx": 'import { test } from "vitest";\ntest("checkout passes axe", () => {});\n',
     "src/copy.ts": 'import { claim } from "./lib/ouro/claims";\nexport const LINE = claim("Checkout passes axe in every theme.", { source: { test: "src/checkout.test.tsx::checkout passes axe" }, verify: { testExists: "src/checkout.test.tsx::checkout passes axe" } });\nexport const NOTE = "Every page loads fast.";\n',
   });
+  // The app's own TypeScript, as installed beside the checker.
+  symlinkSync(join(repo, "node_modules"), join(app, "node_modules"), "dir");
   mkdirSync(join(app, "src/lib/ouro"), { recursive: true });
   copyFileSync(join(repo, "registry/ouro/lib/ouro/claims.ts"), join(app, "src/lib/ouro/claims.ts"));
   copyFileSync(join(repo, "registry/ouro/lib/ouro/claims-check.mjs"), join(app, "src/lib/ouro/claims-check.mjs"));
