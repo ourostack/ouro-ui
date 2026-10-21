@@ -125,7 +125,8 @@ export const Scene = memo(function Scene({ state, label, description, motto }: {
           </g>
         </g>
       </svg>
-      {/* The layers keep the order of one drawing: sea, fish, the haze and the ship, the bell's ripples, then the glass and the rim. */}
+      {/* The layers keep the order of one drawing: sea, caustics, fish, the haze and the ship, the hull's lit lights, the dive's bubbles, the bell's ripples, then the glass and the rim. */}
+      <Caustics />
       <Life />
       <svg viewBox="0 0 560 560" className="stage-art stage-art-over" aria-hidden="true">
         <g transform="translate(40 40)">
@@ -133,10 +134,11 @@ export const Scene = memo(function Scene({ state, label, description, motto }: {
             <Hidden />
             <rect className="stage-haze" width="480" height="480" fill="url(#stage-haze)" />
             <Ship />
-            <Bubbles dives={state.dives} />
           </g>
         </g>
       </svg>
+      <HullLights />
+      <Bubbles dives={state.dives} />
       <Ripples rings={state.rings} />
       <svg viewBox="0 0 560 560" className="stage-art stage-art-over" aria-hidden="true">
         <g transform="translate(40 40)">
@@ -228,12 +230,6 @@ const Sea = memo(function Sea(): JSX.Element {
           <path d="M292 156 L332 156 L404 480 L322 480 Z" />
           <path d="M392 156 L414 156 L512 480 L462 480 Z" />
         </g>
-        {/* Caustics: the sun's net of light on the water just under the surface. */}
-        <g className="stage-caustics">
-          <path d="M-20 178 C20 170 40 186 80 178 S140 170 180 180 S250 188 290 176 S360 168 400 180 S470 188 520 176" />
-          <path d="M-20 200 C30 192 60 208 100 198 S170 190 210 202 S280 210 320 198 S390 190 430 202 S490 208 520 198" />
-          <path d="M-20 224 C24 218 56 232 96 224 S168 216 208 228 S276 234 316 222 S384 216 424 228 S488 232 520 222" />
-        </g>
         <path className="stage-waves" d="M0 152 C20 146 40 158 60 152 C80 146 100 158 120 152 C140 146 160 158 180 152 C200 146 220 158 240 152 C260 146 280 158 300 152 C320 146 340 158 360 152 C380 146 400 158 420 152 C440 146 460 158 480 152 L480 162 L0 162 Z" />
       </g>
       <g className="stage-specks" aria-hidden="true">
@@ -302,6 +298,9 @@ const Hidden = memo(function Hidden(): JSX.Element {
   );
 });
 
+/** The ship's drawing, in the glass's units across. */
+const SHIP_WIDTH = 440;
+
 const Ship = memo(function Ship(): JSX.Element {
   return (
     <>
@@ -309,7 +308,7 @@ const Ship = memo(function Ship(): JSX.Element {
         <path className="stage-beam" d="M194 16 L600 -110 L600 238 Z" fill="url(#stage-beam)" />
         <Wake />
         <ellipse className="stage-hull-shadow" cx="208" cy="76" rx="180" ry="12" fill="url(#stage-shadow)" />
-        <Drawing of={art.nautilus} x={0} y={0} width={440} className="stage-ship" />
+        <Drawing of={art.nautilus} x={0} y={0} width={SHIP_WIDTH} className="stage-ship" />
         <circle className="stage-lantern-glow" cx="194" cy="16" r="30" fill="url(#stage-glow)" />
       </g>
       {/* The sea in front of the hull at the surface: the platform stands three feet out of the water. */}
@@ -345,12 +344,70 @@ const BUBBLES: ReadonlyArray<[number, number, number]> = [
   [300, 0.1, 4], [326, 0.35, 3], [352, 0.6, 4.5], [140, 0.7, 2.5], [232, 0.8, 3.5], [318, 0.9, 2.5], [200, 1.0, 4],
 ];
 
+/**
+ * The bubbles are HTML over the ship, rising on the compositor: drawn in the SVG, each of them was
+ * restyled, laid out and repainted by the page every frame of their two seconds, and the next press
+ * (Surface, after Dive) waited on that.
+ */
 const Bubbles = memo(function Bubbles({ dives }: { dives: number }): JSX.Element {
   return (
-    <g className="stage-bubbles" key={dives} data-streaming={dives > 0 ? "" : undefined}>
+    <div className="stage-bubbles" key={dives} data-streaming={dives > 0 ? "" : undefined} aria-hidden="true">
       {dives > 0 &&
-        BUBBLES.map(([x, delay, r], index) => <circle key={index} cx={x} cy={330 - (index % 3) * 18} r={r} style={{ "--bubble-delay": delay } as CSSProperties} />)}
-    </g>
+        BUBBLES.map(([x, delay, r], index) => {
+          const y = 330 - (index % 3) * 18;
+          // Each grows from the glass's corner, as the SVG circles did, so the stream fans out as it rises.
+          const origin = `calc(${r - x} * 100cqi / 560) calc(${r - y} * 100cqi / 560)`;
+          return <span key={index} className="stage-bubble" style={{ left: onGlass(x - r), top: onGlass(y - r), width: onGlass(2 * r), height: onGlass(2 * r), transformOrigin: origin, "--bubble-delay": delay } as CSSProperties} />;
+        })}
+    </div>
+  );
+});
+
+/**
+ * Caustics: the sun's net of light on the water just under the surface, which rises out of view with
+ * it. The lines sway for as long as the porthole is at the surface, so they are HTML over the water,
+ * each line its own small drawing that the compositor moves: swaying inside the porthole's SVG, they
+ * had the page redraw the sea every frame, under every press at the surface (stage.latency.spec.ts).
+ */
+const CAUSTICS = [
+  "M-20 178 C20 170 40 186 80 178 S140 170 180 180 S250 188 290 176 S360 168 400 180 S470 188 520 176",
+  "M-20 200 C30 192 60 208 100 198 S170 190 210 202 S280 210 320 198 S390 190 430 202 S490 208 520 198",
+  "M-20 224 C24 218 56 232 96 224 S168 216 208 228 S276 234 316 222 S384 216 424 228 S488 232 520 222",
+];
+const Caustics = memo(function Caustics(): JSX.Element {
+  return (
+    <div className="stage-caustics" aria-hidden="true">
+      <div className="stage-caustics-rise">
+        {CAUSTICS.map((d) => (
+          <svg key={d} viewBox="-20 160 540 80" style={{ left: onGlass(-20), top: onGlass(160), width: onGlass(540), height: onGlass(80) }}>
+            <path d={d} />
+          </svg>
+        ))}
+      </div>
+    </div>
+  );
+});
+
+/**
+ * The hull's five lights, lit, over the hull's own: they show and blink when all three tanks are
+ * full (stage.css), riding with the ship. Their blink fades this drawing, which the compositor does
+ * on its own; changing the lights' colour in the ship's drawing redrew the ship every frame, under
+ * the press of Dive that follows.
+ */
+const HULL_LIGHTS = [250, 280, 310, 340, 370];
+const HullLights = memo(function HullLights(): JSX.Element {
+  const scale = SHIP_WIDTH / art.nautilus.width;
+  return (
+    <div className="stage-hull-lights" aria-hidden="true">
+      <div className="stage-hull-lights-ride">
+        {/* Inside each light's 1.1-unit rim, as the drawing's lights are (nautilus.svg). */}
+        <svg viewBox="0 0 480 480">
+          {HULL_LIGHTS.map((x) => (
+            <circle key={x} cx={x * scale} cy={70 * scale} r={(3.2 - 0.55) * scale} />
+          ))}
+        </svg>
+      </div>
+    </div>
   );
 });
 

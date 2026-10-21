@@ -36,11 +36,11 @@
   height: 100%;
 }
 /*
- * The fish (scene.tsx) and the bell's ripples: HTML on the glass's circle, 480 of the drawing's 560
+ * The caustics, the fish (scene.tsx), the hull's lit lights, the dive's bubbles and the bell's ripples: HTML on the glass's circle, 480 of the drawing's 560
  * units across at 40 in, and held to it. Inside, a percentage of a box the glass's size is a share
  * of those 480 units, so they move in the drawing's own units.
  */
-:is(.stage-life, .stage-ripples) {
+:is(.stage-caustics, .stage-life, .stage-hull-lights, .stage-bubbles, .stage-ripples) {
   position: absolute;
   left: calc(40 * 100% / 560);
   top: calc(40 * 100% / 560);
@@ -269,11 +269,19 @@
   .stage-ripples-ride {
     transition: transform var(--ouro-duration-sheet) var(--ouro-ease-in-out);
   }
-  .stage-surface-world {
+  .stage-surface-world,
+  .stage-caustics-rise {
     transition: transform var(--ouro-duration-slow) var(--ouro-ease-out);
   }
-  .stage-bubbles circle {
-    animation: stage-bubble 2400ms var(--ouro-ease-out) calc(var(--bubble-delay) * 1s) 1 both;
+  /*
+   * The rise and the fade are two animations: one whose keyframes move some steps and fade others,
+   * in units of the box, is run by the page every frame although the compositor draws it, and every
+   * press while they rise waited on that (stage.latency.spec.ts).
+   */
+  .stage-bubble {
+    animation:
+      stage-bubble 2400ms var(--ouro-ease-out) calc(var(--bubble-delay) * 1s) 1 both,
+      stage-bubble-fade 2400ms var(--ouro-ease-out) calc(var(--bubble-delay) * 1s) 1 both;
   }
 }
 @keyframes stage-drift {
@@ -284,33 +292,40 @@
     transform: translateX(calc(-340 * 100% / 480));
   }
 }
+/* The rise in the drawing's units: 100cqi is the scene's 560. */
 @keyframes stage-bubble {
   0% {
     transform: translate(0, 0) scale(0.6);
+  }
+  50% {
+    transform: translate(calc(6 * 100cqi / 560), calc(-160 * 100cqi / 560)) scale(1);
+  }
+  100% {
+    transform: translate(calc(-4 * 100cqi / 560), calc(-340 * 100cqi / 560)) scale(1.15);
+  }
+}
+@keyframes stage-bubble-fade {
+  0% {
     opacity: 0;
   }
   12% {
     opacity: 0.95;
   }
-  50% {
-    transform: translate(6px, -160px) scale(1);
-  }
   100% {
-    transform: translate(-4px, -340px) scale(1.15);
     opacity: 0;
   }
 }
-.stage-bubbles {
-  fill: color-mix(in oklab, var(--background) 18%, transparent);
-  stroke: color-mix(in oklab, var(--background) 80%, transparent);
-  stroke-width: 1.2;
-}
-.stage-bubbles circle {
+.stage-bubble {
+  position: absolute;
+  box-sizing: border-box;
+  border: calc(1.2 * 100cqi / 560) solid color-mix(in oklab, var(--background) 80%, transparent);
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--background) 18%, transparent);
   opacity: 0;
 }
 @media (prefers-reduced-motion: reduce) {
   /* Still bubbles that show and fade where the moving ones would rise. */
-  .stage-bubbles circle {
+  .stage-bubble {
     animation: stage-fade-flash 1600ms ease calc(var(--bubble-delay) * 1s) 1 both;
   }
 }
@@ -334,11 +349,11 @@
 .stage-scene[data-dived] .stage-nautilus {
   transform: translate(10px, 195px);
 }
-/* The ripples ride the same way, in the glass's 480 units: a percentage of their 480-unit box. */
-.stage-ripples-ride {
+/* The ripples and the lit lights ride the same way, in the glass's 480 units: a percentage of their 480-unit box. */
+:is(.stage-ripples-ride, .stage-hull-lights-ride) {
   transform: translate(calc(20 * 100% / 480), calc((108 + var(--tanks) * 6 + min(var(--d) * 5, 1) * -700) * 100% / 480));
 }
-.stage-scene[data-dived] .stage-ripples-ride {
+.stage-scene[data-dived] :is(.stage-ripples-ride, .stage-hull-lights-ride) {
   transform: translate(calc(10 * 100% / 480), calc(195 * 100% / 480));
 }
 .stage-scene {
@@ -508,17 +523,31 @@
 }
 /*
  * All three tanks full: the hull's lights come up and blink twice, ready to dive (with the bubbles
- * the tanks send up, stage.tsx). Colour only, so it is the same under reduced motion.
+ * the tanks send up, stage.tsx). The lit lights (scene.tsx) fade in and out over the hull's own and
+ * stay lit; a fade, not a move, so it is the same under reduced motion.
  */
-.stage-scene[data-tanks="3"]:not([data-dived]) .n-lights circle {
+.stage-hull-lights-ride {
+  position: absolute;
+  inset: 0;
+}
+.stage-hull-lights svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: color-mix(in oklab, var(--glow) 85%, white);
+  opacity: 0;
+}
+.stage-scene[data-tanks="3"]:not([data-dived]) .stage-hull-lights svg {
   animation: stage-ready-lights 520ms ease 5 alternate both;
 }
 @keyframes stage-ready-lights {
   from {
-    fill: color-mix(in oklab, var(--glow) 70%, var(--background));
+    opacity: 0;
   }
   to {
-    fill: color-mix(in oklab, var(--glow) 85%, white);
+    opacity: 1;
   }
 }
 /* The midnight water's own lights: the lanternfish's rows of lamps and the deep jelly pulse. */
@@ -781,27 +810,38 @@
   stroke-linecap: round;
   opacity: 0.32;
 }
+/* They rise out of view with the surface (.stage-surface-world), in their box's 480 units. */
+.stage-caustics-rise {
+  position: absolute;
+  inset: 0;
+  transform: translateY(calc(min(var(--d) * 5, 1) * -700 * 100% / 480));
+}
+.stage-caustics svg {
+  position: absolute;
+  overflow: visible;
+}
 @media (prefers-reduced-motion: no-preference) {
-  .stage-caustics path {
+  .stage-caustics svg {
     animation: stage-caustics 7s ease-in-out infinite alternate;
   }
-  .stage-caustics path:nth-child(2) {
+  .stage-caustics svg:nth-child(2) {
     animation-delay: -2.4s;
   }
-  .stage-caustics path:nth-child(3) {
+  .stage-caustics svg:nth-child(3) {
     animation-delay: -4.8s;
   }
-  .stage[data-offscreen] .stage-caustics path,
-  .stage-scene:not([data-band="sunlit"]) .stage-caustics path {
+  .stage[data-offscreen] .stage-caustics svg,
+  .stage-scene:not([data-band="sunlit"]) .stage-caustics svg {
     animation-play-state: paused;
   }
 }
+/* The sway in the drawing's units: 100cqi is the scene's 560. */
 @keyframes stage-caustics {
   from {
-    transform: translateX(-14px);
+    transform: translateX(calc(-14 * 100cqi / 560));
   }
   to {
-    transform: translateX(14px);
+    transform: translateX(calc(14 * 100cqi / 560));
   }
 }
 .stage-rim-shade-near {
@@ -890,6 +930,7 @@
   --quiet: color-mix(in oklab, var(--muted-foreground) 72%, var(--foreground));
   --water: color-mix(in oklab, var(--primary) 70%, var(--chart-2, var(--primary)));
   --glass-radius: 17px;
+  --glass-corner: 50%;
   --numeral-font: var(--font-mono);
   --numeral-glow: none;
   --row-gap: 0.875rem;
@@ -1183,15 +1224,31 @@
   color: var(--foreground);
 }
 .stage-gauge {
+  position: relative;
+  display: block;
   width: var(--glass);
   height: var(--glass);
+}
+/* The glass's face and its bezel: SVG in its 44 units, under and over the water and the bubbles. */
+.stage-gauge-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   overflow: visible;
+}
+/* Inside the glass, 34 of its 44 units at 5 in, rounded as the face is (--glass-corner, the face's radius over 34). */
+.stage-gauge-glass {
+  position: absolute;
+  left: calc(5 * 100% / 44);
+  top: calc(5 * 100% / 44);
+  width: calc(34 * 100% / 44);
+  height: calc(34 * 100% / 44);
+  border-radius: var(--glass-corner);
+  overflow: hidden;
 }
 .stage-gauge-face {
   fill: var(--dial);
-  rx: var(--glass-radius);
-}
-.stage-gauge-shape {
   rx: var(--glass-radius);
 }
 .stage-gauge-bezel {
@@ -1204,8 +1261,11 @@
   stroke: color-mix(in oklab, var(--water) 70%, var(--foreground));
 }
 .stage-gauge-water {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   fill: var(--water);
-  transform-box: fill-box;
   transform: translateY(100%);
 }
 .stage-gauge-surface {
@@ -1222,8 +1282,14 @@
   opacity: 0.9;
 }
 .stage-gauge-bubble {
-  fill: color-mix(in oklab, white 70%, var(--water));
+  position: absolute;
+  inset: 0;
   opacity: 0;
+}
+.stage-gauge-bubble > span {
+  position: absolute;
+  border-radius: 50%;
+  background: color-mix(in oklab, white 70%, var(--water));
 }
 .stage-gauge-ticks {
   stroke: color-mix(in oklab, var(--foreground) 45%, transparent);
@@ -1320,8 +1386,11 @@
   .stage-gauge-water {
     transition: transform 800ms cubic-bezier(0.3, 1.3, 0.5, 1);
   }
+  /* The rise and the fade apart, as the dive's bubbles' are (.stage-bubble). */
   .stage-gauge[data-full] .stage-gauge-bubble {
-    animation: stage-glass-bubble 1200ms var(--ouro-ease-out) 2 both;
+    animation:
+      stage-glass-bubble 1200ms var(--ouro-ease-out) 2 both,
+      stage-glass-bubble-fade 1200ms var(--ouro-ease-out) 2 both;
   }
   .stage-gauge[data-full] .stage-gauge-bubble:nth-of-type(2) {
     animation-delay: 220ms;
@@ -1368,28 +1437,43 @@
     animation: stage-bell-glow-b 900ms ease 1;
   }
 }
-/* Ready to dive: the ring around Dive breathes three times. Shadow only, so it's the same under reduced motion. */
-.stage-dive[data-ready] button {
+/*
+ * Ready to dive: the ring around Dive breathes three times. A wider ring on its own layer fades in
+ * and out over the still one, so the compositor runs it; an animated shadow is repainted by the page
+ * every frame, and the press of Dive waited on that. Light only, so it's the same under reduced
+ * motion.
+ */
+.stage-dive[data-ready] button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 8px color-mix(in oklab, var(--primary) 30%, transparent);
+  opacity: 0;
+  pointer-events: none;
   animation: stage-dive-ready 900ms ease-in-out 3 alternate;
 }
 @keyframes stage-dive-ready {
-  from {
-    box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary) 18%, transparent);
-  }
   to {
-    box-shadow: 0 0 0 8px color-mix(in oklab, var(--primary) 30%, transparent);
+    opacity: 1;
   }
 }
 @keyframes stage-glass-bubble {
   0% {
     transform: translateY(0);
+  }
+  100% {
+    transform: translateY(calc(-22 * 100% / 34));
+  }
+}
+@keyframes stage-glass-bubble-fade {
+  0% {
     opacity: 0;
   }
   20% {
     opacity: 0.95;
   }
   100% {
-    transform: translateY(-22px);
     opacity: 0;
   }
 }
@@ -1603,6 +1687,7 @@
   --dial: color-mix(in oklab, var(--primary) 8%, var(--card));
   --water: var(--primary);
   --glass-radius: 8px;
+  --glass-corner: calc(8 * 100% / 34);
 }
 [data-theme="abyss"].dark .stage,
 .dark[data-theme="abyss"] .stage {

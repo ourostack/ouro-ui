@@ -1,4 +1,4 @@
-import { memo, startTransition, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type JSX, type SVGProps } from "react";
+import { memo, startTransition, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type JSX, type SVGProps } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Collapsible } from "@/registry/ouro/components/ouro/collapsible/collapsible";
@@ -10,6 +10,7 @@ import { Slider } from "@/registry/ouro/components/ouro/slider/slider";
 import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { keepClearOfToasts } from "../clear-of-toasts";
+import { useStable } from "../use-stable";
 import { GITHUB } from "../../paths";
 import { bandAt, BANDS, BELL_TOASTS, describeScene, LOG, MAX_DEPTH, OPENING_LOG, SPEEDS, STAGE_COPY, TANKS, type LogLine, type Speed } from "./copy";
 import { Scene } from "./scene";
@@ -45,15 +46,6 @@ function ChimeIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
       <path d="M4 10.5l3.5 3.5L16 5.5" />
     </svg>
   );
-}
-
-/** A handler whose identity never changes but which always runs the latest render's code. */
-function useStable<Args extends unknown[]>(handler: (...args: Args) => void): (...args: Args) => void {
-  const latest = useRef(handler);
-  useLayoutEffect(() => {
-    latest.current = handler;
-  });
-  return useCallback((...args: Args) => latest.current(...args), []);
 }
 
 /**
@@ -304,31 +296,45 @@ const DepthControl = memo(function DepthControl({ depth, onChange, onCommitted }
 
 /**
  * A ballast tank's sight glass: the water inside rises when the tank floods, with a few bubbles,
- * and drains when it empties. Its shape and glow come from the preset (stage.css).
+ * and drains when it empties. Its shape and glow come from the preset (stage.css). The water and
+ * the bubbles are boxes of their own between the glass's face and its bezel, so the compositor
+ * moves them; drawn in the SVG, the page redrew the glass every frame of their rise, and the next
+ * press waited on that.
  */
 function SightGlass({ full }: { full: boolean }): JSX.Element {
-  const clip = useId();
   return (
-    <svg className="stage-gauge" viewBox="0 0 44 44" aria-hidden="true" data-full={full ? "" : undefined}>
-      <defs>
-        <clipPath id={clip}>
-          <rect className="stage-gauge-shape" x="5" y="5" width="34" height="34" rx="17" />
-        </clipPath>
-      </defs>
-      <rect className="stage-gauge-face" x="5" y="5" width="34" height="34" rx="17" />
-      <g clipPath={`url(#${clip})`}>
-        <rect className="stage-gauge-water" x="5" y="5" width="34" height="34" />
-        <path className="stage-gauge-surface" d="M5 12 Q13.5 9.5 22 12 T39 12" />
-        <circle className="stage-gauge-bubble" cx="15" cy="34" r="1.7" />
-        <circle className="stage-gauge-bubble" cx="24" cy="36" r="1.2" />
-        <circle className="stage-gauge-bubble" cx="30" cy="33" r="1.5" />
-      </g>
-      <path className="stage-gauge-ticks" d="M9 15 H12.5 M9 22 H14 M9 29 H12.5" />
-      <rect className="stage-gauge-bezel" x="3" y="3" width="38" height="38" rx="19" />
-      <path className="stage-gauge-glint" d="M14 10.5 Q22 7.5 30 10.5" />
-    </svg>
+    <span className="stage-gauge" aria-hidden="true" data-full={full ? "" : undefined}>
+      <svg className="stage-gauge-layer" viewBox="0 0 44 44">
+        <rect className="stage-gauge-face" x="5" y="5" width="34" height="34" rx="17" />
+      </svg>
+      <span className="stage-gauge-glass">
+        <svg className="stage-gauge-water" viewBox="0 0 34 34" preserveAspectRatio="none">
+          <rect width="34" height="34" />
+        </svg>
+        <svg className="stage-gauge-layer" viewBox="5 5 34 34">
+          <path className="stage-gauge-surface" d="M5 12 Q13.5 9.5 22 12 T39 12" />
+        </svg>
+        {GAUGE_BUBBLES.map(([x, y, r]) => (
+          <span key={x} className="stage-gauge-bubble">
+            <span style={{ left: `${((x - r - 5) * 100) / 34}%`, top: `${((y - r - 5) * 100) / 34}%`, width: `${(2 * r * 100) / 34}%`, height: `${(2 * r * 100) / 34}%` }} />
+          </span>
+        ))}
+      </span>
+      <svg className="stage-gauge-layer" viewBox="0 0 44 44">
+        <path className="stage-gauge-ticks" d="M9 15 H12.5 M9 22 H14 M9 29 H12.5" />
+        <rect className="stage-gauge-bezel" x="3" y="3" width="38" height="38" rx="19" />
+        <path className="stage-gauge-glint" d="M14 10.5 Q22 7.5 30 10.5" />
+      </svg>
+    </span>
   );
 }
+
+/** A sight glass's bubbles, in its 44-unit drawing: [x, y, r]. */
+const GAUGE_BUBBLES: ReadonlyArray<[number, number, number]> = [
+  [15, 34, 1.7],
+  [24, 36, 1.2],
+  [30, 33, 1.5],
+];
 
 const TankSwitch = memo(function TankSwitch({ id, label, name, checked, onChange }: { id: TankId; label: string; name: string; checked: boolean; onChange: (id: TankId, on: boolean) => void }): JSX.Element {
   return (
