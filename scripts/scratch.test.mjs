@@ -1,15 +1,16 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { runScriptTests } from "./run-script-tests.mjs";
+import { scratchDir } from "./scratch.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 test("a test file's scratch folders are gone after its tests, whether they passed or failed", () => {
-  mkdirSync(join(root, ".tmp"), { recursive: true });
-  const dir = mkdtempSync(join(root, ".tmp/scratch-"));
+  const dir = scratchDir("ouro-scratch-fixture-");
   const made = join(dir, "made.txt");
   const file = join(dir, "fixture.test.mjs");
   writeFileSync(
@@ -46,4 +47,24 @@ test("every script test makes its temp folders through scratchDir, so none is le
   );
   const direct = tests.filter((file) => /\btmpdir\(\)/.test(readFileSync(join(root, file), "utf8")));
   assert.deepEqual(direct, [], "make temp folders with scratchDir (scripts/scratch.mjs), which removes them");
+});
+
+test("pnpm test:scripts and the script test shards fail when a run leaves anything in its temp folder, and remove it", () => {
+  const dir = scratchDir("ouro-run-script-tests-");
+  const file = (name, body) => {
+    writeFileSync(join(dir, name), `import { mkdirSync } from "node:fs";\nimport { join } from "node:path";\nimport { test } from "node:test";\n${body}\n`);
+    return join(dir, name);
+  };
+  // A leak through any path, here an import's own folder under TMPDIR, not only a test's.
+  const leaky = file("leaky.test.mjs", 'test("leaks", () => { mkdirSync(join(process.env.TMPDIR, "copy-of-the-repository")); });');
+  const tidy = file("tidy.test.mjs", 'test("tidy", () => {});');
+  const temps = () => readdirSync(dirname(dir)).filter((name) => name.startsWith("ouro-script-tests-"));
+  const before = temps();
+  const logged = [];
+  const quiet = ["--test-reporter=dot", "--test-reporter-destination=/dev/null"];
+  assert.equal(runScriptTests([...quiet, leaky], { log: (line) => logged.push(line) }), 1);
+  assert.match(logged.join("\n"), /left 1 item\(s\) in their temp folder[\s\S]*copy-of-the-repository/);
+  assert.equal(runScriptTests([...quiet, tidy], { log: (line) => logged.push(line) }), 0);
+  assert.deepEqual(temps(), before, "each run removes its temp folder");
+  assert.match(JSON.parse(readFileSync(join(root, "package.json"), "utf8")).scripts["test:scripts"], /^node scripts\/run-script-tests\.mjs /);
 });

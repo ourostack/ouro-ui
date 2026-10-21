@@ -473,7 +473,7 @@ test("the script test shards run every file of pnpm test:scripts between them", 
   const count = shardCount(block);
   assert.match(block, new RegExp(`^ {6}SHARD: \\$\\{\\{ matrix\\.shard \\}\\}/${count}$`, "m"));
   assert.match(block, new RegExp(`^ {6}TIMINGS: \\.tmp/timings/scripts-\\$\\{\\{ matrix\\.shard \\}\\}of${count}\\.json$`, "m"));
-  assert.match(stepScript(block, "Script tests"), /^node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=\.\/scripts\/timings-node-reporter\.mjs --test-reporter-destination="\$TIMINGS" \$\(node scripts\/shard\.mjs scripts "\$SHARD"\)$/m);
+  assert.match(stepScript(block, "Script tests"), /^node scripts\/run-script-tests\.mjs --test-reporter=spec --test-reporter-destination=stdout --test-reporter=\.\/scripts\/timings-node-reporter\.mjs --test-reporter-destination="\$TIMINGS" \$\(node scripts\/shard\.mjs scripts "\$SHARD"\)$/m);
   const { readTimings, scriptTestFiles, shardKeys } = await import("./shard.mjs");
   const all = Array.from({ length: count }, (_, index) => shardKeys(scriptTestFiles(), { index: index + 1, count }, readTimings("scripts"))).flat();
   assert.deepEqual(all.sort(), scriptTestFiles().sort());
