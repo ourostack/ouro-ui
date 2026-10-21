@@ -224,7 +224,8 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
           <Ballast tanks={tanks} full={full} dived={dived} onTank={onTank} onDive={onDive} />
           <div className="stage-row stage-deck">
             <LightsControl lights={lights} onChange={onLights} />
-            <ShipLog log={log} rings={rings} onRing={onBell} logOpen={logOpen} />
+            <ShipLog log={log} logOpen={logOpen} />
+            <Bell rings={rings} onRing={onBell} />
           </div>
           <div className="stage-row stage-real" data-stage-control="xray">
             <span>{STAGE_COPY.real}</span>
@@ -441,30 +442,37 @@ const LogEntry = memo(function LogEntry({ entry }: { entry: Entry }): JSX.Elemen
 
 /**
  * The ship's log: every line the crew has said lately, folded under "Ship's log (n)" (the newest
- * also shows under the porthole). The bell rings from here.
+ * also shows under the porthole).
  */
-const ShipLog = memo(function ShipLog({ log, rings, onRing, logOpen }: { log: Entry[]; rings: number; onRing: () => void; logOpen: Flag }): JSX.Element {
+const ShipLog = memo(function ShipLog({ log, logOpen }: { log: Entry[]; logOpen: Flag }): JSX.Element {
   const [open, setOpen] = useState(false);
   const onOpenChange = (next: boolean) => {
     setOpen(next);
     logOpen.set(next);
   };
   return (
-    <>
-      <div className="stage-log-fold" data-stage-control="log">
-        <Collapsible title={STAGE_COPY.logAll(log.length)} open={open} onOpenChange={onOpenChange}>
-          <MessageList label={STAGE_COPY.log} className="stage-log">
-            {log.map((entry) => (
-              <LogEntry key={entry.id} entry={entry} />
-            ))}
-          </MessageList>
-        </Collapsible>
-      </div>
-      <div className="stage-bell" data-stage-control="bell" data-ring={rings === 0 ? undefined : rings % 2 ? "a" : "b"}>
-        <Button variant="soft" tone="secondary" size="md" startIcon={BellIcon} onClick={onRing}>
-          {STAGE_COPY.bell}
-        </Button>
-      </div>
-    </>
+    <div className="stage-log-fold" data-stage-control="log">
+      <Collapsible title={STAGE_COPY.logAll(log.length)} open={open} onOpenChange={onOpenChange}>
+        <MessageList label={STAGE_COPY.log} className="stage-log">
+          {log.map((entry) => (
+            <LogEntry key={entry.id} entry={entry} />
+          ))}
+        </MessageList>
+      </Collapsible>
+    </div>
+  );
+});
+
+/**
+ * The bell, beside the log. Its own piece, so a ring re-renders the bell and not the log's list,
+ * whose line follows once the press has painted.
+ */
+const Bell = memo(function Bell({ rings, onRing }: { rings: number; onRing: () => void }): JSX.Element {
+  return (
+    <div className="stage-bell" data-stage-control="bell" data-ring={rings === 0 ? undefined : rings % 2 ? "a" : "b"}>
+      <Button variant="soft" tone="secondary" size="md" startIcon={BellIcon} onClick={onRing}>
+        {STAGE_COPY.bell}
+      </Button>
+    </div>
   );
 });
