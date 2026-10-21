@@ -1,0 +1,106 @@
+/*
+ * Chapter III once it answers (chapter-three.tsx puts this in the page as the island hydrates):
+ * the squid's arm stirs at the glass a few times, then it swims off behind its ink when the fight
+ * is won; the sky comes up when you surface, the floodlights fade on, and the organ's notes rise
+ * when Nemo plays (a few times, then they rest). Under reduced motion nothing moves: the squid and
+ * the ink fade, the notes appear in place.
+ */
+.site-porthole :is(.ph-sky, .ph-beam, .ph-squid, .sq-ink),
+.site-organ :is(.or-note, .or-fill) {
+  transition:
+    opacity var(--ouro-duration-slow) ease,
+    fill var(--ouro-duration-slow) ease,
+    filter var(--ouro-duration-slow) ease;
+}
+.site-porthole[data-squid="gone"] .ph-squid {
+  opacity: 0;
+}
+.site-porthole[data-squid="gone"] .sq-ink {
+  animation: sq-ink 1.8s ease-out both;
+}
+@keyframes sq-ink {
+  0% {
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .site-porthole .sq-glass-arm {
+    transform-box: fill-box;
+    transform-origin: 90% 10%;
+    animation: sq-stir 2.6s ease-in-out 3;
+  }
+  .site-porthole .ph-squid {
+    transition:
+      opacity 1.4s ease 0.3s,
+      translate 1.6s var(--ouro-ease-in-out),
+      scale 1.6s var(--ouro-ease-in-out),
+      filter var(--ouro-duration-slow) ease;
+  }
+  .site-porthole[data-squid="gone"] .ph-squid {
+    translate: 180px -220px;
+    scale: 0.6;
+  }
+  .site-organ[data-played] .or-note {
+    transform-box: fill-box;
+    animation: or-rise 2.2s var(--ouro-ease-out) 3 both;
+  }
+  .site-organ[data-played] .or-note[data-note="2"] {
+    animation-delay: 0.35s;
+  }
+  .site-organ[data-played] .or-note[data-note="3"] {
+    animation-delay: 0.7s;
+  }
+  .site-organ[data-played] .or-note[data-note="4"] {
+    animation-delay: 0.2s;
+  }
+  .site-organ[data-played] .or-note[data-note="5"] {
+    animation-delay: 0.55s;
+  }
+  .site-stamp {
+    animation: stamp 0.5s var(--ouro-ease-out) both;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-stamp {
+    animation: stamp-fade var(--ouro-duration-slow) ease both;
+  }
+}
+@keyframes sq-stir {
+  0%,
+  100% {
+    rotate: 0deg;
+  }
+  50% {
+    rotate: -4deg;
+  }
+}
+@keyframes or-rise {
+  0% {
+    opacity: 0;
+    translate: 0 14px;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes stamp {
+  from {
+    opacity: 0;
+    scale: 1.4;
+  }
+}
+@keyframes stamp-fade {
+  from {
+    opacity: 0;
+  }
+}

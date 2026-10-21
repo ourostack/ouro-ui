@@ -24,17 +24,36 @@ export function nearScreen(id: string): Promise<void> {
 }
 
 /**
- * Chapter I as an island (site-design.md: each chapter "hydrated when it nears the viewport"). The
+ * Each chapter as an island (site-design.md: each chapter "hydrated when it nears the viewport"). The
  * server renders it whole, so it reads before any JavaScript; in the browser its chunk loads only
  * as the chapter nears the screen, and React hydrates the server's HTML then. Until that moment the
  * page's own closure carries none of its code.
  */
 const ChapterOne = lazy(() => (import.meta.env.SSR ? import("./chapter-one") : nearScreen("chapter-one").then(() => import("./chapter-one"))));
+const ChapterTwo = lazy(() => (import.meta.env.SSR ? import("./chapter-two") : nearScreen("chapter-two").then(() => import("./chapter-two"))));
+const ChapterThree = lazy(() => (import.meta.env.SSR ? import("./chapter-three") : nearScreen("chapter-three").then(() => import("./chapter-three"))));
 
 export function ChapterOneIsland(): JSX.Element {
   return (
     <Suspense>
       <ChapterOne />
+    </Suspense>
+  );
+}
+
+/** Chapter II: its Chart, and Recharts with it, load only with this island, never with the page. */
+export function ChapterTwoIsland(): JSX.Element {
+  return (
+    <Suspense>
+      <ChapterTwo />
+    </Suspense>
+  );
+}
+
+export function ChapterThreeIsland(): JSX.Element {
+  return (
+    <Suspense>
+      <ChapterThree />
     </Suspense>
   );
 }

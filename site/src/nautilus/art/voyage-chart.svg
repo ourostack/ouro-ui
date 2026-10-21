@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 341" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+  <title>The chart room's map of the voyage</title>
+  <!-- Original drawing for Ouro HX (manifest.json): an engraved chart of the seas the Nautilus
+       crosses in Verne's book, from the North Pacific to the South Pole. The coasts are drawn
+       freehand from a few points each (no survey data), on a plain grid: x = (longitude + 180) × 3,
+       y = (65 − latitude) × 2.2, so the chart runs from 180° W to 60° E and from 65° N down to the
+       pole. The chart room draws the route and the ports on top of it (chapter-two.tsx). Colour
+       comes from the theme. -->
+  <rect class="ch-sea" x="0" y="0" width="720" height="341" stroke="none" />
+  <g class="ch-grid" stroke-width="0.6" stroke-dasharray="2 4">
+    <path d="M90 0 V341 M180 0 V341 M270 0 V341 M360 0 V341 M450 0 V341 M540 0 V341 M630 0 V341 M0 11 H720 M0 77 H720 M0 209 H720 M0 275 H720" />
+  </g>
+  <path class="ch-line" d="M0 143 H720" stroke-width="0.9" stroke-dasharray="6 4" />
+  <g class="ch-land" stroke-width="1.1">
+    <path data-land="northAmerica" d="M36 -22 L36 0 L54 11 L69 15.4 L90 8.8 L120 11 L135 17.6 L150 24.2 L165 35.2 L168 50.6 L177 66 L189 72.6 L204 79.2 L198 74.8 L210 92.4 L225 99 L249 107.8 L264 110 L279 114.4 L291 123.2 L303 125.4 L309 123.2 L297 116.6 L288 110 L276 107.8 L279 96.8 L267 101.2 L249 94.6 L249 85.8 L258 78.1 L273 77 L288 77 L294 85.8 L300 88 L297 77 L312 66 L318 55 L330 50.6 L342 46.2 L348 41.8 L360 41.8 L375 39.6 L372 28.6 L360 22 L348 11 L330 6.6 L306 6.6 L294 15.4 L270 17.6 L258 11 L270 0 L270 -22 Z" />
+    <path data-land="southAmerica" d="M309 123.2 L324 116.6 L348 118.8 L360 123.2 L384 132 L390 143 L408 147.4 L435 156.2 L435 162.8 L423 173.8 L420 189.2 L405 193.6 L396 200.2 L381 217.8 L366 226.6 L354 228.8 L345 242 L336 253 L333 257.4 L339 264 L324 261.8 L315 253 L318 239.8 L324 209 L327 182.6 L312 171.6 L297 156.2 L300 145.2 L309 136.4 L306 127.6 Z" />
+    <path data-land="cuba" d="M285 94.6 L300 92.4 L318 99 L309 99 L294 95.7 Z" />
+    <path data-land="greenland" d="M375 -22 L384 -2.2 L408 11 L420 2.2 L474 -11 L480 -22 Z" />
+    <path data-land="iceland" d="M468 2.2 L486 3.3 L498 0 L486 -3.3 L474 -2.2 Z" />
+    <path data-land="britain" d="M525 33 L543 30.8 L546 26.4 L537 22 L534 17.6 L528 13.2 L522 15.4 L525 22 L531 24.2 L525 28.6 Z" />
+    <path data-land="ireland" d="M510 28.6 L522 28.6 L522 22 L516 21.3 L510 24.2 Z" />
+    <path data-land="eurasia" d="M513 61.6 L513 48.4 L534 47.3 L537 41.8 L528 37.4 L546 30.8 L555 26.4 L564 24.2 L564 17.6 L570 13.2 L555 6.6 L564 2.2 L582 -4.4 L600 -11 L630 -13.2 L660 -6.6 L720 -11 L720 -22 L738 -22 L738 88 L720 88 L711 85.8 L708 90.2 L717 94.6 L705 105.6 L696 107.8 L675 114.4 L669 114.4 L657 96.8 L645 81.4 L642 81.4 L637.5 77 L645 72.6 L648 63.8 L630 62.7 L621 61.6 L618 55 L609 55 L609 61.6 L603 57.2 L597 50.6 L579 44 L576 46.2 L588 52.8 L594 55 L588 59.4 L585 55 L576 50.6 L570 46.2 L561 46.2 L549 48.4 L540 57.2 L534 61.6 L523.5 63.8 Z" />
+    <path data-land="africa" d="M489 96.8 L492 110 L489 114.4 L504 127.6 L516 133.1 L534 132 L552 129.8 L567 134.2 L570 140.8 L567 147.4 L576 156.2 L579 169.4 L576 182.6 L585 202.4 L594 217.8 L600 220 L618 217.8 L636 206.8 L645 195.8 L645 187 L660 176 L660 165 L657 154 L663 145.2 L672 138.6 L693 118.8 L669 116.6 L657 105.6 L645 85.8 L639 77 L636 74.8 L615 72.6 L600 74.8 L585 72.6 L570 68.2 L570 61.6 L549 61.6 L522 63.8 L510 77 L501 83.6 Z" />
+    <path data-land="madagascar" d="M672 198 L681 198 L690 176 L687 169.4 L672 180.4 Z" />
+    <path data-land="antarctica" d="M0 301.4 L90 308 L180 303.6 L270 301.4 L330 288.2 L360 281.6 L366 283.8 L375 301.4 L450 310.2 L540 297 L630 294.8 L738 290.4 L738 352 L0 352 Z" />
+    <path data-land="hawaii" d="M72 96.8 L75 101.2 L75.6 99.4 Z" />
+  </g>
+  <g class="ch-labels" fill="currentColor" stroke="none" font-size="8" letter-spacing="1.5">
+    <text x="90" y="121">PACIFIC OCEAN</text>
+    <text x="366" y="63.8">NORTH ATLANTIC</text>
+    <text x="444" y="217.8">SOUTH ATLANTIC</text>
+    <text x="366" y="319">THE ICE</text>
+    <text x="450" y="139.7" font-size="7" letter-spacing="1">THE LINE</text>
+  </g>
+  
+    <g class="ch-rose" transform="translate(96 235.4)">
+      <circle r="18" stroke-width="1" />
+      <circle r="13" stroke-width="0.6" stroke-dasharray="1.5 2.5" />
+      <path d="M0 -24 L4 -4 L24 0 L4 4 L0 24 L-4 4 L-24 0 L-4 -4 Z" stroke-width="1.1" />
+      <path d="M0 -24 L4 -4 L0 0 Z M24 0 L4 4 L0 0 Z M0 24 L-4 4 L0 0 Z M-24 0 L-4 -4 L0 0 Z" fill="currentColor" stroke="none" opacity="0.55" />
+      <text y="-27" text-anchor="middle" font-size="9" fill="currentColor" stroke="none">N</text>
+    </g>
+  <g class="ch-frame" stroke-width="1">
+    <rect x="1" y="1" width="718" height="339" />
+    <rect x="5" y="5" width="710" height="331" stroke-width="0.5" />
+  </g>
+</svg>

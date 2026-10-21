@@ -94,3 +94,235 @@
   border-color: var(--primary);
   background: var(--primary);
 }
+
+/*
+ * Chapter II as the server draws it: the chart room's map (voyage-chart.svg, inlined by
+ * chapter-two.tsx) with the route on it, the leagues counter and the rail's compass. Every colour
+ * is the theme's, so each preset repaints the chart.
+ */
+.site-chart {
+  --ch-ink: color-mix(in oklab, var(--primary) 70%, var(--foreground));
+  display: block;
+  width: 100%;
+  height: auto;
+  color: var(--ch-ink);
+  font-family: var(--font-heading);
+}
+.site-chart .ch-sea {
+  fill: color-mix(in oklab, var(--primary) 6%, var(--card));
+}
+.site-chart .ch-land {
+  fill: color-mix(in oklab, var(--chart-3) 18%, var(--card));
+}
+.site-chart .ch-grid,
+.site-chart .ch-labels {
+  opacity: 0.45;
+}
+.site-chart .ch-line {
+  opacity: 0.55;
+}
+.site-chart .ch-rose {
+  opacity: 0.7;
+}
+.site-chart .ch-route {
+  stroke: var(--primary);
+}
+.site-chart .ch-port circle {
+  fill: var(--card);
+  stroke: var(--primary);
+}
+.site-chart .ch-port-number {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 600;
+  fill: var(--foreground);
+}
+.site-chart .ch-port-name {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  fill: var(--foreground);
+  paint-order: stroke;
+  stroke: var(--card);
+  stroke-width: 3px;
+}
+/* On a phone the chart's small print would be specks: the ports and the route speak for themselves. */
+@media (max-width: 40rem) {
+  .site-chart :is(.ch-labels, .ch-rose) {
+    display: none;
+  }
+  /* Each port's mark and name drawn half again as large, about its own place on the chart. */
+  .site-chart .ch-mark {
+    scale: 1.7;
+  }
+  .site-chart .ch-route {
+    stroke-width: 3.4px;
+  }
+}
+.site-leagues {
+  font-family: var(--font-heading);
+  font-size: 2.25rem;
+  line-height: 1.1;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--foreground);
+}
+.site-leagues[data-shortest] {
+  color: var(--primary);
+}
+.site-compass {
+  display: block;
+  width: 60%;
+  height: auto;
+  color: color-mix(in oklab, var(--primary) 60%, var(--foreground));
+}
+/* Chapter III's vignette: the arm drawn as a band, its middle the page's own colour. */
+.tn-core {
+  stroke: var(--background);
+}
+
+/*
+ * Chapter III as the server draws it: the porthole with the squid at the glass (squid.svg, inlined
+ * by chapter-three.tsx), the organ (organ.svg) and the ship's log. The squid's skin is Verne's
+ * "livid grey to reddish brown", mixed from the theme, so each preset repaints it.
+ */
+.site-porthole {
+  --ph-sea: color-mix(in oklab, var(--primary) 55%, oklch(0.24 0.045 250));
+  --sq-skin: color-mix(in oklab, var(--destructive) 50%, oklch(0.58 0.05 25));
+  --sq-line: color-mix(in oklab, white 72%, var(--sq-skin));
+  display: block;
+  width: 100%;
+  max-width: 22rem;
+  height: auto;
+  margin-inline: auto;
+}
+.site-porthole .ph-sea {
+  fill: var(--ph-sea);
+}
+.site-porthole .ph-sky {
+  opacity: 0;
+}
+.site-porthole .ph-sky rect {
+  fill: color-mix(in oklab, var(--primary) 28%, oklch(0.93 0.02 230));
+}
+.site-porthole .ph-wave {
+  fill: var(--ph-sea);
+}
+.site-porthole[data-surfaced] .ph-sky {
+  opacity: 1;
+}
+.site-porthole .ph-beam {
+  opacity: 0;
+}
+.site-porthole[data-lights] .ph-beam {
+  opacity: 1;
+}
+.site-porthole .ph-beam-core {
+  stop-color: var(--chart-3);
+  stop-opacity: 0.6;
+}
+.site-porthole .ph-beam-edge {
+  stop-color: var(--chart-3);
+  stop-opacity: 0;
+}
+.site-porthole .ph-squid {
+  color: var(--sq-line);
+}
+.site-porthole .sq-arm,
+.site-porthole :is(.sq-mantle, .sq-head) {
+  fill: var(--sq-skin);
+}
+.site-porthole .sq-fin {
+  fill: color-mix(in oklab, black 14%, var(--sq-skin));
+}
+.site-porthole .sq-glass-arm .sq-arm {
+  fill: color-mix(in oklab, white 14%, var(--sq-skin));
+}
+.site-porthole .sq-suckers circle {
+  fill: color-mix(in oklab, white 80%, var(--sq-skin));
+  stroke: color-mix(in oklab, black 30%, var(--sq-skin));
+}
+.site-porthole .sq-eye {
+  fill: color-mix(in oklab, var(--success) 70%, white);
+}
+.site-porthole .sq-pupil {
+  fill: oklch(0.16 0.02 250);
+}
+.site-porthole .sq-glint {
+  fill: white;
+}
+.site-porthole .sq-beak {
+  fill: oklch(0.3 0.03 40);
+}
+.site-porthole .sq-ink {
+  fill: oklch(0.16 0.02 250);
+  opacity: 0;
+}
+.site-porthole[data-lights] .ph-squid {
+  filter: brightness(1.2);
+}
+.site-porthole .ph-bubbles {
+  fill: color-mix(in oklab, white 45%, transparent);
+}
+.site-porthole .ph-glass {
+  fill: none;
+  stroke: color-mix(in oklab, white 30%, transparent);
+  stroke-width: 3;
+}
+.site-porthole .ph-ring {
+  fill: none;
+  stroke: var(--chart-3);
+  stroke-width: 18;
+  paint-order: stroke;
+  filter: drop-shadow(0 0 0.6px color-mix(in oklab, var(--chart-3) 50%, var(--foreground)));
+}
+.site-porthole .ph-bolt {
+  fill: color-mix(in oklab, var(--chart-3) 55%, var(--background));
+  stroke: color-mix(in oklab, var(--chart-3) 40%, var(--foreground));
+  stroke-width: 1.2;
+}
+.site-organ {
+  display: block;
+  width: 100%;
+  max-width: 20rem;
+  height: auto;
+  margin-inline: auto;
+  color: color-mix(in oklab, var(--primary) 65%, var(--foreground));
+}
+.site-organ-small {
+  width: 55%;
+  margin-inline: 0;
+}
+.site-organ .or-fill {
+  fill: color-mix(in oklab, var(--chart-3) 14%, var(--card));
+}
+.site-organ .or-keys-bed {
+  fill: var(--card);
+}
+.site-organ .or-mouth {
+  fill: currentColor;
+}
+.site-organ .or-note {
+  opacity: 0;
+}
+.site-organ[data-played] .or-note {
+  opacity: 1;
+}
+.site-organ[data-played] .or-fill {
+  fill: color-mix(in oklab, var(--chart-3) 34%, var(--card));
+}
+/* The log's stamp: inked once the organ plays. */
+.site-stamp {
+  justify-self: start;
+  padding: 0.375rem 0.875rem;
+  border: 3px double var(--primary);
+  border-radius: calc(var(--radius) * 0.6);
+  color: var(--primary);
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  rotate: -3deg;
+}
