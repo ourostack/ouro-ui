@@ -18,6 +18,9 @@ interface ShareContent {
  * How a share ended: `shared` through the system's share sheet, `copied` to the clipboard
  * where there is no share sheet, `cancelled` when the person closed the sheet, `failed` when
  * neither worked.
+ * @claim "How a share ended: `shared` through" registry/ouro/lib/ouro/share.test.ts verify:testExists(registry/ouro/lib/ouro/share.test.ts::share > says failed when neither the sheet nor the clipboard works)
+ * @claim "How a share ended: `shared` through" registry/ouro/lib/ouro/share.test.ts verify:testExists(registry/ouro/lib/ouro/share.test.ts::share > says cancelled when the person closes the sheet, and copies nothing)
+ * @claim "How a share ended: `shared` through" registry/ouro/lib/ouro/share.test.ts verify:testExists(registry/ouro/lib/ouro/share.test.ts::share > copies the link where there is no share sheet)
  */
 type ShareResult = "shared" | "copied" | "cancelled" | "failed";
 
@@ -74,6 +77,7 @@ function copyWithSelection(text: string): boolean {
  *
  * @example
  * if (await copyText(url)) toast("Link copied");
+ * @claim "Resolves whether it worked; never throws" registry/ouro/lib/ouro/share.test.ts verify:testExists(registry/ouro/lib/ouro/share.test.ts::copyText > resolves false, without throwing, when the selection copy throws)
  */
 async function copyText(text: string): Promise<boolean> {
   if (typeof navigator.clipboard?.writeText === "function") {
@@ -100,6 +104,9 @@ async function copyText(text: string): Promise<boolean> {
  * @example
  * const result = await share({ url: location.href, title: document.title });
  * if (result === "copied") toast("Link copied");
+ * @claim "Shares a link through the system's" registry/ouro/lib/ouro/share.test.ts verify:testExists(registry/ouro/lib/ouro/share.test.ts::share > copies the link where there is no share sheet)
+ * @claim "Shares a link through the system's" registry/ouro/lib/ouro/share.test.ts verify:testExists(registry/ouro/lib/ouro/share.test.ts::share > says cancelled when the person closes the sheet, and copies nothing)
+ * @claim "It never throws" registry/ouro/lib/ouro/share.test.ts verify:testExists(registry/ouro/lib/ouro/share.test.ts::copyText > resolves false, without throwing, when the selection copy throws)
  */
 async function share(data: ShareContent): Promise<ShareResult> {
   if (canShare(data)) {

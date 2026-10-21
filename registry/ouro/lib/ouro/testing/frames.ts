@@ -26,7 +26,12 @@ interface HeldFrames {
 // was asked for: cancelling one of those still reaches the browser. One count for every
 // hold, so a frame one hold handed to the browser is not mistaken for a later hold's.
 let last = 0;
-/** Frames handed to the browser on release and not yet run: the id each was given while held, and the browser's. */
+/**
+ * Frames handed to the browser on release and not yet run: the id each was given while held, and the browser's.
+ *
+ * @claim "Frames handed to the browser on" registry/ouro/lib/ouro/testing/frames.test.ts verify:testExists(registry/ouro/lib/ouro/testing/frames.test.ts::passes a cancel for a frame it never held on to the browser while released frames wait)
+ * @claim "Frames handed to the browser on" registry/ouro/lib/ouro/testing/frames.test.ts verify:testExists(registry/ouro/lib/ouro/testing/frames.test.ts::still cancels, by the id it gave, a frame it handed to the browser on release)
+ */
 const moved = new Map<number, number>();
 /** The browser's own `cancelAnimationFrame`, while `cancelMoved` stands in for it. */
 let browserCancel: typeof window.cancelAnimationFrame | undefined;
@@ -36,7 +41,11 @@ const cancelMoved = (handle: number) => {
   browserCancel!.call(window, id);
   settle();
 };
-/** Gives cancelling back to the browser once no moved frame is left. A hold in between keeps its own cancel; its release settles again. */
+/**
+ * Gives cancelling back to the browser once no moved frame is left. A hold in between keeps its own cancel; its release settles again.
+ *
+ * @claim "Gives cancelling back to the browser" registry/ouro/lib/ouro/testing/frames.test.ts verify:testExists(registry/ouro/lib/ouro/testing/frames.test.ts::gives frames and the clock back, and the waiting frames to the browser)
+ */
 function settle() {
   if (moved.size > 0 || !browserCancel || window.cancelAnimationFrame !== cancelMoved) return;
   window.cancelAnimationFrame = browserCancel;

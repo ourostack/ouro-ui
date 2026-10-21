@@ -52,8 +52,8 @@ const oneDecimal = new Intl.NumberFormat("en", { maximumFractionDigits: 1 });
 /**
  * "512 B", "2 kB", "1.2 MB": steps of 1024, at most one decimal.
  *
- * @claim ": steps of 1024, at most one decimal." registry/ouro/components/ouro/message/attachment.test.tsx verify:testExists(registry/ouro/components/ouro/message/attachment.test.tsx::Attachment > names the file and gives its size in readable units)
- * @claim ": steps of 1024, at most one decimal." registry/ouro/components/ouro/message/attachment.test.tsx verify:fileLine(registry/ouro/components/ouro/message/attachment.test.tsx, /\[2048,\s"2\skB"\]/)
+ * @claim "steps of 1024, at most one decimal" registry/ouro/components/ouro/message/attachment.test.tsx verify:testExists(registry/ouro/components/ouro/message/attachment.test.tsx::Attachment > names the file and gives its size in readable units)
+ * @claim "steps of 1024, at most one decimal" registry/ouro/components/ouro/message/attachment.test.tsx verify:fileLine(registry/ouro/components/ouro/message/attachment.test.tsx, /\[2048,\s"2\skB"\]/)
  */
 function defaultFormatSize(bytes: number): string {
   let value = bytes;

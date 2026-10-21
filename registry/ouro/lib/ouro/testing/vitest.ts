@@ -33,6 +33,9 @@ export interface OuroTestOptions {
    * not the test frame's logical viewport. These host metrics do not measure a physical phone.
    * @claim "Vitest 4 scales the test frame" scripts/testing-kit.test.mjs verify:testExists(scripts/testing-kit.test.mjs::page sizes every Playwright host while the touch frame keeps its phone viewport and input)
    * @claim "Vitest 4 scales the test frame" scripts/testing-kit.test.mjs verify:testExists(scripts/testing-kit.test.mjs::ouroTestProjects leaves the page size to Vitest unless the app sets one)
+   * @claim "The size of the Playwright host" scripts/testing-kit.test.mjs verify:testExists(scripts/testing-kit.test.mjs::page sizes every Playwright host while the touch frame keeps its phone viewport and input)
+   * @claim "Vitest 5 needs none" scripts/testing-kit.test.mjs verify:testExists(scripts/testing-kit.test.mjs::ouroTestProjects leaves the page size to Vitest unless the app sets one)
+   * @claim "The touch test frame still starts" scripts/testing-kit.test.mjs verify:testExists(scripts/testing-kit.test.mjs::page sizes every Playwright host while the touch frame keeps its phone viewport and input)
    */
   page?: { width: number; height: number };
 }

@@ -7,6 +7,7 @@ export type { ToneName };
 /**
  * The five tones a component's `tone` prop maps to. They are the theme's token
  * names (shadcn's, plus Ouro's success and warning), so `tone="primary"` reads `--primary`.
+ * @claim "The five tones a component's `tone`" registry/ouro/lib/ouro/tones.ts verify:fileLine(registry/ouro/lib/ouro/tones.ts, /type\sToneName\s=\s"primary"\s\|\s"secondary"\s\|\s"destructive"\s\|\s"success"\s\|\s"warning";/)
  */
 type ToneName = "primary" | "secondary" | "destructive" | "success" | "warning";
 

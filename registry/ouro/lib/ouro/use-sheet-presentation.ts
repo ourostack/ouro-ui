@@ -14,6 +14,8 @@ import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
  * const asSheet = useSheetPresentation(presentation);
  * @claim "Whether an overlay with a `presentation`" registry/ouro/lib/ouro/use-sheet-presentation.test.tsx verify:testExists(registry/ouro/lib/ouro/use-sheet-presentation.test.tsx::useSheetPresentation > follows the 640px breakpoint for "auto")
  * @claim "Any other value (`" registry/ouro/lib/ouro/use-sheet-presentation.test.tsx verify:testExists(registry/ouro/lib/ouro/use-sheet-presentation.test.tsx::useSheetPresentation > is always a sheet for "sheet" and never for "dialog", at any width)
+ * @claim "The server and hydration render the" registry/ouro/lib/ouro/use-sheet-presentation.test.tsx verify:testExists(registry/ouro/lib/ouro/use-sheet-presentation.test.tsx::useSheetPresentation > renders the wide form on the server)
+ * @claim "The server and hydration render the" registry/ouro/lib/ouro/use-sheet-presentation.test.tsx verify:testExists(registry/ouro/lib/ouro/use-sheet-presentation.test.tsx::usePickerSheet > is a sheet only while that query matches, and a popup on the server)
  */
 export function useSheetPresentation(presentation: string): boolean {
   const wide = useMediaQuery("(min-width: 640px)", true);

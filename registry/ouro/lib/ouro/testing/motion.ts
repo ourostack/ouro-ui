@@ -58,7 +58,11 @@ function namesOf(animation: CSSTransition | CSSAnimation): string[] {
         .map(kebabCase);
 }
 
-/** Each running property with its duration in milliseconds, shorthand longhands folded back into their shorthand. */
+/**
+ * Each running property with its duration in milliseconds, shorthand longhands folded back into their shorthand.
+ *
+ * @claim "Each running property with its duration" test/motion.test.ts verify:testExists(test/motion.test.ts::expectMotion > reads the four sides of a shorthand as the shorthand)
+ */
 function runningProperties(animations: Array<CSSTransition | CSSAnimation>): Map<string, number> {
   const found = new Map<string, number>();
   for (const animation of animations) {
@@ -149,6 +153,8 @@ function watchRan(element: Element): { log: Ran[]; stop: () => void } {
  * Whether the log, from `from` on, holds a transition of the property (or a CSS animation of the
  * name) that began and then ended without being cancelled. An element runs one transition of a
  * property at a time, and the cancelled one never ends, so such a transition began after it.
+ * @claim "An element runs one transition of" test/motion.test.ts verify:testExists(test/motion.test.ts::expectMotion > fails when a transition is cancelled early with nothing in its place)
+ * @claim "An element runs one transition of" test/motion.test.ts verify:testExists(test/motion.test.ts::expectMotion > waits for a transition the browser restarts mid-way, and fails on another property that starts meanwhile)
  */
 function endedInPlace(log: readonly Ran[], from: number, kind: Ran["kind"], name: string): boolean {
   let open = false;
@@ -244,6 +250,8 @@ interface ExpectMotionOptions {
   /**
    * Exactly the CSS properties that must be running on the part: a list, or each with its
    * duration in milliseconds (`{ opacity: parseDuration(token) }`).
+   * @claim "Exactly the CSS properties that must" test/motion.test.ts verify:testExists(test/motion.test.ts::expectMotion > passes when exactly the declared properties run, waits for them and records them on the part)
+   * @claim "Exactly the CSS properties that must" test/motion.test.ts verify:testExists(test/motion.test.ts::expectMotion > checks each property's duration in milliseconds when given them, and records the direction)
    */
   properties: readonly string[] | Readonly<Record<string, number>>;
   /** Whether the page prefers reduced motion; the call fails when it does not match. */
@@ -309,6 +317,8 @@ interface ExpectNoMotionOptions {
  *
  * @example
  * await expectNoMotion(box, { stem: "checkbox", state: "data-disabled", reduced: false });
+ * @claim "Proves that a state change runs" test/motion.test.ts verify:testExists(test/motion.test.ts::expectNoMotion > records an explicit empty set when nothing runs a frame after the change)
+ * @claim "Proves that a state change runs" test/motion.test.ts verify:testExists(test/motion.test.ts::expectNoMotion > fails when anything runs on the part)
  */
 async function expectNoMotion(element: Element, options: ExpectNoMotionOptions): Promise<void> {
   const now = running(element);
@@ -357,6 +367,7 @@ function expectTransition(options: { stem: string; from: string; to: string; int
  *
  * @example
  * expect(takeMotionRecords()).toEqual([{ kind: "transition", stem: "checkbox", from: "data-checked", to: "data-unchecked", interrupt: true }]);
+ * @claim "Takes back the records the running" test/motion.test.ts verify:testExists(test/motion.test.ts::motion records > move into the test's meta when it finishes)
  */
 function takeMotionRecords(): MotionRecord[] {
   return pending ? pending.splice(0) : [];

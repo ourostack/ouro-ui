@@ -96,6 +96,10 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  * @example
  * const { available, install } = useInstallPrompt();
  * if (available) return <Button onClick={install}>Install the app</Button>;
+ * @claim "Whether the browser offers to install" registry/ouro/lib/ouro/use-install-prompt.test.tsx verify:testExists(registry/ouro/lib/ouro/use-install-prompt.test.tsx::useInstallPrompt > catches the browser's offer, keeps the browser from showing its own, and opens it on install())
+ * @claim "Whether the browser offers to install" registry/ouro/lib/ouro/use-install-prompt.test.tsx verify:testExists(registry/ouro/lib/ouro/use-install-prompt.test.tsx::useInstallPrompt > is installed once the browser says the app was installed from this page)
+ * @claim "It is `available` only where the" registry/ouro/lib/ouro/use-install-prompt.test.tsx verify:testExists(registry/ouro/lib/ouro/use-install-prompt.test.tsx::useInstallPrompt > is installed, and offers nothing, while the app runs standalone)
+ * @claim "It is `available` only where the" registry/ouro/lib/ouro/use-install-prompt.test.tsx verify:testExists(registry/ouro/lib/ouro/use-install-prompt.test.tsx::useInstallPrompt > is installed once the browser says the app was installed from this page)
  */
 export function useInstallPrompt({ remindAfterDays = 14, storageKey = "ouro-install-dismissed" }: InstallPromptOptions = {}): InstallPromptState {
   const prompt = useSyncExternalStore(subscribe, canPrompt, never);

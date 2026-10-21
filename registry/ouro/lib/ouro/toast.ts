@@ -18,6 +18,7 @@ export interface ToastOptions {
    * `secondary`, the default, has no icon. Sonner's `error` is `destructive` and its
    * `info` is `primary`.
    * @default "secondary"
+   * @claim "`secondary`, the default, has no icon" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > marks the tone and shows an icon for every tone but secondary)
    */
   tone?:
     | "primary"
@@ -92,9 +93,18 @@ const renamed: Readonly<Record<string, ToneName>> = { error: "destructive", dang
 
 /** How many toasts wait for a Toaster before the oldest is dropped. */
 const MAX_PENDING = 20;
-/** How long a toast may wait for a Toaster before development warns that none is mounted. */
+/**
+ * How long a toast may wait for a Toaster before development warns that none is mounted.
+ *
+ * @claim "How long a toast may wait" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > warns when no Toaster mounts)
+ */
 const MISSING_TOASTER_MS = 1000;
-/** How long a toast with no action stays, in milliseconds. */
+/**
+ * How long a toast with no action stays, in milliseconds.
+ *
+ * @claim "How long a toast with no" registry/ouro/lib/ouro/toast.ts verify:fileLine(registry/ouro/lib/ouro/toast.ts, /const\sDEFAULT_DURATION\s=\s5000;/)
+ * @claim "How long a toast with no" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > keeps a toast that has an action until it is dismissed, unless duration is given)
+ */
 const DEFAULT_DURATION = 5000;
 
 /** The mounted Toasters, in mount order. The first shows toasts; the others wait to take over. */

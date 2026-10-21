@@ -13,6 +13,8 @@ const isWrapper = (node: unknown): boolean => (node as { $$typeof?: symbol } | n
  * What a wrapper holds, with each element's own key. `Children.forEach` resolves the wrapper
  * and hands over the elements as they are; `Children.toArray` would give them new keys.
  * A wrapper still loading suspends, and one that failed throws its error.
+ * @claim "What a wrapper holds, with each" registry/ouro/lib/ouro/server-element.test.tsx verify:testExists(registry/ouro/lib/ouro/server-element.test.tsx::gives every element of a list a wrapper holds, each with its own key)
+ * @claim "What a wrapper holds, with each" registry/ouro/lib/ouro/server-element.test.tsx verify:testExists(registry/ouro/lib/ouro/server-element.test.tsx::resolves a wrapper to the element inside it, with the element's own key)
  */
 function held(wrapper: unknown): ReactNode[] {
   const nodes: ReactNode[] = [];
@@ -27,6 +29,7 @@ function held(wrapper: unknown): ReactNode[] {
  * still fails loudly.
  *
  * Internal: Ouro UI components use it; apps don't need to.
+ * @claim "Anything else comes back unchanged, and" registry/ouro/lib/ouro/server-element.test.tsx verify:testExists(registry/ouro/lib/ouro/server-element.test.tsx::keeps a wrapper that holds no element, or more than one, so cloning it still fails loudly)
  */
 export function serverElement<T>(element: T): T {
   if (!isWrapper(element)) return element;
