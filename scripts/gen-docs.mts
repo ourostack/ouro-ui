@@ -374,7 +374,10 @@ function typesSection(texts: string[], skip: Set<string>): string {
     const definition = declaration
       .getText()
       .replace(/^\/\*\*[\s\S]*?\*\/\s*/, "")
-      .replace(/^export\s+/, "");
+      .replace(/^export\s+/, "")
+      // A claim's sources are for the claims check, not the reader.
+      .replace(/\n\s*\* @claim [^\n]*/g, "")
+      .replace(/\n\s*\*(?=\n\s*\*\/)/g, "");
     return `### \`${declaration.name.text}\`\n\n${doc ? `${doc}\n\n` : ""}\`\`\`ts\n${definition}${ts.isTypeAliasDeclaration(declaration) && !definition.endsWith(";") ? ";" : ""}\n\`\`\``;
   });
   return `## Types\n\n${blocks.join("\n\n")}`;
