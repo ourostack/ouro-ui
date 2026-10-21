@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { changedLines, countDisables, describeSurvivor, disableProblems, mutateRanges, runtimeSource, survivors, testFilesFor } from "./mutation.mjs";
+import { balanceShards, changedLines, countDisables, describeSurvivor, disableProblems, estimateMutants, mutateRanges, parseShard, runtimeSource, survivors, testFilesFor } from "./mutation.mjs";
 import { parse } from "@babel/parser";
 import traverse from "@babel/traverse";
 import { ignoreReason, isClassList, testPhases } from "./mutation/plugins.mjs";
@@ -174,4 +174,27 @@ test("disableProblems fails every Stryker comment a change adds to runtime sourc
     "registry/ouro/components/ouro/button/button.tsx:15: // Stryker restore all",
   ]);
   assert.equal(countDisables("a // Stryker disable next-line X: y\nb /* Stryker disable all */\n"), 2);
+});
+
+test("estimateMutants counts what Stryker can change on the changed lines, leaving class strings out", () => {
+  const text = [
+    "export function f(a, b) {",
+    '  const rootClass = "m-0 flex gap-2";',
+    '  if (a > 1 && b) return "on";',
+    "  return a ? b : !b;",
+    "}",
+  ].join("\n");
+  assert.equal(estimateMutants(text, "f.tsx", [[2, 2]]), 0);
+  assert.ok(estimateMutants(text, "f.tsx", [[3, 3]]) >= 4);
+  assert.ok(estimateMutants(text, "f.tsx", [[1, 5]]) > estimateMutants(text, "f.tsx", [[3, 4]]));
+});
+
+test("balanceShards splits files across shards by their mutants, largest first, each shard's total as even as it can be", () => {
+  const weights = { a: 50, b: 30, c: 20, d: 20, e: 10 };
+  const shards = balanceShards(weights, 3);
+  assert.deepEqual(shards, [["a"], ["b", "e"], ["c", "d"]]);
+  assert.deepEqual(balanceShards({ a: 1 }, 3), [["a"], [], []]);
+  assert.deepEqual(parseShard("2/3"), { index: 2, count: 3 });
+  assert.equal(parseShard(undefined), null);
+  assert.throws(() => parseShard("4/3"), /--shard/);
 });

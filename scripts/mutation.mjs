@@ -10,10 +10,13 @@
 //
 // The tests run in Chromium through scripts/mutation/plugins.mjs (Stryker's own Vitest runner has
 // no browser mode). Tailwind class strings and the development check are left out (see there).
+import { parse } from "@babel/parser";
+import traverse from "@babel/traverse";
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { ignoreReason } from "./mutation/plugins.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const componentsDir = "registry/ouro/components/ouro/";
@@ -48,6 +51,69 @@ export function changedLines(diff) {
     }
   }
   return files;
+}
+
+/** The node kinds Stryker's mutators change: operators, conditions, literals, blocks, collections. */
+const mutable = new Set([
+  "BinaryExpression",
+  "LogicalExpression",
+  "ConditionalExpression",
+  "IfStatement",
+  "UnaryExpression",
+  "UpdateExpression",
+  "AssignmentExpression",
+  "BooleanLiteral",
+  "StringLiteral",
+  "TemplateLiteral",
+  "BlockStatement",
+  "ArrayExpression",
+  "ObjectExpression",
+  "OptionalMemberExpression",
+  "OptionalCallExpression",
+  "ArrowFunctionExpression",
+]);
+
+/**
+ * About how many mutants Stryker makes of a file's changed lines (`ranges`, 1-based and
+ * inclusive): the mutable nodes that start on them, leaving out the class strings the ouro-classes
+ * ignorer drops. Only for balancing the CI shards; Stryker counts exactly.
+ */
+export function estimateMutants(text, path, ranges) {
+  const ast = parse(text, { sourceType: "module", sourceFilename: path, errorRecovery: true, plugins: ["typescript", "jsx"] });
+  const within = (line) => ranges.some(([start, end]) => line >= start && line <= end);
+  let count = 0;
+  (traverse.default ?? traverse)(ast, {
+    enter(node) {
+      if (!mutable.has(node.type) || !within(node.node.loc?.start.line ?? 0)) return;
+      if ((node.isStringLiteral() || node.isTemplateLiteral()) && ignoreReason(node)?.startsWith("Tailwind")) return;
+      count += 1;
+    },
+  });
+  return count;
+}
+
+/**
+ * Files split across `count` shards by weight (estimated mutants), largest first into the
+ * lightest shard, so the shards finish close together.
+ */
+export function balanceShards(weights, count) {
+  const shards = Array.from({ length: count }, () => ({ files: [], total: 0 }));
+  for (const [file, weight] of Object.entries(weights).sort(([a, x], [b, y]) => y - x || (a < b ? -1 : 1))) {
+    const lightest = shards.reduce((best, shard) => (shard.total < best.total ? shard : best));
+    lightest.files.push(file);
+    lightest.total += weight;
+  }
+  return shards.map((shard) => shard.files.sort());
+}
+
+/** `--shard 2/3` as a 1-based index and a count; null without one. */
+export function parseShard(value) {
+  if (value === undefined) return null;
+  const match = /^(\d+)\/(\d+)$/.exec(value);
+  const index = Number(match?.[1]);
+  const count = Number(match?.[2]);
+  if (!match || count < 1 || index < 1 || index > count) throw new Error(`--shard takes <index>/<count>, such as 2/3, not ${value}`);
+  return { index, count };
 }
 
 /** A Stryker comment that turns mutation off for one line, naming the mutators and saying why. */
@@ -156,9 +222,12 @@ export function describeSurvivor(mutant) {
 }
 
 async function main(args) {
-  // `--only <path>` mutates one file's changed lines, while you work on it.
-  const only = args.includes("--only") ? args[args.indexOf("--only") + 1] : undefined;
-  const [base = "origin/main", head] = args.filter((arg, index) => arg !== "--only" && args[index - 1] !== "--only");
+  // `--only <path>` mutates one file's changed lines, while you work on it; `--shard <i>/<n>`
+  // mutates the ith of n groups of the changed files, balanced by their estimated mutants (CI).
+  const option = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : undefined);
+  const only = option("--only");
+  const shard = parseShard(option("--shard"));
+  const [base = "origin/main", head] = args.filter((arg, index) => !arg.startsWith("--") && !args[index - 1]?.startsWith("--"));
   const range = head ? `${base}...${head}` : base;
   // A moved file (-M) keeps its lines: only what the move changed is mutated.
   const git = (paths) => spawnSync("git", ["diff", "-U0", "-M", range, "--", ...paths], { cwd: root, encoding: "utf8" });
@@ -182,7 +251,14 @@ async function main(args) {
   }
   const diff = only ? git([only]) : whole;
   if (diff.status !== 0) throw new Error(`git diff failed: ${diff.stderr}`);
-  const changes = changedLines(diff.stdout);
+  const changed = changedLines(diff.stdout);
+  let changes = changed;
+  if (shard) {
+    const weights = Object.fromEntries(Object.entries(changed).filter(([path]) => runtimeSource(path)).map(([path, ranges]) => [path, estimateMutants(readFileSync(join(root, path), "utf8"), path, ranges)]));
+    const shards = balanceShards(weights, shard.count);
+    console.log(`Shard ${shard.index}/${shard.count} of the changed files, by estimated mutants:\n${shards.map((files, index) => `${index + 1}: ${files.map((file) => `${file} (~${weights[file]})`).join(", ") || "none"}`).join("\n")}`);
+    changes = Object.fromEntries(shards[shard.index - 1].map((file) => [file, changed[file]]));
+  }
   const mutate = mutateRanges(changes);
   if (mutate.length === 0) {
     console.log("No runtime source line changed: nothing to mutate.");
@@ -210,6 +286,10 @@ async function main(args) {
     reporters: ["clear-text", "progress"],
     clearTextReporter: { reportTests: false, reportMutants: false, reportScoreTable: true },
     tempDirName: ".tmp/stryker",
+    // Results kept from the last run (CI restores them per shard): a mutant whose code and tests
+    // have not changed since is not run again.
+    incremental: true,
+    incrementalFile: `.tmp/stryker-incremental${shard ? `-${shard.index}` : ""}.json`,
     timeoutMS: 10_000,
     thresholds: { high: 100, low: 100, break: null },
   }).runMutationTest();

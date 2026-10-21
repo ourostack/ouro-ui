@@ -198,24 +198,27 @@ jobs:
           else
             OURO_STORIES=$(node scripts/test-impact.mjs stories "$COMPONENTS") pnpm test:themes --shard="$SHARD/3"
           fi
-  conformance:
+  conformance-shard:
     # The conformance matrix (test/conformance/, docs/guides/conformance.md): every story through
     # the checks that replace recurring review findings (focus after every action, announcements,
     # hydration under foreign time zones and locales, right to left, forced colours), in Chromium,
     # beside the ci job. Each shard takes every nth story (OURO_CONFORMANCE_SHARD, n being the
-    # matrix's size), so the shards finish together and adding one is a one-line change. On a
-    # reduced pull request, only the selected components' stories, and nothing when it selected none.
+    # matrix's size), so the shards finish together and adding one is a one-line change; the
+    # `conformance` job below is the one check the rules require. On a reduced pull request, only
+    # the selected components' stories; with none selected, only the checks' proofs that they can
+    # fail (the broken stories, on the first shard), which every run checks.
     needs: [plan]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
+      SHARD: ${{ matrix.shard }}
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6]
-    name: conformance (${{ matrix.shard }}/6)
+        shard: [1, 2, 3]
+    name: conformance (${{ matrix.shard }}/3)
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -230,13 +233,16 @@ jobs:
         run: |
           if [ "$FULL" = true ] || [ -n "$COMPONENTS" ]; then
             echo "run=true" >> "$GITHUB_OUTPUT"
+          elif [ "$SHARD" = 1 ]; then
+            echo "Not affected: this pull request changes no component, so no story's conformance can change. The checks still prove they can fail."
+            echo "run=proofs" >> "$GITHUB_OUTPUT"
           else
             echo "Not affected: this pull request changes no component, so no story's conformance can change. Nothing to run."
             echo "run=false" >> "$GITHUB_OUTPUT"
           fi
-      - if: steps.affected.outputs.run == 'true'
+      - if: steps.affected.outputs.run != 'false'
         run: pnpm i --frozen-lockfile
-      - if: steps.affected.outputs.run == 'true'
+      - if: steps.affected.outputs.run != 'false'
         run: pnpm exec playwright install --with-deps chromium
       - if: steps.affected.outputs.run == 'true'
         name: Conformance
@@ -248,20 +254,45 @@ jobs:
           else
             OURO_STORIES=$(node scripts/test-impact.mjs stories "$COMPONENTS") pnpm conformance
           fi
+      - if: steps.affected.outputs.run == 'proofs'
+        name: The checks prove they can fail
+        run: pnpm conformance -t "can fail"
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: conformance-${{ matrix.shard }}
           path: .vitest/attachments/
           if-no-files-found: ignore
-  mutation:
+  conformance:
+    # The one check the rules require for the conformance matrix: it passes when every shard did,
+    # so the shard count can change without touching the ruleset.
+    needs: [conformance-shard]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    env:
+      RESULT: ${{ needs.conformance-shard.result }}
+    steps:
+      - name: Every shard passed
+        run: |
+          echo "The conformance shards: $RESULT."
+          [ "$RESULT" = success ]
+  mutation-shard:
     # Mutation testing of the lines a pull request added or changed in the runtime source
     # (scripts/mutation.mjs, docs/guides/conformance.md): every mutant Stryker makes of them must
-    # fail a test. Pull requests only; on any other run, and on a pull request that changes no
-    # runtime source, it reports that there is nothing to mutate.
+    # fail a test. The changed files are split across the shards by their estimated mutants, and
+    # each shard keeps its results between runs of the pull request (Stryker's incremental mode),
+    # so a push reruns only the mutants its change touched. Pull requests only; on any other run,
+    # and on a pull request that changes no runtime source, it reports that there is nothing to
+    # mutate. The `mutation` job below is the one check the rules require.
     runs-on: ubuntu-latest
     env:
       EVENT: ${{ github.event_name }}
+      SHARD: ${{ matrix.shard }}
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    name: mutation (${{ matrix.shard }}/3)
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -290,8 +321,29 @@ jobs:
       - if: steps.changed.outputs.run == 'true'
         run: pnpm exec playwright install --with-deps chromium
       - if: steps.changed.outputs.run == 'true'
+        name: Results from the last run
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .tmp/stryker-incremental-${{ matrix.shard }}.json
+          key: stryker-${{ github.event.pull_request.number }}-${{ matrix.shard }}-${{ github.sha }}
+          restore-keys: stryker-${{ github.event.pull_request.number }}-${{ matrix.shard }}-
+      - if: steps.changed.outputs.run == 'true'
         name: Mutation testing
-        run: pnpm mutation HEAD^1
+        run: pnpm mutation HEAD^1 --shard "$SHARD/3"
+  mutation:
+    # The one check the rules require for mutation testing: it passes when every shard did (on a
+    # merge-queue run, each shard has nothing to mutate and passes), so the shard count can change
+    # without touching the ruleset.
+    needs: [mutation-shard]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    env:
+      RESULT: ${{ needs.mutation-shard.result }}
+    steps:
+      - name: Every shard passed
+        run: |
+          echo "The mutation shards: $RESULT."
+          [ "$RESULT" = success ]
   visual:
     # Compares screenshots with the committed baselines, on the image that produced them
     # (visual-baselines.yml). Kept apart from `ci` so that job can follow ubuntu-latest.
