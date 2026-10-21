@@ -1,5 +1,13 @@
 [
   {
+    "name": "claims",
+    "title": "Claims",
+    "kind": "guide",
+    "group": "Guides",
+    "markdown": "docs/guides/claims.md",
+    "summary": "A factual sentence in this repository is a claim: it carries the primary source it comes from and a check that it still holds, so the next reader, person or agent, can trust it without rebuilding the proof."
+  },
+  {
     "name": "forms",
     "title": "Forms",
     "kind": "guide",
