@@ -8,6 +8,14 @@
     "summary": "Every form control is one component on the Field contract: pass `label`, `name` and `error`, and wrap the controls in a `Form` that takes `errors` straight from your server action."
   },
   {
+    "name": "guardrails",
+    "title": "Guardrails",
+    "kind": "guide",
+    "group": "Guides",
+    "markdown": "docs/guides/guardrails.md",
+    "summary": "Two optional kits hold an app to Ouro UI the way Ouro UI holds itself: every control a person can reach is an Ouro control, and the number that are not can only fall."
+  },
+  {
     "name": "installing",
     "title": "Installing",
     "kind": "guide",

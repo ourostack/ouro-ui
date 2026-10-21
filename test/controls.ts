@@ -1,18 +1,13 @@
-/**
- * Every element a person can focus or operate: native controls, links, editable regions, anything
- * in the tab order, and the ARIA widget roles. `collectControls` finds them. An app's census of
- * controls copies this string and `censusExclusions` together, so change them only with the copies.
- */
-export const interactiveSelector =
-  'a[href], button, input:not([type="hidden"]), select, textarea, [contenteditable]:not([contenteditable="false"]), [tabindex]:not([tabindex="-1"]), [role="button"], [role="link"], [role="checkbox"], [role="switch"], [role="radio"], [role="tab"], [role="textbox"], [role="searchbox"], [role="combobox"], [role="slider"], [role="spinbutton"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="option"], [role="treeitem"]';
+import { censusExclusions, interactiveSelector } from "@/registry/ouro/census/census-collect.mjs";
 
 /**
- * The `interactiveSelector` matches that are no control: Base UI's focus guards, which hand focus
- * back into a modal and that no prop reaches. Everything else an Ouro component renders, Base UI's
- * own elements included, carries a control marker. An app's census copies this list with
- * `interactiveSelector`.
+ * Every element a person can focus or operate (`interactiveSelector`), and the matches that are no
+ * control (`censusExclusions`: Base UI's focus guards, which hand focus back into a modal and that
+ * no prop reaches). Both come from the census kit (ouro-census), so an app's census counts exactly
+ * the controls these tests hold to their markers. Everything else an Ouro component renders, Base
+ * UI's own elements included, carries a control marker.
  */
-export const censusExclusions: readonly string[] = ["[data-base-ui-focus-guard]"];
+export { censusExclusions, interactiveSelector };
 
 /**
  * The controls under `root` (the whole page by default, portals included), in document order:

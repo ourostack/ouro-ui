@@ -76,7 +76,9 @@ export default defineConfig({
     reporters: [...configDefaults.reporters, ...(themes ? [] : [new MotionReporter()])],
     coverage: {
       provider: "istanbul",
-      include: ["registry/**/*.{ts,tsx}"],
+      // The census kit's in-page collector is JavaScript an app's Playwright runs in the page; its
+      // Node side is covered by scripts/kits.test.mjs.
+      include: ["registry/**/*.{ts,tsx}", "registry/ouro/census/census-collect.mjs"],
       exclude: ["**/*.stories.tsx", "registry/ouro/lib/ouro/testing/**", "registry/ouro/e2e/**", "**/*.test.{ts,tsx}", "**/*.test-d.ts", "**/*.d.ts"],
       reporter: ["text", "lcov"],
       thresholds: { lines: 100, branches: 100, functions: 100, statements: 100 },
