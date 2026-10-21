@@ -91,8 +91,11 @@ export interface OuroProviderProps {
  *     </html>
  *   );
  * }
- * @claim scripts/registry.mts verify:fileLine(scripts/registry.mts, /entry\.name === "lib-router-link" \|\| entry\.name === "tooltip"\) registryDeps\.add\("lib-ouro-provider"\)/)
- * @claim registry/ouro/components/ouro/link/link.test-d.ts verify:fileLine(registry/ouro/components/ouro/link/link.test-d.ts, /expectTypeOf<\{\shref:\s"\/recipes";\schildren:\s"Recipes"\s\}>\(\)\.toExtend<LinkProps>/)
+ * @claim "An app with none of those" scripts/registry.mts verify:fileLine(scripts/registry.mts, /entry\.name === "lib-router-link" \|\| entry\.name === "tooltip"\) registryDeps\.add\("lib-ouro-provider"\)/)
+ * @claim "Optional app-level provider that routes internal" registry/ouro/components/ouro/link/link.test-d.ts verify:fileLine(registry/ouro/components/ouro/link/link.test-d.ts, /expectTypeOf<\{\shref:\s"\/recipes";\schildren:\s"Recipes"\s\}>\(\)\.toExtend<LinkProps>/)
+ * @claim "Every Ouro UI link takes `href`" registry/ouro/components/ouro/link/link.test-d.ts verify:fileLine(registry/ouro/components/ouro/link/link.test-d.ts, /expectTypeOf<\{\shref:\s"\/recipes";\schildren:\s"Recipes"\s\}>\(\)\.toExtend<LinkProps>/)
+ * @claim "An internal `href` (a path) renders" registry/ouro/components/ouro/link/link.test-d.ts verify:fileLine(registry/ouro/components/ouro/link/link.test-d.ts, /expectTypeOf<\{\shref:\s"\/recipes";\schildren:\s"Recipes"\s\}>\(\)\.toExtend<LinkProps>/)
+ * @claim "In Next.js, `next/link`'s `Link` takes `href`" registry/ouro/components/ouro/link/link.test-d.ts verify:fileLine(registry/ouro/components/ouro/link/link.test-d.ts, /expectTypeOf<\{\shref:\s"\/recipes";\schildren:\s"Recipes"\s\}>\(\)\.toExtend<LinkProps>/)
  */
 export function OuroProvider({ children, linkComponent }: OuroProviderProps): JSX.Element {
   const value = useMemo<OuroContextValue>(

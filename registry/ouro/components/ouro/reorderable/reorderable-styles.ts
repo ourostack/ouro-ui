@@ -10,8 +10,8 @@ const EDGE = 56;
 /**
  * The fastest a drag scrolls, in px per millisecond, with the pointer at the edge or past it: 840px a second. @internal
  *
- * @claim registry/ouro/components/ouro/reorderable/reorderable.test.tsx verify:testExists(registry/ouro/components/ouro/reorderable/reorderable.test.tsx::Reorderable > has helpers that place, move and scroll)
- * @claim registry/ouro/components/ouro/reorderable/reorderable.test.tsx verify:fileLine(registry/ouro/components/ouro/reorderable/reorderable.test.tsx, /expect\(MAX_SPEED\s\*\s1000\)\.toBe\(840\)/)
+ * @claim "The fastest a drag scrolls, in" registry/ouro/components/ouro/reorderable/reorderable.test.tsx verify:testExists(registry/ouro/components/ouro/reorderable/reorderable.test.tsx::Reorderable > has helpers that place, move and scroll)
+ * @claim "The fastest a drag scrolls, in" registry/ouro/components/ouro/reorderable/reorderable.test.tsx verify:fileLine(registry/ouro/components/ouro/reorderable/reorderable.test.tsx, /expect\(MAX_SPEED\s\*\s1000\)\.toBe\(840\)/)
  */
 const MAX_SPEED = 0.84;
 
@@ -49,8 +49,8 @@ const contentClass = "min-w-0 flex-1";
  * the drag instead of the page's scroll; `TouchTarget` makes it 44px to touch.
  *
  * @internal
- * @claim registry/ouro/components/ouro/reorderable/reorderable.touch.test.tsx verify:testExists(registry/ouro/components/ouro/reorderable/reorderable.touch.test.tsx::Reorderable on a phone > moves a row with a touch drag on its handle, without scrolling the page)
- * @claim registry/ouro/components/ouro/reorderable/reorderable.touch.test.tsx verify:testExists(registry/ouro/components/ouro/reorderable/reorderable.touch.test.tsx::Reorderable on a phone > lets a touch that starts on a row, outside its handle, scroll the page)
+ * @claim "`touch-none` keeps a touch that starts" registry/ouro/components/ouro/reorderable/reorderable.touch.test.tsx verify:testExists(registry/ouro/components/ouro/reorderable/reorderable.touch.test.tsx::Reorderable on a phone > moves a row with a touch drag on its handle, without scrolling the page)
+ * @claim "`touch-none` keeps a touch that starts" registry/ouro/components/ouro/reorderable/reorderable.touch.test.tsx verify:testExists(registry/ouro/components/ouro/reorderable/reorderable.touch.test.tsx::Reorderable on a phone > lets a touch that starts on a row, outside its handle, scroll the page)
  */
 const handleClass =
   "press relative m-0 box-border inline-flex size-8 shrink-0 cursor-grab touch-none select-none items-center justify-center rounded-md border-0 " +
@@ -64,8 +64,8 @@ const handleClass =
  * `{total}` the number of rows.
  *
  * @internal
- * @claim registry/ouro/components/ouro/reorderable/reorderable-styles.ts verify:fileLine(registry/ouro/components/ouro/reorderable/reorderable-styles.ts, /replaceAll\("\{label\}",\slabel\)\.replaceAll\("\{n\}",\sString\(n\)\)/)
- * @claim registry/ouro/components/ouro/reorderable/reorderable.test.tsx verify:testExists(registry/ouro/components/ouro/reorderable/reorderable.test.tsx::Reorderable > from the keyboard > speaks and names with the labels the app passes)
+ * @claim "Fills a label template: `{label}` is" registry/ouro/components/ouro/reorderable/reorderable-styles.ts verify:fileLine(registry/ouro/components/ouro/reorderable/reorderable-styles.ts, /replaceAll\("\{label\}",\slabel\)\.replaceAll\("\{n\}",\sString\(n\)\)/)
+ * @claim "Fills a label template: `{label}` is" registry/ouro/components/ouro/reorderable/reorderable.test.tsx verify:testExists(registry/ouro/components/ouro/reorderable/reorderable.test.tsx::Reorderable > from the keyboard > speaks and names with the labels the app passes)
  */
 function fillLabel(template: string, label: string, n: number, total: number): string {
   return template.replaceAll("{label}", label).replaceAll("{n}", String(n)).replaceAll("{total}", String(total));
@@ -97,8 +97,8 @@ function dropIndex(centers: readonly number[], from: number, center: number): nu
  * 60Hz and at 120Hz.
  *
  * @internal
- * @claim registry/ouro/components/ouro/reorderable/reorderable.test.tsx verify:testExists(registry/ouro/components/ouro/reorderable/reorderable.test.tsx::Reorderable > with a pointer > scrolls a list that scrolls in place while the pointer is held near its bottom edge, then near its top)
- * @claim registry/ouro/components/ouro/reorderable/reorderable.test.tsx verify:testExists(registry/ouro/components/ouro/reorderable/reorderable.test.tsx::Reorderable > has helpers that place, move and scroll)
+ * @claim "How fast to scroll, in px" registry/ouro/components/ouro/reorderable/reorderable.test.tsx verify:testExists(registry/ouro/components/ouro/reorderable/reorderable.test.tsx::Reorderable > with a pointer > scrolls a list that scrolls in place while the pointer is held near its bottom edge, then near its top)
+ * @claim "How fast to scroll, in px" registry/ouro/components/ouro/reorderable/reorderable.test.tsx verify:testExists(registry/ouro/components/ouro/reorderable/reorderable.test.tsx::Reorderable > has helpers that place, move and scroll)
  */
 function edgeSpeed(y: number, top: number, bottom: number): number {
   const near = (distance: number) => Math.min(Math.max((EDGE - distance) / EDGE, 0), 1) * MAX_SPEED;

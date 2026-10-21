@@ -11,7 +11,7 @@ export type TableKeysOf<Row, Value> = { [K in keyof Row]-?: Row[K] extends Value
 /**
  * What every column takes, whichever way its cells are filled.
  *
- * @claim registry/ouro/components/ouro/table/table.test-d.ts verify:fileLine(registry/ouro/components/ouro/table/table.test-d.ts, /expectTypeOf<\{\skey:\s"name"\s\}>\(\)\.not\.toExtend<TableColumn<Recipe>>/)
+ * @claim "What every column takes, whichever way" registry/ouro/components/ouro/table/table.test-d.ts verify:fileLine(registry/ouro/components/ouro/table/table.test-d.ts, /expectTypeOf<\{\skey:\s"name"\s\}>\(\)\.not\.toExtend<TableColumn<Recipe>>/)
  */
 export interface TableColumnBase {
   /**
@@ -35,8 +35,8 @@ export interface TableColumnBase {
   /**
    * Lets long text wrap onto more lines, at least 192px wide, instead of widening the table.
    *
-   * @claim registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table > lets a column with wrap break its text onto more lines, at least 192px wide)
-   * @claim registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table > breaks a long URL in a wrap column instead of widening it)
+   * @claim "Lets long text wrap onto more" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table > lets a column with wrap break its text onto more lines, at least 192px wide)
+   * @claim "Lets long text wrap onto more" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table > breaks a long URL in a wrap column instead of widening it)
    */
   wrap?: boolean | undefined;
   /** Layout only, on the header cell: a width (`w-32`). */
@@ -80,8 +80,8 @@ export type TableColumn<Row> = TableColumnBase &
 /**
  * The props every Table takes, with columns and rows or with parts.
  *
- * @claim registry/ouro/components/ouro/table/table.test-d.ts verify:fileLine(registry/ouro/components/ouro/table/table.test-d.ts, /expectTypeOf<\{\scaption:\s"Recipes";\scolumns:\sTableColumn<Recipe>\[\];\srows:\sRecipe\[\];\srowHref:\s"href";\srowKey:\s"id"\s\}>\(\)\.toExtend<TableProps<Recipe>>/)
- * @claim registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table > renders a semantic table named by its caption, with column and row headers)
+ * @claim "The props every Table takes, with" registry/ouro/components/ouro/table/table.test-d.ts verify:fileLine(registry/ouro/components/ouro/table/table.test-d.ts, /expectTypeOf<\{\scaption:\s"Recipes";\scolumns:\sTableColumn<Recipe>\[\];\srows:\sRecipe\[\];\srowHref:\s"href";\srowKey:\s"id"\s\}>\(\)\.toExtend<TableProps<Recipe>>/)
+ * @claim "The props every Table takes, with" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table > renders a semantic table named by its caption, with column and row headers)
  */
 export interface TableOwnProps {
   /**
@@ -94,13 +94,13 @@ export interface TableOwnProps {
   /**
    * Shades every other body row, for long rows that are hard to follow across.
    *
-   * @claim registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table > shades every other body row with striped)
+   * @claim "Shades every other body row, for" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table > shades every other body row with striped)
    */
   striped?: boolean | undefined;
   /**
    * Tighter cells, for many rows. A row is still 44px tall on a touch screen when it is a link.
    *
-   * @claim registry/ouro/components/ouro/table/table.touch.test.tsx verify:fileLine(registry/ouro/components/ouro/table/table.touch.test.tsx, /makes\sa\slinked\srow\sat\sleast\s44px\stall\sin\s%s/)
+   * @claim "A row is still 44px tall" registry/ouro/components/ouro/table/table.touch.test.tsx verify:fileLine(registry/ouro/components/ouro/table/table.touch.test.tsx, /makes\sa\slinked\srow\sat\sleast\s44px\stall\sin\s%s/)
    */
   dense?: boolean | undefined;
   /**
@@ -145,14 +145,14 @@ export interface TableDataProps<Row> {
    * of a field that holds it (`rowHref="href"`), which a Server Component can pass. Buttons,
    * links and inputs in the cells stay their own tab stops and take their own taps. On a
    * touch screen a linked row is at least 44px tall.
-   * @claim registry/ouro/components/ouro/table/table.touch.test.tsx verify:fileLine(registry/ouro/components/ouro/table/table.touch.test.tsx, /makes\sa\slinked\srow\sat\sleast\s44px\stall\sin\s%s/)
+   * @claim "On a touch screen a linked" registry/ouro/components/ouro/table/table.touch.test.tsx verify:fileLine(registry/ouro/components/ouro/table/table.touch.test.tsx, /makes\sa\slinked\srow\sat\sleast\s44px\stall\sin\s%s/)
    */
   rowHref?: TableKeysOf<Row, string | undefined> | ((row: Row) => string | undefined) | undefined;
   /**
    * Opens every row link in a new tab, safely, and tells screen readers so with `externalLabel`.
    *
-   * @claim registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table with rowHref > opens external row links in a new tab, safely, and says so with a translatable label)
-   * @claim registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table with rowHref > keeps internal row links in the same tab)
+   * @claim "Opens every row link in a" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table with rowHref > opens external row links in a new tab, safely, and says so with a translatable label)
+   * @claim "Opens every row link in a" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table with rowHref > keeps internal row links in the same tab)
    */
   rowExternal?: boolean | undefined;
   /**
@@ -163,7 +163,7 @@ export interface TableDataProps<Row> {
   /**
    * What the body shows when there are no rows, in one cell across every column.
    * @default "Nothing here yet."
-   * @claim registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table > shows the empty message in one cell across every column)
+   * @claim "What the body shows when there" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table > shows the empty message in one cell across every column)
    */
   empty?: ReactNode;
   /** Only with parts. Pass columns and rows, or parts as children. */

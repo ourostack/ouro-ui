@@ -10,7 +10,7 @@ export interface AttachmentOwnProps {
   /**
    * The file's name, as the user sees it: "menu.pdf". Required, so every file has a name.
    *
-   * @claim registry/ouro/components/ouro/message/attachment.test-d.ts verify:fileLine(registry/ouro/components/ouro/message/attachment.test-d.ts, /expectTypeOf<\{\shref:\s"\/menu\.pdf"\s\}>\(\)\.not\.toExtend<AttachmentProps>/)
+   * @claim "Required, so every file has a" registry/ouro/components/ouro/message/attachment.test-d.ts verify:fileLine(registry/ouro/components/ouro/message/attachment.test-d.ts, /expectTypeOf<\{\shref:\s"\/menu\.pdf"\s\}>\(\)\.not\.toExtend<AttachmentProps>/)
    */
   name: string;
   /** Where the file opens or downloads. With it, the attachment is a link named by the file and its size. */
@@ -52,8 +52,8 @@ const oneDecimal = new Intl.NumberFormat("en", { maximumFractionDigits: 1 });
 /**
  * "512 B", "2 kB", "1.2 MB": steps of 1024, at most one decimal.
  *
- * @claim registry/ouro/components/ouro/message/attachment.test.tsx verify:testExists(registry/ouro/components/ouro/message/attachment.test.tsx::Attachment > names the file and gives its size in readable units)
- * @claim registry/ouro/components/ouro/message/attachment.test.tsx verify:fileLine(registry/ouro/components/ouro/message/attachment.test.tsx, /\[2048,\s"2\skB"\]/)
+ * @claim ": steps of 1024, at most one decimal." registry/ouro/components/ouro/message/attachment.test.tsx verify:testExists(registry/ouro/components/ouro/message/attachment.test.tsx::Attachment > names the file and gives its size in readable units)
+ * @claim ": steps of 1024, at most one decimal." registry/ouro/components/ouro/message/attachment.test.tsx verify:fileLine(registry/ouro/components/ouro/message/attachment.test.tsx, /\[2048,\s"2\skB"\]/)
  */
 function defaultFormatSize(bytes: number): string {
   let value = bytes;

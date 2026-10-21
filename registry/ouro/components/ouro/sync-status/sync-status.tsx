@@ -144,7 +144,7 @@ function Line({
  *
  * @example
  * <SyncStatus status={navigator.onLine ? (pending ? "saving" : "saved") : "offline"} onRetry={flush} />
- * @claim registry/ouro/components/ouro/sync-status/sync-status.test.tsx verify:testExists(registry/ouro/components/ouro/sync-status/sync-status.test.tsx::SyncStatus > speaks when a problem starts and when changes are saved again, and not for every save)
+ * @claim "One line that says where the" registry/ouro/components/ouro/sync-status/sync-status.test.tsx verify:testExists(registry/ouro/components/ouro/sync-status/sync-status.test.tsx::SyncStatus > speaks when a problem starts and when changes are saved again, and not for every save)
  */
 export function SyncStatus(props: SyncStatusProps): JSX.Element {
   const {

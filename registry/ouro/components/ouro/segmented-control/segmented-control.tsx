@@ -46,7 +46,7 @@ export interface SegmentedControlProps {
   /**
    * Disables every segment.
    *
-   * @claim registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx verify:testExists(registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx::SegmentedControl > disables one segment, or the whole control)
+   * @claim "Disables every segment" registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx verify:testExists(registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx::SegmentedControl > disables one segment, or the whole control)
    */
   disabled?: boolean | undefined;
   /** Stretches the control to the width of its container, with the segments sharing it equally. */
@@ -99,8 +99,8 @@ function duplicateValue(items: readonly SegmentedControlItem[]): string | undefi
  *   value={view}
  *   onValueChange={setView}
  * />
- * @claim registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx verify:testExists(registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx::SegmentedControl > submits the checked value with a form when given a name)
- * @claim registry/ouro/components/ouro/segmented-control/segmented-control.touch.test.tsx verify:testExists(registry/ouro/components/ouro/segmented-control/segmented-control.touch.test.tsx::keeps 44px segments with 16px text on a phone, also in landscape)
+ * @claim "Segments are 44px tall on touch" registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx verify:testExists(registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx::SegmentedControl > submits the checked value with a form when given a name)
+ * @claim "Segments are 44px tall on touch" registry/ouro/components/ouro/segmented-control/segmented-control.touch.test.tsx verify:testExists(registry/ouro/components/ouro/segmented-control/segmented-control.touch.test.tsx::keeps 44px segments with 16px text on a phone, also in landscape)
  */
 export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
   const {

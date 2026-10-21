@@ -55,7 +55,7 @@ export interface TabBarProps {
    * The breakpoint from which the bar hides, because the app's `Navbar` or `Sidebar` takes over
    * there. `never` keeps it at every width.
    * @default "sm"
-   * @claim registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx verify:fileLine(registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx, /hides\sfrom\s%s\s\(%ipx\),\sand\swith\snever\sstays/)
+   * @claim "`never` keeps it at every width" registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx verify:fileLine(registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx, /hides\sfrom\s%s\s\(%ipx\),\sand\swith\snever\sstays/)
    */
   hideFrom?: "sm" | "md" | "lg" | "xl" | "never" | (string & { 'Use "sm", "md", "lg", "xl" or "never"': never }) | undefined;
   /** Layout only: rarely needed, since the bar places itself. Appearance classes warn in development. */
@@ -80,7 +80,7 @@ const example = '<TabBar label="Main" items={[{ label: "Recipes", href: "/recipe
 /**
  * How much of the screen a keyboard covers, at the least: more than a browser's own toolbars, which also shrink the visual viewport.
  *
- * @claim registry/ouro/components/ouro/tab-bar/tab-bar.touch.test.tsx verify:testExists(registry/ouro/components/ouro/tab-bar/tab-bar.touch.test.tsx::TabBar and the on-screen keyboard > slides away while the keyboard shrinks the visual viewport, even with no field focused, but not for a zoom)
+ * @claim "How much of the screen a" registry/ouro/components/ouro/tab-bar/tab-bar.touch.test.tsx verify:testExists(registry/ouro/components/ouro/tab-bar/tab-bar.touch.test.tsx::TabBar and the on-screen keyboard > slides away while the keyboard shrinks the visual viewport, even with no field focused, but not for a zoom)
  */
 const KEYBOARD = 150;
 /** Input types that bring up no on-screen keyboard. */
@@ -137,8 +137,8 @@ const serverFalse = () => false;
 /**
  * Every path a tab owns, with the tab's index, for `currentHref`.
  *
- * @claim registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx verify:testExists(registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx::TabBar > lets an item's current flag win over the path)
- * @claim registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx verify:testExists(registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx::TabBar > gives the current tab the accent wash and the rest the muted text)
+ * @claim "Every path a tab owns, with" registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx verify:testExists(registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx::TabBar > lets an item's current flag win over the path)
+ * @claim "Every path a tab owns, with" registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx verify:testExists(registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx::TabBar > gives the current tab the accent wash and the rest the muted text)
  */
 function ownedPaths(items: readonly TabBarItem[]): Array<{ path: string; index: number }> {
   return items.flatMap((item, index) => [item.href, ...(item.paths ?? [])].map((path) => ({ path, index })));
@@ -180,10 +180,12 @@ function ownedPaths(items: readonly TabBarItem[]): Array<{ path: string; index: 
  *   ]}
  *   accessory={{ label: "Search", href: "/search", icon: <Search /> }}
  * />
- * @claim registry/ouro/components/ouro/tab-bar/tab-bar.touch.test.tsx verify:testExists(registry/ouro/components/ouro/tab-bar/tab-bar.touch.test.tsx::fits five tabs and an accessory on a phone, each well over 44px, and a tap reaches the tab under the finger)
- * @claim registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx verify:testExists(registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx::TabBar > sits fixed at the bottom of a phone screen, with equal 64px tabs, and keeps its room in the page)
- * @claim registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx verify:fileLine(registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx, /hides\sfrom\s%s\s\(%ipx\),\sand\swith\snever\sstays/)
- * @claim registry/ouro/components/ouro/tab-bar/tab-bar-styles.ts verify:fileLine(registry/ouro/components/ouro/tab-bar/tab-bar-styles.ts, /print:hidden/)
+ * @claim "Each tab is 64px tall, well" registry/ouro/components/ouro/tab-bar/tab-bar.touch.test.tsx verify:testExists(registry/ouro/components/ouro/tab-bar/tab-bar.touch.test.tsx::fits five tabs and an accessory on a phone, each well over 44px, and a tap reaches the tab under the finger)
+ * @claim "The bar of tabs at the" registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx verify:testExists(registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx::TabBar > sits fixed at the bottom of a phone screen, with equal 64px tabs, and keeps its room in the page)
+ * @claim "The bar is navigation only and" registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx verify:fileLine(registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx, /hides\sfrom\s%s\s\(%ipx\),\sand\swith\snever\sstays/)
+ * @claim "It hides from `hideFrom` (640px by" registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx verify:fileLine(registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx, /hides\sfrom\s%s\s\(%ipx\),\sand\swith\snever\sstays/)
+ * @claim "While the on-screen keyboard is up" registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx verify:fileLine(registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx, /hides\sfrom\s%s\s\(%ipx\),\sand\swith\snever\sstays/)
+ * @claim "It hides from `hideFrom` (640px by" registry/ouro/components/ouro/tab-bar/tab-bar-styles.ts verify:fileLine(registry/ouro/components/ouro/tab-bar/tab-bar-styles.ts, /print:hidden/)
  */
 export function TabBar(props: TabBarProps): JSX.Element {
   const {

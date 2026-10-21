@@ -42,8 +42,8 @@ const toggleBase =
  * phone keeps it too.
  *
  * @internal
- * @claim registry/ouro/components/ouro/toggle/toggle.touch.test.tsx verify:testExists(registry/ouro/components/ouro/toggle/toggle.touch.test.tsx::keeps 44px toggles and 16px text on a landscape phone, past the sm breakpoint)
- * @claim registry/ouro/components/ouro/toggle/toggle.test.tsx verify:testExists(registry/ouro/components/ouro/toggle/toggle.test.tsx::Toggle looks > is 44px tall on phones and steps down with a fine pointer from sm, per size)
+ * @claim "Phones keep 16px text and the" registry/ouro/components/ouro/toggle/toggle.touch.test.tsx verify:testExists(registry/ouro/components/ouro/toggle/toggle.touch.test.tsx::keeps 44px toggles and 16px text on a landscape phone, past the sm breakpoint)
+ * @claim "Phones keep 16px text and the" registry/ouro/components/ouro/toggle/toggle.test.tsx verify:testExists(registry/ouro/components/ouro/toggle/toggle.test.tsx::Toggle looks > is 44px tall on phones and steps down with a fine pointer from sm, per size)
  */
 const sizes = {
   sm:

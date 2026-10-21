@@ -49,7 +49,7 @@ export interface SelectItemProps {
 /**
  * A check mark, drawn in the text color at 16px.
  *
- * @claim registry/ouro/components/ouro/select/select-parts.tsx verify:fileLine(registry/ouro/components/ouro/select/select-parts.tsx, /viewBox="0\s0\s16\s16"\sfill="none"\sstroke="currentColor"/)
+ * @claim "A check mark, drawn in the" registry/ouro/components/ouro/select/select-parts.tsx verify:fileLine(registry/ouro/components/ouro/select/select-parts.tsx, /viewBox="0\s0\s16\s16"\sfill="none"\sstroke="currentColor"/)
  */
 function CheckIcon(): JSX.Element {
   return (

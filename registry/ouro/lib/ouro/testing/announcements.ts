@@ -17,8 +17,8 @@ interface AnnouncementWatch {
   /**
    * Every announcement since the watch started, in order.
    *
-   * @claim registry/ouro/lib/ouro/testing/announcements.test.tsx verify:testExists(registry/ouro/lib/ouro/testing/announcements.test.tsx::records the text each live region exposes, polite and assertive, once per change)
-   * @claim registry/ouro/lib/ouro/testing/announcements.test.tsx verify:testExists(registry/ouro/lib/ouro/testing/announcements.test.tsx::counts text replaced in place in a status region, not the text it was added with)
+   * @claim "Every announcement since the watch started" registry/ouro/lib/ouro/testing/announcements.test.tsx verify:testExists(registry/ouro/lib/ouro/testing/announcements.test.tsx::records the text each live region exposes, polite and assertive, once per change)
+   * @claim "Every announcement since the watch started" registry/ouro/lib/ouro/testing/announcements.test.tsx verify:testExists(registry/ouro/lib/ouro/testing/announcements.test.tsx::counts text replaced in place in a status region, not the text it was added with)
    */
   changes: Announcement[];
   /** The announcements whose text includes `text`. */
@@ -26,8 +26,8 @@ interface AnnouncementWatch {
   /**
    * How many announcements include `text`: 1 means a screen reader heard it once.
    *
-   * @claim registry/ouro/lib/ouro/testing/announcements.test.tsx verify:testExists(registry/ouro/lib/ouro/testing/announcements.test.tsx::records the text each live region exposes, polite and assertive, once per change)
-   * @claim registry/ouro/lib/ouro/testing/announcements.test.tsx verify:testExists(registry/ouro/lib/ouro/testing/announcements.test.tsx::counts a change in an existing status region once, its exposed text only)
+   * @claim "How many announcements include `text`: 1" registry/ouro/lib/ouro/testing/announcements.test.tsx verify:testExists(registry/ouro/lib/ouro/testing/announcements.test.tsx::records the text each live region exposes, polite and assertive, once per change)
+   * @claim "How many announcements include `text`: 1" registry/ouro/lib/ouro/testing/announcements.test.tsx verify:testExists(registry/ouro/lib/ouro/testing/announcements.test.tsx::counts a change in an existing status region once, its exposed text only)
    */
   count(text: string): number;
   /** Stops watching; `changes` keeps what was seen. */

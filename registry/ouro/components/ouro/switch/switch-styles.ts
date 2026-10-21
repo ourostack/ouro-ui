@@ -13,9 +13,9 @@ export { thumbClass, trackClass };
  * `--ouro-switch-thumb` is the thumb's size at each density.
  *
  * @internal
- * @claim registry/ouro/components/ouro/switch/switch.test.tsx verify:testExists(registry/ouro/components/ouro/switch/switch.test.tsx::Switch look and motion > tells on from off without hue, with an off outline at 3:1 against the page, in light and dark)
- * @claim registry/ouro/components/ouro/switch/switch.touch.test.tsx verify:testExists(registry/ouro/components/ouro/switch/switch.touch.test.tsx::gives the switch a 44px hit area, though it is 24px tall)
- * @claim registry/ouro/components/ouro/switch/switch.touch.test.tsx verify:testExists(registry/ouro/components/ouro/switch/switch.touch.test.tsx::keeps the phone size and 16px label on a landscape phone, past the sm breakpoint)
+ * @claim "Off, it is an outline: a" registry/ouro/components/ouro/switch/switch.test.tsx verify:testExists(registry/ouro/components/ouro/switch/switch.test.tsx::Switch look and motion > tells on from off without hue, with an off outline at 3:1 against the page, in light and dark)
+ * @claim "Its hit area is 44px on" registry/ouro/components/ouro/switch/switch.touch.test.tsx verify:testExists(registry/ouro/components/ouro/switch/switch.touch.test.tsx::gives the switch a 44px hit area, though it is 24px tall)
+ * @claim "The track: 40x24 on touch screens" registry/ouro/components/ouro/switch/switch.touch.test.tsx verify:testExists(registry/ouro/components/ouro/switch/switch.touch.test.tsx::keeps the phone size and 16px label on a landscape phone, past the sm breakpoint)
  * @claim https://www.w3.org/TR/WCAG22/#non-text-contrast verify:urlOk(https://www.w3.org/TR/WCAG22/#non-text-contrast)
  */
 const trackClass =
@@ -36,9 +36,9 @@ const trackClass =
  * also tells the states apart.
  *
  * @internal
- * @claim registry/ouro/components/ouro/switch/switch.test.tsx verify:testExists(registry/ouro/components/ouro/switch/switch.test.tsx::Switch look and motion > fills the track with the primary color and moves the thumb to the end when on)
- * @claim registry/ouro/components/ouro/switch/switch.test.tsx verify:testExists(registry/ouro/components/ouro/switch/switch.test.tsx::Switch look and motion > widens the thumb toward its travel while the pointer is down)
- * @claim registry/ouro/components/ouro/switch/switch.test.tsx verify:testExists(registry/ouro/components/ouro/switch/switch.test.tsx::Switch look and motion > stretches by scaling and slides on translate, never by animating its width, with one timing for both)
+ * @claim "The thumb slides 16px in the" registry/ouro/components/ouro/switch/switch.test.tsx verify:testExists(registry/ouro/components/ouro/switch/switch.test.tsx::Switch look and motion > fills the track with the primary color and moves the thumb to the end when on)
+ * @claim "While the pointer is down it" registry/ouro/components/ouro/switch/switch.test.tsx verify:testExists(registry/ouro/components/ouro/switch/switch.test.tsx::Switch look and motion > widens the thumb toward its travel while the pointer is down)
+ * @claim "The thumb slides 16px in the" registry/ouro/components/ouro/switch/switch.test.tsx verify:testExists(registry/ouro/components/ouro/switch/switch.test.tsx::Switch look and motion > stretches by scaling and slides on translate, never by animating its width, with one timing for both)
  */
 const thumbClass =
   "pointer-events-none block size-(--ouro-switch-thumb) rounded-full bg-muted-foreground data-checked:bg-primary-foreground shadow-(--shadow-sm) " +

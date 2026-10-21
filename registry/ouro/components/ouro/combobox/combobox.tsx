@@ -40,13 +40,13 @@ export type ComboboxItem = string | { value: string; label: string; disabled?: b
 /**
  * Props every Combobox takes, whatever it picks.
  *
- * @claim registry/ouro/components/ouro/combobox/combobox.test-d.ts verify:fileLine(registry/ouro/components/ouro/combobox/combobox.test-d.ts, /expectTypeOf<\{\slabel:\s"Herb";\sitems:\s\["Basil",\s"Dill"\]\s\}>\(\)\.toExtend<ComboboxProps>/)
+ * @claim "Props every Combobox takes, whatever it" registry/ouro/components/ouro/combobox/combobox.test-d.ts verify:fileLine(registry/ouro/components/ouro/combobox/combobox.test-d.ts, /expectTypeOf<\{\slabel:\s"Herb";\sitems:\s\["Basil",\s"Dill"\]\s\}>\(\)\.toExtend<ComboboxProps>/)
  */
 export interface ComboboxBaseProps {
   /**
    * What the field is for, shown above it and read as its name. Required: every control
    * needs a name. To hide it visually, keep it and add `hideLabel`. A placeholder is not a label.
-   * @claim registry/ouro/components/ouro/combobox/combobox.test-d.ts verify:fileLine(registry/ouro/components/ouro/combobox/combobox.test-d.ts, /expectTypeOf<\{\sitems:\sstring\[\]\s\}>\(\)\.not\.toExtend<ComboboxProps>/)
+   * @claim "Required: every control needs a name" registry/ouro/components/ouro/combobox/combobox.test-d.ts verify:fileLine(registry/ouro/components/ouro/combobox/combobox.test-d.ts, /expectTypeOf<\{\sitems:\sstring\[\]\s\}>\(\)\.not\.toExtend<ComboboxProps>/)
    */
   label: string;
   /** Hides the label visually; screen readers still read it as the field's name. */
@@ -281,8 +281,8 @@ const toOption = (item: ComboboxItem): Option => (typeof item === "string" ? { v
 /**
  * Icons drawn in the text color at 16px, like the other Ouro icons.
  *
- * @claim registry/ouro/components/ouro/combobox/combobox.tsx verify:fileLine(registry/ouro/components/ouro/combobox/combobox.tsx, /viewBox="0\s0\s16\s16"/)
- * @claim registry/ouro/components/ouro/combobox/combobox.tsx verify:fileLine(registry/ouro/components/ouro/combobox/combobox.tsx, /\[&_svg\]:size-4/)
+ * @claim "Icons drawn in the text color" registry/ouro/components/ouro/combobox/combobox.tsx verify:fileLine(registry/ouro/components/ouro/combobox/combobox.tsx, /viewBox="0\s0\s16\s16"/)
+ * @claim "Icons drawn in the text color" registry/ouro/components/ouro/combobox/combobox.tsx verify:fileLine(registry/ouro/components/ouro/combobox/combobox.tsx, /\[&_svg\]:size-4/)
  */
 function Icon({ children }: { children: ReactNode }): JSX.Element {
   return (
@@ -334,8 +334,8 @@ const ChevronIcon = () => (
  * <Combobox label="Tags" name="tags" multiple items={tags} defaultValue={["Quick"]} />
  * <Combobox label="Recipe" items={results} loading={searching} onInputChange={search} />
  * <Combobox label="Cuisine" name="cuisine" allowCustomValue items={["Italian", "Thai"]} />
- * @claim registry/ouro/components/ouro/combobox/combobox.touch.test.tsx verify:testExists(registry/ouro/components/ouro/combobox/combobox.touch.test.tsx::Combobox on a phone > is a button in the field that opens a sheet titled with the label)
- * @claim registry/ouro/components/ouro/combobox/combobox.touch.test.tsx verify:testExists(registry/ouro/components/ouro/combobox/combobox.touch.test.tsx::Combobox on a phone > clears a single pick with a clear button beside the field, by tap or from the keyboard)
+ * @claim "On a phone (below 640px with" registry/ouro/components/ouro/combobox/combobox.touch.test.tsx verify:testExists(registry/ouro/components/ouro/combobox/combobox.touch.test.tsx::Combobox on a phone > is a button in the field that opens a sheet titled with the label)
+ * @claim "On a phone (below 640px with" registry/ouro/components/ouro/combobox/combobox.touch.test.tsx verify:testExists(registry/ouro/components/ouro/combobox/combobox.touch.test.tsx::Combobox on a phone > clears a single pick with a clear button beside the field, by tap or from the keyboard)
  */
 export function Combobox(props: ComboboxProps): JSX.Element {
   const {

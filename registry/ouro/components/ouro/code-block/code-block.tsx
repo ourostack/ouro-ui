@@ -11,8 +11,8 @@ export interface CodeBlockOwnProps {
   /**
    * The code, as plain text. It shows exactly as given, whitespace and all, and is what the copy button copies.
    *
-   * @claim registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::CodeBlock > copies the code exactly with its copy button)
-   * @claim registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::CodeBlock > shows the code as given on the muted surface in the monospace font, under a caption naming its language)
+   * @claim "It shows exactly as given, whitespace" registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::CodeBlock > copies the code exactly with its copy button)
+   * @claim "It shows exactly as given, whitespace" registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::CodeBlock > shows the code as given on the muted surface in the monospace font, under a caption naming its language)
    */
   code: string;
   /**
@@ -54,9 +54,9 @@ export type CodeBlockProps = Omit<HTMLAttributes<HTMLElement>, keyof CodeBlockOw
 /**
  * Makes the code a tab stop while it overflows either way, so a keyboard can scroll it (WCAG 2.1.1).
  *
- * @claim registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::CodeBlock > scrolls a long line sideways and becomes a tab stop only while it overflows)
- * @claim registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::CodeBlock > scrolls tall code within a maximum height the app sets, as a tab stop)
- * @claim https://www.w3.org/TR/WCAG22/#keyboard verify:urlOk(https://www.w3.org/TR/WCAG22/#keyboard)
+ * @claim "Makes the code a tab stop" registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::CodeBlock > scrolls a long line sideways and becomes a tab stop only while it overflows)
+ * @claim "Makes the code a tab stop" registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::CodeBlock > scrolls tall code within a maximum height the app sets, as a tab stop)
+ * @claim "Makes the code a tab stop" https://www.w3.org/TR/WCAG22/#keyboard verify:urlOk(https://www.w3.org/TR/WCAG22/#keyboard)
  */
 function useScrollableCode(): RefCallback<HTMLPreElement> {
   return useCallback((element: HTMLPreElement | null) => {

@@ -43,8 +43,8 @@ const inlineRootClass = "group/field box-border grid min-w-0 grid-cols-[auto_min
  * breakpoint with a fine pointer, so a landscape phone keeps the phone size.
  *
  * @internal
- * @claim registry/ouro/components/ouro/checkbox/checkbox.touch.test.tsx verify:testExists(registry/ouro/components/ouro/checkbox/checkbox.touch.test.tsx::keeps the 20px box and 16px label on a landscape phone, past the sm breakpoint)
- * @claim registry/ouro/components/ouro/field/field-styles.ts verify:fileLine(registry/ouro/components/ouro/field/field-styles.ts, /const\sinlineLabelClass\s=\s"text-base\sleading-6\ssm:pointer-fine:text-sm\ssm:pointer-fine:leading-5"/)
+ * @claim "The label beside an inline control" registry/ouro/components/ouro/checkbox/checkbox.touch.test.tsx verify:testExists(registry/ouro/components/ouro/checkbox/checkbox.touch.test.tsx::keeps the 20px box and 16px label on a landscape phone, past the sm breakpoint)
+ * @claim "The label beside an inline control" registry/ouro/components/ouro/field/field-styles.ts verify:fileLine(registry/ouro/components/ouro/field/field-styles.ts, /const\sinlineLabelClass\s=\s"text-base\sleading-6\ssm:pointer-fine:text-sm\ssm:pointer-fine:leading-5"/)
  */
 const inlineLabelClass = "text-base leading-6 sm:pointer-fine:text-sm sm:pointer-fine:leading-5";
 
@@ -54,7 +54,7 @@ const inlineLabelClass = "text-base leading-6 sm:pointer-fine:text-sm sm:pointer
  * stays clear of its neighbors'; with a fine pointer from the `sm` breakpoint, 12px.
  *
  * @internal
- * @claim registry/ouro/components/ouro/field/field-styles.ts verify:fileLine(registry/ouro/components/ouro/field/field-styles.ts, /vertical:\s"grid\sgap-5\ssm:pointer-fine:gap-3"/)
+ * @claim "On touch screens rows sit 20px" registry/ouro/components/ouro/field/field-styles.ts verify:fileLine(registry/ouro/components/ouro/field/field-styles.ts, /vertical:\s"grid\sgap-5\ssm:pointer-fine:gap-3"/)
  */
 const choicesClass = {
   vertical: "grid gap-5 sm:pointer-fine:gap-3",
@@ -76,8 +76,8 @@ const labelFrameClass = "block justify-self-start text-sm leading-5 select-none"
  * control's tap target on a phone. Vertical padding on an inline box does not move the lines.
  *
  * @internal
- * @claim registry/ouro/components/ouro/field/field.test.tsx verify:testExists(registry/ouro/components/ouro/field/field.test.tsx::Field wiring > shows the required marker beside the label, and in forced colors too)
- * @claim registry/ouro/components/ouro/field/field-styles.ts verify:fileLine(registry/ouro/components/ouro/field/field-styles.ts, /py-\[calc\(\(1lh-1em\)\/2\)\]/)
+ * @claim "Inline, so the required marker follows" registry/ouro/components/ouro/field/field.test.tsx verify:testExists(registry/ouro/components/ouro/field/field.test.tsx::Field wiring > shows the required marker beside the label, and in forced colors too)
+ * @claim "Inline, so the required marker follows" registry/ouro/components/ouro/field/field-styles.ts verify:fileLine(registry/ouro/components/ouro/field/field-styles.ts, /py-\[calc\(\(1lh-1em\)\/2\)\]/)
  */
 const labelClass = "m-0 inline py-[calc((1lh-1em)/2)] font-medium text-foreground data-disabled:opacity-50";
 
@@ -132,8 +132,8 @@ const legendClass = "m-0 p-0 text-base leading-6 font-semibold text-foreground d
  * unprefixed class that reads a variable, so an app's `h-*` replaces it at every width.
  *
  * @internal
- * @claim registry/ouro/components/ouro/field/field.test.tsx verify:testExists(registry/ouro/components/ouro/field/field.test.tsx::Field looks > uses a 16px font on phones, so iOS does not zoom on focus, and steps down from sm)
- * @claim registry/ouro/components/ouro/field/field-styles.ts verify:fileLine(registry/ouro/components/ouro/field/field-styles.ts, /h-\(--ouro-control-h\)/)
+ * @claim "The text control: 44px tall with" registry/ouro/components/ouro/field/field.test.tsx verify:testExists(registry/ouro/components/ouro/field/field.test.tsx::Field looks > uses a 16px font on phones, so iOS does not zoom on focus, and steps down from sm)
+ * @claim "The text control: 44px tall with" registry/ouro/components/ouro/field/field-styles.ts verify:fileLine(registry/ouro/components/ouro/field/field-styles.ts, /h-\(--ouro-control-h\)/)
  */
 const controlClass =
   "m-0 box-border block w-full min-w-0 h-(--ouro-control-h) px-3 py-0 " +

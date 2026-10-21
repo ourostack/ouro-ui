@@ -42,7 +42,7 @@ const rootClass = "box-border grid min-w-0 justify-items-start text-foreground";
  * The title button: 44px tall on a coarse pointer, 36px from `sm` with a fine one.
  *
  * @internal
- * @claim registry/ouro/components/ouro/collapsible/collapsible.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/collapsible.test.tsx::Collapsible > gives the title a 44px row on a coarse pointer, or 36px otherwise)
+ * @claim "The title button: 44px tall on" registry/ouro/components/ouro/collapsible/collapsible.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/collapsible.test.tsx::Collapsible > gives the title a 44px row on a coarse pointer, or 36px otherwise)
  */
 const triggerClass =
   "group/trigger press relative m-0 box-border inline-flex cursor-pointer items-center gap-2 " +
@@ -69,8 +69,8 @@ const iconClass =
  * its page search finds and opens it.
  *
  * @internal
- * @claim registry/ouro/components/ouro/collapsible/collapsible.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/collapsible.test.tsx::Collapsible > lets the browser's page search find and open it, and hides it plainly where until-found is unsupported)
- * @claim registry/ouro/components/ouro/collapsible/collapsible.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/collapsible.test.tsx::Collapsible > animates the panel to its measured height, and not with reduced motion)
+ * @claim "Closed, it stays mounted and hidden" registry/ouro/components/ouro/collapsible/collapsible.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/collapsible.test.tsx::Collapsible > lets the browser's page search find and open it, and hides it plainly where until-found is unsupported)
+ * @claim "The panel: it grows from 0" registry/ouro/components/ouro/collapsible/collapsible.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/collapsible.test.tsx::Collapsible > animates the panel to its measured height, and not with reduced motion)
  */
 const panelClass =
   "w-full h-(--collapsible-panel-height) overflow-hidden " +

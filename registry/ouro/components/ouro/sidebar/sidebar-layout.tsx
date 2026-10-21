@@ -10,16 +10,16 @@ export interface SidebarLayoutProps {
   /**
    * The app's `Sidebar`. It sits beside the page from 640px up, and is a menu button in the top bar below.
    *
-   * @claim registry/ouro/components/ouro/sidebar/sidebar-layout.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar-layout.test.tsx::SidebarLayout > puts the sidebar's menu button in a bar across the top of a phone, with the header beside it)
-   * @claim registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > becomes a menu button that opens a drawer below 640px)
-   * @claim registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > hides the menu button from 640px up)
+   * @claim "It sits beside the page from" registry/ouro/components/ouro/sidebar/sidebar-layout.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar-layout.test.tsx::SidebarLayout > puts the sidebar's menu button in a bar across the top of a phone, with the header beside it)
+   * @claim "It sits beside the page from" registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > becomes a menu button that opens a drawer below 640px)
+   * @claim "It sits beside the page from" registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > hides the menu button from 640px up)
    */
   sidebar: ReactNode;
   /**
    * A bar above the page: a search field, the page's actions. From 640px up it runs across
    * the top of the page, beside the sidebar; below, it shares the top bar with the menu button.
-   * @claim registry/ouro/components/ouro/sidebar/sidebar-layout.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar-layout.test.tsx::SidebarLayout > puts the sidebar's menu button in a bar across the top of a phone, with the header beside it)
-   * @claim registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > becomes a menu button that opens a drawer below 640px)
+   * @claim "From 640px up it runs across" registry/ouro/components/ouro/sidebar/sidebar-layout.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar-layout.test.tsx::SidebarLayout > puts the sidebar's menu button in a bar across the top of a phone, with the header beside it)
+   * @claim "From 640px up it runs across" registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > becomes a menu button that opens a drawer below 640px)
    */
   header?: ReactNode;
   /** The page. It renders inside the page's `<main>`. */
@@ -82,10 +82,10 @@ const headerCell =
  * >
  *   <Outlet />
  * </SidebarLayout>
- * @claim registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > becomes a menu button that opens a drawer below 640px)
- * @claim registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > hides the menu button from 640px up)
- * @claim registry/ouro/components/ouro/sidebar/sidebar-layout.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar-layout.test.tsx::SidebarLayout > puts the sidebar's menu button in a bar across the top of a phone, with the header beside it)
- * @claim registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > puts the nav and its links in the server HTML)
+ * @claim "The shell of an app with" registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > becomes a menu button that opens a drawer below 640px)
+ * @claim "The shell of an app with" registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > hides the menu button from 640px up)
+ * @claim "The shell of an app with" registry/ouro/components/ouro/sidebar/sidebar-layout.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar-layout.test.tsx::SidebarLayout > puts the sidebar's menu button in a bar across the top of a phone, with the header beside it)
+ * @claim "The phone menu opens once JavaScript" registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > puts the nav and its links in the server HTML)
  */
 export function SidebarLayout(props: SidebarLayoutProps): JSX.Element {
   const {

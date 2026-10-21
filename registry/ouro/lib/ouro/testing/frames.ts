@@ -10,8 +10,8 @@ interface HeldFrames {
   /**
    * Steps `ms` at a time until `done` returns true; throws after 2000 steps.
    *
-   * @claim registry/ouro/lib/ouro/testing/frames.test.ts verify:testExists(registry/ouro/lib/ouro/testing/frames.test.ts::steps until a condition holds, and gives up when it never does)
-   * @claim registry/ouro/lib/ouro/testing/frames.ts verify:fileLine(registry/ouro/lib/ouro/testing/frames.ts, /if\s\(count\s===\s2000\)/)
+   * @claim "Steps `ms` at a time until" registry/ouro/lib/ouro/testing/frames.test.ts verify:testExists(registry/ouro/lib/ouro/testing/frames.test.ts::steps until a condition holds, and gives up when it never does)
+   * @claim "Steps `ms` at a time until" registry/ouro/lib/ouro/testing/frames.ts verify:fileLine(registry/ouro/lib/ouro/testing/frames.ts, /if\s\(count\s===\s2000\)/)
    */
   until(done: () => boolean, ms?: number): void;
   /**

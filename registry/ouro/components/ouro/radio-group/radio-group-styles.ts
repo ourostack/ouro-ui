@@ -12,9 +12,9 @@ export { dotClass, radioClass };
  * screens.
  *
  * @internal
- * @claim registry/ouro/components/ouro/radio-group/radio-group.touch.test.tsx verify:testExists(registry/ouro/components/ouro/radio-group/radio-group.touch.test.tsx::picks on a tap on a label, and keeps the phone size on a landscape phone) verify:fileLine(registry/ouro/components/ouro/radio-group/radio-group-styles.ts, /size-5 shrink-0 items-center justify-center p-0 sm:pointer-fine:size-4/)
- * @claim registry/ouro/components/ouro/radio-group/radio-group.touch.test.tsx verify:testExists(registry/ouro/components/ouro/radio-group/radio-group.touch.test.tsx::keeps each radio's 44px hit area clear of its neighbors')
- * @claim registry/ouro/components/ouro/radio-group/radio-group.test.tsx verify:testExists(registry/ouro/components/ouro/radio-group/radio-group.test.tsx::RadioGroup > fills the chosen radio with the primary color and shows its dot)
+ * @claim "The radio: a 20px circle on" registry/ouro/components/ouro/radio-group/radio-group.touch.test.tsx verify:testExists(registry/ouro/components/ouro/radio-group/radio-group.touch.test.tsx::picks on a tap on a label, and keeps the phone size on a landscape phone) verify:fileLine(registry/ouro/components/ouro/radio-group/radio-group-styles.ts, /size-5 shrink-0 items-center justify-center p-0 sm:pointer-fine:size-4/)
+ * @claim "It fills with the primary color" registry/ouro/components/ouro/radio-group/radio-group.touch.test.tsx verify:testExists(registry/ouro/components/ouro/radio-group/radio-group.touch.test.tsx::keeps each radio's 44px hit area clear of its neighbors')
+ * @claim "It fills with the primary color" registry/ouro/components/ouro/radio-group/radio-group.test.tsx verify:testExists(registry/ouro/components/ouro/radio-group/radio-group.test.tsx::RadioGroup > fills the chosen radio with the primary color and shows its dot)
  */
 const radioClass =
   "press relative m-0 mt-0.5 box-border inline-flex size-5 shrink-0 items-center justify-center p-0 sm:pointer-fine:size-4 " +
@@ -31,7 +31,7 @@ const radioClass =
  * The dot in a chosen radio: it grows in from 95% as it fades in, and with reduced motion only fades.
  *
  * @internal
- * @claim registry/ouro/components/ouro/radio-group/radio-group.test.tsx verify:testExists(registry/ouro/components/ouro/radio-group/radio-group.test.tsx::RadioGroup > grows the dot in from 95% as it fades in, never from nothing, and only fades with reduced motion)
+ * @claim "The dot in a chosen radio" registry/ouro/components/ouro/radio-group/radio-group.test.tsx verify:testExists(registry/ouro/components/ouro/radio-group/radio-group.test.tsx::RadioGroup > grows the dot in from 95% as it fades in, never from nothing, and only fades with reduced motion)
  */
 const dotClass =
   "pointer-events-none block size-2 rounded-full bg-primary-foreground sm:pointer-fine:size-1.5 " +

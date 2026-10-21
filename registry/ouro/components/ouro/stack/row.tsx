@@ -31,9 +31,9 @@ export interface RowOwnProps {
   /**
    * Space between the children: `xs` 4px, `sm` 8px, `md` 16px, `lg` 24px, `xl` 32px.
    * @default "sm"
-   * @claim registry/ouro/components/ouro/stack/stack.test.tsx verify:fileLine(registry/ouro/components/ouro/stack/stack.test.tsx, /\["xs",\s"4px"\],/)
-   * @claim registry/ouro/components/ouro/stack/stack.test.tsx verify:fileLine(registry/ouro/components/ouro/stack/stack.test.tsx, /\["xl",\s"32px"\],/)
-   * @claim registry/ouro/components/ouro/stack/row.test.tsx verify:testExists(registry/ouro/components/ouro/stack/row.test.tsx::Row > renders a horizontal flex <div> with data-ouro, an 8px gap and centered children by default)
+   * @claim "Space between the children: `xs` 4px" registry/ouro/components/ouro/stack/stack.test.tsx verify:fileLine(registry/ouro/components/ouro/stack/stack.test.tsx, /\["xs",\s"4px"\],/)
+   * @claim "Space between the children: `xs` 4px" registry/ouro/components/ouro/stack/stack.test.tsx verify:fileLine(registry/ouro/components/ouro/stack/stack.test.tsx, /\["xl",\s"32px"\],/)
+   * @claim "Space between the children: `xs` 4px" registry/ouro/components/ouro/stack/row.test.tsx verify:testExists(registry/ouro/components/ouro/stack/row.test.tsx::Row > renders a horizontal flex <div> with data-ouro, an 8px gap and centered children by default)
    */
   gap?: LayoutGap | (string & { 'Use "none", "xs", "sm", "md", "lg" or "xl"': never }) | (number & { 'Use a name: gap="sm" is 8px': never }) | undefined;
   /**
@@ -52,8 +52,8 @@ export interface RowOwnProps {
   /**
    * Below this breakpoint the children stack top to bottom at full width, as a settings row
    * whose actions drop under its text on a phone. `sm` is 640px, `md` 768px.
-   * @claim registry/ouro/components/ouro/stack/row.test.tsx verify:testExists(registry/ouro/components/ouro/stack/row.test.tsx::Row > stacks below md with stackBelow=md)
-   * @claim https://tailwindcss.com/docs/responsive-design verify:urlOk(https://tailwindcss.com/docs/responsive-design)
+   * @claim "`sm` is 640px, `md` 768px" registry/ouro/components/ouro/stack/row.test.tsx verify:testExists(registry/ouro/components/ouro/stack/row.test.tsx::Row > stacks below md with stackBelow=md)
+   * @claim "`sm` is 640px, `md` 768px" https://tailwindcss.com/docs/responsive-design verify:urlOk(https://tailwindcss.com/docs/responsive-design)
    */
   stackBelow?: RowBreakpoint | (string & { 'Use "sm" (640px) or "md" (768px)': never }) | undefined;
   /**

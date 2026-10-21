@@ -15,8 +15,8 @@ export interface ClassNameProblem {
   /**
    * `align` for text alignment classes, `appearance` for everything else.
    *
-   * @claim registry/ouro/lib/ouro/class-name-check.test.tsx verify:testExists(registry/ouro/lib/ouro/class-name-check.test.tsx::useAppearanceClassNameCheck > points alignment classes to the alignHint, or to the parent)
-   * @claim registry/ouro/lib/ouro/class-name-check.test.tsx verify:testExists(registry/ouro/lib/ouro/class-name-check.test.tsx::useAppearanceClassNameCheck > does not warn for layout classes)
+   * @claim "`align` for text alignment classes, `appearance`" registry/ouro/lib/ouro/class-name-check.test.tsx verify:testExists(registry/ouro/lib/ouro/class-name-check.test.tsx::useAppearanceClassNameCheck > points alignment classes to the alignHint, or to the parent)
+   * @claim "`align` for text alignment classes, `appearance`" registry/ouro/lib/ouro/class-name-check.test.tsx verify:testExists(registry/ouro/lib/ouro/class-name-check.test.tsx::useAppearanceClassNameCheck > does not warn for layout classes)
    */
   kind: "align" | "appearance";
 }

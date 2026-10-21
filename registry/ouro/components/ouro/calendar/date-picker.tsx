@@ -28,7 +28,7 @@ export interface DatePickerProps {
   /**
    * What the date is for, shown above the field and read as its name. Required: every control
    * needs a name. To hide it visually, keep it and add `hideLabel`.
-   * @claim registry/ouro/components/ouro/calendar/date-picker.tsx verify:fileLine(registry/ouro/components/ouro/calendar/date-picker.test-d.ts, /expectTypeOf<\{ name: "date" \}>\(\)\.not\.toExtend<DatePickerProps>\(\)/)
+   * @claim "Required: every control needs a name" registry/ouro/components/ouro/calendar/date-picker.tsx verify:fileLine(registry/ouro/components/ouro/calendar/date-picker.test-d.ts, /expectTypeOf<\{ name: "date" \}>\(\)\.not\.toExtend<DatePickerProps>\(\)/)
    */
   label: string;
   /** Hides the label visually; screen readers still read it as the field's name. */
@@ -71,8 +71,8 @@ export interface DatePickerProps {
    * 11 October and starts weeks on Monday. Pass your app's locale; the default is the same
    * on the server and in the browser. Phones show their own picker in the phone's language.
    * @default "en-US"
-   * @claim registry/ouro/components/ouro/calendar/date-picker.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/date-picker.test.tsx::DatePicker > typing > reads day-first in en-GB)
-   * @claim registry/ouro/components/ouro/calendar/calendar.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/calendar.test.tsx::Calendar > locale > takes the first day of the week from the locale)
+   * @claim "The BCP 47 locale for the" registry/ouro/components/ouro/calendar/date-picker.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/date-picker.test.tsx::DatePicker > typing > reads day-first in en-GB)
+   * @claim "The BCP 47 locale for the" registry/ouro/components/ouro/calendar/calendar.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/calendar.test.tsx::Calendar > locale > takes the first day of the week from the locale)
    */
   locale?: string | undefined;
   /** An example of what to type, shown while the field is empty: `"MM/DD/YYYY"`. It is not a label. */
@@ -164,8 +164,8 @@ const owner = { name: "DatePicker", data: "date-picker" };
  * @example
  * <DatePicker label="Delivery date" name="delivery" min="2026-10-11" required error={errors?.delivery} />
  * <DatePicker label="Birthday" value={birthday} onValueChange={setBirthday} locale="en-GB" />
- * @claim registry/ouro/components/ouro/calendar/date-picker.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/date-picker.test.tsx::DatePicker > typing > reads a two-digit year as the year within 50 years of today)
- * @claim registry/ouro/components/ouro/calendar/date-picker.touch.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/date-picker.touch.test.tsx::uses the phone's own date picker on a touch screen, submitting the ISO date)
+ * @claim "With a mouse or trackpad it" registry/ouro/components/ouro/calendar/date-picker.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/date-picker.test.tsx::DatePicker > typing > reads a two-digit year as the year within 50 years of today)
+ * @claim "With a mouse or trackpad it" registry/ouro/components/ouro/calendar/date-picker.touch.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/date-picker.touch.test.tsx::uses the phone's own date picker on a touch screen, submitting the ISO date)
  */
 export function DatePicker(props: DatePickerProps): JSX.Element {
   const {

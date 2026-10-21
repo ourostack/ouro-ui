@@ -12,9 +12,9 @@ export interface StackedLayoutProps {
   /**
    * The page. It renders inside the page's `<main>`, in a centered column up to 72rem wide.
    *
-   * @claim registry/ouro/components/ouro/sidebar/stacked-layout.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/stacked-layout.test.tsx::StackedLayout > centers the page in a column of readable width, and runs edge to edge with bleed)
-   * @claim registry/ouro/components/ouro/sidebar/stacked-layout.tsx verify:fileLine(registry/ouro/components/ouro/sidebar/stacked-layout.tsx, /mx-auto\smax-w-6xl/)
-   * @claim https://tailwindcss.com/docs/max-width verify:urlOk(https://tailwindcss.com/docs/max-width)
+   * @claim "It renders inside the page's `<main>`" registry/ouro/components/ouro/sidebar/stacked-layout.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/stacked-layout.test.tsx::StackedLayout > centers the page in a column of readable width, and runs edge to edge with bleed)
+   * @claim "It renders inside the page's `<main>`" registry/ouro/components/ouro/sidebar/stacked-layout.tsx verify:fileLine(registry/ouro/components/ouro/sidebar/stacked-layout.tsx, /mx-auto\smax-w-6xl/)
+   * @claim "It renders inside the page's `<main>`" https://tailwindcss.com/docs/max-width verify:urlOk(https://tailwindcss.com/docs/max-width)
    */
   children: ReactNode;
   /**
@@ -66,8 +66,8 @@ const skip =
  * <StackedLayout navbar={<Navbar label="Main" items={items} currentPath={pathname} />}>
  *   <Outlet />
  * </StackedLayout>
- * @claim registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > puts the nav and its links in the server HTML)
- * @claim registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > becomes a menu button that opens a drawer below 640px)
+ * @claim "The phone menu opens once JavaScript" registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > puts the nav and its links in the server HTML)
+ * @claim "The phone menu opens once JavaScript" registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > becomes a menu button that opens a drawer below 640px)
  */
 export function StackedLayout(props: StackedLayoutProps): JSX.Element {
   const {

@@ -42,8 +42,8 @@ export interface SheetBaseProps {
    * Heights a bottom or top sheet rests at, smallest first: fractions of the
    * viewport (`0.5`), `px` or `rem`. `snapPoints={[0.5, 1]}` opens at half
    * height and drags up to full. Without snap points the sheet fits its content.
-   * @claim registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::feel > opens at the first snap point, as a fraction of the viewport)
-   * @claim registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::feel > gives a top sheet with snap points the full height less the gap, and fits a top sheet without them)
+   * @claim "Heights a bottom or top sheet" registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::feel > opens at the first snap point, as a fraction of the viewport)
+   * @claim "Heights a bottom or top sheet" registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::feel > gives a top sheet with snap points the full height less the gap, and fits a top sheet without them)
    */
   snapPoints?: SheetSnapPoint[] | undefined;
   /** The body. It scrolls when it is taller than the sheet. */
@@ -123,10 +123,10 @@ export type SheetProps = SheetWithTriggerProps | SheetControlledProps;
  * <Sheet title="Filters" open={open} onOpenChange={setOpen} snapPoints={[0.5, 1]}>
  *   <FilterForm />
  * </Sheet>
- * @claim registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::Sheet stacking above the app's fixed bars > stays above a fixed app bar at the same level: a tie, which the portal wins as the last child of body)
- * @claim registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::Sheet stacking above the app's fixed bars > puts the portal on the --ouro-layer level, as its own stacking context)
- * @claim registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /^\s+--ouro-layer:\s50;/)
- * @claim test/axe-exclude.test.tsx verify:testExists(test/axe-exclude.test.tsx::matches the open dialog's focus guards, and with them excluded axe finds nothing)
+ * @claim "It stacks above the page at" registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::Sheet stacking above the app's fixed bars > stays above a fixed app bar at the same level: a tie, which the portal wins as the last child of body)
+ * @claim "It stacks above the page at" registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::Sheet stacking above the app's fixed bars > puts the portal on the --ouro-layer level, as its own stacking context)
+ * @claim "It stacks above the page at" registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /^\s+--ouro-layer:\s50;/)
+ * @claim "Testing accessibility: in WebKit, Base UI's" test/axe-exclude.test.tsx verify:testExists(test/axe-exclude.test.tsx::matches the open dialog's focus guards, and with them excluded axe finds nothing)
  */
 export function Sheet(props: SheetProps): JSX.Element {
   const {
@@ -239,8 +239,8 @@ export interface SheetFrameProps {
  * message names the component the app wrote.
  *
  * @internal Shared with `Dialog`; apps use `Sheet`.
- * @claim registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::Sheet dev messages > throws the exact fix when open comes without onOpenChange)
- * @claim registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::Dialog parts > renders an md DialogPopup for a size that is not one of Ouro UI's, and warns once with the fix)
+ * @claim "The sheet's markup, without prop checks" registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::Sheet dev messages > throws the exact fix when open comes without onOpenChange)
+ * @claim "The sheet's markup, without prop checks" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::Dialog parts > renders an md DialogPopup for a size that is not one of Ouro UI's, and warns once with the fix)
  */
 export function SheetFrame({
   title,

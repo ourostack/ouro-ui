@@ -30,10 +30,10 @@ type ShareResult = "shared" | "copied" | "cancelled" | "failed";
  *
  * @example
  * const label = canShare({ url }) ? "Share" : "Copy link";
- * @claim registry/ouro/lib/ouro/share.test.ts verify:testExists(registry/ouro/lib/ouro/share.test.ts::canShare > asks the browser whether it can share the data, without the empty fields)
- * @claim registry/ouro/lib/ouro/share.test.ts verify:testExists(registry/ouro/lib/ouro/share.test.ts::canShare > is false when the browser says it cannot share the data)
- * @claim registry/ouro/lib/ouro/share.test.ts verify:testExists(registry/ouro/lib/ouro/share.test.ts::canShare > is true with a share sheet that has no canShare to ask)
- * @claim https://developer.mozilla.org/en-US/docs/Web/API/Navigator/share verify:urlOk(https://developer.mozilla.org/en-US/docs/Web/API/Navigator/share)
+ * @claim "Whether the browser has a share" registry/ouro/lib/ouro/share.test.ts verify:testExists(registry/ouro/lib/ouro/share.test.ts::canShare > asks the browser whether it can share the data, without the empty fields)
+ * @claim "Whether the browser has a share" registry/ouro/lib/ouro/share.test.ts verify:testExists(registry/ouro/lib/ouro/share.test.ts::canShare > is false when the browser says it cannot share the data)
+ * @claim "Whether the browser has a share" registry/ouro/lib/ouro/share.test.ts verify:testExists(registry/ouro/lib/ouro/share.test.ts::canShare > is true with a share sheet that has no canShare to ask)
+ * @claim "Whether the browser has a share" https://developer.mozilla.org/en-US/docs/Web/API/Navigator/share verify:urlOk(https://developer.mozilla.org/en-US/docs/Web/API/Navigator/share)
  */
 function canShare(data: ShareContent): boolean {
   if (typeof navigator === "undefined" || typeof navigator.share !== "function") return false;

@@ -16,7 +16,7 @@ export interface CheckboxProps {
   /**
    * What checking it means, shown to the right of the box and read as its name. Required:
    * every control needs a name. To hide it visually, keep it and add `hideLabel`.
-   * @claim registry/ouro/components/ouro/checkbox/checkbox.test-d.ts verify:fileLine(registry/ouro/components/ouro/checkbox/checkbox.test-d.ts, /\{\schecked:\strue\s\}>\(\)\.not\.toExtend<CheckboxProps>/)
+   * @claim "Required: every control needs a name" registry/ouro/components/ouro/checkbox/checkbox.test-d.ts verify:fileLine(registry/ouro/components/ouro/checkbox/checkbox.test-d.ts, /\{\schecked:\strue\s\}>\(\)\.not\.toExtend<CheckboxProps>/)
    */
   label: string;
   /** Hides the label visually; screen readers still read it as the checkbox's name. */

@@ -137,7 +137,7 @@ export interface TableRootProps extends Omit<HTMLAttributes<HTMLDivElement>, "ch
   /**
    * Shades every other body row.
    *
-   * @claim registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table > shades every other body row with striped)
+   * @claim "Shades every other body row" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table > shades every other body row with striped)
    */
   striped?: boolean | undefined;
   /** Tighter cells, for many rows. */
@@ -267,8 +267,8 @@ export interface TableRowProps extends HTMLAttributes<HTMLTableRowElement> {
    * `OuroProvider`'s `linkComponent`. Buttons, links and inputs in other cells stay their
    * own tab stops and take their own clicks and taps. On a touch screen the row is at least
    * 44px tall.
-   * @claim registry/ouro/components/ouro/table/table.touch.test.tsx verify:fileLine(registry/ouro/components/ouro/table/table.touch.test.tsx, /makes\sa\slinked\srow\sat\sleast\s44px\stall\sin\s%s/)
-   * @claim registry/ouro/components/ouro/table/table-parts.tsx verify:fileLine(registry/ouro/components/ouro/table/table-parts.tsx, /pointer-coarse:h-11/)
+   * @claim "On a touch screen the row" registry/ouro/components/ouro/table/table.touch.test.tsx verify:fileLine(registry/ouro/components/ouro/table/table.touch.test.tsx, /makes\sa\slinked\srow\sat\sleast\s44px\stall\sin\s%s/)
+   * @claim "On a touch screen the row" registry/ouro/components/ouro/table/table-parts.tsx verify:fileLine(registry/ouro/components/ouro/table/table-parts.tsx, /pointer-coarse:h-11/)
    */
   href?: string | undefined;
   /** With `href`: opens the link in a new tab, safely, and tells screen readers so with `externalLabel`. */
@@ -369,8 +369,8 @@ interface CellOwnProps {
   /**
    * Lets long text wrap onto more lines, at least 192px wide, instead of widening the table.
    *
-   * @claim registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table > lets a column with wrap break its text onto more lines, at least 192px wide)
-   * @claim registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table > breaks a long URL in a wrap column instead of widening it)
+   * @claim "Lets long text wrap onto more" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table > lets a column with wrap break its text onto more lines, at least 192px wide)
+   * @claim "Lets long text wrap onto more" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table > breaks a long URL in a wrap column instead of widening it)
    */
   wrap?: boolean | undefined;
   /** Layout only: a width (`w-32`). Appearance classes warn in development; alignment is `align`. */

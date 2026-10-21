@@ -46,9 +46,10 @@ function getRegion(): HTMLElement {
  *
  * @example
  * useEffect(() => { if (loading) announce("Saving recipe"); }, [loading]);
- * @claim registry/ouro/lib/ouro/announce.test.ts verify:testExists(registry/ouro/lib/ouro/announce.test.ts::announce > clears and re-sets a repeated message about 100ms later so it is spoken again)
- * @claim registry/ouro/lib/ouro/announce.test.ts verify:testExists(registry/ouro/lib/ouro/announce.test.ts::announce > waits 100ms after creating the region before writing the first message (Safari))
- * @claim registry/ouro/lib/ouro/announce.test.ts verify:testExists(registry/ouro/lib/ouro/announce.test.ts::announce > reuses the region across calls, keeping only the last message)
+ * @claim "The message is written about 100ms" registry/ouro/lib/ouro/announce.test.ts verify:testExists(registry/ouro/lib/ouro/announce.test.ts::announce > clears and re-sets a repeated message about 100ms later so it is spoken again)
+ * @claim "The message is written about 100ms" registry/ouro/lib/ouro/announce.test.ts verify:testExists(registry/ouro/lib/ouro/announce.test.ts::announce > waits 100ms after creating the region before writing the first message (Safari))
+ * @claim "The message is written about 100ms" registry/ouro/lib/ouro/announce.test.ts verify:testExists(registry/ouro/lib/ouro/announce.test.ts::announce > reuses the region across calls, keeping only the last message)
+ * @claim "The region lives outside every component" registry/ouro/lib/ouro/announce.test.ts verify:testExists(registry/ouro/lib/ouro/announce.test.ts::announce > reuses the region across calls, keeping only the last message)
  */
 export function announce(message: string): void {
   // Components call this from effects, which never run on the server.

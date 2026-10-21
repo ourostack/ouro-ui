@@ -120,7 +120,7 @@ export type MenuEntry =
 /**
  * Props shared by every way of opening a Menu.
  *
- * @claim registry/ouro/components/ouro/menu/menu.test.tsx verify:fileLine(registry/ouro/components/ouro/menu/menu.test.tsx, /throws\sthe\sexact\sfix\swith\sno\sway\sto\sopen/)
+ * @claim "Props shared by every way of" registry/ouro/components/ouro/menu/menu.test.tsx verify:fileLine(registry/ouro/components/ouro/menu/menu.test.tsx, /throws\sthe\sexact\sfix\swith\sno\sway\sto\sopen/)
  */
 export interface MenuBaseProps {
   /** The entries as data, in place of children: `items={[{ label: "Edit", onClick: edit }, { type: "separator" }]}`. */
@@ -134,7 +134,7 @@ export interface MenuBaseProps {
   /**
    * Layout only, applied to the menu panel: width (`w-64`; at least 12rem by default) and
    * margins. The phone sheet keeps its full width. Appearance classes warn in development.
-   * @claim registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu dropdown > is at least 12rem wide, and className sets layout)
+   * @claim "Layout only, applied to the menu" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu dropdown > is at least 12rem wide, and className sets layout)
    */
   className?: string | undefined;
   /**
@@ -166,7 +166,7 @@ interface MenuPlacementProps {
 /**
  * A dropdown: `trigger` opens it. Below 640px it is a bottom sheet.
  *
- * @claim registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu presentation > is a bottom sheet below 640px, with a backdrop, and its submenu is a sheet with a Back item)
+ * @claim "Below 640px it is a bottom" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu presentation > is a bottom sheet below 640px, with a backdrop, and its submenu is a sheet with a Back item)
  */
 export type MenuDropdownProps = MenuBaseProps &
   MenuPlacementProps & {
@@ -387,10 +387,10 @@ function MenuSurface({
  *   <MenuItem tone="destructive" onClick={remove}>Delete</MenuItem>
  * </Menu>
  * <Menu contextTrigger={<RecipeCard recipe={recipe} />} items={[{ label: "Copy link", onClick: copy }]} />
- * @claim registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu presentation > is a bottom sheet below 640px, with a backdrop, and its submenu is a sheet with a Back item)
- * @claim registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu context trigger > opens at the pointer on right-click)
- * @claim registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu stacking > puts the portal on the --ouro-layer level, as its own stacking context)
- * @claim registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /^\s+--ouro-layer:\s50;/)
+ * @claim "Below 640px a dropdown is a" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu presentation > is a bottom sheet below 640px, with a backdrop, and its submenu is a sheet with a Back item)
+ * @claim "Below 640px a dropdown is a" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu context trigger > opens at the pointer on right-click)
+ * @claim "It stacks above the page at" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu stacking > puts the portal on the --ouro-layer level, as its own stacking context)
+ * @claim "It stacks above the page at" registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /^\s+--ouro-layer:\s50;/)
  */
 export function Menu(props: MenuProps): JSX.Element {
   const {
@@ -531,7 +531,7 @@ export interface MenuBarProps extends Omit<HTMLAttributes<HTMLDivElement>, "clas
  *     <MenuItem onClick={undo} shortcut={["mod", "z"]}>Undo</MenuItem>
  *   </Menu>
  * </MenuBar>
- * @claim registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu presentation > is a bottom sheet below 640px, with a backdrop, and its submenu is a sheet with a Back item)
+ * @claim "Below 640px each menu opens as" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu presentation > is a bottom sheet below 640px, with a backdrop, and its submenu is a sheet with a Back item)
  */
 export function MenuBar({ children, className, ...rest }: MenuBarProps): JSX.Element {
   useAppearanceClassNameCheck(

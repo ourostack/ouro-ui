@@ -26,14 +26,14 @@ export type { SelectOption, SelectOptionGroup, SelectOptions } from "@/registry/
 /**
  * Props every Select takes, whether it picks one value or several.
  *
- * @claim registry/ouro/components/ouro/select/select.test.tsx verify:testExists(registry/ouro/components/ouro/select/select.test.tsx::Select > picks several values with multiple, as a string array)
- * @claim registry/ouro/components/ouro/select/select.test.tsx verify:testExists(registry/ouro/components/ouro/select/select.test.tsx::Select > chooses an option, shows its label and submits its value)
+ * @claim "Props every Select takes, whether it" registry/ouro/components/ouro/select/select.test.tsx verify:testExists(registry/ouro/components/ouro/select/select.test.tsx::Select > picks several values with multiple, as a string array)
+ * @claim "Props every Select takes, whether it" registry/ouro/components/ouro/select/select.test.tsx verify:testExists(registry/ouro/components/ouro/select/select.test.tsx::Select > chooses an option, shows its label and submits its value)
  */
 export interface SelectBaseProps {
   /**
    * What the select is for, shown above it and read as its name. Required: every control
    * needs a name. To hide it visually, keep it and add `hideLabel`. On phones it also heads the list.
-   * @claim registry/ouro/components/ouro/select/select.test-d.ts verify:fileLine(registry/ouro/components/ouro/select/select.test-d.ts, /expectTypeOf<\{\soptions:\stypeof\scourses\s\}>\(\)\.not\.toExtend<SelectProps>/)
+   * @claim "Required: every control needs a name" registry/ouro/components/ouro/select/select.test-d.ts verify:fileLine(registry/ouro/components/ouro/select/select.test-d.ts, /expectTypeOf<\{\soptions:\stypeof\scourses\s\}>\(\)\.not\.toExtend<SelectProps>/)
    */
   label: string;
   /** Hides the label visually; screen readers still read it as the select's name. */
@@ -106,8 +106,8 @@ export type SelectSingleProps = SelectBaseProps & {
   /**
    * Called with the new value when the user chooses an option: a `string` or `null`; with `multiple`, every chosen value as a `string[]`.
    *
-   * @claim registry/ouro/components/ouro/select/select.test.tsx verify:testExists(registry/ouro/components/ouro/select/select.test.tsx::Select > chooses an option, shows its label and submits its value)
-   * @claim registry/ouro/components/ouro/select/select.test.tsx verify:testExists(registry/ouro/components/ouro/select/select.test.tsx::Select > picks several values with multiple, as a string array)
+   * @claim "Called with the new value when" registry/ouro/components/ouro/select/select.test.tsx verify:testExists(registry/ouro/components/ouro/select/select.test.tsx::Select > chooses an option, shows its label and submits its value)
+   * @claim "Called with the new value when" registry/ouro/components/ouro/select/select.test.tsx verify:testExists(registry/ouro/components/ouro/select/select.test.tsx::Select > picks several values with multiple, as a string array)
    */
   onValueChange?: ((value: string | null) => void) | undefined;
 };
@@ -123,8 +123,8 @@ export type SelectMultipleProps = SelectBaseProps & {
   /**
    * Called with the new value when the user chooses an option: a `string` or `null`; with `multiple`, every chosen value as a `string[]`.
    *
-   * @claim registry/ouro/components/ouro/select/select.test.tsx verify:testExists(registry/ouro/components/ouro/select/select.test.tsx::Select > chooses an option, shows its label and submits its value)
-   * @claim registry/ouro/components/ouro/select/select.test.tsx verify:testExists(registry/ouro/components/ouro/select/select.test.tsx::Select > picks several values with multiple, as a string array)
+   * @claim "Called with the new value when" registry/ouro/components/ouro/select/select.test.tsx verify:testExists(registry/ouro/components/ouro/select/select.test.tsx::Select > chooses an option, shows its label and submits its value)
+   * @claim "Called with the new value when" registry/ouro/components/ouro/select/select.test.tsx verify:testExists(registry/ouro/components/ouro/select/select.test.tsx::Select > picks several values with multiple, as a string array)
    */
   onValueChange?: ((value: string[]) => void) | undefined;
 };
@@ -140,7 +140,7 @@ const markInput = controlRef("select", "hidden-input");
 /**
  * A chevron pointing up and down, drawn in the muted text color at 16px.
  *
- * @claim registry/ouro/components/ouro/select/select.tsx verify:fileLine(registry/ouro/components/ouro/select/select.tsx, /viewBox="0\s0\s16\s16"\sfill="none"\sstroke="currentColor"/)
+ * @claim "A chevron pointing up and down" registry/ouro/components/ouro/select/select.tsx verify:fileLine(registry/ouro/components/ouro/select/select.tsx, /viewBox="0\s0\s16\s16"\sfill="none"\sstroke="currentColor"/)
  */
 function ChevronIcon(): JSX.Element {
   return (
@@ -280,7 +280,7 @@ function SelectControl({
  *   error={errors?.course}
  * />
  * <Select label="Tags" name="tags" multiple defaultValue={["quick"]} options={tags} />
- * @claim registry/ouro/components/ouro/select/select.test.tsx verify:testExists(registry/ouro/components/ouro/select/select.test.tsx::Select > posts one entry per chosen value under its name with multiple, for formData.getAll)
+ * @claim "A `multiple` Select posts one entry" registry/ouro/components/ouro/select/select.test.tsx verify:testExists(registry/ouro/components/ouro/select/select.test.tsx::Select > posts one entry per chosen value under its name with multiple, for formData.getAll)
  */
 export function Select(props: SelectProps): JSX.Element {
   const {

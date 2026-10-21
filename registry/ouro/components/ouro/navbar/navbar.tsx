@@ -61,14 +61,14 @@ export interface NavbarProps {
   /**
    * Controls at the end of the bar, at every width: a search button, an account `Menu`.
    *
-   * @claim registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > shows the brand at the start and the actions at the end)
+   * @claim "Controls at the end of the" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > shows the brand at the start and the actions at the end)
    */
   actions?: ReactNode;
   /**
    * The name of the button that opens the links below 640px, and the title of the sheet
    * it opens. @default "Menu"
-   * @claim registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > collapses the links into a sheet behind a menu button below 640px)
-   * @claim registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > hides the menu button from 640px up)
+   * @claim "The name of the button that" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > collapses the links into a sheet behind a menu button below 640px)
+   * @claim "The name of the button that" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > hides the menu button from 640px up)
    */
   menuLabel?: string | undefined;
   /** The label of that sheet's close button. @default "Close" */
@@ -137,9 +137,9 @@ const example = '<Navbar label="Main" items={[{ label: "Recipes", href: "/recipe
  *   currentPath={pathname}
  *   actions={<Button href="/recipes/new">New recipe</Button>}
  * />
- * @claim registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar at tablet widths and with groups > collapses into the menu button whenever its links do not fit, from 640px up too)
- * @claim registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > collapses the links into a sheet behind a menu button below 640px)
- * @claim registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar at tablet widths and with groups > puts a group's button and the bar's links in the server HTML)
+ * @claim "Whenever the links do not fit" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar at tablet widths and with groups > collapses into the menu button whenever its links do not fit, from 640px up too)
+ * @claim "Whenever the links do not fit" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > collapses the links into a sheet behind a menu button below 640px)
+ * @claim "Whenever the links do not fit" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar at tablet widths and with groups > puts a group's button and the bar's links in the server HTML)
  */
 export function Navbar(props: NavbarProps): JSX.Element {
   const {

@@ -67,7 +67,7 @@ function focusable(element: HTMLElement): boolean {
  *   <Navbar label="Main" items={items} />
  *   <main id="main">…</main>
  * </body>
- * @claim registry/ouro/components/ouro/skip-link/skip-link.test.tsx verify:testExists(registry/ouro/components/ouro/skip-link/skip-link.test.tsx::SkipLink > is the first tab stop, and Enter moves focus to the main content without a history entry)
+ * @claim "link a keyboard or screen-reader user meets first" registry/ouro/components/ouro/skip-link/skip-link.test.tsx verify:testExists(registry/ouro/components/ouro/skip-link/skip-link.test.tsx::SkipLink > is the first tab stop, and Enter moves focus to the main content without a history entry)
  */
 export function SkipLink(props: SkipLinkProps): JSX.Element {
   const {

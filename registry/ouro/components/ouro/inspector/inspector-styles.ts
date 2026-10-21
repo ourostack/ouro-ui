@@ -51,9 +51,9 @@ function isPartOf(name: string, around: Element | null | undefined): boolean {
  * while its own list is open, so the list's sheet is never under an outline.
  *
  * @internal
- * @claim registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > lets a click through an outline reach the control underneath, and only the tags take a pointer)
- * @claim registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > fades in when it opens, and appears at once with reduced motion)
- * @claim registry/ouro/components/ouro/inspector/inspector-styles.ts verify:fileLine(registry/ouro/components/ouro/inspector/inspector-styles.ts, /"pointer-events-none\sfixed\sinset-0\sz-\[calc\(var\(--ouro-layer\)\+1\)\]/)
+ * @claim "The layer over the page: it" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > lets a click through an outline reach the control underneath, and only the tags take a pointer)
+ * @claim "The layer over the page: it" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > fades in when it opens, and appears at once with reduced motion)
+ * @claim "The layer over the page: it" registry/ouro/components/ouro/inspector/inspector-styles.ts verify:fileLine(registry/ouro/components/ouro/inspector/inspector-styles.ts, /"pointer-events-none\sfixed\sinset-0\sz-\[calc\(var\(--ouro-layer\)\+1\)\]/)
  */
 const layerClass =
   "pointer-events-none fixed inset-0 z-[calc(var(--ouro-layer)+1)] opacity-100 " +
@@ -63,8 +63,8 @@ const layerClass =
 /**
  * One outline: placed by `transform` from its component's box, and hidden, tag and all, while nothing of it shows. @internal
  *
- * @claim registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > hides the outline and tag of a component scrolled out of view inside a box, and clips one partly out)
- * @claim registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > does not outline itself, an overlay's wrappers, a hidden component or a part apart from its component)
+ * @claim "One outline: placed by `transform` from" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > hides the outline and tag of a component scrolled out of view inside a box, and clips one partly out)
+ * @claim "One outline: placed by `transform` from" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > does not outline itself, an overlay's wrappers, a hidden component or a part apart from its component)
  */
 const outlineClass = "absolute top-0 left-0 will-change-transform data-clipped:invisible";
 

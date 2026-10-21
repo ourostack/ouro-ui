@@ -36,7 +36,7 @@ export interface CheckboxGroupOwnProps {
   /**
    * What is wrong, from your server action or client check, shown under the choices; every
    * box gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid.
-   * @claim registry/ouro/components/ouro/checkbox/checkbox-group.test.tsx verify:testExists(registry/ouro/components/ouro/checkbox/checkbox-group.test.tsx::CheckboxGroup > marks the boxes invalid with error)
+   * @claim "What is wrong, from your server" registry/ouro/components/ouro/checkbox/checkbox-group.test.tsx verify:testExists(registry/ouro/components/ouro/checkbox/checkbox-group.test.tsx::CheckboxGroup > marks the boxes invalid with error)
    */
   error?: ReadonlyErrorMessages | undefined;
   /**
@@ -56,13 +56,13 @@ export interface CheckboxGroupOwnProps {
   /**
    * Disables every box and fades the group.
    *
-   * @claim registry/ouro/components/ouro/checkbox/checkbox-group.test.tsx verify:testExists(registry/ouro/components/ouro/checkbox/checkbox-group.test.tsx::CheckboxGroup > disables every box with disabled)
+   * @claim "Disables every box and fades the" registry/ouro/components/ouro/checkbox/checkbox-group.test.tsx verify:testExists(registry/ouro/components/ouro/checkbox/checkbox-group.test.tsx::CheckboxGroup > disables every box with disabled)
    */
   disabled?: boolean | undefined;
   /**
    * The form field name every checked box submits under, once per checked value.
    *
-   * @claim registry/ouro/components/ouro/checkbox/checkbox-group.test.tsx verify:testExists(registry/ouro/components/ouro/checkbox/checkbox-group.test.tsx::CheckboxGroup > submits name=value for each checked box)
+   * @claim "The form field name every checked" registry/ouro/components/ouro/checkbox/checkbox-group.test.tsx verify:testExists(registry/ouro/components/ouro/checkbox/checkbox-group.test.tsx::CheckboxGroup > submits name=value for each checked box)
    */
   name?: string | undefined;
   /** The checked values, for a controlled group; pair it with `onValueChange`. */
@@ -72,7 +72,7 @@ export interface CheckboxGroupOwnProps {
   /**
    * Called with every checked value, in the order they were checked, when one is checked or unchecked.
    *
-   * @claim registry/ouro/components/ouro/checkbox/checkbox-group.test.tsx verify:testExists(registry/ouro/components/ouro/checkbox/checkbox-group.test.tsx::CheckboxGroup > keeps the group's value: defaultValue, toggling with Space and clicks, and onValueChange)
+   * @claim "Called with every checked value, in" registry/ouro/components/ouro/checkbox/checkbox-group.test.tsx verify:testExists(registry/ouro/components/ouro/checkbox/checkbox-group.test.tsx::CheckboxGroup > keeps the group's value: defaultValue, toggling with Space and clicks, and onValueChange)
    */
   onValueChange?: ((value: string[]) => void) | undefined;
   /**

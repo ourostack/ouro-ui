@@ -23,8 +23,8 @@ export type { LayoutGap, LayoutJustify, LayoutElement };
 /**
  * A gap from the spacing scale: `xs` 4px, `sm` 8px, `md` 16px, `lg` 24px, `xl` 32px.
  *
- * @claim registry/ouro/components/ouro/stack/stack.test.tsx verify:fileLine(registry/ouro/components/ouro/stack/stack.test.tsx, /\["xs",\s"4px"\],/)
- * @claim registry/ouro/components/ouro/stack/stack.test.tsx verify:fileLine(registry/ouro/components/ouro/stack/stack.test.tsx, /\["xl",\s"32px"\],/)
+ * @claim "A gap from the spacing scale" registry/ouro/components/ouro/stack/stack.test.tsx verify:fileLine(registry/ouro/components/ouro/stack/stack.test.tsx, /\["xs",\s"4px"\],/)
+ * @claim "A gap from the spacing scale" registry/ouro/components/ouro/stack/stack.test.tsx verify:fileLine(registry/ouro/components/ouro/stack/stack.test.tsx, /\["xl",\s"32px"\],/)
  */
 type LayoutGap = "none" | "xs" | "sm" | "md" | "lg" | "xl";
 
@@ -63,8 +63,8 @@ const layoutElements: readonly LayoutElement[] = ["div", "section", "ul", "ol", 
  * class still apply.
  *
  * @internal
- * @claim registry/ouro/components/ouro/stack/stack.test.tsx verify:testExists(registry/ouro/components/ouro/stack/stack.test.tsx::Stack > passes HTML attributes and a ref through, and lets layout classes win)
- * @claim registry/ouro/components/ouro/stack/stack.test.tsx verify:fileLine(registry/ouro/components/ouro/stack/stack.test.tsx, /expect\(getComputedStyle\(el\)\.marginTop\)\.toBe\("16px"\)/)
+ * @claim "The margin is cleared in a" registry/ouro/components/ouro/stack/stack.test.tsx verify:testExists(registry/ouro/components/ouro/stack/stack.test.tsx::Stack > passes HTML attributes and a ref through, and lets layout classes win)
+ * @claim "The margin is cleared in a" registry/ouro/components/ouro/stack/stack.test.tsx verify:fileLine(registry/ouro/components/ouro/stack/stack.test.tsx, /expect\(getComputedStyle\(el\)\.marginTop\)\.toBe\("16px"\)/)
  */
 const elementReset = "[@layer_ouro-reset]:m-0 p-0 list-none min-w-0 border-0" as const;
 
@@ -73,7 +73,7 @@ const names = (values: readonly string[]) => values.map((value) => `"${value}"`)
 /**
  * A Tailwind spacing number (gap-4) to the nearest named gap.
  *
- * @claim registry/ouro/components/ouro/stack/stack.test.tsx verify:fileLine(registry/ouro/components/ouro/stack/stack.test.tsx, /\["gap\snumber",\s\{\sgap:\s4\s\}/)
+ * @claim "A Tailwind spacing number (gap-4) to" registry/ouro/components/ouro/stack/stack.test.tsx verify:fileLine(registry/ouro/components/ouro/stack/stack.test.tsx, /\["gap\snumber",\s\{\sgap:\s4\s\}/)
  */
 function nearestGap(value: number): LayoutGap {
   if (value <= 0) return "none";

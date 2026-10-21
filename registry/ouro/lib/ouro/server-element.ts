@@ -37,8 +37,8 @@ export function serverElement<T>(element: T): T {
  * lazy wrapper holds (every element of a list, not just the first), or `node` unchanged.
  *
  * Internal: Ouro UI components use it; apps don't need to.
- * @claim registry/ouro/lib/ouro/server-element.test.tsx verify:testExists(registry/ouro/lib/ouro/server-element.test.tsx::gives every element of a list a wrapper holds, each with its own key)
- * @claim registry/ouro/lib/ouro/server-element.test.tsx verify:testExists(registry/ouro/lib/ouro/server-element.test.tsx::keeps a wrapper that holds no element, or more than one, so cloning it still fails loudly)
+ * @claim "Children a Server Component passed, for" registry/ouro/lib/ouro/server-element.test.tsx verify:testExists(registry/ouro/lib/ouro/server-element.test.tsx::gives every element of a list a wrapper holds, each with its own key)
+ * @claim "Children a Server Component passed, for" registry/ouro/lib/ouro/server-element.test.tsx verify:testExists(registry/ouro/lib/ouro/server-element.test.tsx::keeps a wrapper that holds no element, or more than one, so cloning it still fails loudly)
  */
 export function serverNodes(node: ReactNode): ReactNode {
   return isWrapper(node) ? held(node) : node;

@@ -6,7 +6,7 @@ export { accessoryClass, barClass, breakpoints, iconClass, labelClass, listClass
  * The root holds the bar's room at the end of the page, so the last of the content scrolls
  * clear of it: the bar's 64px, the gap above it and the gap below it (at least the phone's
  * home-indicator inset). The bar itself is fixed to the bottom of the screen.
- * @claim registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx verify:testExists(registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx::TabBar > sits fixed at the bottom of a phone screen, with equal 64px tabs, and keeps its room in the page)
+ * @claim "The root holds the bar's room" registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx verify:testExists(registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx::TabBar > sits fixed at the bottom of a phone screen, with equal 64px tabs, and keeps its room in the page)
  */
 const rootClass = "block h-[calc(5rem+max(1rem,env(safe-area-inset-bottom,0px)))] shrink-0 print:hidden";
 

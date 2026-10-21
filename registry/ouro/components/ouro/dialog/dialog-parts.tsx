@@ -98,7 +98,7 @@ export function DialogRoot(props: BaseDialog.Root.Props): JSX.Element {
  * cannot dismiss. It shares every other part with `DialogRoot`.
  *
  * @internal For `ConfirmDialog`; apps use `ConfirmDialog`.
- * @claim registry/ouro/components/ouro/dialog/dialog-parts.tsx verify:fileLine(registry/ouro/components/ouro/dialog/dialog-parts.tsx, /export\sfunction\sAlertDialogRoot/)
+ * @claim "It shares every other part with" registry/ouro/components/ouro/dialog/dialog-parts.tsx verify:fileLine(registry/ouro/components/ouro/dialog/dialog-parts.tsx, /export\sfunction\sAlertDialogRoot/)
  */
 export function AlertDialogRoot(props: AlertDialog.Root.Props): JSX.Element {
   return (
@@ -119,8 +119,8 @@ export function DialogTrigger(props: BaseDialog.Trigger.Props): JSX.Element {
  * `--ouro-layer` z-index (50 by default, from ouro-base.css). If your app has fixed
  * bars above z-50, raise it in a `:root` rule of your own after the Ouro tokens, outside
  * any `@layer`: `:root { --ouro-layer: 60; }`. Don't edit the line shadcn wrote; `shadcn add` resets it.
- * @claim registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::Dialog stacking above the app's fixed bars > puts the portal on the --ouro-layer level, as its own stacking context)
- * @claim registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /^\s+--ouro-layer:\s50;/)
+ * @claim "Part: moves the dialog to the" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::Dialog stacking above the app's fixed bars > puts the portal on the --ouro-layer level, as its own stacking context)
+ * @claim "Part: moves the dialog to the" registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /^\s+--ouro-layer:\s50;/)
  */
 export function DialogPortal(props: Omit<BaseDialog.Portal.Props, "className">): JSX.Element {
   useDialogPart("DialogPortal", "…");
@@ -152,7 +152,7 @@ export type DialogPopupProps = Omit<BaseDialog.Popup.Props, "className"> & {
   /**
    * Maximum width: `sm` 24rem, `md` 32rem, `lg` 40rem. @default "md"
    *
-   * @claim registry/ouro/components/ouro/dialog/dialog-parts.tsx verify:fileLine(registry/ouro/components/ouro/dialog/dialog-parts.tsx, /const\spopupSizes\s=\s\{\ssm:\s"max-w-\[24rem\]",\smd:\s"max-w-\[32rem\]",\slg:\s"max-w-\[40rem\]"\s\}/)
+   * @claim "Maximum width: `sm` 24rem, `md` 32rem" registry/ouro/components/ouro/dialog/dialog-parts.tsx verify:fileLine(registry/ouro/components/ouro/dialog/dialog-parts.tsx, /const\spopupSizes\s=\s\{\ssm:\s"max-w-\[24rem\]",\smd:\s"max-w-\[32rem\]",\slg:\s"max-w-\[40rem\]"\s\}/)
    */
   size?: DialogSize | (string & { 'Use "sm", "md" or "lg"': never }) | undefined;
 };
@@ -160,8 +160,8 @@ export type DialogPopupProps = Omit<BaseDialog.Popup.Props, "className"> & {
 /**
  * Part: the dialog panel. It scales up from 0.96 and fades in over 300ms, and scales and
  * fades out in 200ms; reduced motion keeps only the fade.
- * @claim registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::motion > scales from 0.96 on the ease-out token and fades, entering in 300ms and leaving in 200ms)
- * @claim registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::motion > drops the scale under reduced motion and keeps the fade)
+ * @claim "It scales up from 0.96 and" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::motion > scales from 0.96 on the ease-out token and fades, entering in 300ms and leaving in 200ms)
+ * @claim "It scales up from 0.96 and" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::motion > drops the scale under reduced motion and keeps the fade)
  */
 export function DialogPopup({ size: sizeProp = "md", ...props }: DialogPopupProps): JSX.Element {
   // A size that is not one of Ouro UI's (a type error) warns and renders md.
@@ -213,7 +213,7 @@ export type DialogTitleProps = Omit<BaseDialog.Title.Props, "className"> & {
 /**
  * Part: the dialog's title, which names it. Every dialog needs one.
  *
- * @claim registry/ouro/components/ouro/dialog/dialog.test.tsx verify:fileLine(registry/ouro/components/ouro/dialog/dialog.test.tsx, /warns\swhen\sthe\stitle\sis\smissing/)
+ * @claim "Every dialog needs one" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:fileLine(registry/ouro/components/ouro/dialog/dialog.test.tsx, /warns\swhen\sthe\stitle\sis\smissing/)
  */
 export function DialogTitle({ visuallyHidden, ...props }: DialogTitleProps): JSX.Element {
   useDialogPart("DialogTitle", "<DialogTitle>…</DialogTitle>…");

@@ -17,8 +17,8 @@ import {
 /**
  * Props every ShowMore takes.
  *
- * @claim registry/ouro/components/ouro/collapsible/show-more.tsx verify:fileLine(registry/ouro/components/ouro/collapsible/show-more.tsx, /export\sinterface\sShowMoreListProps\sextends\sShowMoreBaseProps/)
- * @claim registry/ouro/components/ouro/collapsible/show-more.tsx verify:fileLine(registry/ouro/components/ouro/collapsible/show-more.tsx, /export\stype\sShowMoreLinesProps\s=\sShowMoreBaseProps\s&/)
+ * @claim "Props every ShowMore takes" registry/ouro/components/ouro/collapsible/show-more.tsx verify:fileLine(registry/ouro/components/ouro/collapsible/show-more.tsx, /export\sinterface\sShowMoreListProps\sextends\sShowMoreBaseProps/)
+ * @claim "Props every ShowMore takes" registry/ouro/components/ouro/collapsible/show-more.tsx verify:fileLine(registry/ouro/components/ouro/collapsible/show-more.tsx, /export\stype\sShowMoreLinesProps\s=\sShowMoreBaseProps\s&/)
  */
 export interface ShowMoreBaseProps {
   /** The button's text while there is more to show. Translate it here. @default "Show more" */
@@ -40,13 +40,13 @@ export type ShowMoreLinesProps = ShowMoreBaseProps & {
   /**
    * The text. Screen readers always read all of it.
    *
-   * @claim registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with lines > keeps the full text for screen readers and in server HTML)
+   * @claim "Screen readers always read all of" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with lines > keeps the full text for screen readers and in server HTML)
    */
   children: ReactNode;
   /**
    * The button's text while everything shows. Translate it here. @default "Show less"
    *
-   * @claim registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with items > takes translated labels)
+   * @claim "The button's text while everything shows" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with items > takes translated labels)
    */
   showLessLabel?: string | undefined;
   /** List modes only: not with `lines`. */
@@ -76,7 +76,8 @@ export interface ShowMoreListProps extends ShowMoreBaseProps {
   /**
    * Every item, in order. Each renders in its own list item; give elements a `key`. With
    * `onShowMore`, append each new page here.
-   * @claim registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with items > shows initialCount items and an ordered list with ordered)
+   * @claim "Every item, in order" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with items > shows initialCount items and an ordered list with ordered)
+   * @claim "Each renders in its own list" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with items > shows initialCount items and an ordered list with ordered)
    */
   items: readonly ReactNode[];
   /** Renders an `<ol>`, for a ranked or numbered list. @default false (`<ul>`) */
@@ -94,7 +95,7 @@ export type ShowMoreItemsProps = ShowMoreListProps & {
   /**
    * The button's text while everything shows. Translate it here. @default "Show less"
    *
-   * @claim registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with items > takes translated labels)
+   * @claim "The button's text while everything shows" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with items > takes translated labels)
    */
   showLessLabel?: string | undefined;
   /** Only for a list that loads more: with `items`, without `initialCount` or `lines`. */
@@ -162,7 +163,7 @@ const EMPTY = Symbol("empty");
 /**
  * What stays the same for an item across renders: an element's key, or a text or number item
  * itself. An element without a key is a new object every render, so it has none (null).
- * @claim registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with items a Server Component passed > keys each row by its item's own key, so a row keeps its node when the order changes)
+ * @claim "An element without a key is" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with items a Server Component passed > keys each row by its item's own key, so a row keeps its node when the order changes)
  */
 function identity(item: ReactNode): unknown {
   // An item a Server Component passed can be a lazy wrapper, a new object on every payload.

@@ -48,14 +48,14 @@ export interface ChoiceCardProps {
   /**
    * Disables every card.
    *
-   * @claim registry/ouro/components/ouro/choice-card/choice-card.test.tsx verify:testExists(registry/ouro/components/ouro/choice-card/choice-card.test.tsx::ChoiceCard > disables every card, or one)
+   * @claim "Disables every card" registry/ouro/components/ouro/choice-card/choice-card.test.tsx verify:testExists(registry/ouro/components/ouro/choice-card/choice-card.test.tsx::ChoiceCard > disables every card, or one)
    */
   disabled?: boolean | undefined;
   /**
    * How many cards a row holds on a wide screen; on a phone each row holds one, or two with
    * `columns` of 3 or more. @default 3
-   * @claim registry/ouro/components/ouro/choice-card/choice-card.touch.test.tsx verify:testExists(registry/ouro/components/ouro/choice-card/choice-card.touch.test.tsx::gives each card and each photo button a 44px target, and stacks the cards on a phone)
-   * @claim registry/ouro/components/ouro/choice-card/choice-card.test.tsx verify:fileLine(registry/ouro/components/ouro/choice-card/choice-card.test.tsx, /puts\s%s\scards\sin\sa\srow\son\sa\swide\sscreen\sand\sfewer\son\sa\sphone/)
+   * @claim "How many cards a row holds" registry/ouro/components/ouro/choice-card/choice-card.touch.test.tsx verify:testExists(registry/ouro/components/ouro/choice-card/choice-card.touch.test.tsx::gives each card and each photo button a 44px target, and stacks the cards on a phone)
+   * @claim "How many cards a row holds" registry/ouro/components/ouro/choice-card/choice-card.test.tsx verify:fileLine(registry/ouro/components/ouro/choice-card/choice-card.test.tsx, /puts\s%s\scards\sin\sa\srow\son\sa\swide\sscreen\sand\sfewer\son\sa\sphone/)
    */
   columns?: 2 | 3 | 4 | (number & { 'Use 2, 3 or 4': never }) | undefined;
   /** Layout only: margins, width (`mt-6`). Appearance classes warn in development. */

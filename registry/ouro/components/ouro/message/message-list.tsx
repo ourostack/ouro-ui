@@ -47,8 +47,8 @@ const KEEP_SPOKEN = 5;
 /**
  * The "Jump to latest" pill: a raised quiet button over the newest messages, 16px text and
  * a 44px target on a coarse pointer, fading in where motion is allowed.
- * @claim registry/ouro/components/ouro/message/message-list.touch.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.touch.test.tsx::keeps the reader's place on a phone once they swipe up, and jumps back with a 44px button)
- * @claim registry/ouro/components/ouro/message/message-list.touch.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.touch.test.tsx::keeps 16px message text on a landscape phone)
+ * @claim "pill: a raised quiet button over the newest" registry/ouro/components/ouro/message/message-list.touch.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.touch.test.tsx::keeps the reader's place on a phone once they swipe up, and jumps back with a 44px button)
+ * @claim "pill: a raised quiet button over the newest" registry/ouro/components/ouro/message/message-list.touch.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.touch.test.tsx::keeps 16px message text on a landscape phone)
  */
 const jumpClass =
   "press pointer-events-auto relative m-0 box-border inline-flex h-9 items-center gap-1.5 rounded-full border border-solid border-border " +
@@ -88,7 +88,7 @@ interface Spoken {
  *     </Message>
  *   ))}
  * </MessageList>
- * @claim registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > is a named, keyboard-scrollable region that opens at the newest message)
+ * @claim "A conversation: `Message`s in a scrolling" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > is a named, keyboard-scrollable region that opens at the newest message)
  */
 export function MessageList(props: MessageListProps): JSX.Element {
   const {

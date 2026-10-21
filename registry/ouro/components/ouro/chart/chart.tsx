@@ -72,7 +72,7 @@ export interface ChartOwnProps<Row extends object = Record<string, unknown>> {
    * Writes a value for the axis, the tooltip and the table, for other languages or units.
    * `series` is the value's key in `config`, and `""` for the y axis, which all series share.
    * @default "1,250"
-   * @claim registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > formats values with formatValue in the table, the axis and the tooltip)
+   * @claim "`series` is the value's key in" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > formats values with formatValue in the table, the axis and the tooltip)
    */
   formatValue?: ((value: number, series: string) => string) | undefined;
   /**
@@ -85,7 +85,7 @@ export interface ChartOwnProps<Row extends object = Record<string, unknown>> {
   /**
    * Layout only: the chart's height (`h-64`, `aspect-square`), margins. The plot is 16:9
    * until you set a height. Appearance classes warn in development.
-   * @claim registry/ouro/components/ouro/chart/chart-styles.ts verify:fileLine(registry/ouro/components/ouro/chart/chart-styles.ts, /aspect-video/)
+   * @claim "The plot is 16:9 until you" registry/ouro/components/ouro/chart/chart-styles.ts verify:fileLine(registry/ouro/components/ouro/chart/chart-styles.ts, /aspect-video/)
    */
   className?: string | undefined;
   ref?: Ref<HTMLElement> | undefined;
@@ -138,8 +138,8 @@ function useChartPart(part: string): ChartState {
 /**
  * The series in config order: every key but the category, each with its color and marker.
  *
- * @claim registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > labels each series in a legend with a marker shape, so color is not the only cue)
- * @claim registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > leaves series that are not in config out of the tooltip and the legend)
+ * @claim "The series in config order: every" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > labels each series in a legend with a marker shape, so color is not the only cue)
+ * @claim "The series in config order: every" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > leaves series that are not in config out of the tooltip and the legend)
  */
 function seriesOf(config: Record<string, ChartSeries | undefined>, categoryKey: string): Series[] {
   return Object.entries(config)
@@ -211,11 +211,12 @@ function chartWarnings(props: ChartProps<Record<string, unknown>>, series: Serie
  *   categoryKey="month"
  *   config={{ cooked: { label: "Cooked" }, saved: { label: "Saved", tone: "chart-2" } }}
  * />
- * @claim registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > lists every value in a table for screen readers, visible with showTable)
- * @claim registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > renders its title, summary and table in server HTML and hydrates without a warning)
- * @claim registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > colors each series from the theme's chart tokens, in light and dark)
- * @claim https://bundlephobia.com/package/recharts@3.10.1 verify:urlOk(https://bundlephobia.com/package/recharts@3.10.1)
- * @claim https://www.w3.org/TR/WCAG22/#non-text-contrast verify:urlOk(https://www.w3.org/TR/WCAG22/#non-text-contrast)
+ * @claim "A chart drawn in the theme's" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > lists every value in a table for screen readers, visible with showTable)
+ * @claim "A chart drawn in the theme's" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > renders its title, summary and table in server HTML and hydrates without a warning)
+ * @claim "A chart drawn in the theme's" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > colors each series from the theme's chart tokens, in light and dark)
+ * @claim "Colors come from the theme's `--chart-1`" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > colors each series from the theme's chart tokens, in light and dark)
+ * @claim "Colors come from the theme's `--chart-1`" https://bundlephobia.com/package/recharts@3.10.1 verify:urlOk(https://bundlephobia.com/package/recharts@3.10.1)
+ * @claim "Colors come from the theme's `--chart-1`" https://www.w3.org/TR/WCAG22/#non-text-contrast verify:urlOk(https://www.w3.org/TR/WCAG22/#non-text-contrast)
  */
 export function Chart<Row extends object = Record<string, unknown>>(props: ChartProps<Row>): JSX.Element {
   const {
@@ -398,7 +399,7 @@ function ShapeDot({ cx, cy, stroke, index, series, shape }: DotProps & { series:
 /**
  * A marker centered on 0,0, filled with the current color, outlined in the page's background.
  *
- * @claim registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > gives five series five marker shapes)
+ * @claim "A marker centered on 0,0, filled" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > gives five series five marker shapes)
  */
 function MarkerPath({ shape, size }: { shape: ChartMarkerShape; size: number }): JSX.Element {
   const r = size / 2;

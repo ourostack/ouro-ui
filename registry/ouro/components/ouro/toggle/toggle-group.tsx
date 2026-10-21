@@ -45,7 +45,7 @@ export interface ToggleGroupBaseProps {
   /**
    * Disables every toggle.
    *
-   * @claim registry/ouro/components/ouro/toggle/toggle-group.test.tsx verify:testExists(registry/ouro/components/ouro/toggle/toggle-group.test.tsx::ToggleGroup > disables one item, or the whole group)
+   * @claim "Disables every toggle" registry/ouro/components/ouro/toggle/toggle-group.test.tsx verify:testExists(registry/ouro/components/ouro/toggle/toggle-group.test.tsx::ToggleGroup > disables one item, or the whole group)
    */
   disabled?: boolean | undefined;
   /**
@@ -56,7 +56,7 @@ export interface ToggleGroupBaseProps {
   /**
    * Every toggle's size, as Button's. shadcn's `default` is `md`.
    * @default "md"
-   * @claim registry/ouro/components/ouro/toggle/toggle-group.test.tsx verify:testExists(registry/ouro/components/ouro/toggle/toggle-group.test.tsx::ToggleGroup > passes variant and size to every item)
+   * @claim "Every toggle's size, as Button's. shadcn's" registry/ouro/components/ouro/toggle/toggle-group.test.tsx verify:testExists(registry/ouro/components/ouro/toggle/toggle-group.test.tsx::ToggleGroup > passes variant and size to every item)
    */
   size?: "sm" | "md" | "lg" | (string & { 'From shadcn? default is "md"': never }) | undefined;
   /** Layout only: margins, grid placement (`mt-4`). Appearance classes warn in development. */

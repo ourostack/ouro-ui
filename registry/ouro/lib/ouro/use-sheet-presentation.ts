@@ -12,8 +12,8 @@ import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
  *
  * @example
  * const asSheet = useSheetPresentation(presentation);
- * @claim registry/ouro/lib/ouro/use-sheet-presentation.test.tsx verify:testExists(registry/ouro/lib/ouro/use-sheet-presentation.test.tsx::useSheetPresentation > follows the 640px breakpoint for "auto")
- * @claim registry/ouro/lib/ouro/use-sheet-presentation.test.tsx verify:testExists(registry/ouro/lib/ouro/use-sheet-presentation.test.tsx::useSheetPresentation > is always a sheet for "sheet" and never for "dialog", at any width)
+ * @claim "Whether an overlay with a `presentation`" registry/ouro/lib/ouro/use-sheet-presentation.test.tsx verify:testExists(registry/ouro/lib/ouro/use-sheet-presentation.test.tsx::useSheetPresentation > follows the 640px breakpoint for "auto")
+ * @claim "Any other value (`" registry/ouro/lib/ouro/use-sheet-presentation.test.tsx verify:testExists(registry/ouro/lib/ouro/use-sheet-presentation.test.tsx::useSheetPresentation > is always a sheet for "sheet" and never for "dialog", at any width)
  */
 export function useSheetPresentation(presentation: string): boolean {
   const wide = useMediaQuery("(min-width: 640px)", true);
@@ -26,8 +26,8 @@ export function useSheetPresentation(presentation: string): boolean {
  * popup, and so does a phone turned to landscape, past `sm`.
  *
  * @internal
- * @claim registry/ouro/lib/ouro/use-sheet-presentation.test.tsx verify:testExists(registry/ouro/lib/ouro/use-sheet-presentation.test.tsx::useSheetPresentation > follows the 640px breakpoint for "auto")
- * @claim registry/ouro/lib/ouro/use-sheet-presentation.test.tsx verify:testExists(registry/ouro/lib/ouro/use-sheet-presentation.test.tsx::usePickerSheet > asks for a narrow screen with a coarse pointer)
+ * @claim "When a picker list that would" registry/ouro/lib/ouro/use-sheet-presentation.test.tsx verify:testExists(registry/ouro/lib/ouro/use-sheet-presentation.test.tsx::useSheetPresentation > follows the 640px breakpoint for "auto")
+ * @claim "When a picker list that would" registry/ouro/lib/ouro/use-sheet-presentation.test.tsx verify:testExists(registry/ouro/lib/ouro/use-sheet-presentation.test.tsx::usePickerSheet > asks for a narrow screen with a coarse pointer)
  */
 export const pickerSheetQuery = "(max-width: 639px) and (pointer: coarse)";
 

@@ -80,8 +80,8 @@ const stripTones = {
 /**
  * One action: a block as tall as the row and at least 72px wide, with 16px text on a touch screen. @internal
  *
- * @claim registry/ouro/components/ouro/swipe-actions/swipe-actions-styles.ts verify:fileLine(registry/ouro/components/ouro/swipe-actions/swipe-actions-styles.ts, /min-w-18/)
- * @claim registry/ouro/components/ouro/swipe-actions/swipe-actions.test.tsx verify:testExists(registry/ouro/components/ouro/swipe-actions/swipe-actions.test.tsx::SwipeActions > renders the row closed, with both sides out of reach and an actions button named after the row)
+ * @claim "One action: a block as tall" registry/ouro/components/ouro/swipe-actions/swipe-actions-styles.ts verify:fileLine(registry/ouro/components/ouro/swipe-actions/swipe-actions-styles.ts, /min-w-18/)
+ * @claim "One action: a block as tall" registry/ouro/components/ouro/swipe-actions/swipe-actions.test.tsx verify:testExists(registry/ouro/components/ouro/swipe-actions/swipe-actions.test.tsx::SwipeActions > renders the row closed, with both sides out of reach and an actions button named after the row)
  */
 const actionClass =
   "press relative m-0 box-border inline-flex min-w-18 shrink-0 cursor-pointer items-center justify-center border-0 px-4 " +
@@ -108,8 +108,8 @@ const fadeClass = "group-data-full/swipe:opacity-0";
  * so its touch target stays inside the row.
  *
  * @internal
- * @claim registry/ouro/components/ouro/swipe-actions/swipe-actions-styles.ts verify:fileLine(registry/ouro/components/ouro/swipe-actions/swipe-actions-styles.ts, /pointer-fine:pe-2/)
- * @claim registry/ouro/components/ouro/swipe-actions/swipe-actions.touch.test.tsx verify:testExists(registry/ouro/components/ouro/swipe-actions/swipe-actions.touch.test.tsx::SwipeActions on a phone > keeps the actions button for screen readers without showing it, and shows it for keyboard focus)
+ * @claim "With a fine pointer it shows" registry/ouro/components/ouro/swipe-actions/swipe-actions-styles.ts verify:fileLine(registry/ouro/components/ouro/swipe-actions/swipe-actions-styles.ts, /pointer-fine:pe-2/)
+ * @claim "On a touch screen it is" registry/ouro/components/ouro/swipe-actions/swipe-actions.touch.test.tsx verify:testExists(registry/ouro/components/ouro/swipe-actions/swipe-actions.touch.test.tsx::SwipeActions on a phone > keeps the actions button for screen readers without showing it, and shows it for keyboard focus)
  */
 const menuClass =
   "flex shrink-0 justify-center pointer-fine:pe-2 pointer-coarse:[&:not(:has(:focus-visible))]:sr-only pointer-coarse:has-[:focus-visible]:min-w-11";

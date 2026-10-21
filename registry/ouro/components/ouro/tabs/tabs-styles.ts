@@ -9,8 +9,8 @@ export type { TabsActivation, TabsOrientation };
  * The layouts Tabs supports: tabs in a row above the panel, or in a column beside it.
  *
  * @internal
- * @claim registry/ouro/components/ouro/tabs/tabs.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > puts vertical tabs in a row above the panel on a narrow screen)
- * @claim registry/ouro/components/ouro/tabs/tabs.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > renders a labelled tab list with the first tab selected and its panel shown)
+ * @claim "The layouts Tabs supports: tabs in" registry/ouro/components/ouro/tabs/tabs.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > puts vertical tabs in a row above the panel on a narrow screen)
+ * @claim "The layouts Tabs supports: tabs in" registry/ouro/components/ouro/tabs/tabs.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > renders a labelled tab list with the first tab selected and its panel shown)
  */
 const orientations = ["horizontal", "vertical"] as const;
 
@@ -67,7 +67,7 @@ const listClass =
  * muted. The focus outline is inset, so the scrolling row never clips it.
  *
  * @internal
- * @claim registry/ouro/components/ouro/tabs/tabs.touch.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.touch.test.tsx::keeps 44px tabs with 16px text on a phone, also in landscape)
+ * @claim "A tab: 44px tall with 16px" registry/ouro/components/ouro/tabs/tabs.touch.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.touch.test.tsx::keeps 44px tabs with 16px text on a phone, also in landscape)
  */
 const tabClass =
   "group/tab press relative m-0 box-border inline-flex shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap " +
@@ -99,9 +99,9 @@ const tabFaceClass =
  * moves without a transition.
  *
  * @internal
- * @claim registry/ouro/components/ouro/tabs/tabs.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > slides the indicator with translate and resizes it with scale only, on the ease-in-out token in the base duration)
- * @claim registry/ouro/components/ouro/tabs/tabs.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > slides the indicator under the selected tab)
- * @claim registry/ouro/components/ouro/tabs/tabs.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > resizes the indicator between tabs of different width without ever changing its layout box, and keeps its ends square)
+ * @claim "It is 1px long and scaled" registry/ouro/components/ouro/tabs/tabs.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > slides the indicator with translate and resizes it with scale only, on the ease-in-out token in the base duration)
+ * @claim "It is 1px long and scaled" registry/ouro/components/ouro/tabs/tabs.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > slides the indicator under the selected tab)
+ * @claim "It is 1px long and scaled" registry/ouro/components/ouro/tabs/tabs.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > resizes the indicator between tabs of different width without ever changing its layout box, and keeps its ends square)
  */
 const indicatorClass =
   "pointer-events-none absolute z-1 bg-primary " +

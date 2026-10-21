@@ -50,8 +50,8 @@ const panelClass =
  * between side-by-side panels, `touch-pan-x` on one between stacked panels).
  *
  * @internal
- * @claim registry/ouro/components/ouro/resizable/resizable.touch.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.touch.test.tsx::resizes with a touch drag instead of scrolling the page)
- * @claim registry/ouro/components/ouro/resizable/resizable.touch.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.touch.test.tsx::lets a vertical swipe that starts on the handle scroll the page, and leaves the sizes alone)
+ * @claim "A touch drag across it resizes" registry/ouro/components/ouro/resizable/resizable.touch.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.touch.test.tsx::resizes with a touch drag instead of scrolling the page)
+ * @claim "A touch drag across it resizes" registry/ouro/components/ouro/resizable/resizable.touch.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.touch.test.tsx::lets a vertical swipe that starts on the handle scroll the page, and leaves the sizes alone)
  */
 const handleClass = {
   horizontal:
@@ -67,7 +67,7 @@ const handleClass = {
 /**
  * The handle's hit area with a fine pointer: 4px each side of the line. A coarse pointer gets 44px from `TouchTarget`. @internal
  *
- * @claim registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable handle (window splitter) > gives the handle a hit area wider than its line)
+ * @claim "The handle's hit area with a" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable handle (window splitter) > gives the handle a hit area wider than its line)
  */
 const hitAreaClass = {
   horizontal: "absolute inset-y-0 -inset-x-1",
@@ -85,8 +85,8 @@ const gripClass = {
  * panels that have none, scaled so they add up to 100.
  *
  * @internal
- * @claim registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable layout > lays panels side by side at their default sizes with a handle between)
- * @claim registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable layout > shares the space left over between panels without a defaultSize)
+ * @claim "The starting sizes: each panel's `defaultSize`" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable layout > lays panels side by side at their default sizes with a handle between)
+ * @claim "The starting sizes: each panel's `defaultSize`" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable layout > shares the space left over between panels without a defaultSize)
  */
 function initialSizes(panels: readonly PanelLimits[]): number[] {
   const defined = panels.reduce((sum, panel) => sum + (panel.defaultSize ?? 0), 0);
@@ -130,8 +130,8 @@ function clampSize(sizes: readonly number[], index: number, size: number, panels
 /**
  * Whether a saved value is a layout for `count` panels: that many numbers adding up to 100. @internal
  *
- * @claim registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable autoSaveId > restores and saves the layout in localStorage)
- * @claim registry/ouro/components/ouro/resizable/resizable-styles.ts verify:fileLine(registry/ouro/components/ouro/resizable/resizable-styles.ts, /Math\.abs\(value\.reduce/)
+ * @claim "Whether a saved value is a" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable autoSaveId > restores and saves the layout in localStorage)
+ * @claim "Whether a saved value is a" registry/ouro/components/ouro/resizable/resizable-styles.ts verify:fileLine(registry/ouro/components/ouro/resizable/resizable-styles.ts, /Math\.abs\(value\.reduce/)
  */
 function isSavedLayout(value: unknown, count: number): value is number[] {
   return (

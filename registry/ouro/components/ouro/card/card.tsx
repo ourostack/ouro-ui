@@ -13,7 +13,7 @@ import { Text } from "@/registry/ouro/components/ouro/text/text";
 /**
  * The props every Card takes, with or without `href`.
  *
- * @claim registry/ouro/components/ouro/card/card.tsx verify:fileLine(registry/ouro/components/ouro/card/card.test-d.ts, /expectTypeOf<\{ href: "\/cookbooks\/1" \}>\(\)\.toExtend<CardProps>\(\)/)
+ * @claim "The props every Card takes, with" registry/ouro/components/ouro/card/card.tsx verify:fileLine(registry/ouro/components/ouro/card/card.test-d.ts, /expectTypeOf<\{ href: "\/cookbooks\/1" \}>\(\)\.toExtend<CardProps>\(\)/)
  */
 export interface CardOwnProps {
   /** The card's title, as a heading. With `href` it is the link's text, so a linked card needs one. */
@@ -48,7 +48,7 @@ export interface CardOwnProps {
   /**
    * Below this breakpoint the `action` drops under the title and description, as in a
    * settings panel on a phone. Without it the action stays beside the title at every width.
-   * @claim registry/ouro/components/ouro/card/card.test.tsx verify:testExists(registry/ouro/components/ouro/card/card.test.tsx::Card > keeps the action beside the title on a phone without stackBelow)
+   * @claim "Without it the action stays beside" registry/ouro/components/ouro/card/card.test.tsx verify:testExists(registry/ouro/components/ouro/card/card.test.tsx::Card > keeps the action beside the title on a phone without stackBelow)
    */
   stackBelow?: "sm" | "md" | (string & { 'Use "sm" (640px) or "md" (768px)': never }) | undefined;
   /**
@@ -65,8 +65,8 @@ export interface CardOwnProps {
   /**
    * Padding: `md` is 24px, `sm` 16px for dense grids. @default "md"
    *
-   * @claim registry/ouro/components/ouro/card/card.test.tsx verify:testExists(registry/ouro/components/ouro/card/card.test.tsx::Card > is a bordered surface in the card colors, with 24px padding)
-   * @claim registry/ouro/components/ouro/card/card.test.tsx verify:testExists(registry/ouro/components/ouro/card/card.test.tsx::Card > is tighter with size=sm)
+   * @claim "Padding: `md` is 24px, `sm` 16px" registry/ouro/components/ouro/card/card.test.tsx verify:testExists(registry/ouro/components/ouro/card/card.test.tsx::Card > is a bordered surface in the card colors, with 24px padding)
+   * @claim "Padding: `md` is 24px, `sm` 16px" registry/ouro/components/ouro/card/card.test.tsx verify:testExists(registry/ouro/components/ouro/card/card.test.tsx::Card > is tighter with size=sm)
    */
   size?: "md" | "sm" | (string & { 'Use "md" or "sm"': never }) | undefined;
   /**

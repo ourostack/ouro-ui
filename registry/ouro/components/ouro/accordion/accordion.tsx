@@ -39,7 +39,7 @@ export interface AccordionItem {
 /**
  * Props every Accordion takes.
  *
- * @claim registry/ouro/components/ouro/accordion/accordion.tsx verify:fileLine(registry/ouro/components/ouro/accordion/accordion.tsx, /export function Accordion\(props: AccordionProps\)/)
+ * @claim "Props every Accordion takes" registry/ouro/components/ouro/accordion/accordion.tsx verify:fileLine(registry/ouro/components/ouro/accordion/accordion.tsx, /export function Accordion\(props: AccordionProps\)/)
  */
 export interface AccordionBaseProps {
   /** The items, in order. */
@@ -52,8 +52,8 @@ export interface AccordionBaseProps {
   /**
    * Keeps every item from opening or closing.
    *
-   * @claim registry/ouro/components/ouro/accordion/accordion.tsx verify:fileLine(registry/ouro/components/ouro/accordion/accordion.tsx, /^\s+disabled,$/)
-   * @claim https://base-ui.com/react/components/accordion verify:urlOk(https://base-ui.com/react/components/accordion)
+   * @claim "Keeps every item from opening or" registry/ouro/components/ouro/accordion/accordion.tsx verify:fileLine(registry/ouro/components/ouro/accordion/accordion.tsx, /^\s+disabled,$/)
+   * @claim "Keeps every item from opening or" https://base-ui.com/react/components/accordion verify:urlOk(https://base-ui.com/react/components/accordion)
    */
   disabled?: boolean | undefined;
   /** Layout only: margins, width, grid placement (`mt-6`). Appearance classes warn in development. */
@@ -71,7 +71,7 @@ export interface AccordionBaseProps {
 /**
  * One item open at a time (the default). The value is the open item's, or `null` when all are closed.
  *
- * @claim registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > closes every item with a controlled null)
+ * @claim "The value is the open item's" registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > closes every item with a controlled null)
  */
 export type AccordionSingleProps = AccordionBaseProps & {
   /** Lets several items be open at once, and makes the value a list. */
@@ -158,10 +158,10 @@ function Chevron(): JSX.Element {
  *   ]}
  * />
  * <Accordion multiple defaultValue={["storage"]} items={items} />
- * @claim registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > lets the browser's page search find and open a closed item, and hides it plainly where until-found is unsupported)
- * @claim registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > animates the panel to its measured height)
- * @claim registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > gives every trigger at least a 44px row on a coarse pointer, or 40px otherwise)
- * @claim registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > links each trigger and panel in server HTML and hydrates without a mismatch)
+ * @claim "Panels grow to their measured height" registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > lets the browser's page search find and open a closed item, and hides it plainly where until-found is unsupported)
+ * @claim "Panels grow to their measured height" registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > animates the panel to its measured height)
+ * @claim "Panels grow to their measured height" registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > gives every trigger at least a 44px row on a coarse pointer, or 40px otherwise)
+ * @claim "Panels grow to their measured height" registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > links each trigger and panel in server HTML and hydrates without a mismatch)
  */
 export function Accordion(props: AccordionProps): JSX.Element {
   const {

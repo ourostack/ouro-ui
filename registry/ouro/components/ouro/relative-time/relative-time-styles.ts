@@ -13,7 +13,7 @@ const DAY_MS = DAY_SECONDS * 1000;
 /**
  * "3 days ago", "in 5 minutes", "now": the largest whole unit to an instant, rounded.
  *
- * @claim registry/ouro/components/ouro/relative-time/relative-time.test.tsx verify:fileLine(registry/ouro/components/ouro/relative-time/relative-time.test.tsx, /\[5\s\*\sMINUTE\s\+\s10\s\*\sSECOND,\s"auto",\s"in\s5\sminutes"\]/)
+ * @claim ": the largest whole unit to an instant," registry/ouro/components/ouro/relative-time/relative-time.test.tsx verify:fileLine(registry/ouro/components/ouro/relative-time/relative-time.test.tsx, /\[5\s\*\sMINUTE\s\+\s10\s\*\sSECOND,\s"auto",\s"in\s5\sminutes"\]/)
  */
 export function relative(date: Date, at: number, locale: Intl.LocalesArgument, numeric: "auto" | "always"): string {
   const seconds = (date.getTime() - at) / 1000;

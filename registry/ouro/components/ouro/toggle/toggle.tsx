@@ -23,7 +23,7 @@ export interface ToggleOwnProps {
   /**
    * What the toggle turns on, such as "Bold". It is the button's name and stays the same
    * while pressed: `aria-pressed` says whether it is on. Required: every toggle needs a name.
-   * @claim registry/ouro/components/ouro/toggle/toggle.test-d.ts verify:fileLine(registry/ouro/components/ouro/toggle/toggle.test-d.ts, /expectTypeOf<\{\spressed:\strue\s\}>\(\)\.not\.toExtend<ToggleProps>/)
+   * @claim "Required: every toggle needs a name" registry/ouro/components/ouro/toggle/toggle.test-d.ts verify:fileLine(registry/ouro/components/ouro/toggle/toggle.test-d.ts, /expectTypeOf<\{\spressed:\strue\s\}>\(\)\.not\.toExtend<ToggleProps>/)
    */
   label: string;
   /**

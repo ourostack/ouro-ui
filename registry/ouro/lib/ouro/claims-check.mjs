@@ -196,7 +196,7 @@ export function isInstruction(sentence, verbs = INSTRUCTION_VERBS) {
     // "Release 2.0 shipped": a past tense after a noun, not after a determiner ("Use the shared…").
     return !(/^[a-z]+ed$/.test(after) && !DETERMINER.test(next));
   };
-  if (imperative(text)) return true;
+  if (imperative(text.replace(/^(?:then|also|next|first|finally|now|and|or)\s+/i, ""))) return true;
   if (!/^(?:if|when|whenever|before|after|once|to|for|unless|until|while|with|without|in|on)\b/i.test(text)) return false;
   // The condition may list several things ("For each arm, each screen and each run, make…"): any clause after a comma may start the instruction.
   return [...text.matchAll(/,\s+(?=[A-Za-z’'])/g)].some((match) => imperative(text.slice(match.index + match[0].length)));
@@ -296,7 +296,9 @@ function blocks(text) {
     if (heading) {
       // A heading is read like a sentence: "## 73 components, all tested" is a claim too.
       end();
-      out.push({ lines: [{ line, text: " ".repeat(heading[1].length) + heading[2] }] });
+      // A step number ("#### 1. Update…") is the heading's numbering, not a sentence of its own.
+      const step = /^\d+[.)]\s+/.exec(heading[2])?.[0] ?? "";
+      out.push({ lines: [{ line, text: " ".repeat(heading[1].length + step.length) + heading[2].slice(step.length) }] });
       continue;
     }
     if (/^\s*\|/.test(raw)) {

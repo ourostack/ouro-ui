@@ -35,7 +35,7 @@ export interface FileFieldProps {
   /**
    * What the files are for ("Recipe photo"), shown above the drop zone and read as the input's
    * name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`.
-   * @claim registry/ouro/components/ouro/file-field/file-field.test-d.ts verify:fileLine(registry/ouro/components/ouro/file-field/file-field.test-d.ts, /expectTypeOf<\{\saccept:\s"image\/\*"\s\}>\(\)\.not\.toExtend<FileFieldProps>/)
+   * @claim "Required: every control needs a name" registry/ouro/components/ouro/file-field/file-field.test-d.ts verify:fileLine(registry/ouro/components/ouro/file-field/file-field.test-d.ts, /expectTypeOf<\{\saccept:\s"image\/\*"\s\}>\(\)\.not\.toExtend<FileFieldProps>/)
    */
   label: string;
   /** Hides the label visually; screen readers still read it. */
@@ -64,7 +64,7 @@ export interface FileFieldProps {
   /**
    * The largest file it takes, in bytes: `5 * 1024 * 1024` for 5 MB. Larger files are left out,
    * with a message under the field, and reported to `onReject`.
-   * @claim registry/ouro/components/ouro/file-field/file-field.test.tsx verify:testExists(registry/ouro/components/ouro/file-field/file-field.test.tsx::FileField > says why a file was left out, under the field > for a file larger than maxSize, naming the limit)
+   * @claim "The largest file it takes, in" registry/ouro/components/ouro/file-field/file-field.test.tsx verify:testExists(registry/ouro/components/ouro/file-field/file-field.test.tsx::FileField > says why a file was left out, under the field > for a file larger than maxSize, naming the limit)
    */
   maxSize?: number | undefined;
   /** Called with the chosen files whenever the list changes: a choice, a drop, or a removal. */
@@ -80,8 +80,8 @@ export interface FileFieldProps {
    * shows next to `error` and a Form's error for this name, never instead of them. Translate it
    * with your app.
    * @default (rejection) => "notes.heic is not an accepted file type.", "big.png is larger than 5 MB." or "Only one file can be added, so b.png was left out."
-   * @claim registry/ouro/components/ouro/file-field/file-field.test.tsx verify:testExists(registry/ouro/components/ouro/file-field/file-field.test.tsx::FileField > says why a file was left out, under the field > next to the app's own error, in rejectMessage's words, until the next choice takes every file)
-   * @claim registry/ouro/components/ouro/file-field/file-field.test.tsx verify:testExists(registry/ouro/components/ouro/file-field/file-field.test.tsx::FileField > says why a file was left out, under the field > and drops the message when a file is removed or the form resets)
+   * @claim "The message under the field for" registry/ouro/components/ouro/file-field/file-field.test.tsx verify:testExists(registry/ouro/components/ouro/file-field/file-field.test.tsx::FileField > says why a file was left out, under the field > next to the app's own error, in rejectMessage's words, until the next choice takes every file)
+   * @claim "The message under the field for" registry/ouro/components/ouro/file-field/file-field.test.tsx verify:testExists(registry/ouro/components/ouro/file-field/file-field.test.tsx::FileField > says why a file was left out, under the field > and drops the message when a file is removed or the form resets)
    */
   rejectMessage?: ((rejection: FileRejection) => string) | undefined;
   /**

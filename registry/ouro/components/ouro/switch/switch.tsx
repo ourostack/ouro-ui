@@ -16,7 +16,7 @@ export interface SwitchProps {
   /**
    * The setting it turns on, shown to the right of the switch and read as its name.
    * Required: every control needs a name. To hide it visually, keep it and add `hideLabel`.
-   * @claim registry/ouro/components/ouro/switch/switch.test-d.ts verify:fileLine(registry/ouro/components/ouro/switch/switch.test-d.ts, /expectTypeOf<\{\schecked:\strue\s\}>\(\)\.not\.toExtend<SwitchProps>/)
+   * @claim "Required: every control needs a name" registry/ouro/components/ouro/switch/switch.test-d.ts verify:fileLine(registry/ouro/components/ouro/switch/switch.test-d.ts, /expectTypeOf<\{\schecked:\strue\s\}>\(\)\.not\.toExtend<SwitchProps>/)
    */
   label: string;
   /** Hides the label visually; screen readers still read it as the switch's name. */

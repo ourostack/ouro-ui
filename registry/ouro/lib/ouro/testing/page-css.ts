@@ -11,7 +11,7 @@ export { pageCss };
  *
  * @example
  * expect(pageCss()).toMatch(/@supports \(-webkit-touch-callout: ?none\)/);
- * @claim registry/ouro/lib/ouro/testing/page-css.ts verify:fileLine(registry/ouro/lib/ouro/testing/page-css.ts, /document\.querySelectorAll\("style"\)/)
+ * @claim "The CSS the page has loaded" registry/ouro/lib/ouro/testing/page-css.ts verify:fileLine(registry/ouro/lib/ouro/testing/page-css.ts, /document\.querySelectorAll\("style"\)/)
  */
 function pageCss(): string {
   return [...document.querySelectorAll("style")].map((style) => style.textContent).join("\n");

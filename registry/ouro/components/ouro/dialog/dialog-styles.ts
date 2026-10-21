@@ -8,7 +8,7 @@ export type { DialogSize };
 /**
  * A centered dialog's maximum width: `sm` 24rem, `md` 32rem, `lg` 40rem.
  *
- * @claim registry/ouro/components/ouro/dialog/dialog-parts.tsx verify:fileLine(registry/ouro/components/ouro/dialog/dialog-parts.tsx, /const\spopupSizes\s=\s\{\ssm:\s"max-w-\[24rem\]",\smd:\s"max-w-\[32rem\]",\slg:\s"max-w-\[40rem\]"\s\}/)
+ * @claim "A centered dialog's maximum width: `sm`" registry/ouro/components/ouro/dialog/dialog-parts.tsx verify:fileLine(registry/ouro/components/ouro/dialog/dialog-parts.tsx, /const\spopupSizes\s=\s\{\ssm:\s"max-w-\[24rem\]",\smd:\s"max-w-\[32rem\]",\slg:\s"max-w-\[40rem\]"\s\}/)
  */
 type DialogSize = "sm" | "md" | "lg";
 

@@ -38,7 +38,7 @@ function useFieldPart(part: string): FieldContextValue {
 /**
  * The className check every part runs, with the field's hint.
  *
- * @claim registry/ouro/components/ouro/field/field-parts.tsx verify:fileLine(registry/ouro/components/ouro/field/field-parts.tsx, /function\suseLayoutClassName\(part:\sstring,/)
+ * @claim "The className check every part runs" registry/ouro/components/ouro/field/field-parts.tsx verify:fileLine(registry/ouro/components/ouro/field/field-parts.tsx, /function\suseLayoutClassName\(part:\sstring,/)
  */
 function useLayoutClassName(part: string, className: string | undefined): void {
   useAppearanceClassNameCheck(
@@ -86,8 +86,8 @@ export function FieldRoot({ className, required, ...props }: FieldRootProps): JS
  * Props for {@link FieldLabel}. `className` goes on the element around the label and is for
  * layout only (`sr-only` hides the label visually); every other prop (`style`, `id`, `data-*`,
  * event handlers) goes on the `<label>` itself.
- * @claim registry/ouro/components/ouro/field/field.test.tsx verify:testExists(registry/ouro/components/ouro/field/field.test.tsx::Field wiring > hides the label visually with hideLabel and keeps it as the name)
- * @claim registry/ouro/components/ouro/field/field-parts.tsx verify:fileLine(registry/ouro/components/ouro/field/field-parts.tsx, /export\stype\sFieldLabelProps\s=\sOmit<BaseField\.Label\.Props,\s"className">/)
+ * @claim "`className` goes on the element around" registry/ouro/components/ouro/field/field.test.tsx verify:testExists(registry/ouro/components/ouro/field/field.test.tsx::Field wiring > hides the label visually with hideLabel and keeps it as the name)
+ * @claim "`className` goes on the element around" registry/ouro/components/ouro/field/field-parts.tsx verify:fileLine(registry/ouro/components/ouro/field/field-parts.tsx, /export\stype\sFieldLabelProps\s=\sOmit<BaseField\.Label\.Props,\s"className">/)
  */
 export type FieldLabelProps = Omit<BaseField.Label.Props, "className"> & { className?: string | undefined };
 

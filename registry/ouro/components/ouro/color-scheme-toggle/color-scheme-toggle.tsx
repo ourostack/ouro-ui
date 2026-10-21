@@ -87,8 +87,8 @@ function SchemeIcon({ dark }: { dark: boolean }): JSX.Element {
  * @example
  * <Navbar label="Main" items={items} actions={<ColorSchemeToggle />} />
  * <ColorSchemeToggle variant="segmented" label="Appearance" />
- * @claim registry/ouro/components/ouro/color-scheme-toggle/color-scheme-toggle.test.tsx verify:testExists(registry/ouro/components/ouro/color-scheme-toggle/color-scheme-toggle.test.tsx::ColorSchemeToggle > applies and keeps the choice, and shows the moon on a dark page)
- * @claim registry/ouro/components/ouro/color-scheme-toggle/color-scheme-toggle.test.tsx verify:testExists(registry/ouro/components/ouro/color-scheme-toggle/color-scheme-toggle.test.tsx::ColorSchemeToggle > follows the system while the choice is System)
+ * @claim "It works on its own, but" registry/ouro/components/ouro/color-scheme-toggle/color-scheme-toggle.test.tsx verify:testExists(registry/ouro/components/ouro/color-scheme-toggle/color-scheme-toggle.test.tsx::ColorSchemeToggle > applies and keeps the choice, and shows the moon on a dark page)
+ * @claim "It works on its own, but" registry/ouro/components/ouro/color-scheme-toggle/color-scheme-toggle.test.tsx verify:testExists(registry/ouro/components/ouro/color-scheme-toggle/color-scheme-toggle.test.tsx::ColorSchemeToggle > follows the system while the choice is System)
  */
 export function ColorSchemeToggle(props: ColorSchemeToggleProps): JSX.Element {
   const {

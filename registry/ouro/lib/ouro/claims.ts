@@ -118,7 +118,7 @@ function parseClaimSource(text: string): ClaimSource {
  * that lists every check's form.
  *
  * @internal
- * @claim registry/ouro/lib/ouro/claims.test.ts verify:testExists(registry/ouro/lib/ouro/claims.test.ts::parseClaimCheck > refuses an unknown or malformed check, listing the forms)
+ * @claim "Throws an error that lists every" registry/ouro/lib/ouro/claims.test.ts verify:testExists(registry/ouro/lib/ouro/claims.test.ts::parseClaimCheck > refuses an unknown or malformed check, listing the forms)
  */
 function parseClaimCheck(text: string): ClaimCheck {
   const value = text.trim();

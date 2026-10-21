@@ -83,9 +83,10 @@ function createChimeContext(): AudioContext | null {
  *
  * @example
  * const played = await chime({ context });
- * @claim registry/ouro/lib/ouro/feedback.test.ts verify:testExists(registry/ouro/lib/ouro/feedback.test.ts::chime > closes a context it made for itself when the browser never settles resume)
- * @claim registry/ouro/lib/ouro/feedback.test.ts verify:testExists(registry/ouro/lib/ouro/feedback.test.ts::chime > resolves false soon when the browser never settles resume, and plays nothing when it settles late)
- * @claim registry/ouro/lib/ouro/feedback.ts verify:fileLine(registry/ouro/lib/ouro/feedback.ts, /const\sRESUME_MS\s=\s300;/)
+ * @claim "It settles within about 300 ms" registry/ouro/lib/ouro/feedback.test.ts verify:testExists(registry/ouro/lib/ouro/feedback.test.ts::chime > closes a context it made for itself when the browser never settles resume)
+ * @claim "It resolves `true` once the tones" registry/ouro/lib/ouro/feedback.test.ts verify:testExists(registry/ouro/lib/ouro/feedback.test.ts::chime > resolves false soon when the browser never settles resume, and plays nothing when it settles late)
+ * @claim "It settles within about 300 ms" registry/ouro/lib/ouro/feedback.test.ts verify:testExists(registry/ouro/lib/ouro/feedback.test.ts::chime > resolves false soon when the browser never settles resume, and plays nothing when it settles late)
+ * @claim "It settles within about 300 ms" registry/ouro/lib/ouro/feedback.ts verify:fileLine(registry/ouro/lib/ouro/feedback.ts, /const\sRESUME_MS\s=\s300;/)
  */
 async function chime({ context }: ChimeOptions = {}): Promise<boolean> {
   const audio = context ?? createChimeContext();
@@ -135,9 +136,9 @@ async function chime({ context }: ChimeOptions = {}): Promise<boolean> {
  *
  * @example
  * buzz();
- * @claim registry/ouro/lib/ouro/feedback.test.ts verify:testExists(registry/ouro/lib/ouro/feedback.test.ts::buzz > vibrates in a short alert pattern where the device can)
- * @claim registry/ouro/lib/ouro/feedback.test.ts verify:testExists(registry/ouro/lib/ouro/feedback.test.ts::buzz > returns false where the device cannot vibrate or refuses)
- * @claim https://developer.mozilla.org/en-US/docs/Web/API/Navigator/vibrate verify:urlOk(https://developer.mozilla.org/en-US/docs/Web/API/Navigator/vibrate)
+ * @claim "Vibrates the device in a short" registry/ouro/lib/ouro/feedback.test.ts verify:testExists(registry/ouro/lib/ouro/feedback.test.ts::buzz > vibrates in a short alert pattern where the device can)
+ * @claim "Vibrates the device in a short" registry/ouro/lib/ouro/feedback.test.ts verify:testExists(registry/ouro/lib/ouro/feedback.test.ts::buzz > returns false where the device cannot vibrate or refuses)
+ * @claim "Vibrates the device in a short" https://developer.mozilla.org/en-US/docs/Web/API/Navigator/vibrate verify:urlOk(https://developer.mozilla.org/en-US/docs/Web/API/Navigator/vibrate)
  */
 function buzz(): boolean {
   /* istanbul ignore if @preserve -- server only */

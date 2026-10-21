@@ -24,7 +24,7 @@ export interface ColorFieldProps {
   /**
    * What the color is for ("Accent color"), shown above the field and read as the text input's
    * name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`.
-   * @claim registry/ouro/components/ouro/color-field/color-field.test-d.ts verify:fileLine(registry/ouro/components/ouro/color-field/color-field.test-d.ts, /\{\svalue:\s"#000000"\s\}>\(\)\.not\.toExtend<ColorFieldProps>/)
+   * @claim "Required: every control needs a name" registry/ouro/components/ouro/color-field/color-field.test-d.ts verify:fileLine(registry/ouro/components/ouro/color-field/color-field.test-d.ts, /\{\svalue:\s"#000000"\s\}>\(\)\.not\.toExtend<ColorFieldProps>/)
    */
   label: string;
   /** Hides the label visually; screen readers still read it. */

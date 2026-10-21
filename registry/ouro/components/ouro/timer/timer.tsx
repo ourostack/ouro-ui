@@ -20,8 +20,8 @@ export interface TimerOwnProps {
    * Keeps the timer through a reload and a closed tab, and shares it with a `TimerTray` and
    * every other `Timer` or `useTimer` given the same `timerId`. Without it the timer ends with
    * the component. (`id` is the element's, as on any `<div>`.)
-   * @claim registry/ouro/components/ouro/timer/timer.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer.test.tsx::Timer > keeps its time through a reload with a timerId, and stays quiet about a timer that ended long ago)
-   * @claim registry/ouro/components/ouro/timer/timer.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer.test.tsx::Timer > passes id to the element, and keeps and shares the timer only by timerId)
+   * @claim "Keeps the timer through a reload" registry/ouro/components/ouro/timer/timer.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer.test.tsx::Timer > keeps its time through a reload with a timerId, and stays quiet about a timer that ended long ago)
+   * @claim "Keeps the timer through a reload" registry/ouro/components/ouro/timer/timer.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer.test.tsx::Timer > passes id to the element, and keeps and shares the timer only by timerId)
    */
   timerId?: string | undefined;
   /** Called once when the timer reaches zero, including when it ended while the page was closed. */
@@ -87,9 +87,10 @@ function lengthOf(seconds: number): string {
  *
  * @example
  * <Timer label="Pasta" duration={600} timerId="pasta" />
- * @claim registry/ouro/components/ouro/timer/timer.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer.test.tsx::Timer > says, chimes and buzzes once at zero, shows Time's up, then dismisses or restarts)
- * @claim registry/ouro/components/ouro/timer/timer-tray.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer-tray.test.tsx::TimerTray > is a region listing the running, paused and finished timers with their time, and hides idle ones)
- * @claim registry/ouro/components/ouro/timer/timer-tray.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer-tray.test.tsx::TimerTray > follows the Timer on the page, and alerts once at zero even when both show it)
+ * @claim "At zero it chimes and vibrates" registry/ouro/components/ouro/timer/timer.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer.test.tsx::Timer > says, chimes and buzzes once at zero, shows Time's up, then dismisses or restarts)
+ * @claim "A countdown timer with its own" registry/ouro/components/ouro/timer/timer-tray.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer-tray.test.tsx::TimerTray > is a region listing the running, paused and finished timers with their time, and hides idle ones)
+ * @claim "At zero it chimes and vibrates" registry/ouro/components/ouro/timer/timer-tray.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer-tray.test.tsx::TimerTray > is a region listing the running, paused and finished timers with their time, and hides idle ones)
+ * @claim "At zero it chimes and vibrates" registry/ouro/components/ouro/timer/timer-tray.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer-tray.test.tsx::TimerTray > follows the Timer on the page, and alerts once at zero even when both show it)
  */
 export function Timer(props: TimerProps): JSX.Element {
   const {

@@ -40,8 +40,8 @@ export type { DialogSize } from "@/registry/ouro/components/ouro/dialog/dialog-p
 /**
  * How a Dialog presents: `auto` is a centered dialog from 640px up and a bottom sheet below.
  *
- * @claim registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::automatic presentation > renders a centered dialog at 1280px)
- * @claim registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::automatic presentation > renders the bottom sheet at 390px)
+ * @claim "How a Dialog presents: `auto` is" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::automatic presentation > renders a centered dialog at 1280px)
+ * @claim "How a Dialog presents: `auto` is" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::automatic presentation > renders the bottom sheet at 390px)
  */
 export type DialogPresentation = "auto" | "dialog" | "sheet";
 
@@ -69,14 +69,14 @@ export interface DialogBaseProps {
    * it opens, so nothing shifts; one that is open at load (a route such as `?edit=1`)
    * shows as the centered dialog on a phone until hydration swaps it to the sheet.
    * @default "auto"
-   * @claim registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::automatic presentation > renders a centered dialog at 1280px)
-   * @claim registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::automatic presentation > renders the bottom sheet at 390px)
+   * @claim "`auto` renders a centered dialog from" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::automatic presentation > renders a centered dialog at 1280px)
+   * @claim "`auto` renders a centered dialog from" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::automatic presentation > renders the bottom sheet at 390px)
    */
   presentation?: DialogPresentation | (string & { 'Use "auto", "dialog" or "sheet"': never }) | undefined;
   /**
    * The centered dialog's maximum width: `sm` 24rem, `md` 32rem, `lg` 40rem. @default "md"
    *
-   * @claim registry/ouro/components/ouro/dialog/dialog-parts.tsx verify:fileLine(registry/ouro/components/ouro/dialog/dialog-parts.tsx, /const\spopupSizes\s=\s\{\ssm:\s"max-w-\[24rem\]",\smd:\s"max-w-\[32rem\]",\slg:\s"max-w-\[40rem\]"\s\}/)
+   * @claim "The centered dialog's maximum width: `sm`" registry/ouro/components/ouro/dialog/dialog-parts.tsx verify:fileLine(registry/ouro/components/ouro/dialog/dialog-parts.tsx, /const\spopupSizes\s=\s\{\ssm:\s"max-w-\[24rem\]",\smd:\s"max-w-\[32rem\]",\slg:\s"max-w-\[40rem\]"\s\}/)
    */
   size?: DialogSize | (string & { 'Use "sm", "md" or "lg"': never }) | undefined;
   /**
@@ -157,8 +157,8 @@ const closeClass =
 /**
  * The close button's icon: a 16px cross in the text color.
  *
- * @claim registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::centered dialog > has a visible, compact close button in the top corner, labelled by closeLabel)
- * @claim registry/ouro/components/ouro/dialog/dialog.tsx verify:fileLine(registry/ouro/components/ouro/dialog/dialog.tsx, /\[&>svg\]:size-4/)
+ * @claim "The close button's icon: a 16px" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::centered dialog > has a visible, compact close button in the top corner, labelled by closeLabel)
+ * @claim "The close button's icon: a 16px" registry/ouro/components/ouro/dialog/dialog.tsx verify:fileLine(registry/ouro/components/ouro/dialog/dialog.tsx, /\[&>svg\]:size-4/)
  */
 function CloseIcon(): JSX.Element {
   return (
@@ -201,11 +201,11 @@ function CloseIcon(): JSX.Element {
  * >
  *   <CookbookList />
  * </Dialog>
- * @claim registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::automatic presentation > renders a centered dialog at 1280px)
- * @claim registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::automatic presentation > renders the bottom sheet at 390px)
- * @claim registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::Dialog stacking above the app's fixed bars > puts the portal on the --ouro-layer level, as its own stacking context)
- * @claim registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /^\s+--ouro-layer:\s50;/)
- * @claim test/axe-exclude.test.tsx verify:testExists(test/axe-exclude.test.tsx::matches the open dialog's focus guards, and with them excluded axe finds nothing)
+ * @claim "A dialog that presents itself for" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::automatic presentation > renders a centered dialog at 1280px)
+ * @claim "A dialog that presents itself for" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::automatic presentation > renders the bottom sheet at 390px)
+ * @claim "It stacks above the page at" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::Dialog stacking above the app's fixed bars > puts the portal on the --ouro-layer level, as its own stacking context)
+ * @claim "It stacks above the page at" registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /^\s+--ouro-layer:\s50;/)
+ * @claim "Testing accessibility: in WebKit, Base UI's" test/axe-exclude.test.tsx verify:testExists(test/axe-exclude.test.tsx::matches the open dialog's focus guards, and with them excluded axe finds nothing)
  */
 export function Dialog(props: DialogProps): JSX.Element {
   const {

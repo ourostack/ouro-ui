@@ -38,8 +38,8 @@ export interface NavigationMenuLinkItem {
 /**
  * What every panel item has: its button's text, and how its links are laid out.
  *
- * @claim registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx::NavigationMenu > renders a named nav with a button for each panel and a link for each page)
- * @claim registry/ouro/components/ouro/navigation-menu/navigation-menu.test-d.ts verify:fileLine(registry/ouro/components/ouro/navigation-menu/navigation-menu.test-d.ts, /expectTypeOf<\{\slabel:\s"Recipes";\scolumns:\s3;\slinks:\s\[\]\s\}>\(\)\.not\.toExtend<NavigationMenuItem>/)
+ * @claim "What every panel item has: its" registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx::NavigationMenu > renders a named nav with a button for each panel and a link for each page)
+ * @claim "What every panel item has: its" registry/ouro/components/ouro/navigation-menu/navigation-menu.test-d.ts verify:fileLine(registry/ouro/components/ouro/navigation-menu/navigation-menu.test-d.ts, /expectTypeOf<\{\slabel:\s"Recipes";\scolumns:\s3;\slinks:\s\[\]\s\}>\(\)\.not\.toExtend<NavigationMenuItem>/)
  */
 interface NavigationMenuPanelBase {
   /** The button's text: "Recipes". */
@@ -47,8 +47,8 @@ interface NavigationMenuPanelBase {
   /**
    * The panel's links in one column or two, from 640px up; a phone always shows one.
    * @default 1
-   * @claim registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx::NavigationMenu panels and easing > shows a panel's content beside its links, in two columns)
-   * @claim registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx::NavigationMenu panels and easing > stacks the content above the links on a phone)
+   * @claim "The panel's links in one column" registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx::NavigationMenu panels and easing > shows a panel's content beside its links, in two columns)
+   * @claim "The panel's links in one column" registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx::NavigationMenu panels and easing > stacks the content above the links on a phone)
    */
   columns?: 1 | 2 | (number & { "Use columns={1} or columns={2}": never }) | undefined;
   /** Not with a panel. To link the section's own page, make it the panel's first link. */

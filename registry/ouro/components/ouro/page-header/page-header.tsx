@@ -19,7 +19,7 @@ export interface PageHeaderOwnProps {
   /**
    * A trail above everything else, such as a `Breadcrumb`.
    *
-   * @claim registry/ouro/components/ouro/page-header/page-header.test.tsx verify:testExists(registry/ouro/components/ouro/page-header/page-header.test.tsx::PageHeader > puts the trail and the image above the title, the image at full width)
+   * @claim "A trail above everything else, such" registry/ouro/components/ouro/page-header/page-header.test.tsx verify:testExists(registry/ouro/components/ouro/page-header/page-header.test.tsx::PageHeader > puts the trail and the image above the title, the image at full width)
    */
   breadcrumb?: ReactNode;
   /**

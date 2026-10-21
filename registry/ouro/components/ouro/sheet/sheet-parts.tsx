@@ -223,8 +223,8 @@ export function SheetTrigger(props: Drawer.Trigger.Props): JSX.Element {
  * from ouro-base.css). If your app has fixed bars above z-50, raise it in a `:root`
  * rule of your own after the Ouro tokens, outside any `@layer`: `:root { --ouro-layer: 60; }`.
  * Don't edit the line shadcn wrote; `shadcn add` resets it.
- * @claim registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::Sheet stacking above the app's fixed bars > puts the portal on the --ouro-layer level, as its own stacking context)
- * @claim registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /^\s+--ouro-layer:\s50;/)
+ * @claim "The portal is its own stacking" registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::Sheet stacking above the app's fixed bars > puts the portal on the --ouro-layer level, as its own stacking context)
+ * @claim "The portal is its own stacking" registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /^\s+--ouro-layer:\s50;/)
  */
 export function SheetPortal(props: Omit<Drawer.Portal.Props, "className">): JSX.Element {
   useSheetPart("SheetPortal", "…");
@@ -383,7 +383,7 @@ export type SheetTitleProps = Omit<Drawer.Title.Props, "className"> & {
 /**
  * Part: the sheet's title, which names the dialog. Every sheet needs one.
  *
- * @claim registry/ouro/components/ouro/sheet/sheet.test.tsx verify:fileLine(registry/ouro/components/ouro/sheet/sheet.test.tsx, /warns\swhen\sthe\stitle\sis\smissing/)
+ * @claim "Every sheet needs one" registry/ouro/components/ouro/sheet/sheet.test.tsx verify:fileLine(registry/ouro/components/ouro/sheet/sheet.test.tsx, /warns\swhen\sthe\stitle\sis\smissing/)
  */
 export function SheetTitle({ visuallyHidden, ...props }: SheetTitleProps): JSX.Element {
   useSheetPart("SheetTitle", "<SheetTitle>…</SheetTitle>…");

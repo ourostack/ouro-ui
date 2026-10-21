@@ -25,9 +25,9 @@ export interface TimerOptions {
    * Keeps the timer in `localStorage` under this name, so it carries on through a reload and
    * a closed tab, and shares it with every `useTimer`, `Timer` and `TimerTray` given the same
    * `timerId`, in this tab and in others. Without it the timer lives as long as the component.
-   * @claim registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::useTimer > carries a stored timer on after a reload, and finishes one that ended while the page was closed)
-   * @claim registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::useTimer > keeps a timer with a timerId in localStorage and shares it with every hook that has the timerId)
-   * @claim registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::useTimer > follows a timer another tab changes, without its alert)
+   * @claim "Keeps the timer in `localStorage` under" registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::useTimer > carries a stored timer on after a reload, and finishes one that ended while the page was closed)
+   * @claim "Keeps the timer in `localStorage` under" registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::useTimer > keeps a timer with a timerId in localStorage and shares it with every hook that has the timerId)
+   * @claim "Keeps the timer in `localStorage` under" registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::useTimer > follows a timer another tab changes, without its alert)
    */
   timerId?: string | undefined;
   /** Not an option. A timer is kept and shared by `timerId`: `useTimer({ duration: 600, timerId: "pasta" })`. */
@@ -47,8 +47,8 @@ export interface TimerControls {
   /**
    * Whole seconds left, rounded up: the full duration before it starts, 0 once it is done.
    *
-   * @claim registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::useTimer > waits at the full duration until it starts, then counts down by the clock)
-   * @claim registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::useTimer > starts again from the full duration from any status)
+   * @claim "Whole seconds left, rounded up: the" registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::useTimer > waits at the full duration until it starts, then counts down by the clock)
+   * @claim "Whole seconds left, rounded up: the" registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::useTimer > starts again from the full duration from any status)
    */
   remaining: number;
   /** The timer's length in seconds, as it was started. */
@@ -229,8 +229,8 @@ function remainingOf(stored: Stored | null, duration: number, now: number): numb
  * const timer = useTimer({ duration: 600, timerId: "pasta", onDone: () => chime() });
  * <Button onClick={timer.start}>Start</Button>
  * <p>{formatDuration(timer.remaining)}</p>
- * @claim registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::useTimer > keeps a timer with a timerId in localStorage and shares it with every hook that has the timerId)
- * @claim registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::useTimer > follows a timer another tab changes, without its alert)
+ * @claim "Every `useTimer`, `Timer` and `TimerTray` with" registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::useTimer > keeps a timer with a timerId in localStorage and shares it with every hook that has the timerId)
+ * @claim "Every `useTimer`, `Timer` and `TimerTray` with" registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::useTimer > follows a timer another tab changes, without its alert)
  */
 export function useTimer({ duration, timerId, onDone, fallback }: TimerOptions): TimerControls {
   const anonymous = useId();
