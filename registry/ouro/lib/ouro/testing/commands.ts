@@ -1,6 +1,7 @@
 import type {} from "@vitest/browser-playwright";
 import type { CDPSession, Frame, Page } from "playwright";
 import type { BrowserCommand } from "vitest/node";
+import { monitorEventLoopDelay } from "node:perf_hooks";
 
 export interface EmulateMediaOptions {
   reducedMotion?: "reduce" | "no-preference";
@@ -405,6 +406,8 @@ interface TouchTrace {
   start: number;
   steps: string[];
   answered: Map<Frame, number>;
+  /** Vitest's Node process, which runs the kit and Playwright: how late its event loop ran callbacks. */
+  loop: ReturnType<typeof monitorEventLoopDelay>;
 }
 
 const traceStep = (trace: TouchTrace, step: string) => trace.steps.push(`+${Date.now() - trace.start}ms ${step}`);
@@ -412,6 +415,7 @@ const traceStep = (trace: TouchTrace, step: string) => trace.steps.push(`+${Date
 /** Logs `trace` when the command took longer than TOUCH_SLOW_MS. */
 function logIfSlow(command: string, expected: TouchPoint, trace: TouchTrace, frames: Iterable<Frame>) {
   const took = Date.now() - trace.start;
+  trace.loop.disable();
   if (took <= TOUCH_SLOW_MS) return;
   const watches = [...frames].map((frame) => {
     const at = trace.answered.get(frame);
@@ -419,7 +423,8 @@ function logIfSlow(command: string, expected: TouchPoint, trace: TouchTrace, fra
   });
   console.warn(
     `${command}: the ${expected.type} at (${Math.round(expected.x)}, ${Math.round(expected.y)}) took ${took}ms. ` +
-      `Steps: ${trace.steps.join("; ")}. Watches: ${watches.join("; ")}.`,
+      `Steps: ${trace.steps.join("; ")}. Watches: ${watches.join("; ")}. ` +
+      `Node's event loop ran up to ${Math.round(trace.loop.max / 1e6)}ms late.`,
   );
 }
 
@@ -583,7 +588,8 @@ async function sendTouch(
   send: () => Promise<unknown>,
 ): Promise<Frame | undefined> {
   const none: TouchSeen = { seen: false, active: false, moved: false, saw: [] };
-  const trace: TouchTrace = { start: Date.now(), steps: [], answered: new Map() };
+  const trace: TouchTrace = { start: Date.now(), steps: [], answered: new Map(), loop: monitorEventLoopDelay({ resolution: 10 }) };
+  trace.loop.enable();
   try {
     return await sendTraced(command, page, session, expected, target, send, none, trace);
   } finally {
