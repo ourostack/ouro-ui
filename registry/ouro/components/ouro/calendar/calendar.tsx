@@ -449,7 +449,7 @@ export function Calendar<Range extends boolean = false>(props: CalendarProps<Ran
                       aria-label={formats.full.format(utc(day))}
                       aria-current={day === today ? "date" : undefined}
                       aria-disabled={off || undefined}
-                      {...(ends ? { "data-selected": "" } : {})}
+                      {...(ends ? { "data-selected": "true" } : {})}
                       {...(inside ? { "data-in-range": "" } : {})}
                       className={dayClass}
                       onClick={() => pick(day)}

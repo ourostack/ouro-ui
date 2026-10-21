@@ -307,6 +307,13 @@ describe("Calendar", () => {
       expect(day("2026-10-11").hasAttribute("data-selected")).toBe(true);
     });
 
+    it('marks the chosen day data-selected="true", the only form shadcn\'s data-selected variant matches', async () => {
+      // shadcn/tailwind.css, which shadcn init imports, redefines data-selected: as
+      // [data-selected="true"], so an empty attribute leaves the chosen day unstyled in a shadcn app.
+      await render(<Calendar label="Date" defaultValue="2026-10-11" />);
+      expect(day("2026-10-11").matches('[data-selected="true"]')).toBe(true);
+    });
+
     it("opens on defaultMonth", async () => {
       await render(<Calendar label="Date" defaultValue="2026-10-11" defaultMonth="2027-04-20" />);
       expect(title()).toBe("April 2027");
