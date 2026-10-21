@@ -121,9 +121,15 @@ describe("Select", () => {
 
   it("shows the highlighted option in the system's highlight colours under forced colours, where its fill is dropped", async () => {
     const { trigger } = await render(<Select label="Course" name="course" options={courses} />);
-    await open(trigger);
-    await userEvent.hover(option("Main"));
-    await expect.element(option("Main")).toHaveAttribute("data-highlighted");
+    // The keyboard, not a hover: WebKit can miss a hover over a list that is still opening.
+    trigger.focus();
+    await userEvent.keyboard("{ArrowDown}");
+    const highlighted = () => popup()!.querySelector("[data-highlighted]")?.textContent;
+    const ready = () =>
+      popup()?.hasAttribute("data-open") && !popup()!.hasAttribute("data-ending-style") && popup()!.contains(document.activeElement) && highlighted();
+    await expect.poll(ready).toBe("Starter");
+    await userEvent.keyboard("{ArrowDown}");
+    await expect.poll(highlighted).toBe("Main");
     await commands.emulateMedia({ forcedColors: "active" });
     try {
       const main = option("Main").element();
