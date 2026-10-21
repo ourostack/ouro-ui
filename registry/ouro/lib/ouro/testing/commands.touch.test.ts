@@ -361,18 +361,21 @@ test.each(["open", "closed"] as const)("touches reach an iframe in a %s shadow r
 });
 
 test("touches reach a cross-origin iframe, and a cross-origin iframe does not hold up touches elsewhere", async () => {
-  // Another origin of the same Vitest server: the page's host name swapped for the address the
-  // server answers on (IPv4 or IPv6, whichever localhost resolved to when it started).
-  const others = (location.hostname === "localhost" ? ["127.0.0.1", "[::1]"] : ["localhost"]).map((hostname) => Object.assign(new URL(location.href), { hostname }));
-  const reachable = await Promise.all(others.map((url) => fetch(url.origin, { mode: "no-cors" }).then(() => true, () => false)));
-  const other = others[reachable.indexOf(true)];
-  expect(other, "the Vitest server answers on no other host name").toBeDefined();
-  // A document that runs no script, so its renderer is idle. Chromium holds back touches anywhere
-  // on the page while a cross-origin frame's renderer is busy: a whole app in the frame, as
-  // Vitest's own page was here, held a touch elsewhere for seconds on a loaded runner.
-  const frame = await frameAt(document.body, 300, { src: `${other!.origin}/@vite/client` });
+  // A sandboxed frame has an opaque origin, cross-origin to this page, and Chromium runs it in a
+  // process of its own. Its document runs no script, so that process is idle: while a
+  // cross-origin frame's renderer is busy, Chromium holds back touches on the rest of the page too,
+  // and a whole app in the frame (Vitest's own page, loaded from another host name, was here)
+  // held a touch elsewhere for seconds on a loaded runner. Nothing is fetched from the server
+  // either, where an app's Vite would answer another path with its own index.html and its code.
+  const frame = document.createElement("iframe");
+  frame.setAttribute("sandbox", "allow-scripts");
+  Object.assign(frame.style, { position: "absolute", top: "300px", left: "0", width: "300px", height: "100px", border: "0" });
+  frame.srcdoc = "<body style='margin:0'><div style='height:100px'></div></body>";
   const loaded = new Promise((resolve) => frame.addEventListener("load", resolve, { once: true }));
+  document.body.append(frame);
+  nodes.push(frame);
   await loaded;
+  expect(() => frame.contentWindow!.document).toThrow();
   const started = performance.now();
   expect(await tapAt(window, 100, 50)).toEqual(["touchstart", "touchend"]);
   expect(performance.now() - started).toBeLessThan(1000);
