@@ -14,7 +14,11 @@ export function toDate(value: Date | string | number): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-/** A calendar date with no time of day: `"2026-06-01"`, or `"2026-06"` for a month. It names the same day everywhere. */
+/**
+ * A calendar date with no time of day: `"2026-06-01"`, or `"2026-06"` for a month. It names the same day everywhere.
+ *
+ * @claim registry/ouro/components/ouro/local-date/local-date.test.tsx verify:testExists(registry/ouro/components/ouro/local-date/local-date.test.tsx::dateText > treats only a whole calendar date as one)
+ */
 const calendarDate = /^\d{4}-\d{2}(-\d{2})?$/;
 
 /** Whether `value` is a calendar date with no time of day (`"2026-06-01"`, `"2026-06"`), which no time zone moves. */
@@ -33,6 +37,8 @@ export interface DateText {
  * date. An instant moves into the time zone. A calendar date (`"2026-06-01"`, `"2026-06"`) parses
  * as UTC midnight, so it is always written in UTC and never moves: the 1st stays the 1st west
  * of UTC. `labelZone` adds the time zone's name after a time, for the server's UTC text.
+ * @claim registry/ouro/components/ouro/local-date/local-date.test.tsx verify:testExists(registry/ouro/components/ouro/local-date/local-date.test.tsx::LocalDate > writes the UTC date on the server, hydrates without a mismatch, then shows the local date)
+ * @claim registry/ouro/components/ouro/local-date/local-date.test.tsx verify:testExists(registry/ouro/components/ouro/local-date/local-date.test.tsx::dateText > treats only a whole calendar date as one)
  */
 export function dateText(value: Date | string | number, format: DateFormat, locale: Intl.LocalesArgument, timeZone: string | undefined, labelZone = false): DateText | null {
   const date = toDate(value);

@@ -7,7 +7,11 @@ import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
 /** The props Attachment adds to the `<div>` attributes it passes through. */
 export interface AttachmentOwnProps {
-  /** The file's name, as the user sees it: "menu.pdf". Required, so every file has a name. */
+  /**
+   * The file's name, as the user sees it: "menu.pdf". Required, so every file has a name.
+   *
+   * @claim registry/ouro/components/ouro/message/attachment.test-d.ts verify:fileLine(registry/ouro/components/ouro/message/attachment.test-d.ts, /expectTypeOf<\{\shref:\s"\/menu\.pdf"\s\}>\(\)\.not\.toExtend<AttachmentProps>/)
+   */
   name: string;
   /** Where the file opens or downloads. With it, the attachment is a link named by the file and its size. */
   href?: string | undefined;
