@@ -526,10 +526,15 @@ test("a touch into an iframe added just before it is handled", async () => {
 test("a touch into a cross-origin iframe added just before it is handled", async () => {
   for (let index = 0; index < 10; index++) {
     const { frame, report } = await busyFrame(300);
+    // TEMPORARY: where a lost touch went.
+    const around: string[] = [];
+    const listen = (event: Event) => around.push((event.target as Element).localName);
+    document.addEventListener("touchstart", listen, true);
     await commands.touchStep({ type: "touchStart", x: 100, y: 350 });
     await commands.touchStep({ type: "touchEnd" });
+    document.removeEventListener("touchstart", listen, true);
     const { armed, sent } = await report();
-    expect(sent).toHaveLength(1);
+    expect({ index, sent: sent.length, around }).toEqual({ index, sent: 1, around: [] });
     expect(armed[0]!).toBeLessThanOrEqual(sent[0]!);
     frame.remove();
   }
