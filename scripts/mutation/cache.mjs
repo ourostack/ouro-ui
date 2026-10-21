@@ -101,20 +101,30 @@ export function importsOf(path, text) {
 
 /** A module path without an extension, as the file that holds it, or null. */
 function resolve(stem, exists) {
-  for (const candidate of [stem, `${stem}.ts`, `${stem}.tsx`, `${stem}/index.ts`, `${stem}/index.tsx`]) if (/\.(ts|tsx)$/.test(candidate) && exists(candidate)) return candidate;
+  for (const candidate of [stem, `${stem}.ts`, `${stem}.tsx`, `${stem}/index.ts`, `${stem}/index.tsx`]) if (/\.(ts|tsx|mts|mjs|css)$/.test(candidate) && exists(candidate)) return candidate;
   return null;
 }
 
+/** What decides a mutant's outcome beyond the code and its tests: the packages, the styles every test loads, the runner and its setup. */
+export const harnessFiles = ["pnpm-lock.yaml", "app.css", "vitest.config.ts", "scripts/mutation/setup.ts", "scripts/mutation/plugins.mjs"];
+const themeDir = "registry/ouro/theme/";
+
 /**
- * What a change's mutants depend on beyond their own files: every lib/ file, and every module the
- * changed files import, directly or through each other. Stryker's incremental mode compares a
- * mutated file and its tests, not what they import, so a result kept from a run before one of
- * these changed could be stale.
+ * What a change's mutants depend on beyond their own files: every lib/ and theme file, the harness
+ * (`harnessFiles`), the tests that run on the mutants, and every module any of these or the changed
+ * files import, directly or through each other. Stryker's incremental mode compares only a mutated
+ * file (the mutation run gives it no test file to compare), so a result kept from a run before one
+ * of these changed could be stale. The changed files themselves are left out, so a push that
+ * changes them keeps its key: `pruneChangedFiles` drops their kept results instead.
  */
-export function dependencyFiles(changed, { read = (path) => readFileSync(join(root, path), "utf8"), exists = (path) => existsSync(join(root, path)), list = listLib } = {}) {
-  const found = new Set(list());
-  const queue = [...changed];
-  const seen = new Set(changed);
+export function dependencyFiles(
+  changed,
+  { read = (path) => readFileSync(join(root, path), "utf8"), exists = (path) => existsSync(join(root, path)), list = listKept, harness = harnessFiles, tests = [] } = {},
+) {
+  const roots = [...harness, ...tests].filter((path) => exists(path) && !changed.includes(path));
+  const found = new Set([...list(), ...roots]);
+  const queue = [...changed, ...roots];
+  const seen = new Set([...changed, ...roots]);
   while (queue.length > 0) {
     const path = queue.shift();
     for (const stem of importsOf(path, read(path))) {
@@ -128,10 +138,51 @@ export function dependencyFiles(changed, { read = (path) => readFileSync(join(ro
   return [...found].sort();
 }
 
-function listLib() {
-  return readdirSync(join(root, libDir), { recursive: true })
-    .map((path) => `${libDir}${String(path).split("\\").join("/")}`)
-    .filter((path) => /\.(ts|tsx|mjs)$/.test(path));
+function listKept() {
+  const under = (dir, pattern) =>
+    readdirSync(join(root, dir), { recursive: true })
+      .map((path) => `${dir}${String(path).split("\\").join("/")}`)
+      .filter((path) => pattern.test(path));
+  return [...under(libDir, /\.(ts|tsx|mjs)$/), ...under(themeDir, /\.(css|json|ts)$/)];
+}
+
+/** The component folder's test files (not the visual ones, which the mutation runner leaves out). */
+function testsIn(dir, rootDir = root) {
+  return existsSync(join(rootDir, dir))
+    ? readdirSync(join(rootDir, dir))
+        .filter((file) => /\.test\.tsx?$/.test(file) && !/\.visual\.test\./.test(file))
+        .map((file) => `${dir}${file}`)
+    : [];
+}
+
+/** The component folders whose runtime code imports a lib/ file (`lib/ouro/<name>`), directly. */
+function importersOf(libFile, rootDir = root) {
+  const name = libFile.slice(libDir.length).replace(/\.tsx?$/, "");
+  const pattern = new RegExp(`from "@/registry/ouro/lib/ouro/${name}"`);
+  const folders = readdirSync(join(rootDir, componentsDir)).filter((folder) =>
+    readdirSync(join(rootDir, componentsDir, folder)).some((file) => runtimeSource(`${componentsDir}${folder}/${file}`) && pattern.test(readFileSync(join(rootDir, componentsDir, folder, file), "utf8"))),
+  );
+  return folders.sort();
+}
+
+/**
+ * The test files that can kill a mutant in these runtime files: `own`, each component file's
+ * folder's tests and each lib/ file's own tests, and `wider`, the tests of the folders whose code
+ * imports a changed lib/ file (a helper some branch of which only a component's tests reach).
+ */
+export function testFilesFor(paths, rootDir = root) {
+  const own = new Set();
+  const wider = new Set();
+  for (const path of paths) {
+    if (path.startsWith(componentsDir)) {
+      for (const file of testsIn(`${componentsDir}${path.slice(componentsDir.length).split("/")[0]}/`, rootDir)) own.add(file);
+    } else {
+      const stem = path.replace(/\.tsx?$/, "");
+      for (const extension of [".test.ts", ".test.tsx"]) if (existsSync(join(rootDir, `${stem}${extension}`))) own.add(`${stem}${extension}`);
+      for (const folder of importersOf(path, rootDir)) for (const file of testsIn(`${componentsDir}${folder}/`, rootDir)) wider.add(file);
+    }
+  }
+  return { own: [...own].sort(), wider: [...wider].filter((file) => !own.has(file)).sort() };
 }
 
 /** A short hash of the files' paths and contents. */
@@ -148,6 +199,40 @@ export function dependencyHash(files, read = (path) => readFileSync(join(root, p
  */
 const mutantKey = ({ id, mutatorName, replacement, location }) =>
   location ? `${location.start.line}:${location.start.column}-${location.end.line}:${location.end.column} ${mutatorName} ${replacement}` : `#${id}`;
+
+const undetected = ({ status }) => status === "Survived" || status === "NoCoverage";
+
+/**
+ * A shard's incremental report cut to the mutants inside its own ranges (`changes`: path to
+ * 1-based line ranges, as `mutateRanges` gives Stryker, which takes a mutant inside a range only
+ * when it lies wholly within it). Stryker writes into the report every mutant it was not asked to
+ * run as well, with the status it last had: stale in another shard's report.
+ */
+export function scopeReport(report, changes) {
+  const files = {};
+  for (const [path, file] of Object.entries(report.files ?? {})) {
+    const ranges = changes[path] ?? [];
+    const mutants = file.mutants.filter(({ location }) => location && ranges.some(([start, end]) => location.start.line >= start && location.end.line <= end));
+    if (mutants.length > 0) files[path] = { ...file, mutants };
+  }
+  return { ...report, files };
+}
+
+/**
+ * The kept report without the results of any file whose source differs from the one they were
+ * found on (or that is gone): Stryker would reuse a Killed on a line a change left alone, though
+ * what the line does may differ now.
+ */
+export function pruneChangedFiles(report, read = (path) => readFileSync(join(root, path), "utf8")) {
+  const same = (path, source) => {
+    try {
+      return read(path) === source;
+    } catch {
+      return false;
+    }
+  };
+  return { ...report, files: Object.fromEntries(Object.entries(report.files ?? {}).filter(([path, file]) => same(path, file.source))) };
+}
 
 export function mergeReports(reports) {
   const merged = { ...reports[0], files: {}, testFiles: {} };
@@ -172,6 +257,14 @@ export function mergeReports(reports) {
       const mutants = file.mutants.map((mutant) => ({ ...mutant, ...(mutant.killedBy ? { killedBy: rename(mutant.killedBy) } : {}), ...(mutant.coveredBy ? { coveredBy: rename(mutant.coveredBy) } : {}) }));
       const fresh = new Set(mutants.map(mutantKey));
       const taken = new Set(mutants.map((mutant) => mutant.id));
+      // The same mutant twice: a shard's report is cut to its own ranges (scopeReport), so this is
+      // a report that was not; its copy may be a status carried over from an older run, and a
+      // mutant no test failed on must not be hidden by one.
+      const keep = new Map(kept.map((mutant) => [mutantKey(mutant), mutant]));
+      for (const [index, mutant] of mutants.entries()) {
+        const old = keep.get(mutantKey(mutant));
+        if (old && undetected(old) && !undetected(mutant)) mutants[index] = { ...old, id: mutant.id };
+      }
       const others = kept.filter((mutant) => !fresh.has(mutantKey(mutant)));
       for (const mutant of others) {
         let { id } = mutant;
@@ -196,7 +289,8 @@ function main([command, ...args]) {
     const diff = spawnSync("git", ["diff", "--name-only", "-M", args[0] ?? "origin/main", "--", componentsDir, libDir], { cwd: root, encoding: "utf8" });
     if (diff.status !== 0) throw new Error(`git diff failed: ${diff.stderr}`);
     const changed = diff.stdout.split("\n").filter((path) => path && runtimeSource(path) && existsSync(join(root, path)));
-    console.log(dependencyHash(dependencyFiles(changed)));
+    const { own, wider } = testFilesFor(changed);
+    console.log(dependencyHash(dependencyFiles(changed, { tests: [...own, ...wider] })));
     return 0;
   }
   if (command === "merge") {
