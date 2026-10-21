@@ -58,7 +58,7 @@ These are not props. Passing one fails the type check with the fix in the error,
 
 ## `className` is for layout only
 
-Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your classes always win over Ouro UI's: each component merges `className` last with `cn` (tailwind-merge), so a class that conflicts with the component's own replaces it.
+Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`).
 
 Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
 
@@ -84,7 +84,9 @@ interface NavigationMenuLink {
   label: string;
   /** Where it goes. Internal paths go through `OuroProvider`'s `linkComponent` (your router's link). */
   href: string;
-  /** A line under the label that says what is there: "Everything you have saved." */
+  /**
+   * A line under the label that says what is there: "Everything you have saved."
+   */
   description?: string | undefined;
   /** Marks this link as the current page, when the menu's `currentPath` cannot tell. */
   current?: boolean | undefined;
@@ -118,7 +120,9 @@ A NavigationMenu item that opens a panel: a list of `links`, with any `content` 
 type NavigationMenuPanelItem = NavigationMenuPanelBase &
   (
     | {
-        /** The links in the panel, each with an optional `description`. */
+        /**
+         * The links in the panel, each with an optional `description`.
+         */
         links: readonly NavigationMenuLink[];
         /**
          * Anything else in the panel, before its links (above them on a phone): a featured
@@ -128,7 +132,9 @@ type NavigationMenuPanelItem = NavigationMenuPanelBase &
       }
     | {
         links?: undefined;
-        /** The panel's content, when it has no list of links. A link in it closes the panel when it is followed. */
+        /**
+         * The panel's content, when it has no list of links. A link in it closes the panel when it is followed.
+         */
         content: ReactNode;
       }
   );

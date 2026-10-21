@@ -41,6 +41,7 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import postcss from "postcss";
 import ts from "typescript";
+import { claim } from "../registry/ouro/lib/ouro/claims.ts";
 import { componentsDir, MANIFEST, readComponents } from "./components.mts";
 
 const REPO = "ourostack/ouro-ui";
@@ -121,24 +122,52 @@ export const toolingMinimum: Record<string, string> = {
 };
 
 /** What a -tests item does to an app's package.json. */
-const toolingNote =
-  "It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.";
+const toolingNote = claim(
+  "It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+  { source: { test: "scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has" }, verify: { testExists: "scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has" } },
+);
 
 const TESTING_URL = `${DOCS_URL}/testing.md`;
 const INSTALLING_URL = `${DOCS_URL}/installing.md`;
 
-function testingDocs(tested: Record<string, string>): string {
+/** The oldest tooling, as the ouro-testing docs state it; buildRegistry checks it against toolingMinimum. */
+const needs = claim(
+  "Needs Vitest 4.1.11 or later in browser mode (@vitest/browser-playwright), Playwright 1.58.1 or later and, for the stories and specs, Storybook 10.2.10 or later.",
+  {
+    source: { file: "scripts/registry.mts" },
+    verify: [
+      { fileLine: "scripts/registry.mts", pattern: '^\\s+vitest: "4\\.1\\.11",$' },
+      { fileLine: "scripts/registry.mts", pattern: '^\\s+playwright: "1\\.58\\.1",$' },
+      { fileLine: "scripts/registry.mts", pattern: '^\\s+storybook: "10\\.2\\.10",$' },
+    ],
+  },
+);
+
+function testingDocs(): string {
+  for (const [name, label] of [["vitest", "Vitest"], ["playwright", "Playwright"], ["storybook", "Storybook"]] as const) {
+    if (!needs.includes(`${label} ${toolingMinimum[name]} or later`)) {
+      throw new Error(`The ouro-testing docs name another ${name} minimum than toolingMinimum (${toolingMinimum[name]}). Update both in scripts/registry.mts.`);
+    }
+  }
   const file = (path: string) => `--- ${path}\n${testingSetup[path]}`;
-  const ran = (name: string) => tested[name]!.replace(/^\^/, "");
   return [
-    `Needs Vitest ${toolingMinimum["vitest"]} or later in browser mode (@vitest/browser-playwright), Playwright ${toolingMinimum["playwright"]} or later and, for the stories and specs, Storybook ${toolingMinimum["storybook"]} or later. Ouro UI's CI runs Vitest ${ran("vitest")}, Playwright ${ran("playwright")} and Storybook ${ran("storybook")}; on Vitest 4, read "Vitest 4" in ${TESTING_URL} first. No item sets a version: the CLI installs a package only when your app lacks it.`,
-    "The -tests items install Ouro UI's tests beside each component. To run the Vitest browser tests, add vitest.config.ts (use your components.json tailwind.css path for css), then run npx playwright install chromium webkit and npx vitest run:",
+    `${needs} ${claim(
+      'Ouro UI\'s CI runs the Vitest, Playwright and Storybook of its own package.json; on Vitest 4, read "Vitest 4" in',
+      {
+        source: [{ file: "package.json" }, { file: "docs/guides/testing.md" }],
+        verify: [{ ciJob: "ci", workflow: "ci.yml" }, { fileLine: "docs/guides/testing.md", pattern: "^## Vitest 4\\[\\^minimums\\]$" }],
+      },
+    )} ${TESTING_URL} first. ${claim(
+      "No item sets a version: the CLI installs a package only when your app lacks it.",
+      { source: { test: "scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has" }, verify: { testExists: "scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has" } },
+    )}`,
+    `${claim("The -tests items install Ouro UI's tests beside each component.", { source: { test: "scripts/registry.test.mjs::each component has an opt-in -tests item with its tests, type tests, stories and spec" }, verify: { testExists: "scripts/registry.test.mjs::each component has an opt-in -tests item with its tests, type tests, stories and spec" } })} To run the Vitest browser tests, add vitest.config.ts (use your components.json tailwind.css path for css), then run npx playwright install chromium webkit and npx vitest run:`,
     file("vitest.config.ts"),
-    "The end-to-end specs in e2e/ouro open the Ouro stories in a Storybook. If your app has none, add these two files (use your stylesheet in preview.ts):",
+    "The end-to-end specs in e2e/ouro open Ouro UI's stories in a Storybook. If your app has none, add these two files (use your stylesheet in preview.ts):",
     file(".storybook/main.ts") + file(".storybook/preview.ts"),
     "If your app has no Playwright config, add this one, which starts that Storybook and runs Chromium and WebKit:",
     file("playwright.config.ts"),
-    "The specs take test and expect from e2e/ouro-fixtures.ts, a file of yours that no item ships, so no add overwrites it. Add it once; export your own fixtures from it to run the specs with your setup:",
+    `${claim("The specs take test and expect from e2e/ouro-fixtures.ts, a file of yours that no item ships, so no add overwrites it.", { source: { test: "scripts/registry.test.mjs::the install fixture's test setup uses exactly the files the ouro-testing docs print, and the bare fixture has none" }, verify: { testExists: "scripts/registry.test.mjs::the install fixture's test setup uses exactly the files the ouro-testing docs print, and the bare fixture has none" } })} Add it once; export your own fixtures from it to run the specs with your setup:`,
     file("e2e/ouro-fixtures.ts"),
     "Then run npx playwright test e2e/ouro. With a Playwright config of your own, start Storybook with npx storybook dev -p 6006 and run OURO_E2E_URL=http://localhost:6006 npx playwright test e2e/ouro.",
     `Docs: ${TESTING_URL}`,
@@ -150,9 +179,21 @@ const foundation = [
     name: "ouro-base",
     title: "Ouro base",
     css: "registry/ouro/theme/ouro-base.css",
-    description:
-      "Add it once per app, before your first component; no component installs it, so later adds never touch your stylesheet. What every Ouro UI component needs in the app's CSS: success and warning colors, a destructive foreground, the field border color (--input) and --radius when your theme has none, the motion tokens, the press utility, the keyframes for spinners, progress bars and skeletons, and --ouro-layer, the z-index of sheets and dialogs (50; raise it in a :root rule of your own if your app has fixed bars above z-50).",
-    docs: `Ouro UI's base tokens are in your CSS. Your theme's values win: a variable you already had keeps its value, and you edit the new ones like any shadcn variable. This add rewrote your stylesheet's spacing once (shadcn does that for any item with CSS); no component add touches it again. Docs: ${INSTALLING_URL}`,
+    description: `${claim("Add it once per app, before your first component; no component installs it, so later adds never touch your stylesheet.", { source: { test: "scripts/registry.test.mjs::only ouro-base and ouro-theme touch the app's stylesheet, and no other item installs them" }, verify: { testExists: "scripts/registry.test.mjs::only ouro-base and ouro-theme touch the app's stylesheet, and no other item installs them" } })} ${claim(
+      "What every Ouro UI component needs in the app's CSS: success and warning colors, a destructive foreground, the field border color (--input) and --radius when your theme has none, the motion tokens, the press utility, the keyframes for spinners, progress bars and skeletons, and --ouro-layer, the z-index of sheets and dialogs (50; raise it in a :root rule of your own if your app has fixed bars above z-50).",
+      {
+        source: [{ test: "scripts/install-check.test.mjs::a missing token, rule or file, or an unrewritten import, fails" }, { file: "registry/ouro/theme/ouro-base.css" }],
+        verify: [
+          { testExists: "scripts/install-check.test.mjs::a missing token, rule or file, or an unrewritten import, fails" },
+          { testExists: "scripts/install-check.test.mjs::an install whose stylesheet lacks the field border color or the radius scale fails" },
+          { fileLine: "registry/ouro/theme/ouro-base.css", pattern: "^\\s+--ouro-layer:\\s50;" },
+        ],
+      },
+    )}`,
+    docs: `Ouro UI's base tokens are in your CSS. Your theme's values win: a variable you already had keeps its value, and you edit the new ones like any shadcn variable. ${claim(
+      "This add rewrote your stylesheet's spacing once (shadcn does that for any item with CSS); no component add touches it again.",
+      { source: { test: "scripts/registry.test.mjs::only ouro-base and ouro-theme touch the app's stylesheet, and no other item installs them" }, verify: { testExists: "scripts/registry.test.mjs::only ouro-base and ouro-theme touch the app's stylesheet, and no other item installs them" } },
+    )} Docs: ${INSTALLING_URL}`,
   },
   {
     name: "ouro-theme",
@@ -164,15 +205,19 @@ const foundation = [
   {
     name: "ouro-lib",
     title: "Ouro lib",
-    description:
-      "Every helper in lib/ouro in one item. You don't need to add it: each component installs only the helpers it imports (the lib-<name> items).",
-    docs: `Every Ouro UI helper is in lib/ouro. OuroProvider is optional; it routes internal hrefs through your router's link. Docs: ${INSTALLING_URL}`,
+    description: `${claim("Every helper in lib/ouro in one item.", { source: { test: "scripts/registry.test.mjs::ouro-tests installs every -tests item: the whole suite in one command" }, verify: { testExists: "scripts/registry.test.mjs::ouro-tests installs every -tests item: the whole suite in one command" } })} ${claim(
+      "You don't need to add it: each component installs only the helpers it imports (the lib-<name> items).",
+      { source: { test: "scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports" }, verify: { testExists: "scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports" } },
+    )}`,
+    docs: `${claim("Every Ouro UI helper is in lib/ouro.", { source: { test: "scripts/registry.test.mjs::ouro-tests installs every -tests item: the whole suite in one command" }, verify: { testExists: "scripts/registry.test.mjs::ouro-tests installs every -tests item: the whole suite in one command" } })} OuroProvider is optional; it routes internal hrefs through your router's link. Docs: ${INSTALLING_URL}`,
   },
   {
     name: "ouro-testing",
     title: "Ouro testing",
-    description:
-      "Installed with every -tests item; you don't need to add it. The test kit Ouro UI's tests use: Vitest browser projects with the drag, flick, tap, touchDrag, touchStep, pointerPress, emulateMedia, pageZoom, resetPageZoom, setPageZoom and restoreTouch commands, the rotate helper (which turns the phone viewport and resets Chromium's zoom; the ouro-touch project fails a test that leaves the page zoomed), the act helper, the holdFrames helper (which holds animation frames and the clock still so a test steps a spring itself), the motion helpers (expectMotion, expectNoMotion, expectGestureSettle, expectTransition and parseDuration, which prove exactly which CSS properties a state change runs on each part), watchAnnouncements (which records what live regions announce, so a test proves a message is heard once per change), axeExclude, and the end-to-end story helper.",
+    description: `${claim("Installed with every -tests item; you don't need to add it.", { source: { test: "scripts/registry.test.mjs::each component has an opt-in -tests item with its tests, type tests, stories and spec" }, verify: { testExists: "scripts/registry.test.mjs::each component has an opt-in -tests item with its tests, type tests, stories and spec" } })} The test kit Ouro UI's tests use: Vitest browser projects with the drag, flick, tap, touchDrag, touchStep, pointerPress, emulateMedia, pageZoom, resetPageZoom, setPageZoom and restoreTouch commands, the rotate helper (which turns the phone viewport and resets Chromium's zoom; ${claim(
+      "the ouro-touch project fails a test that leaves the page zoomed",
+      { source: { test: "registry/ouro/lib/ouro/testing/commands.touch.test.ts::rotate names the test that had the page zoomed" }, verify: { testExists: "registry/ouro/lib/ouro/testing/commands.touch.test.ts::rotate names the test that had the page zoomed" } },
+    )}), the act helper, the holdFrames helper (which holds animation frames and the clock still so a test steps a spring itself), the motion helpers (expectMotion, expectNoMotion, expectGestureSettle, expectTransition and parseDuration, ${claim("which prove exactly which CSS properties a state change runs on each part", { source: { test: "test/motion.test.ts::expectMotion > passes when exactly the declared properties run, waits for them and records them on the part" }, verify: { testExists: "test/motion.test.ts::expectMotion > passes when exactly the declared properties run, waits for them and records them on the part" } })}), watchAnnouncements (which records what live regions announce, so a test proves a message is heard once per change), axeExclude, and the end-to-end story helper.`,
     // Completed in buildRegistry, which knows the versions CI runs.
     docs: "",
   },
@@ -188,14 +233,23 @@ const kits = [
     name: "ouro-census",
     title: "Ouro census",
     description:
-      "Optional: the census journey kit. A Playwright spec of yours lists every page your app renders and every state a person can open on it; the census records the exact multiset of visible controls in each (role, name, Ouro marker, context) and fails on any change from the committed baseline, and on any unmarked control in a journey you enrol. Unmarked controls may only fall, state by state. It installs e2e/ouro-census/ (the spec helper, the merge, the baseline update and a comparison of two runs).",
+      `Optional: the census journey kit. A Playwright spec of yours lists the pages your app renders and the states a person can open on them; ${claim(
+        "the census records the exact multiset of visible controls in each (role, name, Ouro marker, context) and fails on any change from the committed baseline, and on any unmarked control in a journey you enrol.",
+        { source: [{ test: "scripts/kits/census-page.test.mjs::censusTests > fails a state whose page answers another status, redirects, or differs from the baseline" }, { test: "scripts/kits/census-update.test.mjs::checkCensusState > fails an enrolled journey on any unmarked control or unknown item, even when the baseline matches" }], verify: [{ testExists: "scripts/kits/census-page.test.mjs::censusTests > fails a state whose page answers another status, redirects, or differs from the baseline" }, { testExists: "scripts/kits/census-update.test.mjs::checkCensusState > fails an enrolled journey on any unmarked control or unknown item, even when the baseline matches" }] },
+      )} ${claim("Unmarked controls may only fall, state by state.", { source: { test: "scripts/kits/census-update.test.mjs::the unmarked ratchet > refuses a rise in one state even when another state of the journey falls by as much" }, verify: { testExists: "scripts/kits/census-update.test.mjs::the unmarked ratchet > refuses a rise in one state even when another state of the journey falls by as much" } })} ${claim(
+        "It installs e2e/ouro-census/ (the spec helper, the merge, the baseline update and a comparison of two runs).",
+        { source: { test: "scripts/kits/census-compare.test.mjs::census-compare.mjs > fails, naming every difference, when two runs differ" }, verify: { testExists: "scripts/kits/census-compare.test.mjs::census-compare.mjs > fails, naming every difference, when two runs differ" } },
+      )}`,
     docs: `The census kit is in e2e/ouro-census/. Call censusTests({ test, journeys, projects, componentsDir }) from a spec of yours, merge each run with node e2e/ouro-census/census-merge.mjs, and accept a change with node e2e/ouro-census/census-update.mjs <run-id | file>. Docs: ${DOCS_URL}/guardrails.md`,
   },
   {
     name: "ouro-source-rules",
     title: "Ouro source rules",
     description:
-      "Optional: the hand-rolled-control source rule. It reads your app's source with the TypeScript compiler and its stylesheets with PostCSS, and finds the controls still built by hand (a raw <button>, <a>, <input>, a click handler on a <div>, another UI library's control, control-state styling) and every component that wraps one, as fingerprints held to a committed baseline that may only shrink. It installs scripts/ouro-source-rules.mjs.",
+      `Optional: the hand-rolled-control source rule. ${claim(
+        "It reads your app's source with the TypeScript compiler and its stylesheets with PostCSS, and finds the controls still built by hand (a raw <button>, <a>, <input>, a click handler on a <div>, another UI library's control, control-state styling) and every component that wraps one, as fingerprints held to a committed baseline that may only shrink.",
+        { source: [{ test: "scripts/kits/source-rules.test.mjs::the ratchet against real changes > counts every hop of a wrapper chain, and terminates on a cycle" }, { test: "scripts/kits/source-rules.test.mjs::main > refuses to write a rise against the base ref without a reason" }], verify: [{ testExists: "scripts/kits/source-rules.test.mjs::the ratchet against real changes > counts every hop of a wrapper chain, and terminates on a cycle" }, { testExists: "scripts/kits/source-rules.test.mjs::main > refuses to write a rise against the base ref without a reason" }] },
+      )} It installs scripts/ouro-source-rules.mjs.`,
     docs: `The source rule is scripts/ouro-source-rules.mjs. Run node scripts/ouro-source-rules.mjs --write-baseline once to record where your app starts, then node scripts/ouro-source-rules.mjs in CI (with --base <ref> on pull requests). Docs: ${DOCS_URL}/guardrails.md`,
   },
 ];
@@ -261,6 +315,8 @@ const devFile = /\.(test|touch\.test)\.tsx?$|\.test-d\.ts$|\.stories\.tsx$|\.spe
 
 /** The item that ships a lib/ouro file: lib-<stem>, or lib-<stem>-tests for the helper's tests. */
 function libItem(file: string): string {
+  // The claims checker is a Node script that ships with claim(), the helper it checks.
+  if (file === "claims-check.mjs") return "lib-claims";
   const stem = file.replace(/(\.touch)?\.test\.tsx?$|\.d\.ts$|\.tsx?$/, "");
   return devFile.test(file) ? `lib-${stem}-tests` : `lib-${stem}`;
 }
@@ -422,15 +478,26 @@ export function buildRegistry(root: string): Registry {
   ];
   const libTests = testsItems.filter((entry) => entry.name.startsWith("lib-")).map((entry) => entry.name);
   const entries = [
-    ...foundation.map((entry) => ({ ...entry, kind: "foundation" as const, ...(entry.name === "ouro-testing" ? { docs: testingDocs(tested) } : {}) })),
+    ...foundation.map((entry) => ({ ...entry, kind: "foundation" as const, ...(entry.name === "ouro-testing" ? { docs: testingDocs() } : {}) })),
     ...libs.map((name) => ({
       name,
       title: name,
       kind: "lib" as const,
       description:
         name === "lib-ouro-provider"
-          ? "OuroProvider, which routes every href through your router's link and groups tooltips. It comes with every component that renders links and with tooltip; add it by name when your app has neither and you want the provider. The helper lib/ouro/ouro-provider.tsx."
-          : `Installed with the components that import it; you don't need to add it. The helper lib/ouro/${libFile(name)}.`,
+          ? `OuroProvider, ${claim("which routes every href through your router's link and groups tooltips", {
+              source: [{ test: "registry/ouro/lib/ouro/ouro-provider.test.tsx::OuroProvider and useOuro > supplies a custom linkComponent, including a ref" }, { test: "registry/ouro/components/ouro/tooltip/tooltip.test.tsx::Tooltip delay group > opens a neighbour instantly once one tooltip is showing, inside OuroProvider" }],
+              verify: [{ testExists: "registry/ouro/lib/ouro/ouro-provider.test.tsx::OuroProvider and useOuro > supplies a custom linkComponent, including a ref" }, { testExists: "registry/ouro/components/ouro/tooltip/tooltip.test.tsx::Tooltip delay group > opens a neighbour instantly once one tooltip is showing, inside OuroProvider" }],
+            })}. ${claim("It comes with every component that renders links and with tooltip", { source: { test: "scripts/registry.test.mjs::a component that renders links brings OuroProvider, which only the app imports" }, verify: { testExists: "scripts/registry.test.mjs::a component that renders links brings OuroProvider, which only the app imports" } })}; add it by name when your app has neither and you want the provider. The helper lib/ouro/ouro-provider.tsx.`
+          : name === "lib-claims"
+            ? `${claim(
+                "claim(), which marks a sentence of your copy with its primary source and a check, and the checker that lints your Markdown and copy and runs those checks (node <your lib folder>/ouro/claims-check.mjs check, on Node 22.18 or later).",
+                {
+                  source: [{ test: "scripts/claims.test.mjs::the claims checker ships in lib-claims and runs in an app" }, { spec: "https://nodejs.org/api/typescript.html#type-stripping" }],
+                  verify: [{ testExists: "scripts/claims.test.mjs::the claims checker ships in lib-claims and runs in an app" }, { urlOk: "https://nodejs.org/api/typescript.html#type-stripping" }],
+                },
+              )} ${claim("No component imports it; add it by name.", { source: { test: "scripts/registry.test.mjs::registryDependencies are the same-repo items each item imports, as full unpinned addresses" }, verify: { testExists: "scripts/registry.test.mjs::registryDependencies are the same-repo items each item imports, as full unpinned addresses" } })} The helper lib/ouro/claims.ts and the script lib/ouro/claims-check.mjs.`
+            : `Installed with the components that import it; you don't need to add it. The helper lib/ouro/${libFile(name)}.`,
       docs: undefined as string | undefined,
     })),
     ...components.map((entry) => ({
@@ -444,25 +511,28 @@ export function buildRegistry(root: string): Registry {
       ...entry,
       kind: "tests" as const,
       // Says what the item ships, by the kinds of file it has (ouro-lib-tests has only tests).
-      description: `Optional: the ${fileKinds(shipped(entry.name))} for ${entry.of}, and the tests of everything ${entry.of} installs, so the installed files reach 100% coverage. Add it beside ${entry.of}: add ${entry.of} ${entry.name}. ${toolingNote}`,
+      description: `Optional: the ${fileKinds(shipped(entry.name))} for ${entry.of}, ${claim("and the tests of everything it installs", { source: { test: "scripts/registry.test.mjs::a -tests item installs the tests of every item it installs: link-tests brings text-tests" }, verify: { testExists: "scripts/registry.test.mjs::a -tests item installs the tests of every item it installs: link-tests brings text-tests" } })}. Add it beside ${entry.of}: add ${entry.of} ${entry.name}. ${toolingNote}`,
       docs: entry.name.startsWith("lib-")
         ? undefined
-        : `${entry.of}'s tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: ${TESTING_URL}`,
+        : `${entry.of}${claim("'s tests, stories and specs are installed beside it, with the tests of everything it installs.", { source: { test: "scripts/registry.test.mjs::a -tests item installs the tests of every item it installs: link-tests brings text-tests" }, verify: { testExists: "scripts/registry.test.mjs::a -tests item installs the tests of every item it installs: link-tests brings text-tests" } })} The ouro-testing message says how to run them. Docs: ${TESTING_URL}`,
     })),
     {
       name: "ouro-lib-tests",
       title: "Ouro lib tests",
       kind: "aggregate" as const,
-      description: `Optional: the tests of every helper in lib/ouro, with ouro-lib. You don't need to add it: each -tests item installs the tests of the helpers its component imports. ${toolingNote}`,
-      docs: `Every Ouro UI helper and its tests are installed. The ouro-testing message says how to run them. Docs: ${TESTING_URL}`,
+      description: `Optional: ${claim("the tests of every helper in lib/ouro, with ouro-lib.", { source: { test: "scripts/registry.test.mjs::ouro-tests installs every -tests item: the whole suite in one command" }, verify: { testExists: "scripts/registry.test.mjs::ouro-tests installs every -tests item: the whole suite in one command" } })} ${claim(
+        "You don't need to add it: each -tests item installs the tests of the helpers its component imports.",
+        { source: { test: "scripts/registry.test.mjs::a -tests item installs the tests of every item it installs: link-tests brings text-tests" }, verify: { testExists: "scripts/registry.test.mjs::a -tests item installs the tests of every item it installs: link-tests brings text-tests" } },
+      )} ${toolingNote}`,
+      docs: `${claim("Every Ouro UI helper and its tests are installed.", { source: { test: "scripts/registry.test.mjs::ouro-tests installs every -tests item: the whole suite in one command" }, verify: { testExists: "scripts/registry.test.mjs::ouro-tests installs every -tests item: the whole suite in one command" } })} The ouro-testing message says how to run them. Docs: ${TESTING_URL}`,
     },
     {
       name: "ouro-tests",
       title: "Ouro tests",
       kind: "aggregate" as const,
       description:
-        `Optional: every Ouro UI component with its tests, type tests, stories and Playwright spec, and the test kit. The whole suite in one command. ${toolingNote}`,
-      docs: `Every Ouro UI component and its tests are installed. The ouro-testing message says how to run them. Docs: ${TESTING_URL}`,
+        `Optional: ${claim("every Ouro UI component with its tests, type tests, stories and Playwright spec, and the test kit.", { source: { test: "scripts/registry.test.mjs::ouro-tests installs every -tests item: the whole suite in one command" }, verify: { testExists: "scripts/registry.test.mjs::ouro-tests installs every -tests item: the whole suite in one command" } })} The whole suite in one command. ${toolingNote}`,
+      docs: `${claim("Every Ouro UI component and its tests are installed.", { source: { test: "scripts/registry.test.mjs::ouro-tests installs every -tests item: the whole suite in one command" }, verify: { testExists: "scripts/registry.test.mjs::ouro-tests installs every -tests item: the whole suite in one command" } })} The ouro-testing message says how to run them. Docs: ${TESTING_URL}`,
     },
     ...kits.map((entry) => ({ ...entry, kind: "kit" as const })),
   ];
@@ -496,7 +566,9 @@ export function buildRegistry(root: string): Registry {
     const registryDeps = new Set<string>(entry.kind === "tests" ? [entry.of, "ouro-testing"] : (aggregates[entry.name] ?? []));
     for (const path of paths) {
       const source = readFileSync(join(root, path), "utf8");
-      const isDev = entry.name === "ouro-testing" || entry.kind === "tests" || entry.kind === "kit";
+      // A helper's .mjs file is a Node script the app runs (lib-claims' checker), not code its
+      // bundle loads, so what it imports is a devDependency, named without a version.
+      const isDev = entry.name === "ouro-testing" || entry.kind === "tests" || entry.kind === "kit" || path.endsWith(".mjs");
       // env.d.ts declares process.env.NODE_ENV for apps without @types/node; nothing imports it.
       if (!isDev && entry.name !== "lib-env" && /\bprocess\.env\b/.test(source)) registryDeps.add("lib-env");
       // OuroProvider is the one helper only the app imports. It comes with what it serves: a
@@ -639,7 +711,12 @@ export function withLlmsItems(llms: string, registry: Registry): string {
   const lines = registry.items
     .filter((item) => !helper(item.name))
     .map((item) => `- \`${item.name}\`: ${item.description}${names.has(item.name) ? ` Docs: ${DOCS_URL}/${item.name}.md` : ""}`);
-  lines.push(`- Helpers, one item per file in lib/ouro, each installed with the components that import it (and \`<name>-tests\` for a helper with tests): ${helpers.join(", ")}.`);
+  lines.push(
+    `- ${claim("Helpers, one item per file in lib/ouro, each installed with the components that import it", { source: { test: "scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports" }, verify: { testExists: "scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports" } })} (and \`<name>-tests\` for a helper with tests): ${helpers.join(", ")}. ${claim(
+      "No component imports `lib-claims`: add it by name to mark your own copy's claims with `claim()`.",
+      { source: { test: "scripts/registry.test.mjs::registryDependencies are the same-repo items each item imports, as full unpinned addresses" }, verify: { testExists: "scripts/registry.test.mjs::registryDependencies are the same-repo items each item imports, as full unpinned addresses" } },
+    )}`,
+  );
   if (!/\n## Items\n\n[\s\S]*?\n\n## /.test(llms)) throw new Error("site/public/llms.txt needs an ## Items section followed by another ## section.");
   return llms.replace(/(\n## Items\n\n)[\s\S]*?(\n\n## )/, (_, head: string, tail: string) => `${head}${lines.join("\n")}${tail}`);
 }

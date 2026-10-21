@@ -49,7 +49,7 @@ These are not props. Passing one fails the type check with the fix in the error,
 
 ## `className` is for layout only
 
-Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your classes always win over Ouro UI's: each component merges `className` last with `cn` (tailwind-merge), so a class that conflicts with the component's own replaces it.
+Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your classes always win over Ouro UI's: TimerTray merges `className` last with `cn` (tailwind-merge), so a class that conflicts with its own replaces it.[^layout-classes]
 
 Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
 
@@ -75,7 +75,9 @@ interface TimerLabels {
   dismiss?: string | undefined;
   /** @default "Restart" */
   restart?: string | undefined;
-  /** What it shows, and screen readers hear, at zero. @default "Time's up" */
+  /**
+   * What it shows, and screen readers hear, at zero. @default "Time's up"
+   */
   done?: string | undefined;
   /** What it shows after the time while paused. @default "Paused" */
   paused?: string | undefined;
@@ -102,3 +104,5 @@ interface TimerTrayItem {
   href?: string | undefined;
 }
 ```
+
+[^layout-classes]: test:registry/ouro/components/ouro/timer/timer-tray.test.tsx::TimerTray > forwards a ref, passes attributes through, and lets layout classes win verify:testExists(registry/ouro/components/ouro/timer/timer-tray.test.tsx::TimerTray > forwards a ref, passes attributes through, and lets layout classes win)

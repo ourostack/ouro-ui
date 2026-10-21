@@ -71,6 +71,9 @@ function isEditable(target: EventTarget | null): boolean {
  * @example
  * const [open, setOpen] = useCommandShortcut("mod+k");
  * <Command title="Command palette" open={open} onOpenChange={setOpen} items={commands} />
+ * @claim "It never fires while an input" registry/ouro/lib/ouro/use-command-shortcut.test.tsx verify:testExists(registry/ouro/lib/ouro/use-command-shortcut.test.tsx::useCommandShortcut > does not fire while an input method is composing text)
+ * @claim "In a text field (an input" registry/ouro/lib/ouro/use-command-shortcut.test.tsx verify:testExists(registry/ouro/lib/ouro/use-command-shortcut.test.tsx::useCommandShortcut > takes mod+k from an input with real typing, and keeps the typed characters)
+ * @claim "In a text field (an input" registry/ouro/lib/ouro/use-command-shortcut.test.tsx verify:fileLine(registry/ouro/lib/ouro/use-command-shortcut.test.tsx, /never\stakes\sa\sshortcut\swithout\smod,\smeta\sor\sctrl\sfrom\styping\sin/)
  */
 export function useCommandShortcut(shortcut: string | readonly string[] = "mod+k"): [boolean, Dispatch<SetStateAction<boolean>>] {
   const [open, setOpen] = useState(false);

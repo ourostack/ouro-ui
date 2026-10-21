@@ -32,7 +32,7 @@ Type: `SeparatorProps`.
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: margins, width, flex sizing (`my-4`, `flex-1`). Appearance classes warn in development. |
 | `decorative` | `boolean` |  | Hides the line from screen readers (`role="none"`). Use it when the line only decorates, such as between a heading and its text; leave it off when it divides two groups of content a reader should hear as separate. |
-| `label` | `ReactNode` |  | A word or two in the middle of a horizontal line, such as "or" between two ways to sign in: `<Separator label="or" />`. The label is read as text in its place, and the lines on either side are hidden from screen readers. Only for `horizontal`. |
+| `label` | `ReactNode` |  | A short word in the middle of a horizontal line, such as "or" between two ways to sign in: `<Separator label="or" />`. The label is read as text in its place, and the lines on either side are hidden from screen readers. Only for `horizontal`. |
 | `orientation` | `"vertical" \| "horizontal"` | `"horizontal"` | `horizontal` spans the width of its container between stacked content; `vertical` stands as tall as its row between side-by-side items (put it in a flex row). |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
 
@@ -50,8 +50,10 @@ These are not props. Passing one fails the type check with the fix in the error,
 
 ## `className` is for layout only
 
-Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your classes always win over Ouro UI's: each component merges `className` last with `cn` (tailwind-merge), so a class that conflicts with the component's own replaces it.
+Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your classes always win over Ouro UI's: Separator merges `className` last with `cn` (tailwind-merge), so a class that conflicts with its own replaces it.[^layout-classes]
 
 Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
+
+[^layout-classes]: test:registry/ouro/components/ouro/separator/separator.test.tsx::Separator > forwards a ref and lets app layout classes win verify:testExists(registry/ouro/components/ouro/separator/separator.test.tsx::Separator > forwards a ref and lets app layout classes win)

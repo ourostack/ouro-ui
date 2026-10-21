@@ -1,3 +1,5 @@
+import { claim } from "@/registry/ouro/lib/ouro/claims";
+
 /**
  * The words the homepage, the head tags (routes.ts), README.md and site/public/llms.txt
  * share. Change them here; site.test.tsx fails when README.md or llms.txt disagree.
@@ -18,11 +20,27 @@ export const HERO_COPY = `${HERO_TITLE} ${HERO_SUBLINE}`;
 export const VOYAGE_HERO = {
   eyebrow: "Ouro HX · Under construction",
   title: ["Feels right to the people using it.", "Obvious to the agents building it."],
-  subline:
-    "A React component library you copy into your app and own. Every tap, transition and screen-reader announcement is tested in real browsers.",
+  subline: claim("A React component library you copy into your app and own. Its taps, motion and screen-reader announcements are tested in real browsers.", {
+    source: [
+      { test: "registry/ouro/components/ouro/accordion/accordion.touch.test.tsx::keeps 44px titles with 16px text on a phone, also in landscape, and opens on tap" },
+      { file: "scripts/motion-coverage.mts" },
+      { test: "registry/ouro/lib/ouro/testing/announcements.test.tsx::records the text each live region exposes, polite and assertive, once per change" },
+      { test: "registry/ouro/components/ouro/copy-button/copy-button.test.tsx::CopyButton > puts the value on the clipboard, says Copied once, calls onCopy and reads Copy again after two seconds" },
+    ],
+    verify: [
+      { fileLine: "registry/ouro/lib/ouro/testing/vitest.ts", pattern: "ouro-touch" },
+      { testExists: "registry/ouro/components/ouro/accordion/accordion.touch.test.tsx::keeps 44px titles with 16px text on a phone, also in landscape, and opens on tap" },
+      { ciJob: "motion-coverage" },
+      { testExists: "registry/ouro/lib/ouro/testing/announcements.test.tsx::records the text each live region exposes, polite and assertive, once per change" },
+      { testExists: "registry/ouro/components/ouro/copy-button/copy-button.test.tsx::CopyButton > puts the value on the clipboard, says Copied once, calls onCopy and reads Copy again after two seconds" },
+    ],
+  }),
 } as const;
 
-export const SHADCN_BADGE = "Works with shadcn/ui";
+export const SHADCN_BADGE = claim("Works with shadcn/ui", {
+  source: { file: "scripts/install-test.sh" },
+  verify: [{ ciJob: "install" }, { fileLine: "scripts/install-test.sh", pattern: "Stock shadcn button beside Ouro's" }],
+});
 
 export const SHADCN_LINE =
   "Installs with the shadcn CLI, uses shadcn's theme tokens, and sits alongside the shadcn/ui components you already have.";

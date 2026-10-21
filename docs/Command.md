@@ -35,7 +35,7 @@ Open it with `trigger`, or control it with `open` and `onOpenChange`, usually fr
 
 ## Props
 
-Props every mode takes. Type: `CommandProps`.
+The props the modes share. Type: `CommandProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -48,7 +48,7 @@ Props every mode takes. Type: `CommandProps`.
 | `onQueryChange` | `((query: string, context: { signal: AbortSignal }) => void)` |  | For results from a server: called with the search text on every change, and with the current text (`""` at each opening) whenever the palette opens or swaps between dialog and sheet. The palette then stops filtering `items` itself and shows them as they are, so keep the last results in `items` until new ones arrive. `signal` aborts when a newer query replaces this one or the palette closes: pass it to `fetch`, or drop the response when `signal.aborted`, so a slow earlier response never overwrites a newer one. The app owns the request, and must set `loading` back to false when the request fails or its signal aborts, or "Searching…" stays up. |
 | `placeholder` | `string` | `"Type a command or search…"` | The search input's placeholder. |
 | `searchLabel` | `string` | `"Search commands"` | The search input's label for screen readers. |
-| `title` (required) | `string` |  | Names the palette for screen readers; it is not shown. Always required. |
+| `title` (required) | `string` |  | Names the palette for screen readers; it is not shown. It is always required. |
 
 ## Modes
 
@@ -91,7 +91,7 @@ These are not props. Passing one fails the type check with the fix in the error,
 
 ## `className` is for layout only
 
-Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your classes always win over Ouro UI's: each component merges `className` last with `cn` (tailwind-merge), so a class that conflicts with the component's own replaces it.
+Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`).
 
 Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
 
@@ -130,7 +130,9 @@ interface CommandItem {
   label: string;
   /** Runs the command. The palette closes first. */
   onSelect: () => void;
-  /** More words the search matches, which never show: `keywords: ["dark mode"]`. */
+  /**
+   * More words the search matches, which never show: `keywords: ["dark mode"]`.
+   */
   keywords?: readonly string[] | undefined;
   /** The keys of the command's shortcut, shown at its end with `Kbd`: `["mod", "n"]`. It does not bind them. */
   shortcut?: readonly string[] | undefined;

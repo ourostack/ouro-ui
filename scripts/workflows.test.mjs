@@ -530,8 +530,8 @@ function checkNames(block, id) {
 /** The condition of every job a push the merge queue already tested skips (the plan's `tested`). */
 const untested = "${{ !cancelled() && needs.plan.outputs.tested != 'true' }}";
 
-/** The checks the main ruleset requires (ruleset 24881709); ci-budget from when this layout reached main. */
-const requiredChecks = ["ci", "e2e", "visual", "registry", "install (shadcn, nova)", "install (shadcn, vega)", "install (ouro, nova)", "install (namespace, nova)", "install (next, nova)", "install-upgrade", "motion-coverage", "themes (1/3)", "themes (2/3)", "themes (3/3)", "theme-install", "latency", "lighthouse", "ci-budget"];
+/** The checks the main ruleset requires (ruleset 24881709, .github/required-checks.json). */
+const requiredChecks = JSON.parse(readFileSync(join(root, ".github/required-checks.json"), "utf8"));
 
 test("every required check is still a job that reports, under the name the ruleset requires", () => {
   const jobs = ciJobs();
@@ -546,8 +546,23 @@ test("every required check is still a job that reports, under the name the rules
     const condition = block.match(/^ {4}if: (.+)$/m)?.[1];
     if (!["install-github", "install-latest", "plan"].includes(id)) assert.ok(!condition || condition === untested, `${id} has if: ${condition}`);
   }
+  // The ruleset's required checks, which the claims check also reads (verify:ciJob accepts only these).
   for (const check of requiredChecks) assert.ok(names.has(check), `${check} is not among ${[...names.keys()].join(", ")}`);
   assert.deepEqual(checkNames(jobs["install-shard"], "install-shard"), ["install (shadcn, nova, 1/2)", "install (shadcn, nova, 2/2)", "install (shadcn, vega, 1/2)", "install (shadcn, vega, 2/2)", "install (ouro, nova, 1/2)", "install (ouro, nova, 2/2)"]);
+});
+
+test("the required ci job runs the claims ratchet on a pull request, against its base, with its description", () => {
+  const block = ciJobs().checks;
+  const step = block.slice(block.search(/^ {6}- name: Claims\n/m)).split(/\n {6}- /)[0];
+  assert.match(step, /^ {10}PR_BODY: \$\{\{ github\.event\.pull_request\.body \}\}$/m);
+  const script = `git() { printf 'CALL git %s\\n' "$*" >&2; }\n${stepScript(block, "Claims")}`;
+  const pull = runStep(script, { BASE_REF: "main" });
+  assert.equal(pull.status, 0);
+  assert.match(pull.calls, /^CALL git fetch --no-tags --depth=1 origin main\nCALL node scripts\/claims\.mjs ratchet\nCALL pnpm claims:check --network=changed$/m);
+  // A failing ratchet fails the job.
+  assert.notEqual(runStep(script, { BASE_REF: "main" }, { nodeStatus: 1 }).status, 0);
+  assert.doesNotMatch(runStep(script, { BASE_REF: "" }).calls, /ratchet/);
+  assert.ok(JSON.parse(readFileSync(join(root, ".github/required-checks.json"), "utf8")).includes("ci"));
 });
 
 /** A matrix job's shard count, from its `shard` list, which must count 1 to n. */
@@ -650,7 +665,7 @@ test("the e2e shards run every spec, or the selected components' and the site's,
   assert.equal(runStep(gate, { SHARDS: "failure" }).status, 1);
 });
 
-test("an install shard runs a third of the shipped tests, or a reduced run's, and its variant's check counts every shard's marker", () => {
+test("an install shard runs its share of the shipped tests by measured time, or a reduced run's, and its variant's check counts every shard's marker", () => {
   const jobs = ciJobs();
   const block = jobs["install-shard"];
   const count = shardCount(block);

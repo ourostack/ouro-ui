@@ -25,7 +25,7 @@ import { Navbar } from "@/registry/ouro/components/ouro/navbar/navbar";
 
 ## Usage
 
-The phone menu opens once JavaScript has loaded (after hydration), as in shadcn/ui and Catalyst; the links are in the server HTML from 640px up.
+The phone menu opens once JavaScript has loaded (after hydration); the links are in the server HTML from 640px up.
 
 Use `NavigationMenu` alone for a row of panels inside a page, and `Tabs` for views of one page. `StackedLayout` puts a Navbar above the page.
 
@@ -60,7 +60,7 @@ These are not props. Passing one fails the type check with the fix in the error,
 
 ## `className` is for layout only
 
-Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your classes always win over Ouro UI's: each component merges `className` last with `cn` (tailwind-merge), so a class that conflicts with the component's own replaces it.
+Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`).
 
 Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
 
@@ -76,7 +76,9 @@ A group of links in a Navbar: a button that opens a panel in the bar, and a labe
 interface NavbarGroup {
   /** The group's name, the button's text: "Recipes". */
   label: string;
-  /** The group's links, each with an optional `description`. */
+  /**
+   * The group's links, each with an optional `description`.
+   */
   links: readonly NavbarLink[];
   /** Not with `links`. To link the section's own page, make it the group's first link. */
   href?: never;
@@ -101,7 +103,9 @@ interface NavbarLink {
   label: string;
   /** Where it goes. Internal paths go through `OuroProvider`'s `linkComponent` (your router's link). */
   href: string;
-  /** In a group: a line under the label in the bar's panel, "Everything you have saved." */
+  /**
+   * In a group: a line under the label in the bar's panel, "Everything you have saved."
+   */
   description?: string | undefined;
   /**
    * Marks this link as the current page (`aria-current="page"`), when the Navbar's

@@ -17,7 +17,7 @@ export function whyNoSkillPage(runsDir: string): string {
   return publicationPages(runsDir, "why-no-skill.md")["why-no-skill.md"]!;
 }
 
-function publicationPages(runsDir: string, overviewFile: string): Record<string, string> {
+export function publicationPages(runsDir: string, overviewFile: string): Record<string, string> {
   const expected = Array.from({ length: runsPerCell }, (_, index) => String(index + 1)).join(", ");
   const details = new Map(screens.map((screen) => [screen, [] as string[]]));
   for (const arm of arms) for (const screen of screens) {

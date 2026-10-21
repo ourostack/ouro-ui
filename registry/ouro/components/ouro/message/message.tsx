@@ -21,9 +21,16 @@ export interface MessageOwnProps {
    * The author's name. Screen readers hear it before the message, and the avatar's
    * initials come from it. Required, so every message says who wrote it. The user's own
    * name is read but not shown.
+   * @claim "Required, so every message says who" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message > is an article that says who wrote it, then what they wrote)
+   * @claim "Required, so every message says who" registry/ouro/components/ouro/message/message.test-d.ts verify:fileLine(registry/ouro/components/ouro/message/message.test-d.ts, /expectTypeOf<\{\srole:\s"user"\s\}>\(\)\.not\.toExtend<MessageProps>/)
    */
   name: string;
-  /** The author's picture URL. Without it the avatar shows initials; `false` shows no avatar. */
+  /**
+   * The author's picture URL. Without it the avatar shows initials; `false` shows no avatar.
+   *
+   * @claim "Without it the avatar shows initials" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message > shows the author's avatar from main's Avatar, silent because the name is written)
+   * @claim "Without it the avatar shows initials" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message > shows a system message centered and quiet, without avatar or bubble)
+   */
   avatar?: string | false | undefined;
   /** The message: text, or rich content such as a list or a code block. */
   children?: ReactNode;
@@ -154,7 +161,13 @@ export function Message(props: MessageProps): JSX.Element {
   );
 }
 
-/** Three dots that pulse in turn (opacity only, so reduced motion keeps them), with a spoken label. */
+/**
+ * Three dots that pulse in turn (opacity only, so reduced motion keeps them), with a spoken label.
+ *
+ * @claim "Three dots that pulse in turn" registry/ouro/components/ouro/message/message.tsx verify:fileLine(registry/ouro/components/ouro/message/message.tsx, /animate-\[ouro-pulse_1\.2s_ease-in-out_infinite\]/)
+ * @claim "Three dots that pulse in turn" registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /^@keyframes\souro-pulse\s\{/)
+ * @claim "Three dots that pulse in turn" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message > is busy while streaming, with a typing indicator the app can name)
+ */
 function Typing({ label }: { label: string }): JSX.Element {
   return (
     <span data-ouro-message-typing="" className="inline-flex h-[1lh] items-center gap-1">

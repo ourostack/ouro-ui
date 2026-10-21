@@ -107,6 +107,8 @@ const resolve = (scheme: ColorScheme, dark: boolean): ResolvedColorScheme => (sc
  *     </ColorSchemeProvider>
  *   </body>
  * </html>
+ * @claim "Every `ColorSchemeToggle` and `useColorScheme` under it" registry/ouro/lib/ouro/color-scheme.test.tsx verify:testExists(registry/ouro/lib/ouro/color-scheme.test.tsx::ColorSchemeProvider > takes the app's key and default)
+ * @claim "Every `ColorSchemeToggle` and `useColorScheme` under it" registry/ouro/lib/ouro/color-scheme.test.tsx verify:testExists(registry/ouro/lib/ouro/color-scheme.test.tsx::useColorScheme > switches the page without a provider, and every reader agrees)
  */
 export function ColorSchemeProvider({ children, storageKey = COLOR_SCHEME_DEFAULTS.storageKey, defaultScheme = COLOR_SCHEME_DEFAULTS.defaultScheme }: ColorSchemeProviderProps): JSX.Element {
   const value = useMemo(() => ({ storageKey, defaultScheme }), [storageKey, defaultScheme]);
@@ -136,6 +138,8 @@ export function ColorSchemeProvider({ children, storageKey = COLOR_SCHEME_DEFAUL
  * @example
  * const { resolved, setScheme } = useColorScheme();
  * <Switch label="Dark mode" checked={resolved === "dark"} onCheckedChange={(on) => setScheme(on ? "dark" : "light")} />
+ * @claim "It works with or without `ColorSchemeProvider`" registry/ouro/lib/ouro/color-scheme.test.tsx verify:testExists(registry/ouro/lib/ouro/color-scheme.test.tsx::useColorScheme > switches the page without a provider, and every reader agrees)
+ * @claim "It works with or without `ColorSchemeProvider`" registry/ouro/lib/ouro/color-scheme.test.tsx verify:testExists(registry/ouro/lib/ouro/color-scheme.test.tsx::ColorSchemeProvider > takes the app's key and default)
  */
 export function useColorScheme(): ColorSchemeValue {
   const { storageKey, defaultScheme } = useContext(ColorSchemeContext);

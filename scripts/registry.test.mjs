@@ -102,7 +102,10 @@ test("runtime items ship no tests, stories, specs or test tooling, and never pul
   for (const name of runtimeItems) {
     const entry = item(name);
     for (const file of entry.files ?? []) assert.doesNotMatch(file.path, testFile, `${name} ships ${file.path}`);
-    assert.equal(entry.devDependencies, undefined, `${name} has devDependencies`);
+    // A Node script it ships (lib-claims' checker) may name what it imports, unversioned, so the app's own copy runs it.
+    if ((entry.files ?? []).some((file) => file.path.endsWith(".mjs"))) {
+      for (const dependency of entry.devDependencies ?? []) assert.doesNotMatch(dependency, /.@/, `${name} pins ${dependency}`);
+    } else assert.equal(entry.devDependencies, undefined, `${name} has devDependencies`);
     for (const dependency of entry.dependencies ?? []) {
       assert.doesNotMatch(dependency, /^(storybook|@storybook\/|vitest|@vitest\/|playwright|@playwright\/)/, `${name} depends on ${dependency}`);
     }
@@ -226,7 +229,8 @@ test("components ship as registry:ui, tests and stories as registry:component, s
 test("helpers land in lib/ouro and the test kit in lib/ouro/testing and e2e/ouro", () => {
   for (const name of libs) {
     assert.equal(item(name).type, "registry:lib");
-    assert.equal(item(name).files.length, 1, `${name} is one file`);
+    // One module each; lib-claims also ships the Node script that checks its claims.
+    assert.equal(item(name).files.filter((file) => !file.path.endsWith(".mjs")).length, 1, `${name} is one module`);
     for (const file of item(name).files) {
       assert.equal(file.type, "registry:lib");
       assert.match(file.target, /^@lib\/ouro\/[\w.-]+$/);
@@ -299,6 +303,13 @@ test("npm dependencies are pinned to the ranges this repository tests", () => {
   }
 });
 
+test("a helper's Node script names what it imports as devDependencies without a version, so lib-claims leaves the app's TypeScript alone", () => {
+  assert.equal(item("lib-claims").dependencies, undefined);
+  assert.deepEqual(item("lib-claims").devDependencies, ["typescript"]);
+  assert.deepEqual(item("ouro-source-rules").devDependencies, ["postcss", "typescript"]);
+  assert.ok(!registry.items.some((entry) => (entry.dependencies ?? []).some((spec) => spec.startsWith("typescript"))), "no item depends on typescript");
+});
+
 test("each item has a one-line description and a docs message with its docs URL", () => {
   const sheet = item("sheet");
   assert.equal(sheet.title, "Sheet");
@@ -314,10 +325,12 @@ test("each item has a one-line description and a docs message with its docs URL"
   assert.match(item("heading").docs, /import \{ Heading \} from "@\/components\/ouro\/text\/heading"/);
   // ouro-base is the one item an app adds by hand, once; the helpers come with what imports them.
   assert.match(item("ouro-base").description, /^Add it once per app, before your first component; no component installs it, /);
-  for (const name of libs.filter((each) => each !== "lib-ouro-provider")) assert.match(item(name).description, /^Installed with the components that import it; you don't need to add it\. /, name);
+  for (const name of libs.filter((each) => !["lib-ouro-provider", "lib-claims"].includes(each))) assert.match(item(name).description, /^Installed with the components that import it; you don't need to add it\. /, name);
   // OuroProvider is imported only by the app, so its description says when to add it by name.
   assert.doesNotMatch(item("lib-ouro-provider").description, /you don't need to add it/);
   assert.match(item("lib-ouro-provider").description, /add it by name/);
+  // claim() is for an app's own copy, and no component imports it.
+  assert.match(item("lib-claims").description, /^claim\(\), .* No component imports it; add it by name\. /);
   assert.match(item("ouro-testing").description, /^Installed with every -tests item; you don't need to add it\. /);
   assert.match(item("sheet-tests").docs, /https:\/\/ourostack\.github\.io\/ouro-ui\/docs\/testing\.md$/);
   for (const name of components) {

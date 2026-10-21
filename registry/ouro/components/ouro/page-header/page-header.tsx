@@ -12,11 +12,15 @@ export interface PageHeaderOwnProps {
   title: ReactNode;
   /** A short line above the title that says what kind of page this is or where it sits: "Settings", "Project". */
   eyebrow?: ReactNode;
-  /** A sentence or two under the title. */
+  /** A short sentence under the title. */
   description?: ReactNode;
   /** The page's actions, such as Edit and Share buttons: at the end of the title on wide screens, under it on phones. */
   actions?: ReactNode;
-  /** A trail above everything else, such as a `Breadcrumb`. */
+  /**
+   * A trail above everything else, such as a `Breadcrumb`.
+   *
+   * @claim "A trail above everything else, such" registry/ouro/components/ouro/page-header/page-header.test.tsx verify:testExists(registry/ouro/components/ouro/page-header/page-header.test.tsx::PageHeader > puts the trail and the image above the title, the image at full width)
+   */
   breadcrumb?: ReactNode;
   /**
    * An image or illustration above the title, at the header's full width with rounded corners.

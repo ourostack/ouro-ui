@@ -408,7 +408,8 @@ echo "::endgroup::"
 
 if [ "$variant" = shadcn ]; then
   echo "::group::Stock shadcn button beside Ouro's"
-  "${shadcn[@]}" add --yes button
+  # With the stock dialog, which the checks below read.
+  "${shadcn[@]}" add --yes button dialog
   cat > src/App.tsx <<'EOF'
 import { Button as OuroButton } from "~/components/ouro/button/button";
 import { Button } from "~/components/ui/button";
@@ -422,6 +423,26 @@ export function App() {
   );
 }
 EOF
+  echo "::endgroup::"
+
+  # What the docs say of this CLI, checked where it runs (docs/guides/installing.md, the
+  # switching page and AGENTS.md cite these lines).
+  echo "::group::What the docs say of shadcn's own files"
+  # --ouro-layer's 50 is the z-index of shadcn's own overlay and popup.
+  [ "$(grep -c 'z-50' src/components/ui/dialog.tsx)" -ge 2 ] || { echo "shadcn's stock dialog no longer puts its overlay and popup at z-50"; exit 1; }
+  # With "rsc": false, transform-rsc is meant to drop "use client", but its pattern never matches
+  # a directive followed by a semicolon: each Ouro file that starts with "use client"; keeps it.
+  node -e 'if (require("./components.json").rsc !== false) throw new Error("components.json has no \"rsc\": false")'
+  kept=0
+  for source in "$root"/registry/ouro/components/ouro/*/*.tsx; do
+    head -n 1 "$source" | grep -qx '"use client";' || continue
+    installed="src/components/ouro/${source#"$root/registry/ouro/components/ouro/"}"
+    [ -f "$installed" ] || continue
+    head -n 1 "$installed" | grep -qx '"use client";' || { echo "$installed lost \"use client\"; under \"rsc\": false"; exit 1; }
+    kept=$((kept + 1))
+  done
+  [ "$kept" -gt 0 ] || { echo "no installed Ouro file starts with \"use client\";"; exit 1; }
+  echo "$kept files kept \"use client\"; under \"rsc\": false"
   echo "::endgroup::"
 fi
 
