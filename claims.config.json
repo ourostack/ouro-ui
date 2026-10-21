@@ -127,6 +127,16 @@
       "file": "site/src/voyage/chapters/copy.ts",
       "sentence": "The sea is not for all.",
       "reason": "the Nautilus story: Ned Land when you leave the crew"
+    },
+    {
+      "file": "site/src/voyage/chapters/chapter-two-copy.ts",
+      "sentence": "Twenty thousand leagues is a long way.",
+      "reason": "the Nautilus story: Chapter II's opening line, after the book's title"
+    },
+    {
+      "file": "site/src/voyage/chapters/chapter-three-copy.ts",
+      "sentence": "Twenty thousand leagues",
+      "reason": "the Nautilus story: the book's title, stamped in the ship's log at the end of the voyage"
     }
   ],
   "instructionVerbs": [

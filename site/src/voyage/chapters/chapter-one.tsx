@@ -66,8 +66,6 @@ const partNamed = (id: PartId) => PARTS.find((part) => part.id === id)!;
  * and which the site's. The page hydrates it only as it nears the screen (pages/voyage.tsx); the
  * server HTML reads the same before then.
  */
-const STYLES_ID = "chapter-one-styles";
-
 export default function ChapterOne(): JSX.Element {
   const root = useRef<HTMLElement>(null);
   const [voyage] = useState(createVoyage);

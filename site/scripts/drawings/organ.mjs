@@ -5,6 +5,7 @@
 //
 //   node site/scripts/drawings/organ.mjs    rewrites the drawing; then node site/scripts/art.mts --write
 import { writeFileSync } from "node:fs";
+import { URL } from "node:url";
 
 const pipes = [];
 const heights = [70, 86, 102, 118, 132, 118, 102, 86, 70];

@@ -6,6 +6,7 @@
 //
 //   node site/scripts/drawings/squid.mjs    rewrites the drawing; then node site/scripts/art.mts --write
 import { writeFileSync } from "node:fs";
+import { URL } from "node:url";
 
 const round = (value) => Math.round(value * 10) / 10;
 

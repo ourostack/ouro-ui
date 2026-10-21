@@ -183,6 +183,9 @@ const BOLTS = Array.from({ length: 12 }, (_, index) => {
   return { x: (200 + Math.cos(angle) * 186).toFixed(1), y: (200 + Math.sin(angle) * 186).toFixed(1) };
 });
 
+/** The sea's surface across the porthole, when we are up: a line of gentle waves. */
+const WAVE = `M0 150 ${Array.from({ length: 10 }, (_, index) => `Q${index * 40 + 20} ${index % 2 ? 158 : 142} ${index * 40 + 40} 150`).join(" ")} V164 H0 Z`;
+
 /** The porthole: the sea, the squid at the glass (or swimming off), the floodlights, and the surface. */
 function Porthole(): JSX.Element {
   const { surfaced, lights, won } = useFight();
@@ -209,7 +212,7 @@ function Porthole(): JSX.Element {
         <rect className="ph-sea" width="400" height="400" />
         <g className="ph-sky">
           <rect width="400" height="150" />
-          <path className="ph-wave" d="M0 150 C40 140 70 160 110 150 S180 140 220 150 S300 160 340 150 S390 144 400 150 V164 H0 Z" />
+          <path className="ph-wave" d={WAVE} />
         </g>
         <rect className="ph-beam" width="400" height="400" fill="url(#porthole-beam)" />
         <g className="ph-squid" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: squid.inner }} />
@@ -284,7 +287,8 @@ function Encounter(): JSX.Element {
                 </Button>
               }
             >
-              <MenuItem onClick={() => order(surfaced ? "dive" : "surface")}>{surfaced ? ORDERS.dive : ORDERS.surface}</MenuItem>
+              <MenuItem onClick={() => order("surface")}>{ORDERS.surface}</MenuItem>
+              <MenuItem onClick={() => order("dive")}>{ORDERS.dive}</MenuItem>
               <MenuCheckboxItem checked={lights} onCheckedChange={() => order("lights")}>
                 {ORDERS.lights}
               </MenuCheckboxItem>

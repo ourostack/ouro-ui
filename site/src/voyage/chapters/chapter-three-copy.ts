@@ -70,7 +70,7 @@ export function describeEncounter(state: { surfaced: boolean; lights: boolean; w
 /** What the crew says as the fight goes. */
 export const FIGHT = {
   opening: { name: "Ned Land", text: "Professor! Something is looking in at the window!" },
-  alarm: { name: "Captain Nemo", text: "All hands! We have a guest on the hull." },
+  alarm: { name: "Captain Nemo", text: "Hands on deck! We have a guest on the hull." },
   diveHeld: { name: "Captain Nemo", text: "It holds the screw. We cannot dive with it on us." },
   dive: { name: "Captain Nemo", text: "Down we go again, safe and sound." },
   surface: { name: "Captain Nemo", text: "Up we go. Hope will not do it, though. Ready the axes!" },
@@ -142,7 +142,7 @@ export const CODE_SHEETS_THREE = {
       { text: "Command: the palette, its search, and the order you pick.", code: `<Command title="Orders for the crew" trigger={<Button>Give an order</Button>} items={orders} />` },
       { text: "Badge and Toast: how the ship stands, and the news when the squid lets go.", code: `<Badge tone="success">Ship is free</Badge>\ntoast("The squid let go!", { tone: "success" })` },
     ],
-    site: ["The porthole, the squid, and the sea.", "What each order does, and when the fight is won.", "What the crew says."],
+    site: ["The porthole, the squid, and the sea.", "What an order does, and when the fight is won.", "What the crew says."],
   },
   saloon: {
     title: "How the saloon is built",
