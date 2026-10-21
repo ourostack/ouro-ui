@@ -313,6 +313,14 @@ test("the lint command reads a pull request's title and body from the environmen
   assert.match(failed.stderr, /pull request body:1: "Every test passes now\." makes a universal claim/);
 });
 
+test("the lint command reads a draft from stdin under the name it is given", () => {
+  const run = (input) => spawnSync(process.execPath, [script, "lint", "--stdin", "--name", "pull request body"], { encoding: "utf8", cwd: repo, input });
+  assert.equal(run("Moves focus back to the trigger.").status, 0);
+  const failed = run("Every test passes now.");
+  assert.equal(failed.status, 1);
+  assert.match(failed.stderr, /^pull request body:1: "Every test passes now\." makes a universal claim/);
+});
+
 test("checkClaims over the repository: every surface passes", async () => {
   const result = await checkClaims({ root: repo, network: false });
   assert.deepEqual(result.failures.map((failure) => failure.message).slice(0, 20), []);

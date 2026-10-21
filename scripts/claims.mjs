@@ -859,7 +859,7 @@ async function main(argv) {
   const option = (name) => (rest.includes(name) ? rest[rest.indexOf(name) + 1] : undefined);
   const root = option("--root") ?? repoRoot;
   const network = flag("--network");
-  const positional = rest.filter((arg, index) => !arg.startsWith("--") && rest[index - 1] !== "--root");
+  const positional = rest.filter((arg, index) => !arg.startsWith("--") && !["--root", "--name"].includes(rest[index - 1] ?? ""));
   const report = (failures, ok) => {
     for (const failure of failures) process.stderr.write(`${failure.message}\n`);
     if (failures.length > 0) {
