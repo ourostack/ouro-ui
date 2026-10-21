@@ -1,0 +1,9 @@
+{
+  "order": 2510,
+  "components": ["sync-status"],
+  "controls": {
+    "sync-status": [
+      {"part": "retry", "role": "button", "portal": false}
+    ]
+  }
+}

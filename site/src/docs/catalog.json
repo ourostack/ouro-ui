@@ -46,6 +46,18 @@
     "summary": "A button that puts a piece of text on the clipboard: an API key, a link, a command."
   },
   {
+    "name": "share-button",
+    "title": "ShareButton",
+    "group": "Actions",
+    "source": "registry/ouro/components/ouro/share-button/share-button.tsx",
+    "summary": "A button that shares a link: through the system's share sheet where there is one (phones, Safari), and by copying it where there is not, when it says \"Link copied\" for two seconds and screen readers hear it once.",
+    "functions": [
+      "canShare",
+      "copyText",
+      "share"
+    ]
+  },
+  {
     "name": "text",
     "title": "Text",
     "group": "Text",
@@ -72,6 +84,20 @@
     "group": "Text",
     "source": "registry/ouro/components/ouro/kbd/kbd.tsx",
     "summary": "A keyboard shortcut, in the reader's platform's notation: `keys={[\"mod\", \"k\"]}` shows ⌘K on a Mac, iPhone or iPad and Ctrl+K elsewhere."
+  },
+  {
+    "name": "local-date",
+    "title": "LocalDate",
+    "group": "Text",
+    "source": "registry/ouro/components/ouro/local-date/local-date.tsx",
+    "summary": "A date (and time) in the reader's own time zone and language, in a `<time>` that carries the exact instant."
+  },
+  {
+    "name": "relative-time",
+    "title": "RelativeTime",
+    "group": "Text",
+    "source": "registry/ouro/components/ouro/relative-time/relative-time.tsx",
+    "summary": "How long ago (or how soon) something happens, in the reader's language: \"3 days ago\", \"yesterday\", \"in 5 minutes\", \"now\", kept current while it shows."
   },
   {
     "name": "field",
@@ -353,6 +379,23 @@
     "group": "Feedback",
     "source": "registry/ouro/components/ouro/celebrate/celebrate.tsx",
     "summary": "A small moment of celebration for something the person finished: confetti bursts from a badge with the message (\"List cleared\") and screen readers hear the message once."
+  },
+  {
+    "name": "sync-status",
+    "title": "SyncStatus",
+    "group": "Feedback",
+    "source": "registry/ouro/components/ouro/sync-status/sync-status.tsx",
+    "summary": "One line that says where the person's changes are: Saved, Saving…, Offline (kept on this device) or Couldn't save, each with its icon, and Retry while there is a problem."
+  },
+  {
+    "name": "install-prompt",
+    "title": "InstallPrompt",
+    "group": "Feedback",
+    "source": "registry/ouro/components/ouro/install-prompt/install-prompt.tsx",
+    "summary": "A quiet offer to install the web app, shown only where the browser can install it (Chromium on Android and desktops), never while it already runs installed, and not again for two weeks after Not now.",
+    "functions": [
+      "useInstallPrompt"
+    ]
   },
   {
     "name": "skeleton",
