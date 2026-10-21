@@ -456,19 +456,38 @@ describe("toast()", () => {
 
   it.each([
     ["the next toast", ["Saved", "Copied"], () => toastNamed("Copied")?.contains(document.activeElement)],
-    ["the control before the toasts when it was the last", ["Saved"], () => document.activeElement?.textContent === "Before"],
+    // Not the page's last control (a footer link after the toasts in the page): where focus was before it entered the toasts.
+    ["the control focus came from when it was the last", ["Saved"], () => document.activeElement?.textContent === "Before"],
   ])("hands focus to %s when its dismiss button closes it from the keyboard", async (_case, messages, focused) => {
     await render(
       <>
         <button type="button">Before</button>
         <Toaster />
+        <a href="#footer">Footer</a>
       </>,
     );
     for (const message of messages) await show(message, { duration: 0 });
+    [...document.querySelectorAll("button")].find((button) => button.textContent === "Before")!.focus();
     (toastNamed("Saved")!.querySelector<HTMLElement>('button[aria-label="Dismiss"]')!).focus();
     await userEvent.keyboard("{Enter}");
     await gone("Saved");
     await expect.poll(focused).toBe(true);
+  });
+
+  it("leaves focus on the page when the last toast goes and focus came from nowhere, rather than moving it to the page's last control", async () => {
+    await render(
+      <>
+        <Toaster />
+        <a href="#footer">Footer</a>
+      </>,
+    );
+    await show("Saved", { duration: 0 });
+    (document.activeElement as HTMLElement | null)?.blur();
+    (toastNamed("Saved")!.querySelector<HTMLElement>('button[aria-label="Dismiss"]')!).focus();
+    await userEvent.keyboard("{Enter}");
+    await gone("Saved");
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(document.activeElement).toBe(document.body);
   });
 
   it("closes one toast with toast.dismiss(id), and all with toast.dismiss()", async () => {

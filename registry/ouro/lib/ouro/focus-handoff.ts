@@ -18,28 +18,41 @@ function follows(marker: Element, candidate: Element): boolean {
   return (marker.compareDocumentPosition(candidate) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0 && !marker.contains(candidate);
 }
 
+/** Where a handoff may look: no higher than `within`, and, when nothing there can take focus, `fallback`. */
+export interface FocusHandoffOptions {
+  /**
+   * The highest element the search climbs to (a toast region): focus never leaves it for a
+   * control elsewhere in the page.
+   */
+  within?: Element | null;
+  /** Where focus goes when nothing within can take it (where it came from), if still in the page and reachable. */
+  fallback?: HTMLElement | null;
+}
+
 /**
  * Keeps focus in the page when `root`, which holds it, is about to leave it: call it just before
  * the element goes (`useFocusHandoff` does). Once the page has updated, if focus fell to `<body>`,
  * it moves to what now stands where the element stood: the first control after it in the same
  * parent (the next attachment's remove button, the button that replaced an alert), else the last
- * one before it, else the same one level up, and so on. It does nothing when focus is elsewhere,
- * when something else has already taken it, or when the element's parent left too: when a whole
- * region goes (a route change), the app decides where focus lands.
+ * one before it, else the same one level up, and so on, no higher than `within`, then to
+ * `fallback`. It does nothing when focus is elsewhere, when something else has already taken it,
+ * or when the element's parent left too: when a whole region goes (a route change), the app
+ * decides where focus lands.
  *
  * Internal: Ouro UI components use it; apps don't need to.
  */
-export function handOffFocus(root: Element): void {
+export function handOffFocus(root: Element, { within, fallback }: FocusHandoffOptions = {}): void {
   const document = root.ownerDocument;
   if (!root.contains(document.activeElement)) return;
   const parent = root.parentElement;
   const previous = root.previousElementSibling;
+  const top = within?.parentElement ?? null;
   queueMicrotask(() => {
     const active = document.activeElement;
     if (active !== null && active !== document.body && active.isConnected) return;
     if (!parent?.isConnected) return;
     let child: Element | null = null;
-    for (let scope: Element | null = parent; scope !== null; child = scope, scope = scope.parentElement) {
+    for (let scope: Element | null = parent; scope !== null && scope !== top; child = scope, scope = scope.parentElement) {
       const candidates = [...scope.querySelectorAll<HTMLElement>(tabbable)].filter(reachable);
       if (candidates.length === 0) continue;
       // In the parent, after the element's previous sibling (from the start when it had none);
@@ -49,6 +62,7 @@ export function handOffFocus(root: Element): void {
       target.focus();
       return;
     }
+    if (fallback?.isConnected && reachable(fallback)) fallback.focus();
   });
 }
 
@@ -59,10 +73,13 @@ export function handOffFocus(root: Element): void {
  *
  * Internal: Ouro UI components use it; apps don't need to.
  *
+ * `options`, read as the element goes, bounds the search (`within`) and names where focus goes when
+ * nothing there can take it (`fallback`); define it outside the component, so the ref stays the same.
+ *
  * @example
  * const handoff = useFocusHandoff<HTMLDivElement>();
  * const ref = useMergedRef(props.ref, handoff);
  */
-export function useFocusHandoff<T extends Element>(): RefCallback<T> {
-  return useCallback((element: T | null) => (element === null ? undefined : () => handOffFocus(element)), []);
+export function useFocusHandoff<T extends Element>(options?: (element: T) => FocusHandoffOptions): RefCallback<T> {
+  return useCallback((element: T | null) => (element === null ? undefined : () => handOffFocus(element, options?.(element))), [options]);
 }

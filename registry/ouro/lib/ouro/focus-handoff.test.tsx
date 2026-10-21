@@ -62,6 +62,31 @@ describe("handOffFocus", () => {
     expect(document.activeElement).toBe(button(host, "after"));
   });
 
+  it("climbs no higher than `within`, then focuses `fallback`, or leaves focus on the page", async () => {
+    const host = page('<button>origin</button><section id="region"><p id="gone"><button>gone</button></p></section><a href="#footer">footer</a>');
+    const region = host.querySelector("#region")!;
+    button(host, "gone").focus();
+    handOffFocus(host.querySelector("#gone")!, { within: region, fallback: button(host, "origin") });
+    host.querySelector("#gone")!.remove();
+    await Promise.resolve();
+    expect(document.activeElement).toBe(button(host, "origin"));
+
+    region.innerHTML = '<p id="again"><button>again</button></p>';
+    const detached = document.createElement("button");
+    button(host, "again").focus();
+    handOffFocus(host.querySelector("#again")!, { within: region, fallback: detached });
+    host.querySelector("#again")!.remove();
+    await Promise.resolve();
+    expect(document.activeElement).toBe(document.body);
+
+    region.innerHTML = '<p id="third"><button>third</button></p>';
+    button(host, "third").focus();
+    handOffFocus(host.querySelector("#third")!, { within: region });
+    host.querySelector("#third")!.remove();
+    await Promise.resolve();
+    expect(document.activeElement).toBe(document.body);
+  });
+
   it("leaves focus alone when the element does not hold it", async () => {
     const host = page('<div><p id="gone"><button>gone</button></p><button>other</button></div>');
     button(host, "other").focus();
