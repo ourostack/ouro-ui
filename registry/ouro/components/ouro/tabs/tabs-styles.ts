@@ -51,6 +51,7 @@ const rootClass = "flex min-w-0 gap-4 data-[orientation=horizontal]:flex-col dat
  * match-source`), so no color of it reaches the page, whatever the theme.
  *
  * @internal
+ * @claim "The mask's `#000` only means opaque" https://developer.mozilla.org/en-US/docs/Web/CSS/mask-mode verify:urlOk(https://developer.mozilla.org/en-US/docs/Web/CSS/mask-mode)
  */
 const listClass =
   "relative z-0 m-0 box-border flex shrink-0 p-0 " +
@@ -68,6 +69,7 @@ const listClass =
  *
  * @internal
  * @claim "A tab: 44px tall with 16px" registry/ouro/components/ouro/tabs/tabs.touch.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.touch.test.tsx::keeps 44px tabs with 16px text on a phone, also in landscape)
+ * @claim "The focus outline is inset, so" registry/ouro/components/ouro/tabs/tabs-styles.ts verify:fileLine(registry/ouro/components/ouro/tabs/tabs-styles.ts, /outline-ring\s-outline-offset-2\sfocus-visible:outline-2/)
  */
 const tabClass =
   "group/tab press relative m-0 box-border inline-flex shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap " +

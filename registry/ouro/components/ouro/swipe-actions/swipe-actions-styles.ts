@@ -50,6 +50,10 @@ const rootClass = "group/swipe relative box-border min-w-0 touch-pan-y overflow-
  * of a long list at rest hold no layers.
  *
  * @internal
+ * @claim "What slides: the content, with the" registry/ouro/components/ouro/swipe-actions/swipe-actions.test.tsx verify:testExists(registry/ouro/components/ouro/swipe-actions/swipe-actions.test.tsx::SwipeActions > renders the row closed, with both sides out of reach and an actions button named after the row)
+ * @claim "No CSS transition, which a finger" registry/ouro/components/ouro/swipe-actions/swipe-actions.touch.test.tsx verify:testExists(registry/ouro/components/ouro/swipe-actions/swipe-actions.touch.test.tsx::SwipeActions on a phone > writes the transform on the row's track and springs to rest without a CSS transition)
+ * @claim "It is on its own layer" registry/ouro/components/ouro/swipe-actions/swipe-actions.test.tsx verify:fileLine(registry/ouro/components/ouro/swipe-actions/swipe-actions.test.tsx, /expect\(getComputedStyle\(track\(element\)\)\.willChange\)\.toBe\("auto"\)/)
+ * @claim "It is on its own layer" registry/ouro/components/ouro/swipe-actions/swipe-actions-styles.ts verify:fileLine(registry/ouro/components/ouro/swipe-actions/swipe-actions-styles.ts, /group-data-\[dragging\]/swipe:will-change-transform/)
  */
 const trackClass = "relative flex min-w-0 items-center group-data-[dragging]/swipe:will-change-transform group-data-[ouro-settling]/swipe:will-change-transform pointer-coarse:min-h-11";
 
@@ -62,6 +66,8 @@ const contentClass = "min-w-0 flex-1";
  * width shows no gap.
  *
  * @internal
+ * @claim "The `::after` continues the primary action's" registry/ouro/components/ouro/swipe-actions/swipe-actions.touch.test.tsx verify:testExists(registry/ouro/components/ouro/swipe-actions/swipe-actions.touch.test.tsx::SwipeActions on a phone > follows a held finger, and past the full-swipe point shows only the primary action)
+ * @claim "The `::after` continues the primary action's" registry/ouro/components/ouro/swipe-actions/swipe-actions.test.tsx verify:testExists(registry/ouro/components/ouro/swipe-actions/swipe-actions.test.tsx::SwipeActions > colors each action by its tone, the side by its primary action, and falls back to secondary)
  */
 const stripClass = {
   leading: "absolute inset-y-0 end-full flex items-stretch after:absolute after:inset-y-0 after:end-full after:w-screen after:bg-inherit after:content-['']",

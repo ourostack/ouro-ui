@@ -30,7 +30,11 @@ const barClass =
   "data-closed:pointer-events-none data-closed:translate-y-[calc(100%+max(1rem,env(safe-area-inset-bottom,0px)))] data-closed:opacity-0 " +
   "motion-reduce:transition-opacity motion-reduce:duration-(--ouro-duration-fast) motion-reduce:data-closed:translate-y-0";
 
-/** One solid surface for the tabs and the accessory, so no page content shows through. */
+/**
+ * One solid surface for the tabs and the accessory, so no page content shows through.
+ *
+ * @claim "One solid surface for the tabs" registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx verify:testExists(registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx::TabBar > sits fixed at the bottom of a phone screen, with equal 64px tabs, and keeps its room in the page)
+ */
 const surface = "bg-popover text-muted-foreground ring-1 ring-border/60 shadow-(--shadow-lg) forced-colors:border forced-colors:border-solid";
 
 const listClass = `m-0 box-border flex h-16 min-w-0 flex-1 list-none items-stretch rounded-full p-1 ${surface}`;

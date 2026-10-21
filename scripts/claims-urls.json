@@ -59,6 +59,10 @@
     "status": 200,
     "checked": "2026-10-21"
   },
+  "https://developer.mozilla.org/en-US/docs/Web/CSS/mask-mode": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
   "https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/disabling-and-enabling-a-workflow": {
     "status": 200,
     "checked": "2026-10-21"

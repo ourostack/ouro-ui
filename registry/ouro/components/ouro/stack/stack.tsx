@@ -22,7 +22,11 @@ import {
 
 export type { LayoutElement, LayoutGap, LayoutJustify } from "@/registry/ouro/components/ouro/stack/stack-styles";
 
-/** Where a Stack's children sit across it: `stretch` makes each as wide as the Stack. */
+/**
+ * Where a Stack's children sit across it: `stretch` makes each as wide as the Stack.
+ *
+ * @claim "Where a Stack's children sit across" registry/ouro/components/ouro/stack/stack.tsx verify:fileLine(registry/ouro/components/ouro/stack/stack.tsx, /stretch:\s"items-stretch"/)
+ */
 export type StackAlign = "start" | "center" | "end" | "stretch";
 
 /** The props Stack adds to the HTML attributes it passes through. */
@@ -38,6 +42,7 @@ export interface StackOwnProps {
   /**
    * Where the children sit across the Stack. `stretch` makes each child full width.
    * @default "stretch"
+   * @claim "`stretch` makes each child full width" registry/ouro/components/ouro/stack/stack.tsx verify:fileLine(registry/ouro/components/ouro/stack/stack.tsx, /stretch:\s"items-stretch"/)
    */
   align?: StackAlign | (string & { 'Use "start", "center", "end" or "stretch": left is "start"': never }) | undefined;
   /**
@@ -55,6 +60,7 @@ export interface StackOwnProps {
    * warn in development: a Stack has no look; use `Card` for a surface. So do the flex
    * classes the props own: use `gap`, `align` and `justify`, not `gap-*`, `items-*` or
    * `justify-*`, and `<Row>`, not `flex-row`.
+   * @claim "Appearance classes warn in development: a" registry/ouro/components/ouro/stack/stack.test.tsx verify:testExists(registry/ouro/components/ouro/stack/stack.test.tsx::Stack development messages > names each flex class it finds)
    */
   className?: string | undefined;
   /** The children, laid out top to bottom. */
@@ -77,7 +83,7 @@ export type StackProps = Omit<HTMLAttributes<HTMLElement>, keyof StackOwnProps> 
 const alignClasses = { start: "items-start", center: "items-center", end: "items-end", stretch: "items-stretch" } as const;
 
 /**
- * Lays its children out top to bottom with an even gap. It has no look of its own: it
+ * Lays its children out top to bottom with an even gap. It is layout only: it
  * replaces the `flex flex-col gap-4` an agent would otherwise write by hand.
  *
  * Use `Row` instead for a horizontal layout, `Card` when the group needs a surface, and

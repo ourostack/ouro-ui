@@ -195,6 +195,7 @@ const justifyWords: Readonly<Record<string, LayoutJustify>> = {
  * The class still applies, last, so these are messages, not errors. Development only.
  *
  * @internal
+ * @claim "Dev messages for the flex classes" registry/ouro/components/ouro/stack/stack.test.tsx verify:testExists(registry/ouro/components/ouro/stack/stack.test.tsx::Stack development messages > names each flex class it finds)
  */
 function checkFlexClassName(component: "Stack" | "Row", className: string | undefined, alignments: readonly string[]): (readonly [string, string])[] {
   const messages: (readonly [string, string])[] = [];

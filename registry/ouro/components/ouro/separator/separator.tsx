@@ -24,6 +24,7 @@ export interface SeparatorOwnProps {
    * A short word in the middle of a horizontal line, such as "or" between two ways to sign
    * in: `<Separator label="or" />`. The label is read as text in its place, and the lines on
    * either side are hidden from screen readers. Only for `horizontal`.
+   * @claim "A short word in the middle" registry/ouro/components/ouro/separator/separator.test.tsx verify:testExists(registry/ouro/components/ouro/separator/separator.test.tsx::Separator > puts a label in the middle of a horizontal line, read as text while the lines are hidden)
    */
   label?: ReactNode;
   /** Layout only: margins, width, flex sizing (`my-4`, `flex-1`). Appearance classes warn in development. */

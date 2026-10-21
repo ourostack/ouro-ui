@@ -30,6 +30,9 @@ export interface TableColumnBase {
    * Makes this column the rows' headers (`<th scope="row">`), what each row is. With
    * `rowHref` its cell holds the row's link and names it. Without one, the first column with
    * no `cell` renderer is, or else the first column.
+   * @claim "Makes this column the rows' headers" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table > makes the column marked rowHeader the row header, and keeps a hidden header's name)
+   * @claim "Makes this column the rows' headers" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table > renders a semantic table named by its caption, with column and row headers)
+   * @claim "Without one, the first column with" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table with rowHref > puts the row link in the first column without a cell renderer, past a leading checkbox)
    */
   rowHeader?: boolean | undefined;
   /**
@@ -56,11 +59,16 @@ export interface TableColumnBase {
  * One column of a {@link Table}: its `header`, and where its cells come from. `key` names a
  * field of the row whose value is shown as it is (text, a number, an element), or, with
  * `cell`, any name, and `cell` renders each row's cell.
+ * @claim "`key` names a field of the" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table > renders a semantic table named by its caption, with column and row headers)
  */
 export type TableColumn<Row> = TableColumnBase &
   (
     | {
-        /** The field of each row to show, and the column's React key. */
+        /**
+         * The field of each row to show, and the column's React key.
+         *
+         * @claim "The field of each row to" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table > keys rows by id, by a rowKey field or function, and by index without an id)
+         */
         key: TableKeysOf<Row, ReactNode>;
         /** Renders the row's cell instead of the field's value. */
         cell?: ((row: Row, index: number) => ReactNode) | undefined;
@@ -130,13 +138,18 @@ export interface TableOwnProps {
 
 /** With columns and rows: the props that describe the whole table. */
 export interface TableDataProps<Row> {
-  /** The columns, in order: each one's `header`, `key` and optional `cell`. */
+  /**
+   * The columns, in order: each one's `header`, `key` and optional `cell`.
+   *
+   * @claim "The columns, in order: each one's" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table > renders a semantic table named by its caption, with column and row headers)
+   */
   columns: readonly TableColumn<NoInfer<Row>>[];
   /** The rows, in the order to show them. Table does not sort or page them. */
   rows: readonly Row[];
   /**
    * Each row's React key: the name of a field (`rowKey="slug"`) or a function. Without it,
    * a row's `id` field, or else its position.
+   * @claim "Each row's React key: the name" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table > keys rows by id, by a rowKey field or function, and by index without an id)
    */
   rowKey?: TableKeysOf<Row, string | number> | ((row: Row, index: number) => Key) | undefined;
   /**
@@ -146,6 +159,8 @@ export interface TableDataProps<Row> {
    * links and inputs in the cells stay their own tab stops and take their own taps. On a
    * touch screen a linked row is at least 44px tall.
    * @claim "On a touch screen a linked" registry/ouro/components/ouro/table/table.touch.test.tsx verify:fileLine(registry/ouro/components/ouro/table/table.touch.test.tsx, /makes\sa\slinked\srow\sat\sleast\s44px\stall\sin\s%s/)
+   * @claim "Makes each row one link, with" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table with rowHref > makes each linked row one link named by its row header, with one tab stop, covering the row)
+   * @claim "Makes each row one link, with" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table parts > warns when a linked row has no row header cell to hold its link)
    */
   rowHref?: TableKeysOf<Row, string | undefined> | ((row: Row) => string | undefined) | undefined;
   /**
@@ -260,6 +275,9 @@ function columnWarnings(columns: readonly (TableColumnBase & { key: string })[])
  *     <TableRow><TableCell rowHeader>Flour</TableCell><TableCell align="end">2 kg</TableCell></TableRow>
  *   </TableBody>
  * </Table>
+ * @claim "It scrolls sideways inside its own" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table scrolling > scrolls sideways inside its own region on a phone, named by the caption, without widening the page)
+ * @claim "With `rowHref` each row is one" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table with rowHref > opens the row from a real tap on any cell, and buttons, links and inputs in cells keep their own taps on a phone)
+ * @claim "With `rowHref` each row is one" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table with rowHref > makes each linked row one link named by its row header, with one tab stop, covering the row)
  */
 export function Table<Row extends object = Record<string, unknown>>(props: TableProps<Row>): JSX.Element {
   const {

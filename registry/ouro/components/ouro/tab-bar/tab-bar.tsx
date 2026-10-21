@@ -28,6 +28,7 @@ export interface TabBarItem {
   /**
    * Other paths whose pages belong to this tab, so it stays current there: a Home tab that
    * also owns `/account`. Each matches its own path and the pages under it.
+   * @claim "Each matches its own path and" registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx verify:fileLine(registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx, /\["/account/settings",\s"Home"\]/)
    */
   paths?: readonly string[] | undefined;
   /** Marks this tab as the current page (`aria-current="page"`), when the paths cannot tell. */
@@ -38,7 +39,11 @@ export interface TabBarItem {
 export interface TabBarProps {
   /** Names the navigation for screen readers ("Main"). It is not shown. */
   label: string;
-  /** The tabs, in order: two to five of the app's top-level pages. */
+  /**
+   * The tabs, in order: two to five of the app's top-level pages.
+   *
+   * @claim "The tabs, in order: two to" registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx verify:fileLine(registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx, /6\stabs\sdo\snot\sfit\sa\sphone's\swidth/)
+   */
   items: readonly TabBarItem[];
   /**
    * An item that sits apart, in a circle of its own at the end of the bar, as iOS sets
@@ -83,7 +88,11 @@ const example = '<TabBar label="Main" items={[{ label: "Recipes", href: "/recipe
  * @claim "How much of the screen a" registry/ouro/components/ouro/tab-bar/tab-bar.touch.test.tsx verify:testExists(registry/ouro/components/ouro/tab-bar/tab-bar.touch.test.tsx::TabBar and the on-screen keyboard > slides away while the keyboard shrinks the visual viewport, even with no field focused, but not for a zoom)
  */
 const KEYBOARD = 150;
-/** Input types that bring up no on-screen keyboard. */
+/**
+ * Input types that bring up no on-screen keyboard.
+ *
+ * @claim "Input types that bring up no" registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx verify:testExists(registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx::TabBar > stays in place when a field takes focus under a fine pointer, which brings up no on-screen keyboard)
+ */
 const keyless = new Set(["button", "checkbox", "color", "file", "hidden", "image", "radio", "range", "reset", "submit"]);
 
 /** Whether the focused element takes typing: a text field, a text area or an editable region. */
@@ -105,6 +114,8 @@ let layout = { width: 0, height: 0 };
  * is measured at the zoom's scale. Where the keyboard resizes the page instead, the layout
  * viewport shrinks well below the tallest it has been at this width, with a text field focused
  * on a touch screen. With no visual viewport to read, the focused field is the only sign.
+ * @claim "With no visual viewport to read" registry/ouro/components/ouro/tab-bar/tab-bar.touch.test.tsx verify:testExists(registry/ouro/components/ouro/tab-bar/tab-bar.touch.test.tsx::TabBar and the on-screen keyboard > where the browser has no visual viewport > follows a focused field)
+ * @claim "With no visual viewport to read" registry/ouro/components/ouro/tab-bar/tab-bar.touch.test.tsx verify:testExists(registry/ouro/components/ouro/tab-bar/tab-bar.touch.test.tsx::TabBar and the on-screen keyboard > slides away while the keyboard shrinks the visual viewport, even with no field focused, but not for a zoom)
  */
 function keyboardUp(): boolean {
   const viewport = window.visualViewport;

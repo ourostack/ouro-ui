@@ -10,7 +10,11 @@ import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 /** Where the person's changes are. */
 export type SyncState = "saved" | "saving" | "offline" | "error";
 
-/** The words for each state, for apps in other languages or to say what is saved. */
+/**
+ * The words for each state, for apps in other languages or to say what is saved.
+ *
+ * @claim "The words for each state, for" registry/ouro/components/ouro/sync-status/sync-status.test.tsx verify:testExists(registry/ouro/components/ouro/sync-status/sync-status.test.tsx::SyncStatus > takes words in another language, and keeps the defaults for the rest)
+ */
 export interface SyncStatusLabels {
   /** Once changes reached the server. @default "Saved" */
   saved?: string | undefined;
@@ -31,7 +35,11 @@ export interface SyncStatusOwnProps {
    * wait on this device, `error` when the server refused them.
    */
   status: SyncState | (string & { 'Use "saved", "saving", "offline" or "error"': never });
-  /** The words for each state. */
+  /**
+   * The words for each state.
+   *
+   * @claim "The words for each state" registry/ouro/components/ouro/sync-status/sync-status.test.tsx verify:testExists(registry/ouro/components/ouro/sync-status/sync-status.test.tsx::SyncStatus > takes words in another language, and keeps the defaults for the rest)
+   */
   labels?: SyncStatusLabels | undefined;
   /** Shows Retry while `offline` or `error`, and is called when it is pressed. */
   onRetry?: (() => void) | undefined;
@@ -145,6 +153,8 @@ function Line({
  * @example
  * <SyncStatus status={navigator.onLine ? (pending ? "saving" : "saved") : "offline"} onRetry={flush} />
  * @claim "One line that says where the" registry/ouro/components/ouro/sync-status/sync-status.test.tsx verify:testExists(registry/ouro/components/ouro/sync-status/sync-status.test.tsx::SyncStatus > speaks when a problem starts and when changes are saved again, and not for every save)
+ * @claim "Screen readers hear it only when" registry/ouro/components/ouro/sync-status/sync-status.test.tsx verify:testExists(registry/ouro/components/ouro/sync-status/sync-status.test.tsx::SyncStatus > speaks when a problem starts and when changes are saved again, and not for every save)
+ * @claim "It keeps the height of its" registry/ouro/components/ouro/sync-status/sync-status.test.tsx verify:testExists(registry/ouro/components/ouro/sync-status/sync-status.test.tsx::SyncStatus > keeps one height whichever state it shows, so the page never moves)
  */
 export function SyncStatus(props: SyncStatusProps): JSX.Element {
   const {
