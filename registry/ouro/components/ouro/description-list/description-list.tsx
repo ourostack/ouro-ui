@@ -28,6 +28,8 @@ export interface DescriptionListOwnProps {
    * Below this breakpoint each term sits above its details, as on a phone; from it up, the
    * terms form a column beside them.
    * @default "sm"
+   * @claim "Below this breakpoint each term sits" registry/ouro/components/ouro/description-list/description-list.test.tsx verify:testExists(registry/ouro/components/ouro/description-list/description-list.test.tsx::DescriptionList > puts each term beside its details from 640px, in one shared column of terms)
+   * @claim "Below this breakpoint each term sits" registry/ouro/components/ouro/description-list/description-list.test.tsx verify:testExists(registry/ouro/components/ouro/description-list/description-list.test.tsx::DescriptionList > stacks each term above its details on a phone)
    */
   stackBelow?: "sm" | "md" | (string & { 'Use "sm" (640px) or "md" (768px)': never }) | undefined;
   /** Layout only: margins, width (`mt-6`, `max-w-2xl`). Appearance classes warn in development. */

@@ -134,6 +134,8 @@ export type FieldErrorProps = Omit<BaseField.Error.Props, "className"> & { class
  * Part: the error message, linked to the control through `aria-describedby`. Without
  * children it shows the browser's validation message, or a Base UI `Form` error for the
  * field's `name`; with `match` and children it always shows them. It fades and slides in.
+ * @claim "Without children it shows the browser's" registry/ouro/components/ouro/field/field.test.tsx verify:testExists(registry/ouro/components/ouro/field/field.test.tsx::Field wiring > shows a Base UI Form error for its name without an error prop)
+ * @claim "Without children it shows the browser's" registry/ouro/components/ouro/field/field.test.tsx verify:fileLine(registry/ouro/components/ouro/field/field.test.tsx, /<FieldError\smatch>Enter\san\semail\saddress\.</FieldError>/)
  */
 export function FieldError({ className, ...props }: FieldErrorProps): JSX.Element {
   useFieldPart("FieldError");

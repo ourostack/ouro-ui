@@ -67,7 +67,11 @@ export interface ImageFieldProps {
   onRemove?: (() => void) | undefined;
   /** The message for a file turned away, for apps in other languages. */
   rejectMessage?: ((reason: ImageFieldRejection, file: File) => string) | undefined;
-  /** The choose button's label while no photo shows. @default "Choose photo" */
+  /**
+   * The choose button's label while no photo shows. @default "Choose photo"
+   *
+   * @claim "The choose button's label while no" registry/ouro/components/ouro/image-field/image-field.test.tsx verify:testExists(registry/ouro/components/ouro/image-field/image-field.test.tsx::ImageField > is a group named by its label, with a placeholder, Choose photo and a hidden file input)
+   */
   chooseLabel?: string | undefined;
   /** The choose button's label while a photo shows. @default "Change photo" */
   changeLabel?: string | undefined;
@@ -100,7 +104,11 @@ function PhotoIcon(): JSX.Element {
   );
 }
 
-/** Puts one file in the input, or none, so the form submits exactly what shows. */
+/**
+ * Puts one file in the input, or none, so the form submits exactly what shows.
+ *
+ * @claim "Puts one file in the input" registry/ouro/components/ouro/image-field/image-field.test.tsx verify:testExists(registry/ouro/components/ouro/image-field/image-field.test.tsx::ImageField > previews a chosen photo, puts it in the form, and removes it again)
+ */
 function setInputFile(input: HTMLInputElement, file: File | null): void {
   const data = new DataTransfer();
   if (file) data.items.add(file);

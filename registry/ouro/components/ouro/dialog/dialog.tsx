@@ -49,7 +49,11 @@ const presentations: readonly DialogPresentation[] = ["auto", "dialog", "sheet"]
 
 /** Props shared by both ways of opening a Dialog. */
 export interface DialogBaseProps {
-  /** Names the dialog for screen readers and shows at its top. Always required; hide it with `hideTitle`. */
+  /**
+   * Names the dialog for screen readers and shows at its top. Always required; hide it with `hideTitle`.
+   *
+   * @claim "Always required; hide it with `hideTitle`" registry/ouro/components/ouro/dialog/dialog.test-d.ts verify:fileLine(registry/ouro/components/ouro/dialog/dialog.test-d.ts, /\{\strigger:\sReactElement;\schildren:\s"Body"\s\}>\(\)\.not\.toExtend<DialogProps>/)
+   */
   title: string;
   /** Hides the title visually. It still names the dialog for screen readers. */
   hideTitle?: boolean | undefined;
@@ -58,6 +62,7 @@ export interface DialogBaseProps {
    * in the top corner; as a sheet it is hidden until it has keyboard focus.
    * Screen-reader users on phones (who have no Escape key) can always reach it.
    * @default "Close"
+   * @claim "Screen-reader users on phones (who have" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::centered dialog > keeps the sheet's hidden-until-focused close control in sheet presentation)
    */
   closeLabel?: string | undefined;
   /** A short line under the title, read out when the dialog opens. */
@@ -122,6 +127,8 @@ export type DialogControlledProps = DialogBaseProps & {
    * Whether the dialog is open. When a touch or pen tap opened it (on your own
    * button, say), the centered dialog focuses itself rather than its first input,
    * so no software keyboard pops up; after a key press it focuses the first control.
+   * @claim "When a touch or pen tap" registry/ouro/components/ouro/dialog/dialog.touch.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.touch.test.tsx::initial focus in a controlled dialog opened from the app's own button > focuses the centered popup, not its first input, after a tap)
+   * @claim "When a touch or pen tap" registry/ouro/components/ouro/dialog/dialog.touch.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.touch.test.tsx::initial focus in a controlled dialog opened from the app's own button > focuses the centered popup's first input after a keyboard open)
    */
   open: boolean;
   /** Called with `false` when the user dismisses the dialog (close button, Escape, outside press, swipe). */
@@ -145,6 +152,7 @@ type TriggerProps = {
 /**
  * A compact icon button in the top corner: a centered dialog has no swipe to dismiss.
  * The header's end padding keeps the title clear of it, even when the title is hidden.
+ * @claim "A compact icon button in the" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::centered dialog > has a visible, compact close button in the top corner, labelled by closeLabel)
  */
 const closeClass =
   "absolute top-3 end-3 box-border inline-flex size-8 items-center justify-center m-0 p-0 border-0 rounded-lg " +

@@ -29,9 +29,13 @@ export interface HoverCardProps {
    * on its own: touch users, and devices that cannot hover, get only the link.
    */
   trigger: ReactElement;
-  /** The preview: a few lines about where the link goes. Nothing the user needs, and no controls. */
+  /** The preview: a few lines about where the link goes. Only what the user can do without; put controls elsewhere. */
   children: ReactNode;
-  /** The side of the link the card sits on; it flips when there is no room. @default "bottom" */
+  /**
+   * The side of the link the card sits on; it flips when there is no room. @default "bottom"
+   *
+   * @claim "The side of the link the" registry/ouro/components/ouro/hover-card/hover-card.test.tsx verify:testExists(registry/ouro/components/ouro/hover-card/hover-card.test.tsx::HoverCard > sits on the side and alignment it is given, and className sets layout)
+   */
   side?: FloatingSide | (string & { 'Use "top", "bottom", "left" or "right"': never }) | undefined;
   /** How the card lines up with the link along that side. @default "center" */
   align?: FloatingAlign | (string & { 'Use "start", "center" or "end": left is "start", right is "end"': never }) | undefined;
@@ -72,6 +76,7 @@ export interface HoverCardProps {
  * </HoverCard>
  * @claim "It stacks above the page at" registry/ouro/components/ouro/hover-card/hover-card.test.tsx verify:testExists(registry/ouro/components/ouro/hover-card/hover-card.test.tsx::HoverCard > portals at the --ouro-layer level, as its own stacking context)
  * @claim "It stacks above the page at" registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /^\s+--ouro-layer:\s50;/)
+ * @claim "It shows only on devices that" registry/ouro/components/ouro/hover-card/hover-card.touch.test.tsx verify:testExists(registry/ouro/components/ouro/hover-card/hover-card.touch.test.tsx::never opens on a device that cannot hover: not from a tap, and not from keyboard focus)
  */
 export function HoverCard(props: HoverCardProps): JSX.Element {
   const {

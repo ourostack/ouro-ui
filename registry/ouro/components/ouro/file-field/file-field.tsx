@@ -40,7 +40,11 @@ export interface FileFieldProps {
   label: string;
   /** Hides the label visually; screen readers still read it. */
   hideLabel?: boolean | undefined;
-  /** Supporting text under the label ("PNG or JPG, up to 5 MB"), read through `aria-describedby`. */
+  /**
+   * Supporting text under the label ("PNG or JPG, up to 5 MB"), read through `aria-describedby`.
+   *
+   * @claim "), read through `aria-describedby`." registry/ouro/components/ouro/file-field/file-field.test.tsx verify:testExists(registry/ouro/components/ouro/file-field/file-field.test.tsx::FileField > is a labeled native file input inside a drop zone, on the Field contract)
+   */
   description?: ReactNode | undefined;
   /**
    * What is wrong, from your server action or client check. It shows under the field, and
@@ -59,7 +63,11 @@ export interface FileFieldProps {
    * and reported to `onReject`.
    */
   accept?: string | undefined;
-  /** Takes several files; each new choice or drop adds to the list. Without it, a new file replaces the old one. */
+  /**
+   * Takes several files; each new choice or drop adds to the list. Without it, a new file replaces the old one.
+   *
+   * @claim "Takes several files; each new choice" registry/ouro/components/ouro/file-field/file-field.test.tsx verify:testExists(registry/ouro/components/ouro/file-field/file-field.test.tsx::FileField > adds files to the list with multiple, and replaces the file without it)
+   */
   multiple?: boolean | undefined;
   /**
    * The largest file it takes, in bytes: `5 * 1024 * 1024` for 5 MB. Larger files are left out,
@@ -82,6 +90,8 @@ export interface FileFieldProps {
    * @default (rejection) => "notes.heic is not an accepted file type.", "big.png is larger than 5 MB." or "Only one file can be added, so b.png was left out."
    * @claim "The message under the field for" registry/ouro/components/ouro/file-field/file-field.test.tsx verify:testExists(registry/ouro/components/ouro/file-field/file-field.test.tsx::FileField > says why a file was left out, under the field > next to the app's own error, in rejectMessage's words, until the next choice takes every file)
    * @claim "The message under the field for" registry/ouro/components/ouro/file-field/file-field.test.tsx verify:testExists(registry/ouro/components/ouro/file-field/file-field.test.tsx::FileField > says why a file was left out, under the field > and drops the message when a file is removed or the form resets)
+   * @claim "It is announced to screen readers" registry/ouro/components/ouro/file-field/file-field.test.tsx verify:testExists(registry/ouro/components/ouro/file-field/file-field.test.tsx::FileField > says why a file was left out, under the field > next to a Form's error for its name, which it does not hide)
+   * @claim "It is announced to screen readers" registry/ouro/components/ouro/file-field/file-field.test.tsx verify:testExists(registry/ouro/components/ouro/file-field/file-field.test.tsx::FileField > says why a file was left out, under the field > in a polite status region, mounted before the rejection and emptied by the next valid pick)
    */
   rejectMessage?: ((rejection: FileRejection) => string) | undefined;
   /**
@@ -99,6 +109,7 @@ export interface FileFieldProps {
    * hidden text and not an `aria-label`, so a test's `getByLabel("Photo")` finds the field and
    * not "Remove photo.jpg". Translate it with your app.
    * @default "Remove"
+   * @claim "The start of each file's remove" registry/ouro/components/ouro/file-field/file-field.test.tsx verify:testExists(registry/ouro/components/ouro/file-field/file-field.test.tsx::FileField > leaves a loose label lookup for the field on the input, not on a file's remove button)
    */
   removeLabel?: string | undefined;
   /**

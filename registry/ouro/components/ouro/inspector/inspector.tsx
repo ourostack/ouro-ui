@@ -20,6 +20,7 @@ export interface InspectorProps {
   /**
    * The address of an item's docs page, from its registry name, where each tag and the list link.
    * Without it they link to Ouro's public docs, `https://ourostack.github.io/ouro-ui/docs/<item>/`.
+   * @claim "The address of an item's docs" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > outlines every Ouro component on the page, each tagged with its item and linked to its docs)
    */
   docsHref?: ((item: string) => string) | undefined;
   /** The address of the source that renders a component, if you publish it: the list shows a Source link where this returns one. */
@@ -99,7 +100,11 @@ interface Edges {
   left: number;
 }
 
-/** What X-ray reads once an update from a component or an ancestor: its position and direction, and the edges it clips its overflow to on each axis. */
+/**
+ * What X-ray reads once an update from a component or an ancestor: its position and direction, and the edges it clips its overflow to on each axis.
+ *
+ * @claim "What X-ray reads once an update" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > clips by each box a component's overflow belongs to, from the start edge on either axis)
+ */
 interface Ancestor {
   position: string;
   rtl: boolean;
@@ -228,6 +233,8 @@ const ouroDocs = (item: string) => `https://ourostack.github.io/ouro-ui/docs/${i
  * <Inspector open={xray} onOpenChange={setXray} sourceHref={(item) => sourceOf(item)} />
  * @claim "X-ray for a page built with" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > outlines every Ouro component on the page, each tagged with its item and linked to its docs)
  * @claim "Each tag names the component's registry" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > lists every component in document order in its sheet, with docs and source links)
+ * @claim "Outlines follow their components through scrolling" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > follows its components as the page scrolls and resizes)
+ * @claim "Outlines follow their components through scrolling" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > lets a click through an outline reach the control underneath, and only the tags take a pointer)
  */
 export function Inspector(props: InspectorProps): JSX.Element | null {
   const {

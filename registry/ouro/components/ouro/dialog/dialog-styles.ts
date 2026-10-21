@@ -16,6 +16,7 @@ type DialogSize = "sm" | "md" | "lg";
  * The three sizes, for checking a `size` prop. Shared with `Dialog`.
  *
  * @internal
+ * @claim "The three sizes, for checking a" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::Dialog parts > renders an md DialogPopup for a size that is not one of Ouro UI's, and warns once with the fix)
  */
 const dialogSizes: readonly DialogSize[] = ["sm", "md", "lg"];
 

@@ -9,7 +9,11 @@ import { Text } from "@/registry/ouro/components/ouro/text/text";
 
 /** The props Empty adds to the HTML attributes it passes through. */
 export interface EmptyOwnProps {
-  /** What is empty, as a short heading: "No recipes yet". Required, because it is what a screen reader finds. */
+  /**
+   * What is empty, as a short heading: "No recipes yet". Required, because it is what a screen reader finds.
+   *
+   * @claim "What is empty, as a short" registry/ouro/components/ouro/empty/empty.test.tsx verify:testExists(registry/ouro/components/ouro/empty/empty.test.tsx::Empty > renders the title as an <h3>, the description, the icon and the action)
+   */
   title: string;
   /** What the person can do about it, in a sentence: "Start by creating your first recipe." */
   description?: ReactNode;
@@ -28,6 +32,8 @@ export interface EmptyOwnProps {
    * `outline` draws a dashed border around the empty area; `plain` has none, for an Empty
    * inside a `Card` or a list that already has an edge.
    * @default "outline"
+   * @claim "`outline` draws a dashed border around" registry/ouro/components/ouro/empty/empty.test.tsx verify:testExists(registry/ouro/components/ouro/empty/empty.test.tsx::Empty > centers its content and draws a dashed outline by default)
+   * @claim "`outline` draws a dashed border around" registry/ouro/components/ouro/empty/empty.test.tsx verify:testExists(registry/ouro/components/ouro/empty/empty.test.tsx::Empty > has no outline with variant=plain, and aligns to the start with align=start)
    */
   variant?: "outline" | "plain" | (string & { 'Use "outline" or "plain"': never }) | undefined;
   /**

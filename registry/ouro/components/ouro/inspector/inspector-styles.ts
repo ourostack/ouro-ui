@@ -7,6 +7,7 @@ export { frameClass, isPartOf, itemFor, layerClass, linkClass, listClass, outlin
  * The root names (`data-ouro`) that are not their registry item's name, by the item they belong
  * to. Roots that only position or hold an overlay (`-portal`, `-positioner`, `-backdrop`,
  * `-viewport`) are no component of their own and get no outline.
+ * @claim "Roots that only position or hold" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > does not outline itself, an overlay's wrappers, a hidden component or a part apart from its component)
  */
 const aliases: Readonly<Record<string, string>> = {
   "avatar-group": "avatar",
@@ -36,8 +37,8 @@ function itemFor(name: string): string | null {
 /**
  * Whether a root is a part of the component around it rather than a component of its own: its name
  * is a part's (`radio`, `resizable-panel`, `form-message`) and the nearest root around it belongs
- * to the same item (a Radio in its RadioGroup). A part with no such root around it, like a popup in
- * a portal, still counts.
+ * to the same item (a Radio in its RadioGroup). A part outside its component's root, like a popup in
+ * a portal, counts as a component.
  *
  * @internal
  */
@@ -79,6 +80,8 @@ const frameClass =
  * something else (a menu, a select list) lies over it or its corner.
  *
  * @internal
+ * @claim "It hides, and takes no pointer" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > hides the tag of a component an open select list covers, and leaves its options within reach)
+ * @claim "It hides, and takes no pointer" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > hides a tag an overlay lies over though its component shows)
  */
 const tagClass =
   "pointer-events-auto absolute start-0 bottom-full z-1 inline-flex max-w-48 items-center truncate rounded-t-sm rounded-e-sm px-1.5 " +

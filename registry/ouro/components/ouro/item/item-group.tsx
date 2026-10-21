@@ -12,9 +12,18 @@ export interface ItemGroupOwnProps {
    * credentials". Without one, name the list with `aria-label`.
    */
   label?: string | undefined;
-  /** The rows: `Item`s. Each one becomes a list item. */
+  /**
+   * The rows: `Item`s. Each one becomes a list item.
+   *
+   * @claim "Each one becomes a list item" registry/ouro/components/ouro/item/item-group.test.tsx verify:testExists(registry/ouro/components/ouro/item/item-group.test.tsx::ItemGroup > is a list labelled by its label, with each Item a list item)
+   */
   children?: ReactNode;
-  /** What to show in place of the list when there are no rows: a sentence, or an `Empty`. */
+  /**
+   * What to show in place of the list when there are no rows: a sentence, or an `Empty`.
+   *
+   * @claim "What to show in place of" registry/ouro/components/ouro/item/item-group.test.tsx verify:testExists(registry/ouro/components/ouro/item/item-group.test.tsx::ItemGroup > shows empty, outside any list, when there are no rows)
+   * @claim "What to show in place of" registry/ouro/components/ouro/item/item-group.test.tsx verify:testExists(registry/ouro/components/ouro/item/item-group.test.tsx::ItemGroup > renders nothing for the list with no rows and no empty)
+   */
   empty?: ReactNode;
   /**
    * `divided` draws a line between rows; `outline` frames them in a bordered surface and

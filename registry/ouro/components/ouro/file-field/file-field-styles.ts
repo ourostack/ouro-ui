@@ -34,6 +34,7 @@ const promptClass = "m-0 text-base leading-6 sm:pointer-fine:text-sm sm:pointer-
  * The chosen files, one row each.
  *
  * @internal
+ * @claim "The chosen files, one row each" registry/ouro/components/ouro/file-field/file-field.test.tsx verify:testExists(registry/ouro/components/ouro/file-field/file-field.test.tsx::FileField > takes chosen files and lists them, with a preview for images)
  */
 const listClass = "m-0 grid list-none gap-2 p-0";
 

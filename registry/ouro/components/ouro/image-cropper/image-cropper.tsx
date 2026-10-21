@@ -113,6 +113,7 @@ async function crop(image: HTMLImageElement, natural: Size, frame: Size, scale: 
  *
  * @example
  * <ImageCropper open={file !== null} onOpenChange={(open) => !open && setFile(null)} image={file} shape="circle" onCrop={upload} />
+ * @claim "It always opens as a centered" registry/ouro/components/ouro/image-cropper/image-cropper.tsx verify:fileLine(registry/ouro/components/ouro/image-cropper/image-cropper.tsx, /presentation="dialog"/)
  */
 export function ImageCropper(props: ImageCropperProps): JSX.Element {
   const {
