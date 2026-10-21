@@ -524,7 +524,6 @@
   stroke-width: 2;
 }
 .stage-ripples ellipse {
-  vector-effect: non-scaling-stroke;
   opacity: 0;
   transform-box: fill-box;
   transform-origin: center;
@@ -556,6 +555,15 @@
   }
   .stage-scene[data-lights][data-dived]:not([data-band="sunlit"]) .stage-octopus {
     transform: none;
+  }
+  /*
+   * Each ring only scales, so its stroke widens as it spreads and fades, as a wave does. A
+   * non-scaling stroke (vector-effect) kept it 2px, but then every frame of the scale is a new
+   * outline to compute, and the whole porthole is laid out and repainted under it for the two
+   * seconds the rings spread: the next press of the bell waited on that, at twice its usual time.
+   */
+  .stage-ripples {
+    stroke-width: 1.2;
   }
   .stage-ripples ellipse {
     animation: stage-ripple 1800ms var(--ouro-ease-out) var(--ripple-delay) 1 both;
