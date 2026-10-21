@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 40 280 96" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+  <title>The yard on the island</title>
+  <!-- Original drawing for Ouro HX after Verne alone (manifest.json): the chapter's rail, a small
+       picture of the desert island where Nemo had the ship put together, which grows with the
+       shipyard. A berth on the shore under two sheer-legs, the spindle hull on its blocks with the
+       spur forward and a low platform, the lantern's cage, the saloon's windows, the screw, and a
+       note for the organ; once she is launched she lies in the sea off the slip, and a pennant
+       flies when you have signed on. Each part is ghosted, dashed, until its job is ticked; the
+       page draws it in (chapter-one.css). The finished ship is drawn a second time, afloat
+       (yd-afloat), for reduced motion: the page fades one ship out and the other in rather than
+       moving her. Colour comes from the theme. -->
+  <path class="yd-wave" d="M176 118 C186 114 196 122 208 118 S232 114 244 118 S268 122 280 118" stroke-width="1.3" opacity="0.7" />
+  <path class="yd-wave" d="M168 127 C180 124 192 130 204 127 S228 124 240 127 S264 130 280 127" stroke-width="1" opacity="0.4" />
+  <path class="yd-land" d="M0 100 C10 93 26 93 36 99 L40 104 H150 L176 121 C150 126 100 127 60 126 C30 125 10 123 0 122 Z" fill="currentColor" fill-opacity="0.08" stroke-width="1.4" />
+  <path class="yd-hatch" d="M20 112 L26 118 M44 114 L50 120 M70 112 L76 118 M100 114 L106 120 M128 112 L134 118" stroke-width="0.9" opacity="0.5" />
+  <path class="yd-slip" d="M156 108 L160 106 M164 114 L168 112 M172 120 L176 118" stroke-width="1.2" />
+  <g class="yd-palm" stroke-width="1.6">
+    <path d="M16 95 C14 84 15 75 20 66" />
+    <path d="M20 66 C13 61 6 63 2 69 M20 66 C26 59 36 59 42 65 M20 66 C17 57 19 50 25 46 M20 66 C28 65 33 70 35 76" />
+  </g>
+  <g class="yd-scaffold" stroke-width="1.4">
+    <path d="M54 104 L68 66 L82 104 M104 104 L118 66 L132 104 M66 70 H120" />
+    <path d="M93 70 V78" stroke-width="1" />
+  </g>
+  <g class="yd-blocks" stroke-width="1.2">
+    <path d="M58 103.5 H66 M88 103.5 H96 M118 103.5 H126" />
+  </g>
+  <g class="yd-ship">
+    <g class="yd-part" data-part="engine" opacity="0.35" stroke-dasharray="3 2.5">
+      <path d="M34 95 H26" stroke-width="1.4" />
+      <ellipse cx="26" cy="91" rx="1.6" ry="4" stroke-width="1.3" />
+      <ellipse cx="26" cy="99" rx="1.6" ry="4" stroke-width="1.3" />
+    </g>
+    <g class="yd-part" data-part="hull" opacity="0.35" stroke-dasharray="3 2.5">
+      <path class="yd-fill" d="M34 95 C52 88 72 87 92 87 C112 87 128 89 138 95 C128 101 112 103 92 103 C72 103 52 102 34 95 Z" stroke-width="1.6" />
+      <path d="M138 93.5 L152 95 L138 96.5 Z" stroke-width="1.3" />
+      <path d="M70 87.3 C74 84.5 110 84.5 114 87.3" stroke-width="1.3" />
+    </g>
+    <g class="yd-part" data-part="windows" opacity="0.35" stroke-dasharray="3 2.5">
+      <rect x="83" y="93" width="7" height="4" rx="2" stroke-width="1.2" />
+      <rect x="96" y="93" width="7" height="4" rx="2" stroke-width="1.2" />
+    </g>
+    <g class="yd-part" data-part="lantern" opacity="0.35" stroke-dasharray="3 2.5">
+      <path d="M76 85.5 L78 80.5 H87 L89 85.5" stroke-width="1.3" />
+      <rect class="yd-light" x="79.5" y="81.8" width="6" height="2.8" rx="1.4" stroke-width="0.9" />
+    </g>
+    <g class="yd-part" data-part="organ" opacity="0.35" stroke-dasharray="3 2.5">
+      <path d="M58 82 V73 L64 71.5 V80" stroke-width="1.2" />
+      <ellipse cx="56.5" cy="82" rx="2" ry="1.5" stroke-width="1.2" />
+      <ellipse cx="62.5" cy="80" rx="2" ry="1.5" stroke-width="1.2" />
+    </g>
+    <g class="yd-flag" opacity="0">
+      <path d="M108 85 V72" stroke-width="1.2" />
+      <path class="yd-pennant" d="M108 72 L119 74.5 L108 77 Z" fill="currentColor" stroke-width="1" />
+    </g>
+  </g>
+  <g class="yd-afloat" transform="translate(157 42) scale(0.8)">
+    <path d="M34 95 H26" stroke-width="1.4" />
+    <ellipse cx="26" cy="91" rx="1.6" ry="4" stroke-width="1.3" />
+    <ellipse cx="26" cy="99" rx="1.6" ry="4" stroke-width="1.3" />
+    <path class="yd-fill" d="M34 95 C52 88 72 87 92 87 C112 87 128 89 138 95 C128 101 112 103 92 103 C72 103 52 102 34 95 Z" stroke-width="1.6" />
+    <path d="M138 93.5 L152 95 L138 96.5 Z" stroke-width="1.3" />
+    <path d="M70 87.3 C74 84.5 110 84.5 114 87.3" stroke-width="1.3" />
+    <rect x="83" y="93" width="7" height="4" rx="2" stroke-width="1.2" />
+    <rect x="96" y="93" width="7" height="4" rx="2" stroke-width="1.2" />
+    <path d="M76 85.5 L78 80.5 H87 L89 85.5" stroke-width="1.3" />
+    <rect class="yd-light" x="79.5" y="81.8" width="6" height="2.8" rx="1.4" stroke-width="0.9" />
+    <g class="yd-flag" opacity="0">
+      <path d="M108 85 V72" stroke-width="1.2" />
+      <path class="yd-pennant" d="M108 72 L119 74.5 L108 77 Z" fill="currentColor" stroke-width="1" />
+    </g>
+  </g>
+  <g class="yd-ripples" stroke-width="1.1" opacity="0">
+    <path d="M184 123 C200 126 220 126 236 123 M244 123 C254 125 266 125 276 122" />
+  </g>
+</svg>
