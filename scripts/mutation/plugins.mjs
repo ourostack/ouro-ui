@@ -123,7 +123,7 @@ export function inDevelopmentCheck(path) {
 export function ignoreReason(path) {
   const literal = path.isStringLiteral() && isClassList(path.node.value);
   const quasis = path.isTemplateLiteral() ? path.node.quasis.map((quasi) => quasi.value.cooked ?? "").filter((text) => text.trim() !== "") : [];
-  if (literal || (quasis.length > 0 && quasis.every(isClassList))) return "Tailwind classes: how a part looks, which the screenshot tests hold";
+  if (literal || (quasis.length > 0 && isClassList(quasis.join(" ")))) return "Tailwind classes: how a part looks, which the screenshot tests hold";
   if (inDevelopmentCheck(path)) return "the development check: every test runs in development";
   return undefined;
 }

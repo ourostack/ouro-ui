@@ -19,6 +19,11 @@ const themeTests = "test/themes/**";
 // announcements), only with OURO_CONFORMANCE=1 (`pnpm conformance`, CI's sharded `conformance` job).
 const conformance = process.env["OURO_CONFORMANCE"] === "1";
 const conformanceTests = "test/conformance/**";
+// A mutation run (`pnpm mutation`, scripts/mutation.mjs): Stryker's mutants are switched on in the
+// browser by scripts/mutation/setup.ts, from the mutant the runner in scripts/mutation/plugins.mjs
+// is running, which the `ouroMutant` command reads in this process.
+const mutation = process.env["OURO_MUTATION"] === "1";
+const mutationCommands = { ouroMutant: () => (globalThis as { __ouroMutant?: string }).__ouroMutant ?? null };
 
 // The repository as its own app: app.css compiles the registry source with Tailwind,
 // and `@/` is the repo root, as in an app's components.json, so registry imports resolve.
@@ -90,7 +95,16 @@ export default defineConfig({
     projects: [
       ...ouroTestProjects({ css, include: ["{registry,test}/**/*.test.{ts,tsx}"] }).map((project) => ({
         ...project,
-        test: { ...project.test, exclude: [...(project.test?.exclude ?? configDefaults.exclude), themeTests, conformanceTests] },
+        test: {
+          ...project.test,
+          exclude: [...(project.test?.exclude ?? configDefaults.exclude), themeTests, conformanceTests],
+          ...(mutation
+            ? {
+                setupFiles: [...[project.test?.setupFiles ?? []].flat(), "./scripts/mutation/setup.ts"],
+                browser: { ...project.test?.browser, commands: { ...project.test?.browser?.commands, ...mutationCommands } },
+              }
+            : {}),
+        },
       })),
       {
         // The landing page and docs site (site/), rendered at the widths it is built for. It

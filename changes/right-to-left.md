@@ -1,0 +1,1 @@
+- Right to left: Dialog's header leaves room for the close button on the side it is on, SegmentedControl's thumb sits under the pressed segment, and vertical Tabs put the indicator at the inline end.

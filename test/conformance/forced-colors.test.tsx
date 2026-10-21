@@ -64,11 +64,11 @@ function edged(element: Element): boolean {
   return boxes(element).some((style) => boxEdged(style, back));
 }
 
-/** Whether an element is shown: rendered, not clipped to a pixel for screen readers only. */
+/** Whether an element is shown: rendered, and not clipped to a pixel for screen readers only (a 1px rule, such as a resize handle, is shown). */
 function shown(element: Element): boolean {
   if (!element.checkVisibility({ visibilityProperty: true, opacityProperty: true })) return false;
   const box = element.getBoundingClientRect();
-  return box.width > 2 && box.height > 2;
+  return box.width * box.height > 4;
 }
 
 /**

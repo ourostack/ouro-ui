@@ -198,6 +198,62 @@ jobs:
           else
             OURO_STORIES=$(node scripts/test-impact.mjs stories "$COMPONENTS") pnpm test:themes --shard="$SHARD/3"
           fi
+  conformance:
+    # The conformance matrix (test/conformance/, docs/guides/conformance.md): every story through
+    # the checks that replace recurring review findings (focus after every action, announcements,
+    # hydration under foreign time zones and locales, right to left, forced colours), in Chromium,
+    # beside the ci job. Each shard takes every nth story (OURO_CONFORMANCE_SHARD, n being the
+    # matrix's size), so the shards finish together and adding one is a one-line change. On a
+    # reduced pull request, only the selected components' stories, and nothing when it selected none.
+    needs: [plan]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    env:
+      FULL: ${{ needs.plan.outputs.full != 'false' }}
+      COMPONENTS: ${{ needs.plan.outputs.components }}
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6]
+    name: conformance (${{ matrix.shard }}/6)
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - id: affected
+        name: Is any story affected?
+        run: |
+          if [ "$FULL" = true ] || [ -n "$COMPONENTS" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Not affected: this pull request changes no component, so no story's conformance can change. Nothing to run."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.affected.outputs.run == 'true'
+        run: pnpm i --frozen-lockfile
+      - if: steps.affected.outputs.run == 'true'
+        run: pnpm exec playwright install --with-deps chromium
+      - if: steps.affected.outputs.run == 'true'
+        name: Conformance
+        env:
+          OURO_CONFORMANCE_SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
+        run: |
+          if [ "$FULL" = true ]; then
+            pnpm conformance
+          else
+            OURO_STORIES=$(node scripts/test-impact.mjs stories "$COMPONENTS") pnpm conformance
+          fi
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: conformance-${{ matrix.shard }}
+          path: .vitest/attachments/
+          if-no-files-found: ignore
   visual:
     # Compares screenshots with the committed baselines, on the image that produced them
     # (visual-baselines.yml). Kept apart from `ci` so that job can follow ubuntu-latest.

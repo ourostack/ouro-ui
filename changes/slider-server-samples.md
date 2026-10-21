@@ -1,0 +1,1 @@
+- Slider without a `locale` reserves its value's width only once hydrated, so server HTML from another locale hydrates without a mismatch.

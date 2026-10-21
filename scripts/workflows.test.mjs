@@ -373,7 +373,7 @@ test("the plan's merge commit has its base: the checkout fetches the merge commi
 test("every job that reads the plan runs whatever happened to it, and runs everything unless it says full=false", () => {
   const jobs = ciJobs();
   const readers = Object.keys(jobs).filter((name) => /needs\.plan\.outputs/.test(jobs[name]));
-  assert.deepEqual(readers.sort(), ["ci", "e2e", "themes"]);
+  assert.deepEqual(readers.sort(), ["ci", "conformance", "e2e", "themes"]);
   for (const name of readers) {
     assert.match(jobs[name], /^ {4}needs: \[plan\]\n {4}if: \$\{\{ !cancelled\(\) \}\}$/m, name);
     const full = jobs[name].match(/^ {6}FULL: \$\{\{ (.+) \}\}$/m)?.[1];
@@ -433,6 +433,27 @@ test("the themes shards pass as not affected when a pull request changes no comp
   const scan = stepScript(block, "Theme scans");
   assert.match(runStep(scan, { FULL: "true", SHARD: "2" }).calls, /CALL pnpm test:themes --shard=2\/3\nOURO_STORIES=unset/);
   assert.match(runStep(scan, { FULL: "false", COMPONENTS: "checkbox-group", SHARD: "2" }).calls, /CALL pnpm test:themes --shard=2\/3\nOURO_STORIES=checkbox$/m);
+});
+
+test("the conformance shards pass as not affected when a pull request changes no component, and check only the selected stories, every nth per shard", () => {
+  const block = ciJobs().conformance;
+  const affected = stepScript(block, "Is any story affected?");
+  const none = runStep(affected, { FULL: "false", COMPONENTS: "" });
+  assert.equal(none.status, 0);
+  assert.equal(none.output.run, "false");
+  assert.match(none.stdout, /^Not affected: /m);
+  assert.equal(runStep(affected, { FULL: "false", COMPONENTS: "dialog" }).output.run, "true");
+  assert.equal(runStep(affected, { FULL: "true", COMPONENTS: "" }).output.run, "true");
+  const later = block.slice(block.indexOf("name: Is any story affected?")).split(/\n {6}- /).slice(1);
+  for (const step of later) assert.match(step, /^if: (steps\.affected\.outputs\.run == 'true'|failure\(\))$/m, step);
+  const run = stepScript(block, "Conformance");
+  assert.match(runStep(run, { FULL: "true" }).calls, /CALL pnpm conformance\nOURO_STORIES=unset/);
+  assert.match(runStep(run, { FULL: "false", COMPONENTS: "checkbox-group" }).calls, /CALL pnpm conformance\nOURO_STORIES=checkbox$/m);
+  // The shard is the matrix entry over the matrix's size, and the job's name says the same count.
+  assert.match(block, /^ {10}OURO_CONFORMANCE_SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\}$/m);
+  const shards = block.match(/^ {8}shard: \[([^\]]*)\]$/m)[1].split(",").map((value) => Number(value.trim()));
+  assert.deepEqual(shards, shards.map((_, index) => index + 1));
+  assert.match(block, new RegExp(`^ {4}name: conformance \\(\\$\\{\\{ matrix\\.shard \\}\\}/${shards.length}\\)$`, "m"));
 });
 
 test("the e2e job runs every spec, or the selected components' and the site's", () => {

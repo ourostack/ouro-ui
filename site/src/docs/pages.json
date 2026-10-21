@@ -1,5 +1,13 @@
 [
   {
+    "name": "conformance",
+    "title": "The conformance matrix",
+    "kind": "guide",
+    "group": "Guides",
+    "markdown": "docs/guides/conformance.md",
+    "summary": "Some review findings come back again and again: focus lost when a control disappears, server HTML that a reader in another time zone or locale cannot hydrate, a part on the wrong side in a right-to-left page, a control that vanishes under forced colours, a message announced twice."
+  },
+  {
     "name": "forms",
     "title": "Forms",
     "kind": "guide",

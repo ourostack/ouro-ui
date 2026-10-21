@@ -1,0 +1,1 @@
+- OtpField's slots narrow to fit a column too narrow for them (eight slots in a phone's grid column), instead of spilling out of it.
