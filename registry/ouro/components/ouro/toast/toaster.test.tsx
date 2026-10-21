@@ -805,6 +805,21 @@ describe("keyboard", () => {
 });
 
 describe("pausing", () => {
+  /**
+   * Shows a 3s toast on a fake Date/setTimeout clock and waits on real frames until it has slid
+   * in. A real countdown can run out during a busy WebKit's host round trip for the hover or key
+   * that pauses it, and expect.poll would advance the fake clock on each retry.
+   */
+  async function showOnFakeClock(message: string) {
+    vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
+    await act(async () => {
+      toast(message, { duration: 3000 });
+    });
+    const item = toastNamed(message)!;
+    while (item.getAnimations().length > 0) await new Promise((resolve) => requestAnimationFrame(resolve));
+    return item;
+  }
+
   it("pauses while the pointer is over the toasts, and resumes after", async () => {
     await render(
       <>
@@ -812,13 +827,22 @@ describe("pausing", () => {
         <Toaster />
       </>,
     );
-    const item = await show("Paused", { duration: 3000 });
-    await userEvent.hover(item);
-    await expect.poll(() => viewport()!.hasAttribute("data-expanded")).toBe(true);
-    await elapse(4000);
-    expect(showing("Paused")).toBe(true);
-    await userEvent.hover(page.getByRole("button", { name: "Elsewhere" }));
-    await gone("Paused");
+    try {
+      const item = await showOnFakeClock("Paused");
+      await userEvent.hover(item);
+      await expect.poll(() => viewport()!.hasAttribute("data-expanded")).toBe(true);
+      await act(async () => { await vi.advanceTimersByTimeAsync(4000); });
+      expect(showing("Paused")).toBe(true);
+      await userEvent.hover(page.getByRole("button", { name: "Elsewhere" }));
+      // It resumes with the whole 3s it had left when the pointer came.
+      await act(async () => { await vi.advanceTimersByTimeAsync(2999); });
+      expect(showing("Paused")).toBe(true);
+      await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+      expect(showing("Paused")).toBe(false);
+      await gone("Paused");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("pauses while a toast has keyboard focus; F6 moves focus to the toasts", async () => {
@@ -829,11 +853,15 @@ describe("pausing", () => {
       </>,
     );
     await userEvent.click(page.getByRole("button", { name: "Before" }));
-    await show("Focused", { duration: 3000 });
-    await userEvent.keyboard("{F6}");
-    await expect.poll(() => viewport()!.contains(document.activeElement)).toBe(true);
-    await elapse(4000);
-    expect(showing("Focused")).toBe(true);
+    try {
+      await showOnFakeClock("Focused");
+      await userEvent.keyboard("{F6}");
+      await expect.poll(() => viewport()!.contains(document.activeElement)).toBe(true);
+      await act(async () => { await vi.advanceTimersByTimeAsync(4000); });
+      expect(showing("Focused")).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
