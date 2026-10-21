@@ -500,6 +500,21 @@ test("a touch into an iframe added just before it is handled", async () => {
   }
 });
 
+// The same smoke test for a frame in another process, where only that frame's own watcher can
+// say it is armed: the touch must wait until Playwright lists the frame, not go out while only the
+// test's own frame is watched (scripts/touch-kit-frames.test.mjs checks that case exactly).
+test("a touch into a cross-origin iframe added just before it is handled", async () => {
+  for (let index = 0; index < 10; index++) {
+    const { frame, report } = await busyFrame(300);
+    await commands.touchStep({ type: "touchStart", x: 100, y: 350 });
+    await commands.touchStep({ type: "touchEnd" });
+    const { armed, sent } = await report();
+    expect(sent).toHaveLength(1);
+    expect(armed[0]!).toBeLessThanOrEqual(sent[0]!);
+    frame.remove();
+  }
+});
+
 test("a lift into a frame that has gone is sent all the same, and throws naming the frame", async () => {
   const frame = document.createElement("iframe");
   Object.assign(frame.style, { position: "absolute", top: "0", left: "0", width: "300px", height: "200px", border: "0" });
