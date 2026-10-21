@@ -6,7 +6,7 @@ import { changedLines, inScope, shardUnits, unitChanges, countDisables, describe
 import { parse } from "@babel/parser";
 import traverse from "@babel/traverse";
 import { ignoreReason, isClassList, testPhases } from "./mutation/plugins.mjs";
-import { dependencyFiles, dependencyHash, harnessFiles, mergeReports, parseTestSeconds, planShards, pruneChangedFiles, scopeReport, shardCost, testSeconds, unmeasuredSeconds } from "./mutation/cache.mjs";
+import { dependencyFiles, dependencyHash, harnessFiles, mergeReports, parseTestSeconds, planShards, pruneChangedFiles, recordSources, scopeReport, shardCost, testSeconds, unmeasuredSeconds } from "./mutation/cache.mjs";
 
 test("runtimeSource takes component and lib code, and leaves tests, stories, types and the test kit", () => {
   for (const path of ["registry/ouro/components/ouro/button/button.tsx", "registry/ouro/components/ouro/dialog/dialog-styles.ts", "registry/ouro/lib/ouro/cn.ts"]) assert.ok(runtimeSource(path), path);
@@ -336,11 +336,48 @@ test("inScope keeps Stryker's results inside the run's own ranges, by a relative
 test("pruneChangedFiles drops the kept mutants of a file whose source changed, since Stryker would reuse a Killed on a line the change left alone", () => {
   const report = { files: { "a.tsx": { source: "old", mutants: [{ id: "0" }] }, "b.tsx": { source: "same", mutants: [{ id: "1" }] }, "gone.tsx": { source: "x", mutants: [] } } };
   const sources = { "a.tsx": "new", "b.tsx": "same" };
-  const pruned = pruneChangedFiles(report, (path) => {
-    if (!(path in sources)) throw new Error("ENOENT");
-    return sources[path];
+  const pruned = pruneChangedFiles(report, {
+    read: (path) => {
+      if (!(path in sources)) throw new Error("ENOENT");
+      return sources[path];
+    },
+    exists: (path) => path in sources,
   });
   assert.deepEqual(Object.keys(pruned.files), ["b.tsx"]);
+});
+
+test("pruneChangedFiles also drops a changed file's kept results when a changed file it imports, directly or through others, changed since: Stryker does not see an import change", () => {
+  const dialog = "registry/ouro/components/ouro/dialog/dialog.tsx";
+  const parts = "registry/ouro/components/ouro/dialog/dialog-parts.tsx";
+  const styles = "registry/ouro/components/ouro/dialog/dialog-styles.ts";
+  const sources = {
+    [dialog]: 'import { Popup } from "@/registry/ouro/components/ouro/dialog/dialog-parts";\nexport const on = "on";',
+    [parts]: 'import { popup } from "./dialog-styles";\nexport const Popup = 1;',
+    [styles]: 'export const popup = "a";',
+    "registry/ouro/components/ouro/other/other.tsx": 'export const other = "x";',
+  };
+  const options = (changes) => ({ changed: [dialog, parts, styles], read: (path) => changes[path] ?? sources[path], exists: (path) => path in sources });
+  const found = recordSources(
+    {
+      files: {
+        [dialog]: { source: sources[dialog], mutants: [{ id: "0", status: "Killed" }] },
+        [parts]: { source: sources[parts], mutants: [{ id: "1", status: "Killed" }] },
+        "registry/ouro/components/ouro/other/other.tsx": { source: sources["registry/ouro/components/ouro/other/other.tsx"], mutants: [{ id: "2", status: "Killed" }] },
+      },
+    },
+    [dialog, parts, styles],
+    (path) => sources[path],
+  );
+  const kept = (changes) => Object.keys(pruneChangedFiles(found, options(changes)).files).sort();
+  assert.deepEqual(kept({}), [parts, dialog, "registry/ouro/components/ouro/other/other.tsx"].sort(), "nothing changed: everything kept");
+  // dialog-parts edited: dialog imports it, so dialog's Killed may be stale too.
+  assert.deepEqual(kept({ [parts]: sources[parts].replace("= 1", "= 2") }), ["registry/ouro/components/ouro/other/other.tsx"]);
+  // dialog-styles has no mutants, so no source of its own in the report: its digest decides, and it reaches dialog through dialog-parts.
+  assert.deepEqual(kept({ [styles]: 'export const popup = "b";' }), ["registry/ouro/components/ouro/other/other.tsx"]);
+  // A changed file with no digest kept (a report from before) counts as changed.
+  assert.deepEqual(Object.keys(pruneChangedFiles({ files: found.files }, options({})).files), ["registry/ouro/components/ouro/other/other.tsx"]);
+  // The digests survive a merge.
+  assert.deepEqual(mergeReports([found, { files: {}, testFiles: {}, ouroSources: { "x.tsx": "1" } }]).ouroSources, { ...found.ouroSources, "x.tsx": "1" });
 });
 
 test("shardUnits makes each changed range of runtime source a unit of its own, with its file's tests, so one large file's mutants can spread across shards", () => {

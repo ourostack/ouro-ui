@@ -16,7 +16,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve as resolvePath } from "node:path";
 import { fileURLToPath } from "node:url";
-import { componentsDir, libDir, planShards, pruneChangedFiles, runtimeSource, scopeReport, shardCost, testFilesFor, testSeconds } from "./mutation/cache.mjs";
+import { componentsDir, libDir, planShards, pruneChangedFiles, recordSources, runtimeSource, scopeReport, shardCost, testFilesFor, testSeconds } from "./mutation/cache.mjs";
 import { ignoreReason } from "./mutation/plugins.mjs";
 
 export { runtimeSource, testFilesFor };
@@ -243,7 +243,10 @@ async function main(args) {
   process.env["OURO_MUTATION_TESTS"] = JSON.stringify(testsByFile);
   const incrementalFile = join(root, ".tmp/stryker-incremental.json");
   const kept = existsSync(incrementalFile) ? JSON.parse(readFileSync(incrementalFile, "utf8")) : null;
-  if (kept) writeFileSync(incrementalFile, JSON.stringify(pruneChangedFiles(kept)));
+  // Every runtime file the pull request changes, a deletion-only change too: what pruneChangedFiles
+  // follows imports to, and what each run records the digest of.
+  const changedFiles = [...new Set(whole.stdout.split("\n").filter((line) => line.startsWith("+++ b/")).map((line) => line.slice(6)))].filter(runtimeSource);
+  if (kept) writeFileSync(incrementalFile, JSON.stringify(pruneChangedFiles(kept, { changed: changedFiles })));
   const { Stryker } = await import("@stryker-mutator/core");
   const stryker = new Stryker({
     mutate,
@@ -274,7 +277,7 @@ async function main(args) {
   } finally {
     // What this run owns, alone: Stryker also writes every kept mutant it did not run, with the
     // status it had, which another shard's fresh result must not meet in the merge.
-    if (existsSync(incrementalFile)) writeFileSync(incrementalFile, JSON.stringify(scopeReport(JSON.parse(readFileSync(incrementalFile, "utf8")), changes)));
+    if (existsSync(incrementalFile)) writeFileSync(incrementalFile, JSON.stringify(recordSources(scopeReport(JSON.parse(readFileSync(incrementalFile, "utf8")), changes), changedFiles)));
   }
   results = results.filter((mutant) => inScope(mutant, changes));
   const surviving = survivors(results);

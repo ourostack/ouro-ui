@@ -218,24 +218,72 @@ export function scopeReport(report, changes) {
   return { ...report, files };
 }
 
+const digest = (text) => createHash("sha256").update(text).digest("hex");
+
 /**
- * The kept report without the results of any file whose source differs from the one they were
- * found on (or that is gone): Stryker would reuse a Killed on a line a change left alone, though
- * what the line does may differ now.
+ * The report with each of `paths`' digest as this run found it (`ouroSources`), for
+ * `pruneChangedFiles`: Stryker keeps a file's source only when it has mutants in the report.
  */
-export function pruneChangedFiles(report, read = (path) => readFileSync(join(root, path), "utf8")) {
-  const same = (path, source) => {
+export function recordSources(report, paths, read = (path) => readFileSync(join(root, path), "utf8")) {
+  const sources = {};
+  for (const path of paths) {
     try {
-      return read(path) === source;
+      sources[path] = digest(read(path));
     } catch {
-      return false;
+      // Gone: no digest, so it counts as changed next time.
+    }
+  }
+  return { ...report, ouroSources: sources };
+}
+
+/**
+ * The kept report without the results of any file that changed since they were found, or that
+ * imports, directly or through other local modules, a changed file of the pull request (`changed`)
+ * that did: Stryker would reuse a Killed on a line a change left alone, and it compares only the
+ * mutated file, not what that imports. A file's state then is its source in the report or its
+ * digest in `ouroSources` (recordSources); a changed file with neither counts as changed.
+ */
+export function pruneChangedFiles(
+  report,
+  { changed = [], read = (path) => readFileSync(join(root, path), "utf8"), exists = (path) => existsSync(join(root, path)) } = {},
+) {
+  const files = report.files ?? {};
+  const current = (path) => {
+    try {
+      return digest(read(path));
+    } catch {
+      return null;
     }
   };
-  return { ...report, files: Object.fromEntries(Object.entries(report.files ?? {}).filter(([path, file]) => same(path, file.source))) };
+  const stored = (path) => (files[path]?.source !== undefined ? digest(files[path].source) : report.ouroSources?.[path]);
+  const stale = new Set([...new Set([...Object.keys(files), ...changed])].filter((path) => stored(path) === undefined || current(path) !== stored(path)));
+  const reachesStale = (path) => {
+    const seen = new Set([path]);
+    const queue = [path];
+    while (queue.length > 0) {
+      const next = queue.shift();
+      if (stale.has(next)) return true;
+      let text;
+      try {
+        text = read(next);
+      } catch {
+        continue;
+      }
+      for (const stem of importsOf(next, text)) {
+        const file = resolve(stem, exists);
+        if (file && !seen.has(file)) {
+          seen.add(file);
+          queue.push(file);
+        }
+      }
+    }
+    return false;
+  };
+  return { ...report, files: Object.fromEntries(Object.entries(files).filter(([path]) => !reachesStale(path))) };
 }
 
 export function mergeReports(reports) {
-  const merged = { ...reports[0], files: {}, testFiles: {} };
+  const merged = { ...reports[0], files: {}, testFiles: {}, ouroSources: Object.assign({}, ...reports.map((report) => report.ouroSources ?? {})) };
   const ids = new Map();
   const canonical = (file, name) => {
     const key = `${file}\0${name}`;

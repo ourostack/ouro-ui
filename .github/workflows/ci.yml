@@ -301,7 +301,8 @@ jobs:
     # every lib/ and theme file, the lockfile, app.css, the Vitest config and setup, the tests the
     # mutants run against, and what all of these and the changed files import (scripts/mutation/
     # cache.mjs key), since Stryker's incremental mode compares only a mutated file; a changed
-    # file's own kept results are dropped before a run (pruneChangedFiles). With results cached
+    # file's kept results are dropped before a run when it or a changed file it imports changed
+    # since (pruneChangedFiles). With results cached
     # under the same hash, three shards; without, five, so a cold run's mutants spread wider. On any
     # other run, three shards that each report nothing to mutate.
     runs-on: ubuntu-latest
