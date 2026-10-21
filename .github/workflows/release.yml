@@ -251,6 +251,29 @@ jobs:
             # also non-zero when only its local branch cleanup fails; the branch is deleted after.
             # Pages is deployed (next step) only once CI on main's new tip has passed.
             gh run watch "$run" --exit-status --interval 30 && gh pr merge "$NEXT_BRANCH" --squash || true
+            # With the merge queue on main, `gh pr merge` queues the pull request instead. A queue
+            # entry made with this workflow's token starts no merge_group run, so CI runs on the
+            # queue's branch by dispatch (its checks report on the commit the queue merges), and
+            # this waits until the queue merges the pull request or drops it.
+            number=$(gh pr view "$NEXT_BRANCH" --json number --jq .number)
+            queue_state() { gh api graphql -f query="query { repository(owner: \"${GITHUB_REPOSITORY%/*}\", name: \"${GITHUB_REPOSITORY#*/}\") { pullRequest(number: $number) { state isInMergeQueue } } }" --jq '.data.repository.pullRequest | "\(.state) \(.isInMergeQueue)"'; }
+            if [ "$(queue_state)" = "OPEN true" ]; then
+              queued=
+              for _ in $(seq 24); do
+                queued=$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/heads/gh-readonly-queue/main/pr-$number-" --jq '.[0].ref // empty' || true)
+                [ -n "$queued" ] && break
+                sleep "${POLL_SECONDS:-5}"
+              done
+              if [ -n "$queued" ] && gh workflow run ci.yml --ref "${queued#refs/heads/}"; then
+                echo "Queued \"Prepare main for the next release\" and ran CI on ${queued#refs/heads/}." >> "$GITHUB_STEP_SUMMARY"
+                for _ in $(seq 120); do
+                  [ "$(queue_state)" = "OPEN true" ] || break
+                  sleep "${POLL_SECONDS:-30}"
+                done
+              else
+                echo "::warning::Could not run CI on the merge queue's branch for #$number; the queue waits for its checks until it times out."
+              fi
+            fi
             if [ "$(gh pr view "$NEXT_BRANCH" --json state --jq .state)" = MERGED ]; then
               echo "Merged \"Prepare main for the next release\"." >> "$GITHUB_STEP_SUMMARY"
               gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/heads/$NEXT_BRANCH" >/dev/null || echo "::notice::Could not delete $NEXT_BRANCH; delete it by hand."

@@ -193,8 +193,9 @@ const releaseStep = (name) => {
   return body.split("\n").map((line) => line.slice(10)).join("\n");
 };
 
-for (const scenario of ["success", "ci-failed", "ci-missing", "dispatch-failed", "not-merged", "approval-failed", "tip-advanced"]) {
-  test(`Release's main CI gate ${scenario === "success" ? "permits" : "blocks"} Pages (${scenario})`, () => {
+for (const scenario of ["success", "queued", "ci-failed", "ci-missing", "dispatch-failed", "not-merged", "queue-dropped", "approval-failed", "tip-advanced"]) {
+  const passes = ["success", "queued"].includes(scenario);
+  test(`Release's main CI gate ${passes ? "permits" : "blocks"} Pages (${scenario})`, () => {
     // Execute the workflow's actual shell, substituting only GitHub/network operations.
     // gh merge exits non-zero even when state says MERGED, exercising independent readback.
     const prepare = releaseStep("Prepare main for the next release");
@@ -205,8 +206,10 @@ for (const scenario of ["success", "ci-failed", "ci-missing", "dispatch-failed",
     const fixture = mkdtempSync(join(scratch, "release-main-gate-"));
     const output = join(fixture, "output.txt");
     const summary = join(fixture, "summary.md");
+    const looks = join(fixture, "queue-looks.txt");
     writeFileSync(output, "");
     writeFileSync(summary, "");
+    writeFileSync(looks, "0");
     console.info(`Release gate fixture: ${fixture}`);
     const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", `
       gh() {
@@ -215,7 +218,19 @@ for (const scenario of ["success", "ci-failed", "ci-missing", "dispatch-failed",
           "api -X POST "*"/approve") [ "$SCENARIO" != approval-failed ] ;;
           "run watch 1 "*) return 0 ;;
           "pr merge "*) return 1 ;;
-          "pr view "*"--json state"*) if [ "$SCENARIO" = not-merged ]; then echo OPEN; else echo MERGED; fi ;;
+          "pr view "*"--json number"*) echo 9 ;;
+          # The merge queue: queued, then merged (or dropped) on the next look.
+          "api graphql "*)
+            looks=$(( $(cat "$QUEUE_LOOKS") + 1 )); echo "$looks" > "$QUEUE_LOOKS"
+            case "$SCENARIO:$looks" in
+              queued:1|queue-dropped:1) echo "OPEN true" ;;
+              queued:*) echo "MERGED false" ;;
+              not-merged:*|queue-dropped:*) echo "OPEN false" ;;
+              *) echo "MERGED false" ;;
+            esac ;;
+          "api repos/ourostack/ouro-ui/git/matching-refs/heads/gh-readonly-queue/main/pr-9-"*) echo refs/heads/gh-readonly-queue/main/pr-9-abc ;;
+          "workflow run ci.yml --ref gh-readonly-queue/main/pr-9-abc") return 0 ;;
+          "pr view "*"--json state"*) if [ "$SCENARIO" = not-merged ] || [ "$SCENARIO" = queue-dropped ]; then echo OPEN; else echo MERGED; fi ;;
           "pr view "*"--json body"*) echo body ;;
           "pr edit "*|"api -X DELETE "*) return 0 ;;
           "api "*"commits/main"*) echo aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ;;
@@ -240,10 +255,17 @@ for (const scenario of ["success", "ci-failed", "ci-missing", "dispatch-failed",
       ${deploy}
     `], {
       cwd: root, encoding: "utf8",
-      env: { ...process.env, SCENARIO: scenario, NEXT_BRANCH: "prepare/after-v9.9.9", TAG: "v9.9.9", GITHUB_REPOSITORY: "ourostack/ouro-ui", GITHUB_STEP_SUMMARY: summary, GITHUB_OUTPUT: output },
+      env: { ...process.env, SCENARIO: scenario, NEXT_BRANCH: "prepare/after-v9.9.9", TAG: "v9.9.9", GITHUB_REPOSITORY: "ourostack/ouro-ui", GITHUB_STEP_SUMMARY: summary, GITHUB_OUTPUT: output, QUEUE_LOOKS: looks },
     });
     assert.doesNotMatch(result.stderr, /Unexpected gh call:/);
-    if (scenario === "success") {
+    if (scenario.startsWith("queue")) {
+      // Queued by the workflow's token: CI runs on the queue's branch by dispatch.
+      assert.match(result.stderr, /CALL workflow run ci\.yml --ref gh-readonly-queue\/main\/pr-9-abc/);
+      assert.match(result.stderr, /CALL api graphql -f query=query \{ repository\(owner: "ourostack", name: "ouro-ui"\) \{ pullRequest\(number: 9\) \{ state isInMergeQueue \} \} \}/);
+    } else {
+      assert.doesNotMatch(result.stderr, /gh-readonly-queue/);
+    }
+    if (passes) {
       assert.equal(result.status, 0, result.stderr);
       assert.match(readFileSync(output, "utf8"), /main_sha=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/);
       assert.match(result.stderr, /CALL workflow run pages.yml --ref main/);
