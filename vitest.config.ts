@@ -74,6 +74,9 @@ export default defineConfig({
       "@base-ui/react/toggle-group",
       "@base-ui/react/tooltip",
       "recharts",
+      // The hydration check's frames (test/conformance/frame.tsx) import it only once they load,
+      // too late for Vite's scan: found mid-run, it reloads the page and drops the next test file.
+      "react-dom/server",
     ],
   },
   test: {
