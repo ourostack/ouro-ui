@@ -343,40 +343,47 @@ export async function score({ arm, screen, dir: given, out: outGiven, record: re
   const lint = charge(await lintFindings(dir), record?.baseline.lint ?? [], "oxlint reported no error.");
   log("vite build");
   const dist = mkdtempSync(join(tmpdir(), "agent-usability-dist-"));
-  const built = await run(bin(dir, "vite"), ["build", "--outDir", dist, "--emptyOutDir", "--logLevel", "warn"], dir);
-  const build = { pass: built.ok && existsSync(join(dist, "index.html")), output: tail(built.output) || "vite build passed." };
-
   const screenshots: string[] = [];
   const { checks } = checksFor(screen);
+  let build: { pass: boolean; output: string };
   let axe: AxeConfig[];
   let behavior: BehaviorResult[];
   let chromiumVersion: string | null = null;
-  if (build.pass) {
-    const { server, url } = await serve(dist);
-    const browser = await chromium.launch();
-    chromiumVersion = browser.version();
-    expect.configure({ timeout: 5000 });
-    try {
-      log("axe and screenshots");
-      axe = await axeConfigs(browser, url, screen, out, screenshots);
-      log("behavior checks");
-      const dead = axe.every((axeConfig) => axeConfig.states[0]?.reached === false);
-      // Every check starts by waiting for the screen. When it loaded in none of the four
-      // configurations, that wait has already failed four times.
-      behavior = dead
-        ? checks.map((check) => ({ id: check.id, title: check.title, covers: check.covers, viewport: check.viewport, gate: check.gate !== false, pass: false, error: `the screen never loaded: ${axe[0]!.states[0]!.error}` }))
-        : await behaviors(browser, url, screen);
-    } finally {
-      await browser.close();
-      server.close();
+  // The build is removed whatever happens, a server or browser that fails to start included.
+  try {
+    const built = await run(bin(dir, "vite"), ["build", "--outDir", dist, "--emptyOutDir", "--logLevel", "warn"], dir);
+    build = { pass: built.ok && existsSync(join(dist, "index.html")), output: tail(built.output) || "vite build passed." };
+    if (build.pass) {
+      const { server, url } = await serve(dist);
+      try {
+        const browser = await chromium.launch();
+        chromiumVersion = browser.version();
+        expect.configure({ timeout: 5000 });
+        try {
+          log("axe and screenshots");
+          axe = await axeConfigs(browser, url, screen, out, screenshots);
+          log("behavior checks");
+          const dead = axe.every((axeConfig) => axeConfig.states[0]?.reached === false);
+          // Every check starts by waiting for the screen. When it loaded in none of the four
+          // configurations, that wait has already failed four times.
+          behavior = dead
+            ? checks.map((check) => ({ id: check.id, title: check.title, covers: check.covers, viewport: check.viewport, gate: check.gate !== false, pass: false, error: `the screen never loaded: ${axe[0]!.states[0]!.error}` }))
+            : await behaviors(browser, url, screen);
+        } finally {
+          await browser.close();
+        }
+      } finally {
+        server.close();
+      }
+    } else {
+      axe = (["phone", "desktop"] as const).flatMap((viewport) =>
+        themes.map((theme) => ({ viewport, width: viewports[viewport].viewport!.width, theme, pass: false, states: [], violations: [], advisories: [] })),
+      );
+      behavior = checks.map((check) => ({ id: check.id, title: check.title, covers: check.covers, viewport: check.viewport, gate: check.gate !== false, pass: false, error: "the app did not build" }));
     }
-  } else {
-    axe = (["phone", "desktop"] as const).flatMap((viewport) =>
-      themes.map((theme) => ({ viewport, width: viewports[viewport].viewport!.width, theme, pass: false, states: [], violations: [], advisories: [] })),
-    );
-    behavior = checks.map((check) => ({ id: check.id, title: check.title, covers: check.covers, viewport: check.viewport, gate: check.gate !== false, pass: false, error: "the app did not build" }));
+  } finally {
+    rmSync(dist, { recursive: true, force: true });
   }
-  rmSync(dist, { recursive: true, force: true });
 
   const harness = await run("git", ["-C", root, "rev-parse", "HEAD"], root);
   const counted = build.pass && fixtures.pass;

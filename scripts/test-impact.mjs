@@ -5,8 +5,13 @@
 //
 //   node scripts/test-impact.mjs plan <base> <head>   the plan job: prints the plan and writes
 //                                                     `full` and `components` to $GITHUB_OUTPUT
-//   node scripts/test-impact.mjs vitest <components>  the ci job: the browser tests of those
-//                                                     components (see runBrowserTests)
+//   node scripts/test-impact.mjs vitest <components> --shard <index>/<count>
+//                                                     a browser test shard: its share of the
+//                                                     browser tests of those components
+//                                                     (see runBrowserShard)
+//   node scripts/test-impact.mjs coverage <dir> <components> --shards <count>
+//                                                     the ci job: the shards' merged coverage,
+//                                                     or the full suite (see decideReducedRun)
 //   node scripts/test-impact.mjs e2e <components>     the e2e job's Playwright arguments
 //   node scripts/test-impact.mjs stories <components> OURO_STORIES for the themes job
 //
@@ -15,7 +20,6 @@ import { spawn as spawnChild, spawnSync } from "node:child_process";
 import { appendFileSync, existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { stripVTControlCharacters } from "node:util";
 import ts from "typescript";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -303,7 +307,7 @@ function libFilesLoadedBy(folders, root) {
  * the site's tests. Coverage is measured over those folders and lib/ files at the repository's
  * thresholds: a changed test may have been the only one to reach a branch in what it or its
  * component imports, so that code is measured too. When a line there is reached only by an unselected
- * component's tests, the full suite decides (runBrowserTests). The rest of lib/ is left out, as
+ * component's tests, the full suite decides (decideReducedRun). The rest of lib/ is left out, as
  * nothing the change touches loads it: measuring all of it would send every reduced run to the
  * full suite (lib/ouro/toast.ts, for one, is reached only by the toast component's tests).
  */
@@ -327,54 +331,58 @@ export function e2eArgs(components, root = repoRoot) {
   return [...components.map((stem) => `${e2eDir}${stem}.spec.ts`).filter((path) => existsSync(join(root, path))), "site/e2e/"];
 }
 
-const plain = (text) => stripVTControlCharacters(text);
-
-/** Whether a Vitest run failed on a coverage threshold alone: every test passed and nothing else went wrong. */
-export function coverageOnlyFailure(log) {
-  const text = plain(log);
-  return /does not meet (the )?global threshold/.test(text) && /Test Files\s+\d+ passed/.test(text) && !/\d+ failed/.test(text) && !/Unhandled (Errors?|Rejection)/i.test(text);
-}
-
-/** Runs a command, streaming its output and keeping it. */
-function spawnAndKeep(command, args, env) {
+/** Runs a command, streaming its output. */
+function spawnAndWait(command, args, env) {
   return new Promise((done) => {
-    const child = spawnChild(command, args, { cwd: repoRoot, env, stdio: ["inherit", "pipe", "pipe"] });
-    let log = "";
-    child.stdout.on("data", (chunk) => {
-      log += chunk;
-      process.stdout.write(chunk);
-    });
-    child.stderr.on("data", (chunk) => {
-      log += chunk;
-      process.stderr.write(chunk);
-    });
-    child.on("close", (status) => done({ status: status ?? 1, log }));
+    const child = spawnChild(command, args, { cwd: repoRoot, env, stdio: "inherit" });
+    child.on("close", (status) => done({ status: status ?? 1 }));
   });
 }
 
+/** The component stems whose motion maps a reduced run holds complete: the selected ones and the rest of their folders. */
+export function reducedStems(components, root = repoRoot) {
+  return [...new Set([...components, ...foldersFor(components, root).flatMap((folder) => readFolders(root).get(folder) ?? [])])].sort();
+}
+
 /**
- * The ci job's browser tests on a reduced pull request: the selected components' tests and the
- * shared suites over their stories (vitestArgs). A component can reach 100% only through another
- * component's tests, so when every test passed and only coverage failed, the full `pnpm test`
- * decides instead. Writes `reduced` (whether the reduced run stands) and `stems` (the components
- * whose motion maps the motion-coverage job checks) as step outputs.
+ * One CI browser test shard of a pull request's reduced run (`--shard=<index>/<count>`, see
+ * scripts/vitest-shards.mts): its share of the selected components' tests, and its slice of the
+ * shared suites over their stories (vitestArgs). The coverage thresholds apply to the merge of every
+ * shard's coverage, in the ci job (decideReducedRun).
  */
-export async function runBrowserTests(components, { root = repoRoot, spawn = spawnAndKeep, output = (line) => appendFileSync(process.env["GITHUB_OUTPUT"] ?? "/dev/null", `${line}\n`), log = console.log } = {}) {
+export async function runBrowserShard(components, shard, { root = repoRoot, spawn = spawnAndWait, log = console.log } = {}) {
   const env = { ...process.env, OURO_STORIES: storyFolders(components, root) };
-  log(`Reduced run: the tests of ${components.join(", ") || "no component"}, the shared suites over the stories in ${env.OURO_STORIES || "no folder"}, and the site's tests.`);
-  const reduced = await spawn("pnpm", ["exec", "vitest", "run", ...vitestArgs(components, root)], env);
-  if (reduced.status === 0 || !coverageOnlyFailure(reduced.log)) {
-    const stems = [...new Set([...components, ...foldersFor(components, root).flatMap((folder) => readFolders(root).get(folder) ?? [])])].sort();
+  log(`Reduced run, shard ${shard}: the tests of ${components.join(", ") || "no component"}, the shared suites over the stories in ${env.OURO_STORIES || "no folder"}, and the site's tests.`);
+  return (await spawn("pnpm", ["exec", "vitest", "run", ...vitestArgs(components, root), `--shard=${shard}`], env)).status;
+}
+
+/**
+ * The ci job's verdict on a reduced run, once every browser test shard passed: the shards' merged
+ * coverage (scripts/coverage-merge.mjs, over the files vitestArgs measures) must reach 100%. A
+ * component can reach 100% only through another component's tests, so when it falls short, the full
+ * `pnpm test` decides instead, in this job. Writes `reduced` (whether the reduced run stands),
+ * `stems` (the components whose motion maps the motion-coverage job checks) and `fallback` (whether
+ * the full suite ran here, writing its own motion evidence).
+ */
+export async function decideReducedRun(components, coverageDir, shards, { root = repoRoot, spawn = spawnAndWait, output = (line) => appendFileSync(process.env["GITHUB_OUTPUT"] ?? "/dev/null", `${line}\n`), log = console.log } = {}) {
+  const measured = vitestArgs(components, root).includes("--coverage");
+  const merged = measured ? await spawn("node", ["scripts/coverage-merge.mjs", coverageDir, "--shards", String(shards)], process.env) : { status: 0 };
+  if (!measured) log("The reduced run measured no coverage: it selected no component.");
+  if (merged.status !== 0 && merged.status !== 1) return merged.status;
+  if (merged.status === 0) {
     output("reduced=true");
-    output(`stems=${stems.join(",")}`);
-    return reduced.status;
+    output(`stems=${reducedStems(components, root).join(",")}`);
+    output("fallback=false");
+    return 0;
   }
   log("::warning::Every selected test passed but coverage fell short: a line may be covered only by another component's tests. Running the full suite to decide.");
   const fullEnv = { ...process.env };
   delete fullEnv.OURO_STORIES;
-  const all = await spawn("pnpm", ["test"], fullEnv);
+  const browsers = await spawn("pnpm", ["exec", "playwright", "install", "--with-deps", "chromium", "webkit"], fullEnv);
+  const all = browsers.status === 0 ? await spawn("pnpm", ["test"], fullEnv) : browsers;
   output("reduced=false");
   output("stems=");
+  output("fallback=true");
   return all.status;
 }
 
@@ -391,7 +399,15 @@ async function main([command, ...args]) {
     if (process.env["GITHUB_OUTPUT"]) appendFileSync(process.env["GITHUB_OUTPUT"], `full=${impact.full}\ncomponents=${impact.full ? "" : impact.components.join(",")}\n`);
     return 0;
   }
-  if (command === "vitest") return runBrowserTests(list(args[0]));
+  if (command === "vitest") {
+    const shard = args[1] === "--shard" ? args[2] : undefined;
+    if (!shard) throw new Error("Usage: node scripts/test-impact.mjs vitest <components> --shard <index>/<count>");
+    return runBrowserShard(list(args[0]), shard);
+  }
+  if (command === "coverage") {
+    if (args[2] !== "--shards") throw new Error("Usage: node scripts/test-impact.mjs coverage <dir> <components> --shards <count>");
+    return decideReducedRun(list(args[1]), args[0], args[3]);
+  }
   if (command === "e2e") {
     console.log(e2eArgs(list(args[0])).join(" "));
     return 0;
@@ -400,7 +416,7 @@ async function main([command, ...args]) {
     console.log(storyFolders(list(args[0])));
     return 0;
   }
-  console.error("Usage: node scripts/test-impact.mjs plan <base> <head> | vitest <components> | e2e <components> | stories <components>");
+  console.error("Usage: node scripts/test-impact.mjs plan <base> <head> | vitest <components> --shard <index>/<count> | coverage <dir> <components> --shards <count> | e2e <components> | stories <components>");
   return 2;
 }
 

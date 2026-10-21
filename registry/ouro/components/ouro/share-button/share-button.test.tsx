@@ -139,7 +139,9 @@ describe("ShareButton", () => {
       const { button } = await render(<ShareButton url="https://example.com" />);
       await userEvent.click(button);
       await expect.poll(() => announced.count("Link copied")).toBe(1);
-      await userEvent.click(button);
+      // By either name: on a loaded runner the label can go back to Share within its two seconds
+      // before the click lands, and a click then must say Link copied again all the same.
+      await userEvent.click(page.getByRole("button", { name: /^(Link copied|Share)$/ }));
       await expect.poll(() => announced.count("Link copied")).toBe(2);
     } finally {
       announced.stop();

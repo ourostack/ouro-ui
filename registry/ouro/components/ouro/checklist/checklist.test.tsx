@@ -1,4 +1,5 @@
 import { useLayoutEffect, useState, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -185,7 +186,9 @@ describe("Checklist", () => {
     ] as const) {
       await commands.emulateMedia({ reducedMotion: reduced ? "reduce" : "no-preference" });
       await expect.poll(() => running(oats).length).toBe(0);
-      await act(() => box.click());
+      // No await between the click and the motion checks: act's await ends on a later task, and a
+      // loaded browser can run a 150ms transition to its end before that task comes.
+      flushSync(() => box.click());
       const checking = state === "data-checked";
       if (checking && !reduced) {
         // The box fills, the tick draws once it has, and the strike follows the tick.
@@ -260,7 +263,7 @@ describe("Checklist", () => {
     const [x] = getComputedStyle(strike).transformOrigin.split(" ").map(Number.parseFloat);
     expect(x).toBeGreaterThan(0);
     expect(x).toBeCloseTo(strike.offsetWidth, 0);
-    await act(() => partOf(oats, "box").click());
+    flushSync(() => partOf(oats, "box").click());
     await Promise.all([
       expectMotion(strike, { stem: "checklist", state: "data-checked", properties: { scale: draw }, reduced: false, dir: "rtl" }),
       expectMotion(partOf(oats, "tick"), { stem: "checklist", state: "data-checked", properties: { "stroke-dashoffset": draw }, reduced: false, dir: "rtl" }),
