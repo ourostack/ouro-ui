@@ -393,9 +393,9 @@ test("touches reach a cross-origin iframe, and a cross-origin iframe does not ho
 });
 
 // TEMPORARY (diagnostics run for the slow idle cross-origin tap; removed before review).
-test("TEMP: a tap beside a cross-origin iframe just added, 30 times", async () => {
+test("TEMP: a tap beside a cross-origin iframe just added, 60 times", async () => {
   const times: number[] = [];
-  for (let index = 0; index < 30; index++) {
+  for (let index = 0; index < 60; index++) {
     const frame = document.createElement("iframe");
     frame.setAttribute("sandbox", "allow-scripts");
     Object.assign(frame.style, { position: "absolute", top: "300px", left: "0", width: "300px", height: "100px", border: "0" });

@@ -394,7 +394,7 @@ function frameIdOf(page: Page, frame: Frame): Promise<string | undefined> {
 }
 
 /** A touch command that takes longer than this logs what it waited for (`TouchTrace`). */
-const TOUCH_SLOW_MS = 1000;
+const TOUCH_SLOW_MS = 300;
 
 /**
  * What one touch command waited for, logged when it is slow: its steps with their times, and when
