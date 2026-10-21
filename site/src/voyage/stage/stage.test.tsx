@@ -4,7 +4,8 @@ import proof, { install } from "virtual:site-proof";
 import { cleanupPage, renderPage, setScheme } from "../../../test/render";
 import { fleschKincaid, syllables } from "../../../test/readability";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
-import { EYEBROW, INSTALL_CAPTION, INSTALL_COMMAND } from "../hero";
+import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
+import { EYEBROW, INSTALL_CAPTION, INSTALL_COMMAND, RELEASE_HREF } from "../hero";
 import { latestRelease } from "../../latest-release";
 import { allStageText, bandAt, BELL_TOASTS, describeScene, LOG, OPENING_LOG, STAGE_CONTROLS, STAGE_COPY, TANKS } from "./copy";
 import { art, parseArt } from "./art";
@@ -16,11 +17,10 @@ import { art, parseArt } from "./art";
 
 const root = document.documentElement;
 const scene = () => document.querySelector<SVGSVGElement>(".stage-scene")!;
-// The log's lines on a wide screen, oldest first: the folded earlier lines, then the newest one.
-const logText = () =>
-  [...document.querySelectorAll(".stage-fold-wide [data-ouro='message']"), ...document.querySelectorAll(".stage-log-newest [data-ouro='message']")].map((message) => message.textContent ?? "");
+// The log's lines, oldest first, as its fold holds them; the newest is also the crew's line under the porthole.
+const logText = () => [...document.querySelectorAll(".stage-log-fold [data-ouro='message']")].map((message) => message.textContent ?? "");
 const TANK_NAMES = TANKS.map((tank) => tank.name);
-const lastLog = () => logText().at(-1) ?? "";
+const lastLog = () => document.querySelector("[data-stage-crew] .stage-crew-words")?.textContent ?? "";
 
 beforeEach(async () => {
   await commands.emulateMedia({ reducedMotion: "reduce" });
@@ -76,6 +76,14 @@ describe("the hero", () => {
     await expect.element(page.getByText(STAGE_COPY.real)).toBeVisible();
   });
 
+  it("shows the release the command pins beside it, linking to that release", async () => {
+    await renderPage("/voyage/");
+    const release = page.getByRole("link", { name: `${latestRelease} · latest release` });
+    await expect.element(release).toHaveAttribute("href", `https://github.com/ourostack/ouro-ui/releases/tag/${latestRelease}`);
+    expect(RELEASE_HREF).toBe(`https://github.com/ourostack/ouro-ui/releases/tag/${latestRelease}`);
+    expect(release.element().closest(".site-install-block")).toBe(document.querySelector("[data-site-install]")!.closest(".site-install-block"));
+  });
+
   it("links each proof claim, computed from the repository, to its evidence", async () => {
     await renderPage("/voyage/");
     expect(proof.line).toBe(proof.claims.map((claim) => claim.text).join(" · "));
@@ -110,10 +118,12 @@ describe("the stage's controls", () => {
     expect(marked).toEqual([...STAGE_CONTROLS]);
   });
 
-  it("opens with the captain's welcome", async () => {
+  it("opens with the captain's welcome under the porthole, and in the log", async () => {
     await renderPage("/voyage/");
     expect(logText()).toHaveLength(OPENING_LOG.length);
     expect(logText()[0]).toContain(OPENING_LOG[0]!.text);
+    expect(lastLog()).toBe(`${OPENING_LOG[0]!.name}: ${OPENING_LOG[0]!.text}`);
+    await expect.element(page.elementLocator(document.querySelector("[data-stage-crew]")!)).toBeVisible();
   });
 
   it("takes the porthole down with the depth slider, and the crew says when the water changes", async () => {
@@ -205,37 +215,44 @@ describe("the stage's controls", () => {
     expect(ring()).toBe("b");
   });
 
-  it("keeps the newest three lines in the log: the newest in view, the rest folded", async () => {
+  it("keeps the newest five lines in the log, the newest also under the porthole", async () => {
     await renderPage("/voyage/");
     const fold = page.getByRole("button", { name: /^Ship's log \(/ });
-    // Folded until something happens: the welcome is under "Ship's log (1)", and no line shows.
     await expect.element(fold).toHaveAccessibleName(STAGE_COPY.logAll(1));
-    expect(document.querySelectorAll(".stage-log-newest [data-ouro='message']")).toHaveLength(0);
-    for (const name of ["Full", "Stop", "Half", "Full"]) await userEvent.click(page.getByRole("radio", { name }));
-    await expect.poll(() => logText()[0]).toContain(LOG.speed.stop.text);
-    expect(logText()).toHaveLength(3);
-    await expect.poll(lastLog).toContain(LOG.speed.full.text);
-    const wide = () => page.elementLocator(document.querySelector(".stage-fold-wide")!);
-    await expect.element(wide().getByText(LOG.speed.stop.text)).not.toBeVisible();
+    for (const name of ["Full", "Stop", "Half", "Full", "Stop"]) await userEvent.click(page.getByRole("radio", { name }));
+    await expect.poll(lastLog).toContain(LOG.speed.stop.text);
+    await expect.poll(() => logText()[0]).toContain(LOG.speed.full.text);
+    expect(logText()).toHaveLength(5);
+    await expect.element(fold).toHaveAccessibleName(STAGE_COPY.logAll(5));
+    const log = () => page.elementLocator(document.querySelector(".stage-log-fold")!);
+    await expect.element(log().getByText(LOG.speed.half.text)).not.toBeVisible();
     await userEvent.click(fold);
-    await expect.element(wide().getByText(LOG.speed.stop.text)).toBeVisible();
-    await expect.element(fold).toHaveAccessibleName(STAGE_COPY.logFold(2));
+    await expect.element(log().getByText(LOG.speed.half.text)).toBeVisible();
   });
 
-  it("folds the whole log behind \"Ship's log\" on a phone, so the console stays short", async () => {
+  it("reads each crew line once, with the ship's log folded or open", async () => {
+    await renderPage("/voyage/");
+    const announced = watchAnnouncements();
+    // A folded panel is hidden, and a screen reader hears nothing from a live region inside it.
+    const heard = (text: string) => announced.matching(text).filter((each) => !each.region.closest("[hidden]")).length;
+    await userEvent.click(page.getByRole("radio", { name: "Full" }));
+    await expect.poll(() => heard(LOG.speed.full.text)).toBe(1);
+    await userEvent.click(page.getByRole("button", { name: /^Ship's log \(/ }));
+    await userEvent.click(page.getByRole("radio", { name: "Stop" }));
+    await expect.poll(() => heard(LOG.speed.stop.text)).toBe(1);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect([heard(LOG.speed.full.text), heard(LOG.speed.stop.text)]).toEqual([1, 1]);
+    announced.stop();
+  });
+
+  it("keeps the crew's line with the porthole on a phone, pinned under the header", async () => {
     await page.viewport(390, 844);
     await renderPage("/voyage/");
-    const fold = page.getByRole("button", { name: /^Ship's log \(/ });
-    await expect.element(fold).toHaveAccessibleName(STAGE_COPY.logAll(1));
-    // A fresh locator each time: it is built from the element's text, which changes.
-    const narrow = () => page.elementLocator(document.querySelector(".stage-fold-narrow")!);
-    expect(getComputedStyle(document.querySelector(".stage-log-now")!).display).toBe("none");
-    await expect.element(narrow().getByText(OPENING_LOG[0]!.text)).not.toBeVisible();
+    const crew = document.querySelector("[data-stage-crew]")!;
+    expect(crew.closest(".stage-window")).not.toBeNull();
+    expect(getComputedStyle(document.querySelector(".stage-window")!).position).toBe("sticky");
     await userEvent.click(page.getByRole("radio", { name: "Full" }));
-    await expect.element(fold).toHaveAccessibleName(STAGE_COPY.logAll(2));
-    await userEvent.click(fold);
-    await expect.element(narrow().getByText(OPENING_LOG[0]!.text)).toBeVisible();
-    await expect.element(narrow().getByText(LOG.speed.full.text)).toBeVisible();
+    await expect.poll(lastLog).toContain(LOG.speed.full.text);
   });
 });
 
@@ -244,7 +261,7 @@ describe("the stage's colours", () => {
     await renderPage("/voyage/");
     const paint = () => {
       const sea = getComputedStyle(document.querySelector(".stage-sea-top")!).stopColor;
-      const rim = getComputedStyle(document.querySelector(".stage-rim-ring")!).stroke;
+      const rim = getComputedStyle(document.querySelector(".stage-metal-mid")!).stopColor;
       return `${sea} ${rim}`;
     };
     const seen = new Set<string>();

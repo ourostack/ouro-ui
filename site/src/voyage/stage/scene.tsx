@@ -159,6 +159,17 @@ const Defs = memo(function Defs(): JSX.Element {
         <stop offset="0" className="stage-shadow-core" />
         <stop offset="1" className="stage-shadow-edge" />
       </radialGradient>
+      <linearGradient id="stage-metal" x1="0.15" y1="0" x2="0.85" y2="1">
+        <stop offset="0" className="stage-metal-light" />
+        <stop offset="0.45" className="stage-metal-mid" />
+        <stop offset="0.8" className="stage-metal-dark" />
+        <stop offset="1" className="stage-metal-glint" />
+      </linearGradient>
+      <linearGradient id="stage-layer" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" className="stage-layer-edge" />
+        <stop offset="0.5" className="stage-layer-core" />
+        <stop offset="1" className="stage-layer-edge" />
+      </linearGradient>
       <radialGradient id="stage-vignette" cx="0.5" cy="0.5" r="0.5">
         <stop offset="0.72" className="stage-vignette-clear" />
         <stop offset="1" className="stage-vignette-edge" />
@@ -203,6 +214,11 @@ const Sea = memo(function Sea(): JSX.Element {
       </g>
       {/* The far reef, faint in the water's own colour: the first of the depth's layers. */}
       <path className="stage-far" d="M0 392 C40 360 92 372 136 350 C176 332 214 360 256 346 C300 330 340 356 380 340 C420 326 452 348 480 340 L480 480 L0 480 Z" />
+      {/* Bands of brighter water hanging at different depths, so the sea has layers between the fish. */}
+      <g className="stage-layers" aria-hidden="true">
+        <rect x="0" y="212" width="480" height="70" fill="url(#stage-layer)" />
+        <rect x="0" y="300" width="480" height="56" fill="url(#stage-layer)" />
+      </g>
       <g className="stage-floor">
         <g className="stage-kelp">
           <Drawing of={art.kelp} x={18} y={250} width={74} />
@@ -210,6 +226,11 @@ const Sea = memo(function Sea(): JSX.Element {
           <Drawing of={art.kelp} x={330} y={330} width={44} />
         </g>
         <Drawing of={art.seabed} x={0} y={392} width={480} className="stage-seabed" />
+        {/* The sun's net of light on the sand, in the sunlit water only. */}
+        <g className="stage-floor-caustics">
+          <path d="M40 452 C60 444 76 458 98 450 S136 444 152 456 M172 448 C192 440 210 454 230 446 S270 440 288 452 M306 446 C326 438 344 452 364 444 S404 440 424 450" />
+          <path d="M70 466 C90 460 104 470 124 464 S160 458 178 468 M206 462 C226 456 244 466 262 460 S298 456 316 466 M338 462 C358 456 374 468 396 460" />
+        </g>
       </g>
     </>
   );
@@ -252,11 +273,11 @@ const Ship = memo(function Ship(): JSX.Element {
   return (
     <>
       <g className="stage-nautilus">
-        <path className="stage-beam" d="M232 8 L600 -112 L600 228 Z" fill="url(#stage-beam)" />
+        <path className="stage-beam" d="M194 16 L600 -110 L600 238 Z" fill="url(#stage-beam)" />
         <Wake />
         <ellipse className="stage-hull-shadow" cx="208" cy="76" rx="180" ry="12" fill="url(#stage-shadow)" />
         <Drawing of={art.nautilus} x={0} y={0} width={440} className="stage-ship" />
-        <circle className="stage-lantern-glow" cx="227" cy="8" r="22" fill="url(#stage-glow)" />
+        <circle className="stage-lantern-glow" cx="194" cy="16" r="30" fill="url(#stage-glow)" />
       </g>
       {/* The sea in front of the hull at the surface: the platform stands three feet out of the water. */}
       <g className="stage-surface-world stage-surface-front" aria-hidden="true">
@@ -318,7 +339,11 @@ const Glass = memo(function Glass(): JSX.Element {
       <path className="stage-glare" d="M70 120 C92 74 140 40 196 28" />
       <circle className="stage-glint" cx="214" cy="40" r="3.5" />
       <path className="stage-glare stage-glare-low" d="M396 392 C372 420 340 440 300 452" />
-      <circle className="stage-rim-shade" cx="240" cy="240" r="236" />
+      {/* A pale reflection of the room behind you, high on the right of the glass. */}
+      <path className="stage-reflection" d="M306 26 C366 42 414 80 444 132 L436 137 C406 88 360 52 302 36 Z" />
+      {/* The glass sits deep in the rim: its shadow falls on the water all the way round. */}
+      <circle className="stage-rim-shade" cx="240" cy="240" r="234" />
+      <circle className="stage-rim-shade stage-rim-shade-near" cx="240" cy="240" r="238.5" />
     </>
   );
 });
@@ -328,8 +353,9 @@ const Rim = memo(function Rim({ motto }: { motto: string }): JSX.Element {
   return (
     <g className="stage-rim" aria-hidden="true">
       <path id="stage-motto-path" d="M 280 280 m -256 0 a 256 256 0 0 1 512 0" fill="none" />
-      <circle className="stage-rim-ring" cx="280" cy="280" r="256" />
+      <circle className="stage-rim-ring" cx="280" cy="280" r="256" stroke="url(#stage-metal)" />
       <circle className="stage-rim-inner" cx="280" cy="280" r="240" />
+      <circle className="stage-rim-recess" cx="280" cy="280" r="242" />
       <circle className="stage-rim-outer" cx="280" cy="280" r="272" />
       <circle className="stage-rim-rule" cx="280" cy="280" r="267" />
       <circle className="stage-rim-rule" cx="280" cy="280" r="245" />

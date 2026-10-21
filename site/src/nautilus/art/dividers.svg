@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+  <title>Dividers on a rolled plan</title>
+  <!-- Original drawing for Ouro HX (manifest.json): the chapter's vignette, a shipwright's
+       dividers standing on a half-rolled plan with the Nautilus's keel line on it. Engraved lines
+       only; its colour comes from the theme. -->
+  <path d="M14 58 H96 C104 58 108 62 108 66 C108 70 104 74 96 74 H14 Z" stroke-width="1.6" />
+  <path d="M96 58 C90 58 88 62 88 66 C88 70 92 72 96 72" stroke-width="1.4" />
+  <path d="M22 66 C40 61 62 61 80 66" stroke-width="1.2" stroke-dasharray="3 2" />
+  <path d="M60 8 L44 62 M60 8 L74 62" stroke-width="2" />
+  <circle cx="60" cy="10" r="4" stroke-width="1.8" />
+  <path d="M60 2 V6" stroke-width="1.8" />
+  <path d="M50 40 C56 37 64 37 70 40" stroke-width="1.4" />
+  <path d="M30 16 L34 20 M30 20 L34 16 M90 22 L93 25 M90 25 L93 22" stroke-width="1.2" />
+</svg>

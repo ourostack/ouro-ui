@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import { pressTab } from "../../registry/ouro/e2e/ouro/story";
 import { PRESET_NAMES, THEME_KEY } from "../src/themes/prepaint";
-import { LOG, STAGE_COPY, TANKS } from "../src/voyage/stage/copy";
+import { LOG, TANKS } from "../src/voyage/stage/copy";
 import { diagnostics } from "./diagnostics";
 
 // The voyage preview against the production build (site-design.md, "Verification in CI"): the
@@ -105,22 +105,22 @@ test("reflows at 320 CSS pixels (400% zoom) in every preset without scrolling si
 
 /**
  * HX parts that draw no boundary of their own under forced colours yet (a registry follow-up, noted
- * in the voyage PRs): a segmented control's segments sit in a group with no border, a message
- * list's scroller is a region, not a control, and a collapsible's trigger is a line of text with a
- * chevron (the ship's log fold). The test fails once one of them gains a boundary, so this list
- * only shrinks.
+ * in the voyage PRs): a segmented control's segments sit in a group with no border, a collapsible's
+ * trigger is a line of text with a chevron (the ship's log fold), and a reorderable's handle is a
+ * grip of dots (Chapter I's order of work). The test fails once one of them gains a boundary, so
+ * this list only shrinks.
  */
-const FORCED_COLOURS_GAPS = ["segmented-control/segment", "message-list/scroller", "collapsible/trigger"];
+const FORCED_COLOURS_GAPS = ["segmented-control/segment", "collapsible/trigger", "reorderable/handle"];
 
 test("keeps every control's boundary under forced colours", async ({ page }) => {
   await page.emulateMedia({ forcedColors: "active" });
   await page.setViewportSize({ width: 1440, height: 900 });
   await open(page);
-  // The ship's log shows its newest line only once something happens, so make something happen.
-  // The stage writes that line in a transition, after the switch's own paint, so the click
-  // returns before it; scan once the line (and its message list) is on screen.
+  // The ship's log fold holds lines only once something happens, so make something happen. The
+  // stage writes the line in a transition, after the switch's own paint, so the click returns
+  // before it; scan once the crew's newest line says it (and the fold has it).
   await page.getByRole("switch", { name: "Forward tank", exact: true }).click();
-  await expect(page.getByRole("region", { name: `${STAGE_COPY.log}, newest line`, exact: true })).toContainText(LOG.tankFull(TANKS[0].noun, 1).text);
+  await expect(page.locator("[data-stage-crew]")).toContainText(LOG.tankFull(TANKS[0].noun, 1).text);
   const bare = await page.evaluate(() =>
     [...document.querySelectorAll<HTMLElement>("main [data-ouro-control], header [data-ouro-control]")]
       .filter((element) => element.checkVisibility() && element.getBoundingClientRect().width > 1)

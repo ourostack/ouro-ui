@@ -2,8 +2,9 @@
 //
 //   node site/scripts/art.mts           fails when a drawing is unlisted or missing, its checksum
 //                                       or licence is off, a public-domain plate breaks the rules
-//                                       below, a Nautilus drawing has no Verne quotes for its
-//                                       shape, or the drawings outgrow the hero's budget
+//                                       below, an entry does not say what it draws (subject), a
+//                                       drawing of the Nautilus has no Verne quotes for its shape,
+//                                       or the drawings outgrow their budgets
 //   node site/scripts/art.mts --write   rewrites each entry's sha256 from its file
 //
 // Original drawings are licensed with the repository. Public-domain art is allowed only from the
@@ -18,13 +19,20 @@ import { fileURLToPath } from "node:url";
 const repo = join(dirname(fileURLToPath(import.meta.url)), "../..");
 export const artDir = join(repo, "site/src/nautilus/art");
 
-/** The hero's art budget: every drawing together, gzipped (site-design.md, Budgets). */
+/** The hero's art budget: its drawings together, gzipped (site-design.md, Budgets). */
 export const ART_BUDGET = 35 * 1024;
+/** Each chapter's art budget: the drawings whose entry names that chapter, gzipped. */
+export const CHAPTER_ART_BUDGET = 50 * 1024;
 
 export const LICENCES = ["repository", "public-domain"] as const;
 const ILLUSTRATORS = ["Alphonse de Neuville", "Édouard Riou"];
 const HOSTS = ["commons.wikimedia.org", "upload.wikimedia.org", "gallica.bnf.fr"];
-const REQUIRED = ["file", "title", "creator", "source", "published", "licence", "sha256", "modifications"] as const;
+const REQUIRED = ["file", "title", "creator", "source", "published", "licence", "sha256", "modifications", "subject"] as const;
+/**
+ * What a drawing shows. Every entry names one, so a drawing with the ship in it says so whatever
+ * its title or file name, and an original one must then quote Verne for its shape.
+ */
+export const SUBJECTS = ["nautilus", "creature", "sea", "instrument"] as const;
 
 export interface ShapeNote {
   quote: string;
@@ -40,7 +48,11 @@ export interface ArtEntry {
   licence: string;
   sha256: string;
   modifications: string;
+  /** What it draws: "nautilus" for any drawing with the vessel in it, however small. */
+  subject: (typeof SUBJECTS)[number];
   shape?: ShapeNote[];
+  /** The chapter that draws it ("I"); the hero's drawings name none. */
+  chapter?: string;
 }
 
 export interface ArtSet {
@@ -100,14 +112,23 @@ export function checkArt({ manifest, files }: ArtSet): string[] {
       errors.push(`${name}: source is "original-svg" or a public-domain plate's URL`);
     }
 
-    if (entry.source === "original-svg" && /nautilus/i.test(entry.title ?? "")) {
+    if (typeof entry.subject === "string" && !(SUBJECTS as readonly string[]).includes(entry.subject)) errors.push(`${name}: subject "${entry.subject}" is not one of ${SUBJECTS.join(", ")}`);
+    // A title or file that names the ship is a drawing of it, whatever subject it claims.
+    if (/nautilus/i.test(`${entry.title ?? ""} ${name}`) && entry.subject !== "nautilus") errors.push(`${name}: its title or file names the Nautilus, so its subject is "nautilus"`);
+    if (entry.source === "original-svg" && entry.subject === "nautilus") {
       if (!entry.shape?.length) errors.push(`${name}: a drawing of the Nautilus needs shape notes quoting Verne for every feature it draws`);
       else if (entry.shape.some((note) => !note.quote?.trim() || !note.chapter?.trim())) errors.push(`${name}: each shape note needs a quote and its chapter`);
     }
   }
 
-  const total = gzipSync(Buffer.concat([...files.values()])).length;
+  const chapterOf = new Map(manifest.art.map((entry) => [entry.file, entry.chapter]));
+  const group = (chapter: string | undefined) => gzipSync(Buffer.concat([...files].filter(([name]) => chapterOf.get(name) === chapter).map(([, bytes]) => bytes))).length;
+  const total = group(undefined);
   if (total > ART_BUDGET) errors.push(`The drawings are ${total} bytes gzipped, over the hero's ${ART_BUDGET} byte gzip budget`);
+  for (const chapter of new Set(manifest.art.flatMap((entry) => (entry.chapter ? [entry.chapter] : [])))) {
+    const size = group(chapter);
+    if (size > CHAPTER_ART_BUDGET) errors.push(`Chapter ${chapter}'s drawings are ${size} bytes gzipped, over its ${CHAPTER_ART_BUDGET} byte gzip budget`);
+  }
   return errors;
 }
 
