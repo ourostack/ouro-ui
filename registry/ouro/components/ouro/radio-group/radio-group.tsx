@@ -91,7 +91,11 @@ export interface RadioGroupOwnProps {
 export type RadioGroupProps = RadioGroupOwnProps &
   (
     | {
-        /** The choices, one radio each, in order. */
+        /**
+         * The choices, one radio each, in order.
+         *
+         * @claim "The choices, one radio each, in" registry/ouro/components/ouro/radio-group/radio-group.test.tsx verify:testExists(registry/ouro/components/ouro/radio-group/radio-group.test.tsx::RadioGroup > renders a radio for each option, each named by its label and described by its description)
+         */
         options: RadioGroupOption[];
         /** Not with `options`: pass the choices one way. */
         children?: never;
@@ -140,7 +144,7 @@ export interface RadioProps {
 const groupOwner = { name: "RadioGroup", data: "radio-group", layout: "group" } as const;
 /** Field's messages and root name Radio, and put the radio before its label. */
 const radioOwner = { name: "Radio", data: "radio", layout: "inline" } as const;
-/** Marks the hidden input Base UI submits each radio with. */
+/** Marks the hidden input that Base UI submits a radio with. */
 const markInput = controlRef("radio-group", "hidden-input");
 
 /** The radio, inside its Field item: it takes its name and description ids from the field. */

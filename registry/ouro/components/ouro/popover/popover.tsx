@@ -36,7 +36,11 @@ const controlFix = "<Popover open={open} onOpenChange={setOpen} anchor={buttonRe
 
 /** Props shared by both ways of opening a Popover. */
 export interface PopoverBaseProps {
-  /** Names the popover for screen readers and shows at its top. Always required; hide it with `hideTitle`. */
+  /**
+   * Names the popover for screen readers and shows at its top. Always required; hide it with `hideTitle`.
+   *
+   * @claim "Always required; hide it with `hideTitle`" registry/ouro/components/ouro/popover/popover.test-d.ts verify:fileLine(registry/ouro/components/ouro/popover/popover.test-d.ts, /\{\strigger:\sReactElement;\schildren:\s"Body"\s\}>\(\)\.not\.toExtend<PopoverProps>/)
+   */
   title: string;
   /** Hides the title visually. It still names the popover for screen readers. */
   hideTitle?: boolean | undefined;
@@ -46,6 +50,7 @@ export interface PopoverBaseProps {
    * The label of the close button, the last control in the popover. It is hidden until
    * it has keyboard focus, so screen-reader users on phones (who have no Escape key)
    * can always close the popover. @default "Close"
+   * @claim "It is hidden until it has" registry/ouro/components/ouro/popover/popover.test.tsx verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::Popover > has a close button for screen readers, hidden until it has keyboard focus, labelled by closeLabel)
    */
   closeLabel?: string | undefined;
   /**
@@ -66,6 +71,7 @@ export interface PopoverBaseProps {
    * @claim "`auto` is a popover from the" registry/ouro/components/ouro/popover/popover.test.tsx verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::Popover presentation > stays open, with the same trigger node, when a resize crosses 640px)
    * @claim "`popover` stays beside the trigger at" registry/ouro/components/ouro/popover/popover.test.tsx verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::Popover presentation > stays a popover on a phone by default)
    * @claim "`auto` is a popover from the" registry/ouro/components/ouro/popover/popover.test.tsx verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::Popover presentation > stays a popover on a phone by default)
+   * @claim "`sheet` is always a bottom sheet" registry/ouro/components/ouro/popover/popover.test.tsx verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::Popover presentation > is always a sheet with presentation sheet)
    */
   presentation?: PopoverPresentation | (string & { 'Use "auto", "popover" or "sheet"': never }) | undefined;
   /** The body. It scrolls when the popover is taller than the space beside the trigger. */
@@ -106,6 +112,8 @@ export type PopoverControlledProps = PopoverBaseProps & {
    * Whether the popover is open. After a touch or pen tap the popover focuses itself
    * rather than its first input, so no software keyboard pops up; after a key press it
    * focuses the first control.
+   * @claim "After a touch or pen tap" registry/ouro/components/ouro/popover/popover.test.tsx verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::controlled Popover > focuses its first control after a keyboard open, and its popup after a pen tap)
+   * @claim "After a touch or pen tap" registry/ouro/components/ouro/popover/popover.touch.test.tsx verify:testExists(registry/ouro/components/ouro/popover/popover.touch.test.tsx::Popover on a phone > stays a popover beside the trigger by default, and focuses the popup, not its input, after a tap)
    */
   open: boolean;
   /** Called with `false` when the user dismisses the popover (Escape, outside press, the close button). */
@@ -114,6 +122,8 @@ export type PopoverControlledProps = PopoverBaseProps & {
    * The element the popover points at, usually the button that toggles it:
    * `anchor={buttonRef}`. A press on it never counts as an outside press, so its own
    * `onClick` can toggle `open`.
+   * @claim "A press on it never counts" registry/ouro/components/ouro/popover/popover.test.tsx verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::Popover > closes from an outside press, and the trigger toggles it)
+   * @claim "A press on it never counts" registry/ouro/components/ouro/popover/popover.test.tsx verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::Popover > keeps the trigger's own ref and onClick)
    */
   anchor: RefObject<HTMLElement | null>;
   /** Not with `open`. Remove `open`, `onOpenChange` and `anchor` to let a trigger open the popover. */
@@ -152,6 +162,10 @@ export type PopoverProps = PopoverWithTriggerProps | PopoverControlledProps;
  * @claim "` it is a bottom sheet on phones" registry/ouro/components/ouro/popover/popover.test.tsx verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::Popover presentation > is a bottom sheet below 640px with presentation auto, and a popover from 640px up)
  * @claim "It stacks above the page at" registry/ouro/components/ouro/popover/popover.test.tsx verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::Popover stacking > puts the portal on the --ouro-layer level, as its own stacking context)
  * @claim "It stacks above the page at" registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /^\s+--ouro-layer:\s50;/)
+ * @claim "It is named by its title" registry/ouro/components/ouro/popover/popover.test.tsx verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::Popover > opens below its trigger as a non-modal dialog named by its title)
+ * @claim "It is named by its title" registry/ouro/components/ouro/popover/popover.test.tsx verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::Popover > closes on Escape and returns focus to the trigger)
+ * @claim "It is named by its title" registry/ouro/components/ouro/popover/popover.test.tsx verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::Popover > closes from an outside press, and the trigger toggles it)
+ * @claim "It is named by its title" https://base-ui.com/react/components/popover verify:urlOk(https://base-ui.com/react/components/popover)
  */
 export function Popover(props: PopoverProps): JSX.Element {
   const {

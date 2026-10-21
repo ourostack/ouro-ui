@@ -12,7 +12,7 @@ export interface PageHeaderOwnProps {
   title: ReactNode;
   /** A short line above the title that says what kind of page this is or where it sits: "Settings", "Project". */
   eyebrow?: ReactNode;
-  /** A sentence or two under the title. */
+  /** A short sentence under the title. */
   description?: ReactNode;
   /** The page's actions, such as Edit and Share buttons: at the end of the title on wide screens, under it on phones. */
   actions?: ReactNode;

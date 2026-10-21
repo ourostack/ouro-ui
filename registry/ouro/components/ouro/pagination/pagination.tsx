@@ -27,6 +27,9 @@ export interface PaginationBaseProps {
    * @claim "How many pages show on each" registry/ouro/components/ouro/pagination/pagination.test.tsx verify:testExists(registry/ouro/components/ouro/pagination/pagination.test.tsx::Pagination > shows a gap after the first pages near the start)
    * @claim "How many pages show on each" registry/ouro/components/ouro/pagination/pagination.test.tsx verify:testExists(registry/ouro/components/ouro/pagination/pagination.test.tsx::Pagination > shows a gap on both sides in the middle)
    * @claim "How many pages show on each" registry/ouro/components/ouro/pagination/pagination.test.tsx verify:testExists(registry/ouro/components/ouro/pagination/pagination.test.tsx::Pagination > shows a gap before the last pages near the end)
+   * @claim "The list keeps the same number" registry/ouro/components/ouro/pagination/pagination.test.tsx verify:testExists(registry/ouro/components/ouro/pagination/pagination.test.tsx::Pagination > shows a gap after the first pages near the start)
+   * @claim "The list keeps the same number" registry/ouro/components/ouro/pagination/pagination.test.tsx verify:testExists(registry/ouro/components/ouro/pagination/pagination.test.tsx::Pagination > shows a gap on both sides in the middle)
+   * @claim "The list keeps the same number" registry/ouro/components/ouro/pagination/pagination.test.tsx verify:testExists(registry/ouro/components/ouro/pagination/pagination.test.tsx::Pagination > shows a gap before the last pages near the end)
    */
   siblings?: number | undefined;
   /** Names the navigation for screen readers. @default "Pagination" */
@@ -35,7 +38,11 @@ export interface PaginationBaseProps {
   previousLabel?: string | undefined;
   /** The text of the link to the page after. @default "Next" */
   nextLabel?: string | undefined;
-  /** What a screen reader calls each page number; `{page}` is the number. @default "Page {page}" */
+  /**
+   * What a screen reader calls each page number; `{page}` is the number. @default "Page {page}"
+   *
+   * @claim "What a screen reader calls each" registry/ouro/components/ouro/pagination/pagination.test.tsx verify:testExists(registry/ouro/components/ouro/pagination/pagination.test.tsx::Pagination > takes every visible and spoken string as a prop)
+   */
   pageLabel?: string | undefined;
   /**
    * The text between Previous and Next below 640px, where the page numbers do not fit;

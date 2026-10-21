@@ -532,7 +532,7 @@ export interface TouchDragOptions {
  * @claim "Before the touch it waits until" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::on a page zoomed and panned by touch, the kit waits for the frame where the touch lands)
  * @claim "So it can take up to" registry/ouro/lib/ouro/testing/commands.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.ts, /const\sTOUCH_HANDLED_TIMEOUT_MS\s=\s5000;/)
  * @claim "Before the touch it waits until" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::a touchstart into a frame the kit cannot watch is refused after the time limit, and the next touch works)
- * @claim https://vitest.dev/config/testtimeout verify:urlOk(https://vitest.dev/config/testtimeout)
+ * @claim "So it can take up to" https://vitest.dev/config/testtimeout verify:urlOk(https://vitest.dev/config/testtimeout)
  */
 export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from, to, steps, durationMs }) => {
   const { page } = ctx;

@@ -46,6 +46,8 @@ export interface OtpFieldProps {
   /**
    * How many characters the code has: one slot each.
    * @default 6
+   * @claim "How many characters the code has" registry/ouro/components/ouro/otp-field/otp-field.test.tsx verify:testExists(registry/ouro/components/ouro/otp-field/otp-field.test.tsx::OtpField > fills every slot from a pasted code, ignoring spaces)
+   * @claim "How many characters the code has" registry/ouro/components/ouro/otp-field/otp-field.test.tsx verify:testExists(registry/ouro/components/ouro/otp-field/otp-field.test.tsx::OtpField > is a labeled group of six slots on the Field contract)
    */
   length?: number | undefined;
   /**
@@ -79,6 +81,8 @@ export interface OtpFieldProps {
   /**
    * The name of each slot after the first (the first takes `label`). Translate it with your app.
    * @default (position, length) => `Character ${position} of ${length}`
+   * @claim "The name of each slot after" registry/ouro/components/ouro/otp-field/otp-field.test.tsx verify:testExists(registry/ouro/components/ouro/otp-field/otp-field.test.tsx::OtpField > takes a whole code that iOS autofill writes into the first slot)
+   * @claim "The name of each slot after" registry/ouro/components/ouro/otp-field/otp-field.test.tsx verify:testExists(registry/ouro/components/ouro/otp-field/otp-field.test.tsx::OtpField > is a labeled group of six slots on the Field contract)
    */
   slotLabel?: ((position: number, length: number) => string) | undefined;
   /**

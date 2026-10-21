@@ -210,6 +210,8 @@ export function PopoverDescription(props: Omit<BasePopover.Description.Props, "c
  * Part: closes the popover. Pass your button as `render={<Button>Done</Button>}`. With no
  * `render` it is the screen-reader close button `Popover` uses: hidden until it has
  * keyboard focus, so phone screen-reader users, who have no Escape key, can close it.
+ * @claim "With no `render` it is the" registry/ouro/components/ouro/popover/popover.test.tsx verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::Popover > has a close button for screen readers, hidden until it has keyboard focus, labelled by closeLabel)
+ * @claim "With no `render` it is the" registry/ouro/components/ouro/popover/popover.test.tsx verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::Popover parts > PopoverTitle hides visually, and PopoverClose without render is the screen-reader close button)
  */
 export function PopoverClose(props: BasePopover.Close.Props): JSX.Element {
   usePopoverPart("PopoverClose", "<PopoverTitle>…</PopoverTitle><PopoverClose>Close</PopoverClose>");

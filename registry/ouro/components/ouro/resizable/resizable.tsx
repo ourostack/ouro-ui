@@ -368,7 +368,7 @@ export interface ResizableHandleProps {
  * <ResizableHandle />
  * <ResizableHandle aria-label="Resize the preview" />
  * @claim "The draggable line between two panels" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable handle (window splitter) > gives the handle a hit area wider than its line)
- * @claim registry/ouro/components/ouro/resizable/resizable.tsx verify:fileLine(registry/ouro/components/ouro/resizable/resizable.tsx, /<TouchTarget/)
+ * @claim "It has a 44px hit area on touch screens" registry/ouro/components/ouro/resizable/resizable.tsx verify:fileLine(registry/ouro/components/ouro/resizable/resizable.tsx, /<TouchTarget/)
  */
 export function ResizableHandle({ "aria-label": ariaLabel, withHandle }: ResizableHandleProps): JSX.Element | null {
   const group = useContext(GroupContext);

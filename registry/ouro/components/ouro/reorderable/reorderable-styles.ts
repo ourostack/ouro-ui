@@ -32,7 +32,9 @@ const listClass = "group/reorder m-0 flex min-w-0 list-none flex-col p-0 data-dr
  * the others while it springs into its place; the component writes each row's `transform`.
  *
  * @internal
- * @claim registry/ouro/components/ouro/reorderable/reorderable-styles.ts verify:fileLine(registry/ouro/components/ouro/reorderable/reorderable-styles.ts, /pointer-coarse:min-h-11/)
+ * @claim "It is at least 44px tall on a touch screen" registry/ouro/components/ouro/reorderable/reorderable-styles.ts verify:fileLine(registry/ouro/components/ouro/reorderable/reorderable-styles.ts, /pointer-coarse:min-h-11/)
+ * @claim "A dropped row stays above the" registry/ouro/components/ouro/reorderable/reorderable.test.tsx verify:testExists(registry/ouro/components/ouro/reorderable/reorderable.test.tsx::Reorderable > with a pointer > springs a dropped row into its place with the speed it was let go at, and a row still sliding out of its way with none)
+ * @claim "A dropped row stays above the" registry/ouro/components/ouro/reorderable/reorderable.touch.test.tsx verify:testExists(registry/ouro/components/ouro/reorderable/reorderable.touch.test.tsx::Reorderable on a phone > springs the dropped row into its place from under the finger, frame by frame)
  */
 const itemClass =
   "relative m-0 flex min-w-0 list-none items-center gap-2 p-0 pointer-coarse:min-h-11 " +
@@ -41,7 +43,11 @@ const itemClass =
   "data-dropped:z-10 data-dropped:rounded-lg data-dropped:bg-background " +
   "data-grabbed:rounded-lg data-grabbed:outline-2 data-grabbed:outline-ring data-grabbed:outline-solid";
 
-/** The row's content. No `touch-action`: a touch that starts here scrolls the page. @internal */
+/**
+ * The row's content. No `touch-action`: a touch that starts here scrolls the page. @internal
+ *
+ * @claim "No `touch-action`: a touch that starts" registry/ouro/components/ouro/reorderable/reorderable.touch.test.tsx verify:testExists(registry/ouro/components/ouro/reorderable/reorderable.touch.test.tsx::Reorderable on a phone > lets a touch that starts on a row, outside its handle, scroll the page)
+ */
 const contentClass = "min-w-0 flex-1";
 
 /**
@@ -99,6 +105,7 @@ function dropIndex(centers: readonly number[], from: number, center: number): nu
  * @internal
  * @claim "How fast to scroll, in px" registry/ouro/components/ouro/reorderable/reorderable.test.tsx verify:testExists(registry/ouro/components/ouro/reorderable/reorderable.test.tsx::Reorderable > with a pointer > scrolls a list that scrolls in place while the pointer is held near its bottom edge, then near its top)
  * @claim "How fast to scroll, in px" registry/ouro/components/ouro/reorderable/reorderable.test.tsx verify:testExists(registry/ouro/components/ouro/reorderable/reorderable.test.tsx::Reorderable > has helpers that place, move and scroll)
+ * @claim "The caller multiplies by the frame's" registry/ouro/components/ouro/reorderable/reorderable.test.tsx verify:testExists(registry/ouro/components/ouro/reorderable/reorderable.test.tsx::Reorderable > with a pointer > scrolls a list that scrolls in place while the pointer is held near its bottom edge, then near its top)
  */
 function edgeSpeed(y: number, top: number, bottom: number): number {
   const near = (distance: number) => Math.min(Math.max((EDGE - distance) / EDGE, 0), 1) * MAX_SPEED;

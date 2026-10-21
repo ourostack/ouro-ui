@@ -125,7 +125,12 @@ export interface NumberFieldProps {
   precision?: { 'Use <NumberField format={{ maximumFractionDigits: 2 }}>': never };
   /** Not a prop. Currency is a format option: `<NumberField format={{ style: "currency", currency: "USD" }}>`. */
   currency?: { 'Use <NumberField format={{ style: "currency", currency: "USD" }}>': never };
-  /** Not a prop. NumberField is always a number field; for text use `TextField`. */
+  /**
+   * Not a prop. NumberField is always a number field; for text use `TextField`.
+   *
+   * @claim "NumberField is always a number field" registry/ouro/components/ouro/number-field/number-field.test-d.ts verify:fileLine(registry/ouro/components/ouro/number-field/number-field.test-d.ts, /^type\sGuess\s=/)
+   * @claim "NumberField is always a number field" registry/ouro/components/ouro/number-field/number-field.tsx verify:fileLine(registry/ouro/components/ouro/number-field/number-field.tsx, /type\?:\s\{\s'NumberField\sis\salways\sa\snumber;\sfor\stext\suse\s<TextField>':\snever\s\};/)
+   */
   type?: { 'NumberField is always a number; for text use <TextField>': never };
 }
 
