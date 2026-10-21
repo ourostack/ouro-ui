@@ -1,0 +1,10 @@
+{
+  "order": 2130,
+  "components": ["color-scheme-toggle"],
+  "modes": {"color-scheme-toggle": ["menu", "segmented"]},
+  "controls": {
+    "color-scheme-toggle": [
+      {"part": "trigger", "role": "button", "portal": false, "modes": ["menu"]}
+    ]
+  }
+}

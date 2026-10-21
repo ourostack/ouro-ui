@@ -1,0 +1,1 @@
+- New: `ShareButton`, a button that shares a link through the system's share sheet where there is one and copies it elsewhere, saying "Link copied" for two seconds and announcing it once; with the `share()`, `canShare()` and `copyText()` helpers for share actions of your own.

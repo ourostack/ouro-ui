@@ -261,6 +261,8 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
       expect(modules.filter((module) => /site\/src\/(docs\/|pages\/(landing|docs)\.tsx)/.test(module))).toEqual([]);
     }
     if (kind === "landing") expect(modules).not.toContain("site/src/pages/voyage.tsx");
+    // Each docs page loads only its own Markdown, so the docs don't grow with every page they add.
+    if (kind === "docs") expect(modules.filter((module) => /^docs\/.*\.md\?raw$/.test(module)), "docs loads every page's Markdown first").toEqual([]);
     const loaded = [...new Set(reads)].filter((file) => !file.includes(".demo-"));
     expect(loaded.sort(), `${kind} loads its closure and nothing else`).toEqual(expected);
     const gzip = expected.reduce((sum, file) => sum + gzipSync(readFileSync(resolve("site/dist", file))).byteLength, 0);

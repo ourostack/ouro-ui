@@ -363,5 +363,162 @@
     "tests": [
       "registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > fades in when it opens, and appears at once with reduced motion"
     ]
+  },
+  {
+    "item": "tab-bar",
+    "stem": "tab-bar",
+    "state": "data-closed",
+    "kind": "motion",
+    "part": "bar",
+    "properties": [
+      "opacity",
+      "translate"
+    ],
+    "reduced": [
+      "opacity"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/tab-bar/tab-bar.touch.test.tsx::TabBar and the on-screen keyboard > slides away while the keyboard is up and comes back when it goes; with reduced motion it only fades"
+    ]
+  },
+  {
+    "item": "tab-bar",
+    "stem": "tab-bar",
+    "state": "data-open",
+    "kind": "motion",
+    "part": "bar",
+    "properties": [
+      "opacity",
+      "translate"
+    ],
+    "reduced": [
+      "opacity"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/tab-bar/tab-bar.touch.test.tsx::TabBar and the on-screen keyboard > slides away while the keyboard is up and comes back when it goes; with reduced motion it only fades"
+    ]
+  },
+  {
+    "item": "route-progress",
+    "stem": "route-progress",
+    "state": "data-open",
+    "kind": "motion",
+    "part": "bar",
+    "properties": [
+      "opacity"
+    ],
+    "reduced": [
+      "opacity"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/route-progress/route-progress.test.tsx::RouteProgress > fades in and grows when it shows, fills to the end and fades out when the navigation ends; with reduced motion it only fades"
+    ]
+  },
+  {
+    "item": "route-progress",
+    "stem": "route-progress",
+    "state": "data-open",
+    "kind": "motion",
+    "part": "indicator",
+    "properties": [
+      "scale"
+    ],
+    "reduced": [],
+    "tests": [
+      "registry/ouro/components/ouro/route-progress/route-progress.test.tsx::RouteProgress > fades in and grows when it shows, fills to the end and fades out when the navigation ends; with reduced motion it only fades"
+    ]
+  },
+  {
+    "item": "route-progress",
+    "stem": "route-progress",
+    "state": "data-closed",
+    "kind": "motion",
+    "part": "bar",
+    "properties": [
+      "opacity"
+    ],
+    "reduced": [
+      "opacity"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/route-progress/route-progress.test.tsx::RouteProgress > fades in and grows when it shows, fills to the end and fades out when the navigation ends; with reduced motion it only fades"
+    ]
+  },
+  {
+    "item": "celebrate",
+    "stem": "celebrate",
+    "state": "data-open",
+    "kind": "motion",
+    "part": "piece",
+    "properties": [
+      "opacity",
+      "transform"
+    ],
+    "reduced": [],
+    "tests": [
+      "registry/ouro/components/ouro/celebrate/celebrate.test.tsx::Celebrate > bursts its pieces outward and fades in its message, and with reduced motion only fades the message in"
+    ]
+  },
+  {
+    "item": "celebrate",
+    "stem": "celebrate",
+    "state": "data-open",
+    "kind": "motion",
+    "part": "message",
+    "properties": [
+      "opacity"
+    ],
+    "reduced": [
+      "opacity"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/celebrate/celebrate.test.tsx::Celebrate > bursts its pieces outward and fades in its message, and with reduced motion only fades the message in"
+    ]
+  },
+  {
+    "item": "choice-card",
+    "stem": "choice-card",
+    "state": "data-checked",
+    "kind": "motion",
+    "part": "card",
+    "properties": [
+      "background-color",
+      "border-color"
+    ],
+    "reduced": [
+      "background-color",
+      "border-color"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/choice-card/choice-card.test.tsx::ChoiceCard > colours the chosen card's border and surface, with reduced motion too"
+    ]
+  },
+  {
+    "item": "choice-card",
+    "stem": "choice-card",
+    "state": "data-invalid",
+    "kind": "motion",
+    "part": "card",
+    "properties": [
+      "border-color"
+    ],
+    "reduced": [
+      "border-color"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/choice-card/choice-card.test.tsx::ChoiceCard > turns the cards' borders red when an error arrives, with reduced motion too"
+    ]
+  },
+  {
+    "item": "choice-card",
+    "stem": "choice-card",
+    "state": "data-disabled",
+    "kind": "none",
+    "part": null,
+    "properties": [],
+    "reduced": [],
+    "tests": [
+      "registry/ouro/components/ouro/choice-card/choice-card.test.tsx::ChoiceCard > does not move when it becomes disabled"
+    ]
   }
 ]
