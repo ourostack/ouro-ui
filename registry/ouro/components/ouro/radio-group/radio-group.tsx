@@ -38,11 +38,16 @@ export interface RadioGroupOwnProps {
   /**
    * What is wrong, from your server action or client check, shown under the choices; every
    * radio gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid.
+   * @claim registry/ouro/components/ouro/radio-group/radio-group.test.tsx verify:testExists(registry/ouro/components/ouro/radio-group/radio-group.test.tsx::RadioGroup > disables every radio with disabled, and marks them invalid with error)
    */
   error?: ReadonlyErrorMessages | undefined;
   /** A choice must be picked to submit the form: the group gets `aria-required`, and the legend a marker. */
   required?: boolean | undefined;
-  /** Disables every radio and fades the group. */
+  /**
+   * Disables every radio and fades the group.
+   *
+   * @claim registry/ouro/components/ouro/radio-group/radio-group.test.tsx verify:testExists(registry/ouro/components/ouro/radio-group/radio-group.test.tsx::RadioGroup > disables every radio with disabled, and marks them invalid with error)
+   */
   disabled?: boolean | undefined;
   /** The form field name the chosen value submits under. */
   name?: string | undefined;
@@ -103,7 +108,11 @@ export type RadioGroupProps = RadioGroupOwnProps &
 export interface RadioProps {
   /** What the group submits when this radio is picked, and the group's `value` then. */
   value: string;
-  /** The choice's name, shown to the right of the radio. Required: every control needs a name. */
+  /**
+   * The choice's name, shown to the right of the radio. Required: every control needs a name.
+   *
+   * @claim registry/ouro/components/ouro/radio-group/radio-group.test-d.ts verify:fileLine(registry/ouro/components/ouro/radio-group/radio-group.test-d.ts, /expectTypeOf<\{\svalue:\s"small"\s\}>\(\)\.not\.toExtend<RadioProps>/)
+   */
   label: string;
   /** Hides the label visually; screen readers still read it as the radio's name. */
   hideLabel?: boolean | undefined;
@@ -118,7 +127,12 @@ export interface RadioProps {
 
   /** Not a prop. The group's `value` picks the radio: `<RadioGroup value="small">`. */
   checked?: { 'Use <RadioGroup value="small">': never };
-  /** Not a prop. The group's `name` applies to every radio: `<RadioGroup name="size">`. */
+  /**
+   * Not a prop. The group's `name` applies to every radio: `<RadioGroup name="size">`.
+   *
+   * @claim registry/ouro/components/ouro/radio-group/radio-group.test.tsx verify:testExists(registry/ouro/components/ouro/radio-group/radio-group.test.tsx::RadioGroup > submits name=value for the chosen radio)
+   * @claim registry/ouro/components/ouro/radio-group/radio-group.test-d.ts verify:fileLine(registry/ouro/components/ouro/radio-group/radio-group.test-d.ts, /expectTypeOf<\{\svalue:\s"small";\slabel:\s"Small";\sname:\s"size"\s\}>\(\)\.not\.toExtend<RadioProps>/)
+   */
   name?: { 'Use <RadioGroup name="size">': never };
 }
 

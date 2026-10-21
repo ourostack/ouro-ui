@@ -23,7 +23,11 @@ import {
 
 export type { PopoverAlign, PopoverSide } from "@/registry/ouro/components/ouro/popover/popover-parts";
 
-/** How a Popover presents: `auto` is a popover from 640px up and a bottom sheet below. */
+/**
+ * How a Popover presents: `auto` is a popover from 640px up and a bottom sheet below.
+ *
+ * @claim registry/ouro/components/ouro/popover/popover.test.tsx verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::Popover presentation > is a bottom sheet below 640px with presentation auto, and a popover from 640px up)
+ */
 export type PopoverPresentation = "auto" | "popover" | "sheet";
 
 const presentations: readonly PopoverPresentation[] = ["auto", "popover", "sheet"];
@@ -54,14 +58,18 @@ export interface PopoverBaseProps {
    * would be fiddly on a phone. `sheet` is always a bottom sheet. The server renders the
    * popover form and corrects it on hydration.
    * @default "popover"
+   * @claim registry/ouro/components/ouro/popover/popover.test.tsx verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::Popover presentation > is a bottom sheet below 640px with presentation auto, and a popover from 640px up)
+   * @claim registry/ouro/components/ouro/popover/popover.test.tsx verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::Popover presentation > stays open, with the same trigger node, when a resize crosses 640px)
+   * @claim registry/ouro/components/ouro/popover/popover.test.tsx verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::Popover presentation > stays a popover on a phone by default)
    */
   presentation?: PopoverPresentation | (string & { 'Use "auto", "popover" or "sheet"': never }) | undefined;
   /** The body. It scrolls when the popover is taller than the space beside the trigger. */
   children: ReactNode;
   /**
-   * Layout only, applied to the popover panel: width (`w-96`, 18rem by default) and
+   * Layout only, applied to the popover panel: width (18rem, `w-72`, by default) and
    * margins. Your classes win over Ouro UI's. The sheet keeps its full width. Appearance
    * classes warn in development.
+   * @claim registry/ouro/components/ouro/popover/popover.test.tsx verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::Popover > is 18rem wide by default, and className sets layout)
    */
   className?: string | undefined;
 
@@ -136,6 +144,9 @@ export type PopoverProps = PopoverWithTriggerProps | PopoverControlledProps;
  * <Popover title="Filters" presentation="auto" open={open} onOpenChange={setOpen} anchor={filtersRef}>
  *   <FilterForm />
  * </Popover>
+ * @claim registry/ouro/components/ouro/popover/popover.test.tsx verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::Popover presentation > is a bottom sheet below 640px with presentation auto, and a popover from 640px up)
+ * @claim registry/ouro/components/ouro/popover/popover.test.tsx verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::Popover stacking > puts the portal on the --ouro-layer level, as its own stacking context)
+ * @claim registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /^\s+--ouro-layer:\s50;/)
  */
 export function Popover(props: PopoverProps): JSX.Element {
   const {

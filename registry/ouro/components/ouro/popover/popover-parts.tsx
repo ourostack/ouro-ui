@@ -80,6 +80,8 @@ export function PopoverTrigger({ style, ...props }: BasePopover.Trigger.Props): 
  * Part: moves the popover to the end of `<body>`, in its own stacking context at the
  * `--ouro-layer` z-index (50 by default, from ouro-base.css), like Dialog and Sheet.
  * Raise it in a `:root` rule of your own after the Ouro tokens: `:root { --ouro-layer: 60; }`.
+ * @claim registry/ouro/components/ouro/popover/popover.test.tsx verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::Popover stacking > puts the portal on the --ouro-layer level, as its own stacking context)
+ * @claim registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /^\s+--ouro-layer:\s50;/)
  */
 export function PopoverPortal(props: Omit<BasePopover.Portal.Props, "className">): JSX.Element {
   usePopoverPart("PopoverPortal", "…");
@@ -97,6 +99,8 @@ export type PopoverPositionerProps = Omit<BasePopover.Positioner.Props, "classNa
 /**
  * Part: places the popover beside its trigger (or `anchor`), 8px away and at least 8px
  * from the screen edges, and flips it to the other side when there is no room.
+ * @claim registry/ouro/components/ouro/popover/popover-parts.tsx verify:fileLine(registry/ouro/components/ouro/popover/popover-parts.tsx, /sideOffset=\{8\}\scollisionPadding=\{8\}/)
+ * @claim registry/ouro/components/ouro/popover/popover.test.tsx verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::Popover > opens below its trigger as a non-modal dialog named by its title)
  */
 export function PopoverPositioner({ side: sideProp, align: alignProp, ...props }: PopoverPositionerProps): JSX.Element {
   usePopoverPart("PopoverPositioner", "…");
@@ -128,6 +132,9 @@ export type PopoverPopupProps = Omit<BasePopover.Popup.Props, "className"> & { c
  * Part: the popover panel, 18rem wide (never wider than the screen allows) with 1rem of
  * padding. It grows from the trigger over 200ms on the ease-out token and fades; reduced motion
  * keeps only the fade. Put a `PopoverTitle` first: it names the popover.
+ * @claim registry/ouro/components/ouro/popover/popover.test.tsx verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::Popover > is 18rem wide by default, and className sets layout)
+ * @claim registry/ouro/components/ouro/popover/popover.test.tsx verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::Popover motion > grows from the trigger's side on the ease-out token and fades)
+ * @claim registry/ouro/components/ouro/popover/popover.test.tsx verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::Popover motion > drops the scale under reduced motion and keeps the fade)
  */
 export function PopoverPopup(props: PopoverPopupProps): JSX.Element {
   useAppearanceClassNameCheck(
@@ -167,7 +174,11 @@ export type PopoverTitleProps = Omit<BasePopover.Title.Props, "className"> & {
   visuallyHidden?: boolean | undefined;
 };
 
-/** Part: the popover's title, which names it. Every popover needs one. */
+/**
+ * Part: the popover's title, which names it. Every popover needs one.
+ *
+ * @claim registry/ouro/components/ouro/popover/popover.test.tsx verify:fileLine(registry/ouro/components/ouro/popover/popover.test.tsx, /warns\swhen\sthe\stitle\sis\smissing/)
+ */
 export function PopoverTitle({ visuallyHidden, ...props }: PopoverTitleProps): JSX.Element {
   usePopoverPart("PopoverTitle", "<PopoverTitle>…</PopoverTitle>…");
   return (

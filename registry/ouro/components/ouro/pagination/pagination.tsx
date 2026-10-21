@@ -134,6 +134,9 @@ function fill(template: string, page: number, pageCount?: number): string {
  * The cells of the page list: page numbers, and `0` for a gap. Every page of a long list
  * gets the same number of cells (first, last, the current page with its siblings, two gaps
  * or the pages they would hide), so a gap never stands for a single page.
+ * @claim registry/ouro/components/ouro/pagination/pagination.test.tsx verify:testExists(registry/ouro/components/ouro/pagination/pagination.test.tsx::Pagination > shows a gap after the first pages near the start)
+ * @claim registry/ouro/components/ouro/pagination/pagination.test.tsx verify:testExists(registry/ouro/components/ouro/pagination/pagination.test.tsx::Pagination > shows a gap before the last pages near the end)
+ * @claim registry/ouro/components/ouro/pagination/pagination.test.tsx verify:testExists(registry/ouro/components/ouro/pagination/pagination.test.tsx::Pagination > shows a gap on both sides in the middle)
  */
 function cells(page: number, pageCount: number, siblings: number): number[] {
   const range = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, index) => from + index);
@@ -170,6 +173,9 @@ function Chevron({ back }: { back?: boolean }): JSX.Element {
  * <Pagination page={3} pageCount={12} href="/recipes?page={page}" />
  * <Pagination page={page} pageCount={12} onPageChange={setPage} />
  * <Pagination page={page} hasNextPage={rows.length > pageSize} href="?page={page}" />
+ * @claim registry/ouro/components/ouro/pagination/pagination.test.tsx verify:testExists(registry/ouro/components/ouro/pagination/pagination.test.tsx::Pagination > shows only Previous, the summary and Next below 640px)
+ * @claim registry/ouro/components/ouro/pagination/pagination.test.tsx verify:testExists(registry/ouro/components/ouro/pagination/pagination.test.tsx::Pagination > works with no JavaScript: the server HTML holds every link)
+ * @claim registry/ouro/components/ouro/pagination/pagination.test.tsx verify:testExists(registry/ouro/components/ouro/pagination/pagination.test.tsx::Pagination without a page count > pages in place with onPageChange)
  */
 export function Pagination(props: PaginationProps): JSX.Element {
   const {

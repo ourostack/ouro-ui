@@ -62,7 +62,12 @@ interface GroupState {
 
 const GroupContext = createContext<GroupState | null>(null);
 
-/** Where a direct child of the group sits: a panel's index, or the index of the panel before a handle (-1 when misplaced). */
+/**
+ * Where a direct child of the group sits: a panel's index, or the index of the panel before a handle (-1 when misplaced).
+ *
+ * @claim registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable handle (window splitter) > is a focusable separator for the panel before it)
+ * @claim registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable development messages > renders horizontal for an unknown orientation and skips a misplaced handle)
+ */
 const ItemContext = createContext<number | undefined>(undefined);
 
 /** Props shared by `Resizable` and `ResizablePanelGroup`. */
