@@ -1,11 +1,17 @@
 /*
  * The site is an app like any other that installed Ouro UI: it uses the repository's
  * app.css (Tailwind, ouro-base.css, the Ouro theme and shadcn's @theme mapping) and adds
- * its own source files to what Tailwind scans.
+ * its own source files to what Tailwind scans. It renders no registry test, story or
+ * end-to-end harness, so their class names (test fixtures like `bg-red-500`) stay out of
+ * every page's stylesheet (site/e2e/catalog.spec.ts holds each page's CSS to 40 KB gzip).
  */
 @import "../../app.css";
 
 @source "./";
+@source not "../../registry/**/*.stories.tsx";
+@source not "../../registry/**/*.test.tsx";
+@source not "../../registry/**/*.test.ts";
+@source not "../../registry/ouro/e2e";
 
 @theme {
   --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;

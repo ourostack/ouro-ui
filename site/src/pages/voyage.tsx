@@ -3,6 +3,7 @@ import { Inspector } from "@/registry/ouro/components/ouro/inspector/inspector";
 import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { href } from "../paths";
+import { ChapterOneIsland } from "../voyage/chapters/island";
 import { VoyageHeader } from "../voyage/header";
 import { Hero } from "../voyage/hero";
 import { VoyageFooter } from "../voyage/layout";
@@ -10,6 +11,7 @@ import { Repaint } from "../voyage/repaint";
 import { openXray, setXray, useXray } from "../voyage/xray-store";
 import "../themes/presets.generated.css";
 import "../voyage/voyage.css";
+import "../voyage/chapters/chapters.css";
 
 const docsHref = (item: string) => href(`/docs/${item}/`);
 
@@ -53,6 +55,7 @@ export default function VoyagePage(): JSX.Element {
           <Suspense>
             <Repaint />
           </Suspense>
+          <ChapterOneIsland />
         </main>
         <Suspense>
           <VoyageFooter />

@@ -82,6 +82,51 @@
       "file": "site/src/voyage/repaint.tsx",
       "sentence": "At 300 fathoms the sea is dark and very quiet.",
       "reason": "the Nautilus story: the dive dialog's narration"
+    },
+    {
+      "file": "site/src/voyage/chapters/copy.ts",
+      "sentence": "All done.",
+      "reason": "the shipyard's status once no job is left, which the chapter computes (launchHint)"
+    },
+    {
+      "file": "site/src/voyage/chapters/copy.ts",
+      "sentence": "Two hulls, one in the other.",
+      "reason": "the Nautilus story: Ned Land on the hull, after Verne"
+    },
+    {
+      "file": "site/src/voyage/chapters/copy.ts",
+      "sentence": "All by electricity.",
+      "reason": "the Nautilus story: Captain Nemo on the engine, after Verne"
+    },
+    {
+      "file": "site/src/voyage/chapters/copy.ts",
+      "sentence": "No coal and no smoke.",
+      "reason": "the Nautilus story: Captain Nemo on the engine, after Verne"
+    },
+    {
+      "file": "site/src/voyage/chapters/copy.ts",
+      "sentence": "Windows with no hull would let in the whole sea.",
+      "reason": "the Nautilus story: Conseil judging an order of work"
+    },
+    {
+      "file": "site/src/voyage/chapters/copy.ts",
+      "sentence": "An engine with no hull will just sink.",
+      "reason": "the Nautilus story: Conseil judging an order of work"
+    },
+    {
+      "file": "site/src/voyage/chapters/copy.ts",
+      "sentence": "Every job is done.",
+      "reason": "the Nautilus story: Captain Nemo once the shipyard's jobs are ticked"
+    },
+    {
+      "file": "site/src/voyage/chapters/copy.ts",
+      "sentence": "Every sailor signs before the ship sails.",
+      "reason": "the Nautilus story: the ship's articles"
+    },
+    {
+      "file": "site/src/voyage/chapters/copy.ts",
+      "sentence": "The sea is not for all.",
+      "reason": "the Nautilus story: Ned Land when you leave the crew"
     }
   ],
   "instructionVerbs": [

@@ -11,7 +11,7 @@ import { claim } from "@/registry/ouro/lib/ouro/claims";
  * site/e2e/stage.spec.ts operates each one in a test named "control: <id>" and asserts what it
  * changes; site/scripts/stage-census.test.mjs fails when one here has no such test.
  */
-export const STAGE_CONTROLS = ["xray", "depth", "speed", "tank-fore", "tank-middle", "tank-aft", "dive", "lights", "log", "bell"] as const;
+export const STAGE_CONTROLS = ["depth", "speed", "tank-fore", "tank-middle", "tank-aft", "dive", "lights", "log", "bell", "xray"] as const;
 export type StageControl = (typeof STAGE_CONTROLS)[number];
 
 export type CrewName = "Captain Nemo" | "Professor Aronnax" | "Conseil" | "Ned Land";
@@ -65,13 +65,13 @@ export const STAGE_COPY = {
   speed: "Speed",
   bell: "Ring the bell",
   log: "Ship's log",
-  logFold: (count: number) => `Ship's log (${count} more)`,
   logAll: (count: number) => `Ship's log (${count})`,
   real: claim("Every control here is a real HX component", {
     source: [{ file: "site/src/voyage/stage/stage.tsx" }, { file: "site/e2e/stage.spec.ts" }],
     verify: { testExists: "site/e2e/stage.spec.ts::each control on the stage > control: xray outlines every HX component on the page, only when pressed" },
   }),
   xray: "See how it’s built",
+  source: "Source",
   ready: "Ready to dive",
   motto: "Mobilis in mobili",
 } as const;
@@ -86,7 +86,7 @@ export function describeScene(state: { band: Band; dived: boolean; lights: boole
 }
 
 export const OPENING_LOG: readonly LogLine[] = [
-  { name: "Captain Nemo", text: "Welcome aboard, Professor! Fill the three tanks, then dive." },
+  { name: "Captain Nemo", text: "Welcome aboard, Professor! Fill three tanks to dive." },
 ];
 
 export const LOG = {
@@ -97,14 +97,14 @@ export const LOG = {
   },
   tankFull: (noun: string, full: number): LogLine => ({
     name: "Conseil",
-    text: full === 1 ? `${noun} is full. Fill all three, Professor, then we may dive.` : `${noun} is full. One more tank to go.`,
+    text: full === 1 ? `${noun} is full. Two more to go.` : `${noun} is full. One more to go.`,
   }),
   tankEmpty: (noun: string): LogLine => ({ name: "Conseil", text: `${noun} is empty again.` }),
-  allFull: { name: "Captain Nemo", text: "All three tanks are full. Press Dive when you are ready." },
-  dive: { name: "Captain Nemo", text: "Mobilis in mobili. Down we go! Light the lamps when it gets dark." },
+  allFull: { name: "Captain Nemo", text: "All three tanks are full. Press Dive!" },
+  dive: { name: "Captain Nemo", text: "Down we go! Light the lamps when it gets dark." },
   surface: { name: "Captain Nemo", text: "Blow the tanks. Up we go!" },
   lightsOnDeep: { name: "Ned Land", text: "Something down there just smiled at me." },
-  lightsOn: { name: "Professor Aronnax", text: "The lantern is on. Dive deep to see who lives down there." },
+  lightsOn: { name: "Professor Aronnax", text: "Lantern on! Dive deep to see who lives there." },
   lightsOff: { name: "Conseil", text: "Lights off. The fish can rest." },
   speed: {
     stop: { name: "Captain Nemo", text: "All stop. Let the sea be still." },
@@ -129,7 +129,6 @@ export function allStageText(): string[] {
     STAGE_COPY.diveHint(1),
     STAGE_COPY.diveHint(3),
     STAGE_COPY.tankCount(1),
-    STAGE_COPY.logFold(2),
     STAGE_COPY.logAll(3),
     ...BANDS.map((band) => band.label),
     ...TANKS.map((tank) => tank.label),
