@@ -173,8 +173,31 @@ test("Release merges the pull request that prepares main, then runs CI there, so
   // Pages deploys main's new tip only after CI on it has run.
   assert.ok(release.indexOf('gh run watch "$ci"') > release.indexOf("gh workflow run ci.yml --ref main"));
   assert.ok(release.indexOf("gh workflow run pages.yml --ref main") > release.indexOf('gh run watch "$ci"'));
-  // The next release accepts that dispatched run: a merge made with the workflow's token starts no push run.
-  assert.match(release, /select\(\.event == "push" or \.event == "workflow_dispatch"\)/);
+});
+
+test("Release takes main's CI from the latest run on its commit: a push, a dispatch on main, or the merge queue's run", () => {
+  const release = workflow("release.yml");
+  const filter = release.match(/conclusion=\$\(gh run list --workflow ci\.yml --commit "\$sha" --json conclusion,event,headBranch --jq '([^']+)'\)/)?.[1];
+  assert.ok(filter, "release.yml reads the runs on main's commit, on any branch");
+  // gh run list lists the newest run first.
+  const conclusion = (runs) => {
+    const result = spawnSync("jq", ["-r", filter], { input: JSON.stringify(runs), encoding: "utf8" });
+    assert.equal(result.status, 0, result.stderr);
+    return result.stdout.trim();
+  };
+  const run = (event, headBranch, conclusion) => ({ event, headBranch, conclusion });
+  const queue = "gh-readonly-queue/main/pr-9-abc";
+  assert.equal(conclusion([run("push", "main", "success")]), "success");
+  // The push run after the queue ran only install-github; it decides, being the latest.
+  assert.equal(conclusion([run("push", "main", "success"), run("merge_group", queue, "success")]), "success");
+  assert.equal(conclusion([run("push", "main", "failure"), run("merge_group", queue, "success")]), "failure");
+  // A queue merge made with the workflow's token starts no push run: the queue's run decides.
+  assert.equal(conclusion([run("merge_group", queue, "success")]), "success");
+  assert.equal(conclusion([run("workflow_dispatch", queue, "success"), run("pull_request", "fix", "success")]), "success");
+  // The run release.yml dispatches on main after merging "Prepare main" (no push run either).
+  assert.equal(conclusion([run("workflow_dispatch", "main", "success")]), "success");
+  // A pull request's run, or a dispatch on another branch, is not main's CI.
+  assert.equal(conclusion([run("pull_request", "fix", "success"), run("workflow_dispatch", "release/v1.0.0", "success")]), "null");
 });
 
 test("Release deploys Pages itself and fails when the published llms.txt or README names another release", () => {
@@ -392,12 +415,51 @@ test("the plan's merge commit has its base: the checkout fetches the merge commi
   assert.match(ciJobs().plan, /- uses: actions\/checkout@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}persist-credentials: false\n(?: {10}#.*\n)* {10}fetch-depth: 2\n/);
 });
 
+test("a push to main whose commit the merge queue already tested runs only install-github", () => {
+  const jobs = ciJobs();
+  assert.match(jobs.plan, /^ {6}- id: tested\n {8}name: Did the merge queue test this commit\?\n {8}if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'\n/m);
+  assert.match(jobs.plan, /^ {6}tested: \$\{\{ steps\.tested\.outputs\.tested \}\}$/m);
+  assert.match(jobs.plan, /^ {4}permissions:\n {6}actions: read\n {6}contents: read\n/m);
+  // The step's own script and jq filter, over the runs the API lists on the commit.
+  const script = stepScript(jobs.plan, "Did the merge queue test this commit?");
+  const dir = scratchDir("ouro-queue-tested-");
+  const check = (runs, ghStatus = 0) => {
+    const output = join(dir, `output-${Math.random()}.txt`);
+    writeFileSync(output, "");
+    const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", `gh() { [ "$GH_STATUS" = 0 ] || return "$GH_STATUS"; printf '%s' "$RUNS" | jq "\${@: -1}"; }\n${script}`], {
+      encoding: "utf8",
+      env: { ...process.env, RUNS: JSON.stringify({ workflow_runs: runs }), GH_STATUS: String(ghStatus), GITHUB_OUTPUT: output, REPO: "o/r", SHA: "abc" },
+    });
+    assert.equal(result.status, 0, result.stderr);
+    return readFileSync(output, "utf8").trim();
+  };
+  const run = (event, head_branch) => ({ event, head_branch, head_sha: "abc", conclusion: "success" });
+  assert.equal(check([run("merge_group", "gh-readonly-queue/main/pr-9-abc")]), "tested=true");
+  assert.equal(check([run("workflow_dispatch", "gh-readonly-queue/main/pr-9-abc")]), "tested=true");
+  // Only the merge queue's runs count: a pull request's run tested its merge with an older main.
+  assert.equal(check([run("pull_request", "fix"), run("workflow_dispatch", "release/v1.0.0")]), "");
+  assert.equal(check([]), "");
+  // When the API cannot answer, everything runs.
+  assert.equal(check([run("merge_group", "gh-readonly-queue/main/pr-9-abc")], 1), "");
+  // Every job but the plan, the GitHub install and the release-only install skips on it, gates
+  // included; motion-coverage waits on ci. Nothing else reads it.
+  const condition = (block) => block.match(/^ {4}if: (.+)$/m)?.[1];
+  const skipping = Object.keys(jobs).filter((id) => condition(jobs[id]) === untested);
+  assert.deepEqual(skipping.sort(), Object.keys(jobs).filter((id) => !["plan", "install-github", "install-latest", "motion-coverage"].includes(id)).sort());
+  assert.match(jobs["motion-coverage"], /^ {4}needs: \[ci\]$/m);
+  assert.doesNotMatch(jobs["install-github"], /tested/);
+  for (const id of skipping) assert.match(jobs[id], /^ {4}needs: \[plan[\],]/m, `${id} needs the plan`);
+  const runs = (tested) => runInNewContext(untested.slice(4, -3).replace("!cancelled()", "true").replace("needs.plan.outputs.tested", "value"), { value: tested });
+  // A plan that failed or never ran leaves the output empty: everything runs.
+  assert.deepEqual(["", "true"].map(runs), [true, false]);
+});
+
 test("every job that reads the plan runs whatever happened to it, and runs everything unless it says full=false", () => {
   const jobs = ciJobs();
-  const readers = Object.keys(jobs).filter((name) => /needs\.plan\.outputs/.test(jobs[name]));
+  const readers = Object.keys(jobs).filter((name) => /needs\.plan\.outputs\.full/.test(jobs[name]));
   assert.deepEqual(readers.sort(), ["browser", "ci", "e2e-shard", "install-shard", "themes"]);
   for (const name of readers) {
-    const needs = jobs[name].match(/^ {4}needs: \[([^\]]*)\]\n {4}if: \$\{\{ !cancelled\(\) \}\}$/m)?.[1].split(",").map((need) => need.trim());
+    const needs = jobs[name].match(/^ {4}needs: \[([^\]]*)\]\n {4}if: \$\{\{ !cancelled\(\) && needs\.plan\.outputs\.tested != 'true' \}\}$/m)?.[1].split(",").map((need) => need.trim());
     assert.ok(needs?.includes("plan"), `${name} needs plan and runs unless the run was cancelled`);
     const full = jobs[name].match(/^ {6}FULL: \$\{\{ (.+) \}\}$/m)?.[1];
     assert.equal(full, "needs.plan.outputs.full != 'false'", name);
@@ -422,6 +484,9 @@ function checkNames(block, id) {
   return combinations.map((combination) => keys.reduce((text, key) => text.replace(`\${{ matrix.${key} }}`, combination[key]), name));
 }
 
+/** The condition of every job a push the merge queue already tested skips (the plan's `tested`). */
+const untested = "${{ !cancelled() && needs.plan.outputs.tested != 'true' }}";
+
 /** The checks the main ruleset requires (ruleset 24881709); ci-budget from when this layout reached main. */
 const requiredChecks = ["ci", "e2e", "visual", "registry", "install (shadcn, nova)", "install (shadcn, vega)", "install (ouro, nova)", "install (namespace, nova)", "install (next, nova)", "install-upgrade", "motion-coverage", "themes (1/3)", "themes (2/3)", "themes (3/3)", "theme-install", "latency", "lighthouse", "ci-budget"];
 
@@ -433,12 +498,13 @@ test("every required check is still a job that reports, under the name the rules
       assert.ok(!names.has(name), `${name} is reported by both ${names.get(name)} and ${id}`);
       names.set(name, id);
     }
-    // A job a required check names never skips itself: at most it runs whatever its needs did.
+    // A job a required check names never skips itself on a pull request or in the merge queue: at
+    // most it runs whatever its needs did, and skips only on a push the merge queue already tested.
     const condition = block.match(/^ {4}if: (.+)$/m)?.[1];
-    if (!["install-github", "install-latest", "plan"].includes(id)) assert.ok(!condition || condition === "${{ !cancelled() }}", `${id} has if: ${condition}`);
+    if (!["install-github", "install-latest", "plan"].includes(id)) assert.ok(!condition || condition === untested, `${id} has if: ${condition}`);
   }
   for (const check of requiredChecks) assert.ok(names.has(check), `${check} is not among ${[...names.keys()].join(", ")}`);
-  assert.deepEqual(checkNames(jobs["install-shard"], "install-shard"), ["install (shadcn, nova, 1/3)", "install (shadcn, nova, 2/3)", "install (shadcn, nova, 3/3)", "install (shadcn, vega, 1/3)", "install (shadcn, vega, 2/3)", "install (shadcn, vega, 3/3)", "install (ouro, nova, 1/3)", "install (ouro, nova, 2/3)", "install (ouro, nova, 3/3)"]);
+  assert.deepEqual(checkNames(jobs["install-shard"], "install-shard"), ["install (shadcn, nova, 1/2)", "install (shadcn, nova, 2/2)", "install (shadcn, vega, 1/2)", "install (shadcn, vega, 2/2)", "install (ouro, nova, 1/2)", "install (ouro, nova, 2/2)"]);
 });
 
 /** A matrix job's shard count, from its `shard` list, which must count 1 to n. */
@@ -526,7 +592,7 @@ test("the e2e shards run every spec, or the selected components' and the site's,
   const script = stepScript(block, "End-to-end specs");
   assert.match(runStep(script, { FULL: "true", SHARD: "1/4" }).calls, /^CALL pnpm test:e2e --shard=1\/4$/m);
   assert.match(runStep(script, { FULL: "false", COMPONENTS: "checkbox", SHARD: "1/4" }).calls, /^CALL pnpm test:e2e --pass-with-no-tests --shard=1\/4 registry\/ouro\/e2e\/ouro\/checkbox\.spec\.ts site\/e2e\/$/m);
-  assert.match(jobs.e2e, /^ {4}needs: \[e2e-shard\]$/m);
+  assert.match(jobs.e2e, /^ {4}needs: \[plan, e2e-shard\]$/m);
   const gate = stepScript(jobs.e2e, "Every shard passed");
   assert.equal(runStep(gate, { SHARDS: "success" }).status, 0);
   assert.equal(runStep(gate, { SHARDS: "failure" }).status, 1);
@@ -553,19 +619,19 @@ test("an install shard runs a third of the shipped tests, or a reduced run's, an
   assert.match(scriptWithShow({ FULL: "false", COMPONENTS: "dialog,sheet", VARIANT: "ouro", REF: "abc" }).stdout, /^components=\[dialog,sheet\] ouro /m);
   // The variant's check: its marker for every shard.
   const gate = jobs["install-gate"];
-  assert.match(gate, /^ {4}needs: \[install-shard\]$/m);
+  assert.match(gate, /^ {4}needs: \[plan, install-shard\]$/m);
   assert.deepEqual(checkNames(gate, "install-gate"), ["install (shadcn, nova)", "install (shadcn, vega)", "install (ouro, nova)"]);
   assert.match(gate, /^ {10}pattern: install-passed-\$\{\{ matrix\.variant \}\}-\$\{\{ matrix\.preset \}\}-\*\n/m);
   const counting = stepScript(gate, "Every shard passed");
   assert.match(counting, new RegExp(`^for shard in ${Array.from({ length: count }, (_, index) => index + 1).join(" ")}; do$`, "m"));
   const markers = scratchDir("ouro-install-gate-");
   mkdirSync(join(markers, "passed"));
-  for (const shard of [1, 3]) writeFileSync(join(markers, `passed/install-passed-shadcn-vega-${shard}`), "");
+  writeFileSync(join(markers, "passed/install-passed-shadcn-vega-1"), "");
   const passed = { RUNNER_TEMP: markers, VARIANT: "shadcn", PRESET: "vega", SHARDS: "success" };
   assert.match(gate, /^ {10}SHARDS: \$\{\{ needs\.install-shard\.result \}\}$/m);
   const missing = runStep(counting, passed);
   assert.equal(missing.status, 1);
-  assert.match(missing.stdout, /^::error::install \(shadcn, vega, 2\/3\) did not pass/m);
+  assert.match(missing.stdout, /^::error::install \(shadcn, vega, 2\/2\) did not pass/m);
   writeFileSync(join(markers, "passed/install-passed-shadcn-vega-2"), "");
   assert.equal(runStep(counting, passed).status, 0);
   // Every marker, but from an earlier attempt: this attempt's failed shard still fails the check.
@@ -663,14 +729,15 @@ test("motion coverage runs after the ci check, over the partitions the browser s
 test("the budget job waits on every other job, reads the run's jobs and nothing else, and its name patterns match every check", async () => {
   const jobs = ciJobs();
   const block = jobs["ci-budget"];
-  // It runs whatever the other jobs did, but not on a cancelled run, which would hold a runner for nothing.
-  assert.match(block, /^ {4}if: \$\{\{ !cancelled\(\) \}\}$/m);
+  // It runs whatever the other jobs did, but not on a cancelled run, which would hold a runner for
+  // nothing, nor on a push the merge queue already tested, which runs nothing to measure.
+  assert.equal(block.match(/^ {4}if: (.+)$/m)?.[1], untested);
   assert.match(block, /^ {4}permissions:\n {6}actions: read\n {6}contents: read\n/m);
   const needs = block.match(/^ {4}needs: \[([^\]]*)\]$/m)[1].split(",").map((need) => need.trim());
   // Every job no other job needs: the ends of the run's chains.
   const needed = new Set(Object.entries(jobs).filter(([id]) => id !== "ci-budget").flatMap(([, other]) => other.match(/^ {4}needs: \[([^\]]*)\]$/m)?.[1].split(",").map((need) => need.trim()) ?? []));
   const ends = Object.keys(jobs).filter((id) => id !== "ci-budget" && !needed.has(id));
-  assert.deepEqual([...needs].sort(), ends.sort());
+  assert.deepEqual([...needs].sort(), [...ends, "plan"].sort());
   const { jobGraph } = await import("./ci-budget.mjs");
   const graph = jobGraph(workflow("ci.yml"));
   for (const [id, block] of Object.entries(jobs)) {

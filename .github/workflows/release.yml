@@ -71,9 +71,12 @@ jobs:
             exit 1
           fi
           sha=$(git rev-parse HEAD)
-          # A push run, or the run the last release dispatched after it merged "Prepare main
-          # for the next release" (a merge made with a workflow's token starts no push run).
-          conclusion=$(gh run list --workflow ci.yml --branch main --commit "$sha" --json conclusion,event --jq '[.[] | select(.event == "push" or .event == "workflow_dispatch")][0].conclusion')
+          # The latest CI run on this commit: a push run, the run the last release dispatched
+          # after it merged "Prepare main for the next release" (a merge made with a workflow's
+          # token starts no push run), or the merge queue's run, which tested this very commit
+          # before main fast-forwarded to it (the push run after it then runs only install-github,
+          # and decides when it is the latest).
+          conclusion=$(gh run list --workflow ci.yml --commit "$sha" --json conclusion,event,headBranch --jq '[.[] | select((.headBranch == "main" and (.event == "push" or .event == "workflow_dispatch")) or .event == "merge_group" or (.event == "workflow_dispatch" and (.headBranch | startswith("gh-readonly-queue/main/"))))][0].conclusion')
           [ "$conclusion" = success ] || { echo "::error::CI on main ($sha) is '${conclusion:-not run}', not success"; exit 1; }
           echo "MAIN_SHA=$sha" >> "$GITHUB_ENV"
           echo "new=true" >> "$GITHUB_OUTPUT"

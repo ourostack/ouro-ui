@@ -21,11 +21,35 @@ jobs:
     # dispatched runs (how release.yml runs CI on its release branch) and release branches.
     # The jobs that read the plan run whatever happens to it and run everything unless it says
     # `full=false`, so every required check still reports: a reduced job passes on what it ran.
+    #
+    # A push to main whose commit the merge queue already tested (the queue fast-forwards main to
+    # the commit its group's CI passed on) runs nothing more than install-github: `tested=true`.
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
     outputs:
       full: ${{ steps.plan.outputs.full }}
       components: ${{ steps.plan.outputs.components }}
+      tested: ${{ steps.tested.outputs.tested }}
     steps:
+      - id: tested
+        name: Did the merge queue test this commit?
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          # A merge group's run, or the run release.yml dispatches on a queue branch (a queue entry
+          # made with GITHUB_TOKEN starts no merge_group run), that passed on this very commit.
+          passed=$(gh api "repos/$REPO/actions/workflows/ci.yml/runs?head_sha=$SHA&status=success&per_page=100" --jq '[.workflow_runs[] | select(.event == "merge_group" or (.event == "workflow_dispatch" and (.head_branch | startswith("gh-readonly-queue/main/"))))] | length') || passed=0
+          if [ "${passed:-0}" -gt 0 ]; then
+            echo "The merge queue's CI passed on $SHA: only install-github runs."
+            echo "tested=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No merge queue run passed on $SHA: everything runs."
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -58,6 +82,8 @@ jobs:
     # The checks that need no browser: the generated docs, the types, the lint, the site as Pages
     # builds it with every internal link in it, in exact letter case (scripts/links.mjs; the
     # sources' links are checked in the script tests), and Storybook. Part of the ci check.
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -87,17 +113,17 @@ jobs:
     # installed (the button, the dialog, the sheet and the forms set, each alone and together; on a
     # reduced pull request, the sets that install a selected component). Part of the ci check.
     needs: [plan]
-    if: ${{ !cancelled() }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6]
-    name: browser (${{ matrix.shard }}/6)
+        shard: [1, 2, 3, 4]
+    name: browser (${{ matrix.shard }}/4)
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
-      SHARD: ${{ matrix.shard }}/6
+      SHARD: ${{ matrix.shard }}/4
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -149,6 +175,8 @@ jobs:
     # pnpm test:scripts, in shards that run side by side, each with the files whose measured times
     # (scripts/shard-timings.json) add up to its share (`node scripts/shard.mjs scripts`). Each
     # uploads how long each file took. Part of the ci check.
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -190,7 +218,7 @@ jobs:
     # and decides: a line may be covered only by another component's tests
     # (scripts/test-impact.mjs coverage). The step says which, for the motion-coverage job.
     needs: [plan, checks, browser, scripts]
-    if: ${{ !cancelled() }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     outputs:
       reduced: ${{ steps.tests.outputs.reduced }}
@@ -199,7 +227,7 @@ jobs:
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
-      BROWSER_SHARDS: 6
+      BROWSER_SHARDS: 4
     steps:
       - name: Every part passed
         env:
@@ -258,7 +286,7 @@ jobs:
     needs: [ci]
     runs-on: ubuntu-latest
     env:
-      MOTION_PARTITIONS: ouro-chromium:6,ouro-webkit:6,ouro-touch:6,site:6
+      MOTION_PARTITIONS: ouro-chromium:4,ouro-webkit:4,ouro-touch:4,site:4
       FULL_SUITE_PARTITIONS: ouro-chromium:1,ouro-webkit:1,ouro-touch:1,site:1
       REDUCED: ${{ needs.ci.outputs.reduced }}
       STEMS: ${{ needs.ci.outputs.stems }}
@@ -293,7 +321,7 @@ jobs:
     # shard (test/themes/), in Chromium, beside the ci job. On a reduced pull request, only the
     # selected components' stories, and nothing when it selected none.
     needs: [plan]
-    if: ${{ !cancelled() }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
@@ -338,6 +366,8 @@ jobs:
   visual:
     # Compares screenshots with the committed baselines, on the image that produced them
     # (visual-baselines.yml). Kept apart from `ci` so that job can follow ubuntu-latest.
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -362,6 +392,8 @@ jobs:
   registry:
     # registry.json is generated (scripts/registry.mts) and valid for the pinned shadcn CLI,
     # both from the checkout and through the GitHub path at this commit.
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     env:
       SHADCN: shadcn@4.21.1
@@ -386,17 +418,17 @@ jobs:
     # side by side (Playwright's --shard). On a reduced pull request, the selected components'
     # specs and the site's. Part of the e2e check.
     needs: [plan]
-    if: ${{ !cancelled() }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
-    name: e2e (${{ matrix.shard }}/4)
+        shard: [1, 2, 3]
+    name: e2e (${{ matrix.shard }}/3)
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
-      SHARD: ${{ matrix.shard }}/4
+      SHARD: ${{ matrix.shard }}/3
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -425,8 +457,8 @@ jobs:
           if-no-files-found: ignore
   e2e:
     # Passes when every e2e shard passed.
-    needs: [e2e-shard]
-    if: ${{ !cancelled() }}
+    needs: [plan, e2e-shard]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Every shard passed
@@ -434,7 +466,7 @@ jobs:
           SHARDS: ${{ needs.e2e-shard.result }}
         run: |
           if [ "$SHARDS" != success ]; then
-            echo "::error::An e2e shard did not pass ($SHARDS): see the e2e (n/4) jobs."
+            echo "::error::An e2e shard did not pass ($SHARDS): see the e2e (n/3) jobs."
             exit 1
           fi
   theme-install:
@@ -443,6 +475,8 @@ jobs:
     # theme" CSS, pasted at the end of a clean shadcn app's stylesheet with Checklist and Dialog
     # added, renders the same computed colours, radii, fonts and shadows as the site, light and
     # dark, and its fonts load.
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -471,6 +505,8 @@ jobs:
     # warm-ups, the 19th (p95) within 100 ms and the median within its ceiling from the control's CI
     # baseline (site/e2e/latency.ts, site/e2e/stage.latency.spec.ts), measured alone so no other
     # test shares the CPU.
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -496,6 +532,8 @@ jobs:
     # mobile, simulated; performance 90, accessibility 100, best practices 95, LCP 2 s, CLS 0.05,
     # TBT 150 ms), with the build served as Pages serves it: HTTP/2 over TLS, gzipped
     # (site/scripts/serve-pages.mjs).
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -520,12 +558,12 @@ jobs:
     # check, build, the shipped Vitest tests and the shipped Playwright specs
     # (scripts/install-test.sh). shadcn: the app keeps the theme `shadcn init` wrote, and a stock
     # shadcn button builds beside Ouro's. ouro: ouro-theme comes from GitHub at this commit. The
-    # shipped tests take most of the time, so each app is installed in three jobs side by side and
-    # each runs a third of them (OURO_SHARD); on a reduced pull request, the selected components'
+    # shipped tests take most of the time, so each app is installed in two jobs side by side and
+    # each runs half of them (OURO_SHARD); on a reduced pull request, the selected components'
     # shipped tests, and none when it selected none (OURO_COMPONENTS). Each shard that passes
     # leaves a marker, which its variant's install check counts.
     needs: [plan]
-    if: ${{ !cancelled() }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -533,16 +571,16 @@ jobs:
         variant: [shadcn, ouro]
         # Another shadcn preset than the README's, so its preset wording is verified.
         preset: [nova, vega]
-        shard: [1, 2, 3]
+        shard: [1, 2]
         exclude:
           - variant: ouro
             preset: vega
-    name: install (${{ matrix.variant }}, ${{ matrix.preset }}, ${{ matrix.shard }}/3)
+    name: install (${{ matrix.variant }}, ${{ matrix.preset }}, ${{ matrix.shard }}/2)
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
       OURO_PRESET: ${{ matrix.preset }}
-      OURO_SHARD: ${{ matrix.shard }}/3
+      OURO_SHARD: ${{ matrix.shard }}/2
       PASSED: install-passed-${{ matrix.variant }}-${{ matrix.preset }}-${{ matrix.shard }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -588,12 +626,12 @@ jobs:
             ${{ runner.temp }}/app/playwright-report/
           if-no-files-found: ignore
   install-gate:
-    # A variant's install check: passes when each of its three shards passed, as their markers show,
+    # A variant's install check: passes when each of its two shards passed, as their markers show,
     # and every install shard of this attempt passed: a marker can be an earlier attempt's, after
     # "Re-run all jobs" (artifacts outlive an attempt), so the markers alone could pass a shard
     # that has just failed.
-    needs: [install-shard]
-    if: ${{ !cancelled() }}
+    needs: [plan, install-shard]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -618,12 +656,12 @@ jobs:
         run: |
           failed=0
           if [ "$SHARDS" != success ]; then
-            echo "::error::an install shard of this attempt did not pass ($SHARDS): see the install (…, n/3) jobs."
+            echo "::error::an install shard of this attempt did not pass ($SHARDS): see the install (…, n/2) jobs."
             failed=1
           fi
-          for shard in 1 2 3; do
+          for shard in 1 2; do
             if [ ! -f "$RUNNER_TEMP/passed/install-passed-$VARIANT-$PRESET-$shard" ]; then
-              echo "::error::install ($VARIANT, $PRESET, $shard/3) did not pass: see that job."
+              echo "::error::install ($VARIANT, $PRESET, $shard/2) did not pass: see that job."
               failed=1
             fi
           done
@@ -633,6 +671,8 @@ jobs:
     # (scripts/install-test.sh). namespace: `shadcn add @ouro/dialog` from the registry Pages
     # serves, built and served locally. next: a Next.js App Router app renders every component from
     # a Server Component page and runs `next build`.
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -686,6 +726,8 @@ jobs:
     # An app on v0.1.0 (dialog from GitHub at #v0.1.0, with tests of its own) runs the
     # commands in UPGRADING.md against this commit's registry, in a src/ and an app/
     # layout, keeping Ouro's tests and without them (scripts/install-test.sh upgrade).
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -733,8 +775,8 @@ jobs:
     # runner noise. It also records the wall time a developer waits, queues included, with its median
     # over the latest runs, and the runner time the run took from the shared pool. A required check
     # (ruleset 24881709); it fails only a pull request, never a merge group or a push.
-    needs: [motion-coverage, themes, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-latest, install-upgrade, install-github]
-    if: ${{ !cancelled() }}
+    needs: [plan, motion-coverage, themes, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-latest, install-upgrade, install-github]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     permissions:
       actions: read
