@@ -35,6 +35,9 @@ export interface ButtonGroupProps {
  * their 1px border so outline buttons share one line, and two neighbors that name a look
  * without a border (`data-variant` other than `outline`, which Button and Toggle set) get a
  * 1px separator in their text color at 25%. The focused child is raised so its outline shows.
+ * @claim registry/ouro/components/ouro/button-group/button-group.test.tsx verify:testExists(registry/ouro/components/ouro/button-group/button-group.test.tsx::ButtonGroup > joins the buttons: only the outer corners are round, and the buttons touch)
+ * @claim registry/ouro/components/ouro/button-group/button-group.test.tsx verify:testExists(registry/ouro/components/ouro/button-group/button-group.test.tsx::ButtonGroup > draws no separator between outline buttons, whose borders already meet)
+ * @claim registry/ouro/components/ouro/button-group/button-group.test.tsx verify:testExists(registry/ouro/components/ouro/button-group/button-group.test.tsx::ButtonGroup > draws a separator between buttons that have no border of their own)
  */
 const groupClass =
   "relative isolate box-border inline-flex max-w-full items-stretch " +

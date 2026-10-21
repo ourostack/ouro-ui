@@ -36,6 +36,7 @@ export interface CheckboxGroupOwnProps {
   /**
    * What is wrong, from your server action or client check, shown under the choices; every
    * box gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid.
+   * @claim registry/ouro/components/ouro/checkbox/checkbox-group.test.tsx verify:testExists(registry/ouro/components/ouro/checkbox/checkbox-group.test.tsx::CheckboxGroup > marks the boxes invalid with error)
    */
   error?: ReadonlyErrorMessages | undefined;
   /**
@@ -52,15 +53,27 @@ export interface CheckboxGroupOwnProps {
    * `aria-required`; the asterisk is what shows. Translate it here. @default "(required)"
    */
   requiredLabel?: string | undefined;
-  /** Disables every box and fades the group. */
+  /**
+   * Disables every box and fades the group.
+   *
+   * @claim registry/ouro/components/ouro/checkbox/checkbox-group.test.tsx verify:testExists(registry/ouro/components/ouro/checkbox/checkbox-group.test.tsx::CheckboxGroup > disables every box with disabled)
+   */
   disabled?: boolean | undefined;
-  /** The form field name every checked box submits under, once per checked value. */
+  /**
+   * The form field name every checked box submits under, once per checked value.
+   *
+   * @claim registry/ouro/components/ouro/checkbox/checkbox-group.test.tsx verify:testExists(registry/ouro/components/ouro/checkbox/checkbox-group.test.tsx::CheckboxGroup > submits name=value for each checked box)
+   */
   name?: string | undefined;
   /** The checked values, for a controlled group; pair it with `onValueChange`. */
   value?: string[] | undefined;
   /** The values checked at first, for an uncontrolled group. */
   defaultValue?: string[] | undefined;
-  /** Called with every checked value, in the order they were checked, when one is checked or unchecked. */
+  /**
+   * Called with every checked value, in the order they were checked, when one is checked or unchecked.
+   *
+   * @claim registry/ouro/components/ouro/checkbox/checkbox-group.test.tsx verify:testExists(registry/ouro/components/ouro/checkbox/checkbox-group.test.tsx::CheckboxGroup > keeps the group's value: defaultValue, toggling with Space and clicks, and onValueChange)
+   */
   onValueChange?: ((value: string[]) => void) | undefined;
   /**
    * Layout only: margins, width, grid placement (`mt-4`, `col-span-2`). Appearance classes

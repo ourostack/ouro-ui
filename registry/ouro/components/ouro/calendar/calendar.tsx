@@ -46,6 +46,8 @@ export interface CalendarBaseProps {
    * week: `"en-GB"` starts weeks on Monday, `"en-US"` on Sunday. Pass your app's locale; the
    * default is the same on the server and in the browser, so hydration matches.
    * @default "en-US"
+   * @claim registry/ouro/components/ouro/calendar/calendar.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/calendar.test.tsx::Calendar > locale > names months, weekdays and days in the locale's language and digits)
+   * @claim registry/ouro/components/ouro/calendar/calendar.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/calendar.test.tsx::Calendar > locale > takes the first day of the week from the locale)
    */
   locale?: string | undefined;
   /** The month shown first, as any ISO date in it. Without it, the selected date's month, or today's. */
@@ -127,7 +129,12 @@ function ordered(a: string, b: string): DateRange {
   return a <= b ? { start: a, end: b } : { start: b, end: a };
 }
 
-/** Icons drawn in the text color at 16px, like the other Ouro icons. */
+/**
+ * Icons drawn in the text color at 16px, like the other Ouro icons.
+ *
+ * @claim registry/ouro/components/ouro/calendar/calendar.tsx verify:fileLine(registry/ouro/components/ouro/calendar/calendar.tsx, /className="size-4 rtl:-scale-x-100"/)
+ * @claim registry/ouro/components/ouro/calendar/calendar.tsx verify:fileLine(registry/ouro/components/ouro/calendar/calendar.tsx, /stroke="currentColor"/)
+ */
 function Chevron({ children }: { children: ReactNode }): JSX.Element {
   return (
     <svg

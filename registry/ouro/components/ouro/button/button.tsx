@@ -61,6 +61,8 @@ export interface ButtonBaseProps {
    * density from the `sm` breakpoint (640px). shadcn's `default` is `md`; for an
    * icon-only button, pass the icon as children and an `aria-label`. Any other
    * string is a type error whose message names the fix. @default "md"
+   * @claim registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::appearance > orders sizes sm < md < lg)
+   * @claim registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::className > lets the app's height and padding win at desktop widths too)
    */
   size?:
     | "sm"
@@ -279,6 +281,9 @@ const preventDefault = (event: MouseEvent) => event.preventDefault();
  * <Button onClick={save} loading={saving}>Save</Button>
  * <Button href="/recipes/new" startIcon={PlusIcon}>New recipe</Button>
  * <Button tone="destructive" variant="soft" type="submit">Delete</Button>
+ * @claim registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::press feedback > scales to --ouro-press-scale while pressed)
+ * @claim registry/ouro/components/ouro/button/button.touch.test.tsx verify:fileLine(registry/ouro/components/ouro/button/button.touch.test.tsx, /44px hit area on a coarse pointer/)
+ * @claim registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::loading > sets aria-busy, disables without losing focus, and keeps the width within 1px)
  */
 export function Button(props: ButtonProps): JSX.Element {
   const {

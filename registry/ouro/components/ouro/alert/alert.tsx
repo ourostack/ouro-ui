@@ -16,6 +16,7 @@ export interface AlertOwnProps {
   /**
    * What happened, in a few words: "Recipe saved", "Couldn't save". Required, so every
    * alert says what it is about.
+   * @claim registry/ouro/components/ouro/alert/alert.test-d.ts verify:fileLine(registry/ouro/components/ouro/alert/alert.test-d.ts, /title is required/)
    */
   title: ReactNode;
   /** More detail, or what to do next, under the title. */

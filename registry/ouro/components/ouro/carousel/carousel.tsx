@@ -26,7 +26,11 @@ export interface CarouselProps {
   loop?: boolean | undefined;
   /** How many slides show at once. @default 1 */
   slidesPerView?: 1 | 2 | 3 | (number & { 'Use 1, 2 or 3': never }) | undefined;
-  /** The slide to start on, counting from 0. The starting slide is not announced. @default 0 */
+  /**
+   * The slide to start on, counting from 0. The starting slide is not announced. @default 0
+   *
+   * @claim registry/ouro/components/ouro/carousel/carousel.test.tsx verify:testExists(registry/ouro/components/ouro/carousel/carousel.test.tsx::Carousel navigation > starts at defaultIndex without announcing it)
+   */
   defaultIndex?: number | undefined;
   /** Called with the index of the first visible slide when the user moves to another slide, once per change. */
   onIndexChange?: ((index: number) => void) | undefined;
@@ -89,6 +93,8 @@ function ChevronIcon({ back }: { back?: boolean }): JSX.Element {
  * <Carousel label="Featured recipes" slidesPerView={2} loop onIndexChange={setIndex}>
  *   {recipes.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} />)}
  * </Carousel>
+ * @claim registry/ouro/components/ouro/carousel/carousel.touch.test.tsx verify:testExists(registry/ouro/components/ouro/carousel/carousel.touch.test.tsx::lets a vertical swipe that starts on the slides scroll the page)
+ * @claim registry/ouro/components/ouro/carousel/carousel.test.tsx verify:testExists(registry/ouro/components/ouro/carousel/carousel.test.tsx::Carousel structure > snaps each slide to the start of a horizontal scroller that a keyboard can reach)
  */
 export function Carousel(props: CarouselProps): JSX.Element {
   const {

@@ -93,6 +93,8 @@ const typeNames: Readonly<Record<ChartType, string>> = { bar: "Bar chart", line:
  * "Bar chart of Cooked and Saved by Month, 3 points. The table that follows lists every value."
  *
  * @internal
+ * @claim registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > lists every value in a table for screen readers, visible with showTable)
+ * @claim registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > describes itself with a summary that points to the data table, which the app can translate)
  */
 function defaultSummary({ type, series, category, count }: ChartSummaryInfo): string {
   const kind = type ? typeNames[type] : "Chart";

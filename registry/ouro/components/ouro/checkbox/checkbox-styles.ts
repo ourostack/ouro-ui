@@ -12,6 +12,9 @@ export { boxClass, dashClass, indicatorClass, tickClass };
  * touch screens.
  *
  * @internal
+ * @claim registry/ouro/components/ouro/checkbox/checkbox.touch.test.tsx verify:testExists(registry/ouro/components/ouro/checkbox/checkbox.touch.test.tsx::keeps the 20px box and 16px label on a landscape phone, past the sm breakpoint)
+ * @claim registry/ouro/components/ouro/checkbox/checkbox.touch.test.tsx verify:testExists(registry/ouro/components/ouro/checkbox/checkbox.touch.test.tsx::gives the box a 44px hit area, though it is 20px)
+ * @claim registry/ouro/components/ouro/checkbox/checkbox.test.tsx verify:testExists(registry/ouro/components/ouro/checkbox/checkbox.test.tsx::Checkbox look > is 16px beside 14px text with a fine pointer from sm, centered on the label's first line)
  */
 const boxClass =
   "group press relative m-0 mt-0.5 box-border inline-flex size-5 shrink-0 items-center justify-center p-0 sm:pointer-fine:size-4 " +

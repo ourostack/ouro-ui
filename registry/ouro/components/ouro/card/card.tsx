@@ -10,7 +10,11 @@ import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
 
-/** The props every Card takes, with or without `href`. */
+/**
+ * The props every Card takes, with or without `href`.
+ *
+ * @claim registry/ouro/components/ouro/card/card.tsx verify:fileLine(registry/ouro/components/ouro/card/card.tsx, /CardProps/)
+ */
 export interface CardOwnProps {
   /** The card's title, as a heading. With `href` it is the link's text, so a linked card needs one. */
   title?: ReactNode;
@@ -44,6 +48,7 @@ export interface CardOwnProps {
   /**
    * Below this breakpoint the `action` drops under the title and description, as in a
    * settings panel on a phone. Without it the action stays beside the title at every width.
+   * @claim registry/ouro/components/ouro/card/card.test.tsx verify:testExists(registry/ouro/components/ouro/card/card.test.tsx::Card > keeps the action beside the title on a phone without stackBelow)
    */
   stackBelow?: "sm" | "md" | (string & { 'Use "sm" (640px) or "md" (768px)': never }) | undefined;
   /**
@@ -57,7 +62,12 @@ export interface CardOwnProps {
    * @default "outline"
    */
   variant?: "outline" | "plain" | (string & { 'Use "outline" or "plain"; elevation comes from the theme': never }) | undefined;
-  /** Padding: `md` is 24px, `sm` 16px for dense grids. @default "md" */
+  /**
+   * Padding: `md` is 24px, `sm` 16px for dense grids. @default "md"
+   *
+   * @claim registry/ouro/components/ouro/card/card.test.tsx verify:testExists(registry/ouro/components/ouro/card/card.test.tsx::Card > is a bordered surface in the card colors, with 24px padding)
+   * @claim registry/ouro/components/ouro/card/card.test.tsx verify:testExists(registry/ouro/components/ouro/card/card.test.tsx::Card > is tighter with size=sm)
+   */
   size?: "md" | "sm" | (string & { 'Use "md" or "sm"': never }) | undefined;
   /**
    * The element to render: `li` in a list of cards, `article` for a self-contained item.

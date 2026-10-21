@@ -42,6 +42,7 @@ const headerClass = "m-0 p-0 text-base font-medium";
  * fine one. A full-width row does not scale when pressed; it dims instead.
  *
  * @internal
+ * @claim registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > gives every trigger at least a 44px row on a coarse pointer, or 40px otherwise)
  */
 const triggerClass =
   "group/trigger press relative m-0 box-border flex w-full cursor-pointer items-center justify-between gap-4 " +
@@ -67,6 +68,9 @@ const iconClass =
  * and hidden; where the browser supports `hidden="until-found"`, its page search finds and opens it.
  *
  * @internal
+ * @claim registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > lets the browser's page search find and open a closed item, and hides it plainly where until-found is unsupported)
+ * @claim registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > animates the panel to its measured height)
+ * @claim registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > does not animate height with reduced motion)
  */
 const panelClass =
   "h-(--accordion-panel-height) overflow-hidden " +
