@@ -16,7 +16,7 @@ import { art, parseArt } from "./art";
 // line say what they should.
 
 const root = document.documentElement;
-const scene = () => document.querySelector<SVGSVGElement>(".stage-scene")!;
+const scene = () => document.querySelector<HTMLElement>(".stage-scene")!;
 // The log's lines, oldest first, as its fold holds them; the newest is also the crew's line under the porthole.
 const logText = () => [...document.querySelectorAll(".stage-log-fold [data-ouro='message']")].map((message) => message.textContent ?? "");
 const TANK_NAMES = TANKS.map((tank) => tank.name);
@@ -209,7 +209,7 @@ describe("the stage's controls", () => {
     await expect.poll(lastLog).toContain(LOG.bell.text);
     // The bell swings and the water rings, again on each press.
     expect(ring()).toBe("a");
-    await expect.poll(() => document.querySelectorAll(".stage-ripples ellipse").length).toBe(3);
+    await expect.poll(() => document.querySelectorAll(".stage-ripple").length).toBe(3);
     await userEvent.click(bell);
     await expect.element(page.getByText(`${BELL_TOASTS[1]!.name}: ${BELL_TOASTS[1]!.text}`)).toBeVisible();
     expect(ring()).toBe("b");

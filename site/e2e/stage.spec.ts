@@ -214,9 +214,9 @@ test.describe("each control on the stage", () => {
     await expect(page.getByText(`${BELL_TOASTS[0]!.name}: ${BELL_TOASTS[0]!.text}`)).toBeVisible();
     await expect(lastLog(page)).toContainText(LOG.bell.text);
     await expect(page.locator("[data-stage-control='bell']")).toHaveAttribute("data-ring", "a");
-    await expect(page.locator(".stage-ripples ellipse")).toHaveCount(3);
+    await expect(page.locator(".stage-ripple")).toHaveCount(3);
     // Under reduced motion the bell glows instead of swinging.
-    await expect.poll(() => started(".stage-bell-body")).toEqual(["stage-bell-glow-a"]);
+    await expect.poll(() => started(".stage-bell-icon")).toEqual(["stage-bell-glow-a"]);
   });
 });
 
@@ -428,7 +428,7 @@ test.describe("the ballast manifold and the bell's payoffs", () => {
     await expect(scene(page)).toHaveAttribute("data-ring", "a");
     await expect(page.getByText(`${BELL_TOASTS[0]!.name}: ${BELL_TOASTS[0]!.text}`)).toBeVisible();
     await expect(lastLog(page)).toContainText(LOG.bell.text);
-    await expect.poll(() => started(".stage-ripples ellipse")).toContain("stage-ripple");
+    await expect.poll(() => started(".stage-ripple")).toContain("stage-ripple");
     await expect.poll(() => started(".stage-band-sunlit .stage-react")).toContain("stage-startle-a");
     await page.getByRole("button", { name: STAGE_COPY.bell }).click();
     await expect(scene(page)).toHaveAttribute("data-ring", "b");

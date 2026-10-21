@@ -30,11 +30,11 @@ export const STAGE_SOURCE = `${GITHUB}/tree/main/site/src/voyage/stage`;
 
 function BellIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
   return (
-    <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <g className="stage-bell-body">
-        <path d="M5 13.5V9a5 5 0 0 1 10 0v4.5l1.5 1.5h-13Z" />
-        <path d="M8.5 17a1.5 1.5 0 0 0 3 0" />
-      </g>
+    // The bell swings as a whole icon, not as a shape inside it: an animated SVG shape is redrawn by
+    // the page every frame, the icon's own box by the compositor (stage.css).
+    <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props} className={props.className ? `stage-bell-icon ${props.className}` : "stage-bell-icon"}>
+      <path d="M5 13.5V9a5 5 0 0 1 10 0v4.5l1.5 1.5h-13Z" />
+      <path d="M8.5 17a1.5 1.5 0 0 0 3 0" />
     </svg>
   );
 }
@@ -62,21 +62,30 @@ function useStable<Args extends unknown[]>(handler: (...args: Args) => void): (.
  * out the whole drawing again: tens of milliseconds on a slow CPU. As a deferred render
  * (`useDeferredValue`) React may commit it before the browser paints the press, whenever the next
  * frame is further off than React's render, and then that frame lays out the drawing first. Set
- * from a task after the next frame instead, it always lands a frame after the press.
+ * once the press is on screen instead (afterPaint), it always lands after the press.
  */
 function useAfterPaint<T>(value: T): T {
   const [shown, setShown] = useState(value);
-  useEffect(() => {
-    let timer = 0;
-    const frame = requestAnimationFrame(() => {
-      timer = window.setTimeout(() => startTransition(() => setShown(value)));
-    });
-    return () => {
-      cancelAnimationFrame(frame);
-      clearTimeout(timer);
-    };
-  }, [value]);
+  useEffect(() => afterPaint(() => startTransition(() => setShown(value))), [value]);
   return shown;
+}
+
+/**
+ * Runs `then` once the frame that shows a press is on screen, and returns a cancel. A task after
+ * the next frame's work is not late enough on a slow CPU: that frame is still being drawn, and
+ * work there holds up the next press. A task after the frame after it is.
+ */
+function afterPaint(then: () => void): () => void {
+  let frame = requestAnimationFrame(() => {
+    frame = requestAnimationFrame(() => {
+      timer = window.setTimeout(then);
+    });
+  });
+  let timer = 0;
+  return () => {
+    cancelAnimationFrame(frame);
+    clearTimeout(timer);
+  };
 }
 
 type TankId = (typeof TANKS)[number]["id"];
@@ -178,15 +187,14 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
   const onBell = useStable(() => {
     const line = BELL_TOASTS[rings % BELL_TOASTS.length]!;
     setRings((count) => count + 1);
-    write(LOG.bell);
-    // The crew answers once the bell has swung: the toast stack measures and re-lays itself out, so
-    // it waits for the press's own paint rather than holding it up.
-    requestAnimationFrame(() =>
-      setTimeout(() => {
-        toast(`${line.name}: ${line.text}`);
-        keepClearOfToasts(root.current?.querySelector("[data-stage-control='bell']"));
-      }),
-    );
+    // The crew answers once the bell has swung: the log's line and the toast both wait for the
+    // press's own paint (the log renders as a transition, which React would otherwise start before
+    // that frame, and the toast stack measures and re-lays itself out).
+    afterPaint(() => {
+      write(LOG.bell);
+      toast(`${line.name}: ${line.text}`);
+      keepClearOfToasts(root.current?.querySelector("[data-stage-control='bell']"));
+    });
   });
 
   // The picture follows the controls once the press has painted (useAfterPaint), so no press waits
