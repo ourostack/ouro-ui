@@ -378,6 +378,35 @@ function frameIdOf(page: Page, frame: Frame): Promise<string | undefined> {
   return id;
 }
 
+/** A touch command that takes longer than this logs what it waited for (`TouchTrace`). */
+const TOUCH_SLOW_MS = 1000;
+
+/**
+ * What one touch command waited for, logged when it is slow: its steps with their times, and when
+ * each frame's watch answered.
+ */
+interface TouchTrace {
+  start: number;
+  steps: string[];
+  answered: Map<Frame, number>;
+}
+
+const traceStep = (trace: TouchTrace, step: string) => trace.steps.push(`+${Date.now() - trace.start}ms ${step}`);
+
+/** Logs `trace` when the command took longer than TOUCH_SLOW_MS. */
+function logIfSlow(command: string, expected: TouchPoint, trace: TouchTrace, frames: Iterable<Frame>) {
+  const took = Date.now() - trace.start;
+  if (took <= TOUCH_SLOW_MS) return;
+  const watches = [...frames].map((frame) => {
+    const at = trace.answered.get(frame);
+    return `${frame.url() || "a frame with no URL yet"} ${at === undefined ? "had not answered" : `answered at +${at}ms`}`;
+  });
+  console.warn(
+    `${command}: the ${expected.type} at (${Math.round(expected.x)}, ${Math.round(expected.y)}) took ${took}ms. ` +
+      `Steps: ${trace.steps.join("; ")}. Watches: ${watches.join("; ")}.`,
+  );
+}
+
 /** The frame a touch goes to: the one at the touchstart's point, or the one that handled the gesture's touchstart. */
 type TouchTarget = { point: { x: number; y: number } } | { frame: Frame };
 
@@ -416,6 +445,7 @@ async function watchTarget(
   session: CDPSession,
   expected: TouchPoint,
   target: TouchTarget,
+  trace: TouchTrace,
 ): Promise<{ calls: Map<Frame, Promise<FrameAnswer<null>>>; gone?: string }> {
   const deadline = Date.now() + TOUCH_HANDLED_TIMEOUT_MS;
   const calls = new Map<Frame, Promise<FrameAnswer<null>>>();
@@ -423,7 +453,11 @@ async function watchTarget(
   const watch = (frame: Frame) => {
     const call = callWatch<null>(frame, "expect", expected, TOUCH_HANDLED_TIMEOUT_MS);
     calls.set(frame, call);
-    void call.then(() => changed());
+    trace.answered.delete(frame);
+    void call.then(() => {
+      trace.answered.set(frame, Date.now() - trace.start);
+      changed();
+    });
   };
   page.on("frameattached", watch).on("framenavigated", watch).on("framedetached", watch);
   const answered = () => Promise.all([...calls.values()]);
@@ -431,6 +465,7 @@ async function watchTarget(
     for (const frame of page.frames()) watch(frame);
     if ("frame" in target) {
       const answer = await (calls.get(target.frame) ?? callWatch<null>(target.frame, "expect", expected, TOUCH_HANDLED_TIMEOUT_MS));
+      traceStep(trace, `the gesture's frame answered: ${answer.url}`);
       if (answer.error === undefined) return { calls };
       // A lift is sent all the same, so the finger is not left down.
       const gone = `${command}: could not watch ${answer.url}, the frame the gesture's touchstart went to: ${answer.error}.`;
@@ -443,6 +478,7 @@ async function watchTarget(
       const at = await within(frameAtPoint(session, target.point, expected), deadline - Date.now(), "Chromium did not say which frame is there").catch(
         (error: Error): FrameAt => ({ watched: false, where: `unknown (${error.message})` }),
       );
+      traceStep(trace, `the frame at the point: ${String(at.watched)}, ${at.where}`);
       if (at.watched === true) return { calls };
       if (at.watched === "frame") {
         // The frame is in another process, so only its own watcher can say it is armed: its answer to
@@ -462,6 +498,7 @@ async function watchTarget(
       if (at.watched === "unknown") {
         // Chromium could not say: wait for every frame Playwright lists, as far as the bound allows.
         await within(answered(), deadline - Date.now(), "expired").catch(() => {});
+        traceStep(trace, "waited for every frame's watch");
         return { calls };
       }
       const expired = await within(change, deadline - Date.now(), "expired").then(
@@ -530,7 +567,26 @@ async function sendTouch(
   send: () => Promise<unknown>,
 ): Promise<Frame | undefined> {
   const none: TouchSeen = { seen: false, active: false, moved: false, saw: [] };
-  const { calls, gone } = await watchTarget(command, page, session, expected, target);
+  const trace: TouchTrace = { start: Date.now(), steps: [], answered: new Map() };
+  try {
+    return await sendTraced(command, page, session, expected, target, send, none, trace);
+  } finally {
+    logIfSlow(command, expected, trace, page.frames());
+  }
+}
+
+async function sendTraced(
+  command: string,
+  page: Page,
+  session: CDPSession,
+  expected: TouchPoint,
+  target: TouchTarget,
+  send: () => Promise<unknown>,
+  none: TouchSeen,
+  trace: TouchTrace,
+): Promise<Frame | undefined> {
+  const { calls, gone } = await watchTarget(command, page, session, expected, target, trace);
+  traceStep(trace, "watched");
   const now = <T>(call: Promise<T>) => within(call, 0, "").catch(() => undefined);
   // Tidies every frame whose watch started; a frame whose call is still out is tidied when it answers, without waiting.
   // Once a frame has handled the event, only its tidying is waited for: a busy frame elsewhere, as a
@@ -541,13 +597,16 @@ async function sendTouch(
     const answered = (await Promise.all([...calls.values()].map(now))).flatMap((answer) => (answer && answer.error === undefined ? [answer.frame] : []));
     for (const [frame, call] of calls) if (!answered.includes(frame)) void call.then(() => callWatch(frame, "settle", expected, TOUCH_TIDY_MS));
     const settled = watchTouch(page, "settle", expected, TOUCH_TIDY_MS, answered);
+    const waited = handled ? answered.filter((frame) => frame === handled) : answered;
     await Promise.all(handled ? settled.filter((_, index) => answered[index] === handled) : settled);
+    traceStep(trace, `tidied, waiting for ${waited.map((frame) => frame.url() || "a frame with no URL yet").join(", ") || "no frame"}`);
   };
   let waits: Promise<FrameAnswer<TouchSeen> | undefined>[];
   let handler: Frame | undefined;
   let watchdog: ReturnType<typeof setTimeout> | undefined;
   try {
     await send();
+    traceStep(trace, "sent");
     if (gone) throw new Error(gone);
     // Each frame waits once its watch has started, and stops after the bound on its own; a frame that never answers is let go a little later.
     waits = [...calls].map(([frame, call]) =>
@@ -560,6 +619,7 @@ async function sendTouch(
     // The first frame to see it ends the wait in the others.
     const firstSeen = waits.map((wait) => wait.then((answer) => (answer?.value?.seen ? answer.frame : new Promise<never>(() => {}))));
     handler = await Promise.race([Promise.all(waits).then(() => undefined), deadline, ...firstSeen]);
+    traceStep(trace, `handled by ${handler ? handler.url() || "a frame with no URL yet" : "no frame"}`);
   } catch (error) {
     await tidy();
     throw error;
