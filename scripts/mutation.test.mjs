@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { changedLines, countDisables, describeSurvivor, disableProblems, estimateMutants, mutateRanges, parseShard, runtimeSource, survivors, testFilesFor } from "./mutation.mjs";
+import { changedLines, shardUnits, unitChanges, countDisables, describeSurvivor, disableProblems, estimateMutants, mutateRanges, parseShard, runtimeSource, survivors, testFilesFor } from "./mutation.mjs";
 import { parse } from "@babel/parser";
 import traverse from "@babel/traverse";
 import { ignoreReason, isClassList, testPhases } from "./mutation/plugins.mjs";
@@ -269,4 +269,15 @@ test("mergeReports makes one incremental report of the shards', renaming each te
   assert.equal(names[merged.files["dialog.tsx"].mutants[0].killedBy[0]], "closes");
   assert.equal(names[merged.files["dialog-parts.tsx"].mutants[0].killedBy[0]], "traps focus");
   assert.equal(names[merged.files["dialog-parts.tsx"].mutants[0].coveredBy[0]], "traps focus");
+});
+
+test("shardUnits makes each changed range of runtime source a unit of its own, with its file's tests, so one large file's mutants can spread across shards", () => {
+  const changed = { "registry/ouro/components/ouro/sheet/sheet-parts.tsx": [[216, 216], [438, 439]], "registry/ouro/components/ouro/sheet/sheet.stories.tsx": [[1, 3]] };
+  const text = ["const a = 1;", ...Array.from({ length: 440 }, (_, index) => (index === 214 ? "const b = x > 1 && y;" : index === 436 ? 'const c = { on: true, label: "x" };' : ""))].join("\n");
+  const units = shardUnits(changed, { read: () => text, testsFor: () => ({ own: ["sheet.test.tsx"], wider: [] }) });
+  assert.deepEqual(Object.keys(units), ["registry/ouro/components/ouro/sheet/sheet-parts.tsx:216-216", "registry/ouro/components/ouro/sheet/sheet-parts.tsx:438-439"]);
+  for (const unit of Object.values(units)) assert.deepEqual(unit.own, ["sheet.test.tsx"]);
+  assert.ok(units["registry/ouro/components/ouro/sheet/sheet-parts.tsx:216-216"].mutants > 0);
+  // Back to the changed lines Stryker mutates, by file.
+  assert.deepEqual(unitChanges(["registry/ouro/components/ouro/sheet/sheet-parts.tsx:438-439"], units), { "registry/ouro/components/ouro/sheet/sheet-parts.tsx": [[438, 439]] });
 });

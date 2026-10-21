@@ -86,6 +86,29 @@ export function estimateMutants(text, path, ranges) {
   return count;
 }
 
+/**
+ * The units the CI shards share out: each changed range of runtime source, with its estimated
+ * mutants and its file's tests (`own`, `wider`), keyed as Stryker names it (`path:start-end`). A
+ * range, not a file, so one file with many slow mutants (Sheet's parts) spreads across shards.
+ */
+export function shardUnits(changed, { read = (path) => readFileSync(join(root, path), "utf8"), testsFor = (path) => testFilesFor([path]) } = {}) {
+  const units = {};
+  for (const [path, ranges] of Object.entries(changed)) {
+    if (!runtimeSource(path)) continue;
+    const text = read(path);
+    const tests = testsFor(path);
+    for (const range of ranges) units[`${path}:${range[0]}-${range[1]}`] = { path, range, mutants: estimateMutants(text, path, [range]), ...tests };
+  }
+  return units;
+}
+
+/** The changed lines of some units, by file, as `changedLines` gives them. */
+export function unitChanges(ids, units) {
+  const changes = {};
+  for (const id of ids) (changes[units[id].path] ??= []).push(units[id].range);
+  return changes;
+}
+
 /** `--shard 2/3` as a 1-based index and a count; null without one. */
 export function parseShard(value) {
   if (value === undefined) return null;
@@ -203,7 +226,7 @@ export function describeSurvivor(mutant) {
 
 async function main(args) {
   // `--only <path>` mutates one file's changed lines, while you work on it; `--shard <i>/<n>`
-  // mutates the ith of n groups of the changed files, balanced by their estimated mutants and
+  // mutates the ith of n groups of the changed ranges, balanced by their estimated mutants and
   // their tests' measured time (CI).
   const option = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : undefined);
   const only = option("--only");
@@ -236,18 +259,14 @@ async function main(args) {
   let changes = changed;
   if (shard) {
     const seconds = testSeconds();
-    const files = Object.fromEntries(
-      Object.entries(changed)
-        .filter(([path]) => runtimeSource(path))
-        .map(([path, ranges]) => [path, { mutants: estimateMutants(readFileSync(join(root, path), "utf8"), path, ranges), ...testFilesFor([path]) }]),
-    );
-    const shards = planShards(files, shard.count, seconds);
+    const units = shardUnits(changed);
+    const shards = planShards(units, shard.count, seconds);
     console.log(
-      `Shard ${shard.index}/${shard.count} of the changed files, by estimated mutants and their tests' measured time (scripts/mutation/test-seconds.json):\n${shards
-        .map((paths, index) => `${index + 1} (~${Math.round(shardCost(paths, files, seconds))}s): ${paths.map((path) => `${path} (~${files[path].mutants})`).join(", ") || "none"}`)
+      `Shard ${shard.index}/${shard.count} of the changed ranges, by estimated mutants and their tests' measured time (scripts/mutation/test-seconds.json):\n${shards
+        .map((ids, index) => `${index + 1} (~${Math.round(shardCost(ids, units, seconds))}s): ${ids.map((id) => `${id} (~${units[id].mutants})`).join(", ") || "none"}`)
         .join("\n")}`,
     );
-    changes = Object.fromEntries(shards[shard.index - 1].map((path) => [path, changed[path]]));
+    changes = unitChanges(shards[shard.index - 1], units);
   }
   const mutate = mutateRanges(changes);
   if (mutate.length === 0) {
