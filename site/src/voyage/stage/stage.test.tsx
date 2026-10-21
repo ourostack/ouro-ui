@@ -199,7 +199,7 @@ describe("the stage's controls", () => {
     await expect.poll(() => scene().getAttribute("aria-label")).toContain("The fish hold still.");
   });
 
-  it("rings the bell: a toast from the crew, in turn, and a line in the log", async () => {
+  it("rings the bell: a toast from the crew, in turn, each replacing the last, and a line in the log", async () => {
     await renderPage("/voyage/");
     const bell = page.getByRole("button", { name: STAGE_COPY.bell });
     const ring = () => document.querySelector<HTMLElement>("[data-stage-control='bell']")!.dataset.ring;
@@ -213,6 +213,10 @@ describe("the stage's controls", () => {
     await userEvent.click(bell);
     await expect.element(page.getByText(`${BELL_TOASTS[1]!.name}: ${BELL_TOASTS[1]!.text}`)).toBeVisible();
     expect(ring()).toBe("b");
+    // The second ring's answer took the first one's place: one toast shows, and the first answer is gone.
+    const toaster = () => document.querySelector<HTMLElement>('[data-ouro="toaster"]')!;
+    expect(toaster().querySelectorAll('[data-ouro="toast"]')).toHaveLength(1);
+    expect(toaster().textContent).not.toContain(BELL_TOASTS[0]!.text);
   });
 
   it("keeps the newest five lines in the log, the newest also under the porthole", async () => {
