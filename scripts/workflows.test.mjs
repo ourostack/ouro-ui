@@ -216,8 +216,8 @@ const releaseStep = (name) => {
   return body.split("\n").map((line) => line.slice(10)).join("\n");
 };
 
-for (const scenario of ["success", "queued", "ci-failed", "ci-missing", "dispatch-failed", "not-merged", "queue-dropped", "approval-failed", "tip-advanced"]) {
-  const passes = ["success", "queued"].includes(scenario);
+for (const scenario of ["success", "queued", "queue-rebuilt", "ci-failed", "ci-missing", "dispatch-failed", "not-merged", "queue-dropped", "approval-failed", "tip-advanced"]) {
+  const passes = ["success", "queued", "queue-rebuilt"].includes(scenario);
   test(`Release's main CI gate ${passes ? "permits" : "blocks"} Pages (${scenario})`, () => {
     // Execute the workflow's actual shell, substituting only GitHub/network operations.
     // gh merge exits non-zero even when state says MERGED, exercising independent readback.
@@ -242,17 +242,21 @@ for (const scenario of ["success", "queued", "ci-failed", "ci-missing", "dispatc
           "run watch 1 "*) return 0 ;;
           "pr merge "*) return 1 ;;
           "pr view "*"--json number"*) echo 9 ;;
-          # The merge queue: queued, then merged (or dropped) on the next look.
+          # The merge queue: queued, then merged (or dropped) on the next look; rebuilt: queued
+          # for three looks, with a second build's branch from the second look of the branches on.
           "api graphql "*)
             looks=$(( $(cat "$QUEUE_LOOKS") + 1 )); echo "$looks" > "$QUEUE_LOOKS"
             case "$SCENARIO:$looks" in
-              queued:1|queue-dropped:1) echo "OPEN true" ;;
+              queued:1|queue-dropped:1|queue-rebuilt:1|queue-rebuilt:2|queue-rebuilt:3) echo "OPEN true" ;;
               queued:*) echo "MERGED false" ;;
               not-merged:*|queue-dropped:*) echo "OPEN false" ;;
               *) echo "MERGED false" ;;
             esac ;;
-          "api repos/ourostack/ouro-ui/git/matching-refs/heads/gh-readonly-queue/main/pr-9-"*) echo refs/heads/gh-readonly-queue/main/pr-9-abc ;;
-          "workflow run ci.yml --ref gh-readonly-queue/main/pr-9-abc") return 0 ;;
+          "api repos/ourostack/ouro-ui/git/matching-refs/heads/gh-readonly-queue/main/pr-9-"*)
+            refs=$(( $(cat "$QUEUE_LOOKS.refs" 2>/dev/null || echo 0) + 1 )); echo "$refs" > "$QUEUE_LOOKS.refs"
+            echo refs/heads/gh-readonly-queue/main/pr-9-abc
+            if [ "$SCENARIO" = queue-rebuilt ] && [ "$refs" -ge 2 ]; then echo refs/heads/gh-readonly-queue/main/pr-9-def; fi ;;
+          "workflow run ci.yml --ref gh-readonly-queue/main/pr-9-"*) return 0 ;;
           "pr view "*"--json state"*) if [ "$SCENARIO" = not-merged ] || [ "$SCENARIO" = queue-dropped ]; then echo OPEN; else echo MERGED; fi ;;
           "pr view "*"--json body"*) echo body ;;
           "pr edit "*|"api -X DELETE "*) return 0 ;;
@@ -267,7 +271,7 @@ for (const scenario of ["success", "queued", "ci-failed", "ci-missing", "dispatc
           *) echo "Unexpected gh call: $*" >&2; return 99 ;;
         esac
       }
-      seq() { echo 1; }
+      seq() { printf '%s\\n' 1 2 3 4 5; }
       sleep() { :; }
       node() { printf 'PUBLISHED %s\\n' "$*"; }
       run=1
@@ -283,7 +287,9 @@ for (const scenario of ["success", "queued", "ci-failed", "ci-missing", "dispatc
     assert.doesNotMatch(result.stderr, /Unexpected gh call:/);
     if (scenario.startsWith("queue")) {
       // Queued by the workflow's token: CI runs on the queue's branch by dispatch.
-      assert.match(result.stderr, /CALL workflow run ci\.yml --ref gh-readonly-queue\/main\/pr-9-abc/);
+      // Once on each build's branch, however often the branches are looked at.
+      const dispatched = result.stderr.match(/^CALL workflow run ci\.yml --ref gh-readonly-queue\/.+$/gm);
+      assert.deepEqual(dispatched, ["CALL workflow run ci.yml --ref gh-readonly-queue/main/pr-9-abc", ...(scenario === "queue-rebuilt" ? ["CALL workflow run ci.yml --ref gh-readonly-queue/main/pr-9-def"] : [])]);
       assert.match(result.stderr, /CALL api graphql -f query=query \{ repository\(owner: "ourostack", name: "ouro-ui"\) \{ pullRequest\(number: 9\) \{ state isInMergeQueue \} \} \}/);
     } else {
       assert.doesNotMatch(result.stderr, /gh-readonly-queue/);
