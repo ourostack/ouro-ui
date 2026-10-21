@@ -21,6 +21,7 @@ export interface OtpFieldProps {
   /**
    * What the code is ("Verification code"), shown above the slots and read as the first slot's
    * name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`.
+   * @claim registry/ouro/components/ouro/otp-field/otp-field.test-d.ts verify:fileLine(registry/ouro/components/ouro/otp-field/otp-field.test-d.ts, /expectTypeOf<\{\slength:\s6\s\}>\(\)\.not\.toExtend<OtpFieldProps>/)
    */
   label: string;
   /** Hides the label visually; screen readers still read it. */
@@ -34,7 +35,11 @@ export interface OtpFieldProps {
   error?: ReadonlyErrorMessages | undefined;
   /** The code must be filled before the form submits. */
   required?: boolean | undefined;
-  /** Disables every slot and fades the field. */
+  /**
+   * Disables every slot and fades the field.
+   *
+   * @claim registry/ouro/components/ouro/otp-field/otp-field.test.tsx verify:testExists(registry/ouro/components/ouro/otp-field/otp-field.test.tsx::OtpField > wires description, error, required and disabled through Field)
+   */
   disabled?: boolean | undefined;
   /** The form field name the whole code submits under. */
   name?: string | undefined;
@@ -55,9 +60,17 @@ export interface OtpFieldProps {
   defaultValue?: string | undefined;
   /** Called with the code as the person types, pastes or deletes. */
   onValueChange?: ((value: string) => void) | undefined;
-  /** Called with the code when every slot is filled. */
+  /**
+   * Called with the code when every slot is filled.
+   *
+   * @claim registry/ouro/components/ouro/otp-field/otp-field.test.tsx verify:testExists(registry/ouro/components/ouro/otp-field/otp-field.test.tsx::OtpField > moves to the next slot as the person types, and reports the value and completion)
+   */
   onValueComplete?: ((value: string) => void) | undefined;
-  /** Submits the form when every slot is filled. */
+  /**
+   * Submits the form when every slot is filled.
+   *
+   * @claim registry/ouro/components/ouro/otp-field/otp-field.test.tsx verify:testExists(registry/ouro/components/ouro/otp-field/otp-field.test.tsx::OtpField > submits the code under its name, and can submit the form when complete)
+   */
   autoSubmit?: boolean | undefined;
   /** Hides the characters as dots, as a password field does. */
   mask?: boolean | undefined;
@@ -131,6 +144,9 @@ interface SlotsProps {
  * server-known description ids. The group and every slot get the ids, since a screen reader
  * may land on any slot, and the invalid state is Ouro's own (Base UI's tracks only its own
  * checks).
+ * @claim registry/ouro/components/ouro/otp-field/otp-field.test.tsx verify:testExists(registry/ouro/components/ouro/otp-field/otp-field.test.tsx::OtpField > is a labeled group of six slots on the Field contract)
+ * @claim registry/ouro/components/ouro/otp-field/otp-field.test.tsx verify:testExists(registry/ouro/components/ouro/otp-field/otp-field.test.tsx::OtpField looks > outlines the focused slot and marks invalid slots)
+ * @claim registry/ouro/components/ouro/otp-field/otp-field.test.tsx verify:testExists(registry/ouro/components/ouro/otp-field/otp-field.test.tsx::OtpField server rendering > hydrates with the same ids and no hydration warning)
  */
 function Slots({ length, groupSize, slotLabel, onValueChange, onValueComplete, ref, ...rest }: SlotsProps): JSX.Element {
   const field = useField()!;

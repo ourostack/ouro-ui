@@ -21,6 +21,8 @@ export interface MessageOwnProps {
    * The author's name. Screen readers hear it before the message, and the avatar's
    * initials come from it. Required, so every message says who wrote it. The user's own
    * name is read but not shown.
+   * @claim registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message > is an article that says who wrote it, then what they wrote)
+   * @claim registry/ouro/components/ouro/message/message.test-d.ts verify:fileLine(registry/ouro/components/ouro/message/message.test-d.ts, /expectTypeOf<\{\srole:\s"user"\s\}>\(\)\.not\.toExtend<MessageProps>/)
    */
   name: string;
   /** The author's picture URL. Without it the avatar shows initials; `false` shows no avatar. */
