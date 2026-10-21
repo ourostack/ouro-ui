@@ -10,8 +10,8 @@
       "mode": "registry"
     },
     {
-      "match": "^registry/.*\\.tsx?$",
-      "exclude": "\\.(test|test-d|stories)\\.tsx?$|\\.d\\.ts$|^registry/ouro/e2e/",
+      "match": "^registry/.*\\.(tsx?|mjs|mts)$",
+      "exclude": "\\.(test|test-d|stories)\\.(tsx?|mjs|mts)$|\\.d\\.m?ts$|^registry/ouro/e2e/",
       "mode": "jsdoc"
     },
     {
