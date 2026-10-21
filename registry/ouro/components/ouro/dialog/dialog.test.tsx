@@ -112,6 +112,11 @@ describe("automatic presentation", () => {
     expect(Math.abs(rect.top + rect.height / 2 - innerHeight / 2)).toBeLessThanOrEqual(1);
   });
 
+  it("marks its header for the dry run (throwaway)", async () => {
+    const element = await openUncontrolled();
+    expect(element.querySelector("[data-ouro-dialog-header]")?.getAttribute("data-dry-run")).toBe("survivor");
+  });
+
   it("renders the bottom sheet at 390px", async () => {
     await page.viewport(390, 844);
     const element = await openUncontrolled();
