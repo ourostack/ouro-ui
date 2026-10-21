@@ -1,17 +1,15 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { balance, collectTimings, installFiles, installShard, parseShard, readTimings, scriptTestFiles, shardKeys, slicedSuites } from "./shard.mjs";
+import { balance, collectTimings, e2eFiles, installFiles, installShard, parseShard, readTimings, scriptTestFiles, shardKeys, slicedSuites } from "./shard.mjs";
+import { scratchDir } from "./scratch.mjs";
 import { shardArgument, TimedSequencer } from "./vitest-shards.mts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-const scratch = () => {
-  mkdirSync(join(root, ".tmp"), { recursive: true });
-  return mkdtempSync(join(root, ".tmp/shard-"));
-};
+const scratch = () => scratchDir("ouro-shard-");
 
 test("the longest file goes first, each to the shard with the least so far", () => {
   const shards = balance(["a", "b", "c", "d", "e"], 2, { a: 50, b: 40, c: 30, d: 20, e: 10 });
@@ -53,7 +51,9 @@ test("refresh reads every timing report under a folder, keeping the longer time 
   writeFileSync(join(dir, "timings-browser-2/vitest-2of2.json"), JSON.stringify({ "site site.test.tsx": 7 }));
   writeFileSync(join(dir, "timings-browser-2/scripts-1of2.json"), JSON.stringify({ "scripts/a.test.mjs": 3 }));
   writeFileSync(join(dir, "timings-browser-2/other.json"), JSON.stringify({ ignored: 1 }));
-  assert.deepEqual(collectTimings(dir), { vitest: { "ouro-chromium a.test.tsx": 10, "site site.test.tsx": 7 }, scripts: { "scripts/a.test.mjs": 3 } });
+  mkdirSync(join(dir, "timings-e2e-3"), { recursive: true });
+  writeFileSync(join(dir, "timings-e2e-3/e2e-3of3.json"), JSON.stringify({ "site/e2e/stage.spec.ts": 2000 }));
+  assert.deepEqual(collectTimings(dir), { vitest: { "ouro-chromium a.test.tsx": 10, "site site.test.tsx": 7 }, scripts: { "scripts/a.test.mjs": 3 }, e2e: { "site/e2e/stage.spec.ts": 2000 } });
   const file = join(dir, "timings.json");
   writeFileSync(file, JSON.stringify({ vitest: { x: 1 } }));
   assert.deepEqual(readTimings("vitest", file), { x: 1 });
@@ -116,4 +116,25 @@ test("an install shard takes the app's shipped files by the time each took here,
   assert.deepEqual(installShard(files, { index: 1, count: 2 }, timings), ["src/components/ouro/a/a.test.tsx"]);
   assert.deepEqual(installShard(files, { index: 2, count: 2 }, timings), ["src/components/ouro/b/b.test.tsx", "src/components/ouro/c/c.touch.test.tsx"]);
   assert.deepEqual(installFiles(join(root, "no-such-app")), []);
+});
+
+test("the e2e spec files are the shipped and the site's specs, without the screen-reader and latency specs, each with a time", () => {
+  const files = e2eFiles();
+  assert.ok(files.includes("site/e2e/stage.spec.ts") && files.some((file) => file.startsWith("registry/ouro/e2e/ouro/")));
+  assert.equal(files.filter((file) => /\.(sr|latency)\.spec\.ts$/.test(file)).length, 0);
+  // A spec with no time weighs the median, which can unbalance the shards: refresh the times.
+  assert.deepEqual(files.filter((file) => !(file in readTimings("e2e"))), [], "node scripts/shard.mjs refresh <the timings-* artifacts of a CI run>");
+});
+
+test("the Playwright timings reporter adds up each spec file's tests, in every project and attempt", async () => {
+  const { default: Reporter } = await import("./timings-playwright-reporter.mjs");
+  const out = join(scratch(), "e2e-1of3.json");
+  const reporter = new Reporter({ outputFile: out });
+  const test = (file) => ({ location: { file: join(process.cwd(), file) } });
+  reporter.onTestEnd(test("site/e2e/stage.spec.ts"), { duration: 1200 });
+  reporter.onTestEnd(test("site/e2e/stage.spec.ts"), { duration: 800 });
+  reporter.onTestEnd(test("registry/ouro/e2e/ouro/menu.spec.ts"), { duration: 300.4 });
+  reporter.onEnd();
+  assert.deepEqual(JSON.parse(readFileSync(out, "utf8")), { "registry/ouro/e2e/ouro/menu.spec.ts": 300, "site/e2e/stage.spec.ts": 2000 });
+  assert.equal(reporter.printsToStdio(), false);
 });

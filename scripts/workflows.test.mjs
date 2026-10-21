@@ -613,13 +613,22 @@ test("the themes shards pass as not affected when a pull request changes no comp
   assert.match(runStep(scan, { FULL: "false", COMPONENTS: "checkbox-group", SHARD: "2" }).calls, /CALL pnpm test:themes --shard=2\/3\nOURO_STORIES=checkbox$/m);
 });
 
-test("the e2e shards run every spec, or the selected components' and the site's, and the e2e check passes when they all did", () => {
+test("the e2e shards run every spec, or the selected components' and the site's, and the e2e check passes when they all did", async () => {
   const jobs = ciJobs();
   const block = jobs["e2e-shard"];
   const count = shardCount(block);
   assert.match(block, new RegExp(`^ {6}SHARD: \\$\\{\\{ matrix\\.shard \\}\\}/${count}$`, "m"));
   const script = stepScript(block, "End-to-end specs");
-  assert.match(runStep(script, { FULL: "true", SHARD: "1/4" }).calls, /^CALL pnpm test:e2e --shard=1\/4$/m);
+  // A full run: the spec files the shard's measured share holds (the stand-in for node prints two).
+  const full = runStep(script, { FULL: "true", SHARD: "1/3" });
+  assert.match(full.calls, /^CALL node scripts\/shard\.mjs e2e 1\/3\nCALL pnpm test:e2e registry\/ouro\/e2e\/ouro\/checkbox\.spec\.ts site\/e2e\/$/m);
+  assert.match(block, new RegExp(`^ {6}OURO_E2E_TIMINGS: \\.tmp/timings/e2e-\\$\\{\\{ matrix\\.shard \\}\\}of${count}\\.json$`, "m"));
+  assert.match(block, /^ {10}name: timings-e2e-\$\{\{ matrix\.shard \}\}\n {10}path: \.tmp\/timings\/\n/m);
+  // Between them, the shards run every spec file once.
+  const { e2eFiles, readTimings, shardKeys } = await import("./shard.mjs");
+  const shares = Array.from({ length: count }, (_, index) => shardKeys(e2eFiles(), { index: index + 1, count }, readTimings("e2e")));
+  assert.deepEqual(shares.flat().sort(), e2eFiles());
+  assert.ok(shares.every((share) => share.length > 0));
   assert.match(runStep(script, { FULL: "false", COMPONENTS: "checkbox", SHARD: "1/4" }).calls, /^CALL pnpm test:e2e --pass-with-no-tests --shard=1\/4 registry\/ouro\/e2e\/ouro\/checkbox\.spec\.ts site\/e2e\/$/m);
   assert.match(jobs.e2e, /^ {4}needs: \[plan, e2e-shard\]$/m);
   const gate = stepScript(jobs.e2e, "Every shard passed");

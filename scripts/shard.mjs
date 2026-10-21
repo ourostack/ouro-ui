@@ -4,6 +4,7 @@
 // run's timing reports (`refresh`); a file it does not know yet weighs the median of every time it holds.
 //
 //   node scripts/shard.mjs scripts <index>/<count>   the test:scripts files of one shard, one per line
+//   node scripts/shard.mjs e2e <index>/<count>       the end-to-end spec files of one shard
 //   node scripts/shard.mjs install <index>/<count> <app>
 //                                                    the shipped Vitest test files of one install
 //                                                    shard, paths in the installed app <app>
@@ -84,17 +85,28 @@ export function scriptTestFiles(rootDir = root) {
 const filesUnder = (dir) => readdirSync(dir, { recursive: true }).map(String).map((file) => join(dir, file));
 
 /**
- * The times in the timing reports under `dir`: each `vitest-*.json` maps `<project> <file>` and each
- * `scripts-*.json` maps `<file>` to milliseconds. A key two reports both hold keeps the longer time.
+ * The times in the timing reports under `dir`: each `vitest-*.json` maps `<project> <file>`, and each
+ * `scripts-*.json` and `e2e-*.json` maps `<file>`, to milliseconds. A key two reports both hold keeps
+ * the longer time.
  */
 export function collectTimings(dir) {
-  const timings = { vitest: {}, scripts: {} };
+  const timings = { vitest: {}, scripts: {}, e2e: {} };
   for (const file of filesUnder(dir).sort()) {
-    const kind = /(?:^|\/)(vitest|scripts)-[^/]*\.json$/.exec(file)?.[1];
+    const kind = /(?:^|\/)(vitest|scripts|e2e)-[^/]*\.json$/.exec(file)?.[1];
     if (!kind) continue;
     for (const [key, ms] of Object.entries(JSON.parse(readFileSync(file, "utf8")))) timings[kind][key] = Math.max(timings[kind][key] ?? 0, Math.round(ms));
   }
   return timings;
+}
+
+/**
+ * The end-to-end spec files `pnpm test:e2e` runs (playwright.config.ts): the shipped specs under
+ * registry/ouro/e2e and the site's under site/e2e, without the screen-reader and latency specs,
+ * which run on their own.
+ */
+export function e2eFiles(rootDir = root) {
+  const specs = (dir) => (existsSync(join(rootDir, dir)) ? readdirSync(join(rootDir, dir), { recursive: true }).map((file) => `${dir}/${String(file).split("\\").join("/")}`) : []);
+  return [...specs("registry/ouro/e2e"), ...specs("site/e2e")].filter((file) => file.endsWith(".spec.ts") && !/\.(sr|latency)\.spec\.ts$/.test(file)).sort();
 }
 
 /**
@@ -132,6 +144,10 @@ function main([command, ...args]) {
     console.log(shardKeys(files, parseShard(args[0]), readTimings("scripts")).join("\n"));
     return 0;
   }
+  if (command === "e2e") {
+    console.log(shardKeys(e2eFiles(), parseShard(args[0]), readTimings("e2e")).join("\n"));
+    return 0;
+  }
   if (command === "install") {
     console.log(installShard(installFiles(args[1] ?? "."), parseShard(args[0])).join("\n"));
     return 0;
@@ -139,7 +155,7 @@ function main([command, ...args]) {
   if (command === "plan") {
     const [kind, count] = args;
     const timings = readTimings(kind);
-    const keys = kind === "scripts" ? scriptTestFiles() : Object.keys(timings).filter((key) => !isSliced(key));
+    const keys = kind === "scripts" ? scriptTestFiles() : kind === "e2e" ? e2eFiles() : Object.keys(timings).filter((key) => !isSliced(key));
     // Every browser shard also runs its slice of each sliced suite; a shard's report holds its slice's time.
     const sliced = kind === "vitest" ? Object.keys(timings).filter(isSliced).reduce((sum, key) => sum + timings[key], 0) : 0;
     for (const [position, shard] of balance(keys, Number(count), timings).entries()) console.log(`${position + 1}/${count}: ${((shard.weight + sliced) / 1000).toFixed(0)} s of test files, ${shard.keys.length} files${sliced ? " and a slice of each sliced suite" : ""}`);
@@ -153,12 +169,12 @@ function main([command, ...args]) {
       return 1;
     }
     const previous = existsSync(timingsFile) ? JSON.parse(readFileSync(timingsFile, "utf8")) : {};
-    const next = Object.fromEntries(["vitest", "scripts"].map((kind) => [kind, sortedObject(Object.keys(found[kind]).length > 0 ? found[kind] : (previous[kind] ?? {}))]));
+    const next = Object.fromEntries(["vitest", "scripts", "e2e"].map((kind) => [kind, sortedObject(Object.keys(found[kind]).length > 0 ? found[kind] : (previous[kind] ?? {}))]));
     writeFileSync(timingsFile, `${JSON.stringify(next, null, 2)}\n`);
     console.log(`Wrote ${relative(root, timingsFile)}: ${counts.join(", ")} timings.`);
     return 0;
   }
-  console.error("Usage: node scripts/shard.mjs scripts <index>/<count> | install <index>/<count> <app> | plan <kind> <count> | refresh <dir>");
+  console.error("Usage: node scripts/shard.mjs scripts <index>/<count> | e2e <index>/<count> | install <index>/<count> <app> | plan <kind> <count> | refresh <dir>");
   return 2;
 }
 

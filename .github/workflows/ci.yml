@@ -414,9 +414,12 @@ jobs:
       - run: npx --yes $SHADCN registry validate "ourostack/ouro-ui#$REF"
       - run: npx --yes $SHADCN build --output "$RUNNER_TEMP/r"
   e2e-shard:
-    # The end-to-end specs each item ships, against this repository's Storybook, in shards that run
-    # side by side (Playwright's --shard). On a reduced pull request, the selected components'
-    # specs and the site's. Part of the e2e check.
+    # The end-to-end specs each item ships, against this repository's Storybook, and the site's, in
+    # shards that run side by side: each takes the spec files whose measured times add up to its
+    # share (`node scripts/shard.mjs e2e`, times in scripts/shard-timings.json), and its two
+    # workers split their tests (fullyParallel). Each uploads how long each file took. On a reduced
+    # pull request, the selected components' specs and the site's, by Playwright's --shard. Part
+    # of the e2e check.
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
@@ -429,6 +432,7 @@ jobs:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
       SHARD: ${{ matrix.shard }}/3
+      OURO_E2E_TIMINGS: .tmp/timings/e2e-${{ matrix.shard }}of3.json
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -443,7 +447,11 @@ jobs:
       - name: End-to-end specs
         run: |
           if [ "$FULL" = true ]; then
-            pnpm test:e2e --shard="$SHARD"
+            specs=$(node scripts/shard.mjs e2e "$SHARD")
+            [ -n "$specs" ] || { echo "::error::Shard $SHARD has no spec file to run."; exit 1; }
+            # Word splitting is wanted: the paths have no spaces.
+            # shellcheck disable=SC2086
+            pnpm test:e2e $specs
           else
             # Word splitting is wanted: the paths have no spaces. A shard may get none of a few specs.
             # shellcheck disable=SC2046
@@ -455,6 +463,14 @@ jobs:
           name: e2e-report-${{ matrix.shard }}
           path: playwright-report/
           if-no-files-found: ignore
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: timings-e2e-${{ matrix.shard }}
+          path: .tmp/timings/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 30
   e2e:
     # Passes when every e2e shard passed.
     needs: [plan, e2e-shard]
