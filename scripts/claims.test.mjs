@@ -64,6 +64,7 @@ test("instructions are allowed: imperatives, conditional imperatives and questio
   assert.ok(isInstruction("Don't add every class."));
   assert.ok(isInstruction("If a check fails, run it again with --network."));
   assert.ok(isInstruction("To refresh all baselines, run the workflow."));
+  assert.ok(isInstruction("For each arm, each screen and each run, make a workspace."));
   assert.ok(isInstruction("Why not plain never?"));
   assert.ok(!isInstruction("Every check runs in CI."));
   assert.ok(!isInstruction("If a check fails, the job fails."));

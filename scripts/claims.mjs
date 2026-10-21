@@ -94,7 +94,7 @@ export function triggers(sentence) {
 
 /** Verbs an instruction starts with: "Run pnpm test", "Don't add a class". */
 const VERBS = new Set(
-  "add allow apply ask avoid build call change check choose clear click close commit compare compose configure copy cover create declare delete describe disable do don't download drag edit enable ensure export fill find fix follow give go hide import include install keep leave let link list load look make mark merge move name never note open pass pick pin place prefer press put raise read rebase record refresh regenerate release remove rename render replace report request reset restart return review run see select set show skip sort start stop swap switch tag tap tell test translate try turn type update upgrade use wait wrap write".split(" "),
+  "add allow apply ask avoid build call change check choose clear click close commit compare compose configure copy cover create declare delete describe disable do don't download drag edit enable ensure export fill find fix follow give go hide import include install keep leave let link list load look make mark merge move name never note open pass pick pin place prefer press put raise read rebase record refresh regenerate release remove rename render replace report request reset restart return review run score see select set show skip sort start stop swap switch tag tap tell test translate try turn type update upgrade use wait wrap write".split(" "),
 );
 
 /**
@@ -107,8 +107,9 @@ export function isInstruction(sentence) {
   if (/\?["'”’)*_]*$/.test(text)) return true;
   const first = /^([A-Za-z’']+)(?=[\s,:])/.exec(text)?.[1]?.toLowerCase().replace("’", "'");
   if (first && VERBS.has(first)) return true;
-  const after = /^(?:if|when|whenever|before|after|once|to|for|unless|until|while|with|without|in|on)\b[^,.]{0,200},\s+([A-Za-z’']+)/i.exec(text)?.[1]?.toLowerCase();
-  return Boolean(after && VERBS.has(after));
+  if (!/^(?:if|when|whenever|before|after|once|to|for|unless|until|while|with|without|in|on)\b/i.test(text)) return false;
+  // The condition may list several things ("For each arm, each screen and each run, make…"): any clause after a comma may start the instruction.
+  return [...text.matchAll(/,\s+([A-Za-z’']+)/g)].some((match) => VERBS.has(match[1].toLowerCase()));
 }
 
 // ---------------------------------------------------------------------------------------
