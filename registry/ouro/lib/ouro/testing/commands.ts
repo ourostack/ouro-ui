@@ -351,6 +351,7 @@ async function frameAtPoint(session: CDPSession, { x, y }: { x: number; y: numbe
       return at;
     } finally {
       await session.send("Runtime.releaseObject", { objectId: object.objectId! }).catch(() => {});
+      lap("released");
     }
   } catch (error) {
     lap("failed");
