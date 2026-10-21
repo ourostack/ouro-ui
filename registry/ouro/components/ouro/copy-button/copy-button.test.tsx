@@ -60,6 +60,15 @@ afterEach(async () => {
 });
 
 describe("CopyButton", () => {
+  // The page's timers stand still until a test moves them on (`wait`): announce()'s delay and the
+  // two-second confirmation. On a loaded runner more than two seconds can pass between two steps,
+  // and the confirmation would end in between: a click finds the button by its accessible name,
+  // which the confirmation sets, so a click on "Copied" waited for a button that said "Copy" again.
+  beforeEach(() => vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] }));
+  afterEach(() => vi.useRealTimers());
+  /** Moves the page's timers on by `ms`. */
+  const wait = (ms: number) => act(async () => vi.advanceTimersByTime(ms));
+
   it("is a small outline button that says Copy beside a copy icon, marked as the copy-button control", async () => {
     const { wrapper, button } = await render(<CopyButton value="sk-123" />);
     expect(wrapper.getAttribute("data-status")).toBe("idle");
@@ -83,8 +92,12 @@ describe("CopyButton", () => {
       expect(onCopy).toHaveBeenCalledExactlyOnceWith("sk-123");
       expect(wrapper.getAttribute("data-status")).toBe("copied");
       expect(document.activeElement).toBe(button);
-      await expect.poll(() => announced.count("Key copied")).toBe(1);
-      await expect.poll(() => button.textContent).toBe("Copy key");
+      await wait(100);
+      expect(announced.count("Key copied")).toBe(1);
+      await wait(1899);
+      expect(button.textContent).toBe("Key copied");
+      await wait(1);
+      expect(button.textContent).toBe("Copy key");
       expect(wrapper.getAttribute("data-status")).toBe("idle");
       expect(announced.count("Key copied")).toBe(1);
     } finally {
@@ -97,10 +110,19 @@ describe("CopyButton", () => {
     try {
       const { button } = await render(<CopyButton value="a" />);
       await userEvent.click(button);
-      await expect.poll(() => announced.count("Copied")).toBe(1);
+      await expect.poll(() => button.textContent).toBe("Copied");
+      await wait(100);
+      expect(announced.count("Copied")).toBe(1);
       await userEvent.click(button);
-      await expect.poll(() => announced.count("Copied")).toBe(2);
+      await expect.poll(() => clipboard.length).toBe(2);
+      await wait(100);
+      expect(announced.count("Copied")).toBe(2);
       expect(clipboard).toEqual(["a", "a"]);
+      // The second click, 100ms in, starts the two seconds again: the first click's would end here.
+      await wait(1800);
+      expect(button.textContent).toBe("Copied");
+      await wait(100);
+      expect(button.textContent).toBe("Copy");
     } finally {
       announced.stop();
     }
@@ -157,7 +179,8 @@ describe("CopyButton", () => {
       await userEvent.click(button);
       await expect.poll(() => button.textContent).toBe("Copy blocked");
       expect(wrapper.getAttribute("data-status")).toBe("failed");
-      await expect.poll(() => announced.count("Copy blocked")).toBe(1);
+      await wait(100);
+      expect(announced.count("Copy blocked")).toBe(1);
       expect(onCopy).not.toHaveBeenCalled();
     } finally {
       announced.stop();
@@ -203,7 +226,7 @@ describe("CopyButton", () => {
       get: () => ({ writeText: (text: string) => new Promise<void>((resolve) => (finish = () => (clipboard.push(text), resolve()))) }),
     });
     // Let an announcement an earlier test started land before watching.
-    await act(async () => new Promise((resolve) => setTimeout(resolve, 300)));
+    await wait(300);
     const announced = watchAnnouncements();
     const onCopy = vi.fn();
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -215,7 +238,7 @@ describe("CopyButton", () => {
       const schedule = vi.spyOn(globalThis, "setTimeout");
       await act(async () => finish());
       // Longer than announce() waits before it speaks.
-      await act(async () => new Promise((resolve) => setTimeout(resolve, 300)));
+      await wait(300);
       expect(clipboard).toEqual(["sk-123"]);
       // The text is on the clipboard, so the app still hears that it was copied.
       expect(onCopy).toHaveBeenCalledExactlyOnceWith("sk-123");
