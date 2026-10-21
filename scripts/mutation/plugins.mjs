@@ -13,9 +13,11 @@ import { createVitest } from "vitest/node";
 //   writes every mutant into the source at once (mutant schemata), each behind a check of
 //   `globalThis.__stryker__.activeMutant`; scripts/mutation/setup.ts sets that in the browser from
 //   the `ouroMutant` command (vitest.config.ts), which reads `globalThis.__ouroMutant` here.
-// - `ouro-classes`, an ignorer: a string that is only Tailwind classes changes how a part looks,
-//   which the screenshot tests (CI's `visual` job) hold, not what it does, so its mutants are left
-//   out; so is the `process.env.NODE_ENV` check that strips development messages, which no test
+// - `ouro-classes`, an ignorer: a string of Tailwind classes where only classes go (a `className`,
+//   a `cn()` or `cva()` argument, a `*Class` constant) changes how a part looks, which the
+//   screenshot tests (CI's `visual` job) hold, not what it does, so its mutants are left out; an
+//   attribute name, a selector or a marker that looks like classes is still mutated. So is the
+//   `process.env.NODE_ENV` check that strips development messages, which no test
 //   (they all run in development) can tell apart from its mutant.
 
 /**
@@ -163,11 +165,38 @@ export function inDevelopmentCheck(path) {
   return false;
 }
 
+/** Functions whose arguments are class lists: Ouro's `cn`, and the class helpers apps use. */
+const classFunctions = new Set(["cn", "cva", "clsx", "twMerge", "tv"]);
+
+/** A name that holds classes: `className`, `iconClassName`, `rootClass`, `itemClasses`. */
+const className = /^(?:class(?:Name)?|\w+(?:Class|Classes|ClassName))$/;
+
+/** The name a node's key or identifier gives, if any. */
+const nameOf = (node) => (node?.type === "Identifier" || node?.type === "JSXIdentifier" ? node.name : node?.type === "StringLiteral" ? node.value : undefined);
+
+/**
+ * Whether a string sits where only classes go: a `className` (or `*ClassName`) attribute or
+ * property, an argument of `cn()` or `cva()`, or the value of a `*Class` constant, at any depth
+ * of the expression there (a condition, a concatenation, a variants object). A string anywhere
+ * else (an attribute name, a selector, a marker) is behaviour, so it is mutated even when it looks
+ * like a class list.
+ */
+export function inClassPosition(path) {
+  for (let node = path.parentPath; node; node = node.parentPath) {
+    if (node.isJSXAttribute?.() && className.test(nameOf(node.node.name) ?? "")) return true;
+    if (node.isObjectProperty?.() && className.test(nameOf(node.node.key) ?? "")) return true;
+    if (node.isVariableDeclarator?.() && className.test(nameOf(node.node.id) ?? "")) return true;
+    if (node.isCallExpression?.() && classFunctions.has(nameOf(node.node.callee) ?? "")) return true;
+    if (node.isStatement?.() || node.isFunction?.() || node.isJSXElement?.()) return false;
+  }
+  return false;
+}
+
 /** Why Stryker leaves a node's mutants out, or undefined to mutate it. */
 export function ignoreReason(path) {
   const literal = path.isStringLiteral() && isClassList(path.node.value);
   const quasis = path.isTemplateLiteral() ? path.node.quasis.map((quasi) => quasi.value.cooked ?? "").filter((text) => text.trim() !== "") : [];
-  if (literal || (quasis.length > 0 && isClassList(quasis.join(" ")))) return "Tailwind classes: how a part looks, which the screenshot tests hold";
+  if ((literal || (quasis.length > 0 && isClassList(quasis.join(" ")))) && inClassPosition(path)) return "Tailwind classes: how a part looks, which the screenshot tests hold";
   if (inDevelopmentCheck(path)) return "the development check: every test runs in development";
   return undefined;
 }

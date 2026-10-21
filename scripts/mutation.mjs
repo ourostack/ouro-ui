@@ -50,6 +50,54 @@ export function changedLines(diff) {
   return files;
 }
 
+/** A Stryker comment that turns mutation off for one line, naming the mutators and saying why. */
+const reasonedDisable = /\/\/\s*Stryker disable next-line [A-Za-z]+(?:,[A-Za-z]+)*: \S/;
+
+/**
+ * Every Stryker comment a unified diff (`git diff -U0`) adds to runtime source that is not
+ * `// Stryker disable next-line <Mutator>: <reason>`, as `path:line: comment`: `disable all`
+ * would silence the rest of the file, and a disable with no reason hides why a mutant cannot
+ * matter. (`restore` is never needed after a next-line disable.)
+ */
+export function disableProblems(diff) {
+  const problems = [];
+  let path = null;
+  let line = 0;
+  for (const text of diff.split("\n")) {
+    const file = /^\+\+\+ (?:b\/)?(.+)$/.exec(text);
+    if (file) {
+      path = file[1] === "/dev/null" ? null : file[1];
+      continue;
+    }
+    const hunk = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/.exec(text);
+    if (hunk) {
+      line = Number(hunk[1]);
+      continue;
+    }
+    if (!text.startsWith("+")) continue;
+    const added = text.slice(1);
+    if (path && runtimeSource(path) && /Stryker (?:disable|restore)/.test(added) && !reasonedDisable.test(added)) problems.push(`${path}:${line}: ${added.trim()}`);
+    line += 1;
+  }
+  return problems;
+}
+
+/** How many Stryker disable comments a text holds. */
+export function countDisables(text) {
+  return (text.match(/Stryker disable/g) ?? []).length;
+}
+
+/** The Stryker disable comments in the runtime source at a ref, or in the working tree without one. */
+function disablesAt(ref) {
+  const found = spawnSync("git", ["grep", "-e", "Stryker disable", ...(ref ? [ref] : []), "--", componentsDir, libDir], { cwd: root, encoding: "utf8" });
+  return found.stdout
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => (ref ? line.slice(ref.length + 1) : line))
+    .filter((line) => runtimeSource(line.slice(0, line.indexOf(":"))))
+    .reduce((total, line) => total + countDisables(line), 0);
+}
+
 /** Stryker's `mutate` patterns: each changed line range of each runtime file, `path:start-end`. */
 export function mutateRanges(changes) {
   return Object.entries(changes)
@@ -111,7 +159,28 @@ async function main(args) {
   // `--only <path>` mutates one file's changed lines, while you work on it.
   const only = args.includes("--only") ? args[args.indexOf("--only") + 1] : undefined;
   const [base = "origin/main", head] = args.filter((arg, index) => arg !== "--only" && args[index - 1] !== "--only");
-  const diff = spawnSync("git", ["diff", "-U0", "--no-renames", head ? `${base}...${head}` : base, "--", ...(only ? [only] : [componentsDir, libDir])], { cwd: root, encoding: "utf8" });
+  const range = head ? `${base}...${head}` : base;
+  // A moved file (-M) keeps its lines: only what the move changed is mutated.
+  const git = (paths) => spawnSync("git", ["diff", "-U0", "-M", range, "--", ...paths], { cwd: root, encoding: "utf8" });
+  const whole = git([componentsDir, libDir]);
+  if (whole.status !== 0) throw new Error(`git diff failed: ${whole.stderr}`);
+  // Every Stryker comment the change adds says which mutator, for one line, and why; and the
+  // count may only grow by the comments the change shows.
+  const unreasoned = disableProblems(whole.stdout);
+  const mergeBase = spawnSync("git", ["merge-base", base, head ?? "HEAD"], { cwd: root, encoding: "utf8" }).stdout.trim();
+  const [before, after] = [disablesAt(mergeBase), disablesAt(head)];
+  const shown = whole.stdout.split("\n").filter((line) => line.startsWith("+") && !line.startsWith("+++")).reduce((total, line) => total + countDisables(line), 0);
+  console.log(`Stryker disable comments in the runtime source: ${before} at the base, ${after} now.`);
+  if (unreasoned.length > 0 || after - before > shown) {
+    console.error(
+      [
+        ...unreasoned.map((problem) => `${problem}: a Stryker comment must be // Stryker disable next-line <Mutator>: <why>, for one line with its reason.`),
+        ...(after - before > shown ? [`${after - before - shown} Stryker disable comment(s) appeared that the change does not show.`] : []),
+      ].join("\n"),
+    );
+    return 1;
+  }
+  const diff = only ? git([only]) : whole;
   if (diff.status !== 0) throw new Error(`git diff failed: ${diff.stderr}`);
   const changes = changedLines(diff.stdout);
   const mutate = mutateRanges(changes);
