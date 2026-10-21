@@ -785,3 +785,17 @@ test("sr-infra-issue.sh opens the screen-reader-infra issue once, then comments 
   assert.match(calls[2], /^issue create --title Screen-reader lane: infrastructure failure --label screen-reader-infra --body The screen-reader lane could not drive VoiceOver or NVDA \(nightly\): https:\/\/github\.com\/o\/r\/actions\/runs\/1/);
   assert.equal(calls[5], "issue comment 12 --body Failed again (nightly): https://github.com/o/r/actions/runs/1");
 });
+
+test("the conformance exemptions check runs on each pull request and its description's edits, and passes in the merge queue without checking", () => {
+  const { text } = workflows.find(({ file }) => file === "conformance-exemptions.yml");
+  assert.match(text, /^on:\n {2}pull_request:\n {4}types: \[opened, edited, synchronize, reopened\]\n {2}merge_group:\n/m);
+  assert.match(text, /^ {4}name: conformance exemptions$/m);
+  // One run per pull request, and one per merge-queue entry: never one entry's run cancelling another's.
+  assert.match(text, /^ {2}group: conformance-exemptions-\$\{\{ github\.event\.pull_request\.number \|\| github\.ref \}\}$/m);
+  const steps = text.slice(text.indexOf("    steps:")).split(/\n {6}- /).slice(1);
+  const queue = steps.filter((step) => /^if: github\.event_name == 'merge_group'$/m.test(step));
+  assert.equal(queue.length, 1);
+  assert.doesNotMatch(queue[0], /uses:|node |pnpm /);
+  for (const step of steps.filter((step) => !queue.includes(step))) assert.match(step, /^if: github\.event_name == 'pull_request'$/m, step);
+  assert.match(text, /BASE_REF="origin\/\$BASE_REF" node scripts\/conformance-exemptions\.mjs/);
+});

@@ -60,7 +60,7 @@ A check never guesses. When a story does something on purpose that a check would
 
 A physical side that must follow the screen, not the text (a part centred with `left-1/2 -translate-x-1/2`, a safe-area inset, a sheet whose `side` prop is physical), goes in `scripts/physical-allowed.json` (`physicalAllowed`), by file and class, with its reason; an allowance the source no longer uses fails.
 
-Exemptions only grow on purpose. `scripts/conformance-exemptions.mjs` compares the physical-side allowances, every `focusExit` control and every `clientOnly` with the base branch, as the Conformance exemptions workflow does on each pull request (and again when its description is edited). Each one the pull request adds needs its reason, and the description must name it: the class, the control's key, or the story (`SheetFeel/FeelComparison`).
+Exemptions only grow on purpose. `scripts/conformance-exemptions.mjs` compares the physical-side allowances, every `focusExit` control and every `clientOnly` with the base branch, as the Conformance exemptions workflow does on each pull request (and again when its description is edited). Each one the pull request adds needs its reason, and the description must name it: the class, the control's key, or the story (`SheetFeel/FeelComparison`). So that none escapes it, a story writes `parameters` and `conformance` as object literals in place: a spread, a shorthand (`parameters: { conformance }`), a variable (`focusExit: exits`), a computed key, a reason that is not a plain string, or parameters set by assignment after the story fails the check. Its job, `conformance exemptions`, passes in the merge queue without checking, since the pull request's description was checked already.
 
 ## Tests that cannot fail: mutation testing
 

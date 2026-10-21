@@ -65,6 +65,51 @@ export function storyEntries(path, text) {
   return found;
 }
 
+/**
+ * Where a story file writes its parameters in a shape `storyEntries` cannot read, so an exemption
+ * could pass the ratchet unseen: `parameters` and `conformance` must be object literals written in
+ * place, with no spread, shorthand, computed key or variable, and each `focusExit` reason and
+ * `clientOnly` a plain string. Each problem is `path:line: what`.
+ */
+export function storyShapeProblems(path, text) {
+  const source = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const problems = [];
+  const report = (node, what) => problems.push(`${path}:${source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1}: ${what}`);
+  const literalKey = (property) => (ts.isPropertyAssignment(property) ? keyOf(property.name) : undefined);
+  /** An object literal's properties, each a plain `key: value`; reports the rest. */
+  const plain = (node, what) => {
+    if (!ts.isObjectLiteralExpression(node)) {
+      report(node, `${what} must be an object literal written in place`);
+      return [];
+    }
+    return node.properties.filter((property) => {
+      if (literalKey(property) !== undefined) return true;
+      report(property, `${what} must list each property as key: value, with no spread, shorthand, computed key or method`);
+      return false;
+    });
+  };
+  const visit = (node) => {
+    if (ts.isShorthandPropertyAssignment(node) && ["parameters", "conformance"].includes(node.name.text)) report(node, `write ${node.name.text} as an object literal, not a variable`);
+    if (ts.isPropertyAssignment(node) && keyOf(node.name) === "parameters") plain(node.initializer, "parameters");
+    if (ts.isPropertyAssignment(node) && keyOf(node.name) === "conformance") {
+      for (const property of plain(node.initializer, "conformance")) {
+        const name = literalKey(property);
+        if (name === "clientOnly" && textOf(property.initializer) === undefined) report(property, "clientOnly's reason must be a plain string");
+        if (name === "focusExit") {
+          for (const exit of plain(property.initializer, "focusExit")) if (textOf(exit.initializer) === undefined) report(exit, "each focusExit reason must be a plain string");
+        }
+      }
+    }
+    // Set after the story is declared (`A.parameters = …`, `A.parameters.conformance = …`).
+    if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken && ts.isPropertyAccessExpression(node.left) && ["parameters", "conformance"].includes(node.left.name.text)) {
+      report(node, `set ${node.left.name.text} in the story's object literal, not by assignment`);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return problems;
+}
+
 /** The exemptions in `head` that `base` does not have. */
 export function addedEntries(base, head) {
   const known = new Set(base.map(({ key }) => key));
@@ -91,19 +136,23 @@ function entriesAt(ref) {
 
 /** Every exemption in the working tree. */
 function entriesHere() {
-  const stories = storyRoots.flatMap((dir) =>
+  return [...physicalEntries(JSON.parse(readFileSync(join(root, allowedFile), "utf8"))), ...storyFiles().flatMap((path) => storyEntries(path, readFileSync(join(root, path), "utf8")))];
+}
+
+/** The story files in the working tree. */
+function storyFiles() {
+  return storyRoots.flatMap((dir) =>
     readdirSync(join(root, dir), { recursive: true })
       .map(String)
       .filter((path) => path.endsWith(".stories.tsx"))
       .map((path) => `${dir}${path.split("\\").join("/")}`),
   );
-  return [...physicalEntries(JSON.parse(readFileSync(join(root, allowedFile), "utf8"))), ...stories.flatMap((path) => storyEntries(path, readFileSync(join(root, path), "utf8")))];
 }
 
 function main() {
   const base = process.env["BASE_REF"] ?? "origin/main";
   const added = addedEntries(entriesAt(base), entriesHere());
-  const problems = exemptionProblems(added, process.env["PR_BODY"] ?? "");
+  const problems = [...storyFiles().flatMap((path) => storyShapeProblems(path, readFileSync(join(root, path), "utf8"))), ...exemptionProblems(added, process.env["PR_BODY"] ?? "")];
   console.log(`${added.length} conformance exemption(s) new against ${base}${added.length > 0 ? `:\n${added.map(({ key, reason }) => `- ${key}: ${reason}`).join("\n")}` : "."}`);
   if (problems.length > 0) {
     console.error(problems.join("\n"));
