@@ -540,7 +540,7 @@ test("an install shard runs a third of the shipped tests, or a reduced run's, an
   const script = stepScript(block, "Install test");
   // `show` stands for install-test.sh: it prints whether OURO_COMPONENTS is set, and to what.
   const scriptWithShow = (env) => {
-    const scratch = mkdtempSync(join(root, ".tmp", "install-step-"));
+    const scratch = scratchDir("ouro-install-step-");
     const show = 'show() { if [ -n "${OURO_COMPONENTS+set}" ]; then echo "components=[$OURO_COMPONENTS] $*"; else echo "components=unset $*"; fi; }';
     const result = spawnSync("bash", ["-e", "-c", `${show}\n${script.replace("scripts/install-test.sh", "show")}`], { cwd: root, encoding: "utf8", env: { ...process.env, ...env, RUNNER_TEMP: scratch, PASSED: "install-passed-shadcn-nova-2" } });
     return { ...result, scratch };
@@ -558,7 +558,7 @@ test("an install shard runs a third of the shipped tests, or a reduced run's, an
   assert.match(gate, /^ {10}pattern: install-passed-\$\{\{ matrix\.variant \}\}-\$\{\{ matrix\.preset \}\}-\*\n/m);
   const counting = stepScript(gate, "Every shard passed");
   assert.match(counting, new RegExp(`^for shard in ${Array.from({ length: count }, (_, index) => index + 1).join(" ")}; do$`, "m"));
-  const markers = mkdtempSync(join(root, ".tmp", "install-gate-"));
+  const markers = scratchDir("ouro-install-gate-");
   mkdirSync(join(markers, "passed"));
   for (const shard of [1, 3]) writeFileSync(join(markers, `passed/install-passed-shadcn-vega-${shard}`), "");
   const missing = runStep(counting, { RUNNER_TEMP: markers, VARIANT: "shadcn", PRESET: "vega" });
@@ -574,23 +574,25 @@ test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD
   // The install, type check and build come before, whatever the settings.
   assert.ok(install.indexOf('node "$root/scripts/install-check.mjs" "$app" "$variant" tests') < install.indexOf("# The shipped tests to run:"));
   const run = (env) => {
-    const scratch = mkdtempSync(join(root, ".tmp", "install-tail-"));
+    const scratch = scratchDir("ouro-install-tail-");
     const stubs = 'npx() { echo "npx $*"; }';
     return spawnSync("bash", ["-e", "-u", "-o", "pipefail", "-c", `${stubs}\nroot=${JSON.stringify(root)}\n${tail}`], { cwd: scratch, encoding: "utf8", env: { ...process.env, CI: "", ...env } });
   };
   const all = run({});
   assert.equal(all.status, 0, all.stderr);
-  assert.match(all.stdout, /^npx vitest run --passWithNoTests$/m);
-  assert.match(all.stdout, /^npx playwright test --pass-with-no-tests e2e\/ouro$/m);
+  // A full run, sharded or not, fails when it finds no test.
+  assert.match(all.stdout, /^npx vitest run$/m);
+  assert.match(all.stdout, /^npx playwright test e2e\/ouro$/m);
   const shard = run({ OURO_SHARD: "2/3" });
-  assert.match(shard.stdout, /^npx vitest run --passWithNoTests --shard=2\/3$/m);
-  assert.match(shard.stdout, /^npx playwright test --pass-with-no-tests --shard=2\/3 e2e\/ouro$/m);
+  assert.match(shard.stdout, /^npx vitest run --shard=2\/3$/m);
+  assert.match(shard.stdout, /^npx playwright test --shard=2\/3 e2e\/ouro$/m);
+  assert.doesNotMatch(all.stdout + shard.stdout, /pass-?with-?no-?tests/i);
   const none = run({ OURO_COMPONENTS: "" });
   assert.equal(none.status, 0);
   assert.doesNotMatch(none.stdout, /npx vitest/);
   assert.match(none.stdout, /no component selected/);
   // The browsers' system packages from the background install: waited for, then not installed again.
-  const scratch = mkdtempSync(join(root, ".tmp", "install-deps-"));
+  const scratch = scratchDir("ouro-install-deps-");
   const status = join(scratch, "deps.status");
   writeFileSync(status, "0\n");
   assert.match(run({ CI: "1", OURO_BROWSER_DEPS: status }).stdout, /^npx playwright install chromium webkit$/m);

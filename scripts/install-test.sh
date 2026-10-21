@@ -493,6 +493,9 @@ echo "::endgroup::"
 # The shipped tests to run: every one, or a reduced run's (OURO_COMPONENTS), in one shard (OURO_SHARD).
 vitest_filters=()
 spec_filters=(e2e/ouro)
+# A full run fails when it finds no test; a reduced run's filters may match none in a shard.
+lenient_vitest=()
+lenient_playwright=()
 if [ -n "${OURO_COMPONENTS+set}" ]; then
   if [ -z "$OURO_COMPONENTS" ]; then
     echo "Reduced run with no component selected: this change cannot affect a shipped test, so none runs here."
@@ -503,6 +506,8 @@ if [ -n "${OURO_COMPONENTS+set}" ]; then
   vitest_filters=($(node "$root/scripts/test-impact.mjs" stories "$OURO_COMPONENTS" | tr ',' '\n' | sed 's|^\(.*\)$|components/ouro/\1/|'))
   # shellcheck disable=SC2207
   spec_filters=($(node "$root/scripts/test-impact.mjs" e2e "$OURO_COMPONENTS" | tr ' ' '\n' | sed -n 's|^registry/ouro/\(e2e/ouro/.*\.spec\.ts\)$|\1|p'))
+  lenient_vitest=(--passWithNoTests)
+  lenient_playwright=(--pass-with-no-tests)
   echo "Reduced run: the shipped tests of ${vitest_filters[*]:-no folder} and the specs ${spec_filters[*]:-(none)}."
 fi
 shard=()
@@ -519,12 +524,12 @@ fi
 
 echo "::group::Shipped Vitest browser tests"
 npx playwright install ${deps[@]+"${deps[@]}"} chromium webkit
-npx vitest run --passWithNoTests ${shard[@]+"${shard[@]}"} ${vitest_filters[@]+"${vitest_filters[@]}"}
+npx vitest run ${lenient_vitest[@]+"${lenient_vitest[@]}"} ${shard[@]+"${shard[@]}"} ${vitest_filters[@]+"${vitest_filters[@]}"}
 echo "::endgroup::"
 
 echo "::group::Shipped Playwright specs"
 if [ "${#spec_filters[@]}" -gt 0 ]; then
-  npx playwright test --pass-with-no-tests ${shard[@]+"${shard[@]}"} "${spec_filters[@]}"
+  npx playwright test ${lenient_playwright[@]+"${lenient_playwright[@]}"} ${shard[@]+"${shard[@]}"} "${spec_filters[@]}"
 else
   echo "No selected component has a spec."
 fi
