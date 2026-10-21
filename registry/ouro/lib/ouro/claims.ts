@@ -3,13 +3,13 @@ export type { ClaimCheck, ClaimEvidence, ClaimSource };
 
 // The export list comes first because the shadcn CLI drops comments before a file's
 // first statement, which would take the JSDoc below with it. No imports, so a Node script
-// can load this file directly (scripts/claims.mjs) to read the same source and check syntax.
+// can load this file directly (claims-check.mjs, beside it) to read the same source and check syntax.
 
 /**
  * Where a claim comes from: a primary source a later reader can open and check.
  *
  * - `{ file, line?, commit? }`: a file in the repository, at a line and commit when one
- *   line of one version is the proof (`scripts/claims.mjs#L12@c752a8bb`).
+ *   line of one version is the proof (`src/app/page.tsx#L12@c752a8bb`).
  * - `{ ciRun }`: a GitHub Actions run (`https://github.com/<owner>/<repo>/actions/runs/<id>`).
  * - `{ test }`: a test, as `<file>::<full test name>` (`describe > it`).
  * - `{ spec }`: a published specification or document, by its address.
@@ -23,14 +23,19 @@ type ClaimSource =
   | { evidence: string };
 
 /**
- * A machine check that the claim still holds, run by `pnpm claims:check`.
+ * A machine check that the claim still holds, run by the checker beside this file
+ * (`node src/lib/ouro/claims-check.mjs check`, with your lib folder in place of `src/lib`).
  *
- * - `{ count, is }`: how many there are. `count` is a registry item type
- *   (`registry:ui`) or `<file>#<field path>` naming a JSON array or object.
- * - `{ urlOk }`: the address answers with a success status.
- * - `{ testExists }`: the test (`<file>::<full test name>`) exists, is not skipped and runs
- *   in a required CI job, so a green main means it passed.
- * - `{ ciJob, workflow? }`: a workflow defines the job.
+ * - `{ count, is }`: how many there are. `count` is `<file>#<field path>` naming a JSON
+ *   array or object, `dir:<folder>` for the files in a folder, or, in a shadcn registry
+ *   repository, a registry item type (`registry:ui`).
+ * - `{ urlOk }`: the address answered with a success status when it was last fetched
+ *   (`check --network` fetches it again; the answers are kept in `claims-urls.json`).
+ * - `{ testExists }`: the test (`<file>::<full test name>`) exists and is not skipped. With
+ *   `requiredTests` in `claims.config.json`, it must also run in a required CI job, so a
+ *   green main means it passed.
+ * - `{ ciJob, workflow? }`: a workflow defines the job, and the job is a required check:
+ *   one of the names in `.github/required-checks.json`, read at the pull request's base.
  * - `{ fileLine, line?, pattern }`: the file, or that line of it, matches the pattern
  *   (a regular expression's source).
  * - `{ equals, is }`: the value at `<file>#<field path>` in a JSON file is exactly `is`.
@@ -49,15 +54,18 @@ type OneOrMore<T> = T | readonly [T, ...T[]];
 interface ClaimEvidence {
   /** Where the claim comes from. */
   source: OneOrMore<ClaimSource>;
-  /** How `pnpm claims:check` proves it still holds. */
+  /** How the checker proves it still holds. */
   verify: OneOrMore<ClaimCheck>;
 }
 
 /**
  * Marks a sentence of copy as a claim, with the primary source it comes from and a check
  * that it still holds. It returns the text unchanged, so the copy reads as before; the
- * evidence is for whoever checks it next, and `pnpm claims:check` reads it from the source
- * code (keep the arguments literal) and runs each check.
+ * evidence is for whoever checks it next. The checker that installs beside it,
+ * `claims-check.mjs`, reads it from the source code (keep the arguments literal) and runs
+ * each check: add `"claims:check": "node src/lib/ouro/claims-check.mjs check"` to your
+ * scripts, with your lib folder in place of `src/lib`, and run it in CI. It also fails on a
+ * sentence of your Markdown or copy that states a fact without a source.
  *
  * Use a plain string instead when the sentence states no fact a reader could check: an
  * instruction, a label, a question.
@@ -65,10 +73,12 @@ interface ClaimEvidence {
  * @group Text
  *
  * @example
- * const tagline = claim("73 components, each tested in Chromium and WebKit.", {
- *   source: { file: "registry.json" },
- *   verify: [{ count: "registry:ui", is: 73 }, { ciJob: "ci" }],
+ * const tagline = claim("Checkout passes axe in every theme.", {
+ *   source: { test: "src/checkout.test.tsx::checkout passes axe" },
+ *   verify: { testExists: "src/checkout.test.tsx::checkout passes axe" },
  * });
+ * @claim "The checker that installs beside it" scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::the claims checker ships in lib-claims and runs in an app)
+ * @claim "It also fails on a sentence of your Markdown or copy" scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::the claims checker ships in lib-claims and runs in an app)
  */
 function claim<const Text extends string>(text: Text, evidence: ClaimEvidence): Text {
   void evidence;
@@ -84,7 +94,7 @@ const CHECK_FORMS = "count(<what>)=<n>, urlOk(<https URL>), testExists(<file>::<
  */
 function repoPath(path: string, what: string): string {
   if (!/^[\w@.-][\w@./+-]*$/.test(path) || /(^|\/)\.\.(\/|$)/.test(path)) {
-    throw new Error(`${what} "${path}" is not a repository-relative path (such as scripts/claims.mjs). A source outside the repository cannot be checked by the next reader; commit it as evidence first.`);
+    throw new Error(`${what} "${path}" is not a repository-relative path (such as src/app/page.tsx). A source outside the repository cannot be checked by the next reader; commit it as evidence first.`);
   }
   return path;
 }

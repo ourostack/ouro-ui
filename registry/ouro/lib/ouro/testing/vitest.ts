@@ -67,6 +67,8 @@ export interface OuroTestOptions {
  * @claim "Vitest browser projects that run Ouro" registry/ouro/lib/ouro/testing/touch-setup.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/touch-setup.touch.test.ts::the next test starts as a touch phone again)
  * @claim "In `ouro-touch`, a test that leaves" registry/ouro/lib/ouro/testing/touch-setup.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/touch-setup.touch.test.ts::the next test starts as a touch phone again)
  * @claim "Needs Vitest 4.1.11 or later; on" registry/ouro/lib/ouro/testing/rotate.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/rotate.touch.test.ts::the next test starts at zoom 1 in portrait)
+ * @claim "Each project extends your root config" registry/ouro/lib/ouro/testing/vitest.ts verify:fileLine(registry/ouro/lib/ouro/testing/vitest.ts, /extends:\strue\sas\sconst,/)
+ * @claim "Each project extends your root config" https://vitest.dev/guide/projects verify:urlOk(https://vitest.dev/guide/projects)
  */
 export function ouroTestProjects({
   css,
