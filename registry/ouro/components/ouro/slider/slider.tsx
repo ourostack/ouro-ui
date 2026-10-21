@@ -67,7 +67,7 @@ export interface SliderProps<Value extends SliderValue = number> {
    * `{ style: "percent" }`, `{ style: "currency", currency: "EUR" }`.
    */
   format?: Intl.NumberFormatOptions | undefined;
-  /** The locale for `format`. @default the browser's */
+  /** The locale for `format`. @default the browser's, once hydrated; en-US in the server's HTML */
   locale?: Intl.LocalesArgument | undefined;
   /** Shows the formatted value at the end of the slider; a range shows both ends: `$10 – $40`. */
   showValue?: boolean | undefined;
@@ -132,10 +132,17 @@ function rangeOwner(labelId: string) {
   };
 }
 
-/** The default names for a range's thumbs: Minimum and Maximum, with Middle between. */
 /** No store to subscribe to: `useSyncExternalStore` only tells the server and hydration apart from the browser. */
 const noSubscription = () => () => {};
 
+/**
+ * The locale the value reads in on the server and during hydration when no `locale` is given: the
+ * reader's is unknown there, so both use this one, and the reader's browser switches to its own
+ * once it has hydrated the server's HTML.
+ */
+const SERVER_LOCALE = "en-US";
+
+/** The default names for a range's thumbs: Minimum and Maximum, with Middle between. */
 function defaultThumbLabels(count: number): string[] {
   return Array.from({ length: count }, (_, index) => (index === 0 ? "Minimum" : index === count - 1 ? "Maximum" : "Middle"));
 }
@@ -304,6 +311,11 @@ function SliderControl({
     }
   });
   const { onValueChange, onValueCommitted, ...shared } = rootProps;
+  // Without a locale, the reader's is unknown on the server and during hydration, so both read
+  // en-US (Base UI keeps a formatter per locale, so the page's default never leaks in from a
+  // formatter made earlier) and the reader's browser switches to its own once hydrated.
+  const hydrated = useSyncExternalStore(noSubscription, () => true, () => false);
+  const locale = shared.locale ?? (hydrated ? undefined : SERVER_LOCALE);
   // Samples of the widest value text, all reserved so the track keeps its length: each end's
   // integer part with the step's decimals (Base UI's defaults are 0, 100 and a step of 1), plus
   // values in each power of ten, since compact notation ("1.1K") can be wider than either end.
@@ -327,13 +339,13 @@ function SliderControl({
   }
   // Without a locale, the samples are in the reader's, which the server cannot know: it and
   // hydration reserve nothing, and the browser fills them in, so the server's HTML hydrates as it is.
-  const hydrated = useSyncExternalStore(noSubscription, () => true, () => false);
   const texts = hydrated || shared.locale !== undefined ? [...new Set(values.map((value) => number.format(value)))] : [];
   const samples = isRange ? texts.map((text) => `${text} – ${text}`) : texts;
   return (
     <BaseSlider.Root
       ref={rootRef}
       {...shared}
+      locale={locale}
       {...(invalid ? { "data-ouro-invalid": "" } : {})}
       onValueChange={onValueChange && ((next) => onValueChange(next as number | number[]))}
       onValueCommitted={onValueCommitted && ((next) => onValueCommitted(next as number | number[]))}

@@ -1,9 +1,5 @@
-import { hydrateRoot, type Root } from "react-dom/client";
-import { renderToString } from "react-dom/server";
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { commands } from "vitest/browser";
-import { act } from "@/registry/ouro/lib/ouro/testing/act";
-import { cleanupStories, settle } from "../stories.tsx";
 import { conformanceStories } from "./harness.ts";
 
 // Server/client agreement. Every story renders to HTML as a server in UTC and en-US would, and
@@ -11,9 +7,17 @@ import { conformanceStories } from "./harness.ts";
 // Japanese ones. A story whose markup depends on the time zone, the locale, randomness or the
 // clock (`Date.now()`, `Math.random()`, `toLocaleString()` during render) makes React throw away
 // the server HTML: `onRecoverableError` reports it, or React logs an attribute mismatch, and
-// either fails here. The server render runs in this browser (react-dom/server), as
-// test/server-elements.test.tsx does, with the page's time zone and locale switched through
-// CDP (test/conformance/commands.ts), so it runs no effects, as a server would not.
+// either fails here.
+//
+// The server and each reader are frames of their own (frame.tsx), each with its own copy of every
+// module, so a formatter one caches at module level under its locale is never what another reads:
+// a library that keeps one `Intl.NumberFormat` per options, made in the server's en-US, would
+// otherwise format the German reader's values as en-US too and hide the mismatch every real reader
+// sees. The page's time zone and locale switch through CDP (test/conformance/commands.ts) before
+// each frame does its work, so the server frame only ever runs as en-US in UTC, and each reader's
+// only in its own.
+
+type Frame = typeof import("./frame.tsx");
 
 const server = { timezoneId: "UTC", locale: "en-US" };
 const readers = [
@@ -21,76 +25,64 @@ const readers = [
   { timezoneId: "Asia/Tokyo", locale: "ja-JP" },
 ];
 
-const roots: Root[] = [];
-const hosts: HTMLElement[] = [];
+const frames: HTMLIFrameElement[] = [];
 
-/** `navigator.language` and `languages` as the reader's browser reports them; CDP leaves them alone. */
-function setLanguage(locale: string): void {
-  for (const [name, value] of [
-    ["language", locale],
-    ["languages", [locale]],
-  ] as const) {
-    Object.defineProperty(navigator, name, { configurable: true, get: () => value });
-  }
+/** A fresh frame with frame.tsx loaded: a page with its own modules. */
+async function openFrame(): Promise<Frame> {
+  const iframe = document.createElement("iframe");
+  // Laid out, so animation frames run in it, but out of sight. Vitest's browser transform routes
+  // dynamic imports through its runner, which only the test page has: the frame's passes them on.
+  iframe.style.cssText = "position:fixed;left:-20000px;top:0;width:1280px;height:800px;border:0";
+  const url = new URL("./frame.tsx", import.meta.url).href;
+  iframe.srcdoc = `<!doctype html><html lang="en"><head><meta charset="utf-8"></head><body><script>window.__vitest_browser_runner__ = { wrapModule: (load) => (typeof load === "function" ? load() : load), wrapDynamicImport: (load) => (typeof load === "function" ? load() : load) };</script><script type="module">window.__ouroFrame = import(${JSON.stringify(url)});</script></body></html>`;
+  const loaded = new Promise((resolve) => iframe.addEventListener("load", resolve, { once: true }));
+  document.body.append(iframe);
+  frames.push(iframe);
+  await loaded;
+  const window = iframe.contentWindow as Window & { __ouroFrame?: Promise<Frame> };
+  for (let tries = 0; !window.__ouroFrame && tries < 100; tries += 1) await new Promise((resolve) => setTimeout(resolve, 10));
+  return await window.__ouroFrame!;
 }
 
-beforeAll(async () => {
-  // The page's own time zone and locale stay the server's between tests.
-  await commands.emulateLocale(server);
-  setLanguage(server.locale);
-});
+let serverFrame: Frame;
+const readerFrames: Frame[] = [];
 
-afterEach(async () => {
-  await act(async () => roots.splice(0).forEach((root) => root.unmount()));
-  for (const host of hosts.splice(0)) host.remove();
+beforeAll(async () => {
   await commands.emulateLocale(server);
-  setLanguage(server.locale);
-  await cleanupStories();
+  serverFrame = await openFrame();
+  serverFrame.setLanguage(server.locale);
+  for (const reader of readers) {
+    await commands.emulateLocale(reader);
+    const frame = await openFrame();
+    frame.setLanguage(reader.locale);
+    readerFrames.push(frame);
+  }
+  await commands.emulateLocale(server);
+}, 60_000);
+
+afterAll(async () => {
+  for (const frame of readerFrames) await frame.unmount();
+  for (const iframe of frames.splice(0)) iframe.remove();
+  await commands.emulateLocale(server);
 });
 
 describe("server HTML hydrates in another time zone and locale", () => {
-  it.each(conformanceStories)("$id", async ({ Story, parameters }) => {
+  it.each(conformanceStories)("$id", async ({ id, parameters }) => {
     await commands.emulateLocale(server);
-    setLanguage(server.locale);
+    const rendered = await serverFrame.serverHtml(id);
     if (parameters.conformance?.clientOnly) {
-      expect(() => renderToString(<Story />), `${parameters.conformance.clientOnly}: the story now renders on a server, so remove its clientOnly`).toThrow();
+      expect("error" in rendered, `${parameters.conformance.clientOnly}: the story now renders on a server, so remove its clientOnly`).toBe(true);
       return;
     }
-    const html = renderToString(<Story />);
+    if ("error" in rendered) throw new Error(`the server render threw: ${rendered.error}`);
     const problems: string[] = [];
-    for (const reader of readers) {
+    for (const [index, reader] of readers.entries()) {
       await commands.emulateLocale(reader);
-      setLanguage(reader.locale);
-      const host = document.createElement("div");
-      host.dataset["storyHost"] = "";
-      host.innerHTML = html;
-      document.body.append(host);
-      hosts.push(host);
-      // React reports an attribute mismatch on the console rather than as a recoverable error.
-      const logged = vi.spyOn(console, "error").mockImplementation(() => {});
-      try {
-        await act(async () => {
-          roots.push(
-            hydrateRoot(host, <Story />, {
-              onRecoverableError: (error) => problems.push(`${reader.timezoneId} ${reader.locale}: ${String((error as Error).message ?? error).split("\n")[0]}`),
-            }),
-          );
-        });
-        await settle();
-      } finally {
-        // React's message ends with the tree, the mismatched lines marked + (client) and - (server).
-        problems.push(
-          ...logged.mock.calls.map((call) => {
-            const text = call.map(String).join(" ");
-            const diff = text.split("\n").filter((line) => /^\s*[+-]\s/.test(line));
-            return `${reader.timezoneId} ${reader.locale}: ${text.split("\n")[0]}${diff.length ? `\n${diff.join("\n")}` : ""}`;
-          }),
-        );
-        logged.mockRestore();
-      }
-      await act(async () => roots.pop()?.unmount());
-      host.remove();
+      const frame = readerFrames[index]!;
+      problems.push(...(await frame.hydrate(id, rendered.html)).map((problem) => `${reader.timezoneId} ${reader.locale}: ${problem}`));
+      await frame.unmount();
     }
+    await commands.emulateLocale(server);
     expect(problems.join("\n")).toBe("");
   });
 });

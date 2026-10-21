@@ -1,1 +1,1 @@
-- Slider without a `locale` reserves its value's width only once hydrated, so server HTML from another locale hydrates without a mismatch.
+- Slider and Progress without a `locale` write their value in en-US on the server and while hydrating, then switch to the reader's locale, so server HTML hydrates without a mismatch in any locale ("$10" on the server is no longer "10 $" in a German reader's hydration). Slider reserves its value's width only once hydrated.
