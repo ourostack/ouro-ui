@@ -9,6 +9,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+/**
+ * What the tools under test leave in a temp folder of their own accord, which this removes with the
+ * folder: Node's compile cache, and the folders Chromium leaves on Linux for each browser launched.
+ */
+export const toolLeftovers = (name) => name === "node-compile-cache" || name.startsWith(".org.chromium.Chromium.");
+
 /** Runs `node --test` over `args` with TMPDIR set to a new folder; returns its exit status, or 1 when it left anything in that folder. */
 export function runScriptTests(args, { log = console.error } = {}) {
   const temp = mkdtempSync(join(tmpdir(), "ouro-script-tests-"));
@@ -17,7 +23,7 @@ export function runScriptTests(args, { log = console.error } = {}) {
     // This run is its own test runner, even when a test starts it.
     delete env["NODE_TEST_CONTEXT"];
     const result = spawnSync(process.execPath, ["--test", ...args], { stdio: "inherit", env });
-    const left = readdirSync(temp);
+    const left = readdirSync(temp).filter((name) => !toolLeftovers(name));
     if (left.length > 0) {
       log(`The script tests left ${left.length} item(s) in their temp folder; remove each in the test that makes it (scripts/scratch.mjs):`);
       for (const name of left) log(`  ${name}`);

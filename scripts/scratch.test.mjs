@@ -57,7 +57,8 @@ test("pnpm test:scripts and the script test shards fail when a run leaves anythi
   };
   // A leak through any path, here an import's own folder under TMPDIR, not only a test's.
   const leaky = file("leaky.test.mjs", 'test("leaks", () => { mkdirSync(join(process.env.TMPDIR, "copy-of-the-repository")); });');
-  const tidy = file("tidy.test.mjs", 'test("tidy", () => {});');
+  // What Node and Chromium leave there of their own accord does not count.
+  const tidy = file("tidy.test.mjs", 'test("tidy", () => { mkdirSync(join(process.env.TMPDIR, "node-compile-cache"), { recursive: true }); mkdirSync(join(process.env.TMPDIR, ".org.chromium.Chromium.a1B2c3")); });');
   const temps = () => readdirSync(dirname(dir)).filter((name) => name.startsWith("ouro-script-tests-"));
   const before = temps();
   const logged = [];
