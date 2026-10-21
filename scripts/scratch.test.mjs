@@ -78,8 +78,10 @@ test("pnpm test:scripts and the script test shards warn about anything a run lea
   const strict = run(leaky, { strict: true });
   assert.equal(strict.status, 1, strict.report);
   assert.match(strict.logged, warning);
-  const clean = run(tidy, { strict: true });
+  // A tidy run, in CI's default mode, passes with no warning.
+  const clean = run(tidy);
   assert.equal(clean.status, 0, `${clean.logged}\n${clean.report}`);
+  assert.doesNotMatch(clean.logged, /::warning::/);
   assert.equal(clean.logged, "");
   assert.deepEqual(temps(), before, "each run removes its temp folder");
   assert.match(JSON.parse(readFileSync(join(root, "package.json"), "utf8")).scripts["test:scripts"], /^node scripts\/run-script-tests\.mjs /);
