@@ -2,12 +2,25 @@
 
 import { useCallback, useEffect, useId, useRef, useSyncExternalStore } from "react";
 
-/** Where a timer is: not started, counting down, stopped part way, or at zero. */
+/**
+ * Where a timer is: not started, counting down, stopped part way, or at zero.
+ *
+ * @claim "Where a timer is: not started" registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::useTimer > waits at the full duration until it starts, then counts down by the clock)
+ * @claim "Where a timer is: not started" registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::useTimer > stops where it is when paused and carries on when resumed)
+ */
 export type TimerStatus = "idle" | "running" | "paused" | "done";
 
-/** What a timer's `onDone` hears when it reaches zero. */
+/**
+ * What a timer's `onDone` hears when it reaches zero.
+ *
+ * @claim "What a timer's `onDone` hears when" registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::useTimer > finishes at zero and calls onDone once, then resets to idle)
+ */
 export interface TimerDoneEvent {
-  /** When it reached zero, in milliseconds since the epoch: in the past when the page was closed at the time. */
+  /**
+   * When it reached zero, in milliseconds since the epoch: in the past when the page was closed at the time.
+   *
+   * @claim "When it reached zero, in milliseconds" registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::useTimer > carries a stored timer on after a reload, and finishes one that ended while the page was closed)
+   */
   endedAt: number;
   /**
    * Whether this `useTimer` is the one on the page that should sound the alert: the first with
@@ -25,15 +38,24 @@ export interface TimerOptions {
    * Keeps the timer in `localStorage` under this name, so it carries on through a reload and
    * a closed tab, and shares it with every `useTimer`, `Timer` and `TimerTray` given the same
    * `timerId`, in this tab and in others. Without it the timer lives as long as the component.
+   * @claim "Keeps the timer in `localStorage` under" registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::useTimer > carries a stored timer on after a reload, and finishes one that ended while the page was closed)
+   * @claim "Keeps the timer in `localStorage` under" registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::useTimer > keeps a timer with a timerId in localStorage and shares it with every hook that has the timerId)
+   * @claim "Keeps the timer in `localStorage` under" registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::useTimer > follows a timer another tab changes, without its alert)
    */
   timerId?: string | undefined;
   /** Not an option. A timer is kept and shared by `timerId`: `useTimer({ duration: 600, timerId: "pasta" })`. */
   id?: { 'Use timerId: "pasta"': never };
-  /** Called once when the timer reaches zero, including when it ended while the page was closed. */
+  /**
+   * Called once when the timer reaches zero, including when it ended while the page was closed.
+   *
+   * @claim "Called once when the timer reaches" registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::useTimer > carries a stored timer on after a reload, and finishes one that ended while the page was closed)
+   * @claim "Called once when the timer reaches" registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::useTimer > finishes at zero and calls onDone once, then resets to idle)
+   */
   onDone?: ((event: TimerDoneEvent) => void) | undefined;
   /**
    * For a view that watches a timer shown elsewhere, as `TimerTray` does: its `onDone` hears
    * `first: true` only while no `useTimer` without `fallback` shares the timer.
+   * @claim "For a view that watches a" registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::useTimer > gives first to a hook without fallback, whichever mounted first, and to the first fallback when only fallbacks watch)
    */
   fallback?: boolean | undefined;
 }
@@ -41,11 +63,20 @@ export interface TimerOptions {
 /** What {@link useTimer} returns. */
 export interface TimerControls {
   status: TimerStatus;
-  /** Whole seconds left, rounded up: the full duration before it starts, 0 once it is done. */
+  /**
+   * Whole seconds left, rounded up: the full duration before it starts, 0 once it is done.
+   *
+   * @claim "Whole seconds left, rounded up: the" registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::useTimer > waits at the full duration until it starts, then counts down by the clock)
+   * @claim "Whole seconds left, rounded up: the" registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::useTimer > starts again from the full duration from any status)
+   */
   remaining: number;
   /** The timer's length in seconds, as it was started. */
   duration: number;
-  /** When it reached zero, or `null` until it does. */
+  /**
+   * When it reached zero, or `null` until it does.
+   *
+   * @claim "When it reached zero, or `null`" registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::useTimer > waits at the full duration until it starts, then counts down by the clock)
+   */
   endedAt: number | null;
   /** Starts from the full duration, from any status. */
   start: () => void;
@@ -221,6 +252,10 @@ function remainingOf(stored: Stored | null, duration: number, now: number): numb
  * const timer = useTimer({ duration: 600, timerId: "pasta", onDone: () => chime() });
  * <Button onClick={timer.start}>Start</Button>
  * <p>{formatDuration(timer.remaining)}</p>
+ * @claim "Every `useTimer`, `Timer` and `TimerTray` with" registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::useTimer > keeps a timer with a timerId in localStorage and shares it with every hook that has the timerId)
+ * @claim "Every `useTimer`, `Timer` and `TimerTray` with" registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::useTimer > follows a timer another tab changes, without its alert)
+ * @claim "It re-renders four times a second" registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::useTimer > finishes at zero and calls onDone once, then resets to idle)
+ * @claim "It re-renders four times a second" registry/ouro/lib/ouro/use-timer.ts verify:fileLine(registry/ouro/lib/ouro/use-timer.ts, /const\sTICK_MS\s=\s250;/)
  */
 export function useTimer({ duration, timerId, onDone, fallback }: TimerOptions): TimerControls {
   const anonymous = useId();

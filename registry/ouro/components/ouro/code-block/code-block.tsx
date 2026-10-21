@@ -8,11 +8,18 @@ import { CopyButton } from "@/registry/ouro/components/ouro/copy-button/copy-but
 
 /** The props CodeBlock adds to the `<figure>` attributes it passes through. */
 export interface CodeBlockOwnProps {
-  /** The code, as plain text. It shows exactly as given, whitespace and all, and is what the copy button copies. */
+  /**
+   * The code, as plain text. It shows exactly as given, whitespace and all, and is what the copy button copies.
+   *
+   * @claim "It shows exactly as given, whitespace" registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::CodeBlock > copies the code exactly with its copy button)
+   * @claim "It shows exactly as given, whitespace" registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::CodeBlock > shows the code as given on the muted surface in the monospace font, under a caption naming its language)
+   */
   code: string;
   /**
    * The language, shown in the block's caption when there is no `title` and set as
    * `data-language` on the block for a highlighter of your own: `language="bash"`.
+   * @claim "The language, shown in the block's" registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::CodeBlock > captions with the title rather than the language)
+   * @claim "The language, shown in the block's" registry/ouro/components/ouro/code-block/code-block.test.tsx verify:fileLine(registry/ouro/components/ouro/code-block/code-block.test.tsx, /getAttribute\("data-language"\)\)\.toBe\("bash"\)/)
    */
   language?: string | undefined;
   /** A caption above the code, such as its file name: `title="vite.config.ts"`. */
@@ -46,7 +53,13 @@ export interface CodeBlockOwnProps {
 /** Props for {@link CodeBlock}: its own props and the `<figure>` attributes it passes through. */
 export type CodeBlockProps = Omit<HTMLAttributes<HTMLElement>, keyof CodeBlockOwnProps> & CodeBlockOwnProps;
 
-/** Makes the code a tab stop while it overflows either way, so a keyboard can scroll it (WCAG 2.1.1). */
+/**
+ * Makes the code a tab stop while it overflows either way, so a keyboard can scroll it (WCAG 2.1.1).
+ *
+ * @claim "Makes the code a tab stop" registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::CodeBlock > scrolls a long line sideways and becomes a tab stop only while it overflows)
+ * @claim "Makes the code a tab stop" registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::CodeBlock > scrolls tall code within a maximum height the app sets, as a tab stop)
+ * @claim "Makes the code a tab stop" https://www.w3.org/TR/WCAG22/#keyboard verify:urlOk(https://www.w3.org/TR/WCAG22/#keyboard)
+ */
 function useScrollableCode(): RefCallback<HTMLPreElement> {
   return useCallback((element: HTMLPreElement | null) => {
     // React 19 calls a ref that returns a cleanup with the element only; the cleanup replaces the call with null.

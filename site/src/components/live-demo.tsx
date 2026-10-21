@@ -37,7 +37,7 @@ function SelectedDemo({ name, title }: { name: string; title: string }): JSX.Ele
     if (hydrated) root.current?.setAttribute("data-site-demo-ready", "");
   }, [hydrated]);
   const Demo = Object.hasOwn(demos, name) ? demos[name] : undefined;
-  if (!Demo) throw new Error(`No live example for "${name}"`);
+  if (!Demo) throw new Error(`Unknown live example "${name}"`);
   return (
     <div ref={root} data-site-demo={name} className="flex w-full justify-center">
       <fieldset disabled={!hydrated} aria-label={`${title} example`} className="m-0 flex w-full min-w-0 [min-inline-size:0] justify-center border-0 p-0">

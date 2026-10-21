@@ -9,6 +9,9 @@ export { boxClass, hexOf, pickerClass, plainSwatchClass, supportsColorInput, swa
  * spaces around them. Anything else is `undefined`.
  *
  * @internal
+ * @claim "A hex color as `#rrggbb` in" registry/ouro/components/ouro/color-field/color-field.test.tsx verify:testExists(registry/ouro/components/ouro/color-field/color-field.test.tsx::ColorField > is a labeled hex text input with a native color picker, on the Field contract)
+ * @claim "A hex color as `#rrggbb` in" registry/ouro/components/ouro/color-field/color-field.test.tsx verify:testExists(registry/ouro/components/ouro/color-field/color-field.test.tsx::ColorField > moves the picker as a valid hex is typed, in any of its forms)
+ * @claim "A hex color as `#rrggbb` in" registry/ouro/components/ouro/color-field/color-field.test.tsx verify:testExists(registry/ouro/components/ouro/color-field/color-field.test.tsx::ColorField > tidies the text when the input loses focus, and puts back the last color when it is not a hex)
  */
 function hexOf(text: string | undefined): string | undefined {
   const match = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec((text ?? "").trim());
@@ -35,6 +38,9 @@ function toHex(color: string): string {
  * phones, stepping down from `sm` with a fine pointer, outlined while either input has keyboard focus.
  *
  * @internal
+ * @claim "The box around the swatch and" registry/ouro/components/ouro/color-field/color-field.test.tsx verify:testExists(registry/ouro/components/ouro/color-field/color-field.test.tsx::ColorField > gives the swatch a 44px hit area on phones, and the box 44px with 16px text)
+ * @claim "The box around the swatch and" registry/ouro/components/ouro/color-field/color-field.test.tsx verify:testExists(registry/ouro/components/ouro/color-field/color-field.test.tsx::ColorField > outlines the box when either input has keyboard focus)
+ * @claim "The box around the swatch and" registry/ouro/components/ouro/color-field/color-field.touch.test.tsx verify:testExists(registry/ouro/components/ouro/color-field/color-field.touch.test.tsx::keeps a 44px box and 16px text on a landscape phone, past the sm breakpoint)
  */
 const boxClass =
   "relative m-0 box-border flex w-full min-w-0 items-center gap-2 h-(--ouro-control-h) ps-2 pe-3 py-0 " +
@@ -50,6 +56,8 @@ const boxClass =
  * touch target on coarse pointers.
  *
  * @internal
+ * @claim "The swatch's hit area: a 28px" registry/ouro/components/ouro/color-field/color-field.test.tsx verify:testExists(registry/ouro/components/ouro/color-field/color-field.test.tsx::ColorField > gives the swatch a 44px hit area on phones, and the box 44px with 16px text)
+ * @claim "The swatch's hit area: a 28px" registry/ouro/components/ouro/color-field/color-field.touch.test.tsx verify:testExists(registry/ouro/components/ouro/color-field/color-field.touch.test.tsx::gives the swatch a 44px hit area that opens the picker)
  */
 const swatchClass =
   "press relative flex size-7 shrink-0 cursor-pointer sm:pointer-fine:size-6 " +
@@ -58,6 +66,7 @@ const swatchClass =
 /**
  * The swatch where the browser has no color picker: the color, shown only, beside the hex text
  * that takes it.
+ * @claim "The swatch where the browser has" registry/ouro/components/ouro/color-field/color-field.test.tsx verify:testExists(registry/ouro/components/ouro/color-field/color-field.test.tsx::ColorField > shows a plain swatch and keeps the hex text where the browser has no color picker)
  */
 const plainSwatchClass = "relative block size-7 shrink-0 rounded-sm border border-solid border-border sm:pointer-fine:size-6";
 

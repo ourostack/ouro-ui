@@ -8,10 +8,17 @@ export type { ChartMarkerShape, ChartSummaryInfo, ChartTone, ChartType };
  * The colors a series can take: the theme's five chart tokens (`--chart-1` to
  * `--chart-5`, which shadcn themes define for light and dark), and the tones for series
  * that mean something, such as failures in `destructive`.
+ * @claim "The colors a series can take" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > colors each series from the theme's chart tokens, in light and dark)
+ * @claim "The colors a series can take" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > maps tones to theme tokens and gives series without one the chart tokens in order)
  */
 type ChartTone = "chart-1" | "chart-2" | "chart-3" | "chart-4" | "chart-5" | "primary" | "destructive" | "success" | "warning";
 
-/** What `Chart` draws when it has no children. */
+/**
+ * What `Chart` draws when it has no children.
+ *
+ * @claim "What `Chart` draws when it has" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > draws lines with a different point shape per series)
+ * @claim "What `Chart` draws when it has" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > draws areas)
+ */
 type ChartType = "bar" | "line" | "area";
 
 /** What a `Chart` summary is written from. */
@@ -20,7 +27,11 @@ interface ChartSummaryInfo {
   title: string;
   /** What the props draw, or `undefined` for a chart passed as children. */
   type: ChartType | undefined;
-  /** Each series' label, in config order. */
+  /**
+   * Each series' label, in config order.
+   *
+   * @claim "Each series' label, in config order" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > labels each series in a legend with a marker shape, so color is not the only cue)
+   */
   series: string[];
   /** The category's label: the `config` label for `categoryKey`, or the key itself. */
   category: string;
@@ -32,6 +43,7 @@ interface ChartSummaryInfo {
  * The tones a series can take, mapped to the theme variable each reads.
  *
  * @internal
+ * @claim "The tones a series can take" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > maps tones to theme tokens and gives series without one the chart tokens in order)
  */
 const chartTones: Readonly<Record<ChartTone, string>> = {
   "chart-1": "var(--chart-1)",
@@ -49,12 +61,18 @@ const chartTones: Readonly<Record<ChartTone, string>> = {
  * The theme variable for a tone, or for the series' place in order when it has none.
  *
  * @internal
+ * @claim "The theme variable for a tone" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > maps tones to theme tokens and gives series without one the chart tokens in order)
  */
 function toneVar(tone: string | undefined, index: number): string {
   return tone !== undefined && Object.hasOwn(chartTones, tone) ? chartTones[tone as ChartTone] : `var(--chart-${(index % 5) + 1})`;
 }
 
-/** The marker each series gets in the legend, the tooltip and on line points, in order. */
+/**
+ * The marker each series gets in the legend, the tooltip and on line points, in order.
+ *
+ * @claim "The marker each series gets in" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > labels each series in a legend with a marker shape, so color is not the only cue)
+ * @claim "The marker each series gets in" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > gives five series five marker shapes)
+ */
 type ChartMarkerShape = "circle" | "square" | "triangle" | "diamond" | "cross";
 
 /**
@@ -93,6 +111,8 @@ const typeNames: Readonly<Record<ChartType, string>> = { bar: "Bar chart", line:
  * "Bar chart of Cooked and Saved by Month, 3 points. The table that follows lists every value."
  *
  * @internal
+ * @claim "The table that follows lists every" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > lists every value in a table for screen readers, visible with showTable)
+ * @claim "Bar chart of Cooked and Saved by Month," registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > describes itself with a summary that points to the data table, which the app can translate)
  */
 function defaultSummary({ type, series, category, count }: ChartSummaryInfo): string {
   const kind = type ? typeNames[type] : "Chart";
@@ -104,6 +124,8 @@ function defaultSummary({ type, series, category, count }: ChartSummaryInfo): st
  * the plot (which takes the arrow keys), and no focus outline on the shapes inside it.
  *
  * @internal
+ * @claim "The plot area: recharts' default grays" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > shows the tooltip from the keyboard: Tab to the plot, then the arrow keys)
+ * @claim "The plot area: recharts' default grays" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > takes a recharts chart as children, giving it the data, the name and the theme)
  */
 const plotClass =
   "relative aspect-video min-h-0 w-full flex-1 text-xs " +

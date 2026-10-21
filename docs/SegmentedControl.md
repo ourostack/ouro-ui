@@ -39,8 +39,8 @@ Type: `SegmentedControlProps`.
 | `defaultValue` | `string` | the first enabled item | The segment pressed first, when the component keeps its own state. |
 | `disabled` | `boolean` |  | Disables every segment. |
 | `fullWidth` | `boolean` |  | Stretches the control to the width of its container, with the segments sharing it equally. |
-| `hideLabel` | `boolean` |  | Hides the label visually; it still names the control for screen readers. Most view switchers set it. |
-| `items` (required) | `readonly SegmentedControlItem[]` |  | The segments, in order. Two to five read best. |
+| `hideLabel` | `boolean` |  | Hides the label visually; it still names the control for screen readers. Set it on a view switcher whose segments say what it is. |
+| `items` (required) | `readonly SegmentedControlItem[]` |  | The segments, in order. Keep to two to five. |
 | `label` (required) | `string` |  | Names the choice ("View"). Shown above the control unless `hideLabel` is set; screen readers always hear it. |
 | `name` | `string` |  | Submits the checked segment's value under this name with the form it sits in, unless the control is `disabled`. |
 | `onValueChange` | `((value: string) => void)` |  | Called with the new segment's value when the person presses a segment. Pressing the pressed one does nothing. |
@@ -56,7 +56,7 @@ These are not props. Passing one fails the type check with the fix in the error,
 
 ## `className` is for layout only
 
-Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your classes always win over Ouro UI's: each component merges `className` last with `cn` (tailwind-merge), so a class that conflicts with the component's own replaces it.
+Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your classes always win over Ouro UI's: SegmentedControl merges `className` last with `cn` (tailwind-merge), so a class that conflicts with its own replaces it.[^layout-classes]
 
 Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
 
@@ -80,3 +80,5 @@ interface SegmentedControlItem {
   href?: { 'A segment switches a view in place. To navigate, use links in a <nav>': never };
 }
 ```
+
+[^layout-classes]: test:registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx::SegmentedControl > lets app layout classes win verify:testExists(registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx::SegmentedControl > lets app layout classes win)

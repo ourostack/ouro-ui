@@ -28,6 +28,7 @@ export interface SliderProps<Value extends SliderValue = number> {
   /**
    * What the slider sets, shown above it and read as its name. Required: every control
    * needs a name. To hide it visually, keep it and add `hideLabel`.
+   * @claim "Required: every control needs a name" registry/ouro/components/ouro/slider/slider.test-d.ts verify:fileLine(registry/ouro/components/ouro/slider/slider.test-d.ts, /expectTypeOf<\{\sdefaultValue:\s40\s\}>\(\)\.not\.toExtend<SliderProps>/)
    */
   label: string;
   /** Hides the label visually; screen readers still read it as the slider's name. */
@@ -52,11 +53,26 @@ export interface SliderProps<Value extends SliderValue = number> {
   defaultValue?: Value | undefined;
   /** Called with the new value as the user drags, presses the track or uses the keyboard: a number, or an array for a range. */
   onValueChange?: ((value: SliderOutput<Value>) => void) | undefined;
-  /** Called once the user lets go (or with each key press), with the final value. Use it to save. */
+  /**
+   * Called once the user lets go (or with each key press), with the final value. Use it to save.
+   *
+   * @claim "Called once the user lets go" registry/ouro/components/ouro/slider/slider.test.tsx verify:testExists(registry/ouro/components/ouro/slider/slider.test.tsx::Slider > steps with the keyboard and reports the value)
+   * @claim "Called once the user lets go" https://base-ui.com/react/components/slider verify:urlOk(https://base-ui.com/react/components/slider)
+   */
   onValueCommitted?: ((value: SliderOutput<Value>) => void) | undefined;
-  /** The lowest value. @default 0 */
+  /**
+   * The lowest value. @default 0
+   *
+   * @claim "The lowest value" registry/ouro/components/ouro/slider/slider.test.tsx verify:testExists(registry/ouro/components/ouro/slider/slider.test.tsx::Slider > is a labeled range input built on the Field contract)
+   * @claim "The lowest value" registry/ouro/components/ouro/slider/slider.test.tsx verify:testExists(registry/ouro/components/ouro/slider/slider.test.tsx::Slider > takes large steps with Page Up, Page Down and Shift with an arrow)
+   */
   min?: number | undefined;
-  /** The highest value. @default 100 */
+  /**
+   * The highest value. @default 100
+   *
+   * @claim "The highest value" registry/ouro/components/ouro/slider/slider.test.tsx verify:testExists(registry/ouro/components/ouro/slider/slider.test.tsx::Slider > is a labeled range input built on the Field contract)
+   * @claim "The highest value" registry/ouro/components/ouro/slider/slider.test.tsx verify:testExists(registry/ouro/components/ouro/slider/slider.test.tsx::Slider > takes large steps with Page Up, Page Down and Shift with an arrow)
+   */
   max?: number | undefined;
   /** The distance between values. @default 1 */
   step?: number | undefined;
@@ -75,6 +91,8 @@ export interface SliderProps<Value extends SliderValue = number> {
    * What each thumb of a range is called, before the label: screen readers hear
    * "Minimum, Price". Translate them with your app.
    * @default ["Minimum", "Maximum"]
+   * @claim "What each thumb of a range" registry/ouro/components/ouro/slider/slider.test.tsx verify:testExists(registry/ouro/components/ouro/slider/slider.test.tsx::Slider > gives a value array a thumb per value, each named)
+   * @claim "What each thumb of a range" registry/ouro/components/ouro/slider/slider.test.tsx verify:testExists(registry/ouro/components/ouro/slider/slider.test.tsx::Slider > translates the thumb names)
    */
   thumbLabels?: readonly string[] | undefined;
   /**
@@ -95,9 +113,17 @@ export interface SliderProps<Value extends SliderValue = number> {
   invalid?: { 'Use <Slider error="What is wrong">': never };
   /** Not a prop. Ouro UI uses `disabled`: `<Slider disabled>`. */
   isDisabled?: { 'Use <Slider disabled>': never };
-  /** Not a prop. A slider always has a value, so it is never missing: `<Slider defaultValue={50}>`. */
+  /**
+   * Not a prop. A slider always has a value, so it is never missing: `<Slider defaultValue={50}>`.
+   *
+   * @claim "A slider always has a value" registry/ouro/components/ouro/slider/slider.test-d.ts verify:fileLine(registry/ouro/components/ouro/slider/slider.test-d.ts, /@ts-expect-error\srequired\sis\sa\shint:\sa\sslider\salways\shas\sa\svalue\./)
+   */
   required?: { 'A slider always has a value: <Slider defaultValue={50}>': never };
-  /** Not a prop. A slider always has a value, so it is never missing: `<Slider defaultValue={50}>`. */
+  /**
+   * Not a prop. A slider always has a value, so it is never missing: `<Slider defaultValue={50}>`.
+   *
+   * @claim "A slider always has a value" registry/ouro/components/ouro/slider/slider.test-d.ts verify:fileLine(registry/ouro/components/ouro/slider/slider.test-d.ts, /@ts-expect-error\srequired\sis\sa\shint:\sa\sslider\salways\shas\sa\svalue\./)
+   */
   isRequired?: { 'A slider always has a value: <Slider defaultValue={50}>': never };
   /** Not a prop. A value array gives a thumb per value: `<Slider defaultValue={[20, 80]}>`. */
   range?: { 'Pass a value array: <Slider defaultValue={[20, 80]}>': never };
@@ -119,6 +145,8 @@ const owner = { name: "Slider", data: "slider" };
 /**
  * A range's label names its group, with an id the server knows, and each thumb has its own
  * name, so the label points at no single input.
+ * @claim "A range's label names its group" registry/ouro/components/ouro/slider/slider.test.tsx verify:testExists(registry/ouro/components/ouro/slider/slider.test.tsx::Slider > gives a value array a thumb per value, each named)
+ * @claim "A range's label names its group" registry/ouro/components/ouro/slider/slider.test.tsx verify:testExists(registry/ouro/components/ouro/slider/slider.test.tsx::Slider development messages > warns when a range has the wrong number of thumb names)
  */
 function rangeOwner(labelId: string) {
   return {
@@ -163,6 +191,8 @@ function defaultThumbLabels(count: number): string[] {
  * @example
  * <Slider label="Servings" name="servings" defaultValue={4} min={1} max={12} showValue />
  * <Slider label="Price" name="price" defaultValue={[10, 40]} format={{ style: "currency", currency: "USD" }} showValue />
+ * @claim "Each thumb has a 44px touch" registry/ouro/components/ouro/slider/slider.test.tsx verify:testExists(registry/ouro/components/ouro/slider/slider.test.tsx::Slider looks > gives the thumb a 44px hit area only on a coarse pointer)
+ * @claim "Each thumb has a 44px touch" registry/ouro/components/ouro/slider/slider.touch.test.tsx verify:testExists(registry/ouro/components/ouro/slider/slider.touch.test.tsx::gives the thumb a 44px hit area and the control a 44px height, also on a landscape phone)
  */
 export function Slider<Value extends SliderValue = number>(props: SliderProps<Value>): JSX.Element {
   const {

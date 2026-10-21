@@ -799,6 +799,16 @@ describe("MenuBar", () => {
     await renderBar();
     expect(Math.round(barTrigger("File").element().getBoundingClientRect().height)).toBe(32);
   });
+
+  it("opens each menu as a bottom sheet below 640px", async () => {
+    await page.viewport(390, 844);
+    await renderBar();
+    await userEvent.click(barTrigger("Edit"));
+    const element = await settled();
+    expect(element.getAttribute("data-ouro-presentation")).toBe("sheet");
+    expect(Math.round(element.getBoundingClientRect().bottom)).toBe(innerHeight);
+    expect(Math.round(element.getBoundingClientRect().width)).toBe(innerWidth);
+  });
 });
 
 describe("Menu motion", () => {

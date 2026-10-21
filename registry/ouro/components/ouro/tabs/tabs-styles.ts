@@ -9,6 +9,8 @@ export type { TabsActivation, TabsOrientation };
  * The layouts Tabs supports: tabs in a row above the panel, or in a column beside it.
  *
  * @internal
+ * @claim "The layouts Tabs supports: tabs in" registry/ouro/components/ouro/tabs/tabs.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > puts vertical tabs in a row above the panel on a narrow screen)
+ * @claim "The layouts Tabs supports: tabs in" registry/ouro/components/ouro/tabs/tabs.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > renders a labelled tab list with the first tab selected and its panel shown)
  */
 const orientations = ["horizontal", "vertical"] as const;
 
@@ -49,6 +51,7 @@ const rootClass = "flex min-w-0 gap-4 data-[orientation=horizontal]:flex-col dat
  * match-source`), so no color of it reaches the page, whatever the theme.
  *
  * @internal
+ * @claim "The mask's `#000` only means opaque" https://developer.mozilla.org/en-US/docs/Web/CSS/mask-mode verify:urlOk(https://developer.mozilla.org/en-US/docs/Web/CSS/mask-mode)
  */
 const listClass =
   "relative z-0 m-0 box-border flex shrink-0 p-0 " +
@@ -65,6 +68,8 @@ const listClass =
  * muted. The focus outline is inset, so the scrolling row never clips it.
  *
  * @internal
+ * @claim "A tab: 44px tall with 16px" registry/ouro/components/ouro/tabs/tabs.touch.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.touch.test.tsx::keeps 44px tabs with 16px text on a phone, also in landscape)
+ * @claim "The focus outline is inset, so" registry/ouro/components/ouro/tabs/tabs-styles.ts verify:fileLine(registry/ouro/components/ouro/tabs/tabs-styles.ts, /outline-ring\s-outline-offset-2\sfocus-visible:outline-2/)
  */
 const tabClass =
   "group/tab press relative m-0 box-border inline-flex shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap " +
@@ -83,6 +88,8 @@ const tabClass =
  * would put the indicator off the tab.
  *
  * @internal
+ * @claim "The tab itself never scales, because" registry/ouro/components/ouro/tabs/tabs.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > slides the indicator with translate and resizes it with scale only, on the ease-in-out token in the base duration)
+ * @claim "The tab itself never scales, because" registry/ouro/components/ouro/tabs/tabs-styles.ts verify:fileLine(registry/ouro/components/ouro/tabs/tabs-styles.ts, /motion-safe:group-not-data-disabled/tab:group-active/tab:scale-\(--ouro-press-scale\)/)
  */
 const tabFaceClass =
   "inline-flex items-center gap-2 [transition:scale_var(--ouro-duration-press)_var(--ouro-ease-out)] " +
@@ -97,6 +104,11 @@ const tabFaceClass =
  * moves without a transition.
  *
  * @internal
+ * @claim "It is 1px long and scaled" registry/ouro/components/ouro/tabs/tabs.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > slides the indicator with translate and resizes it with scale only, on the ease-in-out token in the base duration)
+ * @claim "It is 1px long and scaled" registry/ouro/components/ouro/tabs/tabs.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > slides the indicator under the selected tab)
+ * @claim "It is 1px long and scaled" registry/ouro/components/ouro/tabs/tabs.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > resizes the indicator between tabs of different width without ever changing its layout box, and keeps its ends square)
+ * @claim "The line is never what Base" registry/ouro/components/ouro/tabs/tabs.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > slides the indicator with translate and resizes it with scale only, on the ease-in-out token in the base duration)
+ * @claim "The line is never what Base" registry/ouro/components/ouro/tabs/tabs-styles.ts verify:fileLine(registry/ouro/components/ouro/tabs/tabs-styles.ts, /motion-safe:group-not-data-disabled/tab:group-active/tab:scale-\(--ouro-press-scale\)/)
  */
 const indicatorClass =
   "pointer-events-none absolute z-1 bg-primary " +
@@ -113,6 +125,7 @@ const indicatorClass =
  * layout never holds two panels.
  *
  * @internal
+ * @claim "It fades in when its tab" registry/ouro/components/ouro/tabs/tabs.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > switches by key without animating the indicator or the panel, and by pointer with both)
  */
 const panelClass =
   "min-w-0 flex-1 rounded-md outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +

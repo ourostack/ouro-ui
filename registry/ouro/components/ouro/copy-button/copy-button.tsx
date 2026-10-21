@@ -35,7 +35,11 @@ export interface CopyButtonOwnProps {
   content?: { 'Use <CopyButton value={text} />': never };
   /** Not a prop. The label is `label`: `<CopyButton value={url} label="Copy link" />`. */
   children?: { 'Use <CopyButton value={text} label="Copy link" />': never };
-  /** Not a prop. The confirmation is `copiedLabel`, and it lasts two seconds. */
+  /**
+   * Not a prop. The confirmation is `copiedLabel`, and it lasts two seconds.
+   *
+   * @claim "The confirmation is `copiedLabel`, and it" registry/ouro/components/ouro/copy-button/copy-button.test.tsx verify:testExists(registry/ouro/components/ouro/copy-button/copy-button.test.tsx::CopyButton > puts the value on the clipboard, says Copied once, calls onCopy and reads Copy again after two seconds)
+   */
   timeout?: { 'Use copiedLabel="Copied"; it shows for two seconds': never };
   /** Not a prop. CopyButton copies on click itself; to react to a copy, pass `onCopy`. */
   onClick?: { 'Use onCopy={(value) => ...}; CopyButton copies on click itself': never };
@@ -122,6 +126,8 @@ async function writeClipboard(text: string): Promise<boolean> {
  * @example
  * <CopyButton value={apiKey} label="Copy key" />
  * <CopyButton value={url} label="Copy link" hideLabel variant="plain" />
+ * @claim "On a click it copies `value`" registry/ouro/components/ouro/copy-button/copy-button.test.tsx verify:testExists(registry/ouro/components/ouro/copy-button/copy-button.test.tsx::CopyButton > puts the value on the clipboard, says Copied once, calls onCopy and reads Copy again after two seconds)
+ * @claim "On a click it copies `value`" registry/ouro/components/ouro/copy-button/copy-button.test.tsx verify:fileLine(registry/ouro/components/ouro/copy-button/copy-button.test.tsx, /says\sCouldn't\scopy,\sonce,\swhen\sthe\sbrowser\srefuses/)
  */
 export function CopyButton(props: CopyButtonProps): JSX.Element {
   const {

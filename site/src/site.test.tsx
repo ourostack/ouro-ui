@@ -3,9 +3,9 @@ import { commands, page } from "vitest/browser";
 import { cleanupPage, describeViolations, renderPage, scan, setScheme, settle } from "../test/render";
 import { latestRelease, upgrading } from "./release";
 import { docsItems, itemMarkdown, summary } from "./docs/items";
-import { docsPages } from "./docs/pages";
+import { docsPages, repositoryLink } from "./docs/pages";
 import { unpinnedAddresses } from "../../scripts/addresses.mjs";
-import { parse } from "./docs/markdown";
+import { parse, sourceHref } from "./docs/markdown";
 import { headTags } from "./head";
 import { href, routes } from "./routes";
 import { AGENTS_COMING_SOON, HERO_SUBLINE, HERO_TITLE, SHADCN_LINE } from "./copy";
@@ -277,6 +277,34 @@ describe("guides and exports without an item", () => {
     expect(hrefs.filter((link) => link.endsWith("/docs/alert/")).length).toBeGreaterThan(0);
     expect(hrefs).toContain(href("/docs/testing/") + "#finding-fields-in-tests");
     expect(hrefs.filter((link) => link.endsWith(".md") && !link.startsWith("http") && !link.includes("/docs/forms.md"))).toEqual([]);
+  });
+
+  it("gathers a page's claim footnotes into a Claim sources list, each source a link to the file or test it names", async () => {
+    const blocks = parse("A claim.[^a] Another.[^b]\n\n[^a]: scripts/claims.mjs#L12; test:scripts/claims.test.mjs::lint verify:count(registry:ui)=1\n[^b]: https://example.com/spec\n  verify:urlOk(https://example.com/spec)");
+    expect(blocks).toEqual([
+      { kind: "paragraph", text: "A claim.[^a] Another.[^b]" },
+      {
+        kind: "sources",
+        items: [
+          { id: "a", text: "scripts/claims.mjs#L12; test:scripts/claims.test.mjs::lint verify:count(registry:ui)=1" },
+          { id: "b", text: "https://example.com/spec verify:urlOk(https://example.com/spec)" },
+        ],
+      },
+    ]);
+    expect(sourceHref("scripts/claims.mjs#L12@abc123")).toBe("https://github.com/ourostack/ouro-ui/blob/abc123/scripts/claims.mjs#L12");
+    expect(sourceHref("test:scripts/claims.test.mjs::lint > a name")).toBe("https://github.com/ourostack/ouro-ui/blob/main/scripts/claims.test.mjs");
+    expect(sourceHref("evidence:docs/agent-usability/runs/a.json")).toBe("https://github.com/ourostack/ouro-ui/blob/main/docs/agent-usability/runs/a.json");
+    expect(sourceHref("https://example.com/spec")).toBe("https://example.com/spec");
+    expect(repositoryLink("../../scripts/claims.mjs#L5", "docs/guides/claims.md")).toBe("https://github.com/ourostack/ouro-ui/blob/main/scripts/claims.mjs#L5");
+    expect(repositoryLink("https://example.com", "docs/guides/claims.md")).toBeUndefined();
+
+    await renderPage("/docs/claims/");
+    await expect.element(page.getByRole("region", { name: "Claim sources" })).toBeVisible();
+    const sources = document.getElementById("claim-sources")!.parentElement!;
+    const first = sources.querySelector<HTMLAnchorElement>("li a[href]")!;
+    expect(first.href).toMatch(/^https:\/\/github\.com\/ourostack\/ouro-ui\/blob\/main\//);
+    const ref = document.querySelector<HTMLAnchorElement>("sup a[href^='#source-']")!;
+    expect(document.getElementById(ref.getAttribute("href")!.slice(1))).not.toBeNull();
   });
 });
 

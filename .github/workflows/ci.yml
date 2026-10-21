@@ -78,6 +78,25 @@ jobs:
       - run: pnpm run docs --check
       - run: pnpm typecheck
       - run: pnpm lint
+      # Every factual sentence on every surface is a claim with a primary source and a check,
+      # and every check holds (scripts/claims.mjs, docs/guides/claims.md). The checks read only
+      # the checkout; urlOk reads scripts/claims-urls.json. On a pull request, the required checks
+      # are read at its base, and the addresses it adds to the cache or changes are fetched again.
+      # The ratchet runs here too, in a required check: what the pull request adds to, changes in
+      # or removes from claims.config.json's exemptions must be named in its description (push
+      # again or re-run this job after editing the description).
+      - name: Claims
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if [ -n "$BASE_REF" ]; then
+            git fetch --no-tags --depth=1 origin "$BASE_REF"
+            CLAIMS_BASE_REF="origin/$BASE_REF" node scripts/claims.mjs ratchet
+            CLAIMS_BASE_REF="origin/$BASE_REF" pnpm claims:check --network=changed
+          else
+            pnpm claims:check
+          fi
       # Every browser test (pnpm test), or on a reduced pull request the selected components'
       # tests, the shared suites over their stories and the site's tests, still in every Vitest
       # project (scripts/test-impact.mjs vitest); when only coverage falls short there, the full

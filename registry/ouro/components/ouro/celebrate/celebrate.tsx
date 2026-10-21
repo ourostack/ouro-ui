@@ -14,7 +14,7 @@ export interface CelebrateOwnProps {
    * again for another burst.
    */
   show: boolean;
-  /** What was achieved, in a few words: "List cleared", "All steps done". Shown in a badge and spoken. */
+  /** What was achieved, in a few words: "List cleared", "Steps done". Shown in a badge and spoken. */
   message: string;
   /** Speaks the message without showing the badge, for a screen that already says it. The confetti still bursts. */
   hideMessage?: boolean | undefined;

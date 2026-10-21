@@ -117,6 +117,13 @@ test("every spec's matcher goes through inOneSentence, and the lane counts only 
   assert.match(helpers, /firstMatch\(phrases, matches\)/);
 });
 
+test("the specs wait for speech, never for a fixed time", () => {
+  const dir = join(import.meta.dirname, "../registry/ouro/e2e/screen-reader");
+  const specs = readdirSync(dir).filter((file) => file.endsWith(".sr.spec.ts"));
+  assert.ok(specs.length >= 5);
+  for (const file of specs) assert.doesNotMatch(readFileSync(join(dir, file), "utf8"), /waitForTimeout|setTimeout|\bsleep\(/, file);
+});
+
 test("NVDA is reading the page only when the window it reports is the page's, in the browser", () => {
   // Run 39253118106: NVDA read the Start window, and the Dialog spec hung until it timed out.
   assert.equal(readsBrowser("Start, window", "forms-dialog--playground ⋅ Storybook"), false);

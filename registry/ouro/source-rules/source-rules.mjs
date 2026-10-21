@@ -244,6 +244,9 @@ export function loadConfigAt(root, ref, gitShow) {
  * hookPrefix set or changed. Each change carries a fingerprint, so a reason can be recorded for it
  * the way it is for a rise. Widening (fewer skips, no hookPrefix) is not a change.
  * @returns {{ fingerprint: string, change: string }[]}
+ * @claim "settings narrow the scan" scripts/kits/source-rules.test.mjs verify:testExists(scripts/kits/source-rules.test.mjs::main > --base: the settings at the base ref > fails each setting that narrows the scan: src, an added exclude or ouroDirs entry, a set or changed hookPrefix)
+ * @claim "Each change carries a fingerprint" scripts/kits/source-rules.test.mjs verify:testExists(scripts/kits/source-rules.test.mjs::main > --base: the settings at the base ref > records a narrowing with a reason for this pull request, and never honours one already on the base)
+ * @claim "Widening (fewer skips, no hookPrefix) is not a change" scripts/kits/source-rules.test.mjs verify:testExists(scripts/kits/source-rules.test.mjs::main > --base: the settings at the base ref > passes settings that widen the scan or keep it)
  */
 export function narrowedSettings(base, head) {
   const changes = [];
@@ -885,7 +888,11 @@ function scanStylesheet(file, source, hook = ANY_HOOK) {
   return offenders;
 }
 
-/** tsconfig's `compilerOptions.paths` (`{ "~/*": ["./app/*"] }`), or none. */
+/**
+ * The paths in tsconfig's `compilerOptions.paths` (`{ "~/*": ["./app/*"] }`), or none.
+ *
+ * @claim "The paths in tsconfig's" scripts/kits/source-rules.test.mjs verify:testExists(scripts/kits/source-rules.test.mjs::call sites > loads tsconfig paths, tolerating a missing or path-less tsconfig)
+ */
 export function loadPaths(root, readFile = defaultDeps.readFile) {
   let text;
   try {
@@ -981,6 +988,10 @@ function moveKey(fingerprint, { sameCallSite = false } = {}) {
  * in the same file (a renamed component) or the same component (a moved file): a move, which is
  * neutral. A call site that swaps the component it uses (`<Link>` to `<NiceLink>`) pairs only in
  * the same file and the same component. A fix elsewhere never pays for a new control.
+ * @claim "A fix elsewhere never pays for a new control" scripts/kits/source-rules.test.mjs verify:testExists(scripts/kits/source-rules.test.mjs::the ratchet against real changes > a fix in one component does not pay for a new control in another (the trade))
+ * @claim "The fingerprints the scan has more of than" scripts/kits/source-rules.test.mjs verify:testExists(scripts/kits/source-rules.test.mjs::findRegressions: moves are neutral > pairs a renamed component and changed non-literal props, but not changed literal props)
+ * @claim "The fingerprints the scan has more of than" scripts/kits/source-rules.test.mjs verify:testExists(scripts/kits/source-rules.test.mjs::findRegressions: moves are neutral > pairs a moved file)
+ * @claim "The fingerprints the scan has more of than" scripts/kits/source-rules.test.mjs verify:testExists(scripts/kits/source-rules.test.mjs::findRegressions: moves are neutral > pairs only within the same file or the same component)
  */
 export function findRegressions(offenders, baseline) {
   const { added, removed } = compareWithBaseline(offenders, baseline);

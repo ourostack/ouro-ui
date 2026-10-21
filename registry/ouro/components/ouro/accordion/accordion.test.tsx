@@ -213,6 +213,15 @@ describe("Accordion", () => {
     }
   });
 
+  it("keeps every item from opening or closing when disabled", async () => {
+    const { triggers } = await render(<Accordion items={items} defaultValue="storage" disabled />);
+    const before = expanded(triggers);
+    expect(before).toContain("true");
+    expect(before).toContain("false");
+    for (const trigger of triggers) await act(async () => trigger.click());
+    expect(expanded(triggers)).toEqual(before);
+  });
+
   it("gives every trigger at least a 44px row on a coarse pointer, or 40px otherwise", async () => {
     const { triggers } = await render(<Accordion items={items} />);
     expect(triggers[0]!.getBoundingClientRect().height).toBeGreaterThanOrEqual(matchMedia("(pointer: coarse)").matches ? 44 : 40);

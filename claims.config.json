@@ -1,0 +1,277 @@
+{
+  "$comment": "The claims check's surfaces, exemptions and required jobs (docs/guides/claims.md). An exemption a pull request adds (allowed, notLinted, instructionVerbs) needs a reason and a mention in the pull request's description: the claims workflow compares this file with the base branch's.",
+  "surfaces": [
+    {
+      "match": "\\.(md|txt)$",
+      "mode": "markdown"
+    },
+    {
+      "match": "^registry\\.json$",
+      "mode": "registry"
+    },
+    {
+      "match": "^registry/.*\\.(tsx?|mjs|mts)$",
+      "exclude": "\\.(test|test-d|stories)\\.(tsx?|mjs|mts)$|\\.d\\.m?ts$|^registry/ouro/e2e/",
+      "mode": "jsdoc"
+    },
+    {
+      "match": "^site/src/.*\\.tsx?$",
+      "exclude": "\\.test\\.tsx?$|\\.d\\.ts$",
+      "mode": "copy"
+    }
+  ],
+  "notLinted": [
+    {
+      "match": "^docs/guides/why-no-skill(-[\\w-]+)?\\.md$",
+      "mode": "generated",
+      "reason": "scripts/agent-usability/page.mts renders it from the scored runs in scripts/agent-usability/runs/; pnpm claims:check renders it again and compares"
+    },
+    {
+      "match": "^scripts/agent-usability/runs/",
+      "mode": "evidence",
+      "reason": "a scored run's record, written by the agent-usability harness"
+    },
+    {
+      "match": "^scripts/agent-usability/(screens|arms)/",
+      "mode": "input",
+      "reason": "what the benchmark gives each agent, frozen with its cohort"
+    },
+    {
+      "match": "^scripts/fixtures/|^scripts/agent-usability/test/fixture-app/|^test/install-fixture[\\w-]*/",
+      "mode": "input",
+      "reason": "a test fixture: the scripts' and the install test's inputs"
+    },
+    {
+      "match": "(^|/)(LICENSE|THIRD-PARTY-LICENSES)(\\.\\w+)?$",
+      "mode": "input",
+      "reason": "license text"
+    },
+    {
+      "match": "^site/src/docs/demos/",
+      "mode": "input",
+      "reason": "a docs demo's sample content, not a statement about Ouro HX"
+    }
+  ],
+  "generated": [
+    "^README\\.md$",
+    "^site/public/llms\\.txt$",
+    "^registry\\.json$",
+    "^docs/[^/]+\\.md$"
+  ],
+  "generators": [
+    "scripts/registry.mts",
+    "scripts/gen-docs.mts"
+  ],
+  "allowed": [
+    {
+      "file": "site/src/voyage/stage/copy.ts",
+      "sentence": "All three tanks are full.",
+      "reason": "the Nautilus story: Conseil and Nemo on the ship's ballast"
+    },
+    {
+      "file": "site/src/voyage/stage/copy.ts",
+      "sentence": "All stop.",
+      "reason": "the Nautilus story: Captain Nemo's order"
+    },
+    {
+      "file": "site/src/voyage/repaint.tsx",
+      "sentence": "All set.",
+      "reason": "the Nautilus story: the dive checklist is done"
+    },
+    {
+      "file": "site/src/voyage/repaint.tsx",
+      "sentence": "At 300 fathoms the sea is dark and very quiet.",
+      "reason": "the Nautilus story: the dive dialog's narration"
+    },
+    {
+      "file": "site/src/voyage/chapters/copy.ts",
+      "sentence": "All done.",
+      "reason": "the shipyard's status once no job is left, which the chapter computes (launchHint)"
+    },
+    {
+      "file": "site/src/voyage/chapters/copy.ts",
+      "sentence": "Two hulls, one in the other.",
+      "reason": "the Nautilus story: Ned Land on the hull, after Verne"
+    },
+    {
+      "file": "site/src/voyage/chapters/copy.ts",
+      "sentence": "All by electricity.",
+      "reason": "the Nautilus story: Captain Nemo on the engine, after Verne"
+    },
+    {
+      "file": "site/src/voyage/chapters/copy.ts",
+      "sentence": "No coal and no smoke.",
+      "reason": "the Nautilus story: Captain Nemo on the engine, after Verne"
+    },
+    {
+      "file": "site/src/voyage/chapters/copy.ts",
+      "sentence": "Windows with no hull would let in the whole sea.",
+      "reason": "the Nautilus story: Conseil judging an order of work"
+    },
+    {
+      "file": "site/src/voyage/chapters/copy.ts",
+      "sentence": "An engine with no hull will just sink.",
+      "reason": "the Nautilus story: Conseil judging an order of work"
+    },
+    {
+      "file": "site/src/voyage/chapters/copy.ts",
+      "sentence": "Every job is done.",
+      "reason": "the Nautilus story: Captain Nemo once the shipyard's jobs are ticked"
+    },
+    {
+      "file": "site/src/voyage/chapters/copy.ts",
+      "sentence": "Every sailor signs before the ship sails.",
+      "reason": "the Nautilus story: the ship's articles"
+    },
+    {
+      "file": "site/src/voyage/chapters/copy.ts",
+      "sentence": "The sea is not for all.",
+      "reason": "the Nautilus story: Ned Land when you leave the crew"
+    }
+  ],
+  "instructionVerbs": [
+    "add",
+    "allow",
+    "apply",
+    "ask",
+    "avoid",
+    "build",
+    "call",
+    "change",
+    "check",
+    "choose",
+    "clear",
+    "click",
+    "close",
+    "commit",
+    "compare",
+    "compose",
+    "configure",
+    "copy",
+    "cover",
+    "create",
+    "declare",
+    "delete",
+    "describe",
+    "disable",
+    "do",
+    "don't",
+    "download",
+    "drag",
+    "draw",
+    "edit",
+    "enable",
+    "ensure",
+    "export",
+    "fill",
+    "find",
+    "fix",
+    "follow",
+    "give",
+    "go",
+    "hide",
+    "import",
+    "include",
+    "install",
+    "keep",
+    "leave",
+    "let",
+    "link",
+    "list",
+    "load",
+    "look",
+    "make",
+    "mark",
+    "merge",
+    "move",
+    "name",
+    "never",
+    "note",
+    "open",
+    "pass",
+    "pick",
+    "pin",
+    "place",
+    "prefer",
+    "press",
+    "put",
+    "raise",
+    "read",
+    "rebase",
+    "record",
+    "refresh",
+    "regenerate",
+    "release",
+    "remove",
+    "rename",
+    "render",
+    "replace",
+    "report",
+    "request",
+    "reset",
+    "restart",
+    "return",
+    "review",
+    "run",
+    "score",
+    "see",
+    "select",
+    "set",
+    "show",
+    "skip",
+    "sort",
+    "start",
+    "stop",
+    "swap",
+    "switch",
+    "tag",
+    "tap",
+    "tell",
+    "test",
+    "translate",
+    "try",
+    "turn",
+    "type",
+    "update",
+    "upgrade",
+    "use",
+    "wait",
+    "wrap",
+    "write"
+  ],
+  "requiredTests": [
+    {
+      "match": "\\.visual\\.test\\.tsx?$",
+      "job": "visual",
+      "reason": "the visual job runs the screenshot tests (vitest.config.ts, project visual)"
+    },
+    {
+      "match": "^test/themes/",
+      "job": "themes",
+      "reason": "the themes job runs the theme tests (vitest.config.ts, project themes)"
+    },
+    {
+      "match": "^(registry|test|site)/.*\\.test\\.tsx?$",
+      "job": "ci",
+      "reason": "the ci job runs pnpm test, which runs every other Vitest file"
+    },
+    {
+      "match": "^(registry/ouro/e2e/ouro|site/e2e)/.*\\.spec\\.ts$",
+      "job": "e2e",
+      "reason": "the e2e job runs the Playwright specs"
+    },
+    {
+      "match": "^scripts/kits/.*\\.test\\.mjs$",
+      "job": "ci",
+      "reason": "scripts/kits.test.mjs, in pnpm test:scripts, runs every file in scripts/kits/ with coverage"
+    },
+    {
+      "match": "\\.test\\.m[jt]s$",
+      "job": "ci",
+      "listedIn": "package.json#scripts.test:scripts",
+      "reason": "the ci job runs pnpm test:scripts, which lists each Node test file"
+    }
+  ],
+  "requiredChecks": ".github/required-checks.json",
+  "urlCache": "scripts/claims-urls.json"
+}

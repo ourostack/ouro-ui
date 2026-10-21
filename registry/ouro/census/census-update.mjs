@@ -88,7 +88,11 @@ export function makeDirectory(directory) {
   mkdirSync(directory, { recursive: true });
 }
 
-/** A directory's entry names, or none when the directory does not exist. */
+/**
+ * A directory's entry names, or none when the directory does not exist.
+ *
+ * @claim "or none when the directory does not exist" scripts/kits/census-update.test.mjs verify:testExists(scripts/kits/census-update.test.mjs::census-merge.mjs > treats a missing directory as no census, and uses the console and exit code by default)
+ */
 export function listDirectory(directory) {
   try {
     return readdirSync(directory);

@@ -8,6 +8,8 @@ export { animationsSettled, censusExclusions, collectInPage, interactiveSelector
 /**
  * Every element a person can focus or operate: native controls, links, editable regions, anything
  * in the tab order, and the ARIA widget roles. Ouro UI's own tests mark every one of these.
+ * @claim "Every element a person can focus or operate" test/census-collect.test.ts verify:testExists(test/census-collect.test.ts::collectInPage > reports each control's role, from the tag, the input type or an explicit role)
+ * @claim "Ouro UI's own tests mark every one of these" scripts/control-matrix.test.mjs verify:testExists(scripts/control-matrix.test.mjs::every interactive component declares its controls, and the fixture lists exactly those)
  */
 const interactiveSelector =
   'a[href], button, input:not([type="hidden"]), select, textarea, [contenteditable]:not([contenteditable="false"]), [tabindex]:not([tabindex="-1"]), [role="button"], [role="link"], [role="checkbox"], [role="switch"], [role="radio"], [role="tab"], [role="textbox"], [role="searchbox"], [role="combobox"], [role="slider"], [role="spinbutton"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="option"], [role="treeitem"]';
@@ -15,6 +17,7 @@ const interactiveSelector =
 /**
  * The `interactiveSelector` matches that are no control: Base UI's focus guards, which hand focus
  * back into a modal and that no prop reaches.
+ * @claim "that are no control" test/census-collect.test.ts verify:testExists(test/census-collect.test.ts::collectInPage > reads Ouro's markers, and leaves out Base UI's focus guards)
  */
 const censusExclusions = Object.freeze(["[data-base-ui-focus-guard]"]);
 
@@ -25,6 +28,8 @@ const censusExclusions = Object.freeze(["[data-base-ui-focus-guard]"]);
  * the nearest `data-testid`.
  *
  * @param {{ selector: string, exclusions: readonly string[] }} options
+ * @claim "match in the document except" test/census-collect.test.ts verify:testExists(test/census-collect.test.ts::collectInPage > gives each control the landmark, dialog or named group around it, named only by its author)
+ * @claim "match in the document except" test/census-collect.test.ts verify:testExists(test/census-collect.test.ts::collectInPage > says whether each control is visible)
  */
 function collectInPage({ selector, exclusions }) {
   const axe = /** @type {any} */ (window).axe;
@@ -149,7 +154,11 @@ function collectInPage({ selector, exclusions }) {
   }
 }
 
-/** Whether no finite animation is running; infinite ones (spinners) never settle and are ignored. */
+/**
+ * Whether no finite animation is running; infinite ones (spinners) never settle and are ignored.
+ *
+ * @claim "Whether no finite animation is running" test/census-collect.test.ts verify:testExists(test/census-collect.test.ts::animationsSettled > waits for a finite animation, and ignores an infinite or finished one)
+ */
 function animationsSettled() {
   return document.getAnimations().every((animation) => {
     if (animation.playState !== "running" && !animation.pending) return true;

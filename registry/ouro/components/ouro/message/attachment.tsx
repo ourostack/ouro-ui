@@ -9,7 +9,11 @@ import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
 /** The props Attachment adds to the `<div>` attributes it passes through. */
 export interface AttachmentOwnProps {
-  /** The file's name, as the user sees it: "menu.pdf". Required, so every file has a name. */
+  /**
+   * The file's name, as the user sees it: "menu.pdf". Required, so every file has a name.
+   *
+   * @claim "Required, so every file has a" registry/ouro/components/ouro/message/attachment.test-d.ts verify:fileLine(registry/ouro/components/ouro/message/attachment.test-d.ts, /expectTypeOf<\{\shref:\s"\/menu\.pdf"\s\}>\(\)\.not\.toExtend<AttachmentProps>/)
+   */
   name: string;
   /** Where the file opens or downloads. With it, the attachment is a link named by the file and its size. */
   href?: string | undefined;
@@ -23,7 +27,11 @@ export interface AttachmentOwnProps {
   onRemove?: (() => void) | undefined;
   /** The remove button's accessible name, for other languages. @default (name) => `Remove ${name}` */
   removeLabel?: ((name: string) => string) | undefined;
-  /** Writes `size` for other languages or units. @default "512 B", "2 kB", "1.2 MB", in steps of 1024 */
+  /**
+   * Writes `size` for other languages or units.
+   * @default "512 B", "2 kB", "1.2 MB", in steps of 1024
+   * @claim "in steps of 1024" registry/ouro/components/ouro/message/attachment.test.tsx verify:testExists(registry/ouro/components/ouro/message/attachment.test.tsx::Attachment > names the file and gives its size in readable units) verify:fileLine(registry/ouro/components/ouro/message/attachment.test.tsx, /\[2048,\s"2\skB"\]/)
+   */
   formatSize?: ((bytes: number) => string) | undefined;
   /** Layout only: margins, width (`mt-2`). Appearance classes warn in development. */
   className?: string | undefined;
@@ -47,7 +55,12 @@ export type AttachmentProps = Omit<HTMLAttributes<HTMLDivElement>, keyof Attachm
 const units = ["B", "kB", "MB", "GB", "TB"] as const;
 const oneDecimal = new Intl.NumberFormat("en", { maximumFractionDigits: 1 });
 
-/** "512 B", "2 kB", "1.2 MB": steps of 1024, at most one decimal. */
+/**
+ * "512 B", "2 kB", "1.2 MB": steps of 1024, at most one decimal.
+ *
+ * @claim "steps of 1024, at most one decimal" registry/ouro/components/ouro/message/attachment.test.tsx verify:testExists(registry/ouro/components/ouro/message/attachment.test.tsx::Attachment > names the file and gives its size in readable units)
+ * @claim "steps of 1024, at most one decimal" registry/ouro/components/ouro/message/attachment.test.tsx verify:fileLine(registry/ouro/components/ouro/message/attachment.test.tsx, /\[2048,\s"2\skB"\]/)
+ */
 function defaultFormatSize(bytes: number): string {
   let value = bytes;
   let unit = 0;

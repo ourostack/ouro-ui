@@ -1,3 +1,5 @@
+import { claim } from "@/registry/ouro/lib/ouro/claims";
+
 /**
  * Every word Chapter I says ("Build the ship", site-design.md): the chapter's heading, the shipyard's
  * jobs and the crew's lines about them, and the ship's articles. In one place so the readability
@@ -39,7 +41,7 @@ export const EXPEDITION = {
   label: "How the voyage stands",
   picture: "The yard on the island",
   build: "Build her",
-  built: (count: number) => (count === PARTS.length ? "All five jobs done." : `${count} of ${PARTS.length} jobs done.`),
+  built: (count: number) => (count === PARTS.length ? claim("All five jobs done.", { source: { test: "site/src/voyage/chapters/chapter-one.test.tsx::Chapter I's words > name five jobs, with the hull first in a sound plan and not first at the start" }, verify: { testExists: "site/src/voyage/chapters/chapter-one.test.tsx::Chapter I's words > name five jobs, with the hull first in a sound plan and not first at the start" } }) : `${count} of ${PARTS.length} jobs done.`),
   launch: "Launch her",
   afloat: (afloat: boolean) => (afloat ? "She is afloat." : "Still on the slip."),
   sign: "Sign on",
@@ -166,7 +168,7 @@ export const CODE_SHEETS = {
     description: "Ouro HX does the controls. The site does the ship.",
     hx: [
       { text: "Reorderable: the drag, the moves by key and by menu, and what screen readers hear.", code: `<Reorderable label="Order of work" items={plan} onReorder={reorder} />` },
-      { text: "Checklist: the ticks, the line through each done job, and the day on each row.", code: `<Checklist label="Jobs" items={jobs} onCheckedChange={tick} />` },
+      { text: claim("Checklist: the ticks, the line through each done job, and the day on each row.", { source: { test: "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > draws the tick, then the strike, and softens the text" }, verify: [{ testExists: "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > draws the tick, then the strike, and softens the text" }, { testExists: "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > describes a row by its description and value" }] }), code: `<Checklist label="Jobs" items={jobs} onCheckedChange={tick} />` },
       { text: "Progress: the bar, and the number screen readers read.", code: `<Progress label="Ship built" value={built * 20} showValue />` },
       { text: "Button: the press, and Launch kept off until the work is done.", code: `<Button disabled={left > 0} onClick={launch}>Launch</Button>` },
       { text: "Sheet: this panel.", code: `<Sheet title="How the shipyard is built" side="right" open={open} onOpenChange={setOpen}>` },
@@ -177,7 +179,7 @@ export const CODE_SHEETS = {
     title: "How the articles are built",
     description: "Ouro HX does the form. The site does the crew.",
     hx: [
-      { text: "Form: it checks each field when you sign, puts each note under its field, and takes you to the first.", code: `<Form errors={formErrors(answer, answer?.errors)} onSubmit={sign}>` },
+      { text: claim("Form: it checks each field when you sign, puts each note under its field, and takes you to the first.", { source: { test: "registry/ouro/components/ouro/form/form.test.tsx::Form > validates with the browser's constraints and focuses the first invalid control" }, verify: [{ testExists: "registry/ouro/components/ouro/form/form.test.tsx::Form > validates with the browser's constraints and focuses the first invalid control" }, { testExists: "registry/ouro/components/ouro/form/form.test.tsx::Form > shows each error on the field with that name, linked and marked invalid" }] }), code: `<Form errors={formErrors(answer, answer?.errors)} onSubmit={sign}>` },
       { text: "TextField, Select and Checkbox: the labels, the marks on what you must fill in, and the notes.", code: `<TextField label="Your name" name="name" required />\n<Select label="Your trade" name="trade" options={trades} required />\n<Checkbox label="I will keep the Nautilus a secret." name="oath" required />` },
       { text: "ItemGroup, Item, Avatar and Badge: the crew list.", code: `<ItemGroup aria-label="Crew list">\n  <Item media={<Avatar name={name} />} title={name} actions={<Badge>{trade}</Badge>} />\n</ItemGroup>` },
       { text: "Toast: the note when you sign on.", code: `toast(\`\${name} signed on\`, { tone: "success" })` },

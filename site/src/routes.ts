@@ -1,3 +1,4 @@
+import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { docsItems } from "./docs/items";
 import { docsPages } from "./docs/pages";
 import { HERO_COPY, VOYAGE_HERO } from "./copy";
@@ -22,7 +23,14 @@ export const routes: Route[] = [
   { path: "/", title: "Ouro HX", description: DESCRIPTION },
   // The new landing page, built in slices on this hidden route until it replaces "/".
   { path: "/voyage/", title: "Mobilis in mobili · Ouro HX", description: VOYAGE_DESCRIPTION, noindex: true },
-  { path: "/docs/", title: "Docs · Ouro HX", description: "Every Ouro HX component, with install commands, props and live demos." },
+  {
+    path: "/docs/",
+    title: "Docs · Ouro HX",
+    description: claim("Every Ouro HX component, with install commands, props and live demos.", {
+      source: { file: "site/src/site.test.tsx" },
+      verify: { testExists: "site/src/site.test.tsx::docs > has a page for every registry item at docs/<name>" },
+    }),
+  },
   ...docsItems.map((item) => ({
     path: `/docs/${item.name}/`,
     title: `${item.title} · Ouro HX`,
@@ -36,7 +44,7 @@ export const routes: Route[] = [
   {
     path: "/docs/switching-from-shadcn/",
     title: "Switching from shadcn · Ouro HX",
-    description: "How each shadcn/ui component and prop maps to Ouro HX, and how both live in one app.",
+    description: "How shadcn/ui components and props map to Ouro HX, and how both live in one app.",
   },
   {
     path: "/docs/updating/",

@@ -35,6 +35,8 @@ const slotsClass = "m-0 box-border flex max-w-full items-center gap-2";
  * reads as no width at all, so too many slots for the column narrow instead of spilling out.
  *
  * @internal
+ * @claim "One slot: a square with Field's" registry/ouro/components/ouro/otp-field/otp-field.test.tsx verify:testExists(registry/ouro/components/ouro/otp-field/otp-field.test.tsx::OtpField looks > has 44px slots with 16px text on phones and steps down with a fine pointer from sm)
+ * @claim "One slot: a square with Field's" registry/ouro/components/ouro/otp-field/otp-field.touch.test.tsx verify:testExists(registry/ouro/components/ouro/otp-field/otp-field.touch.test.tsx::keeps 44px slots and 16px text on a landscape phone, past the sm breakpoint)
  */
 const slotClass =
   "m-0 box-border block h-(--ouro-otp-slot) w-[min(var(--ouro-otp-slot),100%)] min-w-0 shrink p-0 text-center tabular-nums " +
@@ -56,6 +58,8 @@ const separatorClass = "m-0 box-border h-0.5 w-2 shrink-0 rounded-full border-0 
  * Each slot's name after the first, which takes the field's label.
  *
  * @internal
+ * @claim "Each slot's name after the first" registry/ouro/components/ouro/otp-field/otp-field.test.tsx verify:testExists(registry/ouro/components/ouro/otp-field/otp-field.test.tsx::OtpField > is a labeled group of six slots on the Field contract)
+ * @claim "Each slot's name after the first" registry/ouro/components/ouro/otp-field/otp-field.test.tsx verify:testExists(registry/ouro/components/ouro/otp-field/otp-field.test.tsx::OtpField > takes a whole code that iOS autofill writes into the first slot)
  */
 function defaultSlotLabel(position: number, length: number): string {
   return `Character ${position} of ${length}`;
