@@ -177,14 +177,18 @@ async function gaps(root: ParentNode, state: string): Promise<string[]> {
   await userEvent.keyboard("{Shift}");
   const focusable = controls.filter((control) => control instanceof HTMLElement && !control.matches(":disabled, [aria-disabled='true']")) as HTMLElement[];
   focusable.sort((a, b) => Number(a === document.activeElement) - Number(b === document.activeElement));
+  // What each frame shows with focus outside it: a frame whose sibling control already has focus
+  // (a color field's swatch, then its text) is compared with how it looked before either did.
+  const rest = new Map<Element, string>();
   for (const control of focusable) {
     if (document.activeElement === control) continue;
     const around = frame(control);
-    const before = look(around);
+    if (!around.contains(document.activeElement)) rest.set(around, look(around));
+    const before = rest.get(around);
     control.focus();
     if (document.activeElement !== control) continue;
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    if (control.matches(":focus-visible") && look(around) === before) found.push(`${state}: focus shows nothing: ${describeElement(control)}`);
+    if (before !== undefined && control.matches(":focus-visible") && look(around) === before) found.push(`${state}: focus shows nothing: ${describeElement(control)}`);
   }
   return found;
 }
