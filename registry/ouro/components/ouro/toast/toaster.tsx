@@ -257,9 +257,9 @@ const cameFrom = new WeakMap<Element, HTMLElement>();
 
 function rememberEntry(event: FocusEvent<HTMLElement>): void {
   const from = event.relatedTarget;
-  if (event.currentTarget.contains(from)) return;
-  if (from instanceof HTMLElement) cameFrom.set(event.currentTarget, from);
-  else cameFrom.delete(event.currentTarget);
+  // Focus that comes from nowhere (a handoff from a toast that left, after focus fell to <body>)
+  // keeps the place it entered from.
+  if (from instanceof HTMLElement && !event.currentTarget.contains(from)) cameFrom.set(event.currentTarget, from);
 }
 
 /**

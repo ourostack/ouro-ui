@@ -474,6 +474,32 @@ describe("toast()", () => {
     await expect.poll(focused).toBe(true);
   });
 
+  // Chromium only: a press focuses a button there, not in WebKit.
+  it.skipIf(server.browser !== "chromium")("hands focus back to the control that showed the toasts when a press closes the last, after the toasts passed it along", async () => {
+    // As the conformance check uses the WithAction story: Undo closes its toast and shows another,
+    // which takes focus from it; that one's dismiss button then closes the last toast.
+    const Show = () => (
+      <button type="button" onClick={() => toast("Recipe deleted", { duration: 0, action: { label: "Undo", onClick: () => toast("Recipe restored", { duration: 0 }) } })}>
+        Delete recipe
+      </button>
+    );
+    await render(
+      <>
+        <Show />
+        <Toaster />
+        <a href="#footer">Footer</a>
+      </>,
+    );
+    await userEvent.click(page.getByRole("button", { name: "Delete recipe" }));
+    await expect.poll(() => toastNamed("Recipe deleted")).not.toBeUndefined();
+    await userEvent.click(page.getByRole("button", { name: "Undo" }));
+    await gone("Recipe deleted");
+    await expect.poll(() => toastNamed("Recipe restored")?.contains(document.activeElement)).toBe(true);
+    await userEvent.click(toastNamed("Recipe restored")!.querySelector<HTMLElement>('button[aria-label="Dismiss"]')!);
+    await gone("Recipe restored");
+    await expect.poll(() => document.activeElement?.textContent).toBe("Delete recipe");
+  });
+
   it("leaves focus on the page when the last toast goes and focus came from nowhere, rather than moving it to the page's last control", async () => {
     await render(
       <>
