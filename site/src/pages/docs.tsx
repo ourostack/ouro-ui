@@ -44,7 +44,14 @@ function pageBlocks(item: DocsItem): { purpose: string; importLine: string; body
     const next = body.findIndex((block, index) => index > at && block.kind === "heading" && block.level <= 2);
     // Without the family's opening line, which repeats the root part's description.
     const parts = parse(installedPaths(partsSection(item.parts))).slice(1);
-    body.splice(next === -1 ? body.length : next, 0, ...parts);
+    // One Claim sources list per page: the parts' footnotes join the page's own.
+    const partSources = parts.flatMap((block) => (block.kind === "sources" ? block.items : []));
+    body.splice(next === -1 ? body.length : next, 0, ...parts.filter((block) => block.kind !== "sources"));
+    if (partSources.length > 0) {
+      const sources = body.find((block) => block.kind === "sources");
+      if (sources?.kind === "sources") sources.items = [...sources.items, ...partSources.filter((item) => !sources.items.some((own) => own.id === item.id))];
+      else body.push({ kind: "sources", items: partSources });
+    }
   }
   return { purpose: purpose.text, importLine: importBlock.text, body };
 }

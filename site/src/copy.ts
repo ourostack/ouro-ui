@@ -20,7 +20,7 @@ export const HERO_COPY = `${HERO_TITLE} ${HERO_SUBLINE}`;
 export const VOYAGE_HERO = {
   eyebrow: "Ouro HX · Under construction",
   title: ["Feels right to the people using it.", "Obvious to the agents building it."],
-  subline: claim("A React component library you copy into your app and own. Its taps, transitions and screen-reader announcements are tested in real browsers.", {
+  subline: claim("A React component library you copy into your app and own. Taps, transitions and screen-reader announcements are tested in real browsers.", {
     source: [
       { test: "registry/ouro/components/ouro/accordion/accordion.touch.test.tsx::keeps 44px titles with 16px text on a phone, also in landscape, and opens on tap" },
       { file: "scripts/motion-coverage.mts" },
