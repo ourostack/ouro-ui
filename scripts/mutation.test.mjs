@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { balanceShards, changedLines, countDisables, describeSurvivor, disableProblems, estimateMutants, mutateRanges, parseShard, runtimeSource, survivors, testFilesFor } from "./mutation.mjs";
+import { balanceShards, changedLines, mutantWeight, countDisables, describeSurvivor, disableProblems, estimateMutants, mutateRanges, parseShard, runtimeSource, survivors, testFilesFor } from "./mutation.mjs";
 import { parse } from "@babel/parser";
 import traverse from "@babel/traverse";
 import { ignoreReason, isClassList, testPhases } from "./mutation/plugins.mjs";
@@ -197,4 +198,15 @@ test("balanceShards splits files across shards by their mutants, largest first, 
   assert.deepEqual(parseShard("2/3"), { index: 2, count: 3 });
   assert.equal(parseShard(undefined), null);
   assert.throws(() => parseShard("4/3"), /--shard/);
+});
+
+test("mutantWeight is a file's estimated mutants times the tests each one runs, since every mutant runs its file's whole test set", () => {
+  const files = ["registry/ouro/components/ouro/dialog/dialog.test.tsx", "registry/ouro/components/ouro/button/button.test.tsx"];
+  const its = files.map((file) => readFileSync(file, "utf8").match(/^\s*it\(/gm).length).reduce((a, b) => a + b);
+  assert.ok(its > 20);
+  assert.equal(mutantWeight(4, files), 4 * its);
+  assert.equal(mutantWeight(4, []), 4);
+  assert.equal(mutantWeight(0, files), 0);
+  // Equal mutants, but one file's tests take ten times as long: it shares a shard with no one.
+  assert.deepEqual(balanceShards({ slow: mutantWeight(5, files), a: 5, b: 5, c: 5 }, 2), [["slow"], ["a", "b", "c"]]);
 });

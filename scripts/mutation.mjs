@@ -93,7 +93,17 @@ export function estimateMutants(text, path, ranges) {
 }
 
 /**
- * Files split across `count` shards by weight (estimated mutants), largest first into the
+ * What a file costs a shard: its estimated mutants times the tests in `testFiles` (its own), as
+ * each mutant runs that whole set (coverage analysis is off). Dialog's tests take far longer than a
+ * style file's, so counting mutants alone left one shard four times as long as another.
+ */
+export function mutantWeight(mutants, testFiles, rootDir = root) {
+  const its = testFiles.reduce((total, file) => total + (readFileSync(join(rootDir, file), "utf8").match(/^\s*it\(/gm)?.length ?? 0), 0);
+  return mutants * Math.max(1, its);
+}
+
+/**
+ * Files split across `count` shards by weight (`mutantWeight`), largest first into the
  * lightest shard, so the shards finish close together.
  */
 export function balanceShards(weights, count) {
@@ -223,7 +233,8 @@ export function describeSurvivor(mutant) {
 
 async function main(args) {
   // `--only <path>` mutates one file's changed lines, while you work on it; `--shard <i>/<n>`
-  // mutates the ith of n groups of the changed files, balanced by their estimated mutants (CI).
+  // mutates the ith of n groups of the changed files, balanced by their estimated mutants times
+  // their tests (CI).
   const option = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : undefined);
   const only = option("--only");
   const shard = parseShard(option("--shard"));
@@ -254,9 +265,13 @@ async function main(args) {
   const changed = changedLines(diff.stdout);
   let changes = changed;
   if (shard) {
-    const weights = Object.fromEntries(Object.entries(changed).filter(([path]) => runtimeSource(path)).map(([path, ranges]) => [path, estimateMutants(readFileSync(join(root, path), "utf8"), path, ranges)]));
+    const mutants = Object.fromEntries(Object.entries(changed).filter(([path]) => runtimeSource(path)).map(([path, ranges]) => [path, estimateMutants(readFileSync(join(root, path), "utf8"), path, ranges)]));
+    const weights = Object.fromEntries(Object.entries(mutants).map(([path, count]) => [path, mutantWeight(count, testFilesFor([path]).own)]));
     const shards = balanceShards(weights, shard.count);
-    console.log(`Shard ${shard.index}/${shard.count} of the changed files, by estimated mutants:\n${shards.map((files, index) => `${index + 1}: ${files.map((file) => `${file} (~${weights[file]})`).join(", ") || "none"}`).join("\n")}`);
+    const totals = shards.map((files) => files.reduce((total, file) => total + weights[file], 0));
+    console.log(
+      `Shard ${shard.index}/${shard.count} of the changed files, by estimated mutants times their tests:\n${shards.map((files, index) => `${index + 1} (${totals[index]}): ${files.map((file) => `${file} (~${mutants[file]} x ${weights[file] / Math.max(1, mutants[file])})`).join(", ") || "none"}`).join("\n")}`,
+    );
     changes = Object.fromEntries(shards[shard.index - 1].map((file) => [file, changed[file]]));
   }
   const mutate = mutateRanges(changes);
