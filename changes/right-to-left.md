@@ -1,1 +1,1 @@
-- Right to left: Dialog's header leaves room for the close button on the side it is on, SegmentedControl's thumb sits under the pressed segment, and vertical Tabs put the indicator at the inline end.
+- Right to left: Dialog's header leaves room for the close button on the side it is on, SegmentedControl's thumb sits under the pressed segment, and vertical Tabs put the indicator at the inline end. Switch's thumb slides toward the inline end, so in a right-to-left page it stays inside the track when on.

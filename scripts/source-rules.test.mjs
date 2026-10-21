@@ -416,6 +416,24 @@ test("physicalUtilities finds a class on a physical side, after its variants, an
   assert.deepEqual(physicalUtilities("x.ts", 'const a = "ml-2 left-1/2";', { "left-1/2": "centred" }), ["1: ml-2"]);
 });
 
+test("physicalUtilities finds a horizontal translate, a transform origin, a background or object position on a side, unless the same classes reverse it for right to left", () => {
+  const source = [
+    'const a = "translate-x-2 -translate-x-full data-open:translate-x-0 origin-left origin-top-right bg-left object-right-bottom bg-right-top";',
+    'const b = "-translate-x-[calc(100%-var(--p))] rtl:translate-x-[calc(100%-var(--p))] origin-left rtl:origin-right object-left ltr:object-left rtl:object-right";',
+    'const c = "translate-y-2 origin-center origin-top bg-center object-cover object-top bg-local translate-x";',
+  ].join("\n");
+  assert.deepEqual(physicalUtilities("x.ts", source, {}), [
+    "1: translate-x-2",
+    "1: -translate-x-full",
+    "1: data-open:translate-x-0",
+    "1: origin-left",
+    "1: origin-top-right",
+    "1: bg-left",
+    "1: object-right-bottom",
+    "1: bg-right-top",
+  ]);
+});
+
 test("no component places, pads, borders or rounds a part by a physical side unless physicalAllowed says why, and every allowance is still used", () => {
   const runtime = tracked("registry/**/*.ts", "registry/**/*.tsx").filter(
     (path) => !/\.(test|test-d|stories)\.tsx?$|\.d\.ts$|\/lib\/ouro\/testing\/|\/e2e\/|\/theme\//.test(path),

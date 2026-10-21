@@ -244,6 +244,24 @@ export function directTabPresses(text) {
 const physicalClass =
   /^-?(?:(?:left|right|ml|mr|pl|pr|scroll-ml|scroll-mr|scroll-pl|scroll-pr)-(?:\d+(?:\.\d+)?|\d+\/\d+|px|full|auto|\[.+\]|\(.+\))|(?:border|rounded)-(?:l|r|tl|tr|bl|br)(?:-.+)?|(?:text|float|clear)-(?:left|right))$/;
 
+/**
+ * Utilities with no logical form, which a right-to-left page must reverse with an `rtl:` (or
+ * `ltr:`) class of the same kind in the same class list: a horizontal translate, a transform
+ * origin, a background position and an object position on a side.
+ */
+const reversible = {
+  "translate-x": /^-?translate-x-.+$/,
+  origin: /^origin-(?:left|right|top-left|top-right|bottom-left|bottom-right)$/,
+  "background position": /^bg-(?:left|right)(?:-(?:top|bottom))?$/,
+  "object position": /^object-(?:left|right)(?:-(?:top|bottom))?$/,
+};
+
+/** The kind of `reversible` utility a class is, or undefined. */
+const reversibleKind = (utility) => Object.keys(reversible).find((kind) => reversible[kind].test(utility));
+
+/** Whether a class token applies only in one direction (`rtl:`, `ltr:`), so it is a reversal itself. */
+const directional = (token) => /(?:^|:)(?:rtl|ltr):/.test(token);
+
 /** A class token's utility, without its variants (split on `:` outside `[...]`) and its `!`. */
 function utilityOf(token) {
   let depth = 0;
@@ -273,6 +291,8 @@ export const physicalAllowed = {
   },
   "registry/ouro/components/ouro/tabs/tabs-styles.ts": {
     "data-[orientation=horizontal]:left-0": "the indicator moves by Base UI's --active-tab-left, the tab's measured distance from the list's left edge",
+    "data-[orientation=horizontal]:origin-left": "the indicator scales from the list's left edge, where Base UI measures --active-tab-left from",
+    "data-[orientation=horizontal]:translate-x-(--active-tab-left)": "Base UI's --active-tab-left is the tab's measured distance from the list's left edge, in either direction",
   },
   "registry/ouro/components/ouro/dialog/dialog-parts.tsx": {
     "pr-[max(1rem,env(safe-area-inset-right,0px))]": "keeps the dialog clear of the screen's right-hand cut-out, which is physical",
@@ -290,7 +310,9 @@ export const physicalAllowed = {
 
 /**
  * The physical-side class tokens in a file's string literals and template text, as "line: token",
- * leaving out the ones `allowed` lists for the file (`physicalAllowed[path]`).
+ * leaving out the ones `allowed` lists for the file (`physicalAllowed[path]`): each `physicalClass`,
+ * and each `reversible` one (a horizontal translate, an origin, a background or object position on
+ * a side) its class list does not reverse with an `rtl:` class of the same kind.
  */
 export function physicalUtilities(path, text, allowed = physicalAllowed[path] ?? {}) {
   const source = parse(path, text);
@@ -298,8 +320,14 @@ export function physicalUtilities(path, text, allowed = physicalAllowed[path] ??
   const visit = (node) => {
     if (ts.isStringLiteralLike(node) || ts.isTemplateHead(node) || ts.isTemplateMiddle(node) || ts.isTemplateTail(node)) {
       const line = source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
-      for (const token of node.text.split(/\s+/)) {
-        if (token && physicalClass.test(utilityOf(token)) && !Object.hasOwn(allowed, token)) found.push(`${line}: ${token}`);
+      const tokens = node.text.split(/\s+/).filter(Boolean);
+      // The kinds this class list reverses for right to left.
+      const reversed = new Set(tokens.filter(directional).map((token) => reversibleKind(utilityOf(token))).filter(Boolean));
+      for (const token of tokens) {
+        if (Object.hasOwn(allowed, token)) continue;
+        const utility = utilityOf(token);
+        const kind = reversibleKind(utility);
+        if (physicalClass.test(utility) || (kind && !directional(token) && !reversed.has(kind))) found.push(`${line}: ${token}`);
       }
     }
     ts.forEachChild(node, visit);
