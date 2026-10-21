@@ -10,8 +10,8 @@ import { latestRelease } from "../../latest-release";
 import { allStageText, bandAt, BELL_TOASTS, describeScene, LOG, OPENING_LOG, STAGE_CONTROLS, STAGE_COPY, TANKS } from "./copy";
 import { art, parseArt } from "./art";
 
-// The porthole stage (site-design.md, slice S1): every control changes the scene (a frame later, as
-// a deferred render, so the tests poll it) and the log, the copy reads at grade 6 or under, the
+// The porthole stage (site-design.md, slice S1): every control changes the scene (a frame later,
+// once the press has painted, so the tests poll it) and the log, the copy reads at grade 6 or under, the
 // theme paints the sea, and the hero's install line and proof
 // line say what they should.
 

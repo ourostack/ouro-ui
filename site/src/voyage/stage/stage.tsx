@@ -1,4 +1,4 @@
-import { memo, startTransition, useCallback, useDeferredValue, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type JSX, type SVGProps } from "react";
+import { memo, startTransition, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type JSX, type SVGProps } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Collapsible } from "@/registry/ouro/components/ouro/collapsible/collapsible";
@@ -54,6 +54,29 @@ function useStable<Args extends unknown[]>(handler: (...args: Args) => void): (.
     latest.current = handler;
   });
   return useCallback((...args: Args) => latest.current(...args), []);
+}
+
+/**
+ * A value that follows `value` once the frame that shows the change has painted. The porthole's
+ * picture is an SVG of engraved drawings, and any change to it (a fish, the sonar, a bubble) lays
+ * out the whole drawing again: tens of milliseconds on a slow CPU. As a deferred render
+ * (`useDeferredValue`) React may commit it before the browser paints the press, whenever the next
+ * frame is further off than React's render, and then that frame lays out the drawing first. Set
+ * from a task after the next frame instead, it always lands a frame after the press.
+ */
+function useAfterPaint<T>(value: T): T {
+  const [shown, setShown] = useState(value);
+  useEffect(() => {
+    let timer = 0;
+    const frame = requestAnimationFrame(() => {
+      timer = window.setTimeout(() => startTransition(() => setShown(value)));
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(timer);
+    };
+  }, [value]);
+  return shown;
 }
 
 type TankId = (typeof TANKS)[number]["id"];
@@ -166,9 +189,9 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
     );
   });
 
-  // The picture follows the controls a frame later: a press repaints its own control first, then
-  // the sea (a deferred render), so no press waits on the porthole's repaint.
-  const scene = useDeferredValue(useMemo(() => ({ depth, band, tanks: full, dived, lights, speed, dives: stream, rings }), [depth, band, full, dived, lights, speed, stream, rings]));
+  // The picture follows the controls once the press has painted (useAfterPaint), so no press waits
+  // on the porthole's repaint.
+  const scene = useAfterPaint(useMemo(() => ({ depth, band, tanks: full, dived, lights, speed, dives: stream, rings }), [depth, band, full, dived, lights, speed, stream, rings]));
 
   return (
     <div ref={root} className="stage" data-stage="" data-offscreen={offscreen ? "" : undefined}>
