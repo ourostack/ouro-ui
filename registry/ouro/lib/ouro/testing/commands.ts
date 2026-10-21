@@ -396,11 +396,12 @@ function frameIdOf(page: Page, frame: Frame): Promise<string | undefined> {
 }
 
 /** A touch command that takes longer than this logs what it waited for (`TouchTrace`). */
-const TOUCH_SLOW_MS = 300;
+const TOUCH_SLOW_MS = 1000;
 
 /**
- * What one touch command waited for, logged when it is slow: its steps with their times, and when
- * each frame's watch answered.
+ * What one touch command waited for, logged when it is slow: its steps with their times, when
+ * each frame's watch answered, and how late Node's event loop ran meanwhile.
+ * @claim "What one touch command waited for" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a touch command that takes longer than a second logs its steps, when each frame's watch answered and how late Node ran) verify:fileLine(registry/ouro/lib/ouro/testing/commands.ts, /const\sTOUCH_SLOW_MS\s=\s1000;/)
  */
 interface TouchTrace {
   start: number;
@@ -451,9 +452,9 @@ type TouchTarget = { point: { x: number; y: number } } | { frame: Frame };
  * @claim "Playwright learns of a new frame" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::a touch into an iframe added just before it is handled)
  * @claim "Starts the watch for `expected` in" registry/ouro/lib/ouro/testing/commands.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.ts, /const\sTOUCH_HANDLED_TIMEOUT_MS\s=\s5000;/)
  * @claim "Playwright learns of a new frame" registry/ouro/lib/ouro/testing/commands.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.ts, /const\sTOUCH_HANDLED_TIMEOUT_MS\s=\s5000;/)
- * @claim "It never waits for the other" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::touches reach a cross-origin iframe, and a cross-origin iframe does not hold up touches elsewhere)
+ * @claim "It never waits for the other" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a cross-origin frame that never answers its watch holds up no touch elsewhere)
  * @claim "It never waits for the other" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::a touch into an iframe that never loads does not hang)
- * @claim "It never waits for the other" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::a cross-origin frame that is busy holds up no touch elsewhere, also while the kit tidies up after it)
+ * @claim "It never waits for the other" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a cross-origin frame that never answers its tidying up holds up no touch elsewhere)
  * @claim "On a frame in another process" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::a touchstart into a busy cross-origin frame is sent only once that frame's watcher is armed for it)
  * @claim "it waits until Playwright lists that" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a touchstart on a frame in another process that Playwright lists late waits for that frame's watcher, then reaches it) verify:testExists(scripts/touch-kit-frames.test.mjs::a frame in another process is found by Chromium's id for it, whatever address Playwright lists it with)
  * @claim "and one sent before the frame" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::a touch into a cross-origin iframe added just before it is handled)

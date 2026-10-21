@@ -210,17 +210,11 @@ test("the kit waits for the frame under a pointer-events: none overlay, where th
   await expect(commands.touchStep({ type: "touchStart", x: 100, y: 350 })).rejects.toThrow(refused(100, 350));
 });
 
+// The kit can never watch this frame, so a kit that waited for it would refuse the touch.
 test("the kit does not wait for a pointer-events: none iframe, which the touch passes through", async () => {
-  // The same tap before the frame exists, on the same runner: a loaded runner slows both.
-  let started = performance.now();
-  expect(await tapAt(window, 100, 350)).toEqual(["touchstart", "touchend"]);
-  const alone = performance.now() - started;
   const frame = await unwatchableFrame(300);
   frame.style.pointerEvents = "none";
-  started = performance.now();
   expect(await tapAt(window, 100, 350)).toEqual(["touchstart", "touchend"]);
-  // Far under the 5 seconds the kit gives a frame it waits for.
-  expect(performance.now() - started - alone).toBeLessThan(500);
 });
 
 test("on a page zoomed and panned by touch, the kit waits for the frame where the touch lands", async () => {
@@ -365,15 +359,14 @@ test.each(["open", "closed"] as const)("touches reach an iframe in a %s shadow r
   expect(await tapAt(window, 100, 50)).toEqual(["touchstart", "touchend"]);
 });
 
-test("touches reach a cross-origin iframe, and a cross-origin iframe does not hold up touches elsewhere", async () => {
+// That a frame like this holds up no touch elsewhere is checked without a browser, where a wall
+// clock times the kit alone (scripts/touch-kit-frames.test.mjs): here, Vitest's Node process runs
+// other test files' work, which can stall it for seconds (a slow touch's log says how late it ran).
+test("touches reach a cross-origin iframe, and the page around it", async () => {
   // A sandboxed frame has an opaque origin, cross-origin to this page, and the touch project runs it
   // in a process of its own (--site-per-process). Its document runs no script. Nothing is fetched
   // from the server either, where an app's Vite would answer another path with its own index.html
   // and its code.
-  // The same tap before the frame exists, on the same runner: a loaded runner slows both.
-  let started = performance.now();
-  expect(await tapAt(window, 100, 50)).toEqual(["touchstart", "touchend"]);
-  const alone = performance.now() - started;
   const frame = document.createElement("iframe");
   frame.setAttribute("sandbox", "allow-scripts");
   Object.assign(frame.style, { position: "absolute", top: "300px", left: "0", width: "300px", height: "100px", border: "0" });
@@ -383,33 +376,10 @@ test("touches reach a cross-origin iframe, and a cross-origin iframe does not ho
   nodes.push(frame);
   await loaded;
   expect(() => frame.contentWindow!.document).toThrow();
-  started = performance.now();
   expect(await tapAt(window, 100, 50)).toEqual(["touchstart", "touchend"]);
-  // Well under the kit's 1-second limit for tidying a frame up.
-  expect(performance.now() - started - alone).toBeLessThan(500);
   // Inside it, no listener of this page can see the touch; the kit's own watcher must.
   await commands.touchStep({ type: "touchStart", x: 100, y: 350 });
   await commands.touchStep({ type: "touchEnd" });
-});
-
-// TEMPORARY (diagnostics run for the slow idle cross-origin tap; removed before review).
-test("TEMP: a tap beside a cross-origin iframe just added, 20 times", { timeout: 60_000 }, async () => {
-  const times: number[] = [];
-  for (let index = 0; index < 20; index++) {
-    const frame = document.createElement("iframe");
-    frame.setAttribute("sandbox", "allow-scripts");
-    Object.assign(frame.style, { position: "absolute", top: "300px", left: "0", width: "300px", height: "100px", border: "0" });
-    frame.srcdoc = "<body style='margin:0'><div style='height:100px'></div></body>";
-    const loaded = new Promise((resolve) => frame.addEventListener("load", resolve, { once: true }));
-    document.body.append(frame);
-    nodes.push(frame);
-    await loaded;
-    const started = performance.now();
-    expect(await tapAt(window, 100, 50)).toEqual(["touchstart", "touchend"]);
-    times.push(Math.round(performance.now() - started));
-    frame.remove();
-  }
-  expect(times.filter((time) => time > 1000)).toEqual([]);
 });
 
 /**
@@ -451,23 +421,14 @@ async function busyFrame(top: number) {
   return { frame, busy, report };
 }
 
-test("a cross-origin frame that is busy holds up no touch elsewhere, also while the kit tidies up after it", async () => {
+// The time a busy frame could add is checked without a browser (scripts/touch-kit-frames.test.mjs).
+test("a touch elsewhere is handled while a cross-origin frame is busy, also while the kit tidies up after it", async () => {
   const { busy } = await busyFrame(300);
-  const touch = async () => {
-    const started = performance.now();
-    await commands.touchStep({ type: "touchStart", x: 100, y: 50 });
-    const took = performance.now() - started;
-    await commands.touchStep({ type: "touchEnd" });
-    return took;
-  };
-  // The same touch with the frame idle, on the same runner: a loaded runner slows both.
-  const idle = await touch();
   // Busy from the moment the touch arrives, after its watch has started there, for longer than the
   // kit's 1-second limit for tidying a frame up.
   addEventListener("touchstart", () => busy(1500), { once: true, capture: true });
-  const held = await touch();
-  // Well under that limit, which a kit that waits for the busy frame spends on it.
-  expect(held - idle).toBeLessThan(500);
+  expect(await tapAt(window, 100, 50)).toEqual(["touchstart", "touchend"]);
+  expect(await tapAt(window, 100, 50)).toEqual(["touchstart", "touchend"]);
 });
 
 test("a touchstart into a busy cross-origin frame is sent only once that frame's watcher is armed for it", async () => {
@@ -526,15 +487,10 @@ test("a touch into an iframe added just before it is handled", async () => {
 test("a touch into a cross-origin iframe added just before it is handled", async () => {
   for (let index = 0; index < 10; index++) {
     const { frame, report } = await busyFrame(300);
-    // TEMPORARY: where a lost touch went.
-    const around: string[] = [];
-    const listen = (event: Event) => around.push((event.target as Element).localName);
-    document.addEventListener("touchstart", listen, true);
     await commands.touchStep({ type: "touchStart", x: 100, y: 350 });
     await commands.touchStep({ type: "touchEnd" });
-    document.removeEventListener("touchstart", listen, true);
     const { armed, sent } = await report();
-    expect({ index, sent: sent.length, around }).toEqual({ index, sent: 1, around: [] });
+    expect(sent).toHaveLength(1);
     expect(armed[0]!).toBeLessThanOrEqual(sent[0]!);
     frame.remove();
   }
