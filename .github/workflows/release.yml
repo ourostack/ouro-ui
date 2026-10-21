@@ -30,6 +30,7 @@ permissions:
   actions: write # run CI on the release branch and the branch that prepares main
   pull-requests: write # open the PR that prepares main for the next release
   issues: write # report a screen-reader lane that failed twice on infrastructure (scripts/sr-infra-issue.sh)
+  statuses: write # report CI's results on the merge queue's commit (see "Prepare main for the next release")
 concurrency:
   group: release
   cancel-in-progress: false
@@ -232,7 +233,8 @@ jobs:
             --body "$TAG is released with these changes in its notes, so their fragments in changes/ are deleted for the next release, and $TAG becomes the newest release: the README, the site, llms.txt and the @ouro namespace move to it when this merges. Merge this before adding the next release's changes."
           # GitHub records a pull_request CI run for a PR a workflow opened with GITHUB_TOKEN,
           # but holds it (`action_required`) with no jobs, and the ruleset's required checks
-          # count only pull_request-event checks, not a dispatched run. Approve the held run
+          # count only pull_request-event checks, not a dispatched run (probe #142: a pull
+          # request stayed blocked with every required check green from a dispatched run). Approve the held run
           # so the required checks report on the PR. GitHub documents the approve endpoint for
           # fork PRs and names only OAuth and classic PAT tokens, so whether GITHUB_TOKEN may
           # call it is untested here; when the approval fails, dispatch CI on the branch (a
@@ -255,16 +257,20 @@ jobs:
             # Pages is deployed (next step) only once CI on main's new tip has passed.
             gh run watch "$run" --exit-status --interval 30 && gh pr merge "$NEXT_BRANCH" --squash || true
             # With the merge queue on main, `gh pr merge` queues the pull request instead. A queue
-            # entry made with this workflow's token starts no merge_group run, so CI runs on the
-            # queue's branch by dispatch: the required checks are matched by name on the commit the
-            # queue builds, whatever started the run (probed in #142). Each build of the entry has
-            # its own branch, gh-readonly-queue/main/pr-<number>-<base>, and a rebuild (an entry
-            # ahead dropped out) a new one, so this runs CI on every one that appears, as long as
-            # the pull request is queued (the queue's 60-minute timeout, and some).
+            # entry made with this workflow's token starts no merge_group run, and the queue counts
+            # no check of a run started any other way: a dispatched run's failing check left an
+            # entry waiting, while a commit status of a required check's name ended it at once
+            # (probe #142). So CI runs on the queue's branch by dispatch, and once it has finished
+            # this reports each of its jobs as a commit status of the same name on the commit the
+            # queue builds. Each build of the entry has its own branch,
+            # gh-readonly-queue/main/pr-<number>-<base>, and a rebuild (an entry ahead dropped out)
+            # a new one, so this does so for every one that appears, as long as the pull request is
+            # queued (the queue's 60-minute timeout, and some).
             number=$(gh pr view "$NEXT_BRANCH" --json number --jq .number)
             queue_state() { gh api graphql -f query="query { repository(owner: \"${GITHUB_REPOSITORY%/*}\", name: \"${GITHUB_REPOSITORY#*/}\") { pullRequest(number: $number) { state isInMergeQueue } } }" --jq '.data.repository.pullRequest | "\(.state) \(.isInMergeQueue)"'; }
             if [ "$(queue_state)" = "OPEN true" ]; then
               dispatched=" "
+              reported=" "
               for _ in $(seq 400); do
                 for ref in $(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/heads/gh-readonly-queue/main/pr-$number-" --jq '.[].ref' || true); do
                   branch=${ref#refs/heads/}
@@ -275,6 +281,21 @@ jobs:
                   else
                     echo "::warning::Could not run CI on $branch yet; trying again."
                   fi
+                done
+                for branch in $dispatched; do
+                  case "$reported" in *" $branch "*) continue ;; esac
+                  ci_status= ci_run= ci_sha=
+                  read -r ci_run ci_status ci_sha <<<"$(gh run list --workflow ci.yml --branch "$branch" --event workflow_dispatch --limit 1 --json databaseId,status,headSha --jq '.[0] | "\(.databaseId) \(.status) \(.headSha)"' || true)" || true
+                  [ "$ci_status" = completed ] || continue
+                  jobs=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$ci_run/jobs?per_page=100" --paginate --jq '.jobs[] | [.name, .conclusion] | @tsv') || continue
+                  posted=true
+                  while IFS=$'\t' read -r job conclusion; do
+                    case "$conclusion" in success|skipped) state=success ;; *) state=failure ;; esac
+                    gh api -X POST "repos/$GITHUB_REPOSITORY/statuses/$ci_sha" -f state="$state" -f context="$job" -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$ci_run" -f description="CI run $ci_run on the merge queue's branch: $conclusion" >/dev/null || posted=false
+                  done <<<"$jobs"
+                  [ "$posted" = true ] || continue
+                  reported="$reported$branch "
+                  echo "Reported CI run $ci_run's jobs on $branch as commit statuses." >> "$GITHUB_STEP_SUMMARY"
                 done
                 [ "$(queue_state)" = "OPEN true" ] || break
                 sleep "${POLL_SECONDS:-15}"

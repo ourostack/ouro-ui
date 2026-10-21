@@ -257,6 +257,12 @@ for (const scenario of ["success", "queued", "queue-rebuilt", "ci-failed", "ci-m
             echo refs/heads/gh-readonly-queue/main/pr-9-abc
             if [ "$SCENARIO" = queue-rebuilt ] && [ "$refs" -ge 2 ]; then echo refs/heads/gh-readonly-queue/main/pr-9-def; fi ;;
           "workflow run ci.yml --ref gh-readonly-queue/main/pr-9-"*) return 0 ;;
+          # The dispatched runs on the queue's branches, finished, and their jobs.
+          "run list --workflow ci.yml --branch gh-readonly-queue/main/pr-9-abc "*) echo "7 completed 1111111111111111111111111111111111111111" ;;
+          "run list --workflow ci.yml --branch gh-readonly-queue/main/pr-9-def "*) echo "8 completed 2222222222222222222222222222222222222222" ;;
+          "api repos/ourostack/ouro-ui/actions/runs/7/jobs"*) printf 'ci\\tsuccess\\ninstall (shadcn, nova)\\tsuccess\\ninstall-latest\\tskipped\\n' ;;
+          "api repos/ourostack/ouro-ui/actions/runs/8/jobs"*) printf 'ci\\tfailure\\n' ;;
+          "api -X POST repos/ourostack/ouro-ui/statuses/"*) return 0 ;;
           "pr view "*"--json state"*) if [ "$SCENARIO" = not-merged ] || [ "$SCENARIO" = queue-dropped ]; then echo OPEN; else echo MERGED; fi ;;
           "pr view "*"--json body"*) echo body ;;
           "pr edit "*|"api -X DELETE "*) return 0 ;;
@@ -282,7 +288,7 @@ for (const scenario of ["success", "queued", "queue-rebuilt", "ci-failed", "ci-m
       ${deploy}
     `], {
       cwd: root, encoding: "utf8",
-      env: { ...process.env, SCENARIO: scenario, NEXT_BRANCH: "prepare/after-v9.9.9", TAG: "v9.9.9", GITHUB_REPOSITORY: "ourostack/ouro-ui", GITHUB_STEP_SUMMARY: summary, GITHUB_OUTPUT: output, QUEUE_LOOKS: looks },
+      env: { ...process.env, SCENARIO: scenario, NEXT_BRANCH: "prepare/after-v9.9.9", TAG: "v9.9.9", GITHUB_REPOSITORY: "ourostack/ouro-ui", GITHUB_SERVER_URL: "https://github.com", GITHUB_STEP_SUMMARY: summary, GITHUB_OUTPUT: output, QUEUE_LOOKS: looks },
     });
     assert.doesNotMatch(result.stderr, /Unexpected gh call:/);
     if (scenario.startsWith("queue")) {
@@ -290,6 +296,17 @@ for (const scenario of ["success", "queued", "queue-rebuilt", "ci-failed", "ci-m
       // Once on each build's branch, however often the branches are looked at.
       const dispatched = result.stderr.match(/^CALL workflow run ci\.yml --ref gh-readonly-queue\/.+$/gm);
       assert.deepEqual(dispatched, ["CALL workflow run ci.yml --ref gh-readonly-queue/main/pr-9-abc", ...(scenario === "queue-rebuilt" ? ["CALL workflow run ci.yml --ref gh-readonly-queue/main/pr-9-def"] : [])]);
+      // The queue counts no check of a dispatched run (probe #142), so each finished run's jobs
+      // are reported once as commit statuses of the same names on the commit the queue builds.
+      const statuses = result.stderr.match(/^CALL api -X POST repos\/ourostack\/ouro-ui\/statuses\/.+$/gm).map((line) => line.replace(/ -f target_url=\S+ -f description=.*$/, ""));
+      const prefix = "CALL api -X POST repos/ourostack/ouro-ui/statuses/";
+      assert.deepEqual(statuses, [
+        `${prefix}1111111111111111111111111111111111111111 -f state=success -f context=ci`,
+        `${prefix}1111111111111111111111111111111111111111 -f state=success -f context=install (shadcn, nova)`,
+        `${prefix}1111111111111111111111111111111111111111 -f state=success -f context=install-latest`,
+        ...(scenario === "queue-rebuilt" ? [`${prefix}2222222222222222222222222222222222222222 -f state=failure -f context=ci`] : []),
+      ]);
+      assert.match(result.stderr, /-f target_url=https:\/\/github\.com\/ourostack\/ouro-ui\/actions\/runs\/7 /);
       assert.match(result.stderr, /CALL api graphql -f query=query \{ repository\(owner: "ourostack", name: "ouro-ui"\) \{ pullRequest\(number: 9\) \{ state isInMergeQueue \} \} \}/);
     } else {
       assert.doesNotMatch(result.stderr, /gh-readonly-queue/);
