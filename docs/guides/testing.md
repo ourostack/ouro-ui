@@ -1,6 +1,6 @@
 # Testing
 
-Ouro UI's tests install beside each component and run in your app, in real browsers, against your theme. They need Vitest 4.1.11 or later in browser mode, Playwright 1.58.1 or later and, for the stories and specs, Storybook 10.2.10 or later; no item sets a version, so your pins stay.[^minimums] This page covers what the test kit needs, what to do on Vitest 4, and how to find Ouro UI's fields in your own tests.[^vitest-4-section]
+Ouro UI's tests install beside each component and run in your app, in real browsers, against your theme.[^tests-in-app] They need Vitest 4.1.11 or later in browser mode, Playwright 1.58.1 or later and, for the stories and specs, Storybook 10.2.10 or later; no item sets a version, so your pins stay.[^minimums] This page covers what the test kit needs, what to do on Vitest 4, and how to find Ouro UI's fields in your own tests.[^vitest-4-section]
 
 ## What the tests need
 
@@ -10,7 +10,7 @@ Ouro UI's tests install beside each component and run in your app, in real brows
 | `playwright`, `@playwright/test` | 1.58.1 or later, with Chromium and WebKit installed (`npx playwright install chromium webkit`)[^minimums] | 1.63.0[^ci-versions] |
 | `storybook`, `@storybook/react-vite` | 10.2.10 or later, only for the stories and the specs in `e2e/ouro`[^minimums] | 10.6.1[^ci-versions] |
 
-The `-tests` items list these as devDependencies without a version. The shadcn CLI installs a package only when your `package.json` has no entry for it, so an add never upgrades or downgrades a tool you already have. v0.7.0's items still carry versions: after `add`, restore every test-tool version you had pinned (`git diff package.json`).[^v0.7.0] Each item's `meta.requires` in the registry holds the same minimums for tools that read it.
+The `-tests` items list these as devDependencies without a version. The shadcn CLI installs a package only when your `package.json` has no entry for it, so an add never upgrades or downgrades a tool you already have.[^test-versions] v0.7.0's items still carry versions: after `add`, restore every test-tool version you had pinned (`git diff package.json`).[^v0.7.0] Each item's `meta.requires` in the registry holds the same minimums for tools that read it.[^test-versions]
 
 The tests do not run in jsdom or happy-dom. They drag, flick and measure, so they need a browser.
 
@@ -49,9 +49,9 @@ coverage: {
 
 - A test fails when it writes anything to the console: a React `act()` warning, a development message from Ouro UI or Base UI, a stray `console.log`. A test that expects a message mocks the method and asserts on the mock: `vi.spyOn(console, "error").mockImplementation(() => {})`. The rule applies to your own tests too if you run them in these projects.
 - In `ouro-touch`, a test that leaves the page zoomed fails.
-- The specs in `e2e/ouro` import `test` and `expect` from `e2e/ouro-fixtures.ts`. That file is yours and no item ships it, so no add overwrites it. Export your own `test` from it to run the specs with your fixtures.
+- The specs in `e2e/ouro` import `test` and `expect` from `e2e/ouro-fixtures.ts`. That file is yours and no item ships it, so no add overwrites it.[^fixtures-yours] Export your own `test` from it to run the specs with your fixtures.
 
-## Vitest 4
+## Vitest 4[^minimums]
 
 The tests are written for Vitest 5 and run on Vitest 4.1.11 or later with two changes.[^ci-versions][^minimums] An app that must stay on Vitest 4, for example for `@cloudflare/vitest-pool-workers`, makes them once.[^minimums]
 
@@ -71,15 +71,15 @@ Ouro UI's repository CI runs Vitest 5.[^ci-versions] The `page` option also has 
 
 ## Finding fields in tests
 
-These lookups are the same in Playwright (`page.getByRole`) and in Vitest browser mode (`page.getByRole` from `vitest/browser`). `test/finding-fields.test.tsx` in Ouro UI's repository asserts each one.
+These lookups are the same in Playwright (`page.getByRole`) and in Vitest browser mode (`page.getByRole` from `vitest/browser`). `test/finding-fields.test.tsx` in Ouro UI's repository asserts each one.[^finding-fields]
 
 | To find | Use | Why |
 | --- | --- | --- |
 | A labelled field | `getByRole("textbox", { name: "Email", exact: true })` | The label names the input. `exact` keeps "Email" from also matching "Work email". |
 | A required field | The same: `getByRole("textbox", { name: "Email", exact: true })`, or `getByLabel("Email", { exact: true })` | The required marker is drawn with CSS beside the label, not in its text. Both lookups use "Email" without `*`. |
-| A password field | `getByRole("textbox", { name: "Password", exact: true })`, or `getByLabel("Password", { exact: true })` | Playwright and Vitest give a password input the `textbox` role. The "Show password" button is named by hidden text, not `aria-label`, so a loose label lookup also finds the input alone. Find the button by its role and name. In Testing Library a password input has no role: use `getByLabelText("Password", { exact: true })`, required or not. |
+| A password field | `getByRole("textbox", { name: "Password", exact: true })`, or `getByLabel("Password", { exact: true })` | Playwright and Vitest give a password input the `textbox` role. The "Show password" button is named by hidden text, not `aria-label`, so a loose label lookup also finds the input alone. Find the button by its role and name. In Testing Library a password input has no role: use `getByLabelText("Password", { exact: true })`, required or not.[^password-role] |
 | A field's error | `getByText("Enter an email address.")`, or assert on the field: `toHaveAccessibleDescription("Enter an email address.")` and `toHaveAttribute("aria-invalid", "true")` | The error is the field's description. It is not an alert, so `getByRole("alert")` does not find it. |
-| The form's message | `getByRole("alert").filter({ hasText: "We could not save your changes." })` | A `Form` renders an alert only while there is a message. An accepted new answer inserts a new alert with its text already present; a form without a message has no alert. Filtering by text checks the actual message rather than another alert on the page. |
+| The form's message | `getByRole("alert").filter({ hasText: "We could not save your changes." })` | A `Form` renders an alert only while there is a message. An accepted new answer inserts a new alert with its text already present; a form without a message has no alert.[^form-alert] Filtering by text checks the actual message rather than another alert on the page. |
 
 Other controls: a `Select` and a `Combobox` are `getByRole("combobox", { name })`; a `Checkbox` is `getByRole("checkbox", { name })`; a `Switch` is `getByRole("switch", { name })`; a `RadioGroup` is `getByRole("radiogroup", { name })` with `getByRole("radio", { name })` inside.
 
@@ -113,7 +113,7 @@ The part, or an element around it inside the part's own component (`[data-ouro]`
 
 ## Proving announcements
 
-`lib/ouro/testing/announcements.ts` records what live regions announce, so a test proves a screen reader hears a message once per change, in the right region. Start `watchAnnouncements()` before the change. It records, once per region for each batch of DOM changes, the text added to or changed inside a live region already on the page (`role="status"`, `role="alert"`, `role="log"` or `aria-live`, portals included), and the text an assertive region (`role="alert"` or `aria-live="assertive"`) is added with. A polite region added with its text records nothing until that text changes, because screen readers generally don't announce a new polite region's first content; render the region empty and fill it, as Ouro's components do. Only exposed text counts: nothing under `aria-hidden="true"` or `aria-live="off"`, nothing outside the region (text added beside it in the same subtree), and nothing from a render that leaves the text as it was.
+`lib/ouro/testing/announcements.ts` records what live regions announce, so a test proves a screen reader hears a message once per change, in the right region. Start `watchAnnouncements()` before the change. It records, once per region for each batch of DOM changes, the text added to or changed inside a live region already on the page (`role="status"`, `role="alert"`, `role="log"` or `aria-live`, portals included), and the text an assertive region (`role="alert"` or `aria-live="assertive"`) is added with.[^announcements-batch] A polite region added with its text records nothing until that text changes, because screen readers generally don't announce a new polite region's first content; render the region empty and fill it, as Ouro's components do. Only exposed text counts: nothing under `aria-hidden="true"` or `aria-live="off"`, nothing outside the region (text added beside it in the same subtree), and nothing from a render that leaves the text as it was.
 
 ```ts
 const announcements = watchAnnouncements();
@@ -141,3 +141,9 @@ announcements.stop();
 [^motion-cancel]: registry/ouro/lib/ouro/testing/motion.ts verify:testExists(test/motion.test.ts::expectMotion > lets a transition end that the browser cancels once it has run 90% of its duration) verify:fileLine(registry/ouro/lib/ouro/testing/motion.ts, /progress < 0\.9/)
 [^motion-records]: scripts/motion-coverage.mts verify:testExists(test/motion.test.ts::motion records > move into the test's meta when it finishes) verify:ciJob(motion-coverage)
 [^announcements]: registry/ouro/lib/ouro/testing/announcements.ts verify:testExists(registry/ouro/lib/ouro/testing/announcements.test.tsx::records the text each live region exposes, polite and assertive, once per change)
+[^tests-in-app]: test:scripts/registry.test.mjs::each component has an opt-in -tests item with its tests, type tests, stories and spec; .github/workflows/ci.yml verify:testExists(scripts/registry.test.mjs::each component has an opt-in -tests item with its tests, type tests, stories and spec) verify:ciJob(ci.yml#install)
+[^test-versions]: test:scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has verify:testExists(scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has)
+[^fixtures-yours]: test:scripts/registry.test.mjs::every registry file ships in exactly one item, except the repository's own theme test verify:testExists(scripts/registry.test.mjs::every registry file ships in exactly one item, except the repository's own theme test)
+[^password-role]: test:test/finding-fields.test.tsx::Finding fields in tests, as the Testing page says > finds a password field by role and name too, required or not, apart from its show button; https://www.w3.org/TR/html-aria/#el-input-password verify:testExists(test/finding-fields.test.tsx::Finding fields in tests, as the Testing page says > finds a password field by role and name too, required or not, apart from its show button) verify:urlOk(https://www.w3.org/TR/html-aria/#el-input-password)
+[^form-alert]: test:test/finding-fields.test.tsx::Finding fields in tests, as the Testing page says > finds the form's message in its alert region only when there is a message verify:testExists(test/finding-fields.test.tsx::Finding fields in tests, as the Testing page says > finds the form's message in its alert region only when there is a message)
+[^announcements-batch]: test:registry/ouro/lib/ouro/testing/announcements.test.tsx::counts a change in an existing status region once, its exposed text only; test:registry/ouro/lib/ouro/testing/announcements.test.tsx::counts an alert added with its text, and leaves out a polite region's initial text; test:registry/ouro/lib/ouro/testing/announcements.test.tsx::records the text each live region exposes, polite and assertive, once per change verify:testExists(registry/ouro/lib/ouro/testing/announcements.test.tsx::counts a change in an existing status region once, its exposed text only) verify:testExists(registry/ouro/lib/ouro/testing/announcements.test.tsx::counts an alert added with its text, and leaves out a polite region's initial text) verify:testExists(registry/ouro/lib/ouro/testing/announcements.test.tsx::records the text each live region exposes, polite and assertive, once per change)

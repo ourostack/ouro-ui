@@ -139,6 +139,14 @@
     "status": 200,
     "checked": "2026-10-21"
   },
+  "https://github.com/vitejs/vite-plugin-react/blob/main/packages/common/warning.ts": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
+  "https://github.com/vitejs/vite/issues/15012": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
   "https://html.spec.whatwg.org/multipage/input.html#checkbox-state-(type=checkbox)": {
     "status": 200,
     "checked": "2026-10-21"
@@ -216,6 +224,10 @@
     "checked": "2026-10-21"
   },
   "https://www.w3.org/TR/css-transitions-1/#starting": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
+  "https://www.w3.org/TR/html-aria/#el-input-password": {
     "status": 200,
     "checked": "2026-10-21"
   }

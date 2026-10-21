@@ -103,9 +103,10 @@ function sourceBody(text: string): ReactNode[] {
   return out;
 }
 
-/** A heading's anchor: `Use instead when` becomes `use-instead-when`. */
+/** A heading's anchor: `Use instead when` becomes `use-instead-when`, and a footnote mark (`[^id]`) is left out. */
 export function slug(text: string): string {
   return text
+    .replace(/\[\^[^\]]+\]/g, "")
     .toLowerCase()
     .replace(/`/g, "")
     .replace(/[^a-z0-9]+/g, "-")

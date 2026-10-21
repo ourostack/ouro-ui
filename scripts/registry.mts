@@ -155,7 +155,7 @@ function testingDocs(): string {
       'Ouro UI\'s CI runs the Vitest, Playwright and Storybook of its own package.json; on Vitest 4, read "Vitest 4" in',
       {
         source: [{ file: "package.json" }, { file: "docs/guides/testing.md" }],
-        verify: [{ ciJob: "ci", workflow: "ci.yml" }, { fileLine: "docs/guides/testing.md", pattern: "^## Vitest 4$" }],
+        verify: [{ ciJob: "ci", workflow: "ci.yml" }, { fileLine: "docs/guides/testing.md", pattern: "^## Vitest 4\\[\\^minimums\\]$" }],
       },
     )} ${TESTING_URL} first. ${claim(
       "No item sets a version: the CLI installs a package only when your app lacks it.",
