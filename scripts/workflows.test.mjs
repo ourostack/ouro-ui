@@ -20,7 +20,7 @@ const workflows = readdirSync(dir)
 const actionsDir = join(root, ".github/actions");
 const actions = readdirSync(actionsDir).map((name) => ({ file: `actions/${name}/action.yml`, text: readFileSync(join(actionsDir, name, "action.yml"), "utf8") }));
 
-test("every action is pinned to a full commit SHA, with its version in a comment, or is one of the repository's own", () => {
+test("every action is pinned to a full commit SHA, with its version in a comment", () => {
   assert.ok(workflows.length >= 4);
   const ownActions = new Set(actions.map(({ file }) => `./.github/${file.replace(/\/action\.yml$/, "")}`));
   const unpinned = [...workflows, ...actions].flatMap(({ file, text }) =>
