@@ -18,11 +18,17 @@ function follows(marker: Element, candidate: Element): boolean {
   return (marker.compareDocumentPosition(candidate) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0 && !marker.contains(candidate);
 }
 
-/** Where a handoff may look: no higher than `within`, and, when nothing there can take focus, `fallback`. */
+/**
+ * Where a handoff may look: no higher than `within`, and, when nothing there can take focus, `fallback`.
+ *
+ * @claim "Where a handoff may look" registry/ouro/lib/ouro/focus-handoff.test.tsx verify:testExists(registry/ouro/lib/ouro/focus-handoff.test.tsx::handOffFocus > climbs no higher than `within`, then focuses `fallback`, or leaves focus on the page)
+ */
 export interface FocusHandoffOptions {
   /**
    * The highest element the search climbs to (a toast region): focus never leaves it for a
    * control elsewhere in the page.
+   *
+   * @claim "The highest element the search climbs to" registry/ouro/lib/ouro/focus-handoff.test.tsx verify:testExists(registry/ouro/lib/ouro/focus-handoff.test.tsx::handOffFocus > climbs no higher than `within`, then focuses `fallback`, or leaves focus on the page)
    */
   within?: Element | null;
   /** Where focus goes when nothing within can take it (where it came from), if still in the page and reachable. */
@@ -40,6 +46,9 @@ export interface FocusHandoffOptions {
  * decides where focus lands.
  *
  * Internal: Ouro UI components use it; apps don't need to.
+ *
+ * @claim "it moves to what now stands where the element stood" registry/ouro/lib/ouro/focus-handoff.test.tsx verify:testExists(registry/ouro/lib/ouro/focus-handoff.test.tsx::handOffFocus > moves focus to the next control where the element stood) verify:testExists(registry/ouro/lib/ouro/focus-handoff.test.tsx::handOffFocus > moves focus to the last control before it when nothing follows) verify:testExists(registry/ouro/lib/ouro/focus-handoff.test.tsx::handOffFocus > looks one level up when the parent holds no other control, after the part that held the element)
+ * @claim "it moves to what now stands where the element stood" registry/ouro/lib/ouro/focus-handoff.test.tsx verify:testExists(registry/ouro/lib/ouro/focus-handoff.test.tsx::handOffFocus > climbs no higher than `within`, then focuses `fallback`, or leaves focus on the page)
  */
 export function handOffFocus(root: Element, { within, fallback }: FocusHandoffOptions = {}): void {
   const document = root.ownerDocument;

@@ -37,6 +37,7 @@ const slotsClass = "m-0 box-border flex max-w-full items-center gap-2";
  * @internal
  * @claim "One slot: a square with Field's" registry/ouro/components/ouro/otp-field/otp-field.test.tsx verify:testExists(registry/ouro/components/ouro/otp-field/otp-field.test.tsx::OtpField looks > has 44px slots with 16px text on phones and steps down with a fine pointer from sm)
  * @claim "One slot: a square with Field's" registry/ouro/components/ouro/otp-field/otp-field.touch.test.tsx verify:testExists(registry/ouro/components/ouro/otp-field/otp-field.touch.test.tsx::keeps 44px slots and 16px text on a landscape phone, past the sm breakpoint)
+ * @claim "too many slots for the column narrow" registry/ouro/components/ouro/otp-field/otp-field.test.tsx verify:testExists(registry/ouro/components/ouro/otp-field/otp-field.test.tsx::OtpField looks > narrows its slots to fit a column too narrow for them, rather than spilling out of it)
  */
 const slotClass =
   "m-0 box-border block h-(--ouro-otp-slot) w-[min(var(--ouro-otp-slot),100%)] min-w-0 shrink p-0 text-center tabular-nums " +

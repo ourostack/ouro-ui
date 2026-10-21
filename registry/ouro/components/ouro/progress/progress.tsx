@@ -85,7 +85,7 @@ const indicatorClass =
   "data-indeterminate:w-1/3! data-indeterminate:translate-x-0 rtl:data-indeterminate:translate-x-0 data-indeterminate:animate-[ouro-progress_1.4s_ease-in-out_infinite] " +
   "motion-reduce:data-indeterminate:w-full! motion-reduce:data-indeterminate:animate-[ouro-pulse_1.6s_ease-in-out_infinite]";
 
-/** No store to subscribe to: `useSyncExternalStore` only tells the server and hydration apart from the browser. */
+/** An empty subscription: here `useSyncExternalStore` only tells the server and hydration apart from the browser. */
 // Stryker disable next-line ArrowFunction: React takes an unsubscribe of undefined as none, and this store never changes.
 const noSubscription = () => () => {};
 

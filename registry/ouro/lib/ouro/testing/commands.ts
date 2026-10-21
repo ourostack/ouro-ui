@@ -30,6 +30,8 @@ export interface DragOptions {
  * A forced-colours switch restyles the page at once, and a colour with a transition (the `press`
  * utility's) then eases to its new value, so this returns once those transitions have finished:
  * a test reads where each colour lands, not a colour between the two.
+ *
+ * @claim "this returns once those transitions have finished" registry/ouro/lib/ouro/testing/commands.test.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.test.ts, /emulateMedia returns once forced colours have settled, past any transition the switch started/)
  */
 export const emulateMedia: BrowserCommand<[EmulateMediaOptions]> = async (ctx, options) => {
   await ctx.page.emulateMedia(options);

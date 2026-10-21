@@ -279,7 +279,11 @@ function ToastList({ closeLabel }: { closeLabel: string }): JSX.Element[] {
 
 type ToastObject = ReturnType<typeof Toast.useToastManager>["toasts"][number];
 
-/** Where focus was before it entered each toast region, so a toast that leaves with it can send it back there. */
+/**
+ * Where focus was before it entered each toast region, so a toast that leaves with it can send it back there.
+ *
+ * @claim "Where focus was before it entered" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > hands focus to %s when its dismiss button closes it from the keyboard)
+ */
 const cameFrom = new WeakMap<Element, HTMLElement>();
 
 function rememberEntry(event: FocusEvent<HTMLElement>): void {
@@ -293,6 +297,8 @@ function rememberEntry(event: FocusEvent<HTMLElement>): void {
  * A toast hands focus to the next toast, and never past its region to some other control of the
  * page (a footer link): when it was the last, focus goes back where it was before it entered the
  * toasts, or stays on the page when it came from nowhere.
+ *
+ * @claim "A toast hands focus to the next toast" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > hands focus to %s when its dismiss button closes it from the keyboard) verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > leaves focus on the page when the last toast goes and focus came from nowhere, rather than moving it to the page's last control)
  */
 function toastHandoff(element: HTMLDivElement): FocusHandoffOptions {
   const region = element.closest('[data-ouro="toaster"]')!;

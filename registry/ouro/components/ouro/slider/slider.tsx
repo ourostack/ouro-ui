@@ -160,7 +160,7 @@ function rangeOwner(labelId: string) {
   };
 }
 
-/** No store to subscribe to: `useSyncExternalStore` only tells the server and hydration apart from the browser. */
+/** An empty subscription: here `useSyncExternalStore` only tells the server and hydration apart from the browser. */
 // Stryker disable next-line ArrowFunction: React takes an unsubscribe of undefined as none, and this store never changes.
 const noSubscription = () => () => {};
 
@@ -168,6 +168,8 @@ const noSubscription = () => () => {};
  * The locale the value reads in on the server and during hydration when no `locale` is given: the
  * reader's is unknown there, so both use this one, and the reader's browser switches to its own
  * once it has hydrated the server's HTML.
+ *
+ * @claim "The locale the value reads in" registry/ouro/components/ouro/slider/slider.test.tsx verify:testExists(registry/ouro/components/ouro/slider/slider.test.tsx::Slider across locales > renders the same value text on a server in any locale, and shows the reader's once hydrated)
  */
 const SERVER_LOCALE = "en-US";
 
