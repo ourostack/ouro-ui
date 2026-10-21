@@ -6,7 +6,9 @@ import { createVitest } from "vitest/node";
 // does not support browser mode, and every test here runs in a browser, so:
 //
 // - `vitest-browser`, a test runner: one Vitest instance in this process (the `ouro-chromium`
-//   project, over the test files scripts/mutation.mjs names), rerun once per mutant. Stryker
+//   project, over the test files scripts/mutation.mjs names), rerun once per mutant, stopping at
+//   its first failing test (`bail`): the changed file's own tests first, then, only for a mutant
+//   they let survive, the tests of what imports it. Stryker
 //   writes every mutant into the source at once (mutant schemata), each behind a check of
 //   `globalThis.__stryker__.activeMutant`; scripts/mutation/setup.ts sets that in the browser from
 //   the `ouroMutant` command (vitest.config.ts), which reads `globalThis.__ouroMutant` here.
@@ -15,8 +17,12 @@ import { createVitest } from "vitest/node";
 //   out; so is the `process.env.NODE_ENV` check that strips development messages, which no test
 //   (they all run in development) can tell apart from its mutant.
 
-/** The test files to run, from scripts/mutation.mjs. */
-const testFiles = () => JSON.parse(process.env["OURO_MUTATION_TESTS"] ?? "[]");
+/**
+ * The test files to run, from scripts/mutation.mjs: `own`, the changed file's own tests, which
+ * run first and kill most mutants at once, and `wider`, the tests of what imports it, which run
+ * only for a mutant the own tests let survive.
+ */
+const testFiles = () => JSON.parse(process.env["OURO_MUTATION_TESTS"] ?? '{"own":[],"wider":[]}');
 
 /** Every test a run reported, as Stryker's results. */
 export function results(modules) {
@@ -49,18 +55,20 @@ class VitestBrowserRunner {
 
   async init() {
     process.env["OURO_MUTATION"] = "1";
-    this.vitest = await createVitest("test", { watch: false, project: ["ouro-chromium"], coverage: { enabled: false }, reporters: [] });
-    this.specifications = await this.vitest.globTestSpecifications(testFiles());
-    if (this.specifications.length === 0) throw new Error(`no test file matches ${testFiles().join(", ")}`);
+    this.vitest = await createVitest("test", { watch: false, project: ["ouro-chromium"], coverage: { enabled: false }, reporters: [], bail: 1 });
+    const { own, wider } = testFiles();
+    this.own = own.length > 0 ? await this.vitest.globTestSpecifications(own) : [];
+    this.wider = wider.length > 0 ? await this.vitest.globTestSpecifications(wider) : [];
+    if (this.own.length + this.wider.length === 0) throw new Error(`no test file matches ${[...own, ...wider].join(", ")}`);
   }
 
-  async run(timeout) {
+  async run(timeout, specifications) {
     let timer;
     const timedOut = new Promise((resolve) => {
       timer = setTimeout(() => resolve("timeout"), timeout);
     });
     try {
-      const outcome = await Promise.race([this.vitest.runTestSpecifications(this.specifications, false), timedOut]);
+      const outcome = await Promise.race([this.vitest.runTestSpecifications(specifications, false), timedOut]);
       if (outcome === "timeout") return { timeout: true };
       return { tests: results(outcome.testModules), errors: outcome.unhandledErrors };
     } finally {
@@ -70,7 +78,7 @@ class VitestBrowserRunner {
 
   async dryRun({ timeout }) {
     globalThis.__ouroMutant = undefined;
-    const run = await this.run(timeout);
+    const run = await this.run(timeout, [...this.own, ...this.wider]);
     if (run.timeout) return { status: DryRunStatus.Timeout };
     const failed = run.tests.filter((test) => test.status === TestStatus.Failed);
     if (failed.length > 0 || run.errors.length > 0) {
@@ -82,13 +90,18 @@ class VitestBrowserRunner {
   async mutantRun({ activeMutant, timeout }) {
     globalThis.__ouroMutant = activeMutant.id;
     try {
-      const run = await this.run(timeout);
-      if (run.timeout) return { status: MutantRunStatus.Timeout };
-      const failed = run.tests.filter((test) => test.status === TestStatus.Failed);
-      if (failed.length > 0 || run.errors.length > 0) {
-        return { status: MutantRunStatus.Killed, killedBy: failed.map((test) => test.id), failureMessage: failed[0]?.failureMessage ?? String(run.errors[0]), nrOfTests: run.tests.length };
+      let ran = 0;
+      for (const specifications of [this.own, this.wider]) {
+        if (specifications.length === 0) continue;
+        const run = await this.run(timeout, specifications);
+        if (run.timeout) return { status: MutantRunStatus.Timeout };
+        ran += run.tests.length;
+        const failed = run.tests.filter((test) => test.status === TestStatus.Failed);
+        if (failed.length > 0 || run.errors.length > 0) {
+          return { status: MutantRunStatus.Killed, killedBy: failed.map((test) => test.id), failureMessage: failed[0]?.failureMessage ?? String(run.errors[0]), nrOfTests: ran };
+        }
       }
-      return { status: MutantRunStatus.Survived, nrOfTests: run.tests.length };
+      return { status: MutantRunStatus.Survived, nrOfTests: ran };
     } finally {
       globalThis.__ouroMutant = undefined;
     }

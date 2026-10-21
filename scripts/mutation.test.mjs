@@ -56,15 +56,15 @@ test("mutateRanges names each changed range of runtime source as Stryker's path:
   );
 });
 
-test("testFilesFor runs a component file's folder's tests, and a lib file's own tests and its importers'", () => {
+test("testFilesFor runs a component file's folder's tests, and a lib file's own tests, then its importers'", () => {
   const button = testFilesFor(["registry/ouro/components/ouro/button/button.tsx"]);
-  assert.ok(button.includes("registry/ouro/components/ouro/button/button.test.tsx"));
-  assert.ok(button.includes("registry/ouro/components/ouro/button/button.touch.test.tsx"));
-  assert.ok(button.every((file) => file.startsWith("registry/ouro/components/ouro/button/")));
+  assert.ok(button.own.includes("registry/ouro/components/ouro/button/button.test.tsx"));
+  assert.ok(button.own.every((file) => file.startsWith("registry/ouro/components/ouro/button/")));
+  assert.deepEqual(button.wider, []);
   const handoff = testFilesFor(["registry/ouro/lib/ouro/focus-handoff.ts"]);
-  assert.ok(handoff.includes("registry/ouro/lib/ouro/focus-handoff.test.tsx"));
-  for (const folder of ["alert", "message", "toast"]) assert.ok(handoff.some((file) => file.startsWith(`registry/ouro/components/ouro/${folder}/`)), folder);
-  assert.ok(!handoff.some((file) => file.startsWith("registry/ouro/components/ouro/button/")));
+  assert.deepEqual(handoff.own, ["registry/ouro/lib/ouro/focus-handoff.test.tsx"]);
+  for (const folder of ["alert", "message", "toast"]) assert.ok(handoff.wider.some((file) => file.startsWith(`registry/ouro/components/ouro/${folder}/`)), folder);
+  assert.ok(!handoff.wider.some((file) => file.startsWith("registry/ouro/components/ouro/button/")));
 });
 
 test("survivors are the mutants that survived or that no test reached, described by place, mutator and replacement", () => {

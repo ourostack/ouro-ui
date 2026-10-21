@@ -254,6 +254,44 @@ jobs:
           name: conformance-${{ matrix.shard }}
           path: .vitest/attachments/
           if-no-files-found: ignore
+  mutation:
+    # Mutation testing of the lines a pull request added or changed in the runtime source
+    # (scripts/mutation.mjs, docs/guides/conformance.md): every mutant Stryker makes of them must
+    # fail a test. Pull requests only; on any other run, and on a pull request that changes no
+    # runtime source, it reports that there is nothing to mutate.
+    runs-on: ubuntu-latest
+    env:
+      EVENT: ${{ github.event_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # A pull request's merge commit and its first parent, the base it merges into.
+          fetch-depth: 2
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - id: changed
+        name: Is any runtime source changed?
+        run: |
+          if [ "$EVENT" = pull_request ] && git diff --quiet HEAD^1 HEAD -- registry/ouro/components/ registry/ouro/lib/ouro/; then
+            echo "Nothing to mutate: this pull request changes no runtime source."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          elif [ "$EVENT" = pull_request ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Nothing to mutate: only a pull request's changed lines are mutated."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.changed.outputs.run == 'true'
+        run: pnpm i --frozen-lockfile
+      - if: steps.changed.outputs.run == 'true'
+        run: pnpm exec playwright install --with-deps chromium
+      - if: steps.changed.outputs.run == 'true'
+        name: Mutation testing
+        run: pnpm mutation HEAD^1
   visual:
     # Compares screenshots with the committed baselines, on the image that produced them
     # (visual-baselines.yml). Kept apart from `ci` so that job can follow ubuntu-latest.

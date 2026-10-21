@@ -33,7 +33,7 @@ afterEach(async () => {
 
 describe("handOffFocus", () => {
   it("moves focus to the next control where the element stood", async () => {
-    const host = page('<ul><li><button>a</button></li><li id="b"><button>b</button></li><li><button>c</button></li></ul>');
+    const host = page('<ul><li><button>a</button></li><li id="b"><button>b</button></li><li><button>c</button></li><li><button>d</button></li></ul>');
     await remove(host.querySelector("#b")!, button(host, "b"));
     expect(document.activeElement).toBe(button(host, "c"));
   });

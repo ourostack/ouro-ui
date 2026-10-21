@@ -456,6 +456,17 @@ test("the conformance shards pass as not affected when a pull request changes no
   assert.match(block, new RegExp(`^ {4}name: conformance \\(\\$\\{\\{ matrix\\.shard \\}\\}/${shards.length}\\)$`, "m"));
 });
 
+test("the mutation job mutates a pull request's changed runtime lines, and reports nothing to mutate otherwise", () => {
+  const block = ciJobs().mutation;
+  const changed = stepScript(block, "Is any runtime source changed?");
+  assert.equal(runStep(changed, { EVENT: "push" }).output.run, "false");
+  assert.equal(runStep(changed, { EVENT: "merge_group" }).output.run, "false");
+  const later = block.slice(block.indexOf("name: Is any runtime source changed?")).split(/\n {6}- /).slice(1);
+  for (const step of later) assert.match(step, /^if: steps\.changed\.outputs\.run == 'true'$/m, step);
+  assert.match(block, /^ {8}run: pnpm mutation HEAD\^1$/m);
+  assert.match(block, /- uses: actions\/checkout@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}persist-credentials: false\n(?: {10}#.*\n)* {10}fetch-depth: 2\n/);
+});
+
 test("the e2e job runs every spec, or the selected components' and the site's", () => {
   const script = stepScript(ciJobs().e2e, "End-to-end specs");
   assert.match(runStep(script, { FULL: "true" }).calls, /^CALL pnpm test:e2e$/m);

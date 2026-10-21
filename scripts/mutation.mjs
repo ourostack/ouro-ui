@@ -77,21 +77,23 @@ function importersOf(libFile, rootDir = root) {
 }
 
 /**
- * The test files that can kill a mutant in these runtime files: each component file's folder's
- * tests, and for a lib/ file, its own tests and those of the folders whose code imports it.
+ * The test files that can kill a mutant in these runtime files: `own`, each component file's
+ * folder's tests and each lib/ file's own tests, and `wider`, the tests of the folders whose code
+ * imports a changed lib/ file (a helper some branch of which only a component's tests reach).
  */
 export function testFilesFor(paths, rootDir = root) {
-  const files = new Set();
+  const own = new Set();
+  const wider = new Set();
   for (const path of paths) {
     if (path.startsWith(componentsDir)) {
-      for (const file of testsIn(`${componentsDir}${path.slice(componentsDir.length).split("/")[0]}/`)) files.add(file);
+      for (const file of testsIn(`${componentsDir}${path.slice(componentsDir.length).split("/")[0]}/`)) own.add(file);
     } else {
       const stem = path.replace(/\.tsx?$/, "");
-      for (const extension of [".test.ts", ".test.tsx", ".touch.test.ts", ".touch.test.tsx"]) if (existsSync(join(rootDir, `${stem}${extension}`))) files.add(`${stem}${extension}`);
-      for (const folder of importersOf(path, rootDir)) for (const file of testsIn(`${componentsDir}${folder}/`)) files.add(file);
+      for (const extension of [".test.ts", ".test.tsx"]) if (existsSync(join(rootDir, `${stem}${extension}`))) own.add(`${stem}${extension}`);
+      for (const folder of importersOf(path, rootDir)) for (const file of testsIn(`${componentsDir}${folder}/`)) wider.add(file);
     }
   }
-  return [...files].sort();
+  return { own: [...own].sort(), wider: [...wider].filter((file) => !own.has(file)).sort() };
 }
 
 /** The mutants that no test failed on: survived, or reached by no test. */
@@ -118,7 +120,7 @@ async function main(args) {
     return 0;
   }
   const tests = testFilesFor(Object.keys(changes).filter(runtimeSource));
-  console.log(`Mutating ${mutate.length} changed range(s), against ${tests.length} test file(s):\n${mutate.map((range) => `- ${range}`).join("\n")}`);
+  console.log(`Mutating ${mutate.length} changed range(s), against ${tests.own.length} test file(s), then ${tests.wider.length} more for a mutant they miss:\n${mutate.map((range) => `- ${range}`).join("\n")}`);
   process.env["OURO_MUTATION_TESTS"] = JSON.stringify(tests);
   const { Stryker } = await import("@stryker-mutator/core");
   const results = await new Stryker({
@@ -128,6 +130,9 @@ async function main(args) {
     ignorers: ["ouro-classes"],
     coverageAnalysis: "off",
     inPlace: true,
+    // Stryker touches only the files it mutates: no `// @ts-nocheck` written into the rest.
+    ignorePatterns: ["**", ...Object.keys(changes).filter(runtimeSource).map((path) => `!${path}`)],
+    disableTypeChecks: false,
     concurrency: 1,
     reporters: ["clear-text", "progress"],
     clearTextReporter: { reportTests: false, reportMutants: false, reportScoreTable: true },

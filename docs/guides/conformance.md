@@ -43,3 +43,16 @@ A check never guesses. When a story does something on purpose that a check would
 - `clientOnly: "<why>"`: the story cannot render on a server, so its hydration is not checked; once it does render on a server, the check fails until the declaration goes.
 
 A physical side that must follow the screen, not the text (a part centred with `left-1/2 -translate-x-1/2`, a safe-area inset, a sheet whose `side` prop is physical), goes in `physicalAllowed` in `scripts/source-rules.mjs` with its reason; an allowance the source no longer uses fails.
+
+## Tests that cannot fail: mutation testing
+
+A test that passes whatever the code does proves nothing. `pnpm mutation` (`scripts/mutation.mjs`) runs [Stryker](https://stryker-mutator.io/) on the lines a change added or altered in the runtime source (`registry/ouro/components/` and `registry/ouro/lib/ouro/`, not tests, stories or the test kit): it changes each of those lines in every way it knows (a condition flipped, a branch emptied, a `+` made a `-`), one change (a mutant) at a time, and runs the tests. A mutant that no test fails on survived, and the run fails, naming it:
+
+```sh
+pnpm mutation                                                     # the working tree against origin/main
+pnpm mutation origin/main --only registry/ouro/lib/ouro/cn.ts     # one file's changed lines
+```
+
+Each survivor is reported as `<file>:<line>:<column> <Mutator>: <replacement>`. Fix a survivor with a test that fails on that change. When the change cannot alter behaviour (an equivalent mutant), say why on the line before it, `// Stryker disable next-line <Mutator>: <why>`, so the reason is in the source for the next reader. Two kinds of mutant are left out on purpose: Tailwind class strings, which change how a part looks and which the screenshot tests hold, and the `process.env.NODE_ENV` check that strips development messages, which every test (they all run in development) sees the same way.
+
+The tests run in Chromium through `scripts/mutation/plugins.mjs`, a Stryker test runner over one Vitest instance (Stryker's own Vitest runner has no browser mode). Each mutant runs the changed file's own tests first (its component folder's, or a `lib/` file's own test file), stopping at the first failure, and only a mutant those let survive runs the tests of the components that import a changed `lib/` file. CI's `mutation` job runs it on every pull request, over the pull request's changes.
