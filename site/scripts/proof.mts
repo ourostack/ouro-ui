@@ -28,6 +28,8 @@ const read = (path: string) => readFileSync(join(repo, path), "utf8");
 export interface Claim {
   text: string;
   href: string;
+  /** Where the link goes, said before you follow it (on hover and focus, and to screen readers). */
+  where: string;
 }
 
 export interface Proof {
@@ -52,6 +54,16 @@ export const EVIDENCE = {
   themes: `${REPO}/blob/main/site/e2e/voyage.spec.ts`,
   coverage: `${REPO}/blob/main/vitest.config.ts`,
   stage: `${REPO}/tree/main/site/src/voyage/stage`,
+};
+
+/** What a reader finds at each claim's evidence, so they know before they follow the link. */
+export const WHERE: Record<keyof typeof EVIDENCE, string> = {
+  components: "Opens the component docs",
+  typescript: "Opens the source on GitHub",
+  engines: "Opens our test runs on GitHub",
+  themes: "Opens the test that checks the themes",
+  coverage: "Opens the coverage settings on GitHub",
+  stage: "Opens this stage's source on GitHub",
 };
 
 /** The 1-based line where a pattern first matches, for a link that lands on it. */
@@ -85,12 +97,12 @@ export function deriveProof(files: { registry: string; testProjects: string; vit
   const coverageLine = lineOf(files.vitestConfig, /thresholds: \{ lines:/);
   const tested = [...engines.map((engine) => ENGINE_NAMES[engine] ?? engine), ...(touch ? ["touch"] : [])].join(" + ");
   const claims: Claim[] = [
-    { text: `${components} React components`, href: EVIDENCE.components },
-    ...(typescript ? [{ text: "TypeScript", href: EVIDENCE.typescript }] : []),
-    { text: `${tested} tested`, href: EVIDENCE.engines },
-    ...(themes ? [{ text: `axe-clean in ${themes} themes`, href: `${EVIDENCE.themes}#L${themesLine}` }] : []),
-    { text: coverage === 100 ? "every line covered" : `${coverage}% of lines covered`, href: `${EVIDENCE.coverage}#L${coverageLine}` },
-    ...(stage ? [{ text: "This stage is built with HX", href: EVIDENCE.stage }] : []),
+    { text: `${components} React components`, href: EVIDENCE.components, where: WHERE.components },
+    ...(typescript ? [{ text: "TypeScript", href: EVIDENCE.typescript, where: WHERE.typescript }] : []),
+    { text: `${tested} tested`, href: EVIDENCE.engines, where: WHERE.engines },
+    ...(themes ? [{ text: `axe-clean in ${themes} themes`, href: `${EVIDENCE.themes}#L${themesLine}`, where: WHERE.themes }] : []),
+    { text: coverage === 100 ? "every line covered" : `${coverage}% of lines covered`, href: `${EVIDENCE.coverage}#L${coverageLine}`, where: WHERE.coverage },
+    ...(stage ? [{ text: "This stage is built with HX", href: EVIDENCE.stage, where: WHERE.stage }] : []),
   ];
   return { components, typescript, engines, touch, coverage, themes, stage, claims, line: claims.map((claim) => claim.text).join(" · ") };
 }

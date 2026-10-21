@@ -66,7 +66,8 @@ function CommandText(): JSX.Element {
 
 /**
  * The install command, whole at every width: on one line where it fits, on two (the run, then the
- * address) where it doesn't, never cut off or scrolled. Copy sits beside it.
+ * address) where it doesn't, never cut off or scrolled. The release it pins and Copy sit in the bar
+ * beside it.
  */
 function Install(): JSX.Element {
   return (
@@ -78,6 +79,10 @@ function Install(): JSX.Element {
         <code className="site-mono site-install-command" data-site-install="">
           <CommandText />
         </code>
+        <Badge href={RELEASE_HREF} tone="primary" variant="soft" className="site-install-release" data-site-release="">
+          {latestRelease}
+          <span className="site-install-release-word"> · latest release</span>
+        </Badge>
         <Button
           variant="soft"
           tone="secondary"
@@ -99,9 +104,6 @@ function Install(): JSX.Element {
         <p className="site-install-caption" data-site-install-caption="">
           {INSTALL_HOW} <span className="site-install-count">{INSTALL_COUNT}</span>
         </p>
-        <Badge href={RELEASE_HREF} tone="primary" variant="soft" data-site-release="">
-          {`${latestRelease} · latest release`}
-        </Badge>
       </div>
     </div>
   );
@@ -115,16 +117,19 @@ function CheckIcon(): JSX.Element {
   );
 }
 
-/** The proof: each claim, computed from the repository, links to where you can check it. */
+/** The proof: each claim, computed from the repository, links to where you can check it, and says where that is on hover and focus. */
 function Proof(): JSX.Element {
   return (
     <ul className="site-proof" aria-label="What we test" data-site-proof="">
-      {proof.claims.map((claim) => (
+      {proof.claims.map((claim, index) => (
         <li key={claim.text}>
           <CheckIcon />
-          <Link href={claim.href} tone="secondary" inline>
+          <Link href={claim.href} tone="secondary" inline aria-describedby={`site-proof-where-${index}`}>
             {claim.text}
           </Link>
+          <span className="site-proof-where" id={`site-proof-where-${index}`}>
+            {claim.where}
+          </span>
         </li>
       ))}
     </ul>

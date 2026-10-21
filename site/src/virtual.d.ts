@@ -7,7 +7,7 @@ declare module "virtual:site-proof" {
     touch: boolean;
     coverage: number;
     themes: number;
-    claims: Array<{ text: string; href: string }>;
+    claims: Array<{ text: string; href: string; where: string }>;
     line: string;
   };
   export default proof;

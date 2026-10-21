@@ -90,6 +90,18 @@ describe("the hero", () => {
     for (const claim of proof.claims) await expect.element(page.getByRole("link", { name: claim.text, exact: true })).toHaveAttribute("href", claim.href);
   });
 
+  it("says where each proof link goes, on hover and focus and to screen readers", async () => {
+    await renderPage("/voyage/");
+    const claim = proof.claims[0]!;
+    const link = page.getByRole("link", { name: claim.text, exact: true });
+    await expect.element(link).toHaveAccessibleDescription(claim.where);
+    const where = document.getElementById(link.element().getAttribute("aria-describedby")!)!;
+    expect(getComputedStyle(where).visibility).toBe("hidden");
+    (link.element() as HTMLElement).focus();
+    await expect.poll(() => getComputedStyle(where).visibility).toBe("visible");
+    for (const each of proof.claims) await expect.element(page.getByRole("link", { name: each.text, exact: true })).toHaveAccessibleDescription(each.where);
+  });
+
   it("shows the whole install command, for one component in the latest release, pinned to it", async () => {
     const writes: string[] = [];
     const spy = vi.spyOn(navigator.clipboard, "writeText").mockImplementation(async (text) => void writes.push(text));

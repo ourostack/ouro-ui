@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { test } from "node:test";
 import { URL } from "node:url";
 import { execFileSync } from "node:child_process";
-import { currentInstall, currentProof, deriveProof, EVIDENCE, pickInstall, PREFERRED_INSTALL, registryAt } from "./proof.mts";
+import { currentInstall, currentProof, deriveProof, EVIDENCE, pickInstall, PREFERRED_INSTALL, registryAt, WHERE } from "./proof.mts";
 
 const read = (path) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 const sources = () => ({
@@ -30,6 +30,10 @@ test("each claim on the hero's proof line comes from its source", () => {
   assert.deepEqual(
     proof.claims.map((claim) => claim.href.replace(/#L\d+$/, "")),
     [EVIDENCE.components, EVIDENCE.typescript, EVIDENCE.engines, EVIDENCE.themes, EVIDENCE.coverage, EVIDENCE.stage],
+  );
+  assert.deepEqual(
+    proof.claims.map((claim) => claim.where),
+    [WHERE.components, WHERE.typescript, WHERE.engines, WHERE.themes, WHERE.coverage, WHERE.stage],
   );
 });
 
