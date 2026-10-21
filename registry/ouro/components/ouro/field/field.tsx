@@ -21,7 +21,7 @@ import { fieldHint, inlineRootClass, labelFrameClass, requiredMarkClass, rootCla
 /**
  * The props every Ouro form control takes, with these exact names: a required `label`,
  * `description`, `error`, `required`, `disabled` and `name`.
- * @claim "The props every Ouro form control" test/field-contract.test.tsx verify:testExists(test/field-contract.test.tsx::shows its own error prop, marks the control, and resubmits unchanged)
+ * @claim "The props every Ouro form control" test/field-contract.test.tsx verify:testExists(test/field-contract.test.tsx::%s with display-only errors > shows its own error prop, marks the control, and resubmits unchanged)
  * @claim "The props every Ouro form control" registry/ouro/components/ouro/field/field.test-d.ts verify:fileLine(registry/ouro/components/ouro/field/field.test-d.ts, /expectTypeOf<\{\schildren:\snull\s\}>\(\)\.not\.toExtend<FieldProps>/)
  */
 export interface FieldProps {
@@ -150,8 +150,8 @@ function labelConnected(root: HTMLElement, data: string, labelId: string, native
  *   <FieldControl type="password" autoComplete="new-password" />
  *   <FieldDescription>Use 8 or more characters.</FieldDescription>
  * </Field>
- * @claim "The error only shows: it never" test/field-contract.test.tsx verify:testExists(test/field-contract.test.tsx::shows its own error prop, marks the control, and resubmits unchanged)
- * @claim "Inside a `Form`, a field with" test/field-contract.test.tsx verify:testExists(test/field-contract.test.tsx::shows its own error prop, marks the control, and resubmits unchanged)
+ * @claim "The error only shows: it never" test/field-contract.test.tsx verify:testExists(test/field-contract.test.tsx::%s with display-only errors > shows its own error prop, marks the control, and resubmits unchanged)
+ * @claim "Inside a `Form`, a field with" test/field-contract.test.tsx verify:testExists(test/field-contract.test.tsx::%s with display-only errors > shows its own error prop, marks the control, and resubmits unchanged)
  * @claim "Every Ouro form control takes these" test/field-contract.test.tsx verify:fileLine(test/field-contract.test.tsx, /const\scontrols:\s\[string,/)
  */
 export function Field(props: FieldProps): JSX.Element {
