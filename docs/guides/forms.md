@@ -1,6 +1,6 @@
 # Forms
 
-Every form control is one component on the Field contract: pass `label`, `name` and `error`, and wrap the controls in a `Form` that takes `errors` straight from your server action. This page says where each kind of message goes.
+A form control is one component on the Field contract: pass `label`, `name` and `error`, and wrap the controls in a `Form` that takes `errors` straight from your server action.[^field-contract] This page says where each kind of message goes.
 
 ## Which component shows which message
 
@@ -42,3 +42,5 @@ Each control submits under its `name` in a plain form post.
 ## Testing forms
 
 [Testing](testing.md#finding-fields-in-tests) lists how to find a labelled field, a required field, a password field, an error and the form's message region in your own tests.
+
+[^field-contract]: registry/ouro/lib/ouro/use-field.ts verify:testExists(registry/ouro/components/ouro/select/select.test.tsx::Select > is a labeled combobox built on the Field contract) verify:testExists(registry/ouro/components/ouro/form/form.test.tsx::Form > shows each error on the field with that name, linked and marked invalid)
