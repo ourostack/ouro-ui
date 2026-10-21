@@ -4,6 +4,9 @@
 // run's timing reports (`refresh`); a file it does not know yet weighs the median of every time it holds.
 //
 //   node scripts/shard.mjs scripts <index>/<count>   the test:scripts files of one shard, one per line
+//   node scripts/shard.mjs install <index>/<count> <app>
+//                                                    the shipped Vitest test files of one install
+//                                                    shard, paths in the installed app <app>
 //   node scripts/shard.mjs plan <kind> <count>       every shard of a kind, with its weight
 //   node scripts/shard.mjs refresh <dir>             rewrites scripts/shard-timings.json from the
 //                                                    timing reports under <dir> (any depth)
@@ -94,12 +97,43 @@ export function collectTimings(dir) {
   return timings;
 }
 
+/**
+ * The Vitest test files an installed app runs from Ouro UI's shipped tests: under src/, in an ouro
+ * folder, named *.test.ts or *.test.tsx (as ouroTestProjects includes them), visual tests left out.
+ * Paths are relative to the app.
+ */
+export function installFiles(app) {
+  if (!existsSync(join(app, "src"))) return [];
+  return filesUnder(join(app, "src"))
+    .map((file) => relative(app, file).split("\\").join("/"))
+    .filter((file) => /(^|\/)ouro\/.*\.test\.tsx?$/.test(file) && !/\.visual\.test\.tsx?$/.test(file))
+    .sort();
+}
+
+/**
+ * One install shard's share of `files` (app paths, `src/...`), balanced by the time each took here:
+ * an app's `src/<path>` is this repository's `registry/ouro/<path>`, summed over the Vitest projects
+ * that ran it.
+ */
+export function installShard(files, shard, timings = readTimings("vitest")) {
+  const byFile = {};
+  for (const [key, ms] of Object.entries(timings)) {
+    const path = /^.+? \(\w+\) registry\/ouro\/(.+)$/.exec(key)?.[1];
+    if (path) byFile[`src/${path}`] = (byFile[`src/${path}`] ?? 0) + ms;
+  }
+  return shardKeys(files, shard, byFile);
+}
+
 const sortedObject = (object) => Object.fromEntries(Object.entries(object).sort(([a], [b]) => (a < b ? -1 : 1)));
 
 function main([command, ...args]) {
   if (command === "scripts") {
     const files = scriptTestFiles();
     console.log(shardKeys(files, parseShard(args[0]), readTimings("scripts")).join("\n"));
+    return 0;
+  }
+  if (command === "install") {
+    console.log(installShard(installFiles(args[1] ?? "."), parseShard(args[0])).join("\n"));
     return 0;
   }
   if (command === "plan") {
@@ -124,7 +158,7 @@ function main([command, ...args]) {
     console.log(`Wrote ${relative(root, timingsFile)}: ${counts.join(", ")} timings.`);
     return 0;
   }
-  console.error("Usage: node scripts/shard.mjs scripts <index>/<count> | plan <kind> <count> | refresh <dir>");
+  console.error("Usage: node scripts/shard.mjs scripts <index>/<count> | install <index>/<count> <app> | plan <kind> <count> | refresh <dir>");
   return 2;
 }
 

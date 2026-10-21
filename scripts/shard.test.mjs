@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileS
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { balance, collectTimings, parseShard, readTimings, scriptTestFiles, shardKeys, slicedSuites } from "./shard.mjs";
+import { balance, collectTimings, installFiles, installShard, parseShard, readTimings, scriptTestFiles, shardKeys, slicedSuites } from "./shard.mjs";
 import { shardArgument, TimedSequencer } from "./vitest-shards.mts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -101,4 +101,19 @@ test("the sliced suites are exactly the browser tests that slice what they itera
   const suites = slicing.flatMap((file) => (file === "test/control-suite.tsx" ? ["test/controls.test.tsx", "test/controls.touch.test.tsx"] : [file]));
   assert.deepEqual([...new Set(suites)].sort(), [...slicedSuites].sort());
   for (const suite of slicedSuites) assert.match(suite, /\.test\.tsx$/);
+});
+
+test("an install shard takes the app's shipped files by the time each took here, over every Vitest project", () => {
+  const timings = {
+    "ouro-chromium (chromium) registry/ouro/components/ouro/a/a.test.tsx": 300,
+    "ouro-webkit (webkit) registry/ouro/components/ouro/a/a.test.tsx": 300,
+    "ouro-chromium (chromium) registry/ouro/components/ouro/b/b.test.tsx": 500,
+    "ouro-touch (chromium) registry/ouro/components/ouro/c/c.touch.test.tsx": 400,
+    "site (chromium) site/src/site.test.tsx": 9000,
+  };
+  const files = ["src/components/ouro/a/a.test.tsx", "src/components/ouro/b/b.test.tsx", "src/components/ouro/c/c.touch.test.tsx"];
+  // a weighs 600 (two projects): alone in one shard, b and c (900) in the other.
+  assert.deepEqual(installShard(files, { index: 1, count: 2 }, timings), ["src/components/ouro/a/a.test.tsx"]);
+  assert.deepEqual(installShard(files, { index: 2, count: 2 }, timings), ["src/components/ouro/b/b.test.tsx", "src/components/ouro/c/c.touch.test.tsx"]);
+  assert.deepEqual(installFiles(join(root, "no-such-app")), []);
 });

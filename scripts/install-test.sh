@@ -512,6 +512,17 @@ if [ -n "${OURO_COMPONENTS+set}" ]; then
 fi
 shard=()
 [ -z "${OURO_SHARD:-}" ] || shard=(--shard="$OURO_SHARD")
+# A full run's shard takes the shipped Vitest files whose times here add up to its share
+# (scripts/shard.mjs install); Vitest's own --shard counts files, and left one shard 2 minutes
+# longer. Playwright runs every test on its own (--fully-parallel), so --shard splits tests, not files.
+vitest_shard=(${shard[@]+"${shard[@]}"})
+if [ -n "${OURO_SHARD:-}" ] && [ -z "${OURO_COMPONENTS+set}" ]; then
+  # shellcheck disable=SC2207 # the app's test paths have no spaces
+  vitest_filters=($(node "$root/scripts/shard.mjs" install "$OURO_SHARD" .))
+  [ "${#vitest_filters[@]}" -gt 0 ] || { echo "Shard $OURO_SHARD has no shipped test file to run."; exit 1; }
+  vitest_shard=()
+  echo "Shard $OURO_SHARD: ${#vitest_filters[@]} shipped Vitest files, balanced by their measured times."
+fi
 
 # CI installs the browsers' system packages in the background while it builds the app
 # (OURO_BROWSER_DEPS names the file their exit status lands in): wait for them, at most 15
@@ -524,12 +535,12 @@ fi
 
 echo "::group::Shipped Vitest browser tests"
 npx playwright install ${deps[@]+"${deps[@]}"} chromium webkit
-npx vitest run ${lenient_vitest[@]+"${lenient_vitest[@]}"} ${shard[@]+"${shard[@]}"} ${vitest_filters[@]+"${vitest_filters[@]}"}
+npx vitest run ${lenient_vitest[@]+"${lenient_vitest[@]}"} ${vitest_shard[@]+"${vitest_shard[@]}"} ${vitest_filters[@]+"${vitest_filters[@]}"}
 echo "::endgroup::"
 
 echo "::group::Shipped Playwright specs"
 if [ "${#spec_filters[@]}" -gt 0 ]; then
-  npx playwright test ${lenient_playwright[@]+"${lenient_playwright[@]}"} ${shard[@]+"${shard[@]}"} "${spec_filters[@]}"
+  npx playwright test --fully-parallel ${lenient_playwright[@]+"${lenient_playwright[@]}"} ${shard[@]+"${shard[@]}"} "${spec_filters[@]}"
 else
   echo "No selected component has a spec."
 fi

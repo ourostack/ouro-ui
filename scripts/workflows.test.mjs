@@ -669,13 +669,17 @@ test("an install shard runs a third of the shipped tests, or a reduced run's, an
   assert.match(rerun.stdout, /^::error::an install shard of this attempt did not pass \(failure\)/m);
 });
 
-test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD and OURO_COMPONENTS", () => {
+test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD and OURO_COMPONENTS", async () => {
   const install = readFileSync(join(root, "scripts/install-test.sh"), "utf8");
   const tail = install.slice(install.indexOf("# The shipped tests to run:"));
   // The install, type check and build come before, whatever the settings.
   assert.ok(install.indexOf('node "$root/scripts/install-check.mjs" "$app" "$variant" tests') < install.indexOf("# The shipped tests to run:"));
-  const run = (env) => {
+  const run = (env, files = []) => {
     const scratch = scratchDir("ouro-install-tail-");
+    for (const file of files) {
+      mkdirSync(join(scratch, dirname(file)), { recursive: true });
+      writeFileSync(join(scratch, file), "");
+    }
     const stubs = 'npx() { echo "npx $*"; }';
     return spawnSync("bash", ["-e", "-u", "-o", "pipefail", "-c", `${stubs}\nroot=${JSON.stringify(root)}\n${tail}`], { cwd: scratch, encoding: "utf8", env: { ...process.env, CI: "", ...env } });
   };
@@ -683,10 +687,19 @@ test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD
   assert.equal(all.status, 0, all.stderr);
   // A full run, sharded or not, fails when it finds no test.
   assert.match(all.stdout, /^npx vitest run$/m);
-  assert.match(all.stdout, /^npx playwright test e2e\/ouro$/m);
-  const shard = run({ OURO_SHARD: "2/3" });
-  assert.match(shard.stdout, /^npx vitest run --shard=2\/3$/m);
-  assert.match(shard.stdout, /^npx playwright test --shard=2\/3 e2e\/ouro$/m);
+  assert.match(all.stdout, /^npx playwright test --fully-parallel e2e\/ouro$/m);
+  // A full run's shard: the app's shipped Vitest files its measured times give it, not Vitest's split.
+  const shipped = ["src/components/ouro/button/button.test.tsx", "src/components/ouro/button/button.touch.test.tsx", "src/components/ouro/dialog/dialog.test.tsx", "src/lib/ouro/cn.test.ts", "src/components/ouro/button/button.visual.test.tsx", "src/app.test.tsx"];
+  const shard = run({ OURO_SHARD: "2/2" }, shipped);
+  assert.equal(shard.status, 0, shard.stderr);
+  const { installShard } = await import("./shard.mjs");
+  const mine = installShard(shipped.slice(0, 4), { index: 2, count: 2 });
+  assert.ok(mine.length > 0);
+  assert.match(shard.stdout, new RegExp(`^npx vitest run ${mine.join(" ").replace(/[.]/g, "\\.")}$`, "m"));
+  assert.match(shard.stdout, /^npx playwright test --fully-parallel --shard=2\/2 e2e\/ouro$/m);
+  const empty = run({ OURO_SHARD: "2/2" });
+  assert.equal(empty.status, 1);
+  assert.match(empty.stdout, /Shard 2\/2 has no shipped test file to run/);
   assert.doesNotMatch(all.stdout + shard.stdout, /pass-?with-?no-?tests/i);
   const none = run({ OURO_COMPONENTS: "" });
   assert.equal(none.status, 0);
@@ -707,7 +720,7 @@ test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD
   const some = run({ OURO_COMPONENTS: "checkbox,checkbox-group", OURO_SHARD: "1/3" });
   assert.equal(some.status, 0, some.stderr);
   assert.match(some.stdout, /^npx vitest run --passWithNoTests --shard=1\/3 components\/ouro\/checkbox\/$/m);
-  assert.match(some.stdout, /^npx playwright test --pass-with-no-tests --shard=1\/3 e2e\/ouro\/checkbox\.spec\.ts e2e\/ouro\/checkbox-group\.spec\.ts$/m);
+  assert.match(some.stdout, /^npx playwright test --fully-parallel --pass-with-no-tests --shard=1\/3 e2e\/ouro\/checkbox\.spec\.ts e2e\/ouro\/checkbox-group\.spec\.ts$/m);
 });
 
 test("motion coverage runs after the ci check, over the partitions the browser shards upload, expecting every project in every shard", async () => {
