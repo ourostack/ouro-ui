@@ -50,6 +50,10 @@ const panelClass =
  * between side-by-side panels, `touch-pan-x` on one between stacked panels).
  *
  * @internal
+ * @claim "A touch drag across it resizes" registry/ouro/components/ouro/resizable/resizable.touch.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.touch.test.tsx::resizes with a touch drag instead of scrolling the page)
+ * @claim "A touch drag across it resizes" registry/ouro/components/ouro/resizable/resizable.touch.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.touch.test.tsx::lets a vertical swipe that starts on the handle scroll the page, and leaves the sizes alone)
+ * @claim "The handle: a 1px line in" registry/ouro/components/ouro/resizable/resizable-styles.ts verify:fileLine(registry/ouro/components/ouro/resizable/resizable-styles.ts, /bg-border\stouch-pan-y\sselect-none\s/)
+ * @claim "The handle: a 1px line in" registry/ouro/components/ouro/resizable/resizable-styles.ts verify:fileLine(registry/ouro/components/ouro/resizable/resizable-styles.ts, / pointer-fine:hover:bg-ring active:bg-ring /)
  */
 const handleClass = {
   horizontal:
@@ -62,7 +66,12 @@ const handleClass = {
     "outline-ring outline-offset-1 focus-visible:bg-ring focus-visible:outline-2 focus-visible:outline-solid",
 } as const;
 
-/** The handle's hit area with a fine pointer: 4px each side of the line. A coarse pointer gets 44px from `TouchTarget`. @internal */
+/**
+ * The handle's hit area with a fine pointer: 4px each side of the line. A coarse pointer gets 44px from `TouchTarget`. @internal
+ *
+ * @claim "The handle's hit area with a" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable handle (window splitter) > gives the handle a hit area wider than its line)
+ * @claim "A coarse pointer gets 44px from" registry/ouro/components/ouro/resizable/resizable.tsx verify:fileLine(registry/ouro/components/ouro/resizable/resizable.tsx, /<TouchTarget/)
+ */
 const hitAreaClass = {
   horizontal: "absolute inset-y-0 -inset-x-1",
   vertical: "absolute inset-x-0 -inset-y-1",
@@ -79,6 +88,8 @@ const gripClass = {
  * panels that have none, scaled so they add up to 100.
  *
  * @internal
+ * @claim "The starting sizes: each panel's `defaultSize`" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable layout > lays panels side by side at their default sizes with a handle between)
+ * @claim "The starting sizes: each panel's `defaultSize`" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable layout > shares the space left over between panels without a defaultSize)
  */
 function initialSizes(panels: readonly PanelLimits[]): number[] {
   const defined = panels.reduce((sum, panel) => sum + (panel.defaultSize ?? 0), 0);
@@ -94,6 +105,8 @@ function initialSizes(panels: readonly PanelLimits[]): number[] {
  * the panel after it (the two share their combined size).
  *
  * @internal
+ * @claim "The range the panel before handle" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable handle (window splitter) > resizes when dragged with a pointer, within the panels' limits)
+ * @claim "The range the panel before handle" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable handle (window splitter) > is a focusable separator for the panel before it)
  */
 function limits(sizes: readonly number[], index: number, panels: readonly PanelLimits[]): { min: number; max: number } {
   const total = sizes[index]! + sizes[index + 1]!;
@@ -119,7 +132,12 @@ function clampSize(sizes: readonly number[], index: number, size: number, panels
   return result;
 }
 
-/** Whether a saved value is a layout for `count` panels: that many numbers adding up to 100. @internal */
+/**
+ * Whether a saved value is a layout for `count` panels: that many numbers adding up to 100. @internal
+ *
+ * @claim "Whether a saved value is a" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable autoSaveId > restores and saves the layout in localStorage)
+ * @claim "Whether a saved value is a" registry/ouro/components/ouro/resizable/resizable-styles.ts verify:fileLine(registry/ouro/components/ouro/resizable/resizable-styles.ts, /Math\.abs\(value\.reduce/)
+ */
 function isSavedLayout(value: unknown, count: number): value is number[] {
   return (
     Array.isArray(value) &&
@@ -135,6 +153,8 @@ function isSavedLayout(value: unknown, count: number): value is number[] {
  * store sees the same snapshot until the saved value changes.
  *
  * @internal
+ * @claim "The text saved under `autoSaveId`, or" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable autoSaveId > keeps working when storage throws)
+ * @claim "The text saved under `autoSaveId`, or" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable autoSaveId > starts at the default sizes when nothing is saved yet)
  */
 function readSavedText(autoSaveId: string | undefined): string | null {
   if (!autoSaveId) return null;
@@ -152,6 +172,7 @@ function readSavedText(autoSaveId: string | undefined): string | null {
  * goes to the panels that still have room, in order.
  *
  * @internal
+ * @claim "A layout outside the panels' limits" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:fileLine(registry/ouro/components/ouro/resizable/resizable.test.tsx, /fits\sa\ssaved\slayout\s%s\sinto\sthe\spanels'\slimits/)
  */
 function parseSaved(text: string | null, panels: readonly PanelLimits[]): number[] | null {
   let saved: unknown;

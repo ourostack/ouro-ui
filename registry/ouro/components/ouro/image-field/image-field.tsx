@@ -44,13 +44,22 @@ export interface ImageFieldProps {
   alt?: string | undefined;
   /** The types it takes, as the file input's `accept`. @default "image/*" */
   accept?: string | undefined;
-  /** The largest file it takes, in bytes. */
+  /**
+   * The largest file it takes, in bytes.
+   *
+   * @claim "The largest file it takes, in" registry/ouro/components/ouro/image-field/image-field.test.tsx verify:testExists(registry/ouro/components/ouro/image-field/image-field.test.tsx::ImageField > turns away a file that is not an image or is too large, keeping what showed, and says why)
+   */
   maxSize?: number | undefined;
   /** The preview's width divided by its height, and the crop's. @default 1 */
   aspect?: number | undefined;
   /** `circle` shows and crops a round photo, for a profile; `rect` a rounded rectangle. @default "rect" */
   shape?: "rect" | "circle" | (string & { 'Use "rect" or "circle"': never }) | undefined;
-  /** Opens the cropper on every chosen photo, so it fits `aspect` and `shape`: `crop` or `crop={{ outputWidth: 512 }}`. */
+  /**
+   * Opens the cropper on every chosen photo, so it fits `aspect` and `shape`: `crop` or `crop={{ outputWidth: 512 }}`.
+   *
+   * @claim "Opens the cropper on every chosen" registry/ouro/components/ouro/image-field/image-field.test.tsx verify:testExists(registry/ouro/components/ouro/image-field/image-field.test.tsx::ImageField > crops a chosen photo first with crop, and keeps the field as it was when the crop is cancelled)
+   * @claim "Opens the cropper on every chosen" registry/ouro/components/ouro/image-field/image-field.test.tsx verify:testExists(registry/ouro/components/ouro/image-field/image-field.test.tsx::ImageField > crops with the defaults when crop is true)
+   */
   crop?: boolean | ImageFieldCrop | undefined;
   /** Called with the chosen photo (cropped, with `crop`), or `null` when it is removed. A photo comes here once the browser has opened it. */
   onFileChange?: ((file: File | null) => void) | undefined;
@@ -58,7 +67,11 @@ export interface ImageFieldProps {
   onRemove?: (() => void) | undefined;
   /** The message for a file turned away, for apps in other languages. */
   rejectMessage?: ((reason: ImageFieldRejection, file: File) => string) | undefined;
-  /** The choose button's label while no photo shows. @default "Choose photo" */
+  /**
+   * The choose button's label while no photo shows. @default "Choose photo"
+   *
+   * @claim "The choose button's label while no" registry/ouro/components/ouro/image-field/image-field.test.tsx verify:testExists(registry/ouro/components/ouro/image-field/image-field.test.tsx::ImageField > is a group named by its label, with a placeholder, Choose photo and a hidden file input)
+   */
   chooseLabel?: string | undefined;
   /** The choose button's label while a photo shows. @default "Change photo" */
   changeLabel?: string | undefined;
@@ -91,7 +104,11 @@ function PhotoIcon(): JSX.Element {
   );
 }
 
-/** Puts one file in the input, or none, so the form submits exactly what shows. */
+/**
+ * Puts one file in the input, or none, so the form submits exactly what shows.
+ *
+ * @claim "Puts one file in the input" registry/ouro/components/ouro/image-field/image-field.test.tsx verify:testExists(registry/ouro/components/ouro/image-field/image-field.test.tsx::ImageField > previews a chosen photo, puts it in the form, and removes it again)
+ */
 function setInputFile(input: HTMLInputElement, file: File | null): void {
   const data = new DataTransfer();
   if (file) data.items.add(file);

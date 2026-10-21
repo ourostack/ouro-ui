@@ -49,7 +49,7 @@ function functionSection(page: string): string {
   return page
     .replace(/<!--[\s\S]*?-->\n*/g, "")
     .replace(/^## /gm, "### ")
-    .replace(/^# (\w+)$/m, "## $1()");
+    .replace(/^# (\w+)$/m, (_heading, name: string) => `## ${name}()`);
 }
 
 /** The `## <family> parts` section of docs/parts.md, without its heading. */

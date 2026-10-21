@@ -25,7 +25,7 @@ import { Field } from "@/registry/ouro/components/ouro/field/field";
 
 Pass `error` straight from a server action or a client check: it shows the message and sets `aria-invalid`. The error only shows: it never blocks the form's next submit, so the user can always send the form again (only the browser's own checks, such as `required`, block). Inside a `Form`, a field with a `name` shows the form's error for that name when it has no `error` of its own. The control is `FieldControl`, from `field-parts`.
 
-The order is fixed: label, `description`, control, error. To put helper text after the control, leave `description` out and render a `FieldDescription` after the `FieldControl`. It is linked to the control (`aria-describedby`) wherever it sits, and the error still comes last. `TextField` and the other one-tag controls take no children, so build that field from `Field` and `FieldControl`.
+The order is fixed: label, `description`, control, error. To put helper text after the control, leave `description` out and render a `FieldDescription` after the `FieldControl`. It is linked to the control (`aria-describedby`) wherever it sits, and the error still comes last. `TextField` and the other one-tag controls render their own control, so build that field from `Field` and `FieldControl`.
 
 The required marker is drawn with CSS beside the label and is not part of its text, so a test finds the field by the label alone: `getByLabelText("Email")`, or Playwright's `getByLabel("Email", { exact: true })`. The marker stays visible in forced colors.
 
@@ -66,7 +66,7 @@ These are not props. Passing one fails the type check with the fix in the error,
 
 ## `className` is for layout only
 
-Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your classes always win over Ouro UI's: each component merges `className` last with `cn` (tailwind-merge), so a class that conflicts with the component's own replaces it.
+Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your classes always win over Ouro UI's: Field merges `className` last with `cn` (tailwind-merge), so a class that conflicts with its own replaces it.[^layout-classes]
 
 Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
 
@@ -93,3 +93,5 @@ A read-only message view accepted by fields and Form; mutable input arrays remai
 ```ts
 type ReadonlyErrorMessages = ErrorMessage | readonly ErrorMessage[];
 ```
+
+[^layout-classes]: test:registry/ouro/components/ouro/field/field.test.tsx::Field wiring > lets app layout classes win verify:testExists(registry/ouro/components/ouro/field/field.test.tsx::Field wiring > lets app layout classes win)

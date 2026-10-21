@@ -16,6 +16,9 @@ const rootClass =
  * The scrollbar is hidden; the buttons and the keyboard move between slides.
  *
  * @internal
+ * @claim "The scroller: native horizontal scrolling with" registry/ouro/components/ouro/carousel/carousel.test.tsx verify:testExists(registry/ouro/components/ouro/carousel/carousel.test.tsx::Carousel structure > snaps each slide to the start of a horizontal scroller that a keyboard can reach)
+ * @claim "The scroller: native horizontal scrolling with" registry/ouro/components/ouro/carousel/carousel.touch.test.tsx verify:testExists(registry/ouro/components/ouro/carousel/carousel.touch.test.tsx::moves to the next slide with a horizontal swipe and reports it once)
+ * @claim "No `touch-action` is set, so a" registry/ouro/components/ouro/carousel/carousel.touch.test.tsx verify:testExists(registry/ouro/components/ouro/carousel/carousel.touch.test.tsx::moves to the next slide with a horizontal swipe and reports it once)
  */
 const viewportClass =
   "box-border flex min-w-0 gap-4 overflow-x-auto overflow-y-hidden overscroll-x-contain snap-x snap-mandatory " +
@@ -25,7 +28,12 @@ const viewportClass =
 /** @internal */
 const slideClass = "box-border min-w-0 shrink-0 grow-0 basis-(--ouro-carousel-basis) snap-start";
 
-/** The slide width for each `slidesPerView`, with the 1rem gap between slides taken out. @internal */
+/**
+ * The slide width for each `slidesPerView`, with the 1rem gap between slides taken out. @internal
+ *
+ * @claim "The slide width for each `slidesPerView`" registry/ouro/components/ouro/carousel/carousel.test.tsx verify:testExists(registry/ouro/components/ouro/carousel/carousel.test.tsx::Carousel structure > shows two or three slides at a time with slidesPerView)
+ * @claim "The slide width for each `slidesPerView`" registry/ouro/components/ouro/carousel/carousel-styles.ts verify:fileLine(registry/ouro/components/ouro/carousel/carousel-styles.ts, /calc\(\(100%-1rem\)\/2\)/)
+ */
 const slidesPerViewClass = {
   1: "[--ouro-carousel-basis:100%]",
   2: "[--ouro-carousel-basis:calc((100%-1rem)/2)]",
@@ -39,6 +47,8 @@ const buttonsClass = "flex justify-end gap-2";
  * Fills a label template: `{n}` is the 1-based slide number and `{total}` the slide count.
  *
  * @internal
+ * @claim "Fills a label template: `{n}` is" registry/ouro/components/ouro/carousel/carousel.test.tsx verify:testExists(registry/ouro/components/ouro/carousel/carousel.test.tsx::Carousel announcements > announces with the slideLabel template)
+ * @claim "Fills a label template: `{n}` is" registry/ouro/components/ouro/carousel/carousel-styles.ts verify:fileLine(registry/ouro/components/ouro/carousel/carousel-styles.ts, /replaceAll\("\{n\}", String\(n\)\)/)
  */
 function fillTemplate(template: string, n: number, total: number): string {
   return template.replaceAll("{n}", String(n)).replaceAll("{total}", String(total));

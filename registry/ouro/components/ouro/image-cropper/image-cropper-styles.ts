@@ -21,7 +21,12 @@ function coverScale(image: Size, frame: Size): number {
   return Math.max(frame.width / image.width, frame.height / image.height);
 }
 
-/** An offset kept within the image's edges, so the frame never shows past them. */
+/**
+ * An offset kept within the image's edges, so the frame never shows past them.
+ *
+ * @claim "An offset kept within the image's" registry/ouro/components/ouro/image-cropper/image-cropper.test.tsx verify:testExists(registry/ouro/components/ouro/image-cropper/image-cropper.test.tsx::ImageCropper geometry > covers the frame, keeps the image over it, and reads the crop in the image's pixels)
+ * @claim "An offset kept within the image's" registry/ouro/components/ouro/image-cropper/image-cropper.test.tsx verify:testExists(registry/ouro/components/ouro/image-cropper/image-cropper.test.tsx::ImageCropper > moves the photo the way the arrow keys point, ten times further with Shift, and never past its edge)
+ */
 function clampOffset(image: Size, frame: Size, scale: number, offset: Offset): Offset {
   const spareX = Math.max(0, (image.width * scale - frame.width) / 2);
   const spareY = Math.max(0, (image.height * scale - frame.height) / 2);
@@ -42,5 +47,9 @@ function cropRect(image: Size, frame: Size, scale: number, offset: Offset): { x:
 
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 3;
-/** Pixels an arrow key moves the image; ten times as far with Shift. */
+/**
+ * Pixels an arrow key moves the image; ten times as far with Shift.
+ *
+ * @claim "Pixels an arrow key moves the" registry/ouro/components/ouro/image-cropper/image-cropper.test.tsx verify:testExists(registry/ouro/components/ouro/image-cropper/image-cropper.test.tsx::ImageCropper > moves the photo the way the arrow keys point, ten times further with Shift, and never past its edge)
+ */
 const STEP = 10;

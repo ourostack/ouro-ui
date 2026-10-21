@@ -10,8 +10,8 @@ const examples = [
   { name: "form", title: "Form", description: "Validate required fields and try a local recipe-name rejection." },
   { name: "sheet", title: "Sheet", description: "Open a sheet and choose cookbooks with a touch or the keyboard." },
   { name: "menu", title: "Menu", description: "Navigate actions and a submenu. This example does not change a recipe." },
-  { name: "swipe-actions", title: "Swipe actions", description: "Delete a local list item, then undo. No changes are saved." },
-  { name: "table", title: "Table", description: "Read a small recipe table with row links. No sorting or filtering." },
+  { name: "swipe-actions", title: "Swipe actions", description: "Delete a local list item, then undo. Changes stay on this page." },
+  { name: "table", title: "Table", description: "Read a small recipe table with row links. This example does not sort or filter." },
 ];
 
 function ExampleCard({ example }: { example: (typeof examples)[number] }): JSX.Element {

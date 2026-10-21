@@ -42,7 +42,7 @@ Type: `ReorderableProps`.
 | `heldLabel` | `string` | `"Picked up. Use the arrow keys to move, Space to drop, and Escape to cancel."` | Read after a handle's name, in place of the instructions, while its row is picked up from the keyboard. |
 | `instructionsLabel` | `string` | `"Press Enter for a menu of moves. Press Space to pick up, then use the arrow keys to move, Space to drop, and Escape to cancel."` | How to use a handle from the keyboard, read after its name. |
 | `items` (required) | `readonly ReorderableItem[]` |  | The rows, in order: `{ id, label, content }`. Pass them in a new order to change the order from outside. |
-| `label` (required) | `string` |  | Names the list for screen readers, such as "Steps". Always required. |
+| `label` (required) | `string` |  | Names the list for screen readers, such as "Steps". It is always required. |
 | `movedLabel` | `string` | `"{label} moved. Position {n} of {total}."` | Announced on each move, with the arrow keys or from a handle's menu. |
 | `moveDownLabel` | `string` | `"Move down"` | The item of a handle's menu that moves the row down one place. |
 | `moveToBottomLabel` | `string` | `"Move to bottom"` | The item of a handle's menu that moves the row to the end of the list. |
@@ -64,7 +64,7 @@ These are not props. Passing one fails the type check with the fix in the error,
 
 ## `className` is for layout only
 
-Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your classes always win over Ouro UI's: each component merges `className` last with `cn` (tailwind-merge), so a class that conflicts with the component's own replaces it.
+Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`).
 
 Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
 

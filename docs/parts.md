@@ -4,8 +4,6 @@
 
 Building-block parts for the rare case where a component's props cannot express what you need. Prefer the props-first components.
 
-Each part checks that it sits inside its root and, in development, throws a message with the JSX it belongs in.
-
 ## Field parts
 
 The state owner of a field built from parts. It connects the label, description and error to the control, and passes `name`, `disabled` and `required` down. Use the `Field` component instead unless its props cannot express your layout; every Ouro form control is built on these parts. Parts link the description and error after hydration; use `Field` when the server HTML must carry them, or pass `id`s and `aria-describedby` yourself.
@@ -31,7 +29,7 @@ import {
 </FieldRoot>
 ```
 
-Each part checks that it sits inside `<FieldRoot>`. Outside it, a part throws in development with a message that shows this JSX shape.
+Each part checks that it sits inside `<FieldRoot>`: outside it, a part throws in development with a message that shows this JSX shape.[^field-nesting]
 
 | Part | What it is |
 | --- | --- |
@@ -62,7 +60,7 @@ import {
 </Select>
 ```
 
-Each part checks that it sits inside `<Select>`. Outside it, a part throws in development with a message that shows this JSX shape.
+Each part checks that it sits inside `<Select>`: outside it, a part throws in development with a message that shows this JSX shape.[^select-nesting]
 
 | Part | What it is |
 | --- | --- |
@@ -109,7 +107,7 @@ import {
 </DialogRoot>
 ```
 
-Each part checks that it sits inside `<DialogRoot>`. Outside it, a part throws in development with a message that shows this JSX shape.
+Each part checks that it sits inside `<DialogRoot>`: outside it, a part throws in development with a message that shows this JSX shape.[^dialog-nesting]
 
 | Part | What it is |
 | --- | --- |
@@ -158,7 +156,7 @@ import {
 </PopoverRoot>
 ```
 
-Each part checks that it sits inside `<PopoverRoot>`. Outside it, a part throws in development with a message that shows this JSX shape.
+Each part checks that it sits inside `<PopoverRoot>`: outside it, a part throws in development with a message that shows this JSX shape.[^popover-nesting]
 
 | Part | What it is |
 | --- | --- |
@@ -209,7 +207,7 @@ import {
 </SheetRoot>
 ```
 
-Each part checks that it sits inside `<SheetRoot>`. Outside it, a part throws in development with a message that shows this JSX shape.
+Each part checks that it sits inside `<SheetRoot>`: outside it, a part throws in development with a message that shows this JSX shape.[^sheet-nesting]
 
 | Part | What it is |
 | --- | --- |
@@ -244,7 +242,7 @@ import {
 </ChecklistRoot>
 ```
 
-Each part checks that it sits inside `<ChecklistRoot>`. Outside it, a part throws in development with a message that shows this JSX shape.
+Each part checks that it sits inside `<ChecklistRoot>`: outside it, a part throws in development with a message that shows this JSX shape.[^checklist-nesting]
 
 | Part | What it is |
 | --- | --- |
@@ -279,7 +277,7 @@ import {
 </TabsRoot>
 ```
 
-Each part checks that it sits inside `<TabsRoot>`. Outside it, a part throws in development with a message that shows this JSX shape.
+Each part checks that it sits inside `<TabsRoot>`: outside it, a part throws in development with a message that shows this JSX shape.[^tabs-nesting]
 
 | Part | What it is |
 | --- | --- |
@@ -324,7 +322,7 @@ import {
 </TableRoot>
 ```
 
-Each part checks that it sits inside `<TableRoot>`. Outside it, a part throws in development with a message that shows this JSX shape.
+Each part checks that it sits inside `<TableRoot>`: outside it, a part throws in development with a message that shows this JSX shape.[^table-nesting]
 
 | Part | What it is |
 | --- | --- |
@@ -335,3 +333,12 @@ Each part checks that it sits inside `<TableRoot>`. Outside it, a part throws in
 | `TableHeader` | The table's header rows (`<thead>`), holding a `TableRow` of `TableHead` cells. With `stickyHeader` on the Table, they stay at the top while the rows scroll. |
 | `TableRoot` | The root of a table built from parts, with its caption and its scrolling region. `Table` takes the same parts as children (`<Table caption="Pantry">…</Table>`), so use it instead unless you are composing parts of your own; `Table` also builds the whole table from `columns` and `rows`. |
 | `TableRow` | One row (`<tr>`). With `href` a body row is one link, held by its row header cell. |
+
+[^field-nesting]: test:registry/ouro/components/ouro/field/field.test.tsx::Field parts > %s throws outside FieldRoot with the JSX shape verify:testExists(registry/ouro/components/ouro/field/field.test.tsx::Field parts > %s throws outside FieldRoot with the JSX shape)
+[^select-nesting]: test:registry/ouro/components/ouro/select/select.test.tsx::Select development messages > throws with the JSX shape when a part is outside Select verify:testExists(registry/ouro/components/ouro/select/select.test.tsx::Select development messages > throws with the JSX shape when a part is outside Select)
+[^dialog-nesting]: test:registry/ouro/components/ouro/dialog/dialog.test.tsx::Dialog parts > %s outside DialogRoot throws with the correct JSX shape verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::Dialog parts > %s outside DialogRoot throws with the correct JSX shape)
+[^popover-nesting]: test:registry/ouro/components/ouro/popover/popover.test.tsx::Popover parts > %s outside PopoverRoot throws with the correct JSX shape verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::Popover parts > %s outside PopoverRoot throws with the correct JSX shape)
+[^sheet-nesting]: test:registry/ouro/components/ouro/sheet/sheet.test.tsx::Sheet parts > %s outside SheetRoot throws with the correct JSX shape verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::Sheet parts > %s outside SheetRoot throws with the correct JSX shape)
+[^checklist-nesting]: test:registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist parts > throw in development outside a ChecklistRoot, with the JSX they belong in verify:testExists(registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist parts > throw in development outside a ChecklistRoot, with the JSX they belong in)
+[^tabs-nesting]: test:registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs parts > throws for %s outside TabsRoot with the JSX it belongs in verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs parts > throws for %s outside TabsRoot with the JSX it belongs in)
+[^table-nesting]: test:registry/ouro/components/ouro/table/table.test.tsx::Table parts > throws in development when %s is outside its parent verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table parts > throws in development when %s is outside its parent)

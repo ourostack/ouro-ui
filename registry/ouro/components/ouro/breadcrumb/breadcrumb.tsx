@@ -14,6 +14,8 @@ export interface BreadcrumbItem {
   /**
    * Where the step goes; internal paths go through `OuroProvider`'s `linkComponent`. Every
    * item needs one except the last, the current page, which renders as text.
+   * @claim "Every item needs one except the" registry/ouro/components/ouro/breadcrumb/breadcrumb.test.tsx verify:testExists(registry/ouro/components/ouro/breadcrumb/breadcrumb.test.tsx::Breadcrumb > renders a labelled nav with an ordered list of links, the last one the current page)
+   * @claim "Every item needs one except the" registry/ouro/components/ouro/breadcrumb/breadcrumb.test.tsx verify:testExists(registry/ouro/components/ouro/breadcrumb/breadcrumb.test.tsx::Breadcrumb > renders the current page as text even when it has an href)
    */
   href?: string | undefined;
   /**
@@ -32,6 +34,9 @@ export interface BreadcrumbProps {
    * (`maxItems - 2` of them, at least the current page) and puts the middle in a menu,
    * which is a bottom sheet below 640px.
    * @default 4
+   * @claim "A longer one keeps the first" registry/ouro/components/ouro/breadcrumb/breadcrumb.test.tsx verify:testExists(registry/ouro/components/ouro/breadcrumb/breadcrumb.test.tsx::Breadcrumb > keeps more of the trail with maxItems, and at least the first and the current page)
+   * @claim "A longer one keeps the first" registry/ouro/components/ouro/breadcrumb/breadcrumb.test.tsx verify:testExists(registry/ouro/components/ouro/breadcrumb/breadcrumb.test.tsx::Breadcrumb > collapses the middle of a long trail into a menu of links)
+   * @claim "A longer one keeps the first" registry/ouro/lib/ouro/use-sheet-presentation.ts verify:fileLine(registry/ouro/lib/ouro/use-sheet-presentation.ts, /\(min-width: 640px\)/)
    */
   maxItems?: number | undefined;
   /** Names the navigation for screen readers. @default "Breadcrumb" */

@@ -6,6 +6,7 @@ export { accessoryClass, barClass, breakpoints, iconClass, labelClass, listClass
  * The root holds the bar's room at the end of the page, so the last of the content scrolls
  * clear of it: the bar's 64px, the gap above it and the gap below it (at least the phone's
  * home-indicator inset). The bar itself is fixed to the bottom of the screen.
+ * @claim "The root holds the bar's room" registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx verify:testExists(registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx::TabBar > sits fixed at the bottom of a phone screen, with equal 64px tabs, and keeps its room in the page)
  */
 const rootClass = "block h-[calc(5rem+max(1rem,env(safe-area-inset-bottom,0px)))] shrink-0 print:hidden";
 
@@ -29,7 +30,11 @@ const barClass =
   "data-closed:pointer-events-none data-closed:translate-y-[calc(100%+max(1rem,env(safe-area-inset-bottom,0px)))] data-closed:opacity-0 " +
   "motion-reduce:transition-opacity motion-reduce:duration-(--ouro-duration-fast) motion-reduce:data-closed:translate-y-0";
 
-/** One solid surface for the tabs and the accessory, so no page content shows through. */
+/**
+ * One solid surface for the tabs and the accessory, so no page content shows through.
+ *
+ * @claim "One solid surface for the tabs" registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx verify:testExists(registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx::TabBar > sits fixed at the bottom of a phone screen, with equal 64px tabs, and keeps its room in the page)
+ */
 const surface = "bg-popover text-muted-foreground ring-1 ring-border/60 shadow-(--shadow-lg) forced-colors:border forced-colors:border-solid";
 
 const listClass = `m-0 box-border flex h-16 min-w-0 flex-1 list-none items-stretch rounded-full p-1 ${surface}`;

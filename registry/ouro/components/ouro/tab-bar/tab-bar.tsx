@@ -28,6 +28,7 @@ export interface TabBarItem {
   /**
    * Other paths whose pages belong to this tab, so it stays current there: a Home tab that
    * also owns `/account`. Each matches its own path and the pages under it.
+   * @claim "Each matches its own path and" registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx verify:fileLine(registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx, /\["/account/settings",\s"Home"\]/)
    */
   paths?: readonly string[] | undefined;
   /** Marks this tab as the current page (`aria-current="page"`), when the paths cannot tell. */
@@ -38,7 +39,11 @@ export interface TabBarItem {
 export interface TabBarProps {
   /** Names the navigation for screen readers ("Main"). It is not shown. */
   label: string;
-  /** The tabs, in order: two to five of the app's top-level pages. */
+  /**
+   * The tabs, in order: two to five of the app's top-level pages.
+   *
+   * @claim "The tabs, in order: two to" registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx verify:fileLine(registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx, /6\stabs\sdo\snot\sfit\sa\sphone's\swidth/)
+   */
   items: readonly TabBarItem[];
   /**
    * An item that sits apart, in a circle of its own at the end of the bar, as iOS sets
@@ -55,6 +60,7 @@ export interface TabBarProps {
    * The breakpoint from which the bar hides, because the app's `Navbar` or `Sidebar` takes over
    * there. `never` keeps it at every width.
    * @default "sm"
+   * @claim "`never` keeps it at every width" registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx verify:fileLine(registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx, /hides\sfrom\s%s\s\(%ipx\),\sand\swith\snever\sstays/)
    */
   hideFrom?: "sm" | "md" | "lg" | "xl" | "never" | (string & { 'Use "sm", "md", "lg", "xl" or "never"': never }) | undefined;
   /** Layout only: rarely needed, since the bar places itself. Appearance classes warn in development. */
@@ -76,9 +82,17 @@ export interface TabBarProps {
 
 const example = '<TabBar label="Main" items={[{ label: "Recipes", href: "/recipes", icon: <BookOpen /> }]} />';
 
-/** How much of the screen a keyboard covers, at the least: more than a browser's own toolbars, which also shrink the visual viewport. */
+/**
+ * How much of the screen a keyboard covers, at the least: more than a browser's own toolbars, which also shrink the visual viewport.
+ *
+ * @claim "How much of the screen a" registry/ouro/components/ouro/tab-bar/tab-bar.touch.test.tsx verify:testExists(registry/ouro/components/ouro/tab-bar/tab-bar.touch.test.tsx::TabBar and the on-screen keyboard > slides away while the keyboard shrinks the visual viewport, even with no field focused, but not for a zoom)
+ */
 const KEYBOARD = 150;
-/** Input types that bring up no on-screen keyboard. */
+/**
+ * Input types that bring up no on-screen keyboard.
+ *
+ * @claim "Input types that bring up no" registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx verify:testExists(registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx::TabBar > stays in place when a field takes focus under a fine pointer, which brings up no on-screen keyboard)
+ */
 const keyless = new Set(["button", "checkbox", "color", "file", "hidden", "image", "radio", "range", "reset", "submit"]);
 
 /** Whether the focused element takes typing: a text field, a text area or an editable region. */
@@ -100,6 +114,8 @@ let layout = { width: 0, height: 0 };
  * is measured at the zoom's scale. Where the keyboard resizes the page instead, the layout
  * viewport shrinks well below the tallest it has been at this width, with a text field focused
  * on a touch screen. With no visual viewport to read, the focused field is the only sign.
+ * @claim "With no visual viewport to read" registry/ouro/components/ouro/tab-bar/tab-bar.touch.test.tsx verify:testExists(registry/ouro/components/ouro/tab-bar/tab-bar.touch.test.tsx::TabBar and the on-screen keyboard > where the browser has no visual viewport > follows a focused field)
+ * @claim "With no visual viewport to read" registry/ouro/components/ouro/tab-bar/tab-bar.touch.test.tsx verify:testExists(registry/ouro/components/ouro/tab-bar/tab-bar.touch.test.tsx::TabBar and the on-screen keyboard > slides away while the keyboard shrinks the visual viewport, even with no field focused, but not for a zoom)
  */
 function keyboardUp(): boolean {
   const viewport = window.visualViewport;
@@ -129,7 +145,12 @@ function subscribeKeyboard(listener: () => void): () => void {
 
 const serverFalse = () => false;
 
-/** Every path a tab owns, with the tab's index, for `currentHref`. */
+/**
+ * Every path a tab owns, with the tab's index, for `currentHref`.
+ *
+ * @claim "Every path a tab owns, with" registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx verify:testExists(registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx::TabBar > lets an item's current flag win over the path)
+ * @claim "Every path a tab owns, with" registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx verify:testExists(registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx::TabBar > gives the current tab the accent wash and the rest the muted text)
+ */
 function ownedPaths(items: readonly TabBarItem[]): Array<{ path: string; index: number }> {
   return items.flatMap((item, index) => [item.href, ...(item.paths ?? [])].map((path) => ({ path, index })));
 }
@@ -170,6 +191,12 @@ function ownedPaths(items: readonly TabBarItem[]): Array<{ path: string; index: 
  *   ]}
  *   accessory={{ label: "Search", href: "/search", icon: <Search /> }}
  * />
+ * @claim "Each tab is 64px tall, well" registry/ouro/components/ouro/tab-bar/tab-bar.touch.test.tsx verify:testExists(registry/ouro/components/ouro/tab-bar/tab-bar.touch.test.tsx::fits five tabs and an accessory on a phone, each well over 44px, and a tap reaches the tab under the finger)
+ * @claim "The bar of tabs at the" registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx verify:testExists(registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx::TabBar > sits fixed at the bottom of a phone screen, with equal 64px tabs, and keeps its room in the page)
+ * @claim "The bar is navigation only and" registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx verify:fileLine(registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx, /hides\sfrom\s%s\s\(%ipx\),\sand\swith\snever\sstays/)
+ * @claim "It hides from `hideFrom` (640px by" registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx verify:fileLine(registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx, /hides\sfrom\s%s\s\(%ipx\),\sand\swith\snever\sstays/)
+ * @claim "While the on-screen keyboard is up" registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx verify:fileLine(registry/ouro/components/ouro/tab-bar/tab-bar.test.tsx, /hides\sfrom\s%s\s\(%ipx\),\sand\swith\snever\sstays/)
+ * @claim "It hides from `hideFrom` (640px by" registry/ouro/components/ouro/tab-bar/tab-bar-styles.ts verify:fileLine(registry/ouro/components/ouro/tab-bar/tab-bar-styles.ts, /print:hidden/)
  */
 export function TabBar(props: TabBarProps): JSX.Element {
   const {

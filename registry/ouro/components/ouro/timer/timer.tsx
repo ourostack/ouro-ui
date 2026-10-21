@@ -12,7 +12,7 @@ export type { TimerLabels } from "@/registry/ouro/components/ouro/timer/timer-st
 
 /** The props Timer adds to the `<div>` attributes it passes through. */
 export interface TimerOwnProps {
-  /** How long it runs, in seconds: `duration={600}` for ten minutes. */
+  /** How long it runs, in seconds: `duration={600}`. */
   duration: number;
   /** What the timer is for, shown above the time and naming it for screen readers: "Pasta", "Break". */
   label: string;
@@ -20,11 +20,22 @@ export interface TimerOwnProps {
    * Keeps the timer through a reload and a closed tab, and shares it with a `TimerTray` and
    * every other `Timer` or `useTimer` given the same `timerId`. Without it the timer ends with
    * the component. (`id` is the element's, as on any `<div>`.)
+   * @claim "Keeps the timer through a reload" registry/ouro/components/ouro/timer/timer.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer.test.tsx::Timer > keeps its time through a reload with a timerId, and stays quiet about a timer that ended long ago)
+   * @claim "Keeps the timer through a reload" registry/ouro/components/ouro/timer/timer.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer.test.tsx::Timer > passes id to the element, and keeps and shares the timer only by timerId)
    */
   timerId?: string | undefined;
-  /** Called once when the timer reaches zero, including when it ended while the page was closed. */
+  /**
+   * Called once when the timer reaches zero, including when it ended while the page was closed.
+   *
+   * @claim "Called once when the timer reaches" registry/ouro/components/ouro/timer/timer.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer.test.tsx::Timer > keeps its time through a reload with a timerId, and stays quiet about a timer that ended long ago)
+   * @claim "Called once when the timer reaches" registry/ouro/components/ouro/timer/timer.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer.test.tsx::Timer > says, chimes and buzzes once at zero, shows Time's up, then dismisses or restarts)
+   */
   onDone?: ((event: TimerDoneEvent) => void) | undefined;
-  /** No chime and no vibration at zero; it still shows and says that the time is up. */
+  /**
+   * No chime and no vibration at zero; it still shows and says that the time is up.
+   *
+   * @claim "No chime and no vibration at" registry/ouro/components/ouro/timer/timer.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer.test.tsx::Timer > only says the time is up when silent)
+   */
   silent?: boolean | undefined;
   /** How large the time is: `md` beside other content, `lg` as a screen's focus. @default "md" */
   size?: "md" | "lg" | (string & { 'Use "md" or "lg"': never }) | undefined;
@@ -85,6 +96,10 @@ function lengthOf(seconds: number): string {
  *
  * @example
  * <Timer label="Pasta" duration={600} timerId="pasta" />
+ * @claim "At zero it chimes and vibrates" registry/ouro/components/ouro/timer/timer.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer.test.tsx::Timer > says, chimes and buzzes once at zero, shows Time's up, then dismisses or restarts)
+ * @claim "A countdown timer with its own" registry/ouro/components/ouro/timer/timer-tray.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer-tray.test.tsx::TimerTray > is a region listing the running, paused and finished timers with their time, and hides idle ones)
+ * @claim "At zero it chimes and vibrates" registry/ouro/components/ouro/timer/timer-tray.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer-tray.test.tsx::TimerTray > is a region listing the running, paused and finished timers with their time, and hides idle ones)
+ * @claim "At zero it chimes and vibrates" registry/ouro/components/ouro/timer/timer-tray.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer-tray.test.tsx::TimerTray > follows the Timer on the page, and alerts once at zero even when both show it)
  */
 export function Timer(props: TimerProps): JSX.Element {
   const {

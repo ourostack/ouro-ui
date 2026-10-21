@@ -1,3 +1,5 @@
+import { claim } from "@/registry/ouro/lib/ouro/claims";
+
 /**
  * Every word the porthole stage says: the rail's labels, the crew's log lines and the bell's toasts.
  * In one place so the readability check (stage.test.tsx) reads exactly what a visitor reads: the
@@ -64,7 +66,10 @@ export const STAGE_COPY = {
   bell: "Ring the bell",
   log: "Ship's log",
   logAll: (count: number) => `Ship's log (${count})`,
-  real: "Every control here is a real HX component",
+  real: claim("Every control here is a real HX component", {
+    source: [{ file: "site/src/voyage/stage/stage.tsx" }, { file: "site/e2e/stage.spec.ts" }],
+    verify: { testExists: "site/e2e/stage.spec.ts::each control on the stage > control: xray outlines every HX component on the page, only when pressed" },
+  }),
   xray: "See how it’s built",
   source: "Source",
   ready: "Ready to dive",

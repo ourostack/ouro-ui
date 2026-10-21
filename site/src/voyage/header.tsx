@@ -1,5 +1,6 @@
 import { useCallback, useRef, type JSX } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { Command } from "@/registry/ouro/components/ouro/command/command";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
 import { Navbar } from "@/registry/ouro/components/ouro/navbar/navbar";
@@ -72,7 +73,12 @@ export function ThemePicker(): JSX.Element {
           <PopoverPopup ref={popup} initialFocus={popup} className="w-80">
             <div className="grid gap-1">
               <PopoverTitle>Theme</PopoverTitle>
-              <PopoverDescription>Every preset is a plain shadcn/ui theme.</PopoverDescription>
+              <PopoverDescription>
+                {claim("Every preset is a plain shadcn/ui theme.", {
+                  source: { file: "site/scripts/themes.mts" },
+                  verify: { testExists: "site/scripts/themes.test.mjs::theme files parse into their top-level blocks and refuse anything else" },
+                })}
+              </PopoverDescription>
             </div>
             <div className="mt-2 grid gap-5">
               <RadioGroup

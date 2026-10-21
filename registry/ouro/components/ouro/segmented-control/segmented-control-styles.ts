@@ -32,6 +32,7 @@ const labelClass = "m-0 block text-sm leading-5 font-medium text-foreground sele
  * a coarse pointer, stepping down to 36px from `sm` with a fine pointer.
  *
  * @internal
+ * @claim "44px tall on a coarse pointer" registry/ouro/components/ouro/segmented-control/segmented-control.touch.test.tsx verify:testExists(registry/ouro/components/ouro/segmented-control/segmented-control.touch.test.tsx::keeps 44px segments with 16px text on a phone, also in landscape)
  */
 const groupClass =
   "relative isolate m-0 box-border inline-grid max-w-full grid-flow-col auto-cols-[minmax(0,1fr)] p-0.5 " +
@@ -44,6 +45,8 @@ const groupClass =
  * It slides on the ease-in-out token; with reduced motion, or on an arrow key, it moves at once.
  *
  * @internal
+ * @claim "Segments are equal, so its place" registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx verify:testExists(registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx::SegmentedControl > slides the thumb under the pressed segment with a transition)
+ * @claim "Segments are equal, so its place" registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx verify:testExists(registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx::SegmentedControl > keeps the label id and pressed state in server HTML and hydrates without a mismatch)
  */
 const thumbClass =
   "pointer-events-none absolute top-0.5 bottom-0.5 left-0.5 -z-1 rounded-md " +
@@ -55,10 +58,10 @@ const thumbClass =
 
 /**
  * A segment: muted text, the foreground when pressed. The muted text is mixed 20% toward the
- * foreground, so it keeps 4.5:1 on the muted track under shadcn's stock values too (plain
- * `text-muted-foreground` there is 4.34:1).
+ * foreground, for more contrast on the muted track than plain `text-muted-foreground` has.
  *
  * @internal
+ * @claim "The muted text is mixed 20%" registry/ouro/components/ouro/segmented-control/segmented-control-styles.ts verify:fileLine(registry/ouro/components/ouro/segmented-control/segmented-control-styles.ts, /text-\[color-mix\(in_oklab,var\(--muted-foreground\)_80%,var\(--foreground\)\)\]/)
  */
 const segmentClass =
   "press relative m-0 box-border flex min-w-0 cursor-pointer items-center justify-center px-3 pointer-coarse:min-w-11 " +

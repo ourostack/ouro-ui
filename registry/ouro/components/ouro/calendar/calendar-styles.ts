@@ -71,6 +71,7 @@ function addDays(iso: string, count: number): string {
  * (January 31 plus one month is February 28).
  *
  * @internal
+ * @claim "The same day `count` months later" registry/ouro/components/ouro/calendar/calendar.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/calendar.test.tsx::Calendar date math > checks ISO dates, adds months with clamping and lays out months)
  */
 function addMonths(iso: string, count: number): string {
   const date = toDate(iso);
@@ -122,6 +123,7 @@ type WeekLocale = Intl.Locale & { getWeekInfo?: () => { firstDay: number }; week
  * honors a `-u-fw-` extension (`"en-US-u-fw-mon"`) where the browser does.
  *
  * @internal
+ * @claim "The day a week starts on" registry/ouro/components/ouro/calendar/calendar.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/calendar.test.tsx::Calendar > locale > takes the first day of the week from the locale)
  */
 function firstDayOfWeek(locale: string): number {
   const intl = new Intl.Locale(locale) as WeekLocale;
@@ -140,6 +142,7 @@ function firstDayOfWeek(locale: string): number {
  * `null`.
  *
  * @internal
+ * @claim "A month as weeks of seven" registry/ouro/components/ouro/calendar/calendar.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/calendar.test.tsx::Calendar date math > checks ISO dates, adds months with clamping and lays out months)
  */
 function monthGrid(month: string, firstDay: number): Array<Array<string | null>> {
   const start = monthStart(month);
@@ -158,6 +161,8 @@ function monthGrid(month: string, firstDay: number): Array<Array<string | null>>
  * underlined, and unavailable days fade and strike through.
  *
  * @internal
+ * @claim "A day: 44px on a coarse" registry/ouro/components/ouro/calendar/calendar.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/calendar.test.tsx::Calendar > lets app layout classes win on the root, and gives days 36px with a fine pointer)
+ * @claim "A day: 44px on a coarse" registry/ouro/components/ouro/calendar/calendar.touch.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/calendar.touch.test.tsx::gives Calendar's days and month buttons 44px touch targets)
  */
 const dayClass =
   "press relative m-0 box-border inline-flex size-11 items-center justify-center pointer-fine:size-9 " +
@@ -189,6 +194,7 @@ const weekdayHeaderClass = "m-0 p-0 pb-1 text-xs leading-4 font-normal text-mute
  * The className hint: Calendar has no appearance props, so the fix is the theme.
  *
  * @internal
+ * @claim "The className hint: Calendar has no" registry/ouro/components/ouro/calendar/calendar.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/calendar.test.tsx::Calendar > development messages > warns when the label is empty, and about appearance classes)
  */
 function calendarHint(component: string): string {
   return `<${component} className="mt-4" />, and set colors in your theme's CSS variables`;

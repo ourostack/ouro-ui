@@ -56,7 +56,7 @@ These are not props. Passing one fails the type check with the fix in the error,
 
 ## `className` is for layout only
 
-Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your classes always win over Ouro UI's: each component merges `className` last with `cn` (tailwind-merge), so a class that conflicts with the component's own replaces it.
+Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your classes always win over Ouro UI's: Calendar merges `className` last with `cn` (tailwind-merge), so a class that conflicts with its own replaces it.[^layout-classes]
 
 Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
 
@@ -71,3 +71,5 @@ What a Calendar picks: an ISO date, or with `range` a `DateRange`.
 ```ts
 type CalendarValue<Range extends boolean> = Range extends true ? DateRange : string;
 ```
+
+[^layout-classes]: test:registry/ouro/components/ouro/calendar/calendar.test.tsx::Calendar > lets app layout classes win on the root, and gives days 36px with a fine pointer verify:testExists(registry/ouro/components/ouro/calendar/calendar.test.tsx::Calendar > lets app layout classes win on the root, and gives days 36px with a fine pointer)

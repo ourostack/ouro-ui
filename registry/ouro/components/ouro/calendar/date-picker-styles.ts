@@ -9,7 +9,11 @@ function numeric(locale: string): Intl.DateTimeFormat {
   return new Intl.DateTimeFormat(locale, { year: "numeric", month: "2-digit", day: "2-digit", numberingSystem: "latn", timeZone: "UTC" });
 }
 
-/** The year ending in two typed digits that lies from 50 years before this year to 49 after it. */
+/**
+ * The year ending in two typed digits that lies from 50 years before this year to 49 after it.
+ *
+ * @claim "The year ending in two typed" registry/ouro/components/ouro/calendar/date-picker.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/date-picker.test.tsx::DatePicker > typing > reads a two-digit year as the year within 50 years of today)
+ */
 function fullYear(twoDigits: number): number {
   const earliest = new Date().getFullYear() - 50;
   const year = Math.floor(earliest / 100) * 100 + twoDigits;
@@ -21,6 +25,8 @@ function fullYear(twoDigits: number): number {
  * en-US), or `""` for no date.
  *
  * @internal
+ * @claim "An ISO date as the locale" registry/ouro/components/ouro/calendar/date-picker.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/date-picker.test.tsx::DatePicker > typing > reads the locale's numbers or ISO, and writes the date the locale's way on blur)
+ * @claim "An ISO date as the locale" registry/ouro/components/ouro/calendar/date-picker.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/date-picker.test.tsx::DatePicker > value > reformats when the locale changes, and ignores values that are not ISO dates)
  */
 function formatDateInput(iso: string, locale: string): string {
   return iso === "" ? "" : numeric(locale).format(new Date(`${iso}T00:00:00Z`));
@@ -33,6 +39,8 @@ function formatDateInput(iso: string, locale: string): string {
  * an ISO date as it is.
  *
  * @internal
+ * @claim "It reads the locale's order of" registry/ouro/components/ouro/calendar/date-picker.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/date-picker.test.tsx::DatePicker > typing > reads a two-digit year as the year within 50 years of today)
+ * @claim "It reads the locale's order of" registry/ouro/components/ouro/calendar/date-picker.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/date-picker.test.tsx::DatePicker > typing > reads the locale's numbers or ISO, and writes the date the locale's way on blur)
  */
 function parseDateInput(text: string, locale: string): string | null {
   const iso = /^\s*(\d{4})-(\d{1,2})-(\d{1,2})\s*$/.exec(text);

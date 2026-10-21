@@ -1,5 +1,6 @@
 import catalog from "./catalog.json";
 import { markdown } from "./content";
+import { GITHUB } from "../paths";
 import { installedPaths } from "./items";
 import pages from "./pages.json";
 
@@ -61,10 +62,28 @@ export function publishedName(link: string, from: string): { name: string; fragm
   return name === undefined ? undefined : { name, fragment: fragment === "" ? "" : `#${fragment}` };
 }
 
-/** A page's Markdown as the site publishes it at docs/<name>.md: installed paths, and links to the published `.md` files. */
+/**
+ * A relative link to a repository file that is not a docs page (a claim's source, such as
+ * `../../scripts/claims.mjs#L12`), as its address on GitHub, so it opens from the site too.
+ * `from` is the Markdown file's path from the repository root.
+ */
+export function repositoryLink(link: string, from: string): string | undefined {
+  const [path = "", fragment = ""] = link.split("#");
+  if (path === "" || path.startsWith("/") || /^[a-z][a-z\d+.-]*:/i.test(path)) return undefined;
+  const dir = from.split("/").slice(0, -1);
+  for (const part of path.split("/")) {
+    if (part === "..") dir.pop();
+    else if (part !== ".") dir.push(part);
+  }
+  return `${GITHUB}/blob/main/${dir.join("/")}${fragment === "" ? "" : `#${fragment}`}`;
+}
+
+/** A page's Markdown as the site publishes it at docs/<name>.md: installed paths, links to the published `.md` files, and other repository links on GitHub. */
 export function publishedMarkdown(markdown: string, from: string): string {
-  return installedPaths(markdown).replace(/\]\(([^)\s]+)\)/g, (whole, link: string) => {
+  return installedPaths(markdown).replace(/\]\(([^)\s]+)((?:\s+"[^"]*")?)\)/g, (whole, link: string, title: string) => {
     const target = publishedName(link, from);
-    return target ? `](${target.name}.md${target.fragment})` : whole;
+    if (target) return `](${target.name}.md${target.fragment}${title})`;
+    const repository = repositoryLink(link, from);
+    return repository ? `](${repository}${title})` : whole;
   });
 }

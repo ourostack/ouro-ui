@@ -44,7 +44,11 @@ export interface CommandItem {
   label: string;
   /** Runs the command. The palette closes first. */
   onSelect: () => void;
-  /** More words the search matches, which never show: `keywords: ["dark mode"]`. */
+  /**
+   * More words the search matches, which never show: `keywords: ["dark mode"]`.
+   *
+   * @claim "More words the search matches, which" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > filters by label and keywords, ignoring case and accents, and hides empty groups)
+   */
   keywords?: readonly string[] | undefined;
   /** The keys of the command's shortcut, shown at its end with `Kbd`: `["mod", "n"]`. It does not bind them. */
   shortcut?: readonly string[] | undefined;
@@ -68,7 +72,11 @@ export type CommandEntry = CommandItem | CommandGroup;
 
 /** Props shared by both ways of opening a Command palette. */
 export interface CommandBaseProps {
-  /** Names the palette for screen readers; it is not shown. Always required. */
+  /**
+   * Names the palette for screen readers; it is not shown. It is always required.
+   *
+   * @claim "It is always required" registry/ouro/components/ouro/command/command.test-d.ts verify:fileLine(registry/ouro/components/ouro/command/command.test-d.ts, /\{\strigger:\sReactElement;\sitems:\sCommandEntry\[\]\s\}>\(\)\.not\.toExtend<CommandProps>/)
+   */
   title: string;
   /** The commands: groups (`{ label: "Recipes", items: [...] }`), single commands, or both. */
   items: readonly CommandEntry[];
@@ -81,6 +89,7 @@ export interface CommandBaseProps {
   /**
    * The label of the close button, hidden until it has keyboard focus, so screen-reader
    * users on phones (who have no Escape key) can always close the palette. @default "Close"
+   * @claim "The label of the close button" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > labels the search input and its close button, translated)
    */
   closeLabel?: string | undefined;
   /** Layout only, applied to the dialog panel: margins (`mt-8`). Appearance classes warn in development. */
@@ -104,12 +113,19 @@ export interface CommandBaseProps {
    *     .then((results) => { setResults(results); setLoading(false); })
    *     .catch(() => { if (!signal.aborted) setLoading(false); });
    * }}
+   * @claim "For results from a server: called" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command server search > asks again for the current query when the palette switches between dialog and sheet across 640px)
+   * @claim "For results from a server: called" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command server search > keeps the phone sheet's search input still while server results change)
+   * @claim "For results from a server: called" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command server search > passes each query to onQueryChange, shows the app's results unfiltered, and keeps stale results while loading)
+   * @claim "`signal` aborts when a newer query" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command server search > drops a slow earlier response that arrives after a newer one)
+   * @claim "`signal` aborts when a newer query" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command server search > takes a translated loading label, and aborts the last search when the palette closes)
    */
   onQueryChange?: ((query: string, context: { signal: AbortSignal }) => void) | undefined;
   /**
    * Whether results are on their way: shows `loadingLabel` beside the input, announces it
    * politely for the first load of each opening (not again while typing goes on), and holds
    * back the empty state. Set it back to false when the request fails or aborts.
+   * @claim "Whether results are on their way" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command server search > says it is searching politely, once while typing goes on, and shows the empty state only after loading)
+   * @claim "Whether results are on their way" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command server search > announces loading again after the palette closes and opens)
    */
   loading?: boolean | undefined;
   /** What shows, and is announced, while `loading`. @default "Searching…" */
@@ -140,6 +156,8 @@ export type CommandControlledProps = CommandBaseProps & {
   /**
    * Whether the palette is open. After a key press it focuses the search input; after a
    * touch or pen tap it focuses itself, so no software keyboard pops up.
+   * @claim "After a key press it focuses" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::controlled Command > focuses the palette, not the input, after a pen tap, so no keyboard pops up)
+   * @claim "After a key press it focuses" registry/ouro/components/ouro/command/command.touch.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.touch.test.tsx::Command on a phone > opens from a tap as a full-height sheet focused on itself, with 44px commands and a 16px search input)
    */
   open: boolean;
   /** Called with `false` when the user closes the palette (Escape, outside press, swipe), and when a command runs. */
@@ -159,7 +177,11 @@ type TriggerProps = {
   "aria-expanded"?: boolean;
 };
 
-/** A run of commands under one heading, or none for loose commands. */
+/**
+ * A run of commands under one heading, or none for loose commands.
+ *
+ * @claim "A run of commands under one" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > lists loose items without a group heading)
+ */
 interface Group {
   label: string | undefined;
   items: CommandItem[];
@@ -167,7 +189,11 @@ interface Group {
 
 const itemsFix = '<Command items={[{ label: "New recipe", onSelect: create }]}>';
 
-/** Groups as given, with each run of loose commands in a group without a heading. */
+/**
+ * Groups as given, with each run of loose commands in a group without a heading.
+ *
+ * @claim "Groups as given, with each run" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > lists loose items without a group heading)
+ */
 function toGroups(entries: readonly CommandEntry[]): Group[] {
   const groups: Group[] = [];
   for (const entry of entries) {
@@ -182,7 +208,11 @@ function toGroups(entries: readonly CommandEntry[]): Group[] {
   return groups;
 }
 
-/** A 16px magnifier in the text color. */
+/**
+ * A 16px magnifier in the text color.
+ *
+ * @claim "A 16px magnifier in the text" registry/ouro/components/ouro/command/command.tsx verify:fileLine(registry/ouro/components/ouro/command/command.tsx, /<svg\saria-hidden="true"\sviewBox="0\s0\s16\s16"\sfill="none">/)
+ */
 /** Marks the hidden input Base UI keeps the query in. */
 const markInput = controlRef("command", "hidden-input");
 
@@ -230,6 +260,10 @@ function SearchIcon(): JSX.Element {
  *     { label: "Switch theme", onSelect: toggleTheme, keywords: ["dark mode"] },
  *   ]}
  * />
+ * @claim "Below 640px it is a full-height" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command presentation > is a full-height bottom sheet below 640px, whose search input stays put while results filter)
+ * @claim "A command palette: a searchable list" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > opens a dialog named by its title, with the search input focused and every group listed)
+ * @claim "It never fires while an input" registry/ouro/lib/ouro/use-command-shortcut.test.tsx verify:testExists(registry/ouro/lib/ouro/use-command-shortcut.test.tsx::useCommandShortcut > does not fire while an input method is composing text)
+ * @claim "It never fires while an input" registry/ouro/lib/ouro/use-command-shortcut.test.tsx verify:fileLine(registry/ouro/lib/ouro/use-command-shortcut.test.tsx, /never\stakes\sa\sshortcut\swithout\smod,\smeta\sor\sctrl\sfrom\styping\sin/)
  */
 export function Command(props: CommandProps): JSX.Element {
   const {

@@ -26,7 +26,7 @@ Type: `CelebrateProps`.
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: placement (`mx-auto`, `mt-4`). Appearance classes warn in development. |
 | `hideMessage` | `boolean` |  | Speaks the message without showing the badge, for a screen that already says it. The confetti still bursts. |
-| `message` (required) | `string` |  | What was achieved, in a few words: "List cleared", "All steps done". Shown in a badge and spoken. |
+| `message` (required) | `string` |  | What was achieved, in a few words: "List cleared", "Steps done". Shown in a badge and spoken. |
 | `ref` | `Ref<HTMLSpanElement>` |  | Reaches the rendered element. |
 | `show` (required) | `boolean` |  | Whether the moment is happening. When it turns `true`, confetti bursts from the message and screen readers hear the message, once; set it back to `false` to clear it, and to `true` again for another burst. |
 
@@ -44,8 +44,10 @@ These are not props. Passing one fails the type check with the fix in the error,
 
 ## `className` is for layout only
 
-Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your classes always win over Ouro UI's: each component merges `className` last with `cn` (tailwind-merge), so a class that conflicts with the component's own replaces it.
+Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your classes always win over Ouro UI's: Celebrate merges `className` last with `cn` (tailwind-merge), so a class that conflicts with its own replaces it.[^layout-classes]
 
 Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
+
+[^layout-classes]: test:registry/ouro/components/ouro/celebrate/celebrate.test.tsx::Celebrate > forwards a ref, passes attributes through, and lets layout classes win verify:testExists(registry/ouro/components/ouro/celebrate/celebrate.test.tsx::Celebrate > forwards a ref, passes attributes through, and lets layout classes win)
