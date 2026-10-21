@@ -106,5 +106,9 @@
   "https://www.w3.org/TR/WCAG22/#keyboard": {
     "status": 200,
     "checked": "2026-10-21"
+  },
+  "https://www.w3.org/TR/WCAG22/#non-text-contrast": {
+    "status": 200,
+    "checked": "2026-10-21"
   }
 }

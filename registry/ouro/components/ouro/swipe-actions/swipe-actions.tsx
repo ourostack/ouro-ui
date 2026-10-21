@@ -203,6 +203,9 @@ function Strip({
  *     </SwipeActions>
  *   ))}
  * </ItemGroup>
+ * @claim registry/ouro/components/ouro/swipe-actions/swipe-actions.test.tsx verify:testExists(registry/ouro/components/ouro/swipe-actions/swipe-actions.test.tsx::SwipeActions > runs the primary action on a full swipe of either side)
+ * @claim registry/ouro/components/ouro/swipe-actions/swipe-actions.touch.test.tsx verify:testExists(registry/ouro/components/ouro/swipe-actions/swipe-actions.touch.test.tsx::SwipeActions on a phone > commits the primary action with a full swipe, once, and closes the row)
+ * @claim registry/ouro/components/ouro/swipe-actions/swipe-actions.test.tsx verify:testExists(registry/ouro/components/ouro/swipe-actions/swipe-actions.test.tsx::SwipeActions > does not run the primary action when a full swipe is flicked back, and opens the side instead of nothing)
  */
 export function SwipeActions(props: SwipeActionsProps): JSX.Element {
   const {

@@ -54,6 +54,8 @@ export interface TabsProps {
    * from the `sm` breakpoint (640px) up, and in a row on a phone. The arrow keys follow:
    * left and right in a row, up and down in a column.
    * @default "horizontal"
+   * @claim registry/ouro/components/ouro/tabs/tabs.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > puts vertical tabs in a row above the panel on a narrow screen)
+   * @claim registry/ouro/components/ouro/tabs/tabs.touch.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.touch.test.tsx::stacks vertical tabs in a row on a phone)
    */
   orientation?: TabsOrientation | (string & { 'Use "horizontal" or "vertical"': never }) | undefined;
   /**
@@ -106,6 +108,9 @@ function duplicateValue(items: readonly TabsItem[]): string | undefined {
  *     { value: "method", label: "Method", content: <Steps /> },
  *   ]}
  * />
+ * @claim registry/ouro/components/ouro/tabs/tabs.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > renders a labelled tab list with the first tab selected and its panel shown)
+ * @claim registry/ouro/components/ouro/tabs/tabs.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > slides the indicator under the selected tab)
+ * @claim registry/ouro/components/ouro/tabs/tabs.touch.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.touch.test.tsx::keeps 44px tabs with 16px text on a phone, also in landscape)
  */
 export function Tabs(props: TabsProps): JSX.Element {
   const {
