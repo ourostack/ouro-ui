@@ -14,7 +14,7 @@ node scripts/claims.mjs ratchet    # claims.config.json's exemptions against CLA
 
 Where they run:
 
-- The `ci` check runs `pnpm claims:check`, in its `checks` job. On a pull request it first runs the ratchet against the base branch, then reads the required checks at the base branch and fetches again the addresses the pull request adds to the cache or changes (`--network=changed`).[^ci] After editing the description to name an exemption, re-run the `checks` job.
+- The `ci` check runs `pnpm claims:check`, in its `checks` job. On a pull request it first runs the ratchet against the base branch, then reads the required checks at the base branch and fetches again the addresses the pull request adds to the cache or changes (`--network=changed`).[^ci] After editing the description to name an exemption, push again: a re-run of the job reads the description its run started with.
 - The Claims workflow lints a pull request's title and body, and runs the ratchet, when the pull request opens and whenever its description is edited.[^claims-workflow]
 - The Claim addresses workflow runs `pnpm claims:check --network` every week.[^addresses-workflow]
 

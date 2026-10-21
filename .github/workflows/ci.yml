@@ -103,8 +103,8 @@ jobs:
       # the checkout; urlOk reads scripts/claims-urls.json. On a pull request, the required checks
       # are read at its base, and the addresses it adds to the cache or changes are fetched again.
       # The ratchet runs here too, in a required check: what the pull request adds to, changes in
-      # or removes from claims.config.json's exemptions must be named in its description (push
-      # again or re-run this job after editing the description).
+      # or removes from claims.config.json's exemptions must be named in its description. After
+      # editing the description, push again: a re-run reads the description the run started with.
       - name: Claims
         env:
           BASE_REF: ${{ github.base_ref }}
