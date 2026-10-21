@@ -94,6 +94,7 @@ const MAX_DEPTH = 40;
  * Whether two error values hold the same content: equal text, arrays and plain objects with
  * equal entries, and React elements of the same type and key with equal props. An app that
  * builds its errors object while rendering passes a new, equal one on every render.
+ * @claim registry/ouro/components/ouro/form/form.test.tsx verify:testExists(registry/ouro/components/ouro/form/form.test.tsx::Form > compares errors by content: an equal object rebuilt on every render shows nothing again and moves no focus)
  */
 function sameContent(a: unknown, b: unknown, depth = 0): boolean {
   if (Object.is(a, b)) return true;

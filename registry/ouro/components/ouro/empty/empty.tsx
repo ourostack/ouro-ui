@@ -34,6 +34,8 @@ export interface EmptyOwnProps {
    * `center` centers everything, for a page or panel; `start` lines it up with the text
    * around it.
    * @default "center"
+   * @claim registry/ouro/components/ouro/empty/empty.test.tsx verify:testExists(registry/ouro/components/ouro/empty/empty.test.tsx::Empty > centers its content and draws a dashed outline by default)
+   * @claim registry/ouro/components/ouro/empty/empty.test.tsx verify:testExists(registry/ouro/components/ouro/empty/empty.test.tsx::Empty > has no outline with variant=plain, and aligns to the start with align=start)
    */
   align?: "center" | "start" | (string & { 'Use "center" or "start": left is "start"': never }) | undefined;
   /** Layout only: margins, width, grid placement (`mt-6`). Appearance classes warn in development; use `variant`. */

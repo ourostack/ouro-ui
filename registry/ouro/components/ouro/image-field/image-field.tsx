@@ -44,13 +44,22 @@ export interface ImageFieldProps {
   alt?: string | undefined;
   /** The types it takes, as the file input's `accept`. @default "image/*" */
   accept?: string | undefined;
-  /** The largest file it takes, in bytes. */
+  /**
+   * The largest file it takes, in bytes.
+   *
+   * @claim registry/ouro/components/ouro/image-field/image-field.test.tsx verify:testExists(registry/ouro/components/ouro/image-field/image-field.test.tsx::ImageField > turns away a file that is not an image or is too large, keeping what showed, and says why)
+   */
   maxSize?: number | undefined;
   /** The preview's width divided by its height, and the crop's. @default 1 */
   aspect?: number | undefined;
   /** `circle` shows and crops a round photo, for a profile; `rect` a rounded rectangle. @default "rect" */
   shape?: "rect" | "circle" | (string & { 'Use "rect" or "circle"': never }) | undefined;
-  /** Opens the cropper on every chosen photo, so it fits `aspect` and `shape`: `crop` or `crop={{ outputWidth: 512 }}`. */
+  /**
+   * Opens the cropper on every chosen photo, so it fits `aspect` and `shape`: `crop` or `crop={{ outputWidth: 512 }}`.
+   *
+   * @claim registry/ouro/components/ouro/image-field/image-field.test.tsx verify:testExists(registry/ouro/components/ouro/image-field/image-field.test.tsx::ImageField > crops a chosen photo first with crop, and keeps the field as it was when the crop is cancelled)
+   * @claim registry/ouro/components/ouro/image-field/image-field.test.tsx verify:testExists(registry/ouro/components/ouro/image-field/image-field.test.tsx::ImageField > crops with the defaults when crop is true)
+   */
   crop?: boolean | ImageFieldCrop | undefined;
   /** Called with the chosen photo (cropped, with `crop`), or `null` when it is removed. A photo comes here once the browser has opened it. */
   onFileChange?: ((file: File | null) => void) | undefined;
