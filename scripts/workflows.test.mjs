@@ -818,7 +818,7 @@ test("the budget job waits on every other job, reads the run's jobs and nothing 
   // It runs whatever the other jobs did, but not on a cancelled run, which would hold a runner for
   // nothing, nor on a push the merge queue already tested, which runs nothing to measure.
   assert.equal(block.match(/^ {4}if: (.+)$/m)?.[1], untested);
-  // Whether the run was full, which the median of full runs reads back from its ci-timings artifact.
+  // Whether the run was full, which its ci-timings record says.
   assert.match(block, /^ {10}FULL: \$\{\{ needs\.plan\.outputs\.full != 'false' \}\}$/m);
   assert.match(block, /^ {4}permissions:\n {6}actions: read\n {6}contents: read\n/m);
   const needs = block.match(/^ {4}needs: \[([^\]]*)\]$/m)[1].split(",").map((need) => need.trim());

@@ -806,9 +806,10 @@ jobs:
     # Records this run's critical path, the longest chain of jobs that wait on one another, each
     # counted from its start to its end so a queue for a free runner does not count, and its wall
     # time, in the step summary and the ci-timings artifact (scripts/ci-budget.mjs). On a pull
-    # request a critical path over budget (the CI target, plus a margin for runner noise) warns; the
-    # check fails when the median of the last full runs is over it, or one run passes a hard ceiling
-    # (scripts/ci-budget.mjs, judge). It also records the wall time a developer waits, queues included, with its median
+    # request a critical path over budget (the CI target, plus a margin for runner noise) fails only
+    # when it is also more than 2 minutes over main's baseline, the median of main's latest passing
+    # merge queue runs, or passes a hard ceiling; otherwise it warns, also when main itself is over
+    # budget (scripts/ci-budget.mjs, judge). It also records the wall time a developer waits, queues included, with its median
     # over the latest runs, and the runner time the run took from the shared pool. A required check
     # (ruleset 24881709); it fails only a pull request, never a merge group or a push.
     needs: [plan, motion-coverage, themes, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-latest, install-upgrade, install-github]
