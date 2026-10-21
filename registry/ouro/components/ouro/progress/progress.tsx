@@ -86,6 +86,7 @@ const indicatorClass =
   "motion-reduce:data-indeterminate:w-full! motion-reduce:data-indeterminate:animate-[ouro-pulse_1.6s_ease-in-out_infinite]";
 
 /** No store to subscribe to: `useSyncExternalStore` only tells the server and hydration apart from the browser. */
+// Stryker disable next-line ArrowFunction: React takes an unsubscribe of undefined as none, and this store never changes.
 const noSubscription = () => () => {};
 
 /**
@@ -153,7 +154,12 @@ export function Progress(props: ProgressProps): JSX.Element {
   // The reader's locale is unknown on the server and during hydration, so both write the value in
   // en-US (Base UI keeps a formatter per locale, so no formatter made earlier in another locale is
   // reused), and the reader's browser switches to its own once hydrated.
-  const hydrated = useSyncExternalStore(noSubscription, () => true, () => false);
+  const hydrated = useSyncExternalStore(
+    noSubscription,
+    () => true,
+    // Stryker disable next-line ArrowFunction: undefined, like false, reads as not yet hydrated.
+    () => false,
+  );
   return (
     <BaseProgress.Root
       ref={ref}

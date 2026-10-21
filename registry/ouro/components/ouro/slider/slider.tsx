@@ -133,6 +133,7 @@ function rangeOwner(labelId: string) {
 }
 
 /** No store to subscribe to: `useSyncExternalStore` only tells the server and hydration apart from the browser. */
+// Stryker disable next-line ArrowFunction: React takes an unsubscribe of undefined as none, and this store never changes.
 const noSubscription = () => () => {};
 
 /**
@@ -314,7 +315,12 @@ function SliderControl({
   // Without a locale, the reader's is unknown on the server and during hydration, so both read
   // en-US (Base UI keeps a formatter per locale, so the page's default never leaks in from a
   // formatter made earlier) and the reader's browser switches to its own once hydrated.
-  const hydrated = useSyncExternalStore(noSubscription, () => true, () => false);
+  const hydrated = useSyncExternalStore(
+    noSubscription,
+    () => true,
+    // Stryker disable next-line ArrowFunction: undefined, like false, reads as not yet hydrated.
+    () => false,
+  );
   const locale = shared.locale ?? (hydrated ? undefined : SERVER_LOCALE);
   // Samples of the widest value text, all reserved so the track keeps its length: each end's
   // integer part with the step's decimals (Base UI's defaults are 0, 100 and a step of 1), plus
