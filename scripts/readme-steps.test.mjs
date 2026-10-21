@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { readmeSteps, routerAdapterFiles } from "./readme-steps.mjs";
+import { scratchDir } from "./scratch.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (path) => readFileSync(join(root, path), "utf8");
@@ -72,7 +72,7 @@ test("the React Router adapter the OuroProvider page prints is two files the ins
 });
 
 test("write-router writes the adapter with the app's alias in place of @/", () => {
-  const app = mkdtempSync(join(tmpdir(), "ouro-router-"));
+  const app = scratchDir("ouro-router-");
   const result = spawnSync("node", [join(root, "scripts/readme-steps.mjs"), "write-router", app, "~/"], { encoding: "utf8" });
   assert.equal(result.status, 0, result.stderr);
   const rootFile = readFileSync(join(app, "src/root.tsx"), "utf8");
