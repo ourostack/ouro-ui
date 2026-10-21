@@ -2,10 +2,22 @@ import { useState, type ComponentProps, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { Pagination, type PaginationProps } from "@/registry/ouro/components/ouro/pagination/pagination";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+
+/** An element's fill as it shows: none when it is the colour behind it, as forced colours make most fills. */
+function shownFill(element: Element): string {
+  const fill = getComputedStyle(element).backgroundColor;
+  if (fill === "transparent" || /rgba\(.*,\s*0\)$/.test(fill)) return "none";
+  for (let node = element.parentElement; node; node = node.parentElement) {
+    const color = getComputedStyle(node).backgroundColor;
+    if (color !== "transparent" && !/rgba\(.*,\s*0\)$/.test(color)) return fill === color ? "none" : fill;
+  }
+  return fill === "rgb(255, 255, 255)" ? "none" : fill;
+}
+
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -46,6 +58,22 @@ afterEach(async () => {
 const href = (target: number) => `/recipes?page=${target}`;
 
 describe("Pagination", () => {
+  it("tells the current page from the rest under forced colours, which drop its fill", async () => {
+    for (const props of [{ href }, { onPageChange: () => {} }]) {
+      await render(<Pagination page={3} pageCount={5} {...props} />);
+      await commands.emulateMedia({ forcedColors: "active" });
+      try {
+        const look = (name: string) => {
+          const element = [...document.querySelectorAll(`[aria-label="${name}"]`)].at(-1)!;
+          return `${shownFill(element)} ${getComputedStyle(element).color} ${getComputedStyle(element).borderTopStyle}`;
+        };
+        expect(look("Page 3")).not.toBe(look("Page 2"));
+      } finally {
+        await commands.emulateMedia({ forcedColors: "none" });
+      }
+    }
+  });
+
   it("renders a labelled nav of plain links, with the current page marked", async () => {
     const { nav } = await render(<Pagination page={3} pageCount={5} href={href} />);
     expect(nav.tagName).toBe("NAV");

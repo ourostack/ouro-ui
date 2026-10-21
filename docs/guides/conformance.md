@@ -21,7 +21,7 @@ The checks live in `test/conformance/` and run in their own Vitest project, `con
 | Server/client mismatch | Every story is rendered to HTML as a server in UTC and en-US would, then hydrated in America/Los_Angeles with de-DE and in Asia/Tokyo with ja-JP. The server and each reader are separate frames (`frame.tsx`), each with its own copy of every module, so a formatter cached under one locale is never read under another. A recoverable error or an attribute mismatch fails. | `hydration.test.tsx` |
 | Right to left | Every story renders with `dir="rtl"` on `<html>`, closed and with each overlay open, at 390px and 1280px: nothing may stick out of the viewport sideways. | `rtl.test.tsx` |
 | Physical sides in the source | `physicalUtilities` in `scripts/source-rules.mjs` fails on `left-*`, `right-*`, `ml-*`, `mr-*`, `pl-*`, `pr-*`, `border-l`, `border-r`, `rounded-l-*`, `rounded-r-*`, the corner radii, `text-left`, `text-right`, `float-*` and `clear-*` on a side, unless `physicalAllowed` lists the class with its reason. | `scripts/source-rules.test.mjs` |
-| Forced colours | Under `forced-colors: active`, closed and with each overlay open: every box a person presses, types into, drags or scrolls keeps an edge (a border or outline on it, inside it or on its component's frame); a checked, selected, pressed or current control looks different from one that is not; and focusing each control from the keyboard changes what its component shows. | `forced-colors.test.tsx` |
+| Forced colours | Under `forced-colors: active`, closed and with each overlay open: every box a person presses, types into, drags or scrolls keeps an edge (a border or outline on it, inside it or on its component's frame); a checked, selected, pressed or current control looks different from one that is not; and focusing each control from the keyboard changes what its component shows, while the highlight moving onto each option or item of a list or menu shows too. A fill in the colour behind it counts as no fill, and a control that never takes keyboard focus there fails as uncompared. | `forced-colors.test.tsx` |
 
 Motion is already held the same way, by `pnpm motion:coverage`.
 
@@ -33,6 +33,8 @@ Motion is already held the same way, by `pnpm motion:coverage`.
 - **"no edge"**: forced colours drop fills and shadows. Add a border that only forced colours draw, `forced-colors:border forced-colors:border-solid`, or for a scrollable region that is a tab stop, an outline: `forced-colors:[&[tabindex='0']]:outline-1 forced-colors:[&[tabindex='0']]:outline-solid`.
 - **"on looks like off"**: the state was a fill. Paint it with the system's pair, `forced-colors:data-pressed:bg-[Highlight] forced-colors:data-pressed:text-[HighlightText]` (Tabs' and SegmentedControl's selected item).
 - **"focus shows nothing"**: the focus ring was a box shadow. Draw it with `outline`, which forced colours keep.
+- **"highlight shows nothing"**: an option's or item's highlight was a fill. Add `forced-colors:data-highlighted:bg-[Highlight] forced-colors:data-highlighted:text-[HighlightText]` (Menu, Select, Combobox, Command). On a link, add `forced-colors:forced-color-adjust-none` with the pair, since Chromium paints a link's background in the canvas colour whatever it is (Pagination's current page).
+- **"focus never compared"**: the control took no keyboard focus when focused, or kept it when blurred. Make it reachable from the keyboard: a tab stop, or a roving item its group moves focus onto.
 
 ## Declaring an exception
 

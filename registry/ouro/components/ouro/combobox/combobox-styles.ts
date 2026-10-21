@@ -98,6 +98,8 @@ const itemClass =
   "relative box-border grid min-h-11 cursor-default grid-cols-[1rem_1fr] items-center gap-2 rounded-sm px-2 py-1.5 " +
   "text-base leading-5 outline-none select-none sm:pointer-fine:min-h-8 sm:pointer-fine:text-sm " +
   "data-highlighted:bg-accent data-highlighted:text-accent-foreground not-data-disabled:active:bg-accent not-data-disabled:active:text-accent-foreground " +
+  // Forced colours drop the fill, so the highlight takes the system's pair.
+  "forced-colors:data-highlighted:bg-[Highlight] forced-colors:data-highlighted:text-[HighlightText] " +
   "data-disabled:cursor-not-allowed data-disabled:opacity-50 [&_svg]:size-4";
 
 /**

@@ -100,7 +100,11 @@ const cell =
   "tabular-nums select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 const live = "cursor-pointer pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground motion-safe:active:scale-(--ouro-press-scale)";
-const currentCell = "aria-[current=page]:bg-secondary aria-[current=page]:text-secondary-foreground";
+// Forced colours drop the fill, so the current page takes the system's highlight pair, kept as it
+// is (Chromium paints even a system colour behind a link in the canvas colour otherwise).
+const currentCell =
+  "aria-[current=page]:bg-secondary aria-[current=page]:text-secondary-foreground " +
+  "forced-colors:aria-[current=page]:forced-color-adjust-none forced-colors:aria-[current=page]:bg-[Highlight] forced-colors:aria-[current=page]:text-[HighlightText]";
 const off = "cursor-not-allowed opacity-50";
 
 function fill(template: string, page: number, pageCount?: number): string {

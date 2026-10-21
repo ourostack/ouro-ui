@@ -169,6 +169,10 @@ const dayClass =
   "aria-[current=date]:font-semibold aria-[current=date]:underline aria-[current=date]:underline-offset-4 " +
   "data-in-range:bg-accent data-in-range:text-accent-foreground " +
   "data-selected:bg-primary data-selected:text-primary-foreground " +
+  // Forced colours drop the fills: the chosen days take the system's highlight pair, and the days
+  // between a range's ends a border.
+  "forced-colors:data-in-range:border forced-colors:data-in-range:border-solid " +
+  "forced-colors:data-selected:bg-[Highlight] forced-colors:data-selected:text-[HighlightText] " +
   "aria-disabled:cursor-not-allowed aria-disabled:line-through aria-disabled:opacity-50";
 
 /**

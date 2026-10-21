@@ -10,6 +10,16 @@ import { Select, type SelectProps } from "@/registry/ouro/components/ouro/select
 import { SelectGroup, SelectItem } from "@/registry/ouro/components/ouro/select/select-parts";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
+/** The colour behind an element: the nearest background around it that is not transparent. */
+function behind(element: Element): string {
+  for (let node = element.parentElement; node; node = node.parentElement) {
+    const color = getComputedStyle(node).backgroundColor;
+    if (color !== "transparent" && !/rgba\(.*,\s*0\)$/.test(color)) return color;
+  }
+  return "rgb(255, 255, 255)";
+}
+
+
 const roots: Root[] = [];
 let mounted: Element[] = [];
 
@@ -109,7 +119,22 @@ describe("Select", () => {
     expect(trigger.getAttribute("aria-haspopup")).toBe("listbox");
   });
 
+  it("shows the highlighted option in the system's highlight colours under forced colours, where its fill is dropped", async () => {
+    const { trigger } = await render(<Select label="Course" name="course" options={courses} />);
+    await open(trigger);
+    await userEvent.hover(option("Main"));
+    await expect.element(option("Main")).toHaveAttribute("data-highlighted");
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      const main = option("Main").element();
+      expect(getComputedStyle(main).backgroundColor).not.toBe(behind(main));
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
   it("chooses an option, shows its label and submits its value", async () => {
+
     const onValueChange = vi.fn();
     const { trigger, hidden } = await render(<Select label="Course" name="course" options={courses} onValueChange={onValueChange} />);
     await open(trigger);
