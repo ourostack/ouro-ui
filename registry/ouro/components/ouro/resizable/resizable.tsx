@@ -87,7 +87,12 @@ export interface ResizableGroupProps {
    * @claim "Called with every panel's size, in" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable handle (window splitter) > resizes when dragged with a pointer, within the panels' limits)
    */
   onLayout?: ((sizes: number[]) => void) | undefined;
-  /** Each handle's accessible name; `{panel}` is the label of the panel before it. @default "Resize {panel}" */
+  /**
+   * Each handle's accessible name; `{panel}` is the label of the panel before it. @default "Resize {panel}"
+   *
+   * @claim "Each handle's accessible name; `{panel}` is" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable handle (window splitter) > is a focusable separator for the panel before it)
+   * @claim "Each handle's accessible name; `{panel}` is" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable layout > shares the space left over between panels without a defaultSize)
+   */
   handleLabel?: string | undefined;
   /** Layout only: the group fills its container; give it a size (`h-96`) or margins. Appearance classes warn in development. */
   className?: string | undefined;
@@ -98,7 +103,11 @@ export interface ResizableGroupProps {
 
 /** Props for {@link ResizablePanelGroup}. */
 export interface ResizablePanelGroupProps extends ResizableGroupProps {
-  /** `ResizablePanel` elements with a `ResizableHandle` between each pair, as direct children. */
+  /**
+   * `ResizablePanel` elements with a `ResizableHandle` between each pair, as direct children.
+   *
+   * @claim "`ResizablePanel` elements with a `ResizableHandle` between" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable layout > lays panels side by side at their default sizes with a handle between)
+   */
   children: ReactNode;
 }
 
@@ -260,7 +269,11 @@ export function ResizablePanelGroup(props: ResizablePanelGroupProps): JSX.Elemen
 
 /** Props for {@link ResizablePanel}. */
 export interface ResizablePanelProps {
-  /** Names the panel; the handle after it is called "Resize {label}" for screen readers. Always required. */
+  /**
+   * Names the panel; the handle after it is called "Resize {label}" for screen readers. Always required.
+   *
+   * @claim "Always required" registry/ouro/components/ouro/resizable/resizable.test-d.ts verify:fileLine(registry/ouro/components/ouro/resizable/resizable.test-d.ts, /@ts-expect-error\slabel\sis\srequired\./)
+   */
   label: string;
   /** The starting size, in percent of the group. Panels without one share what is left. */
   defaultSize?: number | undefined;
@@ -348,7 +361,11 @@ export interface ResizableHandleProps {
   /** This handle's accessible name, in place of the group's `handleLabel` ("Resize Files"). */
   "aria-label"?: string | undefined;
 
-  /** Not a prop. The handle always shows its grip: `<ResizableHandle />`. */
+  /**
+   * Not a prop. The handle always shows its grip: `<ResizableHandle />`.
+   *
+   * @claim "The handle always shows its grip" registry/ouro/components/ouro/resizable/resizable.test-d.ts verify:fileLine(registry/ouro/components/ouro/resizable/resizable.test-d.ts, /\{\swithHandle:\strue\s\}>\(\)\.not\.toExtend<ResizableHandleProps>/)
+   */
   withHandle?: { 'The handle always shows its grip; remove withHandle': never };
 }
 
@@ -523,7 +540,12 @@ export function ResizableHandle({ "aria-label": ariaLabel, withHandle }: Resizab
 
 /** Props for {@link Resizable}. */
 export interface ResizableProps extends ResizableGroupProps {
-  /** Two or more `ResizablePanel` elements, as direct children. A handle goes between each pair. */
+  /**
+   * Two or more `ResizablePanel` elements, as direct children. A handle goes between each pair.
+   *
+   * @claim "Two or more `ResizablePanel` elements, as" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable layout > lays panels side by side at their default sizes with a handle between)
+   * @claim "A handle goes between each pair" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable layout > lays panels side by side at their default sizes with a handle between)
+   */
   children: ReactNode;
 }
 
@@ -552,6 +574,8 @@ export interface ResizableProps extends ResizableGroupProps {
  * @claim "Each handle is a window splitter" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable handle (window splitter) > resizes with the arrow keys, Home, End and Enter)
  * @claim "Each handle is a window splitter" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable handle (window splitter) > is a focusable separator for the panel before it)
  * @claim "Each handle is a window splitter" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable handle (window splitter) > gives the handle a hit area wider than its line)
+ * @claim "Panels side by side (or stacked)" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable layout > lays panels side by side at their default sizes with a handle between)
+ * @claim "Panels side by side (or stacked)" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable layout > stacks panels with orientation vertical)
  */
 export function Resizable({ children, ...props }: ResizableProps): JSX.Element {
   const items = Children.toArray(children);

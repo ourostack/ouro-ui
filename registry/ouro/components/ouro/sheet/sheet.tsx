@@ -24,7 +24,11 @@ export type { SheetSide, SheetSnapPoint } from "@/registry/ouro/components/ouro/
 
 /** Props shared by both ways of opening a Sheet. */
 export interface SheetBaseProps {
-  /** Names the sheet for screen readers and shows at its top. Always required; hide it with `hideTitle`. */
+  /**
+   * Names the sheet for screen readers and shows at its top. Always required; hide it with `hideTitle`.
+   *
+   * @claim "Always required; hide it with `hideTitle`" registry/ouro/components/ouro/sheet/sheet.test-d.ts verify:fileLine(registry/ouro/components/ouro/sheet/sheet.test-d.ts, /\{\strigger:\sReactElement;\schildren:\s"Body"\s\}>\(\)\.not\.toExtend<SheetProps>/)
+   */
   title: string;
   /** Hides the title visually. It still names the dialog for screen readers. */
   hideTitle?: boolean | undefined;
@@ -32,6 +36,7 @@ export interface SheetBaseProps {
    * The label of the sheet's close button. The button is the last control in the
    * sheet, hidden until it has keyboard focus, so screen-reader users on phones
    * (who have no Escape key) can always close the sheet. @default "Close"
+   * @claim "The button is the last control" registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::close control > renders a Close button last in the sheet, hidden until keyboard focus, that closes it)
    */
   closeLabel?: string | undefined;
   /** A short line under the title, read out when the sheet opens. */
@@ -127,6 +132,8 @@ export type SheetProps = SheetWithTriggerProps | SheetControlledProps;
  * @claim "It stacks above the page at" registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::Sheet stacking above the app's fixed bars > puts the portal on the --ouro-layer level, as its own stacking context)
  * @claim "It stacks above the page at" registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /^\s+--ouro-layer:\s50;/)
  * @claim "Testing accessibility: in WebKit, Base UI's" test/axe-exclude.test.tsx verify:testExists(test/axe-exclude.test.tsx::matches the open dialog's focus guards, and with them excluded axe finds nothing)
+ * @claim "To close the sheet from an" registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::footer > renders footer as the actions row after the body, and closes from an action wrapped in SheetClose)
+ * @claim "To close the sheet from an" registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::close control > takes its label from closeLabel and closes a controlled sheet through onOpenChange)
  */
 export function Sheet(props: SheetProps): JSX.Element {
   const {
@@ -201,6 +208,7 @@ export function Sheet(props: SheetProps): JSX.Element {
 /**
  * The close button: always present for screen readers (a phone has no Escape key),
  * hidden from view until it has keyboard focus, then shown at the top corner.
+ * @claim "The close button: always present for" registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::close control > renders a Close button last in the sheet, hidden until keyboard focus, that closes it)
  */
 const closeClass =
   "sr-only focus-visible:top-3 focus-visible:end-3 focus-visible:z-1 focus-visible:m-0 focus-visible:size-auto " +

@@ -31,7 +31,11 @@ export interface SegmentedControlItem {
 
 /** Props for {@link SegmentedControl}. */
 export interface SegmentedControlProps {
-  /** Names the choice ("View"). Shown above the control unless `hideLabel` is set; screen readers always hear it. */
+  /**
+   * Names the choice ("View"). Shown above the control unless `hideLabel` is set; screen readers always hear it.
+   *
+   * @claim "Shown above the control unless `hideLabel`" registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx verify:testExists(registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx::SegmentedControl > hides the label visually with hideLabel, and still names the group)
+   */
   label: string;
   /** Hides the label visually; it still names the control for screen readers. Set it on a view switcher whose segments say what it is. */
   hideLabel?: boolean | undefined;

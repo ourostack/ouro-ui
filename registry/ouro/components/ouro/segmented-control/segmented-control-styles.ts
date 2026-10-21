@@ -45,6 +45,8 @@ const groupClass =
  * It slides on the ease-in-out token; with reduced motion, or on an arrow key, it moves at once.
  *
  * @internal
+ * @claim "Segments are equal, so its place" registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx verify:testExists(registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx::SegmentedControl > slides the thumb under the pressed segment with a transition)
+ * @claim "Segments are equal, so its place" registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx verify:testExists(registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx::SegmentedControl > keeps the label id and pressed state in server HTML and hydrates without a mismatch)
  */
 const thumbClass =
   "pointer-events-none absolute top-0.5 bottom-0.5 left-0.5 -z-1 rounded-md " +

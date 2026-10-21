@@ -312,7 +312,12 @@ export function Sidebar(props: SidebarProps): JSX.Element {
       )}
     </>
   );
-  /** A collapsed rail names each row with a tooltip, since only its icon shows. */
+  /**
+   * A collapsed rail names each row with a tooltip, since only its icon shows.
+   *
+   * @claim "A collapsed rail names each row" registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar items > names each rail link with a tooltip on hover and keyboard focus)
+   * @claim "A collapsed rail names each row" registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > collapses to a rail of icons with the toggle, keeping each link's name)
+   */
   const tip = (rail: boolean, label: string, element: ReactElement) =>
     rail ? (
       <Tooltip content={label} side="right">

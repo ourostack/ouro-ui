@@ -45,7 +45,11 @@ const indicatorClass =
 const DELAY = 150;
 /** How often the bar creeps on while it shows. */
 const TRICKLE = 400;
-/** Where the bar starts, where it creeps toward, and the share of the rest it covers each step. */
+/**
+ * Where the bar starts, where it creeps toward, and the share of the rest it covers each step.
+ *
+ * @claim "Where the bar starts, where it" registry/ouro/components/ouro/route-progress/route-progress.test.tsx verify:testExists(registry/ouro/components/ouro/route-progress/route-progress.test.tsx::RouteProgress > trickles toward 90%, more slowly the nearer it gets, and never reaches it)
+ */
 const START = 0.15;
 const LIMIT = 0.9;
 const STEP = 0.1;

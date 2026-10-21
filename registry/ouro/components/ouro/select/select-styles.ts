@@ -45,6 +45,7 @@ function isGroup(entry: SelectOption | SelectOptionGroup): entry is SelectOption
  * @internal
  * @claim "Every option, groups flattened, as `{" registry/ouro/components/ouro/select/native-select.test.tsx verify:testExists(registry/ouro/components/ouro/select/native-select.test.tsx::NativeSelect > renders option groups and option children)
  * @claim "Every option, groups flattened, as `{" registry/ouro/components/ouro/select/select.test.tsx verify:testExists(registry/ouro/components/ouro/select/select.test.tsx::Select > renders groups from options, each named by its heading)
+ * @claim "Children count too: each `SelectItem` element" registry/ouro/components/ouro/select/select.test.tsx verify:testExists(registry/ouro/components/ouro/select/select.test.tsx::Select > takes SelectItem and SelectGroup children, and shows a child's label in the trigger)
  */
 function flattenOptions(options: SelectOptions | undefined, children: ReactNode, itemType: unknown): Array<{ value: string; label: ReactNode }> {
   const found: Array<{ value: string; label: ReactNode }> = [];

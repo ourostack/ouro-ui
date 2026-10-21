@@ -18,7 +18,11 @@ export interface ShareButtonOwnProps {
   text?: string | undefined;
   /** The button's label, and its name for screen readers with `hideLabel`. @default "Share" */
   label?: string | undefined;
-  /** What it says, and screen readers hear, when there was no share sheet and the link was copied instead. @default "Link copied" */
+  /**
+   * What it says, and screen readers hear, when there was no share sheet and the link was copied instead. @default "Link copied"
+   *
+   * @claim "What it says, and screen readers" registry/ouro/components/ouro/share-button/share-button.test.tsx verify:testExists(registry/ouro/components/ouro/share-button/share-button.test.tsx::ShareButton > copies the link where there is no share sheet, says Link copied once, and reads Share again after two seconds)
+   */
   copiedLabel?: string | undefined;
   /** What it says, and screen readers hear, when neither sharing nor copying worked. @default "Couldn't share" */
   failedLabel?: string | undefined;
@@ -80,6 +84,8 @@ function CheckIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
  *
  * @example
  * <ShareButton url={`https://example.com/notes/${note.id}`} title={note.title} />
+ * @claim "A button that shares a link" registry/ouro/components/ouro/share-button/share-button.test.tsx verify:testExists(registry/ouro/components/ouro/share-button/share-button.test.tsx::ShareButton > copies the link where there is no share sheet, says Link copied once, and reads Share again after two seconds)
+ * @claim "A button that shares a link" registry/ouro/components/ouro/share-button/share-button.test.tsx verify:testExists(registry/ouro/components/ouro/share-button/share-button.test.tsx::ShareButton > says Couldn't share, once, when neither sharing nor copying works)
  */
 export function ShareButton(props: ShareButtonProps): JSX.Element {
   const {

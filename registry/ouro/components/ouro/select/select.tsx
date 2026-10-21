@@ -51,7 +51,11 @@ export interface SelectBaseProps {
   disabled?: boolean | undefined;
   /** The value can be seen but not changed. */
   readOnly?: boolean | undefined;
-  /** The form field name the value submits under. With `multiple`, each value submits under it. */
+  /**
+   * The form field name the value submits under. With `multiple`, each value submits under it.
+   *
+   * @claim "With `multiple`, each value submits under" registry/ouro/components/ouro/select/select.test.tsx verify:testExists(registry/ouro/components/ouro/select/select.test.tsx::Select > posts one entry per chosen value under its name with multiple, for formData.getAll)
+   */
   name?: string | undefined;
   /** Shown in the trigger while nothing is chosen: `"Choose a course"`. It is not a label. */
   placeholder?: string | undefined;
@@ -99,7 +103,11 @@ export interface SelectBaseProps {
 export type SelectSingleProps = SelectBaseProps & {
   /** Pick several values: the list stays open while the user chooses, and the value is a `string[]` instead of `string | null`. */
   multiple?: false | undefined;
-  /** The chosen value, when you control it: a `string`, or `null` for none; with `multiple`, a `string[]`. */
+  /**
+   * The chosen value, when you control it: a `string`, or `null` for none; with `multiple`, a `string[]`.
+   *
+   * @claim "The chosen value, when you control" registry/ouro/components/ouro/select/select.test-d.ts verify:fileLine(registry/ouro/components/ouro/select/select.test-d.ts, /\{\slabel:\s"Tags";\smultiple:\strue;\svalue:\s"quick"\s\}>\(\)\.not\.toExtend<SelectProps>/)
+   */
   value?: string | null | undefined;
   /** The value chosen at first, when the select keeps its own state: a `string` or `null`; with `multiple`, a `string[]`. */
   defaultValue?: string | null | undefined;
@@ -116,7 +124,11 @@ export type SelectSingleProps = SelectBaseProps & {
 export type SelectMultipleProps = SelectBaseProps & {
   /** Pick several values: the list stays open while the user chooses, and the value is a `string[]` instead of `string | null`. */
   multiple: true;
-  /** The chosen value, when you control it: a `string`, or `null` for none; with `multiple`, a `string[]`. */
+  /**
+   * The chosen value, when you control it: a `string`, or `null` for none; with `multiple`, a `string[]`.
+   *
+   * @claim "The chosen value, when you control" registry/ouro/components/ouro/select/select.test-d.ts verify:fileLine(registry/ouro/components/ouro/select/select.test-d.ts, /\{\slabel:\s"Tags";\smultiple:\strue;\svalue:\s"quick"\s\}>\(\)\.not\.toExtend<SelectProps>/)
+   */
   value?: string[] | undefined;
   /** The value chosen at first, when the select keeps its own state: a `string` or `null`; with `multiple`, a `string[]`. */
   defaultValue?: string[] | undefined;

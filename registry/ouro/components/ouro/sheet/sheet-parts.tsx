@@ -142,6 +142,8 @@ const popupSides = {
  * padded by that much more and the body ends on screen. The padding follows the snap
  * point, not the finger: it changes when the sheet lands on another point, never on the
  * frames of a drag.
+ * @claim "The padding follows the snap point" registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::feel > pads a sheet at a lower snap point by the part below the screen, and holds that padding through a drag)
+ * @claim "The padding follows the snap point" registry/ouro/components/ouro/sheet/sheet.touch.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.touch.test.tsx::Sheet on a phone > stays under the finger when a sheet with snap points is caught on its way back to one)
  */
 const bottomPadding = {
   fit: "pb-[calc(env(safe-area-inset-bottom,0px)+var(--drawer-keyboard-inset,0px))]",
@@ -255,6 +257,8 @@ export function SheetBackdrop({
  * rest to `--ouro-sheet-grab` on the popup: that is where Base UI starts the drag from.
  * The listeners are on the window, on the way down, because Base UI begins a touch drag
  * from a listener on the document that stops the event there.
+ * @claim "On each event that can begin" registry/ouro/components/ouro/sheet/sheet.touch.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.touch.test.tsx::Sheet on a phone > stays under a finger that catches it by its scrolling body, where the drag starts with the first move)
+ * @claim "On each event that can begin" registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::feel > keeps the variables a drag rewrites out of the sheet's content)
  */
 function useGrabOffset(side: SheetSide): (viewport: HTMLDivElement) => () => void {
   return useCallback(

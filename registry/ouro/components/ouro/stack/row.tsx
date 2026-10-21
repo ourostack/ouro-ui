@@ -66,6 +66,7 @@ export interface RowOwnProps {
    * development: a Row has no look; use `Card` for a surface. So do the flex classes the
    * props own: use `gap`, `align`, `justify`, `wrap` and `stackBelow`, not `gap-*`,
    * `items-*`, `justify-*`, `flex-wrap` or `max-sm:flex-col`.
+   * @claim "Appearance classes warn in development: a" registry/ouro/components/ouro/stack/row.test.tsx verify:testExists(registry/ouro/components/ouro/stack/row.test.tsx::Row development messages > checks the className with Row's own fixes)
    */
   className?: string | undefined;
   /** The children, laid out side by side in writing direction. */
@@ -101,8 +102,8 @@ const stackBelowClasses = {
 } as const;
 
 /**
- * Lays its children out side by side with an even gap, centered up and down. It has no
- * look of its own: it replaces the `flex items-center gap-2` an agent would otherwise write
+ * Lays its children out side by side with an even gap, centered up and down. It is
+ * layout only: it replaces the `flex items-center gap-2` an agent would otherwise write
  * by hand. `stackBelow="sm"` stacks the children on a phone.
  *
  * Use `Stack` instead for a vertical layout, and `Item` for a row with media, a title, a

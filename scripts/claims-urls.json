@@ -23,6 +23,10 @@
     "status": 200,
     "checked": "2026-10-21"
   },
+  "https://base-ui.com/react/components/slider": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
   "https://base-ui.com/react/components/tooltip": {
     "status": 200,
     "checked": "2026-10-21"

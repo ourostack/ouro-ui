@@ -13,6 +13,7 @@ type SheetSide = "bottom" | "top" | "left" | "right";
  * The four sides, for checking a `side` prop. Shared with `Sheet`.
  *
  * @internal
+ * @claim "The four sides, for checking a" registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::Sheet dev messages > warns once about guessed props and drops them)
  */
 const sheetSides: readonly SheetSide[] = ["bottom", "top", "left", "right"];
 

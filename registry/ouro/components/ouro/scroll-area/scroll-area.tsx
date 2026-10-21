@@ -74,6 +74,7 @@ const focusable = "a[href],button,input,select,textarea,summary,[tabindex]:not([
  * Warns when the viewport takes keyboard focus to scroll (Base UI makes it a tab stop once
  * the content overflows) but has no name and nothing inside that could take focus instead.
  * Development only.
+ * @claim "Warns when the viewport takes keyboard" registry/ouro/components/ouro/scroll-area/scroll-area.test.tsx verify:testExists(registry/ouro/components/ouro/scroll-area/scroll-area.test.tsx::ScrollArea development messages > warns when the area takes keyboard focus to scroll but has no name)
  */
 function useUnnamedRegionCheck(viewportRef: { current: HTMLDivElement | null }, label: string | undefined): void {
   const key = useRef({});
