@@ -429,10 +429,10 @@ test.describe("the ballast manifold and the bell's payoffs", () => {
     await expect(page.getByText(`${BELL_TOASTS[0]!.name}: ${BELL_TOASTS[0]!.text}`)).toBeVisible();
     await expect(lastLog(page)).toContainText(LOG.bell.text);
     await expect.poll(() => started(".stage-ripple")).toContain("stage-ripple");
-    await expect.poll(() => started(".stage-band-sunlit .stage-react")).toContain("stage-startle-a");
+    await expect.poll(() => started(".stage-band-sunlit")).toContain("stage-startle-a");
     await page.getByRole("button", { name: STAGE_COPY.bell }).click();
     await expect(scene(page)).toHaveAttribute("data-ring", "b");
-    await expect.poll(() => started(".stage-band-sunlit .stage-react")).toContain("stage-startle-b");
+    await expect.poll(() => started(".stage-band-sunlit")).toContain("stage-startle-b");
   });
 
   test("under reduced motion the bell's creatures flicker instead of starting", async ({ page }) => {

@@ -644,14 +644,16 @@
   }
 }
 /*
- * The bell's sonar reaches the fish: on each ring the creatures in view start and scatter a little,
- * then settle. Under reduced motion they flicker instead.
+ * The bell's sonar reaches the fish: on each ring the school in view starts together, then settles.
+ * One animation per band, not one per fish: starting a moving layer for each of the fish on every
+ * ring was the work the next press of the bell waited on. Under reduced motion each fish flickers
+ * instead.
  */
 @media (prefers-reduced-motion: no-preference) {
-  .stage-scene[data-ring="a"] .stage-react {
+  .stage-scene[data-ring="a"] .stage-band {
     animation: stage-startle-a 900ms var(--ouro-ease-out) 1;
   }
-  .stage-scene[data-ring="b"] .stage-react {
+  .stage-scene[data-ring="b"] .stage-band {
     animation: stage-startle-b 900ms var(--ouro-ease-out) 1;
   }
 }
@@ -669,7 +671,7 @@
     transform: none;
   }
   25% {
-    transform: translate(calc((var(--scatter, 0.5) * 12 + 4) * 100% / 480), calc(-10 * 100% / 480)) rotate(calc(var(--scatter, 0.5) * -10deg));
+    transform: translate(calc(10 * 100% / 480), calc(-10 * 100% / 480));
   }
 }
 @keyframes stage-startle-b {
@@ -678,7 +680,7 @@
     transform: none;
   }
   25% {
-    transform: translate(calc((var(--scatter, 0.5) * 12 + 4) * 100% / 480), calc(-10 * 100% / 480)) rotate(calc(var(--scatter, 0.5) * -10deg));
+    transform: translate(calc(10 * 100% / 480), calc(-10 * 100% / 480));
   }
 }
 @keyframes stage-startle-fade-a {
