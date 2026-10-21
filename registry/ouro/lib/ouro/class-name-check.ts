@@ -12,7 +12,12 @@ const LAYOUT = /^(text-(wrap|nowrap|balance|pretty|ellipsis|clip)|border-(collap
 export interface ClassNameProblem {
   /** The offending class token, exactly as written. */
   token: string;
-  /** `align` for text alignment classes, `appearance` for everything else. */
+  /**
+   * `align` for text alignment classes, `appearance` for everything else.
+   *
+   * @claim registry/ouro/lib/ouro/class-name-check.test.tsx verify:testExists(registry/ouro/lib/ouro/class-name-check.test.tsx::useAppearanceClassNameCheck > points alignment classes to the alignHint, or to the parent)
+   * @claim registry/ouro/lib/ouro/class-name-check.test.tsx verify:testExists(registry/ouro/lib/ouro/class-name-check.test.tsx::useAppearanceClassNameCheck > does not warn for layout classes)
+   */
   kind: "align" | "appearance";
 }
 

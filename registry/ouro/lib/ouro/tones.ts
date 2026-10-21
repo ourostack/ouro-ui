@@ -5,7 +5,7 @@ export type { ToneName };
 // first statement, which would take the JSDoc below with it.
 
 /**
- * The five tones every component maps its `tone` prop to. They are the theme's token
+ * The five tones a component's `tone` prop maps to. They are the theme's token
  * names (shadcn's, plus Ouro's success and warning), so `tone="primary"` reads `--primary`.
  */
 type ToneName = "primary" | "secondary" | "destructive" | "success" | "warning";

@@ -7,7 +7,12 @@ export type { HeldFrames };
 interface HeldFrames {
   /** Lets `ms` pass and runs the frames asked for so far, once. Frames they ask for wait for the next step. */
   step(ms?: number): void;
-  /** Steps `ms` at a time until `done` returns true; throws after 2000 steps. */
+  /**
+   * Steps `ms` at a time until `done` returns true; throws after 2000 steps.
+   *
+   * @claim registry/ouro/lib/ouro/testing/frames.test.ts verify:testExists(registry/ouro/lib/ouro/testing/frames.test.ts::steps until a condition holds, and gives up when it never does)
+   * @claim registry/ouro/lib/ouro/testing/frames.ts verify:fileLine(registry/ouro/lib/ouro/testing/frames.ts, /if\s\(count\s===\s2000\)/)
+   */
   until(done: () => boolean, ms?: number): void;
   /**
    * Gives frames and the clock back to the browser, and asks it for the frames still

@@ -169,6 +169,8 @@ function endedInPlace(log: readonly Ran[], from: number, kind: Ran["kind"], name
  * one had already run 90% of its duration in time (WebKit cancels a transition that is about
  * to end on a restyle under load). A property cancelled earlier with nothing in its place fails,
  * and so does any other property that starts meanwhile.
+ * @claim registry/ouro/lib/ouro/testing/motion.ts verify:fileLine(registry/ouro/lib/ouro/testing/motion.ts, /progress\s<\s0\.9/)
+ * @claim https://www.w3.org/TR/css-transitions-1/#starting verify:urlOk(https://www.w3.org/TR/css-transitions-1/#starting)
  */
 async function settled(element: Element, where: string, first: Array<CSSTransition | CSSAnimation>, expected: Set<string>): Promise<void> {
   const reached = new Map<Animation, number>();

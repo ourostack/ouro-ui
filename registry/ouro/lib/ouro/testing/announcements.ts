@@ -14,11 +14,21 @@ interface Announcement {
 
 /** What `watchAnnouncements` has seen so far. */
 interface AnnouncementWatch {
-  /** Every announcement since the watch started, in order. */
+  /**
+   * Every announcement since the watch started, in order.
+   *
+   * @claim registry/ouro/lib/ouro/testing/announcements.test.tsx verify:testExists(registry/ouro/lib/ouro/testing/announcements.test.tsx::records the text each live region exposes, polite and assertive, once per change)
+   * @claim registry/ouro/lib/ouro/testing/announcements.test.tsx verify:testExists(registry/ouro/lib/ouro/testing/announcements.test.tsx::counts text replaced in place in a status region, not the text it was added with)
+   */
   changes: Announcement[];
   /** The announcements whose text includes `text`. */
   matching(text: string): Announcement[];
-  /** How many announcements include `text`: 1 means a screen reader heard it once. */
+  /**
+   * How many announcements include `text`: 1 means a screen reader heard it once.
+   *
+   * @claim registry/ouro/lib/ouro/testing/announcements.test.tsx verify:testExists(registry/ouro/lib/ouro/testing/announcements.test.tsx::records the text each live region exposes, polite and assertive, once per change)
+   * @claim registry/ouro/lib/ouro/testing/announcements.test.tsx verify:testExists(registry/ouro/lib/ouro/testing/announcements.test.tsx::counts a change in an existing status region once, its exposed text only)
+   */
   count(text: string): number;
   /** Stops watching; `changes` keeps what was seen. */
   stop(): void;

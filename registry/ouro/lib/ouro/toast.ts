@@ -38,6 +38,8 @@ export interface ToastOptions {
    * A toast with an `action` stays until it is dismissed unless you pass a duration: a
    * timed Undo can run out before a keyboard or screen reader user reaches it (WCAG 2.2.1).
    * @default 5000, or until dismissed with an action
+   * @claim registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > keeps a toast that has an action until it is dismissed, unless duration is given)
+   * @claim https://www.w3.org/TR/WCAG22/#timing-adjustable verify:urlOk(https://www.w3.org/TR/WCAG22/#timing-adjustable)
    */
   duration?: number | undefined;
   /** An id of your own. A toast with the id of one still showing replaces it in place. */
@@ -64,7 +66,11 @@ export interface ToastRecord {
   tone: ToneName;
   description: ReactNode;
   action: ToastAction | undefined;
-  /** Milliseconds; 0 keeps the toast until it is dismissed. */
+  /**
+   * Milliseconds; 0 keeps the toast until it is dismissed.
+   *
+   * @claim registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > dismisses itself after duration; 0 and Infinity keep it)
+   */
   timeout: number;
 }
 
@@ -119,6 +125,11 @@ let missingCheck: ReturnType<typeof setTimeout> | undefined;
  * toast("Recipe saved", { tone: "success" });
  * toast("Recipe deleted", { action: { label: "Undo", onClick: restore } });
  * toast("Couldn't save", { tone: "destructive", description: "Check your connection." });
+ * @claim registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > closes one toast with toast.dismiss(id), and all with toast.dismiss())
+ * @claim registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > queues: up to three show, and later ones wait, out of the page, until a slot frees)
+ * @claim registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > starts a waiting toast's countdown only when it shows, so it shows for its full duration and is announced once)
+ * @claim registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > moves a destructive toast ahead of other waiting toasts, without pushing out a shown one)
+ * @claim registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::pausing > pauses while the pointer is over the toasts, and resumes after)
  */
 export function toast(message: string, options: ToastOptions = {}): string {
   const { tone: toneOption = "secondary", description, action, duration: durationOption, id = `ouro-toast-${++count}` } = options;
@@ -191,6 +202,7 @@ function scheduleMissingCheck(): void {
 
 /**
  * Closes the toast with this id, or every toast with no id.
+ * @claim registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > closes one toast with toast.dismiss(id), and all with toast.dismiss())
  */
 toast.dismiss = function dismiss(id?: string): void {
   const sink = sinks[0];
@@ -223,6 +235,8 @@ toast.info = sonnerAlias("info", "primary") as unknown as { 'Use toast("Heads up
  * function and whether this Toaster is the one showing toasts.
  *
  * @internal
+ * @claim registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster > hands toasts to the next Toaster after the first unmounts)
+ * @claim registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster > shows toasts in one Toaster only, warns when a second is rendered, and lets the second take over when the first unmounts)
  */
 export function connectToaster(next: ToasterSink): { disconnect: () => void; active: boolean } {
   sinks = [...sinks, next];

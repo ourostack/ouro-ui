@@ -103,6 +103,7 @@ const floatingPortalClass = "relative isolate z-(--ouro-layer)";
  * keeps only the fade.
  *
  * @internal
+ * @claim registry/ouro/lib/ouro/floating.test.ts verify:testExists(registry/ouro/lib/ouro/floating.test.ts::floatingMotionClass > eases on the ease-out token, never ease-in, and grows from the trigger)
  */
 const floatingMotionClass =
   "origin-(--transform-origin) " +

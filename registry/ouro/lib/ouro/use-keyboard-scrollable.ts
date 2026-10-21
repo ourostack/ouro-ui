@@ -15,6 +15,10 @@ import { useCallback, type RefCallback } from "react";
  *
  * @example
  * const scrollRef = useKeyboardScrollable<HTMLDivElement>(props.tabIndex === undefined);
+ * @claim registry/ouro/lib/ouro/use-keyboard-scrollable.test.tsx verify:testExists(registry/ouro/lib/ouro/use-keyboard-scrollable.test.tsx::keeps the tab stop while the body has focus, and drops it on blur once the content fits)
+ * @claim registry/ouro/lib/ouro/use-keyboard-scrollable.test.tsx verify:testExists(registry/ouro/lib/ouro/use-keyboard-scrollable.test.tsx::makes an overflowing scroll container a tab stop, so a keyboard can scroll it)
+ * @claim https://dequeuniversity.com/rules/axe/4.10/scrollable-region-focusable verify:urlOk(https://dequeuniversity.com/rules/axe/4.10/scrollable-region-focusable)
+ * @claim https://www.w3.org/TR/WCAG22/#keyboard verify:urlOk(https://www.w3.org/TR/WCAG22/#keyboard)
  */
 export function useKeyboardScrollable<T extends HTMLElement>(enabled: boolean): RefCallback<T> {
   return useCallback(

@@ -27,6 +27,8 @@ interface SpringOptions {
   /**
    * 1 is critically damped (no overshoot). Pass 0.8 only after a flick. More than 1 is treated as 1.
    * @default 1
+   * @claim registry/ouro/lib/ouro/spring.test.ts verify:testExists(registry/ouro/lib/ouro/spring.test.ts::spring > settles on its target without passing it when critically damped, the default)
+   * @claim registry/ouro/lib/ouro/spring.test.ts verify:testExists(registry/ouro/lib/ouro/spring.test.ts::spring > keeps a damping or response of zero or less from breaking it: it still comes to rest, on a number)
    */
   damping?: number | undefined;
   /**
@@ -34,7 +36,12 @@ interface SpringOptions {
    * @default 0.3
    */
   response?: number | undefined;
-  /** Called every frame with the value and its velocity in px/ms, and last with exactly `to` and 0. Write `transform` here. */
+  /**
+   * Called every frame with the value and its velocity in px/ms, and last with exactly `to` and 0. Write `transform` here.
+   *
+   * @claim registry/ouro/lib/ouro/spring.test.ts verify:testExists(registry/ouro/lib/ouro/spring.test.ts::spring > starts at the live value with the velocity it was handed, in px per millisecond)
+   * @claim registry/ouro/lib/ouro/spring.test.ts verify:testExists(registry/ouro/lib/ouro/spring.test.ts::spring > on animation frames > moves from the live value to the target, ends exactly on it and says when it rests)
+   */
   onUpdate: (value: number, velocity: number) => void;
   /** Called when the spring comes to rest on its target. Not called after `stop()`. */
   onRest?: (() => void) | undefined;
@@ -73,6 +80,9 @@ const MIN_RESPONSE = 0.01;
  * Where a spring that left `from` toward `to` at `velocity` (px/ms) is after `elapsed`
  * milliseconds. It is the exact solution, so any moment can be asked for in any order.
  * `damping` is kept between 0.1 and 1, and `response` at 0.01s or more.
+ * @claim registry/ouro/lib/ouro/spring.test.ts verify:testExists(registry/ouro/lib/ouro/spring.test.ts::spring > keeps a damping or response of zero or less from breaking it: it still comes to rest, on a number)
+ * @claim registry/ouro/lib/ouro/spring.ts verify:fileLine(registry/ouro/lib/ouro/spring.ts, /const\sMIN_DAMPING\s=\s0\.1;/)
+ * @claim registry/ouro/lib/ouro/spring.ts verify:fileLine(registry/ouro/lib/ouro/spring.ts, /const\sMIN_RESPONSE\s=\s0\.01;/)
  */
 function springAt(
   from: number,

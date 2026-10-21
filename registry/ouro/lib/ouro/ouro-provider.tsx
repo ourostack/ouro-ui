@@ -91,6 +91,8 @@ export interface OuroProviderProps {
  *     </html>
  *   );
  * }
+ * @claim scripts/registry.mts verify:fileLine(scripts/registry.mts, /entry\.name === "lib-router-link" \|\| entry\.name === "tooltip"\) registryDeps\.add\("lib-ouro-provider"\)/)
+ * @claim registry/ouro/components/ouro/link/link.test-d.ts verify:fileLine(registry/ouro/components/ouro/link/link.test-d.ts, /expectTypeOf<\{\shref:\s"\/recipes";\schildren:\s"Recipes"\s\}>\(\)\.toExtend<LinkProps>/)
  */
 export function OuroProvider({ children, linkComponent }: OuroProviderProps): JSX.Element {
   const value = useMemo<OuroContextValue>(

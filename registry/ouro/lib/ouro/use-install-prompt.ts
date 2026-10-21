@@ -2,7 +2,12 @@
 
 import { useCallback, useState, useSyncExternalStore } from "react";
 
-/** The browser's install event, which not every TypeScript DOM library declares. */
+/**
+ * The browser's install event, which not every TypeScript DOM library declares.
+ *
+ * @claim registry/ouro/lib/ouro/use-install-prompt.test.tsx verify:testExists(registry/ouro/lib/ouro/use-install-prompt.test.tsx::useInstallPrompt > is not available, and install() says so, until the browser offers to install)
+ * @claim https://developer.mozilla.org/en-US/docs/Web/API/BeforeInstallPromptEvent verify:urlOk(https://developer.mozilla.org/en-US/docs/Web/API/BeforeInstallPromptEvent)
+ */
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
