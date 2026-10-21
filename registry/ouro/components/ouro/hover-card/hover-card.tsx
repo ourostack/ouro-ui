@@ -77,7 +77,7 @@ export interface HoverCardProps {
  * </HoverCard>
  * @claim "It stacks above the page at" registry/ouro/components/ouro/hover-card/hover-card.test.tsx verify:testExists(registry/ouro/components/ouro/hover-card/hover-card.test.tsx::HoverCard > portals at the --ouro-layer level, as its own stacking context)
  * @claim "It stacks above the page at" registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /^\s+--ouro-layer:\s50;/)
- * @claim "It shows only on devices that" registry/ouro/components/ouro/hover-card/hover-card.touch.test.tsx verify:testExists(registry/ouro/components/ouro/hover-card/hover-card.touch.test.tsx::never opens on a device that cannot hover: not from a tap, and not from keyboard focus)
+ * @claim "It shows only on devices that" registry/ouro/components/ouro/hover-card/hover-card.touch.test.tsx verify:fileLine(registry/ouro/components/ouro/hover-card/hover-card.touch.test.tsx, /it\("never opens on a device that cannot hover. not from a tap, and not from keyboard focus"/)
  */
 export function HoverCard(props: HoverCardProps): JSX.Element {
   const {

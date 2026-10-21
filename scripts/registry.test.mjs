@@ -102,7 +102,10 @@ test("runtime items ship no tests, stories, specs or test tooling, and never pul
   for (const name of runtimeItems) {
     const entry = item(name);
     for (const file of entry.files ?? []) assert.doesNotMatch(file.path, testFile, `${name} ships ${file.path}`);
-    assert.equal(entry.devDependencies, undefined, `${name} has devDependencies`);
+    // A Node script it ships (lib-claims' checker) may name what it imports, unversioned, so the app's own copy runs it.
+    if ((entry.files ?? []).some((file) => file.path.endsWith(".mjs"))) {
+      for (const dependency of entry.devDependencies ?? []) assert.doesNotMatch(dependency, /.@/, `${name} pins ${dependency}`);
+    } else assert.equal(entry.devDependencies, undefined, `${name} has devDependencies`);
     for (const dependency of entry.dependencies ?? []) {
       assert.doesNotMatch(dependency, /^(storybook|@storybook\/|vitest|@vitest\/|playwright|@playwright\/)/, `${name} depends on ${dependency}`);
     }
@@ -226,7 +229,8 @@ test("components ship as registry:ui, tests and stories as registry:component, s
 test("helpers land in lib/ouro and the test kit in lib/ouro/testing and e2e/ouro", () => {
   for (const name of libs) {
     assert.equal(item(name).type, "registry:lib");
-    assert.equal(item(name).files.length, 1, `${name} is one file`);
+    // One module each; lib-claims also ships the Node script that checks its claims.
+    assert.equal(item(name).files.filter((file) => !file.path.endsWith(".mjs")).length, 1, `${name} is one module`);
     for (const file of item(name).files) {
       assert.equal(file.type, "registry:lib");
       assert.match(file.target, /^@lib\/ouro\/[\w.-]+$/);

@@ -53,7 +53,7 @@ const panelClass =
  * @claim "A touch drag across it resizes" registry/ouro/components/ouro/resizable/resizable.touch.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.touch.test.tsx::resizes with a touch drag instead of scrolling the page)
  * @claim "A touch drag across it resizes" registry/ouro/components/ouro/resizable/resizable.touch.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.touch.test.tsx::lets a vertical swipe that starts on the handle scroll the page, and leaves the sizes alone)
  * @claim "The handle: a 1px line in" registry/ouro/components/ouro/resizable/resizable-styles.ts verify:fileLine(registry/ouro/components/ouro/resizable/resizable-styles.ts, /bg-border\stouch-pan-y\sselect-none\s/)
- * @claim "The handle: a 1px line in" registry/ouro/components/ouro/resizable/resizable-styles.ts verify:fileLine(registry/ouro/components/ouro/resizable/resizable-styles.ts, /pointer-fine:hover:bg-ring\sactive:bg-ring\s/)
+ * @claim "The handle: a 1px line in" registry/ouro/components/ouro/resizable/resizable-styles.ts verify:fileLine(registry/ouro/components/ouro/resizable/resizable-styles.ts, / pointer-fine:hover:bg-ring active:bg-ring /)
  */
 const handleClass = {
   horizontal:
