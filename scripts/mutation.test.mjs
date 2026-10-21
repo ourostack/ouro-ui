@@ -376,6 +376,9 @@ test("pruneChangedFiles also drops a changed file's kept results when a changed 
   assert.deepEqual(kept({ [styles]: 'export const popup = "b";' }), ["registry/ouro/components/ouro/other/other.tsx"]);
   // A changed file with no digest kept (a report from before) counts as changed.
   assert.deepEqual(Object.keys(pruneChangedFiles({ files: found.files }, options({})).files), ["registry/ouro/components/ouro/other/other.tsx"]);
+  // dialog-styles reverted to main: no longer a changed file, but its recorded digest still differs, so dialog's results go.
+  const reverted = { changed: [dialog, parts], read: (path) => ({ [styles]: 'export const popup = "main";' })[path] ?? sources[path], exists: (path) => path in sources };
+  assert.deepEqual(Object.keys(pruneChangedFiles(found, reverted).files), ["registry/ouro/components/ouro/other/other.tsx"]);
   // The digests survive a merge.
   assert.deepEqual(mergeReports([found, { files: {}, testFiles: {}, ouroSources: { "x.tsx": "1" } }]).ouroSources, { ...found.ouroSources, "x.tsx": "1" });
 });

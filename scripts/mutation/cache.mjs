@@ -238,9 +238,10 @@ export function recordSources(report, paths, read = (path) => readFileSync(join(
 
 /**
  * The kept report without the results of any file that changed since they were found, or that
- * imports, directly or through other local modules, a changed file of the pull request (`changed`)
- * that did: Stryker would reuse a Killed on a line a change left alone, and it compares only the
- * mutated file, not what that imports. A file's state then is its source in the report or its
+ * imports, directly or through other local modules, a changed file of the pull request (`changed`,
+ * or one recorded in `ouroSources`, which a revert to the base takes off the changed list) that
+ * did: Stryker would reuse a Killed on a line a change left alone, and it compares only the mutated
+ * file, not what that imports. A file's state then is its source in the report or its
  * digest in `ouroSources` (recordSources); a changed file with neither counts as changed.
  */
 export function pruneChangedFiles(
@@ -256,7 +257,10 @@ export function pruneChangedFiles(
     }
   };
   const stored = (path) => (files[path]?.source !== undefined ? digest(files[path].source) : report.ouroSources?.[path]);
-  const stale = new Set([...new Set([...Object.keys(files), ...changed])].filter((path) => stored(path) === undefined || current(path) !== stored(path)));
+  // Every file with a recorded state too: one a push reverted to the base is no longer changed, but
+  // its importers' results were found against the changed version.
+  const checked = new Set([...Object.keys(files), ...changed, ...Object.keys(report.ouroSources ?? {})]);
+  const stale = new Set([...checked].filter((path) => stored(path) === undefined || current(path) !== stored(path)));
   const reachesStale = (path) => {
     const seen = new Set([path]);
     const queue = [path];
