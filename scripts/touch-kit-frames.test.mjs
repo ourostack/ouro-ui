@@ -18,9 +18,11 @@ import { touchStep } from "../registry/ouro/lib/ouro/testing/commands.ts";
  * handles the touch once its watcher is armed. `delays` holds Chromium's reply time per method, in ms.
  * `stuck` adds a cross-origin frame elsewhere on the page that never answers: "watch" for any call
  * into it, as for a frame whose document never arrives, or "tidy" for its tidying up only, as for a
- * frame that turned busy after its watch started.
+ * frame that turned busy after its watch started. The frame's own hit test reaches inside it from
+ * `hitTestableAfter` ms, and Chromium sends it touches from `routedAfter` ms: until then the test's
+ * page gets them, on the frame's element, as in CI.
  */
-function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage = false, delays = {}, stuck } = {}) {
+function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage = false, delays = {}, stuck, hitTestableAfter = 0, routedAfter = hitTestableAfter } = {}) {
   const page = new EventEmitter();
   const sent = [];
   const frame = (name, frameUrl, parent, id) => {
@@ -74,6 +76,8 @@ function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage =
     page.emit("frameattached", target);
   };
   let timer;
+  let started = Date.now();
+  const since = () => Date.now() - started;
   const session = {
     async send(method, params) {
       if (delays[method]) await new Promise((resolve) => setTimeout(resolve, delays[method]));
@@ -91,8 +95,16 @@ function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage =
       if (method === "DOM.resolveNode") return { object: { objectId: "frame-element" } };
       if (method === "Runtime.callFunctionOn") return { result: { value: { watched: "frame", where: `a frame in another process, at ${url}`, url } } };
       if (method === "DOM.describeNode") return { node: { frameId: target.id } };
+      // The frame's element: 300 by 100 at the left, 300px down.
+      if (method === "DOM.getContentQuads") return { quads: [[0, 300, 300, 300, 300, 400, 0, 400]] };
       if (method === "Input.dispatchTouchEvent") {
-        sent.push({ type: params.type, targetListed: listed.includes(target), targetArmed: target.armed, targetDrew: target.drew });
+        sent.push({ type: params.type, targetListed: listed.includes(target), targetArmed: target.armed, targetDrew: target.drew, at: since() });
+        // Until Chromium routes touches into the frame, the page around it gets them, on its element.
+        if (params.type === "touchStart" && since() < routedAfter) {
+          tests.sees = "touchstart";
+          for (const resolve of tests.waiting.splice(0)) resolve({ seen: true, active: true, moved: false, saw: ["touchstart"] });
+          return {};
+        }
         // Chromium sends the touch to the frame at the point; one sent before its watcher is armed is lost.
         if (params.type === "touchStart" && target.armed) {
           target.sees = "touchstart";
@@ -112,12 +124,26 @@ function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage =
       newCDPSession: async (of) => {
         if (of === page) return session;
         if (!of.id) throw new Error("This frame does not have a separate CDP session, it is a part of the parent frame's session");
-        return { send: async () => ({ frameTree: { frame: { id: of.id } } }), detach: async () => {} };
+        return {
+          async send(method, params) {
+            if (method === "Page.getFrameTree") return { frameTree: { frame: { id: of.id } } };
+            if (method === "Page.getLayoutMetrics") return { cssVisualViewport: { pageX: 0, pageY: 0 } };
+            if (method === "DOM.getNodeForLocation") {
+              // The point, in the frame: (100, 350) on the page is (100, 50) here.
+              assert.deepEqual([params.x, params.y], [100, 50]);
+              if (since() < hitTestableAfter) throw new Error("No node found at given location");
+              return { backendNodeId: 7 };
+            }
+            throw new Error(`unexpected ${method}`);
+          },
+          detach: async () => {},
+        };
       },
     }),
   });
   const ctx = { page, provider: { name: "playwright" } };
   const start = () => {
+    started = Date.now();
     timer = setTimeout(list, listAfter);
     return touchStep(ctx, { type: "touchStart", x: 100, y: 350 });
   };
@@ -128,7 +154,7 @@ test("a touchstart on a frame in another process that Playwright lists late wait
   const { sent, target, start, stop } = stage();
   try {
     await start();
-    assert.deepEqual(sent, [{ type: "touchStart", targetListed: true, targetArmed: true, targetDrew: true }]);
+    assert.deepEqual(sent.map(({ type, targetListed, targetArmed, targetDrew }) => ({ type, targetListed, targetArmed, targetDrew })), [{ type: "touchStart", targetListed: true, targetArmed: true, targetDrew: true }]);
     assert.equal(target.sees, "touchstart");
   } finally {
     stop();
@@ -154,7 +180,7 @@ test("a frame in another process is found by Chromium's id for it, whatever addr
   const { sent, target, start, stop } = stage({ url: "https://embed.example/a", listedUrl: "https://embed.example/a/", listAfter: 0 });
   try {
     await start();
-    assert.deepEqual(sent, [{ type: "touchStart", targetListed: true, targetArmed: true, targetDrew: true }]);
+    assert.deepEqual(sent.map(({ type, targetListed, targetArmed, targetDrew }) => ({ type, targetListed, targetArmed, targetDrew })), [{ type: "touchStart", targetListed: true, targetArmed: true, targetDrew: true }]);
     assert.equal(target.sees, "touchstart");
   } finally {
     stop();
@@ -202,5 +228,30 @@ test("a touch command that takes longer than a second logs its steps, when each 
     );
   } finally {
     warn.mock.restore();
+  }
+});
+
+test("a touchstart into a frame in another process that is armed and drawn waits until Chromium's hit test there reaches inside it", async () => {
+  const { sent, target, start, stop } = stage({ listAfter: 0, hitTestableAfter: 300 });
+  try {
+    await start();
+    assert.equal(target.sees, "touchstart");
+    assert.ok(sent[0].at >= 300, `sent at +${sent[0].at}ms`);
+  } finally {
+    stop();
+  }
+});
+
+test("a touchstart that Chromium sends to the page around a frame in another process throws, and never passes as handled", async () => {
+  const { tests, target, start, stop } = stage({ listAfter: 0, routedAfter: 60_000 });
+  try {
+    await assert.rejects(
+      start(),
+      /^Error: touchStep: Chromium sent the touchStart at \(100, 350\) to http:\/\/localhost:63315\/__vitest_test__\/, not to the frame in another process there \(a frame with no URL yet\), though that frame's watcher was armed, its hit test there reached inside it and it had drawn\. The frame never saw the touch; the finger is lifted before the next gesture\.$/,
+    );
+    assert.equal(tests.sees, "touchstart");
+    assert.equal(target.sees, undefined);
+  } finally {
+    stop();
   }
 });

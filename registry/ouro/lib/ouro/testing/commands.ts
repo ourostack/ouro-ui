@@ -224,6 +224,8 @@ interface FrameAt {
   where: string;
   url?: string;
   frameId?: string | undefined;
+  /** Chromium's id for the frame's element, when the point is on a frame in another process. */
+  node?: number;
 }
 /** One frame's answer to a `TOUCH_WATCH` call, or why the call failed. */
 interface FrameAnswer<T> {
@@ -347,7 +349,10 @@ async function frameAtPoint(session: CDPSession, { x, y }: { x: number; y: numbe
       });
       lap("watcher");
       const at = result.value as FrameAt;
-      if (at.watched === "frame") at.frameId = (await session.send("DOM.describeNode", { backendNodeId })).node.frameId;
+      if (at.watched === "frame") {
+        at.frameId = (await session.send("DOM.describeNode", { backendNodeId })).node.frameId;
+        at.node = backendNodeId;
+      }
       lap("frame id");
       return at;
     } finally {
@@ -365,34 +370,60 @@ async function frameAtPoint(session: CDPSession, { x, y }: { x: number; y: numbe
 /** Waits for a frame to draw, as page code: the kit itself is type-checked without the DOM's types. */
 const TWO_FRAMES = "new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))";
 
-/** Chromium's id for a frame Playwright lists, when it runs in another process. */
-const frameIds = new WeakMap<Frame, Promise<string | undefined>>();
+/** Cached: a frame's own session, when it runs in another process, with Chromium's id for the frame. */
+const frameSessions = new WeakMap<Frame, Promise<{ session: CDPSession; id: string } | undefined>>();
 
 /**
- * Chromium's id for `frame`, when it runs in another process. Playwright can list such a frame
- * under an address other than its element's, or under none, as for a sandboxed `srcdoc` frame, so
- * the kit finds the frame at a touch's point by this id. A frame in its parent's process has no
- * session of its own and resolves undefined: the hit test reaches its document directly.
+ * A session of `frame`'s own, with Chromium's id for it, when it runs in another process.
+ * Playwright can list such a frame under an address other than its element's, or under none, as
+ * for a sandboxed `srcdoc` frame, so the kit finds the frame at a touch's point by this id. A frame
+ * in its parent's process has no session of its own and resolves undefined: the hit test reaches
+ * its document directly.
  * @claim "Playwright can list such a frame" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a frame in another process is found by Chromium's id for it, whatever address Playwright lists it with) verify:testExists(scripts/touch-kit-frames.test.mjs::a touchstart on a frame in another process that Playwright lists late waits for that frame's watcher, then reaches it)
  * @claim "A frame in its parent's process" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a touchstart on a frame in another process that Playwright lists late waits for that frame's watcher, then reaches it)
  */
-function frameIdOf(page: Page, frame: Frame): Promise<string | undefined> {
-  let id = frameIds.get(frame);
-  if (!id) {
-    id = page
+function frameSession(page: Page, frame: Frame): Promise<{ session: CDPSession; id: string } | undefined> {
+  let found = frameSessions.get(frame);
+  if (!found) {
+    found = page
       .context()
       .newCDPSession(frame)
-      .then(async (session) => {
-        try {
-          return (await session.send("Page.getFrameTree")).frameTree.frame.id;
-        } finally {
-          await session.detach().catch(() => {});
-        }
-      })
+      .then(async (session) => ({ session, id: (await session.send("Page.getFrameTree")).frameTree.frame.id }))
       .catch(() => undefined);
-    frameIds.set(frame, id);
+    frameSessions.set(frame, found);
   }
-  return id;
+  return found;
+}
+
+/** Whether `frame` is `ancestor` or a frame inside it. */
+function isWithin(frame: Frame, ancestor: Frame): boolean {
+  for (let at: Frame | null = frame; at; at = at.parentFrame()) if (at === ancestor) return true;
+  return false;
+}
+
+/** How often the kit asks again whether a touch at a point reaches inside a frame in another process. */
+const TOUCH_POLL_MS = 50;
+
+/**
+ * Whether Chromium's hit test at `point` reaches a node inside the frame in another process whose
+ * element `at` found, asked through that frame's own session: the point in the frame's coordinates,
+ * from where its element's content box is on the page.
+ */
+async function hitsInside(session: CDPSession, inside: CDPSession, at: FrameAt, point: { x: number; y: number }): Promise<boolean> {
+  try {
+    const { quads } = await session.send("DOM.getContentQuads", { backendNodeId: at.node! });
+    const quad = quads[0];
+    if (!quad) return false;
+    const { cssVisualViewport } = await inside.send("Page.getLayoutMetrics");
+    const { backendNodeId } = await inside.send("DOM.getNodeForLocation", {
+      x: Math.round(point.x - Math.min(quad[0]!, quad[6]!) + cssVisualViewport.pageX),
+      y: Math.round(point.y - Math.min(quad[1]!, quad[3]!) + cssVisualViewport.pageY),
+      ignorePointerEventsNone: false,
+    });
+    return backendNodeId > 0;
+  } catch {
+    return false;
+  }
 }
 
 /** A touch command that takes longer than this logs what it waited for (`TouchTrace`). */
@@ -438,8 +469,10 @@ type TouchTarget = { point: { x: number; y: number } } | { frame: Frame };
  * is slow, never loads, or is in another process holds nothing up. On a frame in another process,
  * where Chromium's hit test stops at the frame's element, it waits until Playwright lists that
  * frame, found by Chromium's id for it, then for that frame's own watcher, armed for this touch,
- * and for two animation frames there: a touch Chromium sends to such a frame while it is busy is
- * lost, and one sent before the frame has drawn goes to the page around it.
+ * until Chromium's hit test at the point reaches inside the frame, asked through the frame's own
+ * session, and for two animation frames there: a touch Chromium sends to such a frame while it is
+ * busy is lost, and one sent before the frame takes input goes to the page around it. A touchstart
+ * that a frame outside it still handles throws, naming both: it never passes as handled.
  *
  * Playwright learns of a new frame, and of a frame's new document, from Chromium on its own
  * connection, which can lag the page: a test that adds an iframe, awaits its `load` and
@@ -455,6 +488,8 @@ type TouchTarget = { point: { x: number; y: number } } | { frame: Frame };
  * @claim "It never waits for the other" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a cross-origin frame that never answers its watch holds up no touch elsewhere)
  * @claim "It never waits for the other" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::a touch into an iframe that never loads does not hang)
  * @claim "It never waits for the other" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a cross-origin frame that never answers its tidying up holds up no touch elsewhere)
+ * @claim "until Chromium's hit test at the" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a touchstart into a frame in another process that is armed and drawn waits until Chromium's hit test there reaches inside it)
+ * @claim "A touchstart that a frame outside" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a touchstart that Chromium sends to the page around a frame in another process throws, and never passes as handled)
  * @claim "On a frame in another process" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::a touchstart into a busy cross-origin frame is sent only once that frame's watcher is armed for it)
  * @claim "it waits until Playwright lists that" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a touchstart on a frame in another process that Playwright lists late waits for that frame's watcher, then reaches it) verify:testExists(scripts/touch-kit-frames.test.mjs::a frame in another process is found by Chromium's id for it, whatever address Playwright lists it with)
  * @claim "and one sent before the frame" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::a touch into a cross-origin iframe added just before it is handled)
@@ -468,7 +503,7 @@ async function watchTarget(
   expected: TouchPoint,
   target: TouchTarget,
   trace: TouchTrace,
-): Promise<{ calls: Map<Frame, Promise<FrameAnswer<null>>>; gone?: string }> {
+): Promise<{ calls: Map<Frame, Promise<FrameAnswer<null>>>; gone?: string; inside?: Frame }> {
   const deadline = Date.now() + TOUCH_HANDLED_TIMEOUT_MS;
   const calls = new Map<Frame, Promise<FrameAnswer<null>>>();
   let changed = () => {};
@@ -494,9 +529,12 @@ async function watchTarget(
       if (expected.type === "touchEnd") return { calls, gone: `${gone} The touchEnd was sent, but nothing could see it.` };
       throw new Error(`${gone} The ${expected.type} was not sent.`);
     }
+    // Whether the frame at the point is armed but the hit test there does not reach inside it yet, which no change announces.
+    let inside: boolean | undefined;
     for (;;) {
       // Listen before asking, so a change during the question is not missed.
       const change = new Promise<void>((resolve) => (changed = resolve));
+      inside = undefined;
       const at = await within(frameAtPoint(session, target.point, expected, trace), deadline - Date.now(), "Chromium did not say which frame is there").catch(
         (error: Error): FrameAt => ({ watched: false, where: `unknown (${error.message})` }),
       );
@@ -508,13 +546,19 @@ async function watchTarget(
         // as the test's own, are already armed, and a touch Chromium sends to a frame before its
         // watcher is armed is lost, not queued.
         const children = [...calls.keys()].filter((frame) => frame.parentFrame() !== null);
-        const ids = await Promise.all(children.map((frame) => within(frameIdOf(page, frame), deadline - Date.now(), "").catch(() => undefined)));
-        const there = at.frameId === undefined ? undefined : children.find((_, index) => ids[index] === at.frameId);
+        const found = await Promise.all(children.map((frame) => within(frameSession(page, frame), deadline - Date.now(), "").catch(() => undefined)));
+        const index = at.frameId === undefined ? -1 : found.findIndex((frame) => frame?.id === at.frameId);
+        const there = children[index];
         if (there && (await within(calls.get(there)!, 0, "").then((answer) => answer.error === undefined, () => false))) {
-          // Chromium routes input to such a frame only once the frame has drawn: until then a touch
-          // there goes to the page around it. Two animation frames in it, as far as the bound allows.
-          await within(there.evaluate(TWO_FRAMES), deadline - Date.now(), "").catch(() => {});
-          return { calls };
+          // Armed is not enough: Chromium sends a touch at a point inside such a frame only once its hit
+          // test there reaches the frame's own document, and after the frame has drawn; until then the
+          // page around it gets the touch. Ask again shortly until it does, as far as the bound allows.
+          inside = await hitsInside(session, found[index]!.session, at, target.point);
+          traceStep(trace, `the hit test ${inside ? "reaches" : "does not reach"} inside the frame`);
+          if (inside) {
+            await within(there.evaluate(TWO_FRAMES), deadline - Date.now(), "").catch(() => {});
+            return { calls, inside: there };
+          }
         }
       }
       if (at.watched === "unknown") {
@@ -523,7 +567,8 @@ async function watchTarget(
         traceStep(trace, "waited for every frame's watch");
         return { calls };
       }
-      const expired = await within(change, deadline - Date.now(), "expired").then(
+      const soon = inside === false ? new Promise<void>((resolve) => setTimeout(resolve, TOUCH_POLL_MS)) : change;
+      const expired = await within(Promise.race([change, soon]), deadline - Date.now(), "expired").then(
         () => false,
         () => true,
       );
@@ -538,7 +583,9 @@ async function watchTarget(
         ).then((notes) => notes.filter((note) => note !== undefined));
         throw new Error(
           `${command}: could not watch the frame at (${Math.round(target.point.x)}, ${Math.round(target.point.y)}) within ${TOUCH_HANDLED_TIMEOUT_MS}ms, so the ${expected.type} was not sent. ` +
-            `The frame there is ${at.where}, and it has no watcher` +
+            (inside === false
+              ? `The frame there is ${at.where}: its watcher is armed, but Chromium's hit test at that point does not reach inside it yet`
+              : `The frame there is ${at.where}, and it has no watcher`) +
             (at.watched === "frame" ? `. Playwright lists ${[...calls.keys()].map((frame) => frame.url() || "a frame with no URL yet").join(", ")}` : "") +
             (failed.length > 0 ? `. Frames whose watch did not start: ${failed.join("; ")}.` : "."),
         );
@@ -608,7 +655,7 @@ async function sendTraced(
   none: TouchSeen,
   trace: TouchTrace,
 ): Promise<Frame | undefined> {
-  const { calls, gone } = await watchTarget(command, page, session, expected, target, trace);
+  const { calls, gone, inside } = await watchTarget(command, page, session, expected, target, trace);
   traceStep(trace, "watched");
   const now = <T>(call: Promise<T>) => within(call, 0, "").catch(() => undefined);
   // Tidies every frame whose watch started; a frame whose call is still out is tidied when it answers, without waiting.
@@ -652,6 +699,15 @@ async function sendTraced(
   // Capture failure-time diagnostics, then settle frozen waits before collecting their observations.
   const states = handler ? Promise.resolve([]) : Promise.all(watchTouch<FrameState>(page, "inspect", expected, TOUCH_TIDY_MS));
   await tidy(handler);
+  // A touch aimed inside a frame in another process that a frame outside it handled went astray:
+  // Chromium sent it to the page around that frame. Never let it pass as handled.
+  if (handler && inside && !isWithin(handler, inside)) {
+    throw new Error(
+      `${command}: Chromium sent the ${expected.type} at (${Math.round(expected.x)}, ${Math.round(expected.y)}) to ${handler.url() || "a frame with no URL yet"}, ` +
+        `not to the frame in another process there (${inside.url() || "a frame with no URL yet"}), though that frame's watcher was armed, its hit test there reached inside it and it had drawn. ` +
+        `The frame never saw the touch; the finger is lifted before the next gesture.`,
+    );
+  }
   if (handler) return handler;
   const answers = (await Promise.all(waits)).filter((answer): answer is FrameAnswer<TouchSeen> => answer !== undefined);
   const results = answers.map((answer) => answer.value ?? none);
