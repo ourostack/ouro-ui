@@ -538,6 +538,20 @@ test("exemptions ratchet against the base ref: a new one must carry a reason and
     'claims.config.json: instructionVerbs adds "record"; name it in the pull request\'s description, so a reviewer sees the exemption.',
   ]);
   assert.deepEqual(policyProblems({ base, head: base, body: "" }), []);
+  // What drops findings or widens what counts as required is an exemption too.
+  const wider = {
+    ...base,
+    generated: ["^README\\.md$", "^docs/"],
+    requiredTests: [{ match: "\\.test\\.tsx?$", job: "ci" }, { match: "^scripts/kits/", job: "ci" }],
+    surfaces: [{ match: "\\.md$", mode: "markdown", exclude: "^docs/" }],
+  };
+  const widerBase = { ...base, generated: ["^README\\.md$"], requiredTests: [{ match: "\\.test\\.tsx?$", job: "ci" }], surfaces: [{ match: "\\.md$", mode: "markdown" }] };
+  assert.deepEqual(policyProblems({ base: widerBase, head: wider, body: "" }).map((problem) => problem.message), [
+    'claims.config.json: generated adds "^docs/"; name it in the pull request\'s description, so a reviewer sees the exemption.',
+    'claims.config.json: requiredTests adds "^scripts/kits/ in ci" with no reason. Give it one.',
+    'claims.config.json: requiredTests adds "^scripts/kits/ in ci"; name it in the pull request\'s description, so a reviewer sees the exemption.',
+    'claims.config.json: surfaces adds "\\.md$ except ^docs/"; name it in the pull request\'s description, so a reviewer sees the exemption.',
+  ]);
 });
 
 test("the URL cache: new or changed entries are fetched again, and an entry no claim cites fails", () => {

@@ -197,24 +197,34 @@
   "requiredTests": [
     {
       "match": "\\.visual\\.test\\.tsx?$",
-      "job": "visual"
+      "job": "visual",
+      "reason": "the visual job runs the screenshot tests (vitest.config.ts, project visual)"
     },
     {
       "match": "^test/themes/",
-      "job": "themes"
+      "job": "themes",
+      "reason": "the themes job runs the theme tests (vitest.config.ts, project themes)"
     },
     {
       "match": "^(registry|test|site)/.*\\.test\\.tsx?$",
-      "job": "ci"
+      "job": "ci",
+      "reason": "the ci job runs pnpm test, which runs every other Vitest file"
     },
     {
       "match": "^(registry/ouro/e2e/ouro|site/e2e)/.*\\.spec\\.ts$",
-      "job": "e2e"
+      "job": "e2e",
+      "reason": "the e2e job runs the Playwright specs"
+    },
+    {
+      "match": "^scripts/kits/.*\\.test\\.mjs$",
+      "job": "ci",
+      "reason": "scripts/kits.test.mjs, in pnpm test:scripts, runs every file in scripts/kits/ with coverage"
     },
     {
       "match": "\\.test\\.m[jt]s$",
       "job": "ci",
-      "listedIn": "package.json#scripts.test:scripts"
+      "listedIn": "package.json#scripts.test:scripts",
+      "reason": "the ci job runs pnpm test:scripts, which lists each Node test file"
     }
   ],
   "requiredChecks": ".github/required-checks.json",

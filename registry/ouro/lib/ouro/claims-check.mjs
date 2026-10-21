@@ -99,7 +99,7 @@ const WORDS = [
   ["superlative", /\b(?<!\bat\s)(?:best|worst|fastest|slowest|quickest|smallest|largest|biggest|lightest|heaviest|easiest|simplest|safest|highest|lowest|strongest|newest|most|least|fewest)\b/i],
 ];
 
-/** What each kind of claim needs, said so an agent can supply it. */
+/** What a kind of claim needs, said so an agent can supply it. */
 const NEEDS = {
   date: "dates an event. Cite the commit, release, CI run or evidence file that records it, checked with verify:fileLine(<file>, /<date>/)",
   version: "names a version. Cite the file that pins it, checked with verify:equals(<file>#<field path>)=<version> or verify:fileLine(<file>, /<version>/)",
@@ -130,6 +130,8 @@ const hasClaimWord = (text) => WORDS.some(([, pattern]) => pattern.test(text));
  * A short quotation mentions text, such as a label or an example of output ("3 days ago"); it
  * asserts nothing, so it is masked. One with a claim word, or longer than a label (six words),
  * is read like any other text, so a claim cannot hide in quotation marks.
+ *
+ * @claim "so a claim cannot hide in quotation marks" scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::bypasses: noun-verbs, quotations, headings and spelled-out claims are caught)
  */
 const QUOTED = /"([^"\n]{1,80})"|“([^”\n]{1,80})”/g;
 const maskQuote = (quote, plain, curly) => {
@@ -174,7 +176,7 @@ export function triggers(sentence) {
   return found;
 }
 
-/** A verb form that, in the first two words after the first, makes that first word a noun with its verb ("Test coverage is…"), not an instruction. */
+/** A verb form that, as the second or third word, makes the first word a noun with its verb ("Test coverage is…"), not an instruction. */
 const COPULA = /^(?:is|are|was|were|be|been|has|have|had|will|would|can|could|should|may|might|must|does|did)$/;
 const DETERMINER = /^(?:the|a|an|your|its|their|this|these|those|it|them|each|every|all|any|our|my|one|some|no)$/;
 
@@ -183,6 +185,9 @@ const DETERMINER = /^(?:the|a|an|your|its|their|this|these|those|it|them|each|ev
  * verb ("Run pnpm test"), or with a condition and then one ("If it fails, run it again"), or
  * it is a question. A verb that is the subject's noun ("Test coverage is 100%", "Release 2.0
  * shipped", "Note that…", "Record: …") is not an instruction.
+ *
+ * @claim "Whether a sentence is an instruction" scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::instructions are allowed: imperatives, conditional imperatives and questions)
+ * @claim "A verb that is the subject's noun" scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::bypasses: noun-verbs, quotations, headings and spelled-out claims are caught)
  */
 export function isInstruction(sentence, verbs = INSTRUCTION_VERBS) {
   const known = verbs instanceof Set ? verbs : new Set(verbs);
@@ -372,7 +377,7 @@ function sentenceSpans(masked) {
 }
 
 /**
- * Reads Markdown: the claims it makes (with their sources and checks) and a finding for each
+ * Reads Markdown: the claims it makes (with their sources and checks) and a finding for a
  * factual sentence that is not one, or for a claim marker that cannot be read.
  * `cover(sentence)` returns the evidence that backs a sentence from outside its text (a
  * JSDoc `@claim` that quotes it), or nothing. `howTo` says how to mark a claim in this kind
@@ -443,8 +448,27 @@ export function lintPlain(text, options) {
 
 const JSDOC_TAGS = "claim|default|defaultValue|example|group|see|internal|param|returns?|deprecated|remarks|throws|link|template|typeParam";
 
+/** A kept tag's text with its head blanked: the tag, a `{type}` (braces nested), and a @param's name. */
+function blankTagHead(text) {
+  let end = /^@\w+/.exec(text)[0].length;
+  const typed = /^\s+\{/.exec(text.slice(end));
+  if (typed) {
+    let depth = 0;
+    let index = end + typed[0].length - 1;
+    for (; index < text.length; index++) {
+      if (text[index] === "{") depth++;
+      else if (text[index] === "}" && --depth === 0) break;
+    }
+    end = index + 1;
+  }
+  const name = /^\s+[\w.$[\]]+(?=\s+[-–]?\s*\S)/.exec(text.slice(end));
+  if (name && /^@(param|typeParam)\b/.test(text)) end += name[0].length;
+  else if (!typed && name) end += name[0].length;
+  return " ".repeat(end) + text.slice(end);
+}
+
 /**
- * A JSDoc comment's prose with its tags handled: @claim read as evidence (with the words it
+ * A JSDoc comment's prose with its tags handled: `@claim` read as evidence (with the words it
  * quotes, `@claim "<words>" <source> verify:<check>`), @example and the like blanked, line
  * breaks kept.
  */
@@ -475,7 +499,7 @@ function jsdocProse(comment) {
       // A one-word default ("none") is a value too, and a function (`(count) => …`) is code.
       if (/\s/.test(rest.trim()) && !/=>/.test(rest)) defaults.push({ line: body.slice(0, entry.at).split("\n").length, text: rest });
     }
-    const shown = keep ? text.replace(/^@\w+(?:\s+[\w.$[\]]+(?=\s+[-–]?\s*\S))?/, (head) => " ".repeat(head.length)) : text.replace(/[^\n]/g, " ");
+    const shown = keep ? blankTagHead(text) : text.replace(/[^\n]/g, " ");
     prose += shown;
   }
   const links = (text) => text.replace(/\{@link\s+([^}|]+?)(?:\s*\|\s*([^}]+))?\}/g, (match, target, label) => (label ?? target).padEnd(match.length));
@@ -526,16 +550,22 @@ function evidenceOf(value) {
 /** Attributes whose string is code, not copy. */
 const CODE_ATTRIBUTES = /^(className|class|id|key|href|src|srcSet|type|role|name|value|htmlFor|rel|target|lang|dir|as|variant|tone|size|align|side|presentation|data-[\w-]+|style)$/;
 
-/** Whether a string literal reads as prose: three or more words, starting with a capital or ending a sentence. */
+/**
+ * Whether a string literal reads as prose: three or more words, starting with a capital or ending a sentence.
+ *
+ * @claim "Whether a string literal reads as prose" scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::TypeScript copy: claim() calls are claims, unsourced prose literals and JSX text fail)
+ */
 const isProse = (text) => /(?:[A-Za-z’'][\w’'/.-]*\s+){2,}[A-Za-z’']/.test(text) && (/^[\s"“'(]*[A-Z]/.test(text) || /[.!?]["”']?\s*$/.test(text)) && !/[{};=]|=>|--|\bvar\(/.test(text);
 
-/** Whether a string is Markdown: a heading line or paragraphs apart. It is read as Markdown, code spans and all. */
+/** Whether a string is Markdown: a heading line or paragraphs apart. It is read as Markdown, with its code spans. */
 const isMarkdown = (text) => /(^|\n)[ \t]*#{1,6}[ \t]+\S|\n[ \t]*\n[ \t]*[A-Za-z]/.test(text);
 
 /**
  * Whether a string that is not plainly prose still says something: it has a claim word and two
  * or more plain words ("tested in every browser"). Class lists and identifiers are not plain
- * words: "transition-all duration-200" is code.
+ * words: "transition-colors duration-200" is code.
+ *
+ * @claim "Whether a string that is not plainly prose still says something" scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::TypeScript copy: Markdown templates, lowercase and unpunctuated strings and comma templates are read)
  */
 const saysSomething = (text) => {
   const tokens = text.trim().split(/\s+/);
@@ -556,7 +586,7 @@ function isLookup(node) {
 /**
  * Reads a TypeScript file: with `jsdoc`, its JSDoc comments (an `@claim` tag covers its
  * comment); with `copy`, its claim() calls, and its prose string literals and JSX text,
- * each of which must be a claim if it states a fact.
+ * which must be claims when they state a fact.
  */
 export function lintTypeScript(source, { file, jsdoc = false, copy = false, claimsOnly = false, verbs = INSTRUCTION_VERBS }) {
   const findings = [];
@@ -644,7 +674,11 @@ export function lintTypeScript(source, { file, jsdoc = false, copy = false, clai
 // ---------------------------------------------------------------------------------------
 // Tests
 
-/** Every statically named test in a file, by full name (`describe > it`), and whether it is skipped (skip, todo, fails, or { skip }). */
+/**
+ * Every statically named test in a file, by full name (`describe > it`), and whether it is skipped (skip, todo, fails, or { skip }).
+ *
+ * @claim "Every statically named test in a file" scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::testNames: full test names, nested with ' > ', and whether each is skipped)
+ */
 export function testNames(source, file) {
   const kind = /\.[jt]sx$/.test(file) ? ts.ScriptKind.TSX : /\.m?js$/.test(file) ? ts.ScriptKind.JS : ts.ScriptKind.TS;
   const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, kind);
@@ -719,7 +753,7 @@ function field(value, path) {
   return { value: current };
 }
 
-/** The jobs each workflow defines: id and, when it has one, name. */
+/** The jobs the workflows define: id and, when it has one, name. */
 function workflowJobs(root) {
   const dir = join(root, ".github/workflows");
   if (!existsSync(dir)) return [];
@@ -799,7 +833,7 @@ function testProblem(root, id, config) {
 
 /**
  * Runs checks (and checks sources that can be checked offline) against the repository at
- * `context.root`. Returns a failure for each that does not hold, with the reason.
+ * `context.root`. Returns the failures of the checks that do not hold, with their reasons.
  */
 export async function verify(checks, context, sources = []) {
   const { root, network = false } = context;
@@ -914,7 +948,11 @@ function listFiles(root) {
   }
 }
 
-/** Every prose surface in the repository: linted, or not, with the reason. */
+/**
+ * Every prose surface in the repository: linted, or not, with the reason.
+ *
+ * @claim "Every prose surface in the repository" scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::surfaces: every tracked prose file is linted or declared generated, evidence or input with a reason)
+ */
 export function surfaces(root, config = loadConfig(root)) {
   const out = [];
   for (const file of listFiles(root)) {
@@ -924,7 +962,7 @@ export function surfaces(root, config = loadConfig(root)) {
   return out;
 }
 
-/** Findings without the allowed sentences (config `allowed`: exact sentences, each with its reason), and the allowed entries that matched nothing. */
+/** Findings without the allowed sentences (config `allowed`: exact sentences, with their reasons), and the allowed entries that matched nothing. */
 export function applyAllowed(findings, allowed, files) {
   const used = new Set();
   const kept = findings.filter((finding) => {
@@ -940,7 +978,7 @@ export function applyAllowed(findings, allowed, files) {
 const isCodeLine = (line) => /^--- \S|^\s|^(import|export|const|let|function|return)\b|^[}\])<]|^\/\/|[{};]\s*$|=>/.test(line);
 
 /**
- * Lints registry.json's own prose: each item's `description` and `docs`, the messages the shadcn
+ * Lints registry.json's own prose: the items' `description` and `docs`, the messages the shadcn
  * CLI prints, with code lines blanked. A finding's file is `registry.json:items[<n>].<field>`.
  */
 export function lintRegistry(text, { file = "registry.json", verbs } = {}) {
@@ -970,7 +1008,7 @@ async function readSurface(root, file, kind, config, hooks = {}) {
   return lintTypeScript(text, { file, jsdoc: kind === "jsdoc", copy: kind === "copy", verbs });
 }
 
-/** Verifies claims, prefixing each failure with where the claim is. */
+/** Verifies claims, prefixing a failure with where its claim is. */
 async function verifyClaims(claims, context) {
   const failures = [];
   for (const claim of claims) {
@@ -984,7 +1022,7 @@ function saveUrlCache(context) {
   if (context.cacheChanged) writeFileSync(join(context.root, context.urlCache), `${JSON.stringify(Object.fromEntries(Object.entries(context.cache).sort()), null, 2)}\n`);
 }
 
-/** A claim's text as a generated file would repeat it: no code marks, no link targets, one space. */
+/** A claim's text as a generated file would repeat it: without code marks or link targets, in single spaces. */
 const plainText = (text) =>
   collapse(text.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/\[\^[^\]]+\]/g, "").replace(/`/g, "")).replace(/\s+([,.;:!?)])/g, "$1");
 
@@ -992,6 +1030,8 @@ const plainText = (text) =>
  * Drops the findings in generated files whose claim words all sit in text a source already
  * claims: a JSDoc or Markdown claim the generator copied, or a generator's own claim() call
  * (`claim("the installed files reach 100% coverage", …)` in the template that writes it).
+ *
+ * @claim "Drops the findings in generated files" scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::generated surfaces are linted: registry.json, README regions and llms.txt items, with claims carried from their sources)
  */
 function carryOver(findings, claims, config) {
   const generated = config.generated.map((pattern) => new RegExp(pattern));
@@ -1023,12 +1063,14 @@ function generatorClaims(root, config) {
   return { claims, findings };
 }
 
-/** Every address a claim cites with urlOk. */
+/** The addresses the claims cite with urlOk. */
 const citedUrls = (claims) => new Set(claims.flatMap((claim) => claim.checks.filter((check) => "urlOk" in check).map((check) => check.urlOk)));
 
 /**
  * The URL cache against its base: the entries a pull request adds or changes, which CI fetches
  * again (`--network=changed`), and the entries no claim cites, which fail.
+ *
+ * @claim "The URL cache against its base" scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::the URL cache: new or changed entries are fetched again, and an entry no claim cites fails)
  */
 export function urlCacheReview(base, head, cited) {
   const refresh = Object.keys(head).filter((url) => JSON.stringify(head[url]) !== JSON.stringify(base[url])).sort();
@@ -1036,7 +1078,7 @@ export function urlCacheReview(base, head, cited) {
   return { refresh, uncited };
 }
 
-/** Lints every surface (or `files`) and runs every claim's checks. */
+/** Lints the surfaces (or `files`) and runs the claims' checks. */
 export async function checkClaims({ root = process.cwd(), network = false, files, baseRef, hooks = {} } = {}) {
   const config = loadConfig(root);
   const context = { root, network, config, baseRef };
@@ -1078,25 +1120,33 @@ export async function checkClaims({ root = process.cwd(), network = false, files
 // Exemptions against the base ref
 
 /** The exemption lists a pull request could grow to let a claim through, keyed by what names an entry. */
+// What the ratchet compares: the lists that drop findings (allowed, notLinted, verbs, generated),
+// widen what counts as a required test (requiredTests), or change what is read (surfaces). A new
+// entry is named in the pull request's description; one marked here also needs a reason.
 const EXEMPTIONS = [
-  ["allowed", (entry) => entry.sentence],
-  ["notLinted", (entry) => entry.match],
-  ["instructionVerbs", (entry) => entry],
+  ["allowed", (entry) => entry.sentence, true],
+  ["notLinted", (entry) => entry.match, true],
+  ["instructionVerbs", (entry) => entry, false],
+  ["generated", (entry) => entry, false],
+  ["requiredTests", (entry) => `${entry.match} in ${entry.job}`, true],
+  ["surfaces", (entry) => `${entry.match}${entry.exclude ? ` except ${entry.exclude}` : ""}`, false],
 ];
 
 /**
  * What a pull request adds to the exemptions, against the base ref's config: each new entry
  * needs a reason (where it has one) and must be named in the pull request's description, so
  * a reviewer sees it.
+ *
+ * @claim "What a pull request adds to the exemptions" scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::exemptions ratchet against the base ref: a new one must carry a reason and be named in the pull request)
  */
 export function policyProblems({ base, head, body = "" }) {
   const problems = [];
-  for (const [list, key] of EXEMPTIONS) {
+  for (const [list, key, reasoned] of EXEMPTIONS) {
     const before = new Set((base[list] ?? []).map(key));
     for (const entry of head[list] ?? []) {
       const name = key(entry);
       if (before.has(name)) continue;
-      if (typeof entry === "object" && !entry.reason?.trim()) problems.push({ message: `claims.config.json: ${list} adds "${name}" with no reason. Give it one.` });
+      if (reasoned && !entry.reason?.trim()) problems.push({ message: `claims.config.json: ${list} adds "${name}" with no reason. Give it one.` });
       if (!body.includes(name)) problems.push({ message: `claims.config.json: ${list} adds "${name}"; name it in the pull request's description, so a reviewer sees the exemption.` });
     }
   }
