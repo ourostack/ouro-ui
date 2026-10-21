@@ -491,6 +491,24 @@ test("ciJob reads the required checks at the base ref, so a pull request cannot 
   assert.deepEqual(await failures({}), []);
 });
 
+test("ciJob reads the pull request's list of required checks only when the base has none, and the ratchet makes it name each check it adds", async () => {
+  const root = verifyFixture();
+  const git = (...args) => spawnSync("git", args, { cwd: root, encoding: "utf8" });
+  git("init", "-q");
+  git("rm", "-q", "--cached", ".github/required-checks.json");
+  git("-c", "user.email=a@b.c", "-c", "user.name=a", "add", "--", ".", ":!.github/required-checks.json");
+  git("-c", "user.email=a@b.c", "-c", "user.name=a", "commit", "-qm", "base without the list");
+  writeFileSync(join(root, ".github/required-checks.json"), JSON.stringify(["ci", "lane"]));
+  const failures = async (ciJob) => (await verify([{ ciJob }], { root, urlCache: "claims-urls.json", baseRef: "HEAD" })).map((failure) => failure.message);
+  assert.deepEqual(await failures("lane"), []);
+  const problems = (body) => policyProblems({ base: {}, head: {}, body, baseChecks: [], headChecks: ["ci", "lane"] }).map((problem) => problem.message);
+  assert.deepEqual(problems("Required: `ci`."), [
+    '.github/required-checks.json adds "lane"; name it in the pull request\'s description, so a reviewer checks it against the branch\'s rules.',
+  ]);
+  assert.deepEqual(problems("Required: `ci` and `lane`."), []);
+  assert.deepEqual(policyProblems({ base: {}, head: {}, body: "", baseChecks: ["ci", "lane"], headChecks: ["ci", "lane"] }), []);
+});
+
 test("ciJob expands a matrix job's name from its matrix, so a name made only of expressions matches no required check", async () => {
   const root = verifyFixture();
   writeFileSync(

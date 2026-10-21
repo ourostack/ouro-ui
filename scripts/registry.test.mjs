@@ -299,6 +299,13 @@ test("npm dependencies are pinned to the ranges this repository tests", () => {
   }
 });
 
+test("a helper's Node script names what it imports as devDependencies without a version, so lib-claims leaves the app's TypeScript alone", () => {
+  assert.equal(item("lib-claims").dependencies, undefined);
+  assert.deepEqual(item("lib-claims").devDependencies, ["typescript"]);
+  assert.deepEqual(item("ouro-source-rules").devDependencies, ["postcss", "typescript"]);
+  assert.ok(!registry.items.some((entry) => (entry.dependencies ?? []).some((spec) => spec.startsWith("typescript"))), "no item depends on typescript");
+});
+
 test("each item has a one-line description and a docs message with its docs URL", () => {
   const sheet = item("sheet");
   assert.equal(sheet.title, "Sheet");

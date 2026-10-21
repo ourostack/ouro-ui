@@ -7,7 +7,8 @@
 //                                                       --stdin [--name <name>] reads a draft
 //   node src/lib/ouro/claims-check.mjs show <file>…     lists a file's claims, sources and checks
 //   node src/lib/ouro/claims-check.mjs ratchet          with CLAIMS_BASE_REF and PR_BODY: fails on an
-//                                                       exemption a pull request adds without naming it
+//                                                       exemption or required check a pull request adds
+//                                                       without naming it
 //
 // A claim is a sentence with a source and a `verify:` check: in Markdown a source link
 // (`[3 themes](themes.json "verify:count(themes.json#themes)=3")`) or a footnote (`[^id]` with
@@ -822,13 +823,17 @@ async function fetchStatus(url) {
 /**
  * The required checks' names, from the committed list the config names. In a pull request
  * (`context.baseRef`, or CLAIMS_BASE_REF) it is read at the base ref, so a pull request cannot
- * make its own job required.
+ * make its own job required. Only when the base has no list does the pull request's own count,
+ * and then the ratchet makes its description name each check, for a reviewer to hold against
+ * the branch's rules.
+ *
+ * @claim "Only when the base has no list does the pull request's own count" scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::ciJob reads the pull request's list of required checks only when the base has none, and the ratchet makes it name each check it adds)
  */
 function requiredChecks(root, context) {
   if (!("required" in context)) {
     const file = context.config.requiredChecks;
     const ref = context.baseRef ?? process.env.CLAIMS_BASE_REF;
-    const text = ref ? gitShow(root, ref, file) : read(root, file);
+    const text = (ref ? gitShow(root, ref, file) : undefined) ?? read(root, file);
     context.required = text === undefined ? null : JSON.parse(text);
   }
   return context.required;
@@ -1171,12 +1176,16 @@ const EXEMPTIONS = [
 /**
  * What a pull request adds to the exemptions, against the base ref's config: each new entry
  * needs a reason (where it has one) and must be named in the pull request's description, so
- * a reviewer sees it.
+ * a reviewer sees it. So must each check it adds to the list of required checks.
  *
  * @claim "What a pull request adds to the exemptions" scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::exemptions ratchet against the base ref: a new one must carry a reason and be named in the pull request)
+ * @claim "So must each check it adds" scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::ciJob reads the pull request's list of required checks only when the base has none, and the ratchet makes it name each check it adds)
  */
-export function policyProblems({ base, head, body = "" }) {
+export function policyProblems({ base, head, body = "", baseChecks = [], headChecks = [] }) {
   const problems = [];
+  for (const check of headChecks) {
+    if (!baseChecks.includes(check) && !body.includes(check)) problems.push({ message: `${head.requiredChecks ?? DEFAULT_CONFIG.requiredChecks} adds "${check}"; name it in the pull request's description, so a reviewer checks it against the branch's rules.` });
+  }
   for (const [list, key, reasoned] of EXEMPTIONS) {
     const before = new Set((base[list] ?? []).map(key));
     for (const entry of head[list] ?? []) {
@@ -1253,7 +1262,10 @@ export async function main(argv, { root: defaultRoot = process.cwd(), hooks = {}
       return 2;
     }
     const base = loadConfig(root, { ref });
-    return report(policyProblems({ base, head: config, body: process.env.PR_BODY ?? "" }), "No exemption added without its reason and a mention.");
+    const checks = (text) => (text === undefined ? [] : JSON.parse(text));
+    const baseChecks = checks(gitShow(root, ref, base.requiredChecks));
+    const headChecks = checks(read(root, config.requiredChecks));
+    return report(policyProblems({ base, head: config, body: process.env.PR_BODY ?? "", baseChecks, headChecks }), "No exemption added without its reason and a mention.");
   }
   if (command === "show") {
     for (const file of positional) {

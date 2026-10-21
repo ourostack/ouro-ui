@@ -108,7 +108,7 @@ A source outside the repository (a desk note, a local log) cannot be checked by 
 | `ciJob([<workflow>#]<job>)` | A workflow defines the job, and it is one of the required checks in `.github/required-checks.json`, read at the pull request's base. |
 | `urlOk(<url>)` | The address answered with a success status when it was last fetched. |
 
-The checks read only the checkout, so they give the same answer on every machine.[^offline] A pull request cannot make a check of its own required: `ciJob` reads the list of required checks at the base branch.[^required]
+The checks read only the checkout, so they give the same answer on every machine.[^offline] A pull request cannot make a check of its own required: `ciJob` reads the list of required checks at the base branch.[^required] Only when the base has no list yet does the pull request's own list count, and then the ratchet makes its description name each check in it.[^required-bootstrap]
 
 `urlOk` reads its answers from `scripts/claims-urls.json`. After citing a new address, run `pnpm claims:lint --network <file>` and commit the cache. CI fetches again each address a pull request adds or changes, so a hand-written answer fails there, and an answer no claim cites fails.[^url-cache] The weekly run fetches every address again and fails when one answers differently, and when a committed answer is older than `urlMaxAgeDays` (30 by default): then run `pnpm claims:check --network` and commit the cache.[^url-network]
 
@@ -124,7 +124,7 @@ The checks read only the checkout, so they give the same answer on every machine
 - `requiredTests`: which required job runs which test files, and why.
 - `requiredChecks` and `urlCache`: the files that hold the required checks and the URL answers.
 
-The ratchet compares these lists with the base branch's. Each entry a pull request adds to `allowed`, `notLinted`, `instructionVerbs`, `generated`, `requiredTests` or `surfaces` must be named in the pull request's description, and the entries that take a reason must have one, so a reviewer sees every exemption.[^ratchet]
+The ratchet compares these lists, and the list of required checks, with the base branch's. Each entry a pull request adds to `allowed`, `notLinted`, `instructionVerbs`, `generated`, `requiredTests` or `surfaces` must be named in the pull request's description, and the entries that take a reason must have one, so a reviewer sees every exemption.[^ratchet]
 
 ## In an app
 
@@ -157,3 +157,4 @@ The ratchet compares these lists with the base branch's. Each entry a pull reque
 [^allowed]: scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::the allow-list drops exact story sentences, and an entry that matches nothing fails)
 [^ratchet]: scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::exemptions ratchet against the base ref: a new one must carry a reason and be named in the pull request)
 [^app]: scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::the claims checker ships in lib-claims and runs in an app)
+[^required-bootstrap]: scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::ciJob reads the pull request's list of required checks only when the base has none, and the ratchet makes it name each check it adds)

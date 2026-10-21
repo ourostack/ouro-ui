@@ -566,7 +566,9 @@ export function buildRegistry(root: string): Registry {
     const registryDeps = new Set<string>(entry.kind === "tests" ? [entry.of, "ouro-testing"] : (aggregates[entry.name] ?? []));
     for (const path of paths) {
       const source = readFileSync(join(root, path), "utf8");
-      const isDev = entry.name === "ouro-testing" || entry.kind === "tests" || entry.kind === "kit";
+      // A helper's .mjs file is a Node script the app runs (lib-claims' checker), not code its
+      // bundle loads, so what it imports is a devDependency, named without a version.
+      const isDev = entry.name === "ouro-testing" || entry.kind === "tests" || entry.kind === "kit" || path.endsWith(".mjs");
       // env.d.ts declares process.env.NODE_ENV for apps without @types/node; nothing imports it.
       if (!isDev && entry.name !== "lib-env" && /\bprocess\.env\b/.test(source)) registryDeps.add("lib-env");
       // OuroProvider is the one helper only the app imports. It comes with what it serves: a
