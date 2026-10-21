@@ -201,12 +201,6 @@ test("a touchstart into a frame the kit cannot watch is refused after the time l
   expect(await tapAt(window, 100, 50)).toEqual(["touchstart", "touchend"]);
 });
 
-/**
- * Well under the 5 seconds the kit would wait for a frame's watch: a tap that did not wait took
- * up to 1.2s on a loaded CI runner.
- */
-const notWaited = 2500;
-
 test("the kit waits for the frame under a pointer-events: none overlay, where the touch lands", async () => {
   await unwatchableFrame(300);
   const overlay = document.createElement("div");
@@ -221,7 +215,7 @@ test("the kit does not wait for a pointer-events: none iframe, which the touch p
   frame.style.pointerEvents = "none";
   const started = performance.now();
   expect(await tapAt(window, 100, 350)).toEqual(["touchstart", "touchend"]);
-  expect(performance.now() - started).toBeLessThan(notWaited);
+  expect(performance.now() - started).toBeLessThan(1000);
 });
 
 test("on a page zoomed and panned by touch, the kit waits for the frame where the touch lands", async () => {
@@ -382,7 +376,7 @@ test("touches reach a cross-origin iframe, and a cross-origin iframe does not ho
   expect(() => frame.contentWindow!.document).toThrow();
   const started = performance.now();
   expect(await tapAt(window, 100, 50)).toEqual(["touchstart", "touchend"]);
-  expect(performance.now() - started).toBeLessThan(notWaited);
+  expect(performance.now() - started).toBeLessThan(1000);
   // Inside it, no listener of this page can see the touch; the kit's own watcher must.
   await commands.touchStep({ type: "touchStart", x: 100, y: 350 });
   await commands.touchStep({ type: "touchEnd" });
