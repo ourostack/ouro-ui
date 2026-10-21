@@ -21,7 +21,7 @@ export type ItemMediaSize = "icon" | "sm" | "md" | "lg";
  * @claim "The props every Item takes, with" registry/ouro/components/ouro/item/item.test-d.ts verify:fileLine(registry/ouro/components/ouro/item/item.test-d.ts, /expectTypeOf<\{\stitle:\s"Ribs";\shref:\s"\/recipes\/1";/)
  */
 export interface ItemOwnProps {
-  /** One or two lines under the title. Pass `<Text lines={2}>` to clamp a long one. */
+  /** A short line under the title. Pass `<Text lines={2}>` to clamp a long one. */
   description?: ReactNode;
   /**
    * Leading media: an `<img>` (cropped square), an `Avatar`, or an icon with
@@ -43,6 +43,7 @@ export interface ItemOwnProps {
    * @claim "Below this breakpoint the media leaves" registry/ouro/components/ouro/item/item.test.tsx verify:testExists(registry/ouro/components/ouro/item/item.test.tsx::Item > always puts the media above the text with mediaAbove=always, with the actions beside the title)
    * @claim "Below this breakpoint the media leaves" registry/ouro/components/ouro/item/item.test.tsx verify:testExists(registry/ouro/components/ouro/item/item.test.tsx::Item > stacks the actions beside media below md and the media above below sm)
    * @claim "Below this breakpoint the media leaves" registry/ouro/components/ouro/item/item.tsx verify:fileLine(registry/ouro/components/ouro/item/item.tsx, /media:\s"col-span-full\sw-full\sh-auto\saspect-\[4\/3\]\srounded-lg"/)
+   * @claim "`always` keeps it above at every" registry/ouro/components/ouro/item/item.test.tsx verify:testExists(registry/ouro/components/ouro/item/item.test.tsx::Item > always puts the media above the text with mediaAbove=always, with the actions beside the title)
    */
   mediaAbove?: "always" | "sm" | "md" | (string & { 'Use "always", "sm" (640px) or "md" (768px)': never }) | undefined;
   /**
@@ -60,6 +61,8 @@ export interface ItemOwnProps {
    * `plain` has no frame, for rows in an `ItemGroup`; `outline` is a bordered, padded box for
    * a row on its own.
    * @default "plain"
+   * @claim "`plain` has no frame, for rows" registry/ouro/components/ouro/item/item.test.tsx verify:testExists(registry/ouro/components/ouro/item/item.test.tsx::Item > is a bordered box with padding with variant=outline, and tighter with size=sm)
+   * @claim "`plain` has no frame, for rows" registry/ouro/components/ouro/item/item-group.test.tsx verify:testExists(registry/ouro/components/ouro/item/item-group.test.tsx::ItemGroup > has no lines with variant=plain)
    */
   variant?: "plain" | "outline" | (string & { 'Use "plain" or "outline"; muted is a Card': never }) | undefined;
   /**
@@ -71,6 +74,8 @@ export interface ItemOwnProps {
   /**
    * The element to render. `ItemGroup` already wraps each Item in an `<li>`.
    * @default "div"
+   * @claim "`ItemGroup` already wraps each Item in" registry/ouro/components/ouro/item/item-group.test.tsx verify:testExists(registry/ouro/components/ouro/item/item-group.test.tsx::ItemGroup > is a list labelled by its label, with each Item a list item)
+   * @claim "`ItemGroup` already wraps each Item in" registry/ouro/components/ouro/item/item-group.test.tsx verify:testExists(registry/ouro/components/ouro/item/item-group.test.tsx::ItemGroup development messages > warns when an Item inside renders its own <li>)
    */
   as?: "div" | "li" | "article" | (string & { 'Use "div", "li" or "article"; for a link use href': never }) | undefined;
   /** Layout only: margins, grid placement (`mt-2`). Appearance classes warn in development; use `variant`. */

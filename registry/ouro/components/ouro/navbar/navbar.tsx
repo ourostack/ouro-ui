@@ -17,7 +17,11 @@ export interface NavbarLink {
   label: string;
   /** Where it goes. Internal paths go through `OuroProvider`'s `linkComponent` (your router's link). */
   href: string;
-  /** In a group: a line under the label in the bar's panel, "Everything you have saved." */
+  /**
+   * In a group: a line under the label in the bar's panel, "Everything you have saved."
+   *
+   * @claim "In a group: a line under" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar at tablet widths and with groups > opens a group of links as a panel in the bar)
+   */
   description?: string | undefined;
   /**
    * Marks this link as the current page (`aria-current="page"`), when the Navbar's
@@ -32,7 +36,11 @@ export interface NavbarLink {
 export interface NavbarGroup {
   /** The group's name, the button's text: "Recipes". */
   label: string;
-  /** The group's links, each with an optional `description`. */
+  /**
+   * The group's links, each with an optional `description`.
+   *
+   * @claim "The group's links, each with an" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar at tablet widths and with groups > closes the sheet when the links come to fit)
+   */
   links: readonly NavbarLink[];
   /** Not with `links`. To link the section's own page, make it the group's first link. */
   href?: never;
@@ -140,6 +148,8 @@ const example = '<Navbar label="Main" items={[{ label: "Recipes", href: "/recipe
  * @claim "Whenever the links do not fit" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar at tablet widths and with groups > collapses into the menu button whenever its links do not fit, from 640px up too)
  * @claim "Whenever the links do not fit" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > collapses the links into a sheet behind a menu button below 640px)
  * @claim "Whenever the links do not fit" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar at tablet widths and with groups > puts a group's button and the bar's links in the server HTML)
+ * @claim "The phone menu opens once JavaScript" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > collapses the links into a sheet behind a menu button below 640px)
+ * @claim "The phone menu opens once JavaScript" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar at tablet widths and with groups > puts a group's button and the bar's links in the server HTML)
  */
 export function Navbar(props: NavbarProps): JSX.Element {
   const {

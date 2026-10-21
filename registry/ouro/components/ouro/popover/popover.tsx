@@ -48,7 +48,11 @@ export interface PopoverBaseProps {
    * can always close the popover. @default "Close"
    */
   closeLabel?: string | undefined;
-  /** The side of the trigger the popover sits on; it flips when there is no room. @default "bottom" */
+  /**
+   * The side of the trigger the popover sits on; it flips when there is no room. @default "bottom"
+   *
+   * @claim "it flips when there is no room" https://base-ui.com/react/components/popover verify:urlOk(https://base-ui.com/react/components/popover)
+   */
   side?: FloatingSide | (string & { 'Use "top", "bottom", "left" or "right"': never }) | undefined;
   /** How the popover lines up with the trigger along that side. @default "center" */
   align?: FloatingAlign | (string & { 'Use "start", "center" or "end": left is "start", right is "end"': never }) | undefined;

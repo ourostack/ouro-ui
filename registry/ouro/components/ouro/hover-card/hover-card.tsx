@@ -35,6 +35,7 @@ export interface HoverCardProps {
    * The side of the link the card sits on; it flips when there is no room. @default "bottom"
    *
    * @claim "The side of the link the" registry/ouro/components/ouro/hover-card/hover-card.test.tsx verify:testExists(registry/ouro/components/ouro/hover-card/hover-card.test.tsx::HoverCard > sits on the side and alignment it is given, and className sets layout)
+   * @claim "it flips when there is no room" https://base-ui.com/react/components/preview-card verify:urlOk(https://base-ui.com/react/components/preview-card)
    */
   side?: FloatingSide | (string & { 'Use "top", "bottom", "left" or "right"': never }) | undefined;
   /** How the card lines up with the link along that side. @default "center" */

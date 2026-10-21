@@ -18,10 +18,15 @@ export function toDate(value: Date | string | number): Date | null {
  * A calendar date with no time of day: `"2026-06-01"`, or `"2026-06"` for a month. It names the same day everywhere.
  *
  * @claim "A calendar date with no time" registry/ouro/components/ouro/local-date/local-date.test.tsx verify:testExists(registry/ouro/components/ouro/local-date/local-date.test.tsx::dateText > treats only a whole calendar date as one)
+ * @claim "It names the same day everywhere" registry/ouro/components/ouro/local-date/local-date.test.tsx verify:testExists(registry/ouro/components/ouro/local-date/local-date.test.tsx::dateText > treats only a whole calendar date as one)
  */
 const calendarDate = /^\d{4}-\d{2}(-\d{2})?$/;
 
-/** Whether `value` is a calendar date with no time of day (`"2026-06-01"`, `"2026-06"`), which no time zone moves. */
+/**
+ * Whether `value` is a calendar date with no time of day (`"2026-06-01"`, `"2026-06"`), which no time zone moves.
+ *
+ * @claim "Whether `value` is a calendar date" registry/ouro/components/ouro/local-date/local-date.test.tsx verify:testExists(registry/ouro/components/ouro/local-date/local-date.test.tsx::dateText > treats only a whole calendar date as one)
+ */
 export function isCalendarDate(value: Date | string | number): value is string {
   return typeof value === "string" && calendarDate.test(value);
 }

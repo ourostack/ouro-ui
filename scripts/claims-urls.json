@@ -3,6 +3,30 @@
     "status": 200,
     "checked": "2026-10-21"
   },
+  "https://base-ui.com/react/components/menu": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
+  "https://base-ui.com/react/components/navigation-menu": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
+  "https://base-ui.com/react/components/number-field": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
+  "https://base-ui.com/react/components/popover": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
+  "https://base-ui.com/react/components/preview-card": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
+  "https://base-ui.com/react/components/tooltip": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
   "https://bundlephobia.com/package/recharts@3.10.1": {
     "status": 200,
     "checked": "2026-10-21"

@@ -125,6 +125,7 @@ function linkHint(token: string): string {
  * <Text size="sm"><Link href="/forgot" inline={false}>Forgot password?</Link></Text>
  * @claim "On a touch screen a link" registry/ouro/components/ouro/link/link.test.tsx verify:testExists(registry/ouro/components/ouro/link/link.test.tsx::Link with a mouse > is as tall as its text with a fine pointer, standing alone or in a sentence)
  * @claim "On a touch screen a link" registry/ouro/components/ouro/link/link.touch.test.tsx verify:testExists(registry/ouro/components/ouro/link/link.touch.test.tsx::gives a link on its own line a 44px box, centred on its text)
+ * @claim "With a mouse every link is" registry/ouro/components/ouro/link/link.test.tsx verify:testExists(registry/ouro/components/ouro/link/link.test.tsx::Link with a mouse > is as tall as its text with a fine pointer, standing alone or in a sentence)
  */
 export function Link(props: LinkProps): JSX.Element {
   const {

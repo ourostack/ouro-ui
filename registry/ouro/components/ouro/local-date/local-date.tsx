@@ -30,7 +30,11 @@ export interface LocalDateOwnProps {
   date?: { 'Use value={date}': never };
   /** Not a prop. The instant is `value`; the `<time>` gets its `dateTime` from it. */
   dateTime?: { 'Use value={date}; dateTime is set from it': never };
-  /** Not a prop. The text is the date; there are no children. */
+  /**
+   * Not a prop. The text is the date; there are no children.
+   *
+   * @claim "The text is the date; there" registry/ouro/components/ouro/local-date/local-date.test-d.ts verify:fileLine(registry/ouro/components/ouro/local-date/local-date.test-d.ts, /\{\svalue:\sDate;\schildren:\s"June\s1"\s\}>\(\)\.not\.toExtend<LocalDateProps>/)
+   */
   children?: { 'LocalDate writes the date itself; pass value={date}': never };
 }
 
@@ -58,6 +62,8 @@ export type LocalDateProps = Omit<TimeHTMLAttributes<HTMLTimeElement>, keyof Loc
  * @claim "A date then changes only when" registry/ouro/components/ouro/local-date/local-date.test.tsx verify:testExists(registry/ouro/components/ouro/local-date/local-date.test.tsx::LocalDate > labels a time UTC on the server, and drops the label once the browser shows the local time)
  * @claim "A date then changes only when" registry/ouro/components/ouro/local-date/local-date.test.tsx verify:testExists(registry/ouro/components/ouro/local-date/local-date.test.tsx::dateText > moves an instant into the reader's time zone)
  * @claim "A date then changes only when" registry/ouro/components/ouro/local-date/local-date.test.tsx verify:testExists(registry/ouro/components/ouro/local-date/local-date.test.tsx::LocalDate > writes the UTC date on the server, hydrates without a mismatch, then shows the local date)
+ * @claim "A calendar date with no time" registry/ouro/components/ouro/local-date/local-date.test.tsx verify:testExists(registry/ouro/components/ouro/local-date/local-date.test.tsx::dateText > treats only a whole calendar date as one)
+ * @claim "A calendar date with no time" registry/ouro/components/ouro/local-date/local-date.test.tsx verify:testExists(registry/ouro/components/ouro/local-date/local-date.test.tsx::LocalDate > writes the UTC date on the server, hydrates without a mismatch, then shows the local date)
  */
 export function LocalDate(props: LocalDateProps): JSX.Element {
   const {

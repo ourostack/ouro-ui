@@ -15,7 +15,11 @@ export interface NavigationMenuLink {
   label: string;
   /** Where it goes. Internal paths go through `OuroProvider`'s `linkComponent` (your router's link). */
   href: string;
-  /** A line under the label that says what is there: "Everything you have saved." */
+  /**
+   * A line under the label that says what is there: "Everything you have saved."
+   *
+   * @claim "A line under the label that" registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx::NavigationMenu > opens a panel of links on click, with each link's description)
+   */
   description?: string | undefined;
   /** Marks this link as the current page, when the menu's `currentPath` cannot tell. */
   current?: boolean | undefined;
@@ -59,11 +63,18 @@ interface NavigationMenuPanelBase {
  * A NavigationMenu item that opens a panel: a list of `links`, with any `content` at its
  * start, such as a featured `Card` beside a two-column grid of links. A panel needs one of
  * the two.
+ * @claim "A NavigationMenu item that opens a" registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx::NavigationMenu > opens a panel of links on click, with each link's description)
+ * @claim "A NavigationMenu item that opens a" registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx::NavigationMenu panels and easing > shows a panel's content beside its links, in two columns)
+ * @claim "A panel needs one of the" registry/ouro/components/ouro/navigation-menu/navigation-menu.test-d.ts verify:fileLine(registry/ouro/components/ouro/navigation-menu/navigation-menu.test-d.ts, /\{\slabel:\s"Recipes"\s\}>\(\)\.not\.toExtend<NavigationMenuItem>/)
  */
 export type NavigationMenuPanelItem = NavigationMenuPanelBase &
   (
     | {
-        /** The links in the panel, each with an optional `description`. */
+        /**
+         * The links in the panel, each with an optional `description`.
+         *
+         * @claim "The links in the panel, each" registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx::NavigationMenu > opens a panel of links on click, with each link's description)
+         */
         links: readonly NavigationMenuLink[];
         /**
          * Anything else in the panel, before its links (above them on a phone): a featured
@@ -73,7 +84,11 @@ export type NavigationMenuPanelItem = NavigationMenuPanelBase &
       }
     | {
         links?: undefined;
-        /** The panel's content, when it has no list of links. A link in it closes the panel when it is followed. */
+        /**
+         * The panel's content, when it has no list of links. A link in it closes the panel when it is followed.
+         *
+         * @claim "The panel's content, when it has" registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx::NavigationMenu panels and easing > shows a panel's content beside its links, in two columns)
+         */
         content: ReactNode;
       }
   );
@@ -191,6 +206,12 @@ const example =
  *   ]}
  *   currentPath={pathname}
  * />
+ * @claim "A row of links where some" registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx::NavigationMenu > opens a panel of links on click, with each link's description)
+ * @claim "Panels open on hover or click" registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx::NavigationMenu > opens on hover with a mouse and switches panels)
+ * @claim "Panels open on hover or click" registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx::NavigationMenu > opens a panel of links on click, with each link's description)
+ * @claim "Panels open on hover or click" registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx::NavigationMenu > closes on Escape and returns focus to the button)
+ * @claim "Panels open on hover or click" registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-menu/navigation-menu.test.tsx::NavigationMenu > closes when a link in the panel is chosen)
+ * @claim "Panels open on hover or click" https://base-ui.com/react/components/navigation-menu verify:urlOk(https://base-ui.com/react/components/navigation-menu)
  */
 export function NavigationMenu(props: NavigationMenuProps): JSX.Element {
   const {

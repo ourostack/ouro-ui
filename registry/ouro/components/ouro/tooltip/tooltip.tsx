@@ -31,7 +31,11 @@ export interface TooltipProps {
    * its own; give an icon-only button `aria-label`.
    */
   children: ReactElement;
-  /** The side of the trigger the tooltip sits on; it flips when there is no room. @default "top" */
+  /**
+   * The side of the trigger the tooltip sits on; it flips when there is no room. @default "top"
+   *
+   * @claim "it flips when there is no room" https://base-ui.com/react/components/tooltip verify:urlOk(https://base-ui.com/react/components/tooltip)
+   */
   side?: FloatingSide | (string & { 'Use "top", "bottom", "left" or "right"': never }) | undefined;
   /** How the tooltip lines up with the trigger along that side. @default "center" */
   align?: FloatingAlign | (string & { 'Use "start", "center" or "end": left is "start", right is "end"': never }) | undefined;

@@ -43,7 +43,12 @@ export interface NumberFieldProps {
   defaultValue?: number | null | undefined;
   /** Called with the new number as it changes, or `null` when the field is emptied. */
   onValueChange?: ((value: number | null) => void) | undefined;
-  /** Called when the value settles: on blur after typing, when a stepper or scrub is released, and with each key press. Use it to save. */
+  /**
+   * Called when the value settles: on blur after typing, when a stepper or scrub is released, and with each key press. Use it to save.
+   *
+   * @claim "Called when the value settles: on" registry/ouro/components/ouro/number-field/number-field.test.tsx verify:testExists(registry/ouro/components/ouro/number-field/number-field.test.tsx::NumberField > steps by step with the arrow keys and parses typed text on blur)
+   * @claim "Called when the value settles: on" https://base-ui.com/react/components/number-field verify:urlOk(https://base-ui.com/react/components/number-field)
+   */
   onValueCommitted?: ((value: number | null) => void) | undefined;
   /**
    * The lowest value; the steppers stop there. A minimum of 0 or more also gives phones a
@@ -51,6 +56,7 @@ export interface NumberFieldProps {
    * `min`, or a negative one) gets the full keyboard.
    * @claim "A minimum of 0 or more" registry/ouro/components/ouro/number-field/number-field.test.tsx verify:testExists(registry/ouro/components/ouro/number-field/number-field.test.tsx::NumberField > steps with its buttons, within min and max)
    * @claim "A minimum of 0 or more" registry/ouro/components/ouro/number-field/number-field.test.tsx verify:fileLine(registry/ouro/components/ouro/number-field/number-field.test.tsx, /\["integers\sfrom\s1",\s\{\smin:\s1\s\},\s"numeric"\]/)
+   * @claim "The lowest value; the steppers stop" registry/ouro/components/ouro/number-field/number-field.test.tsx verify:testExists(registry/ouro/components/ouro/number-field/number-field.test.tsx::NumberField > steps with its buttons, within min and max)
    */
   min?: number | undefined;
   /**

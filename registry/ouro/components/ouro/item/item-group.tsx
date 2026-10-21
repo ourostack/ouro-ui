@@ -74,6 +74,7 @@ const variants = {
  *     <Item key={credential.id} title={credential.name} description={credential.scopes} actions={<Button>Revoke</Button>} />
  *   ))}
  * </ItemGroup>
+ * @claim "It wraps each Item in an" registry/ouro/components/ouro/item/item-group.test.tsx verify:testExists(registry/ouro/components/ouro/item/item-group.test.tsx::ItemGroup > is a list labelled by its label, with each Item a list item)
  */
 export function ItemGroup(props: ItemGroupProps): JSX.Element {
   const { label, children, empty, variant: variantProp = "divided", ordered, className, title, items, divided, ...rest } = props;
