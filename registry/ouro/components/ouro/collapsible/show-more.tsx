@@ -14,7 +14,12 @@ import {
   textClass,
 } from "@/registry/ouro/components/ouro/collapsible/collapsible-styles";
 
-/** Props every ShowMore takes. */
+/**
+ * Props every ShowMore takes.
+ *
+ * @claim registry/ouro/components/ouro/collapsible/show-more.tsx verify:fileLine(registry/ouro/components/ouro/collapsible/show-more.tsx, /export\sinterface\sShowMoreListProps\sextends\sShowMoreBaseProps/)
+ * @claim registry/ouro/components/ouro/collapsible/show-more.tsx verify:fileLine(registry/ouro/components/ouro/collapsible/show-more.tsx, /export\stype\sShowMoreLinesProps\s=\sShowMoreBaseProps\s&/)
+ */
 export interface ShowMoreBaseProps {
   /** The button's text while there is more to show. Translate it here. @default "Show more" */
   showMoreLabel?: string | undefined;
@@ -32,9 +37,17 @@ export interface ShowMoreBaseProps {
 export type ShowMoreLinesProps = ShowMoreBaseProps & {
   /** How many lines show while collapsed. The button appears only when the text is longer. */
   lines: number;
-  /** The text. Screen readers always read all of it. */
+  /**
+   * The text. Screen readers always read all of it.
+   *
+   * @claim registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with lines > keeps the full text for screen readers and in server HTML)
+   */
   children: ReactNode;
-  /** The button's text while everything shows. Translate it here. @default "Show less" */
+  /**
+   * The button's text while everything shows. Translate it here. @default "Show less"
+   *
+   * @claim registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with items > takes translated labels)
+   */
   showLessLabel?: string | undefined;
   /** List modes only: not with `lines`. */
   items?: never;
@@ -63,6 +76,7 @@ export interface ShowMoreListProps extends ShowMoreBaseProps {
   /**
    * Every item, in order. Each renders in its own list item; give elements a `key`. With
    * `onShowMore`, append each new page here.
+   * @claim registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with items > shows initialCount items and an ordered list with ordered)
    */
   items: readonly ReactNode[];
   /** Renders an `<ol>`, for a ranked or numbered list. @default false (`<ul>`) */
@@ -77,7 +91,11 @@ export interface ShowMoreListProps extends ShowMoreBaseProps {
 export type ShowMoreItemsProps = ShowMoreListProps & {
   /** How many items show while collapsed. @default 5 */
   initialCount?: number | undefined;
-  /** The button's text while everything shows. Translate it here. @default "Show less" */
+  /**
+   * The button's text while everything shows. Translate it here. @default "Show less"
+   *
+   * @claim registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with items > takes translated labels)
+   */
   showLessLabel?: string | undefined;
   /** Only for a list that loads more: with `items`, without `initialCount` or `lines`. */
   onShowMore?: never;
@@ -144,6 +162,7 @@ const EMPTY = Symbol("empty");
 /**
  * What stays the same for an item across renders: an element's key, or a text or number item
  * itself. An element without a key is a new object every render, so it has none (null).
+ * @claim registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with items a Server Component passed > keys each row by its item's own key, so a row keeps its node when the order changes)
  */
 function identity(item: ReactNode): unknown {
   // An item a Server Component passed can be a lazy wrapper, a new object on every payload.

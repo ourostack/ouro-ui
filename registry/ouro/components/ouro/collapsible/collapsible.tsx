@@ -67,6 +67,9 @@ function useUntilFound(): boolean {
  * <Collapsible title="Nutrition facts">
  *   <NutritionTable />
  * </Collapsible>
+ * @claim registry/ouro/components/ouro/collapsible/collapsible.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/collapsible.test.tsx::Collapsible > links the title and panel in server HTML and hydrates without a mismatch)
+ * @claim registry/ouro/components/ouro/collapsible/collapsible.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/collapsible.test.tsx::Collapsible > lets the browser's page search find and open it, and hides it plainly where until-found is unsupported)
+ * @claim registry/ouro/components/ouro/collapsible/collapsible.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/collapsible.test.tsx::Collapsible > gives the title a 44px row on a coarse pointer, or 36px otherwise)
  */
 export function Collapsible(props: CollapsibleProps): JSX.Element {
   const {

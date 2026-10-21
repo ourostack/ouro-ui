@@ -13,7 +13,7 @@ import { Text } from "@/registry/ouro/components/ouro/text/text";
 /**
  * The props every Card takes, with or without `href`.
  *
- * @claim registry/ouro/components/ouro/card/card.tsx verify:fileLine(registry/ouro/components/ouro/card/card.tsx, /CardProps/)
+ * @claim registry/ouro/components/ouro/card/card.tsx verify:fileLine(registry/ouro/components/ouro/card/card.test-d.ts, /expectTypeOf<\{ href: "\/cookbooks\/1" \}>\(\)\.toExtend<CardProps>\(\)/)
  */
 export interface CardOwnProps {
   /** The card's title, as a heading. With `href` it is the link's text, so a linked card needs one. */

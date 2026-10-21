@@ -60,6 +60,7 @@ const chipClass =
  * pointer (its `TouchTarget`).
  *
  * @internal
+ * @claim registry/ouro/components/ouro/combobox/combobox.touch.test.tsx verify:testExists(registry/ouro/components/ouro/combobox/combobox.touch.test.tsx::Combobox on a phone > gives chip remove buttons a 44px hit area)
  */
 const chipRemoveClass =
   "press relative m-0 box-border inline-flex aspect-square h-full shrink-0 items-center justify-center rounded-sm border-0 p-0 " +

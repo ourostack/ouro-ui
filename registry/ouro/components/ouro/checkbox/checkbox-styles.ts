@@ -41,6 +41,7 @@ const indicatorClass = "pointer-events-none flex size-full items-center justify-
  * `--ouro-duration-fast`. With reduced motion nothing draws: the whole tick fades in and out.
  *
  * @internal
+ * @claim registry/ouro/components/ouro/checkbox/checkbox.test.tsx verify:testExists(registry/ouro/components/ouro/checkbox/checkbox.test.tsx::Checkbox look > fills the box, then draws the tick along its path, and only fades and recolours with reduced motion)
  */
 const tickClass =
   "[stroke-dasharray:1_2] [stroke-dashoffset:1] group-data-checked:[stroke-dashoffset:0] group-data-indeterminate:hidden " +

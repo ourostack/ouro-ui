@@ -24,6 +24,7 @@ export interface ColorFieldProps {
   /**
    * What the color is for ("Accent color"), shown above the field and read as the text input's
    * name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`.
+   * @claim registry/ouro/components/ouro/color-field/color-field.test-d.ts verify:fileLine(registry/ouro/components/ouro/color-field/color-field.test-d.ts, /\{\svalue:\s"#000000"\s\}>\(\)\.not\.toExtend<ColorFieldProps>/)
    */
   label: string;
   /** Hides the label visually; screen readers still read it. */
@@ -69,7 +70,11 @@ export interface ColorFieldProps {
 
   /** Not a prop. ColorField takes and gives `#rrggbb`: `<ColorField defaultValue="#3366ff">`. */
   format?: { 'ColorField takes and gives #rrggbb: <ColorField defaultValue="#3366ff">': never };
-  /** Not supported. ColorField takes `#rrggbb`, with no transparency. */
+  /**
+   * Not supported. ColorField takes `#rrggbb`, with no transparency.
+   *
+   * @claim registry/ouro/components/ouro/color-field/color-field.test-d.ts verify:fileLine(registry/ouro/components/ouro/color-field/color-field.test-d.ts, /\{\slabel:\s"Color";\salpha:\strue\s\}>\(\)\.not\.toExtend<ColorFieldProps>/)
+   */
   alpha?: { 'ColorField takes #rrggbb, with no transparency': never };
   /** Not a prop. Ouro UI uses `value` or `defaultValue`: `<ColorField defaultValue="#ff0000">`. */
   color?: { 'Use <ColorField defaultValue="#ff0000">': never };

@@ -75,7 +75,12 @@ interface Presence<T> {
   item: T;
   key: string;
   phase: "entering" | "present" | "leaving";
-  /** Bumped on every change of phase, so an exit or entrance that finishes late changes nothing. */
+  /**
+   * Bumped on every change of phase, so an exit or entrance that finishes late changes nothing.
+   *
+   * @claim registry/ouro/components/ouro/checklist/checklist.test.tsx verify:testExists(registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > keeps a removed row until its exit finishes)
+   * @claim registry/ouro/components/ouro/checklist/checklist.test.tsx verify:testExists(registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > ends in the last state when toggled twice during its animation)
+   */
   generation: number;
 }
 
@@ -103,6 +108,8 @@ function merge<T>(previous: Array<Presence<T>>, items: readonly T[], key: (item:
  * created the transitions), then every animation on the row or one of its parts whose iterations
  * are finite, cancelled ones included. An endless animation in the row's action (a spinner) never
  * holds it.
+ * @claim registry/ouro/components/ouro/checklist/checklist.test.tsx verify:testExists(registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > keeps a removed row until its exit finishes)
+ * @claim registry/ouro/components/ouro/checklist/checklist.test.tsx verify:testExists(registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > exits even when its action animates forever)
  */
 async function settled(row: HTMLElement): Promise<void> {
   void getComputedStyle(row).opacity;

@@ -63,6 +63,8 @@ const rowInnerClass = "flex min-h-0 min-w-0 items-center gap-1 group-data-starti
  * does, and is at least 44px tall on a coarse pointer.
  *
  * @internal
+ * @claim registry/ouro/components/ouro/checklist/checklist.touch.test.tsx verify:testExists(registry/ouro/components/ouro/checklist/checklist.touch.test.tsx::gives every row at least 44px to tap)
+ * @claim registry/ouro/components/ouro/checklist/checklist-styles.ts verify:fileLine(registry/ouro/components/ouro/checklist/checklist-styles.ts, /pointer-fine:hover:bg-muted\/60\snot-has-data-disabled:active:bg-muted\/60/)
  */
 const hitClass =
   "relative m-0 flex min-w-0 flex-1 items-start gap-3 rounded-md px-2 py-2 pointer-coarse:min-h-11 pointer-coarse:py-2.5 " +
