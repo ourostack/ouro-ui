@@ -48,7 +48,12 @@ export interface TimerTrayOwnProps {
 
   /** Not a prop. The tray lists `timers`: `<TimerTray timers={[{ timerId, label, duration }]} />`. */
   items?: { 'Use timers={[{ timerId, label, duration }]}': never };
-  /** Not a prop. The tray shows only timers that are running, paused or finished; pass them all. */
+  /**
+   * Not a prop. The tray shows only timers that are running, paused or finished; pass them all.
+   *
+   * @claim registry/ouro/components/ouro/timer/timer-tray.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer-tray.test.tsx::TimerTray > is a region listing the running, paused and finished timers with their time, and hides idle ones)
+   * @claim registry/ouro/components/ouro/timer/timer-tray.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer-tray.test.tsx::TimerTray > hides itself while no timer is running)
+   */
   hidden?: { 'The tray hides itself while no timer is running': never };
 }
 

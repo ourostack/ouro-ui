@@ -68,13 +68,22 @@ export interface TextAreaOwnProps {
    * for messages and notes, so people see what they wrote.
    */
   autoGrow?: boolean | undefined;
-  /** With `autoGrow`, the most lines it grows to before it scrolls. Unset, it keeps growing. */
+  /**
+   * With `autoGrow`, the most lines it grows to before it scrolls. Unset, it keeps growing.
+   *
+   * @claim registry/ouro/components/ouro/text-field/text-area.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-area.test.tsx::TextArea autoGrow > grows with the content and stops at maxRows, then scrolls)
+   * @claim registry/ouro/components/ouro/text-field/text-area.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-area.test.tsx::TextArea autoGrow > grows without a cap when maxRows is not set)
+   */
   maxRows?: number | undefined;
   /** The current text, for a controlled field; pair it with `onValueChange` or `onChange`. */
   value?: string | undefined;
   /** The starting text, for an uncontrolled field. */
   defaultValue?: string | undefined;
-  /** Called with the new text on every change. */
+  /**
+   * Called with the new text on every change.
+   *
+   * @claim registry/ouro/components/ouro/text-field/text-area.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-area.test.tsx::TextArea > passes textarea attributes, value and change handlers through)
+   */
   onValueChange?: FieldControlProps["onValueChange"];
   /**
    * Layout only: margins, width, grid placement (`mt-4`, `col-span-2`). Appearance classes
@@ -134,6 +143,8 @@ const owner = { name: "TextArea", data: "text-area" };
  *   <TextArea label="Message" hideLabel name="message" placeholder="Ask anything" variant="plain" autoGrow rows={1} maxRows={8} className="flex-1" />
  *   <Button type="submit">Send</Button>
  * </form>
+ * @claim registry/ouro/components/ouro/text-field/text-area.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-area.test.tsx::TextArea variant and size > sets 20px text on 28px lines with size lg, at phone and desktop widths)
+ * @claim registry/ouro/components/ouro/text-field/text-area.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-area.test.tsx::TextArea variant and size > draws no frame of its own with variant plain, and still outlines on keyboard focus)
  */
 export function TextArea(props: TextAreaProps): JSX.Element {
   const {

@@ -23,6 +23,8 @@ const portalClass = "relative isolate z-[calc(var(--ouro-layer)+1)]";
  * over phone values. Neither path introduces a global spacing default.
  *
  * @internal
+ * @claim registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster > lets unprefixed app clearance and width win on the actual viewport at phone and desktop widths)
+ * @claim registry/ouro/components/ouro/toast/toaster.touch.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.touch.test.tsx::spans the phone's width at the bottom, inside a 16px margin)
  */
 const viewportClass =
   "fixed outline-none " +
@@ -48,6 +50,9 @@ const viewportClass =
  * scrolls the page, and the browser cancels the swipe.
  *
  * @internal
+ * @claim registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > puts the newest toast first in the page, where F6 then Tab reaches it, then each older one)
+ * @claim registry/ouro/components/ouro/toast/toaster.touch.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.touch.test.tsx::the swipe follows the finger (rule 12) > goes back to rest when the browser cancels the touch, however far out it was)
+ * @claim registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::pausing > pauses while the pointer is over the toasts, and resumes after)
  */
 const rootClass =
   "absolute inset-x-0 bottom-0 box-border origin-bottom touch-none select-none [-webkit-tap-highlight-color:transparent] " +
@@ -80,6 +85,7 @@ const contentClass =
  * The action button: a quiet bordered button, 44px to touch on a coarse pointer.
  *
  * @internal
+ * @claim registry/ouro/components/ouro/toast/toaster.touch.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.touch.test.tsx::gives the dismiss and action buttons 44px touch targets)
  */
 const actionClass =
   "press relative m-0 -my-1 box-border inline-flex h-9 shrink-0 items-center justify-center rounded-md border border-solid border-border " +
@@ -91,6 +97,8 @@ const actionClass =
  * The dismiss button: a small icon button with a 44px touch target on a coarse pointer.
  *
  * @internal
+ * @claim registry/ouro/components/ouro/toast/toaster.touch.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.touch.test.tsx::gives the dismiss and action buttons 44px touch targets)
+ * @claim registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > closes from the dismiss button)
  */
 const closeClass =
   "press relative m-0 -me-1 -mt-1 box-border inline-flex size-7 shrink-0 items-center justify-center rounded-md border-0 bg-transparent p-0 " +

@@ -62,5 +62,9 @@ export function alertDone(label: string, done: string, event: TimerDoneEvent, si
   buzz();
 }
 
-/** The time in a tone that keeps 4.5:1 on the page when it is up. */
+/**
+ * The time when it is up: the destructive color mixed 20% toward the foreground, for contrast on the page.
+ *
+ * @claim registry/ouro/components/ouro/timer/timer-styles.ts verify:fileLine(registry/ouro/components/ouro/timer/timer-styles.ts, /text-\[color-mix\(in_oklab,var\(--destructive\)_80%,var\(--foreground\)\)\]/)
+ */
 export const doneText = "text-[color-mix(in_oklab,var(--destructive)_80%,var(--foreground))]";

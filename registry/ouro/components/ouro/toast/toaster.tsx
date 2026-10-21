@@ -55,8 +55,8 @@ export interface ToasterProps {
 
 /**
  * Shows the toasts you send with `toast("Saved")` from `@/lib/ouro/toast`: render it
- * once, at the root of your app, inside `OuroProvider` if you use one, or alone. Every
- * Ouro UI install has `toast`. Toasts stack at the
+ * once, at the root of your app, inside `OuroProvider` if you use one, or alone. Adding
+ * Toaster installs `toast` with it. Toasts stack at the
  * bottom of the screen, full width on phones by default; `className` adjusts viewport
  * layout/clearance, not each toast's appearance. Up to three show, and later ones wait their
  * turn, a `destructive` toast ahead of the others. They pause while the pointer is over them or a toast has focus, F6 moves focus to
@@ -90,6 +90,10 @@ export interface ToasterProps {
  * </OuroProvider>
  * // Anywhere in the app:
  * toast("Recipe saved", { tone: "success" });
+ * @claim registry/ouro/components/ouro/toast/toaster.tsx verify:fileLine(registry/ouro/components/ouro/toast/toaster.tsx, /^import\s\{\sconnectToaster,\stype\sToastRecord\s\}\sfrom\s"@\/registry\/ouro\/lib\/ouro\/toast";/)
+ * @claim registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::pausing > pauses while the pointer is over the toasts, and resumes after)
+ * @claim registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::pausing > pauses while a toast has keyboard focus; F6 moves focus to the toasts)
+ * @claim registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > puts the newest toast first in the page, where F6 then Tab reaches it, then each older one)
  */
 export function Toaster(props: ToasterProps): JSX.Element | null {
   const { className, label = "Notifications", closeLabel = "Dismiss", position, richColors, theme, duration } = props;
@@ -242,6 +246,8 @@ function Connect({ onActive }: { onActive: (active: boolean) => void }): null {
 /**
  * The toasts, newest first in the page as Base UI orders them, so F6 then Tab reaches the
  * newest and goes on to each older one. Each is announced as it arrives.
+ * @claim registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > puts the newest toast first in the page, where F6 then Tab reaches it, then each older one)
+ * @claim registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::keyboard > reaches and runs the oldest toast's action with F6, then Tab)
  */
 function ToastList({ closeLabel }: { closeLabel: string }): JSX.Element[] {
   const { toasts } = Toast.useToastManager();
@@ -303,6 +309,8 @@ type Axis = "x" | "y";
  * finger, then returns or fades with no travel.
  *
  * The offset is the element's `translate`, which adds to the `transform` the stack sets.
+ * @claim registry/ouro/components/ouro/toast/toaster.touch.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.touch.test.tsx::the swipe follows the finger (rule 12) > moves 1:1 from where it was taken, either way, once 10px have chosen sideways)
+ * @claim registry/ouro/components/ouro/toast/toaster.touch.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.touch.test.tsx::the swipe follows the finger (rule 12) > is taken without a jump when caught above rest, where it was held back)
  */
 function useSwipeAway(dismiss: () => void, ending: boolean) {
   const state = useRef<SwipeState>({ element: null, axis: null, offset: 0, grab: 0, pressed: { x: false, y: false }, moved: false, leaving: false, control: false, settle: undefined });

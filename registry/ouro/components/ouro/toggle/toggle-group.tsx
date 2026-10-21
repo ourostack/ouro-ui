@@ -38,11 +38,15 @@ export interface ToggleGroupItem {
 export interface ToggleGroupBaseProps {
   /** Names the group ("Text style"). Shown above it unless `hideLabel` is set; screen readers always hear it. */
   label: string;
-  /** Hides the group's label visually; it still names the group. Most toolbars set it. */
+  /** Hides the group's label visually; it still names the group. Set it on a toolbar whose toggles say what it is. */
   hideLabel?: boolean | undefined;
   /** The toggles, in order. */
   items: readonly ToggleGroupItem[];
-  /** Disables every toggle. */
+  /**
+   * Disables every toggle.
+   *
+   * @claim registry/ouro/components/ouro/toggle/toggle-group.test.tsx verify:testExists(registry/ouro/components/ouro/toggle/toggle-group.test.tsx::ToggleGroup > disables one item, or the whole group)
+   */
   disabled?: boolean | undefined;
   /**
    * `plain` toggles have no border until pressed; `outline` ones always have one. shadcn's `default` is `plain`.
@@ -52,6 +56,7 @@ export interface ToggleGroupBaseProps {
   /**
    * Every toggle's size, as Button's. shadcn's `default` is `md`.
    * @default "md"
+   * @claim registry/ouro/components/ouro/toggle/toggle-group.test.tsx verify:testExists(registry/ouro/components/ouro/toggle/toggle-group.test.tsx::ToggleGroup > passes variant and size to every item)
    */
   size?: "sm" | "md" | "lg" | (string & { 'From shadcn? default is "md"': never }) | undefined;
   /** Layout only: margins, grid placement (`mt-4`). Appearance classes warn in development. */

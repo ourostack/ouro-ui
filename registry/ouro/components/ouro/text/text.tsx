@@ -51,6 +51,8 @@ export interface TextOwnProps {
  * Props for {@link Text}. `truncate` (one line) and `lines` (many) are exclusive. The
  * HTML attributes sit outside the `truncate`/`lines` union, which keeps the editor's
  * hover docs on every prop.
+ * @claim registry/ouro/components/ouro/text/text.test.tsx verify:testExists(registry/ouro/components/ouro/text/text.test.tsx::Text > passes HTML attributes and a ref through)
+ * @claim registry/ouro/components/ouro/text/text.tsx verify:fileLine(registry/ouro/components/ouro/text/text.tsx, /^export\stype\sTextProps\s=\sOmit</)
  */
 export type TextProps = Omit<
   HTMLAttributes<HTMLElement>,

@@ -93,6 +93,8 @@ function essential(detail: string): readonly [string, string] {
  * >
  *   <TextField label="Link" defaultValue={url} readOnly />
  * </Popover>
+ * @claim registry/ouro/components/ouro/tooltip/tooltip.test.tsx verify:testExists(registry/ouro/components/ouro/tooltip/tooltip.test.tsx::Tooltip > portals at the --ouro-layer level, as its own stacking context)
+ * @claim registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /^\s+--ouro-layer:\s50;/)
  */
 export function Tooltip(props: TooltipProps): JSX.Element {
   const {

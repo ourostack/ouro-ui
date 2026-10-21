@@ -32,6 +32,7 @@ export interface TextFieldOwnProps {
   /**
    * What the field is for, shown above it and read as its name. Required: every control
    * needs a name. To hide it visually, keep it and add `hideLabel`. A placeholder is not a label.
+   * @claim registry/ouro/components/ouro/text-field/text-field.test-d.ts verify:fileLine(registry/ouro/components/ouro/text-field/text-field.test-d.ts, /expectTypeOf<\{\stype:\s"email"\s\}>\(\)\.not\.toExtend<TextFieldProps>/)
    */
   label: string;
   /** Hides the label visually; screen readers still read it as the field's name. */
@@ -84,6 +85,10 @@ export interface TextFieldOwnProps {
    * text at every width, for a page's main search. The font family is inherited, so set a
    * display font on a parent. It replaces the input's own `size` attribute (a width in
    * characters); set the width with `className`. @default "md"
+   * @claim registry/ouro/components/ouro/text-field/text-field.touch.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-field.touch.test.tsx::keeps 16px text and a 44px box on a landscape phone, past the sm breakpoint)
+   * @claim registry/ouro/components/ouro/text-field/text-area.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-area.test.tsx::TextArea variant and size > sets 20px text on 28px lines with size lg, at phone and desktop widths)
+   * @claim registry/ouro/components/ouro/text-field/text-field.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-field.test.tsx::TextField looks > uses a 16px font on phones, so iOS does not zoom on focus, and a 44px box)
+   * @claim registry/ouro/components/ouro/text-field/text-field.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-field.test.tsx::TextField variant and size > sets 20px text in a taller box with size lg, at phone and desktop widths)
    */
   size?: "md" | "lg" | (string & { 'default is "md"; "lg" is 20px text. For a width, use className="w-40"': never }) | undefined;
   /**
@@ -165,7 +170,12 @@ const isText = (node: ReactNode): node is string | number => typeof node === "st
 /** The value prop as text, to know whether there is something to clear. */
 const textOf = (value: unknown): string => (value === undefined || value === null ? "" : String(value));
 
-/** Icons drawn in the text color at 16px, like the other Ouro icons. */
+/**
+ * Icons drawn in the text color at 16px, like the other Ouro icons.
+ *
+ * @claim registry/ouro/components/ouro/text-field/text-field.tsx verify:fileLine(registry/ouro/components/ouro/text-field/text-field.tsx, /viewBox="0\s0\s16\s16"/)
+ * @claim registry/ouro/components/ouro/text-field/text-field.tsx verify:fileLine(registry/ouro/components/ouro/text-field/text-field.tsx, /stroke="currentColor"/)
+ */
 function Icon({ children }: { children: ReactNode }): JSX.Element {
   return (
     <svg
@@ -223,6 +233,8 @@ function Icon({ children }: { children: ReactNode }): JSX.Element {
  *   <TextField label="Search recipes" hideLabel type="search" name="q" placeholder="tomato, beans, lemon" variant="plain" size="lg" className="flex-1" />
  *   <Button type="submit">Search</Button>
  * </form>
+ * @claim registry/ouro/components/ouro/text-field/text-field.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-field.test.tsx::TextField variant and size > sits inside the app's own bordered row: the row draws the one frame)
+ * @claim registry/ouro/components/ouro/text-field/text-field.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-field.test.tsx::TextField variant and size > sets 20px text in a taller box with size lg, at phone and desktop widths)
  */
 export function TextField(props: TextFieldProps): JSX.Element {
   const {

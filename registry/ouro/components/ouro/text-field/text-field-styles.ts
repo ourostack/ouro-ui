@@ -23,6 +23,8 @@ export type { TextFieldType };
  * The types TextField supports. `number` is not one: NumberField parses and steps numbers.
  *
  * @internal
+ * @claim registry/ouro/components/ouro/text-field/text-field.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-field.test.tsx::TextField types > renders a text input and lists the types for any other type)
+ * @claim registry/ouro/components/ouro/text-field/text-field-styles.ts verify:fileLine(registry/ouro/components/ouro/text-field/text-field-styles.ts, /const\stextFieldTypes\s=\s\["text",\s"email",\s"password",\s"tel",\s"url",\s"search",\s"date",\s"time"\]/)
  */
 const textFieldTypes = ["text", "email", "password", "tel", "url", "search", "date", "time"] as const;
 
@@ -30,6 +32,8 @@ const textFieldTypes = ["text", "email", "password", "tel", "url", "search", "da
  * A type TextField supports.
  *
  * @internal
+ * @claim registry/ouro/components/ouro/text-field/text-field.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-field.test.tsx::TextField types > renders a text input and lists the types for any other type)
+ * @claim registry/ouro/components/ouro/text-field/text-field-styles.ts verify:fileLine(registry/ouro/components/ouro/text-field/text-field-styles.ts, /const\stextFieldTypes\s=/)
  */
 type TextFieldType = (typeof textFieldTypes)[number];
 
@@ -94,6 +98,8 @@ const groupVariants = {
  * a 20px font and 20px icons at every width.
  *
  * @internal
+ * @claim registry/ouro/components/ouro/text-field/text-field.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-field.test.tsx::TextField looks > uses a 16px font on phones, so iOS does not zoom on focus, and a 44px box)
+ * @claim registry/ouro/components/ouro/text-field/text-field.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-field.test.tsx::TextField variant and size > sets 20px text in a taller box with size lg, at phone and desktop widths)
  */
 const groupSizes = {
   md: "[--ouro-control-h:calc(var(--spacing)*11)] sm:pointer-fine:[--ouro-control-h:calc(var(--spacing)*9)] text-base sm:pointer-fine:text-sm",
@@ -141,6 +147,8 @@ const adornmentClass = "flex shrink-0 items-center whitespace-nowrap text-muted-
  * padding to pull them into, so TextField sets `me-0` there.
  *
  * @internal
+ * @claim registry/ouro/components/ouro/text-field/text-field.touch.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-field.touch.test.tsx::gives the toggle a 44px hit area, though it is smaller than the box)
+ * @claim registry/ouro/components/ouro/text-field/text-field.touch.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-field.touch.test.tsx::keeps the clear button's and the toggle's touch areas apart)
  */
 const endSlotClass = "-me-2 flex shrink-0 items-center gap-1 pointer-coarse:gap-3";
 
@@ -161,6 +169,8 @@ const otherComponents: Readonly<Record<string, (label: string) => readonly [stri
  * there is one (NumberField, DatePicker, FileField), else the list of types. Development only.
  *
  * @internal
+ * @claim registry/ouro/components/ouro/text-field/text-field.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-field.test.tsx::TextField types > renders a text input with a decimal keyboard and points to NumberField for type=number)
+ * @claim registry/ouro/components/ouro/text-field/text-field.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-field.test.tsx::TextField types > renders a text input and lists the types for any other type)
  */
 function typeWarning(type: string, label: string): readonly [string, string] {
   if (Object.hasOwn(otherComponents, type)) {
