@@ -1,30 +1,78 @@
-// Claims: every factual sentence on every surface carries its primary source and a machine
-// check (docs/guides/claims.md).
+// The claims checker (lib-claims): every factual sentence on every surface carries its
+// primary source and a machine check. Run it from your app's root with Node 22.18 or later:
 //
-//   pnpm claims:check              lints every surface and runs every claim's checks
-//   pnpm claims:lint <file>…       the same for some files; --pr lints a pull request's
-//                                  title and body (PR_TITLE, PR_BODY), --stdin reads text
-//   pnpm claims:show <file>        lists the file's claims, their sources and each check's result
+//   node src/lib/ouro/claims-check.mjs check            lints every surface, runs every claim's checks
+//   node src/lib/ouro/claims-check.mjs lint <file>…     the same for some files; --pr lints a pull
+//                                                       request's title and body (PR_TITLE, PR_BODY),
+//                                                       --stdin [--name <name>] reads a draft
+//   node src/lib/ouro/claims-check.mjs show <file>…     lists a file's claims, sources and checks
+//   node src/lib/ouro/claims-check.mjs ratchet          with CLAIMS_BASE_REF and PR_BODY: fails on an
+//                                                       exemption a pull request adds without naming it
 //
 // A claim is a sentence with a source and a `verify:` check: in Markdown a source link
-// (`[73 components](registry.json "verify:count(registry:ui)=73")`) or a footnote
-// (`[^id]` with `[^id]: <source> verify:<check>`), in JSDoc an `@claim <source> verify:<check>`
-// tag (it covers its comment), in TypeScript copy `claim(text, { source, verify })` from
-// lib/ouro/claims.ts, which also parses the source and check syntax. The lint fails a
-// factual-sounding sentence (a number, version or date; "tested", "accessible", "every",
-// "all", "works with", "supports", a superlative) that is not a claim, unless it is an
+// (`[3 themes](themes.json "verify:count(themes.json#themes)=3")`) or a footnote (`[^id]` with
+// `[^id]: <source> verify:<check>`); in JSDoc `@claim "<words of the sentence>" <source>
+// verify:<check>`, which covers the sentence it quotes; in TypeScript copy
+// `claim(text, { source, verify })` from lib/ouro/claims.ts, which also parses the syntax.
+// The lint fails a factual-sounding sentence that is not a claim, unless it is an
 // instruction. The checks read only the repository, so they are deterministic; `urlOk`
-// reads scripts/claims-urls.json, which `--network` refreshes.
+// reads the URL cache, which `--network` refreshes. claims.config.json at the root sets the
+// surfaces, the exemptions and the required jobs and checks (docs: claim, in Ouro UI's docs).
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { join, relative } from "node:path";
+import { pathToFileURL } from "node:url";
 import ts from "typescript";
-import { parseClaimCheck, parseClaimSource } from "../registry/ouro/lib/ouro/claims.ts";
-import { syncedFiles } from "./latest-release.mjs";
+import { parseClaimCheck, parseClaimSource } from "./claims.ts";
 
-const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
-const URL_CACHE = "scripts/claims-urls.json";
+// ---------------------------------------------------------------------------------------
+// Configuration
+
+/** Verbs an instruction starts with: "Run pnpm test", "Don't add a class". */
+export const INSTRUCTION_VERBS =
+  "add allow apply ask avoid build call change check choose clear click close commit compare compose configure copy cover create declare delete describe disable do don't download drag draw edit enable ensure export fill find fix follow give go hide import include install keep leave let link list load look make mark merge move name never note open pass pick pin place prefer press put raise read rebase record refresh regenerate release remove rename render replace report request reset restart return review run score see select set show skip sort start stop swap switch tag tap tell test translate try turn type update upgrade use wait wrap write".split(" ");
+
+/**
+ * What an app gets without a claims.config.json: Markdown files and the copy under src/
+ * are linted, and a test counts once it exists and is not skipped.
+ */
+export const DEFAULT_CONFIG = {
+  surfaces: [
+    { match: "\\.(md|mdx|txt)$", mode: "markdown" },
+    { match: "^src/.*\\.(ts|tsx|js|jsx)$", exclude: "\\.(test|spec|stories)\\.|\\.d\\.ts$|/lib/ouro/", mode: "copy" },
+  ],
+  notLinted: [{ match: "(^|/)(LICENSE|CHANGELOG)(\\.\\w+)?$", mode: "input", reason: "license text and generated release notes" }],
+  generated: [],
+  generators: [],
+  allowed: [],
+  instructionVerbs: INSTRUCTION_VERBS,
+  requiredTests: null,
+  requiredChecks: ".github/required-checks.json",
+  urlCache: "claims-urls.json",
+};
+
+/** A file's text at a git ref, or undefined. */
+function gitShow(root, ref, file) {
+  try {
+    return execFileSync("git", ["show", `${ref}:${file}`], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+  } catch {
+    return undefined;
+  }
+}
+
+/** claims.config.json over the defaults, from the working tree or, with `ref`, from that commit. */
+export function loadConfig(root, { ref } = {}) {
+  const text = ref ? gitShow(root, ref, "claims.config.json") : existsSync(join(root, "claims.config.json")) ? readFileSync(join(root, "claims.config.json"), "utf8") : undefined;
+  return { ...DEFAULT_CONFIG, ...(text ? JSON.parse(text) : {}) };
+}
+
+/** How a file is read: { mode: "lint", kind } for a surface, { mode, reason } for an exempt one, or undefined for a file that is not prose. */
+export function classify(file, config) {
+  const surface = config.surfaces.find((entry) => new RegExp(entry.match).test(file) && !(entry.exclude && new RegExp(entry.exclude).test(file)));
+  if (!surface) return undefined;
+  const exempt = config.notLinted.find((entry) => new RegExp(entry.match).test(file));
+  return exempt ? { mode: exempt.mode, reason: exempt.reason } : { mode: "lint", kind: surface.mode };
+}
 
 // ---------------------------------------------------------------------------------------
 // What makes a sentence a factual claim
@@ -33,12 +81,19 @@ const MONTH = "January|February|March|April|May|June|July|August|September|Octob
 const DATE = new RegExp(`\\b(?:19|20)\\d\\d-\\d\\d-\\d\\d\\b|\\b(?:${MONTH})(?:\\s+\\d{1,2},?)?\\s+(?:19|20)\\d\\d\\b|\\b\\d{1,2}\\s+(?:${MONTH})\\s+(?:19|20)\\d\\d\\b`, "g");
 const VERSION = /\bv?\d+\.\d+(?:\.\d+)*\b(?![:\d])/g;
 
+/** Numbers in words: "three themes", "a dozen helpers". Not "one", which mostly means "a" ("in one app"). */
+const NUMBER_WORDS = /\b(?:two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundreds?|thousands?|millions?|dozens?)\b/gi;
+
 /** The words that make a sentence factual, in report order, after numbers, versions and dates. */
 const WORDS = [
   ["tested", /\btested\b/i],
   ["accessible", /\baccessib(?:le|ility)\b(?!\s+(?:names?|descriptions?|labels?)\b)/i],
   ["every", /\bevery(?:thing|one|where)?\b/i],
   ["all", /\ball\b/i],
+  ["each", /\beach\b/i],
+  ["no", /\b(?:no|zero|none)\b/i],
+  ["always", /\b(?:always|never)\b/i],
+  ["fully", /\bfully\b/i],
   ["works with", /\bworks?\s+with\b/i],
   ["supports", /\bsupport(?:s|ed)?\b/i],
   ["superlative", /\b(?<!\bat\s)(?:best|worst|fastest|slowest|quickest|smallest|largest|biggest|lightest|heaviest|easiest|simplest|safest|highest|lowest|strongest|newest|most|least|fewest)\b/i],
@@ -48,33 +103,49 @@ const WORDS = [
 const NEEDS = {
   date: "dates an event. Cite the commit, release, CI run or evidence file that records it, checked with verify:fileLine(<file>, /<date>/)",
   version: "names a version. Cite the file that pins it, checked with verify:equals(<file>#<field path>)=<version> or verify:fileLine(<file>, /<version>/)",
-  number: "states a number. Cite where it comes from, checked with verify:count(registry:ui)=<n> (or dir:<path>, <file>#<field path>), verify:equals(<file>#<field path>)=<value> or verify:fileLine(<file>, /<pattern>/)",
-  tested: "says something is tested. Cite the test, test:<file>::<full test name> with verify:testExists(<file>::<full test name>), or the CI job, verify:ciJob(<job>)",
+  number: "states a number. Cite where it comes from, checked with verify:count(<file>#<field path>)=<n> (or dir:<path>, registry:<type>), verify:equals(<file>#<field path>)=<value> or verify:fileLine(<file>, /<pattern>/)",
+  tested: "says something is tested. Cite the test, test:<file>::<full test name> with verify:testExists(<file>::<full test name>), or a required CI check, verify:ciJob(<job>)",
   accessible: "claims accessibility. Cite the axe or screen-reader test that checks it, with verify:testExists(<file>::<full test name>)",
   every: "makes a universal claim. Cite the test or script that checks every case, with verify:testExists(<file>::<full test name>) or verify:fileLine(<file>, /<pattern>/)",
   all: "makes a universal claim. Cite the test or script that checks every case, with verify:testExists(<file>::<full test name>) or verify:fileLine(<file>, /<pattern>/)",
-  "works with": "claims compatibility. Cite the install test, CI job or specification that proves it, with verify:ciJob(<job>), verify:testExists(<file>::<full test name>) or verify:urlOk(<url>)",
-  supports: "claims compatibility. Cite the install test, CI job or specification that proves it, with verify:ciJob(<job>), verify:testExists(<file>::<full test name>) or verify:urlOk(<url>)",
+  each: "makes a universal claim. Cite the test or script that checks each case, with verify:testExists(<file>::<full test name>) or verify:fileLine(<file>, /<pattern>/)",
+  no: "makes a universal negative. Cite the test or script that proves none does, with verify:testExists(<file>::<full test name>) or verify:fileLine(<file>, /<pattern>/)",
+  always: "says something always or never happens. Cite the test that proves it, with verify:testExists(<file>::<full test name>), or say when it happens instead",
+  fully: "claims completeness. Cite the test that proves it, with verify:testExists(<file>::<full test name>), or say what it does instead",
+  "works with": "claims compatibility. Cite the install test, required CI check or specification that proves it, with verify:ciJob(<job>), verify:testExists(<file>::<full test name>) or verify:urlOk(<url>)",
+  supports: "claims compatibility. Cite the install test, required CI check or specification that proves it, with verify:ciJob(<job>), verify:testExists(<file>::<full test name>) or verify:urlOk(<url>)",
   superlative: "makes a superlative. Cite the measurement (an evidence file, checked with verify:fileLine), or say it without the superlative",
 };
 
 const HOW_TO = {
-  markdown: 'Mark it as a claim: [the words](<source> "verify:<check>"), or end the sentence with [^id] and add "[^id]: <source> verify:<check>" (docs/guides/claims.md).',
-  jsdoc: "Add `@claim <source> verify:<check>` to the comment (docs/guides/claims.md).",
-  copy: 'Wrap it in claim("…", { source, verify }) from lib/ouro/claims (docs/guides/claims.md).',
+  markdown: 'Mark it as a claim: [the words](<source> "verify:<check>"), or end the sentence with [^id] and add "[^id]: <source> verify:<check>" (the claim docs).',
+  jsdoc: 'Add `@claim "<words of the sentence>" <source> verify:<check>` to the comment (the claim docs).',
+  copy: 'Wrap it in claim("…", { source, verify }) from lib/ouro/claims (the claim docs).',
 };
 
-/** Code spans, links' targets and addresses: their digits and words are not prose. */
+/** Whether text has one of the claim words (not a number): a quotation with one is read, not masked. */
+const hasClaimWord = (text) => WORDS.some(([, pattern]) => pattern.test(text));
+
+/**
+ * A short quotation mentions text, such as a label or an example of output ("3 days ago"); it
+ * asserts nothing, so it is masked. One with a claim word, or longer than a label (six words),
+ * is read like any other text, so a claim cannot hide in quotation marks.
+ */
+const QUOTED = /"([^"\n]{1,80})"|“([^”\n]{1,80})”/g;
+const maskQuote = (quote, plain, curly) => {
+  const inner = plain ?? curly;
+  return hasClaimWord(inner) || inner.trim().split(/\s+/).length > 6 ? quote : "§".repeat(quote.length);
+};
+
+/** Code spans, template substitutions, links' targets and addresses: their digits and words are not prose. */
 function maskCode(text) {
   return text
     .replace(/(`+)[\s\S]*?\1/g, (span) => "§".repeat(span.length))
+    .replace(/\$\{[^}]*\}/g, (span) => "§".repeat(span.length))
     .replace(/\]\([^)]*\)/g, (target) => "]" + " ".repeat(target.length - 1))
     .replace(/<?https?:\/\/[^\s)>\]]*[^\s)>\].,;:!?'"]>?/g, (url) => "§".repeat(url.length))
-    .replace(QUOTED, (quote) => "§".repeat(quote.length));
+    .replace(QUOTED, maskQuote);
 }
-
-/** A short quotation: text mentioned, such as a label or an example of output ("3 days ago"), not asserted. */
-const QUOTED = /"[^"\n]{1,80}"|“[^”\n]{1,80}”/g;
 
 /** The kinds of claim a sentence makes, with the words that make it. */
 export function triggers(sentence) {
@@ -89,6 +160,12 @@ export function triggers(sentence) {
   take("date", DATE);
   take("version", VERSION);
   take("number", /\d+/g);
+  const spelled = [...text.matchAll(NUMBER_WORDS)].map((match) => match[0]);
+  if (spelled.length > 0) {
+    const number = found.find((entry) => entry.kind === "number");
+    if (number) number.words.push(...spelled);
+    else found.push({ kind: "number", words: spelled });
+  }
   for (const [kind, pattern] of WORDS) {
     const match = pattern.exec(text);
     if (match) found.push({ kind, words: [match[0]] });
@@ -96,24 +173,33 @@ export function triggers(sentence) {
   return found;
 }
 
-/** Verbs an instruction starts with: "Run pnpm test", "Don't add a class". */
-const VERBS = new Set(
-  "add allow apply ask avoid build call change check choose clear click close commit compare compose configure copy cover create declare delete describe disable do don't download drag draw edit enable ensure export fill find fix follow give go hide import include install keep leave let link list load look make mark merge move name never note open pass pick pin place prefer press put raise read rebase record refresh regenerate release remove rename render replace report request reset restart return review run score see select set show skip sort start stop swap switch tag tap tell test translate try turn type update upgrade use wait wrap write".split(" "),
-);
+/** A verb form that, in the first two words after the first, makes that first word a noun with its verb ("Test coverage is…"), not an instruction. */
+const COPULA = /^(?:is|are|was|were|be|been|has|have|had|will|would|can|could|should|may|might|must|does|did)$/;
+const DETERMINER = /^(?:the|a|an|your|its|their|this|these|those|it|them|each|every|all|any|our|my|one|some|no)$/;
 
 /**
- * Whether a sentence is an instruction, which needs no source: it starts with a verb from
- * the list above ("Run pnpm test"), or with a condition and then one ("If it fails, run it
- * again"), or it is a question.
+ * Whether a sentence is an instruction, which needs no source: it starts with an instruction
+ * verb ("Run pnpm test"), or with a condition and then one ("If it fails, run it again"), or
+ * it is a question. A verb that is the subject's noun ("Test coverage is 100%", "Release 2.0
+ * shipped", "Note that…", "Record: …") is not an instruction.
  */
-export function isInstruction(sentence) {
+export function isInstruction(sentence, verbs = INSTRUCTION_VERBS) {
+  const known = verbs instanceof Set ? verbs : new Set(verbs);
   const text = maskCode(sentence).replace(/^[\s>*_#-]*(?:\d+[.)]\s+)?(?:\*\*|__)?/, "").trim();
   if (/\?["'”’)*_]*$/.test(text)) return true;
-  const first = /^([A-Za-z’']+)(?=[\s,:])/.exec(text)?.[1]?.toLowerCase().replace("’", "'");
-  if (first && VERBS.has(first)) return true;
+  const imperative = (clause) => {
+    const match = /^([A-Za-z’']+)(\s+|,|:|$)(.*)$/s.exec(clause);
+    if (!match || !known.has(match[1].toLowerCase().replace("’", "'"))) return false;
+    if (match[2] === ":") return false;
+    const [next = "", after = ""] = match[3].toLowerCase().split(/\s+/).map((word) => word.replace(/[^a-z']/g, ""));
+    if (COPULA.test(next) || next === "that" || COPULA.test(after)) return false;
+    // "Release 2.0 shipped": a past tense after a noun, not after a determiner ("Use the shared…").
+    return !(/^[a-z]+ed$/.test(after) && !DETERMINER.test(next));
+  };
+  if (imperative(text)) return true;
   if (!/^(?:if|when|whenever|before|after|once|to|for|unless|until|while|with|without|in|on)\b/i.test(text)) return false;
   // The condition may list several things ("For each arm, each screen and each run, make…"): any clause after a comma may start the instruction.
-  return [...text.matchAll(/,\s+([A-Za-z’']+)/g)].some((match) => VERBS.has(match[1].toLowerCase()));
+  return [...text.matchAll(/,\s+(?=[A-Za-z’'])/g)].some((match) => imperative(text.slice(match.index + match[0].length)));
 }
 
 // ---------------------------------------------------------------------------------------
@@ -152,15 +238,13 @@ function parseEvidence(body) {
 const collapse = (text) => text.replace(/\s+/g, " ").trim();
 
 /** Splits Markdown into the units sentences come from: paragraphs, list items, headings and table cells. */
-function blocks(text, { skip = [], skipSections = [] } = {}) {
+function blocks(text) {
   const lines = text.replace(/\r\n?/g, "\n").split("\n");
   const definitions = new Map();
   const out = [];
   let current = null;
   let fence = null;
   let comment = false;
-  let skipping = null;
-  let section = null;
   const end = () => {
     if (current) out.push(current);
     current = null;
@@ -177,23 +261,13 @@ function blocks(text, { skip = [], skipSections = [] } = {}) {
       if (raw.trim().startsWith(fence)) fence = null;
       continue;
     }
-    if (skipping) {
-      if (raw.includes(`<!-- ${skipping}:end -->`)) skipping = null;
-      continue;
-    }
-    const marker = /<!-- ([\w-]+):start -->/.exec(raw);
-    if (marker && skip.includes(marker[1])) {
-      end();
-      if (!raw.includes(`<!-- ${marker[1]}:end -->`)) skipping = marker[1];
-      continue;
-    }
-    const heading = /^(#{1,6})\s+(.*)$/.exec(raw);
-    if (section) {
-      if (!heading || heading[1].length > section) continue;
-      section = null;
-    }
+    const heading = /^(#{1,6}\s+)(.*)$/.exec(raw);
     if (comment) {
       if (raw.includes("-->")) comment = false;
+      continue;
+    }
+    if (/^\s*<!--.*-->\s*$/.test(raw)) {
+      end();
       continue;
     }
     if (/^\s*<!--/.test(raw) && !raw.includes("-->")) {
@@ -220,12 +294,9 @@ function blocks(text, { skip = [], skipSections = [] } = {}) {
       continue;
     }
     if (heading) {
+      // A heading is read like a sentence: "## 73 components, all tested" is a claim too.
       end();
-      if (skipSections.includes(heading[2].trim())) {
-        section = heading[1].length;
-        continue;
-      }
-      // A heading is a label, and a claim marker in it would change its anchor: the section's sentences carry the claims.
+      out.push({ lines: [{ line, text: " ".repeat(heading[1].length) + heading[2] }] });
       continue;
     }
     if (/^\s*\|/.test(raw)) {
@@ -257,6 +328,7 @@ function maskBlock(text, definitions) {
   let masked = text
     .replace(/<!--[\s\S]*?-->/g, (match) => " ".repeat(match.length))
     .replace(/(`+)[\s\S]*?\1/g, (span) => "§".repeat(span.length))
+    .replace(/\$\{[^}]*\}/g, (span) => "§".repeat(span.length))
     .replace(/!\[[^\]]*\]\([^)]*\)/g, (image) => "§".repeat(image.length));
   masked = masked.replace(/\[([^\]^][^\]]*)\]\(\s*(<[^>]*>|[^\s)]+)(?:\s+"([^"]*)")?\s*\)/g, (match, label, target, title, offset) => {
     if (title !== undefined && /^\s*verify:/.test(title)) {
@@ -277,7 +349,7 @@ function maskBlock(text, definitions) {
   });
   masked = masked
     .replace(/<?https?:\/\/[^\s)>\]]*[^\s)>\].,;:!?'"]>?/g, (url) => "§".repeat(url.length))
-    .replace(QUOTED, (quote) => "§".repeat(quote.length))
+    .replace(QUOTED, maskQuote)
     .replace(/<\/?[A-Za-z][^>]*>/g, (tag) => " ".repeat(tag.length));
   return { masked, markers };
 }
@@ -298,14 +370,15 @@ function sentenceSpans(masked) {
 /**
  * Reads Markdown: the claims it makes (with their sources and checks) and a finding for each
  * factual sentence that is not one, or for a claim marker that cannot be read.
- * `skip` names generated regions (`<!-- catalog:start -->`…`<!-- catalog:end -->`),
- * `skipSections` headings whose section is generated. `covered` (from a JSDoc `@claim`)
- * makes every sentence a claim. `howTo` says how to mark a claim in this kind of file.
+ * `cover(sentence)` returns the evidence that backs a sentence from outside its text (a
+ * JSDoc `@claim` that quotes it), or nothing. `howTo` says how to mark a claim in this kind
+ * of file; `verbs` are the instruction verbs.
  */
-export function readMarkdown(text, { file, skip = [], skipSections = [], startLine = 1, lineOf, covered = false, howTo = HOW_TO.markdown } = {}) {
+export function readMarkdown(text, { file, startLine = 1, lineOf, cover, howTo = HOW_TO.markdown, verbs = INSTRUCTION_VERBS } = {}) {
   const findings = [];
   const claims = [];
-  const { blocks: units, definitions } = blocks(text, { skip, skipSections });
+  const { blocks: units, definitions } = blocks(text);
+  if (!(verbs instanceof Set)) verbs = new Set(verbs);
   const at = (line) => (lineOf ? lineOf(line) : line + startLine - 1);
   for (const unit of units) {
     const joined = unit.lines.map((entry) => entry.text).join("\n");
@@ -333,7 +406,12 @@ export function readMarkdown(text, { file, skip = [], skipSections = [], startLi
         if (own.every((marker) => marker.errors.length === 0)) claims.push({ file, line, text: sentence, sources: own.flatMap((marker) => marker.sources), checks: own.flatMap((marker) => marker.checks) });
         continue;
       }
-      if (covered || isInstruction(clean)) continue;
+      const backed = cover?.(sentence) ?? [];
+      if (backed.length > 0) {
+        claims.push({ file, line, text: sentence, sources: backed.flatMap((entry) => entry.sources), checks: backed.flatMap((entry) => entry.checks) });
+        continue;
+      }
+      if (isInstruction(clean, verbs)) continue;
       const found = triggers(clean);
       if (found.length === 0) continue;
       const kinds = found.map((entry) => entry.kind);
@@ -359,7 +437,11 @@ export function lintPlain(text, options) {
 
 const JSDOC_TAGS = "claim|default|defaultValue|example|group|see|internal|param|returns?|deprecated|remarks|throws|link|template|typeParam";
 
-/** A JSDoc comment's prose with its tags handled: @claim read as evidence, @example and the like blanked, line breaks kept. */
+/**
+ * A JSDoc comment's prose with its tags handled: @claim read as evidence (with the words it
+ * quotes, `@claim "<words>" <source> verify:<check>`), @example and the like blanked, line
+ * breaks kept.
+ */
 function jsdocProse(comment) {
   const body = comment
     .replace(/^\/\*\*/, "   ")
@@ -374,7 +456,11 @@ function jsdocProse(comment) {
   for (const [index, entry] of found.entries()) {
     const text = body.slice(entry.at, found[index + 1]?.at ?? body.length);
     const keep = ["param", "returns", "return", "deprecated", "remarks", "throws", "typeParam"].includes(entry.name);
-    if (entry.name === "claim") evidence.push({ line: body.slice(0, entry.at).split("\n").length, ...parseEvidence(collapse(text.slice("@claim".length))) });
+    if (entry.name === "claim") {
+      const rest = collapse(text.slice("@claim".length));
+      const quoted = /^(?:"([^"]+)"|“([^”]+)”)\s*(.*)$/.exec(rest);
+      evidence.push({ line: body.slice(0, entry.at).split("\n").length, quote: quoted ? collapse(quoted[1] ?? quoted[2]) : undefined, ...parseEvidence(quoted ? quoted[3] : rest) });
+    }
     const shown = keep ? text.replace(/^@\w+(?:\s+[\w.$[\]]+(?=\s+[-–]?\s*\S))?/, (head) => " ".repeat(head.length)) : text.replace(/[^\n]/g, " ");
     prose += shown;
   }
@@ -428,12 +514,36 @@ const CODE_ATTRIBUTES = /^(className|class|id|key|href|src|srcSet|type|role|name
 /** Whether a string literal reads as prose: three or more words, starting with a capital or ending a sentence. */
 const isProse = (text) => /(?:[A-Za-z’'][\w’'/.-]*\s+){2,}[A-Za-z’']/.test(text) && (/^[\s"“'(]*[A-Z]/.test(text) || /[.!?]["”']?\s*$/.test(text)) && !/[{};=]|=>|--|\bvar\(/.test(text);
 
+/** Whether a string is Markdown: a heading line or paragraphs apart. It is read as Markdown, code spans and all. */
+const isMarkdown = (text) => /(^|\n)[ \t]*#{1,6}[ \t]+\S|\n[ \t]*\n[ \t]*[A-Za-z]/.test(text);
+
+/**
+ * Whether a string that is not plainly prose still says something: it has a claim word and two
+ * or more plain words ("tested in every browser"). Class lists and identifiers are not plain
+ * words: "transition-all duration-200" is code.
+ */
+const saysSomething = (text) => {
+  const tokens = text.trim().split(/\s+/);
+  const plain = tokens.filter((token) => /^[A-Za-z’']+[,.;:!?]?$/.test(token));
+  return hasClaimWord(maskCode(text)) && plain.length >= 2 && plain.length * 2 >= tokens.length;
+};
+
+/** Where a string literal is a value the code compares or looks up, not text a reader sees. */
+function isLookup(node) {
+  const parent = node.parent;
+  if (!parent) return false;
+  if (ts.isBinaryExpression(parent) && [ts.SyntaxKind.EqualsEqualsEqualsToken, ts.SyntaxKind.ExclamationEqualsEqualsToken, ts.SyntaxKind.EqualsEqualsToken, ts.SyntaxKind.ExclamationEqualsToken, ts.SyntaxKind.InKeyword].includes(parent.operatorToken.kind)) return true;
+  if (ts.isCaseClause(parent) || ts.isLiteralTypeNode(parent) || ts.isElementAccessExpression(parent)) return true;
+  if ((ts.isPropertyAssignment(parent) || ts.isPropertySignature(parent) || ts.isPropertyDeclaration(parent) || ts.isMethodDeclaration(parent)) && parent.name === node) return true;
+  return false;
+}
+
 /**
  * Reads a TypeScript file: with `jsdoc`, its JSDoc comments (an `@claim` tag covers its
  * comment); with `copy`, its claim() calls, and its prose string literals and JSX text,
  * each of which must be a claim if it states a fact.
  */
-export function lintTypeScript(source, { file, jsdoc = false, copy = false }) {
+export function lintTypeScript(source, { file, jsdoc = false, copy = false, claimsOnly = false, verbs = INSTRUCTION_VERBS }) {
   const findings = [];
   const claims = [];
   const lineAt = (position) => source.slice(0, position).split("\n").length;
@@ -444,16 +554,30 @@ export function lintTypeScript(source, { file, jsdoc = false, copy = false }) {
       const errors = evidence.flatMap((entry) => entry.errors.map((error) => ({ line: start + entry.line - 1, error })));
       for (const entry of evidence) if (!entry.hasCheck) errors.push({ line: start + entry.line - 1, error: "This @claim has no verify: check. Add one: @claim <source> verify:<check>." });
       for (const { line, error } of errors) findings.push({ file, line, sentence: "@claim", message: `${file}:${line}: ${error}` });
-      const valid = evidence.length > 0 && errors.length === 0;
-      if (valid) claims.push({ file, line: start, text: collapse(prose).slice(0, 160), sources: evidence.flatMap((entry) => entry.sources), checks: evidence.flatMap((entry) => entry.checks) });
-      findings.push(...readMarkdown(prose, { file, startLine: start, covered: evidence.length > 0, howTo: HOW_TO.jsdoc }).findings);
+      const usable = evidence.filter((entry) => entry.errors.length === 0 && entry.hasCheck);
+      for (const entry of usable) if (!entry.quote) findings.push({ file, line: start + entry.line - 1, sentence: "@claim", message: `${file}:${start + entry.line - 1}: This @claim backs no sentence: quote the words of the sentence it backs, @claim "<words>" <source> verify:<check>.` });
+      const quoted = usable.filter((entry) => entry.quote);
+      const used = new Set();
+      const cover = (sentence) => {
+        const backing = quoted.filter((entry) => collapse(sentence).includes(entry.quote));
+        for (const entry of backing) used.add(entry);
+        return backing;
+      };
+      const result = readMarkdown(prose, { file, startLine: start, cover, howTo: HOW_TO.jsdoc, verbs });
+      for (const entry of quoted) if (!used.has(entry)) findings.push({ file, line: start + entry.line - 1, sentence: "@claim", message: `${file}:${start + entry.line - 1}: "${entry.quote}" is in no sentence of this comment, so this @claim backs nothing. Quote words of the sentence it backs.` });
+      findings.push(...result.findings);
+      claims.push(...result.claims);
     }
   }
-  if (!copy) return { findings, claims };
+  if (!copy && !claimsOnly) return { findings, claims };
   const kind = file.endsWith(".tsx") ? ts.ScriptKind.TSX : file.endsWith(".ts") || file.endsWith(".mts") ? ts.ScriptKind.TS : ts.ScriptKind.JS;
   const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, kind);
   const lineOf = (node) => tree.getLineAndCharacterOfPosition(node.getStart(tree)).line + 1;
-  const prose = (text, node) => findings.push(...readMarkdown(text, { file, startLine: lineOf(node), howTo: HOW_TO.copy }).findings);
+  const prose = (text, node, wordsOnly = false) => {
+    if (claimsOnly) return;
+    const found = readMarkdown(text, { file, startLine: lineOf(node), howTo: HOW_TO.copy, verbs }).findings;
+    findings.push(...(wordsOnly ? found.filter((finding) => finding.kinds?.some((kind) => !["number", "version", "date"].includes(kind))) : found));
+  };
   const visit = (node) => {
     if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "claim") {
       const [textNode, evidenceNode] = node.arguments;
@@ -480,13 +604,16 @@ export function lintTypeScript(source, { file, jsdoc = false, copy = false }) {
       if (ts.isJsxElement(node)) visit(node.openingElement);
       return;
     }
-    if ((ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) && isProse(node.text)) {
-      if (!(ts.isPropertyAssignment(node.parent) && node.parent.name === node)) prose(node.text, node);
+    if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
+      if (isLookup(node)) return;
+      if (isMarkdown(node.text) || isProse(node.text)) prose(node.text, node);
+      else if (saysSomething(node.text)) prose(node.text, node, true);
       return;
     }
     if (ts.isTemplateExpression(node)) {
-      const text = [node.head.text, ...node.templateSpans.map((span) => `§${span.literal.text}`)].join("");
-      if (isProse(text)) prose(text, node);
+      const text = [node.head.text, ...node.templateSpans.map((span) => `\${${span.expression.getText(tree)}}${span.literal.text}`)].join("");
+      if (isMarkdown(text) || isProse(text)) prose(text, node);
+      else if (saysSomething(text)) prose(text, node, true);
     }
     ts.forEachChild(node, visit);
   };
@@ -531,16 +658,21 @@ export function testNames(source, file) {
   return names;
 }
 
-/** The required CI job that runs a test file, or null. */
-function requiredJobFor(root, file) {
-  if (/\.sr\.spec\.ts$/.test(file)) return null;
-  if (/\.visual\.test\.tsx?$/.test(file)) return "visual";
-  if (/^test\/themes\//.test(file)) return "themes";
-  if (/^(registry|test|site)\/.*\.test\.tsx?$/.test(file)) return "ci";
-  if (/^(registry\/ouro\/e2e\/ouro|site\/e2e)\/.*\.spec\.ts$/.test(file)) return "e2e";
-  if (/\.test\.m[jt]s$/.test(file)) {
-    const scripts = readJson(root, "package.json")?.scripts ?? {};
-    return (scripts["test:scripts"] ?? "").split(/\s+/).includes(file) ? "ci" : null;
+/**
+ * The required CI job that runs a test file, or null. Without `requiredTests` in the config
+ * (an app's default) any test counts; with it, a test counts only where a rule names its job:
+ * `{ match, job }`, or `{ match, job, listedIn: "package.json#scripts.test:scripts" }` for a file
+ * that runs only when that command lists it.
+ */
+function requiredJobFor(root, file, config) {
+  if (!config.requiredTests) return "any";
+  for (const rule of config.requiredTests) {
+    if (!new RegExp(rule.match).test(file)) continue;
+    if (!rule.listedIn) return rule.job;
+    const [json, path] = rule.listedIn.split("#");
+    const [key, ...rest] = path.split(".");
+    const listed = readJson(root, json)?.[key]?.[rest.join(".")];
+    if (typeof listed === "string" && listed.split(/\s+/).includes(file)) return rule.job;
   }
   return null;
 }
@@ -608,8 +740,30 @@ async function fetchStatus(url) {
   return last;
 }
 
+/**
+ * The required checks' names, from the committed list the config names. In a pull request
+ * (`context.baseRef`, or CLAIMS_BASE_REF) it is read at the base ref, so a pull request cannot
+ * make its own job required.
+ */
+function requiredChecks(root, context) {
+  if (!("required" in context)) {
+    const file = context.config.requiredChecks;
+    const ref = context.baseRef ?? process.env.CLAIMS_BASE_REF;
+    const text = ref ? gitShow(root, ref, file) : read(root, file);
+    context.required = text === undefined ? null : JSON.parse(text);
+  }
+  return context.required;
+}
+
+/** Whether a job reports a required check: by id, by name, or by a matrix name (`themes (${{ matrix.shard }}/3)`) one of whose runs is required. */
+function isRequired(job, required) {
+  const name = job.name ?? job.id;
+  const pattern = new RegExp(`^${name.split(/\$\{\{[^}]*\}\}/).map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join(".+")}$`);
+  return required.includes(job.id) || required.some((check) => pattern.test(check));
+}
+
 /** Whether a test exists, is not skipped and runs in a required CI job; the failure message otherwise. */
-function testProblem(root, id) {
+function testProblem(root, id, config) {
   const [file, name] = [id.slice(0, id.indexOf("::")), id.slice(id.indexOf("::") + 2)];
   const source = read(root, file);
   if (source === undefined) return `${file} does not exist.`;
@@ -617,7 +771,7 @@ function testProblem(root, id) {
   const found = names.get(name);
   if (!found) return `${file} has no test "${name}"; it has: ${[...names.keys()].slice(0, 12).join(", ")}${names.size > 12 ? ", …" : ""}. (A computed name cannot be cited; cite the file with verify:fileLine instead.)`;
   if (found.skipped) return `${file}::${name} is skipped, so it proves nothing.`;
-  if (!requiredJobFor(root, file)) return `no required CI job runs ${file}, so a green main does not mean it passed. Cite a test a required job runs, or the run's address.`;
+  if (!requiredJobFor(root, file, config)) return `no required CI job runs ${file}, so a green main does not mean it passed. Cite a test a required job runs, or the run's address.`;
   return null;
 }
 
@@ -627,7 +781,8 @@ function testProblem(root, id) {
  */
 export async function verify(checks, context, sources = []) {
   const { root, network = false } = context;
-  const cacheFile = context.urlCache ?? URL_CACHE;
+  const config = (context.config ??= loadConfig(root));
+  const cacheFile = (context.urlCache ??= config.urlCache);
   const cache = (context.cache ??= readJson(root, cacheFile) ?? {});
   const failures = [];
   const fail = (message) => failures.push({ message });
@@ -667,17 +822,24 @@ export async function verify(checks, context, sources = []) {
       } else if (!pattern.test(text)) fail(`${check.fileLine} does not match /${check.pattern}/.`);
     } else if ("ciJob" in check) {
       const jobs = workflowJobs(root).filter((job) => !check.workflow || job.workflow === check.workflow);
-      if (!jobs.some((job) => job.id === check.ciJob || job.name === check.ciJob)) fail(`No workflow${check.workflow ? ` (${check.workflow})` : ""} defines a job "${check.ciJob}"; jobs: ${[...new Set(jobs.map((job) => job.id))].join(", ")}.`);
+      const job = jobs.find((each) => each.id === check.ciJob || each.name === check.ciJob);
+      const required = requiredChecks(root, context);
+      if (!job) fail(`No workflow${check.workflow ? ` (${check.workflow})` : ""} defines a job "${check.ciJob}"; jobs: ${[...new Set(jobs.map((each) => each.id))].join(", ")}.`);
+      else if (!required) fail(`verify:ciJob needs the list of required checks, ${config.requiredChecks}: the checks a branch must pass to merge, as a JSON array of names.`);
+      else if (!isRequired(job, required)) fail(`"${check.ciJob}" is not a required check (${config.requiredChecks}: ${required.join(", ")}), so a green main does not mean it passed. Cite a required check, or a test one runs.`);
     } else if ("testExists" in check) {
-      const problem = testProblem(root, check.testExists);
+      const problem = testProblem(root, check.testExists, config);
       if (problem) fail(problem);
     } else if ("urlOk" in check) {
-      if (network) {
-        cache[check.urlOk] = { status: await fetchStatus(check.urlOk), checked: new Date().toISOString().slice(0, 10) };
+      const before = cache[check.urlOk];
+      if (network === true || (network === "changed" && context.refresh?.has(check.urlOk))) {
+        const status = await fetchStatus(check.urlOk);
+        if (before && before.status !== status) fail(`${check.urlOk} answered ${status || "nothing"}, where the cache had ${before.status}.`);
+        cache[check.urlOk] = { status, checked: new Date().toISOString().slice(0, 10) };
         context.cacheChanged = true;
       }
       const entry = cache[check.urlOk];
-      if (!entry) fail(`${check.urlOk} has not been checked. Run pnpm claims:check --network and commit ${cacheFile}.`);
+      if (!entry) fail(`${check.urlOk} has not been checked. Run the check with --network and commit ${cacheFile}.`);
       else if (entry.status < 200 || entry.status >= 400) fail(`${check.urlOk} answered ${entry.status || "nothing"} (checked ${entry.checked}).`);
     }
   }
@@ -689,7 +851,7 @@ export async function verify(checks, context, sources = []) {
       if (text === undefined && !(existsSync(join(root, file)) && statSync(join(root, file)).isDirectory())) fail(`${file} does not exist.`);
       else if (source.line && text !== undefined && source.line > lines(text)) fail(`${file} has ${lines(text)} lines, not ${source.line}.`);
     } else if ("test" in source) {
-      const problem = testProblem(root, source.test);
+      const problem = testProblem(root, source.test, config);
       if (problem) fail(problem);
     } else if ("spec" in source) {
       const own = new RegExp(`^https://github\\.com/${slug.replace(".", "\\.")}/(?:blob|tree)/[^/]+/([^#?]+)(?:#L(\\d+))?`).exec(source.spec);
@@ -706,18 +868,6 @@ export async function verify(checks, context, sources = []) {
 
 // ---------------------------------------------------------------------------------------
 // Surfaces
-
-/** Files that are not linted, and why: each is generated, evidence or an input whose words are not ours to source. */
-const NOT_LINTED = [
-  [/^docs\/[^/]+\.md$/, "generated", "pnpm run docs writes it from the JSDoc in registry/, which is linted; CI's `pnpm run docs --check` holds it equal"],
-  [/^docs\/guides\/why-no-skill(-[\w-]+)?\.md$/, "generated", "scripts/agent-usability/page.mts renders it from the scored runs in scripts/agent-usability/runs/; pnpm claims:check renders it again and compares"],
-  [/^scripts\/agent-usability\/runs\//, "evidence", "a scored run's record, written by the agent-usability harness"],
-  [/^scripts\/agent-usability\/(screens|arms)\//, "input", "what the benchmark gives each agent, frozen with its cohort"],
-  [/^scripts\/fixtures\/|\/fixtures?\/|^test\/install-fixture/, "input", "a test fixture"],
-  [/(^|\/)(LICENSE|THIRD-PARTY-LICENSES)(\.\w+)?$/, "input", "license text"],
-  [/^site\/src\/docs\/demos\//, "input", "a docs demo's sample content, not a statement about Ouro HX"],
-  [/^site\/src\/(generated|docs\/(catalog|pages)\.json)/, "generated", "written by scripts from the registry and workflows"],
-];
 
 function listFiles(root) {
   const git = (args) => execFileSync("git", args, { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
@@ -742,40 +892,18 @@ function listFiles(root) {
   }
 }
 
-/** How a file is read, or undefined when it is not prose a reader sees. */
-function modeOf(file) {
-  if (/\.(md|txt)$/.test(file)) return "markdown";
-  if (/^registry\/.*\.tsx?$/.test(file) && !/\.(test|test-d|stories)\.tsx?$|\.d\.ts$|^registry\/ouro\/e2e\//.test(file)) return "jsdoc";
-  if (/^site\/src\/.*\.tsx?$/.test(file) && !/\.test\.tsx?$|\.d\.ts$/.test(file)) return "copy";
-  return undefined;
-}
-
 /** Every prose surface in the repository: linted, or not, with the reason. */
-export function surfaces(root) {
+export function surfaces(root, config = loadConfig(root)) {
   const out = [];
   for (const file of listFiles(root)) {
-    const kind = modeOf(file);
-    if (!kind) continue;
-    const excluded = NOT_LINTED.find(([pattern]) => pattern.test(file));
-    out.push(excluded ? { file, mode: excluded[1], reason: excluded[2] } : { file, mode: "lint", kind });
+    const entry = classify(file, config);
+    if (entry) out.push({ file, ...entry });
   }
   return out;
 }
 
-/**
- * Sentences that read as claims but state nothing about the world: the Nautilus story's
- * narration on the voyage page. Exact sentences, each with its reason. Keep it short; an entry
- * that no longer matches a finding fails, so it cannot outlive its sentence.
- */
-export const ALLOWED = [
-  { file: "site/src/voyage/stage/copy.ts", sentence: "All three tanks are full.", reason: "the Nautilus story: Conseil and Nemo on the ship's ballast" },
-  { file: "site/src/voyage/stage/copy.ts", sentence: "All stop.", reason: "the Nautilus story: Captain Nemo's order" },
-  { file: "site/src/voyage/repaint.tsx", sentence: "All set.", reason: "the Nautilus story: the dive checklist is done" },
-  { file: "site/src/voyage/repaint.tsx", sentence: "At 300 fathoms the sea is dark and very quiet.", reason: "the Nautilus story: the dive dialog's narration" },
-];
-
-/** Findings without the allowed sentences, and the allowed entries that matched nothing. */
-export function applyAllowed(findings, allowed = ALLOWED, files) {
+/** Findings without the allowed sentences (config `allowed`: exact sentences, each with its reason), and the allowed entries that matched nothing. */
+export function applyAllowed(findings, allowed, files) {
   const used = new Set();
   const kept = findings.filter((finding) => {
     const entry = allowed.find((each) => each.file === finding.file && each.sentence === finding.sentence && finding.kinds);
@@ -783,37 +911,41 @@ export function applyAllowed(findings, allowed = ALLOWED, files) {
     return !entry;
   });
   const unused = allowed.filter((entry) => !used.has(entry) && (!files || files.includes(entry.file)));
-  return { findings: kept, unused: unused.map((entry) => ({ message: `scripts/claims.mjs: the allowed sentence "${entry.sentence}" (${entry.file}) matches no finding any more. Remove it from ALLOWED.` })) };
+  return { findings: kept, unused: unused.map((entry) => ({ message: `claims.config.json: the allowed sentence "${entry.sentence}" (${entry.file}) matches no finding any more. Remove it from allowed.` })) };
 }
 
-/** Generated regions and sections each linted file leaves out, because a generator writes them from linted sources. */
-const GENERATED_REGIONS = {
-  "README.md": { skip: ["catalog", "items", "upgrade"] },
-  "site/public/llms.txt": { skipSections: ["Items"] },
-};
+/** A line in a registry message that is code a reader copies (a `--- <file>` header and the file after it), not prose. */
+const isCodeLine = (line) => /^--- \S|^\s|^(import|export|const|let|function|return)\b|^[}\])<]|^\/\/|[{};]\s*$|=>/.test(line);
 
 /**
- * Lints one file by its kind. In the files `pnpm run docs` keeps on the newest release
- * (scripts/latest-release.mjs), each `#vX.Y.Z` or `@vX.Y.Z` tag is already a checked claim:
- * `pnpm run docs --check` fails unless it names package.json's `ouro.latestRelease`.
+ * Lints registry.json's own prose: each item's `description` and `docs`, the messages the shadcn
+ * CLI prints, with code lines blanked. A finding's file is `registry.json:items[<n>].<field>`.
  */
-async function readSurface(root, file, kind = modeOf(file)) {
-  const raw = readFileSync(join(root, file), "utf8");
-  const text = syncedFiles.includes(file) ? raw.replace(/([#@])v\d+\.\d+\.\d+\b/g, (tag) => tag[0] + "§".repeat(tag.length - 1)) : raw;
-  if (kind === "markdown") return readMarkdown(text, { file, ...GENERATED_REGIONS[file] });
-  return lintTypeScript(text, { file, jsdoc: kind === "jsdoc", copy: kind === "copy" });
+export function lintRegistry(text, { file = "registry.json", verbs } = {}) {
+  const findings = [];
+  const claims = [];
+  const items = JSON.parse(text).items ?? [];
+  for (const [index, item] of items.entries()) {
+    for (const key of ["description", "docs"]) {
+      if (typeof item[key] !== "string") continue;
+      const prose = item[key].split("\n").map((line) => (isCodeLine(line) ? "" : line)).join("\n");
+      const result = readMarkdown(prose, { file: `${file}:items[${index}].${key}`, verbs });
+      findings.push(...result.findings);
+      claims.push(...result.claims);
+    }
+  }
+  return { findings, claims };
 }
 
-/** The generated pages claims:check renders again, because no other check does. */
-async function generatedFailures(root) {
-  const runs = "scripts/agent-usability/runs/2026-10-15";
-  if (!existsSync(join(root, runs)) || !existsSync(join(root, "scripts/agent-usability/page.mts"))) return [];
-  const { publicationPages } = await import(pathToFileURL(join(root, "scripts/agent-usability/page.mts")).href);
-  const failures = [];
-  for (const [name, text] of Object.entries(publicationPages(join(root, runs), "why-no-skill.md"))) {
-    if (read(root, `docs/guides/${name}`) !== text) failures.push({ message: `docs/guides/${name} differs from what scripts/agent-usability/page.mts renders from ${runs}. Render it again: node scripts/agent-usability/page.mts ${runs} docs/guides/why-no-skill.md.` });
-  }
-  return failures;
+/** Lints one file by its kind; `hooks.prepare(file, text)` may mask what another check already holds. */
+async function readSurface(root, file, kind, config, hooks = {}) {
+  kind ??= classify(file, config)?.kind;
+  const raw = readFileSync(join(root, file), "utf8");
+  const text = hooks.prepare ? hooks.prepare(file, raw) : raw;
+  const verbs = new Set(config.instructionVerbs);
+  if (kind === "markdown") return readMarkdown(text, { file, verbs });
+  if (kind === "registry") return lintRegistry(text, { file, verbs });
+  return lintTypeScript(text, { file, jsdoc: kind === "jsdoc", copy: kind === "copy", verbs });
 }
 
 /** Verifies claims, prefixing each failure with where the claim is. */
@@ -825,90 +957,200 @@ async function verifyClaims(claims, context) {
   return failures;
 }
 
-/** Writes the addresses `--network` checked into scripts/claims-urls.json, sorted. */
+/** Writes the addresses `--network` checked into the URL cache, sorted. */
 function saveUrlCache(context) {
-  if (context.cacheChanged) writeFileSync(join(context.root, URL_CACHE), `${JSON.stringify(Object.fromEntries(Object.entries(context.cache).sort()), null, 2)}\n`);
+  if (context.cacheChanged) writeFileSync(join(context.root, context.urlCache), `${JSON.stringify(Object.fromEntries(Object.entries(context.cache).sort()), null, 2)}\n`);
 }
 
-/** Lints every surface and runs every claim's checks. */
-export async function checkClaims({ root = repoRoot, network = false, files } = {}) {
-  const context = { root, network };
-  const listed = surfaces(root).filter((entry) => entry.mode === "lint" && (!files || files.includes(entry.file)));
+/** A claim's text as a generated file would repeat it: no code marks, no link targets, one space. */
+const plainText = (text) => collapse(text.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/\[\^[^\]]+\]/g, "").replace(/`/g, ""));
+
+/**
+ * Drops the findings in generated files whose claim words all sit in text a source already
+ * claims: a JSDoc or Markdown claim the generator copied, or a generator's own claim() call
+ * (`claim("the installed files reach 100% coverage", …)` in the template that writes it).
+ */
+function carryOver(findings, claims, config) {
+  const generated = config.generated.map((pattern) => new RegExp(pattern));
+  const texts = [...new Set(claims.map((claim) => plainText(claim.text)).filter((text) => text.length >= 8))].sort((a, b) => b.length - a.length);
+  return findings.filter((finding) => {
+    const file = finding.file.split(":")[0];
+    if (!finding.kinds || !generated.some((pattern) => pattern.test(file))) return true;
+    let rest = plainText(finding.sentence);
+    for (const text of texts) rest = rest.split(text).join(" ");
+    return triggers(rest).length > 0;
+  });
+}
+
+/** The claims in the generators' templates: their claim() calls, which carry into what they write. */
+function generatorClaims(root, config) {
   const claims = [];
-  const failures = [];
   const findings = [];
-  for (const entry of listed) {
-    const result = await readSurface(root, entry.file, entry.kind);
+  for (const file of config.generators) {
+    const text = read(root, file);
+    if (text === undefined) {
+      findings.push({ message: `claims.config.json: the generator ${file} does not exist.` });
+      continue;
+    }
+    const result = lintTypeScript(text, { file, claimsOnly: true });
     claims.push(...result.claims);
     findings.push(...result.findings);
   }
-  const allowed = applyAllowed(findings, root === repoRoot ? ALLOWED : [], listed.map((entry) => entry.file));
-  failures.push(...allowed.findings, ...allowed.unused);
-  failures.push(...(await verifyClaims(claims, context)));
-  if (!files) failures.push(...(await generatedFailures(root)));
+  return { claims, findings };
+}
+
+/** Every address a claim cites with urlOk. */
+const citedUrls = (claims) => new Set(claims.flatMap((claim) => claim.checks.filter((check) => "urlOk" in check).map((check) => check.urlOk)));
+
+/**
+ * The URL cache against its base: the entries a pull request adds or changes, which CI fetches
+ * again (`--network=changed`), and the entries no claim cites, which fail.
+ */
+export function urlCacheReview(base, head, cited) {
+  const refresh = Object.keys(head).filter((url) => JSON.stringify(head[url]) !== JSON.stringify(base[url])).sort();
+  const uncited = Object.keys(head).filter((url) => !cited.has(url)).sort();
+  return { refresh, uncited };
+}
+
+/** Lints every surface (or `files`) and runs every claim's checks. */
+export async function checkClaims({ root = process.cwd(), network = false, files, baseRef, hooks = {} } = {}) {
+  const config = loadConfig(root);
+  const context = { root, network, config, baseRef };
+  if (network === "changed") {
+    const ref = baseRef ?? process.env.CLAIMS_BASE_REF;
+    const base = ref ? JSON.parse(gitShow(root, ref, config.urlCache) ?? "{}") : {};
+    context.refresh = new Set(urlCacheReview(base, readJson(root, config.urlCache) ?? {}, new Set()).refresh);
+  }
+  const all = surfaces(root, config).filter((entry) => entry.mode === "lint");
+  const generated = config.generated.map((pattern) => new RegExp(pattern));
+  // A generated file needs its sources' claims, so they are read even when only it is linted.
+  const needsAll = !files || files.some((file) => generated.some((pattern) => pattern.test(file)));
+  const scanned = needsAll ? all : all.filter((entry) => files.includes(entry.file));
+  const claims = [];
+  let findings = [];
+  for (const entry of scanned) {
+    const result = await readSurface(root, entry.file, entry.kind, config, hooks);
+    claims.push(...result.claims);
+    findings.push(...result.findings);
+  }
+  const fromGenerators = generatorClaims(root, config);
+  claims.push(...fromGenerators.claims);
+  findings = carryOver(findings, claims, config);
+  const listed = files ? all.filter((entry) => files.includes(entry.file)) : all;
+  const inScope = (file) => !files || files.includes(file.split(":")[0]);
+  const allowed = applyAllowed(findings.filter((finding) => inScope(finding.file)), config.allowed, listed.map((entry) => entry.file));
+  const failures = [...fromGenerators.findings, ...allowed.findings, ...allowed.unused];
+  failures.push(...(await verifyClaims(claims.filter((claim) => inScope(claim.file) || !files), context)));
+  if (!files) {
+    const cache = readJson(root, config.urlCache) ?? {};
+    for (const url of urlCacheReview(cache, cache, citedUrls(claims)).uncited) failures.push({ message: `${config.urlCache}: ${url} is cited by no claim. Remove it.` });
+    if (hooks.extraFailures) failures.push(...(await hooks.extraFailures(root)));
+  }
   saveUrlCache(context);
   return { claims, failures, surfaces: listed.length };
 }
 
 // ---------------------------------------------------------------------------------------
+// Exemptions against the base ref
+
+/** The exemption lists a pull request could grow to let a claim through, keyed by what names an entry. */
+const EXEMPTIONS = [
+  ["allowed", (entry) => entry.sentence],
+  ["notLinted", (entry) => entry.match],
+  ["instructionVerbs", (entry) => entry],
+];
+
+/**
+ * What a pull request adds to the exemptions, against the base ref's config: each new entry
+ * needs a reason (where it has one) and must be named in the pull request's description, so
+ * a reviewer sees it.
+ */
+export function policyProblems({ base, head, body = "" }) {
+  const problems = [];
+  for (const [list, key] of EXEMPTIONS) {
+    const before = new Set((base[list] ?? []).map(key));
+    for (const entry of head[list] ?? []) {
+      const name = key(entry);
+      if (before.has(name)) continue;
+      if (typeof entry === "object" && !entry.reason?.trim()) problems.push({ message: `claims.config.json: ${list} adds "${name}" with no reason. Give it one.` });
+      if (!body.includes(name)) problems.push({ message: `claims.config.json: ${list} adds "${name}"; name it in the pull request's description, so a reviewer sees the exemption.` });
+    }
+  }
+  return problems;
+}
+
+// ---------------------------------------------------------------------------------------
 // Command line
 
-async function main(argv) {
+/** Runs a command (check, lint, show, ratchet) in `root`; returns the exit code. */
+export async function main(argv, { root: defaultRoot = process.cwd(), hooks = {}, guide = "the claim docs" } = {}) {
   const [command, ...rest] = argv;
   const flag = (name) => rest.includes(name);
   const option = (name) => (rest.includes(name) ? rest[rest.indexOf(name) + 1] : undefined);
-  const root = option("--root") ?? repoRoot;
-  const network = flag("--network");
+  const root = option("--root") ?? defaultRoot;
+  const network = flag("--network") ? true : flag("--network=changed") ? "changed" : false;
   const positional = rest.filter((arg, index) => !arg.startsWith("--") && !["--root", "--name"].includes(rest[index - 1] ?? ""));
+  const config = loadConfig(root);
   const report = (failures, ok) => {
     for (const failure of failures) process.stderr.write(`${failure.message}\n`);
     if (failures.length > 0) {
-      process.stderr.write(`\n${failures.length} problem${failures.length === 1 ? "" : "s"}. Each factual sentence needs a primary source and a check: docs/guides/claims.md.\n`);
+      process.stderr.write(`\n${failures.length} problem${failures.length === 1 ? "" : "s"}. Each factual sentence needs a primary source and a check: ${guide}.\n`);
       return 1;
     }
     process.stdout.write(`${ok}\n`);
     return 0;
   };
   if (command === "check") {
-    const result = await checkClaims({ root, network });
+    const result = await checkClaims({ root, network, hooks });
     return report(result.failures, `${result.claims.length} claim${result.claims.length === 1 ? "" : "s"} verified on ${result.surfaces} surfaces.`);
   }
   if (command === "lint") {
-    const context = { root, network };
+    const context = { root, network, config };
     const claims = [];
     const failures = [];
-    const texts = [];
+    const verbs = new Set(config.instructionVerbs);
     if (flag("--pr")) {
-      texts.push({ file: "pull request title", text: process.env.PR_TITLE ?? "", plain: true });
-      texts.push({ file: "pull request body", text: process.env.PR_BODY ?? "" });
+      failures.push(...readMarkdown((process.env.PR_TITLE ?? "").replace(/^#+\s*/, ""), { file: "pull request title", verbs }).findings);
+      const body = readMarkdown(process.env.PR_BODY ?? "", { file: "pull request body", verbs });
+      claims.push(...body.claims);
+      failures.push(...body.findings);
     }
-    if (flag("--stdin")) texts.push({ file: option("--name") ?? "stdin", text: readFileSync(0, "utf8") });
-    for (const { file, text, plain } of texts) {
-      const result = readMarkdown(plain ? text.replace(/^#+\s*/, "") : text, { file });
+    if (flag("--stdin")) {
+      const result = readMarkdown(readFileSync(0, "utf8"), { file: option("--name") ?? "stdin", verbs });
       claims.push(...result.claims);
       failures.push(...result.findings);
     }
-    const modes = new Map(surfaces(root).map((entry) => [entry.file, entry]));
-    for (const file of positional) {
-      const entry = modes.get(file);
-      if (entry && entry.mode !== "lint") {
-        process.stderr.write(`${file} is not linted: ${entry.mode}, ${entry.reason}.\n`);
-        continue;
-      }
-      const result = await readSurface(root, file);
-      claims.push(...result.claims);
-      failures.push(...applyAllowed(result.findings, ALLOWED, [file]).findings);
-    }
     failures.push(...(await verifyClaims(claims, context)));
     saveUrlCache(context);
-    return report(failures, `${claims.length} claim${claims.length === 1 ? "" : "s"} verified; no unsourced claims.`);
+    const files = [];
+    for (const file of positional) {
+      const entry = classify(file, config);
+      if (entry && entry.mode !== "lint") process.stderr.write(`${file} is not linted: ${entry.mode}, ${entry.reason}.\n`);
+      else files.push(file);
+    }
+    let count = claims.length;
+    if (files.length > 0) {
+      const result = await checkClaims({ root, network, files, hooks });
+      failures.push(...result.failures);
+      count += result.claims.filter((claim) => files.includes(claim.file.split(":")[0])).length;
+    }
+    return report(failures, `${count} claim${count === 1 ? "" : "s"} verified; no unsourced claims.`);
+  }
+  if (command === "ratchet") {
+    const ref = process.env.CLAIMS_BASE_REF;
+    if (!ref) {
+      process.stderr.write("ratchet needs CLAIMS_BASE_REF, the pull request's base (origin/main).\n");
+      return 2;
+    }
+    const base = loadConfig(root, { ref });
+    return report(policyProblems({ base, head: config, body: process.env.PR_BODY ?? "" }), "No exemption added without its reason and a mention.");
   }
   if (command === "show") {
     for (const file of positional) {
-      const { claims, findings } = await readSurface(root, file);
+      const { claims, findings } = await readSurface(root, file, undefined, config, hooks);
       for (const claim of claims) {
-        const failures = await verify(claim.checks, { root, network }, claim.sources);
-        process.stdout.write(`${file}:${claim.line}: ${claim.text}\n`);
+        const failures = await verify(claim.checks, { root, network, config }, claim.sources);
+        process.stdout.write(`${claim.file}:${claim.line}: ${claim.text}\n`);
         for (const source of claim.sources) process.stdout.write(`  source ${JSON.stringify(source)}\n`);
         for (const check of claim.checks) process.stdout.write(`  verify ${JSON.stringify(check)}\n`);
         process.stdout.write(failures.length === 0 ? "  holds\n" : failures.map((failure) => `  FAILS: ${failure.message}\n`).join(""));
@@ -917,7 +1159,7 @@ async function main(argv) {
     }
     return 0;
   }
-  process.stderr.write("Usage: node scripts/claims.mjs check [--network] | lint [<file>…] [--pr] [--stdin] | show <file>…\n");
+  process.stderr.write("Usage: claims-check.mjs check [--network | --network=changed] | lint [<file>…] [--pr] [--stdin [--name <name>]] | show <file>… | ratchet\n");
   return 2;
 }
 

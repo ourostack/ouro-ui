@@ -1,0 +1,16 @@
+[
+  "ci",
+  "e2e",
+  "visual",
+  "registry",
+  "install (shadcn, nova)",
+  "install (shadcn, vega)",
+  "install (ouro, nova)",
+  "install (namespace, nova)",
+  "install (next, nova)",
+  "install-upgrade",
+  "motion-coverage",
+  "themes (1/3)",
+  "themes (2/3)",
+  "themes (3/3)"
+]

@@ -237,6 +237,8 @@ const devFile = /\.(test|touch\.test)\.tsx?$|\.test-d\.ts$|\.stories\.tsx$|\.spe
 
 /** The item that ships a lib/ouro file: lib-<stem>, or lib-<stem>-tests for the helper's tests. */
 function libItem(file: string): string {
+  // The claims checker is a Node script that ships with claim(), the helper it checks.
+  if (file === "claims-check.mjs") return "lib-claims";
   const stem = file.replace(/(\.touch)?\.test\.tsx?$|\.d\.ts$|\.tsx?$/, "");
   return devFile.test(file) ? `lib-${stem}-tests` : `lib-${stem}`;
 }
@@ -401,7 +403,7 @@ export function buildRegistry(root: string): Registry {
         name === "lib-ouro-provider"
           ? "OuroProvider, which routes every href through your router's link and groups tooltips. It comes with every component that renders links and with tooltip; add it by name when your app has neither and you want the provider. The helper lib/ouro/ouro-provider.tsx."
           : name === "lib-claims"
-            ? "claim(), which marks a sentence of your copy with its primary source and a check scripts can run. No component imports it; add it by name. The helper lib/ouro/claims.ts."
+            ? "claim(), which marks a sentence of your copy with its primary source and a check, and the checker that lints your Markdown and copy and runs those checks (node <your lib folder>/ouro/claims-check.mjs check, on Node 22.18 or later). No component imports it; add it by name. The helper lib/ouro/claims.ts and the script lib/ouro/claims-check.mjs."
             : `Installed with the components that import it; you don't need to add it. The helper lib/ouro/${libFile(name)}.`,
       docs: undefined as string | undefined,
     })),

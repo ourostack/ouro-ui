@@ -400,7 +400,8 @@ test("every required check is still a job that reports, under the name the rules
     const condition = block.match(/^ {4}if: (.+)$/m)?.[1];
     if (!["install-github", "install-latest", "plan"].includes(id)) assert.ok(!condition || condition === "${{ !cancelled() }}", `${id} has if: ${condition}`);
   }
-  const required = ["ci", "e2e", "visual", "registry", "install (shadcn, nova)", "install (shadcn, vega)", "install (ouro, nova)", "install (namespace, nova)", "install (next, nova)", "install-upgrade", "motion-coverage", "themes (1/3)", "themes (2/3)", "themes (3/3)"];
+  // The ruleset's required checks, which the claims check also reads (verify:ciJob accepts only these).
+  const required = JSON.parse(readFileSync(join(root, ".github/required-checks.json"), "utf8"));
   for (const check of required) assert.ok(names.includes(check), `${check} is not among ${names.join(", ")}`);
 });
 

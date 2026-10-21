@@ -44,8 +44,8 @@ test("triggers: numbers, versions, dates and the words that make a sentence a fa
   assert.deepEqual(kinds("Needs Node 22.18 or later."), ["version"]);
   assert.deepEqual(kinds("Released on 2026-10-15."), ["date"]);
   assert.deepEqual(kinds("Released in October 2026."), ["date"]);
-  assert.deepEqual(kinds("Each tap is tested in real browsers."), ["tested"]);
-  assert.deepEqual(kinds("The dialog is fully accessible."), ["accessible"]);
+  assert.deepEqual(kinds("Each tap is tested in real browsers."), ["tested", "each"]);
+  assert.deepEqual(kinds("The dialog is fully accessible."), ["accessible", "fully"]);
   assert.deepEqual(kinds("Every story passes."), ["every"]);
   assert.deepEqual(kinds("It covers everything."), ["every"]);
   assert.deepEqual(kinds("They all pass."), ["all"]);
@@ -252,7 +252,7 @@ test("TypeScript copy: Markdown templates, lowercase and unpunctuated strings an
     "export const COEXIST = `",
     "## Both live in one app",
     "",
-    'Give it `className="z-50"`; the layer is 50, as in shadcn\'s overlays.',
+    'Ouro HX adds \\`--ouro-layer\\` in \\`ouro-base.css\\`: the z-index of its overlays, 50, as in shadcn\'s.',
     "`;",
     'export const ITEM = { label: "tested in every browser" };',
     'export const NOTE = "accessible in every theme";',
@@ -262,7 +262,7 @@ test("TypeScript copy: Markdown templates, lowercase and unpunctuated strings an
   ].join("\n");
   const { findings } = lintTypeScript(source, { file: "site/src/pages/docs.tsx", copy: true });
   assert.deepEqual(findings.map((finding) => [finding.line, finding.sentence]), [
-    [5, 'Give it `className="z-50"`; the layer is 50, as in shadcn\'s overlays.'],
+    [5, 'Ouro HX adds `--ouro-layer` in `ouro-base.css`: the z-index of its overlays, 50, as in shadcn\'s.'],
     [7, "tested in every browser"],
     [8, "accessible in every theme"],
     [9, "Ships ${n} components, all tested."],
@@ -343,7 +343,7 @@ test("verify: each check passes on what holds and explains what does not", async
   assert.match((await failures({ testExists: "registry/ouro/e2e/screen-reader/a.sr.spec.ts::speaks" }))[0], /no required CI job runs/);
   assert.deepEqual(await failures({ urlOk: "https://example.com/ok" }), []);
   assert.match((await failures({ urlOk: "https://example.com/gone" }))[0], /answered 404/);
-  assert.match((await failures({ urlOk: "https://example.com/new" }))[0], /pnpm claims:check --network/);
+  assert.match((await failures({ urlOk: "https://example.com/new" }))[0], /has not been checked\. Run the check with --network/);
 });
 
 test("verify: sources must exist where they can be checked offline", async () => {
@@ -365,7 +365,9 @@ test("surfaces: every tracked prose file is linted or declared generated, eviden
   assert.equal(mode("README.md"), "lint");
   assert.equal(mode("AGENTS.md"), "lint");
   assert.equal(mode("site/public/llms.txt"), "lint");
-  assert.equal(mode("docs/Button.md"), "generated");
+  assert.equal(mode("docs/Button.md"), "lint");
+  assert.equal(mode("registry.json"), "lint");
+  assert.equal(mode("docs/guides/why-no-skill.md"), "generated");
   assert.equal(mode("registry/ouro/lib/ouro/claims.ts"), "lint");
   assert.equal(mode("site/src/copy.ts"), "lint");
 });
@@ -442,13 +444,13 @@ test("generated surfaces are linted: registry.json, README regions and llms.txt 
       generators: ["scripts/gen.mts"],
     }),
     "vitest.config.ts": "export default { thresholds: { lines: 100 } };\n",
-    "registry/claims.ts": readFileSync(join(repo, "registry/ouro/lib/ouro/claims.ts"), "utf8"),
+    "lib/claims.ts": readFileSync(join(repo, "registry/ouro/lib/ouro/claims.ts"), "utf8"),
     "registry/a.tsx": '/**\n * Every row is 44px tall.\n *\n * @claim "Every row is 44px tall" registry/a.tsx verify:fileLine(registry/a.tsx, /44px/)\n */\nexport function A() {}\n',
-    "scripts/gen.mts": 'import { claim } from "../registry/claims.ts";\nexport const docs = `Add it, so ${claim("the installed files reach 100% coverage", { source: { file: "vitest.config.ts" }, verify: { fileLine: "vitest.config.ts", pattern: "lines: 100" } })}.`;\n',
+    "scripts/gen.mts": 'import { claim } from "../lib/claims.ts";\nexport const docs = `Its tests make ${claim("the installed files reach 100% coverage", { source: { file: "vitest.config.ts" }, verify: { fileLine: "vitest.config.ts", pattern: "lines: 100" } })}.`;\n',
     "registry.json": JSON.stringify({
       items: [
-        { name: "a", type: "registry:ui", description: "Every row is 44px tall.", docs: "Add it, so the installed files reach 100% coverage." },
-        { name: "b", type: "registry:lib", description: "Add it, so the installed files reach 99% coverage.", docs: "--- vite.config.ts\nexport default { server: { port: 5173 } };\n\nEvery helper ships." },
+        { name: "a", type: "registry:ui", description: "Every row is 44px tall.", docs: "Its tests make the installed files reach 100% coverage." },
+        { name: "b", type: "registry:lib", description: "Its tests make the installed files reach 99% coverage.", docs: "--- vite.config.ts\nexport default { server: { port: 5173 } };\n\nEvery helper ships." },
       ],
     }),
     "README.md": "# R\n\n<!-- items:start -->\nEvery row is 44px tall.\n\nAll items are tested.\n<!-- items:end -->\n",
@@ -457,9 +459,9 @@ test("generated surfaces are linted: registry.json, README regions and llms.txt 
   const { failures } = await checkClaims({ root });
   const found = failures.map((failure) => failure.message.split(" (It reads")[0].replace(/ (states|makes|says|claims)[^"]*$/, ""));
   assert.deepEqual(found.sort(), [
-    'README.md:7: "All items are tested."',
+    'README.md:6: "All items are tested."',
     'llms.txt:6: "b: It supports every theme."',
-    'registry.json:items[1].description:1: "Add it, so the installed files reach 99% coverage."',
+    'registry.json:items[1].description:1: "Its tests make the installed files reach 99% coverage."',
     'registry.json:items[1].docs:4: "Every helper ships."',
   ]);
 });

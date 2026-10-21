@@ -1,0 +1,222 @@
+{
+  "$comment": "The claims check's surfaces, exemptions and required jobs (docs/guides/claims.md). An exemption a pull request adds (allowed, notLinted, instructionVerbs) needs a reason and a mention in the pull request's description: the claims workflow compares this file with the base branch's.",
+  "surfaces": [
+    {
+      "match": "\\.(md|txt)$",
+      "mode": "markdown"
+    },
+    {
+      "match": "^registry\\.json$",
+      "mode": "registry"
+    },
+    {
+      "match": "^registry/.*\\.tsx?$",
+      "exclude": "\\.(test|test-d|stories)\\.tsx?$|\\.d\\.ts$|^registry/ouro/e2e/",
+      "mode": "jsdoc"
+    },
+    {
+      "match": "^site/src/.*\\.tsx?$",
+      "exclude": "\\.test\\.tsx?$|\\.d\\.ts$",
+      "mode": "copy"
+    }
+  ],
+  "notLinted": [
+    {
+      "match": "^docs/guides/why-no-skill(-[\\w-]+)?\\.md$",
+      "mode": "generated",
+      "reason": "scripts/agent-usability/page.mts renders it from the scored runs in scripts/agent-usability/runs/; pnpm claims:check renders it again and compares"
+    },
+    {
+      "match": "^scripts/agent-usability/runs/",
+      "mode": "evidence",
+      "reason": "a scored run's record, written by the agent-usability harness"
+    },
+    {
+      "match": "^scripts/agent-usability/(screens|arms)/",
+      "mode": "input",
+      "reason": "what the benchmark gives each agent, frozen with its cohort"
+    },
+    {
+      "match": "^scripts/fixtures/|^scripts/agent-usability/test/fixture-app/|^test/install-fixture[\\w-]*/",
+      "mode": "input",
+      "reason": "a test fixture: the scripts' and the install test's inputs"
+    },
+    {
+      "match": "(^|/)(LICENSE|THIRD-PARTY-LICENSES)(\\.\\w+)?$",
+      "mode": "input",
+      "reason": "license text"
+    },
+    {
+      "match": "^site/src/docs/demos/",
+      "mode": "input",
+      "reason": "a docs demo's sample content, not a statement about Ouro HX"
+    }
+  ],
+  "generated": [
+    "^README\\.md$",
+    "^site/public/llms\\.txt$",
+    "^registry\\.json$",
+    "^docs/[^/]+\\.md$"
+  ],
+  "generators": [
+    "scripts/registry.mts",
+    "scripts/gen-docs.mts"
+  ],
+  "allowed": [
+    {
+      "file": "site/src/voyage/stage/copy.ts",
+      "sentence": "All three tanks are full.",
+      "reason": "the Nautilus story: Conseil and Nemo on the ship's ballast"
+    },
+    {
+      "file": "site/src/voyage/stage/copy.ts",
+      "sentence": "All stop.",
+      "reason": "the Nautilus story: Captain Nemo's order"
+    },
+    {
+      "file": "site/src/voyage/repaint.tsx",
+      "sentence": "All set.",
+      "reason": "the Nautilus story: the dive checklist is done"
+    },
+    {
+      "file": "site/src/voyage/repaint.tsx",
+      "sentence": "At 300 fathoms the sea is dark and very quiet.",
+      "reason": "the Nautilus story: the dive dialog's narration"
+    }
+  ],
+  "instructionVerbs": [
+    "add",
+    "allow",
+    "apply",
+    "ask",
+    "avoid",
+    "build",
+    "call",
+    "change",
+    "check",
+    "choose",
+    "clear",
+    "click",
+    "close",
+    "commit",
+    "compare",
+    "compose",
+    "configure",
+    "copy",
+    "cover",
+    "create",
+    "declare",
+    "delete",
+    "describe",
+    "disable",
+    "do",
+    "don't",
+    "download",
+    "drag",
+    "draw",
+    "edit",
+    "enable",
+    "ensure",
+    "export",
+    "fill",
+    "find",
+    "fix",
+    "follow",
+    "give",
+    "go",
+    "hide",
+    "import",
+    "include",
+    "install",
+    "keep",
+    "leave",
+    "let",
+    "link",
+    "list",
+    "load",
+    "look",
+    "make",
+    "mark",
+    "merge",
+    "move",
+    "name",
+    "never",
+    "note",
+    "open",
+    "pass",
+    "pick",
+    "pin",
+    "place",
+    "prefer",
+    "press",
+    "put",
+    "raise",
+    "read",
+    "rebase",
+    "record",
+    "refresh",
+    "regenerate",
+    "release",
+    "remove",
+    "rename",
+    "render",
+    "replace",
+    "report",
+    "request",
+    "reset",
+    "restart",
+    "return",
+    "review",
+    "run",
+    "score",
+    "see",
+    "select",
+    "set",
+    "show",
+    "skip",
+    "sort",
+    "start",
+    "stop",
+    "swap",
+    "switch",
+    "tag",
+    "tap",
+    "tell",
+    "test",
+    "translate",
+    "try",
+    "turn",
+    "type",
+    "update",
+    "upgrade",
+    "use",
+    "wait",
+    "wrap",
+    "write"
+  ],
+  "requiredTests": [
+    {
+      "match": "\\.visual\\.test\\.tsx?$",
+      "job": "visual"
+    },
+    {
+      "match": "^test/themes/",
+      "job": "themes"
+    },
+    {
+      "match": "^(registry|test|site)/.*\\.test\\.tsx?$",
+      "job": "ci"
+    },
+    {
+      "match": "^(registry/ouro/e2e/ouro|site/e2e)/.*\\.spec\\.ts$",
+      "job": "e2e"
+    },
+    {
+      "match": "\\.test\\.m[jt]s$",
+      "job": "ci",
+      "listedIn": "package.json#scripts.test:scripts"
+    }
+  ],
+  "requiredChecks": ".github/required-checks.json",
+  "urlCache": "scripts/claims-urls.json"
+}

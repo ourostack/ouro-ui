@@ -398,8 +398,19 @@
       "name": "lib-claims",
       "type": "registry:lib",
       "title": "lib-claims",
-      "description": "claim(), which marks a sentence of your copy with its primary source and a check scripts can run. No component imports it; add it by name. The helper lib/ouro/claims.ts.",
+      "description": "claim(), which marks a sentence of your copy with its primary source and a check, and the checker that lints your Markdown and copy and runs those checks (node <your lib folder>/ouro/claims-check.mjs check, on Node 22.18 or later). No component imports it; add it by name. The helper lib/ouro/claims.ts and the script lib/ouro/claims-check.mjs.",
+      "dependencies": [
+        "typescript@^6.0.3"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-env"
+      ],
       "files": [
+        {
+          "path": "registry/ouro/lib/ouro/claims-check.mjs",
+          "type": "registry:lib",
+          "target": "@lib/ouro/claims-check.mjs"
+        },
         {
           "path": "registry/ouro/lib/ouro/claims.ts",
           "type": "registry:lib",
