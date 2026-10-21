@@ -55,6 +55,8 @@ const componentFiles = [
   "registry/ouro/lib/ouro/color-scheme-script.ts",
   "registry/ouro/lib/ouro/use-timer.ts",
   "registry/ouro/lib/ouro/feedback.ts",
+  "registry/ouro/lib/ouro/share.ts",
+  "registry/ouro/lib/ouro/use-install-prompt.ts",
 ];
 /** Part files (`<folder>/<stem>-parts.tsx`), by the family their parts are named after (the stem in PascalCase). */
 const partFiles: Record<string, string> = Object.fromEntries(

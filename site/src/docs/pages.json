@@ -88,12 +88,36 @@
     "summary": "Ouro HX puts component guidance in the source an agent already reads: required props, compiler hints and development messages."
   },
   {
+    "name": "can-share",
+    "title": "canShare",
+    "kind": "export",
+    "group": "Actions",
+    "markdown": "docs/canShare.md",
+    "summary": "Whether the browser has a share sheet for this data: most phones and Safari do, most desktop browsers do not."
+  },
+  {
     "name": "color-scheme-script",
     "title": "colorSchemeScript",
     "kind": "export",
     "group": "Actions",
     "markdown": "docs/colorSchemeScript.md",
     "summary": "The script that sets the page's color scheme before it paints, so a reload in dark mode never flashes light."
+  },
+  {
+    "name": "copy-text",
+    "title": "copyText",
+    "kind": "export",
+    "group": "Actions",
+    "markdown": "docs/copyText.md",
+    "summary": "Puts text on the clipboard: through the Clipboard API, or a text selection where the page may not use it (plain http, an older browser)."
+  },
+  {
+    "name": "share",
+    "title": "share",
+    "kind": "export",
+    "group": "Actions",
+    "markdown": "docs/share.md",
+    "summary": "Shares a link through the system's share sheet, or copies it where there is none, and says which happened."
   },
   {
     "name": "use-color-scheme",
@@ -214,6 +238,14 @@
     "group": "Feedback",
     "markdown": "docs/toast.md",
     "summary": "Shows a toast: a short message that appears at the bottom of the screen, is read to screen readers once, and dismisses itself."
+  },
+  {
+    "name": "use-install-prompt",
+    "title": "useInstallPrompt",
+    "kind": "export",
+    "group": "Feedback",
+    "markdown": "docs/useInstallPrompt.md",
+    "summary": "Whether the browser offers to install this web app, and the means to offer it at a good moment rather than when the browser chooses: `install()` opens the browser's own install dialog, `dismiss()` puts the offer away for two weeks."
   },
   {
     "name": "use-timer",
