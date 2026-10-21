@@ -378,7 +378,8 @@ export async function decideReducedRun(components, coverageDir, shards, { root =
   log("::warning::Every selected test passed but coverage fell short: a line may be covered only by another component's tests. Running the full suite to decide.");
   const fullEnv = { ...process.env };
   delete fullEnv.OURO_STORIES;
-  const browsers = await spawn("pnpm", ["exec", "playwright", "install", "--with-deps", "chromium", "webkit"], fullEnv);
+  // A download, so it is tried again after a failure (scripts/retry.sh); the tests are not.
+  const browsers = await spawn("scripts/retry.sh", ["pnpm", "exec", "playwright", "install", "--with-deps", "chromium", "webkit"], fullEnv);
   const all = browsers.status === 0 ? await spawn("pnpm", ["test"], fullEnv) : browsers;
   output("reduced=false");
   output("stems=");

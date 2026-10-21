@@ -18,13 +18,15 @@ permissions:
   contents: read
 jobs:
   browsers:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
-        # The sets the workflows install.
+        # The sets the workflows install, on each runner they use: the key holds the runner's image,
+        # so while ubuntu-latest moves to a new Ubuntu release, each image has its own browsers.
         browsers: [chromium, chromium webkit]
-    name: browsers (${{ matrix.browsers }})
+        runner: [ubuntu-latest, ubuntu-24.04]
+    name: browsers (${{ matrix.browsers }}, ${{ matrix.runner }})
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

@@ -45,10 +45,19 @@ test("CI downloads Playwright's browsers only through the cached action", () => 
   // `playwright install`, at the same pinned version, then downloads nothing.
   const ci = workflows.find((workflow) => workflow.file === "ci.yml").text;
   assert.equal(ci.match(/browsers: chromium webkit\n\s+system-packages: "false"\n(?:\s+#.*\n)*\s+- (name: Browser system packages|run: SHADCN_VERSION=latest scripts\/install-test\.sh)/g)?.length, 2);
-  // Main's cache, which every other run can restore, holds each set the workflows install.
+  // Main's cache, which every other run can restore, holds each set the workflows install, on
+  // each runner image they run on.
   const warm = workflows.find((workflow) => workflow.file === "browser-cache.yml").text;
   assert.match(warm, /browsers: \[chromium, chromium webkit\]/);
   assert.match(warm, /push:\n\s+branches: \[main\]/);
+  const images = new Set(
+    workflows
+      .filter(({ text }) => text.includes("uses: ./.github/actions/playwright-browsers"))
+      .flatMap(({ text }) => [...text.matchAll(/runs-on: ([\w.-]+)$/gm)].map((match) => match[1])),
+  );
+  const warmed = /runner: \[([^\]]+)\]/.exec(warm)?.[1].split(/,\s*/);
+  assert.deepEqual([...images].sort(), [...(warmed ?? [])].sort());
+  assert.match(warm, /runs-on: \$\{\{ matrix\.runner \}\}/);
 });
 
 test("the browser action restores, downloads only what is missing with retries, saves on a miss, then installs system packages", () => {
@@ -56,18 +65,37 @@ test("the browser action restores, downloads only what is missing with retries, 
   const at = steps.map((step) => browserAction.indexOf(step));
   assert.ok(at.every((index) => index > 0), `missing: ${steps.filter((_, index) => at[index] < 0).join(", ")}`);
   assert.deepEqual([...at].sort((a, b) => a - b), at, "in this order");
-  // The key: the runner's OS and architecture, Playwright's version and the browsers, sorted.
-  assert.match(browserAction, /key=playwright-\$\{RUNNER_OS\}-\$\{RUNNER_ARCH\}-\$\{version\}-\$\{set\}/);
+  // The key: the runner's OS, its image (WebKit's build differs per Ubuntu release, under one folder
+  // name), its architecture, Playwright's version and the browsers, sorted.
+  assert.match(browserAction, /key=playwright-\$\{RUNNER_OS\}-\$\{image\}-\$\{RUNNER_ARCH\}-\$\{version\}-\$\{set\}/);
+  assert.match(browserAction, /image=\$\{ImageOS:-\}/);
+  assert.match(browserAction, /image=\$\(\. \/etc\/os-release && echo "\$\{ID\}\$\{VERSION_ID\}"\)/);
   assert.match(browserAction, /version=\$\(node -p 'require\("playwright\/package\.json"\)\.version'\)/);
   assert.match(browserAction, /- if: steps\.restore\.outputs\.cache-hit != 'true'\n\s+uses: actions\/cache\/save@/);
   assert.match(browserAction, /- if: inputs\.system-packages == 'true'\n\s+shell: bash/);
 });
+
+// The repository's scripts, which CI also runs: the .mjs files under scripts/ and site/scripts/, but their tests.
+const scriptSources = ["scripts", "site/scripts"].flatMap((folder) =>
+  readdirSync(join(root, folder), { recursive: true })
+    .map(String)
+    .filter((file) => file.endsWith(".mjs") && !file.endsWith(".test.mjs") && !file.includes("node_modules"))
+    .map((file) => ({ file: `${folder}/${file}`, text: readFileSync(join(root, folder, file), "utf8") })),
+);
 
 test("only network fetches are retried: scripts/retry.sh wraps Playwright's downloads and nothing else", () => {
   const uses = [...workflows, ...actions].flatMap(({ file, text }) => [...text.matchAll(/scripts\/retry\.sh (.*)/g)].map((match) => `${file}: ${match[1]}`));
   assert.ok(uses.length > 0);
   assert.deepEqual(
     uses.filter((use) => !/: pnpm exec playwright install(-deps)? \$BROWSERS$/.test(use)),
+    [],
+  );
+  // A script that downloads the browsers (an array of arguments, as spawn takes) does it through
+  // scripts/retry.sh, and passes it nothing else.
+  const spawned = scriptSources.flatMap(({ file, text }) => [...text.matchAll(/^.*"scripts\/retry\.sh".*$|^.*"playwright", "install".*$/gm)].map((match) => `${file}: ${match[0].trim()}`));
+  assert.ok(spawned.length > 0);
+  assert.deepEqual(
+    spawned.filter((line) => !/"scripts\/retry\.sh", \["pnpm", "exec", "playwright", "install"(, "--with-deps")?(, "(chromium|webkit)")+\]/.test(line)),
     [],
   );
 });

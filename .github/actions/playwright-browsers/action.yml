@@ -1,7 +1,8 @@
 name: Playwright browsers
 description: >-
-  Restores Playwright's browsers from the Actions cache, keyed on the runner's OS and architecture,
-  Playwright's version and the browsers. Downloads them only on a miss, retrying the download with
+  Restores Playwright's browsers from the Actions cache, keyed on the runner's OS, image and
+  architecture, Playwright's version and the browsers: WebKit's build differs per Ubuntu release,
+  under the same folder name. Downloads them only on a miss, retrying the download with
   backoff (scripts/retry.sh), and saves them for the next job. Then installs their system packages,
   unless the job installs those itself. Run it after pnpm i.
 inputs:
@@ -21,7 +22,11 @@ runs:
       run: |
         version=$(node -p 'require("playwright/package.json").version')
         set=$(tr ' ' '\n' <<<"$BROWSERS" | grep . | sort -u | paste -sd- -)
-        echo "key=playwright-${RUNNER_OS}-${RUNNER_ARCH}-${version}-${set}" >> "$GITHUB_OUTPUT"
+        # The runner's image (ubuntu24 on GitHub's runners), else the OS release it runs.
+        image=${ImageOS:-}
+        if [ -z "$image" ] && [ -r /etc/os-release ]; then image=$(. /etc/os-release && echo "${ID}${VERSION_ID}"); fi
+        image=${image:-unknown}
+        echo "key=playwright-${RUNNER_OS}-${image}-${RUNNER_ARCH}-${version}-${set}" >> "$GITHUB_OUTPUT"
     - id: restore
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:

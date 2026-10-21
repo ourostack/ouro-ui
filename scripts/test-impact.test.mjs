@@ -262,7 +262,7 @@ test("the reduced run stands when the shards' merged coverage reaches 100%, and 
 
   const short = await run([{ status: 1 }, { status: 0 }, { status: 0 }]);
   assert.equal(short.status, 0);
-  assert.deepEqual(short.calls.slice(1), ["pnpm exec playwright install --with-deps chromium webkit (every story)", "pnpm test (every story)"]);
+  assert.deepEqual(short.calls.slice(1), ["scripts/retry.sh pnpm exec playwright install --with-deps chromium webkit (every story)", "pnpm test (every story)"]);
   assert.deepEqual(short.outputs, ["reduced=false", "stems=", "fallback=true"]);
 
   const fullFails = await run([{ status: 1 }, { status: 0 }, { status: 1 }]);
