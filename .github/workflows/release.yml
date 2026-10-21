@@ -255,8 +255,17 @@ jobs:
             # The merge is confirmed by the pull request's state, not by gh's exit code, which is
             # also non-zero when only its local branch cleanup fails; the branch is deleted after.
             # Pages is deployed (next step) only once CI on main's new tip has passed.
-            gh run watch "$run" --exit-status --interval 30 && gh pr merge "$NEXT_BRANCH" --squash || true
-            # With the merge queue on main, `gh pr merge` queues the pull request instead. A queue
+            number=$(gh pr view "$NEXT_BRANCH" --json number --jq .number)
+            queue_state() { gh api graphql -f query="query { repository(owner: \"${GITHUB_REPOSITORY%/*}\", name: \"${GITHUB_REPOSITORY#*/}\") { pullRequest(number: $number) { state isInMergeQueue } } }" --jq '.data.repository.pullRequest | "\(.state) \(.isInMergeQueue)"'; }
+            if gh run watch "$run" --exit-status --interval 30; then
+              gh pr merge "$NEXT_BRANCH" --squash || true
+              # With the merge queue on main, gh asks for auto-merge to queue a pull request, which
+              # this repository does not allow (probe #142): queue it directly when gh did not.
+              if [ "$(queue_state)" = "OPEN false" ]; then
+                gh api graphql -f query="mutation { enqueuePullRequest(input: {pullRequestId: \"$(gh pr view "$NEXT_BRANCH" --json id --jq .id)\"}) { clientMutationId } }" >/dev/null || echo "::warning::Could not add #$number to the merge queue."
+              fi
+            fi
+            # Queued, the pull request merges through the merge queue. A queue
             # entry made with this workflow's token starts no merge_group run, and the queue counts
             # no check of a run started any other way: a dispatched run's failing check left an
             # entry waiting, while a commit status of a required check's name ended it at once
@@ -266,8 +275,6 @@ jobs:
             # gh-readonly-queue/main/pr-<number>-<base>, and a rebuild (an entry ahead dropped out)
             # a new one, so this does so for every one that appears, as long as the pull request is
             # queued (the queue's 60-minute timeout, and some).
-            number=$(gh pr view "$NEXT_BRANCH" --json number --jq .number)
-            queue_state() { gh api graphql -f query="query { repository(owner: \"${GITHUB_REPOSITORY%/*}\", name: \"${GITHUB_REPOSITORY#*/}\") { pullRequest(number: $number) { state isInMergeQueue } } }" --jq '.data.repository.pullRequest | "\(.state) \(.isInMergeQueue)"'; }
             if [ "$(queue_state)" = "OPEN true" ]; then
               dispatched=" "
               reported=" "

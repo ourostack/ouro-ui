@@ -164,7 +164,7 @@ test("Pages names GitHub's newest release before it builds, whatever main's pack
 
 test("Release merges the pull request that prepares main, then runs CI there, so main names the release", () => {
   const release = workflow("release.yml");
-  assert.match(release, /gh run watch "\$run" --exit-status --interval 30 && gh pr merge "\$NEXT_BRANCH" --squash \|\| true/);
+  assert.match(release, /if gh run watch "\$run" --exit-status --interval 30; then\n +gh pr merge "\$NEXT_BRANCH" --squash \|\| true\n/);
   // gh's exit code also fails on local branch cleanup, so the pull request's state decides, and
   // the branch is deleted through the API afterwards.
   assert.doesNotMatch(release, /gh pr merge[^\n]*--delete-branch/);
@@ -242,12 +242,16 @@ for (const scenario of ["success", "queued", "queue-rebuilt", "ci-failed", "ci-m
           "run watch 1 "*) return 0 ;;
           "pr merge "*) return 1 ;;
           "pr view "*"--json number"*) echo 9 ;;
-          # The merge queue: queued, then merged (or dropped) on the next look; rebuilt: queued
-          # for three looks, with a second build's branch from the second look of the branches on.
+          # gh merge could not queue it (no auto-merge): queued by the API instead.
+          "api graphql -f query=mutation { enqueuePullRequest(input: {pullRequestId: \\"PR_9\\"}) { clientMutationId } }") return 0 ;;
+          "pr view "*"--json id"*) echo PR_9 ;;
+          # The merge queue: queued (after gh merge), then merged (or dropped) on the next look but
+          # one; rebuilt: queued for four looks, with a second build's branch from the second look
+          # of the branches on.
           "api graphql "*)
             looks=$(( $(cat "$QUEUE_LOOKS") + 1 )); echo "$looks" > "$QUEUE_LOOKS"
             case "$SCENARIO:$looks" in
-              queued:1|queue-dropped:1|queue-rebuilt:1|queue-rebuilt:2|queue-rebuilt:3) echo "OPEN true" ;;
+              queued:[12]|queue-dropped:[12]|queue-rebuilt:[1-4]) echo "OPEN true" ;;
               queued:*) echo "MERGED false" ;;
               not-merged:*|queue-dropped:*) echo "OPEN false" ;;
               *) echo "MERGED false" ;;
@@ -291,6 +295,8 @@ for (const scenario of ["success", "queued", "queue-rebuilt", "ci-failed", "ci-m
       env: { ...process.env, SCENARIO: scenario, NEXT_BRANCH: "prepare/after-v9.9.9", TAG: "v9.9.9", GITHUB_REPOSITORY: "ourostack/ouro-ui", GITHUB_SERVER_URL: "https://github.com", GITHUB_STEP_SUMMARY: summary, GITHUB_OUTPUT: output, QUEUE_LOOKS: looks },
     });
     assert.doesNotMatch(result.stderr, /Unexpected gh call:/);
+    // Queued by the API only when gh left the pull request open and out of the queue.
+    assert.equal(/enqueuePullRequest/.test(result.stderr), scenario === "not-merged", "enqueuePullRequest");
     if (scenario.startsWith("queue")) {
       // Queued by the workflow's token: CI runs on the queue's branch by dispatch.
       // Once on each build's branch, however often the branches are looked at.
