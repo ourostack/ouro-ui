@@ -1,5 +1,6 @@
 import { commonTokens, declareClassPlugin, declareValuePlugin, PluginKind } from "@stryker-mutator/api/plugin";
 import { DryRunStatus, MutantRunStatus, TestStatus } from "@stryker-mutator/api/test-runner";
+import { clearTimeout, setTimeout } from "node:timers";
 import { createVitest } from "vitest/node";
 
 // The Stryker plugins `pnpm mutation` (scripts/mutation.mjs) runs with. Stryker's own Vitest runner

@@ -41,7 +41,7 @@ const typed = new Set(["textbox", "searchbox", "combobox", "spinbutton"]);
 const arrowed = new Set(["slider", "generic"]);
 
 /** Uses a control once, as a person would. Resolves false when the browser could not reach it (covered by something else). */
-async function use(control: HTMLElement): Promise<boolean> {
+async function operate(control: HTMLElement): Promise<boolean> {
   const role = controlRole(control);
   const editable = control.matches('input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="button"], [type="submit"], [type="reset"]), textarea, [contenteditable]');
   if (clipped(control)) {
@@ -129,7 +129,7 @@ describe.each([
           if (control) {
             used.add(control);
             counts.set(identity(control), (counts.get(identity(control)) ?? 0) + 1);
-            if (!(await use(control))) continue;
+            if (!(await operate(control))) continue;
           } else {
             await userEvent.keyboard("{Escape}");
           }
