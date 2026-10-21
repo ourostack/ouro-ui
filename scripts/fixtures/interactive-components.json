@@ -63,5 +63,8 @@
   "timer-tray",
   "choice-card",
   "image-cropper",
-  "image-field"
+  "image-field",
+  "share-button",
+  "sync-status",
+  "install-prompt"
 ]

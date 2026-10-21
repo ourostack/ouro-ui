@@ -84,7 +84,9 @@ export default defineConfig({
     reporters: [...configDefaults.reporters, ...(themes ? [] : [new MotionReporter()]), ...(shard && !themes ? [new TimingsReporter()] : [])],
     coverage: {
       provider: "istanbul",
-      include: ["registry/**/*.{ts,tsx}"],
+      // The census kit's in-page collector is JavaScript an app's Playwright runs in the page; its
+      // Node side is covered by scripts/kits.test.mjs.
+      include: ["registry/**/*.{ts,tsx}", "registry/ouro/census/census-collect.mjs"],
       exclude: ["**/*.stories.tsx", "registry/ouro/lib/ouro/testing/**", "registry/ouro/e2e/**", "**/*.test.{ts,tsx}", "**/*.test-d.ts", "**/*.d.ts"],
       // A shard writes its share as coverage/coverage-final.json; CI merges the shards' shares and
       // holds them to the same 100% (scripts/coverage-merge.mjs).

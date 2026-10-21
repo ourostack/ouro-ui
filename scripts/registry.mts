@@ -178,6 +178,28 @@ const foundation = [
   },
 ];
 
+/**
+ * The guardrail kits: files an app runs to hold itself to Ouro UI, not components. Each ships as
+ * registry:file into the app's own folders (the census beside its end-to-end specs, the source
+ * rule beside its scripts), with the tools they run on as devDependencies.
+ */
+const kits = [
+  {
+    name: "ouro-census",
+    title: "Ouro census",
+    description:
+      "Optional: the census journey kit. A Playwright spec of yours lists every page your app renders and every state a person can open on it; the census records the exact multiset of visible controls in each (role, name, Ouro marker, context) and fails on any change from the committed baseline, and on any unmarked control in a journey you enrol. Unmarked controls may only fall, state by state. It installs e2e/ouro-census/ (the spec helper, the merge, the baseline update and a comparison of two runs).",
+    docs: `The census kit is in e2e/ouro-census/. Call censusTests({ test, journeys, projects, componentsDir }) from a spec of yours, merge each run with node e2e/ouro-census/census-merge.mjs, and accept a change with node e2e/ouro-census/census-update.mjs <run-id | file>. Docs: ${DOCS_URL}/guardrails.md`,
+  },
+  {
+    name: "ouro-source-rules",
+    title: "Ouro source rules",
+    description:
+      "Optional: the hand-rolled-control source rule. It reads your app's source with the TypeScript compiler and its stylesheets with PostCSS, and finds the controls still built by hand (a raw <button>, <a>, <input>, a click handler on a <div>, another UI library's control, control-state styling) and every component that wraps one, as fingerprints held to a committed baseline that may only shrink. It installs scripts/ouro-source-rules.mjs.",
+    docs: `The source rule is scripts/ouro-source-rules.mjs. Run node scripts/ouro-source-rules.mjs --write-baseline once to record where your app starts, then node scripts/ouro-source-rules.mjs in CI (with --base <ref> on pull requests). Docs: ${DOCS_URL}/guardrails.md`,
+  },
+];
+
 type FileType = "registry:ui" | "registry:component" | "registry:lib" | "registry:file";
 interface RegistryFile {
   path: string;
@@ -218,6 +240,8 @@ const libDir = "registry/ouro/lib/ouro/";
 const testingDir = "registry/ouro/lib/ouro/testing/";
 const e2eDir = "registry/ouro/e2e/ouro/";
 const themeDir = "registry/ouro/theme/";
+const censusDir = "registry/ouro/census/";
+const sourceRulesDir = "registry/ouro/source-rules/";
 
 /** Test-runner packages, which only the -tests items and ouro-testing may import. */
 const testTooling = /^(storybook|@storybook\/.*|vitest|@vitest\/.*|playwright|@playwright\/.*)$/;
@@ -248,6 +272,10 @@ export function itemForFile(path: string): string | null {
   if (path.startsWith(themeDir)) {
     const css = foundation.find((entry) => entry.css === path);
     if (css) return css.name;
+  } else if (path.startsWith(censusDir)) {
+    return "ouro-census";
+  } else if (path.startsWith(sourceRulesDir)) {
+    return "ouro-source-rules";
   } else if (path.startsWith(testingDir) || path === `${e2eDir}story.ts`) {
     return "ouro-testing";
   } else if (path.startsWith(libDir) && !path.slice(libDir.length).includes("/")) {
@@ -273,6 +301,8 @@ export function itemForFile(path: string): string | null {
 function fileEntry(path: string): RegistryFile {
   const file = path.split("/").at(-1)!;
   if (path.startsWith(e2eDir)) return { path, type: "registry:file", target: `~/e2e/ouro/${file}` };
+  if (path.startsWith(censusDir)) return { path, type: "registry:file", target: `~/e2e/ouro-census/${file}` };
+  if (path.startsWith(sourceRulesDir)) return { path, type: "registry:file", target: `~/scripts/ouro-${file}` };
   if (path.startsWith(libDir)) return { path, type: "registry:lib", target: `@lib/ouro/${path.slice(libDir.length)}` };
   const target = `@components/ouro/${path.slice(componentsDir.length)}`;
   return { path, type: devFile.test(file) ? "registry:component" : "registry:ui", target };
@@ -434,6 +464,7 @@ export function buildRegistry(root: string): Registry {
         `Optional: every Ouro UI component with its tests, type tests, stories and Playwright spec, and the test kit. The whole suite in one command. ${toolingNote}`,
       docs: `Every Ouro UI component and its tests are installed. The ouro-testing message says how to run them. Docs: ${TESTING_URL}`,
     },
+    ...kits.map((entry) => ({ ...entry, kind: "kit" as const })),
   ];
   const aggregates: Record<string, string[]> = {
     "ouro-lib": libs,
@@ -449,7 +480,7 @@ export function buildRegistry(root: string): Registry {
       type:
         entry.name === "ouro-theme"
           ? "registry:theme"
-          : "css" in entry || entry.kind === "tests" || entry.kind === "aggregate"
+          : "css" in entry || entry.kind === "tests" || entry.kind === "aggregate" || entry.kind === "kit"
             ? "registry:item"
             : entry.kind === "component"
               ? "registry:ui"
@@ -465,7 +496,7 @@ export function buildRegistry(root: string): Registry {
     const registryDeps = new Set<string>(entry.kind === "tests" ? [entry.of, "ouro-testing"] : (aggregates[entry.name] ?? []));
     for (const path of paths) {
       const source = readFileSync(join(root, path), "utf8");
-      const isDev = entry.name === "ouro-testing" || entry.kind === "tests";
+      const isDev = entry.name === "ouro-testing" || entry.kind === "tests" || entry.kind === "kit";
       // env.d.ts declares process.env.NODE_ENV for apps without @types/node; nothing imports it.
       if (!isDev && entry.name !== "lib-env" && /\bprocess\.env\b/.test(source)) registryDeps.add("lib-env");
       // OuroProvider is the one helper only the app imports. It comes with what it serves: a
@@ -474,7 +505,7 @@ export function buildRegistry(root: string): Registry {
       if (entry.name === "lib-router-link" || entry.name === "tooltip") registryDeps.add("lib-ouro-provider");
       for (const specifier of importsOf(source)) {
         if (specifier.startsWith("@/")) {
-          if (path.startsWith(e2eDir)) throw new Error(`${path}: e2e files ship as registry:file, which the CLI does not rewrite; use relative imports.`);
+          if (path.startsWith(e2eDir) || entry.kind === "kit") throw new Error(`${path}: e2e files and kits ship as registry:file, which the CLI does not rewrite; use relative imports.`);
           const dependency = owner.get(resolveRegistryImport(specifier, all));
           if (!dependency) throw new Error(`${path} imports ${specifier}, which no item ships.`);
           if (dependency !== entry.name) registryDeps.add(dependency);
@@ -495,7 +526,7 @@ export function buildRegistry(root: string): Registry {
     if (paths.length > 0) item.files = paths.map(fileEntry);
     if ("css" in entry && entry.css) Object.assign(item, cssToItem(readFileSync(join(root, entry.css), "utf8")));
     else if (item.cssVars || item.css) throw new Error(`${entry.name} carries CSS; only the theme items may.`);
-    if (entry.kind !== "tests" && entry.kind !== "aggregate" && entry.name !== "ouro-testing") {
+    if (entry.kind !== "tests" && entry.kind !== "aggregate" && entry.kind !== "kit" && entry.name !== "ouro-testing") {
       const tooling = [...runtime, ...dev].filter((name) => testTooling.test(name)).sort();
       if (tooling.length > 0) {
         throw new Error(`${entry.name} is a runtime item but imports test tooling: ${tooling.join(", ")}. Runtime files import no test tooling; move the import to a test or story.`);

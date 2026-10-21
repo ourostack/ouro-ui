@@ -1,0 +1,1 @@
+- New: `LocalDate`, a date or time in the reader's own time zone and language, in a `<time>` with the exact instant; the server writes it in UTC and en-US (unless `locale` is set), naming the zone after a time, and the browser in the reader's own zone and language, without a hydration mismatch, and a calendar date with no time (`"2026-06-01"`) stays that day for every reader.

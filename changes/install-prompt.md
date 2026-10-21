@@ -1,0 +1,1 @@
+- New: `InstallPrompt`, a quiet offer to install the web app where the browser can install it, never while it runs installed and not again for two weeks after Not now; with the `useInstallPrompt()` hook for an offer of your own.

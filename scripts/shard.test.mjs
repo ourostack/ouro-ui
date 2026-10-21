@@ -67,7 +67,9 @@ test("every script test file is in pnpm test:scripts, so one of the script test 
     readdirSync(join(root, dir), { recursive: true })
       .map(String)
       .filter((file) => file.endsWith(".test.mjs") && !file.split("/").includes("node_modules"))
-      .map((file) => `${dir}/${file}`),
+      .map((file) => `${dir}/${file}`)
+      // The kits' tests run inside scripts/kits.test.mjs, under Node's coverage.
+      .filter((file) => !file.startsWith("scripts/kits/")),
   );
   assert.deepEqual([...listed].sort(), [...new Set(found)].sort());
   // CI's two shards each take some of them.
