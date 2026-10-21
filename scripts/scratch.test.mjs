@@ -61,11 +61,17 @@ test("pnpm test:scripts and the script test shards fail when a run leaves anythi
   const tidy = file("tidy.test.mjs", 'test("tidy", () => { mkdirSync(join(process.env.TMPDIR, "node-compile-cache"), { recursive: true }); mkdirSync(join(process.env.TMPDIR, ".org.chromium.Chromium.a1B2c3")); });');
   const temps = () => readdirSync(dirname(dir)).filter((name) => name.startsWith("ouro-script-tests-"));
   const before = temps();
-  const logged = [];
-  const quiet = ["--test-reporter=dot", "--test-reporter-destination=/dev/null"];
-  assert.equal(runScriptTests([...quiet, leaky], { log: (line) => logged.push(line) }), 1);
-  assert.match(logged.join("\n"), /left 1 item\(s\) in their temp folder[\s\S]*copy-of-the-repository/);
-  assert.equal(runScriptTests([...quiet, tidy], { log: (line) => logged.push(line) }), 0);
+  const run = (file) => {
+    const logged = [];
+    const report = join(dir, `${Math.random()}.txt`);
+    const status = runScriptTests(["--test-reporter=spec", `--test-reporter-destination=${report}`, file], { log: (line) => logged.push(line) });
+    return { status, logged: logged.join("\n"), report: readFileSync(report, "utf8") };
+  };
+  const leaked = run(leaky);
+  assert.equal(leaked.status, 1, leaked.report);
+  assert.match(leaked.logged, /left 1 item\(s\) in their temp folder[\s\S]*copy-of-the-repository/);
+  const clean = run(tidy);
+  assert.equal(clean.status, 0, `${clean.logged}\n${clean.report}`);
   assert.deepEqual(temps(), before, "each run removes its temp folder");
   assert.match(JSON.parse(readFileSync(join(root, "package.json"), "utf8")).scripts["test:scripts"], /^node scripts\/run-script-tests\.mjs /);
 });
