@@ -1,7 +1,8 @@
 name: Claims
 # A pull request's title and body are a surface too: a factual sentence in them needs a
 # primary source and a check, as in the repository (scripts/claims.mjs lint --pr,
-# docs/guides/claims.md). It runs again when the description is edited, without the rest of CI.
+# docs/guides/claims.md), and so is what it adds to claims.config.json's exemptions. It runs
+# again when the description is edited, without the rest of CI.
 on:
   pull_request:
     types: [opened, edited, synchronize, reopened]
@@ -30,3 +31,12 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}
         run: pnpm claims:lint --pr
+      # The exemptions in claims.config.json against the base's: a new one needs its reason and a
+      # mention in the description, so it runs again when the description is edited.
+      - name: Exemptions against the base
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          git fetch --no-tags --depth=1 origin "$BASE_REF"
+          CLAIMS_BASE_REF="origin/$BASE_REF" node scripts/claims.mjs ratchet

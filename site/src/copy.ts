@@ -21,12 +21,18 @@ export const VOYAGE_HERO = {
   eyebrow: "Ouro HX · Under construction",
   title: ["Feels right to the people using it.", "Obvious to the agents building it."],
   subline: claim("A React component library you copy into your app and own. Its taps, transitions and screen-reader announcements are tested in real browsers.", {
-    source: [{ file: "registry/ouro/lib/ouro/testing/vitest.ts" }, { file: "registry/ouro/lib/ouro/testing/announcements.ts" }, { file: ".github/workflows/screen-reader.yml" }],
+    source: [
+      { test: "registry/ouro/components/ouro/accordion/accordion.touch.test.tsx::keeps 44px titles with 16px text on a phone, also in landscape, and opens on tap" },
+      { file: "scripts/motion-coverage.mts" },
+      { test: "registry/ouro/lib/ouro/testing/announcements.test.tsx::records the text each live region exposes, polite and assertive, once per change" },
+      { test: "registry/ouro/components/ouro/copy-button/copy-button.test.tsx::CopyButton > puts the value on the clipboard, says Copied once, calls onCopy and reads Copy again after two seconds" },
+    ],
     verify: [
       { fileLine: "registry/ouro/lib/ouro/testing/vitest.ts", pattern: "ouro-touch" },
+      { testExists: "registry/ouro/components/ouro/accordion/accordion.touch.test.tsx::keeps 44px titles with 16px text on a phone, also in landscape, and opens on tap" },
       { ciJob: "motion-coverage" },
-      { fileLine: "registry/ouro/lib/ouro/testing/announcements.ts", pattern: "watchAnnouncements" },
-      { ciJob: "lane", workflow: "screen-reader.yml" },
+      { testExists: "registry/ouro/lib/ouro/testing/announcements.test.tsx::records the text each live region exposes, polite and assertive, once per change" },
+      { testExists: "registry/ouro/components/ouro/copy-button/copy-button.test.tsx::CopyButton > puts the value on the clipboard, says Copied once, calls onCopy and reads Copy again after two seconds" },
     ],
   }),
 } as const;

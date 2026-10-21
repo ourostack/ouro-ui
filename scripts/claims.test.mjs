@@ -135,7 +135,7 @@ test("Markdown: an unsourced factual sentence fails with its line and the source
   assert.match(findings[1].message, /testExists/);
 });
 
-test("Markdown: a source link with a verify: title makes its sentence a claim", () => {
+test("Markdown: a source link titled with its check makes its sentence a claim", () => {
   const text = 'Ouro HX ships [73 components](registry.json "verify:count(registry:ui)=73"). Every check runs in CI.\n';
   const findings = lintMarkdown(text, { file: "README.md" });
   assert.deepEqual(findings.map((finding) => finding.sentence), ["Every check runs in CI."]);
@@ -143,7 +143,7 @@ test("Markdown: a source link with a verify: title makes its sentence a claim", 
   assert.deepEqual(claims, [{ file: "README.md", line: 1, text: "Ouro HX ships [73 components](registry.json \"verify:count(registry:ui)=73\").", sources: [{ file: "registry.json" }], checks: [{ count: "registry:ui", is: 73 }] }]);
 });
 
-test("Markdown: a footnote with verify: lines covers each sentence that cites it", () => {
+test("Markdown: a footnote with checks covers each sentence that cites it", () => {
   const text = [
     "Every story passes axe.[^axe] It runs in Chromium and WebKit.[^axe]",
     "",
@@ -491,6 +491,41 @@ test("ciJob reads the required checks at the base ref, so a pull request cannot 
   assert.deepEqual(await failures({}), []);
 });
 
+test("ciJob expands a matrix job's name from its matrix, so a name made only of expressions matches no required check", async () => {
+  const root = verifyFixture();
+  writeFileSync(
+    join(root, ".github/workflows/lanes.yml"),
+    [
+      "name: Lanes",
+      "on: push",
+      "jobs:",
+      "  reader:",
+      "    name: ${{ matrix.project }} (${{ matrix.os }})",
+      "    strategy:",
+      "      matrix:",
+      "        include:",
+      "          - os: macos-15",
+      "            project: voiceover",
+      "    runs-on: ${{ matrix.os }}",
+      "  install:",
+      "    strategy:",
+      "      matrix:",
+      "        variant: [plain, themed]",
+      "        preset: [nova]",
+      "        include:",
+      "          - variant: plain",
+      "            preset: vega",
+      "    name: install (${{ matrix.variant }}, ${{ matrix.preset }})",
+      "    runs-on: ubuntu-latest",
+      "",
+    ].join("\n"),
+  );
+  writeFileSync(join(root, ".github/required-checks.json"), JSON.stringify(["ci", "install (plain, vega)"]));
+  const failures = async (ciJob) => (await verify([{ ciJob, workflow: "lanes.yml" }], { root, urlCache: "claims-urls.json" })).map((failure) => failure.message);
+  assert.match((await failures("reader"))[0], /"reader" is not a required check/);
+  assert.deepEqual(await failures("install"), []);
+});
+
 test("generated surfaces are linted: registry.json, README regions and llms.txt items, with claims carried from their sources", async () => {
   const root = fixture({
     "package.json": "{}",
@@ -573,6 +608,28 @@ test("verify --network fails when an address no longer answers as the cache says
   try {
     const failures = (await verify([{ urlOk: url }], { root, urlCache: "claims-urls.json", network: true })).map((failure) => failure.message);
     assert.match(failures[0], /answered 404, where the cache had 200/);
+  } finally {
+    server.close();
+  }
+});
+
+test("verify --network fails on a committed answer older than the cache's age limit, so the weekly run asks for a refresh", async () => {
+  const server = createServer((request, response) => {
+    response.statusCode = 200;
+    response.end();
+  });
+  await new Promise((done) => server.listen(0, "127.0.0.1", done));
+  const url = `http://127.0.0.1:${server.address().port}/spec`;
+  const run = async (checked) => {
+    const root = fixture({ "claims-urls.json": JSON.stringify({ [url]: { status: 200, checked } }) });
+    const context = { root, urlCache: "claims-urls.json", network: true, config: { urlMaxAgeDays: 30 }, today: "2026-11-30" };
+    return (await verify([{ urlOk: url }], context)).map((failure) => failure.message);
+  };
+  try {
+    assert.deepEqual(await run("2026-11-01"), []);
+    const stale = await run("2026-10-30");
+    assert.match(stale[0], /checked 2026-10-30, more than 30 days before 2026-11-30/);
+    assert.match(stale[0], /commit the refreshed/);
   } finally {
     server.close();
   }

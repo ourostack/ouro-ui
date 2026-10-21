@@ -21,7 +21,7 @@
     "kind": "guide",
     "group": "Guides",
     "markdown": "docs/guides/guardrails.md",
-    "summary": "Two optional kits hold an app to Ouro UI the way Ouro UI holds itself: every control a person can reach is an Ouro control, and the number that are not can only fall."
+    "summary": "The guardrail kits hold an app to Ouro UI: the aim is that every control a person can reach is an Ouro control, and the number that are not can only fall."
   },
   {
     "name": "installing",

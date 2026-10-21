@@ -49,6 +49,8 @@ export const DEFAULT_CONFIG = {
   requiredTests: null,
   requiredChecks: ".github/required-checks.json",
   urlCache: "claims-urls.json",
+  // `--network` fails on a committed answer older than this, so the cache is refreshed and committed.
+  urlMaxAgeDays: 30,
 };
 
 /** A file's text at a git ref, or undefined. */
@@ -766,8 +768,29 @@ function workflowJobs(root) {
       const id = /^ {2}([\w-]+):\s*$/.exec(lines[index])?.[1];
       if (!id) continue;
       let name;
-      for (let inner = index + 1; inner < lines.length && !/^ {0,2}\S/.test(lines[inner]); inner++) name ??= /^ {4}name:\s*(.+?)\s*$/.exec(lines[inner])?.[1]?.replace(/^["']|["']$/g, "");
-      jobs.push({ workflow, id, name });
+      // The values each matrix key takes, from its list and its include entries.
+      const matrix = {};
+      const add = (key, value) => (matrix[key] ??= new Set()).add(value.replace(/^["']|["']$/g, ""));
+      let matrixIndent;
+      for (let inner = index + 1; inner < lines.length && !/^ {0,2}\S/.test(lines[inner]); inner++) {
+        const line = lines[inner];
+        name ??= /^ {4}name:\s*(.+?)\s*$/.exec(line)?.[1]?.replace(/^["']|["']$/g, "");
+        const indent = /^ */.exec(line)[0].length;
+        if (/^\s+matrix:\s*$/.test(line)) {
+          matrixIndent = indent;
+          continue;
+        }
+        if (matrixIndent === undefined || !line.trim()) continue;
+        if (indent <= matrixIndent) {
+          matrixIndent = undefined;
+          continue;
+        }
+        const list = /^\s+([\w-]+):\s*\[(.*)\]\s*$/.exec(line);
+        if (list && list[1] !== "include" && list[1] !== "exclude") for (const value of list[2].split(",")) add(list[1], value.trim());
+        const entry = /^\s+(?:- )?([\w-]+):\s*([^\s[{][^#]*?)\s*$/.exec(line);
+        if (entry && entry[1] !== "include" && entry[1] !== "exclude") add(entry[1], entry[2]);
+      }
+      jobs.push({ workflow, id, name, matrix: Object.fromEntries(Object.entries(matrix).map(([key, values]) => [key, [...values]])) });
     }
   }
   return jobs;
@@ -813,9 +836,16 @@ function requiredChecks(root, context) {
 
 /** Whether a job reports a required check: by id, by name, or by a matrix name (`themes (${{ matrix.shard }}/3)`) one of whose runs is required. */
 function isRequired(job, required) {
-  const name = job.name ?? job.id;
-  const pattern = new RegExp(`^${name.split(/\$\{\{[^}]*\}\}/).map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join(".+")}$`);
-  return required.includes(job.id) || required.some((check) => pattern.test(check));
+  // GitHub names a job's check by its name, or by its id when it has none.
+  if (!job.name) return required.includes(job.id);
+  // A matrix job's checks are named for each combination: expand `${{ matrix.<key> }}` over the
+  // values the matrix lists. Any other expression names no check this can know.
+  let names = [job.name];
+  for (const match of job.name.matchAll(/\$\{\{\s*([^}]*?)\s*\}\}/g)) {
+    const values = /^matrix\.([\w-]+)$/.exec(match[1]) ? (job.matrix?.[match[1].slice(7)] ?? []) : [];
+    names = names.flatMap((name) => values.map((value) => name.replace(match[0], value)));
+  }
+  return names.some((name) => required.includes(name));
 }
 
 /** Whether a test exists, is not skipped and runs in a required CI job; the failure message otherwise. */
@@ -891,6 +921,12 @@ export async function verify(checks, context, sources = []) {
       if (network === true || (network === "changed" && context.refresh?.has(check.urlOk))) {
         const status = await fetchStatus(check.urlOk);
         if (before && before.status !== status) fail(`${check.urlOk} answered ${status || "nothing"}, where the cache had ${before.status}.`);
+        // The weekly full run also asks for the refreshed cache once a committed answer is old.
+        const today = context.today ?? new Date().toISOString().slice(0, 10);
+        const maxAge = config?.urlMaxAgeDays ?? DEFAULT_CONFIG.urlMaxAgeDays;
+        if (network === true && before?.checked && (Date.parse(today) - Date.parse(before.checked)) / 86_400_000 > maxAge) {
+          fail(`${check.urlOk} was checked ${before.checked}, more than ${maxAge} days before ${today}: run the check with --network and commit the refreshed ${cacheFile}.`);
+        }
         cache[check.urlOk] = { status, checked: new Date().toISOString().slice(0, 10) };
         context.cacheChanged = true;
       }
