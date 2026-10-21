@@ -31,7 +31,7 @@ Type: `HoverCardProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `align` | `"start" \| "center" \| "end"` | `"center"` | How the card lines up with the link along that side. |
-| `children` (required) | `ReactNode` |  | The preview: a few lines about where the link goes. Nothing the user needs, and no controls. |
+| `children` (required) | `ReactNode` |  | The preview: a few lines about where the link goes. Only what the user can do without; put controls elsewhere. |
 | `className` | `string` |  | Layout only, applied to the card: width (18rem, `w-72`, by default) and padding. Your classes win over Ouro UI's. Appearance classes warn in development. |
 | `side` | `"top" \| "bottom" \| "left" \| "right"` | `"bottom"` | The side of the link the card sits on; it flips when there is no room. |
 | `trigger` (required) | `ReactElement` |  | The link the card previews: `trigger={<Link href="/cooks/ari">Ari</Link>}`. It works on its own: touch users, and devices that cannot hover, get only the link. |

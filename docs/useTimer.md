@@ -45,7 +45,9 @@ interface TimerControls {
   remaining: number;
   /** The timer's length in seconds, as it was started. */
   duration: number;
-  /** When it reached zero, or `null` until it does. */
+  /**
+   * When it reached zero, or `null` until it does.
+   */
   endedAt: number | null;
   /** Starts from the full duration, from any status. */
   start: () => void;
@@ -64,7 +66,9 @@ What a timer's `onDone` hears when it reaches zero.
 
 ```ts
 interface TimerDoneEvent {
-  /** When it reached zero, in milliseconds since the epoch: in the past when the page was closed at the time. */
+  /**
+   * When it reached zero, in milliseconds since the epoch: in the past when the page was closed at the time.
+   */
   endedAt: number;
   /**
    * Whether this `useTimer` is the one on the page that should sound the alert: the first with
@@ -91,7 +95,9 @@ interface TimerOptions {
   timerId?: string | undefined;
   /** Not an option. A timer is kept and shared by `timerId`: `useTimer({ duration: 600, timerId: "pasta" })`. */
   id?: { 'Use timerId: "pasta"': never };
-  /** Called once when the timer reaches zero, including when it ended while the page was closed. */
+  /**
+   * Called once when the timer reaches zero, including when it ended while the page was closed.
+   */
   onDone?: ((event: TimerDoneEvent) => void) | undefined;
   /**
    * For a view that watches a timer shown elsewhere, as `TimerTray` does: its `onDone` hears

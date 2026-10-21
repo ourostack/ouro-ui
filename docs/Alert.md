@@ -23,7 +23,7 @@ import { Alert } from "@/registry/ouro/components/ouro/alert/alert";
 
 ## Usage
 
-In and around forms, Alert is the component for a message that belongs to no field and to no form as a whole: a reorder or a deletion the server refused, a step that could not be parsed. Render it where the action was taken, with `action` for the way out.
+In and around forms, use Alert for a message that belongs to neither a field nor the form as a whole: a reorder or a deletion the server refused, a step that could not be parsed. Render it where the action was taken, with `action` for the way out.
 
 ## Use instead when
 

@@ -35,7 +35,7 @@ Type: `CollapsibleProps`.
 | `onOpenChange` | `((open: boolean) => void)` |  | Called with the new state when the person opens or closes it. |
 | `open` | `boolean` |  | Whether it is open, when you control it. Pair it with `onOpenChange`. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
-| `title` (required) | `ReactNode` |  | The always-visible title. It is the button that opens and closes the content. |
+| `title` (required) | `ReactNode` |  | The title, in view whether open or closed. It is the button that opens and closes the content. |
 
 ## Don't use
 

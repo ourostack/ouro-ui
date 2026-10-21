@@ -121,7 +121,9 @@ One column of a `Table`: its `header`, and where its cells come from. `key` name
 type TableColumn<Row> = TableColumnBase &
   (
     | {
-        /** The field of each row to show, and the column's React key. */
+        /**
+         * The field of each row to show, and the column's React key.
+         */
         key: TableKeysOf<Row, ReactNode>;
         /** Renders the row's cell instead of the field's value. */
         cell?: ((row: Row, index: number) => ReactNode) | undefined;

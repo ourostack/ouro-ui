@@ -2,7 +2,7 @@
 
 # Row
 
-Lays its children out side by side with an even gap, centered up and down. It has no look of its own: it replaces the `flex items-center gap-2` an agent would otherwise write by hand. `stackBelow="sm"` stacks the children on a phone.
+Lays its children out side by side with an even gap, centered up and down. It is layout only: it replaces the `flex items-center gap-2` an agent would otherwise write by hand. `stackBelow="sm"` stacks the children on a phone.
 
 ```tsx
 import { Row } from "@/registry/ouro/components/ouro/stack/row";

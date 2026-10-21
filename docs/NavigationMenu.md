@@ -84,7 +84,9 @@ interface NavigationMenuLink {
   label: string;
   /** Where it goes. Internal paths go through `OuroProvider`'s `linkComponent` (your router's link). */
   href: string;
-  /** A line under the label that says what is there: "Everything you have saved." */
+  /**
+   * A line under the label that says what is there: "Everything you have saved."
+   */
   description?: string | undefined;
   /** Marks this link as the current page, when the menu's `currentPath` cannot tell. */
   current?: boolean | undefined;
@@ -118,7 +120,9 @@ A NavigationMenu item that opens a panel: a list of `links`, with any `content` 
 type NavigationMenuPanelItem = NavigationMenuPanelBase &
   (
     | {
-        /** The links in the panel, each with an optional `description`. */
+        /**
+         * The links in the panel, each with an optional `description`.
+         */
         links: readonly NavigationMenuLink[];
         /**
          * Anything else in the panel, before its links (above them on a phone): a featured
@@ -128,7 +132,9 @@ type NavigationMenuPanelItem = NavigationMenuPanelBase &
       }
     | {
         links?: undefined;
-        /** The panel's content, when it has no list of links. A link in it closes the panel when it is followed. */
+        /**
+         * The panel's content, when it has no list of links. A link in it closes the panel when it is followed.
+         */
         content: ReactNode;
       }
   );

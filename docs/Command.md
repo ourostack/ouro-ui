@@ -130,7 +130,9 @@ interface CommandItem {
   label: string;
   /** Runs the command. The palette closes first. */
   onSelect: () => void;
-  /** More words the search matches, which never show: `keywords: ["dark mode"]`. */
+  /**
+   * More words the search matches, which never show: `keywords: ["dark mode"]`.
+   */
   keywords?: readonly string[] | undefined;
   /** The keys of the command's shortcut, shown at its end with `Kbd`: `["mod", "n"]`. It does not bind them. */
   shortcut?: readonly string[] | undefined;

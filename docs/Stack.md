@@ -2,7 +2,7 @@
 
 # Stack
 
-Lays its children out top to bottom with an even gap. It has no look of its own: it replaces the `flex flex-col gap-4` an agent would otherwise write by hand.
+Lays its children out top to bottom with an even gap. It is layout only: it replaces the `flex flex-col gap-4` an agent would otherwise write by hand.
 
 ```tsx
 import { Stack } from "@/registry/ouro/components/ouro/stack/stack";

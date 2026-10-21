@@ -29,7 +29,7 @@ Type: `TimerProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: margins, width (`mt-6`). Appearance classes warn in development. |
-| `duration` (required) | `number` |  | How long it runs, in seconds: `duration={600}` for ten minutes. |
+| `duration` (required) | `number` |  | How long it runs, in seconds: `duration={600}`. |
 | `label` (required) | `string` |  | What the timer is for, shown above the time and naming it for screen readers: "Pasta", "Break". |
 | `labels` | `TimerLabels` |  | The words it shows and says, for apps in other languages. |
 | `onDone` | `((event: TimerDoneEvent) => void)` |  | Called once when the timer reaches zero, including when it ended while the page was closed. |
@@ -70,7 +70,9 @@ What a timer's `onDone` hears when it reaches zero.
 
 ```ts
 interface TimerDoneEvent {
-  /** When it reached zero, in milliseconds since the epoch: in the past when the page was closed at the time. */
+  /**
+   * When it reached zero, in milliseconds since the epoch: in the past when the page was closed at the time.
+   */
   endedAt: number;
   /**
    * Whether this `useTimer` is the one on the page that should sound the alert: the first with
@@ -99,7 +101,9 @@ interface TimerLabels {
   dismiss?: string | undefined;
   /** @default "Restart" */
   restart?: string | undefined;
-  /** What it shows, and screen readers hear, at zero. @default "Time's up" */
+  /**
+   * What it shows, and screen readers hear, at zero. @default "Time's up"
+   */
   done?: string | undefined;
   /** What it shows after the time while paused. @default "Paused" */
   paused?: string | undefined;

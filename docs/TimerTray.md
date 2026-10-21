@@ -75,7 +75,9 @@ interface TimerLabels {
   dismiss?: string | undefined;
   /** @default "Restart" */
   restart?: string | undefined;
-  /** What it shows, and screen readers hear, at zero. @default "Time's up" */
+  /**
+   * What it shows, and screen readers hear, at zero. @default "Time's up"
+   */
   done?: string | undefined;
   /** What it shows after the time while paused. @default "Paused" */
   paused?: string | undefined;

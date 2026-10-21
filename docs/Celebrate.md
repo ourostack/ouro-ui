@@ -26,7 +26,7 @@ Type: `CelebrateProps`.
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: placement (`mx-auto`, `mt-4`). Appearance classes warn in development. |
 | `hideMessage` | `boolean` |  | Speaks the message without showing the badge, for a screen that already says it. The confetti still bursts. |
-| `message` (required) | `string` |  | What was achieved, in a few words: "List cleared", "All steps done". Shown in a badge and spoken. |
+| `message` (required) | `string` |  | What was achieved, in a few words: "List cleared", "Steps done". Shown in a badge and spoken. |
 | `ref` | `Ref<HTMLSpanElement>` |  | Reaches the rendered element. |
 | `show` (required) | `boolean` |  | Whether the moment is happening. When it turns `true`, confetti bursts from the message and screen readers hear the message, once; set it back to `false` to clear it, and to `true` again for another burst. |
 

@@ -27,7 +27,7 @@ Props every mode takes. Type: `BadgeProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `children` (required) | `ReactNode` |  | The label: a word or two, or a count. |
+| `children` (required) | `ReactNode` |  | The label: a short word, or a count. |
 | `className` | `string` |  | Layout only: margins, grid placement (`ms-2`). Appearance classes warn in development; use `tone` and `variant`. |
 | `icon` | `BadgeIcon` |  | Icon before the label. Pass the component, not an element: `icon={CheckIcon}`. |
 | `onClick` | `MouseEventHandler<HTMLElement>` |  | Runs when the badge is pressed. Without `href` it makes the badge a `<button>` (pass `aria-pressed` too when it toggles a filter); with `href` it runs before the link navigates. |

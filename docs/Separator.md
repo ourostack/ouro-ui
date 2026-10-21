@@ -32,7 +32,7 @@ Type: `SeparatorProps`.
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: margins, width, flex sizing (`my-4`, `flex-1`). Appearance classes warn in development. |
 | `decorative` | `boolean` |  | Hides the line from screen readers (`role="none"`). Use it when the line only decorates, such as between a heading and its text; leave it off when it divides two groups of content a reader should hear as separate. |
-| `label` | `ReactNode` |  | A word or two in the middle of a horizontal line, such as "or" between two ways to sign in: `<Separator label="or" />`. The label is read as text in its place, and the lines on either side are hidden from screen readers. Only for `horizontal`. |
+| `label` | `ReactNode` |  | A short word in the middle of a horizontal line, such as "or" between two ways to sign in: `<Separator label="or" />`. The label is read as text in its place, and the lines on either side are hidden from screen readers. Only for `horizontal`. |
 | `orientation` | `"vertical" \| "horizontal"` | `"horizontal"` | `horizontal` spans the width of its container between stacked content; `vertical` stands as tall as its row between side-by-side items (put it in a flex row). |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
 

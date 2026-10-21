@@ -33,7 +33,7 @@ Type: `PageHeaderProps`.
 | `breadcrumb` | `ReactNode` |  | A trail above everything else, such as a `Breadcrumb`. |
 | `children` | `ReactNode` |  | More under the description, such as badges or a byline. |
 | `className` | `string` |  | Layout only: margins, width (`mb-8`, `max-w-5xl`). Appearance classes warn in development. |
-| `description` | `ReactNode` |  | A sentence or two under the title. |
+| `description` | `ReactNode` |  | A short sentence under the title. |
 | `divider` | `boolean` |  | A line under the header, between it and the page's content. |
 | `eyebrow` | `ReactNode` |  | A short line above the title that says what kind of page this is or where it sits: "Settings", "Project". |
 | `level` | `1 \| 2` | `1` | The title's heading level. `1` for the page title; `2` when the header heads a section inside a page that already has its `<h1>`. |

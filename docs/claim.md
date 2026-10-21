@@ -2,7 +2,7 @@
 
 # claim
 
-Marks a sentence of copy as a claim, with the primary source it comes from and a check that it still holds. It returns the text unchanged, so the copy reads as before; the evidence is for whoever checks it next, and `pnpm claims:check` reads it from the source code (keep the arguments literal) and runs each check.
+Marks a sentence of copy as a claim, with the primary source it comes from and a check that it still holds. It returns the text unchanged, so the copy reads as before; the evidence is for whoever checks it next. The checker that installs beside it, `claims-check.mjs`, reads it from the source code (keep the arguments literal) and runs each check: add `"claims:check": "node src/lib/ouro/claims-check.mjs check"` to your scripts, with your lib folder in place of `src/lib`, and run it in CI. It also fails on a sentence of your Markdown or copy that states a fact without a source.
 
 ```tsx
 import { claim } from "@/registry/ouro/lib/ouro/claims";
@@ -11,9 +11,9 @@ import { claim } from "@/registry/ouro/lib/ouro/claims";
 ## Example
 
 ```tsx
-const tagline = claim("73 components, each tested in Chromium and WebKit.", {
-  source: { file: "registry.json" },
-  verify: [{ count: "registry:ui", is: 73 }, { ciJob: "ci" }],
+const tagline = claim("Checkout passes axe in every theme.", {
+  source: { test: "src/checkout.test.tsx::checkout passes axe" },
+  verify: { testExists: "src/checkout.test.tsx::checkout passes axe" },
 });
 ```
 

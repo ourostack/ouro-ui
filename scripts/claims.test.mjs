@@ -66,6 +66,10 @@ test("triggers: spelled-out numbers, each, no and zero, always and never, and fu
   assert.deepEqual(kinds("Fully keyboard operable."), ["fully"]);
   // A word that only looks like one of them is not.
   assert.deepEqual(kinds("Someone noted the notice."), []);
+  // A digit inside a name (e2e, h1) is not a number, but v2, x4 and 44px are.
+  assert.deepEqual(kinds("The specs in e2e/ouro open the stories in an h1."), []);
+  assert.deepEqual(kinds("Release v2 is x4 faster."), ["number"]);
+  assert.deepEqual(kinds("Rows are 44px tall."), ["number"]);
 });
 
 test("bypasses: noun-verbs, quotations, headings and spelled-out claims are caught", () => {
@@ -176,9 +180,21 @@ test("Markdown: code is not read; generated regions, headings and tables are", (
     "| --- | ---: |",
     "| shadcn/ui | 100/100 |",
     "",
+    "| Prop | Default | Description |",
+    "| --- | --- | --- |",
+    "| `max` | none | Shows every avatar. |",
+    "| `size` | every one | Tested in every browser |",
+    "",
   ].join("\n");
   const findings = lintMarkdown(text, { file: "README.md" });
-  assert.deepEqual(findings.map((finding) => [finding.line, finding.sentence]), [[5, "Every component is listed here."], [7, "Every run"], [11, "100/100"]]);
+  // A table cell of a word or two is a value ("none"); a longer one, or one with a number, is read.
+  assert.deepEqual(findings.map((finding) => [finding.line, finding.sentence]), [
+    [5, "Every component is listed here."],
+    [7, "Every run"],
+    [11, "100/100"],
+    [15, "Shows every avatar."],
+    [16, "Tested in every browser"],
+  ]);
 });
 
 test("plain text (a pull request title) is linted as one paragraph", () => {

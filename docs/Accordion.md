@@ -92,7 +92,9 @@ interface AccordionItem {
    * accordion. @default the item's index, as a string ("0", "1", …)
    */
   value?: string | undefined;
-  /** The title, always visible. It is the button that opens the item, inside a heading. */
+  /**
+   * The title, always visible. It is the button that opens the item, inside a heading.
+   */
   title: ReactNode;
   /** What shows while the item is open. */
   content: ReactNode;

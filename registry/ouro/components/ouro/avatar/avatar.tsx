@@ -62,7 +62,7 @@ export interface AvatarGroupOwnProps {
   label: string;
   /** The `Avatar`s, in order. */
   children: ReactNode;
-  /** Shows at most this many avatars, then a "+N" count for the rest. @default all of them */
+  /** Shows at most this many avatars, then a "+N" count for the rest. @default unlimited */
   max?: number | undefined;
   /**
    * How many there are in all, when you pass only the first few avatars (a recipe with

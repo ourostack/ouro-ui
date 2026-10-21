@@ -76,7 +76,9 @@ A group of links in a Navbar: a button that opens a panel in the bar, and a labe
 interface NavbarGroup {
   /** The group's name, the button's text: "Recipes". */
   label: string;
-  /** The group's links, each with an optional `description`. */
+  /**
+   * The group's links, each with an optional `description`.
+   */
   links: readonly NavbarLink[];
   /** Not with `links`. To link the section's own page, make it the group's first link. */
   href?: never;
@@ -101,7 +103,9 @@ interface NavbarLink {
   label: string;
   /** Where it goes. Internal paths go through `OuroProvider`'s `linkComponent` (your router's link). */
   href: string;
-  /** In a group: a line under the label in the bar's panel, "Everything you have saved." */
+  /**
+   * In a group: a line under the label in the bar's panel, "Everything you have saved."
+   */
   description?: string | undefined;
   /**
    * Marks this link as the current page (`aria-current="page"`), when the Navbar's

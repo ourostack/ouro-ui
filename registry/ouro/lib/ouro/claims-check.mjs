@@ -159,7 +159,8 @@ export function triggers(sentence) {
   };
   take("date", DATE);
   take("version", VERSION);
-  take("number", /\d+/g);
+  // A digit inside a name ("e2e", "h1") is part of the name; "v2" and "x4" still count.
+  take("number", /(?<![A-Za-uwyz])\d+/g);
   const spelled = [...text.matchAll(NUMBER_WORDS)].map((match) => match[0]);
   if (spelled.length > 0) {
     const number = found.find((entry) => entry.kind === "number");
@@ -306,7 +307,7 @@ function blocks(text) {
       if (/^\s*\|?[\s:|-]+\|?\s*$/.test(raw)) continue;
       let offset = 0;
       for (const cell of raw.split(/(?<!\\)\|/)) {
-        if (cell.trim()) out.push({ lines: [{ line, text: " ".repeat(offset) + cell }] });
+        if (cell.trim()) out.push({ lines: [{ line, text: " ".repeat(offset) + cell }], cell: true });
         offset += cell.length + 1;
       }
       continue;
@@ -399,6 +400,8 @@ export function readMarkdown(text, { file, startLine = 1, lineOf, cover, howTo =
     for (const [from, to] of sentenceSpans(masked)) {
       const clean = collapse(masked.slice(from, to).replace(/[§¹]/g, " "));
       if (!/[A-Za-z0-9]/.test(clean)) continue;
+      // A table cell of a word or two without a number is a value, such as a default of "none".
+      if (unit.cell && !/\d/.test(clean) && clean.split(" ").length <= 2) continue;
       const lead = from + (masked.slice(from, to).length - masked.slice(from, to).trimStart().length);
       const line = lineAt(lead);
       const sentence = collapse(joined.slice(from, to));
