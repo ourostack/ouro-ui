@@ -22,13 +22,13 @@ All three start from `test/install-fixture` and `shadcn init --base base --prese
 | `confirm-delete` | A destructive confirmation that the server can refuse. |
 | `app-shell` | A sidebar shell that folds behind a menu button on phones. |
 
-Each screen is a folder in `screens/`: `task.md` is the task the agent reads, and `files/` holds the `src/api/` module that stands in for the backend (`screens/_shared/files` adds the fake backend they share). No task names a library or a component. The screens come from Ouro HX's own catalog plan, and shadcn/ui ships no swipe row; the docs page must say both.
+A screen is a folder in `screens/`: `task.md` is the task the agent reads, and `files/` holds the `src/api/` module that stands in for the backend (`screens/_shared/files` adds the fake backend they share). No task names a library or a component.[^no-library] The screens come from Ouro HX's own catalog plan, and shadcn/ui ships no swipe row; the docs page must say both.[^shadcn-components]
 
 ## Run it
 
 Run every command from the repository root, on one machine, with one model for everything. Pick a folder outside every Git repository for the apps, for example `WORK=~/agent-usability`, a date for the run, `DATE=$(date +%F)`, and the model and effort, for example `MODEL=claude-opus-5-5` and `EFFORT=high`.
 
-1. **Create the three arms.** Each takes a few minutes and needs the network.
+1. **Create the three arms.** Creating an arm takes a few minutes and needs the network.
 
    ```bash
    for arm in shadcn shadcn-skill ouro; do scripts/agent-usability/arms/create.sh $arm "$WORK/arms/$arm"; done
@@ -65,19 +65,19 @@ Run every command from the repository root, on one machine, with one model for e
    - **The workspace is its working folder**, and the workspace is outside every repository.[^protocol]
    - **One model and one effort** for all 45, one `claude` version, and no retries: a run that fails counts as it is.[^protocol]
    - **The same access.** Every agent may read every file in its app and may read the web.[^prompt] The prompt says so in the same words for every arm, because each arm's `llms.txt` is an index of links to web docs.[^prompt]
-   - **No help.** Don't answer its questions or correct its work.
+   - **Don't help.** Don't answer its questions or correct its work.
 
    The skill arm's skill is in `.claude/skills/`, which safe mode does not load, so that arm's setup line tells the agent to read it. After the run, confirm it did: `grep -c 'skills/shadcn/SKILL.md' "$WORK/$DATE/transcripts/shadcn-skill-$screen-$run.jsonl"` must not be 0.[^skill-check] The skill tells the agent to run `npx shadcn@latest`, which is not pinned (the arm was made with 4.21.1[^arm-cli]), so record which versions ran: `grep -oh 'shadcn@[0-9][0-9.]*' "$WORK/$DATE"/transcripts/shadcn-skill-*.jsonl | sort | uniq -c`. Keep the transcripts; read one before you publish or commit it, because it holds local paths.
 
-5. **Collect what each agent left** into the repository:
+5. **Copy what each agent left** into the repository:
 
    ```bash
    node scripts/agent-usability/workspace.mts collect "$WORK/arms/$arm" $screen "$WORKSPACE" scripts/agent-usability/runs/$DATE $run
    ```
 
-   This copies the app, without `node_modules`, build output, `llms.txt` or the skill, to `runs/$DATE/$arm/$screen/$run/`, and the arm's record, from the arm app the agent never saw, to `runs/$DATE/arms/$arm.json`.
+   This copies the app, without `node_modules`, build output, `llms.txt` or the skill, to `runs/$DATE/$arm/$screen/$run/`, and the arm's record, from the arm app the agent never saw, to `runs/$DATE/arms/$arm.json`.[^fair]
 
-6. **Write `scripts/agent-usability/runs/$DATE/run.md`.** The table prints it and fails without the first three lines, and without the skill-arm CLI line when the skill arm has runs:
+6. **Write `scripts/agent-usability/runs/$DATE/run.md`.** The table prints it and fails without the first three lines, and without the skill-arm CLI line when the skill arm has runs:[^run-notes]
 
    ```markdown
    - Model: <the exact model id>
@@ -96,11 +96,11 @@ Run every command from the repository root, on one machine, with one model for e
    node scripts/agent-usability/table.mts scripts/agent-usability/runs/$DATE --write
    ```
 
-   `score-runs.mts` runs `npm ci --ignore-scripts` where a folder has no `node_modules` and writes `score/score.json`, `score/summary.md` and `score/screenshots/` in each run folder. `score.mts <arm> <screen> <folder> --arm-record runs/$DATE/arms/$arm.json` scores one. `table.mts` prints every run's score and the median per arm and screen, then the pinned versions, and saves it as `runs/$DATE/results.md`.[^table] Commit `runs/$DATE/`. Git ignores the `node_modules` the scorer installed there.
+   `score-runs.mts` runs `npm ci --ignore-scripts` where a folder has no `node_modules` and writes a run's `score/score.json`, `score/summary.md` and `score/screenshots/` into its folder.[^npm-ci] `score.mts <arm> <screen> <folder> --arm-record runs/$DATE/arms/$arm.json` scores one. `table.mts` prints every run's score and the median per arm and screen, then the pinned versions, and saves it as `runs/$DATE/results.md`.[^table] Commit `runs/$DATE/`. Git ignores the `node_modules` the scorer installed there.
 
    Publish the scores CI computes, not a laptop's: touch input and font rendering differ between macOS and Linux.
 
-The `Agent usability` workflow (`.github/workflows/agent-usability.yml`) repeats step 7 on the newest committed run, weekly and on demand, and writes the table and every summary to its job summary.[^workflow] It is not a required check and never runs on pull requests. A low score is a result; the workflow fails only when the scorer can't score a run or can't make the table.
+The `Agent usability` workflow (`.github/workflows/agent-usability.yml`) repeats step 7 on the newest committed run, weekly and on demand, and writes the table and every summary to its job summary.[^workflow] It is not a required check and never runs on pull requests.[^workflow] A low score is a result; the workflow fails only when the scorer can't score a run or can't make the table.
 
 ## The prompt
 
@@ -140,11 +140,11 @@ A screen where nothing works scores nothing, however clean its code is. So does 
 `formula.mts` defines the score and is the only place that documents it: the four parts and their points, the rule that a screen where nothing works scores 0, and what makes a run score 0 outright.[^formula] Read it there. What the scorer needs beyond the formula:
 
 - **Everything it checks is in the prompt or the task.**[^acceptance] The tasks give each requirement in behavior or accessibility terms (`aria-invalid="true"`, a live region, the `menu` role), never as a component.[^no-library] When a check changes, change the task text with it.
-- **The baseline.** `arms/create.sh` records what `tsc -b` and oxlint find in an arm before any agent runs. The scorer charges a run only for findings that are not in that record, matched by file, rule and message. In the 2026-10-15 cohort, `shadcn add --all` installed a `scroll-area.tsx` with an unused `React` import, an error under shadcn's own Vite template settings, so both shadcn arms start with one type error that costs them nothing.[^scroll-area] The results table prints each arm's baseline counts.
-- **Each arm is checked with the settings it was created with.** Before it scores a run, the scorer puts the arm's original config files back: `package.json`, the lockfile, `components.json`, `vite.config.ts`, `.oxlintrc.json` (a stock Vite app's config) and the `tsconfig` files. The agent's versions move to `.agent-config/` in the run folder and are listed in the summary. A config edit neither helps nor costs, so loosening `tsconfig` hides no type error, and a package the agent added breaks the build only if the code imports it. A changed `src/api/` file still scores the run 0, because changing the backend is a different kind of cheating.[^backend]
+- **The baseline.** `arms/create.sh` records what `tsc -b` and oxlint find in an arm before any agent runs. The scorer charges a run only for findings that are not in that record, matched by file, rule and message. In the 2026-10-15 cohort, `shadcn add --all` installed a `scroll-area.tsx` with an unused `React` import, an error under shadcn's own Vite template settings, so both shadcn arms start with one type error that costs them nothing.[^scroll-area] The results table prints each arm's baseline counts.[^baseline-counts]
+- **Each arm is checked with the settings it was created with.**[^config-restored] Before it scores a run, the scorer puts the arm's original config files back: `package.json`, the lockfile, `components.json`, `vite.config.ts`, `.oxlintrc.json` (a stock Vite app's config) and the `tsconfig` files. The agent's versions move to `.agent-config/` in the run folder and are listed in the summary. A config edit neither helps nor costs, so loosening `tsconfig` hides no type error, and a package the agent added breaks the build only if the code imports it.[^config-restored] A changed `src/api/` file still scores the run 0, because changing the backend is a different kind of cheating.[^backend]
 - **Lint** counts errors only. Warnings are advice.
-- **Axe** runs axe-core once per state and scores its WCAG 2 A and AA rules.[^axe] Its best-practice rules, such as `region`, are listed in the summary and cost nothing: a correct menu from either library renders in a portal outside every landmark and would break `region`.[^known-good] It scans the first render and one more state per screen, which each task names. Base UI's focus guards are left out, as in Ouro's own tests.
-- **Behavior checks** live in `checks/<screen>.mts`. They find elements by role, accessible name, label and text, so they hold for any library. Each names the acceptance items it proves; a test fails when an item has neither a check nor a note saying what judges it.
+- **Axe** runs axe-core once per state and scores its WCAG 2 A and AA rules.[^axe] Its best-practice rules, such as `region`, are listed in the summary and cost nothing: a correct menu from either library renders in a portal outside every landmark and would break `region`.[^known-good] It scans the first render and one more state per screen, which each task names.[^no-library] Base UI's focus guards are left out, as in Ouro's own tests.
+- **Behavior checks** live in `checks/<screen>.mts`. They find elements by role, accessible name, label and text, so they hold for any library. Each names the acceptance items it proves; a test fails when an item has neither a check nor a note saying what judges it.[^acceptance]
 - **The backend stand-in** logs every call on `window.__fakeApi.calls`, which is how the checks see that `deleteCookbook` ran once.[^fake-api]
 - **Screenshots are evidence only.** They earn nothing. If a person rates them for the docs page, hide the arm's name first.
 - **Freeze the checks before a run.** Don't change a check or a task between the first agent and the last score, and never to fit a component Ouro HX ships later.
@@ -160,7 +160,7 @@ A screen where nothing works scores nothing, however clean its code is. So does 
 
 ## The docs page
 
-The page "Why Ouro HX needs no skill" is not written yet, because it needs real scores. `page.mts` is its hook: today it renders only the results under the title.
+The page "Why Ouro HX needs no skill" is not written yet, because it needs real scores.[^page-title] `page.mts` is its hook: today it renders only the results under the title.
 
 [^goal]: scripts/agent-usability/formula.mts verify:fileLine(scripts/agent-usability/formula.mts, /WCAG 2 A and AA/)
 [^protocol]: scripts/agent-usability/runs/2026-10-15/protocol.json; scripts/agent-usability/screens.mts verify:count(dir:scripts/agent-usability/runs/2026-10-15/ouro)=5 verify:testExists(scripts/agent-usability/score.test.mjs::the prompt is the same for every arm except its setup line) verify:fileLine(scripts/agent-usability/formula.mts, /runsPerCell = 3/)
@@ -182,3 +182,9 @@ The page "Why Ouro HX needs no skill" is not written yet, because it needs real 
 [^faults]: scripts/agent-usability/score.test.mjs verify:testExists(scripts/agent-usability/score.test.mjs::a broken copy of the confirm-delete screen loses exactly the expected points > an axe violation in every configuration loses all the axe points) verify:testExists(scripts/agent-usability/score.test.mjs::a page that does only the minimum scores 0 on every screen > app-shell with a heading and a skip link) verify:testExists(scripts/agent-usability/score.test.mjs::an agent pays only for what it did, not for what the app started with > a tsconfig loosened to hide a type error still loses the type points, because the original is restored)
 [^skill-lock]: evidence:scripts/agent-usability/runs/2026-10-15/arms/shadcn-skill.json verify:fileLine(scripts/agent-usability/runs/2026-10-15/arms/shadcn-skill.json, /"migrate-radix-to-base":/) verify:count(scripts/agent-usability/runs/2026-10-15/arms/shadcn-skill.json#skill.lock.skills)=2
 [^arm-record]: scripts/agent-usability/arms/create.sh; evidence:scripts/agent-usability/runs/2026-10-15/arms/shadcn.json verify:fileLine(scripts/agent-usability/runs/2026-10-15/arms/shadcn.json, /"llmsTxt"/)
+[^shadcn-components]: https://ui.shadcn.com/docs/components verify:urlOk(https://ui.shadcn.com/docs/components)
+[^run-notes]: scripts/agent-usability/table.mts verify:fileLine(scripts/agent-usability/table.mts, /\["Model", "Effort", "Agent", \.\.\.\(skillRan \? \["shadcn CLI the skill-arm agents ran"\]/)
+[^baseline-counts]: scripts/agent-usability/table.mts verify:fileLine(scripts/agent-usability/table.mts, /Type errors before the agent ran/) verify:fileLine(scripts/agent-usability/table.mts, /Lint errors before the agent ran/)
+[^config-restored]: test:scripts/agent-usability/score.test.mjs::an agent pays only for what it did, not for what the app started with > a tsconfig loosened to hide a type error still loses the type points, because the original is restored; test:scripts/agent-usability/score.test.mjs::an agent pays only for what it did, not for what the app started with > a harmless config rewrite and an added config file cost nothing verify:testExists(scripts/agent-usability/score.test.mjs::an agent pays only for what it did, not for what the app started with > a tsconfig loosened to hide a type error still loses the type points, because the original is restored) verify:testExists(scripts/agent-usability/score.test.mjs::an agent pays only for what it did, not for what the app started with > a harmless config rewrite and an added config file cost nothing)
+[^page-title]: scripts/agent-usability/page.mts verify:fileLine(scripts/agent-usability/page.mts, /# Why Ouro HX needs no skill/)
+[^npm-ci]: scripts/agent-usability/score.mts verify:fileLine(scripts/agent-usability/score.mts, /\["ci", "--ignore-scripts"/)
