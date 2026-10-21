@@ -72,6 +72,10 @@ export default defineConfig({
   },
   test: {
     passWithNoTests: true,
+    // A shard runs its heavy files beside each other instead of beside the whole suite's light ones:
+    // the combobox touch test that takes 5s in `pnpm test` took 11.6s and 15.5s there, against
+    // the browser default limit of 15s. Its waits still give up after 10s each.
+    ...(shard ? { testTimeout: 30_000 } : {}),
     // A pull request's reduced run (scripts/test-impact.mjs) names the component folders whose
     // stories the shared suites in test/ render; unset, they render every story (test/stories.tsx).
     provide: { ouroStories: process.env["OURO_STORIES"] ?? null, ouroSlice: shard },
