@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { commands } from "vitest/browser";
-import { conformanceStories } from "./harness.ts";
+import type { StoryEntry } from "../stories.tsx";
+import { brokenFor, conformanceStories } from "./harness.ts";
 
 // Server/client agreement. Every story renders to HTML as a server in UTC and en-US would, and
 // that HTML hydrates in a reader's browser in Los Angeles with German formats and in Tokyo with
@@ -66,23 +67,35 @@ afterAll(async () => {
   await commands.emulateLocale(server);
 });
 
+/** What the check finds for one story: each reader's mismatches, or a clientOnly declaration that no longer holds. */
+async function hydrationProblems({ id, parameters }: StoryEntry): Promise<string[]> {
+  await commands.emulateLocale(server);
+  const rendered = await serverFrame.serverHtml(id);
+  if (parameters.conformance?.clientOnly) {
+    return "error" in rendered ? [] : [`${parameters.conformance.clientOnly}: the story now renders on a server, so remove its clientOnly`];
+  }
+  if ("error" in rendered) return [`the server render threw: ${rendered.error}`];
+  const problems: string[] = [];
+  for (const [index, reader] of readers.entries()) {
+    await commands.emulateLocale(reader);
+    const frame = readerFrames[index]!;
+    problems.push(...(await frame.hydrate(id, rendered.html)).map((problem) => `${reader.timezoneId} ${reader.locale}: ${problem}`));
+    await frame.unmount();
+  }
+  await commands.emulateLocale(server);
+  return problems;
+}
+
 describe("server HTML hydrates in another time zone and locale", () => {
-  it.each(conformanceStories)("$id", async ({ id, parameters }) => {
-    await commands.emulateLocale(server);
-    const rendered = await serverFrame.serverHtml(id);
-    if (parameters.conformance?.clientOnly) {
-      expect("error" in rendered, `${parameters.conformance.clientOnly}: the story now renders on a server, so remove its clientOnly`).toBe(true);
-      return;
-    }
-    if ("error" in rendered) throw new Error(`the server render threw: ${rendered.error}`);
-    const problems: string[] = [];
-    for (const [index, reader] of readers.entries()) {
-      await commands.emulateLocale(reader);
-      const frame = readerFrames[index]!;
-      problems.push(...(await frame.hydrate(id, rendered.html)).map((problem) => `${reader.timezoneId} ${reader.locale}: ${problem}`));
-      await frame.unmount();
-    }
-    await commands.emulateLocale(server);
-    expect(problems.join("\n")).toBe("");
+  it.each(conformanceStories)("$id", async (entry) => {
+    expect((await hydrationProblems(entry)).join("\n")).toBe("");
+  });
+});
+
+describe("hydration proves it can fail", () => {
+  // A formatter cached at module level: the server's en-US one would hide the reader's mismatch if
+  // the server and the reader shared modules, as one page does.
+  it.each(brokenFor({ CachedFormatter: "America/Los_Angeles de-DE: Hydration failed" }))("on $id", async (entry) => {
+    expect((await hydrationProblems(entry)).join("\n")).toContain(entry.expected);
   });
 });

@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { collectControls, controlRole } from "../controls.ts";
-import { cleanupStories, closeOverlay, isVisible, openOverlay, openPopup, overlayOpeners, renderStory, settle } from "../stories.tsx";
-import { conformanceStories, describeElement, layOut } from "./harness.ts";
+import { cleanupStories, closeOverlay, isVisible, openOverlay, openPopup, overlayOpeners, renderStory, settle, type StoryEntry } from "../stories.tsx";
+import { brokenFor, conformanceStories, describeElement, layOut } from "./harness.ts";
 
 // Forced colours (Windows contrast themes; `forced-colors: active`). The browser replaces every
 // colour with a few system colours and drops backgrounds and box shadows, so a control whose
@@ -279,6 +279,20 @@ afterEach(async () => {
   await cleanupStories();
 });
 
+/** What the check finds for one story: each gap, closed and with each overlay open. */
+async function forcedColourProblems({ id, Story, parameters }: StoryEntry): Promise<string[]> {
+  const host = await renderStory(Story);
+  layOut(host, parameters);
+  await settle();
+  const found = await gaps(document.body, "closed");
+  for (const opener of overlayOpeners(id, host, parameters)) {
+    const popup = await openOverlay(opener);
+    found.push(...(await gaps(popup, `with "${opener.name}" open`)));
+    if (openPopup()) await closeOverlay();
+  }
+  return [...new Set(found)];
+}
+
 describe.each([
   { width: 390, height: 844 },
   { width: 1280, height: 800 },
@@ -287,16 +301,17 @@ describe.each([
     await page.viewport(width, height);
   });
 
-  it.each(conformanceStories)("$id keeps every control's edge, state and focus, closed and with each overlay open", async ({ id, Story, parameters }) => {
-    const host = await renderStory(Story);
-    layOut(host, parameters);
-    await settle();
-    const found = await gaps(document.body, "closed");
-    for (const opener of overlayOpeners(id, host)) {
-      const popup = await openOverlay(opener);
-      found.push(...(await gaps(popup, `with "${opener.name}" open`)));
-      if (openPopup()) await closeOverlay();
-    }
-    expect([...new Set(found)].join("\n")).toBe("");
+  it.each(conformanceStories)("$id keeps every control's edge, state and focus, closed and with each overlay open", async (entry) => {
+    expect((await forcedColourProblems(entry)).join("\n")).toBe("");
+  });
+});
+
+describe("forced colours proves it can fail", () => {
+  beforeEach(async () => {
+    await page.viewport(390, 844);
+  });
+
+  it.each(brokenFor({ ShadowFocusRing: "focus shows nothing", FillOnlyEdge: "no edge" }))("on $id", async (entry) => {
+    expect((await forcedColourProblems(entry)).join("\n")).toContain(entry.expected);
   });
 });

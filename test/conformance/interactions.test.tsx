@@ -2,8 +2,8 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import { commands, page, userEvent } from "vitest/browser";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { collectControls, controlRole } from "../controls.ts";
-import { accessibleName, cleanupStories, isVisible, openPopup, renderStory, settle, type ConformanceParameters } from "../stories.tsx";
-import { conformanceStories, describeElement, layOut } from "./harness.ts";
+import { accessibleName, cleanupStories, isVisible, openPopup, renderStory, settle, type ConformanceParameters, type StoryEntry } from "../stories.tsx";
+import { brokenFor, conformanceStories, describeElement, layOut } from "./harness.ts";
 
 // Focus and announcements after every action. Each story's controls are used one after another
 // as a person would: a press on each button, link, checkbox, tab or option (Enter for one shown
@@ -96,6 +96,56 @@ afterEach(async () => {
   await cleanupStories();
 });
 
+/** What the check finds for one story: each action after which focus was lost or a message was heard twice. */
+async function actionProblems({ Story, parameters }: StoryEntry): Promise<string[]> {
+  const declared: ConformanceParameters = parameters.conformance ?? {};
+  const host = await renderStory(Story);
+  layOut(host, parameters);
+  await settle();
+  const used = new Set<Element>();
+  const counts = new Map<string, number>();
+  const problems: string[] = [];
+  const exited = new Set<string>();
+  for (let step = 0; step < maxActions; step++) {
+    const popup = openPopup();
+    const pool = collectControls(popup ?? document.body).filter(
+      (control): control is HTMLElement => control instanceof HTMLElement && !used.has(control) && (counts.get(identity(control)) ?? 0) < perPart && usable(control),
+    );
+    const control = pool[0];
+    const name = control ? accessibleName(control) : "Escape";
+    const action = control ? `using "${name}" (${identity(control)})` : "pressing Escape";
+    if (!control && !popup) break;
+    const announcements = watchAnnouncements();
+    try {
+      if (control) {
+        used.add(control);
+        counts.set(identity(control), (counts.get(identity(control)) ?? 0) + 1);
+        if (!(await operate(control))) continue;
+      } else {
+        await userEvent.keyboard("{Escape}");
+      }
+      await settle();
+      const lost = lostFocus();
+      if (lost && control && declared.focusExit?.[name]) exited.add(name);
+      else if (lost) problems.push(`after ${action}: ${lost}`);
+      // By text, across every live region: the same message from two regions (a toast and a
+      // status line both saying "Saved") is heard twice, as surely as from one region twice.
+      const heard = new Map<string, number>();
+      for (const { text } of announcements.changes) heard.set(text, (heard.get(text) ?? 0) + 1);
+      for (const [text, times] of heard) if (times > 1) problems.push(`after ${action}: "${text}" was announced ${times} times`);
+      const expected = control ? declared.announces?.[name] : undefined;
+      if (expected !== undefined && announcements.count(expected) !== 1) problems.push(`after ${action}: "${expected}" was announced ${announcements.count(expected)} times, not once`);
+    } finally {
+      announcements.stop();
+    }
+    if (!control && openPopup() === popup) break;
+  }
+  for (const name of Object.keys(declared.focusExit ?? {})) {
+    if (!exited.has(name)) problems.push(`focusExit declares "${name}", but using it kept focus in the page: remove the declaration`);
+  }
+  return problems;
+}
+
 describe.each([
   { width: 390, height: 844 },
   { width: 1280, height: 800 },
@@ -106,54 +156,19 @@ describe.each([
 
   it.each(conformanceStories)(
     "$id keeps focus in the page and announces each message once after every action",
-    async ({ Story, parameters }) => {
-      const declared: ConformanceParameters = parameters.conformance ?? {};
-      const host = await renderStory(Story);
-      layOut(host, parameters);
-      await settle();
-      const used = new Set<Element>();
-      const counts = new Map<string, number>();
-      const problems: string[] = [];
-      const exited = new Set<string>();
-      for (let step = 0; step < maxActions; step++) {
-        const popup = openPopup();
-        const pool = collectControls(popup ?? document.body).filter(
-          (control): control is HTMLElement => control instanceof HTMLElement && !used.has(control) && (counts.get(identity(control)) ?? 0) < perPart && usable(control),
-        );
-        const control = pool[0];
-        const name = control ? accessibleName(control) : "Escape";
-        const action = control ? `using "${name}" (${identity(control)})` : "pressing Escape";
-        if (!control && !popup) break;
-        const announcements = watchAnnouncements();
-        try {
-          if (control) {
-            used.add(control);
-            counts.set(identity(control), (counts.get(identity(control)) ?? 0) + 1);
-            if (!(await operate(control))) continue;
-          } else {
-            await userEvent.keyboard("{Escape}");
-          }
-          await settle();
-          const lost = lostFocus();
-          if (lost && control && declared.focusExit?.[name]) exited.add(name);
-          else if (lost) problems.push(`after ${action}: ${lost}`);
-          // By text, across every live region: the same message from two regions (a toast and a
-          // status line both saying "Saved") is heard twice, as surely as from one region twice.
-          const heard = new Map<string, number>();
-          for (const { text } of announcements.changes) heard.set(text, (heard.get(text) ?? 0) + 1);
-          for (const [text, times] of heard) if (times > 1) problems.push(`after ${action}: "${text}" was announced ${times} times`);
-          const expected = control ? declared.announces?.[name] : undefined;
-          if (expected !== undefined && announcements.count(expected) !== 1) problems.push(`after ${action}: "${expected}" was announced ${announcements.count(expected)} times, not once`);
-        } finally {
-          announcements.stop();
-        }
-        if (!control && openPopup() === popup) break;
-      }
-      for (const name of Object.keys(declared.focusExit ?? {})) {
-        if (!exited.has(name)) problems.push(`focusExit declares "${name}", but using it kept focus in the page: remove the declaration`);
-      }
-      expect(problems.join("\n")).toBe("");
+    async (entry) => {
+      expect((await actionProblems(entry)).join("\n")).toBe("");
     },
     60_000,
   );
+});
+
+describe("actions prove they can fail", () => {
+  beforeEach(async () => {
+    await page.viewport(390, 844);
+  });
+
+  it.each(brokenFor({ SelfRemovingButton: "focus fell to <body>", SameTextTwoRegions: '"Saved" was announced 2 times' }))("on $id", async (entry) => {
+    expect((await actionProblems(entry)).join("\n")).toContain(entry.expected);
+  });
 });

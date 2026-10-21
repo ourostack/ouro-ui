@@ -25,6 +25,17 @@ The checks live in `test/conformance/` and run in their own Vitest project, `con
 
 Motion is already held the same way, by `pnpm motion:coverage`.
 
+Each check also proves it can fail. `test/fixtures/conformance/broken.stories.tsx` holds one story per defect, outside Storybook. Each check's "proves it can fail" tests expect it to report that story:
+
+- a button that removes itself when pressed;
+- the same text in two live regions;
+- a number formatted through a module-level `Intl.NumberFormat` cache;
+- a part placed at `left: 100%` in a right-to-left page;
+- a focus ring drawn only with a box shadow;
+- a button whose only edge is its fill.
+
+These tests run in every conformance run, whatever stories it selects, on the first shard, and in CI even when a pull request changes no component (`pnpm conformance -t "can fail"`). A check changed so that it misses its defect fails there.
+
 ### Why a check fails, and the fix
 
 - **"focus fell to `<body>`"**: the control you used left the page, or became disabled, while it held focus. A component that a press removes hands focus on before it goes: `useFocusHandoff` (`registry/ouro/lib/ouro/focus-handoff.ts`) moves it to what now stands where the element stood (Alert, Attachment and Toast use it). A control that becomes unavailable where it is says so with `aria-disabled` and keeps focus, as Pagination's Previous and Next do at the ends. When the story's own code removes the control (a demo's "show it again" button), keep the control on the page.

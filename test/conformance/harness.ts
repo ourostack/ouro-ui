@@ -1,4 +1,7 @@
+import { composeStories } from "@storybook/react";
+import type { ComponentType } from "react";
 import { inject } from "vitest";
+import * as broken from "../fixtures/conformance/broken.stories.tsx";
 import { selectedStories, type StoryEntry } from "../stories.tsx";
 
 // What every conformance check shares: which stories this run renders, and how a check
@@ -34,6 +37,28 @@ export function shardStories<T>(entries: readonly T[], shard: { index: number; c
  * request's selected components' stories; test/stories.tsx), split across CI's shards.
  */
 export const conformanceStories: StoryEntry[] = shardStories(selectedStories, parseShard(inject("ouroShard")));
+
+/**
+ * The stories that break the matrix on purpose (test/fixtures/conformance/broken.stories.tsx), by
+ * export name, for each check's "proves it can fail" tests: every run checks them, whatever
+ * stories it selects, on the first shard only.
+ */
+export const brokenStories: Record<string, StoryEntry> =
+  (parseShard(inject("ouroShard"))?.index ?? 1) === 1
+    ? Object.fromEntries(
+        Object.entries(composeStories(broken) as Record<string, ComponentType & { parameters?: StoryEntry["parameters"] }>).map(([name, Story]) => [name, { id: `Broken/${name}`, Story, parameters: Story.parameters ?? {} }]),
+      )
+    : {};
+
+/** The broken stories each check must fail, with the text its report must contain. */
+export function brokenFor(expectations: Record<string, string>): Array<StoryEntry & { expected: string }> {
+  if (Object.keys(brokenStories).length === 0) return [];
+  return Object.entries(expectations).map(([name, expected]) => {
+    const entry = brokenStories[name];
+    if (!entry) throw new Error(`no story ${name} in test/fixtures/conformance/broken.stories.tsx`);
+    return { ...entry, expected };
+  });
+}
 
 /** The start of an element's markup and its marker, enough to find it in the story. */
 export function describeElement(element: Element): string {

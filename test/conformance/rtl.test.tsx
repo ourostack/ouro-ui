@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page } from "vitest/browser";
 import { cleanupStories, closeOverlay, openOverlay, overlayOpeners, renderStory, settle } from "../stories.tsx";
-import { conformanceStories, describeElement, layOut } from "./harness.ts";
+import { brokenFor, conformanceStories, describeElement, layOut } from "./harness.ts";
+import type { StoryEntry } from "../stories.tsx";
 
 // Right to left. Every story renders in a right-to-left page (`dir="rtl"` on <html>, as an app
 // in Arabic or Hebrew sets it, so portals inherit it), closed and with each overlay open, at a
@@ -53,6 +54,20 @@ afterEach(async () => {
   await cleanupStories();
 });
 
+/** What the check finds for one story: each part that sticks out, closed and with each overlay open. */
+async function overflowProblems({ id, Story, parameters }: StoryEntry): Promise<string[]> {
+  const host = await renderStory(Story);
+  layOut(host, parameters);
+  await settle();
+  const found = horizontalOverflow().map((line) => `closed: ${line}`);
+  for (const opener of overlayOpeners(id, host, parameters)) {
+    await openOverlay(opener);
+    found.push(...horizontalOverflow().map((line) => `with "${opener.name}" open: ${line}`));
+    await closeOverlay();
+  }
+  return found;
+}
+
 describe.each([
   { width: 390, height: 844 },
   { width: 1280, height: 800 },
@@ -61,16 +76,17 @@ describe.each([
     await page.viewport(width, height);
   });
 
-  it.each(conformanceStories)("$id stays inside the viewport, closed and with each overlay open", async ({ id, Story, parameters }) => {
-    const host = await renderStory(Story);
-    layOut(host, parameters);
-    await settle();
-    const found = horizontalOverflow().map((line) => `closed: ${line}`);
-    for (const opener of overlayOpeners(id, host)) {
-      await openOverlay(opener);
-      found.push(...horizontalOverflow().map((line) => `with "${opener.name}" open: ${line}`));
-      await closeOverlay();
-    }
-    expect(found.join("\n")).toBe("");
+  it.each(conformanceStories)("$id stays inside the viewport, closed and with each overlay open", async (entry) => {
+    expect((await overflowProblems(entry)).join("\n")).toBe("");
+  });
+});
+
+describe("right to left proves it can fail", () => {
+  beforeEach(async () => {
+    await page.viewport(390, 844);
+  });
+
+  it.each(brokenFor({ LeftFull: "of 0..390" }))("on $id", async (entry) => {
+    expect((await overflowProblems(entry)).join("\n")).toContain(entry.expected);
   });
 });
