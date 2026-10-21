@@ -31,7 +31,7 @@ import { ToggleGroup } from "@/registry/ouro/components/ouro/toggle/toggle-group
 
 ## Props
 
-Props every mode takes. Type: `ToggleGroupProps`.
+The props the modes share. Type: `ToggleGroupProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -81,7 +81,7 @@ These are not props. Passing one fails the type check with the fix in the error,
 
 ## `className` is for layout only
 
-Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your classes always win over Ouro UI's: each component merges `className` last with `cn` (tailwind-merge), so a class that conflicts with the component's own replaces it.
+Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your classes always win over Ouro UI's: ToggleGroup merges `className` last with `cn` (tailwind-merge), so a class that conflicts with its own replaces it.[^layout-classes]
 
 Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
 
@@ -107,3 +107,5 @@ interface ToggleGroupItem {
   disabled?: boolean | undefined;
 }
 ```
+
+[^layout-classes]: test:registry/ouro/components/ouro/toggle/toggle-group.test.tsx::ToggleGroup > forwards its ref to the group and lets layout classes win on the root verify:testExists(registry/ouro/components/ouro/toggle/toggle-group.test.tsx::ToggleGroup > forwards its ref to the group and lets layout classes win on the root)

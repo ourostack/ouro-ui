@@ -23,6 +23,8 @@ import { fileURLToPath } from "node:url";
 import ts from "typescript";
 import { fillPlaceholder, latestRelease, syncedFiles, withRelease } from "./latest-release.mjs";
 import { noteBody } from "./upgrade-note.mjs";
+import { testNames } from "./source-rules.mjs";
+import { claim } from "../registry/ouro/lib/ouro/claims.ts";
 import { APP_SETUP, groupOrder } from "./catalog-groups.mts";
 import { componentsDir, pascal, readComponents } from "./components.mts";
 import { summary } from "./docs-summary.mts";
@@ -383,14 +385,47 @@ function typesSection(texts: string[], skip: Set<string>): string {
   return `## Types\n\n${blocks.join("\n\n")}`;
 }
 
-const classNameRule = (hasAlign: boolean, isToaster: boolean) =>
-  [
+/** A page's claim footnotes: each sentence that cites a test gets `[^id]`, and the page ends with the definitions. */
+class Footnotes {
+  private readonly notes: string[] = [];
+
+  /**
+   * The first test in `folder`'s test files (those starting with `stem`, when given) whose full
+   * name matches every pattern, as a footnote reference, or "" when there is none.
+   */
+  cite(id: string, folder: string, patterns: RegExp[], stem?: string): string {
+    const files = readdirSync(join(root, folder))
+      .filter((file) => /\.test\.tsx?$/.test(file) && (!stem || file.startsWith(`${stem}.`)))
+      .sort();
+    for (const file of files) {
+      const path = `${folder}/${file}`;
+      const name = testNames(path, readFileSync(join(root, path), "utf8")).find((each: string) => patterns.every((pattern) => pattern.test(each)));
+      if (name) {
+        this.notes.push(`[^${id}]: test:${path}::${name} verify:testExists(${path}::${name})`);
+        return `[^${id}]`;
+      }
+    }
+    return "";
+  }
+
+  section(): string {
+    return this.notes.length > 0 ? this.notes.join("\n") : "";
+  }
+}
+
+const classNameRule = (hasAlign: boolean, isToaster: boolean, name: string, file: string, notes: Footnotes) => {
+  const folder = dirname(file);
+  const stem = file.split("/").at(-1)!.replace(/\.tsx?$/, "");
+  // Only a component whose own test shows an app's layout class winning says so.
+  const wins = notes.cite("layout-classes", folder, [/layout class(es)? wins?|className sets layout/i], stem);
+  const warns = isToaster ? notes.cite("toaster-appearance", folder, [/appearance class|appearance/i, /warn/i], stem) : "";
+  return [
     "## `className` is for layout only",
     "",
-    "Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your classes always win over Ouro UI's: each component merges `className` last with `cn` (tailwind-merge), so a class that conflicts with the component's own replaces it.",
+    `Pass margins, width and grid placement (\`mt-4\`, \`w-full\`, \`col-span-2\`).${wins ? ` Your classes always win over Ouro UI's: ${name} merges \`className\` last with \`cn\` (tailwind-merge), so a class that conflicts with its own replaces it.${wins}` : ""}`,
     "",
     (isToaster
-      ? "Toast appearance comes from each toast's `tone` and shared theme tokens, not viewport classes. In development, an appearance class warns once per Toaster instance with the theme-token fix. "
+      ? `Toast appearance comes from a toast's \`tone\` and shared theme tokens, not viewport classes.${warns ? ` In development, an appearance class warns once per Toaster instance with the theme-token fix.${warns}` : ""} `
       : "Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. ") +
       "A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.",
     "",
@@ -400,6 +435,7 @@ const classNameRule = (hasAlign: boolean, isToaster: boolean) =>
       ? "Alignment classes (`text-center`) warn too: use the `align` prop."
       : "Alignment classes (`text-center`) warn too: set alignment on a parent element.",
   ].join("\n");
+};
 
 // ---------------------------------------------------------------------------------------
 // Pages
@@ -441,12 +477,13 @@ function componentPage(page: Page, symbol: ts.Symbol, partFamilies: Set<string>)
   const parameter = functionDeclaration(symbol).parameters[0];
   const sections = [header(page.name, page.described, page.file), exampleSection(page.described)];
   sections.push(...guidanceSections(page.described, componentGroups.has(page.group)));
+  const notes = new Footnotes();
   const texts: string[] = [];
   if (parameter) {
     const doc = propsDoc(page.name, parameter);
     const all = [...doc.common, ...doc.modes.flatMap((mode) => mode.props)];
     texts.push(...all.map((prop) => prop.type));
-    sections.push(`## Props\n\n${doc.modes.length > 0 ? "Props every mode takes. " : ""}Type: \`${doc.typeName}\`.\n\n${propTable(doc.common)}`);
+    sections.push(`## Props\n\n${doc.modes.length > 0 ? "The props the modes share. " : ""}Type: \`${doc.typeName}\`.\n\n${propTable(doc.common)}`);
     if (doc.modes.length > 0) {
       const modes = doc.modes.map((mode) =>
         [
@@ -472,7 +509,7 @@ function componentPage(page: Page, symbol: ts.Symbol, partFamilies: Set<string>)
       );
     }
     if (all.some((prop) => prop.name === "className")) {
-      sections.push(classNameRule(all.some((prop) => prop.name === "align"), page.name === "Toaster"));
+      sections.push(classNameRule(all.some((prop) => prop.name === "align"), page.name === "Toaster", page.name, page.file, notes));
     }
   }
   if (partFamilies.has(page.name)) {
@@ -482,6 +519,7 @@ function componentPage(page: Page, symbol: ts.Symbol, partFamilies: Set<string>)
     );
   }
   sections.push(typesSection(texts, new Set([page.name])));
+  sections.push(notes.section());
   return `${sections.filter(Boolean).join("\n\n")}\n`;
 }
 
@@ -504,13 +542,11 @@ function functionPage(page: Page, symbol: ts.Symbol): string {
   return `${sections.filter(Boolean).join("\n\n")}\n`;
 }
 
-const PARTS_INTRO = [
-  "Building-block parts for the rare case where a component's props cannot express what you need. Prefer the props-first components.",
-  "Each part checks that it sits inside its root and, in development, throws a message with the JSX it belongs in.",
-].join("\n\n");
+const PARTS_INTRO = "Building-block parts for the rare case where a component's props cannot express what you need. Prefer the props-first components.";
 
 function partsPage(families: string[]): string {
   const sections = [`${GENERATED}\n\n# Parts\n\n${PARTS_INTRO}`];
+  const notes = new Footnotes();
   for (const family of families) {
     const members = exportsOf(partFiles[family]!)
       .filter((symbol) => symbol.declarations?.some(ts.isFunctionDeclaration) && symbol.getName().startsWith(family))
@@ -532,12 +568,16 @@ function partsPage(families: string[]): string {
         `\`\`\`tsx\nimport {\n${members.map((symbol) => `  ${symbol.getName()},`).join("\n")}\n} from "${importPath(partFiles[family]!)}";\n\`\`\``,
         `### Required nesting`,
         `\`\`\`tsx\n${rootDoc.example}\n\`\`\``,
-        `Each part checks that it sits inside \`<${root}>\`. Outside it, a part throws in development with a message that shows this JSX shape.`,
+        // Only a family whose tests show a part outside its root throwing says so.
+        ((ref) => (ref ? `Each part checks that it sits inside \`<${root}>\`: outside it, a part throws in development with a message that shows this JSX shape.${ref}` : ""))(
+          notes.cite(`${family.toLowerCase()}-nesting`, dirname(partFiles[family]!), [/outside/i, /throw|JSX/i]),
+        ),
         `| Part | What it is |\n| --- | --- |\n${rows.join("\n")}`,
       ].join("\n\n"),
     );
   }
-  return `${sections.join("\n\n")}\n`;
+  sections.push(notes.section());
+  return `${sections.filter(Boolean).join("\n\n")}\n`;
 }
 
 // ---------------------------------------------------------------------------------------
@@ -653,11 +693,26 @@ const readmeItems = [
   "",
   `Components: ${components.map((entry) => code(entry.name)).join(", ")}.`,
   "",
-  "Each component has an optional `<name>-tests` item (`button-tests`) with its Vitest browser tests, type tests, stories and Playwright spec; it also installs the tests of everything the component installs. `ouro-tests` adds every component with all of its tests, and `ouro-testing` is the test kit the `-tests` items bring.",
+  `${claim(
+    "Each component has an optional `<name>-tests` item (`button-tests`) with its Vitest browser tests, type tests, stories and Playwright spec; it also installs the tests of everything the component installs.",
+    {
+      source: { test: "scripts/registry.test.mjs::each component has an opt-in -tests item with its tests, type tests, stories and spec" },
+      verify: [
+        { testExists: "scripts/registry.test.mjs::each component has an opt-in -tests item with its tests, type tests, stories and spec" },
+        { testExists: "scripts/registry.test.mjs::a -tests item installs the tests of every item it installs: link-tests brings text-tests" },
+      ],
+    },
+  )} ${claim("`ouro-tests` adds every component with all of its tests, and `ouro-testing` is the test kit the `-tests` items bring.", { source: { test: "scripts/registry.test.mjs::ouro-tests installs every -tests item: the whole suite in one command" }, verify: { testExists: "scripts/registry.test.mjs::ouro-tests installs every -tests item: the whole suite in one command" } })}`,
   "",
-  "Once per app: `ouro-base`, the tokens every component needs in your stylesheet. Optional: `ouro-theme`, the Ouro look.",
+  `Once per app: \`ouro-base\`, ${claim("the tokens every component needs in your stylesheet.", {
+    source: { test: "scripts/install-check.test.mjs::a missing token, rule or file, or an unrewritten import, fails" },
+    verify: { testExists: "scripts/install-check.test.mjs::a missing token, rule or file, or an unrewritten import, fails" },
+  })} Optional: \`ouro-theme\`, the Ouro look.`,
   "",
-  `Helpers, one item per file in \`lib/ouro\`, each installed with the components that import it (you don't add them by name; \`ouro-lib\` is all of them, and a helper with tests has a \`<name>-tests\` item): ${helperItems.map(code).join(", ")}. No component imports \`lib-claims\`: add it by name to mark your own copy's claims with \`claim()\`.`,
+  `${claim("Helpers, one item per file in `lib/ouro`, each installed with the components that import it (you don't add them by name; `ouro-lib` is all of them, and a helper with tests has a `<name>-tests` item):", { source: { test: "scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports" }, verify: { testExists: "scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports" } })} ${helperItems.map(code).join(", ")}. ${claim(
+    "No component imports `lib-claims`: add it by name to mark your own copy's claims with `claim()`.",
+    { source: { test: "scripts/registry.test.mjs::registryDependencies are the same-repo items each item imports, as full unpinned addresses" }, verify: { testExists: "scripts/registry.test.mjs::registryDependencies are the same-repo items each item imports, as full unpinned addresses" } },
+  )}`,
   "<!-- items:end -->",
 ].join("\n");
 

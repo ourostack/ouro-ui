@@ -142,6 +142,7 @@ export type ButtonButtonProps = ButtonBaseProps &
     /**
      * The button's role in a form: `submit` sends it, `reset` clears it.
      * @default "button" (never submits a form by accident)
+     * @claim "never submits a form by accident" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::button branch > renders a native button with type=button and data-ouro)
      */
     type?: "button" | "submit" | "reset" | (string & { 'Use "button", "submit" or "reset"; for looks use tone and variant': never }) | undefined;
     ref?: Ref<HTMLButtonElement> | undefined;

@@ -186,7 +186,8 @@ const DETERMINER = /^(?:the|a|an|your|its|their|this|these|those|it|them|each|ev
  */
 export function isInstruction(sentence, verbs = INSTRUCTION_VERBS) {
   const known = verbs instanceof Set ? verbs : new Set(verbs);
-  const text = maskCode(sentence).replace(/^[\s>*_#-]*(?:\d+[.)]\s+)?(?:\*\*|__)?/, "").trim();
+  // A list item's label in code ("`pageCount`: Leave it out…") names what the instruction is about.
+  const text = maskCode(sentence).replace(/^[\s>*_#-]*(?:\d+[.)]\s+)?(?:\*\*|__)?/, "").replace(/^\s*§*:\s+/, "").trim();
   if (/\?["'”’)*_]*$/.test(text)) return true;
   const imperative = (clause) => {
     const match = /^([A-Za-z’']+)(\s+|,|:|$)(.*)$/s.exec(clause);
@@ -455,6 +456,7 @@ function jsdocProse(comment) {
     .map((line) => line.replace(/^(\s*\*(?!\/)\s?)/, (prefix) => " ".repeat(prefix.length)))
     .join("\n");
   const evidence = [];
+  const defaults = [];
   const tag = new RegExp(`(^|\\s)@(${JSDOC_TAGS})\\b`, "g");
   const found = [...body.matchAll(tag)].map((match) => ({ at: match.index + match[1].length, name: match[2] }));
   let prose = found.length > 0 ? body.slice(0, found[0].at) : body;
@@ -466,10 +468,18 @@ function jsdocProse(comment) {
       const quoted = /^(?:"([^"]+)"|“([^”]+)”)\s*(.*)$/.exec(rest);
       evidence.push({ line: body.slice(0, entry.at).split("\n").length, quote: quoted ? collapse(quoted[1] ?? quoted[2]) : undefined, ...parseEvidence(quoted ? quoted[3] : rest) });
     }
+    // A default's value is code ("button", 14); what follows it is prose the docs table shows,
+    // read as a sentence of its own.
+    if (entry.name === "default") {
+      const rest = text.replace(/^@default(\s+(?:"[^"]*"|'[^']*'|\d[\w.]*|true|false|null|undefined)(?=\s|$))?/, (head) => " ".repeat(head.length));
+      // A one-word default ("none") is a value too, and a function (`(count) => …`) is code.
+      if (/\s/.test(rest.trim()) && !/=>/.test(rest)) defaults.push({ line: body.slice(0, entry.at).split("\n").length, text: rest });
+    }
     const shown = keep ? text.replace(/^@\w+(?:\s+[\w.$[\]]+(?=\s+[-–]?\s*\S))?/, (head) => " ".repeat(head.length)) : text.replace(/[^\n]/g, " ");
     prose += shown;
   }
-  return { prose: prose.replace(/\{@link\s+([^}|]+?)(?:\s*\|\s*([^}]+))?\}/g, (match, target, label) => (label ?? target).padEnd(match.length)), evidence };
+  const links = (text) => text.replace(/\{@link\s+([^}|]+?)(?:\s*\|\s*([^}]+))?\}/g, (match, target, label) => (label ?? target).padEnd(match.length));
+  return { prose: links(prose), evidence, defaults: defaults.map((entry) => ({ ...entry, text: links(entry.text) })) };
 }
 
 /** A literal expression's value, or undefined when it is not one (an identifier, a call). */
@@ -555,7 +565,7 @@ export function lintTypeScript(source, { file, jsdoc = false, copy = false, clai
   if (jsdoc) {
     for (const match of source.matchAll(/\/\*\*(?!\/)[\s\S]*?\*\//g)) {
       const start = lineAt(match.index);
-      const { prose, evidence } = jsdocProse(match[0]);
+      const { prose, evidence, defaults } = jsdocProse(match[0]);
       const errors = evidence.flatMap((entry) => entry.errors.map((error) => ({ line: start + entry.line - 1, error })));
       for (const entry of evidence) if (!entry.hasCheck) errors.push({ line: start + entry.line - 1, error: "This @claim has no verify: check. Add one: @claim <source> verify:<check>." });
       for (const { line, error } of errors) findings.push({ file, line, sentence: "@claim", message: `${file}:${line}: ${error}` });
@@ -568,10 +578,15 @@ export function lintTypeScript(source, { file, jsdoc = false, copy = false, clai
         for (const entry of backing) used.add(entry);
         return backing;
       };
-      const result = readMarkdown(prose, { file, startLine: start, cover, howTo: HOW_TO.jsdoc, verbs });
+      const results = [
+        readMarkdown(prose, { file, startLine: start, cover, howTo: HOW_TO.jsdoc, verbs }),
+        ...defaults.map((entry) => readMarkdown(entry.text, { file, startLine: start + entry.line - 1, cover, howTo: HOW_TO.jsdoc, verbs })),
+      ];
       for (const entry of quoted) if (!used.has(entry)) findings.push({ file, line: start + entry.line - 1, sentence: "@claim", message: `${file}:${start + entry.line - 1}: "${entry.quote}" is in no sentence of this comment, so this @claim backs nothing. Quote words of the sentence it backs.` });
-      findings.push(...result.findings);
-      claims.push(...result.claims);
+      for (const result of results) {
+        findings.push(...result.findings);
+        claims.push(...result.claims);
+      }
     }
   }
   if (!copy && !claimsOnly) return { findings, claims };
@@ -636,14 +651,16 @@ export function testNames(source, file) {
   const names = new Map();
   const visit = (node, prefix, skipped) => {
     if (ts.isCallExpression(node)) {
-      let callee = node.expression;
-      const modifiers = [];
+      // `it.each(cases)("name %s", fn)` is one test named as written: the callee is the `.each` call.
+      const table = ts.isCallExpression(node.expression) && ts.isPropertyAccessExpression(node.expression.expression) && node.expression.expression.name.text === "each";
+      let callee = table ? node.expression.expression.expression : node.expression;
+      const modifiers = table ? ["each"] : [];
       while (ts.isPropertyAccessExpression(callee)) {
         modifiers.unshift(callee.name.text);
         callee = callee.expression;
       }
       const [first, second] = node.arguments;
-      if (ts.isIdentifier(callee) && ["describe", "it", "test", "suite"].includes(callee.text) && first && !modifiers.includes("each")) {
+      if (ts.isIdentifier(callee) && ["describe", "it", "test", "suite"].includes(callee.text) && first && (table || !modifiers.includes("each"))) {
         const name = ts.isStringLiteral(first) || ts.isNoSubstitutionTemplateLiteral(first) ? first.text : null;
         const options = second && ts.isObjectLiteralExpression(second) ? literal(second) : undefined;
         const skip = skipped || modifiers.some((modifier) => ["skip", "todo", "fails"].includes(modifier)) || Boolean(options?.skip || options?.todo);
@@ -968,7 +985,8 @@ function saveUrlCache(context) {
 }
 
 /** A claim's text as a generated file would repeat it: no code marks, no link targets, one space. */
-const plainText = (text) => collapse(text.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/\[\^[^\]]+\]/g, "").replace(/`/g, ""));
+const plainText = (text) =>
+  collapse(text.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/\[\^[^\]]+\]/g, "").replace(/`/g, "")).replace(/\s+([,.;:!?)])/g, "$1");
 
 /**
  * Drops the findings in generated files whose claim words all sit in text a source already
@@ -977,11 +995,12 @@ const plainText = (text) => collapse(text.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1"
  */
 function carryOver(findings, claims, config) {
   const generated = config.generated.map((pattern) => new RegExp(pattern));
-  const texts = [...new Set(claims.map((claim) => plainText(claim.text)).filter((text) => text.length >= 8))].sort((a, b) => b.length - a.length);
+  // A generator may drop a label ("Part: ") and change a letter's case, so the match ignores both.
+  const texts = [...new Set(claims.map((claim) => plainText(claim.text).replace(/^[A-Z][a-z]+:\s+/, "").toLowerCase()).filter((text) => text.length >= 8))].sort((a, b) => b.length - a.length);
   return findings.filter((finding) => {
     const file = finding.file.split(":")[0];
     if (!finding.kinds || !generated.some((pattern) => pattern.test(file))) return true;
-    let rest = plainText(finding.sentence);
+    let rest = plainText(finding.sentence).toLowerCase();
     for (const text of texts) rest = rest.split(text).join(" ");
     return triggers(rest).length > 0;
   });

@@ -23,7 +23,7 @@ import { ShowMore } from "@/registry/ouro/components/ouro/collapsible/show-more"
 
 ## Props
 
-Props every mode takes. Type: `ShowMoreProps`.
+The props the modes share. Type: `ShowMoreProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -113,8 +113,10 @@ These are not props. Passing one fails the type check with the fix in the error,
 
 ## `className` is for layout only
 
-Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your classes always win over Ouro UI's: each component merges `className` last with `cn` (tailwind-merge), so a class that conflicts with the component's own replaces it.
+Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your classes always win over Ouro UI's: ShowMore merges `className` last with `cn` (tailwind-merge), so a class that conflicts with its own replaces it.[^layout-classes]
 
 Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
+
+[^layout-classes]: test:registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with items > lets app layout classes win and keys rows by their own keys verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with items > lets app layout classes win and keys rows by their own keys)

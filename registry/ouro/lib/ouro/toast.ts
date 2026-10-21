@@ -39,6 +39,7 @@ export interface ToastOptions {
    * A toast with an `action` stays until it is dismissed unless you pass a duration: a
    * timed Undo can run out before a keyboard or screen reader user reaches it (WCAG 2.2.1).
    * @default 5000, or until dismissed with an action
+   * @claim "or until dismissed with an action" registry/ouro/lib/ouro/toast.ts verify:fileLine(registry/ouro/lib/ouro/toast.ts, /const\sDEFAULT_DURATION\s=\s5000;/) verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > keeps a toast that has an action until it is dismissed, unless duration is given)
    * @claim "A toast with an `action` stays" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > keeps a toast that has an action until it is dismissed, unless duration is given)
    * @claim "A toast with an `action` stays" https://www.w3.org/TR/WCAG22/#timing-adjustable verify:urlOk(https://www.w3.org/TR/WCAG22/#timing-adjustable)
    */

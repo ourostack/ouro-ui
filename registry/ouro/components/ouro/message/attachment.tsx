@@ -25,7 +25,11 @@ export interface AttachmentOwnProps {
   onRemove?: (() => void) | undefined;
   /** The remove button's accessible name, for other languages. @default (name) => `Remove ${name}` */
   removeLabel?: ((name: string) => string) | undefined;
-  /** Writes `size` for other languages or units. @default "512 B", "2 kB", "1.2 MB", in steps of 1024 */
+  /**
+   * Writes `size` for other languages or units.
+   * @default "512 B", "2 kB", "1.2 MB", in steps of 1024
+   * @claim "in steps of 1024" registry/ouro/components/ouro/message/attachment.test.tsx verify:testExists(registry/ouro/components/ouro/message/attachment.test.tsx::Attachment > names the file and gives its size in readable units) verify:fileLine(registry/ouro/components/ouro/message/attachment.test.tsx, /\[2048,\s"2\skB"\]/)
+   */
   formatSize?: ((bytes: number) => string) | undefined;
   /** Layout only: margins, width (`mt-2`). Appearance classes warn in development. */
   className?: string | undefined;

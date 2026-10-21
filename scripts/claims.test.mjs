@@ -197,9 +197,41 @@ test("Markdown: code is not read; generated regions, headings and tables are", (
   ]);
 });
 
+test("a list item labelled with a name in code may be an instruction, and carry-over ignores a link's padding", () => {
+  assert.deepEqual(lintMarkdown("- `pageCount`: Leave it out when the list has no count.\n", { file: "a.md" }), []);
+  assert.equal(lintMarkdown("- `pageCount`: Every page has a count.\n", { file: "a.md" }).length, 1);
+});
+
 test("plain text (a pull request title) is linted as one paragraph", () => {
   assert.equal(lintPlain("Fix the dialog's focus", { file: "pull request title" }).length, 0);
   assert.match(lintPlain("All 73 components pass axe", { file: "pull request title" })[0].message, /^pull request title:1: "All 73 components pass axe"/);
+});
+
+test("JSDoc: a default's prose is a sentence the docs table shows, and its value is code", () => {
+  const source = [
+    "export { A };",
+    "interface P {",
+    '  /** The role in a form. @default "button" (never submits a form by accident) */',
+    "  type?: string;",
+    "  /** Days to wait. @default 14 */",
+    "  days?: number;",
+    "  /** The open item. @default none */",
+    "  open?: string;",
+    '  /** What it says. @default (count) => `${count} more, each one tested` */',
+    "  say?: (count: number) => string;",
+    "  /**",
+    "   * The size.",
+    "   * @default derived from `level` (1 is `2xl`, 2 is `xl`)",
+    '   * @claim "1 is" registry/a.tsx verify:fileLine(registry/a.tsx, /level/)',
+    "   */",
+    "  size?: string;",
+    "}",
+    "function A(props: P) { return null; }",
+  ].join("\n");
+  const { findings, claims } = lintTypeScript(source, { file: "registry/a.tsx", jsdoc: true });
+  assert.deepEqual(findings.map((finding) => [finding.line, finding.sentence]), [[3, "(never submits a form by accident)"]]);
+  assert.equal(claims.length, 1);
+  assert.match(claims[0].text, /^derived from `level` \(1 is `2xl`/);
 });
 
 test("JSDoc: an @claim tag covers the sentence it quotes, not the whole comment", () => {
@@ -295,6 +327,11 @@ test("testNames: full test names, nested with ' > ', and whether each is skipped
     '  test(`computed ${x}`, () => {});',
     "});",
     'test("top", () => {});',
+    // A table of cases is one test named as written, %s and all, as Vitest's filter matches it.
+    'describe.each([["a"]])("%s parts", () => {',
+    '  it.each([["b"]])("throws for %s outside its root", () => {});',
+    '  it.skip.each([["c"]])("skips %s", () => {});',
+    "});",
   ].join("\n"), "a.test.tsx");
   assert.deepEqual(names, new Map([
     ["Button", { skipped: false }],
@@ -303,6 +340,9 @@ test("testNames: full test names, nested with ' > ', and whether each is skipped
     ["Button > later", { skipped: true }],
     ["Button > plain template", { skipped: false }],
     ["top", { skipped: false }],
+    ["%s parts", { skipped: false }],
+    ["%s parts > throws for %s outside its root", { skipped: false }],
+    ["%s parts > skips %s", { skipped: true }],
   ]));
 });
 
@@ -462,6 +502,8 @@ test("generated surfaces are linted: registry.json, README regions and llms.txt 
     "vitest.config.ts": "export default { thresholds: { lines: 100 } };\n",
     "lib/claims.ts": readFileSync(join(repo, "registry/ouro/lib/ouro/claims.ts"), "utf8"),
     "registry/a.tsx": '/**\n * Every row is 44px tall.\n *\n * @claim "Every row is 44px tall" registry/a.tsx verify:fileLine(registry/a.tsx, /44px/)\n */\nexport function A() {}\n',
+    // A part's JSDoc says "Part: …"; the parts page drops the label and capitalizes the rest.
+    "registry/b.tsx": '/**\n * Part: the panel, 18rem wide.\n *\n * @claim "the panel, 18rem wide" registry/b.tsx verify:fileLine(registry/b.tsx, /18rem/)\n */\nexport function B() {}\n',
     "scripts/gen.mts": 'import { claim } from "../lib/claims.ts";\nexport const docs = `Its tests make ${claim("the installed files reach 100% coverage", { source: { file: "vitest.config.ts" }, verify: { fileLine: "vitest.config.ts", pattern: "lines: 100" } })}.`;\n',
     "registry.json": JSON.stringify({
       items: [
@@ -470,7 +512,7 @@ test("generated surfaces are linted: registry.json, README regions and llms.txt 
       ],
     }),
     "README.md": "# R\n\n<!-- items:start -->\nEvery row is 44px tall.\n\nAll items are tested.\n<!-- items:end -->\n",
-    "llms.txt": "# R\n\n## Items\n\n- a: Every row is 44px tall.\n- b: It supports every theme.\n",
+    "llms.txt": "# R\n\n## Items\n\n- a: Every row is 44px tall.\n- b: It supports every theme.\n- c: The panel, 18rem wide.\n",
   });
   const { failures } = await checkClaims({ root });
   const found = failures.map((failure) => failure.message.split(" (It reads")[0].replace(/ (states|makes|says|claims)[^"]*$/, ""));
