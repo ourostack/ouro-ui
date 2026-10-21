@@ -29,6 +29,7 @@
 // scripts/source-rules.test.mjs applies them to the repository; scripts/install-check.mjs
 // compares the comments of each installed file with its source.
 import { readFileSync } from "node:fs";
+import { URL } from "node:url";
 import ts from "typescript";
 
 const kind = (path) => (path.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
