@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, readFileSync, renameSync, symlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { chmodSync, copyFileSync, mkdirSync, readFileSync, renameSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { unpinnedAddresses } from "./addresses.mjs";
 import { fillPlaceholder, latestRelease, PLACEHOLDER, releaseMismatches, withRelease } from "./latest-release.mjs";
+import { scratchDir } from "./scratch.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const tracked = (...globs) =>
@@ -14,7 +14,7 @@ const tracked = (...globs) =>
 
 test("latestRelease reads ouro.latestRelease from package.json and refuses anything but a tag", () => {
   assert.match(latestRelease(), /^v\d+\.\d+\.\d+$/);
-  const dir = mkdtempSync(join(tmpdir(), "ouro-latest-release-"));
+  const dir = scratchDir("ouro-latest-release-");
   writeFileSync(join(dir, "package.json"), JSON.stringify({ ouro: { latestRelease: "0.3.0" } }));
   assert.throws(() => latestRelease(dir), /must be a tag such as v0\.3\.0 \(got 0\.3\.0\)/);
   writeFileSync(join(dir, "package.json"), JSON.stringify({ ouro: { latestRelease: "v1.2.3" } }));
@@ -79,7 +79,7 @@ test("the release commit names only its own tag: release.yml's release-branch co
   const step = release.slice(release.indexOf("name: Push the release branch"));
   const body = step.slice(step.indexOf('git switch -c "$BRANCH"\n') + 'git switch -c "$BRANCH"\n'.length, step.indexOf('git commit -am "Release $TAG"'));
   assert.match(body, /node scripts\/latest-release\.mjs set "\$TAG"\n\s*pnpm run docs\n\s*node scripts\/registry\.mts --release "\$VERSION"/);
-  const copy = mkdtempSync(join(tmpdir(), "ouro-release-"));
+  const copy = scratchDir("ouro-release-");
   for (const path of tracked("*")) {
     mkdirSync(dirname(join(copy, path)), { recursive: true });
     copyFileSync(join(root, path), join(copy, path));
@@ -91,7 +91,7 @@ test("the release commit names only its own tag: release.yml's release-branch co
   writeFileSync(join(copy, "changes", "release-test-fixture.md"), "- A change for this test's release.\n");
   const previous = latestRelease();
   // The copy is no git repository: a stand-in git records the step's `git add`.
-  const bin = mkdtempSync(join(tmpdir(), "ouro-release-bin-"));
+  const bin = scratchDir("ouro-release-bin-");
   writeFileSync(join(bin, "git"), `#!/usr/bin/env bash\necho "$*" >> "${join(bin, "calls.log")}"\n`);
   chmodSync(join(bin, "git"), 0o755);
   const result = spawnSync("bash", ["-ec", body], { cwd: copy, encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, TAG: "v9.9.9", VERSION: "9.9.9" } });
@@ -114,7 +114,7 @@ test("the release commit names only its own tag: release.yml's release-branch co
   assert.equal(readmeTests.status, 0, readmeTests.stdout + readmeTests.stderr);
   assert.match(readmeTests.stdout, /^ok \d+ - dialog alone does not bring OuroProvider, which is why the README adds it by name$/m);
   // Prepare main consumes these fragments; the durable upgrade contract must still pass.
-  renameSync(join(copy, "changes"), join(mkdtempSync(join(tmpdir(), "ouro-consumed-changes-")), "changes"));
+  renameSync(join(copy, "changes"), join(scratchDir("ouro-consumed-changes-"), "changes"));
   const upgradeTests = spawnSync(process.execPath, ["--test", "--test-reporter=tap", "scripts/upgrade-note.test.mjs"], { cwd: copy, encoding: "utf8", env });
   assert.equal(upgradeTests.status, 0, upgradeTests.stdout + upgradeTests.stderr);
 });

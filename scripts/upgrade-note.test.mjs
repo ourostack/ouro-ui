@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { fillPlaceholder, latestRelease, PLACEHOLDER } from "./latest-release.mjs";
 import { localCommand, noteBody, rawHint, steps } from "./upgrade-note.mjs";
+import { scratchDir } from "./scratch.mjs";
 
 // UPGRADING.md is the one source of "Upgrading from v0.1.0". The README section, the
 // site's Updating page and the release notes are made from it, and the upgrade install
@@ -111,7 +111,7 @@ test("localCommand points the note's addresses at a local registry and pins the 
 // The commands, run for real in a scratch app whose `npx` is a stand-in: `info --json`
 // reports the app's resolved folders (an app/ layout here), and `add` is only recorded.
 function scratchApp(componentFiles) {
-  const app = mkdtempSync(join(tmpdir(), "ouro-upgrade-"));
+  const app = scratchDir("ouro-upgrade-");
   const bin = join(app, ".bin");
   mkdirSync(bin);
   const resolved = { components: join(app, "app/components"), lib: join(app, "app/lib"), tailwindCss: join(app, "app/styles/tailwind.css") };
