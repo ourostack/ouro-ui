@@ -345,6 +345,9 @@ async function frameAtPoint(session: CDPSession, { x, y }: { x: number; y: numbe
   }
 }
 
+/** Waits for a frame to draw, as page code: the kit itself is type-checked without the DOM's types. */
+const TWO_FRAMES = "new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))";
+
 /** Chromium's id for a frame Playwright lists, when it runs in another process. */
 const frameIds = new WeakMap<Frame, Promise<string | undefined>>();
 
@@ -452,7 +455,7 @@ async function watchTarget(
         if (there && (await within(calls.get(there)!, 0, "").then((answer) => answer.error === undefined, () => false))) {
           // Chromium routes input to such a frame only once the frame has drawn: until then a touch
           // there goes to the page around it. Two animation frames in it, as far as the bound allows.
-          await within(there.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))), deadline - Date.now(), "").catch(() => {});
+          await within(there.evaluate(TWO_FRAMES), deadline - Date.now(), "").catch(() => {});
           return { calls };
         }
       }

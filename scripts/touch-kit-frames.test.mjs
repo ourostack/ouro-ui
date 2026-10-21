@@ -31,7 +31,7 @@ function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "" } = {}) {
       parentFrame: () => parent,
       async evaluate(call) {
         // The kit's wait for the frame to draw, before a touch into a frame in another process.
-        if (typeof call === "function") {
+        if (call.includes("requestAnimationFrame(() => requestAnimationFrame(")) {
           self.drew = true;
           return undefined;
         }
