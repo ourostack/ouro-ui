@@ -713,16 +713,22 @@ test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD
   assert.match(all.stdout, /^npx playwright test --fully-parallel e2e\/ouro$/m);
   // A full run's shard: the app's shipped Vitest files its measured times give it, not Vitest's split.
   const shipped = ["src/components/ouro/button/button.test.tsx", "src/components/ouro/button/button.touch.test.tsx", "src/components/ouro/dialog/dialog.test.tsx", "src/lib/ouro/cn.test.ts", "src/components/ouro/button/button.visual.test.tsx", "src/app.test.tsx"];
-  const shard = run({ OURO_SHARD: "2/2" }, shipped);
+  const specs = ["e2e/ouro/dialog.spec.ts", "e2e/ouro/menu.spec.ts", "e2e/ouro/timer.spec.ts", "e2e/ouro-fixtures.ts"];
+  const shard = run({ OURO_SHARD: "2/2" }, [...shipped, ...specs]);
   assert.equal(shard.status, 0, shard.stderr);
-  const { installShard } = await import("./shard.mjs");
+  const { installShard, installSpecShard } = await import("./shard.mjs");
   const mine = installShard(shipped.slice(0, 4), { index: 2, count: 2 });
-  assert.ok(mine.length > 0);
-  assert.match(shard.stdout, new RegExp(`^npx vitest run ${mine.join(" ").replace(/[.]/g, "\\.")}$`, "m"));
-  assert.match(shard.stdout, /^npx playwright test --fully-parallel --shard=2\/2 e2e\/ouro$/m);
+  const mySpecs = installSpecShard(specs.slice(0, 3), { index: 2, count: 2 });
+  assert.ok(mine.length > 0 && mySpecs.length > 0);
+  const escaped = (paths) => paths.join(" ").replace(/[.]/g, "\\.");
+  assert.match(shard.stdout, new RegExp(`^npx vitest run ${escaped(mine)}$`, "m"));
+  assert.match(shard.stdout, new RegExp(`^npx playwright test --fully-parallel ${escaped(mySpecs)}$`, "m"));
   const empty = run({ OURO_SHARD: "2/2" });
   assert.equal(empty.status, 1);
   assert.match(empty.stdout, /Shard 2\/2 has no shipped test file to run/);
+  const noSpecs = run({ OURO_SHARD: "2/2" }, shipped);
+  assert.equal(noSpecs.status, 1);
+  assert.match(noSpecs.stdout, /Shard 2\/2 has no shipped spec to run/);
   assert.doesNotMatch(all.stdout + shard.stdout, /pass-?with-?no-?tests/i);
   const none = run({ OURO_COMPONENTS: "" });
   assert.equal(none.status, 0);

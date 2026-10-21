@@ -3,7 +3,7 @@ import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "n
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { balance, collectTimings, e2eFiles, installFiles, installShard, parseShard, readTimings, scriptTestFiles, shardKeys, slicedSuites } from "./shard.mjs";
+import { balance, collectTimings, e2eFiles, installFiles, installShard, installSpecs, installSpecShard, parseShard, readTimings, scriptTestFiles, shardKeys, slicedSuites } from "./shard.mjs";
 import { scratchDir } from "./scratch.mjs";
 import { shardArgument, TimedSequencer } from "./vitest-shards.mts";
 
@@ -130,11 +130,22 @@ test("the Playwright timings reporter adds up each spec file's tests, in every p
   const { default: Reporter } = await import("./timings-playwright-reporter.mjs");
   const out = join(scratch(), "e2e-1of3.json");
   const reporter = new Reporter({ outputFile: out });
-  const test = (file) => ({ location: { file: join(process.cwd(), file) } });
-  reporter.onTestEnd(test("site/e2e/stage.spec.ts"), { duration: 1200 });
-  reporter.onTestEnd(test("site/e2e/stage.spec.ts"), { duration: 800 });
-  reporter.onTestEnd(test("registry/ouro/e2e/ouro/menu.spec.ts"), { duration: 300.4 });
+  const spec = (file) => ({ location: { file: join(process.cwd(), file) } });
+  reporter.onTestEnd(spec("site/e2e/stage.spec.ts"), { duration: 1200 });
+  reporter.onTestEnd(spec("site/e2e/stage.spec.ts"), { duration: 800 });
+  reporter.onTestEnd(spec("registry/ouro/e2e/ouro/menu.spec.ts"), { duration: 300.4 });
   reporter.onEnd();
   assert.deepEqual(JSON.parse(readFileSync(out, "utf8")), { "registry/ouro/e2e/ouro/menu.spec.ts": 300, "site/e2e/stage.spec.ts": 2000 });
   assert.equal(reporter.printsToStdio(), false);
+});
+
+test("an install shard takes the app's shipped specs by the time each took here, in both browsers", () => {
+  const timings = { "registry/ouro/e2e/ouro/a.spec.ts": 900, "registry/ouro/e2e/ouro/b.spec.ts": 500, "registry/ouro/e2e/ouro/c.spec.ts": 300, "site/e2e/stage.spec.ts": 9000 };
+  const specs = ["e2e/ouro/a.spec.ts", "e2e/ouro/b.spec.ts", "e2e/ouro/c.spec.ts"];
+  assert.deepEqual(installSpecShard(specs, { index: 1, count: 2 }, timings), ["e2e/ouro/a.spec.ts"]);
+  assert.deepEqual(installSpecShard(specs, { index: 2, count: 2 }, timings), ["e2e/ouro/b.spec.ts", "e2e/ouro/c.spec.ts"]);
+  assert.deepEqual(installSpecs(join(root, "no-such-app")), []);
+  // Every shipped spec has a time here.
+  const shipped = readdirSync(join(root, "registry/ouro/e2e/ouro")).filter((file) => file.endsWith(".spec.ts"));
+  assert.deepEqual(shipped.filter((file) => !(`registry/ouro/e2e/ouro/${file}` in readTimings("e2e"))), []);
 });

@@ -512,16 +512,22 @@ if [ -n "${OURO_COMPONENTS+set}" ]; then
 fi
 shard=()
 [ -z "${OURO_SHARD:-}" ] || shard=(--shard="$OURO_SHARD")
-# A full run's shard takes the shipped Vitest files whose times here add up to its share
-# (scripts/shard.mjs install); Vitest's own --shard counts files, and left one shard 2 minutes
-# longer. Playwright runs every test on its own (--fully-parallel), so --shard splits tests, not files.
+# A full run's shard takes the shipped Vitest files and specs whose times here add up to its share
+# (scripts/shard.mjs install and install-e2e): Vitest's own --shard counts files, and Playwright's
+# gave one shard the Chromium tests and the other the slower WebKit ones. Playwright runs a shard's
+# tests one by one across its workers (--fully-parallel). A reduced run keeps their own --shard.
 vitest_shard=(${shard[@]+"${shard[@]}"})
+spec_shard=(${shard[@]+"${shard[@]}"})
 if [ -n "${OURO_SHARD:-}" ] && [ -z "${OURO_COMPONENTS+set}" ]; then
   # shellcheck disable=SC2207 # the app's test paths have no spaces
   vitest_filters=($(node "$root/scripts/shard.mjs" install "$OURO_SHARD" .))
+  # shellcheck disable=SC2207
+  spec_filters=($(node "$root/scripts/shard.mjs" install-e2e "$OURO_SHARD" .))
   [ "${#vitest_filters[@]}" -gt 0 ] || { echo "Shard $OURO_SHARD has no shipped test file to run."; exit 1; }
+  [ "${#spec_filters[@]}" -gt 0 ] || { echo "Shard $OURO_SHARD has no shipped spec to run."; exit 1; }
   vitest_shard=()
-  echo "Shard $OURO_SHARD: ${#vitest_filters[@]} shipped Vitest files, balanced by their measured times."
+  spec_shard=()
+  echo "Shard $OURO_SHARD: ${#vitest_filters[@]} shipped Vitest files and ${#spec_filters[@]} specs, balanced by their measured times."
 fi
 
 # CI installs the browsers' system packages in the background while it builds the app
@@ -540,7 +546,7 @@ echo "::endgroup::"
 
 echo "::group::Shipped Playwright specs"
 if [ "${#spec_filters[@]}" -gt 0 ]; then
-  npx playwright test --fully-parallel ${lenient_playwright[@]+"${lenient_playwright[@]}"} ${shard[@]+"${shard[@]}"} "${spec_filters[@]}"
+  npx playwright test --fully-parallel ${lenient_playwright[@]+"${lenient_playwright[@]}"} ${spec_shard[@]+"${spec_shard[@]}"} "${spec_filters[@]}"
 else
   echo "No selected component has a spec."
 fi

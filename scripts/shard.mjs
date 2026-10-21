@@ -8,6 +8,9 @@
 //   node scripts/shard.mjs install <index>/<count> <app>
 //                                                    the shipped Vitest test files of one install
 //                                                    shard, paths in the installed app <app>
+//   node scripts/shard.mjs install-e2e <index>/<count> <app>
+//                                                    the shipped end-to-end spec files of one install
+//                                                    shard, paths in the installed app <app>
 //   node scripts/shard.mjs plan <kind> <count>       every shard of a kind, with its weight
 //   node scripts/shard.mjs refresh <dir>             rewrites scripts/shard-timings.json from the
 //                                                    timing reports under <dir> (any depth)
@@ -136,6 +139,27 @@ export function installShard(files, shard, timings = readTimings("vitest")) {
   return shardKeys(files, shard, byFile);
 }
 
+/** The end-to-end specs an installed app has from Ouro UI (e2e/ouro/*.spec.ts), relative to the app. */
+export function installSpecs(app) {
+  const dir = join(app, "e2e/ouro");
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .filter((file) => file.endsWith(".spec.ts"))
+    .map((file) => `e2e/ouro/${file}`)
+    .sort();
+}
+
+/**
+ * One install shard's share of `specs` (app paths, `e2e/ouro/...`), balanced by the time each took
+ * here: an app's `e2e/ouro/<file>` is this repository's `registry/ouro/e2e/ouro/<file>`, in both
+ * browsers. Playwright's own --shard, by test, gave one shard the Chromium tests and the other the
+ * slower WebKit ones.
+ */
+export function installSpecShard(specs, shard, timings = readTimings("e2e")) {
+  const byFile = Object.fromEntries(Object.entries(timings).flatMap(([key, ms]) => (key.startsWith("registry/ouro/e2e/ouro/") ? [[key.slice("registry/ouro/".length), ms]] : [])));
+  return shardKeys(specs, shard, byFile);
+}
+
 const sortedObject = (object) => Object.fromEntries(Object.entries(object).sort(([a], [b]) => (a < b ? -1 : 1)));
 
 function main([command, ...args]) {
@@ -146,6 +170,10 @@ function main([command, ...args]) {
   }
   if (command === "e2e") {
     console.log(shardKeys(e2eFiles(), parseShard(args[0]), readTimings("e2e")).join("\n"));
+    return 0;
+  }
+  if (command === "install-e2e") {
+    console.log(installSpecShard(installSpecs(args[1] ?? "."), parseShard(args[0])).join("\n"));
     return 0;
   }
   if (command === "install") {
@@ -174,7 +202,7 @@ function main([command, ...args]) {
     console.log(`Wrote ${relative(root, timingsFile)}: ${counts.join(", ")} timings.`);
     return 0;
   }
-  console.error("Usage: node scripts/shard.mjs scripts <index>/<count> | e2e <index>/<count> | install <index>/<count> <app> | plan <kind> <count> | refresh <dir>");
+  console.error("Usage: node scripts/shard.mjs scripts <index>/<count> | e2e <index>/<count> | install <index>/<count> <app> | install-e2e <index>/<count> <app> | plan <kind> <count> | refresh <dir>");
   return 2;
 }
 
