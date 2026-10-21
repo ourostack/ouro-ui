@@ -211,11 +211,16 @@ test("the kit waits for the frame under a pointer-events: none overlay, where th
 });
 
 test("the kit does not wait for a pointer-events: none iframe, which the touch passes through", async () => {
+  // The same tap before the frame exists, on the same runner: a loaded runner slows both.
+  let started = performance.now();
+  expect(await tapAt(window, 100, 350)).toEqual(["touchstart", "touchend"]);
+  const alone = performance.now() - started;
   const frame = await unwatchableFrame(300);
   frame.style.pointerEvents = "none";
-  const started = performance.now();
+  started = performance.now();
   expect(await tapAt(window, 100, 350)).toEqual(["touchstart", "touchend"]);
-  expect(performance.now() - started).toBeLessThan(1000);
+  // Far under the 5 seconds the kit gives a frame it waits for.
+  expect(performance.now() - started - alone).toBeLessThan(500);
 });
 
 test("on a page zoomed and panned by touch, the kit waits for the frame where the touch lands", async () => {
@@ -365,6 +370,10 @@ test("touches reach a cross-origin iframe, and a cross-origin iframe does not ho
   // in a process of its own (--site-per-process). Its document runs no script. Nothing is fetched
   // from the server either, where an app's Vite would answer another path with its own index.html
   // and its code.
+  // The same tap before the frame exists, on the same runner: a loaded runner slows both.
+  let started = performance.now();
+  expect(await tapAt(window, 100, 50)).toEqual(["touchstart", "touchend"]);
+  const alone = performance.now() - started;
   const frame = document.createElement("iframe");
   frame.setAttribute("sandbox", "allow-scripts");
   Object.assign(frame.style, { position: "absolute", top: "300px", left: "0", width: "300px", height: "100px", border: "0" });
@@ -374,9 +383,10 @@ test("touches reach a cross-origin iframe, and a cross-origin iframe does not ho
   nodes.push(frame);
   await loaded;
   expect(() => frame.contentWindow!.document).toThrow();
-  const started = performance.now();
+  started = performance.now();
   expect(await tapAt(window, 100, 50)).toEqual(["touchstart", "touchend"]);
-  expect(performance.now() - started).toBeLessThan(1000);
+  // Well under the kit's 1-second limit for tidying a frame up.
+  expect(performance.now() - started - alone).toBeLessThan(500);
   // Inside it, no listener of this page can see the touch; the kit's own watcher must.
   await commands.touchStep({ type: "touchStart", x: 100, y: 350 });
   await commands.touchStep({ type: "touchEnd" });
