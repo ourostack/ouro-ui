@@ -107,6 +107,10 @@
     "status": 200,
     "checked": "2026-10-21"
   },
+  "https://html.spec.whatwg.org/multipage/input.html#checkbox-state-(type=checkbox)": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
   "https://react.dev/blog/2024/12/05/react-19#cleanup-functions-for-refs": {
     "status": 200,
     "checked": "2026-10-21"

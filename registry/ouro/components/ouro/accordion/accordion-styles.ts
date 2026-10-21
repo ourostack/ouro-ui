@@ -12,7 +12,12 @@ export type { AccordionHeadingLevel };
  */
 const headingLevels = [2, 3, 4, 5, 6] as const;
 
-/** The outline level of each item's title: `<h2>` to `<h6>`. */
+/**
+ * The outline level of each item's title: `<h2>` to `<h6>`.
+ *
+ * @claim "The outline level of each item's" registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > sets the heading level with headingLevel)
+ * @claim "The outline level of each item's" registry/ouro/components/ouro/accordion/accordion.test-d.ts verify:fileLine(registry/ouro/components/ouro/accordion/accordion.test-d.ts, /\{\sitems:\sItems;\sheadingLevel:\s1\s\}>\(\)\.not\.toExtend<AccordionProps>/)
+ */
 type AccordionHeadingLevel = (typeof headingLevels)[number];
 
 /**
@@ -31,6 +36,7 @@ const rootClass = "box-border w-full min-w-0 text-foreground";
  * An item: a hairline under each one.
  *
  * @internal
+ * @claim "An item: a hairline under each" registry/ouro/components/ouro/accordion/accordion-styles.ts verify:fileLine(registry/ouro/components/ouro/accordion/accordion-styles.ts, /const\sitemClass\s=\s"border-0\sborder-b\sborder-solid\sborder-border"/)
  */
 const itemClass = "border-0 border-b border-solid border-border";
 

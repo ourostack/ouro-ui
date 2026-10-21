@@ -28,7 +28,11 @@ export interface AccordionItem {
    * accordion. @default the item's index, as a string ("0", "1", …)
    */
   value?: string | undefined;
-  /** The title, always visible. It is the button that opens the item, inside a heading. */
+  /**
+   * The title, always visible. It is the button that opens the item, inside a heading.
+   *
+   * @claim "The title, always visible" registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > renders each title as a button inside an h3, all closed)
+   */
   title: ReactNode;
   /** What shows while the item is open. */
   content: ReactNode;
@@ -47,6 +51,8 @@ export interface AccordionBaseProps {
   /**
    * The outline level of each title, so the items sit in the page's heading structure:
    * `headingLevel={2}` renders `<h2>`. @default 3
+   * @claim "The outline level of each title" registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > sets the heading level with headingLevel)
+   * @claim "The outline level of each title" registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > renders each title as a button inside an h3, all closed)
    */
   headingLevel?: AccordionHeadingLevel | (number & { 'Use 2, 3, 4, 5 or 6': never }) | undefined;
   /**
@@ -62,7 +68,11 @@ export interface AccordionBaseProps {
 
   /** Not a prop. One item opens at a time by default; for several, pass `multiple`: `<Accordion multiple>`. */
   type?: { 'Use <Accordion multiple> for several open items; one at a time is the default': never };
-  /** Not a prop. An open item always closes when its title is pressed again. */
+  /**
+   * Not a prop. An open item always closes when its title is pressed again.
+   *
+   * @claim "An open item always closes when" registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > opens one item at a time by default, and closes the open one when pressed again)
+   */
   collapsible?: { 'Remove it: an open item always closes when pressed': never };
   /** Not a prop. Ouro UI uses `onValueChange`: `<Accordion onValueChange={(value) => …}>`. */
   onChange?: { 'Use <Accordion onValueChange={(value) => ...}>': never };
@@ -76,7 +86,11 @@ export interface AccordionBaseProps {
 export type AccordionSingleProps = AccordionBaseProps & {
   /** Lets several items be open at once, and makes the value a list. */
   multiple?: false | undefined;
-  /** The open item's value, or `null` for none, when you control it. Pair it with `onValueChange`. */
+  /**
+   * The open item's value, or `null` for none, when you control it. Pair it with `onValueChange`.
+   *
+   * @claim "The open item's value, or `null`" registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > follows a controlled value)
+   */
   value?: string | null | undefined;
   /** The item open first, when the component keeps its own state. @default none */
   defaultValue?: string | null | undefined;
@@ -162,6 +176,8 @@ function Chevron(): JSX.Element {
  * @claim "Panels grow to their measured height" registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > animates the panel to its measured height)
  * @claim "Panels grow to their measured height" registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > gives every trigger at least a 44px row on a coarse pointer, or 40px otherwise)
  * @claim "Panels grow to their measured height" registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > links each trigger and panel in server HTML and hydrates without a mismatch)
+ * @claim "A stack of titles that each" registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > opens one item at a time by default, and closes the open one when pressed again)
+ * @claim "A stack of titles that each" registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > keeps several items open with multiple)
  */
 export function Accordion(props: AccordionProps): JSX.Element {
   const {

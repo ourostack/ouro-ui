@@ -46,7 +46,12 @@ export interface DatePickerProps {
   disabled?: boolean | undefined;
   /** The form field name. The form submits the ISO date (`2026-10-11`) under it, or an empty string. */
   name?: string | undefined;
-  /** The date as an ISO date (`"2026-10-11"`), or `""` for none. Pass it with `onValueChange` to control the field. */
+  /**
+   * The date as an ISO date (`"2026-10-11"`), or `""` for none. Pass it with `onValueChange` to control the field.
+   *
+   * @claim "The date as an ISO date" registry/ouro/components/ouro/calendar/date-picker.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/date-picker.test.tsx::DatePicker > the phone's own picker > is a native date input holding the ISO value, with min and max)
+   * @claim "The date as an ISO date" registry/ouro/components/ouro/calendar/date-picker.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/date-picker.test.tsx::DatePicker > typing > reads the locale's numbers or ISO, and writes the date the locale's way on blur)
+   */
   value?: string | undefined;
   /** The date at first, as an ISO date, when you do not control `value`. */
   defaultValue?: string | undefined;
@@ -55,6 +60,9 @@ export interface DatePickerProps {
    * the field no longer holds one. A date before `min`, after `max` or named by
    * `isDateDisabled`, typed or chosen in the phone's own picker, is not a value: it reports
    * `""`, and the field shows why and blocks the submit.
+   * @claim "Called with the ISO date when" registry/ouro/components/ouro/calendar/date-picker.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/date-picker.test.tsx::DatePicker > typing > reads the locale's numbers or ISO, and writes the date the locale's way on blur)
+   * @claim "Called with the ISO date when" registry/ouro/components/ouro/calendar/date-picker.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/date-picker.test.tsx::DatePicker > typing > marks what is not an allowed date invalid, with a translatable message, so the form does not submit it)
+   * @claim "Called with the ISO date when" registry/ouro/components/ouro/calendar/date-picker.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/date-picker.test.tsx::DatePicker > forms > submits a picked or typed date)
    */
   onValueChange?: ((value: string) => void) | undefined;
   /** The earliest date allowed, as an ISO date. Earlier days are unavailable in the calendar, and a typed one is invalid. */
@@ -64,6 +72,7 @@ export interface DatePickerProps {
   /**
    * Marks single days unavailable: `isDateDisabled={(date) => booked.has(date)}`. It gets each
    * day as an ISO date. Such a day, typed or picked in the phone's own picker, is invalid.
+   * @claim "It gets each day as an" registry/ouro/components/ouro/calendar/date-picker.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/date-picker.test.tsx::DatePicker > the calendar popover > passes min, max and isDateDisabled to the calendar)
    */
   isDateDisabled?: ((date: string) => boolean) | undefined;
   /**

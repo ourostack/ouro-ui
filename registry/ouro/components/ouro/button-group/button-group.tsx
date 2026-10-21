@@ -9,7 +9,12 @@ import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 export interface ButtonGroupProps {
   /** Names the group for screen readers ("Pagination", "Text alignment"). It is not shown. */
   label: string;
-  /** The buttons, in order: `Button`s or `Toggle`s, each with its own `variant`, `tone` and `size`. */
+  /**
+   * The buttons, in order: `Button`s or `Toggle`s, each with its own `variant`, `tone` and `size`.
+   *
+   * @claim "The buttons, in order: `Button`s or" registry/ouro/components/ouro/button-group/button-group.test.tsx verify:testExists(registry/ouro/components/ouro/button-group/button-group.test.tsx::ButtonGroup > draws no separator between outline buttons, whose borders already meet)
+   * @claim "The buttons, in order: `Button`s or" registry/ouro/components/ouro/button-group/button-group.test.tsx verify:testExists(registry/ouro/components/ouro/button-group/button-group.test.tsx::ButtonGroup > draws a separator between buttons that have no border of their own)
+   */
   children: ReactNode;
   /** Stretches the group to the width of its container, with the buttons sharing it equally. */
   fullWidth?: boolean | undefined;
@@ -18,15 +23,31 @@ export interface ButtonGroupProps {
   /** The group element (`role="group"`). */
   ref?: Ref<HTMLDivElement> | undefined;
 
-  /** Not a prop. Each Button keeps its own: `<Button variant="outline">`. */
+  /**
+   * Not a prop. Each Button keeps its own: `<Button variant="outline">`.
+   *
+   * @claim "Each Button keeps its own: `<Button" registry/ouro/components/ouro/button-group/button-group.test-d.ts verify:fileLine(registry/ouro/components/ouro/button-group/button-group.test-d.ts, /\{\slabel:\s"Pagination";\schildren:\s"x";\svariant:\s"outline"\s\}>\(\)\.not\.toExtend/)
+   */
   variant?: { 'Set it on each Button: <Button variant="outline">': never };
-  /** Not a prop. Each Button keeps its own: `<Button tone="secondary">`. */
+  /**
+   * Not a prop. Each Button keeps its own: `<Button tone="secondary">`.
+   *
+   * @claim "Each Button keeps its own: `<Button" registry/ouro/components/ouro/button-group/button-group.test-d.ts verify:fileLine(registry/ouro/components/ouro/button-group/button-group.test-d.ts, /\{\slabel:\s"Pagination";\schildren:\s"x";\stone:\s"secondary"\s\}>\(\)\.not\.toExtend/)
+   */
   tone?: { 'Set it on each Button: <Button tone="secondary">': never };
-  /** Not a prop. Each Button keeps its own: `<Button size="sm">`. */
+  /**
+   * Not a prop. Each Button keeps its own: `<Button size="sm">`.
+   *
+   * @claim "Each Button keeps its own: `<Button" registry/ouro/components/ouro/button-group/button-group.test-d.ts verify:fileLine(registry/ouro/components/ouro/button-group/button-group.test-d.ts, /\{\slabel:\s"Pagination";\schildren:\s"x";\ssize:\s"sm"\s\}>\(\)\.not\.toExtend/)
+   */
   size?: { 'Set it on each Button: <Button size="sm">': never };
   /** Not a prop. A ButtonGroup is a row; stack buttons in a grid: `<div className="grid gap-2">`. */
   orientation?: { 'A ButtonGroup is a row; stack buttons in <div className="grid gap-2">': never };
-  /** Not a prop. A ButtonGroup always joins its buttons. */
+  /**
+   * Not a prop. A ButtonGroup always joins its buttons.
+   *
+   * @claim "A ButtonGroup always joins its buttons" registry/ouro/components/ouro/button-group/button-group.test.tsx verify:testExists(registry/ouro/components/ouro/button-group/button-group.test.tsx::ButtonGroup > joins the buttons: only the outer corners are round, and the buttons touch)
+   */
   isAttached?: { 'A ButtonGroup always joins its buttons': never };
 }
 
@@ -68,6 +89,8 @@ const groupClass =
  *   <Button variant="outline" tone="secondary">Previous</Button>
  *   <Button variant="outline" tone="secondary">Next</Button>
  * </ButtonGroup>
+ * @claim "Each child keeps its own `variant`" registry/ouro/components/ouro/button-group/button-group.test.tsx verify:testExists(registry/ouro/components/ouro/button-group/button-group.test.tsx::ButtonGroup server rendering > renders the group and its name on the server and hydrates with no warning)
+ * @claim "Each child keeps its own `variant`" registry/ouro/components/ouro/button-group/button-group.test.tsx verify:testExists(registry/ouro/components/ouro/button-group/button-group.test.tsx::ButtonGroup > is a labeled group)
  */
 export function ButtonGroup(props: ButtonGroupProps): JSX.Element {
   const {

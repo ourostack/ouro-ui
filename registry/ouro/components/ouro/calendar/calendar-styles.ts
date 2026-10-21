@@ -142,6 +142,7 @@ function firstDayOfWeek(locale: string): number {
  * `null`.
  *
  * @internal
+ * @claim "A month as weeks of seven" registry/ouro/components/ouro/calendar/calendar.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/calendar.test.tsx::Calendar date math > checks ISO dates, adds months with clamping and lays out months)
  */
 function monthGrid(month: string, firstDay: number): Array<Array<string | null>> {
   const start = monthStart(month);
@@ -193,6 +194,7 @@ const weekdayHeaderClass = "m-0 p-0 pb-1 text-xs leading-4 font-normal text-mute
  * The className hint: Calendar has no appearance props, so the fix is the theme.
  *
  * @internal
+ * @claim "The className hint: Calendar has no" registry/ouro/components/ouro/calendar/calendar.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/calendar.test.tsx::Calendar > development messages > warns when the label is empty, and about appearance classes)
  */
 function calendarHint(component: string): string {
   return `<${component} className="mt-4" />, and set colors in your theme's CSS variables`;

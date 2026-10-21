@@ -39,6 +39,7 @@ export interface CalendarBaseProps {
    * Marks single days unavailable: `isDateDisabled={(date) => booked.has(date)}`. It gets each
    * day as an ISO date. Unavailable days stay in the arrow-key path, so screen readers still
    * hear them, but cannot be picked.
+   * @claim "It gets each day as an" registry/ouro/components/ouro/calendar/calendar.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/calendar.test.tsx::Calendar > unavailable days > marks days outside min and max, and days isDateDisabled names, and never picks them)
    */
   isDateDisabled?: ((date: string) => boolean) | undefined;
   /**
@@ -102,12 +103,16 @@ export type CalendarProps<Range extends boolean = false> = CalendarBaseProps & {
    * start. A range never spans an unavailable day: the preview and the end stop at the last
    * available day before it, so a stay cannot include a booked night. Without `range` the
    * calendar picks one day.
+   * @claim "A range never spans an unavailable" registry/ouro/components/ouro/calendar/calendar.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/calendar.test.tsx::Calendar > range > never spans an unavailable day: the preview and the end stop before the first booked night)
    */
   range?: Range | undefined;
   /**
    * The picked day as an ISO date (`"2026-10-11"`, `""` for none). With `range` it is the
    * picked `{ start, end }` instead (`null` for none), and passing `{ start, end }` without
    * `range` is a type error. Pass it with `onValueChange` to control the calendar.
+   * @claim "The picked day as an ISO" registry/ouro/components/ouro/calendar/calendar.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/calendar.test.tsx::Calendar > one day > picks a pressed day, uncontrolled)
+   * @claim "With `range` it is the picked" registry/ouro/components/ouro/calendar/calendar.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/calendar.test.tsx::Calendar > range > follows a controlled range and puts reversed ends in order)
+   * @claim "With `range` it is the picked" registry/ouro/components/ouro/calendar/calendar.test-d.ts verify:fileLine(registry/ouro/components/ouro/calendar/calendar.test-d.ts, /value:\s\{\sstart:\s"2026-10-11";\send:\s"2026-10-12"\s\}\s\}>\(\)\.not\.toExtend<CalendarProps>/)
    */
   value?: (Range extends true ? DateRange | null : string) | undefined;
   /** What is picked at first, when you do not control `value`: an ISO date, or with `range` a `{ start, end }`. */
@@ -116,9 +121,13 @@ export type CalendarProps<Range extends boolean = false> = CalendarBaseProps & {
   onValueChange?: ((value: CalendarValue<Range>) => void) | undefined;
 };
 
-/** Today never changes while a page is open in a way the calendar must follow at once, so there is nothing to subscribe to. */
+/** The calendar reads today once and does not follow midnight, so its subscription does nothing. */
 const noSubscription = () => () => {};
-/** The server does not know the user's zone, so it knows no today. */
+/**
+ * The server does not know the user's zone, so it knows no today.
+ *
+ * @claim "The server does not know the" registry/ouro/components/ouro/calendar/calendar.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/calendar.test.tsx::Calendar > today across hydration > renders no today on the server, and the browser fills in its own after hydration)
+ */
 const serverToday = (): string | null => null;
 
 /** Arrow keys move by these many days, in a left-to-right layout. */

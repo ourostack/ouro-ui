@@ -22,6 +22,7 @@ export interface AvatarOwnProps {
    * The person's or thing's name. Screen readers hear it, and the initials come from it
    * (the first letters of the first and last words) until the image loads, or when it
    * fails. Required, so no avatar is silent.
+   * @claim "Required, so no avatar is silent" registry/ouro/components/ouro/avatar/avatar.test-d.ts verify:fileLine(registry/ouro/components/ouro/avatar/avatar.test-d.ts, /expectTypeOf<\{\ssrc:\s"\/ada\.jpg"\s\}>\(\)\.not\.toExtend<AvatarProps>/)
    */
   name: string;
   /** The image URL. Until it loads, and if it fails, the initials show. */

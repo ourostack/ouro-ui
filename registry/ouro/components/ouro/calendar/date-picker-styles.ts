@@ -25,6 +25,8 @@ function fullYear(twoDigits: number): number {
  * en-US), or `""` for no date.
  *
  * @internal
+ * @claim "An ISO date as the locale" registry/ouro/components/ouro/calendar/date-picker.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/date-picker.test.tsx::DatePicker > typing > reads the locale's numbers or ISO, and writes the date the locale's way on blur)
+ * @claim "An ISO date as the locale" registry/ouro/components/ouro/calendar/date-picker.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/date-picker.test.tsx::DatePicker > value > reformats when the locale changes, and ignores values that are not ISO dates)
  */
 function formatDateInput(iso: string, locale: string): string {
   return iso === "" ? "" : numeric(locale).format(new Date(`${iso}T00:00:00Z`));

@@ -54,7 +54,7 @@ export interface BadgeBaseProps {
   onClick?: MouseEventHandler<HTMLElement> | undefined;
   /** Icon before the label. Pass the component, not an element: `icon={CheckIcon}`. */
   icon?: BadgeIcon | undefined;
-  /** The label: a word or two, or a count. */
+  /** The label: a short word, or a count. */
   children: ReactNode;
   /** Layout only: margins, grid placement (`ms-2`). Appearance classes warn in development; use `tone` and `variant`. */
   className?: string | undefined;
@@ -71,9 +71,15 @@ export type BadgeLinkModeProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, k
    * Where the link goes. Internal paths render through `OuroProvider`'s
    * `linkComponent` (your router's link); absolute URLs render as a plain `<a>`, and
    * with `target="_blank"` always get `rel="noopener noreferrer"`.
+   * @claim "Internal paths render through `OuroProvider`'s `linkComponent`" registry/ouro/components/ouro/badge/badge.test.tsx verify:testExists(registry/ouro/components/ouro/badge/badge.test.tsx::Badge > renders an absolute URL as a plain <a> with a safe rel in a new tab)
+   * @claim "Internal paths render through `OuroProvider`'s `linkComponent`" registry/ouro/components/ouro/badge/badge.test.tsx verify:testExists(registry/ouro/components/ouro/badge/badge.test.tsx::Badge > renders a link with href through the provider's linkComponent)
    */
   href: string;
-  /** Links have no `type`. Remove `href` and pass `onClick` for a button. */
+  /**
+   * Links have no `type`. Remove `href` and pass `onClick` for a button.
+   *
+   * @claim "Links have no `type`" registry/ouro/components/ouro/badge/badge.tsx verify:fileLine(registry/ouro/components/ouro/badge/badge.tsx, /^\s+type\?:\snever;/)
+   */
   type?: never;
   /** A link cannot be disabled. Remove `href` and pass `onClick` for a button. */
   disabled?: never;

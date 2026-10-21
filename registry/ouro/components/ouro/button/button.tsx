@@ -94,6 +94,8 @@ export interface ButtonBaseProps {
    * Layout only: margins, width, grid placement (`mt-4`, `col-span-2`). Your
    * classes always win over Ouro UI's. Appearance classes warn in development;
    * use `tone`, `variant` and `size` instead.
+   * @claim "Your classes always win over Ouro" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::className > lets app layout classes win over library styles)
+   * @claim "Your classes always win over Ouro" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::className > lets the app's height and padding win at desktop widths too)
    */
   className?: string | undefined;
 
@@ -118,9 +120,14 @@ export type ButtonLinkProps = ButtonBaseProps &
      * absolute URLs render as a plain `<a>`. An absolute URL with
      * `target="_blank"` always gets `rel="noopener noreferrer"`, merged with
      * any `rel` you pass.
+     * @claim "`, merged with any `rel` you pass." registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::link branch > merges an explicit rel with noopener noreferrer on an external _blank link)
      */
     href: string;
-    /** Links have no `type`. Remove `href` to make a submit button: `<Button type="submit">`. */
+    /**
+     * Links have no `type`. Remove `href` to make a submit button: `<Button type="submit">`.
+     *
+     * @claim "Links have no `type`" registry/ouro/components/ouro/button/button.test-d.ts verify:fileLine(registry/ouro/components/ouro/button/button.test-d.ts, /\{\schildren:\s"Go";\shref:\s"\/x";\stype:\s"submit"\s\}>\(\)\.not\.toExtend<ButtonProps>/)
+     */
     type?: never;
     /** A link cannot be disabled. Remove `href` to render a disabled button, or don't render the link. */
     disabled?: never;

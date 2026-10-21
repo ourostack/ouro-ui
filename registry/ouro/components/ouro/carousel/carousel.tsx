@@ -18,9 +18,17 @@ import {
 
 /** Props for {@link Carousel}. */
 export interface CarouselProps {
-  /** Names the carousel for screen readers, such as "Recipe photos". Always required. */
+  /**
+   * Names the carousel for screen readers, such as "Recipe photos". Always required.
+   *
+   * @claim "Always required" registry/ouro/components/ouro/carousel/carousel.test-d.ts verify:fileLine(registry/ouro/components/ouro/carousel/carousel.test-d.ts, /expectTypeOf<\{\schildren:\s"Slides"\s\}>\(\)\.not\.toExtend<CarouselProps>/)
+   */
   label: string;
-  /** The slides: each child is one slide, so pass the images or cards themselves. */
+  /**
+   * The slides: each child is one slide, so pass the images or cards themselves.
+   *
+   * @claim "The slides: each child is one" registry/ouro/components/ouro/carousel/carousel.test.tsx verify:testExists(registry/ouro/components/ouro/carousel/carousel.test.tsx::Carousel structure > is a named carousel region of slides named by their position)
+   */
   children: ReactNode;
   /** Next on the last slide goes back to the first, and Previous on the first goes to the last. */
   loop?: boolean | undefined;
@@ -41,11 +49,17 @@ export interface CarouselProps {
   /**
    * Names each slide and is announced when the position changes: `{n}` is the slide's
    * number and `{total}` the number of slides. @default "Slide {n} of {total}"
+   * @claim "Names each slide and is announced" registry/ouro/components/ouro/carousel/carousel.test.tsx verify:testExists(registry/ouro/components/ouro/carousel/carousel.test.tsx::Carousel structure > is a named carousel region of slides named by their position)
+   * @claim "Names each slide and is announced" registry/ouro/components/ouro/carousel/carousel.test.tsx verify:testExists(registry/ouro/components/ouro/carousel/carousel.test.tsx::Carousel structure > names its buttons and slides with the labels it is given)
    */
   slideLabel?: string | undefined;
   /** What a screen reader calls the carousel, after its label: "Recipe photos, carousel". @default "carousel" */
   roleDescription?: string | undefined;
-  /** What a screen reader calls each slide, after its name: "Slide 2 of 5, slide". @default "slide" */
+  /**
+   * What a screen reader calls each slide, after its name: "Slide 2 of 5, slide". @default "slide"
+   *
+   * @claim "What a screen reader calls each" registry/ouro/components/ouro/carousel/carousel.test.tsx verify:testExists(registry/ouro/components/ouro/carousel/carousel.test.tsx::Carousel structure > is a named carousel region of slides named by their position)
+   */
   slideRoleDescription?: string | undefined;
   /** Layout only: width and margins (`max-w-xl`, `mx-auto`). Appearance classes warn in development. */
   className?: string | undefined;
@@ -54,9 +68,18 @@ export interface CarouselProps {
   opts?: { 'Use <Carousel loop>; Carousel takes no Embla options': never };
   /** Not a prop. Read the position with `onIndexChange`: `<Carousel onIndexChange={setIndex}>`. */
   setApi?: { 'Use <Carousel onIndexChange={setIndex}>': never };
-  /** Not a prop. Carousel never moves on its own, so it takes no plugins. */
+  /**
+   * Not a prop. Carousel never moves on its own, so it takes no plugins.
+   *
+   * @claim "Carousel never moves on its own" registry/ouro/components/ouro/carousel/carousel.test-d.ts verify:fileLine(registry/ouro/components/ouro/carousel/carousel.test-d.ts, /plugins:\s\[\]\s\}>\(\)\.not\.toExtend<CarouselProps>/)
+   * @claim "Carousel never moves on its own" registry/ouro/components/ouro/carousel/carousel.test-d.ts verify:fileLine(registry/ouro/components/ouro/carousel/carousel.test-d.ts, /autoplay:\strue\s\}>\(\)\.not\.toExtend<CarouselProps>/)
+   */
   plugins?: { 'Carousel never moves on its own; remove plugins': never };
-  /** Not a prop. Carousel never moves on its own: motion the user did not start is hard to read and to stop. */
+  /**
+   * Not a prop. Carousel never moves on its own: motion the user did not start is hard to read and to stop.
+   *
+   * @claim "Carousel never moves on its own" registry/ouro/components/ouro/carousel/carousel.test-d.ts verify:fileLine(registry/ouro/components/ouro/carousel/carousel.test-d.ts, /autoplay:\strue\s\}>\(\)\.not\.toExtend<CarouselProps>/)
+   */
   autoplay?: { 'Carousel never moves on its own; remove autoplay': never };
   /** Not a prop. Carousel scrolls horizontally; stack vertical content in a grid instead. */
   orientation?: { 'Carousel scrolls horizontally; use a grid for a vertical list': never };
@@ -96,6 +119,9 @@ function ChevronIcon({ back }: { back?: boolean }): JSX.Element {
  * @claim "It is the browser's own scrolling" registry/ouro/components/ouro/carousel/carousel.touch.test.tsx verify:testExists(registry/ouro/components/ouro/carousel/carousel.touch.test.tsx::lets a vertical swipe that starts on the slides scroll the page)
  * @claim "It is the browser's own scrolling" registry/ouro/components/ouro/carousel/carousel.test.tsx verify:testExists(registry/ouro/components/ouro/carousel/carousel.test.tsx::Carousel structure > snaps each slide to the start of a horizontal scroller that a keyboard can reach)
  * @claim "Each child is a slide named" registry/ouro/components/ouro/carousel/carousel.test.tsx verify:testExists(registry/ouro/components/ouro/carousel/carousel.test.tsx::Carousel structure > snaps each slide to the start of a horizontal scroller that a keyboard can reach)
+ * @claim "It never moves on its own" registry/ouro/components/ouro/carousel/carousel.test.tsx verify:testExists(registry/ouro/components/ouro/carousel/carousel.test.tsx::Carousel motion > jumps instantly with reduced motion)
+ * @claim "It never moves on its own" registry/ouro/components/ouro/carousel/carousel.test.tsx verify:testExists(registry/ouro/components/ouro/carousel/carousel.test.tsx::Carousel motion > scrolls smoothly when motion is allowed)
+ * @claim "It never moves on its own" registry/ouro/components/ouro/carousel/carousel.test-d.ts verify:fileLine(registry/ouro/components/ouro/carousel/carousel.test-d.ts, /autoplay:\strue\s\}>\(\)\.not\.toExtend<CarouselProps>/)
  */
 export function Carousel(props: CarouselProps): JSX.Element {
   const {

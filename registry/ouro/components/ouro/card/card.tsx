@@ -60,6 +60,8 @@ export interface CardOwnProps {
    * `outline` is a bordered surface in the theme's card colors; `plain` has no frame or
    * padding, for a card's structure inside a surface of your own.
    * @default "outline"
+   * @claim "`outline` is a bordered surface in" registry/ouro/components/ouro/card/card.test.tsx verify:testExists(registry/ouro/components/ouro/card/card.test.tsx::Card > is a bordered surface in the card colors, with 24px padding)
+   * @claim "`outline` is a bordered surface in" registry/ouro/components/ouro/card/card.test.tsx verify:testExists(registry/ouro/components/ouro/card/card.test.tsx::Card > has no frame or padding with variant=plain)
    */
   variant?: "outline" | "plain" | (string & { 'Use "outline" or "plain"; elevation comes from the theme': never }) | undefined;
   /**
