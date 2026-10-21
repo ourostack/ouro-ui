@@ -10,8 +10,8 @@ import { conformanceStories, describeElement, layOut } from "./harness.ts";
 // forced colours, every story, closed and with each overlay open, must keep for each control:
 // - an edge: a border or outline on the control, on something inside it, or on its component's
 //   frame around it (for a box a person presses, types into, drags or scrolls: buttons, fields,
-//   checkboxes, switches, sliders, scrollable regions; links, the rows of a list and the cells
-//   of a grid are text);
+//   checkboxes, switches, sliders, scrollable regions; links, buttons drawn as underlined links,
+//   the rows of a list and the cells of a grid are text);
 // - its state: a checked, selected, pressed or current control looks different from one of the
 //   same part that is not (a segment, a tab, a toggle, the current page);
 // - its focus: focusing it from the keyboard changes what its component shows.
@@ -126,6 +126,8 @@ function visual(control: Element): Element | null {
 function hasEdge(control: Element): boolean {
   const seen = visual(control);
   if (!seen) return true;
+  // A button drawn as a link (underlined text, as a status line's Retry is) reads as one: its underline is its edge.
+  if (getComputedStyle(seen).textDecorationLine.includes("underline")) return true;
   const inside = controlRole(control) === "generic" ? [seen] : [seen, ...seen.querySelectorAll("*")];
   if (inside.some((element) => shown(element) && edged(element))) return true;
   // Up to the root of the item that marks the control (a resizable group for its panels), or the nearest component root.
