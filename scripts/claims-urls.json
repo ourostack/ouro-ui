@@ -1,11 +1,91 @@
 {
+  "https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/disabling-and-enabling-a-workflow": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
   "https://en.wikipedia.org/wiki/Twenty_Thousand_Leagues_Under_the_Seas": {
     "status": 200,
     "checked": "2026-10-20"
   },
+  "https://github.com/ourostack/ouro-ui/issues/113": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
+  "https://github.com/ourostack/ouro-ui/issues/118": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
+  "https://github.com/ourostack/ouro-ui/issues/119": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
+  "https://github.com/ourostack/ouro-ui/pull/99": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
+  "https://github.com/ourostack/ouro-ui/releases": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
+  "https://github.com/ourostack/ouro-ui/releases/tag/v0.1.0": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
+  "https://github.com/ourostack/ouro-ui/releases/tag/v0.2.0": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
+  "https://github.com/ourostack/ouro-ui/releases/tag/v0.3.0": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
+  "https://github.com/ourostack/ouro-ui/releases/tag/v0.3.1": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
+  "https://github.com/ourostack/ouro-ui/releases/tag/v0.7.0": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
   "https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0": {
     "status": 200,
-    "checked": "2026-10-20"
+    "checked": "2026-10-21"
+  },
+  "https://github.com/ourostack/ouro-ui/releases/tag/v0.8.3": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
+  "https://github.com/ourostack/ouro-ui/releases/tag/v1.0.0": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
+  "https://github.com/ourostack/ouro-ui/releases/tag/v1.0.2": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
+  "https://github.com/ourostack/ouro-ui/releases/tag/v1.1.0": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
+  "https://github.com/shadcn-ui/ui/blob/main/packages/registry/src/transformers/transform-rsc.ts": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
+  "https://github.com/shadcn-ui/ui/tree/main/packages/shadcn/src/utils/updaters": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
+  "https://ui.shadcn.com/docs/cli": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
+  "https://vite.dev/guide/env-and-mode": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
+  "https://webpack.js.org/configuration/mode/": {
+    "status": 200,
+    "checked": "2026-10-21"
   },
   "https://www.gutenberg.org/ebooks/164": {
     "status": 200,

@@ -57,6 +57,9 @@ test("triggers: code, links, accessible names and plain descriptions are not cla
   assert.deepEqual(kinds("The close button sits in the corner."), []);
   assert.deepEqual(kinds("Read [the guide](docs/guides/testing.md)."), []);
   assert.deepEqual(kinds("Read https://example.com/v2/page."), []);
+  // A quotation mentions text (a label, an example of output); it asserts nothing.
+  assert.deepEqual(kinds('Shows "3 days ago" or "in 5 minutes".'), []);
+  assert.deepEqual(kinds('Shows "3 days ago" for every date.'), ["every"]);
 });
 
 test("instructions are allowed: imperatives, conditional imperatives and questions", () => {

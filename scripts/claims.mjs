@@ -69,8 +69,12 @@ function maskCode(text) {
   return text
     .replace(/(`+)[\s\S]*?\1/g, (span) => "§".repeat(span.length))
     .replace(/\]\([^)]*\)/g, (target) => "]" + " ".repeat(target.length - 1))
-    .replace(/<?https?:\/\/[^\s)>\]]*[^\s)>\].,;:!?'"]>?/g, (url) => "§".repeat(url.length));
+    .replace(/<?https?:\/\/[^\s)>\]]*[^\s)>\].,;:!?'"]>?/g, (url) => "§".repeat(url.length))
+    .replace(QUOTED, (quote) => "§".repeat(quote.length));
 }
+
+/** A short quotation: text mentioned, such as a label or an example of output ("3 days ago"), not asserted. */
+const QUOTED = /"[^"\n]{1,80}"|“[^”\n]{1,80}”/g;
 
 /** The kinds of claim a sentence makes, with the words that make it. */
 export function triggers(sentence) {
@@ -273,6 +277,7 @@ function maskBlock(text, definitions) {
   });
   masked = masked
     .replace(/<?https?:\/\/[^\s)>\]]*[^\s)>\].,;:!?'"]>?/g, (url) => "§".repeat(url.length))
+    .replace(QUOTED, (quote) => "§".repeat(quote.length))
     .replace(/<\/?[A-Za-z][^>]*>/g, (tag) => " ".repeat(tag.length));
   return { masked, markers };
 }

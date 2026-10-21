@@ -79,4 +79,4 @@ build: {
 [^tests-closure]: scripts/registry.mts verify:testExists(scripts/registry.test.mjs::a -tests item installs the tests of every item it installs: link-tests brings text-tests)
 [^subsets]: scripts/subset-coverage.mjs verify:testExists(scripts/subset-coverage.test.mjs::CI checks the button, the dialog, the sheet and the forms set, each alone and together)
 [^use-client]: scripts/source-rules.mjs verify:testExists(scripts/source-rules.test.mjs::every runtime registry file that renders or calls hooks starts with "use client", so a Next.js Server Component can render it) verify:testExists(scripts/install-check.test.mjs::an installed file that lost its source's "use client" fails)
-[^shadcn-rsc]: https://github.com/shadcn-ui/ui/blob/main/packages/shadcn/src/utils/transformers/transform-rsc.ts verify:urlOk(https://github.com/shadcn-ui/ui/blob/main/packages/shadcn/src/utils/transformers/transform-rsc.ts) verify:ciJob(install)
+[^shadcn-rsc]: https://github.com/shadcn-ui/ui/blob/main/packages/registry/src/transformers/transform-rsc.ts verify:urlOk(https://github.com/shadcn-ui/ui/blob/main/packages/registry/src/transformers/transform-rsc.ts) verify:ciJob(install)
