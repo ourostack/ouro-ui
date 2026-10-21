@@ -434,12 +434,10 @@ function Articles(): JSX.Element {
   const [line, setLine] = useState<CrewLine>(SIGN.opening);
   const [pending, setPending] = useState<{ name: string; wants: readonly Want[] } | null>(null);
   useEffect(() => voyage.set({ you }), [voyage, you]);
-  // A new signing brings a new, empty form; focus goes to your row's Leave, and your row and
-  // Conseil's welcome under it are kept clear of the toast.
+  // A new signing brings a new, empty form, and focus goes to your row's Leave.
   useEffect(() => {
     if (signings === 0) return;
     box.current?.querySelector<HTMLElement>("[data-chapter-control='leave'] button")?.focus();
-    keepClearOfToasts(box.current?.querySelector("[data-chapter-crew]"));
   }, [signings]);
 
   const field = (name: string) => box.current?.querySelector<HTMLInputElement>(`input[name="${name}"]`);
@@ -480,7 +478,15 @@ function Articles(): JSX.Element {
     setYou({ name, trade });
     setSignings((count) => count + 1);
     setLine(SIGN.welcome(name, trade));
-    toast(ARTICLES.signed(name), { tone: "success", description: ARTICLES.onList });
+    // The toast follows once the press has painted, as the bell's does: the toast stack measures
+    // and re-lays itself out, so it waits for the press's own paint rather than holding it up. Your
+    // row and Conseil's welcome under it are kept clear of it.
+    requestAnimationFrame(() =>
+      setTimeout(() => {
+        toast(ARTICLES.signed(name), { tone: "success", description: ARTICLES.onList });
+        keepClearOfToasts(box.current?.querySelector("[data-chapter-crew]"));
+      }),
+    );
   };
   // Off the list, and back to the articles' first field to sign again.
   const leave = () => {
