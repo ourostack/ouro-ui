@@ -137,6 +137,7 @@ type TriggerProps = {
  */
 const closeClass =
   "absolute top-3 end-3 box-border inline-flex size-8 items-center justify-center m-0 p-0 border-0 rounded-lg " +
+  "forced-colors:border forced-colors:border-solid " +
   "press bg-transparent text-muted-foreground cursor-pointer [-webkit-tap-highlight-color:transparent] " +
   "not-disabled:pointer-fine:hover:bg-accent not-disabled:pointer-fine:hover:text-accent-foreground " +
   "not-disabled:active:bg-accent not-disabled:active:text-accent-foreground motion-safe:not-disabled:active:scale-(--ouro-press-scale) " +
@@ -396,7 +397,7 @@ export function DialogFrame({
             {...initialFocus}
           >
             {/* Always rendered: with a hidden title it still keeps the body clear of the close button. */}
-            <div data-ouro-dialog-header="" className="box-border grid min-h-13 shrink-0 gap-1 pt-5 pr-13 pb-2 pl-5">
+            <div data-ouro-dialog-header="" className="box-border grid min-h-13 shrink-0 gap-1 pt-5 pe-13 pb-2 ps-5">
               <DialogTitle visuallyHidden={hideTitle}>{title}</DialogTitle>
               {description !== undefined && <DialogDescription>{description}</DialogDescription>}
             </div>

@@ -79,7 +79,7 @@ const stripTones = {
 
 /** One action: a block as tall as the row and at least 72px wide, with 16px text on a touch screen. @internal */
 const actionClass =
-  "press relative m-0 box-border inline-flex min-w-18 shrink-0 cursor-pointer items-center justify-center border-0 px-4 " +
+  "press relative m-0 box-border inline-flex min-w-18 shrink-0 cursor-pointer items-center justify-center border-0 forced-colors:border forced-colors:border-solid px-4 " +
   "text-base font-medium whitespace-nowrap pointer-fine:text-sm " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid active:opacity-80";
 

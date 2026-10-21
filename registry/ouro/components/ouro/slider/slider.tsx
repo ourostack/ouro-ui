@@ -1,7 +1,7 @@
 "use client";
 
 import { Slider as BaseSlider } from "@base-ui/react/slider";
-import { cloneElement, useId, useLayoutEffect, useMemo, useRef, type JSX, type ReactElement, type ReactNode, type Ref } from "react";
+import { cloneElement, useId, useLayoutEffect, useMemo, useRef, useSyncExternalStore, type JSX, type ReactElement, type ReactNode, type Ref } from "react";
 import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-styles";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
@@ -133,6 +133,9 @@ function rangeOwner(labelId: string) {
 }
 
 /** The default names for a range's thumbs: Minimum and Maximum, with Middle between. */
+/** No store to subscribe to: `useSyncExternalStore` only tells the server and hydration apart from the browser. */
+const noSubscription = () => () => {};
+
 function defaultThumbLabels(count: number): string[] {
   return Array.from({ length: count }, (_, index) => (index === 0 ? "Minimum" : index === count - 1 ? "Maximum" : "Middle"));
 }
@@ -322,7 +325,10 @@ function SliderControl({
       }
     }
   }
-  const texts = [...new Set(values.map((value) => number.format(value)))];
+  // Without a locale, the samples are in the reader's, which the server cannot know: it and
+  // hydration reserve nothing, and the browser fills them in, so the server's HTML hydrates as it is.
+  const hydrated = useSyncExternalStore(noSubscription, () => true, () => false);
+  const texts = hydrated || shared.locale !== undefined ? [...new Set(values.map((value) => number.format(value)))] : [];
   const samples = isRange ? texts.map((text) => `${text} – ${text}`) : texts;
   return (
     <BaseSlider.Root

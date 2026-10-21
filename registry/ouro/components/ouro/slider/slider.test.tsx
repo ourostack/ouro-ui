@@ -329,6 +329,29 @@ describe("Slider server rendering", () => {
     expect(recoverable).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
   });
+
+  it("reserves the value's width only after hydration when no locale is given, so a reader in another locale hydrates the server's HTML as it is", async () => {
+    // The widest value is measured in the reader's locale ("$60" on a server in en-US, "60 $" in de-DE), which a server cannot know.
+    const priced = <Slider label="Price" name="price" defaultValue={[10, 40]} min={0} max={60} showValue format={{ style: "currency", currency: "USD" }} />;
+    const host = document.createElement("div");
+    host.innerHTML = renderToString(priced);
+    document.body.append(host);
+    mounted.push(host);
+    expect(host.querySelectorAll("[data-ouro-slider-sample]")).toHaveLength(0);
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const recoverable = vi.fn();
+    let root!: Root;
+    await act(async () => {
+      root = hydrateRoot(host, priced, { onRecoverableError: recoverable });
+    });
+    roots.push(root);
+    await expect.poll(() => host.querySelectorAll("[data-ouro-slider-sample]").length).toBeGreaterThan(0);
+    expect(recoverable).not.toHaveBeenCalled();
+    expect(error).not.toHaveBeenCalled();
+    // With the locale given, the server measures it as the reader will.
+    const fixed = new DOMParser().parseFromString(renderToString(<Slider label="Kochzeit" name="kochzeit" defaultValue={20} max={90} showValue locale="de-DE" />), "text/html");
+    expect(fixed.querySelectorAll("[data-ouro-slider-sample]").length).toBeGreaterThan(0);
+  });
 });
 
 describe("Slider server error", () => {

@@ -14,7 +14,7 @@ import { conformanceStories, describeElement, layOut } from "./harness.ts";
 // (`parameters.conformance.focusExit`). Every action runs inside `watchAnnouncements`: a live
 // region announcing the same text twice in one action fails, and so does an announcement the
 // story declares (`parameters.conformance.announces`) that is not heard exactly once. Links and
-// form submissions are kept from navigating the test page.
+// form submissions navigate a hidden frame, not the test page.
 
 /** How many controls of one part (item, part and role) a story's run uses: enough for each part's behaviour, not every day of a calendar. */
 const perPart = 3;
@@ -68,19 +68,26 @@ function lostFocus(): string | null {
   return null;
 }
 
-/** Keeps a link or a form from navigating the test page, after the page's own handlers have run. */
-const stay = (event: Event) => {
-  const target = event.target as Element | null;
-  if (event.type === "submit" || target?.closest?.("a[href]")) event.preventDefault();
-};
+/**
+ * Where links and form submissions go instead of the test page: a hidden frame every navigation
+ * without a target of its own is sent to (`<base target>`), so a story's link or a form with no
+ * submit handler runs as it would in an app, its handlers and default action included, and the
+ * test page stays.
+ */
+const sink = "ouro-conformance-navigation";
 
 beforeAll(() => {
-  window.addEventListener("click", stay);
-  window.addEventListener("submit", stay);
+  const frame = Object.assign(document.createElement("iframe"), { name: sink, hidden: true });
+  // Sandboxed, so a page loaded into it (the test page itself, for a form with no action) runs no script.
+  frame.setAttribute("sandbox", "");
+  const base = Object.assign(document.createElement("base"), { target: sink });
+  frame.dataset["testHarness"] = "";
+  document.documentElement.append(frame);
+  document.head.prepend(base);
 });
 afterAll(() => {
-  window.removeEventListener("click", stay);
-  window.removeEventListener("submit", stay);
+  document.querySelector(`iframe[name="${sink}"]`)?.remove();
+  document.querySelector(`base[target="${sink}"]`)?.remove();
 });
 beforeEach(async () => {
   await commands.emulateMedia({ reducedMotion: "no-preference" });

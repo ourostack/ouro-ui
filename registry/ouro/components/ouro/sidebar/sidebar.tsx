@@ -148,7 +148,7 @@ const badgeClass = "ms-auto shrink-0 rounded-sm bg-muted px-1.5 text-xs leading-
 // A row: 44px with 16px text on a coarse pointer at every width, 36px with 14px text with a
 // fine one. A full-width row highlights while pressed instead of scaling.
 const row =
-  "relative m-0 box-border flex w-full min-h-11 pointer-fine:min-h-9 cursor-pointer items-center gap-3 rounded-md border-0 bg-transparent px-3 py-2 " +
+  "relative m-0 box-border flex w-full min-h-11 pointer-fine:min-h-9 cursor-pointer items-center gap-3 rounded-md border-0 forced-colors:border forced-colors:border-solid bg-transparent px-3 py-2 " +
   "text-start font-[inherit] text-base pointer-fine:text-sm leading-5 font-medium text-muted-foreground no-underline select-none touch-manipulation " +
   "[-webkit-tap-highlight-color:transparent] transition-colors duration-(--ouro-duration-fast) ease-[ease] " +
   "pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground active:bg-accent active:text-accent-foreground " +
