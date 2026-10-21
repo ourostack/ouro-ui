@@ -5,7 +5,8 @@
 //   - the stage: STAGE_CONTROLS in site/src/voyage/stage/copy.ts, site/e2e/stage.spec.ts;
 //   - Chapter I: CHAPTER_ONE_CONTROLS in site/src/voyage/chapters/copy.ts, site/e2e/chapter-one.spec.ts;
 //   - Chapter II: CHAPTER_TWO_CONTROLS in site/src/voyage/chapters/chapter-two-copy.ts, site/e2e/chapter-two.spec.ts;
-//   - Chapter III: CHAPTER_THREE_CONTROLS in site/src/voyage/chapters/chapter-three-copy.ts, site/e2e/chapter-three.spec.ts.
+//   - Chapter III: CHAPTER_THREE_CONTROLS in site/src/voyage/chapters/chapter-three-copy.ts, site/e2e/chapter-three.spec.ts;
+//   - Built for agents too: AGENTS_CONTROLS in site/src/voyage/agents/copy.ts, site/e2e/agents.spec.ts.
 //
 //   node site/scripts/stage-census.mts    fails naming each control without its test
 import { readFileSync } from "node:fs";
@@ -14,12 +15,13 @@ import { fileURLToPath } from "node:url";
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), "../..");
 
-/** Each census: where its controls are listed, under which name, and the spec that must test them. */
+/** Each census: where its controls are listed, under which name, the spec that must test them, and (when not 8) the fewest it may list. */
 export const CENSUSES = [
   { list: "STAGE_CONTROLS", copy: "site/src/voyage/stage/copy.ts", spec: "site/e2e/stage.spec.ts" },
   { list: "CHAPTER_ONE_CONTROLS", copy: "site/src/voyage/chapters/copy.ts", spec: "site/e2e/chapter-one.spec.ts" },
   { list: "CHAPTER_TWO_CONTROLS", copy: "site/src/voyage/chapters/chapter-two-copy.ts", spec: "site/e2e/chapter-two.spec.ts" },
   { list: "CHAPTER_THREE_CONTROLS", copy: "site/src/voyage/chapters/chapter-three-copy.ts", spec: "site/e2e/chapter-three.spec.ts" },
+  { list: "AGENTS_CONTROLS", copy: "site/src/voyage/agents/copy.ts", spec: "site/e2e/agents.spec.ts", fewest: 4 },
 ] as const;
 
 /** The ids in `export const <list> = [...]`. */

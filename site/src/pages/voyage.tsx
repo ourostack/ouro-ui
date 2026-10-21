@@ -3,7 +3,7 @@ import { Inspector } from "@/registry/ouro/components/ouro/inspector/inspector";
 import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { href } from "../paths";
-import { ChapterOneIsland, ChapterThreeIsland, ChapterTwoIsland } from "../voyage/chapters/island";
+import { AgentsIsland, ChapterOneIsland, ChapterThreeIsland, ChapterTwoIsland } from "../voyage/chapters/island";
 import { VoyageHeader } from "../voyage/header";
 import { Hero } from "../voyage/hero";
 import { VoyageFooter } from "../voyage/layout";
@@ -58,6 +58,7 @@ export default function VoyagePage(): JSX.Element {
           <ChapterOneIsland />
           <ChapterTwoIsland />
           <ChapterThreeIsland />
+          <AgentsIsland />
         </main>
         <Suspense>
           <VoyageFooter />

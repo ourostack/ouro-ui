@@ -31,6 +31,7 @@ export function nearScreen(id: string): Promise<void> {
  */
 const ChapterOne = lazy(() => (import.meta.env.SSR ? import("./chapter-one") : nearScreen("chapter-one").then(() => import("./chapter-one"))));
 const ChapterTwo = lazy(() => (import.meta.env.SSR ? import("./chapter-two") : nearScreen("chapter-two").then(() => import("./chapter-two"))));
+const Agents = lazy(() => (import.meta.env.SSR ? import("../agents/agents") : nearScreen("agents").then(() => import("../agents/agents"))));
 const ChapterThree = lazy(() => (import.meta.env.SSR ? import("./chapter-three") : nearScreen("chapter-three").then(() => import("./chapter-three"))));
 
 export function ChapterOneIsland(): JSX.Element {
@@ -54,6 +55,15 @@ export function ChapterThreeIsland(): JSX.Element {
   return (
     <Suspense>
       <ChapterThree />
+    </Suspense>
+  );
+}
+
+/** "Built for agents too": its examples and Tabs load as the section nears the screen. */
+export function AgentsIsland(): JSX.Element {
+  return (
+    <Suspense>
+      <Agents />
     </Suspense>
   );
 }

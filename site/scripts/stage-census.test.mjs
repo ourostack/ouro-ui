@@ -9,7 +9,7 @@ const read = (path) => readFileSync(new URL(`../../${path}`, import.meta.url), "
 test("every control on the stage and in each chapter has a test that operates it", () => {
   for (const census of CENSUSES) {
     const copy = read(census.copy);
-    assert.ok(listedControls(copy, census.list).length >= 8, census.list);
+    assert.ok(listedControls(copy, census.list).length >= (census.fewest ?? 8), census.list);
     assert.deepEqual(uncovered(copy, read(census.spec), census.list), [], census.spec);
   }
 });
