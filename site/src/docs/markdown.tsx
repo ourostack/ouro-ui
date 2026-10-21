@@ -9,7 +9,7 @@ import { GITHUB } from "../paths";
  * so a parser this size covers it: `#` headings, paragraphs, fenced code, pipe tables,
  * `-` lists, inline code and links, and the claim syntax (docs/guides/claims.md): a link's
  * `"verify:…"` title, and footnotes (`[^id]` with `[^id]: <source> verify:<check>`), which
- * gather into a Sources list at the end. Anything else would be a gen-docs change, and the
+ * gather into a Claim sources list at the end. Anything else would be a gen-docs change, and the
  * docs tests would show it.
  */
 export type Block =
@@ -189,9 +189,9 @@ export function Markdown({ blocks, link }: { blocks: Block[]; link?: (href: stri
             return <Table key={index} label={labels.get(index)!} header={block.header} rows={block.rows} link={link} />;
           case "sources":
             return (
-              <section key={index} aria-labelledby="sources" className="mt-14">
-                <Heading level={2} size="lg" id="sources" className="mb-4">
-                  Sources
+              <section key={index} aria-labelledby="claim-sources" className="mt-14">
+                <Heading level={2} size="lg" id="claim-sources" className="mb-4">
+                  Claim sources
                 </Heading>
                 <ul className="grid max-w-[68ch] gap-2">
                   {block.items.map((item) => (

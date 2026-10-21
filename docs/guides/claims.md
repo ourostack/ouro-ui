@@ -16,7 +16,7 @@ pnpm claims:show <file>…        # each claim in a file, its sources, and wheth
 
 The lint reads every sentence outside code and asks whether it sounds factual.[^triggers] A sentence does when it has a number, a version or a date, or one of these words: "tested", "accessible", "every", "all", "works with", "supports", or a superlative such as "fastest" or "most".[^triggers] Such a sentence must be a claim.
 
-Instructions need no source, so a sentence that starts with a verb from the lint's short list ("Run pnpm test", "Don't add a class"), or with a condition and then one ("If it fails, run it again"), passes, and so does a question.[^instructions] Words inside code spans, link addresses and URLs are not prose, so `size="lg"` or a `#v1.1.0` in an install command never trips it. In the files `pnpm run docs` keeps on the newest release, a `#vX.Y.Z` or `@vX.Y.Z` tag is already checked against `ouro.latestRelease`.[^release-tags]
+Instructions need no source, so a sentence that starts with a verb from the lint's short list ("Run pnpm test", "Don't add a class"), or with a condition and then one ("If it fails, run it again"), passes, and so does a question.[^instructions] Words inside code spans, link addresses and URLs are not prose, so `size="lg"` or a release tag in an install command never trips it. In the files `pnpm run docs` keeps on the newest release, a `#vX.Y.Z` or `@vX.Y.Z` tag is already checked against `ouro.latestRelease`.[^release-tags]
 
 A failure names the file, the line, the sentence, what kind of claim it makes and what kind of source that needs:
 
@@ -44,7 +44,7 @@ Every story passes axe in light and dark.[^axe]
 [^axe]: test/stories.test.tsx verify:testExists(test/stories.test.tsx::stories > pass axe) verify:ciJob(ci)
 ```
 
-A footnote's sources are repository paths (separate several with `;`), and each `verify:` adds a check. On the site, footnotes gather into a Sources list at the end of the page, each source linked on GitHub.[^site]
+A footnote's sources are repository paths (separate several with `;`), and each `verify:` adds a check. On the site, footnotes gather into a Claim sources list at the end of the page, each source linked on GitHub.[^site]
 
 ### In JSDoc
 
