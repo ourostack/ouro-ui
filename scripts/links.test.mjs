@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { anchor, anchors, builtProblems, coverageProblems, existsExactly, links, publishedPaths, siteUrlProblem, sourceProblems } from "./links.mjs";
+import { scratchDir } from "./scratch.mjs";
 
 // The first app to adopt the forms followed links that opened on a Mac and were 404s on the
 // site: docs/OuroProvider.md is a file, and the site had no page for it under any name.
@@ -12,7 +12,7 @@ import { anchor, anchors, builtProblems, coverageProblems, existsExactly, links,
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 function tree(files) {
-  const dir = mkdtempSync(join(tmpdir(), "ouro-links-"));
+  const dir = scratchDir("ouro-links-");
   for (const [path, text] of Object.entries(files)) {
     mkdirSync(dirname(join(dir, path)), { recursive: true });
     writeFileSync(join(dir, path), text);

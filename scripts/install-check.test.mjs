@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { checkComments, checkDirectives, checkInstall, checkLayerOverride, checkSources, stripFieldTokens } from "./install-check.mjs";
+import { scratchDir } from "./scratch.mjs";
 
 // A real installed app is the install job's to build; these cases prove the check fails
 // on each kind of broken install, using a stand-in with a passing app's key files.
@@ -30,7 +30,7 @@ const testFiles = [
 ];
 
 const app = (variant, css, stage = "tests") => {
-  const dir = mkdtempSync(join(tmpdir(), "ouro-install-check-"));
+  const dir = scratchDir("ouro-install-check-");
   const write = (file, text) => {
     mkdirSync(dirname(join(dir, file)), { recursive: true });
     writeFileSync(join(dir, file), text);
@@ -119,8 +119,8 @@ test("a missing token, rule or file, or an unrewritten import, fails", () => {
 });
 
 test("an installed file that lost a comment of its source fails, and one that kept them passes", () => {
-  const root = mkdtempSync(join(tmpdir(), "ouro-install-source-"));
-  const dir = mkdtempSync(join(tmpdir(), "ouro-install-comments-"));
+  const root = scratchDir("ouro-install-source-");
+  const dir = scratchDir("ouro-install-comments-");
   const write = (base, file, text) => {
     mkdirSync(dirname(join(base, file)), { recursive: true });
     writeFileSync(join(base, file), text);
@@ -137,8 +137,8 @@ test("an installed file that lost a comment of its source fails, and one that ke
 });
 
 test("an installed file must equal its source once import paths are mapped to the app's aliases", () => {
-  const root = mkdtempSync(join(tmpdir(), "ouro-install-source-"));
-  const dir = mkdtempSync(join(tmpdir(), "ouro-install-equal-"));
+  const root = scratchDir("ouro-install-source-");
+  const dir = scratchDir("ouro-install-equal-");
   const write = (base, file, text) => {
     mkdirSync(dirname(join(base, file)), { recursive: true });
     writeFileSync(join(base, file), text);
@@ -182,7 +182,7 @@ test("a Next.js app passes with the CSS file components.json names and the next 
 
 test("an installed file that lost its source's \"use client\" fails", () => {
   const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-  const dir = mkdtempSync(join(tmpdir(), "ouro-install-check-"));
+  const dir = scratchDir("ouro-install-check-");
   const write = (file, text) => {
     mkdirSync(dirname(join(dir, file)), { recursive: true });
     writeFileSync(join(dir, file), text);
@@ -198,8 +198,8 @@ test("an installed file that lost its source's \"use client\" fails", () => {
 });
 
 test("with the @/components alias, a JSDoc that quotes an installed path is not mistaken for an import", () => {
-  const root = mkdtempSync(join(tmpdir(), "ouro-install-source-"));
-  const dir = mkdtempSync(join(tmpdir(), "ouro-install-equal-"));
+  const root = scratchDir("ouro-install-source-");
+  const dir = scratchDir("ouro-install-equal-");
   const write = (base, file, text) => {
     mkdirSync(dirname(join(base, file)), { recursive: true });
     writeFileSync(join(base, file), text);

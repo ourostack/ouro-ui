@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { scratchDir } from "../../scripts/scratch.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const script = join(root, "site/scripts/agent-messages.mts");
@@ -27,7 +27,7 @@ test("every example is a real type error, quoted as tsc prints it, with the prop
 });
 
 test("--check fails when the output is stale", () => {
-  const out = join(mkdtempSync(join(tmpdir(), "ouro-agent-")), "agent-messages.json");
+  const out = join(scratchDir("ouro-agent-"), "agent-messages.json");
   writeFileSync(out, "{}\n");
   const result = run("--check", "--out", out);
   assert.equal(result.status, 1);

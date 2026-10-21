@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { cpSync, existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { readComponents } from "./components.mts";
 import { buildRegistry, cssToItem, itemForFile, rewriteDependencies, testingSetup } from "./registry.mts";
+import { scratchDir } from "./scratch.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const script = join(root, "scripts/registry.mts");
@@ -23,7 +23,7 @@ test("the committed registry.json is up to date", () => {
 });
 
 test("--check fails when registry.json is stale, and names the fix", () => {
-  const out = join(mkdtempSync(join(tmpdir(), "ouro-registry-")), "registry.json");
+  const out = join(scratchDir("ouro-registry-"), "registry.json");
   assert.equal(run("--out", out).status, 0);
   assert.equal(run("--check", "--out", out).status, 0);
   const stale = JSON.parse(readFileSync(out, "utf8"));
@@ -62,7 +62,7 @@ test("the components come from each folder's component.json, in order, with the 
 });
 
 test("a component folder without a valid component.json fails with the fix", () => {
-  const copy = mkdtempSync(join(tmpdir(), "ouro-components-"));
+  const copy = scratchDir("ouro-components-");
   cpSync(join(root, "registry"), join(copy, "registry"), { recursive: true });
   const manifest = join(copy, "registry/ouro/components/ouro/link/component.json");
   writeFileSync(manifest, JSON.stringify({ order: 60, components: ["link", "missing"] }));
@@ -112,7 +112,7 @@ test("runtime items ship no tests, stories, specs or test tooling, and never pul
 
 test("the generator fails when a runtime file imports test tooling", () => {
   // The review's mutation: a runtime component that imports vitest.
-  const copy = mkdtempSync(join(tmpdir(), "ouro-registry-root-"));
+  const copy = scratchDir("ouro-registry-root-");
   for (const path of ["registry", "docs", "package.json"]) cpSync(join(root, path), join(copy, path), { recursive: true });
   const button = join(copy, "registry/ouro/components/ouro/button/button.tsx");
   writeFileSync(button, readFileSync(button, "utf8") + '\nimport { expect } from "vitest";\n');
@@ -337,7 +337,7 @@ test("rewriteDependencies points same-repo dependencies anywhere, leaving the re
 });
 
 test("--deps writes a copy whose same-repo dependencies follow a template: the @ouro namespace (Pages) or local files (install test)", () => {
-  const dir = mkdtempSync(join(tmpdir(), "ouro-registry-"));
+  const dir = scratchDir("ouro-registry-");
   assert.equal(run("--out", join(dir, "ns.json"), "--deps", "@ouro/{name}").status, 0);
   const namespaced = JSON.parse(readFileSync(join(dir, "ns.json"), "utf8"));
   assert.deepEqual(namespaced.items.find((entry) => entry.name === "lib-class-name-check").registryDependencies, ["@ouro/lib-dev", "@ouro/lib-env"]);
@@ -351,7 +351,7 @@ test("--deps writes a copy whose same-repo dependencies follow a template: the @
 });
 
 test("--release pins every same-repo dependency to the release tag and records the version", () => {
-  const out = join(mkdtempSync(join(tmpdir(), "ouro-registry-")), "registry.json");
+  const out = join(scratchDir("ouro-registry-"), "registry.json");
   assert.equal(run("--out", out, "--release", "0.1.0").status, 0);
   const released = JSON.parse(readFileSync(out, "utf8"));
   assert.deepEqual(Object.keys(released), ["$schema", "name", "homepage", "version", "items"]);
@@ -442,7 +442,7 @@ test("site/public/llms.txt gives the init, search and add commands and lists eve
 });
 
 test("--from rewrites a released registry.json for the @ouro namespace, keeping its version and docs (Pages serves the newest tag)", () => {
-  const dir = mkdtempSync(join(tmpdir(), "ouro-registry-"));
+  const dir = scratchDir("ouro-registry-");
   const released = join(dir, "released.json");
   assert.equal(run("--out", released, "--release", "0.3.0").status, 0);
   assert.equal(run("--from", released, "--out", join(dir, "ns.json"), "--deps", "@ouro/{name}").status, 0);

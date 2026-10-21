@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath, URL } from "node:url";
 import { runInNewContext } from "node:vm";
+import { scratchDir } from "./scratch.mjs";
 
 // The workflows publish the registry and push to the repository, so what they run must not
 // change under them: every action is pinned to a commit, and only the release job keeps the
@@ -126,7 +126,7 @@ test("Scheduled install reports any failure in one issue, with issues: write on 
 });
 
 test("scheduled-failure.sh opens the issue once, then comments on it", () => {
-  const bin = mkdtempSync(join(tmpdir(), "ouro-gh-"));
+  const bin = scratchDir("ouro-gh-");
   const log = join(bin, "calls.log");
   // A stand-in gh: logs its arguments, and answers `issue list` with $OPEN (the jq result).
   writeFileSync(join(bin, "gh"), `#!/usr/bin/env bash\nall="$*"\nprintf '%s\\n' "\${all//$'\\n'/ }" >> "${log}"\nif [ "$1 $2" = "issue list" ]; then printf '%s' "$OPEN"; fi\n`);

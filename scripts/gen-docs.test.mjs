@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, symlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { cpSync, mkdirSync, readFileSync, readdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { scratchDir } from "./scratch.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const script = join(root, "scripts/gen-docs.mts");
@@ -17,7 +17,7 @@ test("the committed docs and README catalog are up to date", () => {
 });
 
 test("--check fails when the docs are missing or stale", () => {
-  const out = mkdtempSync(join(tmpdir(), "ouro-docs-"));
+  const out = scratchDir("ouro-docs-");
   const missing = run("--check", "--out", out);
   assert.equal(missing.status, 1);
   assert.match(missing.stderr, /stale/);
@@ -28,7 +28,7 @@ test("--check fails when the docs are missing or stale", () => {
 });
 
 test("--check fails on a doc for a component that no longer exists", () => {
-  const out = mkdtempSync(join(tmpdir(), "ouro-docs-"));
+  const out = scratchDir("ouro-docs-");
   assert.equal(run("--out", out).status, 0);
   writeFileSync(join(out, "docs/Gone.md"), "# Gone\n");
   const result = run("--check", "--out", out);
@@ -38,7 +38,7 @@ test("--check fails on a doc for a component that no longer exists", () => {
 
 test("an export with no @group, or an unknown one, fails the generator with the fix", () => {
   // A copy of the repository's inputs, where Link's JSDoc loses its group.
-  const copy = mkdtempSync(join(tmpdir(), "ouro-docs-root-"));
+  const copy = scratchDir("ouro-docs-root-");
   for (const path of ["registry", "scripts", "docs", "site/public", "README.md", "UPGRADING.md", "package.json", "tsconfig.json"]) {
     mkdirSync(dirname(join(copy, path)), { recursive: true });
     cpSync(join(root, path), join(copy, path), { recursive: true });
@@ -54,7 +54,7 @@ test("an export with no @group, or an unknown one, fails the generator with the 
 });
 
 test("generating is deterministic and matches the committed files", () => {
-  const out = mkdtempSync(join(tmpdir(), "ouro-docs-"));
+  const out = scratchDir("ouro-docs-");
   assert.equal(run("--out", out).status, 0);
   const files = readdirSync(join(out, "docs")).filter((name) => name.endsWith(".md")).sort();
   // docs/guides is hand-written; everything else in docs/ is generated.
