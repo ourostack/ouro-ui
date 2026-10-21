@@ -36,6 +36,8 @@ function sideWarning(side: string, fix: string): readonly [string, string] {
  * the toolbars. Shared with the dialog backdrop.
  *
  * @internal
+ * @claim registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::Sheet iOS backdrop rule > covers the visible screen on a page scrolled 2000px)
+ * @claim registry/ouro/components/ouro/sheet/sheet-styles.ts verify:fileLine(registry/ouro/components/ouro/sheet/sheet-styles.ts, /supports-\[-webkit-touch-callout:none\]:h-lvh/)
  */
 const iosBackdrop =
   "supports-[-webkit-touch-callout:none]:absolute supports-[-webkit-touch-callout:none]:inset-x-0 " +

@@ -80,7 +80,12 @@ export interface ResizableGroupProps {
    * or full is ignored.
    */
   autoSaveId?: string | undefined;
-  /** Called with every panel's size, in percent, when the user finishes a drag or presses a key on a handle. */
+  /**
+   * Called with every panel's size, in percent, when the user finishes a drag or presses a key on a handle.
+   *
+   * @claim registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable handle (window splitter) > resizes with the arrow keys, Home, End and Enter)
+   * @claim registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable handle (window splitter) > resizes when dragged with a pointer, within the panels' limits)
+   */
   onLayout?: ((sizes: number[]) => void) | undefined;
   /** Each handle's accessible name; `{panel}` is the label of the panel before it. @default "Resize {panel}" */
   handleLabel?: string | undefined;
@@ -259,9 +264,19 @@ export interface ResizablePanelProps {
   label: string;
   /** The starting size, in percent of the group. Panels without one share what is left. */
   defaultSize?: number | undefined;
-  /** The smallest size a drag or key can give the panel, in percent. @default 10 */
+  /**
+   * The smallest size a drag or key can give the panel, in percent. @default 10
+   *
+   * @claim registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable handle (window splitter) > resizes when dragged with a pointer, within the panels' limits)
+   * @claim registry/ouro/components/ouro/resizable/resizable.test.tsx verify:fileLine(registry/ouro/components/ouro/resizable/resizable.test.tsx, /\/\/\sIt\sstops\sat\sminSize\./)
+   */
   minSize?: number | undefined;
-  /** The largest size a drag or key can give the panel, in percent. @default 100 */
+  /**
+   * The largest size a drag or key can give the panel, in percent. @default 100
+   *
+   * @claim registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable handle (window splitter) > resizes when dragged with a pointer, within the panels' limits)
+   * @claim registry/ouro/components/ouro/resizable/resizable.test.tsx verify:fileLine(registry/ouro/components/ouro/resizable/resizable.test.tsx, /maxSize=\{60\}/)
+   */
   maxSize?: number | undefined;
   /** The panel's id, which the handle's `aria-controls` points at. One is made up when you leave it out. */
   id?: string | undefined;
@@ -352,6 +367,8 @@ export interface ResizableHandleProps {
  * @example
  * <ResizableHandle />
  * <ResizableHandle aria-label="Resize the preview" />
+ * @claim registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable handle (window splitter) > gives the handle a hit area wider than its line)
+ * @claim registry/ouro/components/ouro/resizable/resizable.tsx verify:fileLine(registry/ouro/components/ouro/resizable/resizable.tsx, /<TouchTarget/)
  */
 export function ResizableHandle({ "aria-label": ariaLabel, withHandle }: ResizableHandleProps): JSX.Element | null {
   const group = useContext(GroupContext);
@@ -532,6 +549,9 @@ export interface ResizableProps extends ResizableGroupProps {
  *     <Editor />
  *   </ResizablePanel>
  * </Resizable>
+ * @claim registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable handle (window splitter) > resizes with the arrow keys, Home, End and Enter)
+ * @claim registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable handle (window splitter) > is a focusable separator for the panel before it)
+ * @claim registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable handle (window splitter) > gives the handle a hit area wider than its line)
  */
 export function Resizable({ children, ...props }: ResizableProps): JSX.Element {
   const items = Children.toArray(children);

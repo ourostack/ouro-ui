@@ -109,6 +109,9 @@ const fix = '<RouteProgress active={navigation.state !== "idle"} />';
  * // React Router, in the root route:
  * const navigation = useNavigation();
  * <RouteProgress active={navigation.state !== "idle"} />
+ * @claim registry/ouro/components/ouro/route-progress/route-progress.test.tsx verify:testExists(registry/ouro/components/ouro/route-progress/route-progress.test.tsx::RouteProgress > waits 150ms before it shows or speaks, so a fast navigation shows and says nothing)
+ * @claim registry/ouro/components/ouro/route-progress/route-progress.test.tsx verify:testExists(registry/ouro/components/ouro/route-progress/route-progress.test.tsx::RouteProgress > trickles toward 90%, more slowly the nearer it gets, and never reaches it)
+ * @claim registry/ouro/components/ouro/route-progress/route-progress.test.tsx verify:testExists(registry/ouro/components/ouro/route-progress/route-progress.test.tsx::RouteProgress > is a 2px bar fixed across the top of the screen in the primary color, which no click reaches)
  */
 export function RouteProgress(props: RouteProgressProps): JSX.Element {
   const {

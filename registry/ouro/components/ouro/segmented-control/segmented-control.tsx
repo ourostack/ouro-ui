@@ -33,9 +33,9 @@ export interface SegmentedControlItem {
 export interface SegmentedControlProps {
   /** Names the choice ("View"). Shown above the control unless `hideLabel` is set; screen readers always hear it. */
   label: string;
-  /** Hides the label visually; it still names the control for screen readers. Most view switchers set it. */
+  /** Hides the label visually; it still names the control for screen readers. Set it on a view switcher whose segments say what it is. */
   hideLabel?: boolean | undefined;
-  /** The segments, in order. Two to five read best. */
+  /** The segments, in order. Keep to two to five. */
   items: readonly SegmentedControlItem[];
   /** The pressed segment's value, when you control it. Pair it with `onValueChange`. */
   value?: string | undefined;
@@ -43,7 +43,11 @@ export interface SegmentedControlProps {
   defaultValue?: string | undefined;
   /** Called with the new segment's value when the person presses a segment. Pressing the pressed one does nothing. */
   onValueChange?: ((value: string) => void) | undefined;
-  /** Disables every segment. */
+  /**
+   * Disables every segment.
+   *
+   * @claim registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx verify:testExists(registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx::SegmentedControl > disables one segment, or the whole control)
+   */
   disabled?: boolean | undefined;
   /** Stretches the control to the width of its container, with the segments sharing it equally. */
   fullWidth?: boolean | undefined;
@@ -95,6 +99,8 @@ function duplicateValue(items: readonly SegmentedControlItem[]): string | undefi
  *   value={view}
  *   onValueChange={setView}
  * />
+ * @claim registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx verify:testExists(registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx::SegmentedControl > submits the checked value with a form when given a name)
+ * @claim registry/ouro/components/ouro/segmented-control/segmented-control.touch.test.tsx verify:testExists(registry/ouro/components/ouro/segmented-control/segmented-control.touch.test.tsx::keeps 44px segments with 16px text on a phone, also in landscape)
  */
 export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
   const {
