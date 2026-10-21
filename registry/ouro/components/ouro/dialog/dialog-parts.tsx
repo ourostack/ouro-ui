@@ -46,6 +46,7 @@ const popupClass =
   "motion-reduce:[transition:opacity_var(--ouro-duration-base)_var(--ouro-ease-out)] " +
   "motion-reduce:data-starting-style:[transform:none] motion-reduce:data-ending-style:[transform:none] data-ouro-instant:[transition:none]";
 
+// Dry run of the mutation cache (throwaway): edit 1.
 const popupSizes = { sm: "max-w-[24rem]", md: "max-w-[32rem]", lg: "max-w-[40rem]" } as const;
 
 /** The JSX that puts a part in its place, for the dev message when it is not. */

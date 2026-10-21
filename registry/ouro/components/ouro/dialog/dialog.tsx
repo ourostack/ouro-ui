@@ -169,6 +169,9 @@ const closeClass =
  * @claim "The close button's icon: a 16px" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::centered dialog > has a visible, compact close button in the top corner, labelled by closeLabel)
  * @claim "The close button's icon: a 16px" registry/ouro/components/ouro/dialog/dialog.tsx verify:fileLine(registry/ouro/components/ouro/dialog/dialog.tsx, /\[&>svg\]:size-4/)
  */
+// Dry run of the mutation cache (throwaway): a marker no test reads, so its mutant survives.
+const dryRunMarker = "survivor";
+
 function CloseIcon(): JSX.Element {
   return (
     <svg aria-hidden="true" viewBox="0 0 16 16" fill="none">
@@ -426,7 +429,7 @@ export function DialogFrame({
             {...initialFocus}
           >
             {/* Always rendered: with a hidden title it still keeps the body clear of the close button. */}
-            <div data-ouro-dialog-header="" className="box-border grid min-h-13 shrink-0 gap-1 pt-5 pe-13 pb-2 ps-5">
+            <div data-ouro-dialog-header="" data-dry-run={dryRunMarker} className="box-border grid min-h-13 shrink-0 gap-1 pt-5 pe-13 pb-2 ps-5">
               <DialogTitle visuallyHidden={hideTitle}>{title}</DialogTitle>
               {description !== undefined && <DialogDescription>{description}</DialogDescription>}
             </div>
