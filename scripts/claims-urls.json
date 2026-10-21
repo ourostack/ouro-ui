@@ -167,6 +167,14 @@
     "status": 200,
     "checked": "2026-10-21"
   },
+  "https://ui.shadcn.com/docs/components/toggle": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
+  "https://ui.shadcn.com/docs/components/toggle-group": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
   "https://vite.dev/guide/env-and-mode": {
     "status": 200,
     "checked": "2026-10-21"

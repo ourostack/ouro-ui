@@ -4,7 +4,7 @@ export type { ColorScheme, ColorSchemeOptions, ResolvedColorScheme };
 // Plain values with no hooks, so a Server Component (Next.js's root layout) can call
 // colorSchemeScript; lib/ouro/color-scheme.ts holds the provider and the hook.
 
-/** A person's choice of color scheme: one of the two, or whatever the system uses. */
+/** A person's choice of color scheme: light, dark, or whatever the system uses. */
 type ColorScheme = "light" | "dark" | "system";
 
 /** The scheme the page shows: `system` resolved through `prefers-color-scheme`. */
@@ -40,6 +40,7 @@ const COLOR_SCHEME_DEFAULTS: { readonly storageKey: string; readonly defaultSche
  *     <ColorSchemeProvider>{children}</ColorSchemeProvider>
  *   </body>
  * </html>
+ * @claim "The script that sets the page's" registry/ouro/lib/ouro/color-scheme.test.tsx verify:testExists(registry/ouro/lib/ouro/color-scheme.test.tsx::ColorSchemeProvider > keeps the head script's dark class through hydration)
  */
 function colorSchemeScript(options: ColorSchemeOptions = {}): string {
   const key = JSON.stringify(options.storageKey ?? COLOR_SCHEME_DEFAULTS.storageKey);

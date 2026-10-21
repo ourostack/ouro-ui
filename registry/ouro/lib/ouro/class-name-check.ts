@@ -70,6 +70,8 @@ export function findClassNameProblem(className: string | undefined): ClassNamePr
  * @param alignHint Exact code for alignment classes when the component has an
  * `align` prop, for example `align="center"`. Without it the message says
  * alignment is the parent's job.
+ * @claim "Runs in an effect, so it" registry/ouro/lib/ouro/class-name-check.test.tsx verify:testExists(registry/ouro/lib/ouro/class-name-check.test.tsx::useAppearanceClassNameCheck > never warns during server rendering)
+ * @claim "Runs in an effect, so it" registry/ouro/lib/ouro/class-name-check.test.tsx verify:testExists(registry/ouro/lib/ouro/class-name-check.test.tsx::useAppearanceClassNameCheck > warns once per instance, and again for another instance)
  */
 export function useAppearanceClassNameCheck(
   component: string,

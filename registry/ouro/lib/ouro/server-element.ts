@@ -4,6 +4,8 @@ import { Children, isValidElement, type ReactNode } from "react";
  * Whether `node` is the lazy wrapper React's Flight client can hand a client component in
  * place of an element, or a list of them, that a Server Component passed
  * (https://github.com/facebook/react/issues/32392). The wrapper has no `type`, `props` or `key`.
+ * @claim "The wrapper has no `type`, `props`" registry/ouro/lib/ouro/server-element.test.tsx verify:testExists(registry/ouro/lib/ouro/server-element.test.tsx::resolves a wrapper to the element inside it, with the element's own key)
+ * @claim "The wrapper has no `type`, `props`" registry/ouro/lib/ouro/server-element.test.tsx verify:testExists(registry/ouro/lib/ouro/server-element.test.tsx::resolves a wrapper that holds a wrapper)
  */
 const isWrapper = (node: unknown): boolean => (node as { $$typeof?: symbol } | null | undefined)?.$$typeof === Symbol.for("react.lazy");
 

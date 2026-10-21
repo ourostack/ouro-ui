@@ -22,7 +22,11 @@ const TONE_SECONDS = 0.18;
 const GAP_SECONDS = 0.12;
 const TONES = 3;
 const PATTERN: readonly number[] = [200, 100, 200, 100, 400];
-/** How long a suspended context gets to resume: a browser that keeps the page silent may never settle it. */
+/**
+ * How long a suspended context gets to resume: a browser that keeps the page silent may never settle it.
+ *
+ * @claim "How long a suspended context gets" registry/ouro/lib/ouro/feedback.test.ts verify:testExists(registry/ouro/lib/ouro/feedback.test.ts::chime > closes a context it made for itself when the browser never settles resume)
+ */
 const RESUME_MS = 300;
 
 function constructor(): AudioContextConstructor | null {
@@ -56,6 +60,8 @@ async function resumeWithin(audio: AudioContext): Promise<void> {
  *   context.current ??= createChimeContext();
  *   timer.start();
  * };
+ * @claim "Makes an audio context for chime , or returns `null` where the browser has no Web Audio" registry/ouro/lib/ouro/feedback.test.ts verify:testExists(registry/ouro/lib/ouro/feedback.test.ts::createChimeContext > makes an AudioContext where the browser has Web Audio)
+ * @claim "Makes an audio context for chime , or returns `null` where the browser has no Web Audio" registry/ouro/lib/ouro/feedback.test.ts verify:testExists(registry/ouro/lib/ouro/feedback.test.ts::createChimeContext > returns null without Web Audio, or when the browser refuses one)
  */
 function createChimeContext(): AudioContext | null {
   const Context = constructor();
@@ -87,6 +93,9 @@ function createChimeContext(): AudioContext | null {
  * @claim "It resolves `true` once the tones" registry/ouro/lib/ouro/feedback.test.ts verify:testExists(registry/ouro/lib/ouro/feedback.test.ts::chime > resolves false soon when the browser never settles resume, and plays nothing when it settles late)
  * @claim "It settles within about 300 ms" registry/ouro/lib/ouro/feedback.test.ts verify:testExists(registry/ouro/lib/ouro/feedback.test.ts::chime > resolves false soon when the browser never settles resume, and plays nothing when it settles late)
  * @claim "It settles within about 300 ms" registry/ouro/lib/ouro/feedback.ts verify:fileLine(registry/ouro/lib/ouro/feedback.ts, /const\sRESUME_MS\s=\s300;/)
+ * @claim "Plays a short alert, three soft" registry/ouro/lib/ouro/feedback.test.ts verify:testExists(registry/ouro/lib/ouro/feedback.test.ts::chime > schedules three short tones on the context it is given, and leaves it open)
+ * @claim "Plays a short alert, three soft" registry/ouro/lib/ouro/feedback.test.ts verify:testExists(registry/ouro/lib/ouro/feedback.test.ts::buzz > vibrates in a short alert pattern where the device can)
+ * @claim "It never throws" registry/ouro/lib/ouro/feedback.test.ts verify:testExists(registry/ouro/lib/ouro/feedback.test.ts::chime > resolves false, without throwing, when Web Audio fails)
  */
 async function chime({ context }: ChimeOptions = {}): Promise<boolean> {
   const audio = context ?? createChimeContext();

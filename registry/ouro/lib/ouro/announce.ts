@@ -36,8 +36,8 @@ function getRegion(): HTMLElement {
 /**
  * Speaks `message` politely to screen readers through one shared live region,
  * created at the end of `document.body` on first use. The message is written
- * about 100ms later. Calling it again with the same message speaks it again. A
- * no-op on the server.
+ * about 100ms later. Calling it again with the same message speaks it again. On the
+ * server it does nothing.
  *
  * The region lives outside every component, so it never changes a control's
  * accessible name and never sits inside an `aria-busy` subtree.

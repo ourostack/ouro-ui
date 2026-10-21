@@ -516,7 +516,11 @@ interface SwipeState {
   offset: number;
   /** The finger travel that put the toast where it was taken. */
   grab: number;
-  /** Which of the two drags, one per axis, still follows a press that has not chosen. */
+  /**
+   * Which of the two drags, one per axis, still follows a press that has not chosen.
+   *
+   * @claim "Which of the two drags, one" registry/ouro/components/ouro/toast/toaster.touch.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.touch.test.tsx::the swipe follows the finger (rule 12) > moves 1:1 from where it was taken, either way, once 10px have chosen sideways)
+   */
   pressed: { x: boolean; y: boolean };
   /** Whether the press became a drag. */
   moved: boolean;
@@ -531,7 +535,11 @@ function unband(shown: number, size: number, constant = 0.55): number {
   return (shown * size) / (constant * (size - Math.abs(shown)));
 }
 
-/** The tone's icon, drawn in the tone's color; `secondary` has none. */
+/**
+ * The tone's icon, drawn in the tone's color; `secondary` has none.
+ *
+ * @claim "The tone's icon, drawn in the" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > marks the tone and shows an icon for every tone but secondary)
+ */
 function ToneIcon({ tone }: { tone: string | undefined }): JSX.Element | null {
   if (tone === undefined || !Object.hasOwn(iconTones, tone)) return null;
   const color = iconTones[tone as keyof typeof iconTones];
