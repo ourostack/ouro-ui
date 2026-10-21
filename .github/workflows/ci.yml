@@ -153,7 +153,9 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium webkit
+      - uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium webkit
       - id: tests
         name: Browser tests
         run: |
@@ -215,7 +217,9 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium webkit
+      - uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium webkit
       - name: Script tests
         run: |
           mkdir -p .tmp/timings
@@ -371,7 +375,9 @@ jobs:
       - if: steps.affected.outputs.run == 'true'
         run: pnpm i --frozen-lockfile
       - if: steps.affected.outputs.run == 'true'
-        run: pnpm exec playwright install --with-deps chromium
+        uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium
       - if: steps.affected.outputs.run == 'true'
         name: Theme scans
         env:
@@ -398,7 +404,9 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
+      - uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium
       - run: pnpm test:visual
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -462,7 +470,9 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium webkit
+      - uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium webkit
       - name: End-to-end specs
         run: |
           if [ "$FULL" = true ]; then
@@ -523,7 +533,9 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
+      - uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium
       - run: pnpm site:build
       - run: site/scripts/theme-install-test.sh "$RUNNER_TEMP/theme-app"
       - if: failure()
@@ -553,7 +565,9 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
+      - uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium
       - run: pnpm test:latency
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -627,6 +641,11 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
+      # The app's own `playwright install`, at the same version, then finds them here.
+      - uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium webkit
+          system-packages: "false"
       # The browsers' system packages took 0.7 to 3.7 minutes of the shipped tests' setup: they
       # install while the app is built, and install-test.sh waits for them (OURO_BROWSER_DEPS).
       - name: Browser system packages, in the background
@@ -756,6 +775,11 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
+      # install-test.sh installs their system packages.
+      - uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium webkit
+          system-packages: "false"
       - run: SHADCN_VERSION=latest scripts/install-test.sh shadcn "$RUNNER_TEMP/latest" ${{ github.sha }}
   install-upgrade:
     # An app on v0.1.0 (dialog from GitHub at #v0.1.0, with tests of its own) runs the

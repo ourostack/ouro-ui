@@ -16,16 +16,86 @@ const dir = join(root, ".github/workflows");
 const workflows = readdirSync(dir)
   .filter((file) => file.endsWith(".yml"))
   .map((file) => ({ file, text: readFileSync(join(dir, file), "utf8") }));
+// The repository's own composite actions, which the workflows use from their checkout.
+const actionsDir = join(root, ".github/actions");
+const actions = readdirSync(actionsDir).map((name) => ({ file: `actions/${name}/action.yml`, text: readFileSync(join(actionsDir, name, "action.yml"), "utf8") }));
 
-test("every action is pinned to a full commit SHA, with its version in a comment", () => {
+test("every action is pinned to a full commit SHA, with its version in a comment, or is one of the repository's own", () => {
   assert.ok(workflows.length >= 4);
-  const unpinned = workflows.flatMap(({ file, text }) =>
+  const ownActions = new Set(actions.map(({ file }) => `./.github/${file.replace(/\/action\.yml$/, "")}`));
+  const unpinned = [...workflows, ...actions].flatMap(({ file, text }) =>
     text
       .split("\n")
-      .filter((line) => /^\s*(- )?uses: /.test(line) && !/uses: [\w.-]+\/[\w.-]+@[0-9a-f]{40} # v\d+\.\d+\.\d+$/.test(line))
+      .filter((line) => /^\s*(- )?uses: /.test(line))
+      .filter((line) => !/uses: [\w.-]+\/[\w.-]+(\/[\w.-]+)*@[0-9a-f]{40} # v\d+\.\d+\.\d+$/.test(line) && !ownActions.has(line.replace(/^\s*(- )?uses: /, "").trim()))
       .map((line) => `${file}: ${line.trim()}`),
   );
-  assert.deepEqual(unpinned, [], "Pin with owner/repo@<40-character SHA> # vX.Y.Z.");
+  assert.deepEqual(unpinned, [], "Pin with owner/repo@<40-character SHA> # vX.Y.Z, or use one of .github/actions.");
+});
+
+const browserAction = readFileSync(join(actionsDir, "playwright-browsers/action.yml"), "utf8");
+
+test("CI downloads Playwright's browsers only through the cached action", () => {
+  for (const file of ["ci.yml", "agent-usability.yml", "visual-baselines.yml", "form-answer-proof.yml", "benchmark-v08-score.yml"]) {
+    const text = workflows.find((workflow) => workflow.file === file).text;
+    assert.doesNotMatch(text, /(pnpm exec|npx) playwright install(?!-deps)/, `${file} downloads browsers itself`);
+    assert.match(text, /uses: \.\/\.github\/actions\/playwright-browsers\n\s+with:\n\s+browsers: [a-z ]+\n/);
+  }
+  // The install shards and install-latest restore them before install-test.sh, whose own
+  // `playwright install`, at the same pinned version, then downloads nothing.
+  const ci = workflows.find((workflow) => workflow.file === "ci.yml").text;
+  assert.equal(ci.match(/browsers: chromium webkit\n\s+system-packages: "false"\n(?:\s+#.*\n)*\s+- (name: Browser system packages|run: SHADCN_VERSION=latest scripts\/install-test\.sh)/g)?.length, 2);
+  // Main's cache, which every other run can restore, holds each set the workflows install.
+  const warm = workflows.find((workflow) => workflow.file === "browser-cache.yml").text;
+  assert.match(warm, /browsers: \[chromium, chromium webkit\]/);
+  assert.match(warm, /push:\n\s+branches: \[main\]/);
+});
+
+test("the browser action restores, downloads only what is missing with retries, saves on a miss, then installs system packages", () => {
+  const steps = ["actions/cache/restore@", "scripts/retry.sh pnpm exec playwright install $BROWSERS", "actions/cache/save@", "scripts/retry.sh pnpm exec playwright install-deps $BROWSERS"];
+  const at = steps.map((step) => browserAction.indexOf(step));
+  assert.ok(at.every((index) => index > 0), `missing: ${steps.filter((_, index) => at[index] < 0).join(", ")}`);
+  assert.deepEqual([...at].sort((a, b) => a - b), at, "in this order");
+  // The key: the runner's OS and architecture, Playwright's version and the browsers, sorted.
+  assert.match(browserAction, /key=playwright-\$\{RUNNER_OS\}-\$\{RUNNER_ARCH\}-\$\{version\}-\$\{set\}/);
+  assert.match(browserAction, /version=\$\(node -p 'require\("playwright\/package\.json"\)\.version'\)/);
+  assert.match(browserAction, /- if: steps\.restore\.outputs\.cache-hit != 'true'\n\s+uses: actions\/cache\/save@/);
+  assert.match(browserAction, /- if: inputs\.system-packages == 'true'\n\s+shell: bash/);
+});
+
+test("only network fetches are retried: scripts/retry.sh wraps Playwright's downloads and nothing else", () => {
+  const uses = [...workflows, ...actions].flatMap(({ file, text }) => [...text.matchAll(/scripts\/retry\.sh (.*)/g)].map((match) => `${file}: ${match[1]}`));
+  assert.ok(uses.length > 0);
+  assert.deepEqual(
+    uses.filter((use) => !/: pnpm exec playwright install(-deps)? \$BROWSERS$/.test(use)),
+    [],
+  );
+});
+
+test("scripts/retry.sh runs a failed fetch again after each wait, and fails with its status once the waits run out", () => {
+  const work = scratchDir("ouro-retry-");
+  const count = join(work, "count");
+  // Fails until it has run $PASS_ON times, with status 7.
+  const fetch = join(work, "fetch");
+  writeFileSync(fetch, `#!/usr/bin/env bash\nn=$(( $(cat "${count}" 2>/dev/null || echo 0) + 1 ))\necho "$n" > "${count}"\n[ "$n" -ge "$PASS_ON" ] || exit 7\n`);
+  chmodSync(fetch, 0o755);
+  const run = (passOn) => {
+    writeFileSync(count, "0");
+    const result = spawnSync("bash", [join(root, "scripts/retry.sh"), fetch], { encoding: "utf8", env: { ...process.env, RETRY_DELAYS: "0 0", PASS_ON: String(passOn) } });
+    return { ...result, runs: Number(readFileSync(count, "utf8")) };
+  };
+  const third = run(3);
+  assert.equal(third.status, 0);
+  assert.equal(third.runs, 3);
+  assert.equal(third.stdout.match(/^::warning::.* failed \(try \d of 3\); trying again in 0s\.$/gm)?.length, 2);
+  const never = run(4);
+  assert.equal(never.status, 7);
+  assert.equal(never.runs, 3);
+  assert.match(never.stdout, /^::error::.* failed 3 times\.$/m);
+  const first = run(1);
+  assert.equal(first.status, 0);
+  assert.equal(first.runs, 1);
+  assert.equal(first.stdout, "");
 });
 
 test("only release.yml's release job, which pushes, keeps the checkout's credentials", () => {
