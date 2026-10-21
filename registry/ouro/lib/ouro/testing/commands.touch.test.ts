@@ -392,6 +392,26 @@ test("touches reach a cross-origin iframe, and a cross-origin iframe does not ho
   await commands.touchStep({ type: "touchEnd" });
 });
 
+// TEMPORARY (diagnostics run for the slow idle cross-origin tap; removed before review).
+test("TEMP: a tap beside a cross-origin iframe just added, 30 times", async () => {
+  const times: number[] = [];
+  for (let index = 0; index < 30; index++) {
+    const frame = document.createElement("iframe");
+    frame.setAttribute("sandbox", "allow-scripts");
+    Object.assign(frame.style, { position: "absolute", top: "300px", left: "0", width: "300px", height: "100px", border: "0" });
+    frame.srcdoc = "<body style='margin:0'><div style='height:100px'></div></body>";
+    const loaded = new Promise((resolve) => frame.addEventListener("load", resolve, { once: true }));
+    document.body.append(frame);
+    nodes.push(frame);
+    await loaded;
+    const started = performance.now();
+    expect(await tapAt(window, 100, 50)).toEqual(["touchstart", "touchend"]);
+    times.push(Math.round(performance.now() - started));
+    frame.remove();
+  }
+  expect(times.filter((time) => time > 1000)).toEqual([]);
+});
+
 /**
  * A sandboxed frame at `top`: an opaque origin, cross-origin to this page, which the touch project
  * runs in a process of its own (`--site-per-process`). `busy(ms)` keeps its thread busy for that
