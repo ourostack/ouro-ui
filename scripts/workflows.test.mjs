@@ -405,6 +405,20 @@ test("every required check is still a job that reports, under the name the rules
   for (const check of required) assert.ok(names.includes(check), `${check} is not among ${names.join(", ")}`);
 });
 
+test("the required ci job runs the claims ratchet on a pull request, against its base, with its description", () => {
+  const block = ciJobs().ci;
+  const step = block.slice(block.search(/^ {6}- name: Claims\n/m)).split(/\n {6}- /)[0];
+  assert.match(step, /^ {10}PR_BODY: \$\{\{ github\.event\.pull_request\.body \}\}$/m);
+  const script = `git() { printf 'CALL git %s\\n' "$*" >&2; }\n${stepScript(block, "Claims")}`;
+  const pull = runStep(script, { BASE_REF: "main" });
+  assert.equal(pull.status, 0);
+  assert.match(pull.calls, /^CALL git fetch --no-tags --depth=1 origin main\nCALL node scripts\/claims\.mjs ratchet\nCALL pnpm claims:check --network=changed$/m);
+  // A failing ratchet fails the job.
+  assert.notEqual(runStep(script, { BASE_REF: "main" }, { nodeStatus: 1 }).status, 0);
+  assert.doesNotMatch(runStep(script, { BASE_REF: "" }).calls, /ratchet/);
+  assert.ok(JSON.parse(readFileSync(join(root, ".github/required-checks.json"), "utf8")).includes("ci"));
+});
+
 test("the ci job runs every browser test, or the reduced run, and says which for motion coverage", () => {
   const script = stepScript(ciJobs().ci, "Browser tests");
   const full = runStep(script, { FULL: "true", COMPONENTS: "" });

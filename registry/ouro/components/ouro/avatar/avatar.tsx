@@ -67,7 +67,7 @@ export interface AvatarGroupOwnProps {
   /**
    * How many there are in all, when you pass only the first few avatars (a recipe with
    * 120 cooks). The "+N" count is `total` minus the avatars shown.
-   * @claim "How many there are in all" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar > is hidden from assistive technology with an empty alt)
+   * @claim "How many there are in all" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::AvatarGroup > counts from total when more people exist than avatars passed)
    */
   total?: number | undefined;
   /** What screen readers hear for the "+N" count, for other languages. @default (count) => `${count} more` */

@@ -69,9 +69,9 @@ export interface NativeSelectOwnProps {
   ref?: Ref<HTMLSelectElement> | undefined;
 
   /**
-   * Not supported. A native multiple select is hard to use; use `<Select multiple>`.
+   * Not supported by NativeSelect. A native multiple select is hard to use; use `<Select multiple>`.
    *
-   * @claim "Not supported" registry/ouro/components/ouro/select/native-select.test-d.ts verify:fileLine(registry/ouro/components/ouro/select/native-select.test-d.ts, /expectTypeOf<\{\slabel:\s"Tags";\smultiple:\strue\s\}>\(\)\.not\.toExtend<NativeSelectProps>/)
+   * @claim "Not supported by NativeSelect" registry/ouro/components/ouro/select/native-select.test-d.ts verify:fileLine(registry/ouro/components/ouro/select/native-select.test-d.ts, /expectTypeOf<\{\slabel:\s"Tags";\smultiple:\strue\s\}>\(\)\.not\.toExtend<NativeSelectProps>/)
    */
   multiple?: { 'Use <Select multiple>': never };
   /** Not a prop. For several values use `<Select multiple>`. */

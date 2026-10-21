@@ -28,4 +28,4 @@ Type: `MenuGroupProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `children` (required) | `ReactNode` |  | The group's items. |
-| `label` (required) | `string` |  | Names the group, shown above its items. Always required. |
+| `label` (required) | `string` |  | Names the group, shown above its items. It is always required. |

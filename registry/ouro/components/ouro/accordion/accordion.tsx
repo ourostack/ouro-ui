@@ -58,7 +58,7 @@ export interface AccordionBaseProps {
   /**
    * Keeps every item from opening or closing.
    *
-   * @claim "Keeps every item from opening or" registry/ouro/components/ouro/accordion/accordion.tsx verify:fileLine(registry/ouro/components/ouro/accordion/accordion.tsx, /^\s+disabled,$/)
+   * @claim "Keeps every item from opening or" registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > keeps every item from opening or closing when disabled)
    * @claim "Keeps every item from opening or" https://base-ui.com/react/components/accordion verify:urlOk(https://base-ui.com/react/components/accordion)
    */
   disabled?: boolean | undefined;

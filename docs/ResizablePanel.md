@@ -30,7 +30,7 @@ Type: `ResizablePanelProps`.
 | `className` | `string` |  | Layout only: padding (`p-4`). Appearance classes warn in development. |
 | `defaultSize` | `number` |  | The starting size, in percent of the group. Panels without one share what is left. |
 | `id` | `string` |  | The panel's id, which the handle's `aria-controls` points at. One is made up when you leave it out. |
-| `label` (required) | `string` |  | Names the panel; the handle after it is called "Resize {label}" for screen readers. Always required. |
+| `label` (required) | `string` |  | Names the panel; the handle after it is called "Resize {label}" for screen readers. It is always required. |
 | `maxSize` | `number` | `100` | The largest size a drag or key can give the panel, in percent. |
 | `minSize` | `number` | `10` | The smallest size a drag or key can give the panel, in percent. |
 

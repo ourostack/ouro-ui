@@ -32,7 +32,7 @@ Type: `CarouselProps`.
 | `children` (required) | `ReactNode` |  | The slides: each child is one slide, so pass the images or cards themselves. |
 | `className` | `string` |  | Layout only: width and margins (`max-w-xl`, `mx-auto`). Appearance classes warn in development. |
 | `defaultIndex` | `number` | `0` | The slide to start on, counting from 0. The starting slide is not announced. |
-| `label` (required) | `string` |  | Names the carousel for screen readers, such as "Recipe photos". Always required. |
+| `label` (required) | `string` |  | Names the carousel for screen readers, such as "Recipe photos". It is always required. |
 | `loop` | `boolean` |  | Next on the last slide goes back to the first, and Previous on the first goes to the last. |
 | `nextLabel` | `string` | `"Next slide"` | The Next button's accessible name. |
 | `onIndexChange` | `((index: number) => void)` |  | Called with the index of the first visible slide when the user moves to another slide, once per change. |

@@ -222,7 +222,7 @@ test("JSDoc: a default's prose is a sentence the docs table shows, and its value
     "  /**",
     "   * The size.",
     "   * @default derived from `level` (1 is `2xl`, 2 is `xl`)",
-    '   * @claim "1 is" registry/a.tsx verify:fileLine(registry/a.tsx, /level/)',
+    '   * @claim "1 is `2xl`" registry/a.tsx verify:fileLine(registry/a.tsx, /level/)',
     "   */",
     "  size?: string;",
     "}",
@@ -314,6 +314,66 @@ test("TypeScript copy: Markdown templates, lowercase and unpunctuated strings an
     [7, "tested in every browser"],
     [8, "accessible in every theme"],
     [9, "Ships ${n} components, all tested."],
+  ]);
+});
+
+test("TypeScript copy: a footnote in a Markdown template is a claim, and a false check in it fails", async () => {
+  const source = [
+    "export const BOTH = `",
+    "## Both",
+    "",
+    "Ouro HX has 999 components.[^n]",
+    "",
+    "[^n]: registry.json verify:count(registry:ui)=999 verify:testExists(nope.test.ts::does not exist)",
+    "`;",
+  ].join("\n");
+  const { findings, claims } = lintTypeScript(source, { file: "site/src/pages/docs.tsx", copy: true });
+  assert.deepEqual(findings, []);
+  assert.deepEqual(claims.map((claim) => [claim.line, claim.text]), [[4, "Ouro HX has 999 components.[^n]"]]);
+  const failures = (await verify(claims[0].checks, { root: verifyFixture(), urlCache: "claims-urls.json", network: false })).map((failure) => failure.message);
+  assert.equal(failures.length, 2);
+  assert.match(failures[0], /counts 2, not 999/);
+  assert.match(failures[1], /nope\.test\.ts/);
+});
+
+test("TypeScript copy: a string of only a number and a noun is read", () => {
+  const source = ['export const COUNT = "73 components";', 'export const STAT = { heading: "100% coverage" };', 'export const SIZE = "16px";'].join("\n");
+  const { findings } = lintTypeScript(source, { file: "site/src/copy.ts", copy: true });
+  assert.deepEqual(findings.map((finding) => [finding.line, finding.sentence]), [
+    [1, "73 components"],
+    [2, "100% coverage"],
+  ]);
+});
+
+test("JSDoc: an @claim quote is at least three words, matched as words, in one sentence only", () => {
+  const source = [
+    "export { A, B, C };",
+    "/**",
+    " * Every row is tested.",
+    " *",
+    ' * @claim "row is" registry/a.tsx verify:fileLine(registry/a.tsx, /min-h-11/)',
+    " */",
+    "function A() { return null; }",
+    "/**",
+    " * Every rowboat is tested in WebKit.",
+    " *",
+    ' * @claim "row is tested" registry/a.tsx verify:fileLine(registry/a.tsx, /min-h-11/)',
+    " */",
+    "function B() { return null; }",
+    "/**",
+    " * Every row is tested in WebKit. Every row is tested in Chromium.",
+    " *",
+    ' * @claim "Every row is tested" registry/a.tsx verify:fileLine(registry/a.tsx, /min-h-11/)',
+    " */",
+    "function C() { return null; }",
+  ].join("\n");
+  const { findings, claims } = lintTypeScript(source, { file: "registry/a.tsx", jsdoc: true });
+  assert.equal(claims.length, 0);
+  const messages = findings.filter((finding) => finding.sentence === "@claim").map((finding) => [finding.line, finding.message.replace(/^[^:]+:\d+: /, "")]);
+  assert.deepEqual(messages, [
+    [5, 'This @claim quotes "row is": quote at least three words of the sentence it backs.'],
+    [11, '"row is tested" is in no sentence of this comment, so this @claim backs nothing. Quote words of the sentence it backs.'],
+    [17, '"Every row is tested" is in more than one sentence of this comment. Quote words only one of them has.'],
   ]);
 });
 
@@ -599,11 +659,25 @@ test("exemptions ratchet against the base ref: a new one must carry a reason and
     surfaces: [{ match: "\\.md$", mode: "markdown", exclude: "^docs/" }],
   };
   const widerBase = { ...base, generated: ["^README\\.md$"], requiredTests: [{ match: "\\.test\\.tsx?$", job: "ci" }], surfaces: [{ match: "\\.md$", mode: "markdown" }] };
+  // Narrowing what is read is an exemption too: removing or changing a surface, a generator or a generated file.
+  const read = { ...base, surfaces: [{ match: "\\.md$", mode: "markdown" }, { match: "^src/", mode: "copy" }], generators: ["scripts/gen.mts"], generated: ["^docs/"], urlMaxAgeDays: 30 };
+  const narrower = { ...read, surfaces: [{ match: "\\.md$", mode: "jsdoc" }], generators: [], generated: [], urlMaxAgeDays: 100000 };
+  assert.deepEqual(policyProblems({ base: read, head: narrower, body: "" }).map((problem) => problem.message), [
+    'claims.config.json: generated removes "^docs/"; name it in the pull request\'s description, so a reviewer sees the exemption.',
+    'claims.config.json: surfaces changes "\\.md$"; name it in the pull request\'s description, so a reviewer sees the exemption.',
+    'claims.config.json: surfaces removes "^src/"; name it in the pull request\'s description, so a reviewer sees the exemption.',
+    'claims.config.json: generators removes "scripts/gen.mts"; name it in the pull request\'s description, so a reviewer sees the exemption.',
+    "claims.config.json: urlMaxAgeDays rises from 30 to 100000; name urlMaxAgeDays in the pull request's description, so a reviewer sees the exemption.",
+  ]);
+  assert.deepEqual(policyProblems({ base: read, head: narrower, body: 'Changes "\\.md$", removes "^src/", "scripts/gen.mts" and "^docs/", and raises urlMaxAgeDays.' }), []);
+  // A base without urlMaxAgeDays has the default's 30 days.
+  assert.equal(policyProblems({ base, head: { ...base, urlMaxAgeDays: 31 }, body: "" }).length, 1);
+  assert.deepEqual(policyProblems({ base: read, head: { ...read, urlMaxAgeDays: 7 }, body: "" }), []);
   assert.deepEqual(policyProblems({ base: widerBase, head: wider, body: "" }).map((problem) => problem.message), [
     'claims.config.json: generated adds "^docs/"; name it in the pull request\'s description, so a reviewer sees the exemption.',
     'claims.config.json: requiredTests adds "^scripts/kits/ in ci" with no reason. Give it one.',
     'claims.config.json: requiredTests adds "^scripts/kits/ in ci"; name it in the pull request\'s description, so a reviewer sees the exemption.',
-    'claims.config.json: surfaces adds "\\.md$ except ^docs/"; name it in the pull request\'s description, so a reviewer sees the exemption.',
+    'claims.config.json: surfaces changes "\\.md$"; name it in the pull request\'s description, so a reviewer sees the exemption.',
   ]);
 });
 

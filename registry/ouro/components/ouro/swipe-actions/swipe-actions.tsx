@@ -56,9 +56,9 @@ export interface SwipeAction {
 /** Props for {@link SwipeActions}. */
 export interface SwipeActionsProps {
   /**
-   * Names the row for its actions button: "Braised short ribs" gives "Actions for Braised short ribs". Always required.
+   * Names the row for its actions button: "Braised short ribs" gives "Actions for Braised short ribs". It is always required.
    *
-   * @claim "Always required" registry/ouro/components/ouro/swipe-actions/swipe-actions.test-d.ts verify:fileLine(registry/ouro/components/ouro/swipe-actions/swipe-actions.test-d.ts, /\{\schildren:\s"Row"\s\}>\(\)\.not\.toExtend<SwipeActionsProps>/)
+   * @claim "It is always required" registry/ouro/components/ouro/swipe-actions/swipe-actions.test-d.ts verify:fileLine(registry/ouro/components/ouro/swipe-actions/swipe-actions.test-d.ts, /\{\schildren:\s"Row"\s\}>\(\)\.not\.toExtend<SwipeActionsProps>/)
    */
   label: string;
   /** The row itself, usually an `Item`. It may be a link (`<Item href>`): a tap follows it and a swipe does not. */

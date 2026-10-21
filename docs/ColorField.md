@@ -43,7 +43,7 @@ Type: `ColorFieldProps`.
 
 These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
-- `alpha`: Not supported. ColorField takes `#rrggbb`, with no transparency.
+- `alpha`: Not supported by ColorField. ColorField takes `#rrggbb`, with no transparency.
 - `color`: Not a prop. Ouro UI uses `value` or `defaultValue`: `<ColorField defaultValue="#ff0000">`.
 - `errorMessage`: Not a prop. Ouro UI uses `error`: `<ColorField error="Pick a darker color.">`.
 - `format`: Not a prop. ColorField takes and gives `#rrggbb`: `<ColorField defaultValue="#3366ff">`.

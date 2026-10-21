@@ -73,9 +73,9 @@ export type CommandEntry = CommandItem | CommandGroup;
 /** Props shared by both ways of opening a Command palette. */
 export interface CommandBaseProps {
   /**
-   * Names the palette for screen readers; it is not shown. Always required.
+   * Names the palette for screen readers; it is not shown. It is always required.
    *
-   * @claim "Always required" registry/ouro/components/ouro/command/command.test-d.ts verify:fileLine(registry/ouro/components/ouro/command/command.test-d.ts, /\{\strigger:\sReactElement;\sitems:\sCommandEntry\[\]\s\}>\(\)\.not\.toExtend<CommandProps>/)
+   * @claim "It is always required" registry/ouro/components/ouro/command/command.test-d.ts verify:fileLine(registry/ouro/components/ouro/command/command.test-d.ts, /\{\strigger:\sReactElement;\sitems:\sCommandEntry\[\]\s\}>\(\)\.not\.toExtend<CommandProps>/)
    */
   title: string;
   /** The commands: groups (`{ label: "Recipes", items: [...] }`), single commands, or both. */

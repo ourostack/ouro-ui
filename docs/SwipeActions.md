@@ -57,7 +57,7 @@ Type: `SwipeActionsProps`.
 | `actionsLabel` | `string` | `"Actions for {label}"` | The accessible name of the row's actions button; `{label}` is the row's `label`. Translate it with the rest of your interface. |
 | `children` (required) | `ReactNode` |  | The row itself, usually an `Item`. It may be a link (`<Item href>`): a tap follows it and a swipe does not. |
 | `className` | `string` |  | Layout only: margins (`mt-2`). Appearance classes warn in development; give an action a `tone`. |
-| `label` (required) | `string` |  | Names the row for its actions button: "Braised short ribs" gives "Actions for Braised short ribs". Always required. |
+| `label` (required) | `string` |  | Names the row for its actions button: "Braised short ribs" gives "Actions for Braised short ribs". It is always required. |
 | `leading` | `readonly SwipeAction[]` |  | The actions a swipe toward the end reveals at the start edge, the first one outermost. A full swipe runs the first. |
 | `trailing` | `readonly SwipeAction[]` |  | The actions a swipe toward the start reveals at the end edge, the first one outermost. A full swipe runs the first. |
 

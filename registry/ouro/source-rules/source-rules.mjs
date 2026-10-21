@@ -888,9 +888,9 @@ function scanStylesheet(file, source, hook = ANY_HOOK) {
 }
 
 /**
- * tsconfig's `compilerOptions.paths` (`{ "~/*": ["./app/*"] }`), or none.
+ * The paths in tsconfig's `compilerOptions.paths` (`{ "~/*": ["./app/*"] }`), or none.
  *
- * @claim "or none" scripts/kits/source-rules.test.mjs verify:testExists(scripts/kits/source-rules.test.mjs::call sites > loads tsconfig paths, tolerating a missing or path-less tsconfig)
+ * @claim "The paths in tsconfig's" scripts/kits/source-rules.test.mjs verify:testExists(scripts/kits/source-rules.test.mjs::call sites > loads tsconfig paths, tolerating a missing or path-less tsconfig)
  */
 export function loadPaths(root, readFile = defaultDeps.readFile) {
   let text;

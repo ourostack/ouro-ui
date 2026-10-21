@@ -60,7 +60,7 @@ These are not props. Passing one fails the type check with the fix in the error,
 - `isInvalid`: Not a prop. `error` marks the select invalid: `<NativeSelect error="What is wrong">`.
 - `isMulti`: Not a prop. For several values use `<Select multiple>`.
 - `isRequired`: Not a prop. Ouro UI uses `required`: `<NativeSelect required>`.
-- `multiple`: Not supported. A native multiple select is hard to use; use `<Select multiple>`.
+- `multiple`: Not supported by NativeSelect. A native multiple select is hard to use; use `<Select multiple>`.
 
 ## `className` is for layout only
 

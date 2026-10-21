@@ -270,9 +270,9 @@ export function ResizablePanelGroup(props: ResizablePanelGroupProps): JSX.Elemen
 /** Props for {@link ResizablePanel}. */
 export interface ResizablePanelProps {
   /**
-   * Names the panel; the handle after it is called "Resize {label}" for screen readers. Always required.
+   * Names the panel; the handle after it is called "Resize {label}" for screen readers. It is always required.
    *
-   * @claim "Always required" registry/ouro/components/ouro/resizable/resizable.test-d.ts verify:fileLine(registry/ouro/components/ouro/resizable/resizable.test-d.ts, /@ts-expect-error\slabel\sis\srequired\./)
+   * @claim "It is always required" registry/ouro/components/ouro/resizable/resizable.test-d.ts verify:fileLine(registry/ouro/components/ouro/resizable/resizable.test-d.ts, /@ts-expect-error\slabel\sis\srequired\./)
    */
   label: string;
   /** The starting size, in percent of the group. Panels without one share what is left. */

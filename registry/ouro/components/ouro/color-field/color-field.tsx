@@ -76,9 +76,9 @@ export interface ColorFieldProps {
   /** Not a prop. ColorField takes and gives `#rrggbb`: `<ColorField defaultValue="#3366ff">`. */
   format?: { 'ColorField takes and gives #rrggbb: <ColorField defaultValue="#3366ff">': never };
   /**
-   * Not supported. ColorField takes `#rrggbb`, with no transparency.
+   * Not supported by ColorField. ColorField takes `#rrggbb`, with no transparency.
    *
-   * @claim "Not supported" registry/ouro/components/ouro/color-field/color-field.test-d.ts verify:fileLine(registry/ouro/components/ouro/color-field/color-field.test-d.ts, /\{\slabel:\s"Color";\salpha:\strue\s\}>\(\)\.not\.toExtend<ColorFieldProps>/)
+   * @claim "Not supported by ColorField" registry/ouro/components/ouro/color-field/color-field.test-d.ts verify:fileLine(registry/ouro/components/ouro/color-field/color-field.test-d.ts, /\{\slabel:\s"Color";\salpha:\strue\s\}>\(\)\.not\.toExtend<ColorFieldProps>/)
    * @claim "ColorField takes `#rrggbb`, with no transparency" registry/ouro/components/ouro/color-field/color-field.test-d.ts verify:fileLine(registry/ouro/components/ouro/color-field/color-field.test-d.ts, /\{\slabel:\s"Color";\salpha:\strue\s\}>\(\)\.not\.toExtend<ColorFieldProps>/)
    */
   alpha?: { 'ColorField takes #rrggbb, with no transparency': never };

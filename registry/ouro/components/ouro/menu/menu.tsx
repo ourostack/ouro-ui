@@ -822,9 +822,9 @@ export function MenuRadioItem({ children, shortcut, ...rest }: MenuRadioItemProp
 /** Props for {@link MenuGroup}. */
 export interface MenuGroupProps {
   /**
-   * Names the group, shown above its items. Always required.
+   * Names the group, shown above its items. It is always required.
    *
-   * @claim "Always required" registry/ouro/components/ouro/menu/menu.test-d.ts verify:fileLine(registry/ouro/components/ouro/menu/menu.test-d.ts, /\{\stype:\s"radio";\slabel:\s"Sort"\s\}>\(\)\.not\.toExtend<MenuEntry>/)
+   * @claim "It is always required" registry/ouro/components/ouro/menu/menu.test-d.ts verify:fileLine(registry/ouro/components/ouro/menu/menu.test-d.ts, /\{\stype:\s"radio";\slabel:\s"Sort"\s\}>\(\)\.not\.toExtend<MenuEntry>/)
    */
   label: string;
   /** The group's items. */

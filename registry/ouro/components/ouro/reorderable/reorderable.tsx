@@ -60,9 +60,9 @@ export interface ReorderableMove {
 /** Props for {@link Reorderable}. */
 export interface ReorderableProps {
   /**
-   * Names the list for screen readers, such as "Steps". Always required.
+   * Names the list for screen readers, such as "Steps". It is always required.
    *
-   * @claim "Always required" registry/ouro/components/ouro/reorderable/reorderable.test-d.ts verify:fileLine(registry/ouro/components/ouro/reorderable/reorderable.test-d.ts, /\{\sitems:\s\[\]\s\}>\(\)\.not\.toExtend<ReorderableProps>/)
+   * @claim "It is always required" registry/ouro/components/ouro/reorderable/reorderable.test-d.ts verify:fileLine(registry/ouro/components/ouro/reorderable/reorderable.test-d.ts, /\{\sitems:\s\[\]\s\}>\(\)\.not\.toExtend<ReorderableProps>/)
    */
   label: string;
   /** The rows, in order: `{ id, label, content }`. Pass them in a new order to change the order from outside. */

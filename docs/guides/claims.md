@@ -14,7 +14,7 @@ node scripts/claims.mjs ratchet    # claims.config.json's exemptions against CLA
 
 Where they run:
 
-- The `ci` job runs `pnpm claims:check`. On a pull request it reads the required checks at the base branch and fetches again the addresses the pull request adds to the cache or changes (`--network=changed`).[^ci]
+- The `ci` job runs `pnpm claims:check`. On a pull request it first runs the ratchet against the base branch, then reads the required checks at the base branch and fetches again the addresses the pull request adds to the cache or changes (`--network=changed`).[^ci] After editing the description to name an exemption, re-run the job.
 - The Claims workflow lints a pull request's title and body, and runs the ratchet, when the pull request opens and whenever its description is edited.[^claims-workflow]
 - The Claim addresses workflow runs `pnpm claims:check --network` every week.[^addresses-workflow]
 
@@ -56,7 +56,7 @@ Separate a footnote's sources with `;`, and write `verify:` before a check. A fo
 
 ### In JSDoc
 
-An `@claim` tag quotes words of the one sentence it backs, so a sentence added to the comment later needs its own.[^jsdoc] The quoted words must not contain `"`. A tag also backs a sentence of a `@default`, whose words the docs table shows.[^default]
+An `@claim` tag quotes words of the one sentence it backs, so a sentence added to the comment later needs its own.[^jsdoc] The quote is three words or more, found as whole words, and in only one sentence of the comment.[^quote-words] The quoted words must not contain `"`. A tag also backs a sentence of a `@default`, whose words the docs table shows.[^default]
 
 ```ts
 /**
@@ -81,7 +81,7 @@ export const SUBLINE = claim("Checkout passes axe in light and dark.", {
 });
 ```
 
-In copy, the lint reads JSX text, a string that reads as a sentence, a Markdown template as Markdown, and any other string with a claim word or a number, lowercase or not; it skips class names (`className`, `cn`, `clsx`) and attributes that hold code.[^copy-read]
+In copy, the lint reads JSX text, a string that reads as a sentence, a Markdown template as Markdown (its footnotes are claims, and their checks run), a number followed by a word (`"73 components"`), and any other string with a claim word, lowercase or not; it skips class names (`className`, `cn`, `clsx`) and attributes that hold code.[^copy-read]
 
 A generator's own sentences are claims in its source: `scripts/registry.mts` and `scripts/gen-docs.mts` wrap theirs in `claim()`, and the lint reads `registry.json`, `site/public/llms.txt` and the generated regions of `README.md`, letting through only the words a source already claims.[^generated]
 
@@ -124,14 +124,14 @@ The checks read only the checkout, so they give the same answer on every machine
 - `requiredTests`: which required job runs which test files, and why.
 - `requiredChecks` and `urlCache`: the files that hold the required checks and the URL answers.
 
-The ratchet compares these lists, and the list of required checks, with the base branch's. Each entry a pull request adds to `allowed`, `notLinted`, `instructionVerbs`, `generated`, `requiredTests` or `surfaces` must be named in the pull request's description, and the entries that take a reason must have one, so a reviewer sees every exemption.[^ratchet]
+The ratchet compares these lists, and the list of required checks, with the base branch's. Each entry a pull request adds to `allowed`, `notLinted`, `instructionVerbs`, `generated`, `generators`, `requiredTests` or `surfaces` must be named in the pull request's description, and the entries that take a reason must have one, so a reviewer sees every exemption.[^ratchet] So must each entry it changes, compared whole, each entry it removes from `surfaces`, `generators` or `generated`, a rise in `urlMaxAgeDays`, and a new `urlCache` or `requiredChecks` file.[^ratchet-narrow]
 
 ## In an app
 
 `lib-claims` ships the checker as `lib/ouro/claims-check.mjs` beside `claim()`. Without a `claims.config.json`, it reads the app's Markdown and its copy under `src/`, and a test counts once it exists and is not skipped. Run it with `node src/lib/ouro/claims-check.mjs check` (your lib folder in place of `src/lib`), for example as a package script.[^app]
 
 [^repo-passes]: scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::checkClaims over the repository: every surface passes)
-[^ci]: .github/workflows/ci.yml verify:fileLine(.github/workflows/ci.yml, /CLAIMS_BASE_REF="origin\/\$BASE_REF" pnpm claims:check --network=changed/) verify:testExists(scripts/claims.test.mjs::ciJob reads the required checks at the base ref, so a pull request cannot add its own)
+[^ci]: .github/workflows/ci.yml verify:fileLine(.github/workflows/ci.yml, /CLAIMS_BASE_REF="origin\/\$BASE_REF" pnpm claims:check --network=changed/) verify:testExists(scripts/workflows.test.mjs::the required ci job runs the claims ratchet on a pull request, against its base, with its description) verify:testExists(scripts/claims.test.mjs::ciJob reads the required checks at the base ref, so a pull request cannot add its own)
 [^claims-workflow]: .github/workflows/claims.yml verify:fileLine(.github/workflows/claims.yml, /types: \[opened, edited, synchronize, reopened\]/) verify:fileLine(.github/workflows/claims.yml, /node scripts\/claims.mjs ratchet/) verify:testExists(scripts/claims.test.mjs::the lint command reads a pull request's title and body from the environment)
 [^addresses-workflow]: .github/workflows/claims-urls.yml verify:fileLine(.github/workflows/claims-urls.yml, /pnpm claims:check --network$/) verify:fileLine(.github/workflows/claims-urls.yml, /cron: "23 5 \* \* 1"/)
 [^triggers]: scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::triggers: numbers, versions, dates and the words that make a sentence a factual claim) verify:testExists(scripts/claims.test.mjs::triggers: spelled-out numbers, each, no and zero, always and never, and fully) verify:testExists(scripts/claims.test.mjs::Markdown: code is not read; generated regions, headings and tables are)
@@ -144,9 +144,10 @@ The ratchet compares these lists, and the list of required checks, with the base
 [^malformed]: scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::Markdown: a malformed or unverified claim marker is an error, not a pass)
 [^site]: site/src/docs/markdown.tsx verify:fileLine(site/src/docs/markdown.tsx, /kind: "sources"/)
 [^jsdoc]: scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::JSDoc: an @claim tag covers the sentence it quotes, not the whole comment)
+[^quote-words]: scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::JSDoc: an @claim quote is at least three words, matched as words, in one sentence only)
 [^default]: scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::JSDoc: a default's prose is a sentence the docs table shows, and its value is code)
 [^copy]: scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::TypeScript copy: claim() calls are claims, unsourced prose literals and JSX text fail)
-[^copy-read]: scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::TypeScript copy: Markdown templates, lowercase and unpunctuated strings and comma templates are read) verify:testExists(scripts/claims.test.mjs::TypeScript copy: claim() calls are claims, unsourced prose literals and JSX text fail)
+[^copy-read]: scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::TypeScript copy: Markdown templates, lowercase and unpunctuated strings and comma templates are read) verify:testExists(scripts/claims.test.mjs::TypeScript copy: a footnote in a Markdown template is a claim, and a false check in it fails) verify:testExists(scripts/claims.test.mjs::TypeScript copy: a string of only a number and a noun is read) verify:testExists(scripts/claims.test.mjs::TypeScript copy: claim() calls are claims, unsourced prose literals and JSX text fail)
 [^generated]: scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::generated surfaces are linted: registry.json, README regions and llms.txt items, with claims carried from their sources)
 [^sources]: scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::verify: sources must exist where they can be checked offline)
 [^offline]: scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::verify: each check passes on what holds and explains what does not)
@@ -156,5 +157,6 @@ The ratchet compares these lists, and the list of required checks, with the base
 [^surfaces]: scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::surfaces: every tracked prose file is linted or declared generated, evidence or input with a reason) verify:testExists(scripts/claims.test.mjs::the repository's exemptions are narrow: a fixtures folder in shipped code is linted, the install fixtures are not)
 [^allowed]: scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::the allow-list drops exact story sentences, and an entry that matches nothing fails)
 [^ratchet]: scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::exemptions ratchet against the base ref: a new one must carry a reason and be named in the pull request)
+[^ratchet-narrow]: scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::exemptions ratchet against the base ref: a new one must carry a reason and be named in the pull request)
 [^app]: scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::the claims checker ships in lib-claims and runs in an app)
 [^required-bootstrap]: scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::ciJob reads the pull request's list of required checks only when the base has none, and the ratchet makes it name each check it adds)

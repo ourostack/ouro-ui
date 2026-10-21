@@ -576,6 +576,14 @@ const saysSomething = (text) => {
   return hasClaimWord(maskCode(text)) && plain.length >= 2 && plain.length * 2 >= tokens.length;
 };
 
+/**
+ * Whether a short string states a number of something ("73 components", "100% coverage"): a
+ * number, then a plain word. It is read with its number, which needs a source like any other.
+ *
+ * @claim "Whether a short string states a number of something" scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::TypeScript copy: a string of only a number and a noun is read)
+ */
+const statesNumber = (text) => /(?:^|\s)\d[\d,.]*%?\+?\s+[A-Za-z’']{2,}\b/.test(text) && !/[{};=<>()]|=>|--|\bvar\(/.test(text);
+
 /** Where a string literal is a value the code compares or looks up, not text a reader sees. */
 function isLookup(node) {
   const parent = node.parent;
@@ -604,18 +612,28 @@ export function lintTypeScript(source, { file, jsdoc = false, copy = false, clai
       for (const { line, error } of errors) findings.push({ file, line, sentence: "@claim", message: `${file}:${line}: ${error}` });
       const usable = evidence.filter((entry) => entry.errors.length === 0 && entry.hasCheck);
       for (const entry of usable) if (!entry.quote) findings.push({ file, line: start + entry.line - 1, sentence: "@claim", message: `${file}:${start + entry.line - 1}: This @claim backs no sentence: quote the words of the sentence it backs, @claim "<words>" <source> verify:<check>.` });
-      const quoted = usable.filter((entry) => entry.quote);
-      const used = new Set();
-      const cover = (sentence) => {
-        const backing = quoted.filter((entry) => collapse(sentence).includes(entry.quote));
-        for (const entry of backing) used.add(entry);
-        return backing;
-      };
-      const results = [
+      const at = (entry) => `${file}:${start + entry.line - 1}`;
+      // A quote is three words or more, found as whole words, in exactly one sentence.
+      const short = usable.filter((entry) => entry.quote && entry.quote.split(" ").length < 3);
+      for (const entry of short) findings.push({ file, line: start + entry.line - 1, sentence: "@claim", message: `${at(entry)}: This @claim quotes "${entry.quote}": quote at least three words of the sentence it backs.` });
+      let quoted = usable.filter((entry) => entry.quote && !short.includes(entry));
+      const words = new Map(quoted.map((entry) => [entry, new RegExp(`(?<![\\w'’-])${entry.quote.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w'’-])`)]));
+      const read = (cover) => [
         readMarkdown(prose, { file, startLine: start, cover, howTo: HOW_TO.jsdoc, verbs }),
         ...defaults.map((entry) => readMarkdown(entry.text, { file, startLine: start + entry.line - 1, cover, howTo: HOW_TO.jsdoc, verbs })),
       ];
-      for (const entry of quoted) if (!used.has(entry)) findings.push({ file, line: start + entry.line - 1, sentence: "@claim", message: `${file}:${start + entry.line - 1}: "${entry.quote}" is in no sentence of this comment, so this @claim backs nothing. Quote words of the sentence it backs.` });
+      const sentences = new Map(quoted.map((entry) => [entry, new Set()]));
+      const cover = (sentence) => {
+        const backing = quoted.filter((entry) => words.get(entry).test(collapse(sentence)));
+        for (const entry of backing) sentences.get(entry).add(sentence);
+        return backing;
+      };
+      read(cover);
+      const ambiguous = quoted.filter((entry) => sentences.get(entry).size > 1);
+      for (const entry of ambiguous) findings.push({ file, line: start + entry.line - 1, sentence: "@claim", message: `${at(entry)}: "${entry.quote}" is in more than one sentence of this comment. Quote words only one of them has.` });
+      for (const entry of quoted) if (sentences.get(entry).size === 0) findings.push({ file, line: start + entry.line - 1, sentence: "@claim", message: `${at(entry)}: "${entry.quote}" is in no sentence of this comment, so this @claim backs nothing. Quote words of the sentence it backs.` });
+      quoted = quoted.filter((entry) => sentences.get(entry).size === 1);
+      const results = read(cover);
       for (const result of results) {
         findings.push(...result.findings);
         claims.push(...result.claims);
@@ -626,10 +644,12 @@ export function lintTypeScript(source, { file, jsdoc = false, copy = false, clai
   const kind = file.endsWith(".tsx") ? ts.ScriptKind.TSX : file.endsWith(".ts") || file.endsWith(".mts") ? ts.ScriptKind.TS : ts.ScriptKind.JS;
   const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, kind);
   const lineOf = (node) => tree.getLineAndCharacterOfPosition(node.getStart(tree)).line + 1;
+  // A footnote or a source link in the text is a claim, so its checks run like a claim() call's.
   const prose = (text, node, wordsOnly = false) => {
     if (claimsOnly) return;
-    const found = readMarkdown(text, { file, startLine: lineOf(node), howTo: HOW_TO.copy, verbs }).findings;
-    findings.push(...(wordsOnly ? found.filter((finding) => finding.kinds?.some((kind) => !["number", "version", "date"].includes(kind))) : found));
+    const result = readMarkdown(text, { file, startLine: lineOf(node), howTo: HOW_TO.copy, verbs });
+    findings.push(...(wordsOnly ? result.findings.filter((finding) => finding.kinds?.some((kind) => !["number", "version", "date"].includes(kind))) : result.findings));
+    claims.push(...result.claims);
   };
   const visit = (node) => {
     if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "claim") {
@@ -659,13 +679,13 @@ export function lintTypeScript(source, { file, jsdoc = false, copy = false, clai
     }
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
       if (isLookup(node)) return;
-      if (isMarkdown(node.text) || isProse(node.text)) prose(node.text, node);
+      if (isMarkdown(node.text) || isProse(node.text) || statesNumber(node.text)) prose(node.text, node);
       else if (saysSomething(node.text)) prose(node.text, node, true);
       return;
     }
     if (ts.isTemplateExpression(node)) {
       const text = [node.head.text, ...node.templateSpans.map((span) => `\${${span.expression.getText(tree)}}${span.literal.text}`)].join("");
-      if (isMarkdown(text) || isProse(text)) prose(text, node);
+      if (isMarkdown(text) || isProse(text) || statesNumber(text)) prose(text, node);
       else if (saysSomething(text)) prose(text, node, true);
     }
     ts.forEachChild(node, visit);
@@ -1164,13 +1184,21 @@ export async function checkClaims({ root = process.cwd(), network = false, files
 // What the ratchet compares: the lists that drop findings (allowed, notLinted, verbs, generated),
 // widen what counts as a required test (requiredTests), or change what is read (surfaces). A new
 // entry is named in the pull request's description; one marked here also needs a reason.
+/** The lists that decide which files are read and how: removing an entry is an exemption. */
+const NARROWING = ["surfaces", "generators", "generated"];
+
+/** JSON with sorted keys, leaving out undefined values, to compare config entries whole. */
+const canonical = (value) =>
+  JSON.stringify(value, (_, inner) => (inner && typeof inner === "object" && !Array.isArray(inner) ? Object.fromEntries(Object.entries(inner).filter(([, v]) => v !== undefined).sort(([a], [b]) => a.localeCompare(b))) : inner));
+
 const EXEMPTIONS = [
   ["allowed", (entry) => entry.sentence, true],
   ["notLinted", (entry) => entry.match, true],
   ["instructionVerbs", (entry) => entry, false],
   ["generated", (entry) => entry, false],
   ["requiredTests", (entry) => `${entry.match} in ${entry.job}`, true],
-  ["surfaces", (entry) => `${entry.match}${entry.exclude ? ` except ${entry.exclude}` : ""}`, false],
+  ["surfaces", (entry) => entry.match, false],
+  ["generators", (entry) => entry, false],
 ];
 
 /**
@@ -1194,6 +1222,23 @@ export function policyProblems({ base, head, body = "", baseChecks = [], headChe
       if (reasoned && !entry.reason?.trim()) problems.push({ message: `claims.config.json: ${list} adds "${name}" with no reason. Give it one.` });
       if (!body.includes(name)) problems.push({ message: `claims.config.json: ${list} adds "${name}"; name it in the pull request's description, so a reviewer sees the exemption.` });
     }
+    // An entry kept by name but changed (a surface's mode, a rule's job) is an exemption too, as
+    // is removing what decides which files are read and how.
+    const same = (a, b) => canonical(a) === canonical(b);
+    for (const entry of base[list] ?? []) {
+      if ((head[list] ?? []).some((other) => same(other, entry))) continue;
+      const changed = (head[list] ?? []).find((other) => key(other) === key(entry));
+      if (changed && same({ ...changed, reason: undefined }, { ...entry, reason: undefined })) continue;
+      if (!changed && !NARROWING.includes(list)) continue;
+      const name = key(entry);
+      if (!body.includes(name)) problems.push({ message: `claims.config.json: ${list} ${changed ? "changes" : "removes"} "${name}"; name it in the pull request's description, so a reviewer sees the exemption.` });
+    }
+  }
+  for (const setting of ["urlMaxAgeDays", "urlCache", "requiredChecks"]) {
+    const before = base[setting] ?? DEFAULT_CONFIG[setting];
+    const after = head[setting] ?? DEFAULT_CONFIG[setting];
+    if (setting === "urlMaxAgeDays" ? after <= before : after === before) continue;
+    if (!body.includes(setting)) problems.push({ message: `claims.config.json: ${setting} ${setting === "urlMaxAgeDays" ? "rises" : "changes"} from ${before} to ${after}; name ${setting} in the pull request's description, so a reviewer sees the exemption.` });
   }
   return problems;
 }

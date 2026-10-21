@@ -19,9 +19,9 @@ import {
 /** Props for {@link Carousel}. */
 export interface CarouselProps {
   /**
-   * Names the carousel for screen readers, such as "Recipe photos". Always required.
+   * Names the carousel for screen readers, such as "Recipe photos". It is always required.
    *
-   * @claim "Always required" registry/ouro/components/ouro/carousel/carousel.test-d.ts verify:fileLine(registry/ouro/components/ouro/carousel/carousel.test-d.ts, /expectTypeOf<\{\schildren:\s"Slides"\s\}>\(\)\.not\.toExtend<CarouselProps>/)
+   * @claim "It is always required" registry/ouro/components/ouro/carousel/carousel.test-d.ts verify:fileLine(registry/ouro/components/ouro/carousel/carousel.test-d.ts, /expectTypeOf<\{\schildren:\s"Slides"\s\}>\(\)\.not\.toExtend<CarouselProps>/)
    */
   label: string;
   /**
