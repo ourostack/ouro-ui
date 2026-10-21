@@ -59,7 +59,8 @@ export function deriveProof(files: { registry: string; testProjects: string; vit
   const engines = [...new Set(JSON.parse(browsers) as string[])];
   if (/ouroTestProjects\(\{[^}]*browsers:/.test(files.vitestConfig)) throw new Error("vitest.config.ts overrides the browsers; read them there");
   const touch = /name: "ouro-touch"/.test(files.testProjects) && /isMobile: true/.test(files.testProjects);
-  const include = /coverage: \{[\s\S]*?include: \["registry\/\*\*\/\*\.\{ts,tsx\}"\]/.test(files.vitestConfig);
+  // Every registry source, and any other file it names (the census kit's in-page collector).
+  const include = /coverage: \{[\s\S]*?include: \["registry\/\*\*\/\*\.\{ts,tsx\}"(?:, "[^"]+")*\]/.test(files.vitestConfig);
   const thresholds = /thresholds: \{ lines: (\d+), branches: (\d+), functions: (\d+), statements: (\d+) \}/.exec(files.vitestConfig);
   if (!include || !thresholds) throw new Error("vitest.config.ts no longer holds coverage thresholds over registry/");
   const coverage = Math.min(...thresholds.slice(1).map(Number));

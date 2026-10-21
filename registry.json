@@ -10119,6 +10119,89 @@
         "ourostack/ouro-ui/toggle-tests",
         "ourostack/ouro-ui/tooltip-tests"
       ]
+    },
+    {
+      "name": "ouro-census",
+      "type": "registry:item",
+      "title": "Ouro census",
+      "description": "Optional: the census journey kit. A Playwright spec of yours lists every page your app renders and every state a person can open on it; the census records the exact multiset of visible controls in each (role, name, Ouro marker, context) and fails on any change from the committed baseline, and on any unmarked control in a journey you enrol. Unmarked controls may only fall, state by state. It installs e2e/ouro-census/ (the spec helper, the merge, the baseline update and a comparison of two runs).",
+      "docs": "The census kit is in e2e/ouro-census/. Call censusTests({ test, journeys, projects, componentsDir }) from a spec of yours, merge each run with node e2e/ouro-census/census-merge.mjs, and accept a change with node e2e/ouro-census/census-update.mjs <run-id | file>. Docs: https://ourostack.github.io/ouro-ui/docs/guardrails.md",
+      "devDependencies": [
+        "@playwright/test",
+        "axe-core"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/census/census-collect.d.mts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro-census/census-collect.d.mts"
+        },
+        {
+          "path": "registry/ouro/census/census-collect.mjs",
+          "type": "registry:file",
+          "target": "~/e2e/ouro-census/census-collect.mjs"
+        },
+        {
+          "path": "registry/ouro/census/census-compare.mjs",
+          "type": "registry:file",
+          "target": "~/e2e/ouro-census/census-compare.mjs"
+        },
+        {
+          "path": "registry/ouro/census/census-merge.mjs",
+          "type": "registry:file",
+          "target": "~/e2e/ouro-census/census-merge.mjs"
+        },
+        {
+          "path": "registry/ouro/census/census-page.d.mts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro-census/census-page.d.mts"
+        },
+        {
+          "path": "registry/ouro/census/census-page.mjs",
+          "type": "registry:file",
+          "target": "~/e2e/ouro-census/census-page.mjs"
+        },
+        {
+          "path": "registry/ouro/census/census-update.mjs",
+          "type": "registry:file",
+          "target": "~/e2e/ouro-census/census-update.mjs"
+        },
+        {
+          "path": "registry/ouro/census/census.mjs",
+          "type": "registry:file",
+          "target": "~/e2e/ouro-census/census.mjs"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@playwright/test": ">=1.58.1",
+          "axe-core": ">=4.13.0"
+        }
+      }
+    },
+    {
+      "name": "ouro-source-rules",
+      "type": "registry:item",
+      "title": "Ouro source rules",
+      "description": "Optional: the hand-rolled-control source rule. It reads your app's source with the TypeScript compiler and its stylesheets with PostCSS, and finds the controls still built by hand (a raw <button>, <a>, <input>, a click handler on a <div>, another UI library's control, control-state styling) and every component that wraps one, as fingerprints held to a committed baseline that may only shrink. It installs scripts/ouro-source-rules.mjs.",
+      "docs": "The source rule is scripts/ouro-source-rules.mjs. Run node scripts/ouro-source-rules.mjs --write-baseline once to record where your app starts, then node scripts/ouro-source-rules.mjs in CI (with --base <ref> on pull requests). Docs: https://ourostack.github.io/ouro-ui/docs/guardrails.md",
+      "devDependencies": [
+        "postcss",
+        "typescript"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/source-rules/source-rules.mjs",
+          "type": "registry:file",
+          "target": "~/scripts/ouro-source-rules.mjs"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "postcss": ">=8.5.28",
+          "typescript": ">=6.0.3"
+        }
+      }
     }
   ]
 }
