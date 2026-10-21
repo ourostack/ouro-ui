@@ -137,15 +137,11 @@ describe.each([
           const lost = lostFocus();
           if (lost && control && declared.focusExit?.[name]) exited.add(name);
           else if (lost) problems.push(`after ${action}: ${lost}`);
-          const heard = new Map<Element, Map<string, number>>();
-          for (const { region, text } of announcements.changes) {
-            const texts = heard.get(region) ?? new Map<string, number>();
-            texts.set(text, (texts.get(text) ?? 0) + 1);
-            heard.set(region, texts);
-          }
-          for (const texts of heard.values()) {
-            for (const [text, times] of texts) if (times > 1) problems.push(`after ${action}: "${text}" was announced ${times} times`);
-          }
+          // By text, across every live region: the same message from two regions (a toast and a
+          // status line both saying "Saved") is heard twice, as surely as from one region twice.
+          const heard = new Map<string, number>();
+          for (const { text } of announcements.changes) heard.set(text, (heard.get(text) ?? 0) + 1);
+          for (const [text, times] of heard) if (times > 1) problems.push(`after ${action}: "${text}" was announced ${times} times`);
           const expected = control ? declared.announces?.[name] : undefined;
           if (expected !== undefined && announcements.count(expected) !== 1) problems.push(`after ${action}: "${expected}" was announced ${announcements.count(expected)} times, not once`);
         } finally {
