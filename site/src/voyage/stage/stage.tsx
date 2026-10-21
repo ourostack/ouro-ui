@@ -1,4 +1,4 @@
-import { memo, startTransition, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type JSX, type SVGProps } from "react";
+import { memo, startTransition, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type JSX, type SVGProps } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Collapsible } from "@/registry/ouro/components/ouro/collapsible/collapsible";
@@ -10,6 +10,7 @@ import { Slider } from "@/registry/ouro/components/ouro/slider/slider";
 import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { keepClearOfToasts } from "../clear-of-toasts";
+import { useStable } from "../use-stable";
 import { GITHUB } from "../../paths";
 import { bandAt, BANDS, BELL_TOASTS, describeScene, LOG, MAX_DEPTH, OPENING_LOG, SPEEDS, STAGE_COPY, TANKS, type LogLine, type Speed } from "./copy";
 import { Scene } from "./scene";
@@ -45,15 +46,6 @@ function ChimeIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
       <path d="M4 10.5l3.5 3.5L16 5.5" />
     </svg>
   );
-}
-
-/** A handler whose identity never changes but which always runs the latest render's code. */
-function useStable<Args extends unknown[]>(handler: (...args: Args) => void): (...args: Args) => void {
-  const latest = useRef(handler);
-  useLayoutEffect(() => {
-    latest.current = handler;
-  });
-  return useCallback((...args: Args) => latest.current(...args), []);
 }
 
 /**
