@@ -83,12 +83,17 @@ function shown(element: Element): boolean {
 /**
  * What forced colours leave of a subtree: each shown element's size, place, lines, fill (where it
  * differs from what is behind it), text colour and SVG paint, and those of its generated
- * `::before` and `::after`, in order.
+ * `::before` and `::after`, in order. `masked`, a part of it, is left out with all it holds but
+ * `kept` and the parts around `kept`.
  */
-function look(root: Element): string {
+function look(root: Element, masked?: Element | null, kept?: Element): string {
   const origin = root.getBoundingClientRect();
+  // The masked part's own box always; what it holds unless that is `kept` or holds it (a scroll
+  // region's focus ring is left out, the link inside it is not).
+  const hidden = (element: Element) =>
+    masked != null && masked !== root && (element === masked || (masked.contains(element) && !(kept && (kept.contains(element) || element.contains(kept)))));
   return [root, ...root.querySelectorAll("*")]
-    .filter(shown)
+    .filter((element) => shown(element) && !hidden(element))
     .flatMap((element) => {
       const box = element.getBoundingClientRect();
       const back = behind(element);
@@ -164,20 +169,18 @@ function hasEdge(control: Element): boolean {
 
 const frames = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
-/**
- * Whether focusing `control` changes its frame from how it looks with a sibling in the frame
- * focused: for a frame whose look at rest already showed this control's cue (a select's option
- * under the pointer that opened it), the cue must at least follow focus.
- */
-async function movesFromSibling(control: HTMLElement, around: Element, focusable: HTMLElement[]): Promise<boolean> {
-  const sibling = focusable.find((other) => other !== control && around.contains(other));
-  if (!sibling) return false;
-  sibling.focus();
-  await frames();
-  const withSibling = look(around);
-  control.focus();
-  await frames();
-  return look(around) !== withSibling;
+/** An item's look with its highlight. */
+const highlightedLook = (item: Element) => look(item);
+
+/** An item's look with its `data-highlighted` taken off for the reading, then put back as it was. */
+function unhighlightedLook(item: Element): string {
+  const value = item.getAttribute("data-highlighted")!;
+  item.removeAttribute("data-highlighted");
+  try {
+    return look(item);
+  } finally {
+    item.setAttribute("data-highlighted", value);
+  }
 }
 
 /** The controls a person can see and reach under `root`, or in the open popup. */
@@ -209,24 +212,31 @@ async function gaps(root: ParentNode, state: string): Promise<string[]> {
   }
   // Focus: a keyboard focus must change what the control's component shows. Focus moves from
   // control to control and never leaves for the page, so an open popup stays open; the control
-  // that already has focus goes last, once focus has moved away from it. Each control is compared
-  // with how its frame looked before: with focus outside the frame, when it ever was (a color
-  // field's swatch, then its text, share one outline, so the text is compared with the field at
-  // rest); otherwise (a menu opened with focus on its first item) with a sibling focused, so the
-  // cue must move to it. A control that takes no keyboard focus here is never compared, and fails.
+  // that already has focus goes last, once focus has moved away from it. Each control's focused
+  // frame is compared with the frame at rest (focus outside it), recorded the first time focus
+  // enters it. A frame never at rest (a menu opened with focus on its first item) is compared
+  // with the control that had focus left out, before and after, so the cue must be the control's
+  // own and not the other's ring going away. A control that takes no keyboard focus here is never
+  // compared, and fails.
   await userEvent.keyboard("{Shift}");
   // Inert parts (a tab's hidden panel, a row's actions until it is swiped) take no focus; a part
   // with no tab stop of its own is reached by a screen reader's cursor. The options and items of a
   // list or menu show focus by their highlight, which the keyboard and the pointer both move (from
   // the field, through `aria-activedescendant`, or onto the item), so it is the highlight they check.
-  const reachable = controls.filter((control) => control instanceof HTMLElement && !control.matches(":disabled, [aria-disabled='true']") && control.closest("[inert]") === null) as HTMLElement[];
+  const reachable = () =>
+    seenControls(root).filter((control) => control instanceof HTMLElement && !control.matches(":disabled, [aria-disabled='true']") && control.closest("[inert]") === null) as HTMLElement[];
+  const focusableIn = (list: HTMLElement[]) => list.filter((control) => control.matches(tabStop) && !control.matches(virtualItem));
   // The item highlighted when the list opened goes last, once the highlight has moved off it.
-  const virtual = reachable.filter((control) => control.matches(virtualItem) && !control.hasAttribute("data-disabled"));
+  const virtual = reachable().filter((control) => control.matches(virtualItem) && !control.hasAttribute("data-disabled"));
   virtual.sort((a, b) => Number(a.hasAttribute("data-highlighted")) - Number(b.hasAttribute("data-highlighted")));
-  const focusable = reachable.filter((control) => control.matches(tabStop) && !control.matches(virtualItem));
-  focusable.sort((a, b) => Number(a === document.activeElement) - Number(b === document.activeElement));
+  const pending = focusableIn(reachable());
+  pending.sort((a, b) => Number(a === document.activeElement) - Number(b === document.activeElement));
+  const queued = new Set<Element>(pending);
   const rest = new Map<Element, string>();
-  for (const control of focusable) {
+  while (pending.length > 0) {
+    const control = pending.shift()!;
+    // Hidden by an earlier focus (a tab's panel, left for another): not shown, so not compared.
+    if (!control.isConnected || !isVisible(control) || control.closest("[inert]") !== null) continue;
     const around = frame(control);
     if (document.activeElement === control) {
       // The only control left, with focus since the story or popup opened: blur it to see its frame without it.
@@ -237,18 +247,49 @@ async function gaps(root: ParentNode, state: string): Promise<string[]> {
       }
     }
     if (!around.contains(document.activeElement)) rest.set(around, look(around));
-    const before = rest.get(around) ?? look(around);
+    const prior = document.activeElement;
+    const resting = rest.get(around);
+    // Never at rest: the frame with the control that has focus left out.
+    const masked = resting === undefined ? prior : null;
+    const before = resting ?? look(around, masked, control);
     control.focus();
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    // A part that sends focus on to another control (OtpField's slot to its next empty one, a tab's
-    // panel to its tab) is compared at that control's turn.
-    const redirected = document.activeElement !== control && focusable.includes(document.activeElement as HTMLElement);
-    if (redirected) continue;
-    if (document.activeElement !== control || !control.matches(":focus-visible")) {
-      found.push(`${state}: focus never compared, it takes no keyboard focus: ${describeElement(control)}`);
-      continue;
+    await frames();
+    let now = document.activeElement;
+    let from = prior;
+    // Focus that stayed where it was may be a part sending it on to the control that already has
+    // it (OtpField's slot to the first empty one, which has focus): from outside the frame, at
+    // rest, the move shows.
+    if (now === prior && prior !== control && resting !== undefined && prior instanceof HTMLElement && around.contains(prior)) {
+      prior.blur();
+      await frames();
+      if (!around.contains(document.activeElement)) {
+        from = document.activeElement;
+        control.focus();
+        await frames();
+        now = document.activeElement;
+      }
     }
-    if (look(around) === before && !(await movesFromSibling(control, around, focusable))) found.push(`${state}: focus shows nothing: ${describeElement(control)}`);
+    if (now !== control && now !== from && now instanceof HTMLElement && around.contains(now) && partOf(now) === partOf(control)) {
+      // A part that sends focus on to another of its kind in its component (OtpField's slot to the
+      // first empty one) is compared at that one's turn. Focus that never moved, or that went to
+      // another kind of part, is no redirect: the control takes no focus.
+      if (!queued.has(now) && now.matches(tabStop)) {
+        queued.add(now);
+        pending.push(now);
+      }
+    } else if (now !== control || !control.matches(":focus-visible")) {
+      found.push(`${state}: focus never compared, it takes no keyboard focus: ${describeElement(control)}`);
+    } else if (look(around, masked, control) === before) {
+      found.push(`${state}: focus shows nothing: ${describeElement(control)}`);
+    }
+    // Focus can change what is shown (a tab that shows its panel as it takes focus): the controls
+    // that appeared are compared too.
+    for (const shownNow of focusableIn(reachable())) {
+      if (!queued.has(shownNow)) {
+        queued.add(shownNow);
+        pending.push(shownNow);
+      }
+    }
   }
   // A list's highlighted item stands for focus: the highlight must show, moving from item to item.
   for (const control of virtual) {
@@ -264,9 +305,10 @@ async function gaps(root: ParentNode, state: string): Promise<string[]> {
       found.push(`${state}: highlight never compared, the item does not highlight: ${describeElement(control)}`);
       continue;
     }
-    // The only item of its list, highlighted from the start, has nothing to move from: its highlight must draw an edge of its own.
+    // The only item of its list, highlighted from the start, has nothing to move from: it must look
+    // different with its highlight than with the highlight taken off.
     const alone = !virtual.some((other) => other !== control && around.contains(other));
-    if (alone ? !edged(control) : look(around) === before) found.push(`${state}: highlight shows nothing: ${describeElement(control)}`);
+    if (alone ? highlightedLook(control) === unhighlightedLook(control) : look(around) === before) found.push(`${state}: highlight shows nothing: ${describeElement(control)}`);
   }
   return found;
 }
@@ -311,7 +353,15 @@ describe("forced colours proves it can fail", () => {
     await page.viewport(390, 844);
   });
 
-  it.each(brokenFor({ ShadowFocusRing: "focus shows nothing", FillOnlyEdge: "no edge" }))("on $id", async (entry) => {
+  it.each(
+    brokenFor({
+      ShadowFocusRing: "focus shows nothing",
+      FillOnlyEdge: "no edge",
+      SiblingShadowFocus: 'focus shows nothing: unmarked <button type="button" class="broken-pair-shadow"',
+      FocusRefused: "focus never compared, it takes no keyboard focus: broken-refuse/second",
+      LoneFillHighlight: "highlight shows nothing",
+    }),
+  )("on $id", async (entry) => {
     expect((await forcedColourProblems(entry)).join("\n")).toContain(entry.expected);
   });
 });

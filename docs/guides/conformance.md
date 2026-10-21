@@ -21,7 +21,7 @@ The checks live in `test/conformance/` and run in their own Vitest project, `con
 | Server/client mismatch | Every story is rendered to HTML as a server in UTC and en-US would, then hydrated in America/Los_Angeles with de-DE and in Asia/Tokyo with ja-JP. The server and each reader are separate frames (`frame.tsx`), each with its own copy of every module, so a formatter cached under one locale is never read under another. A recoverable error or an attribute mismatch fails. | `hydration.test.tsx` |
 | Right to left | Every story renders with `dir="rtl"` on `<html>`, closed and with each overlay open, at 390px and 1280px: nothing may stick out of the viewport sideways. | `rtl.test.tsx` |
 | Physical sides in the source | `physicalUtilities` in `scripts/source-rules.mjs` fails on `left-*`, `right-*`, `ml-*`, `mr-*`, `pl-*`, `pr-*`, `border-l`, `border-r`, `rounded-l-*`, `rounded-r-*`, the corner radii, `text-left`, `text-right`, `float-*` and `clear-*` on a side, unless `physicalAllowed` lists the class with its reason. It also fails on a horizontal translate (`translate-x-*`), a transform origin, a background position or an object position on a side (`origin-left`, `bg-right`, `object-left-top`), which have no logical form, unless the same class list reverses it for right to left with an `rtl:` class of the same kind (`translate-x-4 rtl:-translate-x-4`, `origin-left rtl:origin-right`). | `scripts/source-rules.test.mjs` |
-| Forced colours | Under `forced-colors: active`, closed and with each overlay open: every box a person presses, types into, drags or scrolls keeps an edge (a border or outline on it, inside it or on its component's frame); a checked, selected, pressed or current control looks different from one that is not; and focusing each control from the keyboard changes what its component shows, while the highlight moving onto each option or item of a list or menu shows too. A fill in the colour behind it counts as no fill, and a control that never takes keyboard focus there fails as uncompared. | `forced-colors.test.tsx` |
+| Forced colours | Under `forced-colors: active`, closed and with each overlay open: every box a person presses, types into, drags or scrolls keeps an edge (a border or outline on it, inside it or on its component's frame); a checked, selected, pressed or current control looks different from one that is not; and focusing each control from the keyboard changes what its component shows, while the highlight moving onto each option or item of a list or menu shows too. A focused control is compared with its component at rest (focus outside it); a component never at rest (a menu opened with focus inside) is compared with the control that had focus left out, so another control's ring going away is no cue. The only item of a list is compared with its highlight taken off. A fill in the colour behind it counts as no fill. A control that never takes keyboard focus fails as uncompared: focus that stays where it was, or goes to another kind of part, is no redirect; only a part that sends focus on to another of its kind (OtpField's slot to the first empty one) is compared at that one's turn. Controls that a focus shows (a tab's panel) are compared too. | `forced-colors.test.tsx` |
 
 Motion is already held the same way, by `pnpm motion:coverage`.
 
@@ -32,7 +32,10 @@ Each check also proves it can fail. `test/fixtures/conformance/broken.stories.ts
 - a number formatted through a module-level `Intl.NumberFormat` cache;
 - a part placed at `left: 100%` in a right-to-left page;
 - a focus ring drawn only with a box shadow;
-- a button whose only edge is its fill.
+- a button whose only edge is its fill;
+- two buttons of one component, the second's focus ring a box shadow, so focus moving to it only takes the first's ring away;
+- a part whose focus handler sends focus to another kind of part;
+- the only option of a list, its highlight a fill.
 
 These tests run in every conformance run, whatever stories it selects, on the first shard, and in CI even when a pull request changes no component (`pnpm conformance -t "can fail"`). A check changed so that it misses its defect fails there.
 

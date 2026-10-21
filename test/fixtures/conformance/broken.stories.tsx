@@ -84,3 +84,70 @@ export const FillOnlyEdge: Story = {
     </div>
   ),
 };
+
+const pairStyles = `
+.broken-pair-outline, .broken-pair-shadow { border: 1px solid GrayText; outline: none; background: transparent; padding: 4px 8px; }
+.broken-pair-outline:focus-visible { outline: 2px solid; outline-offset: 2px; }
+.broken-pair-shadow:focus-visible { box-shadow: 0 0 0 3px royalblue; }
+`;
+
+/**
+ * Forced colours: two buttons of one component, the first with an outline focus ring and the
+ * second with a ring drawn only with a box shadow. Focus moving from the first to the second takes
+ * the first's ring away, which is no cue on the second.
+ */
+export const SiblingShadowFocus: Story = {
+  render: () => (
+    <div data-ouro="broken-pair">
+      <style>{pairStyles}</style>
+      <button type="button" className="broken-pair-outline">Outline</button>
+      <button type="button" className="broken-pair-shadow">Shadow</button>
+    </div>
+  ),
+};
+
+/**
+ * Forced colours: two parts of one component, where the second refuses focus: its focus handler
+ * sends focus to the first, another part. When the first already has focus, focus never moves;
+ * from outside, it lands on a part that is not the second's kind. Neither is a redirect (as
+ * OtpField's slot sends focus on to another slot), and the second never shows a cue.
+ */
+export const FocusRefused: Story = {
+  render: () => (
+    <div data-ouro="broken-refuse">
+      <style>{pairStyles}</style>
+      <button type="button" className="broken-pair-outline broken-refuse-first" data-ouro-control="broken-refuse" data-ouro-part="first">
+        Takes focus
+      </button>
+      <button
+        type="button"
+        className="broken-pair-outline"
+        data-ouro-control="broken-refuse"
+        data-ouro-part="second"
+        onFocus={(event) => event.currentTarget.parentElement?.querySelector<HTMLElement>(".broken-refuse-first")?.focus()}
+      >
+        Refuses focus
+      </button>
+    </div>
+  ),
+};
+
+const loneStyles = `
+.broken-lone { border: 1px solid; padding: 4px 8px; }
+.broken-lone[data-highlighted] { background: royalblue; color: white; }
+`;
+
+/**
+ * Forced colours: the only option of a list, highlighted from the start, with a border at rest
+ * and a highlight drawn only with a fill, which forced colours drop.
+ */
+export const LoneFillHighlight: Story = {
+  render: () => (
+    <div role="listbox" aria-label="Lone">
+      <style>{loneStyles}</style>
+      <div role="option" aria-selected="false" className="broken-lone" data-highlighted="">
+        Only option
+      </div>
+    </div>
+  ),
+};
