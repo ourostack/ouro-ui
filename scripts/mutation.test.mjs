@@ -271,6 +271,21 @@ test("mergeReports makes one incremental report of the shards', renaming each te
   assert.equal(names[merged.files["dialog-parts.tsx"].mutants[0].coveredBy[0]], "traps focus");
 });
 
+test("mergeReports keeps every shard's mutants of a file whose changed ranges were split across shards", () => {
+  const at = (line) => ({ start: { line, column: 1 }, end: { line, column: 9 } });
+  const shard = (line, killedBy) => ({
+    schemaVersion: "2",
+    files: { "sheet-parts.tsx": { language: "typescript", source: "same", mutants: [{ id: "0", mutatorName: "StringLiteral", replacement: '""', location: at(line), status: "Killed", killedBy, coveredBy: killedBy }] } },
+    testFiles: { "sheet.test.tsx": { tests: [{ id: "0", name: `line ${line}` }] } },
+  });
+  const merged = mergeReports([shard(216, ["0"]), shard(438, ["0"])]);
+  const mutants = merged.files["sheet-parts.tsx"].mutants;
+  assert.deepEqual(mutants.map((mutant) => mutant.location.start.line), [216, 438]);
+  assert.equal(new Set(mutants.map((mutant) => mutant.id)).size, 2, "each mutant keeps an id of its own");
+  const names = Object.fromEntries(merged.testFiles["sheet.test.tsx"].tests.map(({ id, name }) => [id, name]));
+  assert.deepEqual(mutants.map((mutant) => names[mutant.killedBy[0]]), ["line 216", "line 438"]);
+});
+
 test("shardUnits makes each changed range of runtime source a unit of its own, with its file's tests, so one large file's mutants can spread across shards", () => {
   const changed = { "registry/ouro/components/ouro/sheet/sheet-parts.tsx": [[216, 216], [438, 439]], "registry/ouro/components/ouro/sheet/sheet.stories.tsx": [[1, 3]] };
   const text = ["const a = 1;", ...Array.from({ length: 440 }, (_, index) => (index === 214 ? "const b = x > 1 && y;" : index === 436 ? 'const c = { on: true, label: "x" };' : ""))].join("\n");

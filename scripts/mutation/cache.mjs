@@ -146,6 +146,9 @@ export function dependencyHash(files, read = (path) => readFileSync(join(root, p
  * so a test is renamed by its file and name, the same in every report, and each mutant's
  * `killedBy` and `coveredBy` follow.
  */
+const mutantKey = ({ id, mutatorName, replacement, location }) =>
+  location ? `${location.start.line}:${location.start.column}-${location.end.line}:${location.end.column} ${mutatorName} ${replacement}` : `#${id}`;
+
 export function mergeReports(reports) {
   const merged = { ...reports[0], files: {}, testFiles: {} };
   const ids = new Map();
@@ -163,8 +166,20 @@ export function mergeReports(reports) {
       for (const test of tests) local.set(test.id, canonical(file, test.name));
     }
     const rename = (list) => list?.map((id) => local.get(id) ?? id);
+    // A file's changed ranges can fall in different shards, so a file's mutants are the union of theirs.
     for (const [path, file] of Object.entries(report.files ?? {})) {
-      merged.files[path] = { ...file, mutants: file.mutants.map((mutant) => ({ ...mutant, ...(mutant.killedBy ? { killedBy: rename(mutant.killedBy) } : {}), ...(mutant.coveredBy ? { coveredBy: rename(mutant.coveredBy) } : {}) })) };
+      const kept = merged.files[path]?.mutants ?? [];
+      const mutants = file.mutants.map((mutant) => ({ ...mutant, ...(mutant.killedBy ? { killedBy: rename(mutant.killedBy) } : {}), ...(mutant.coveredBy ? { coveredBy: rename(mutant.coveredBy) } : {}) }));
+      const fresh = new Set(mutants.map(mutantKey));
+      const taken = new Set(mutants.map((mutant) => mutant.id));
+      const others = kept.filter((mutant) => !fresh.has(mutantKey(mutant)));
+      for (const mutant of others) {
+        let { id } = mutant;
+        while (taken.has(id)) id = `${id}'`;
+        taken.add(id);
+        mutant.id = id;
+      }
+      merged.files[path] = { ...file, mutants: [...others, ...mutants] };
     }
   }
   return merged;
