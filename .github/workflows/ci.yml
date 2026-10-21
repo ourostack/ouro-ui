@@ -295,23 +295,81 @@ jobs:
         run: |
           echo "The conformance shards: $RESULT."
           [ "$RESULT" = success ]
+  mutation-plan:
+    # Plans mutation testing (scripts/mutation.mjs, docs/guides/conformance.md). The shards' results
+    # are kept between runs of a pull request, merged into one file, under a key with a hash of
+    # every lib/ file and of what the changed files import (scripts/mutation/cache.mjs key), since
+    # Stryker's incremental mode compares only a mutated file and its tests. With results cached
+    # under the same hash, three shards; without, five, so a cold run's mutants spread wider. On any
+    # other run, three shards that each report nothing to mutate.
+    runs-on: ubuntu-latest
+    env:
+      EVENT: ${{ github.event_name }}
+      PR: ${{ github.event.pull_request.number }}
+    outputs:
+      key: ${{ steps.key.outputs.key }}
+      count: ${{ steps.count.outputs.count }}
+      shards: ${{ steps.count.outputs.shards }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # A pull request's merge commit and its first parent, the base it merges into.
+          fetch-depth: 2
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - id: key
+        name: The cache key's prefix
+        run: |
+          if [ "$EVENT" = pull_request ]; then
+            echo "key=stryker-$PR-$(node scripts/mutation/cache.mjs key HEAD^1)-" >> "$GITHUB_OUTPUT"
+          else
+            echo "key=" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.key.outputs.key != ''
+        id: cached
+        name: Results from an earlier run?
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .tmp/stryker-incremental.json
+          key: ${{ steps.key.outputs.key }}${{ github.sha }}
+          restore-keys: ${{ steps.key.outputs.key }}
+          lookup-only: true
+      - id: count
+        name: How many shards
+        env:
+          KEY: ${{ steps.key.outputs.key }}
+          MATCHED: ${{ steps.cached.outputs.cache-matched-key }}
+        run: |
+          if [ -n "$KEY" ] && [ -z "$MATCHED" ]; then
+            count=5
+            echo "No results cached under $KEY: $count shards."
+          else
+            count=3
+            echo "Results cached under ${MATCHED:-nothing (not a pull request)}: $count shards."
+          fi
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          echo "shards=[$(seq "$count" | paste -sd , -)]" >> "$GITHUB_OUTPUT"
   mutation-shard:
-    # Mutation testing of the lines a pull request added or changed in the runtime source
-    # (scripts/mutation.mjs, docs/guides/conformance.md): every mutant Stryker makes of them must
-    # fail a test. The changed files are split across the shards by their estimated mutants times
-    # their tests, and each shard keeps its results between runs of the pull request (Stryker's
-    # incremental mode), so a push reruns only the mutants its change touched. Pull requests only; on any other run,
-    # and on a pull request that changes no runtime source, it reports that there is nothing to
-    # mutate. The `mutation` job below is the one check the rules require.
+    # Mutation testing of the lines a pull request added or changed in the runtime source: every
+    # mutant Stryker makes of them must fail a test. The changed files are split across the shards
+    # by their estimated mutants and their tests' measured time (scripts/mutation/test-seconds.json),
+    # and each shard starts from the results kept from the pull request's last run, so a push
+    # reruns only the mutants its change touched. Pull requests only; on any other run, and on a
+    # pull request that changes no runtime source, it reports that there is nothing to mutate. The
+    # `mutation` job below is the one check the rules require.
+    needs: [mutation-plan]
     runs-on: ubuntu-latest
     env:
       EVENT: ${{ github.event_name }}
       SHARD: ${{ matrix.shard }}
+      COUNT: ${{ needs.mutation-plan.outputs.count }}
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
-    name: mutation (${{ matrix.shard }}/3)
+        shard: ${{ fromJSON(needs.mutation-plan.outputs.shards) }}
+    name: mutation (${{ matrix.shard }}/${{ needs.mutation-plan.outputs.count }})
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -341,24 +399,60 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
       - if: steps.changed.outputs.run == 'true'
         name: Results from the last run
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .tmp/stryker-incremental-${{ matrix.shard }}.json
-          key: stryker-${{ github.event.pull_request.number }}-${{ matrix.shard }}-${{ github.sha }}
-          restore-keys: stryker-${{ github.event.pull_request.number }}-${{ matrix.shard }}-
+          path: .tmp/stryker-incremental.json
+          key: ${{ needs.mutation-plan.outputs.key }}${{ github.sha }}
+          restore-keys: ${{ needs.mutation-plan.outputs.key }}
       - if: steps.changed.outputs.run == 'true'
         name: Mutation testing
-        run: pnpm mutation HEAD^1 --shard "$SHARD/3"
+        run: pnpm mutation HEAD^1 --shard "$SHARD/$COUNT"
+      # This shard's results, survivors included, for the mutation job to merge and keep.
+      - if: ${{ !cancelled() && steps.changed.outputs.run == 'true' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: stryker-incremental-${{ matrix.shard }}
+          path: .tmp/stryker-incremental.json
+          if-no-files-found: ignore
+          retention-days: 1
   mutation:
     # The one check the rules require for mutation testing: it passes when every shard did (on a
     # merge-queue run, each shard has nothing to mutate and passes), so the shard count can change
-    # without touching the ruleset.
-    needs: [mutation-shard]
+    # without touching the ruleset. On a pull request it first merges the shards' results into one
+    # file and keeps it for the next run, under the plan's key.
+    needs: [mutation-plan, mutation-shard]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     env:
       RESULT: ${{ needs.mutation-shard.result }}
+      KEY: ${{ needs.mutation-plan.outputs.key }}
     steps:
+      - if: env.KEY != ''
+        continue-on-error: true
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - if: env.KEY != ''
+        continue-on-error: true
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - if: env.KEY != ''
+        continue-on-error: true
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: stryker-incremental-*
+          path: .tmp/shards
+      - if: env.KEY != ''
+        continue-on-error: true
+        name: One result file from the shards
+        run: node scripts/mutation/cache.mjs merge .tmp/stryker-incremental.json .tmp/shards/*/stryker-incremental.json
+      - if: ${{ env.KEY != '' && hashFiles('.tmp/stryker-incremental.json') != '' }}
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .tmp/stryker-incremental.json
+          key: ${{ env.KEY }}${{ github.sha }}
       - name: Every shard passed
         run: |
           echo "The mutation shards: $RESULT."

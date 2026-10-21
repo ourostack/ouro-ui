@@ -22,7 +22,7 @@ test("every action is pinned to a full commit SHA, with its version in a comment
   const unpinned = workflows.flatMap(({ file, text }) =>
     text
       .split("\n")
-      .filter((line) => /^\s*(- )?uses: /.test(line) && !/uses: [\w.-]+\/[\w.-]+@[0-9a-f]{40} # v\d+\.\d+\.\d+$/.test(line))
+      .filter((line) => /^\s*(- )?uses: /.test(line) && !/uses: [\w.-]+\/[\w.-]+(?:\/[\w.-]+)*@[0-9a-f]{40} # v\d+\.\d+\.\d+$/.test(line))
       .map((line) => `${file}: ${line.trim()}`),
   );
   assert.deepEqual(unpinned, [], "Pin with owner/repo@<40-character SHA> # vX.Y.Z.");
@@ -391,7 +391,8 @@ test("every required check is still a job that reports, under the name the rules
   for (const [id, block] of Object.entries(jobs)) {
     const name = block.match(/^ {4}name: (.+)$/m)?.[1] ?? id;
     const matrix = (key) => block.match(new RegExp(`^ {8}${key}: \\[([^\\]]*)\\]$`, "m"))?.[1].split(",").map((value) => value.trim());
-    if (/matrix\.shard/.test(name)) for (const shard of matrix("shard")) names.push(name.replace("${{ matrix.shard }}", shard));
+    // A shard list the plan computes (mutation's) names no check of its own: only its summary job is required.
+    if (/matrix\.shard/.test(name)) for (const shard of matrix("shard") ?? []) names.push(name.replace("${{ matrix.shard }}", shard));
     else if (/matrix\.variant/.test(name)) {
       for (const variant of matrix("variant")) for (const preset of matrix("preset")) names.push(name.replace("${{ matrix.variant }}", variant).replace("${{ matrix.preset }}", preset));
       for (const [, variant, preset] of block.matchAll(/^ {10}- variant: (\w+)\n {12}preset: (\w+)$/gm)) names.push(name.replace("${{ matrix.variant }}", variant).replace("${{ matrix.preset }}", preset));
@@ -477,26 +478,58 @@ test("the conformance shards run only the checks' proofs on the first shard when
 
 test("conformance and mutation are each one check over their shards, which passes only when every shard passed", () => {
   const jobs = ciJobs();
-  for (const [check, shards] of [["conformance", "conformance-shard"], ["mutation", "mutation-shard"]]) {
-    assert.match(jobs[check], new RegExp(`^ {4}needs: \\[${shards}\\]\n {4}if: \\$\\{\\{ !cancelled\\(\\) \\}\\}$`, "m"), check);
+  for (const [check, needs] of [["conformance", "conformance-shard"], ["mutation", "mutation-plan, mutation-shard"]]) {
+    assert.match(jobs[check], new RegExp(`^ {4}needs: \\[${needs}\\]\n {4}if: \\$\\{\\{ !cancelled\\(\\) \\}\\}$`, "m"), check);
     const script = stepScript(jobs[check], "Every shard passed");
     assert.equal(runStep(script, { RESULT: "success" }).status, 0, check);
     for (const result of ["failure", "cancelled", "skipped"]) assert.notEqual(runStep(script, { RESULT: result }).status, 0, `${check} with ${result}`);
   }
 });
 
-test("the mutation shards mutate a pull request's changed runtime lines, split by file, keep their results between runs, and report nothing to mutate otherwise", () => {
+test("the mutation plan keys the kept results by pull request and dependency hash, and runs five shards without them, three with", () => {
+  const block = ciJobs()["mutation-plan"];
+  const key = stepScript(block, "The cache key's prefix");
+  const pull = runStep(key, { EVENT: "pull_request", PR: "139" });
+  assert.match(pull.calls, /^CALL node scripts\/mutation\/cache\.mjs key HEAD\^1$/m);
+  assert.equal(pull.output.key, "stryker-139--");
+  assert.equal(runStep(key, { EVENT: "merge_group", PR: "" }).output.key, "");
+  assert.match(block, /^ {8}uses: actions\/cache\/restore@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}path: \.tmp\/stryker-incremental\.json\n {10}key: \$\{\{ steps\.key\.outputs\.key \}\}\$\{\{ github\.sha \}\}\n {10}restore-keys: \$\{\{ steps\.key\.outputs\.key \}\}\n {10}lookup-only: true$/m);
+  const count = stepScript(block, "How many shards");
+  assert.deepEqual(runStep(count, { KEY: "stryker-139-abc-", MATCHED: "" }).output, { count: "5", shards: "[1,2,3,4,5]" });
+  assert.deepEqual(runStep(count, { KEY: "stryker-139-abc-", MATCHED: "stryker-139-abc-f00" }).output, { count: "3", shards: "[1,2,3]" });
+  assert.deepEqual(runStep(count, { KEY: "", MATCHED: "" }).output, { count: "3", shards: "[1,2,3]" });
+});
+
+test("the mutation shards mutate a pull request's changed runtime lines, split by file, start from the kept results, and report nothing to mutate otherwise", () => {
   const block = ciJobs()["mutation-shard"];
   const changed = stepScript(block, "Is any runtime source changed?");
   assert.equal(runStep(changed, { EVENT: "push" }).output.run, "false");
   assert.equal(runStep(changed, { EVENT: "merge_group" }).output.run, "false");
   const later = block.slice(block.indexOf("name: Is any runtime source changed?")).split(/\n {6}- /).slice(1);
-  for (const step of later) assert.match(step, /^if: steps\.changed\.outputs\.run == 'true'$/m, step);
-  assert.match(block, /^ {8}name: Mutation testing\n {8}run: pnpm mutation HEAD\^1 --shard "\$SHARD\/3"$/m);
-  assert.match(block, /^ {6}SHARD: \$\{\{ matrix\.shard \}\}$/m);
-  assert.match(block, /^ {4}name: mutation \(\$\{\{ matrix\.shard \}\}\/3\)$/m);
-  assert.match(block, /^ {10}path: \.tmp\/stryker-incremental-\$\{\{ matrix\.shard \}\}\.json$/m);
+  for (const step of later) assert.match(step, /^(?:if: steps\.changed\.outputs\.run == 'true'|if: \$\{\{ !cancelled\(\) && steps\.changed\.outputs\.run == 'true' \}\})$/m, step);
+  assert.match(block, /^ {8}name: Mutation testing\n {8}run: pnpm mutation HEAD\^1 --shard "\$SHARD\/\$COUNT"$/m);
+  assert.match(block, /^ {4}needs: \[mutation-plan\]$/m);
+  assert.match(block, /^ {8}shard: \$\{\{ fromJSON\(needs\.mutation-plan\.outputs\.shards\) \}\}$/m);
+  assert.match(block, /^ {6}COUNT: \$\{\{ needs\.mutation-plan\.outputs\.count \}\}$/m);
+  assert.match(block, /^ {4}name: mutation \(\$\{\{ matrix\.shard \}\}\/\$\{\{ needs\.mutation-plan\.outputs\.count \}\}\)$/m);
+  assert.match(block, /uses: actions\/cache\/restore@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}path: \.tmp\/stryker-incremental\.json\n {10}key: \$\{\{ needs\.mutation-plan\.outputs\.key \}\}\$\{\{ github\.sha \}\}\n/);
+  // A shard never saves on its own: the mutation job keeps the merged file.
+  assert.doesNotMatch(block, /actions\/cache(?:\/save)?@/);
+  assert.match(block, /uses: actions\/upload-artifact@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}name: stryker-incremental-\$\{\{ matrix\.shard \}\}\n {10}path: \.tmp\/stryker-incremental\.json\n/);
   assert.match(block, /- uses: actions\/checkout@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}persist-credentials: false\n(?: {10}#.*\n)* {10}fetch-depth: 2\n/);
+});
+
+test("the mutation job merges the shards' results and keeps them under the plan's key on a pull request, and never fails for the cache", () => {
+  const block = ciJobs().mutation;
+  const steps = block.slice(block.indexOf("    steps:")).split(/\n {6}- /).slice(1);
+  const last = steps.at(-1);
+  assert.match(last, /^name: Every shard passed$/m);
+  for (const step of steps.slice(0, -1)) {
+    assert.match(step, /^if: (?:env\.KEY != ''|\$\{\{ env\.KEY != '' && hashFiles\('\.tmp\/stryker-incremental\.json'\) != '' \}\})$/m, step);
+    assert.match(step, /^ {8}continue-on-error: true$/m, step);
+  }
+  assert.match(block, /run: node scripts\/mutation\/cache\.mjs merge \.tmp\/stryker-incremental\.json \.tmp\/shards\/\*\/stryker-incremental\.json/);
+  assert.match(block, /uses: actions\/cache\/save@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}path: \.tmp\/stryker-incremental\.json\n {10}key: \$\{\{ env\.KEY \}\}\$\{\{ github\.sha \}\}$/m);
 });
 
 test("the e2e job runs every spec, or the selected components' and the site's", () => {
