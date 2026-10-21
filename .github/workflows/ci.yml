@@ -3,6 +3,7 @@
 # workflow_dispatch run satisfy the main ruleset on a pull request and in the merge queue.
 name: CI
 on:
+  pull_request:
   workflow_dispatch:
     inputs:
       fail:
