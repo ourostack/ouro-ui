@@ -30,12 +30,14 @@ const slotsClass = "m-0 box-border flex max-w-full items-center gap-2";
  * One slot: a square with Field's control look, 44px with 16px text on phones (iOS zooms
  * into smaller text on focus), stepping down to 36px and 14px from the `sm` breakpoint with
  * a fine pointer, so a landscape phone keeps the phone size. The focused slot is outlined
- * however it got focus, because focus moves between slots as the person types.
+ * however it got focus, because focus moves between slots as the person types. Its width is
+ * at most the row's (`min(…, 100%)`), which a layout that sizes to content (a grid column)
+ * reads as no width at all, so too many slots for the column narrow instead of spilling out.
  *
  * @internal
  */
 const slotClass =
-  "m-0 box-border block size-(--ouro-otp-slot) min-w-0 shrink p-0 text-center tabular-nums " +
+  "m-0 box-border block h-(--ouro-otp-slot) w-[min(var(--ouro-otp-slot),100%)] min-w-0 shrink p-0 text-center tabular-nums " +
   "[--ouro-otp-slot:calc(var(--spacing)*11)] sm:pointer-fine:[--ouro-otp-slot:calc(var(--spacing)*9)] " +
   "rounded-md border border-solid border-input bg-transparent text-base text-foreground sm:pointer-fine:text-sm font-[inherit] caret-transparent " +
   "outline-ring outline-offset-2 focus:outline-2 focus:outline-solid " +

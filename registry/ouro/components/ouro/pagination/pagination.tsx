@@ -245,8 +245,10 @@ export function Pagination(props: PaginationProps): JSX.Element {
         </RouterLink>
       );
     }
+    // A button at an end says it is disabled rather than being disabled, so it keeps focus when
+    // a press takes the reader there (a disabled button would drop focus to the page).
     return (
-      <button {...attributes} type="button" disabled={!enabled} onClick={() => onPageChange!(target)} className={cn(cell, enabled ? live : off, classes)}>
+      <button {...attributes} type="button" aria-disabled={enabled ? undefined : true} onClick={enabled ? () => onPageChange!(target) : undefined} className={cn(cell, enabled ? live : off, classes)}>
         {children}
       </button>
     );

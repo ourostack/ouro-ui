@@ -5,6 +5,8 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type JSX, ty
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
+import { useFocusHandoff } from "@/registry/ouro/lib/ouro/focus-handoff";
+import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { rubberband, spring, type SpringHandle } from "@/registry/ouro/lib/ouro/spring";
 import { connectToaster, type ToastRecord } from "@/registry/ouro/lib/ouro/toast";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
@@ -254,11 +256,14 @@ type ToastObject = ReturnType<typeof Toast.useToastManager>["toasts"][number];
 function ToastItem({ item, closeLabel }: { item: ToastObject; closeLabel: string }): JSX.Element {
   const { close } = Toast.useToastManager();
   const swipe = useSwipeAway(() => close(item.id), item.transitionStatus === "ending");
+  // A toast its dismiss button or action closes hands focus to the next toast, or back to the page.
+  const ref = useMergedRef(swipe.ref, useFocusHandoff<HTMLDivElement>());
   return (
     <Toast.Root
       toast={item}
       swipeDirection={NO_SWIPE}
       {...swipe}
+      ref={ref}
       data-ouro="toast"
       data-tone={item.type}
       // A high-priority toast is an alertdialog, an urgent part of its own.

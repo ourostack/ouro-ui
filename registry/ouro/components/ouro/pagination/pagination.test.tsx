@@ -1,4 +1,4 @@
-import type { ComponentProps, ReactNode } from "react";
+import { useState, type ComponentProps, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -126,10 +126,31 @@ describe("Pagination", () => {
     expect(onPageChange).toHaveBeenLastCalledWith(3);
   });
 
-  it("disables the Previous and Next buttons at the ends", async () => {
-    await render(<Pagination page={1} pageCount={1} onPageChange={() => {}} />);
-    await expect.element(page.getByRole("button", { name: "Previous" })).toBeDisabled();
-    await expect.element(page.getByRole("button", { name: "Next" })).toBeDisabled();
+  it("disables the Previous and Next buttons at the ends, and they do nothing", async () => {
+    const onPageChange = vi.fn();
+    await render(<Pagination page={1} pageCount={1} onPageChange={onPageChange} />);
+    for (const name of ["Previous", "Next"]) {
+      const button = page.getByRole("button", { name });
+      await expect.element(button).toHaveAttribute("aria-disabled", "true");
+      // Playwright waits for an enabled button before it clicks; force the press a person can still make.
+      await userEvent.click(button, { force: true });
+    }
+    expect(onPageChange).not.toHaveBeenCalled();
+  });
+
+  it("keeps focus on Previous when it takes the reader to the first page, where it is disabled", async () => {
+    function Paged() {
+      const [current, setCurrent] = useState(2);
+      return <Pagination page={current} pageCount={5} onPageChange={setCurrent} />;
+    }
+    await render(<Paged />);
+    const previous = page.getByRole("button", { name: "Previous" });
+    // From the keyboard: WebKit on a Mac does not focus a button it clicks.
+    (previous.element() as HTMLElement).focus();
+    await userEvent.keyboard("{Enter}");
+    await expect.element(previous).toHaveAttribute("aria-disabled", "true");
+    // A disabled button would drop focus to the page; a button that says it is disabled keeps it.
+    expect(document.activeElement).toBe(previous.element());
   });
 
   it("takes every visible and spoken string as a prop", async () => {

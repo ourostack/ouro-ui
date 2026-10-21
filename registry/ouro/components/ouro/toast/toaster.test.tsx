@@ -454,6 +454,23 @@ describe("toast()", () => {
     await gone("Saved");
   });
 
+  it.each([
+    ["the next toast", ["Saved", "Copied"], () => toastNamed("Copied")?.contains(document.activeElement)],
+    ["the control before the toasts when it was the last", ["Saved"], () => document.activeElement?.textContent === "Before"],
+  ])("hands focus to %s when its dismiss button closes it from the keyboard", async (_case, messages, focused) => {
+    await render(
+      <>
+        <button type="button">Before</button>
+        <Toaster />
+      </>,
+    );
+    for (const message of messages) await show(message, { duration: 0 });
+    (toastNamed("Saved")!.querySelector<HTMLElement>('button[aria-label="Dismiss"]')!).focus();
+    await userEvent.keyboard("{Enter}");
+    await gone("Saved");
+    await expect.poll(focused).toBe(true);
+  });
+
   it("closes one toast with toast.dismiss(id), and all with toast.dismiss()", async () => {
     await render(<Toaster />);
     let first = "";

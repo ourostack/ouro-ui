@@ -1,6 +1,8 @@
 "use client";
 
 import type { HTMLAttributes, JSX, Ref } from "react";
+import { useFocusHandoff } from "@/registry/ouro/lib/ouro/focus-handoff";
+import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -85,6 +87,7 @@ export function Attachment(props: AttachmentProps): JSX.Element {
     removeLabel = (file: string) => `Remove ${file}`,
     formatSize = defaultFormatSize,
     className,
+    ref,
     // Guard props (hint types), dropped here so they never reach the DOM.
     fileName,
     filename,
@@ -136,9 +139,12 @@ export function Attachment(props: AttachmentProps): JSX.Element {
     </>
   );
   const inner = "flex min-h-11 min-w-0 flex-1 items-center gap-2 px-3 pointer-fine:min-h-9";
+  // A remove button that removes the attachment hands its focus to the next one, or the one before.
+  const merged = useMergedRef(ref, useFocusHandoff<HTMLDivElement>());
   return (
     <div
       {...rest}
+      ref={merged}
       data-ouro="attachment"
       className={cn(
         "relative box-border inline-flex max-w-full min-w-0 items-center rounded-lg border border-solid border-border bg-card",
