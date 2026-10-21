@@ -16,18 +16,12 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { componentsDir, libDir, planShards, runtimeSource, shardCost, testSeconds } from "./mutation/cache.mjs";
 import { ignoreReason } from "./mutation/plugins.mjs";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const componentsDir = "registry/ouro/components/ouro/";
-const libDir = "registry/ouro/lib/ouro/";
+export { runtimeSource };
 
-/** Whether a path is runtime source the mutation run mutates: component and lib code, not tests, stories, types or the test kit. */
-export function runtimeSource(path) {
-  if (!/\.(ts|tsx)$/.test(path) || /\.(test|test-d|stories)\.tsx?$|\.d\.ts$|\.touch\.test\./.test(path)) return false;
-  if (path.startsWith(componentsDir)) return true;
-  return path.startsWith(libDir) && !path.startsWith(`${libDir}testing/`);
-}
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 /**
  * The lines each file gained or changed in a unified diff with no context (`git diff -U0`), as
@@ -90,30 +84,6 @@ export function estimateMutants(text, path, ranges) {
     },
   });
   return count;
-}
-
-/**
- * What a file costs a shard: its estimated mutants times the tests in `testFiles` (its own), as
- * a mutant runs up to that whole set (coverage analysis is off). Dialog's tests take far longer than a
- * style file's, so counting mutants alone left one shard four times as long as another.
- */
-export function mutantWeight(mutants, testFiles, rootDir = root) {
-  const its = testFiles.reduce((total, file) => total + (readFileSync(join(rootDir, file), "utf8").match(/^\s*it\(/gm)?.length ?? 0), 0);
-  return mutants * Math.max(1, its);
-}
-
-/**
- * Files split across `count` shards by weight (`mutantWeight`), largest first into the
- * lightest shard, so the shards finish close together.
- */
-export function balanceShards(weights, count) {
-  const shards = Array.from({ length: count }, () => ({ files: [], total: 0 }));
-  for (const [file, weight] of Object.entries(weights).sort(([a, x], [b, y]) => y - x || (a < b ? -1 : 1))) {
-    const lightest = shards.reduce((best, shard) => (shard.total < best.total ? shard : best));
-    lightest.files.push(file);
-    lightest.total += weight;
-  }
-  return shards.map((shard) => shard.files.sort());
 }
 
 /** `--shard 2/3` as a 1-based index and a count; null without one. */
@@ -233,8 +203,8 @@ export function describeSurvivor(mutant) {
 
 async function main(args) {
   // `--only <path>` mutates one file's changed lines, while you work on it; `--shard <i>/<n>`
-  // mutates the ith of n groups of the changed files, balanced by their estimated mutants times
-  // their tests (CI).
+  // mutates the ith of n groups of the changed files, balanced by their estimated mutants and
+  // their tests' measured time (CI).
   const option = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : undefined);
   const only = option("--only");
   const shard = parseShard(option("--shard"));
@@ -265,14 +235,19 @@ async function main(args) {
   const changed = changedLines(diff.stdout);
   let changes = changed;
   if (shard) {
-    const mutants = Object.fromEntries(Object.entries(changed).filter(([path]) => runtimeSource(path)).map(([path, ranges]) => [path, estimateMutants(readFileSync(join(root, path), "utf8"), path, ranges)]));
-    const weights = Object.fromEntries(Object.entries(mutants).map(([path, count]) => [path, mutantWeight(count, testFilesFor([path]).own)]));
-    const shards = balanceShards(weights, shard.count);
-    const totals = shards.map((files) => files.reduce((total, file) => total + weights[file], 0));
-    console.log(
-      `Shard ${shard.index}/${shard.count} of the changed files, by estimated mutants times their tests:\n${shards.map((files, index) => `${index + 1} (${totals[index]}): ${files.map((file) => `${file} (~${mutants[file]} x ${weights[file] / Math.max(1, mutants[file])})`).join(", ") || "none"}`).join("\n")}`,
+    const seconds = testSeconds();
+    const files = Object.fromEntries(
+      Object.entries(changed)
+        .filter(([path]) => runtimeSource(path))
+        .map(([path, ranges]) => [path, { mutants: estimateMutants(readFileSync(join(root, path), "utf8"), path, ranges), ...testFilesFor([path]) }]),
     );
-    changes = Object.fromEntries(shards[shard.index - 1].map((file) => [file, changed[file]]));
+    const shards = planShards(files, shard.count, seconds);
+    console.log(
+      `Shard ${shard.index}/${shard.count} of the changed files, by estimated mutants and their tests' measured time (scripts/mutation/test-seconds.json):\n${shards
+        .map((paths, index) => `${index + 1} (~${Math.round(shardCost(paths, files, seconds))}s): ${paths.map((path) => `${path} (~${files[path].mutants})`).join(", ") || "none"}`)
+        .join("\n")}`,
+    );
+    changes = Object.fromEntries(shards[shard.index - 1].map((path) => [path, changed[path]]));
   }
   const mutate = mutateRanges(changes);
   if (mutate.length === 0) {
@@ -301,10 +276,11 @@ async function main(args) {
     reporters: ["clear-text", "progress"],
     clearTextReporter: { reportTests: false, reportMutants: false, reportScoreTable: true },
     tempDirName: ".tmp/stryker",
-    // Results kept from the last run (CI restores them per shard): a mutant whose code and tests
-    // have not changed since is not run again.
+    // Results kept from the last run (CI restores the shards' results, merged, under a key that
+    // changes with what the mutated files import): a mutant whose code and tests have not changed
+    // since is not run again.
     incremental: true,
-    incrementalFile: `.tmp/stryker-incremental${shard ? `-${shard.index}` : ""}.json`,
+    incrementalFile: ".tmp/stryker-incremental.json",
     timeoutMS: 10_000,
     thresholds: { high: 100, low: 100, break: null },
   }).runMutationTest();

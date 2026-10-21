@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { balanceShards, changedLines, mutantWeight, countDisables, describeSurvivor, disableProblems, estimateMutants, mutateRanges, parseShard, runtimeSource, survivors, testFilesFor } from "./mutation.mjs";
+import { changedLines, countDisables, describeSurvivor, disableProblems, estimateMutants, mutateRanges, parseShard, runtimeSource, survivors, testFilesFor } from "./mutation.mjs";
 import { parse } from "@babel/parser";
 import traverse from "@babel/traverse";
 import { ignoreReason, isClassList, testPhases } from "./mutation/plugins.mjs";
+import { dependencyFiles, dependencyHash, mergeReports, parseTestSeconds, planShards, shardCost, testSeconds, unmeasuredSeconds } from "./mutation/cache.mjs";
 
 test("runtimeSource takes component and lib code, and leaves tests, stories, types and the test kit", () => {
   for (const path of ["registry/ouro/components/ouro/button/button.tsx", "registry/ouro/components/ouro/dialog/dialog-styles.ts", "registry/ouro/lib/ouro/cn.ts"]) assert.ok(runtimeSource(path), path);
@@ -190,23 +190,83 @@ test("estimateMutants counts what Stryker can change on the changed lines, leavi
   assert.ok(estimateMutants(text, "f.tsx", [[1, 5]]) > estimateMutants(text, "f.tsx", [[3, 4]]));
 });
 
-test("balanceShards splits files across shards by their mutants, largest first, each shard's total as even as it can be", () => {
-  const weights = { a: 50, b: 30, c: 20, d: 20, e: 10 };
-  const shards = balanceShards(weights, 3);
-  assert.deepEqual(shards, [["a"], ["b", "e"], ["c", "d"]]);
-  assert.deepEqual(balanceShards({ a: 1 }, 3), [["a"], [], []]);
+test("parseShard reads --shard as a 1-based index and a count", () => {
   assert.deepEqual(parseShard("2/3"), { index: 2, count: 3 });
+  assert.deepEqual(parseShard("5/5"), { index: 5, count: 5 });
   assert.equal(parseShard(undefined), null);
   assert.throws(() => parseShard("4/3"), /--shard/);
 });
 
-test("mutantWeight is a file's estimated mutants times the tests each one runs, since a mutant may run its file's whole test set", () => {
-  const files = ["registry/ouro/components/ouro/dialog/dialog.test.tsx", "registry/ouro/components/ouro/button/button.test.tsx"];
-  const its = files.map((file) => readFileSync(file, "utf8").match(/^\s*it\(/gm).length).reduce((a, b) => a + b);
-  assert.ok(its > 20);
-  assert.equal(mutantWeight(4, files), 4 * its);
-  assert.equal(mutantWeight(4, []), 4);
-  assert.equal(mutantWeight(0, files), 0);
-  // Equal mutants, but one file's tests take ten times as long: it shares a shard with no one.
-  assert.deepEqual(balanceShards({ slow: mutantWeight(5, files), a: 5, b: 5, c: 5 }, 2), [["slow"], ["a", "b", "c"]]);
+test("parseTestSeconds reads each ouro-chromium test file's time from a CI log, colour codes and timestamps dropped", () => {
+  const log = [
+    "2026-10-21T08:18:26.8450286Z  \x1b[32m✓\x1b[39m \x1b[30m\x1b[45m ouro-chromium (chromium) \x1b[49m\x1b[39m registry/ouro/components/ouro/select/select.test.tsx \x1b[2m(\x1b[22m\x1b[2m32 tests\x1b[22m\x1b[2m)\x1b[22m\x1b[33m 6886\x1b[2mms\x1b[22m\x1b[39m",
+    "2026-10-21T08:18:35.0441612Z  ✓  ouro-webkit (webkit)  registry/ouro/components/ouro/select/select.test.tsx (32 tests) 8642ms",
+    "2026-10-21T08:19:49.3768162Z  ✓  ouro-chromium (chromium)  registry/ouro/lib/ouro/focus-handoff.test.tsx (12 tests | 1 skipped) 30ms",
+  ].join("\n");
+  assert.deepEqual(parseTestSeconds(log), { "registry/ouro/components/ouro/select/select.test.tsx": 6.886, "registry/ouro/lib/ouro/focus-handoff.test.tsx": 0.03 });
+});
+
+test("planShards weighs each mutant by its own tests' measured time and each shard by its first run over every test file it needs", () => {
+  const seconds = { "slow.test.tsx": 60, "fast.test.tsx": 1, "importer.test.tsx": 30 };
+  const files = {
+    "dialog.tsx": { mutants: 16, own: ["slow.test.tsx"], wider: [] },
+    "sheet.tsx": { mutants: 16, own: ["slow.test.tsx"], wider: [] },
+    "styles.ts": { mutants: 6, own: ["fast.test.tsx"], wider: [] },
+    "handoff.ts": { mutants: 55, own: ["fast.test.tsx"], wider: ["importer.test.tsx"] },
+  };
+  // 16 mutants x (1 + 0.5 x 60) + 0.5 x 60: the two slow files are each a shard's worth.
+  assert.equal(shardCost(["dialog.tsx"], files, seconds), 16 * 31 + 30);
+  // The importers' tests count once, in the first run, not per mutant.
+  assert.equal(shardCost(["handoff.ts"], files, seconds), 55 * 1.5 + 0.5 + 15);
+  assert.deepEqual(planShards(files, 3, seconds), [["dialog.tsx"], ["sheet.tsx"], ["handoff.ts", "styles.ts"]]);
+  // A file whose tests were never timed counts as a few seconds of tests, not none.
+  assert.equal(shardCost(["new.tsx"], { "new.tsx": { mutants: 2, own: ["new.test.tsx"], wider: [] } }, {}), 2 * (1 + 0.5 * unmeasuredSeconds) + 0.5 * unmeasuredSeconds);
+});
+
+test("the committed test times cover the mutation runner's test files", () => {
+  const seconds = testSeconds();
+  assert.ok(Object.keys(seconds).length > 100);
+  assert.ok(seconds["registry/ouro/components/ouro/dialog/dialog.test.tsx"] > seconds["registry/ouro/lib/ouro/focus-handoff.test.tsx"]);
+});
+
+test("dependencyFiles takes every lib file and what the changed files import, through each other; dependencyHash changes with any of them", () => {
+  const sources = {
+    "registry/ouro/components/ouro/a/a.tsx": 'import { b } from "./b-styles";\nimport { cn } from "@/registry/ouro/lib/ouro/cn";\nimport { C } from "@/registry/ouro/components/ouro/c/c";',
+    "registry/ouro/components/ouro/a/b-styles.ts": 'import { d } from "../d/d";',
+    "registry/ouro/components/ouro/c/c.tsx": "export const C = 1;",
+    "registry/ouro/components/ouro/d/d.ts": "export const d = 1;",
+    "registry/ouro/components/ouro/e/e.tsx": "export const e = 1;",
+    "registry/ouro/lib/ouro/cn.ts": "export const cn = 1;",
+    "registry/ouro/lib/ouro/spring.ts": "export const spring = 1;",
+  };
+  const options = { read: (path) => sources[path], exists: (path) => path in sources, list: () => ["registry/ouro/lib/ouro/cn.ts", "registry/ouro/lib/ouro/spring.ts"] };
+  const files = dependencyFiles(["registry/ouro/components/ouro/a/a.tsx"], options);
+  assert.deepEqual(files, [
+    "registry/ouro/components/ouro/a/b-styles.ts",
+    "registry/ouro/components/ouro/c/c.tsx",
+    "registry/ouro/components/ouro/d/d.ts",
+    "registry/ouro/lib/ouro/cn.ts",
+    "registry/ouro/lib/ouro/spring.ts",
+  ]);
+  const hash = (changes) => dependencyHash(files, (path) => changes[path] ?? sources[path]);
+  assert.equal(hash({}), hash({}));
+  assert.notEqual(hash({ "registry/ouro/components/ouro/d/d.ts": "export const d = 2;" }), hash({}));
+  assert.notEqual(hash({ "registry/ouro/lib/ouro/spring.ts": "export const spring = 2;" }), hash({}));
+  // Not a dependency: the hash is the same.
+  assert.equal(dependencyHash(files, (path) => ({ ...sources, "registry/ouro/components/ouro/e/e.tsx": "changed" })[path]), hash({}));
+});
+
+test("mergeReports makes one incremental report of the shards', renaming each test by its file and name so killedBy still names it", () => {
+  const shard = (path, tests, killedBy) => ({
+    schemaVersion: "2",
+    files: { [path]: { language: "typescript", source: "", mutants: [{ id: "0", status: "Killed", killedBy, coveredBy: killedBy }] } },
+    testFiles: { "dialog.test.tsx": { tests: tests.map((name, id) => ({ id: String(id), name })) } },
+  });
+  const merged = mergeReports([shard("dialog.tsx", ["opens", "closes"], ["1"]), shard("dialog-parts.tsx", ["closes", "traps focus"], ["1"])]);
+  assert.deepEqual(Object.keys(merged.files), ["dialog.tsx", "dialog-parts.tsx"]);
+  const names = Object.fromEntries(merged.testFiles["dialog.test.tsx"].tests.map(({ id, name }) => [id, name]));
+  assert.deepEqual(Object.values(names), ["opens", "closes", "traps focus"]);
+  assert.equal(names[merged.files["dialog.tsx"].mutants[0].killedBy[0]], "closes");
+  assert.equal(names[merged.files["dialog-parts.tsx"].mutants[0].killedBy[0]], "traps focus");
+  assert.equal(names[merged.files["dialog-parts.tsx"].mutants[0].coveredBy[0]], "traps focus");
 });
