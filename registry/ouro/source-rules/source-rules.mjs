@@ -252,7 +252,8 @@ export function narrowedSettings(base, head) {
   if (head.src !== base.src) add("src", head.src, `reads ${head.src}/ instead of ${base.src}/`);
   const skipped = [...base.ouroDirs, ...base.exclude];
   for (const setting of ["ouroDirs", "exclude"]) {
-    for (const prefix of head[setting]) {
+    // A prefix listed twice is one change.
+    for (const prefix of new Set(head[setting])) {
       if (!skipped.some((known) => prefix.startsWith(known))) add(setting, prefix, `stops reading ${prefix} (${setting})`);
     }
   }
