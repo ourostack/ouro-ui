@@ -1,7 +1,7 @@
 import type {} from "@vitest/browser-playwright";
 import type { CDPSession, Frame, Page } from "playwright";
 import type { BrowserCommand } from "vitest/node";
-import { monitorEventLoopDelay } from "node:perf_hooks";
+import { monitorEventLoopDelay, performance } from "node:perf_hooks";
 
 export interface EmulateMediaOptions {
   reducedMotion?: "reduce" | "no-preference";
@@ -242,10 +242,27 @@ interface FrameState {
 }
 
 /** Rejects with `message` after `ms`, and stops its timer once `promise` settles. */
+/**
+ * Runs `run` once `ms` have passed on `performance.now()`, and returns a function that cancels it.
+ * A Node timer counts whole milliseconds of the event loop's cached time, so it can fire before its
+ * delay on a precise clock; this one sets another timer for whatever is left.
+ */
+function after(ms: number, run: () => void): () => void {
+  const end = performance.now() + ms;
+  let timer: ReturnType<typeof setTimeout>;
+  const check = () => {
+    const left = end - performance.now();
+    if (left > 0) timer = setTimeout(check, Math.ceil(left));
+    else run();
+  };
+  timer = setTimeout(check, Math.max(0, Math.ceil(ms)));
+  return () => clearTimeout(timer);
+}
+
 function within<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const expired = new Promise<never>((_, reject) => (timer = setTimeout(() => reject(new Error(message)), Math.max(0, ms))));
-  return Promise.race([promise, expired]).finally(() => clearTimeout(timer));
+  let cancel = () => {};
+  const expired = new Promise<never>((_, reject) => (cancel = after(ms, () => reject(new Error(message)))));
+  return Promise.race([promise, expired]).finally(() => cancel());
 }
 
 /**
@@ -504,7 +521,7 @@ async function watchTarget(
   target: TouchTarget,
   trace: TouchTrace,
 ): Promise<{ calls: Map<Frame, Promise<FrameAnswer<null>>>; gone?: string; inside?: Frame }> {
-  const deadline = Date.now() + TOUCH_HANDLED_TIMEOUT_MS;
+  const deadline = performance.now() + TOUCH_HANDLED_TIMEOUT_MS;
   const calls = new Map<Frame, Promise<FrameAnswer<null>>>();
   let changed = () => {};
   const watch = (frame: Frame) => {
@@ -535,7 +552,7 @@ async function watchTarget(
       // Listen before asking, so a change during the question is not missed.
       const change = new Promise<void>((resolve) => (changed = resolve));
       inside = undefined;
-      const at = await within(frameAtPoint(session, target.point, expected, trace), deadline - Date.now(), "Chromium did not say which frame is there").catch(
+      const at = await within(frameAtPoint(session, target.point, expected, trace), deadline - performance.now(), "Chromium did not say which frame is there").catch(
         (error: Error): FrameAt => ({ watched: false, where: `unknown (${error.message})` }),
       );
       traceStep(trace, `the frame at the point: ${String(at.watched)}, ${at.where}`);
@@ -546,7 +563,7 @@ async function watchTarget(
         // as the test's own, are already armed, and a touch Chromium sends to a frame before its
         // watcher is armed is lost, not queued.
         const children = [...calls.keys()].filter((frame) => frame.parentFrame() !== null);
-        const found = await Promise.all(children.map((frame) => within(frameSession(page, frame), deadline - Date.now(), "").catch(() => undefined)));
+        const found = await Promise.all(children.map((frame) => within(frameSession(page, frame), deadline - performance.now(), "").catch(() => undefined)));
         const index = at.frameId === undefined ? -1 : found.findIndex((frame) => frame?.id === at.frameId);
         const there = children[index];
         if (there && (await within(calls.get(there)!, 0, "").then((answer) => answer.error === undefined, () => false))) {
@@ -556,19 +573,19 @@ async function watchTarget(
           inside = await hitsInside(session, found[index]!.session, at, target.point);
           traceStep(trace, `the hit test ${inside ? "reaches" : "does not reach"} inside the frame`);
           if (inside) {
-            await within(there.evaluate(TWO_FRAMES), deadline - Date.now(), "").catch(() => {});
+            await within(there.evaluate(TWO_FRAMES), deadline - performance.now(), "").catch(() => {});
             return { calls, inside: there };
           }
         }
       }
       if (at.watched === "unknown") {
         // Chromium could not say: wait for every frame Playwright lists, as far as the bound allows.
-        await within(answered(), deadline - Date.now(), "expired").catch(() => {});
+        await within(answered(), deadline - performance.now(), "expired").catch(() => {});
         traceStep(trace, "waited for every frame's watch");
         return { calls };
       }
       const soon = inside === false ? new Promise<void>((resolve) => setTimeout(resolve, TOUCH_POLL_MS)) : change;
-      const expired = await within(Promise.race([change, soon]), deadline - Date.now(), "expired").then(
+      const expired = await within(Promise.race([change, soon]), deadline - performance.now(), "expired").then(
         () => false,
         () => true,
       );
@@ -673,7 +690,7 @@ async function sendTraced(
   };
   let waits: Promise<FrameAnswer<TouchSeen> | undefined>[];
   let handler: Frame | undefined;
-  let watchdog: ReturnType<typeof setTimeout> | undefined;
+  let watchdog = () => {};
   try {
     await send();
     traceStep(trace, "sent");
@@ -684,7 +701,7 @@ async function sendTraced(
     );
     // Page timers may be frozen by a test; keep the acknowledgement deadline on the provider.
     const deadline = new Promise<undefined>((resolve) => {
-      watchdog = setTimeout(() => resolve(undefined), TOUCH_HANDLED_TIMEOUT_MS);
+      watchdog = after(TOUCH_HANDLED_TIMEOUT_MS, () => resolve(undefined));
     });
     // The first frame to see it ends the wait in the others.
     const firstSeen = waits.map((wait) => wait.then((answer) => (answer?.value?.seen ? answer.frame : new Promise<never>(() => {}))));
@@ -694,7 +711,7 @@ async function sendTraced(
     await tidy();
     throw error;
   } finally {
-    if (watchdog !== undefined) clearTimeout(watchdog);
+    watchdog();
   }
   // Capture failure-time diagnostics, then settle frozen waits before collecting their observations.
   const states = handler ? Promise.resolve([]) : Promise.all(watchTouch<FrameState>(page, "inspect", expected, TOUCH_TIDY_MS));

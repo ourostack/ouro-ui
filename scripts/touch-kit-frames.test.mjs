@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
+import { performance } from "node:perf_hooks";
 import { mock, test } from "node:test";
 import { clearTimeout, setTimeout } from "node:timers";
 import { touchStep } from "../registry/ouro/lib/ouro/testing/commands.ts";
@@ -172,6 +173,25 @@ test("a touchstart on a frame in another process that Playwright never lists is 
     assert.ok(Date.now() - started >= 5000);
     assert.deepEqual(sent, []);
   } finally {
+    stop();
+  }
+});
+
+test("a touch refused at the time limit is refused no sooner, though Node's timers can fire early", async () => {
+  // Node's timers count whole milliseconds of the event loop's cached time, and the kit counted its
+  // limit in whole milliseconds of Date.now(), so a refusal could come a millisecond or two early on
+  // a precise clock: CI saw one at 4999.8ms. Make every timer the kit sets fire 10ms early, so the
+  // test does not depend on how early; this file's own timers come from node:timers and are unchanged.
+  const { sent, start, stop } = stage({ listAfter: 60_000 });
+  const early = globalThis.setTimeout;
+  globalThis.setTimeout = (run, ms = 0, ...args) => early(run, Math.max(0, ms - 10), ...args);
+  try {
+    const started = performance.now();
+    await assert.rejects(start(), /^Error: touchStep: could not watch the frame at \(100, 350\) within 5000ms/);
+    assert.ok(performance.now() - started >= 5000, `refused after ${performance.now() - started}ms`);
+    assert.deepEqual(sent, []);
+  } finally {
+    globalThis.setTimeout = early;
     stop();
   }
 });
