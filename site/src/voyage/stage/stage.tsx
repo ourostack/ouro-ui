@@ -58,11 +58,11 @@ function useStable<Args extends unknown[]>(handler: (...args: Args) => void): (.
 
 /**
  * A value that follows `value` once the frame that shows the change has painted. The porthole's
- * picture is an SVG of engraved drawings, and any change to it (a fish, the sonar, a bubble) lays
- * out the whole drawing again: tens of milliseconds on a slow CPU. As a deferred render
+ * picture is mostly SVG layers of engraved drawings, and a change to them (the sea's depth, a
+ * bubble) lays out the drawing again: tens of milliseconds on a slow CPU. As a deferred render
  * (`useDeferredValue`) React may commit it before the browser paints the press, whenever the next
  * frame is further off than React's render, and then that frame lays out the drawing first. Set
- * once the press is on screen instead (afterPaint), it always lands after the press.
+ * from a task after the press's frame instead (afterPaint), it always lands after the press.
  */
 function useAfterPaint<T>(value: T): T {
   const [shown, setShown] = useState(value);
@@ -71,17 +71,15 @@ function useAfterPaint<T>(value: T): T {
 }
 
 /**
- * Runs `then` once the frame that shows a press is on screen, and returns a cancel. A task after
- * the next frame's work is not late enough on a slow CPU: that frame is still being drawn, and
- * work there holds up the next press. A task after the frame after it is.
+ * Runs `then` in a task after the next frame, the one that shows a press, and returns a cancel.
+ * That frame is already handed to the compositor to draw, so `then` doesn't hold it up; a task a
+ * frame later still would leave the work closer to the next press.
  */
 function afterPaint(then: () => void): () => void {
-  let frame = requestAnimationFrame(() => {
-    frame = requestAnimationFrame(() => {
-      timer = window.setTimeout(then);
-    });
-  });
   let timer = 0;
+  const frame = requestAnimationFrame(() => {
+    timer = window.setTimeout(then);
+  });
   return () => {
     cancelAnimationFrame(frame);
     clearTimeout(timer);
@@ -89,6 +87,13 @@ function afterPaint(then: () => void): () => void {
 }
 
 type TankId = (typeof TANKS)[number]["id"];
+
+/**
+ * The bell's toast id: each ring's answer replaces the last one in place while it shows, rather than
+ * stacking another toast that pushes the others up and out, which the page re-lays out frame after
+ * frame and the next ring waited on.
+ */
+const BELL_TOAST = "stage-bell";
 const EMPTY: Record<TankId, boolean> = { fore: false, middle: false, aft: false };
 
 /**
@@ -192,7 +197,7 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
     // that frame, and the toast stack measures and re-lays itself out).
     afterPaint(() => {
       write(LOG.bell);
-      toast(`${line.name}: ${line.text}`);
+      toast(`${line.name}: ${line.text}`, { id: BELL_TOAST });
       keepClearOfToasts(root.current?.querySelector("[data-stage-control='bell']"));
     });
   });
