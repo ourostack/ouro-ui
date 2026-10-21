@@ -38,6 +38,7 @@ const SETTLE_INTERVAL_MS = 250;
  * The visible controls' identities, once no finite animation runs.
  * @param {Page} page
  * @returns {Promise<string[]>}
+ * @claim "once no finite animation runs" scripts/kits/census-page.test.mjs verify:testExists(scripts/kits/census-page.test.mjs::collectCensus > loads axe-core, waits for animations, and returns the visible controls once two readings agree)
  */
 async function identitiesOnPage(page) {
   await page.waitForFunction(animationsSettled);
@@ -51,6 +52,8 @@ async function identitiesOnPage(page) {
  * @param {Page} page
  * @param {{ attempts?: number, intervalMs?: number }} [options]
  * @returns {Promise<Multiset>}
+ * @claim "once two readings a moment apart agree" scripts/kits/census-page.test.mjs verify:testExists(scripts/kits/census-page.test.mjs::collectCensus > loads axe-core, waits for animations, and returns the visible controls once two readings agree)
+ * @claim "once two readings a moment apart agree" scripts/kits/census-page.test.mjs verify:testExists(scripts/kits/census-page.test.mjs::collectCensus > reads 20 times, 250 ms apart, by default)
  */
 export async function collectCensus(page, { attempts = SETTLE_ATTEMPTS, intervalMs = SETTLE_INTERVAL_MS } = {}) {
   await page.evaluate(axe.source);
@@ -70,6 +73,7 @@ export async function collectCensus(page, { attempts = SETTLE_ATTEMPTS, interval
  * @param {string} componentsDir
  * @param {(directory: string) => string[]} [readdir]
  * @returns {string[]}
+ * @claim "the stem of each component file" scripts/kits/census-page.test.mjs verify:testExists(scripts/kits/census-page.test.mjs::installedItems > names each installed component file's stem, the values its markers carry)
  */
 export function installedItems(componentsDir, readdir = (directory) => readdirSync(directory)) {
   const stems = new Set();
@@ -90,6 +94,8 @@ export function installedItems(componentsDir, readdir = (directory) => readdirSy
  * sees half of one.
  * @param {{ journeys: readonly Journey[], projects: readonly string[], worker: number, directory: string }} options
  * @returns {string}
+ * @claim "Writes the states this run must record" scripts/kits/census-page.test.mjs verify:testExists(scripts/kits/census-page.test.mjs::recording > writes the expected set, projects and states, in one rename)
+ * @claim "Every worker writes the same content" scripts/kits/census-page.test.mjs verify:testExists(scripts/kits/census-page.test.mjs::recording > writes the expected set, projects and states, in one rename)
  */
 export function recordExpectedCensus({ journeys, projects, worker, directory }) {
   mkdirSync(directory, { recursive: true });
@@ -122,6 +128,7 @@ export function recordCensus({ directory, project, worker, journeyId, stateId, m
  * Throws with every problem the census finds in one state: no baseline, any difference, or (when
  * the journey is enrolled) any unmarked control or marker naming no installed component.
  * @param {{ baseline: Record<string, unknown>, baselinePath: string, project: string, journey: Journey, stateId: string, actual: Multiset, actualPath: string, knownItems: readonly string[] }} options
+ * @claim "Throws with every problem the census finds" scripts/kits/census-page.test.mjs verify:testExists(scripts/kits/census-page.test.mjs::recording > throws every problem with a state, and nothing for a match)
  */
 export function expectCensusMatches({ baseline, baselinePath, project, journey, stateId, actual, actualPath, knownItems }) {
   const problems = checkCensusState({ baseline, baselinePath, project, journeyId: journey.id, stateId, actual, enrolled: journey.enrolled, knownItems, actualPath });
@@ -144,6 +151,8 @@ export function expectCensusMatches({ baseline, baselinePath, project, journey, 
  *   resultsDir?: string,
  *   prepare?: (page: Page) => Promise<void>,
  * }} options
+ * @claim "Registers the census" scripts/kits/census-page.test.mjs verify:testExists(scripts/kits/census-page.test.mjs::censusTests > registers one tagged test per state, each journey with its session, and the expected set before them)
+ * @claim "Each test loads the journey's" scripts/kits/census-page.test.mjs verify:testExists(scripts/kits/census-page.test.mjs::censusTests > fails a state whose page answers another status, redirects, or differs from the baseline)
  */
 export function censusTests({ test, journeys, projects, componentsDir, baselinePath = BASELINE_PATH, resultsDir = process.env["OURO_CENSUS_DIR"] ?? "ouro-census", prepare }) {
   const directory = path.resolve(resultsDir);
