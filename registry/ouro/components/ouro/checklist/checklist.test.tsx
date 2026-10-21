@@ -307,7 +307,7 @@ describe("Checklist", () => {
 
   it("shows the empty state once the last row has left", async () => {
     const { host } = await render(<Host items={[{ id: "eggs", label: "eggs", checked: true }]} extra={{ empty: <p>Nothing to buy.</p> }} />);
-    await act(() => setList(() => []));
+    flushSync(() => setList(() => []));
     expect(host.querySelector('[data-ouro-part="row"][data-ending-style]')).not.toBeNull();
     expect(host.textContent).not.toContain("Nothing to buy.");
     await expect.poll(() => host.querySelectorAll('[data-ouro-part="row"]').length).toBe(0);
@@ -362,7 +362,7 @@ describe("Checklist", () => {
     for (const reduced of [false, true]) {
       await commands.emulateMedia({ reducedMotion: reduced ? "reduce" : "no-preference" });
       await expect.poll(() => running(milk).length).toBe(0);
-      await act(() => setList((list) => list.map((item) => (item.id === "milk" ? { ...item, disabled: true } : item))));
+      flushSync(() => setList((list) => list.map((item) => (item.id === "milk" ? { ...item, disabled: true } : item))));
       await expectMotion(partOf(milk, "box"), { stem: "checklist", state: "data-disabled", properties: { opacity: fast }, reduced });
       await act(() => setList((list) => list.map((item) => ({ ...item, disabled: false }))));
     }
@@ -375,7 +375,7 @@ describe("Checklist", () => {
     const milk = row("milk");
     // A row a person sees has been styled, so its exit transitions from that style.
     await frame();
-    await act(() => setList((list) => list.filter((item) => item.id !== "milk")));
+    flushSync(() => setList((list) => list.filter((item) => item.id !== "milk")));
     expect(milk.isConnected).toBe(true);
     expect(milk).toHaveAttribute("data-ending-style");
     expect(milk).toHaveAttribute("inert");
@@ -386,7 +386,7 @@ describe("Checklist", () => {
     // With reduced motion the row only fades, in place, and then goes.
     await commands.emulateMedia({ reducedMotion: "reduce" });
     const salt = row("salt");
-    await act(() => setList((list) => list.filter((item) => item.id !== "salt")));
+    flushSync(() => setList((list) => list.filter((item) => item.id !== "salt")));
     await expectMotion(salt, { stem: "checklist", state: "data-ending-style", properties: { opacity: fast }, reduced: true });
     await expect.poll(() => salt.isConnected).toBe(false);
   });
@@ -398,7 +398,9 @@ describe("Checklist", () => {
     for (const reduced of [false, true]) {
       await commands.emulateMedia({ reducedMotion: reduced ? "reduce" : "no-preference" });
       const id = reduced ? "eggs" : "butter";
-      await act(() => setList((list) => [...list, { id, label: id, checked: false }]));
+      // No await before the checks: the row is entering only for its 150-200ms transition, which
+      // a loaded browser can run to its end before act's await comes back.
+      flushSync(() => setList((list) => [...list, { id, label: id, checked: false }]));
       const added = row(id);
       expect(added).toHaveAttribute("data-starting-style");
       await expectMotion(added, { stem: "checklist", state: "data-starting-style", properties: reduced ? { opacity: fast } : { opacity: base, "grid-template-rows": base }, reduced });
@@ -418,10 +420,10 @@ describe("Checklist", () => {
   it("returns a row re-added while leaving", async () => {
     const { host, row } = await render(<Host />);
     const milk = row("milk");
-    await act(() => setList((list) => list.filter((item) => item.id !== "milk")));
+    flushSync(() => setList((list) => list.filter((item) => item.id !== "milk")));
     expect(milk).toHaveAttribute("data-ending-style");
     await frame();
-    await act(() => setList(() => ingredients));
+    flushSync(() => setList(() => ingredients));
     expect(milk).not.toHaveAttribute("data-ending-style");
     expect(milk).not.toHaveAttribute("inert");
     expect(milk).not.toHaveAttribute("aria-hidden");
@@ -457,7 +459,7 @@ describe("Checklist", () => {
 
   it("keeps rows in order while one leaves and another arrives", async () => {
     const { host } = await render(<Host />);
-    await act(() => setList((list) => [list[0]!, { id: "eggs", label: "eggs", checked: false }, list[2]!]));
+    flushSync(() => setList((list) => [list[0]!, { id: "eggs", label: "eggs", checked: false }, list[2]!]));
     // The leaving row stays after the row it followed.
     expect(labels(host)).toEqual(["rolled oats", "milk", "eggs", "salt"]);
     await expect.poll(() => host.querySelectorAll('[data-ouro-part="row"]').length).toBe(3);
