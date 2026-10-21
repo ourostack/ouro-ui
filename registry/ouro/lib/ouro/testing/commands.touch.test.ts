@@ -361,10 +361,16 @@ test.each(["open", "closed"] as const)("touches reach an iframe in a %s shadow r
 });
 
 test("touches reach a cross-origin iframe, and a cross-origin iframe does not hold up touches elsewhere", async () => {
-  // Another origin of the same Vitest server: the page's host name swapped for its IP address.
-  const other = new URL(location.href);
-  other.hostname = other.hostname === "localhost" ? "127.0.0.1" : "localhost";
-  const frame = await frameAt(document.body, 300, { src: `${other.origin}/?touch-kit-cross-origin` });
+  // Another origin of the same Vitest server: the page's host name swapped for the address the
+  // server answers on (IPv4 or IPv6, whichever localhost resolved to when it started).
+  const others = (location.hostname === "localhost" ? ["127.0.0.1", "[::1]"] : ["localhost"]).map((hostname) => Object.assign(new URL(location.href), { hostname }));
+  const reachable = await Promise.all(others.map((url) => fetch(url.origin, { mode: "no-cors" }).then(() => true, () => false)));
+  const other = others[reachable.indexOf(true)];
+  expect(other, "the Vitest server answers on no other host name").toBeDefined();
+  // A document that runs no script, so its renderer is idle. Chromium holds back touches anywhere
+  // on the page while a cross-origin frame's renderer is busy: a whole app in the frame, as
+  // Vitest's own page was here, held a touch elsewhere for seconds on a loaded runner.
+  const frame = await frameAt(document.body, 300, { src: `${other!.origin}/@vite/client` });
   const loaded = new Promise((resolve) => frame.addEventListener("load", resolve, { once: true }));
   await loaded;
   const started = performance.now();

@@ -267,7 +267,8 @@ function watchTouch<T>(page: Page, action: TouchWatchAction, point: TouchPoint, 
 const TOUCH_TIDY_MS = 1000;
 
 /**
- * Whether the frame that receives a touch at (x, y) is watched, asked of Chromium directly.
+ * Whether the frame that receives a touch at (x, y) is watched for `expected`, asked of Chromium
+ * directly: a watcher left from an earlier event, whose tidying has not run yet, does not count.
  * `DOM.getNodeForLocation` hit-tests the way input does, through every frame and every shadow
  * root, open or closed, and past `pointer-events: none`, so it finds the frame a touch there
  * goes to, even one Playwright does not list yet. It takes a point in the top-level document,
@@ -279,7 +280,7 @@ const TOUCH_TIDY_MS = 1000;
  * @claim "`DOM.getNodeForLocation` hit-tests the way input does" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::the kit does not wait for a pointer-events: none iframe, which the touch passes through)
  * @claim "`DOM.getNodeForLocation` hit-tests the way input does" https://chromedevtools.github.io/devtools-protocol/tot/DOM/#method-getNodeForLocation verify:urlOk(https://chromedevtools.github.io/devtools-protocol/tot/DOM/#method-getNodeForLocation)
  */
-async function frameAtPoint(session: CDPSession, x: number, y: number): Promise<{ watched: boolean | "unknown"; where: string }> {
+async function frameAtPoint(session: CDPSession, { x, y }: { x: number; y: number }, expected: TouchPoint): Promise<{ watched: boolean | "unknown"; where: string }> {
   try {
     const { cssVisualViewport } = await session.send("Page.getLayoutMetrics");
     const { backendNodeId } = await session.send("DOM.getNodeForLocation", {
@@ -293,8 +294,9 @@ async function frameAtPoint(session: CDPSession, x: number, y: number): Promise<
       const { result } = await session.send("Runtime.callFunctionOn", {
         objectId: object.objectId!,
         returnByValue: true,
+        arguments: [{ value: { type: expected.type.toLowerCase(), x: expected.x, y: expected.y } }],
         // Runs in the node's frame, in the same world as TOUCH_WATCH.
-        functionDeclaration: `function () {
+        functionDeclaration: `function (want) {
           // The hit can be a ::before or ::after box, whose element is \`element\`.
           const node = this.nodeType ? this : this.element;
           const document = node ? node.ownerDocument || node : null;
@@ -306,7 +308,8 @@ async function frameAtPoint(session: CDPSession, x: number, y: number): Promise<
             if (source) where += ", in an iframe whose src is " + source;
           } catch {}
           // A hit the kit can't place in a frame is "unknown": the kit then waits for every frame Playwright lists.
-          return { watched: view ? Boolean(state && state.document === document) : "unknown", where };
+          const armed = Boolean(state && state.document === document && state.expected && state.expected.type === want.type && state.expected.x === want.x && state.expected.y === want.y);
+          return { watched: view ? armed : "unknown", where };
         }`,
       });
       return result.value as { watched: boolean | "unknown"; where: string };
@@ -372,7 +375,7 @@ async function watchTarget(
     for (;;) {
       // Listen before asking, so a change during the question is not missed.
       const change = new Promise<void>((resolve) => (changed = resolve));
-      const at = await within(frameAtPoint(session, target.point.x, target.point.y), deadline - Date.now(), "Chromium did not say which frame is there").catch(
+      const at = await within(frameAtPoint(session, target.point, expected), deadline - Date.now(), "Chromium did not say which frame is there").catch(
         (error: Error) => ({ watched: false as const, where: `unknown (${error.message})` }),
       );
       if (at.watched === true) return { calls };
@@ -449,10 +452,15 @@ async function sendTouch(
   const { calls, gone } = await watchTarget(command, page, session, expected, target);
   const now = <T>(call: Promise<T>) => within(call, 0, "").catch(() => undefined);
   // Tidies every frame whose watch started; a frame whose call is still out is tidied when it answers, without waiting.
-  const tidy = async () => {
+  // Once a frame has handled the event, only its tidying is waited for: a busy frame elsewhere, as a
+  // cross-origin page still running its scripts, would hold the command up to TOUCH_TIDY_MS. Calls
+  // into one frame run in order, so that frame is still tidied before the next command watches it,
+  // and the next touchstart waits for a watcher armed for itself (frameAtPoint).
+  const tidy = async (handled?: Frame) => {
     const answered = (await Promise.all([...calls.values()].map(now))).flatMap((answer) => (answer && answer.error === undefined ? [answer.frame] : []));
     for (const [frame, call] of calls) if (!answered.includes(frame)) void call.then(() => callWatch(frame, "settle", expected, TOUCH_TIDY_MS));
-    await Promise.all(watchTouch(page, "settle", expected, TOUCH_TIDY_MS, answered));
+    const settled = watchTouch(page, "settle", expected, TOUCH_TIDY_MS, answered);
+    await Promise.all(handled ? settled.filter((_, index) => answered[index] === handled) : settled);
   };
   let waits: Promise<FrameAnswer<TouchSeen> | undefined>[];
   let handler: Frame | undefined;
@@ -479,7 +487,7 @@ async function sendTouch(
   }
   // Capture failure-time diagnostics, then settle frozen waits before collecting their observations.
   const states = handler ? Promise.resolve([]) : Promise.all(watchTouch<FrameState>(page, "inspect", expected, TOUCH_TIDY_MS));
-  await tidy();
+  await tidy(handler);
   if (handler) return handler;
   const answers = (await Promise.all(waits)).filter((answer): answer is FrameAnswer<TouchSeen> => answer !== undefined);
   const results = answers.map((answer) => answer.value ?? none);
