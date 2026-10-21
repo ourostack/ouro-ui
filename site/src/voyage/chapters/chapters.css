@@ -61,3 +61,36 @@
 #chapter-one button:disabled {
   opacity: 0.72;
 }
+/*
+ * On a phone, where the rail beside a chapter is left out: a slim marker under the header, held
+ * there while the chapter is on screen, with the chapter's name and a dot for each of its steps.
+ */
+.site-phone-marker {
+  position: sticky;
+  top: var(--site-header-h, 3.5rem);
+  z-index: 30;
+  margin-block-end: 1.5rem;
+  padding: 0.5rem max(1rem, calc(50% - 600px));
+  border-block: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  background: color-mix(in oklab, var(--background) 94%, transparent);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .site-phone-marker {
+    background: var(--background);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+.site-marker-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border: 1.5px solid var(--muted-foreground);
+  border-radius: 999px;
+  transition: background-color var(--ouro-duration-slow) ease, border-color var(--ouro-duration-slow) ease;
+}
+.site-marker-dot[data-done] {
+  border-color: var(--primary);
+  background: var(--primary);
+}

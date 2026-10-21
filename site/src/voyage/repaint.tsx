@@ -147,7 +147,7 @@ export function Repaint(): JSX.Element {
   const { preset, setPreset } = useSiteTheme();
   const current = presetNamed(preset);
   return (
-    <section aria-labelledby="repaint-title" id="themes" className="py-20 lg:py-32">
+    <section aria-labelledby="repaint-title" id="themes" className="pt-20 pb-12 lg:pt-32 lg:pb-16">
       <Container className="grid grid-cols-[minmax(0,1fr)] gap-x-6 gap-y-12 lg:grid-cols-12">
         <div className="lg:col-span-5">
           <p className="site-eyebrow">Themes</p>
