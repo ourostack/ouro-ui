@@ -279,26 +279,46 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
 /** What a lazy island adds to its page when it loads, gzip bytes (site-design.md, Budgets: each chapter ≤ 60 KB). */
 const ISLAND_CEILING = 60 * 1024;
 
-test("Chapter I is an island: none of it is in the voyage's first load, and what it adds stays within 60 KB gzip without Recharts", () => {
-  const manifest = buildManifest();
-  const moduleMap = JSON.parse(readFileSync(resolve("site/dist/.vite/chunk-modules.json"), "utf8")) as Record<string, string[]>;
-  const voyage = new Set(initialFiles(manifest, "voyage"));
-  const island = new Set<string>();
-  const visit = (key: string) => {
-    const item = manifest[key];
-    if (!item) throw new Error(`Missing build manifest entry: ${key}`);
-    if (island.has(item.file)) return;
-    island.add(item.file);
-    for (const dependency of item.imports ?? []) visit(dependency);
-  };
-  visit("src/voyage/chapters/chapter-one.tsx");
-  const own = manifest["src/voyage/chapters/chapter-one.tsx"]!.file;
-  expect(voyage.has(own), "the chapter's own chunk is not in the voyage's first load").toBe(false);
-  expect([...voyage].flatMap((file) => moduleMap[file] ?? []).filter((module) => module.startsWith("site/src/voyage/chapters/chapter-one"))).toEqual([]);
-  const added = [...island].filter((file) => !voyage.has(file));
-  const modules = added.flatMap((file) => moduleMap[file] ?? []);
-  expect(modules.some((module) => module.startsWith("node_modules/recharts/"))).toBe(false);
-  const gzip = added.reduce((sum, file) => sum + gzipSync(readFileSync(resolve("site/dist", file))).byteLength, 0);
-  test.info().annotations.push({ type: "chapter-one", description: `${gzip} bytes gzip over ${added.length} files` });
-  expect(gzip, "Chapter I's island, gzip bytes").toBeLessThanOrEqual(ISLAND_CEILING);
-});
+/** Whether a chunk carries Recharts, by the modules the build put in it. */
+const rechartsIn = (modules: readonly string[]) => modules.some((module) => module.startsWith("node_modules/recharts/"));
+
+/**
+ * The chapters, each its own island. Chapter II draws an HX Chart, so its closure, and only its, holds
+ * Recharts; the budget counts what the island adds without that shared chunk (site-design.md, Budgets:
+ * "Each chapter island ≤ 60 KB gzip excluding shared HX chunks; Chart's Recharts chunk only in
+ * Chapter II's closure, never in the initial closure (asserted by module name)").
+ */
+const ISLANDS = [
+  { chapter: "Chapter I", entry: "src/voyage/chapters/chapter-one.tsx", source: "site/src/voyage/chapters/chapter-one", recharts: false },
+  { chapter: "Chapter II", entry: "src/voyage/chapters/chapter-two.tsx", source: "site/src/voyage/chapters/chapter-two", recharts: true },
+  { chapter: "Chapter III", entry: "src/voyage/chapters/chapter-three.tsx", source: "site/src/voyage/chapters/chapter-three", recharts: false },
+] as const;
+
+for (const island of ISLANDS) {
+  test(`${island.chapter} is an island: none of it is in the voyage's first load, and what it adds stays within 60 KB gzip${island.recharts ? ", Recharts aside, which only it loads" : " without Recharts"}`, () => {
+    const manifest = buildManifest();
+    const moduleMap = JSON.parse(readFileSync(resolve("site/dist/.vite/chunk-modules.json"), "utf8")) as Record<string, string[]>;
+    const voyage = new Set(initialFiles(manifest, "voyage"));
+    const closure = new Set<string>();
+    const visit = (key: string) => {
+      const item = manifest[key];
+      if (!item) throw new Error(`Missing build manifest entry: ${key}`);
+      if (closure.has(item.file)) return;
+      closure.add(item.file);
+      for (const dependency of item.imports ?? []) visit(dependency);
+    };
+    visit(island.entry);
+    const own = manifest[island.entry]!.file;
+    expect(voyage.has(own), "the chapter's own chunk is not in the voyage's first load").toBe(false);
+    expect([...voyage].flatMap((file) => moduleMap[file] ?? []).filter((module) => module.startsWith(island.source))).toEqual([]);
+    expect(rechartsIn([...voyage].flatMap((file) => moduleMap[file] ?? [])), "Recharts is never in the voyage's first load").toBe(false);
+    const added = [...closure].filter((file) => !voyage.has(file));
+    const withRecharts = added.filter((file) => rechartsIn(moduleMap[file] ?? []));
+    expect(withRecharts.length > 0, `${island.chapter} ${island.recharts ? "loads" : "never loads"} Recharts`).toBe(island.recharts);
+    const counted = added.filter((file) => !withRecharts.includes(file));
+    const gzip = counted.reduce((sum, file) => sum + gzipSync(readFileSync(resolve("site/dist", file))).byteLength, 0);
+    const shared = withRecharts.reduce((sum, file) => sum + gzipSync(readFileSync(resolve("site/dist", file))).byteLength, 0);
+    test.info().annotations.push({ type: island.entry, description: `${gzip} bytes gzip over ${counted.length} files${island.recharts ? `, plus ${shared} bytes in the Recharts chunk` : ""}` });
+    expect(gzip, `${island.chapter}'s island, gzip bytes`).toBeLessThanOrEqual(ISLAND_CEILING);
+  });
+}
