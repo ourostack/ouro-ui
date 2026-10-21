@@ -9895,6 +9895,7 @@
         "vitest"
       ],
       "registryDependencies": [
+        "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/button-tests",
         "ourostack/ouro-ui/card-tests",
         "ourostack/ouro-ui/heading-tests",
