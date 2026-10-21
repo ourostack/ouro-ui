@@ -40,7 +40,7 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "landing" | "v
  * grow from 274,131 bytes, what it loaded on main at fdbaa9d2 before each page got its own chunk;
  * the voyage preview gets 270 KB.
  */
-const CEILINGS = { landing: 274_131, voyage: 270 * 1024, docs: 274_131 } as const;
+const CEILINGS = { landing: 152_739 + 1024, voyage: 270 * 1024, docs: 160_758 + 1024 } as const;
 
 /** The CSS each page loads before it paints, gzip bytes: every stylesheet together (site-design.md, Budgets). */
 const CSS_CEILING = 40 * 1024;
@@ -261,13 +261,15 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
       expect(modules.filter((module) => /site\/src\/(docs\/|pages\/(landing|docs)\.tsx)/.test(module))).toEqual([]);
     }
     if (kind === "landing") expect(modules).not.toContain("site/src/pages/voyage.tsx");
-    // Each docs page loads only its own Markdown, so the docs don't grow with every page they add.
-    if (kind === "docs") expect(modules.filter((module) => /^docs\/.*\.md\?raw$/.test(module)), "docs loads every page's Markdown first").toEqual([]);
+    // Each docs page loads only its own Markdown, so neither the docs nor the landing page (which
+    // shares their routes) grows with every page the docs add.
+    if (kind === "landing" || kind === "docs") expect(modules.filter((module) => /^docs\/.*\.md\?raw$/.test(module)), `${kind} loads the docs' Markdown first`).toEqual([]);
     const loaded = [...new Set(reads)].filter((file) => !file.includes(".demo-"));
     expect(loaded.sort(), `${kind} loads its closure and nothing else`).toEqual(expected);
     const gzip = expected.reduce((sum, file) => sum + gzipSync(readFileSync(resolve("site/dist", file))).byteLength, 0);
     const css = [...new Set(styles)].reduce((sum, file) => sum + gzipSync(readFileSync(resolve("site/dist", file))).byteLength, 0);
     report[kind] = { gzip, ceiling: CEILINGS[kind], files: expected.length, css, cssCeiling: CSS_CEILING };
+    console.log(`MEASURE ${kind} ${gzip}`);
     expect(gzip, `${kind} initial JavaScript, gzip bytes`).toBeLessThanOrEqual(CEILINGS[kind]);
     expect(styles.length, `${kind} loads its stylesheets`).toBeGreaterThan(0);
     expect(css, `${kind} CSS, gzip bytes`).toBeLessThanOrEqual(CSS_CEILING);
