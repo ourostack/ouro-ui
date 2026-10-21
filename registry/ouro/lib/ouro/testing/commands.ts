@@ -291,16 +291,26 @@ const TOUCH_TIDY_MS = 1000;
  * @claim "`DOM.getNodeForLocation` hit-tests the way input does" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::the kit does not wait for a pointer-events: none iframe, which the touch passes through)
  * @claim "`DOM.getNodeForLocation` hit-tests the way input does" https://chromedevtools.github.io/devtools-protocol/tot/DOM/#method-getNodeForLocation verify:urlOk(https://chromedevtools.github.io/devtools-protocol/tot/DOM/#method-getNodeForLocation)
  */
-async function frameAtPoint(session: CDPSession, { x, y }: { x: number; y: number }, expected: TouchPoint): Promise<FrameAt> {
+async function frameAtPoint(session: CDPSession, { x, y }: { x: number; y: number }, expected: TouchPoint, trace?: TouchTrace): Promise<FrameAt> {
+  // How long each of Chromium's answers took, for a slow touch's log.
+  let last = Date.now();
+  const took: string[] = [];
+  const lap = (step: string) => {
+    took.push(`${step} ${Date.now() - last}ms`);
+    last = Date.now();
+  };
   try {
     const { cssVisualViewport } = await session.send("Page.getLayoutMetrics");
+    lap("layout");
     const { backendNodeId } = await session.send("DOM.getNodeForLocation", {
       x: Math.round(x + cssVisualViewport.pageX),
       y: Math.round(y + cssVisualViewport.pageY),
       // Hit-test as input does: an element with `pointer-events: none` is not the target.
       ignorePointerEventsNone: false,
     });
+    lap("hit test");
     const { object } = await session.send("DOM.resolveNode", { backendNodeId });
+    lap("node");
     try {
       const { result } = await session.send("Runtime.callFunctionOn", {
         objectId: object.objectId!,
@@ -334,14 +344,19 @@ async function frameAtPoint(session: CDPSession, { x, y }: { x: number; y: numbe
           return { watched: view ? armed : "unknown", where };
         }`,
       });
+      lap("watcher");
       const at = result.value as FrameAt;
       if (at.watched === "frame") at.frameId = (await session.send("DOM.describeNode", { backendNodeId })).node.frameId;
+      lap("frame id");
       return at;
     } finally {
       await session.send("Runtime.releaseObject", { objectId: object.objectId! }).catch(() => {});
     }
   } catch (error) {
+    lap("failed");
     return { watched: "unknown", where: (error instanceof Error ? error.message : String(error)).split("\n")[0]! };
+  } finally {
+    if (trace) traceStep(trace, `asked Chromium: ${took.join(", ")}`);
   }
 }
 
@@ -475,7 +490,7 @@ async function watchTarget(
     for (;;) {
       // Listen before asking, so a change during the question is not missed.
       const change = new Promise<void>((resolve) => (changed = resolve));
-      const at = await within(frameAtPoint(session, target.point, expected), deadline - Date.now(), "Chromium did not say which frame is there").catch(
+      const at = await within(frameAtPoint(session, target.point, expected, trace), deadline - Date.now(), "Chromium did not say which frame is there").catch(
         (error: Error): FrameAt => ({ watched: false, where: `unknown (${error.message})` }),
       );
       traceStep(trace, `the frame at the point: ${String(at.watched)}, ${at.where}`);
