@@ -50,6 +50,8 @@
 # shadcn and ouro end with the shipped tests. Two settings let CI split and narrow that run
 # (.github/workflows/ci.yml); the install, type check and build before it always run in full:
 #   OURO_SHARD=<index>/<count>  runs only that shard of the shipped Vitest files and Playwright specs.
+#   OURO_BROWSER_DEPS           a file that receives the exit status of a background install of the
+#                               browsers' system packages: the shipped tests wait for it.
 #   OURO_COMPONENTS             set (maybe empty) on a pull request's reduced run: the shipped tests
 #                               of those components' folders and their specs, or none when it is
 #                               empty (scripts/test-impact.mjs). Unset: every shipped test.
@@ -506,8 +508,17 @@ fi
 shard=()
 [ -z "${OURO_SHARD:-}" ] || shard=(--shard="$OURO_SHARD")
 
+# CI installs the browsers' system packages in the background while it builds the app
+# (OURO_BROWSER_DEPS names the file their exit status lands in): wait for them, at most 15
+# minutes, and add them here only if that failed.
+deps=(${CI:+--with-deps})
+if [ -n "${OURO_BROWSER_DEPS:-}" ]; then
+  for _ in $(seq 450); do [ -s "$OURO_BROWSER_DEPS" ] && break; sleep 2; done
+  if [ "$(cat "$OURO_BROWSER_DEPS" 2>/dev/null)" = 0 ]; then deps=(); else echo "The background install of the browsers' system packages did not finish; installing them here."; fi
+fi
+
 echo "::group::Shipped Vitest browser tests"
-npx playwright install ${CI:+--with-deps} chromium webkit
+npx playwright install ${deps[@]+"${deps[@]}"} chromium webkit
 npx vitest run --passWithNoTests ${shard[@]+"${shard[@]}"} ${vitest_filters[@]+"${vitest_filters[@]}"}
 echo "::endgroup::"
 

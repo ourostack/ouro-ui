@@ -554,10 +554,19 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
+      # The browsers' system packages took 0.7 to 3.7 minutes of the shipped tests' setup: they
+      # install while the app is built, and install-test.sh waits for them (OURO_BROWSER_DEPS).
+      - name: Browser system packages, in the background
+        env:
+          OURO_BROWSER_DEPS: ${{ runner.temp }}/browser-deps.status
+        run: |
+          # Detached from the step's output, so the step ends now and the install carries on.
+          ( pnpm exec playwright install-deps chromium webkit > "$RUNNER_TEMP/browser-deps.log" 2>&1; echo $? > "$OURO_BROWSER_DEPS" ) < /dev/null > /dev/null 2>&1 &
       - name: Install test
         env:
           VARIANT: ${{ matrix.variant }}
           REF: ${{ github.event.pull_request.head.sha || github.sha }}
+          OURO_BROWSER_DEPS: ${{ runner.temp }}/browser-deps.status
         run: |
           if [ "$FULL" != true ]; then export OURO_COMPONENTS="$COMPONENTS"; fi
           scripts/install-test.sh "$VARIANT" "$RUNNER_TEMP/app" "$REF"

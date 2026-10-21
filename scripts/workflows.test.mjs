@@ -589,6 +589,18 @@ test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD
   assert.equal(none.status, 0);
   assert.doesNotMatch(none.stdout, /npx vitest/);
   assert.match(none.stdout, /no component selected/);
+  // The browsers' system packages from the background install: waited for, then not installed again.
+  const scratch = mkdtempSync(join(root, ".tmp", "install-deps-"));
+  const status = join(scratch, "deps.status");
+  writeFileSync(status, "0\n");
+  assert.match(run({ CI: "1", OURO_BROWSER_DEPS: status }).stdout, /^npx playwright install chromium webkit$/m);
+  writeFileSync(status, "100\n");
+  const failed = run({ CI: "1", OURO_BROWSER_DEPS: status });
+  assert.match(failed.stdout, /^npx playwright install --with-deps chromium webkit$/m);
+  assert.match(failed.stdout, /did not finish; installing them here/);
+  assert.match(run({ CI: "1" }).stdout, /^npx playwright install --with-deps chromium webkit$/m);
+  assert.match(ciJobs()["install-shard"], /^ {6}- name: Browser system packages, in the background\n {8}env:\n {10}OURO_BROWSER_DEPS: \$\{\{ runner\.temp \}\}\/browser-deps\.status\n/m);
+  assert.match(ciJobs()["install-shard"], /^ {10}OURO_BROWSER_DEPS: \$\{\{ runner\.temp \}\}\/browser-deps\.status$/gm);
   const some = run({ OURO_COMPONENTS: "checkbox,checkbox-group", OURO_SHARD: "1/3" });
   assert.equal(some.status, 0, some.stderr);
   assert.match(some.stdout, /^npx vitest run --passWithNoTests --shard=1\/3 components\/ouro\/checkbox\/$/m);
