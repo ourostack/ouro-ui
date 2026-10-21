@@ -25,10 +25,21 @@ export interface DragOptions {
   hold?: boolean;
 }
 
-/** Wraps Playwright's `page.emulateMedia` for motion, color, contrast and forced-color preferences. */
+/**
+ * Wraps Playwright's `page.emulateMedia` for motion, color, contrast and forced-color preferences.
+ * A forced-colours switch restyles the page at once, and a colour with a transition (the `press`
+ * utility's) then eases to its new value, so this returns once those transitions have finished:
+ * a test reads where each colour lands, not a colour between the two.
+ */
 export const emulateMedia: BrowserCommand<[EmulateMediaOptions]> = async (ctx, options) => {
   await ctx.page.emulateMedia(options);
+  if (!("forcedColors" in options)) return;
+  const frame = await ctx.frame();
+  await within(frame.evaluate(SETTLE_TRANSITIONS), 3000, "transitions did not settle within 3s").catch(() => undefined);
 };
+
+/** Waits for the running transitions in a frame (`getAnimations` restyles first, starting them). */
+const SETTLE_TRANSITIONS = `Promise.all(document.getAnimations().filter((animation) => animation instanceof CSSTransition && animation.playState === "running").map((animation) => animation.finished.catch(() => undefined))).then(() => undefined)`;
 
 /**
  * Drags with real mouse events through Playwright's `page.mouse`, spreading the
