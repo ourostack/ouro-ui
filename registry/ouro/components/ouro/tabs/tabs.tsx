@@ -41,7 +41,11 @@ export interface TabsProps {
    * own labels are the visible text.
    */
   label: string;
-  /** The tabs, in order, each with the panel it shows. */
+  /**
+   * The tabs, in order, each with the panel it shows.
+   *
+   * @claim "The tabs, in order, each with" registry/ouro/components/ouro/tabs/tabs.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > renders a labelled tab list with the first tab selected and its panel shown)
+   */
   items: readonly TabsItem[];
   /** The selected tab's value, when you control it. Pair it with `onValueChange`. */
   value?: string | undefined;

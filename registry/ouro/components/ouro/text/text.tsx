@@ -43,7 +43,11 @@ export interface TextOwnProps {
   ref?: Ref<HTMLElement> | undefined;
   /** Not a prop. Ouro UI uses `tone`: `<Text tone="muted">`. */
   color?: { 'Use <Text tone="muted">': never };
-  /** Not a prop. Text has no variants; use `size` and `tone`: `<Text size="sm" tone="muted">`. */
+  /**
+   * Not a prop. Text has no variants; use `size` and `tone`: `<Text size="sm" tone="muted">`.
+   *
+   * @claim "Text has no variants; use `size`" registry/ouro/components/ouro/text/text.test.tsx verify:testExists(registry/ouro/components/ouro/text/text.test.tsx::runtime guards > strips variant from Text and warns with the fix)
+   */
   variant?: { 'Use <Text size="sm" tone="muted">': never };
 }
 

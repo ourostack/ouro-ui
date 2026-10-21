@@ -46,6 +46,7 @@ export interface TextAreaOwnProps {
    * button in the same box); it keeps the focus outline, and the error message still shows
    * under it, but with no border to turn red, color your own frame for an invalid field.
    * Any other string is a type error whose message names the fix. @default "outline"
+   * @claim "`plain` draws no border, background or" registry/ouro/components/ouro/text-field/text-area.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-area.test.tsx::TextArea variant and size > draws no frame of its own with variant plain, and still outlines on keyboard focus)
    */
   variant?: "outline" | "plain" | (string & { 'default is "outline"; ghost, unstyled and borderless are "plain"': never }) | undefined;
   /**

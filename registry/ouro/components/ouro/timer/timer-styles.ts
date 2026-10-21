@@ -16,7 +16,11 @@ export interface TimerLabels {
   dismiss?: string | undefined;
   /** @default "Restart" */
   restart?: string | undefined;
-  /** What it shows, and screen readers hear, at zero. @default "Time's up" */
+  /**
+   * What it shows, and screen readers hear, at zero. @default "Time's up"
+   *
+   * @claim "What it shows, and screen readers" registry/ouro/components/ouro/timer/timer.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer.test.tsx::Timer > says, chimes and buzzes once at zero, shows Time's up, then dismisses or restarts)
+   */
   done?: string | undefined;
   /** What it shows after the time while paused. @default "Paused" */
   paused?: string | undefined;
@@ -53,7 +57,13 @@ export function primeAlert(): void {
   context ??= createChimeContext();
 }
 
-/** The alert at zero: said once, and chimed and buzzed unless silent or stale. */
+/**
+ * The alert at zero: said once, and chimed and buzzed unless silent or stale.
+ *
+ * @claim "The alert at zero: said once" registry/ouro/components/ouro/timer/timer-tray.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer-tray.test.tsx::TimerTray > follows the Timer on the page, and alerts once at zero even when both show it)
+ * @claim "The alert at zero: said once" registry/ouro/components/ouro/timer/timer.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer.test.tsx::Timer > keeps its time through a reload with a timerId, and stays quiet about a timer that ended long ago)
+ * @claim "The alert at zero: said once" registry/ouro/components/ouro/timer/timer.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer.test.tsx::Timer > only says the time is up when silent)
+ */
 export function alertDone(label: string, done: string, event: TimerDoneEvent, silent: boolean): void {
   if (!event.first) return;
   announce(`${label}: ${done}`);

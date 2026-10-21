@@ -59,6 +59,10 @@ export interface TextFieldOwnProps {
    * time (there is no `datetime-local`), and `FileField` for files. Any other string is a type
    * error whose message names them.
    * @default "text"
+   * @claim "Each type sets the phone keyboard" registry/ouro/components/ouro/text-field/text-field.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-field.test.tsx::TextField > lets the app's inputMode and autoComplete win over the type's defaults)
+   * @claim "Each type sets the phone keyboard" registry/ouro/components/ouro/text-field/text-field.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-field.test.tsx::TextField types > turns off capitalization and spell check for email and url)
+   * @claim "Other kinds of value have their" registry/ouro/components/ouro/text-field/text-field.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-field.test.tsx::TextField types > renders a text input with a decimal keyboard and points to NumberField for type=number)
+   * @claim "Other kinds of value have their" registry/ouro/components/ouro/text-field/text-field.test.tsx verify:fileLine(registry/ouro/components/ouro/text-field/text-field.test.tsx, /\["datetime-local",\s"has\sno\sdate-and-time\sfield/)
    */
   type?:
     | "text"
@@ -77,6 +81,8 @@ export interface TextFieldOwnProps {
    * a button beside the input); it keeps the focus outline, and the error message still shows
    * under it, but with no border to turn red, color your own frame for an invalid field.
    * Any other string is a type error whose message names the fix. @default "outline"
+   * @claim "`plain` draws no border, background or" registry/ouro/components/ouro/text-field/text-field.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-field.test.tsx::TextField variant and size > draws no frame of its own with variant plain, and still outlines on keyboard focus)
+   * @claim "`plain` draws no border, background or" registry/ouro/components/ouro/text-field/text-field.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-field.test.tsx::TextField variant and size > keeps a plain field's buttons inside its box)
    */
   variant?: "outline" | "plain" | (string & { 'default is "outline"; ghost, unstyled and borderless are "plain"': never }) | undefined;
   /**
@@ -235,6 +241,8 @@ function Icon({ children }: { children: ReactNode }): JSX.Element {
  * </form>
  * @claim "` sets 20px text: together they put the" registry/ouro/components/ouro/text-field/text-field.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-field.test.tsx::TextField variant and size > sits inside the app's own bordered row: the row draws the one frame)
  * @claim "` sets 20px text: together they put the" registry/ouro/components/ouro/text-field/text-field.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-field.test.tsx::TextField variant and size > sets 20px text in a taller box with size lg, at phone and desktop widths)
+ * @claim "Not here, because each has its" registry/ouro/components/ouro/text-field/text-field.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-field.test.tsx::TextField types > renders a text input and lists the types for any other type)
+ * @claim "A date and time together: there" registry/ouro/components/ouro/text-field/text-field.test.tsx verify:fileLine(registry/ouro/components/ouro/text-field/text-field.test.tsx, /\["datetime-local",\s"has\sno\sdate-and-time\sfield/)
  */
 export function TextField(props: TextFieldProps): JSX.Element {
   const {

@@ -22,6 +22,7 @@ const textAreaClass =
  * keeps the corner radius, which only the focus outline shows.
  *
  * @internal
+ * @claim "`plain` draws no border, background or" registry/ouro/components/ouro/text-field/text-area.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-area.test.tsx::TextArea variant and size > draws no frame of its own with variant plain, and still outlines on keyboard focus)
  */
 const textAreaVariants = {
   outline:

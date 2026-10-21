@@ -52,6 +52,9 @@ interface TypeDefaults {
  * the OS picker, so they set no keyboard.
  *
  * @internal
+ * @claim "Each type's keyboard (`inputMode`) and autofill" registry/ouro/components/ouro/text-field/text-field.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-field.test.tsx::TextField > lets the app's inputMode and autoComplete win over the type's defaults)
+ * @claim "Each type's keyboard (`inputMode`) and autofill" registry/ouro/components/ouro/text-field/text-field.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-field.test.tsx::TextField types > turns off capitalization and spell check for email and url)
+ * @claim "Date and time open the OS" registry/ouro/components/ouro/text-field/text-field-styles.ts verify:fileLine(registry/ouro/components/ouro/text-field/text-field-styles.ts, /^\s+date:\s\{\sautoComplete:\s"off"\s\},/)
  */
 const typeDefaults: Readonly<Record<TextFieldType, TypeDefaults>> = {
   text: { inputMode: "text", autoComplete: "on" },
@@ -83,6 +86,7 @@ const groupBaseClass =
  * only the focus outline shows.
  *
  * @internal
+ * @claim "`plain` draws no border, background or" registry/ouro/components/ouro/text-field/text-field.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-field.test.tsx::TextField variant and size > draws no frame of its own with variant plain, and still outlines on keyboard focus)
  */
 const groupVariants = {
   outline:
@@ -149,6 +153,7 @@ const adornmentClass = "flex shrink-0 items-center whitespace-nowrap text-muted-
  * @internal
  * @claim "On a coarse pointer they sit" registry/ouro/components/ouro/text-field/text-field.touch.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-field.touch.test.tsx::gives the toggle a 44px hit area, though it is smaller than the box)
  * @claim "On a coarse pointer they sit" registry/ouro/components/ouro/text-field/text-field.touch.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-field.touch.test.tsx::keeps the clear button's and the toggle's touch areas apart)
+ * @claim "A plain box has no padding" registry/ouro/components/ouro/text-field/text-field.tsx verify:fileLine(registry/ouro/components/ouro/text-field/text-field.tsx, /variant\s===\s"plain"\s&&\s"me-0"/)
  */
 const endSlotClass = "-me-2 flex shrink-0 items-center gap-1 pointer-coarse:gap-3";
 

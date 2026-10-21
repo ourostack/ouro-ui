@@ -25,6 +25,7 @@ const portalClass = "relative isolate z-[calc(var(--ouro-layer)+1)]";
  * @internal
  * @claim "Each overridable property has one unprefixed" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster > lets unprefixed app clearance and width win on the actual viewport at phone and desktop widths)
  * @claim "The fixed region the toasts stack" registry/ouro/components/ouro/toast/toaster.touch.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.touch.test.tsx::spans the phone's width at the bottom, inside a 16px margin)
+ * @claim "Same-element [&] variants retain distinct candidates" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster > keeps named spacing-scale values on the viewport as well as the universal spacing fallback)
  */
 const viewportClass =
   "fixed outline-none " +
@@ -53,6 +54,8 @@ const viewportClass =
  * @claim "A toast swipes away downward as" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > puts the newest toast first in the page, where F6 then Tab reaches it, then each older one)
  * @claim "A toast swipes away downward as" registry/ouro/components/ouro/toast/toaster.touch.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.touch.test.tsx::the swipe follows the finger (rule 12) > goes back to rest when the browser cancels the touch, however far out it was)
  * @claim "A toast swipes away downward as" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::pausing > pauses while the pointer is over the toasts, and resumes after)
+ * @claim "Collapsed, the newest is in front" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::pausing > pauses while the pointer is over the toasts, and resumes after)
+ * @claim "Collapsed, the newest is in front" registry/ouro/components/ouro/toast/toaster.touch.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.touch.test.tsx::waits while a finger is on a toast, and fans the stack out, as a mouse over it does)
  */
 const rootClass =
   "absolute inset-x-0 bottom-0 box-border origin-bottom touch-none select-none [-webkit-tap-highlight-color:transparent] " +
@@ -109,6 +112,8 @@ const closeClass =
  * The icon color for each tone. `secondary` has no icon.
  *
  * @internal
+ * @claim "The icon color for each tone" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > marks the tone and shows an icon for every tone but secondary)
+ * @claim "`secondary` has no icon" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > marks the tone and shows an icon for every tone but secondary)
  */
 const iconTones = {
   primary: "text-primary",
