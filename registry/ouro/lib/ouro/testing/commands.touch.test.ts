@@ -423,14 +423,21 @@ async function busyFrame(top: number) {
 
 test("a cross-origin frame that is busy holds up no touch elsewhere, also while the kit tidies up after it", async () => {
   const { busy } = await busyFrame(300);
-  // Busy from the moment the touch arrives, after its watch has started there.
-  addEventListener("touchstart", () => busy(3000), { once: true, capture: true });
-  const started = performance.now();
-  await commands.touchStep({ type: "touchStart", x: 100, y: 50 });
-  const tookStart = performance.now() - started;
-  await commands.touchStep({ type: "touchEnd" });
-  // Well under the kit's 1-second limit for tidying a frame up: the busy frame is not waited for.
-  expect(tookStart).toBeLessThan(500);
+  const touch = async () => {
+    const started = performance.now();
+    await commands.touchStep({ type: "touchStart", x: 100, y: 50 });
+    const took = performance.now() - started;
+    await commands.touchStep({ type: "touchEnd" });
+    return took;
+  };
+  // The same touch with the frame idle, on the same runner: a loaded runner slows both.
+  const idle = await touch();
+  // Busy from the moment the touch arrives, after its watch has started there, for longer than the
+  // kit's 1-second limit for tidying a frame up.
+  addEventListener("touchstart", () => busy(1500), { once: true, capture: true });
+  const held = await touch();
+  // Well under that limit, which a kit that waits for the busy frame spends on it.
+  expect(held - idle).toBeLessThan(500);
 });
 
 test("a touchstart into a busy cross-origin frame is sent only once that frame's watcher is armed for it", async () => {
