@@ -41,7 +41,11 @@ export interface ChoiceCardProps {
   onValueChange?: ((value: string) => void) | undefined;
   /** The form field name the chosen value submits under. */
   name?: string | undefined;
-  /** What is wrong, shown under the cards in the destructive tone and read with each choice. */
+  /**
+   * What is wrong, shown under the cards in the destructive tone and read with each choice.
+   *
+   * @claim "What is wrong, shown under the" registry/ouro/components/ouro/choice-card/choice-card.test.tsx verify:testExists(registry/ouro/components/ouro/choice-card/choice-card.test.tsx::ChoiceCard > shows an error under the cards, read with each choice, and marks them invalid)
+   */
   error?: ReadonlyErrorMessages | undefined;
   /** A choice must be made before the form submits; the legend shows the required mark. */
   required?: boolean | undefined;
@@ -104,6 +108,10 @@ const cardClass =
  *   name="cover"
  *   items={photos.map((photo) => ({ value: photo.id, label: photo.title, media: <img src={photo.url} alt="" /> }))}
  * />
+ * @claim "A set of choices shown as" registry/ouro/components/ouro/choice-card/choice-card.test.tsx verify:testExists(registry/ouro/components/ouro/choice-card/choice-card.test.tsx::ChoiceCard > is a group named by its legend, of radios named by their labels and described by their descriptions)
+ * @claim "The cards are a native radio" registry/ouro/components/ouro/choice-card/choice-card.test.tsx verify:testExists(registry/ouro/components/ouro/choice-card/choice-card.test.tsx::ChoiceCard > moves between cards with the arrow keys, as a radio group does)
+ * @claim "The cards are a native radio" registry/ouro/components/ouro/choice-card/choice-card.test.tsx verify:testExists(registry/ouro/components/ouro/choice-card/choice-card.test.tsx::ChoiceCard > is a group named by its legend, of radios named by their labels and described by their descriptions)
+ * @claim "The cards are a native radio" registry/ouro/components/ouro/choice-card/choice-card.test.tsx verify:testExists(registry/ouro/components/ouro/choice-card/choice-card.test.tsx::ChoiceCard > submits the chosen value under its name)
  */
 export function ChoiceCard(props: ChoiceCardProps): JSX.Element {
   const {

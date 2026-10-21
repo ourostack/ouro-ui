@@ -66,6 +66,7 @@ const swatchClass =
 /**
  * The swatch where the browser has no color picker: the color, shown only, beside the hex text
  * that takes it.
+ * @claim "The swatch where the browser has" registry/ouro/components/ouro/color-field/color-field.test.tsx verify:testExists(registry/ouro/components/ouro/color-field/color-field.test.tsx::ColorField > shows a plain swatch and keeps the hex text where the browser has no color picker)
  */
 const plainSwatchClass = "relative block size-7 shrink-0 rounded-sm border border-solid border-border sm:pointer-fine:size-6";
 

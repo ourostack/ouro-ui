@@ -9,7 +9,7 @@ import { iconClass, ownLook, panelClass, rootClass, triggerClass } from "@/regis
 
 /** Props for {@link Collapsible}. */
 export interface CollapsibleProps {
-  /** The always-visible title. It is the button that opens and closes the content. */
+  /** The title, in view whether open or closed. It is the button that opens and closes the content. */
   title: ReactNode;
   /** What shows while it is open. */
   children: ReactNode;

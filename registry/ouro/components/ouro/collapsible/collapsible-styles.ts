@@ -84,6 +84,7 @@ const showMoreRootClass = "box-border grid min-w-0 justify-items-start gap-2";
  * The list: no bullets or indent, so the items are the app's own rows.
  *
  * @internal
+ * @claim "The list: no bullets or indent" registry/ouro/components/ouro/collapsible/collapsible-styles.ts verify:fileLine(registry/ouro/components/ouro/collapsible/collapsible-styles.ts, /const\slistClass\s=\s"m-0\sbox-border\sgrid\sw-full\slist-none\sgap-0\sp-0"/)
  */
 const listClass = "m-0 box-border grid w-full list-none gap-0 p-0";
 

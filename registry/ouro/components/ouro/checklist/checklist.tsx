@@ -42,13 +42,21 @@ export interface ChecklistProps {
    * an id added back while its row leaves returns that row in place.
    */
   items: readonly ChecklistItemData[];
-  /** Called with a row's id and its new state when it is checked or unchecked. Required: a checklist without it never changes. */
+  /**
+   * Called with a row's id and its new state when it is checked or unchecked. Required: a checklist without it never changes.
+   *
+   * @claim "Required: a checklist without it never" registry/ouro/components/ouro/checklist/checklist.test-d.ts verify:fileLine(registry/ouro/components/ouro/checklist/checklist.test-d.ts, /\{\slabel:\s"Ingredients";\sitems:\sChecklistItemData\[\]\s\}>\(\)\.not\.toExtend<ChecklistProps>/)
+   */
   onCheckedChange: (id: string, checked: boolean) => void;
   /** Shows a "Clear checked" button while something is checked, and is called when it is pressed. */
   onClearChecked?: (() => void) | undefined;
   /** The clear button's text. Translate it here. @default "Clear checked" */
   clearLabel?: string | undefined;
-  /** What shows when there are no rows: text, or an `Empty`. */
+  /**
+   * What shows when there are no rows: text, or an `Empty`.
+   *
+   * @claim "What shows when there are no" registry/ouro/components/ouro/checklist/checklist.test.tsx verify:testExists(registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > shows the empty state once the last row has left)
+   */
   empty?: ReactNode | undefined;
   /**
    * Layout only: margins, width, grid placement (`mt-4`, `col-span-2`). Appearance classes
@@ -60,7 +68,11 @@ export interface ChecklistProps {
 
   /** Not a prop. Ouro UI uses `onCheckedChange`, which gets the row's id and its new state. */
   onChange?: { 'Use onCheckedChange={(id, checked) => setChecked(id, checked)}': never };
-  /** Not a prop. Each item says whether it is checked: `items={[{ id, label, checked: true }]}`. */
+  /**
+   * Not a prop. Each item says whether it is checked: `items={[{ id, label, checked: true }]}`.
+   *
+   * @claim "Each item says whether it is" registry/ouro/components/ouro/checklist/checklist.test-d.ts verify:fileLine(registry/ouro/components/ouro/checklist/checklist.test-d.ts, /\{\sid:\s"oats";\slabel:\s"rolled\soats"\s\}>\(\)\.not\.toExtend<ChecklistItemData>/)
+   */
   isChecked?: { 'Use items={[{ id, label, checked: true }]}': never };
   /** Not a prop. Ouro UI uses `onCheckedChange`, which gets the row's id and its new state. */
   onToggle?: { 'Use onCheckedChange={(id, checked) => setChecked(id, checked)}': never };
@@ -179,6 +191,7 @@ const boxOf = (row: HTMLElement) => row.querySelector<HTMLElement>('[role="check
  *   onCheckedChange={(id, isChecked) => toggle(id, isChecked)}
  *   onClearChecked={clearAll}
  * />
+ * @claim "A list of things to tick" registry/ouro/components/ouro/checklist/checklist.test.tsx verify:testExists(registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > checks a row from anywhere on it, and reports the id)
  */
 export function Checklist(props: ChecklistProps): JSX.Element {
   const {

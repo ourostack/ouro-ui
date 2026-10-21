@@ -45,6 +45,8 @@ const commandInputClass =
  * "Searching…" at the end of the search row while results load; it never moves the input.
  *
  * @internal
+ * @claim "at the end of the search row while" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > keeps its size while results filter, so the search input stays put)
+ * @claim "at the end of the search row while" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command server search > says it is searching politely, once while typing goes on, and shows the empty state only after loading)
  */
 const commandLoadingClass = "shrink-0 text-xs leading-4 text-muted-foreground";
 
@@ -89,6 +91,7 @@ const commandItemClass =
  * from view until it has keyboard focus, then shown at the top corner.
  *
  * @internal
+ * @claim "The close button: always present for" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > labels the search input and its close button, translated)
  */
 const commandCloseClass =
   "sr-only focus-visible:top-2 focus-visible:end-2 focus-visible:z-1 focus-visible:m-0 focus-visible:size-auto " +

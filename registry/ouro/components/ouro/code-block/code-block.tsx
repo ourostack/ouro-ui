@@ -18,6 +18,8 @@ export interface CodeBlockOwnProps {
   /**
    * The language, shown in the block's caption when there is no `title` and set as
    * `data-language` on the block for a highlighter of your own: `language="bash"`.
+   * @claim "The language, shown in the block's" registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::CodeBlock > captions with the title rather than the language)
+   * @claim "The language, shown in the block's" registry/ouro/components/ouro/code-block/code-block.test.tsx verify:fileLine(registry/ouro/components/ouro/code-block/code-block.test.tsx, /getAttribute\("data-language"\)\)\.toBe\("bash"\)/)
    */
   language?: string | undefined;
   /** A caption above the code, such as its file name: `title="vite.config.ts"`. */

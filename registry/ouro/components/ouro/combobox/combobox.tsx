@@ -256,8 +256,8 @@ const markInput = controlRef("combobox", "hidden-input");
 
 /**
  * A callback ref that marks the visually hidden Dismiss button Base UI adds for screen readers
- * while the list is open, beside the input and beside the popup. Base UI takes no props or ref
- * for it, so the marker goes on whenever one appears under the element.
+ * while the list is open, beside the input and beside the popup. Base UI takes neither props
+ * nor a ref for it, so the marker goes on whenever one appears under the element.
  */
 function dismissMarker(item: string, part: string): RefCallback<HTMLElement> {
   return (element) => {

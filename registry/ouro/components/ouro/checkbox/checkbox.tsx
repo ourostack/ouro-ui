@@ -55,6 +55,7 @@ export interface CheckboxProps {
    * clear it in `onCheckedChange`, as in
    * `<Checkbox indeterminate={some} checked={all} onCheckedChange={toggleAll}>`. The box
    * submits only while `checked`.
+   * @claim "box does when some of its items are" registry/ouro/components/ouro/checkbox/checkbox.test.tsx verify:testExists(registry/ouro/components/ouro/checkbox/checkbox.test.tsx::Checkbox > announces the indeterminate state as mixed and shows a dash)
    */
   indeterminate?: boolean | undefined;
   /** Shows the state but ignores clicks and keys, unlike `disabled`, which also fades it. */
