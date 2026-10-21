@@ -561,11 +561,17 @@ test("an install shard runs a third of the shipped tests, or a reduced run's, an
   const markers = scratchDir("ouro-install-gate-");
   mkdirSync(join(markers, "passed"));
   for (const shard of [1, 3]) writeFileSync(join(markers, `passed/install-passed-shadcn-vega-${shard}`), "");
-  const missing = runStep(counting, { RUNNER_TEMP: markers, VARIANT: "shadcn", PRESET: "vega" });
+  const passed = { RUNNER_TEMP: markers, VARIANT: "shadcn", PRESET: "vega", SHARDS: "success" };
+  assert.match(gate, /^ {10}SHARDS: \$\{\{ needs\.install-shard\.result \}\}$/m);
+  const missing = runStep(counting, passed);
   assert.equal(missing.status, 1);
   assert.match(missing.stdout, /^::error::install \(shadcn, vega, 2\/3\) did not pass/m);
   writeFileSync(join(markers, "passed/install-passed-shadcn-vega-2"), "");
-  assert.equal(runStep(counting, { RUNNER_TEMP: markers, VARIANT: "shadcn", PRESET: "vega" }).status, 0);
+  assert.equal(runStep(counting, passed).status, 0);
+  // Every marker, but from an earlier attempt: this attempt's failed shard still fails the check.
+  const rerun = runStep(counting, { ...passed, SHARDS: "failure" });
+  assert.equal(rerun.status, 1);
+  assert.match(rerun.stdout, /^::error::an install shard of this attempt did not pass \(failure\)/m);
 });
 
 test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD and OURO_COMPONENTS", () => {

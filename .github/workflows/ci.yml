@@ -588,7 +588,10 @@ jobs:
             ${{ runner.temp }}/app/playwright-report/
           if-no-files-found: ignore
   install-gate:
-    # A variant's install check: passes when each of its three shards passed, as their markers show.
+    # A variant's install check: passes when each of its three shards passed, as their markers show,
+    # and every install shard of this attempt passed: a marker can be an earlier attempt's, after
+    # "Re-run all jobs" (artifacts outlive an attempt), so the markers alone could pass a shard
+    # that has just failed.
     needs: [install-shard]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
@@ -611,8 +614,13 @@ jobs:
         env:
           VARIANT: ${{ matrix.variant }}
           PRESET: ${{ matrix.preset }}
+          SHARDS: ${{ needs.install-shard.result }}
         run: |
           failed=0
+          if [ "$SHARDS" != success ]; then
+            echo "::error::an install shard of this attempt did not pass ($SHARDS): see the install (…, n/3) jobs."
+            failed=1
+          fi
           for shard in 1 2 3; do
             if [ ! -f "$RUNNER_TEMP/passed/install-passed-$VARIANT-$PRESET-$shard" ]; then
               echo "::error::install ($VARIANT, $PRESET, $shard/3) did not pass: see that job."
