@@ -126,6 +126,9 @@ export type ConfirmDialogProps = ConfirmDialogWithTriggerProps | ConfirmDialogCo
  *   onConfirm={() => deleteRecipe(id)}
  *   trigger={<Button tone="destructive" variant="soft">Delete</Button>}
  * />
+ * @claim registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::Dialog stacking above the app's fixed bars > puts the portal on the --ouro-layer level, as its own stacking context)
+ * @claim registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /^\s+--ouro-layer:\s50;/)
+ * @claim test/axe-exclude.test.tsx verify:testExists(test/axe-exclude.test.tsx::matches the open dialog's focus guards, and with them excluded axe finds nothing)
  */
 export function ConfirmDialog(props: ConfirmDialogProps): JSX.Element {
   const {

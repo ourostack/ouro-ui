@@ -104,6 +104,9 @@ export interface CommandBaseProps {
    *     .then((results) => { setResults(results); setLoading(false); })
    *     .catch(() => { if (!signal.aborted) setLoading(false); });
    * }}
+   * @claim registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command server search > asks again for the current query when the palette switches between dialog and sheet across 640px)
+   * @claim registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command server search > keeps the phone sheet's search input still while server results change)
+   * @claim registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command server search > passes each query to onQueryChange, shows the app's results unfiltered, and keeps stale results while loading)
    */
   onQueryChange?: ((query: string, context: { signal: AbortSignal }) => void) | undefined;
   /**
@@ -182,7 +185,11 @@ function toGroups(entries: readonly CommandEntry[]): Group[] {
   return groups;
 }
 
-/** A 16px magnifier in the text color. */
+/**
+ * A 16px magnifier in the text color.
+ *
+ * @claim registry/ouro/components/ouro/command/command.tsx verify:fileLine(registry/ouro/components/ouro/command/command.tsx, /<svg\saria-hidden="true"\sviewBox="0\s0\s16\s16"\sfill="none">/)
+ */
 /** Marks the hidden input Base UI keeps the query in. */
 const markInput = controlRef("command", "hidden-input");
 
@@ -230,6 +237,8 @@ function SearchIcon(): JSX.Element {
  *     { label: "Switch theme", onSelect: toggleTheme, keywords: ["dark mode"] },
  *   ]}
  * />
+ * @claim registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command presentation > is a full-height bottom sheet below 640px, whose search input stays put while results filter)
+ * @claim registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > opens a dialog named by its title, with the search input focused and every group listed)
  */
 export function Command(props: CommandProps): JSX.Element {
   const {

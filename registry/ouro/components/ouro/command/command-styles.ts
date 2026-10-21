@@ -35,6 +35,8 @@ const commandSheetSearchClass =
  * zoom) and 14px with a fine pointer.
  *
  * @internal
+ * @claim registry/ouro/components/ouro/command/command.touch.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.touch.test.tsx::Command on a phone > opens from a tap as a full-height sheet focused on itself, with 44px commands and a 16px search input)
+ * @claim registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > keeps its size while results filter, so the search input stays put)
  */
 const commandInputClass =
   "m-0 box-border h-12 min-w-0 flex-1 border-0 bg-transparent p-0 font-[inherit] text-base pointer-fine:text-sm text-popover-foreground outline-none placeholder:text-muted-foreground";
@@ -74,6 +76,8 @@ const commandGroupLabelClass = "box-border px-2 pt-2 pb-1 text-xs leading-4 font
  * pointer, highlighted by keyboard or pointer, dimmed when disabled.
  *
  * @internal
+ * @claim registry/ouro/components/ouro/command/command.touch.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.touch.test.tsx::Command on a phone > opens from a tap as a full-height sheet focused on itself, with 44px commands and a 16px search input)
+ * @claim registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > moves the highlight with the arrow keys)
  */
 const commandItemClass =
   "relative box-border flex min-h-11 pointer-fine:min-h-9 cursor-default items-center gap-3 rounded-md px-2 py-1.5 " +
@@ -109,6 +113,7 @@ function fold(text: string): string {
  * keywords, ignoring case and accents.
  *
  * @internal
+ * @claim registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > filters by label and keywords, ignoring case and accents, and hides empty groups)
  */
 function matchesQuery(label: string, keywords: readonly string[] | undefined, query: string): boolean {
   const text = fold([label, ...(keywords ?? [])].join(" "));

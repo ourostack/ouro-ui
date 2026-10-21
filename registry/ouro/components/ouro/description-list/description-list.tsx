@@ -85,6 +85,8 @@ function itemWarnings(items: readonly DescriptionListItem[]): DevWarning[] {
  *     { term: "Serves", details: "6" },
  *   ]}
  * />
+ * @claim registry/ouro/components/ouro/description-list/description-list.test.tsx verify:testExists(registry/ouro/components/ouro/description-list/description-list.test.tsx::DescriptionList > puts each term beside its details from 640px, in one shared column of terms)
+ * @claim registry/ouro/components/ouro/description-list/description-list.test.tsx verify:testExists(registry/ouro/components/ouro/description-list/description-list.test.tsx::DescriptionList > stacks each term above its details on a phone)
  */
 export function DescriptionList(props: DescriptionListProps): JSX.Element {
   const { items: itemsProp, stackBelow: stackBelowProp = "sm", className, data, children, ...rest } = props;

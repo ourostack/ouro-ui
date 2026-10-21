@@ -37,7 +37,12 @@ import { dialogSizes, dialogSizeWarning, type DialogSize } from "@/registry/ouro
 
 export type { DialogSize } from "@/registry/ouro/components/ouro/dialog/dialog-parts";
 
-/** How a Dialog presents: `auto` is a centered dialog from 640px up and a bottom sheet below. */
+/**
+ * How a Dialog presents: `auto` is a centered dialog from 640px up and a bottom sheet below.
+ *
+ * @claim registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::automatic presentation > renders a centered dialog at 1280px)
+ * @claim registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::automatic presentation > renders the bottom sheet at 390px)
+ */
 export type DialogPresentation = "auto" | "dialog" | "sheet";
 
 const presentations: readonly DialogPresentation[] = ["auto", "dialog", "sheet"];
@@ -64,9 +69,15 @@ export interface DialogBaseProps {
    * it opens, so nothing shifts; one that is open at load (a route such as `?edit=1`)
    * shows as the centered dialog on a phone until hydration swaps it to the sheet.
    * @default "auto"
+   * @claim registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::automatic presentation > renders a centered dialog at 1280px)
+   * @claim registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::automatic presentation > renders the bottom sheet at 390px)
    */
   presentation?: DialogPresentation | (string & { 'Use "auto", "dialog" or "sheet"': never }) | undefined;
-  /** The centered dialog's maximum width: `sm` 24rem, `md` 32rem, `lg` 40rem. @default "md" */
+  /**
+   * The centered dialog's maximum width: `sm` 24rem, `md` 32rem, `lg` 40rem. @default "md"
+   *
+   * @claim registry/ouro/components/ouro/dialog/dialog-parts.tsx verify:fileLine(registry/ouro/components/ouro/dialog/dialog-parts.tsx, /const\spopupSizes\s=\s\{\ssm:\s"max-w-\[24rem\]",\smd:\s"max-w-\[32rem\]",\slg:\s"max-w-\[40rem\]"\s\}/)
+   */
   size?: DialogSize | (string & { 'Use "sm", "md" or "lg"': never }) | undefined;
   /**
    * The actions row: a row at the end on wider screens, stacked full width on
@@ -143,7 +154,12 @@ const closeClass =
   "disabled:cursor-not-allowed disabled:opacity-50 " +
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid [&>svg]:size-4";
 
-/** The close button's icon: a 16px cross in the text color. */
+/**
+ * The close button's icon: a 16px cross in the text color.
+ *
+ * @claim registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::centered dialog > has a visible, compact close button in the top corner, labelled by closeLabel)
+ * @claim registry/ouro/components/ouro/dialog/dialog.tsx verify:fileLine(registry/ouro/components/ouro/dialog/dialog.tsx, /\[&>svg\]:size-4/)
+ */
 function CloseIcon(): JSX.Element {
   return (
     <svg aria-hidden="true" viewBox="0 0 16 16" fill="none">

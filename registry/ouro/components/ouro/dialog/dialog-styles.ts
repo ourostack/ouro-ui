@@ -5,7 +5,11 @@ export type { DialogSize };
 // components so each component file exports only components (React Fast Refresh). The
 // export list comes first because the shadcn CLI drops comments before a file's first statement.
 
-/** A centered dialog's maximum width: `sm` 24rem, `md` 32rem, `lg` 40rem. */
+/**
+ * A centered dialog's maximum width: `sm` 24rem, `md` 32rem, `lg` 40rem.
+ *
+ * @claim registry/ouro/components/ouro/dialog/dialog-parts.tsx verify:fileLine(registry/ouro/components/ouro/dialog/dialog-parts.tsx, /const\spopupSizes\s=\s\{\ssm:\s"max-w-\[24rem\]",\smd:\s"max-w-\[32rem\]",\slg:\s"max-w-\[40rem\]"\s\}/)
+ */
 type DialogSize = "sm" | "md" | "lg";
 
 /**

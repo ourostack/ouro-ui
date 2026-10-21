@@ -73,6 +73,8 @@ const chipRemoveClass =
  * fits the screen above or below the input.
  *
  * @internal
+ * @claim registry/ouro/components/ouro/combobox/combobox.test.tsx verify:testExists(registry/ouro/components/ouro/combobox/combobox.test.tsx::Combobox looks > closes with only a fade when reduced motion is on)
+ * @claim registry/ouro/components/ouro/combobox/combobox.test.tsx verify:testExists(registry/ouro/components/ouro/combobox/combobox.test.tsx::Combobox motion > scales about the point Base UI computes next to its input, and leaves on the ease-out token)
  */
 const popupClass =
   "box-border flex w-(--anchor-width) max-w-(--available-width) max-h-[min(var(--available-height),22rem)] flex-col " +
@@ -94,6 +96,8 @@ const listClass = "box-border min-h-0 flex-1 overflow-y-auto overscroll-contain 
  * the picked ones. The keyboard's or pointer's highlight uses the accent surface.
  *
  * @internal
+ * @claim registry/ouro/components/ouro/combobox/combobox.test.tsx verify:testExists(registry/ouro/components/ouro/combobox/combobox.test.tsx::Combobox looks > uses a 16px font and a 44px box on phones, stepping down with a mouse on wider screens)
+ * @claim registry/ouro/components/ouro/combobox/combobox.tsx verify:fileLine(registry/ouro/components/ouro/combobox/combobox.tsx, /<BaseCombobox.ItemIndicator\sclassName="col-start-1\sflex">/)
  */
 const itemClass =
   "relative box-border grid min-h-11 cursor-default grid-cols-[1rem_1fr] items-center gap-2 rounded-sm px-2 py-1.5 " +
@@ -142,6 +146,7 @@ const sheetFieldClass = "group/combobox-field relative min-w-0";
  * keeps a 44px hit area (its `TouchTarget`).
  *
  * @internal
+ * @claim registry/ouro/components/ouro/combobox/combobox.touch.test.tsx verify:testExists(registry/ouro/components/ouro/combobox/combobox.touch.test.tsx::Combobox on a phone > gives chip remove buttons a 44px hit area)
  */
 const sheetClearClass = "absolute inset-y-0 end-9 my-auto";
 
