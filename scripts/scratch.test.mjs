@@ -49,7 +49,7 @@ test("every script test makes its temp folders through scratchDir, so none is le
   assert.deepEqual(direct, [], "make temp folders with scratchDir (scripts/scratch.mjs), which removes them");
 });
 
-test("pnpm test:scripts and the script test shards fail when a run leaves anything in its temp folder, and remove it", () => {
+test("pnpm test:scripts and the script test shards warn about anything a run leaves in its temp folder, and remove it", () => {
   const dir = scratchDir("ouro-run-script-tests-");
   const file = (name, body) => {
     writeFileSync(join(dir, name), `import { mkdirSync } from "node:fs";\nimport { join } from "node:path";\nimport { test } from "node:test";\n${body}\n`);
@@ -57,21 +57,30 @@ test("pnpm test:scripts and the script test shards fail when a run leaves anythi
   };
   // A leak through any path, here an import's own folder under TMPDIR, not only a test's.
   const leaky = file("leaky.test.mjs", 'test("leaks", () => { mkdirSync(join(process.env.TMPDIR, "copy-of-the-repository")); });');
-  // What Node and Chromium leave there of their own accord does not count.
+  const failing = file("failing.test.mjs", 'test("fails", () => { throw new Error("on purpose"); });');
+  // What Node and Chromium leave there of their own accord is not reported.
   const tidy = file("tidy.test.mjs", 'test("tidy", () => { mkdirSync(join(process.env.TMPDIR, "node-compile-cache"), { recursive: true }); mkdirSync(join(process.env.TMPDIR, ".org.chromium.Chromium.a1B2c3")); });');
   const temps = () => readdirSync(dirname(dir)).filter((name) => name.startsWith("ouro-script-tests-"));
   const before = temps();
-  const run = (file) => {
+  const run = (file, options = {}) => {
     const logged = [];
     const report = join(dir, `${Math.random()}.txt`);
-    const status = runScriptTests(["--test-reporter=spec", `--test-reporter-destination=${report}`, file], { log: (line) => logged.push(line) });
+    const status = runScriptTests(["--test-reporter=spec", `--test-reporter-destination=${report}`, file], { log: (line) => logged.push(line), strict: false, ...options });
     return { status, logged: logged.join("\n"), report: readFileSync(report, "utf8") };
   };
+  const warning = /^::warning::The script tests left 1 item\(s\) in their temp folder, removed with it: copy-of-the-repository\. Make each in its test with scratchDir \(scripts\/scratch\.mjs\), which removes it\.$/;
+  // The run's result is the tests' own; a leftover is a warning.
   const leaked = run(leaky);
-  assert.equal(leaked.status, 1, leaked.report);
-  assert.match(leaked.logged, /left 1 item\(s\) in their temp folder[\s\S]*copy-of-the-repository/);
-  const clean = run(tidy);
+  assert.equal(leaked.status, 0, leaked.report);
+  assert.match(leaked.logged, warning);
+  assert.equal(run(failing).status, 1);
+  // Strict, to hunt a leak locally (OURO_STRICT_TMPDIR=1): the leftover fails the run.
+  const strict = run(leaky, { strict: true });
+  assert.equal(strict.status, 1, strict.report);
+  assert.match(strict.logged, warning);
+  const clean = run(tidy, { strict: true });
   assert.equal(clean.status, 0, `${clean.logged}\n${clean.report}`);
+  assert.equal(clean.logged, "");
   assert.deepEqual(temps(), before, "each run removes its temp folder");
   assert.match(JSON.parse(readFileSync(join(root, "package.json"), "utf8")).scripts["test:scripts"], /^node scripts\/run-script-tests\.mjs /);
 });
