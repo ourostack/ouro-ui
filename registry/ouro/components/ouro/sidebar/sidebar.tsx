@@ -12,7 +12,13 @@ import { Menu, MenuItem } from "@/registry/ouro/components/ouro/menu/menu";
 import { SheetFrame } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 
-/** What every Sidebar item has: its text, an icon and a badge. */
+/**
+ * What every Sidebar item has: its text, an icon and a badge.
+ *
+ * @claim registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar items > shows a badge after the label, read as part of the link's name, and keeps it in the name on the rail)
+ * @claim registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > hides the icons from screen readers)
+ * @claim registry/ouro/components/ouro/sidebar/sidebar.test-d.ts verify:fileLine(registry/ouro/components/ouro/sidebar/sidebar.test-d.ts, /expectTypeOf<\{\slabel:\s"New\schat";\sonClick:\s\(\)\s=>\svoid;\scurrent:\strue\s\}>\(\)\.not\.toExtend<SidebarItem>/)
+ */
 interface SidebarItemBase {
   /** The item's text: "Recipes". It stays the item's name when the sidebar is collapsed. */
   label: string;
@@ -102,6 +108,8 @@ export interface SidebarProps {
   /**
    * Whether the sidebar has a button that collapses it to a rail of icons, from 640px up.
    * @default true
+   * @claim registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > collapses to a rail of icons with the toggle, keeping each link's name)
+   * @claim registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > hides the menu button from 640px up)
    */
   collapsible?: boolean | undefined;
   /** Whether the sidebar is collapsed, when you control it (to remember it). Pair it with `onCollapsedChange`. */
@@ -115,6 +123,9 @@ export interface SidebarProps {
   /**
    * Below 640px: the name of the button that opens the sidebar as a drawer, and the
    * drawer's title (shown when there is no `header`). @default "Menu"
+   * @claim registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > becomes a menu button that opens a drawer below 640px)
+   * @claim registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > hides the menu button from 640px up)
+   * @claim registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > closes the drawer when the screen grows past 640px)
    */
   menuLabel?: string | undefined;
   /** The label of the drawer's close button. @default "Close" */
@@ -169,8 +180,8 @@ const example = '<Sidebar label="Main" sections={[{ items: [{ label: "Recipes", 
  * `Tooltip`, where an item with nested links opens them in a `Menu`; below 640px it is a menu button that opens the same links as a `Sheet`
  * drawer. Links render through `OuroProvider`'s `linkComponent`, so your router navigates.
  *
- * The phone menu opens once JavaScript has loaded (after hydration), as in shadcn/ui and
- * Catalyst; the links are in the server HTML from 640px up.
+ * The phone menu opens once JavaScript has loaded (after hydration);
+ * the links are in the server HTML from 640px up.
  *
  * Put it in a `SidebarLayout`, which places it beside the page and in the phone's top bar.
  * Use `Navbar` instead for a handful of links across the top, and `Tabs` for views of one
@@ -189,6 +200,10 @@ const example = '<Sidebar label="Main" sections={[{ items: [{ label: "Recipes", 
  *   ]}
  *   currentPath={pathname}
  * />
+ * @claim registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > becomes a menu button that opens a drawer below 640px)
+ * @claim registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > hides the menu button from 640px up)
+ * @claim registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > closes the drawer when the screen grows past 640px)
+ * @claim registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > puts the nav and its links in the server HTML)
  */
 export function Sidebar(props: SidebarProps): JSX.Element {
   const {

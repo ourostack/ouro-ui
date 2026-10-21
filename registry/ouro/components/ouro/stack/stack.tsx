@@ -30,6 +30,9 @@ export interface StackOwnProps {
   /**
    * Space between the children: `xs` 4px, `sm` 8px, `md` 16px, `lg` 24px, `xl` 32px.
    * @default "md"
+   * @claim registry/ouro/components/ouro/stack/stack.test.tsx verify:fileLine(registry/ouro/components/ouro/stack/stack.test.tsx, /\["xs",\s"4px"\],/)
+   * @claim registry/ouro/components/ouro/stack/stack.test.tsx verify:fileLine(registry/ouro/components/ouro/stack/stack.test.tsx, /\["xl",\s"32px"\],/)
+   * @claim registry/ouro/components/ouro/stack/stack.test.tsx verify:testExists(registry/ouro/components/ouro/stack/stack.test.tsx::Stack > renders a vertical flex <div> with data-ouro and a 16px gap by default)
    */
   gap?: LayoutGap | (string & { 'Use "none", "xs", "sm", "md", "lg" or "xl"': never }) | (number & { 'Use a name: gap="md" is 16px': never }) | undefined;
   /**

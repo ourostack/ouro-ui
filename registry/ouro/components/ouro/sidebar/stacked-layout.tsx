@@ -9,7 +9,13 @@ import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 export interface StackedLayoutProps {
   /** The app's `Navbar`. It stays at the top while the page scrolls. */
   navbar: ReactNode;
-  /** The page. It renders inside the page's `<main>`, in a centered column up to 72rem wide. */
+  /**
+   * The page. It renders inside the page's `<main>`, in a centered column up to 72rem wide.
+   *
+   * @claim registry/ouro/components/ouro/sidebar/stacked-layout.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/stacked-layout.test.tsx::StackedLayout > centers the page in a column of readable width, and runs edge to edge with bleed)
+   * @claim registry/ouro/components/ouro/sidebar/stacked-layout.tsx verify:fileLine(registry/ouro/components/ouro/sidebar/stacked-layout.tsx, /mx-auto\smax-w-6xl/)
+   * @claim https://tailwindcss.com/docs/max-width verify:urlOk(https://tailwindcss.com/docs/max-width)
+   */
   children: ReactNode;
   /**
    * The element around the page. Pass `"div"` when the layout renders inside a page that
@@ -47,8 +53,8 @@ const skip =
  * scrolls, and the page below it in a centered column. It renders the page's `<main>`,
  * starts with a "Skip to content" link, and keeps its footer at the bottom of a short page.
  *
- * The phone menu opens once JavaScript has loaded (after hydration), as in shadcn/ui and
- * Catalyst; the links are in the server HTML from 640px up.
+ * The phone menu opens once JavaScript has loaded (after hydration);
+ * the links are in the server HTML from 640px up.
  *
  * Use `SidebarLayout` instead when the navigation is a `Sidebar`. Use `AuthLayout` for the
  * sign-in pages.
@@ -60,6 +66,8 @@ const skip =
  * <StackedLayout navbar={<Navbar label="Main" items={items} currentPath={pathname} />}>
  *   <Outlet />
  * </StackedLayout>
+ * @claim registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > puts the nav and its links in the server HTML)
+ * @claim registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > becomes a menu button that opens a drawer below 640px)
  */
 export function StackedLayout(props: StackedLayoutProps): JSX.Element {
   const {

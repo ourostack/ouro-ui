@@ -75,6 +75,14 @@
     "status": 200,
     "checked": "2026-10-21"
   },
+  "https://tailwindcss.com/docs/max-width": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
+  "https://tailwindcss.com/docs/responsive-design": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
   "https://ui.shadcn.com/docs/cli": {
     "status": 200,
     "checked": "2026-10-21"

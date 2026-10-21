@@ -28,6 +28,7 @@ export interface SliderProps<Value extends SliderValue = number> {
   /**
    * What the slider sets, shown above it and read as its name. Required: every control
    * needs a name. To hide it visually, keep it and add `hideLabel`.
+   * @claim registry/ouro/components/ouro/slider/slider.test-d.ts verify:fileLine(registry/ouro/components/ouro/slider/slider.test-d.ts, /expectTypeOf<\{\sdefaultValue:\s40\s\}>\(\)\.not\.toExtend<SliderProps>/)
    */
   label: string;
   /** Hides the label visually; screen readers still read it as the slider's name. */
@@ -54,9 +55,19 @@ export interface SliderProps<Value extends SliderValue = number> {
   onValueChange?: ((value: SliderOutput<Value>) => void) | undefined;
   /** Called once the user lets go (or with each key press), with the final value. Use it to save. */
   onValueCommitted?: ((value: SliderOutput<Value>) => void) | undefined;
-  /** The lowest value. @default 0 */
+  /**
+   * The lowest value. @default 0
+   *
+   * @claim registry/ouro/components/ouro/slider/slider.test.tsx verify:testExists(registry/ouro/components/ouro/slider/slider.test.tsx::Slider > is a labeled range input built on the Field contract)
+   * @claim registry/ouro/components/ouro/slider/slider.test.tsx verify:testExists(registry/ouro/components/ouro/slider/slider.test.tsx::Slider > takes large steps with Page Up, Page Down and Shift with an arrow)
+   */
   min?: number | undefined;
-  /** The highest value. @default 100 */
+  /**
+   * The highest value. @default 100
+   *
+   * @claim registry/ouro/components/ouro/slider/slider.test.tsx verify:testExists(registry/ouro/components/ouro/slider/slider.test.tsx::Slider > is a labeled range input built on the Field contract)
+   * @claim registry/ouro/components/ouro/slider/slider.test.tsx verify:testExists(registry/ouro/components/ouro/slider/slider.test.tsx::Slider > takes large steps with Page Up, Page Down and Shift with an arrow)
+   */
   max?: number | undefined;
   /** The distance between values. @default 1 */
   step?: number | undefined;
@@ -152,6 +163,8 @@ function defaultThumbLabels(count: number): string[] {
  * @example
  * <Slider label="Servings" name="servings" defaultValue={4} min={1} max={12} showValue />
  * <Slider label="Price" name="price" defaultValue={[10, 40]} format={{ style: "currency", currency: "USD" }} showValue />
+ * @claim registry/ouro/components/ouro/slider/slider.test.tsx verify:testExists(registry/ouro/components/ouro/slider/slider.test.tsx::Slider looks > gives the thumb a 44px hit area only on a coarse pointer)
+ * @claim registry/ouro/components/ouro/slider/slider.touch.test.tsx verify:testExists(registry/ouro/components/ouro/slider/slider.touch.test.tsx::gives the thumb a 44px hit area and the control a 44px height, also on a landscape phone)
  */
 export function Slider<Value extends SliderValue = number>(props: SliderProps<Value>): JSX.Element {
   const {

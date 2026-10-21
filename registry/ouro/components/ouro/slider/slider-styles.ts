@@ -19,6 +19,8 @@ const rootClass = "m-0 box-border flex w-full min-w-0 items-center gap-3";
  * to half opacity when disabled.
  *
  * @internal
+ * @claim registry/ouro/components/ouro/slider/slider.test.tsx verify:testExists(registry/ouro/components/ouro/slider/slider.test.tsx::Slider looks > gives the thumb a 44px hit area only on a coarse pointer)
+ * @claim registry/ouro/components/ouro/slider/slider.touch.test.tsx verify:testExists(registry/ouro/components/ouro/slider/slider.touch.test.tsx::gives the thumb a 44px hit area and the control a 44px height, also on a landscape phone)
  */
 const controlClass =
   "relative box-border flex min-w-0 flex-1 items-center px-2.5 select-none touch-pan-y cursor-pointer " +
@@ -46,6 +48,9 @@ const indicatorClass =
  * outline while its input has keyboard focus, and a press that grows it slightly.
  *
  * @internal
+ * @claim registry/ouro/components/ouro/slider/slider.test.tsx verify:testExists(registry/ouro/components/ouro/slider/slider.test.tsx::Slider looks > gives the thumb a 44px hit area only on a coarse pointer)
+ * @claim registry/ouro/components/ouro/slider/slider.test.tsx verify:testExists(registry/ouro/components/ouro/slider/slider.test.tsx::Slider looks > outlines the thumb while its input has keyboard focus)
+ * @claim registry/ouro/components/ouro/slider/slider.touch.test.tsx verify:testExists(registry/ouro/components/ouro/slider/slider.touch.test.tsx::gives the thumb a 44px hit area and the control a 44px height, also on a landscape phone)
  */
 const thumbClass =
   "relative box-border size-5 rounded-full border-2 border-solid border-primary bg-background select-none " +
