@@ -422,8 +422,8 @@ function checkNames(block, id) {
   return combinations.map((combination) => keys.reduce((text, key) => text.replace(`\${{ matrix.${key} }}`, combination[key]), name));
 }
 
-/** The checks the main ruleset requires (ruleset 24881709). */
-const requiredChecks = ["ci", "e2e", "visual", "registry", "install (shadcn, nova)", "install (shadcn, vega)", "install (ouro, nova)", "install (namespace, nova)", "install (next, nova)", "install-upgrade", "motion-coverage", "themes (1/3)", "themes (2/3)", "themes (3/3)", "theme-install", "latency", "lighthouse"];
+/** The checks the main ruleset requires (ruleset 24881709); ci-budget from when this layout reached main. */
+const requiredChecks = ["ci", "e2e", "visual", "registry", "install (shadcn, nova)", "install (shadcn, vega)", "install (ouro, nova)", "install (namespace, nova)", "install (next, nova)", "install-upgrade", "motion-coverage", "themes (1/3)", "themes (2/3)", "themes (3/3)", "theme-install", "latency", "lighthouse", "ci-budget"];
 
 test("every required check is still a job that reports, under the name the ruleset requires", () => {
   const jobs = ciJobs();
@@ -435,7 +435,7 @@ test("every required check is still a job that reports, under the name the rules
     }
     // A job a required check names never skips itself: at most it runs whatever its needs did.
     const condition = block.match(/^ {4}if: (.+)$/m)?.[1];
-    if (!["install-github", "install-latest", "plan", "ci-budget"].includes(id)) assert.ok(!condition || condition === "${{ !cancelled() }}", `${id} has if: ${condition}`);
+    if (!["install-github", "install-latest", "plan"].includes(id)) assert.ok(!condition || condition === "${{ !cancelled() }}", `${id} has if: ${condition}`);
   }
   for (const check of requiredChecks) assert.ok(names.has(check), `${check} is not among ${[...names.keys()].join(", ")}`);
   assert.deepEqual(checkNames(jobs["install-shard"], "install-shard"), ["install (shadcn, nova, 1/3)", "install (shadcn, nova, 2/3)", "install (shadcn, nova, 3/3)", "install (shadcn, vega, 1/3)", "install (shadcn, vega, 2/3)", "install (shadcn, vega, 3/3)", "install (ouro, nova, 1/3)", "install (ouro, nova, 2/3)", "install (ouro, nova, 3/3)"]);
@@ -663,7 +663,8 @@ test("motion coverage runs after the ci check, over the partitions the browser s
 test("the budget job waits on every other job, reads the run's jobs and nothing else, and its name patterns match every check", async () => {
   const jobs = ciJobs();
   const block = jobs["ci-budget"];
-  assert.match(block, /^ {4}if: \$\{\{ always\(\) \}\}$/m);
+  // It runs whatever the other jobs did, but not on a cancelled run, which would hold a runner for nothing.
+  assert.match(block, /^ {4}if: \$\{\{ !cancelled\(\) \}\}$/m);
   assert.match(block, /^ {4}permissions:\n {6}actions: read\n {6}contents: read\n/m);
   const needs = block.match(/^ {4}needs: \[([^\]]*)\]$/m)[1].split(",").map((need) => need.trim());
   // Every job no other job needs: the ends of the run's chains.

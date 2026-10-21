@@ -730,9 +730,11 @@ jobs:
     # counted from its start to its end so a queue for a free runner does not count, and its wall
     # time, in the step summary and the ci-timings artifact (scripts/ci-budget.mjs). On a pull
     # request it fails when the critical path is over budget: the CI target, plus a margin for
-    # runner noise.
+    # runner noise. It also records the wall time a developer waits, queues included, with its median
+    # over the latest runs, and the runner time the run took from the shared pool. A required check
+    # (ruleset 24881709); it fails only a pull request, never a merge group or a push.
     needs: [motion-coverage, themes, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-latest, install-upgrade, install-github]
-    if: ${{ always() }}
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
       actions: read

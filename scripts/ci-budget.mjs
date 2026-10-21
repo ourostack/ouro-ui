@@ -4,9 +4,13 @@
 // - the critical path: the longest chain of jobs that wait on one another, each job counted from its
 //   start to its end (the slowest of a matrix's jobs), so time spent queued for a free runner does
 //   not count, and the run's load on the shared runner pool cannot fail it;
-// - the wall time: from the first job's creation to the last job's end, queues included.
+// - the wall time: from the first job's creation to the last job's end, queues included, which is
+//   what a developer waits for, and the median and 90th percentile of it over the last runs of the
+//   same event (the workflow runs API);
+// - the runner time: the minutes every job of the run held a runner, which on the shared runner
+//   pool (20 jobs at once on the Free plan) sets the wall time once runs wait on each other.
 //
-// It writes both, with every job's queue and run times, to the step summary and to --out (JSON),
+// It writes them, with every job's queue and run times, to the step summary and to --out (JSON),
 // and on a pull request fails when the critical path is over budget.
 //
 //   node scripts/ci-budget.mjs [--out <file>]   needs GH_TOKEN, GITHUB_REPOSITORY, RUN_ID,
@@ -85,6 +89,27 @@ export function wallTime(jobs, graph) {
   return seconds(new Date(Math.min(...others.map((job) => Date.parse(job.created_at)))).toISOString(), new Date(Math.max(...others.map((job) => Date.parse(job.completed_at)))).toISOString());
 }
 
+/** The minutes, in seconds, every job but this one held a runner: start to end, a skipped job none. */
+export function runnerTime(jobs, graph) {
+  const own = graph.find((node) => node.id === self)?.pattern;
+  return jobs.filter((job) => !own?.test(job.name) && job.conclusion !== "skipped").reduce((total, job) => total + seconds(job.started_at, job.completed_at), 0);
+}
+
+/** The `fraction` percentile of `values` (nearest rank), or null when there are none. */
+export function percentile(values, fraction) {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted[Math.min(sorted.length - 1, Math.max(0, Math.ceil(fraction * sorted.length) - 1))];
+}
+
+/**
+ * The wall times, queues included, of completed workflow runs from the runs API: each from its
+ * latest attempt's start to its last update, which for a completed run is its end.
+ */
+export function runWalls(runs) {
+  return runs.filter((run) => run.status === "completed" && run.conclusion !== "cancelled" && run.conclusion !== "skipped").map((run) => seconds(run.run_started_at ?? run.created_at, run.updated_at));
+}
+
 /** Whether a run's critical path is over budget: only a pull request's is held to it. */
 export function overBudget(event, criticalSeconds, { targetMinutes, margin } = budget) {
   return event === "pull_request" && criticalSeconds > targetMinutes * 60 * (1 + margin);
@@ -92,20 +117,28 @@ export function overBudget(event, criticalSeconds, { targetMinutes, margin } = b
 
 const minutes = (value) => `${(value / 60).toFixed(1)} min`;
 
+/** The answer of a GitHub API GET, retried up to three times. */
+async function getJson(url, token) {
+  let response;
+  for (let tries = 1; ; tries += 1) {
+    response = await globalThis.fetch(url, {
+      headers: { authorization: `Bearer ${token}`, accept: "application/vnd.github+json" },
+    });
+    if (response.ok || tries === 3) break;
+    await delay(2000 * tries);
+  }
+  if (!response.ok) throw new Error(`${url} answered ${response.status}: ${await response.text()}`);
+  return response.json();
+}
+
+/** How many of the latest runs the wall time's median and 90th percentile are taken over. */
+export const recentRuns = 20;
+
 /** Every job of a run attempt, through the API's pages. */
 async function fetchJobs({ repository, runId, attempt, token }) {
   const jobs = [];
   for (let page = 1; ; page += 1) {
-    let response;
-    for (let tries = 1; ; tries += 1) {
-      response = await globalThis.fetch(`https://api.github.com/repos/${repository}/actions/runs/${runId}/attempts/${attempt}/jobs?per_page=100&page=${page}`, {
-        headers: { authorization: `Bearer ${token}`, accept: "application/vnd.github+json" },
-      });
-      if (response.ok || tries === 3) break;
-      await delay(2000 * tries);
-    }
-    if (!response.ok) throw new Error(`The jobs API answered ${response.status}: ${await response.text()}`);
-    const body = await response.json();
+    const body = await getJson(`https://api.github.com/repos/${repository}/actions/runs/${runId}/attempts/${attempt}/jobs?per_page=100&page=${page}`, token);
     jobs.push(...body.jobs);
     if (jobs.length >= body.total_count || body.jobs.length === 0) return jobs;
   }
@@ -122,6 +155,16 @@ async function main(argv) {
   const jobs = await fetchJobs({ repository, runId, attempt, token });
   const path = criticalPath(jobs, graph);
   const wall = wallTime(jobs, graph);
+  const runner = runnerTime(jobs, graph);
+  // The latest completed runs of ci.yml for the same event, this one not yet among them.
+  let recent = null;
+  try {
+    const { workflow_runs: runs } = await getJson(`https://api.github.com/repos/${repository}/actions/workflows/ci.yml/runs?event=${encodeURIComponent(event)}&status=completed&per_page=${recentRuns}`, token);
+    const walls = runWalls(runs);
+    recent = { event, runs: walls.length, p50Seconds: Math.round(percentile(walls, 0.5) ?? 0), p90Seconds: Math.round(percentile(walls, 0.9) ?? 0) };
+  } catch (error) {
+    console.log(`::warning::The wall times of the latest runs could not be read: ${error.message}`);
+  }
   const limit = budget.targetMinutes * 60 * (1 + budget.margin);
   const record = {
     run: `https://github.com/${repository}/actions/runs/${runId}/attempts/${attempt}`,
@@ -129,6 +172,8 @@ async function main(argv) {
     criticalPathSeconds: Math.round(path.seconds),
     criticalPath: path.jobs.map((job) => ({ job: job.name, seconds: Math.round(job.seconds) })),
     wallSeconds: Math.round(wall),
+    runnerSeconds: Math.round(runner),
+    recentWall: recent,
     budget: { ...budget, limitSeconds: limit },
     jobs: jobs
       .filter((job) => job.completed_at)
@@ -139,7 +184,12 @@ async function main(argv) {
   const summary = [
     `## CI time`,
     ``,
-    `Critical path **${minutes(path.seconds)}** (budget for a pull request: ${budget.targetMinutes} min, failing over ${minutes(limit)}); wall time ${minutes(wall)}, queues included.`,
+    `Critical path **${minutes(path.seconds)}** (budget for a pull request: ${budget.targetMinutes} min, failing over ${minutes(limit)}).`,
+    ``,
+    `Wall time **${minutes(wall)}**, queues included; runners held for **${minutes(runner)}**.`,
+    recent && recent.runs > 0
+      ? `Over the last ${recent.runs} completed \`${event}\` runs, wall time p50 ${minutes(recent.p50Seconds)}, p90 ${minutes(recent.p90Seconds)}.`
+      : `No completed \`${event}\` run to compare with.`,
     ``,
     `| critical path | run time |`,
     `|---|---|`,

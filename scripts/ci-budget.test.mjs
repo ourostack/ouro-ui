@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { budget, criticalPath, jobGraph, overBudget, wallTime } from "./ci-budget.mjs";
+import { budget, criticalPath, jobGraph, overBudget, percentile, runnerTime, runWalls, wallTime } from "./ci-budget.mjs";
 
 const workflow = `name: CI
 jobs:
@@ -79,4 +79,20 @@ test("only a pull request's critical path is held to the budget, with its margin
   assert.equal(overBudget("pull_request", limit + 1), true);
   for (const event of ["push", "merge_group", "workflow_dispatch"]) assert.equal(overBudget(event, limit * 3), false);
   assert.equal(overBudget("pull_request", 13 * 60, { targetMinutes: 10, margin: 0.2 }), true);
+});
+
+test("the runner time adds every job's run time but this one's and a skipped job's", () => {
+  const jobs = [job("plan", 0, 0, 1), job("browser (1/2)", 1, 6, 9), job("browser (2/2)", 1, 1, 5), job("lint", 0, 0, 6, "skipped"), job("ci-budget", 10, 10, 11)];
+  assert.equal(runnerTime(jobs, jobGraph(workflow)), (1 + 3 + 4) * 60);
+});
+
+test("the wall times of the latest runs count their queues, and leave out unfinished and cancelled runs", () => {
+  const at = (minutes) => new Date(Date.UTC(2026, 9, 20, 12, minutes)).toISOString();
+  const run = (start, end, conclusion = "success", status = "completed") => ({ status, conclusion, created_at: at(0), run_started_at: at(start), updated_at: at(end) });
+  const walls = runWalls([run(0, 30), run(5, 25, "failure"), run(0, 40, "cancelled"), run(0, 50, null, "in_progress"), { ...run(0, 12), run_started_at: undefined }]);
+  assert.deepEqual(walls, [30 * 60, 20 * 60, 12 * 60]);
+  assert.equal(percentile(walls, 0.5), 20 * 60);
+  assert.equal(percentile(walls, 0.9), 30 * 60);
+  assert.equal(percentile([], 0.5), null);
+  assert.equal(percentile([7], 0.9), 7);
 });
