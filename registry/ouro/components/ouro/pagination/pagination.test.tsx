@@ -58,10 +58,36 @@ afterEach(async () => {
 const href = (target: number) => `/recipes?page=${target}`;
 
 describe("Pagination", () => {
-  it("tells the current page from the rest under forced colours, which drop its fill", async () => {
+  it("keeps each page's edge under forced colours, which drop its fill", async () => {
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      for (const props of [{ href }, { onPageChange: () => {} }]) {
+        await render(<Pagination page={3} pageCount={5} {...props} />);
+        const other = [...document.querySelectorAll('[aria-label="Page 2"]')].at(-1)!;
+        expect(parseFloat(getComputedStyle(other).borderTopWidth)).toBeGreaterThan(0);
+        expect(getComputedStyle(other).borderTopStyle).toBe("solid");
+      }
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
+  it("fills the current page so it stands apart from the rest", async () => {
     for (const props of [{ href }, { onPageChange: () => {} }]) {
       await render(<Pagination page={3} pageCount={5} {...props} />);
+      const look = (name: string) => {
+        const element = [...document.querySelectorAll(`[aria-label="${name}"]`)].at(-1)!;
+        return `${getComputedStyle(element).backgroundColor} ${getComputedStyle(element).color}`;
+      };
+      expect(look("Page 3")).not.toBe(look("Page 2"));
+    }
+  });
+
+  it("tells the current page from the rest under forced colours, which drop its fill", async () => {
+    for (const props of [{ href }, { onPageChange: () => {} }]) {
+      // Forced colours first: switched after the render, a transition would still be easing.
       await commands.emulateMedia({ forcedColors: "active" });
+      await render(<Pagination page={3} pageCount={5} {...props} />);
       try {
         const look = (name: string) => {
           const element = [...document.querySelectorAll(`[aria-label="${name}"]`)].at(-1)!;
