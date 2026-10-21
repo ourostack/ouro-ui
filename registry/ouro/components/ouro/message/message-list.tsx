@@ -217,12 +217,20 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // Never announced: the messages present on mount, several messages filling an empty list
   // at once (history fetched after mount; a single one is a first reply), anything inserted above
   // the last seen message (older history), and a message whose key changed in place with the
-  // same text (a temporary id swapped for the server's).
+  // same text (a temporary id swapped for the server's), and anything that arrives while the
+  // list is inside a `hidden` element (a closed panel), where its live region is not heard either.
+  //
+  // Telling messages apart reads `textContent`, which needs no layout. Only a message read out
+  // reads `innerText`, for its line breaks, and only outside a `hidden` element: run from this
+  // observer, right after React's commit, `innerText` forces a layout before the browser's own,
+  // and inside a closed `hidden="until-found"` panel a layout of the content the browser skips.
+  // (So does `checkVisibility()` in Chromium, so the check is the attribute.)
   useEffect(() => {
     const content = contentRef.current!;
     const messages = () => [...content.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
     const busy = (message: Element) => message.getAttribute("aria-busy") === "true";
-    const textOf = (message: Element) => message.querySelector<HTMLElement>("[data-ouro-message-content]")!.innerText.trim();
+    const textOf = (message: Element) => message.querySelector("[data-ouro-message-content]")!.textContent.trim();
+    const spokenTextOf = (message: Element) => message.querySelector<HTMLElement>("[data-ouro-message-content]")!.innerText.trim();
     let known = messages();
     // Each known message's text when last checked, to tell a key swap from a new reply.
     let texts = new Map(known.map((message) => [message, textOf(message)]));
@@ -253,6 +261,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
       for (const message of now) if (busy(message)) waiting.add(message);
       known = now;
       texts = new Map(now.map((message) => [message, textOf(message)]));
+      if (content.closest("[hidden]")) {
+        waiting = new Set(now.filter(busy));
+        return;
+      }
       const fresh: string[] = [];
       const still = new Set<HTMLElement>();
       for (const message of now) {
@@ -263,7 +275,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
         }
         if (message.getAttribute("data-role") === "user") continue;
         const author = message.querySelector<HTMLElement>("[data-ouro-message-author]")!.innerText;
-        const text = textOf(message);
+        const text = spokenTextOf(message);
         fresh.push(labelFor.current(author, text));
       }
       waiting = still;

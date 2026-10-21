@@ -36,11 +36,12 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "landing" | "v
 }
 
 /**
- * Initial JavaScript ceilings, gzip bytes (site-design.md, Budgets). The landing page may not
- * grow from 274,131 bytes, what it loaded on main at fdbaa9d2 before each page got its own chunk;
- * the voyage preview gets 270 KB.
+ * Initial JavaScript ceilings, gzip bytes (site-design.md, Budgets). The landing page and the docs
+ * may not grow: each is what it loaded at 7c13bd6a (#141 on main at bf855de4, after the docs
+ * stopped loading every page's Markdown first and after #138's claims), 157,250 and 167,396 bytes,
+ * plus 1 KiB. The voyage preview gets 270 KB.
  */
-const CEILINGS = { landing: 274_131, voyage: 270 * 1024, docs: 274_131 } as const;
+const CEILINGS = { landing: 157_250 + 1024, voyage: 270 * 1024, docs: 167_396 + 1024 } as const;
 
 /** The CSS each page loads before it paints, gzip bytes: every stylesheet together (site-design.md, Budgets). */
 const CSS_CEILING = 40 * 1024;
@@ -261,8 +262,9 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
       expect(modules.filter((module) => /site\/src\/(docs\/|pages\/(landing|docs)\.tsx)/.test(module))).toEqual([]);
     }
     if (kind === "landing") expect(modules).not.toContain("site/src/pages/voyage.tsx");
-    // Each docs page loads only its own Markdown, so the docs don't grow with every page they add.
-    if (kind === "docs") expect(modules.filter((module) => /^docs\/.*\.md\?raw$/.test(module)), "docs loads every page's Markdown first").toEqual([]);
+    // Each docs page loads only its own Markdown, so neither the docs nor the landing page (which
+    // shares their routes) grows with every page the docs add.
+    if (kind === "landing" || kind === "docs") expect(modules.filter((module) => /^docs\/.*\.md\?raw$/.test(module)), `${kind} loads the docs' Markdown first`).toEqual([]);
     const loaded = [...new Set(reads)].filter((file) => !file.includes(".demo-"));
     expect(loaded.sort(), `${kind} loads its closure and nothing else`).toEqual(expected);
     const gzip = expected.reduce((sum, file) => sum + gzipSync(readFileSync(resolve("site/dist", file))).byteLength, 0);
