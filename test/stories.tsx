@@ -72,9 +72,12 @@ export interface OuroStoryParameters {
  */
 export interface ConformanceParameters {
   /**
-   * Controls, by accessible name, whose action deliberately takes focus out of the page (a link
-   * that leaves it), mapped to why. Focus landing on `<body>` after any other action fails, and
-   * so does a declared control whose action keeps focus, so the declaration never goes stale.
+   * Controls whose action deliberately takes focus out of the page (a link that leaves it),
+   * mapped to why. Each is named by its component and part markers and its accessible name,
+   * `"<data-ouro-control>/<data-ouro-part> <name>"` (`"unmarked/?"` for a story's own control),
+   * so the declaration covers that one control. Focus landing on `<body>` after any other action
+   * fails, and so does a declared control whose action keeps focus, so the declaration never goes
+   * stale. A pull request that adds one names it in its description (scripts/conformance-exemptions.mjs).
    */
   focusExit?: Record<string, string>;
   /**
@@ -85,7 +88,8 @@ export interface ConformanceParameters {
   /**
    * Why the story cannot render on a server (it portals during its first render, as a
    * repository-only reference does), so its hydration is not checked. The check fails once the
-   * story does render on a server, so the declaration never outlives its reason.
+   * story does render on a server, so the declaration never outlives its reason. A pull request
+   * that adds one names the story in its description (scripts/conformance-exemptions.mjs).
    */
   clientOnly?: string;
 }

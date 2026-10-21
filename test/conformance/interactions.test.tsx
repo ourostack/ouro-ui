@@ -21,6 +21,13 @@ const perPart = 3;
 /** The most actions one story's run takes. */
 const maxActions = 60;
 
+/**
+ * How `focusExit` names one control: its component and part markers and its accessible name
+ * (`"link/root Docs"`, `"unmarked/? Sign out"` for a story's own control), so a declaration
+ * covers that control alone, not every control with the same name.
+ */
+const exitKey = (control: Element, name: string) => `${control.getAttribute("data-ouro-control") ?? "unmarked"}/${control.getAttribute("data-ouro-part") ?? "?"} ${name}`;
+
 const identity = (control: Element) => `${control.getAttribute("data-ouro-control") ?? "unmarked"}/${control.getAttribute("data-ouro-part") ?? "?"}/${controlRole(control)}`;
 
 /** Whether a control can be used now: shown, enabled, not inert and not hidden from assistive tech. */
@@ -126,7 +133,8 @@ async function actionProblems({ Story, parameters }: StoryEntry): Promise<string
       }
       await settle();
       const lost = lostFocus();
-      if (lost && control && declared.focusExit?.[name]) exited.add(name);
+      const exit = control ? exitKey(control, name) : "";
+      if (lost && control && declared.focusExit?.[exit]) exited.add(exit);
       else if (lost) problems.push(`after ${action}: ${lost}`);
       // By text, across every live region: the same message from two regions (a toast and a
       // status line both saying "Saved") is heard twice, as surely as from one region twice.
@@ -140,8 +148,8 @@ async function actionProblems({ Story, parameters }: StoryEntry): Promise<string
     }
     if (!control && openPopup() === popup) break;
   }
-  for (const name of Object.keys(declared.focusExit ?? {})) {
-    if (!exited.has(name)) problems.push(`focusExit declares "${name}", but using it kept focus in the page: remove the declaration`);
+  for (const key of Object.keys(declared.focusExit ?? {})) {
+    if (!exited.has(key)) problems.push(`focusExit declares "${key}", but using it kept focus in the page (or no control is it): remove the declaration`);
   }
   return problems;
 }

@@ -51,11 +51,13 @@ These tests run in every conformance run, whatever stories it selects, on the fi
 
 A check never guesses. When a story does something on purpose that a check would fail, it says so in its `parameters.conformance` (`ConformanceParameters` in `test/stories.tsx`), with the reason, and the check fails once the declaration is no longer true:
 
-- `focusExit: { "<control's accessible name>": "<why>" }`: using that control deliberately takes focus out of the page. A declared control whose action keeps focus fails, so the declaration cannot go stale.
+- `focusExit: { "<data-ouro-control>/<data-ouro-part> <accessible name>": "<why>" }`: using that one control deliberately takes focus out of the page (`"unmarked/? <name>"` for a control the story renders itself). A declared control whose action keeps focus, or that no control is, fails, so the declaration cannot go stale.
 - `announces: { "<control's accessible name>": "<text>" }`: one action on that control must announce the text exactly once.
 - `clientOnly: "<why>"`: the story cannot render on a server, so its hydration is not checked; once it does render on a server, the check fails until the declaration goes.
 
-A physical side that must follow the screen, not the text (a part centred with `left-1/2 -translate-x-1/2`, a safe-area inset, a sheet whose `side` prop is physical), goes in `physicalAllowed` in `scripts/source-rules.mjs` with its reason; an allowance the source no longer uses fails.
+A physical side that must follow the screen, not the text (a part centred with `left-1/2 -translate-x-1/2`, a safe-area inset, a sheet whose `side` prop is physical), goes in `scripts/physical-allowed.json` (`physicalAllowed`), by file and class, with its reason; an allowance the source no longer uses fails.
+
+Exemptions only grow on purpose. `scripts/conformance-exemptions.mjs` compares the physical-side allowances, every `focusExit` control and every `clientOnly` with the base branch, as the Conformance exemptions workflow does on each pull request (and again when its description is edited). Each one the pull request adds needs its reason, and the description must name it: the class, the control's key, or the story (`SheetFeel/FeelComparison`).
 
 ## Tests that cannot fail: mutation testing
 
