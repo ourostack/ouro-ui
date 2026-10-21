@@ -94,7 +94,7 @@ export function estimateMutants(text, path, ranges) {
 
 /**
  * What a file costs a shard: its estimated mutants times the tests in `testFiles` (its own), as
- * each mutant runs that whole set (coverage analysis is off). Dialog's tests take far longer than a
+ * a mutant runs up to that whole set (coverage analysis is off). Dialog's tests take far longer than a
  * style file's, so counting mutants alone left one shard four times as long as another.
  */
 export function mutantWeight(mutants, testFiles, rootDir = root) {

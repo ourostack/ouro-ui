@@ -279,9 +279,9 @@ jobs:
   mutation-shard:
     # Mutation testing of the lines a pull request added or changed in the runtime source
     # (scripts/mutation.mjs, docs/guides/conformance.md): every mutant Stryker makes of them must
-    # fail a test. The changed files are split across the shards by their estimated mutants, and
-    # each shard keeps its results between runs of the pull request (Stryker's incremental mode),
-    # so a push reruns only the mutants its change touched. Pull requests only; on any other run,
+    # fail a test. The changed files are split across the shards by their estimated mutants times
+    # their tests, and each shard keeps its results between runs of the pull request (Stryker's
+    # incremental mode), so a push reruns only the mutants its change touched. Pull requests only; on any other run,
     # and on a pull request that changes no runtime source, it reports that there is nothing to
     # mutate. The `mutation` job below is the one check the rules require.
     runs-on: ubuntu-latest

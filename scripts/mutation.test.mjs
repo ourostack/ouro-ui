@@ -200,7 +200,7 @@ test("balanceShards splits files across shards by their mutants, largest first, 
   assert.throws(() => parseShard("4/3"), /--shard/);
 });
 
-test("mutantWeight is a file's estimated mutants times the tests each one runs, since every mutant runs its file's whole test set", () => {
+test("mutantWeight is a file's estimated mutants times the tests each one runs, since a mutant may run its file's whole test set", () => {
   const files = ["registry/ouro/components/ouro/dialog/dialog.test.tsx", "registry/ouro/components/ouro/button/button.test.tsx"];
   const its = files.map((file) => readFileSync(file, "utf8").match(/^\s*it\(/gm).length).reduce((a, b) => a + b);
   assert.ok(its > 20);
