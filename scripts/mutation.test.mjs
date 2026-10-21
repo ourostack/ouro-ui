@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { changedLines, describeSurvivor, mutateRanges, runtimeSource, survivors, testFilesFor } from "./mutation.mjs";
-import { ignoreReason, isClassList } from "./mutation/plugins.mjs";
+import { ignoreReason, isClassList, testPhases } from "./mutation/plugins.mjs";
 
 test("runtimeSource takes component and lib code, and leaves tests, stories, types and the test kit", () => {
   for (const path of ["registry/ouro/components/ouro/button/button.tsx", "registry/ouro/components/ouro/dialog/dialog-styles.ts", "registry/ouro/lib/ouro/cn.ts"]) assert.ok(runtimeSource(path), path);
@@ -106,4 +106,15 @@ test("the ouro-classes ignorer leaves out class strings and the development chec
   const statement = path({ type: "ExpressionStatement" });
   assert.equal(ignoreReason(path({ type: "Identifier" }, { parent: statement })), undefined);
   assert.equal(ignoreReason(path({ type: "BinaryExpression" }, { binary: "a !== b" })), undefined);
+});
+
+test("testPhases runs a mutant against its own file's tests, then its importers', and an unannounced file against every file's once", () => {
+  const spec = (moduleId) => ({ moduleId });
+  const byFile = new Map([
+    ["registry/ouro/lib/ouro/focus-handoff.ts", { own: [spec("focus-handoff.test.tsx")], wider: [spec("alert.test.tsx"), spec("toaster.test.tsx")] }],
+    ["registry/ouro/components/ouro/alert/alert.tsx", { own: [spec("alert.test.tsx")], wider: [] }],
+  ]);
+  assert.deepEqual(testPhases(byFile, "registry/ouro/components/ouro/alert/alert.tsx"), [[spec("alert.test.tsx")], []]);
+  assert.deepEqual(testPhases(byFile, "registry/ouro/lib/ouro/focus-handoff.ts"), [[spec("focus-handoff.test.tsx")], [spec("alert.test.tsx"), spec("toaster.test.tsx")]]);
+  assert.deepEqual(testPhases(byFile, ""), [[spec("focus-handoff.test.tsx"), spec("alert.test.tsx")], [spec("toaster.test.tsx")]]);
 });

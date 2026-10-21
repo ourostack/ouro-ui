@@ -1,8 +1,8 @@
 // Mutation testing of what a change touched (`pnpm mutation [<base>] [<head>] [--only <file>]`,
 // CI's `mutation` job on a pull request; without a head, the working tree against the base): Stryker changes each line the diff added or changed in the runtime source
 // (`registry/ouro/components/` and `registry/ouro/lib/ouro/`, not tests, stories or the test kit)
-// in every way it knows, one change (a mutant) at a time, and runs the tests of the components
-// those files belong to (the folders scripts/test-impact.mjs maps them to, and for a lib/ file its
+// in every way it knows, one change (a mutant) at a time, and runs the tests of the component
+// the mutated file belongs to (the folders scripts/test-impact.mjs maps them to, and for a lib/ file its
 // own tests and those of the components that import it). A mutant no test fails on (it survived)
 // is a line the tests do not hold: the run fails and names each one. Fix it with a test that fails
 // on that change; when the change cannot alter behaviour, say why on the line before it:
@@ -119,9 +119,13 @@ async function main(args) {
     console.log("No runtime source line changed: nothing to mutate.");
     return 0;
   }
-  const tests = testFilesFor(Object.keys(changes).filter(runtimeSource));
-  console.log(`Mutating ${mutate.length} changed range(s), against ${tests.own.length} test file(s), then ${tests.wider.length} more for a mutant they miss:\n${mutate.map((range) => `- ${range}`).join("\n")}`);
-  process.env["OURO_MUTATION_TESTS"] = JSON.stringify(tests);
+  const testsByFile = Object.fromEntries(Object.keys(changes).filter(runtimeSource).map((path) => [path, testFilesFor([path])]));
+  console.log(
+    `Mutating ${mutate.length} changed range(s), each mutant against its own file's tests, then its importers' for a mutant they miss:\n${Object.entries(testsByFile)
+      .map(([path, { own, wider }]) => `- ${path}: ${own.length} + ${wider.length} test file(s), ${mutate.filter((range) => range.startsWith(`${path}:`)).map((range) => range.slice(path.length + 1)).join(", ")}`)
+      .join("\n")}`,
+  );
+  process.env["OURO_MUTATION_TESTS"] = JSON.stringify(testsByFile);
   const { Stryker } = await import("@stryker-mutator/core");
   const results = await new Stryker({
     mutate,
