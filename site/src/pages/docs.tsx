@@ -358,7 +358,7 @@ export function Updating(): JSX.Element {
         </li>
         <li className="grid gap-3">
           <Heading level={2} size="lg">
-            {claim("Upgrading from v0.1.0", { source: { file: "UPGRADING.md" }, verify: [{ fileLine: "UPGRADING.md", line: 1, pattern: "^# Upgrading from v0\\.1\\.0$" }, { ciJob: "install-upgrade" }] })}
+            {claim("Upgrading from v0.1.0", { source: { file: "UPGRADING.md" }, verify: [{ fileLine: "UPGRADING.md", line: 1, pattern: "^# Upgrading from v0\\.1\\.0\\[\\^upgrade-v0\\.1\\.0\\]$" }, { ciJob: "install-upgrade" }] })}
           </Heading>
           {/* UPGRADING.md, the same note as README.md and the release notes; CI runs its commands. */}
           <Markdown blocks={parse(upgrading).slice(1)} />
