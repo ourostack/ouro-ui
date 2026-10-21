@@ -67,6 +67,8 @@ jobs:
           if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
             if out=$(gh release view "$TAG" --json tagName 2>&1); then
               echo "::notice::$TAG is already released. Nothing to do. If the 'Prepare main for the next release' PR is missing, open it by hand (AGENTS.md, 'Pages and releases')."
+              # The finish job reads this: a rerun for a released version pushed no tag of its own.
+              echo "new=false" >> "$GITHUB_OUTPUT"
               exit 0
             fi
             # Only a missing release means the tag is orphaned; any other error (a rate limit,

@@ -1017,8 +1017,27 @@ test("a release's tag never stays out without main and Pages following unnoticed
   assert.equal(runs("success", "cancelled", "skipped"), true);
   assert.equal(runs("success", "success", "failure"), true);
   assert.equal(runs("cancelled", "skipped", "skipped", undefined), true);
-  // Already released: the release job did nothing.
-  assert.equal(runs("success", "skipped", "skipped", "false"), false);
+  // The check step's own output, from its script against a stand-in git and gh: a rerun for a
+  // version that is already released did nothing, so finish stays out of it and the run is green;
+  // a new release's tag that main and Pages did not follow still brings finish in.
+  const checked = (released) => {
+    const dir = scratchDir("ouro-release-check-");
+    const output = join(dir, "output.txt");
+    writeFileSync(output, "");
+    const stubs = `git() { case "$1" in ls-remote) [ "$RELEASED" = true ] ;; rev-parse) echo abc123 ;; esac; }\ngh() { case "$1 $2" in "release view") [ "$RELEASED" = true ] ;; "run list") echo success ;; esac; }\n`;
+    const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", stubs + releaseStep("Check the version, the tag and main's CI")], {
+      encoding: "utf8",
+      env: { ...process.env, RELEASED: String(released), VERSION: "9.9.9", TAG: "v9.9.9", GITHUB_OUTPUT: output, GITHUB_ENV: join(dir, "env.txt") },
+    });
+    assert.equal(result.status, 0, result.stderr);
+    return Object.fromEntries(readFileSync(output, "utf8").trim().split("\n").map((line) => line.split("=")));
+  };
+  const rerun = checked(true);
+  assert.deepEqual(rerun, { new: "false" });
+  assert.equal(runs("success", "skipped", "skipped", rerun.new), false);
+  const fresh = checked(false);
+  assert.deepEqual(fresh, { new: "true" });
+  assert.equal(runs("success", "skipped", "skipped", fresh.new), true);
   const script = releaseStep("Report a release main and Pages did not follow");
   const report = (tagged) =>
     spawnSync("bash", ["-e", "-c", `gh() { printf 'CALL %s\\n' "$*" >&2; case "$1 $2" in "api repos/o/r/git/ref/tags/v9.9.9") [ "$TAGGED" = true ] ;; "issue create") return 0 ;; esac; }\n${script}`], {
