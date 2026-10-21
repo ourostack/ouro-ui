@@ -20,7 +20,12 @@ export type { LayoutGap, LayoutJustify, LayoutElement };
 // components (React Fast Refresh). The export list comes first because the shadcn CLI
 // drops comments before a file's first statement.
 
-/** A gap from the spacing scale: `xs` 4px, `sm` 8px, `md` 16px, `lg` 24px, `xl` 32px. */
+/**
+ * A gap from the spacing scale: `xs` 4px, `sm` 8px, `md` 16px, `lg` 24px, `xl` 32px.
+ *
+ * @claim "A gap from the spacing scale" registry/ouro/components/ouro/stack/stack.test.tsx verify:fileLine(registry/ouro/components/ouro/stack/stack.test.tsx, /\["xs",\s"4px"\],/)
+ * @claim "A gap from the spacing scale" registry/ouro/components/ouro/stack/stack.test.tsx verify:fileLine(registry/ouro/components/ouro/stack/stack.test.tsx, /\["xl",\s"32px"\],/)
+ */
 type LayoutGap = "none" | "xs" | "sm" | "md" | "lg" | "xl";
 
 /** Where the children sit along the main axis; `between` spreads them to both ends. */
@@ -58,12 +63,18 @@ const layoutElements: readonly LayoutElement[] = ["div", "section", "ul", "ol", 
  * class still apply.
  *
  * @internal
+ * @claim "The margin is cleared in a" registry/ouro/components/ouro/stack/stack.test.tsx verify:testExists(registry/ouro/components/ouro/stack/stack.test.tsx::Stack > passes HTML attributes and a ref through, and lets layout classes win)
+ * @claim "The margin is cleared in a" registry/ouro/components/ouro/stack/stack.test.tsx verify:fileLine(registry/ouro/components/ouro/stack/stack.test.tsx, /expect\(getComputedStyle\(el\)\.marginTop\)\.toBe\("16px"\)/)
  */
 const elementReset = "[@layer_ouro-reset]:m-0 p-0 list-none min-w-0 border-0" as const;
 
 const names = (values: readonly string[]) => values.map((value) => `"${value}"`).join(", ");
 
-/** A Tailwind spacing number (gap-4) to the nearest named gap. */
+/**
+ * A Tailwind spacing number (gap-4) to the nearest named gap.
+ *
+ * @claim "A Tailwind spacing number (gap-4) to" registry/ouro/components/ouro/stack/stack.test.tsx verify:fileLine(registry/ouro/components/ouro/stack/stack.test.tsx, /\["gap\snumber",\s\{\sgap:\s4\s\}/)
+ */
 function nearestGap(value: number): LayoutGap {
   if (value <= 0) return "none";
   if (value <= 1) return "xs";
@@ -184,6 +195,7 @@ const justifyWords: Readonly<Record<string, LayoutJustify>> = {
  * The class still applies, last, so these are messages, not errors. Development only.
  *
  * @internal
+ * @claim "Dev messages for the flex classes" registry/ouro/components/ouro/stack/stack.test.tsx verify:testExists(registry/ouro/components/ouro/stack/stack.test.tsx::Stack development messages > names each flex class it finds)
  */
 function checkFlexClassName(component: "Stack" | "Row", className: string | undefined, alignments: readonly string[]): (readonly [string, string])[] {
   const messages: (readonly [string, string])[] = [];

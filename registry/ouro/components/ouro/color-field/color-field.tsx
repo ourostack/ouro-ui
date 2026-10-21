@@ -24,6 +24,7 @@ export interface ColorFieldProps {
   /**
    * What the color is for ("Accent color"), shown above the field and read as the text input's
    * name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`.
+   * @claim "Required: every control needs a name" registry/ouro/components/ouro/color-field/color-field.test-d.ts verify:fileLine(registry/ouro/components/ouro/color-field/color-field.test-d.ts, /\{\svalue:\s"#000000"\s\}>\(\)\.not\.toExtend<ColorFieldProps>/)
    */
   label: string;
   /** Hides the label visually; screen readers still read it. */
@@ -38,11 +39,16 @@ export interface ColorFieldProps {
   /**
    * Marks the field required: it gets `aria-required`, and the label a marker. A color always
    * has a value, so it never blocks a submit, even with the text cleared.
+   * @claim "A color always has a value" registry/ouro/components/ouro/color-field/color-field.test.tsx verify:testExists(registry/ouro/components/ouro/color-field/color-field.test.tsx::ColorField > submits a required field whose text was cleared, with its color)
    */
   required?: boolean | undefined;
   /** Disables the swatch and the text, and fades the field. */
   disabled?: boolean | undefined;
-  /** The form field name the color submits under, always as `#rrggbb`. */
+  /**
+   * The form field name the color submits under, always as `#rrggbb`.
+   *
+   * @claim "The form field name the color" registry/ouro/components/ouro/color-field/color-field.test.tsx verify:testExists(registry/ouro/components/ouro/color-field/color-field.test.tsx::ColorField > submits a required field whose text was cleared, with its color)
+   */
   name?: string | undefined;
   /** The color as hex (`#3366ff`, or short `#36f`), when you control it. Pair it with `onValueChange`. */
   value?: string | undefined;
@@ -69,7 +75,12 @@ export interface ColorFieldProps {
 
   /** Not a prop. ColorField takes and gives `#rrggbb`: `<ColorField defaultValue="#3366ff">`. */
   format?: { 'ColorField takes and gives #rrggbb: <ColorField defaultValue="#3366ff">': never };
-  /** Not supported. ColorField takes `#rrggbb`, with no transparency. */
+  /**
+   * Not supported by ColorField. ColorField takes `#rrggbb`, with no transparency.
+   *
+   * @claim "Not supported by ColorField" registry/ouro/components/ouro/color-field/color-field.test-d.ts verify:fileLine(registry/ouro/components/ouro/color-field/color-field.test-d.ts, /\{\slabel:\s"Color";\salpha:\strue\s\}>\(\)\.not\.toExtend<ColorFieldProps>/)
+   * @claim "ColorField takes `#rrggbb`, with no transparency" registry/ouro/components/ouro/color-field/color-field.test-d.ts verify:fileLine(registry/ouro/components/ouro/color-field/color-field.test-d.ts, /\{\slabel:\s"Color";\salpha:\strue\s\}>\(\)\.not\.toExtend<ColorFieldProps>/)
+   */
   alpha?: { 'ColorField takes #rrggbb, with no transparency': never };
   /** Not a prop. Ouro UI uses `value` or `defaultValue`: `<ColorField defaultValue="#ff0000">`. */
   color?: { 'Use <ColorField defaultValue="#ff0000">': never };
@@ -103,7 +114,7 @@ interface ControlProps {
   textRef: { current: HTMLInputElement | null };
 }
 
-/** Nothing to subscribe to: whether the browser has a color picker never changes. */
+/** The browser keeps or lacks a color picker for the life of the page, so the subscription does nothing. */
 const subscribeNever = () => () => {};
 
 /** The swatch and the text, inside the Field, where they read its server-known description ids. */
@@ -196,6 +207,9 @@ function Control({ color, onPick, onReset, pickerLabel, disabled, inputRef, text
  * @example
  * <ColorField label="Accent color" name="accent" defaultValue="#3366ff" error={errors?.accent} />
  * <ColorField label="Tag color" value={color} onValueChange={setColor} />
+ * @claim "Typing a whole hex (`#36f` or" registry/ouro/components/ouro/color-field/color-field.test.tsx verify:testExists(registry/ouro/components/ouro/color-field/color-field.test.tsx::ColorField > moves the picker as a valid hex is typed, in any of its forms)
+ * @claim "Typing a whole hex (`#36f` or" registry/ouro/components/ouro/color-field/color-field.test.tsx verify:testExists(registry/ouro/components/ouro/color-field/color-field.test.tsx::ColorField > tidies the text when the input loses focus, and puts back the last color when it is not a hex)
+ * @claim "Typing a whole hex (`#36f` or" registry/ouro/components/ouro/color-field/color-field.test.tsx verify:testExists(registry/ouro/components/ouro/color-field/color-field.test.tsx::ColorField > submits the color as #rrggbb even while the text is untidy)
  */
 export function ColorField(props: ColorFieldProps): JSX.Element {
   const {

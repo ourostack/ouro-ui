@@ -2,7 +2,7 @@
 
 # Toaster
 
-Shows the toasts you send with `toast("Saved")` from `@/lib/ouro/toast`: render it once, at the root of your app, inside `OuroProvider` if you use one, or alone. Every Ouro UI install has `toast`. Toasts stack at the bottom of the screen, full width on phones by default; `className` adjusts viewport layout/clearance, not each toast's appearance. Up to three show, and later ones wait their turn, a `destructive` toast ahead of the others. They pause while the pointer is over them or a toast has focus, F6 moves focus to them, newest first, and a swipe down or sideways dismisses one: a toast follows the finger, a quick flick is enough, and one let go short of that springs back. Each toast is read to screen readers once: politely through this region, and a `destructive` toast assertively, so it interrupts.
+Shows the toasts you send with `toast("Saved")` from `@/lib/ouro/toast`: render it once, at the root of your app, inside `OuroProvider` if you use one, or alone. Adding Toaster installs `toast` with it. Toasts stack at the bottom of the screen, full width on phones by default; `className` adjusts viewport layout/clearance, not each toast's appearance. Up to three show, and later ones wait their turn, a `destructive` toast ahead of the others. They pause while the pointer is over them or a toast has focus, F6 moves focus to them, newest first, and a swipe down or sideways dismisses one: a toast follows the finger, a quick flick is enough, and one let go short of that springs back. Each toast is read to screen readers once: politely through this region, and a `destructive` toast assertively, so it interrupts.
 
 ```tsx
 import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
@@ -50,8 +50,8 @@ These are not props. Passing one fails the type check with the fix in the error,
 
 ## `className` is for layout only
 
-Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your classes always win over Ouro UI's: each component merges `className` last with `cn` (tailwind-merge), so a class that conflicts with the component's own replaces it.
+Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`).
 
-Toast appearance comes from each toast's `tone` and shared theme tokens, not viewport classes. In development, an appearance class warns once per Toaster instance with the theme-token fix. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
+Toast appearance comes from a toast's `tone` and shared theme tokens, not viewport classes. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
 
 Alignment classes (`text-center`) warn too: Toaster owns toast-content alignment. Use `<Toaster />` without the alignment class; a parent wrapper cannot align its portaled content.

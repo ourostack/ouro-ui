@@ -33,7 +33,7 @@ Type: `PageHeaderProps`.
 | `breadcrumb` | `ReactNode` |  | A trail above everything else, such as a `Breadcrumb`. |
 | `children` | `ReactNode` |  | More under the description, such as badges or a byline. |
 | `className` | `string` |  | Layout only: margins, width (`mb-8`, `max-w-5xl`). Appearance classes warn in development. |
-| `description` | `ReactNode` |  | A sentence or two under the title. |
+| `description` | `ReactNode` |  | A short sentence under the title. |
 | `divider` | `boolean` |  | A line under the header, between it and the page's content. |
 | `eyebrow` | `ReactNode` |  | A short line above the title that says what kind of page this is or where it sits: "Settings", "Project". |
 | `level` | `1 \| 2` | `1` | The title's heading level. `1` for the page title; `2` when the header heads a section inside a page that already has its `<h1>`. |
@@ -58,7 +58,7 @@ These are not props. Passing one fails the type check with the fix in the error,
 
 ## `className` is for layout only
 
-Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your classes always win over Ouro UI's: each component merges `className` last with `cn` (tailwind-merge), so a class that conflicts with the component's own replaces it.
+Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`).
 
 Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
 

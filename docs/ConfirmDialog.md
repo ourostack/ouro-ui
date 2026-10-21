@@ -35,7 +35,7 @@ Testing accessibility: in WebKit, Base UI's focus guards take `role="button"` wi
 
 ## Props
 
-Props every mode takes. Type: `ConfirmDialogProps`.
+The props the modes share. Type: `ConfirmDialogProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |

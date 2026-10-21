@@ -62,6 +62,11 @@ function returnTarget(card: HTMLElement, cameFrom: HTMLElement | null): HTMLElem
  *
  * @example
  * <InstallPrompt className="mt-6" />
+ * @claim "A quiet offer to install the" registry/ouro/lib/ouro/use-install-prompt.test.tsx verify:testExists(registry/ouro/lib/ouro/use-install-prompt.test.tsx::useInstallPrompt > is installed, and offers nothing, while the app runs standalone)
+ * @claim "A quiet offer to install the" registry/ouro/lib/ouro/use-install-prompt.test.tsx verify:testExists(registry/ouro/lib/ouro/use-install-prompt.test.tsx::useInstallPrompt > puts the offer away on dismiss(), and keeps it away for remindAfterDays)
+ * @claim "A quiet offer to install the" registry/ouro/lib/ouro/use-install-prompt.ts verify:fileLine(registry/ouro/lib/ouro/use-install-prompt.ts, /remindAfterDays\s=\s14/)
+ * @claim "A quiet offer to install the" registry/ouro/components/ouro/install-prompt/install-prompt.test.tsx verify:testExists(registry/ouro/components/ouro/install-prompt/install-prompt.test.tsx::InstallPrompt > shows a card with the offer, Not now and Install once the browser offers)
+ * @claim "The browser's install event is caught" registry/ouro/lib/ouro/use-install-prompt.test.tsx verify:testExists(registry/ouro/lib/ouro/use-install-prompt.test.tsx::useInstallPrompt > is available to a component that mounts after the offer)
  */
 export function InstallPrompt(props: InstallPromptProps): JSX.Element | null {
   const {

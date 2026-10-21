@@ -181,7 +181,7 @@ export function Repaint(): JSX.Element {
             <Button
               variant="outline"
               tone="secondary"
-              onClick={() => void copyText(current.css.tokens, `Copied the ${current.label} tokens`, "Paste it at the end of your global CSS. Just the variables, no fonts.")}
+              onClick={() => void copyText(current.css.tokens, `Copied the ${current.label} tokens`, "Paste it at the end of your global CSS. Just the variables, without the fonts.")}
             >
               Copy tokens only
             </Button>

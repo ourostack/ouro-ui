@@ -15,8 +15,7 @@ import { formErrors } from "@/registry/ouro/lib/ouro/form-answer";
  * Pressing Save or Cancel leaves focus in the field. On a phone, focus leaving the field
  * drops the software keyboard and its inset, which moves the footer down before the click
  * lands, so the tap would miss. A tap moves focus on its compatibility `mousedown`, so
- * cancelling that is enough; cancelling `pointerdown` as well would stop WebKit from
- * sending the click at all.
+ * cancelling that is enough, and `pointerdown` is left alone.
  */
 const keepFieldFocus = {
   onMouseDown: (event: MouseEvent<HTMLButtonElement>) => event.preventDefault(),

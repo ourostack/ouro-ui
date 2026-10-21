@@ -37,7 +37,7 @@ import { Table } from "@/registry/ouro/components/ouro/table/table";
 
 ## Props
 
-Props every mode takes. Type: `TableProps<Row>`.
+The props the modes share. Type: `TableProps<Row>`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -101,7 +101,7 @@ These are not props. Passing one fails the type check with the fix in the error,
 
 ## `className` is for layout only
 
-Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your classes always win over Ouro UI's: each component merges `className` last with `cn` (tailwind-merge), so a class that conflicts with the component's own replaces it.
+Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your classes always win over Ouro UI's: Table merges `className` last with `cn` (tailwind-merge), so a class that conflicts with its own replaces it.[^layout-classes]
 
 Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
 
@@ -121,7 +121,9 @@ One column of a `Table`: its `header`, and where its cells come from. `key` name
 type TableColumn<Row> = TableColumnBase &
   (
     | {
-        /** The field of each row to show, and the column's React key. */
+        /**
+         * The field of each row to show, and the column's React key.
+         */
         key: TableKeysOf<Row, ReactNode>;
         /** Renders the row's cell instead of the field's value. */
         cell?: ((row: Row, index: number) => ReactNode) | undefined;
@@ -163,7 +165,9 @@ interface TableColumnBase {
    * no `cell` renderer is, or else the first column.
    */
   rowHeader?: boolean | undefined;
-  /** Lets long text wrap onto more lines, at least 192px wide, instead of widening the table. */
+  /**
+   * Lets long text wrap onto more lines, at least 192px wide, instead of widening the table.
+   */
   wrap?: boolean | undefined;
   /** Layout only, on the header cell: a width (`w-32`). */
   className?: string | undefined;
@@ -186,3 +190,5 @@ The keys of `Row` whose values are assignable to `Value`.
 ```ts
 type TableKeysOf<Row, Value> = { [K in keyof Row]-?: Row[K] extends Value ? K : never }[keyof Row] & string;
 ```
+
+[^layout-classes]: test:registry/ouro/components/ouro/table/table.test.tsx::Table > passes attributes to the root, the ref to the table, and lets layout classes win verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table > passes attributes to the root, the ref to the table, and lets layout classes win)

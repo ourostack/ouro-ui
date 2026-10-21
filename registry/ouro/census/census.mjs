@@ -5,6 +5,7 @@ export const ACTUAL_FILE = "census-actual.json";
 /**
  * The expected set the census spec writes beside its worker files: the Playwright projects every
  * run must record under `$projects`, and `{ [journeyId]: [stateId, ...] }`.
+ * @claim "The expected set the census spec writes" scripts/kits/census-update.test.mjs verify:testExists(scripts/kits/census-update.test.mjs::census files > validates the expected set and builds it from the census list)
  */
 export const EXPECTED_FILE = "census-expected.json";
 export const ARTIFACT_NAME = "ouro-census-actual";
@@ -49,6 +50,8 @@ const CALENDAR_DATE_PATTERN = new RegExp(`\\b${MONTH} (?:\\d{1,2}, )?\\d{4}\\b`,
  * relative time or a calendar date becomes a placeholder, so a name never depends on the run's date.
  * @param {unknown} text
  * @returns {string}
+ * @claim "Collapses every run of whitespace" scripts/kits/census-update.test.mjs verify:testExists(scripts/kits/census-update.test.mjs::identity > normalizes a name's whitespace and keeps its case and punctuation)
+ * @claim "so a name never depends on the run's date" scripts/kits/census-update.test.mjs verify:testExists(scripts/kits/census-update.test.mjs::identity > replaces relative times and calendar dates, which depend on the run, with placeholders)
  */
 export function normalizeName(text) {
   return String(text ?? "")
@@ -204,6 +207,8 @@ export function formatDiff({ added, removed, recounted, remarked }) {
  *   baselinePath?: string,
  * }} options
  * @returns {string[]}
+ * @claim "Everything wrong with one recorded state" scripts/kits/census-update.test.mjs verify:testExists(scripts/kits/census-update.test.mjs::checkCensusState > fails an enrolled journey on any unmarked control or unknown item, even when the baseline matches)
+ * @claim "Everything wrong with one recorded state" scripts/kits/census-update.test.mjs verify:testExists(scripts/kits/census-update.test.mjs::checkCensusState > fails with the update command and the actual's path when the baseline lacks the project, journey or state)
  */
 export function checkCensusState({ baseline, project, journeyId, stateId, actual, enrolled, knownItems, actualPath, baselinePath = BASELINE_PATH }) {
   const label = `${project} / ${journeyId} / ${stateId}`;
@@ -249,6 +254,7 @@ function isPlainObject(value) {
  * @param {unknown} data
  * @param {string} label
  * @returns {Record<string, Record<string, Record<string, Multiset>>>}
+ * @claim "is a census file" scripts/kits/census-update.test.mjs verify:testExists(scripts/kits/census-update.test.mjs::census files > names every shape problem)
  */
 export function validateCensus(data, label) {
   const problems = [];
@@ -290,6 +296,7 @@ export function validateCensus(data, label) {
 /**
  * The census with every key and multiset in a stable order, metadata ("$" keys) dropped.
  * @param {Record<string, any>} census
+ * @claim "The census with every key and multiset" scripts/kits/census-update.test.mjs verify:testExists(scripts/kits/census-update.test.mjs::census files > sorts keys and multisets and drops metadata)
  */
 export function sortCensus(census) {
   const sorted = {};
@@ -320,6 +327,7 @@ export function stringifyCensus(value) {
  * @param {Record<string, unknown>} census
  * @param {readonly string[]} projects
  * @param {string} label
+ * @claim "Throws unless the census records every expected project" scripts/kits/census-update.test.mjs verify:testExists(scripts/kits/census-update.test.mjs::census files > requires every project)
  */
 export function requireProjects(census, projects, label) {
   const missing = projects.filter((project) => !isPlainObject(census[project]));
@@ -343,6 +351,7 @@ export function requireProjects(census, projects, label) {
  * @param {unknown} data
  * @param {string} label
  * @returns {Expected}
+ * @claim "is the census's expected set" scripts/kits/census-update.test.mjs verify:testExists(scripts/kits/census-update.test.mjs::census files > validates the expected set and builds it from the census list)
  */
 export function validateExpected(data, label) {
   if (!isPlainObject(data) || Object.keys(data).filter((key) => !key.startsWith("$")).length === 0) {
@@ -395,6 +404,7 @@ function sortExpected(expected) {
  * @param {Record<string, any>} census
  * @param {Expected} expected
  * @returns {string[]}
+ * @claim "Everything a census fails to cover" scripts/kits/census-update.test.mjs verify:testExists(scripts/kits/census-update.test.mjs::census files > names every state a census fails to cover, and every state it records that the list lacks)
  */
 export function coverageProblems(census, expected) {
   const projects = expected.$projects;
@@ -444,6 +454,8 @@ export function workerFileName(project, worker) {
  * (a project that recorded nothing, a state not recorded, a state the census list does not have).
  * @param {Array<{ file: string, data: unknown }>} files
  * @param {Expected} expected
+ * @claim "Fails on a file that is not a census" scripts/kits/census-update.test.mjs verify:testExists(scripts/kits/census-update.test.mjs::mergeActuals > fails on a journey/state recorded twice and on a missing project)
+ * @claim "Fails on a file that is not a census" scripts/kits/census-update.test.mjs verify:testExists(scripts/kits/census-update.test.mjs::mergeActuals > fails on a file that is not a census)
  */
 export function mergeActuals(files, expected) {
   const merged = {};
@@ -506,6 +518,7 @@ export function unmarkedCounts(census) {
  * @param {Record<string, any>} previous
  * @param {Record<string, any>} next
  * @returns {Array<{ project: string, journey: string, state: string, from: number, to: number }>}
+ * @claim "Each state is its own ratchet" scripts/kits/census-update.test.mjs verify:testExists(scripts/kits/census-update.test.mjs::the unmarked ratchet > refuses a rise in one state even when another state of the journey falls by as much)
  */
 export function findRegressions(previous, next) {
   const before = unmarkedCounts(previous);
@@ -524,6 +537,7 @@ export function findRegressions(previous, next) {
  * @param {Record<string, any>} previous
  * @param {Record<string, any>} next
  * @returns {Array<{ project: string, journey: string, state: string }>}
+ * @claim "the previous baseline has and the next one does not" scripts/kits/census-update.test.mjs verify:testExists(scripts/kits/census-update.test.mjs::the unmarked ratchet > names a dropped state by its journey or by project/journey/state)
  */
 export function findDrops(previous, next) {
   return stateEntries(previous)
@@ -536,6 +550,7 @@ export function findDrops(previous, next) {
  * every project, `<project>/<journey>/<state>` names one.
  * @param {string} removal
  * @param {{ project: string, journey: string, state: string }} drop
+ * @claim "value names a dropped state" scripts/kits/census-update.test.mjs verify:testExists(scripts/kits/census-update.test.mjs::the unmarked ratchet > refuses a dropped state until --remove names it on every project, and a --remove that names nothing dropped)
  */
 export function removalNames(removal, drop) {
   const parts = removal.split("/");
@@ -604,6 +619,8 @@ export function regressionLabel({ project, journey, state, replaces }) {
  * `$allowedRegressions` and removals, with each state's unmarked count, under `$removed`; the next
  * update keeps neither unless it allows or removes something again.
  * @param {{ previous: Record<string, any>, actual: Record<string, any>, allowRegression?: string, remove?: readonly string[], removeReason?: string }} options
+ * @claim "The new baseline from a merged actual" scripts/kits/census-update.test.mjs verify:testExists(scripts/kits/census-update.test.mjs::the unmarked ratchet > refuses an actual that records a project as {}, misses a project or a listed state, has no expected set, or has a bad shape)
+ * @claim "Allowed regressions are recorded under" scripts/kits/census-update.test.mjs verify:testExists(scripts/kits/census-update.test.mjs::the unmarked ratchet > records an allowed regression with its reason, and drops it on the next update that raises nothing)
  */
 export function updateBaseline({ previous, actual, allowRegression, remove = [], removeReason }) {
   validateCensus(previous, "the current baseline");
@@ -668,6 +685,7 @@ export function updateBaseline({ previous, actual, allowRegression, remove = [],
  * @param {Record<string, any>} previous
  * @param {Record<string, any>} next
  * @returns {string[]}
+ * @claim "One line per project/journey/state" scripts/kits/census-update.test.mjs verify:testExists(scripts/kits/census-update.test.mjs::the unmarked ratchet > summarizes new, dropped and changed states)
  */
 export function summarizeChanges(previous, next) {
   const lines = [];
@@ -702,6 +720,8 @@ export function summarizeChanges(previous, next) {
  * @param {Record<string, any>} b
  * @param {{ a: string, b: string }} labels
  * @returns {string[]}
+ * @claim "whose multiset differs between two runs' censuses" scripts/kits/census-compare.test.mjs verify:testExists(scripts/kits/census-compare.test.mjs::compareCensuses > names every state only one run recorded and every identity that differs)
+ * @claim "Two runs of the same commit must record identical censuses" scripts/kits/census-compare.test.mjs verify:testExists(scripts/kits/census-compare.test.mjs::census-compare.mjs > fails, naming every difference, when two runs differ)
  */
 export function compareCensuses(a, b, labels) {
   const states = (census) => {

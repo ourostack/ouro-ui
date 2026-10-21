@@ -34,11 +34,13 @@ const menuSheetPositionerClass =
 
 /**
  * The menu panel beside its trigger. It opens instantly and closes with a 150ms scale and
- * fade towards the trigger (spec §6, after RedwoodUI); reduced motion keeps only the fade,
+ * fade towards the trigger; reduced motion keeps only the fade,
  * and Base UI's `data-instant` (switching between menubar menus) skips it. A menu with
  * checkbox or radio items indents every label by the indicator's width, so labels line up.
  *
  * @internal
+ * @claim "A menu with checkbox or radio" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu items > indents every item when the menu has checkbox or radio items, so labels line up)
+ * @claim "It opens instantly and closes with" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu motion > opens instantly and closes with a quick scale and fade from its origin)
  */
 const menuPopupClass =
   "box-border min-w-48 max-w-(--available-width) max-h-(--available-height) overflow-y-auto overscroll-contain p-1 " +
@@ -57,6 +59,8 @@ const menuPopupClass =
  * drawer easing token and drops quickly; reduced motion fades it instead.
  *
  * @internal
+ * @claim "The menu as a bottom sheet" registry/ouro/components/ouro/menu/menu.touch.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.touch.test.tsx::Menu on a phone > opens a dropdown as a bottom sheet from a tap, with 44px items and 16px text)
+ * @claim "The menu as a bottom sheet" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu presentation > is a bottom sheet below 640px, with a backdrop, and its submenu is a sheet with a Back item)
  */
 const menuSheetPopupClass =
   "box-border w-full max-h-[min(80dvh,calc(100dvh-4rem))] overflow-y-auto overscroll-contain " +
@@ -83,10 +87,13 @@ const menuBackdropClass =
 /**
  * One item: 44px tall with 16px text on a coarse pointer, 32px with 14px text with a fine
  * pointer. Highlighted by keyboard or pointer, dimmed when disabled; `tone="destructive"`
- * mixes the destructive color 20% toward the foreground so it keeps 4.5:1 on the highlight.
+ * mixes the destructive color 20% toward the foreground, for contrast on the highlight.
  * Links lose their underline and color.
  *
  * @internal
+ * @claim "One item: 44px tall with 16px" registry/ouro/components/ouro/menu/menu.touch.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.touch.test.tsx::Menu on a phone > opens a dropdown as a bottom sheet from a tap, with 44px items and 16px text)
+ * @claim "Highlighted by keyboard or pointer, dimmed" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu items > paints tone destructive in the destructive color)
+ * @claim "Highlighted by keyboard or pointer, dimmed" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu items > paints tone destructive in the destructive color)
  */
 const menuItemClass =
   "relative m-0 box-border flex w-full min-h-11 pointer-fine:min-h-8 cursor-default items-center gap-3 " +
@@ -136,6 +143,8 @@ const menuBarClass = "box-border flex items-center gap-1";
  * highlighted while its menu is open.
  *
  * @internal
+ * @claim "A menubar's menu button: 44px tall" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::MenuBar > gives its triggers a 32px row with a fine pointer)
+ * @claim "A menubar's menu button: 44px tall" registry/ouro/components/ouro/menu/menu.touch.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.touch.test.tsx::Menu on a phone > gives menubar buttons a 44px height)
  */
 const menuBarTriggerClass =
   "relative m-0 box-border inline-flex h-11 pointer-fine:h-8 items-center rounded-md border-0 bg-transparent px-3 " +

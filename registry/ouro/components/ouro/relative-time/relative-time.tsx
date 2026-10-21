@@ -13,6 +13,8 @@ export interface RelativeTimeOwnProps {
    * The instant: a `Date`, an ISO string or a timestamp in milliseconds. A calendar date with no
    * time (`"2026-06-01"`, or `"2026-06"` for a month) counts whole days (or months) in the
    * reader's own calendar and is never moved into a time zone.
+   * @claim "A calendar date with no time" registry/ouro/components/ouro/relative-time/relative-time.test.tsx verify:testExists(registry/ouro/components/ouro/relative-time/relative-time.test.tsx::RelativeTime > counts a calendar date in whole days of the reader's calendar, titled with that day)
+   * @claim "A calendar date with no time" registry/ouro/components/ouro/relative-time/relative-time.test.tsx verify:testExists(registry/ouro/components/ouro/relative-time/relative-time.test.tsx::RelativeTime > writes a calendar date as that day on the server)
    */
   value: Date | string | number;
   /** The language and region to write it in. @default the reader's (en-US in the server's text, until the browser takes over) */
@@ -70,6 +72,8 @@ const serverNow = () => 0;
  *
  * @example
  * <RelativeTime value={comment.createdAt} />
+ * @claim "A calendar date with no time" registry/ouro/components/ouro/relative-time/relative-time.test.tsx verify:testExists(registry/ouro/components/ouro/relative-time/relative-time.test.tsx::RelativeTime > counts a calendar date in whole days of the reader's calendar, titled with that day)
+ * @claim "A calendar date with no time" registry/ouro/components/ouro/relative-time/relative-time.test.tsx verify:testExists(registry/ouro/components/ouro/relative-time/relative-time.test.tsx::RelativeTime > writes a calendar date as that day on the server)
  */
 export function RelativeTime(props: RelativeTimeProps): JSX.Element {
   const {

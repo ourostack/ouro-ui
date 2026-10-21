@@ -67,9 +67,9 @@ const cdpSessions = new WeakMap<object, CDPSession>();
  * A mouse gesture with exact timing, for velocity tests (Chromium only). It
  * dispatches through CDP `Input.dispatchMouseEvent` with explicit timestamps,
  * so `event.timeStamp` in the page spans exactly `durationMs`, however busy the
- * machine is. `drag` instead spends a round trip and a wait per step, so a "40ms"
- * flick takes about 80ms unloaded and over 150ms on a loaded CI runner, which a
- * velocity check then reads as a slow drag. Use `drag` for slow drags.
+ * machine is. `drag` instead spends a round trip and a wait per step, so a quick
+ * flick takes longer in the page than asked, and longer still on a loaded CI runner,
+ * which a velocity check then reads as a slow drag. Use `drag` for slow drags.
  */
 export const flick: BrowserCommand<[FlickOptions]> = async (ctx, { from, to, steps, durationMs }) => {
   const { page } = ctx;
@@ -104,6 +104,8 @@ const TOUCH_HANDLED_TIMEOUT_MS = 5000;
  * event. The listeners capture on `window` and, from touchstart on, also sit on the touch's
  * target, because a touch's later events go to that target even after it has left the
  * document, where they no longer reach `window`.
+ * @claim "Runs in every frame of the" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::on a page zoomed and panned by touch, the kit waits for the frame where the touch lands)
+ * @claim "The listeners capture on `window` and" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::on a page zoomed and panned by touch, the kit waits for the frame where the touch lands)
  */
 const TOUCH_WATCH = `(action, expected) => {
   const view = window;
@@ -236,6 +238,7 @@ function within<T>(promise: Promise<T>, ms: number, message: string): Promise<T>
  * Calls `TOUCH_WATCH` in one frame. A failed call is kept, with its reason, and so is a call
  * still unanswered after `ms`: Playwright waits for a frame's document before it evaluates
  * there, and a frame whose document never arrives never answers.
+ * @claim "A failed call is kept, with" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::a touch into an iframe that never loads does not hang)
  */
 function callWatch<T>(frame: Frame, action: TouchWatchAction, point: TouchPoint, ms: number): Promise<FrameAnswer<T>> {
   const call = `(${TOUCH_WATCH})(${JSON.stringify(action)}, ${JSON.stringify({ ...point, type: point.type.toLowerCase() })})`;
@@ -246,12 +249,21 @@ function callWatch<T>(frame: Frame, action: TouchWatchAction, point: TouchPoint,
   );
 }
 
-/** Calls `TOUCH_WATCH` in each of `frames`, by default every frame of the page Playwright lists. */
+/**
+ * Calls `TOUCH_WATCH` in each of `frames`, by default every frame of the page Playwright lists.
+ *
+ * @claim "Calls `TOUCH_WATCH` in each of `frames`" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::on a page zoomed and panned by touch, the kit waits for the frame where the touch lands)
+ */
 function watchTouch<T>(page: Page, action: TouchWatchAction, point: TouchPoint, ms: number, frames: Frame[] = page.frames()): Promise<FrameAnswer<T>>[] {
   return frames.map((frame) => callWatch<T>(frame, action, point, ms));
 }
 
-/** How long a "settle" or "inspect" call may take, so tidying up never holds up a command. */
+/**
+ * How long a "settle" or "inspect" call may take, so tidying up never holds up a command.
+ *
+ * @claim "call may take, so tidying up never holds" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::a touch into an iframe that never loads does not hang)
+ * @claim "call may take, so tidying up never holds" registry/ouro/lib/ouro/testing/commands.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.ts, /const\sTOUCH_TIDY_MS\s=\s1000;/)
+ */
 const TOUCH_TIDY_MS = 1000;
 
 /**
@@ -261,8 +273,11 @@ const TOUCH_TIDY_MS = 1000;
  * goes to, even one Playwright does not list yet. It takes a point in the top-level document,
  * and a touch a point in the visual viewport, so where that viewport is in the page is added: the
  * top-level page's scroll, and the pan of a pinch-zoomed page. "unknown" means
- * the kit could not place the point in a frame: Chromium found no node there, as for a point
- * outside the viewport, or the node there has no window.
+ * the kit could not place the point in a frame: Chromium found nothing there, as for a point
+ * outside the viewport, or the node there lacks a window.
+ * @claim "`DOM.getNodeForLocation` hit-tests the way input does" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::the kit waits for the frame under a pointer-events: none overlay, where the touch lands)
+ * @claim "`DOM.getNodeForLocation` hit-tests the way input does" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::the kit does not wait for a pointer-events: none iframe, which the touch passes through)
+ * @claim "`DOM.getNodeForLocation` hit-tests the way input does" https://chromedevtools.github.io/devtools-protocol/tot/DOM/#method-getNodeForLocation verify:urlOk(https://chromedevtools.github.io/devtools-protocol/tot/DOM/#method-getNodeForLocation)
  */
 async function frameAtPoint(session: CDPSession, x: number, y: number): Promise<{ watched: boolean | "unknown"; where: string }> {
   try {
@@ -318,6 +333,14 @@ type TouchTarget = { point: { x: number; y: number } } | { frame: Frame };
  * Playwright lists a frame or a document, or a frame's watch starts, until that frame is
  * watched. It throws after 5 seconds, naming the frame. Later events of a gesture go to the
  * frame its touchstart went to, so for them it waits for that frame's watch only.
+ * @claim "So for a touchstart this asks" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::a touchstart into a frame the kit cannot watch is refused after the time limit, and the next touch works)
+ * @claim "Playwright learns of a new frame" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::a touch into an iframe added just before it is handled)
+ * @claim "Starts the watch for `expected` in" registry/ouro/lib/ouro/testing/commands.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.ts, /const\sTOUCH_HANDLED_TIMEOUT_MS\s=\s5000;/)
+ * @claim "Playwright learns of a new frame" registry/ouro/lib/ouro/testing/commands.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.ts, /const\sTOUCH_HANDLED_TIMEOUT_MS\s=\s5000;/)
+ * @claim "It never waits for the other" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::touches reach a cross-origin iframe, and a cross-origin iframe does not hold up touches elsewhere)
+ * @claim "It never waits for the other" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::a touch into an iframe that never loads does not hang)
+ * @claim "It throws after 5 seconds, naming" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::a touchstart into a frame the kit cannot watch is refused after the time limit, and the next touch works)
+ * @claim "It throws after 5 seconds, naming" registry/ouro/lib/ouro/testing/commands.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.ts, /const\sTOUCH_HANDLED_TIMEOUT_MS\s=\s5000;/)
  */
 async function watchTarget(
   command: string,
@@ -407,6 +430,12 @@ async function watchTarget(
  *
  * Each wait is bounded: up to 5 seconds for the frame's watch (`watchTarget`), then up to 5
  * for the page to handle the event, so a command throws within about 10 seconds at worst.
+ * @claim "The page then handles a touchend" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::touchStep resolves once the page has handled its event, also a move during a scroll)
+ * @claim "One event is never on its" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::touchStep resolves once the page has handled its event, also a move during a scroll)
+ * @claim "Each wait is bounded: up to" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::touchStep resolves once the page has handled its event, also a move during a scroll)
+ * @claim "One event is never on its" https://chromium.googlesource.com/chromium/src/+/main/third_party/blink/renderer/platform/widget/input/main_thread_event_queue.cc verify:urlOk(https://chromium.googlesource.com/chromium/src/+/main/third_party/blink/renderer/platform/widget/input/main_thread_event_queue.cc)
+ * @claim "The page then handles a touchend" registry/ouro/lib/ouro/testing/commands.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.ts, /const\sTOUCH_HANDLED_TIMEOUT_MS\s=\s5000;/)
+ * @claim "Each wait is bounded: up to" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::a missing touch event remains bounded while the page clock is frozen)
  */
 async function sendTouch(
   command: string,
@@ -510,6 +539,12 @@ export interface TouchDragOptions {
  * handle the touchend, and throws naming the events the page did handle. So it can take up to
  * about 10 seconds to throw, and two failing touches can outlast Vitest's default 15 second
  * test timeout in browser mode, which then reports the timeout instead of the kit's message.
+ * @claim "Before the touch it waits until" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::on a page zoomed and panned by touch, the kit waits for the frame where the touch lands)
+ * @claim "So it can take up to" registry/ouro/lib/ouro/testing/commands.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.ts, /const\sTOUCH_HANDLED_TIMEOUT_MS\s=\s5000;/)
+ * @claim "Before the touch it waits until" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::a touchstart into a frame the kit cannot watch is refused after the time limit, and the next touch works)
+ * @claim "So it can take up to" https://vitest.dev/config/testtimeout verify:urlOk(https://vitest.dev/config/testtimeout)
+ * @claim "Then it waits up to 5" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::a missing touch event remains bounded while the page clock is frozen)
+ * @claim "Then it waits up to 5" registry/ouro/lib/ouro/testing/commands.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.ts, /const\sTOUCH_HANDLED_TIMEOUT_MS\s=\s5000;/)
  */
 export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from, to, steps, durationMs }) => {
   const { page } = ctx;
@@ -579,7 +614,11 @@ export const tap: BrowserCommand<[selector: string]> = async (ctx, selector) => 
   await ctx.iframe.locator(selector).tap();
 };
 
-/** The top-level page's zoom (`visualViewport.scale`): 1 unless something zoomed the page. */
+/**
+ * The top-level page's zoom (`visualViewport.scale`): 1 unless something zoomed the page.
+ *
+ * @claim "The top-level page's zoom (`visualViewport.scale`): 1" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::rotate names the test that had the page zoomed)
+ */
 export const pageZoom: BrowserCommand<[]> = async (ctx) =>
   // Runs in the page; written without DOM types, which an app's config for this file may lack.
   ctx.page.evaluate(() => (globalThis as { visualViewport?: { scale: number } | null }).visualViewport?.scale ?? 1);
@@ -600,6 +639,8 @@ async function chromiumSession(ctx: Parameters<BrowserCommand<[]>>[0]): Promise<
  * Sets the top-level page's zoom back to 1 (Chromium, through CDP; elsewhere it does nothing).
  * In a phone context (`isMobile`), Chromium can zoom the page when the viewport rotates, and
  * rotating back does not undo it; `rotate` in testing/rotate.ts calls this after each resize.
+ * @claim "In a phone context (`isMobile`), Chromium" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::rotate names the test that had the page zoomed)
+ * @claim "Sets the top-level page's zoom back" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.touch.test.ts, /await\scommands\.resetPageZoom\(\);/)
  */
 export const resetPageZoom: BrowserCommand<[]> = async (ctx) => {
   await (await chromiumSession(ctx))?.send("Emulation.setPageScaleFactor", { pageScaleFactor: 1 });
@@ -617,6 +658,8 @@ export const setPageZoom: BrowserCommand<[scale: number]> = async (ctx, scale) =
  * Chromium drops it, for the rest of the page's life, after a screenshot that reaches beyond
  * the viewport, such as the one Vitest takes when a test fails on a tall page: the page then
  * reports a fine pointer that can hover. The `ouro-touch` project calls this before every test.
+ * @claim "The `ouro-touch` project calls this before" registry/ouro/lib/ouro/testing/touch-setup.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/touch-setup.touch.test.ts::restoreTouch turns touch emulation back on after a screenshot taller than the phone)
+ * @claim "The `ouro-touch` project calls this before" registry/ouro/lib/ouro/testing/touch-setup.ts verify:fileLine(registry/ouro/lib/ouro/testing/touch-setup.ts, /beforeEach\(\(\)\s=>\scommands\.restoreTouch\(\)\)/)
  */
 export const restoreTouch: BrowserCommand<[]> = async (ctx) => {
   await (await chromiumSession(ctx))?.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 });
@@ -632,7 +675,12 @@ export type TouchStepOptions =
     }
   | { /** Lifts the finger. */ type: "touchEnd"; x?: number; y?: number };
 
-/** Where the finger `touchStep` left down is, for each page that has one, and the frame that handled its touchstart. */
+/**
+ * Where the finger `touchStep` left down is, for each page that has one, and the frame that handled its touchstart.
+ *
+ * @claim "Where the finger `touchStep` left down" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::touchStep resolves once the page has handled its event, also a move during a scroll)
+ * @claim "Where the finger `touchStep` left down" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::lifts a finger a test left down before the next gesture starts)
+ */
 const fingersDown = new WeakMap<object, { x: number; y: number; frame: Frame | undefined }>();
 
 /** Lifts a finger `touchStep` left down, so the next gesture starts clean. */
@@ -663,6 +711,13 @@ async function releaseFinger(command: string, page: Page, session: CDPSession) {
  * if it never does; any step then waits up to 5 seconds for the page to handle the event. So a
  * step can take up to about 10 seconds to throw (see `touchDrag`). Once the gesture scrolls the page, Chromium
  * hands the page at most one touchmove every 200ms, so a `touchMove` step can take that long.
+ * @claim "Each step resolves once the page" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::touchStep resolves once the page has handled its event, also a move during a scroll)
+ * @claim "Each step resolves once the page" registry/ouro/lib/ouro/testing/commands.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.ts, /const\sTOUCH_HANDLED_TIMEOUT_MS\s=\s5000;/)
+ * @claim "Each step resolves once the page" https://chromium.googlesource.com/chromium/src/+/main/third_party/blink/renderer/platform/widget/input/main_thread_event_queue.cc verify:urlOk(https://chromium.googlesource.com/chromium/src/+/main/third_party/blink/renderer/platform/widget/input/main_thread_event_queue.cc)
+ * @claim "A `touchStart` first waits until the" https://chromium.googlesource.com/chromium/src/+/main/third_party/blink/renderer/platform/widget/input/main_thread_event_queue.cc verify:urlOk(https://chromium.googlesource.com/chromium/src/+/main/third_party/blink/renderer/platform/widget/input/main_thread_event_queue.cc)
+ * @claim "Once the gesture scrolls the page" https://chromium.googlesource.com/chromium/src/+/main/third_party/blink/renderer/platform/widget/input/main_thread_event_queue.cc verify:urlOk(https://chromium.googlesource.com/chromium/src/+/main/third_party/blink/renderer/platform/widget/input/main_thread_event_queue.cc)
+ * @claim "So a step can take up" registry/ouro/lib/ouro/testing/commands.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.ts, /const\sTOUCH_HANDLED_TIMEOUT_MS\s=\s5000;/)
+ * @claim "So a step can take up" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::a lift into a frame that has gone is sent all the same, and throws naming the frame)
  */
 export const touchStep: BrowserCommand<[TouchStepOptions]> = async (ctx, step) => {
   const session = await chromiumSession(ctx);

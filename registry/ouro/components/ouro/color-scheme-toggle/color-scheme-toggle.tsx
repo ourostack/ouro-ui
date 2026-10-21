@@ -9,7 +9,11 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Menu } from "@/registry/ouro/components/ouro/menu/menu";
 import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-control/segmented-control";
 
-/** The words for each scheme, for apps in other languages. */
+/**
+ * The words for each scheme, for apps in other languages.
+ *
+ * @claim "The words for each scheme, for" registry/ouro/components/ouro/color-scheme-toggle/color-scheme-toggle.test.tsx verify:fileLine(registry/ouro/components/ouro/color-scheme-toggle/color-scheme-toggle.test.tsx, /labels=\{\{\slight:\s"Hell",\sdark:\s"Dunkel"/)
+ */
 export interface ColorSchemeLabels {
   /** @default "Light" */
   light?: string | undefined;
@@ -26,11 +30,16 @@ export interface ColorSchemeToggleProps {
    * a menu of Light, Dark and System, for a header. `segmented` shows the three side by
    * side, for a settings page.
    * @default "menu"
+   * @claim "`segmented` shows the three side by" registry/ouro/components/ouro/color-scheme-toggle/color-scheme-toggle.test.tsx verify:testExists(registry/ouro/components/ouro/color-scheme-toggle/color-scheme-toggle.test.tsx::ColorSchemeToggle > shows the three side by side as a segmented control)
    */
   variant?: "menu" | "segmented" | (string & { 'Use "menu" (an icon button for a header) or "segmented" (for settings)': never }) | undefined;
   /** Names the control for screen readers: the button's name, or the segmented control's label. @default "Color scheme" */
   label?: string | undefined;
-  /** The words for each scheme. */
+  /**
+   * The words for each scheme.
+   *
+   * @claim "The words for each scheme" registry/ouro/components/ouro/color-scheme-toggle/color-scheme-toggle.test.tsx verify:fileLine(registry/ouro/components/ouro/color-scheme-toggle/color-scheme-toggle.test.tsx, /labels=\{\{\slight:\s"Hell",\sdark:\s"Dunkel"/)
+   */
   labels?: ColorSchemeLabels | undefined;
   /** Layout only: margins, grid placement (`ms-auto`). Appearance classes warn in development. */
   className?: string | undefined;
@@ -87,6 +96,9 @@ function SchemeIcon({ dark }: { dark: boolean }): JSX.Element {
  * @example
  * <Navbar label="Main" items={items} actions={<ColorSchemeToggle />} />
  * <ColorSchemeToggle variant="segmented" label="Appearance" />
+ * @claim "It works on its own, but" registry/ouro/components/ouro/color-scheme-toggle/color-scheme-toggle.test.tsx verify:testExists(registry/ouro/components/ouro/color-scheme-toggle/color-scheme-toggle.test.tsx::ColorSchemeToggle > applies and keeps the choice, and shows the moon on a dark page)
+ * @claim "It works on its own, but" registry/ouro/components/ouro/color-scheme-toggle/color-scheme-toggle.test.tsx verify:testExists(registry/ouro/components/ouro/color-scheme-toggle/color-scheme-toggle.test.tsx::ColorSchemeToggle > follows the system while the choice is System)
+ * @claim "` shows the three side by side, for" registry/ouro/components/ouro/color-scheme-toggle/color-scheme-toggle.test.tsx verify:testExists(registry/ouro/components/ouro/color-scheme-toggle/color-scheme-toggle.test.tsx::ColorSchemeToggle > shows the three side by side as a segmented control)
  */
 export function ColorSchemeToggle(props: ColorSchemeToggleProps): JSX.Element {
   const {

@@ -41,15 +41,25 @@ export interface ChoiceCardProps {
   onValueChange?: ((value: string) => void) | undefined;
   /** The form field name the chosen value submits under. */
   name?: string | undefined;
-  /** What is wrong, shown under the cards in the destructive tone and read with each choice. */
+  /**
+   * What is wrong, shown under the cards in the destructive tone and read with each choice.
+   *
+   * @claim "What is wrong, shown under the" registry/ouro/components/ouro/choice-card/choice-card.test.tsx verify:testExists(registry/ouro/components/ouro/choice-card/choice-card.test.tsx::ChoiceCard > shows an error under the cards, read with each choice, and marks them invalid)
+   */
   error?: ReadonlyErrorMessages | undefined;
   /** A choice must be made before the form submits; the legend shows the required mark. */
   required?: boolean | undefined;
-  /** Disables every card. */
+  /**
+   * Disables every card.
+   *
+   * @claim "Disables every card" registry/ouro/components/ouro/choice-card/choice-card.test.tsx verify:testExists(registry/ouro/components/ouro/choice-card/choice-card.test.tsx::ChoiceCard > disables every card, or one)
+   */
   disabled?: boolean | undefined;
   /**
    * How many cards a row holds on a wide screen; on a phone each row holds one, or two with
    * `columns` of 3 or more. @default 3
+   * @claim "How many cards a row holds" registry/ouro/components/ouro/choice-card/choice-card.touch.test.tsx verify:testExists(registry/ouro/components/ouro/choice-card/choice-card.touch.test.tsx::gives each card and each photo button a 44px target, and stacks the cards on a phone)
+   * @claim "How many cards a row holds" registry/ouro/components/ouro/choice-card/choice-card.test.tsx verify:fileLine(registry/ouro/components/ouro/choice-card/choice-card.test.tsx, /puts\s%s\scards\sin\sa\srow\son\sa\swide\sscreen\sand\sfewer\son\sa\sphone/)
    */
   columns?: 2 | 3 | 4 | (number & { 'Use 2, 3 or 4': never }) | undefined;
   /** Layout only: margins, width (`mt-6`). Appearance classes warn in development. */
@@ -98,6 +108,10 @@ const cardClass =
  *   name="cover"
  *   items={photos.map((photo) => ({ value: photo.id, label: photo.title, media: <img src={photo.url} alt="" /> }))}
  * />
+ * @claim "A set of choices shown as" registry/ouro/components/ouro/choice-card/choice-card.test.tsx verify:testExists(registry/ouro/components/ouro/choice-card/choice-card.test.tsx::ChoiceCard > is a group named by its legend, of radios named by their labels and described by their descriptions)
+ * @claim "The cards are a native radio" registry/ouro/components/ouro/choice-card/choice-card.test.tsx verify:testExists(registry/ouro/components/ouro/choice-card/choice-card.test.tsx::ChoiceCard > moves between cards with the arrow keys, as a radio group does)
+ * @claim "The cards are a native radio" registry/ouro/components/ouro/choice-card/choice-card.test.tsx verify:testExists(registry/ouro/components/ouro/choice-card/choice-card.test.tsx::ChoiceCard > is a group named by its legend, of radios named by their labels and described by their descriptions)
+ * @claim "The cards are a native radio" registry/ouro/components/ouro/choice-card/choice-card.test.tsx verify:testExists(registry/ouro/components/ouro/choice-card/choice-card.test.tsx::ChoiceCard > submits the chosen value under its name)
  */
 export function ChoiceCard(props: ChoiceCardProps): JSX.Element {
   const {

@@ -31,6 +31,7 @@ export interface TimerTrayOwnProps {
   /**
    * No chime and no vibration when a timer reaches zero while only the tray shows it. A `Timer`
    * on the page that shows the same timer alerts instead of the tray, by its own `silent`.
+   * @claim "No chime and no vibration when" registry/ouro/components/ouro/timer/timer-tray.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer-tray.test.tsx::TimerTray > alerts on its own when the timer's screen is gone, unless silent)
    */
   silent?: boolean | undefined;
   /** The words it shows and says, for apps in other languages. */
@@ -48,7 +49,12 @@ export interface TimerTrayOwnProps {
 
   /** Not a prop. The tray lists `timers`: `<TimerTray timers={[{ timerId, label, duration }]} />`. */
   items?: { 'Use timers={[{ timerId, label, duration }]}': never };
-  /** Not a prop. The tray shows only timers that are running, paused or finished; pass them all. */
+  /**
+   * Not a prop. The tray shows only timers that are running, paused or finished; pass them all.
+   *
+   * @claim "The tray shows only timers that" registry/ouro/components/ouro/timer/timer-tray.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer-tray.test.tsx::TimerTray > is a region listing the running, paused and finished timers with their time, and hides idle ones)
+   * @claim "The tray shows only timers that" registry/ouro/components/ouro/timer/timer-tray.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer-tray.test.tsx::TimerTray > hides itself while no timer is running)
+   */
   hidden?: { 'The tray hides itself while no timer is running': never };
 }
 
@@ -120,6 +126,10 @@ function TrayRow({ item, words, silent, finalFocus }: TrayRowProps): JSX.Element
  *
  * @example
  * <TimerTray timers={[{ timerId: "pasta", label: "Pasta", duration: 600, href: "/steps/2" }]} />
+ * @claim "The timers that are running, paused" registry/ouro/components/ouro/timer/timer-tray.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer-tray.test.tsx::TimerTray > is a region listing the running, paused and finished timers with their time, and hides idle ones)
+ * @claim "The timers that are running, paused" registry/ouro/components/ouro/timer/timer-tray.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer-tray.test.tsx::TimerTray > hides itself while no timer is running)
+ * @claim "When a timer reaches zero while" registry/ouro/components/ouro/timer/timer-tray.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer-tray.test.tsx::TimerTray > follows the Timer on the page, and alerts once at zero even when both show it)
+ * @claim "When a timer reaches zero while" registry/ouro/components/ouro/timer/timer-tray.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer-tray.test.tsx::TimerTray > lets the Timer's silent decide the alert for a timer that ended just before a reload, with both mounted in one commit)
  */
 export function TimerTray(props: TimerTrayProps): JSX.Element {
   const {

@@ -31,8 +31,8 @@ Type: `HoverCardProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `align` | `"start" \| "center" \| "end"` | `"center"` | How the card lines up with the link along that side. |
-| `children` (required) | `ReactNode` |  | The preview: a few lines about where the link goes. Nothing the user needs, and no controls. |
-| `className` | `string` |  | Layout only, applied to the card: width (`w-96`, 18rem by default) and padding. Your classes win over Ouro UI's. Appearance classes warn in development. |
+| `children` (required) | `ReactNode` |  | The preview: a few lines about where the link goes. Only what the user can do without; put controls elsewhere. |
+| `className` | `string` |  | Layout only, applied to the card: width (18rem, `w-72`, by default) and padding. Your classes win over Ouro UI's. Appearance classes warn in development. |
 | `side` | `"top" \| "bottom" \| "left" \| "right"` | `"bottom"` | The side of the link the card sits on; it flips when there is no room. |
 | `trigger` (required) | `ReactElement` |  | The link the card previews: `trigger={<Link href="/cooks/ari">Ari</Link>}`. It works on its own: touch users, and devices that cannot hover, get only the link. |
 
@@ -47,8 +47,10 @@ These are not props. Passing one fails the type check with the fix in the error,
 
 ## `className` is for layout only
 
-Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your classes always win over Ouro UI's: each component merges `className` last with `cn` (tailwind-merge), so a class that conflicts with the component's own replaces it.
+Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your classes always win over Ouro UI's: HoverCard merges `className` last with `cn` (tailwind-merge), so a class that conflicts with its own replaces it.[^layout-classes]
 
 Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
 
 Alignment classes (`text-center`) warn too: use the `align` prop.
+
+[^layout-classes]: test:registry/ouro/components/ouro/hover-card/hover-card.test.tsx::HoverCard > sits on the side and alignment it is given, and className sets layout verify:testExists(registry/ouro/components/ouro/hover-card/hover-card.test.tsx::HoverCard > sits on the side and alignment it is given, and className sets layout)

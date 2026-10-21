@@ -31,6 +31,9 @@ export interface RowOwnProps {
   /**
    * Space between the children: `xs` 4px, `sm` 8px, `md` 16px, `lg` 24px, `xl` 32px.
    * @default "sm"
+   * @claim "Space between the children: `xs` 4px" registry/ouro/components/ouro/stack/stack.test.tsx verify:fileLine(registry/ouro/components/ouro/stack/stack.test.tsx, /\["xs",\s"4px"\],/)
+   * @claim "Space between the children: `xs` 4px" registry/ouro/components/ouro/stack/stack.test.tsx verify:fileLine(registry/ouro/components/ouro/stack/stack.test.tsx, /\["xl",\s"32px"\],/)
+   * @claim "Space between the children: `xs` 4px" registry/ouro/components/ouro/stack/row.test.tsx verify:testExists(registry/ouro/components/ouro/stack/row.test.tsx::Row > renders a horizontal flex <div> with data-ouro, an 8px gap and centered children by default)
    */
   gap?: LayoutGap | (string & { 'Use "none", "xs", "sm", "md", "lg" or "xl"': never }) | (number & { 'Use a name: gap="sm" is 8px': never }) | undefined;
   /**
@@ -49,6 +52,8 @@ export interface RowOwnProps {
   /**
    * Below this breakpoint the children stack top to bottom at full width, as a settings row
    * whose actions drop under its text on a phone. `sm` is 640px, `md` 768px.
+   * @claim "`sm` is 640px, `md` 768px" registry/ouro/components/ouro/stack/row.test.tsx verify:testExists(registry/ouro/components/ouro/stack/row.test.tsx::Row > stacks below md with stackBelow=md)
+   * @claim "`sm` is 640px, `md` 768px" https://tailwindcss.com/docs/responsive-design verify:urlOk(https://tailwindcss.com/docs/responsive-design)
    */
   stackBelow?: RowBreakpoint | (string & { 'Use "sm" (640px) or "md" (768px)': never }) | undefined;
   /**
@@ -61,6 +66,7 @@ export interface RowOwnProps {
    * development: a Row has no look; use `Card` for a surface. So do the flex classes the
    * props own: use `gap`, `align`, `justify`, `wrap` and `stackBelow`, not `gap-*`,
    * `items-*`, `justify-*`, `flex-wrap` or `max-sm:flex-col`.
+   * @claim "Appearance classes warn in development: a" registry/ouro/components/ouro/stack/row.test.tsx verify:testExists(registry/ouro/components/ouro/stack/row.test.tsx::Row development messages > checks the className with Row's own fixes)
    */
   className?: string | undefined;
   /** The children, laid out side by side in writing direction. */
@@ -96,8 +102,8 @@ const stackBelowClasses = {
 } as const;
 
 /**
- * Lays its children out side by side with an even gap, centered up and down. It has no
- * look of its own: it replaces the `flex items-center gap-2` an agent would otherwise write
+ * Lays its children out side by side with an even gap, centered up and down. It is
+ * layout only: it replaces the `flex items-center gap-2` an agent would otherwise write
  * by hand. `stackBelow="sm"` stacks the children on a phone.
  *
  * Use `Stack` instead for a vertical layout, and `Item` for a row with media, a title, a
