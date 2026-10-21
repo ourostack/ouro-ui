@@ -21,7 +21,7 @@ export function shardArgument(argv: readonly string[]): string | null {
 
 const posix = (path: string) => path.split(sep).join("/");
 
-/** A test file's key in scripts/shard-timings.json: `<project> <path>`. */
+/** A test file's key in scripts/shard-timings.json: `<project> <path>`, the project as Vitest names it (`ouro-chromium (chromium)`). */
 export const timingKey = (project: string, root: string, moduleId: string) => `${project} ${posix(relative(root, moduleId))}`;
 
 /** Picks each shard's files by measured time, and gives every shard the sliced suites. */

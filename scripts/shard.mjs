@@ -28,8 +28,8 @@ export const slicedSuites = [
   "test/theme-tokens.test.tsx",
 ];
 
-/** Whether a `<project> <path>` timing key is a sliced suite's. */
-const isSliced = (key) => slicedSuites.includes(key.slice(key.indexOf(" ") + 1));
+/** Whether a `<project> <path>` timing key (the project as Vitest names it, `ouro-chromium (chromium)`) is a sliced suite's. */
+const isSliced = (key) => slicedSuites.some((suite) => key.endsWith(` ${suite}`));
 
 /** `<index>/<count>`, as Vitest's and Playwright's --shard take it. */
 export function parseShard(text) {
@@ -106,8 +106,8 @@ function main([command, ...args]) {
     const [kind, count] = args;
     const timings = readTimings(kind);
     const keys = kind === "scripts" ? scriptTestFiles() : Object.keys(timings).filter((key) => !isSliced(key));
-    // Every browser shard also runs its slice of each sliced suite.
-    const sliced = kind === "vitest" ? Object.keys(timings).filter(isSliced).reduce((sum, key) => sum + timings[key], 0) / Number(count) : 0;
+    // Every browser shard also runs its slice of each sliced suite; a shard's report holds its slice's time.
+    const sliced = kind === "vitest" ? Object.keys(timings).filter(isSliced).reduce((sum, key) => sum + timings[key], 0) : 0;
     for (const [position, shard] of balance(keys, Number(count), timings).entries()) console.log(`${position + 1}/${count}: ${((shard.weight + sliced) / 1000).toFixed(0)} s of test files, ${shard.keys.length} files${sliced ? " and a slice of each sliced suite" : ""}`);
     return 0;
   }

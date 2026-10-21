@@ -282,15 +282,15 @@ describe("guides and exports without an item", () => {
 });
 
 describe("install addresses", () => {
-  it("every page pins each ourostack/ouro-ui address to a release, or says it is for contributors", async () => {
-    const problems: string[] = [];
-    let seen = 0;
-    for (const route of routes) {
-      await renderPage(route.path);
-      seen += document.body.innerText.split("ourostack/ouro-ui/").length - 1;
-      for (const address of unpinnedAddresses(document.body.innerText)) problems.push(`${route.path}: ${address}`);
-    }
-    expect(seen).toBeGreaterThan(10);
-    expect(problems).toEqual([]);
+  it.each(sliced(routes))("$path pins each ourostack/ouro-ui address to a release, or says it is for contributors", async ({ path }) => {
+    await renderPage(path);
+    expect(unpinnedAddresses(document.body.innerText)).toEqual([]);
+  });
+
+  // The page scan reads the rendered text: an item's docs page names its install addresses there.
+  it("finds the install addresses on an item's docs page", async () => {
+    await renderPage("/docs/dialog/");
+    expect(document.body.innerText.split("ourostack/ouro-ui/").length - 1).toBeGreaterThan(2);
   });
 });
+
