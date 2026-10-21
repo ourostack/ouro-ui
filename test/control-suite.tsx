@@ -4,6 +4,7 @@ import matrix from "./generated/control-matrix.json";
 import { collectControls, controlRole } from "./controls.ts";
 import { cleanupStories, openOverlay, openPopup, overlayOpeners, renderStory, selectedStories, settle, story, storySelected } from "./stories.tsx";
 import { sliced } from "./slice.ts";
+import { storyScanTimeout } from "./story-axe.ts";
 
 // The control marker checks test/controls.test.tsx runs in Chromium and WebKit and
 // test/controls.touch.test.tsx runs on a touch phone: every element a person can focus or operate
@@ -134,7 +135,10 @@ export function describeRows(title: string, rowsToCheck: ControlRow[], sizes: Si
   });
 }
 
-/** Every story, closed and with each overlay open, at each size: no unmarked control, and no component inside a harness. */
+/**
+ * Every story, closed and with each overlay open, at each size: no unmarked control, and no component inside a harness.
+ * Each test visits the same states as the story's axe scan, so it gets the same time limit.
+ */
 export function describeStories(title: (size: Size) => string, sizes: Size[]): void {
   for (const size of sizes) {
     describe(title(size), () => {
@@ -151,7 +155,7 @@ export function describeStories(title: (size: Size) => string, sizes: Size[]): v
         });
         expect(found.join("\n")).toBe("");
         expect(harnessed.join("\n"), "a [data-test-harness] element holds a component").toBe("");
-      });
+      }, storyScanTimeout);
     });
   }
 }
