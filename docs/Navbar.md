@@ -25,7 +25,7 @@ import { Navbar } from "@/registry/ouro/components/ouro/navbar/navbar";
 
 ## Usage
 
-The phone menu opens once JavaScript has loaded (after hydration), as in shadcn/ui and Catalyst; the links are in the server HTML from 640px up.
+The phone menu opens once JavaScript has loaded (after hydration); the links are in the server HTML from 640px up.
 
 Use `NavigationMenu` alone for a row of panels inside a page, and `Tabs` for views of one page. `StackedLayout` puts a Navbar above the page.
 

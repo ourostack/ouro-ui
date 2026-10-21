@@ -163,7 +163,12 @@ interface TableColumnBase {
    * no `cell` renderer is, or else the first column.
    */
   rowHeader?: boolean | undefined;
-  /** Lets long text wrap onto more lines, at least 192px wide, instead of widening the table. */
+  /**
+   * Lets long text wrap onto more lines, at least 192px wide, instead of widening the table.
+   *
+   * @claim registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table > lets a column with wrap break its text onto more lines, at least 192px wide)
+   * @claim registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table > breaks a long URL in a wrap column instead of widening it)
+   */
   wrap?: boolean | undefined;
   /** Layout only, on the header cell: a width (`w-32`). */
   className?: string | undefined;

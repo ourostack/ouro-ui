@@ -24,7 +24,7 @@ import { Sidebar } from "@/registry/ouro/components/ouro/sidebar/sidebar";
 
 ## Usage
 
-The phone menu opens once JavaScript has loaded (after hydration), as in shadcn/ui and Catalyst; the links are in the server HTML from 640px up.
+The phone menu opens once JavaScript has loaded (after hydration); the links are in the server HTML from 640px up.
 
 Put it in a `SidebarLayout`, which places it beside the page and in the phone's top bar.
 

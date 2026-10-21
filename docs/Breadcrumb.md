@@ -67,6 +67,8 @@ interface BreadcrumbItem {
   /**
    * Where the step goes; internal paths go through `OuroProvider`'s `linkComponent`. Every
    * item needs one except the last, the current page, which renders as text.
+   * @claim registry/ouro/components/ouro/breadcrumb/breadcrumb.test.tsx verify:testExists(registry/ouro/components/ouro/breadcrumb/breadcrumb.test.tsx::Breadcrumb > renders a labelled nav with an ordered list of links, the last one the current page)
+   * @claim registry/ouro/components/ouro/breadcrumb/breadcrumb.test.tsx verify:testExists(registry/ouro/components/ouro/breadcrumb/breadcrumb.test.tsx::Breadcrumb > renders the current page as text even when it has an href)
    */
   href?: string | undefined;
   /**

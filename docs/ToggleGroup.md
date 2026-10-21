@@ -37,7 +37,7 @@ Props every mode takes. Type: `ToggleGroupProps`.
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: margins, grid placement (`mt-4`). Appearance classes warn in development. |
 | `disabled` | `boolean` |  | Disables every toggle. |
-| `hideLabel` | `boolean` |  | Hides the group's label visually; it still names the group. Most toolbars set it. |
+| `hideLabel` | `boolean` |  | Hides the group's label visually; it still names the group. Set it on a toolbar whose toggles say what it is. |
 | `items` (required) | `readonly ToggleGroupItem[]` |  | The toggles, in order. |
 | `label` (required) | `string` |  | Names the group ("Text style"). Shown above it unless `hideLabel` is set; screen readers always hear it. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the group element (`role="group"`). |

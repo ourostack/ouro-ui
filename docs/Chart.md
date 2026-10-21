@@ -23,9 +23,9 @@ import { Chart } from "@/registry/ouro/components/ouro/chart/chart";
 
 Pass `type` for bars, lines or areas, one per series in `config`. For anything else, pass a recharts chart as children with `<ChartTooltip />` and `<ChartLegend />` inside it, as in shadcn's charts; it draws with `var(--color-<key>)`. The marks Chart draws itself appear at once; your own `<Line>` or `<Bar>` keeps recharts' draw-in unless you pass `isAnimationActive={false}`.
 
-Built on recharts, which adds about 120 KB gzip (about 420 KB minified, measured with esbuild) to the page that renders it. Load it with `next/dynamic` or `React.lazy` when the chart is below the fold.
+Built on recharts, which Bundlephobia measures at about 150 KB gzip (566 KB minified) for the whole package; a bundler that drops what Chart does not import adds less to the page that renders it. Load it with `next/dynamic` or `React.lazy` when the chart is below the fold.
 
-Colors come from the theme's `--chart-1` to `--chart-5`, which must reach 3:1 against the background for the marks to be seen; Ouro's theme does in light and dark.
+Colors come from the theme's `--chart-1` to `--chart-5`, which must reach 3:1 against the background for the marks to be seen (WCAG's non-text contrast).
 
 ## Use instead when
 

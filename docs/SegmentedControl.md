@@ -39,8 +39,8 @@ Type: `SegmentedControlProps`.
 | `defaultValue` | `string` | the first enabled item | The segment pressed first, when the component keeps its own state. |
 | `disabled` | `boolean` |  | Disables every segment. |
 | `fullWidth` | `boolean` |  | Stretches the control to the width of its container, with the segments sharing it equally. |
-| `hideLabel` | `boolean` |  | Hides the label visually; it still names the control for screen readers. Most view switchers set it. |
-| `items` (required) | `readonly SegmentedControlItem[]` |  | The segments, in order. Two to five read best. |
+| `hideLabel` | `boolean` |  | Hides the label visually; it still names the control for screen readers. Set it on a view switcher whose segments say what it is. |
+| `items` (required) | `readonly SegmentedControlItem[]` |  | The segments, in order. Keep to two to five. |
 | `label` (required) | `string` |  | Names the choice ("View"). Shown above the control unless `hideLabel` is set; screen readers always hear it. |
 | `name` | `string` |  | Submits the checked segment's value under this name with the form it sits in, unless the control is `disabled`. |
 | `onValueChange` | `((value: string) => void)` |  | Called with the new segment's value when the person presses a segment. Pressing the pressed one does nothing. |

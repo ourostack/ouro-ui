@@ -286,7 +286,7 @@ function maskBlock(text, definitions) {
 function sentenceSpans(masked) {
   const spans = [];
   let start = 0;
-  for (const match of masked.matchAll(/[.!?]["'”’)*_¹]*\s+(?=[A-Z0-9"'“‘(\[*_§¹]|v\d)/g)) {
+  for (const match of masked.matchAll(/[.!?]["'”’)*_¹]*\s+(?=[A-Z0-9"'“‘([*_§¹]|v\d)/g)) {
     const stop = match.index + match[0].trimEnd().length;
     spans.push([start, stop]);
     start = match.index + match[0].length;
@@ -596,14 +596,14 @@ async function fetchStatus(url) {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       for (const method of ["HEAD", "GET"]) {
-        const response = await fetch(url, { method, redirect: "follow", signal: AbortSignal.timeout(15000), headers: { "user-agent": "ouro-ui claims check" } });
+        const response = await globalThis.fetch(url, { method, redirect: "follow", signal: globalThis.AbortSignal.timeout(15000), headers: { "user-agent": "ouro-ui claims check" } });
         last = response.status;
         if (response.ok) return last;
       }
     } catch {
       last = 0;
     }
-    await new Promise((settle) => setTimeout(settle, 1000 * (attempt + 1)));
+    await new Promise((settle) => globalThis.setTimeout(settle, 1000 * (attempt + 1)));
   }
   return last;
 }

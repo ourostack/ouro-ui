@@ -21,7 +21,7 @@ import { SidebarLayout } from "@/registry/ouro/components/ouro/sidebar/sidebar-l
 
 ## Usage
 
-The phone menu opens once JavaScript has loaded (after hydration), as in shadcn/ui and Catalyst; the links are in the server HTML from 640px up.
+The phone menu opens once JavaScript has loaded (after hydration); the links are in the server HTML from 640px up.
 
 Use `AuthLayout` for the sign-in pages.
 
