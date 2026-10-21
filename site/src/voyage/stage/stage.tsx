@@ -363,7 +363,7 @@ const ShipLog = memo(function ShipLog({ log, rings, onRing }: { log: Entry[]; ri
   return (
     <div className="stage-logbook" data-heard={heard ? "" : undefined}>
       <div className="stage-log-now">
-        <MessageList label={`${STAGE_COPY.log}, newest line`} className="stage-log stage-log-newest">
+        <MessageList label={`${STAGE_COPY.log}, latest line`} className="stage-log stage-log-newest">
           {newest.map((entry) => (
             <LogEntry key={entry.id} entry={entry} />
           ))}

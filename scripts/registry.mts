@@ -233,14 +233,23 @@ const kits = [
     name: "ouro-census",
     title: "Ouro census",
     description:
-      "Optional: the census journey kit. A Playwright spec of yours lists every page your app renders and every state a person can open on it; the census records the exact multiset of visible controls in each (role, name, Ouro marker, context) and fails on any change from the committed baseline, and on any unmarked control in a journey you enrol. Unmarked controls may only fall, state by state. It installs e2e/ouro-census/ (the spec helper, the merge, the baseline update and a comparison of two runs).",
+      `Optional: the census journey kit. A Playwright spec of yours lists the pages your app renders and the states a person can open on them; ${claim(
+        "the census records the exact multiset of visible controls in each (role, name, Ouro marker, context) and fails on any change from the committed baseline, and on any unmarked control in a journey you enrol.",
+        { source: [{ test: "scripts/kits/census-page.test.mjs::censusTests > fails a state whose page answers another status, redirects, or differs from the baseline" }, { test: "scripts/kits/census-update.test.mjs::checkCensusState > fails an enrolled journey on any unmarked control or unknown item, even when the baseline matches" }], verify: [{ testExists: "scripts/kits/census-page.test.mjs::censusTests > fails a state whose page answers another status, redirects, or differs from the baseline" }, { testExists: "scripts/kits/census-update.test.mjs::checkCensusState > fails an enrolled journey on any unmarked control or unknown item, even when the baseline matches" }] },
+      )} ${claim("Unmarked controls may only fall, state by state.", { source: { test: "scripts/kits/census-update.test.mjs::the unmarked ratchet > refuses a rise in one state even when another state of the journey falls by as much" }, verify: { testExists: "scripts/kits/census-update.test.mjs::the unmarked ratchet > refuses a rise in one state even when another state of the journey falls by as much" } })} ${claim(
+        "It installs e2e/ouro-census/ (the spec helper, the merge, the baseline update and a comparison of two runs).",
+        { source: { test: "scripts/kits/census-compare.test.mjs::census-compare.mjs > fails, naming every difference, when two runs differ" }, verify: { testExists: "scripts/kits/census-compare.test.mjs::census-compare.mjs > fails, naming every difference, when two runs differ" } },
+      )}`,
     docs: `The census kit is in e2e/ouro-census/. Call censusTests({ test, journeys, projects, componentsDir }) from a spec of yours, merge each run with node e2e/ouro-census/census-merge.mjs, and accept a change with node e2e/ouro-census/census-update.mjs <run-id | file>. Docs: ${DOCS_URL}/guardrails.md`,
   },
   {
     name: "ouro-source-rules",
     title: "Ouro source rules",
     description:
-      "Optional: the hand-rolled-control source rule. It reads your app's source with the TypeScript compiler and its stylesheets with PostCSS, and finds the controls still built by hand (a raw <button>, <a>, <input>, a click handler on a <div>, another UI library's control, control-state styling) and every component that wraps one, as fingerprints held to a committed baseline that may only shrink. It installs scripts/ouro-source-rules.mjs.",
+      `Optional: the hand-rolled-control source rule. ${claim(
+        "It reads your app's source with the TypeScript compiler and its stylesheets with PostCSS, and finds the controls still built by hand (a raw <button>, <a>, <input>, a click handler on a <div>, another UI library's control, control-state styling) and every component that wraps one, as fingerprints held to a committed baseline that may only shrink.",
+        { source: [{ test: "scripts/kits/source-rules.test.mjs::the ratchet against real changes > counts every hop of a wrapper chain, and terminates on a cycle" }, { test: "scripts/kits/source-rules.test.mjs::main > refuses to write a rise against the base ref without a reason" }], verify: [{ testExists: "scripts/kits/source-rules.test.mjs::the ratchet against real changes > counts every hop of a wrapper chain, and terminates on a cycle" }, { testExists: "scripts/kits/source-rules.test.mjs::main > refuses to write a rise against the base ref without a reason" }] },
+      )} It installs scripts/ouro-source-rules.mjs.`,
     docs: `The source rule is scripts/ouro-source-rules.mjs. Run node scripts/ouro-source-rules.mjs --write-baseline once to record where your app starts, then node scripts/ouro-source-rules.mjs in CI (with --base <ref> on pull requests). Docs: ${DOCS_URL}/guardrails.md`,
   },
 ];

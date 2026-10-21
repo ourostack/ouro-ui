@@ -136,7 +136,7 @@ const principles: Array<{ title: string; body: ReactNode }> = [
     title: "Props first",
     body: (
       <>
-        Each component takes props that describe the whole thing, and building-block parts wait in a separate file for when
+        A component takes props that describe the whole thing, and building-block parts wait in a separate file for when
         props can't say what you need.
       </>
     ),
@@ -145,8 +145,8 @@ const principles: Array<{ title: string; body: ReactNode }> = [
     title: "Required means required",
     body: (
       <>
-        What a component always needs, like a sheet's <InlineCode>title</InlineCode>, is a required prop, so leaving it out is
-        a type error.
+        What a component needs, like a sheet's <InlineCode>title</InlineCode>, is a required prop, so leaving it out is a type
+        error.
       </>
     ),
   },
@@ -165,7 +165,7 @@ const principles: Array<{ title: string; body: ReactNode }> = [
       <>
         <InlineCode>tone</InlineCode> values are the theme's token names (<InlineCode>primary</InlineCode> reads{" "}
         <InlineCode>--primary</InlineCode>), and <InlineCode>variant</InlineCode> and <InlineCode>size</InlineCode> are named
-        options, so there is one vocabulary and no color names.
+        options, so the props speak the theme's language instead of color names.
       </>
     ),
   },
@@ -195,10 +195,10 @@ function Principles(): JSX.Element {
       <Container className="py-20 sm:py-28">
         <Eyebrow>Principles</Eyebrow>
         <Heading level={2} size="2xl" id="principles-title">
-          Rules an agent never has to learn
+          Rules an agent doesn't have to learn
         </Heading>
         <Text size="lg" tone="muted" className="mt-4 max-w-[42rem]">
-          Each rule replaces something an agent would otherwise need a skill or a rules file for.
+          These rules replace what an agent would otherwise need a skill or a rules file for.
         </Text>
         <ol className="m-0 mt-12 grid list-none gap-x-10 gap-y-10 p-0 sm:grid-cols-2 lg:grid-cols-3">
           {principles.map((principle, index) => (
@@ -267,9 +267,17 @@ function Install(): JSX.Element {
             <Pill>Alpha</Pill>
           </div>
           <Text tone="muted" className="mt-4">
-            The shadcn CLI copies each component into <InlineCode>components/ouro/</InlineCode> with only the helpers it
-            imports. Its tests and stories are an optional <InlineCode>-tests</InlineCode> item that never changes your test
-            tools' versions. Ouro HX is under construction, so props can still change.
+            The shadcn CLI copies a component into <InlineCode>components/ouro/</InlineCode> with the helpers it imports.{" "}
+            {claim("Its tests and stories are an optional", {
+              source: { test: "scripts/registry.test.mjs::each component has an opt-in -tests item with its tests, type tests, stories and spec" },
+              verify: { testExists: "scripts/registry.test.mjs::each component has an opt-in -tests item with its tests, type tests, stories and spec" },
+            })}{" "}
+            <InlineCode>-tests</InlineCode>{" "}
+            {claim("item that never changes your test tools' versions.", {
+              source: { test: "scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has" },
+              verify: { testExists: "scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has" },
+            })}{" "}
+            Ouro HX is under construction, so props can still change.
           </Text>
         </div>
         <ol className="m-0 grid list-none gap-10 p-0">

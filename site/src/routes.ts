@@ -44,7 +44,7 @@ export const routes: Route[] = [
   {
     path: "/docs/switching-from-shadcn/",
     title: "Switching from shadcn · Ouro HX",
-    description: "How each shadcn/ui component and prop maps to Ouro HX, and how both live in one app.",
+    description: "How shadcn/ui components and props map to Ouro HX, and how both live in one app.",
   },
   {
     path: "/docs/updating/",

@@ -10117,7 +10117,7 @@
       "name": "ouro-census",
       "type": "registry:item",
       "title": "Ouro census",
-      "description": "Optional: the census journey kit. A Playwright spec of yours lists every page your app renders and every state a person can open on it; the census records the exact multiset of visible controls in each (role, name, Ouro marker, context) and fails on any change from the committed baseline, and on any unmarked control in a journey you enrol. Unmarked controls may only fall, state by state. It installs e2e/ouro-census/ (the spec helper, the merge, the baseline update and a comparison of two runs).",
+      "description": "Optional: the census journey kit. A Playwright spec of yours lists the pages your app renders and the states a person can open on them; the census records the exact multiset of visible controls in each (role, name, Ouro marker, context) and fails on any change from the committed baseline, and on any unmarked control in a journey you enrol. Unmarked controls may only fall, state by state. It installs e2e/ouro-census/ (the spec helper, the merge, the baseline update and a comparison of two runs).",
       "docs": "The census kit is in e2e/ouro-census/. Call censusTests({ test, journeys, projects, componentsDir }) from a spec of yours, merge each run with node e2e/ouro-census/census-merge.mjs, and accept a change with node e2e/ouro-census/census-update.mjs <run-id | file>. Docs: https://ourostack.github.io/ouro-ui/docs/guardrails.md",
       "devDependencies": [
         "@playwright/test",

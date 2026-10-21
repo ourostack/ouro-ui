@@ -120,7 +120,7 @@ test("keeps every control's boundary under forced colours", async ({ page }) => 
   // The stage writes that line in a transition, after the switch's own paint, so the click
   // returns before it; scan once the line (and its message list) is on screen.
   await page.getByRole("switch", { name: "Forward tank", exact: true }).click();
-  await expect(page.getByRole("region", { name: `${STAGE_COPY.log}, newest line`, exact: true })).toContainText(LOG.tankFull(TANKS[0].noun, 1).text);
+  await expect(page.getByRole("region", { name: `${STAGE_COPY.log}, latest line`, exact: true })).toContainText(LOG.tankFull(TANKS[0].noun, 1).text);
   const bare = await page.evaluate(() =>
     [...document.querySelectorAll<HTMLElement>("main [data-ouro-control], header [data-ouro-control]")]
       .filter((element) => element.checkVisibility() && element.getBoundingClientRect().width > 1)

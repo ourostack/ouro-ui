@@ -78,7 +78,7 @@ describe("live catalog", () => {
     await expect.element(page.getByRole("heading", { name: "Live example page" })).toBeVisible();
     expect(failures).toHaveLength(1);
     expect(failures[0]).toBeInstanceOf(Error);
-    expect(failures[0]).toMatchObject({ message: 'No live example for "not-an-item"' });
+    expect(failures[0]).toMatchObject({ message: 'Unknown live example "not-an-item"' });
     expect(page.getByRole("link").element().getAttribute("href")).toBe("/docs/");
     await rerenderFixture(<main><h1>Live example page</h1><LiveDemo name="form" title="Form" /></main>);
     await expect.element(page.getByRole("textbox", { name: "Recipe name", exact: true })).toBeVisible();

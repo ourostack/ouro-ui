@@ -186,7 +186,7 @@ export function DocsIndex(): JSX.Element {
           Parts and app setup
         </Heading>
         <Text size="sm" tone="muted" className="mb-4 max-w-[40rem]">
-          Exports that install with another component, or with the helpers in <InlineCode>lib/ouro</InlineCode>, each with a page of its own.
+          Pages for the exports that install with another component, or with the helpers in <InlineCode>lib/ouro</InlineCode>.
         </Text>
         <ul className="m-0 flex list-none flex-wrap gap-x-5 gap-y-2 p-0">
           {exportPages.map((page) => (
@@ -214,7 +214,7 @@ export function DocsIndex(): JSX.Element {
           <li>
             <a href={href("/docs/switching-from-shadcn/")} className={card}>
               <span className="font-medium text-foreground">Switching from shadcn</span>
-              <span className="text-sm leading-6 text-muted-foreground">Each shadcn/ui component and prop, and its Ouro HX equivalent.</span>
+              <span className="text-sm leading-6 text-muted-foreground">shadcn/ui components and props, and their Ouro HX equivalents.</span>
             </a>
           </li>
           <li>
@@ -234,16 +234,16 @@ const switchingIntro = `Ouro HX follows the shadcn/ui registry standard and read
 const switchingCoexist = `
 ## Both live in one app
 
-shadcn/ui installs to \`components/ui/\`. Ouro HX installs to \`components/ouro/\`, so a shadcn \`button\` and an Ouro \`button\` never collide. Switch a screen at a time, and remove the shadcn file when nothing imports it any more.
+shadcn/ui installs to \`components/ui/\`. Ouro HX installs to \`components/ouro/\`, so a shadcn \`button\` and an Ouro \`button\` never collide.[^beside] Switch a screen at a time, and remove the shadcn file when nothing imports it any more.
 
-Ouro components read shadcn's variables (\`--primary\`, \`--muted-foreground\`, \`--radius\` and the rest), so your theme carries over unchanged. Dark mode is the same \`.dark\` class. Ouro HX adds only what shadcn themes lack, in \`ouro-base.css\`: \`--success\` and \`--warning\` with their foregrounds, \`--destructive-foreground\`, the motion tokens, and \`--ouro-layer\`, the z-index of sheets and dialogs (50, as in shadcn's overlays; raise it if your app has fixed bars above z-50). To change any \`--ouro-*\` token, such as \`--ouro-layer\`, \`--ouro-press-scale\` or \`--ouro-backdrop-max\`, set it in a \`:root\` (or \`.dark\`) rule of your own after the Ouro tokens, outside any \`@layer\`. Don't edit the lines shadcn wrote: every \`shadcn add\` of an Ouro item rewrites them. The Ouro look (\`ouro-theme\`) is optional; skip it to keep yours.
+Ouro components read shadcn's variables (\`--primary\`, \`--muted-foreground\`, \`--radius\` and the rest), so your theme carries over unchanged. Dark mode is the same \`.dark\` class. Ouro HX adds only what shadcn themes lack, in \`ouro-base.css\`: \`--success\` and \`--warning\` with their foregrounds, \`--destructive-foreground\`, the motion tokens, and \`--ouro-layer\`, the z-index of sheets and dialogs (50, as in shadcn's overlays; raise it if your app has fixed bars above z-50).[^layer] To change any \`--ouro-*\` token, such as \`--ouro-layer\`, \`--ouro-press-scale\` or \`--ouro-backdrop-max\`, set it in a \`:root\` (or \`.dark\`) rule of your own after the Ouro tokens, outside any \`@layer\`. Don't edit the lines shadcn wrote: every \`shadcn add\` of an Ouro item rewrites them. The Ouro look (\`ouro-theme\`) is optional; skip it to keep yours.
 
 ## Components
 
 | shadcn/ui | Ouro HX | Notes |
 | --- | --- | --- |
 | \`Button\` | \`Button\` | Same name; the props differ (below). |
-| \`Dialog\` with \`DialogTrigger\`, \`DialogContent\`, \`DialogHeader\`, \`DialogTitle\`, \`DialogDescription\`, \`DialogFooter\` | \`Dialog\` with \`trigger\`, \`title\`, \`description\` and \`footer\` | Becomes a bottom sheet below 640px. Parts exist for layouts the props can't express. |
+| \`Dialog\` with \`DialogTrigger\`, \`DialogContent\`, \`DialogHeader\`, \`DialogTitle\`, \`DialogDescription\`, \`DialogFooter\` | \`Dialog\` with \`trigger\`, \`title\`, \`description\` and \`footer\` | Becomes a bottom sheet below 640px.[^dialog-sheet] Parts exist for layouts the props can't express. |
 | \`Sheet\` with \`SheetTrigger\`, \`SheetContent\`, \`SheetHeader\`, \`SheetTitle\` | \`Sheet\` with \`trigger\`, \`side\` and \`title\` | Dragged back to its edge to dismiss. |
 | \`Drawer\` | \`Sheet\` with \`snapPoints\` | \`snapPoints={[0.5, 1]}\` opens at half height. |
 | \`AlertDialog\` | \`ConfirmDialog\` | Cancel has focus first; an outside press doesn't dismiss it. |
@@ -290,7 +290,12 @@ Ouro components read shadcn's variables (\`--primary\`, \`--muted-foreground\`, 
 
 ## If you miss one
 
-Shadcn's prop names that Ouro HX doesn't use, and its Button variant and size values, fail the type check, and the error names the Ouro prop to use. In development, Button's console message names the fix for each guard prop and each shadcn variant and size:
+Shadcn's prop names that Ouro HX doesn't use, and its Button variant and size values, fail the type check, and the error names the Ouro prop to use. In development, Button's console message names the fix for each guard prop and each shadcn variant and size:[^button-guards]
+
+[^beside]: scripts/install-test.sh; .github/workflows/ci.yml verify:fileLine(scripts/install-test.sh, /Stock shadcn button beside Ouro's/) verify:ciJob(ci.yml#install)
+[^layer]: registry/ouro/theme/ouro-base.css; https://github.com/shadcn-ui/ui/blob/main/apps/v4/registry/new-york-v4/ui/dialog.tsx verify:fileLine(registry/ouro/theme/ouro-base.css, /--ouro-layer: 50;/) verify:urlOk(https://github.com/shadcn-ui/ui/blob/main/apps/v4/registry/new-york-v4/ui/dialog.tsx)
+[^dialog-sheet]: test:registry/ouro/components/ouro/dialog/dialog.test.tsx::automatic presentation > renders the bottom sheet at 390px; test:registry/ouro/components/ouro/dialog/dialog.test.tsx::automatic presentation > stays open in the new presentation when a resize crosses 640px, keeping controlled state verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::automatic presentation > renders the bottom sheet at 390px) verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::automatic presentation > stays open in the new presentation when a resize crosses 640px, keeping controlled state)
+[^button-guards]: test:registry/ouro/components/ouro/button/button.test.tsx::runtime guards > strips %s from the DOM and warns once with the fix; test:registry/ouro/components/ouro/button/button.test.tsx::runtime guards > renders the default look for %s=%j and warns once with the fix; test:registry/ouro/components/ouro/button/button.test.tsx::runtime guards > renders the md size for shadcn's size=%j and warns once with the fix verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::runtime guards > strips %s from the DOM and warns once with the fix) verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::runtime guards > renders the default look for %s=%j and warns once with the fix) verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::runtime guards > renders the md size for shadcn's size=%j and warns once with the fix)
 `;
 
 export function Switching(): JSX.Element {
@@ -310,14 +315,14 @@ export function Updating(): JSX.Element {
       <PageTitle
         eyebrow="Guide"
         title="Updating installed components"
-        lead="Ouro HX components are copied into your project, so they're yours to edit. As with shadcn/ui, there's no install manifest: to take an upstream change, compare first, then decide."
+        lead="Ouro HX components are copied into your project, so they're yours to edit. To take an upstream change, compare first, then decide."
       />
       <ol className="m-0 grid list-none gap-12 p-0">
         <li className="grid gap-3">
           <Heading level={2} size="lg">
             1. Review the change
           </Heading>
-          <Text>List the files the registry's current version would change. Each one marked overwrite differs from yours:</Text>
+          <Text>List the files the registry's current version would change:</Text>
           <Command command="npx shadcn@latest add @ouro/sheet --dry-run" />
           <Text>Then see the difference for each of those files by its path:</Text>
           <Command command="npx shadcn@latest add @ouro/sheet --diff src/components/ouro/sheet/sheet.tsx" />
