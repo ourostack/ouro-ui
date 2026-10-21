@@ -343,6 +343,8 @@ test("on a phone, the shipyard and the articles work by touch, and nothing overf
 });
 
 test("under reduced motion, building, launching and signing change only colour and opacity, and nothing moves", async ({ page }) => {
+  // It builds, launches and signs on, as the rail's test does: about 28 s for WebKit on a shared runner.
+  test.slow();
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 1440, height: 900 });
   await open(page);
