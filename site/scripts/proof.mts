@@ -5,8 +5,12 @@
 //   - "Chromium + WebKit + touch tested": the browsers ouroTestProjects runs (vitest.ts) and its
 //     touch project, a Chromium phone profile;
 //   - "axe-clean in <n> themes": the presets site/e2e/voyage.spec.ts scans in light and dark;
-//   - "every line covered": the coverage thresholds vitest.config.ts holds over registry/, all 100.
-// Each links to its evidence (EVIDENCE). The module also says which component the install command
+//   - "every line covered": the coverage thresholds vitest.config.ts holds over registry/, all 100;
+//   - "This stage is built with HX": the porthole stage's source imports its controls from registry/.
+// Each links to its evidence (EVIDENCE): the component inventory, CI's runs on main (the browser
+// matrix), the line of voyage.spec.ts that runs axe over every preset, the line of vitest.config.ts
+// that holds the thresholds, and the stage's own source. A line link is computed from the source it
+// points into, so it lands on the line that makes the claim. The module also says which component the install command
 // adds: the first of PREFERRED_INSTALL in the latest release's registry.json (`install`).
 //
 // The site imports it as `virtual:site-proof` (proofPlugin, in site/vite.config.ts and the `site`
@@ -33,6 +37,7 @@ export interface Proof {
   touch: boolean;
   coverage: number;
   themes: number;
+  stage: boolean;
   claims: Claim[];
   line: string;
 }
@@ -43,14 +48,22 @@ const SITE = "/ouro-ui";
 export const EVIDENCE = {
   components: `${SITE}/docs/`,
   typescript: `${REPO}/tree/main/registry/ouro/components/ouro`,
-  engines: `${REPO}/actions/workflows/ci.yml`,
+  engines: `${REPO}/actions/workflows/ci.yml?query=branch%3Amain`,
   themes: `${REPO}/blob/main/site/e2e/voyage.spec.ts`,
   coverage: `${REPO}/blob/main/vitest.config.ts`,
+  stage: `${REPO}/tree/main/site/src/voyage/stage`,
 };
+
+/** The 1-based line where a pattern first matches, for a link that lands on it. */
+export function lineOf(source: string, pattern: RegExp): number {
+  const index = source.search(pattern);
+  if (index < 0) throw new Error(`No line matches ${pattern}`);
+  return source.slice(0, index).split("\n").length;
+}
 
 const ENGINE_NAMES: Record<string, string> = { chromium: "Chromium", webkit: "WebKit", firefox: "Firefox" };
 
-export function deriveProof(files: { registry: string; testProjects: string; vitestConfig: string; themes: string; voyageSpec: string }): Proof {
+export function deriveProof(files: { registry: string; testProjects: string; vitestConfig: string; themes: string; voyageSpec: string; stage: string }): Proof {
   const ui = (JSON.parse(files.registry) as { items: Array<{ type: string; files?: Array<{ path: string }> }> }).items.filter((item) => item.type === "registry:ui");
   const components = ui.length;
   const typescript = ui.every((item) => (item.files ?? []).length > 0 && item.files!.every((file) => /\.tsx?$/.test(file.path)));
@@ -67,15 +80,19 @@ export function deriveProof(files: { registry: string; testProjects: string; vit
   const presets = (JSON.parse(files.themes) as unknown[]).length;
   const scanned = /for \(const preset of PRESET_NAMES\)[\s\S]*?for \(const mode of \["light", "dark"\]/.test(files.voyageSpec) && /axe\.run/.test(files.voyageSpec);
   const themes = scanned ? presets : 0;
+  const stage = /from "@\/registry\/ouro\/components\/ouro\//.test(files.stage);
+  const themesLine = lineOf(files.voyageSpec, /test\.describe\("every preset, light and dark"/);
+  const coverageLine = lineOf(files.vitestConfig, /thresholds: \{ lines:/);
   const tested = [...engines.map((engine) => ENGINE_NAMES[engine] ?? engine), ...(touch ? ["touch"] : [])].join(" + ");
   const claims: Claim[] = [
     { text: `${components} React components`, href: EVIDENCE.components },
     ...(typescript ? [{ text: "TypeScript", href: EVIDENCE.typescript }] : []),
     { text: `${tested} tested`, href: EVIDENCE.engines },
-    ...(themes ? [{ text: `axe-clean in ${themes} themes`, href: EVIDENCE.themes }] : []),
-    { text: coverage === 100 ? "every line covered" : `${coverage}% of lines covered`, href: EVIDENCE.coverage },
+    ...(themes ? [{ text: `axe-clean in ${themes} themes`, href: `${EVIDENCE.themes}#L${themesLine}` }] : []),
+    { text: coverage === 100 ? "every line covered" : `${coverage}% of lines covered`, href: `${EVIDENCE.coverage}#L${coverageLine}` },
+    ...(stage ? [{ text: "This stage is built with HX", href: EVIDENCE.stage }] : []),
   ];
-  return { components, typescript, engines, touch, coverage, themes, claims, line: claims.map((claim) => claim.text).join(" · ") };
+  return { components, typescript, engines, touch, coverage, themes, stage, claims, line: claims.map((claim) => claim.text).join(" · ") };
 }
 
 export function currentProof(): Proof {
@@ -85,6 +102,7 @@ export function currentProof(): Proof {
     vitestConfig: read("vitest.config.ts"),
     themes: read("site/src/themes/themes.json"),
     voyageSpec: read("site/e2e/voyage.spec.ts"),
+    stage: read("site/src/voyage/stage/stage.tsx"),
   });
 }
 

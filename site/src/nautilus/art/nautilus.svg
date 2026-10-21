@@ -2,51 +2,63 @@
   <title>The Nautilus, in profile</title>
   <!-- Original drawing for Ouro HX after Verne alone (manifest.json): an elongated cylinder with
        conical ends, 232 feet by 26 (eight to one), drawn as a spindle that tapers at both ends; a
-       long steel ram spur forward, so the bow is plain; a platform lying almost flush on the back,
-       three feet out of the water; the lantern standing alone on it, and the steersman's low glass
-       just forward of it; a four-bladed screw and a rudder aft; the iron plates drawn quietly.
-       No tower, no sail, no periscope, no fins, no great eye window. -->
+       long steel ram spur forward, so the bow is plain; a low platform on the back, three feet out
+       of the water; on it, fore and aft, two low cages with thick lenticular glasses: the
+       steersman's forward, a shallow dome no taller than the deck is wide, and the lantern's aft,
+       broader, with a big lens, standing a little taller so its beam clears the other; a four-bladed screw and a rudder aft; the iron
+       plates drawn quietly, overlapping like a reptile's shell. Shaded as a lit steel body: light
+       from above, the hull's belly in shadow, the sea's light thrown back along the keel.
+       No tower, no sail, no periscope, no fins, no rivets, no great eye window. -->
   <defs>
     <linearGradient id="nautilus-sheen" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" class="n-hull-sheen-top" />
-      <stop offset="0.45" class="n-hull-sheen-mid" />
-      <stop offset="1" class="n-hull-sheen-bottom" />
+      <stop offset="0.38" class="n-hull-sheen-mid" />
+      <stop offset="0.86" class="n-hull-sheen-bottom" />
+      <stop offset="1" class="n-hull-sheen-keel" />
     </linearGradient>
   </defs>
-  <path class="n-rudder" d="M10 50 L18 50 L18 82 L10 82 Z" />
+  <path class="n-rudder" d="M8 48 L19 50 L19 82 L8 84 Z" />
   <g class="n-screw">
     <path d="M46 66 H24" />
-    <ellipse cx="27" cy="57" rx="2.6" ry="8" />
-    <ellipse cx="27" cy="75" rx="2.6" ry="8" />
-    <circle cx="27" cy="66" r="3" />
+    <ellipse cx="28" cy="56.5" rx="3" ry="9" />
+    <ellipse cx="28" cy="75.5" rx="3" ry="9" />
+    <circle cx="28" cy="66" r="3.2" />
   </g>
   <path class="n-hull" d="M44 66 C120 41 206 33 300 33 C404 33 498 42 556 66 C498 90 404 99 300 99 C206 99 120 91 44 66 Z" />
   <path class="n-hull-shade" d="M44 66 C120 41 206 33 300 33 C404 33 498 42 556 66 C498 90 404 99 300 99 C206 99 120 91 44 66 Z" fill="url(#nautilus-sheen)" />
   <g class="n-plates">
-    <path d="M140 46 C135 56 135 76 140 86" />
-    <path d="M220 37 C215 52 215 80 220 95" />
-    <path d="M300 33 C295 50 295 82 300 99" />
-    <path d="M380 34 C375 51 375 81 380 98" />
-    <path d="M460 42 C455 55 455 77 460 90" />
-    <path d="M56 66 C180 63 420 63 544 66" />
+    <path d="M120 49 C110 58 110 74 120 83" />
+    <path d="M190 40 C181 53 181 79 190 92" />
+    <path d="M260 35 C251 50 251 82 260 97" />
+    <path d="M330 34 C321 50 321 82 330 98" />
+    <path d="M400 36 C391 51 391 81 400 96" />
+    <path d="M470 43 C462 55 462 77 470 89" />
+    <path d="M70 58 C190 44 420 42 532 57" />
+    <path d="M70 74 C190 88 420 90 532 75" />
   </g>
-  <path class="n-highlight" d="M92 54 C170 41 248 37 300 37 C380 37 456 42 516 54" />
+  <path class="n-highlight" d="M96 52 C170 40 248 36.5 300 36.5 C382 36.5 456 41 512 51" />
+  <path class="n-keel-light" d="M110 86 C190 95 410 96 500 84" />
   <g class="n-lights">
-    <circle cx="246" cy="74" r="3.6" />
-    <circle cx="278" cy="74" r="3.6" />
-    <circle cx="310" cy="74" r="3.6" />
-    <circle cx="342" cy="74" r="3.6" />
-    <circle cx="374" cy="74" r="3.6" />
+    <circle cx="250" cy="70" r="3.2" />
+    <circle cx="280" cy="70" r="3.2" />
+    <circle cx="310" cy="70" r="3.2" />
+    <circle cx="340" cy="70" r="3.2" />
+    <circle cx="370" cy="70" r="3.2" />
   </g>
-  <path class="n-platform" d="M232 34 C268 29.5 356 29.5 392 34 Z" />
-  <path class="n-glass" d="M396 33 C400 27.5 414 27.5 418 33 Z" />
+  <path class="n-platform" d="M230 35 C240 28.5 398 28.5 410 35 Z" />
+  <path class="n-deck-edge" d="M236 30.5 H404" />
   <g class="n-beacon">
-    <path class="n-mast" d="M328.6 31 V17 H331.4 V31 Z" />
-    <path class="n-cage-cap" d="M321 6.5 L330 1 L339 6.5 Z" />
-    <rect class="n-lantern" x="323" y="6" width="14" height="12" rx="3" />
+    <path class="n-cage" d="M262 30 L265.5 18 L298.5 18 L302 30 Z" />
+    <path class="n-cage-cap" d="M265 18.5 C268 12.5 296 12.5 299 18.5 Z" />
+    <rect class="n-lantern" x="268" y="19.5" width="28" height="8.5" rx="4.25" />
+  </g>
+  <g class="n-steersman">
+    <path class="n-cage" d="M370 30.5 C372.5 24.5 395.5 24.5 398 30.5 Z" />
+    <ellipse class="n-glass" cx="379" cy="28" rx="3" ry="1.8" />
+    <ellipse class="n-glass" cx="389" cy="28" rx="3" ry="1.8" />
   </g>
   <path class="n-spur-collar" d="M548 58 L560 59.5 L560 72.5 L548 74 Z" />
-  <path class="n-spur" d="M560 60 L636 66 L560 72 Z" />
-  <path class="n-spur-edge" d="M562 66 H630" />
+  <path class="n-spur" d="M560 60 L638 66 L560 72 Z" />
+  <path class="n-spur-edge" d="M562 64.6 H630" />
   <path class="n-outline" d="M44 66 C120 41 206 33 300 33 C404 33 498 42 556 66 C498 90 404 99 300 99 C206 99 120 91 44 66 Z" />
 </svg>

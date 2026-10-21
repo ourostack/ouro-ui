@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import { randomBytes } from "node:crypto";
 import { test } from "node:test";
-import { ART_BUDGET, artDir, checkArt, readArt, sha256 } from "./art.mts";
+import { ART_BUDGET, artDir, CHAPTER_ART_BUDGET, checkArt, readArt, sha256 } from "./art.mts";
 
 const svg = (body) => Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">${body}</svg>`);
 
@@ -16,6 +16,7 @@ function original(file, bytes, extra = {}) {
     licence: "repository",
     sha256: sha256(bytes),
     modifications: "None: drawn for this site.",
+    subject: "creature",
     ...extra,
   };
 }
@@ -83,6 +84,7 @@ function publicDomain(extra = {}) {
     licence: "public-domain",
     sha256: sha256(plate),
     modifications: "Traced to vector and recoloured from the theme.",
+    subject: "nautilus",
     ...extra,
   };
   return { manifest: { art: [entry] }, files: new Map([["plate.svg", plate]]) };
@@ -107,9 +109,31 @@ test("public-domain art from any other host fails", () => {
   assert.match(checkArt(publicDomain({ source: "not a url" })).join("\n"), /must come from/);
 });
 
+test("every drawing says what it draws, from the list", () => {
+  const art = fixture();
+  delete art.manifest.art[0].subject;
+  assert.match(checkArt(art).join("\n"), /sardine\.svg: subject is required/);
+  art.manifest.art[0].subject = "ship";
+  assert.match(checkArt(art).join("\n"), /sardine\.svg: subject "ship" is not one of nautilus, creature, sea, instrument/);
+});
+
+test("a drawing whose title or file names the Nautilus cannot claim another subject", () => {
+  const ship = svg("<path/>");
+  const art = { manifest: { art: [original("yard.svg", ship, { title: "The Nautilus in the yard", subject: "sea" })] }, files: new Map([["yard.svg", ship]]) };
+  assert.match(checkArt(art).join("\n"), /yard\.svg: its title or file names the Nautilus, so its subject is "nautilus"/);
+});
+
+test("a drawing with the Nautilus in it, whatever its title, quotes Verne for its shape", () => {
+  // Titled for the place, not the ship: the subject says the ship is in it.
+  const ship = svg("<path/>");
+  const entry = original("island-yard.svg", ship, { title: "The yard on the island", subject: "nautilus" });
+  const art = { manifest: { art: [entry] }, files: new Map([["island-yard.svg", ship]]) };
+  assert.match(checkArt(art).join("\n"), /island-yard\.svg: a drawing of the Nautilus needs shape notes quoting Verne/);
+});
+
 test("a drawing of the Nautilus quotes Verne for its shape, with the chapter", () => {
   const ship = svg("<path/>");
-  const entry = original("nautilus.svg", ship, { title: "The Nautilus, in profile" });
+  const entry = original("nautilus.svg", ship, { title: "The Nautilus, in profile", subject: "nautilus" });
   const art = { manifest: { art: [entry] }, files: new Map([["nautilus.svg", ship]]) };
   assert.match(checkArt(art).join("\n"), /nautilus\.svg: a drawing of the Nautilus needs shape notes quoting Verne/);
   entry.shape = [{ quote: "It is an elongated cylinder with conical ends.", chapter: "" }];
@@ -124,4 +148,18 @@ test("the drawings stay inside the hero's budget", () => {
   art.files.set("sardine.svg", big);
   art.manifest.art[0].sha256 = sha256(big);
   assert.match(checkArt(art).join("\n"), new RegExp(`over the hero's ${ART_BUDGET} byte gzip budget`));
+});
+
+test("a chapter's drawings count against the chapter's budget, not the hero's", () => {
+  const art = fixture();
+  const plan = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><!--${randomBytes(CHAPTER_ART_BUDGET).toString("base64")}--></svg>`);
+  art.files.set("plan.svg", plan);
+  art.manifest.art.push(original("plan.svg", plan, { chapter: "I" }));
+  assert.match(checkArt(art).join("\n"), /Chapter I's drawings are \d+ bytes gzipped, over its/);
+  assert.doesNotMatch(checkArt(art).join("\n"), /over the hero's/);
+  const small = svg('<path d="M0 0h2"/>');
+  art.files.set("plan.svg", small);
+  art.manifest.art.at(-1).sha256 = sha256(small);
+  assert.deepEqual(checkArt(art), []);
+  assert.ok(CHAPTER_ART_BUDGET > ART_BUDGET);
 });

@@ -12,6 +12,7 @@ const sources = () => ({
   vitestConfig: read("vitest.config.ts"),
   themes: read("site/src/themes/themes.json"),
   voyageSpec: read("site/e2e/voyage.spec.ts"),
+  stage: read("site/src/voyage/stage/stage.tsx"),
 });
 
 test("each claim on the hero's proof line comes from its source", () => {
@@ -24,16 +25,32 @@ test("each claim on the hero's proof line comes from its source", () => {
   assert.equal(proof.coverage, 100);
   assert.equal(proof.themes, JSON.parse(files.themes).length);
   assert.equal(proof.typescript, true);
-  assert.equal(proof.line, `${ui.length} React components · TypeScript · Chromium + WebKit + touch tested · axe-clean in 6 themes · every line covered`);
+  assert.equal(proof.stage, true);
+  assert.equal(proof.line, `${ui.length} React components · TypeScript · Chromium + WebKit + touch tested · axe-clean in 6 themes · every line covered · This stage is built with HX`);
   assert.deepEqual(
-    proof.claims.map((claim) => claim.href),
-    [EVIDENCE.components, EVIDENCE.typescript, EVIDENCE.engines, EVIDENCE.themes, EVIDENCE.coverage],
+    proof.claims.map((claim) => claim.href.replace(/#L\d+$/, "")),
+    [EVIDENCE.components, EVIDENCE.typescript, EVIDENCE.engines, EVIDENCE.themes, EVIDENCE.coverage, EVIDENCE.stage],
   );
+});
+
+test("a line link lands on the line that makes its claim", () => {
+  const files = sources();
+  const line = (source, href) => source.split("\n")[Number(/#L(\d+)$/.exec(href)[1]) - 1];
+  const [, , , themes, coverage] = currentProof().claims;
+  assert.match(line(files.voyageSpec, themes.href), /test\.describe\("every preset, light and dark"/);
+  assert.match(line(files.vitestConfig, coverage.href), /thresholds: \{ lines: 100/);
+});
+
+test("the stage claim needs the stage built from registry components", () => {
+  const files = sources();
+  const stage = files.stage.replaceAll("@/registry/ouro/components/ouro/", "@/elsewhere/");
+  assert.equal(deriveProof({ ...files, stage }).stage, false);
+  assert.doesNotMatch(deriveProof({ ...files, stage }).line, /This stage/);
 });
 
 test("each claim links to evidence that exists in this repository", () => {
   for (const href of Object.values(EVIDENCE)) {
-    const path = /github\.com\/ourostack\/ouro-ui\/(?:tree|blob)\/main\/(.+)$/.exec(href)?.[1];
+    const path = /github\.com\/ourostack\/ouro-ui\/(?:tree|blob)\/main\/([^#?]+)/.exec(href)?.[1];
     if (path) assert.ok(existsSync(new URL(`../../${path}`, import.meta.url)), href);
     else if (!href.includes("/actions/workflows/")) assert.equal(href, "/ouro-ui/docs/");
   }
