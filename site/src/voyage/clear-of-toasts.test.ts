@@ -1,9 +1,10 @@
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { keepClearOfToasts } from "./clear-of-toasts";
 
 // keepClearOfToasts: once a toast shows, the page scrolls just enough that what it is about sits
 // clear above the stack. The toast may mount a few frames after the press, when the page is busy
-// (a chapter's island hydrating, say), and it still scrolls then.
+// (a chapter's island hydrating, say), and it still scrolls then, starting as the toast mounts, so
+// the toast is never seen at rest over what it is about.
 
 const frames = (count: number) =>
   new Promise<void>((resolve) => {
@@ -12,6 +13,7 @@ const frames = (count: number) =>
   });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   document.body.replaceChildren();
   window.scrollTo({ top: 0, behavior: "instant" });
 });
@@ -54,5 +56,17 @@ it("scrolls the element clear above a toast that mounts some frames after the ca
   await frames(6);
   expect(window.scrollY).toBe(0);
   showToast(stack);
+  await expect.poll(() => button.getBoundingClientRect().bottom).toBeLessThanOrEqual(toastTop());
+});
+
+it("starts the scroll as the toast mounts, before the frame that first paints it", async () => {
+  const { button, stack } = setUp();
+  const scrollBy = vi.spyOn(window, "scrollBy");
+  keepClearOfToasts(button);
+  await frames(3);
+  showToast(stack);
+  // The observer's callback is a microtask: it runs before any frame.
+  await new Promise<void>((resolve) => queueMicrotask(resolve));
+  expect(scrollBy).toHaveBeenCalledOnce();
   await expect.poll(() => button.getBoundingClientRect().bottom).toBeLessThanOrEqual(toastTop());
 });
