@@ -81,6 +81,31 @@ describe("EventChip", () => {
     expect(dot.getBoundingClientRect().width).toBe(6);
   });
 
+  it.each([
+    ["primary", "bg-primary"],
+    ["secondary", "bg-muted-foreground"],
+    ["destructive", "bg-destructive"],
+    ["success", "bg-success"],
+    ["warning", "bg-warning"],
+  ] as const)("draws the %s status dot with %s", async (statusTone, token) => {
+    const { chip } = await render(<EventChip {...base} status="Ready" statusTone={statusTone} />);
+    expect(chip.querySelector('[data-ouro-event-status] [aria-hidden="true"]')!.classList).toContain(token);
+  });
+
+  it("draws the time in the primary color only when the event is soon or now", async () => {
+    const { chip, rerender } = await render(<EventChip {...base} status="Ready" />);
+    const when = () => chip.querySelector<HTMLElement>("[data-ouro-event-when]")!;
+    const title = () => chip.querySelector<HTMLElement>("[data-ouro-event-title]")!;
+    // Upcoming, the time and status are quieter than the title.
+    expect(when().classList).not.toContain("text-primary");
+    expect(getComputedStyle(when()).color).not.toBe(getComputedStyle(title()).color);
+    expect(getComputedStyle(chip.querySelector("[data-ouro-event-status]")!).color).not.toBe(getComputedStyle(title()).color);
+    for (const state of ["soon", "now"] as const) {
+      await rerender(<EventChip {...base} state={state} />);
+      expect(when().classList).toContain("text-primary");
+    }
+  });
+
   it("cuts a long title to one line inside its container", async () => {
     const { chip, host } = await render(<EventChip {...base} title={"Quarterly planning ".repeat(10)} status="Needs you" onClick={() => {}} />);
     const title = chip.querySelector<HTMLElement>("[data-ouro-event-title]")!;
@@ -120,6 +145,13 @@ describe("EventChip", () => {
 });
 
 describe("EventChip development messages", () => {
+  it("warns of nothing when the props are right", async () => {
+    await render(<EventChip {...base} />);
+    await render(<EventChip {...base} status="Ready" />);
+    await render(<EventChip {...base} label="Next event" state="now" status="Ready" statusTone="success" onClick={() => {}} />);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it.each([
     ["a missing title", { title: undefined }, "title is missing, so the chip does not say which event it is", '<EventChip title="Weekly sync" when="in 12 min">'],
     ["an unknown state", { state: "late" }, 'state="late" is not a state; use "upcoming", "soon" or "now"', '<EventChip state="soon">'],
