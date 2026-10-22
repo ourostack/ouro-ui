@@ -6,11 +6,10 @@ const L = CV + " .site-window { will-change: transform; }";
 const W = " .site-window { will-change: transform; }";
 const S = ":is(#themes, #chapter-one, #chapter-two, #chapter-three, #agents)";
 const VARIANTS = {
-  base: "",
-  layeronly: W,
-  cvlayer: CV + W,
-  containlayer: S + " { contain: layout paint style; }" + W,
-  containlayout: S + " { contain: layout; }" + W,
+  layer: W,
+  noart: W + " main svg { visibility: hidden !important; }",
+  noshadowall: W + " *, *::before, *::after { box-shadow: none !important; filter: none !important; backdrop-filter: none !important; }",
+  notext: W + " main * { color: transparent !important; text-shadow: none !important; }",
 };
 const frames = (page) => page.evaluate(() => new Promise((r) => { const t = []; let last = performance.now(); const tick = (now) => { t.push(now - last); last = now; if (t.length < 40) requestAnimationFrame(tick); else { t.sort((a, b) => a - b); r(`${t[20].toFixed(0)}/${t[36].toFixed(0)}`); } }; requestAnimationFrame(tick); }));
 const record = (page) => page.evaluate(() => { const w = window; w.__long = []; let last = performance.now(); const tick = (now) => { if (now - last > 40) w.__long.push(Math.round(now - last)); last = now; w.__raf = requestAnimationFrame(tick); }; w.__raf = requestAnimationFrame(tick); });
@@ -44,6 +43,7 @@ for (const type of [webkit, chromium]) {
       await page.locator("#chapter-two[data-chapter-ready]").waitFor({ state: "attached" });
       await page.waitForTimeout(500);
       row.push(`c2 ${await frames(page)}`);
+      row.push(`lockcost ${await page.evaluate(() => new Promise((r) => { const t0 = performance.now(); document.body.style.overflow = "hidden"; void document.body.offsetHeight; const t1 = performance.now(); requestAnimationFrame(() => { const t2 = performance.now(); requestAnimationFrame(() => { const t3 = performance.now(); document.body.style.overflow = ""; void document.body.offsetHeight; const t4 = performance.now(); requestAnimationFrame(() => requestAnimationFrame(() => r(`layout ${Math.round(t1 - t0)} frame ${Math.round(t2 - t1)}+${Math.round(t3 - t2)} unlock layout ${Math.round(performance.now() - t3)} total ${Math.round(performance.now() - t4)}`))); }); }); }))}`);
       t0 = Date.now();
       let [opens, picks] = [0, 0];
       for (const port of ["Atlantis", "Crespo Island"]) {
