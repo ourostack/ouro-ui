@@ -19,6 +19,7 @@ import blueprintSource from "../../nautilus/art/nautilus-blueprint.svg?raw";
 import dividersSource from "../../nautilus/art/dividers.svg?raw";
 import islandSource from "../../nautilus/art/island-yard.svg?raw";
 import { GITHUB } from "../../paths";
+import { afterPaint, useAfterPaint } from "../after-paint";
 import { keepClearOfToasts } from "../clear-of-toasts";
 import { Container } from "../layout";
 import { useStable } from "../use-stable";
@@ -331,6 +332,9 @@ function Shipyard(): JSX.Element {
   const plan = useDeferredValue(useMemo(() => ({ built, launched }), [built, launched]));
   // The rail follows the plan.
   useEffect(() => voyage.set(plan), [voyage, plan]);
+  // The jobs follow a reorder once it has painted: the handles' list and its menu are the press's
+  // own, and the checklist renders again for the new order.
+  const jobOrder = useAfterPaint(order);
 
   // The crew's line follows the control's own change by a frame: it's a transition, so the press
   // paints first.
@@ -385,7 +389,7 @@ function Shipyard(): JSX.Element {
           <p className="site-eyebrow mb-2" aria-hidden="true">
             {SHIPYARD.jobs}
           </p>
-          <JobList order={order} built={built} onTick={tick} />
+          <JobList order={jobOrder} built={built} onTick={tick} />
         </div>
       </div>
       <div className="grid gap-4 border-t border-border/70 p-4 sm:p-6">
@@ -490,13 +494,11 @@ function Articles(): JSX.Element {
     // does: making the form's fields again is most of a signing's work, and the toast stack measures
     // and re-lays itself out, so both wait for the press's own paint (your row on the list) rather
     // than holding it up. Your row and Conseil's welcome under it are kept clear of the toast.
-    requestAnimationFrame(() =>
-      setTimeout(() => {
-        startTransition(() => setSignings((count) => count + 1));
-        toast(ARTICLES.signed(name), { tone: "success", description: ARTICLES.onList });
-        keepClearOfToasts(box.current?.querySelector("[data-chapter-crew]"));
-      }),
-    );
+    afterPaint(() => {
+      startTransition(() => setSignings((count) => count + 1));
+      toast(ARTICLES.signed(name), { tone: "success", description: ARTICLES.onList });
+      keepClearOfToasts(box.current?.querySelector("[data-chapter-crew]"));
+    });
   };
   // Off the list, and back to the articles' first field to sign again.
   const leave = () => {
