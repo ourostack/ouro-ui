@@ -485,13 +485,14 @@ function Articles(): JSX.Element {
     setAnswer({ errors: undefined });
     setPending(null);
     setYou({ name, trade });
-    setSignings((count) => count + 1);
     setLine(SIGN.welcome(name, trade));
-    // The toast follows once the press has painted, as the bell's does: the toast stack measures
-    // and re-lays itself out, so it waits for the press's own paint rather than holding it up. Your
-    // row and Conseil's welcome under it are kept clear of it.
+    // The new, empty form and the toast follow once the press has painted, as the bell's toast
+    // does: making the form's fields again is most of a signing's work, and the toast stack measures
+    // and re-lays itself out, so both wait for the press's own paint (your row on the list) rather
+    // than holding it up. Your row and Conseil's welcome under it are kept clear of the toast.
     requestAnimationFrame(() =>
       setTimeout(() => {
+        startTransition(() => setSignings((count) => count + 1));
         toast(ARTICLES.signed(name), { tone: "success", description: ARTICLES.onList });
         keepClearOfToasts(box.current?.querySelector("[data-chapter-crew]"));
       }),
