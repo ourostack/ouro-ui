@@ -8,6 +8,7 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 export default function BriefingCardDemo(): JSX.Element {
   return (
     <BriefingCard
+      headingLevel={2}
       title="Weekly sync"
       detail="In 25 min · 6 people"
       status="Needs you"
