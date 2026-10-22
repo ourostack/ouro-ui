@@ -2252,5 +2252,65 @@
       "InstallPrompt/Playground",
       "InstallPrompt/InContext"
     ]
+  },
+  {
+    "item": "conversation-list",
+    "stem": "conversation-list",
+    "mode": "default",
+    "part": "row",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "ConversationList/Playground",
+      "ConversationList/Selectable",
+      "ConversationList/Compact",
+      "ConversationList/Empty"
+    ]
+  },
+  {
+    "item": "attention-card",
+    "stem": "attention-card",
+    "mode": "default",
+    "part": "open",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "AttentionCard/Playground",
+      "AttentionCard/Reasons",
+      "AttentionCard/Opening",
+      "AttentionCard/Actions"
+    ]
+  },
+  {
+    "item": "reaction-bar",
+    "stem": "reaction-bar",
+    "mode": "default",
+    "part": "reaction",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "ReactionBar/Playground",
+      "ReactionBar/InMessage",
+      "ReactionBar/ReadOnly",
+      "ReactionBar/Disabled"
+    ]
+  },
+  {
+    "item": "reaction-bar",
+    "stem": "reaction-bar",
+    "mode": "default",
+    "part": "quick",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "ReactionBar/Playground",
+      "ReactionBar/InMessage",
+      "ReactionBar/ReadOnly",
+      "ReactionBar/Disabled"
+    ]
   }
 ]

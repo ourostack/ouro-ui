@@ -1,0 +1,10 @@
+{
+  "order": 2620,
+  "components": ["reaction-bar"],
+  "controls": {
+    "reaction-bar": [
+      {"part": "reaction", "role": "button", "portal": false},
+      {"part": "quick", "role": "button", "portal": false}
+    ]
+  }
+}

@@ -18,6 +18,12 @@
   --stage-fade: var(--ouro-duration-slow) ease;
   position: relative;
   display: block;
+  /*
+   * Square, as its drawing is, and skipped while off screen: a press in the chapters then has none of
+   * the porthole's layers to sort. Its height comes from the ratio, so a skipped scene keeps its size.
+   */
+  aspect-ratio: 1;
+  content-visibility: auto;
   /* The ripples' lines are sized from the scene's width (100cqi, the drawing's 560 units). */
   container-type: inline-size;
   /* A picture, not a target: hit testing skips its shapes. */
