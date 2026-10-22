@@ -11,7 +11,8 @@ export const agentCases: AgentCase[] = [
     dev: '<Tabs orientation="horizontal">',
     names: ["tsc", "dev"],
   },
+  { id: "tabs04", habit: "the router's pathname on link tabs", tsc: [notAssignable("string", `{ 'Use <Tabs currentPath={pathname}>': never; }`)], dev: "<Tabs currentPath={pathname}>", names: ["tsc", "dev"] },
 ];
 
 /** Valid tabs snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["tabsOk01"];
+export const validSnippets: string[] = ["tabsOk01", "tabsOk02"];

@@ -1201,7 +1201,8 @@ jobs:
     # that was not, and with neither fails asking for all jobs to be run again; otherwise it warns
     # (scripts/ci-budget.mjs, judge). A job that no ci.yml job name matches fails any run. It also
     # records the wall time a developer waits, queues included, with its median over the latest
-    # runs, and the runner time the run took from the shared pool.
+    # runs, and the runner time the run took from the shared pool. Advisory: ruleset 24881709 does
+    # not require it yet.
     needs: [plan, ci, motion-coverage, themes, conformance, mutation, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-latest, install-upgrade, install-github]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest

@@ -3,6 +3,8 @@ import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, server, userEvent } from "vitest/browser";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Menu, MenuItem } from "@/registry/ouro/components/ouro/menu/menu";
 import { Reorderable, type ReorderableProps } from "@/registry/ouro/components/ouro/reorderable/reorderable";
 import { dropIndex, edgeSpeed, EDGE, MAX_SPEED, moveItem, scrollParent } from "@/registry/ouro/components/ouro/reorderable/reorderable-styles";
 import { rubberband } from "@/registry/ouro/lib/ouro/spring";
@@ -400,6 +402,50 @@ describe("Reorderable", () => {
       // The move does not animate: every row is in its place at once.
       for (const row of rows(element)) expect(row.style.transform).toBe("");
       expect(element.hasAttribute("data-ouro-settling")).toBe(false);
+    });
+
+    it("leaves the page's scroll alone while the menu is open: its menu does not hold the page", async () => {
+      // A dropdown: below 640px the menu is a phone sheet, which holds the page (Menu's own tests).
+      await page.viewport(1024, 768);
+      const locked = () => [document.documentElement, document.body].some((element) => /hidden|clip/.test(getComputedStyle(element).overflowY));
+      // Every time the page's scroll locks, from before the handle's menu opens to the end.
+      const locks: number[] = [];
+      let was = false;
+      const watch = new MutationObserver(() => {
+        const now = locked();
+        if (now && !was) locks.push(performance.now());
+        was = now;
+      });
+      for (const target of [document.documentElement, document.body]) watch.observe(target, { attributes: true });
+      watch.observe(document.head, { childList: true });
+      try {
+        await render(
+          <>
+            {list()}
+            <Menu trigger={<Button>Control</Button>}>
+              <MenuItem onClick={() => {}}>Hoist</MenuItem>
+            </Menu>
+          </>,
+        );
+        await userEvent.click(handle("Soften"));
+        await menuOpen();
+        expect(document.querySelector('[role="menu"]')!.getAttribute("data-ouro-presentation")).not.toBe("sheet");
+        await userEvent.click(move("Move down"));
+        await menuClosed();
+        // The positive control: a Menu that holds the page, opened after, locks it, and the watch
+        // sees it. Base UI locks on a timeout after a menu opens, so a lock the handle's menu took
+        // while it was open would be in the list before this one.
+        const control = performance.now();
+        await userEvent.click(page.getByRole("button", { name: "Control", exact: true }));
+        await expect.poll(() => locks.length).toBe(1);
+        expect(locks[0]).toBeGreaterThan(control);
+        await userEvent.keyboard("{Escape}");
+        await menuClosed();
+        await expect.poll(locked).toBe(false);
+      } finally {
+        watch.disconnect();
+        await page.viewport(414, 896);
+      }
     });
 
     it("moves a row to the top and to the bottom, and disables the moves that cannot apply", async () => {

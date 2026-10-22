@@ -3,7 +3,7 @@ import { EventEmitter } from "node:events";
 import { performance } from "node:perf_hooks";
 import { mock, test } from "node:test";
 import { clearTimeout, setTimeout } from "node:timers";
-import { touchDrag, touchStep } from "../registry/ouro/lib/ouro/testing/commands.ts";
+import { DRAG_SLOW_MS, drag, touchDrag, touchStep } from "../registry/ouro/lib/ouro/testing/commands.ts";
 
 // The touch kit's frame logic against a stand-in Chromium page, where Playwright lists a frame
 // exactly when the test says. In a real browser the delay before Playwright lists a new frame in
@@ -314,6 +314,43 @@ test("a cross-origin frame that never answers its tidying up holds up no touch e
   assert.ok(start < 200 && end < 200, `touchStart ${start}ms, touchEnd ${end}ms`);
 });
 
+test("a touchstart or touchmove the page handled asks nothing more of the frame that handled it, and a lift tidies that frame and waits for it", async () => {
+  const { ctx, tests, stop } = stage({ onPage: true, listAfter: 60_000 });
+  // Each call into the test's frame, by action; its tidying up takes 800ms.
+  const actions = [];
+  const evaluate = tests.evaluate;
+  tests.evaluate = async (call) => {
+    const action = /\)\("(\w+)"/.exec(call)?.[1];
+    actions.push(action);
+    if (action === "settle") await new Promise((resolve) => setTimeout(resolve, 800));
+    return evaluate(call);
+  };
+  try {
+    let started = performance.now();
+    await touchStep(ctx, { type: "touchStart", x: 100, y: 50 });
+    const start = performance.now() - started;
+    assert.deepEqual(actions, ["expect", "wait"]);
+    started = performance.now();
+    await touchStep(ctx, { type: "touchMove", x: 100, y: 60 });
+    const move = performance.now() - started;
+    assert.deepEqual(actions.splice(0), ["expect", "wait", "expect", "wait"]);
+    assert.ok(start < 400 && move < 400, `touchStart ${start}ms, touchMove ${move}ms`);
+    started = performance.now();
+    await touchStep(ctx, { type: "touchEnd" });
+    assert.deepEqual(actions, ["expect", "wait", "settle"]);
+    assert.ok(performance.now() - started >= 790, "a lift waits for the frame's tidying");
+  } finally {
+    stop();
+  }
+});
+
+test("a touchstart does not wait for Chromium to let go of the node at its point", async () => {
+  const { start, end, sees } = await tapOnPage({ delays: { "Runtime.releaseObject": 1500 } });
+  assert.equal(sees, "touchend");
+  assert.ok(start < 400, `touchStart ${start}ms`);
+  assert.ok(end < 1400, `touchEnd ${end}ms`);
+});
+
 test("a touch command that takes longer than a second logs its steps, when each frame's watch answered and how late Node ran", async () => {
   const warn = mock.method(console, "warn", () => {});
   try {
@@ -322,7 +359,7 @@ test("a touch command that takes longer than a second logs its steps, when each 
     const [message] = warn.mock.calls[0].arguments;
     assert.match(
       message,
-      /^touchStep: the touchStart at \(100, 50\) took \d+ms\. Steps: \+\d+ms asked Chromium: layout \d+ms, hit test \d+ms, node \d+ms, watcher \d+ms, frame id \d+ms, released \d+ms; \+\d+ms the frame at the point: true, the test page; \+\d+ms watched; \+\d+ms sent; \+\d+ms handled by http:\/\/localhost:63315\/__vitest_test__\/; \+\d+ms tidied, waiting for http:\/\/localhost:63315\/__vitest_test__\/\. Watches: http:\/\/localhost:63315\/ answered at \+\d+ms; http:\/\/localhost:63315\/__vitest_test__\/ answered at \+\d+ms\. Node's event loop ran up to \d+ms late\.$/,
+      /^touchStep: the touchStart at \(100, 50\) took \d+ms\. Steps: \+\d+ms asked Chromium: layout \d+ms, hit test \d+ms, node \d+ms, watcher \d+ms, frame id \d+ms; \+\d+ms the frame at the point: true, the test page; \+\d+ms watched; \+\d+ms sent; \+\d+ms handled by http:\/\/localhost:63315\/__vitest_test__\/; \+\d+ms tidied, waiting for no frame\. Watches: http:\/\/localhost:63315\/ answered at \+\d+ms; http:\/\/localhost:63315\/__vitest_test__\/ answered at \+\d+ms\. Node's event loop ran up to \d+ms late\.$/,
     );
   } finally {
     warn.mock.restore();
@@ -556,5 +593,83 @@ test("a refusal after many rounds of asking keeps the first and last of its step
     });
   } finally {
     stop();
+  }
+});
+
+/**
+ * A page whose mouse answers each call at once, except the `hangAt`th (from 1), which answers
+ * after `hangMs` (never, by default).
+ */
+function mousePage(hangAt = 0, hangMs = Infinity) {
+  const calls = [];
+  const answer = (name) => async () => {
+    calls.push(name);
+    if (calls.length === hangAt) return Number.isFinite(hangMs) ? new Promise((resolve) => setTimeout(resolve, hangMs)) : new Promise(() => {});
+  };
+  return { calls, page: { mouse: { move: answer("move"), down: answer("down"), up: answer("up") }, waitForTimeout: (ms) => new Promise((resolve) => setTimeout(resolve, ms)) } };
+}
+
+const STEP = String.raw`(?:the move to the start|the press|move \d+|the release) \d+ms`;
+
+test("a mouse drag the browser stops answering logs the move it is stuck on and each earlier move's time, and is not refused", { timeout: 15_000 }, async () => {
+  const warn = mock.method(console, "warn", () => {});
+  try {
+    // The move to the start, the press, move 1, then move 2 never answers.
+    const { page } = mousePage(4);
+    let ended = false;
+    drag({ page }, { from: [10, 10], to: [50, 10], steps: 4, durationMs: 40 }).finally(() => (ended = true));
+    await new Promise((resolve) => setTimeout(resolve, DRAG_SLOW_MS + 500));
+    assert.equal(ended, false, "the drag is left to the test's own time limit");
+    assert.equal(warn.mock.callCount(), 1);
+    assert.match(
+      warn.mock.calls[0].arguments[0],
+      /^drag: still waiting on move 2 after \d+ms, \d+ms into a 40ms drag of 4 moves \(logged at 3040ms\)\. Each step before it, pauses between moves left out: the move to the start \d+ms, the press \d+ms, move 1 \d+ms\.$/,
+    );
+  } finally {
+    warn.mock.restore();
+  }
+});
+
+test("a mouse drag stalled in the pause after a move names that pause, not the move", { timeout: 15_000 }, async () => {
+  const warn = mock.method(console, "warn", () => {});
+  try {
+    const { page } = mousePage();
+    page.waitForTimeout = () => new Promise(() => {});
+    void drag({ page }, { from: [10, 10], to: [50, 10], steps: 4, durationMs: 40 });
+    await new Promise((resolve) => setTimeout(resolve, DRAG_SLOW_MS + 500));
+    assert.equal(warn.mock.callCount(), 1);
+    assert.match(warn.mock.calls[0].arguments[0], /^drag: still waiting on the pause after move 1 after \d+ms, .* move 1 \d+ms\.$/);
+  } finally {
+    warn.mock.restore();
+  }
+});
+
+test("a slow mouse drag that finishes logs every step's time once it ends", { timeout: 15_000 }, async () => {
+  const warn = mock.method(console, "warn", () => {});
+  try {
+    const { calls, page } = mousePage(4, DRAG_SLOW_MS + 300);
+    await drag({ page }, { from: [10, 10], to: [50, 10], steps: 4, durationMs: 40 });
+    assert.deepEqual(calls, ["move", "down", "move", "move", "move", "move", "up"]);
+    assert.equal(warn.mock.callCount(), 2);
+    assert.match(warn.mock.calls[0].arguments[0], /^drag: still waiting on move 2 /);
+    assert.match(
+      warn.mock.calls[1].arguments[0],
+      new RegExp(String.raw`^drag: finished after \d+ms, in a 40ms drag of 4 moves \(logged at 3040ms\)\. Each step, pauses between moves left out: ${STEP}(?:, ${STEP}){6}\.$`),
+    );
+    assert.match(warn.mock.calls[1].arguments[0], /move 2 3[3-9]\d\dms/);
+  } finally {
+    warn.mock.restore();
+  }
+});
+
+test("a mouse drag that finishes in time logs nothing", async () => {
+  const warn = mock.method(console, "warn", () => {});
+  try {
+    const { calls, page } = mousePage();
+    await drag({ page }, { from: [10, 10], to: [50, 10], steps: 4, durationMs: 40 });
+    assert.deepEqual(calls, ["move", "down", "move", "move", "move", "move", "up"]);
+    assert.equal(warn.mock.callCount(), 0);
+  } finally {
+    warn.mock.restore();
   }
 });

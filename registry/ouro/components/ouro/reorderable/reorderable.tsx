@@ -642,6 +642,8 @@ export function Reorderable(props: ReorderableProps): JSX.Element {
                   if (!next) setMenu(null);
                 }}
                 closeLabel={closeLabel}
+                // A menu on every row: holding the page would lay out and repaint all of it on each open and close.
+                modal={false}
                 trigger={
                   <button
                     ref={dragProps.ref}
