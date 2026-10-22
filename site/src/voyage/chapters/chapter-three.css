@@ -1,10 +1,76 @@
 /*
- * Chapter III once it answers (chapter-three.tsx puts this in the page as the island hydrates):
+ * Chapter III once it answers (chapter-three.tsx puts this in the page as the island hydrates).
+ *
+ * First, the drawings' colours. The squid's skin is Verne's "livid grey to reddish brown", mixed
+ * from the theme, so each preset repaints it. They come with the island, not in the page's
+ * stylesheet, which keeps the first load's CSS within its budget (catalog.spec.ts); chapters.css
+ * holds the drawings' sizes and what starts hidden, and before this arrives the squid and the
+ * organ are line drawings (their roots draw no fill).
+ *
+ * Then the motion:
  * the squid's arm stirs at the glass a few times, then it sinks back into the deep behind its ink when the fight
  * is won; the sky comes up when you surface, the floodlights fade on, and the organ's notes rise
  * when Nemo plays (a few times, then they rest). Under reduced motion nothing moves: the squid and
  * the ink fade, the notes appear in place.
  */
+.site-porthole {
+  --ph-sea: color-mix(in oklab, var(--primary) 55%, oklch(0.24 0.045 250));
+  --sq-skin: color-mix(in oklab, var(--destructive) 50%, oklch(0.58 0.05 25));
+  --sq-line: color-mix(in oklab, white 72%, var(--sq-skin));
+}
+.site-porthole .ph-sea {
+  fill: var(--ph-sea);
+}
+.site-porthole .ph-sky rect {
+  fill: color-mix(in oklab, var(--primary) 28%, oklch(0.93 0.02 230));
+}
+.site-porthole .ph-wave {
+  fill: var(--ph-sea);
+}
+.site-porthole .ph-squid {
+  color: var(--sq-line);
+}
+.site-porthole .sq-arm,
+.site-porthole :is(.sq-mantle, .sq-head) {
+  fill: var(--sq-skin);
+}
+.site-porthole .sq-fin {
+  fill: color-mix(in oklab, black 14%, var(--sq-skin));
+}
+.site-porthole .sq-glass-arm .sq-arm {
+  fill: color-mix(in oklab, white 14%, var(--sq-skin));
+}
+.site-porthole .sq-suckers circle {
+  fill: color-mix(in oklab, white 80%, var(--sq-skin));
+  stroke: color-mix(in oklab, black 30%, var(--sq-skin));
+}
+.site-porthole .sq-eye {
+  fill: color-mix(in oklab, var(--success) 70%, white);
+}
+.site-porthole .ph-ring {
+  fill: none;
+  stroke: var(--chart-3);
+  stroke-width: 18;
+  paint-order: stroke;
+}
+.site-porthole .ph-bolt {
+  fill: color-mix(in oklab, var(--chart-3) 55%, var(--background));
+  stroke: color-mix(in oklab, var(--chart-3) 40%, var(--foreground));
+  stroke-width: 1.2;
+}
+.site-organ {
+  color: color-mix(in oklab, var(--primary) 65%, var(--foreground));
+}
+.site-organ .or-fill {
+  fill: color-mix(in oklab, var(--chart-3) 14%, var(--card));
+}
+.site-organ .or-keys-bed {
+  fill: var(--card);
+}
+.site-organ .or-mouth {
+  fill: currentColor;
+}
+
 .site-porthole :is(.ph-sky, .ph-beam, .ph-squid, .sq-ink),
 .site-organ :is(.or-note, .or-fill) {
   transition:

@@ -74,7 +74,7 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" fill=
        seen through the Nautilus's glass. A spindle body with fins at its tail, the head with one
        great staring eye and a parrot's beak, eight arms twice as long as the body, twisting away,
        and one laid against the glass with its suckers turned to us. Drawn by
-       site/scripts/drawings/squid.mjs; its colours come from the theme (chapters.css), but for the
+       site/scripts/drawings/squid.mjs; its colours come from the theme (chapter-three.css), but for the
        pupil, the glint and the beak, which keep their own; and
        the page moves its parts as the fight goes (sq-glass-arm lets go, the whole squid sinks back
        behind its ink). -->

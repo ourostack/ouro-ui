@@ -139,8 +139,8 @@
 }
 
 /*
- * Chapter III's drawings take their room here, so the page does not move as they come; their
- * colours come with the chapter's own HTML (chapter-three-art.css).
+ * Chapter III's drawings take their room here, so the page does not move as their colours come
+ * with the island (chapter-three.css), and what starts hidden starts hidden.
  */
 .site-porthole {
   display: block;
@@ -159,6 +159,10 @@
 .site-organ-small {
   width: 55%;
   margin-inline: 0;
+}
+.site-porthole :is(.ph-sky, .ph-beam, .sq-ink),
+.site-organ .or-note {
+  opacity: 0;
 }
 
 /* "Built for agents too": what the agent hears back, quoted as the tools print it, wrapped. */
