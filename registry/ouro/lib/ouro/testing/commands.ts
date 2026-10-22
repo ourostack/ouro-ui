@@ -988,9 +988,16 @@ export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from,
       ...(durationMs === undefined ? {} : { timestamp: start + (durationMs * t) / 1000 }),
     });
   await releaseFinger("touchDrag", page, session);
-  await sendTouch("touchDrag", page, session, { type: "touchEnd", x: to[0], y: to[1] }, { point: { x: from[0], y: from[1] } }, async () => {
+  // Set once the kit refuses the drag: Chromium may still let go of a held touch later, and the
+  // drag then sends nothing more. The finger is kept down (fingersDown) until its touchEnd is
+  // sent, so a refused drag's finger is lifted before the next gesture.
+  let refused = false;
+  const drag = async () => {
     const deliveries: Promise<unknown>[] = [];
     const send = async (type: "touchStart" | "touchMove" | "touchEnd", point: [number, number], t: number) => {
+      if (refused) return;
+      if (type === "touchEnd") fingersDown.delete(page);
+      else fingersDown.set(page, { x: point[0], y: point[1], frame: undefined });
       const delivery = touch(type, point, t);
       if (durationMs === undefined) await delivery;
       else deliveries.push(delivery);
@@ -1002,7 +1009,13 @@ export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from,
     }
     await send("touchEnd", to, 1);
     await Promise.all(deliveries);
-  });
+  };
+  try {
+    await sendTouch("touchDrag", page, session, { type: "touchEnd", x: to[0], y: to[1] }, { point: { x: from[0], y: from[1] } }, drag);
+  } catch (error) {
+    refused = true;
+    throw error;
+  }
 };
 
 export interface PointerPressOptions {
@@ -1115,10 +1128,12 @@ const fingersDown = new WeakMap<object, { x: number; y: number; frame: Frame | u
  */
 function acknowledged(command: string, point: TouchPoint, send: () => Promise<unknown>, limit: number | Limit): Promise<unknown> {
   const ms = typeof limit === "number" ? limit : limit.kit - kitNow();
+  const at = `(${Math.round(point.x)}, ${Math.round(point.y)})`;
+  const what = command === "touchDrag" && point.type === "touchEnd" ? `the drag's touches, ending at ${at},` : `the ${point.type} at ${at}`;
   return within(
     send(),
     limit,
-    `${command}: Chromium had not acknowledged the ${point.type} at (${Math.round(point.x)}, ${Math.round(point.y)}) within ${Math.round(ms)}ms: a listener in the page that can cancel it may be busy. The finger is lifted before the next gesture.`,
+    `${command}: Chromium had not acknowledged ${what} within ${Math.round(ms)}ms: a listener in the page that can cancel it may be busy. The kit sends nothing more for this gesture, and a finger it left down is lifted before the next one.`,
   );
 }
 
@@ -1133,8 +1148,12 @@ async function releaseFinger(command: string, page: Page, session: CDPSession) {
     await sendTouch(command, page, session, end, { frame: finger.frame }, send);
     return;
   }
-  // A page that never handled the touchstart gets no touchend to wait for.
-  await acknowledged(command, end, send, TOUCH_HANDLED_TIMEOUT_MS);
+  // A page that never handled the touchstart gets no touchend to wait for. A lift Chromium does not
+  // acknowledge keeps the finger down, to lift before the next gesture.
+  await acknowledged(command, end, send, TOUCH_HANDLED_TIMEOUT_MS).catch((error: unknown) => {
+    fingersDown.set(page, finger);
+    throw error;
+  });
   await Promise.all(watchTouch(page, "settle", end, TOUCH_TIDY_MS));
 }
 

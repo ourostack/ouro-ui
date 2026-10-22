@@ -3,7 +3,7 @@ import { EventEmitter } from "node:events";
 import { performance } from "node:perf_hooks";
 import { mock, test } from "node:test";
 import { clearTimeout, setTimeout } from "node:timers";
-import { touchStep } from "../registry/ouro/lib/ouro/testing/commands.ts";
+import { touchDrag, touchStep } from "../registry/ouro/lib/ouro/testing/commands.ts";
 
 // The touch kit's frame logic against a stand-in Chromium page, where Playwright lists a frame
 // exactly when the test says. In a real browser the delay before Playwright lists a new frame in
@@ -34,10 +34,11 @@ import { touchStep } from "../registry/ouro/lib/ouro/testing/commands.ts";
  * touches nowhere, so the page never handles them. With `busyOnceSent`, the frame turns busy once a
  * touch is sent: no call into it answers after that, its wait and its tidying up included. The
  * frame's own hit test (DOM.getNodeForLocation) never answers the first `hitTestHangs` times it is
- * asked, as in a frame busy running its scripts. With `ackHangs`, Chromium never acknowledges a
+ * asked, as in a frame busy running its scripts. With `ackAfter`, Chromium acknowledges a touchStart
+ * only that many ms after it is sent. With `ackHangs`, Chromium never acknowledges a
  * touchStart (Input.dispatchTouchEvent), as when a listener that can cancel it is busy in the page.
  */
-function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage = false, delays = {}, stuck, hitTestableAfter = 0, routedAfter = hitTestableAfter, reembed = false, sessionAfter = 0, busyUntil = 0, lost = false, busyOnceSent = false, sessionEarly = 0, hitTestHangs = 0, ackHangs = false } = {}) {
+function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage = false, delays = {}, stuck, hitTestableAfter = 0, routedAfter = hitTestableAfter, reembed = false, sessionAfter = 0, busyUntil = 0, lost = false, busyOnceSent = false, sessionEarly = 0, hitTestHangs = 0, ackHangs = false, ackAfter = 0 } = {}) {
   const page = new EventEmitter();
   const sent = [];
   const frame = (name, frameUrl, parent, id) => {
@@ -129,6 +130,11 @@ function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage =
           sent.push({ type: params.type, unacknowledged: true });
           return new Promise(() => {});
         }
+        if (ackAfter > 0 && params.type === "touchStart") {
+          sent.push({ type: params.type, at: since() });
+          await new Promise((resolve) => setTimeout(resolve, ackAfter));
+          return {};
+        }
         sent.push({ type: params.type, targetListed: listed.includes(target), targetArmed: target.armed, targetDrew: target.drew, at: since() });
         if (lost) return {};
         // Until Chromium routes touches into the frame, the page around it gets them, on its element.
@@ -175,7 +181,11 @@ function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage =
     }),
   });
   const ctx = { page, provider: { name: "playwright" } };
-  const start = () => {
+  // Starts the stage's clock and timers once, for the first gesture.
+  let begun = false;
+  const begin = () => {
+    if (begun) return;
+    begun = true;
     started = Date.now();
     timer = setTimeout(list, listAfter);
     if (sessionAfter > 0)
@@ -183,9 +193,16 @@ function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage =
         hasSession = true;
         page.emit("framenavigated", target);
       }, sessionAfter - sessionEarly);
+  };
+  const start = () => {
+    begin();
     return touchStep(ctx, { type: "touchStart", x: 100, y: 350 });
   };
-  return { ctx, sent, target, tests, start, stop: () => (clearTimeout(timer), clearTimeout(sessionTimer)) };
+  const drag = () => {
+    begin();
+    return touchDrag(ctx, { from: [100, 350], to: [100, 380], steps: 3 });
+  };
+  return { ctx, sent, target, tests, start, drag, stop: () => (clearTimeout(timer), clearTimeout(sessionTimer)) };
 }
 
 test("a touchstart on a frame in another process that Playwright lists late waits for that frame's watcher, then reaches it", async () => {
@@ -506,6 +523,21 @@ test("a touch Chromium never acknowledges is refused at the time limit, saying s
     await assert.rejects(start(), /^Error: touchStep: Chromium had not acknowledged the touchStart at \(100, 350\) within 5000ms\b/);
     assert.ok(performance.now() - started < 8000);
     assert.deepEqual(sent.map(({ type }) => type), ["touchStart"]);
+  } finally {
+    stop();
+  }
+});
+
+test("a drag refused while Chromium holds its touchStart sends nothing more once Chromium lets go, and its finger is lifted before the next gesture", { timeout: 20_000 }, async () => {
+  const { sent, start, drag, stop } = stage({ listAfter: 0, ackAfter: 6000 });
+  try {
+    await assert.rejects(drag(), /^Error: touchDrag: Chromium had not acknowledged the drag's touches, ending at \(100, 380\), within 5000ms: .* The kit sends nothing more for this gesture, and a finger it left down is lifted before the next one\./);
+    // Chromium acknowledges the touchStart a second later; the drag's moves and lift must not follow it.
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    assert.deepEqual(sent.map(({ type }) => type), ["touchStart"]);
+    // The next gesture lifts the finger the refused drag left down, first.
+    await assert.rejects(start(), /Chromium had not acknowledged the touchStart/);
+    assert.deepEqual(sent.map(({ type }) => type).slice(0, 3), ["touchStart", "touchEnd", "touchStart"]);
   } finally {
     stop();
   }
