@@ -552,13 +552,31 @@ if [ -n "${OURO_SHARD:-}" ] && [ -z "${OURO_COMPONENTS+set}" ]; then
 fi
 
 # CI installs the browsers' system packages in the background while it builds the app
-# (OURO_BROWSER_DEPS names the file their exit status lands in): wait for them, at most 15
-# minutes, and add them here only if that failed.
+# (OURO_BROWSER_DEPS names the file their exit status lands in): wait for them, however long they
+# take (the job's timeout bounds it), and install them here only after that install failed. A
+# second apt beside one still running races it for dpkg's and the package lists' locks (#169's run
+# 39759795561, #161's queue run 39764170430), so the browsers then install without --with-deps.
 deps=(${CI:+--with-deps})
-if [ -n "${OURO_BROWSER_DEPS:-}" ]; then
-  for _ in $(seq 450); do [ -s "$OURO_BROWSER_DEPS" ] && break; sleep 2; done
-  if [ "$(cat "$OURO_BROWSER_DEPS" 2>/dev/null)" = 0 ]; then deps=(); else echo "The background install of the browsers' system packages did not finish; installing them here."; fi
+# In Playwright's image (OURO_SYSTEM_PACKAGES=image, as CI's jobs run) the browsers and their
+# system packages are already there, and there is no apt to run.
+if [ "${OURO_SYSTEM_PACKAGES:-}" = image ]; then
+  deps=()
+elif [ -n "${OURO_BROWSER_DEPS:-}" ]; then
+  deps=()
+  waited=0
+  until [ -s "$OURO_BROWSER_DEPS" ]; do
+    sleep 2
+    waited=$((waited + 2))
+    [ $((waited % 60)) -ne 0 ] || echo "Waiting for the background install of the browsers' system packages (${waited}s)."
+  done
+  if [ "$(cat "$OURO_BROWSER_DEPS")" != 0 ]; then
+    echo "The background install of the browsers' system packages did not install them; installing them here."
+    while [ -n "${CI:-}" ] && pgrep -x 'apt-get|apt|dpkg' > /dev/null; do sleep 2; done
+    npx playwright install-deps chromium webkit
+  fi
 fi
+# Any other apt on the runner is waited out before an install that may run apt itself.
+while [ -n "${CI:-}" ] && pgrep -x 'apt-get|apt|dpkg' > /dev/null; do sleep 2; done
 
 echo "::group::Shipped Vitest browser tests"
 npx playwright install ${deps[@]+"${deps[@]}"} chromium webkit

@@ -1,8 +1,9 @@
 name: Browser cache
-# Keeps Playwright's browsers in main's Actions cache (.github/actions/playwright-browsers), where
-# every pull request, merge-queue and release run can restore them: a cache a pull request saves
-# is visible to that pull request only. Runs when the Playwright version or the action changes,
-# weekly so that a cache nothing restored for a week is not evicted for good, and by hand.
+# Keeps Playwright's browsers, and their system packages' .deb files (scripts/browser-deps.sh), in
+# main's Actions cache (.github/actions/playwright-browsers), where every pull request, merge-queue
+# and release run can restore them: a cache a pull request saves is visible to that pull request
+# only. Runs when the Playwright version or the action changes, daily, since the .deb files are
+# kept per runner image version and GitHub moves the images on, and by hand.
 on:
   push:
     branches: [main]
@@ -11,8 +12,9 @@ on:
       - .github/actions/playwright-browsers/**
       - .github/workflows/browser-cache.yml
       - scripts/retry.sh
+      - scripts/browser-deps.sh
   schedule:
-    - cron: "41 5 * * 1"
+    - cron: "41 5 * * *"
   workflow_dispatch:
 permissions:
   contents: read
@@ -40,4 +42,3 @@ jobs:
       - uses: ./.github/actions/playwright-browsers
         with:
           browsers: ${{ matrix.browsers }}
-          system-packages: "false"
