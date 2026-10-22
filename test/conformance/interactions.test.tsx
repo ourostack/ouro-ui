@@ -132,6 +132,12 @@ async function actionProblems({ Story, parameters }: StoryEntry): Promise<string
         await userEvent.keyboard("{Escape}");
       }
       await settle();
+      const expected = control ? declared.announces?.[name] : undefined;
+      // The shared announcer (lib/ouro/announce.ts) writes about 100ms after the call, which may be
+      // after the page settles: a declared announcement is waited for, up to a second.
+      for (const end = performance.now() + 1000; expected !== undefined && announcements.count(expected) === 0 && performance.now() < end; ) {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
       const lost = lostFocus();
       const exit = control ? exitKey(control, name) : "";
       if (lost && control && declared.focusExit?.[exit]) exited.add(exit);
@@ -141,7 +147,6 @@ async function actionProblems({ Story, parameters }: StoryEntry): Promise<string
       const heard = new Map<string, number>();
       for (const { text } of announcements.changes) heard.set(text, (heard.get(text) ?? 0) + 1);
       for (const [text, times] of heard) if (times > 1) problems.push(`after ${action}: "${text}" was announced ${times} times`);
-      const expected = control ? declared.announces?.[name] : undefined;
       if (expected !== undefined && announcements.count(expected) !== 1) problems.push(`after ${action}: "${expected}" was announced ${announcements.count(expected)} times, not once`);
     } finally {
       announcements.stop();
