@@ -137,12 +137,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
-    name: browser (${{ matrix.shard }}/4)
+        shard: [1, 2, 3, 4, 5, 6]
+    name: browser (${{ matrix.shard }}/6)
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
-      SHARD: ${{ matrix.shard }}/4
+      SHARD: ${{ matrix.shard }}/6
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -202,11 +202,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
-    name: scripts (${{ matrix.shard }}/2)
+        shard: [1, 2, 3]
+    name: scripts (${{ matrix.shard }}/3)
     env:
-      SHARD: ${{ matrix.shard }}/2
-      TIMINGS: .tmp/timings/scripts-${{ matrix.shard }}of2.json
+      SHARD: ${{ matrix.shard }}/3
+      TIMINGS: .tmp/timings/scripts-${{ matrix.shard }}of3.json
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -250,7 +250,7 @@ jobs:
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
-      BROWSER_SHARDS: 4
+      BROWSER_SHARDS: 6
     steps:
       - name: Every part passed
         env:
@@ -309,7 +309,7 @@ jobs:
     needs: [ci]
     runs-on: ubuntu-latest
     env:
-      MOTION_PARTITIONS: ouro-chromium:4,ouro-webkit:4,ouro-touch:4,site:4
+      MOTION_PARTITIONS: ouro-chromium:6,ouro-webkit:6,ouro-touch:6,site:6
       FULL_SUITE_PARTITIONS: ouro-chromium:1,ouro-webkit:1,ouro-touch:1,site:1
       REDUCED: ${{ needs.ci.outputs.reduced }}
       STEMS: ${{ needs.ci.outputs.stems }}
@@ -453,13 +453,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
-    name: e2e (${{ matrix.shard }}/3)
+        shard: [1, 2, 3, 4]
+    name: e2e (${{ matrix.shard }}/4)
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
-      SHARD: ${{ matrix.shard }}/3
-      OURO_E2E_TIMINGS: .tmp/timings/e2e-${{ matrix.shard }}of3.json
+      SHARD: ${{ matrix.shard }}/4
+      OURO_E2E_TIMINGS: .tmp/timings/e2e-${{ matrix.shard }}of4.json
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -511,7 +511,7 @@ jobs:
           SHARDS: ${{ needs.e2e-shard.result }}
         run: |
           if [ "$SHARDS" != success ]; then
-            echo "::error::An e2e shard did not pass ($SHARDS): see the e2e (n/3) jobs."
+            echo "::error::An e2e shard did not pass ($SHARDS): see the e2e (n/4) jobs."
             exit 1
           fi
   theme-install:
@@ -607,8 +607,8 @@ jobs:
     # check, build, the shipped Vitest tests and the shipped Playwright specs
     # (scripts/install-test.sh). shadcn: the app keeps the theme `shadcn init` wrote, and a stock
     # shadcn button builds beside Ouro's. ouro: ouro-theme comes from GitHub at this commit. The
-    # shipped tests take most of the time, so each app is installed in two jobs side by side and
-    # each runs half of them (OURO_SHARD); on a reduced pull request, the selected components'
+    # shipped tests take most of the time, so each app is installed in several jobs side by side and
+    # each runs its share of them (OURO_SHARD); on a reduced pull request, the selected components'
     # shipped tests, and none when it selected none (OURO_COMPONENTS). Each shard that passes
     # leaves a marker, which its variant's install check counts.
     needs: [plan]
@@ -620,16 +620,16 @@ jobs:
         variant: [shadcn, ouro]
         # Another shadcn preset than the README's, so its preset wording is verified.
         preset: [nova, vega]
-        shard: [1, 2]
+        shard: [1, 2, 3, 4]
         exclude:
           - variant: ouro
             preset: vega
-    name: install (${{ matrix.variant }}, ${{ matrix.preset }}, ${{ matrix.shard }}/2)
+    name: install (${{ matrix.variant }}, ${{ matrix.preset }}, ${{ matrix.shard }}/4)
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
       OURO_PRESET: ${{ matrix.preset }}
-      OURO_SHARD: ${{ matrix.shard }}/2
+      OURO_SHARD: ${{ matrix.shard }}/4
       PASSED: install-passed-${{ matrix.variant }}-${{ matrix.preset }}-${{ matrix.shard }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -680,7 +680,7 @@ jobs:
             ${{ runner.temp }}/app/playwright-report/
           if-no-files-found: ignore
   install-gate:
-    # A variant's install check: passes when each of its two shards passed, as their markers show,
+    # A variant's install check: passes when each of its shards passed, as their markers show,
     # and every install shard of this attempt passed: a marker can be an earlier attempt's, after
     # "Re-run all jobs" (artifacts outlive an attempt), so the markers alone could pass a shard
     # that has just failed.
@@ -710,12 +710,12 @@ jobs:
         run: |
           failed=0
           if [ "$SHARDS" != success ]; then
-            echo "::error::an install shard of this attempt did not pass ($SHARDS): see the install (…, n/2) jobs."
+            echo "::error::an install shard of this attempt did not pass ($SHARDS): see the install (…, n/4) jobs."
             failed=1
           fi
-          for shard in 1 2; do
+          for shard in 1 2 3 4; do
             if [ ! -f "$RUNNER_TEMP/passed/install-passed-$VARIANT-$PRESET-$shard" ]; then
-              echo "::error::install ($VARIANT, $PRESET, $shard/2) did not pass: see that job."
+              echo "::error::install ($VARIANT, $PRESET, $shard/4) did not pass: see that job."
               failed=1
             fi
           done

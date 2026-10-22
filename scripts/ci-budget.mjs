@@ -8,7 +8,7 @@
 //   what a developer waits for, and the median and 90th percentile of it over the last runs of the
 //   same event (the workflow runs API);
 // - the runner time: the minutes every job of the run held a runner, which on the shared runner
-//   pool (20 jobs at once on the Free plan) sets the wall time once runs wait on each other.
+//   pool (60 jobs at once on the Team plan) sets the wall time once runs wait on each other.
 //
 // It writes them, with every job's queue and run times, to the step summary and to --out (JSON, the
 // ci-timings artifact), and holds a pull request to the budget (see `judge`): a warning when this

@@ -646,7 +646,9 @@ test("every required check is still a job that reports, under the name the rules
   }
   // The ruleset's required checks, which the claims check also reads (verify:ciJob accepts only these).
   for (const check of requiredChecks) assert.ok(names.has(check), `${check} is not among ${[...names.keys()].join(", ")}`);
-  assert.deepEqual(checkNames(jobs["install-shard"], "install-shard"), ["install (shadcn, nova, 1/2)", "install (shadcn, nova, 2/2)", "install (shadcn, vega, 1/2)", "install (shadcn, vega, 2/2)", "install (ouro, nova, 1/2)", "install (ouro, nova, 2/2)"]);
+  const installShards = shardCount(jobs["install-shard"]);
+  const installs = ["shadcn, nova", "shadcn, vega", "ouro, nova"].flatMap((app) => Array.from({ length: installShards }, (_, index) => `install (${app}, ${index + 1}/${installShards})`));
+  assert.deepEqual(checkNames(jobs["install-shard"], "install-shard"), installs);
 });
 
 test("the required ci job runs the claims ratchet on a pull request, against its base, with its description", () => {
@@ -791,13 +793,13 @@ test("an install shard runs its share of the shipped tests by measured time, or 
   assert.match(counting, new RegExp(`^for shard in ${Array.from({ length: count }, (_, index) => index + 1).join(" ")}; do$`, "m"));
   const markers = scratchDir("ouro-install-gate-");
   mkdirSync(join(markers, "passed"));
-  writeFileSync(join(markers, "passed/install-passed-shadcn-vega-1"), "");
+  for (let shard = 1; shard < count; shard++) writeFileSync(join(markers, `passed/install-passed-shadcn-vega-${shard}`), "");
   const passed = { RUNNER_TEMP: markers, VARIANT: "shadcn", PRESET: "vega", SHARDS: "success" };
   assert.match(gate, /^ {10}SHARDS: \$\{\{ needs\.install-shard\.result \}\}$/m);
   const missing = runStep(counting, passed);
   assert.equal(missing.status, 1);
-  assert.match(missing.stdout, /^::error::install \(shadcn, vega, 2\/2\) did not pass/m);
-  writeFileSync(join(markers, "passed/install-passed-shadcn-vega-2"), "");
+  assert.match(missing.stdout, new RegExp(`^::error::install \\(shadcn, vega, ${count}/${count}\\) did not pass`, "m"));
+  writeFileSync(join(markers, `passed/install-passed-shadcn-vega-${count}`), "");
   assert.equal(runStep(counting, passed).status, 0);
   // Every marker, but from an earlier attempt: this attempt's failed shard still fails the check.
   const rerun = runStep(counting, { ...passed, SHARDS: "failure" });
