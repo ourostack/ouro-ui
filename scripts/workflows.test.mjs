@@ -83,11 +83,13 @@ const scriptSources = ["scripts", "site/scripts"].flatMap((folder) =>
     .map((file) => ({ file: `${folder}/${file}`, text: readFileSync(join(root, folder, file), "utf8") })),
 );
 
-test("only network fetches are retried: scripts/retry.sh wraps Playwright's downloads and nothing else", () => {
+test("only network fetches are retried: scripts/retry.sh wraps Playwright's downloads and the registry's validation as GitHub serves it, and nothing else", () => {
   const uses = [...workflows, ...actions].flatMap(({ file, text }) => [...text.matchAll(/scripts\/retry\.sh (.*)/g)].map((match) => `${file}: ${match[1]}`));
   assert.ok(uses.length > 0);
+  // The registry's remote validation fetches each of its files from GitHub at this commit; a file
+  // that is missing or invalid there fails every try.
   assert.deepEqual(
-    uses.filter((use) => !/: pnpm exec playwright install(-deps)? \$BROWSERS$/.test(use)),
+    uses.filter((use) => !/: pnpm exec playwright install(-deps)? \$BROWSERS$/.test(use) && use !== 'ci.yml: npx --yes $SHADCN registry validate "ourostack/ouro-ui#$REF"'),
     [],
   );
   // A script that downloads the browsers (an array of arguments, as spawn takes) does it through
