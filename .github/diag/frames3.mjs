@@ -23,6 +23,7 @@ for (const [type, scale] of [[webkit, 2], [webkit, 1], [chromium, 1], [chromium,
   const browser = await type.launch();
   for (const [name, css] of Object.entries(VARIANTS)) {
     if ((type === chromium || scale === 1) && !["asis", "nochart"].includes(name)) continue;
+    try {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: scale });
     page.setDefaultTimeout(30000);
     await page.emulateMedia({ reducedMotion: "reduce" });
@@ -31,6 +32,7 @@ for (const [type, scale] of [[webkit, 2], [webkit, 1], [chromium, 1], [chromium,
     if (css) await page.addStyleTag({ content: css });
     await page.locator("#chapter-two").scrollIntoViewIfNeeded();
     await page.locator("#chapter-two[data-chapter-ready]").waitFor({ state: "attached" });
+    await page.getByRole("button", { name: /^Reorder The South Pole/ }).scrollIntoViewIfNeeded();
     await page.waitForTimeout(1000);
     const idle = await frames(page, 4);
     const tiny = await timed(page, () => page.evaluate(() => { const el = document.querySelector("#chapter-two .site-leagues"); el.textContent = el.textContent + " "; }));
@@ -50,6 +52,7 @@ for (const [type, scale] of [[webkit, 2], [webkit, 1], [chromium, 1], [chromium,
     const scroll = await timed(page, () => page.mouse.wheel(0, 200));
     console.log(`R ${type.name()}@${scale} ${name} | idle ${idle} | tiny ${tiny} | color ${color} | open ${open} (${opened}ms) | openidle ${after} | close ${close} | wheel ${scroll}`);
     await page.close();
+    } catch (e) { console.log(`R error ${type.name()}@${scale} ${name} ${e.message.split("\n")[0]}`); }
   }
   await browser.close();
 } catch (e) { console.log(`R error ${e.message.split("\n")[0]}`); }
