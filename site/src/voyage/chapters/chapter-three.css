@@ -9,8 +9,7 @@
 .site-organ :is(.or-note, .or-fill) {
   transition:
     opacity var(--ouro-duration-slow) ease,
-    fill var(--ouro-duration-slow) ease,
-    filter var(--ouro-duration-slow) ease;
+    fill var(--ouro-duration-slow) ease;
 }
 .site-porthole[data-squid="gone"] .ph-squid {
   opacity: 0;
@@ -39,8 +38,7 @@
     transition:
       opacity 1.4s ease 0.3s,
       translate 1.6s var(--ouro-ease-in-out),
-      scale 1.6s var(--ouro-ease-in-out),
-      filter var(--ouro-duration-slow) ease;
+      scale 1.6s var(--ouro-ease-in-out);
   }
   .site-porthole[data-squid="gone"] .ph-squid {
     translate: 180px -220px;
@@ -128,8 +126,9 @@
   fill: oklch(0.16 0.02 250);
   opacity: 0;
 }
-.site-porthole[data-lights] .ph-squid {
-  filter: brightness(1.2);
+/* Under the floodlights the squid's skin shows paler: a colour, not a filter, which is slow to paint in WebKit. */
+.site-porthole[data-lights] {
+  --sq-skin: color-mix(in oklab, var(--destructive) 42%, oklch(0.7 0.05 25));
 }
 .site-organ[data-played] .or-note {
   opacity: 1;

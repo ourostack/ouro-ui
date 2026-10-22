@@ -205,7 +205,6 @@
   stroke: var(--chart-3);
   stroke-width: 18;
   paint-order: stroke;
-  filter: drop-shadow(0 0 0.6px color-mix(in oklab, var(--chart-3) 50%, var(--foreground)));
 }
 .site-porthole .ph-bolt {
   fill: color-mix(in oklab, var(--chart-3) 55%, var(--background));

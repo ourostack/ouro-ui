@@ -74,6 +74,13 @@ async function signOn(page: Page, name: string, trade = "Engineer"): Promise<voi
 /** The jobs' rows as the checklist shows them, top to bottom: the job and its day. */
 const jobRows = (page: Page) => shipyard(page).locator("[data-chapter-control='jobs'] [data-ouro-part='row']").allTextContents();
 
+
+// CI's WebKit paints the whole voyage slowly (this spec took minutes there on main already), and
+// a press waits for the page to hold still, so every test here gets triple time in WebKit.
+test.beforeEach(({ browserName }) => {
+  test.slow(browserName === "webkit", "WebKit on CI paints the voyage slowly");
+});
+
 test.describe("each control in Chapter I", () => {
   test.beforeEach(async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });

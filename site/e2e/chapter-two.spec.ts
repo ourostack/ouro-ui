@@ -40,11 +40,15 @@ async function pick(page: Page, kind: string): Promise<void> {
   await page.getByRole("option", { name: kind, exact: true }).click();
 }
 
+
+// CI's WebKit paints the whole voyage slowly (this spec took minutes there on main already), and
+// a press waits for the page to hold still, so every test here gets triple time in WebKit.
+test.beforeEach(({ browserName }) => {
+  test.slow(browserName === "webkit", "WebKit on CI paints the voyage slowly");
+});
+
 test.describe("each control in Chapter II", () => {
-  test.beforeEach(async ({ page, browserName }) => {
-    // CI's WebKit paints this page slowly (Chapter I's spec takes minutes there on main too), and
-    // these tests go through a menu several times.
-    test.slow(browserName === "webkit", "WebKit on CI is slow through repeated menus");
+  test.beforeEach(async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.setViewportSize({ width: 1440, height: 900 });
   });
@@ -225,7 +229,6 @@ test("X-ray outlines Chapter II's HX components", async ({ page }) => {
 });
 
 test("on a phone, the chart room and the catalogue work by touch, and nothing overflows", async ({ browser, browserName }) => {
-  test.slow(browserName === "webkit", "WebKit on CI is slow through repeated menus");
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: browserName === "chromium", reducedMotion: "reduce", baseURL: test.info().project.use.baseURL! });
   const page = await context.newPage();
   const errors = diagnostics(page);

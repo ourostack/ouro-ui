@@ -39,11 +39,15 @@ async function win(page: Page): Promise<void> {
   await expect(scene(page)).toHaveAttribute("data-squid", "gone");
 }
 
+
+// CI's WebKit paints the whole voyage slowly (this spec took minutes there on main already), and
+// a press waits for the page to hold still, so every test here gets triple time in WebKit.
+test.beforeEach(({ browserName }) => {
+  test.slow(browserName === "webkit", "WebKit on CI paints the voyage slowly");
+});
+
 test.describe("each control in Chapter III", () => {
-  test.beforeEach(async ({ page, browserName }) => {
-    // CI's WebKit paints this page slowly (Chapter I's spec takes minutes there on main too), and
-    // these tests go through a menu several times.
-    test.slow(browserName === "webkit", "WebKit on CI is slow through repeated menus");
+  test.beforeEach(async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.setViewportSize({ width: 1440, height: 900 });
   });
