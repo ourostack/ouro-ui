@@ -19,6 +19,17 @@ export const agentCases: AgentCase[] = [
     names: ["tsc", "dev"],
   },
   { id: "menu06", habit: "isOpen for the open state", tsc: [hint("boolean", "Use <Menu open={open} onOpenChange={setOpen} trigger={...}>")], dev: control, names: ["tsc", "dev"] },
+  {
+    id: "menu07",
+    habit: "Radix's ContextMenu modal",
+    tsc: [
+      "error TS2322: Type '{ contextTrigger: Element; modal: false; items: { label: string; onClick: () => void; }[]; }' is not assignable to type 'IntrinsicAttributes & MenuProps'.\n  Types of property 'modal' are incompatible.\n    Type 'false' is not assignable to type 'undefined'.",
+    ],
+    dev: "remove modal",
+    names: ["dev"],
+    hoverLost:
+      "contextTrigger rules out the dropdown's branch, where modal lives; the context branch's modal stays `never` because hint types there lose hover in valid code (AGENTS.md rule 6)",
+  },
 ];
 
 /** Valid menu snippets: no type error, no development message, and hover on every prop. */

@@ -182,8 +182,9 @@ export type MenuDropdownProps = MenuBaseProps &
      * the browser a layout and repaint of the whole page each time the menu opens and closes:
      * for a small menu that a list repeats on every row. The phone sheet always holds the page.
      * @default true
-     * @claim "it locks the page's scroll" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu modal > holds the page while open: its scroll is locked)
-     * @claim "leaves the page scrolling and its controls live" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu modal > with modal={false}, leaves the page's scroll alone and its controls live)
+     * @claim "it locks the page's scroll" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu modal > holds the page while open: its scroll is locked, and a click outside only closes it)
+     * @claim "a click outside only closes it" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu modal > holds the page while open: its scroll is locked, and a click outside only closes it)
+     * @claim "leaves the page scrolling and its controls live" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu modal > with modal={false}, leaves the page's scroll alone while a modal Menu's lock comes and goes) verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu modal > with modal={false}, leaves the page's controls live: a click outside reaches them and closes the menu)
      * @claim "The phone sheet always holds the page" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu modal > keeps the phone sheet holding the page with modal={false})
      */
     modal?: boolean | undefined;
@@ -476,8 +477,10 @@ export function Menu(props: MenuProps): JSX.Element {
             ? [
                 sideProp !== undefined && (["side is not used by a context menu, which opens at the pointer", "remove side"] as const),
                 alignProp !== undefined && (["align is not used by a context menu, which opens at the pointer", "remove align"] as const),
+                modal !== undefined && (["modal is not used by a context menu, which holds the page while open", "remove modal"] as const),
               ]
             : floatingPlacementWarnings("<Menu", sideProp, "bottom", alignProp, placement)),
+          label !== undefined && modal !== undefined && ["modal is not used by a menu in <MenuBar>; the bar decides", "remove modal"],
           isOpen !== undefined && ["isOpen is not a prop", controlFix],
           onClose !== undefined && ["onClose is not a prop", controlFix],
           asChild !== undefined && ["asChild is not a prop; the trigger element is the button", "trigger={<Button>Actions</Button>}"],
