@@ -25,8 +25,10 @@ import { touchStep } from "../registry/ouro/lib/ouro/testing/commands.ts";
  * embeds it afresh at its next draw after the frame first draws, as when the frame's visual
  * properties change; Chromium then sends the frame touches only once it has drawn again, and until
  * then the test's page gets them (a screenshot after the frame draws does this in Chromium).
+ * Playwright has no session of its own for the frame until `sessionAfter` ms, when the frame
+ * navigates, as for a frame first looked up while it was still in its parent's process.
  */
-function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage = false, delays = {}, stuck, hitTestableAfter = 0, routedAfter = hitTestableAfter, reembed = false } = {}) {
+function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage = false, delays = {}, stuck, hitTestableAfter = 0, routedAfter = hitTestableAfter, reembed = false, sessionAfter = 0 } = {}) {
   const page = new EventEmitter();
   const sent = [];
   const frame = (name, frameUrl, parent, id) => {
@@ -87,6 +89,7 @@ function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage =
     page.emit("frameattached", target);
   };
   let timer;
+  let sessionTimer;
   let started = Date.now();
   const since = () => Date.now() - started;
   const session = {
@@ -134,7 +137,7 @@ function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage =
       // A frame in its parent's process has no session of its own.
       newCDPSession: async (of) => {
         if (of === page) return session;
-        if (!of.id) throw new Error("This frame does not have a separate CDP session, it is a part of the parent frame's session");
+        if (!of.id || (of === target && since() < sessionAfter)) throw new Error("This frame does not have a separate CDP session, it is a part of the parent frame's session");
         return {
           async send(method, params) {
             if (method === "Page.getFrameTree") return { frameTree: { frame: { id: of.id } } };
@@ -156,9 +159,10 @@ function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage =
   const start = () => {
     started = Date.now();
     timer = setTimeout(list, listAfter);
+    if (sessionAfter > 0) sessionTimer = setTimeout(() => page.emit("framenavigated", target), sessionAfter);
     return touchStep(ctx, { type: "touchStart", x: 100, y: 350 });
   };
-  return { ctx, sent, target, tests, start, stop: () => clearTimeout(timer) };
+  return { ctx, sent, target, tests, start, stop: () => (clearTimeout(timer), clearTimeout(sessionTimer)) };
 }
 
 test("a touchstart on a frame in another process that Playwright lists late waits for that frame's watcher, then reaches it", async () => {
@@ -183,6 +187,29 @@ test("a touchstart on a frame in another process that Playwright never lists is 
     assert.ok(Date.now() - started >= 5000);
     assert.deepEqual(sent, []);
   } finally {
+    stop();
+  }
+});
+
+test("a frame with no session of its own when first asked is found once Playwright has one for it", async () => {
+  const { sent, target, start, stop } = stage({ listAfter: 0, sessionAfter: 300 });
+  try {
+    await start();
+    assert.deepEqual(sent.map(({ type }) => type), ["touchStart"]);
+    assert.equal(target.sees, "touchstart");
+  } finally {
+    stop();
+  }
+});
+
+test("a refused touch logs no trace: its error says why", async () => {
+  const warn = mock.method(console, "warn", () => {});
+  const { start, stop } = stage({ listAfter: 60_000 });
+  try {
+    await assert.rejects(start(), /could not watch the frame/);
+    assert.equal(warn.mock.callCount(), 0);
+  } finally {
+    warn.mock.restore();
     stop();
   }
 });

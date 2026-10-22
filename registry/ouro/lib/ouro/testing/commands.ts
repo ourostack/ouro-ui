@@ -395,9 +395,10 @@ const frameSessions = new WeakMap<Frame, Promise<{ session: CDPSession; id: stri
  * Playwright can list such a frame under an address other than its element's, or under none, as
  * for a sandboxed `srcdoc` frame, so the kit finds the frame at a touch's point by this id. A frame
  * in its parent's process has no session of its own and resolves undefined: the hit test reaches
- * its document directly.
+ * its document directly. That answer is not kept, since such a frame can move to a process of its own.
  * @claim "Playwright can list such a frame" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a frame in another process is found by Chromium's id for it, whatever address Playwright lists it with) verify:testExists(scripts/touch-kit-frames.test.mjs::a touchstart on a frame in another process that Playwright lists late waits for that frame's watcher, then reaches it)
  * @claim "A frame in its parent's process" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a touchstart on a frame in another process that Playwright lists late waits for that frame's watcher, then reaches it)
+ * @claim "That answer is not kept" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a frame with no session of its own when first asked is found once Playwright has one for it)
  */
 function frameSession(page: Page, frame: Frame): Promise<{ session: CDPSession; id: string } | undefined> {
   let found = frameSessions.get(frame);
@@ -406,7 +407,11 @@ function frameSession(page: Page, frame: Frame): Promise<{ session: CDPSession; 
       .context()
       .newCDPSession(frame)
       .then(async (session) => ({ session, id: (await session.send("Page.getFrameTree")).frameTree.frame.id }))
-      .catch(() => undefined);
+      .catch(() => {
+        // A frame still in its parent's process can move to its own later: ask again next time.
+        frameSessions.delete(frame);
+        return undefined;
+      });
     frameSessions.set(frame, found);
   }
   return found;
@@ -443,13 +448,15 @@ async function hitsInside(session: CDPSession, inside: CDPSession, at: FrameAt, 
   }
 }
 
-/** A touch command that takes longer than this logs what it waited for (`TouchTrace`). */
+/** A touch command that succeeds but takes longer than this logs what it waited for (`TouchTrace`). */
 const TOUCH_SLOW_MS = 1000;
 
 /**
- * What one touch command waited for, logged when it is slow: its steps with their times, when
- * each frame's watch answered, and how late Node's event loop ran meanwhile.
+ * What one touch command waited for, logged when it succeeds but is slow: its steps with their
+ * times, when each frame's watch answered, and how late Node's event loop ran meanwhile. A refused
+ * touch logs nothing; its error says why.
  * @claim "What one touch command waited for" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a touch command that takes longer than a second logs its steps, when each frame's watch answered and how late Node ran) verify:fileLine(registry/ouro/lib/ouro/testing/commands.ts, /const\sTOUCH_SLOW_MS\s=\s1000;/)
+ * @claim "A refused touch logs nothing" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a refused touch logs no trace: its error says why)
  */
 interface TouchTrace {
   start: number;
@@ -461,7 +468,7 @@ interface TouchTrace {
 
 const traceStep = (trace: TouchTrace, step: string) => trace.steps.push(`+${Date.now() - trace.start}ms ${step}`);
 
-/** Logs `trace` when the command took longer than TOUCH_SLOW_MS. */
+/** Logs `trace` when the command took longer than TOUCH_SLOW_MS. Only a command that succeeded logs: a refusal's error says why. */
 function logIfSlow(command: string, expected: TouchPoint, trace: TouchTrace, frames: Iterable<Frame>) {
   const took = Date.now() - trace.start;
   trace.loop.disable();
@@ -666,9 +673,11 @@ async function sendTouch(
   const trace: TouchTrace = { start: Date.now(), steps: [], answered: new Map(), loop: monitorEventLoopDelay({ resolution: 10 }) };
   trace.loop.enable();
   try {
-    return await sendTraced(command, page, session, expected, target, send, none, trace);
-  } finally {
+    const handler = await sendTraced(command, page, session, expected, target, send, none, trace);
     logIfSlow(command, expected, trace, page.frames());
+    return handler;
+  } finally {
+    trace.loop.disable();
   }
 }
 
