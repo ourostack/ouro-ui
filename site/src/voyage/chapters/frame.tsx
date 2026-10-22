@@ -1,4 +1,4 @@
-import { useEffect, useState, type JSX, type ReactNode, type RefObject } from "react";
+import { startTransition, useEffect, useState, type JSX, type ReactNode, type RefObject } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
@@ -18,6 +18,29 @@ import frameStyles from "./frame.css?inline";
 
 /** Where the chapters' own source lives, for each Code sheet. */
 export const CHAPTER_SOURCE = `${GITHUB}/tree/main/site/src/voyage/chapters`;
+
+/**
+ * A value that follows `value` once the frame that shows the change has painted, for a drawing
+ * that a press changes (the porthole, the organ). A store read with useSyncExternalStore renders
+ * in the press's own frame whatever startTransition says, and a deferred render
+ * (`useDeferredValue`) may still commit before the browser paints the press; set from a task after
+ * that frame instead, the drawing always lands after the press. (The stage's own copy is in
+ * stage.tsx.)
+ */
+export function useAfterPaint<T>(value: T): T {
+  const [shown, setShown] = useState(value);
+  useEffect(() => {
+    let timer = 0;
+    const frame = requestAnimationFrame(() => {
+      timer = window.setTimeout(() => startTransition(() => setShown(value)));
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(timer);
+    };
+  }, [value]);
+  return shown;
+}
 
 /** Puts a stylesheet in the page once, however often what needs it mounts. */
 function addStyles(id: string, styles: string): void {
@@ -136,7 +159,7 @@ export function Composition({ id, title, intro, file, sheet, children }: { id: s
         {title}
       </h3>
       <p className="mt-1 mb-4 text-muted-foreground">{intro}</p>
-      <div className="site-window">
+      <div className="site-window will-change-transform">
         <div className="site-window-bar">
           <span className="site-window-dots" aria-hidden="true">
             <span />

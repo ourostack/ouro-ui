@@ -78,6 +78,16 @@
     border-radius: calc(var(--radius) * 1.4);
     background: var(--card);
     color: var(--card-foreground);
+    /*
+     * A sharp lift, not the theme's soft shadow: a blurred shadow round a window this size is what
+     * WebKit on Linux spent most of a press's time repainting, each time a menu or a dialog locked
+     * the page's scroll (measured on CI for pull request 153). Chart's shadow is sharp already, and
+     * Abyss keeps its glow. Each window also carries `will-change-transform`, a layer of its own,
+     * so a press inside it repaints the window and not the page under it.
+     */
+    box-shadow: 0 1px 0 color-mix(in oklab, var(--foreground) 8%, transparent);
+  }
+  :is([data-theme="chart"], [data-theme="abyss"]) .site-window {
     box-shadow: var(--shadow-sm);
   }
   .site-window-bar {
@@ -334,27 +344,34 @@
     line-height: 1.4;
     color: var(--muted-foreground);
   }
+  /* Where a pointer can hover, each link's tooltip (its destination) opens in the gap under it, so it covers no link in the next row. */
+  @media (hover: hover) {
+    .site-proof {
+      row-gap: 2rem;
+    }
+  }
+  /*
+   * The destination: the link's description for screen readers (a hidden element still describes),
+   * and, where nothing can hover, small print under the link.
+   */
+  .site-proof-where {
+    display: none;
+  }
+  @media (hover: none) {
+    .site-proof li {
+      flex-wrap: wrap;
+    }
+    .site-proof-where {
+      display: block;
+      width: 100%;
+      padding-inline-start: 1.5rem;
+      font-size: 0.75rem;
+    }
+  }
   .site-proof li {
-    position: relative;
     display: flex;
     align-items: center;
     gap: 0.5rem;
-  }
-  /* Where each proof link goes: a small label under it on hover and keyboard focus, read to screen readers as the link's description. */
-  .site-proof-where {
-    position: absolute;
-    top: 100%;
-    left: 1.5rem;
-    z-index: 10;
-    display: none;
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
-    background: var(--foreground);
-    color: var(--background);
-    font-size: 0.75rem;
-  }
-  .site-proof li:is(:hover, :focus-within) .site-proof-where {
-    display: block;
   }
   .site-proof-check {
     flex-shrink: 0;

@@ -270,7 +270,7 @@ function Total({ route, last }: { route: readonly PortId[]; last: string }): JSX
   return (
     <div className="grid gap-1" data-chapter-total="">
       <p className="site-eyebrow">{CHART_ROOM.total}</p>
-      <p className="site-leagues m-0" data-shortest={leagues === SHORTEST ? "" : undefined}>
+      <p className="site-leagues m-0 font-heading text-4xl font-semibold tracking-tight tabular-nums text-foreground" data-shortest={leagues === SHORTEST ? "" : undefined}>
         {writeLeagues(leagues)}
       </p>
       <p className="m-0 text-sm text-muted-foreground">

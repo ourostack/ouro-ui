@@ -33,15 +33,29 @@ function Drawing({ of, x, y, width, className }: { of: Art; x: number; y: number
   );
 }
 
-/** A fish that drifts across the glass, from a rest place it keeps when nothing moves. */
+/** A length in the glass's 480 units as a share of the glass, for the HTML layers over the water. */
+const onGlass = (units: number) => `${((units * 100) / 480).toFixed(4)}%`;
+
+/**
+ * A fish that drifts across the glass, from a rest place it keeps when nothing moves. Each is a box
+ * the size of the glass holding its drawing at its place: the drift, the dart from the light and
+ * the start at the bell move the box, which the compositor does on its own. A shape inside the
+ * porthole's SVG is redrawn by the page every frame it moves instead.
+ */
 function Swimmer({ of, x, y, width, delay, className = "", scatter = 0 }: { of: Art; x: number; y: number; width: number; delay: number; className?: string; scatter?: number }): JSX.Element {
+  const height = (width * of.height) / of.width;
   return (
-    <g className={`stage-drift ${className}`} style={{ "--drift-delay": `${delay}` } as CSSProperties}>
-      {/* When the floodlights come on, the fish dart away from the beam (stage.css). */}
-      <g className="stage-react" style={{ "--scatter": scatter } as CSSProperties}>
-        <Drawing of={of} x={x} y={y} width={width} />
-      </g>
-    </g>
+    <div className={`stage-drift ${className}`} style={{ "--drift-delay": `${delay}` } as CSSProperties}>
+      {/* When the floodlights come on, the fish dart away from the beam (stage.css); they turn about their middle. */}
+      <div className="stage-react" style={{ "--scatter": scatter, transformOrigin: `${onGlass(x + width / 2)} ${onGlass(y + height / 2)}` } as CSSProperties}>
+        <svg
+          viewBox={of.viewBox}
+          overflow="visible"
+          style={{ left: onGlass(x), top: onGlass(y), width: onGlass(width), height: onGlass(height) }}
+          dangerouslySetInnerHTML={{ __html: of.inner }}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -74,14 +88,14 @@ const SNOW: ReadonlyArray<[number, number]> = [
 const PLAYBACK: Record<Speed, number> = { stop: 1, half: 1, full: 2.4 };
 
 /**
- * The porthole: water, light, fish, kelp and the Nautilus, layered in one SVG and coloured from the
- * theme's variables (stage.css), so every preset repaints it. The controls set data attributes and
- * --d (depth, 0 to 1) on the root; CSS does the rest. The layers themselves never re-render, so a
+ * The porthole: water, light, fish, kelp and the Nautilus, drawn in SVG layers on one 560-unit
+ * drawing, the moving fish and the bell's ripples in HTML between them (Swimmer, Ripples), and
+ * coloured from the theme's variables (stage.css), so every preset repaints it. The controls set data attributes and --d (depth, 0 to 1) on the root; CSS does the rest. The layers themselves never re-render, so a
  * control costs a few attributes, not a new picture.
  */
 export const Scene = memo(function Scene({ state, label, description, motto }: { state: SceneState; label: string; description: string; motto: string }): JSX.Element {
   const d = state.depth / MAX_DEPTH;
-  const root = useRef<SVGSVGElement>(null);
+  const root = useRef<HTMLDivElement>(null);
   // Speed changes the fish's playback rate, so they speed up from where they are instead of jumping.
   useEffect(() => {
     for (const animation of root.current?.getAnimations({ subtree: true }) ?? []) {
@@ -89,9 +103,8 @@ export const Scene = memo(function Scene({ state, label, description, motto }: {
     }
   }, [state.speed]);
   return (
-    <svg
+    <div
       ref={root}
-      viewBox="0 0 560 560"
       role="img"
       aria-label={`${label}. ${description}`}
       className="stage-scene"
@@ -104,20 +117,36 @@ export const Scene = memo(function Scene({ state, label, description, motto }: {
       data-ring={state.rings === 0 ? undefined : state.rings % 2 ? "a" : "b"}
       style={{ "--d": d.toFixed(3), "--tanks": state.tanks } as CSSProperties}
     >
-      <Defs />
-      <g transform="translate(40 40)">
-        <g clipPath="url(#stage-glass)">
-          <Sea />
-          <Life />
-          <rect className="stage-haze" width="480" height="480" fill="url(#stage-haze)" />
-          <Ship />
-          <Bubbles dives={state.dives} />
-          <Ripples rings={state.rings} />
-          <Glass />
+      <svg viewBox="0 0 560 560" className="stage-art" aria-hidden="true">
+        <Defs />
+        <g transform="translate(40 40)">
+          <g clipPath="url(#stage-glass)">
+            <Sea />
+          </g>
         </g>
-      </g>
-      <Rim motto={motto} />
-    </svg>
+      </svg>
+      {/* The layers keep the order of one drawing: sea, fish, the haze and the ship, the bell's ripples, then the glass and the rim. */}
+      <Life />
+      <svg viewBox="0 0 560 560" className="stage-art stage-art-over" aria-hidden="true">
+        <g transform="translate(40 40)">
+          <g clipPath="url(#stage-glass)">
+            <Hidden />
+            <rect className="stage-haze" width="480" height="480" fill="url(#stage-haze)" />
+            <Ship />
+            <Bubbles dives={state.dives} />
+          </g>
+        </g>
+      </svg>
+      <Ripples rings={state.rings} />
+      <svg viewBox="0 0 560 560" className="stage-art stage-art-over" aria-hidden="true">
+        <g transform="translate(40 40)">
+          <g clipPath="url(#stage-glass)">
+            <Glass />
+          </g>
+        </g>
+        <Rim motto={motto} />
+      </svg>
+    </div>
   );
 });
 
@@ -236,36 +265,40 @@ const Sea = memo(function Sea(): JSX.Element {
   );
 });
 
+/** The fish of each band of water, over the sea and under the ship, on the glass's circle. */
 const Life = memo(function Life(): JSX.Element {
   return (
-    <>
-      <g className="stage-life">
-        <g className="stage-band stage-band-sunlit">
-          {SARDINES.map(([x, y, delay], index) => (
-            <Swimmer key={index} of={art.sardine} x={x} y={y} width={40} delay={delay} className="stage-sardine" scatter={index % 2 ? 1 : -1} />
-          ))}
-        </g>
-        <g className="stage-band stage-band-twilight">
-          {TWILIGHT_SCHOOL.map(([x, y, delay], index) => (
-            <Swimmer key={index} of={art.sardine} x={x} y={y} width={30} delay={delay} className="stage-sardine stage-sardine-far" scatter={index % 2 ? 1 : -1} />
-          ))}
-          <Swimmer of={art.ray} x={140} y={256} width={170} delay={0.2} className="stage-ray" />
-          <Swimmer of={art.jellyfish} x={74} y={120} width={34} delay={0.55} className="stage-jelly" />
-          <Swimmer of={art.jellyfish} x={370} y={150} width={28} delay={0.8} className="stage-jelly" />
-        </g>
-        <g className="stage-band stage-band-midnight">
-          {LANTERNFISH.map(([x, y, delay], index) => (
-            <Swimmer key={index} of={art.lanternfish} x={x} y={y} width={30} delay={delay} className="stage-lanternfish" scatter={index % 2 ? 1 : -1} />
-          ))}
-          <Swimmer of={art.jellyfish} x={52} y={110} width={34} delay={0.35} className="stage-jelly stage-jelly-deep" />
-        </g>
-      </g>
-      {/* Found only by the lantern: they live where the Nautilus dives. */}
-      <g className="stage-hidden" aria-hidden="true">
-        <Drawing of={art.anglerfish} x={360} y={136} width={96} className="stage-anglerfish" />
-        <Drawing of={art.octopus} x={352} y={318} width={62} className="stage-octopus" />
-      </g>
-    </>
+    <div className="stage-life" aria-hidden="true">
+      <div className="stage-band stage-band-sunlit">
+        {SARDINES.map(([x, y, delay], index) => (
+          <Swimmer key={index} of={art.sardine} x={x} y={y} width={40} delay={delay} className="stage-sardine" scatter={index % 2 ? 1 : -1} />
+        ))}
+      </div>
+      <div className="stage-band stage-band-twilight">
+        {TWILIGHT_SCHOOL.map(([x, y, delay], index) => (
+          <Swimmer key={index} of={art.sardine} x={x} y={y} width={30} delay={delay} className="stage-sardine stage-sardine-far" scatter={index % 2 ? 1 : -1} />
+        ))}
+        <Swimmer of={art.ray} x={140} y={256} width={170} delay={0.2} className="stage-ray" />
+        <Swimmer of={art.jellyfish} x={74} y={120} width={34} delay={0.55} className="stage-jelly" />
+        <Swimmer of={art.jellyfish} x={370} y={150} width={28} delay={0.8} className="stage-jelly" />
+      </div>
+      <div className="stage-band stage-band-midnight">
+        {LANTERNFISH.map(([x, y, delay], index) => (
+          <Swimmer key={index} of={art.lanternfish} x={x} y={y} width={30} delay={delay} className="stage-lanternfish" scatter={index % 2 ? 1 : -1} />
+        ))}
+        <Swimmer of={art.jellyfish} x={52} y={110} width={34} delay={0.35} className="stage-jelly stage-jelly-deep" />
+      </div>
+    </div>
+  );
+});
+
+/** Found only by the lantern: they live where the Nautilus dives. */
+const Hidden = memo(function Hidden(): JSX.Element {
+  return (
+    <g className="stage-hidden" aria-hidden="true">
+      <Drawing of={art.anglerfish} x={360} y={136} width={96} className="stage-anglerfish" />
+      <Drawing of={art.octopus} x={352} y={318} width={62} className="stage-octopus" />
+    </g>
   );
 });
 
@@ -321,12 +354,19 @@ const Bubbles = memo(function Bubbles({ dives }: { dives: number }): JSX.Element
   );
 });
 
-/** Rings of sound spreading through the water from the hull when the bell rings; they ride with the ship (stage.css). */
+/**
+ * Rings of sound spreading through the water from the hull when the bell rings; they ride with the
+ * ship (stage.css). They are HTML over the water, not shapes in it: an SVG shape's animation is
+ * redrawn by the page every frame, and the rings spread for two seconds, so the next press of the
+ * bell waited on that. These rings only scale and fade, which the compositor does on its own.
+ */
 const Ripples = memo(function Ripples({ rings }: { rings: number }): JSX.Element {
   return (
-    <g className="stage-ripples" key={rings} data-rung={rings > 0 ? "" : undefined} aria-hidden="true">
-      {rings > 0 && [0, 0.35, 0.7].map((delay, index) => <ellipse key={index} cx="208" cy="45" rx="44" ry="44" style={{ "--ripple-delay": `${delay}s` } as CSSProperties} />)}
-    </g>
+    <div className="stage-ripples" aria-hidden="true">
+      <div className="stage-ripples-ride" key={rings} data-rung={rings > 0 ? "" : undefined}>
+        {rings > 0 && [0, 0.35, 0.7].map((delay, index) => <span key={index} className="stage-ripple" style={{ "--ripple-delay": `${delay}s` } as CSSProperties} />)}
+      </div>
+    </div>
   );
 });
 

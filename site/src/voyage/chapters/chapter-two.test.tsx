@@ -76,6 +76,8 @@ describe("Chapter II", () => {
   it("renders after Chapter I, with every control marked in page order", async () => {
     await renderPage("/voyage/");
     await expect.element(page.getByRole("heading", { name: CHAPTER_TWO.title })).toBeInTheDocument();
+    // Each chapter is an island that loads on its own, so the one before may come second.
+    await expect.poll(() => document.querySelector("#chapter-one")).not.toBeNull();
     expect(document.querySelector("#chapter-one")!.compareDocumentPosition(document.querySelector("#chapter-two")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const marked = [...document.querySelectorAll("#chapter-two [data-chapter-control]")].map((element) => element.getAttribute("data-chapter-control"));
     expect(marked).toEqual([...CHAPTER_TWO_CONTROLS]);

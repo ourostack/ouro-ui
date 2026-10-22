@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import { pressTab } from "../../registry/ouro/e2e/ouro/story";
 import { PRESET_NAMES, THEME_KEY } from "../src/themes/prepaint";
+import { currentProof } from "../scripts/proof.mts";
 import { LOG, TANKS } from "../src/voyage/stage/copy";
 import { diagnostics } from "./diagnostics";
 
@@ -107,10 +108,10 @@ test("reflows at 320 CSS pixels (400% zoom) in every preset without scrolling si
  * HX parts that draw no boundary of their own under forced colours yet (a registry follow-up, noted
  * in the voyage PRs): a segmented control's segments sit in a group with no border, a collapsible's
  * trigger is a line of text with a chevron (the ship's log fold), and a reorderable's handle is a
- * grip of dots (Chapter I's order of work), and a tab is a word over an underline ("Built for
- * agents too"). The test fails once one of them gains a boundary, so this list only shrinks.
+ * grip of dots (Chapter I's order of work). The test fails once one of them gains a boundary, so
+ * this list only shrinks.
  */
-const FORCED_COLOURS_GAPS = ["segmented-control/segment", "collapsible/trigger", "reorderable/handle", "tabs/tab"];
+const FORCED_COLOURS_GAPS = ["segmented-control/segment", "collapsible/trigger", "reorderable/handle"];
 
 test("keeps every control's boundary under forced colours", async ({ page }) => {
   await page.emulateMedia({ forcedColors: "active" });
@@ -243,4 +244,20 @@ test("the header works from the keyboard: picker, mode, X-ray and the command pa
   await page.keyboard.press("Escape");
   await expect(search).toBeFocused();
   expect(JSON.parse((await page.evaluate((key) => localStorage.getItem(key), THEME_KEY))!)).toEqual({ preset: "abyss", mode: "dark" });
+});
+
+test("on a touch screen, where no tooltip can show, each proof link's destination is printed under it", async ({ browser, browserName }) => {
+  test.skip(browserName !== "chromium", "Desktop WebKit reports a hovering pointer even with touch on");
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, baseURL: test.info().project.use.baseURL! });
+  const page = await context.newPage();
+  await page.goto("voyage/");
+  expect(await page.evaluate(() => matchMedia("(hover: none)").matches)).toBe(true);
+  for (const claim of currentProof().claims) {
+    const link = page.locator("[data-site-proof]").getByRole("link", { name: claim.text, exact: true });
+    const where = page.locator(`[id="${await link.getAttribute("aria-describedby")}"]`);
+    await expect(where).toHaveText(claim.where);
+    await expect(where).toBeVisible();
+    expect((await where.boundingBox())!.width).toBeGreaterThan(40);
+  }
+  await context.close();
 });

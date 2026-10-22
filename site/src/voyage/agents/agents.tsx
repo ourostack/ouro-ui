@@ -33,8 +33,9 @@ function Specimen({ example }: { example: Example }): JSX.Element {
         <dl className="site-findings m-0 grid content-start gap-4">
           <div>
             <dt className="site-eyebrow">{AGENTS.typeCheck}</dt>
-            <dd className="site-mono site-finding m-0 mt-1.5" data-agents-error="">
-              {real.error}
+            <dd className="site-mono site-finding m-0 mt-1.5">
+              <span aria-hidden="true" className="me-2 inline-block size-1.5 rounded-full bg-destructive align-middle" />
+              <span data-agents-error="">{real.error}</span>
             </dd>
           </div>
           <div>
@@ -79,7 +80,7 @@ export default function Agents(): JSX.Element {
           <p className="mt-4 text-sm text-muted-foreground">{AGENTS.real}</p>
         </header>
         <div className="min-w-0 lg:col-span-8">
-          <div className="site-window">
+          <div className="site-window will-change-transform">
             <div className="site-window-bar">
               <span className="site-window-dots" aria-hidden="true">
                 <span />

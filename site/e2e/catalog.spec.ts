@@ -285,7 +285,8 @@ const ISLAND_CEILING = 60 * 1024;
 const rechartsIn = (modules: readonly string[]) => modules.some((module) => module.startsWith("node_modules/recharts/"));
 
 /**
- * The chapters, each its own island. Chapter II draws an HX Chart, so its closure, and only its, holds
+ * The chapters and "Built for agents too", each its own island. Chapter II draws an HX Chart, so
+ * its closure, and only its, holds
  * Recharts; the budget counts what the island adds without that chunk and without shared HX chunks
  * (site-design.md, Budgets: "Each chapter island ≤ 60 KB gzip excluding shared HX chunks; Chart's
  * Recharts chunk only in Chapter II's closure, never in the initial closure (asserted by module
@@ -296,6 +297,7 @@ const ISLANDS = [
   { chapter: "Chapter I", entry: "src/voyage/chapters/chapter-one.tsx", source: "site/src/voyage/chapters/chapter-one", recharts: false },
   { chapter: "Chapter II", entry: "src/voyage/chapters/chapter-two.tsx", source: "site/src/voyage/chapters/chapter-two", recharts: true },
   { chapter: "Chapter III", entry: "src/voyage/chapters/chapter-three.tsx", source: "site/src/voyage/chapters/chapter-three", recharts: false },
+  { chapter: "Built for agents too", entry: "src/voyage/agents/agents.tsx", source: "site/src/voyage/agents", recharts: false },
 ] as const;
 
 for (const island of ISLANDS) {

@@ -1,4 +1,4 @@
-import { createContext, startTransition, use, useDeferredValue, useEffect, useRef, useState, useSyncExternalStore, type JSX } from "react";
+import { createContext, use, useEffect, useMemo, useRef, useState, useSyncExternalStore, type JSX } from "react";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Command } from "@/registry/ouro/components/ouro/command/command";
@@ -14,7 +14,7 @@ import { Container } from "../layout";
 import { parseArt } from "../stage/art";
 import type { CrewLine } from "./copy";
 import { BATTLE, CHAPTER_THREE, CODE_SHEETS_THREE, describeEncounter, ENCOUNTER, FIGHT, ORDERS, SALOON, TOASTS, type Order } from "./chapter-three-copy";
-import { Composition, Crew, Handoff, PhoneMarker, Steps, useChapterReady, type Step } from "./frame";
+import { Composition, Crew, Handoff, PhoneMarker, Steps, useAfterPaint, useChapterReady, type Step } from "./frame";
 // What only changes once the chapter answers (the squid letting go, the organ's notes): it comes
 // inside this island's script and goes into the page as the island hydrates.
 import chapterStyles from "./chapter-three.css?inline";
@@ -148,7 +148,7 @@ function useBattle(): Step[] {
 /** The rail beside the chapter: the organ, lit once it plays, and how the fight stands. Left out on a phone. */
 function Battle(): JSX.Element {
   const steps = useBattle();
-  const played = useDeferredValue(useFight().played);
+  const played = useAfterPaint(useFight().played);
   return (
     <div className="mt-10 hidden lg:block" data-chapter-battle="">
       <OrganArt className="site-organ site-organ-small" played={played} />
@@ -188,7 +188,9 @@ const WAVE = `M0 150 ${Array.from({ length: 10 }, (_, index) => `Q${index * 40 +
 
 /** The porthole: the sea, the squid at the glass (or swimming off), the floodlights, and the surface. */
 function Porthole(): JSX.Element {
-  const { surfaced, lights, won } = useFight();
+  const fight = useFight();
+  // The picture follows the order once its press has painted: the menu closing, the dialog going.
+  const { surfaced, lights, won } = useAfterPaint(useMemo(() => ({ surfaced: fight.surfaced, lights: fight.lights, won: fight.won }), [fight.surfaced, fight.lights, fight.won]));
   return (
     <svg
       className="site-porthole"
@@ -243,13 +245,13 @@ function Encounter(): JSX.Element {
   const box = useRef<HTMLDivElement>(null);
   const { surfaced, lights, axes, won, line } = useFight();
   const [alarm, setAlarm] = useState(false);
-  // The order runs after the control's own repaint (the menu closing, the dialog going), so no
-  // press waits on the porthole.
-  const order = (which: Order) =>
-    startTransition(() => {
-      giveOrder(store, which);
-      if (store.get().won) keepClearOfToasts(box.current?.querySelector("[data-chapter-crew]"));
-    });
+  // The order changes the fight at once (the store renders in the press's frame, so its badges
+  // and the crew's line answer with it); the porthole and the organ redraw after that frame has
+  // painted (useAfterPaint), so no press waits on a drawing.
+  const order = (which: Order) => {
+    giveOrder(store, which);
+    if (store.get().won) keepClearOfToasts(box.current?.querySelector("[data-chapter-crew]"));
+  };
   const choose = (which: Order) => {
     setAlarm(false);
     order(which);
@@ -363,7 +365,7 @@ function Saloon(): JSX.Element {
   const { won, played } = useFight();
   // Play answers at once (the button and its hint); the organ, the stamp, the way on and the toast
   // follow in a render of their own.
-  const shown = useDeferredValue(played);
+  const shown = useAfterPaint(played);
   const next = useRef<HTMLDivElement>(null);
   const [rounds, setRounds] = useState(0);
   // Played: the toast, and focus goes to the way into the library. Round again: back to the alarm.

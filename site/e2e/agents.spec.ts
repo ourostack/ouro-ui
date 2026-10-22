@@ -57,6 +57,13 @@ test.describe("each control in Built for agents too", () => {
     const link = section(page).getByRole("link", { name: new RegExp(AGENTS.manifest) });
     await expect(link).toHaveAttribute("href", "https://github.com/ourostack/ouro-ui/blob/main/registry.json");
     await expect(link).toHaveAttribute("target", "_blank");
+    // Clicked, it opens the registry in a new tab (served here from a recording, so the test needs no network).
+    await page.context().route("https://github.com/ourostack/ouro-ui/blob/main/registry.json", (route) => route.fulfill({ contentType: "text/html", body: "<title>ouro-ui/registry.json at main</title>" }));
+    const [tab] = await Promise.all([page.context().waitForEvent("page"), link.click()]);
+    await tab.waitForLoadState();
+    expect(tab.url()).toBe("https://github.com/ourostack/ouro-ui/blob/main/registry.json");
+    await expect(tab).toHaveTitle(/registry\.json/);
+    await tab.close();
   });
 
   test("control: install copies the install line, as the hero shows it", async ({ page, context, browserName }) => {
@@ -67,8 +74,13 @@ test.describe("each control in Built for agents too", () => {
     expect(command).toMatch(/^npx shadcn@latest add ourostack\/ouro-ui\//);
     const block = section(page).locator("[data-chapter-control='install']");
     await expect(block).toContainText(command);
-    await block.getByRole("button").click();
+    const copy = block.getByRole("button", { name: "Copy" });
+    await copy.click();
     await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(command);
+    // The button says so: a tick, and "Copied" as its name, then Copy again.
+    await expect(block.getByRole("button", { name: "Copied" })).toBeVisible();
+    await expect(block.locator("[data-ouro='copy-button']")).toHaveAttribute("data-status", "copied");
+    await expect(block.getByRole("button", { name: "Copy" })).toBeVisible({ timeout: 5000 });
   });
 });
 

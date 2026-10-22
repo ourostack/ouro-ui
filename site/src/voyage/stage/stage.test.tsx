@@ -5,18 +5,19 @@ import { cleanupPage, renderPage, setScheme } from "../../../test/render";
 import { fleschKincaid, syllables } from "../../../test/readability";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 import { EYEBROW, INSTALL_CAPTION, INSTALL_COMMAND, RELEASE_HREF } from "../hero";
 import { latestRelease } from "../../latest-release";
 import { allStageText, bandAt, BELL_TOASTS, describeScene, LOG, OPENING_LOG, STAGE_CONTROLS, STAGE_COPY, TANKS } from "./copy";
 import { art, parseArt } from "./art";
 
-// The porthole stage (site-design.md, slice S1): every control changes the scene (a frame later, as
-// a deferred render, so the tests poll it) and the log, the copy reads at grade 6 or under, the
+// The porthole stage (site-design.md, slice S1): every control changes the scene (a frame later,
+// once the press has painted, so the tests poll it) and the log, the copy reads at grade 6 or under, the
 // theme paints the sea, and the hero's install line and proof
 // line say what they should.
 
 const root = document.documentElement;
-const scene = () => document.querySelector<SVGSVGElement>(".stage-scene")!;
+const scene = () => document.querySelector<HTMLElement>(".stage-scene")!;
 // The log's lines, oldest first, as its fold holds them; the newest is also the crew's line under the porthole.
 const logText = () => [...document.querySelectorAll(".stage-log-fold [data-ouro='message']")].map((message) => message.textContent ?? "");
 const TANK_NAMES = TANKS.map((tank) => tank.name);
@@ -90,16 +91,42 @@ describe("the hero", () => {
     for (const claim of proof.claims) await expect.element(page.getByRole("link", { name: claim.text, exact: true })).toHaveAttribute("href", claim.href);
   });
 
-  it("says where each proof link goes, on hover and focus and to screen readers", async () => {
+  it("says where each proof link goes: a tooltip on hover and focus that Escape closes and that covers no other link, and a description for screen readers", async () => {
     await renderPage("/voyage/");
-    const claim = proof.claims[0]!;
-    const link = page.getByRole("link", { name: claim.text, exact: true });
-    await expect.element(link).toHaveAccessibleDescription(claim.where);
-    const where = document.getElementById(link.element().getAttribute("aria-describedby")!)!;
-    expect(getComputedStyle(where).display).toBe("none");
-    (link.element() as HTMLElement).focus();
-    await expect.poll(() => getComputedStyle(where).display).toBe("block");
     for (const each of proof.claims) await expect.element(page.getByRole("link", { name: each.text, exact: true })).toHaveAccessibleDescription(each.where);
+    const tip = () => document.querySelector<HTMLElement>('[data-ouro="tooltip"]');
+    const [first, , next] = proof.claims;
+    const link = page.getByRole("link", { name: first!.text, exact: true });
+    // On hover: the Tooltip's code comes once the pointer is in the hero, on its way to the link,
+    // and the destination shows; the link under it in the next row can still be pointed at.
+    expect(tip()).toBeNull();
+    const heading = page.getByRole("heading", { level: 1 });
+    await userEvent.hover(heading);
+    await expect.poll(() => document.querySelector("[data-site-proof-tips]")).not.toBeNull();
+    await userEvent.hover(link);
+    await expect.poll(() => tip()?.textContent).toBe(first!.where);
+    const below = page.getByRole("link", { name: next!.text, exact: true }).element().getBoundingClientRect();
+    expect(document.elementFromPoint(below.left + below.width / 2, below.top + below.height / 2)?.closest("a")?.textContent).toBe(next!.text);
+    // Escape closes it, and the pointer stays where it is.
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => tip()).toBeNull();
+    await userEvent.unhover(link);
+    // On keyboard focus too.
+    (link.element() as HTMLElement).focus();
+    await pressTab({ shift: true });
+    await pressTab();
+    await expect.poll(() => tip()?.textContent).toBe(first!.where);
+  });
+
+  it("keeps a proof link's keyboard focus while the Tooltip's code loads, then shows where it goes", async () => {
+    await renderPage("/voyage/");
+    const link = page.getByRole("link", { name: proof.claims[0]!.text, exact: true });
+    expect(document.querySelector('[data-ouro="tooltip"]')).toBeNull();
+    // Keyboard focus, straight onto the link: the Tooltip's code loads, and the link keeps focus.
+    await pressTab();
+    (link.element() as HTMLElement).focus();
+    await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')?.textContent).toBe(proof.claims[0]!.where);
+    expect(document.activeElement?.textContent).toBe(proof.claims[0]!.text);
   });
 
   it("shows the whole install command, for one component in the latest release, pinned to it", async () => {
@@ -217,7 +244,7 @@ describe("the stage's controls", () => {
     await expect.poll(() => scene().getAttribute("aria-label")).toContain("The fish hold still.");
   });
 
-  it("rings the bell: a toast from the crew, in turn, and a line in the log", async () => {
+  it("rings the bell: a toast from the crew, in turn, each replacing the last, and a line in the log", async () => {
     await renderPage("/voyage/");
     const bell = page.getByRole("button", { name: STAGE_COPY.bell });
     const ring = () => document.querySelector<HTMLElement>("[data-stage-control='bell']")!.dataset.ring;
@@ -230,11 +257,15 @@ describe("the stage's controls", () => {
     await expect.poll(lastLog).toContain(LOG.bell.text);
     // The bell swings and the water rings, again on each press.
     expect(ring()).toBe("a");
-    await expect.poll(() => document.querySelectorAll(".stage-ripples ellipse").length).toBe(3);
+    await expect.poll(() => document.querySelectorAll(".stage-ripple").length).toBe(3);
     await userEvent.click(bell);
     await expect.poll(() => announced.count(`${BELL_TOASTS[1]!.name}: ${BELL_TOASTS[1]!.text}`)).toBe(1);
     announced.stop();
     expect(ring()).toBe("b");
+    // The second ring's answer took the first one's place: one toast shows, and the first answer is gone.
+    const toaster = () => document.querySelector<HTMLElement>('[data-ouro="toaster"]')!;
+    expect(toaster().querySelectorAll('[data-ouro="toast"]')).toHaveLength(1);
+    expect(toaster().textContent).not.toContain(BELL_TOASTS[0]!.text);
   });
 
   it("keeps the newest five lines in the log, the newest also under the porthole", async () => {

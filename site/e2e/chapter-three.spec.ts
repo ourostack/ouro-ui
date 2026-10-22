@@ -29,7 +29,7 @@ async function order(page: Page, name: string): Promise<void> {
   await menu.getByRole("menuitem", { name, exact: true }).or(checkbox).click();
   // A checkbox item leaves the menu open, so more can be ticked; Escape closes it.
   if (await checkbox.count()) await page.keyboard.press("Escape");
-  await expect(menu).toBeHidden({ timeout: 15_000 });
+  await expect(menu).toBeHidden();
 }
 
 /** Up, and the axes: the squid lets go. */
@@ -39,12 +39,6 @@ async function win(page: Page): Promise<void> {
   await expect(scene(page)).toHaveAttribute("data-squid", "gone");
 }
 
-
-// CI's WebKit paints the whole voyage slowly (this spec took minutes there on main already), and
-// a press waits for the page to hold still, so every test here gets triple time in WebKit.
-test.beforeEach(({ browserName }) => {
-  test.slow(browserName === "webkit", "WebKit on CI paints the voyage slowly");
-});
 
 test.describe("each control in Chapter III", () => {
   test.beforeEach(async ({ page }) => {
@@ -274,8 +268,45 @@ test("without reduced motion, the squid sinks back into the deep behind its ink 
   await win(page);
   await expect(scene(page).locator(".ph-squid")).toHaveCSS("translate", "-100px 130px");
   await expect(scene(page).locator(".sq-ink")).toHaveCSS("animation-name", "sq-ink");
+  // The whole crew turns out and hops, with the shared frame's styles, whether or not Chapter I has loaded.
+  await expect(crew(page).locator("[data-chapter-cheer] > *").first()).toHaveCSS("animation-name", "site-hop");
   await playButton(page).click();
   await expect(saloon(page).locator(".or-note").first()).toHaveCSS("animation-name", "or-rise");
+});
+
+test("an order paints its control first, and the porthole only in a later frame", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page);
+  // What the porthole shows in the frame that paints the press (the first frame after the click),
+  // and whether it shows it by the frame after.
+  const watchNextFrames = () =>
+    page.evaluate(() => {
+      const porthole = document.querySelector(".site-porthole")!;
+      (window as unknown as { __frames: Promise<(string | null)[]> }).__frames = new Promise((resolve) => {
+        document.addEventListener(
+          "click",
+          () => requestAnimationFrame(() => {
+            const first = porthole.getAttribute("data-lights");
+            setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(() => resolve([first, porthole.getAttribute("data-lights")]))), 50);
+          }),
+          { capture: true, once: true },
+        );
+      });
+    });
+  const frames = () => page.evaluate(() => (window as unknown as { __frames: Promise<(string | null)[]> }).__frames);
+  // From the Menu.
+  await encounter(page).getByRole("button", { name: ENCOUNTER.orders, exact: true }).click();
+  await watchNextFrames();
+  await page.getByRole("menuitemcheckbox", { name: ORDERS.lights }).click();
+  expect(await frames()).toEqual([null, ""]);
+  await page.keyboard.press("Escape");
+  // From the palette, by mouse.
+  await encounter(page).getByRole("button", { name: ENCOUNTER.palette }).click();
+  await page.keyboard.type("flood");
+  await watchNextFrames();
+  await page.getByRole("option", { name: ORDERS.lights }).click();
+  expect(await frames()).toEqual(["", null]);
 });
 
 test.describe("by keyboard alone", () => {
