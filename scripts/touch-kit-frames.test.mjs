@@ -27,9 +27,10 @@ import { touchStep } from "../registry/ouro/lib/ouro/testing/commands.ts";
  * then the test's page gets them (a screenshot after the frame draws does this in Chromium).
  * Playwright has no session of its own for the frame until `sessionAfter` ms, when the frame
  * navigates, as for a frame first looked up while it was still in its parent's process. The frame
- * is busy until `busyUntil` ms: its watch answers only then.
+ * is busy until `busyUntil` ms: its watch answers only then. With `lost`, Chromium sends the frame's
+ * touches nowhere, so the page never handles them.
  */
-function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage = false, delays = {}, stuck, hitTestableAfter = 0, routedAfter = hitTestableAfter, reembed = false, sessionAfter = 0, busyUntil = 0 } = {}) {
+function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage = false, delays = {}, stuck, hitTestableAfter = 0, routedAfter = hitTestableAfter, reembed = false, sessionAfter = 0, busyUntil = 0, lost = false } = {}) {
   const page = new EventEmitter();
   const sent = [];
   const frame = (name, frameUrl, parent, id) => {
@@ -115,6 +116,7 @@ function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage =
       if (method === "DOM.getContentQuads") return { quads: [[0, 300, 300, 300, 300, 400, 0, 400]] };
       if (method === "Input.dispatchTouchEvent") {
         sent.push({ type: params.type, targetListed: listed.includes(target), targetArmed: target.armed, targetDrew: target.drew, at: since() });
+        if (lost) return {};
         // Until Chromium routes touches into the frame, the page around it gets them, on its element.
         if (params.type === "touchStart" && (since() < routedAfter || embedding === "pending" || embedding === "stale")) {
           tests.sees = "touchstart";
@@ -367,7 +369,7 @@ test("a touchstart into a frame that never answers is still refused once the kit
     let held = 0;
     await assert.rejects(start(), (error) => {
       assert.match(error.message, /^touchStep: could not watch the frame at \(100, 350\) within 5000ms, so the touchStart was not sent\. The frame there is a frame in another process, at about:srcdoc, and it has no watcher\. /);
-      held = Number(/ Node's event loop was held up for (\d+)ms of that, which is not counted\./.exec(error.message)?.[1]);
+      held = Number(/ Node's event loop was held up for (\d+)ms meanwhile, which the kit's limits leave out\./.exec(error.message)?.[1]);
       assert.ok(held >= 900 && held <= 1100, error.message);
       assert.match(error.message, / Steps: \+\d+ms asked Chromium: /);
       return true;
@@ -378,6 +380,77 @@ test("a touchstart into a frame that never answers is still refused once the kit
     assert.deepEqual(sent, []);
   } finally {
     unstall();
+    stop();
+  }
+});
+
+/** Holds Node's event loop for `stallMs` after every `gapMs` it runs, until the returned function is called. */
+function starveNode(stallMs, gapMs) {
+  let stopped = false;
+  let timer;
+  const stall = () => {
+    if (stopped) return;
+    const end = performance.now() + stallMs;
+    while (performance.now() < end);
+    timer = setTimeout(stall, gapMs);
+  };
+  timer = setTimeout(stall, gapMs);
+  return () => {
+    stopped = true;
+    clearTimeout(timer);
+  };
+}
+
+/** The time limit a touch command has in real time, whatever Node's stalls: twice the 5-second limit. */
+const CEILING_MS = 10_000;
+
+test("a touchstart into a frame that never answers is refused at the command's ceiling in real time, however long Node is starved", { timeout: 30_000 }, async () => {
+  const { sent, start, stop } = stage({ listAfter: 60_000 });
+  const unstarve = starveNode(200, 10);
+  try {
+    const started = performance.now();
+    await assert.rejects(start(), (error) => {
+      assert.match(error.message, /^touchStep: could not watch the frame at \(100, 350\) within 5000ms, so the touchStart was not sent\. /);
+      assert.match(error.message, / Node's event loop was held up for \d+ms meanwhile, which the kit's limits leave out, up to their ceiling of 10000ms in all, which this command reached\./);
+      return true;
+    });
+    const took = performance.now() - started;
+    assert.ok(took >= CEILING_MS - 50 && took < CEILING_MS + 1000, `refused after ${took}ms`);
+    assert.deepEqual(sent, []);
+  } finally {
+    unstarve();
+    stop();
+  }
+});
+
+test("a touch the page never handles is refused within the command's ceiling in real time, however long Node is starved", { timeout: 40_000 }, async () => {
+  const { sent, start, stop } = stage({ listAfter: 0, lost: true });
+  const unstarve = starveNode(200, 10);
+  try {
+    const started = performance.now();
+    await assert.rejects(start(), /^Error: touchStep: the page did not handle the touchStart at \(100, 350\) within 5000ms\. .* Node's event loop was held up for \d+ms meanwhile, which the kit's limits leave out, up to their ceiling of 10000ms in all, which this command reached\./);
+    const took = performance.now() - started;
+    // The ceiling, then 2 seconds at most for what the kit reads of the frames after it.
+    assert.ok(took < CEILING_MS + 2000, `refused after ${took}ms`);
+    assert.deepEqual(sent.map(({ type }) => type), ["touchStart"]);
+  } finally {
+    unstarve();
+    stop();
+  }
+});
+
+test("a refusal after many rounds of asking keeps the first and last of its steps, and says how many it left out", async () => {
+  const { start, stop } = stage({ listAfter: 0, hitTestableAfter: 60_000 });
+  try {
+    await assert.rejects(start(), (error) => {
+      assert.match(error.message, /its watcher is armed, but Chromium's hit test at that point does not reach inside it yet/);
+      const steps = error.message.slice(error.message.indexOf(" Steps: ")).split("; ");
+      assert.ok(steps.length <= 30, `${steps.length} steps`);
+      assert.match(error.message, /; … \d+ steps left out …; /);
+      assert.match(steps.at(-1), /the hit test does not reach inside the frame\.$/);
+      return true;
+    });
+  } finally {
     stop();
   }
 });
