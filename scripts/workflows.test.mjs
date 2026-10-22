@@ -1003,12 +1003,15 @@ test("the budget job waits on every other job, reads the run's jobs and nothing 
   assert.equal(block.match(/^ {4}if: (.+)$/m)?.[1], untested);
   // Whether the run was full, which its ci-timings record says.
   assert.match(block, /^ {10}FULL: \$\{\{ needs\.plan\.outputs\.full != 'false' \}\}$/m);
+  // Whether ci ran the full suite as a fallback, which is not judged, and the branch whose previous full run confirms a regression.
+  assert.match(block, /^ {10}FALLBACK: \$\{\{ needs\.ci\.outputs\.fallback == 'true' \}\}$/m);
+  assert.match(block, /^ {10}HEAD_REF: \$\{\{ github\.head_ref \}\}$/m);
   assert.match(block, /^ {4}permissions:\n {6}actions: read\n {6}contents: read\n/m);
   const needs = block.match(/^ {4}needs: \[([^\]]*)\]$/m)[1].split(",").map((need) => need.trim());
   // Every job no other job needs: the ends of the run's chains.
   const needed = new Set(Object.entries(jobs).filter(([id]) => id !== "ci-budget").flatMap(([, other]) => other.match(/^ {4}needs: \[([^\]]*)\]$/m)?.[1].split(",").map((need) => need.trim()) ?? []));
   const ends = Object.keys(jobs).filter((id) => id !== "ci-budget" && !needed.has(id));
-  assert.deepEqual([...needs].sort(), [...ends, "plan"].sort());
+  assert.deepEqual([...needs].sort(), [...ends, "plan", "ci"].sort());
   const { jobGraph } = await import("./ci-budget.mjs");
   const graph = jobGraph(workflow("ci.yml"));
   for (const [id, block] of Object.entries(jobs)) {

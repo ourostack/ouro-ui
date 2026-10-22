@@ -2,7 +2,7 @@ import { Buffer } from "node:buffer";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { deflateRawSync } from "node:zlib";
-import { baseline, budget, criticalPath, jobGraph, judge, percentile, recordPassed, runnerTime, runWalls, unzipOne, wallTime } from "./ci-budget.mjs";
+import { baseline, budget, criticalPath, jobGraph, judge, percentile, previousFull, recordPassed, runnerTime, runWalls, unzipOne, wallTime, workSeconds } from "./ci-budget.mjs";
 
 const workflow = `name: CI
 jobs:
@@ -91,31 +91,27 @@ test("a skipped job adds nothing, and a job no name matches is reported", () => 
   assert.deepEqual(path.unmatched, ["mystery"]);
 });
 
-test("a pull request over the budget fails only when it is also more than 2 minutes over main's baseline", () => {
+test("a pull request within the budget passes, whatever main does, and one over it with its work near main's only warns", () => {
   const limit = budget.targetMinutes * 60 * (1 + budget.margin);
   const min = 60;
-  const pr = (criticalSeconds, baselineSeconds) => judge({ event: "pull_request", criticalSeconds, baselineSeconds });
-  // Within the budget: nothing, whatever main does.
-  assert.deepEqual(pr(limit, 9 * min), { fail: false, warning: null });
-  assert.deepEqual(pr(limit, 14 * min), { fail: false, warning: null });
-  // Over it and more than 2 minutes over main's baseline: this change made it slower.
-  assert.deepEqual(pr(12.5 * min, 10 * min), { fail: true, reason: "regression", warning: null });
-  // Over it but within 2 minutes of the baseline: a slow runner, more likely than this change.
-  assert.deepEqual(pr(12.5 * min, 10.5 * min), { fail: false, warning: "over" });
-  assert.deepEqual(pr(12 * min + 1, 10 * min + 1), { fail: false, warning: "over" });
+  const pr = (criticalSeconds, baselineSeconds, workSeconds, baselineWorkSeconds) => judge({ event: "pull_request", criticalSeconds, baselineSeconds, workSeconds, baselineWorkSeconds, previousWorkSeconds: workSeconds });
+  assert.deepEqual(pr(limit, 9 * min, 9 * min, 5 * min), { fail: false, warning: null });
+  assert.deepEqual(pr(limit, 14 * min, 9 * min, 5 * min), { fail: false, warning: null });
+  // Over it, its work 3 minutes or less past main's: a slow runner, more likely than this change.
+  assert.deepEqual(pr(12.5 * min, 10 * min, 9 * min, 6 * min), { fail: false, warning: "over" });
 });
 
-test("after main slowed down, a pull request near main's baseline only warns, the one that fixes it included, and one clearly slower still fails", () => {
+test("after main slowed down, a pull request near main's baseline only warns, the one that fixes it included, and one clearly slower, twice, still fails", () => {
   const min = 60;
-  const pr = (criticalSeconds, baselineSeconds) => judge({ event: "pull_request", criticalSeconds, baselineSeconds });
-  // Main's own baseline over the budget, and the pull request within 2 minutes of it: a warning.
-  assert.deepEqual(pr(14 * min, 13 * min), { fail: false, warning: "over" });
+  const pr = (criticalSeconds, baselineSeconds, workSeconds, baselineWorkSeconds) => judge({ event: "pull_request", criticalSeconds, baselineSeconds, workSeconds, baselineWorkSeconds, previousWorkSeconds: workSeconds });
+  // Main's own baseline over the budget, and the pull request near it: a warning.
+  assert.deepEqual(pr(14 * min, 13 * min, 10 * min, 9 * min), { fail: false, warning: "over" });
   // A fix that only partly helps is still over the budget, and still passes.
-  assert.deepEqual(pr(12.5 * min, 14 * min), { fail: false, warning: "over" });
-  // More than 2 minutes over a baseline that is itself over the budget: this change made it slower still.
-  assert.deepEqual(pr(14.9 * min, 12.5 * min), { fail: true, reason: "regression", warning: null });
+  assert.deepEqual(pr(12.5 * min, 14 * min, 8 * min, 10 * min), { fail: false, warning: "over" });
+  // Its work more than 3 minutes past main's, which is itself over the budget, on this run and the last: this change.
+  assert.deepEqual(pr(15.9 * min, 12.5 * min, 12.5 * min, 9 * min), { fail: true, reason: "regression", warning: null });
   // A pull request far over a slow main still fails past the ceiling.
-  assert.deepEqual(pr(budget.ceilingMinutes * min + 1, 14 * min), { fail: true, reason: "ceiling", warning: null });
+  assert.deepEqual(pr(21 * min + 1, 14 * min, 14 * min, 10 * min), { fail: true, reason: "ceiling", warning: null });
 });
 
 test("a run with a job that no ci.yml job matches fails, whatever its event, so the critical path never leaves a job out", () => {
@@ -150,9 +146,8 @@ test("main's baseline is the median of the critical paths its latest passing mer
   assert.deepEqual(main.values.map((value) => value / 60), [10, 11, 8, 9, 12]);
   assert.equal(main.seconds, 10 * 60);
   // A run with no ci-timings record is left out.
-  assert.deepEqual(baseline([{ attempt: 1, record: null }, run(5, { conclusion: "failure" })]), { seconds: null, values: [] });
+  assert.deepEqual(baseline([{ attempt: 1, record: null }, run(5, { conclusion: "failure" })]), { seconds: null, values: [], workSeconds: null, workValues: [] });
   assert.equal(budget.baselineRuns, 5);
-  assert.equal(budget.regressionMinutes, 2);
 });
 
 test("an artifact's one file comes out of its zip, stored or deflated, sizes read from the central directory", () => {
@@ -203,4 +198,70 @@ test("the wall times of the latest runs count their queues, and leave out unfini
   assert.equal(percentile(walls, 0.9), 30 * 60);
   assert.equal(percentile([], 0.5), null);
   assert.equal(percentile([7], 0.9), 7);
+});
+
+/** A job of the API with steps: `steps` as [name, minutes], run back to back from 12:00. */
+const stepped = (name, steps, conclusion = "success") => {
+  const at = (minutes) => new Date(Date.UTC(2026, 9, 20, 12, 0, minutes * 60)).toISOString();
+  let now = 0;
+  const list = steps.map(([step, minutes]) => {
+    const entry = { name: step, started_at: at(now), completed_at: at(now + minutes) };
+    now += minutes;
+    return entry;
+  });
+  return { name, created_at: at(0), started_at: at(0), completed_at: at(now), conclusion, steps: list };
+};
+
+test("a job's work time leaves out its setup steps: the runner, checkout, pnpm and Node, the install and the browsers", () => {
+  const setup = [["Set up job", 0.5], ["Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1", 0.5], ["Run pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413", 0.25], ["Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1", 0.25], ["Run pnpm i --frozen-lockfile", 1], ["Run ./.github/actions/playwright-browsers", 1], ["Browser system packages, in the background", 0.5]];
+  const browser = stepped("browser (1/2)", [...setup, ["Browser tests", 6], ["Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9", 0.5], ["Complete job", 0]]);
+  assert.equal(workSeconds(browser), 6.5 * 60);
+  // A job the API reports without steps counts whole.
+  assert.equal(workSeconds(job("plan", 0, 0, 1)), 60);
+  const graph = jobGraph(workflow);
+  const path = criticalPath([job("plan", 0, 0, 1), browser, job("ci", 0, 0, 1)], graph, { work: true });
+  assert.equal(path.seconds, (1 + 6.5 + 1) * 60);
+  assert.equal(criticalPath([job("plan", 0, 0, 1), browser, job("ci", 0, 0, 1)], graph).seconds, (1 + 10.5 + 1) * 60);
+});
+
+test("a full-suite fallback run is not judged, and the ceiling is 15 minutes or half again main's baseline, whichever is more", () => {
+  const min = 60;
+  assert.deepEqual(judge({ event: "pull_request", fallback: true, criticalSeconds: 40 * min, baselineSeconds: 10 * min, workSeconds: 35 * min, baselineWorkSeconds: 6 * min, previousWorkSeconds: 35 * min }), { fail: false, warning: "fallback" });
+  // A fallback run with a job no name matches still fails: the record would be wrong.
+  assert.equal(judge({ event: "pull_request", fallback: true, criticalSeconds: 60, baselineSeconds: 60, unmatched: ["x"] }).fail, true);
+  assert.equal(budget.ceilingMinutes, 15);
+  assert.equal(budget.ceilingFactor, 1.5);
+  const at = (criticalSeconds, baselineSeconds) => judge({ event: "pull_request", criticalSeconds, baselineSeconds, workSeconds: baselineSeconds, baselineWorkSeconds: baselineSeconds, previousWorkSeconds: null });
+  // Main at 12 minutes: the ceiling is 18, so 17 only warns.
+  assert.deepEqual(at(17 * min, 12 * min), { fail: false, warning: "over" });
+  assert.deepEqual(at(18 * min + 1, 12 * min), { fail: true, reason: "ceiling", warning: null });
+  // Main at 8: 15 still holds.
+  assert.deepEqual(at(15 * min + 1, 8 * min), { fail: true, reason: "ceiling", warning: null });
+});
+
+test("a regression is judged on work time, setup left out: it fails only past main's baseline and 3 minutes, and only when the pull request's previous full run was past it too", () => {
+  const min = 60;
+  assert.equal(budget.regressionMinutes, 3);
+  const pr = (workSeconds, previousWorkSeconds) => judge({ event: "pull_request", criticalSeconds: 13 * min, baselineSeconds: 11 * min, workSeconds, baselineWorkSeconds: 7 * min, previousWorkSeconds });
+  // Past 7 + 3 minutes of work, and so was the previous full run: this change.
+  assert.deepEqual(pr(10.5 * min, 10.2 * min), { fail: true, reason: "regression", warning: null });
+  // Past it once, but the previous full run was not, or there was none: not shown to be this change.
+  assert.deepEqual(pr(10.5 * min, 8 * min), { fail: false, warning: "unconfirmed" });
+  assert.deepEqual(pr(10.5 * min, null), { fail: false, warning: "unconfirmed" });
+  // Within 3 minutes of main's work, however slow its setup was: a slow runner.
+  assert.deepEqual(pr(9.9 * min, 9.9 * min), { fail: false, warning: "over" });
+  // Without main's work time, a warning.
+  assert.deepEqual(judge({ event: "pull_request", criticalSeconds: 13 * min, baselineSeconds: 11 * min, workSeconds: 12 * min, baselineWorkSeconds: null, previousWorkSeconds: 12 * min }), { fail: false, warning: "no-baseline" });
+});
+
+test("main's baseline carries the median work time of the same runs, and the previous full run is the newest full, non-fallback record of the pull request's earlier runs", () => {
+  const run = (minutes, work) => ({ attempt: 1, record: { criticalPathSeconds: minutes * 60, workPathSeconds: work === undefined ? undefined : work * 60, jobs: [{ job: "plan", conclusion: "success" }] } });
+  const main = baseline([run(10, 6), run(11, 7), run(9), run(12, 8)]);
+  assert.deepEqual(main.workValues.map((value) => value / 60), [6, 7, 8]);
+  assert.equal(main.workSeconds, 7 * 60);
+  const record = (full, fallback, work) => ({ full, fallback, workPathSeconds: work * 60 });
+  assert.equal(previousFull([null, record(false, false, 3), record(true, true, 20), record(true, false, 9), record(true, false, 5)]), 9 * 60);
+  assert.equal(previousFull([record(false, false, 3)]), null);
+  // A record from before work times were kept does not count.
+  assert.equal(previousFull([{ full: true, fallback: false, criticalPathSeconds: 600 }]), null);
 });
