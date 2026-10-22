@@ -12,6 +12,15 @@
     line-height: 1.6;
     font-feature-settings: "ss01" on, "cv11" on;
   }
+  /*
+   * Below the hero, each section is laid out and painted only as it nears the screen: loading the
+   * page does not paint the chapters' windows, whose blurred shadows WebKit is slow to paint.
+   * Measured on CI for pull request 153.
+   */
+  .voyage main > * + * {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 1500px;
+  }
   .site-brand {
     display: inline-flex;
     align-items: center;
