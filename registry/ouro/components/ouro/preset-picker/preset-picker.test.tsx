@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { PresetPicker, type PresetPickerItem, type PresetPickerProps } from "@/registry/ouro/components/ouro/preset-picker/preset-picker";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -68,6 +69,29 @@ describe("PresetPicker", () => {
     expect(cards.some((card) => card.hasAttribute("aria-current"))).toBe(false);
     await rerender(<PresetPicker label="Layouts" items={items} value="focus" currentLabel="Actif" onValueChange={() => {}} />);
     expect(cards[2]!.querySelector("[data-ouro-preset-current]")!.textContent).toBe("Actif");
+  });
+
+  it("is a bordered card that shows a focus ring from the keyboard, tints on hover and does not select its text", async () => {
+    const { cards } = await render(<PresetPicker label="Layouts" items={items} onValueChange={() => {}} />);
+    const style = getComputedStyle(cards[0]!);
+    expect(style.display).toBe("flex");
+    expect(style.flexDirection).toBe("column");
+    expect(style.cursor).toBe("pointer");
+    expect(style.paddingTop).toBe("12px");
+    expect(style.borderTopStyle).toBe("solid");
+    expect(style.borderTopWidth).toBe("1px");
+    expect(style.borderTopLeftRadius).not.toBe("0px");
+    expect(style.textAlign).toBe("start");
+    expect(style.userSelect).toBe("none");
+    expect(style.touchAction).toBe("manipulation");
+    expect(style.outlineStyle).toBe("none");
+    const resting = style.backgroundColor;
+    await pressTab();
+    expect(document.activeElement).toBe(cards[0]);
+    expect(getComputedStyle(cards[0]!).outlineStyle).toBe("solid");
+    expect(getComputedStyle(cards[0]!).outlineWidth).toBe("2px");
+    await userEvent.hover(cards[1]!);
+    await expect.poll(() => getComputedStyle(cards[1]!).backgroundColor).not.toBe(resting);
   });
 
   it("chooses a preset on a click, Enter or Space, and not the one in use", async () => {
