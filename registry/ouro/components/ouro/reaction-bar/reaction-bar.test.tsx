@@ -107,6 +107,38 @@ describe("ReactionBar", () => {
     await expect.element(page.getByRole("button", { name: "Heart, 1" })).toHaveAttribute("aria-pressed", "true");
   });
 
+  it("keeps keyboard focus on a quick reaction once chosen, and on the last one taken back", async () => {
+    // This app drops a reaction nobody has left, so taking back the last Heart offers it again.
+    function Dropping() {
+      const [list, setList] = useState<Reaction[]>(reactions);
+      return (
+        <ReactionBar
+          reactions={list}
+          quick={quick}
+          onReact={(key) =>
+            setList((current) => {
+              const found = current.find((reaction) => reaction.key === key);
+              if (!found) return [...current, { ...quick.find((option) => option.key === key)!, count: 1, mine: true }];
+              const next = found.mine ? found.count - 1 : found.count + 1;
+              return next === 0 ? current.filter((reaction) => reaction.key !== key) : current.map((reaction) => (reaction === found ? { ...found, count: next, mine: !found.mine } : reaction));
+            })
+          }
+        />
+      );
+    }
+    const { bar } = await render(<Dropping />);
+    const heart = bar!.querySelector<HTMLElement>('[data-ouro-part="quick"]')!;
+    await act(async () => heart.focus());
+    await userEvent.keyboard("{Enter}");
+    await expect.element(page.getByRole("button", { name: "Heart, 1" })).toHaveFocus();
+    expect(document.activeElement).toBe(heart);
+    expect(heart.dataset.ouroPart).toBe("reaction");
+    await userEvent.keyboard("{Enter}");
+    await expect.element(page.getByRole("button", { name: "Heart", exact: true })).toHaveFocus();
+    expect(document.activeElement).toBe(heart);
+    expect(heart.dataset.ouroPart).toBe("quick");
+  });
+
   it("keeps the counts but turns off reacting when disabled", async () => {
     const onReact = vi.fn();
     const { bar } = await render(<ReactionBar reactions={reactions} quick={quick} onReact={onReact} disabled />);
@@ -176,6 +208,12 @@ describe("ReactionBar", () => {
 });
 
 describe("ReactionBar development messages", () => {
+  it("warns of nothing when the props are right", async () => {
+    await render(<ReactionBar reactions={reactions} />);
+    await render(<ReactionBar reactions={reactions} quick={quick} onReact={() => {}} />);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it.each([
     ["missing reactions", { reactions: undefined }, "reactions is missing", "<ReactionBar reactions={message.reactions} onReact={react}>"],
     ["onReactionClick", { onReactionClick: () => {} }, "onReactionClick is not a prop", "<ReactionBar onReact={(key) => react(key)}>"],

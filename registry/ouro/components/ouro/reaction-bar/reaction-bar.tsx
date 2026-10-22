@@ -101,7 +101,8 @@ export function ReactionBar(props: ReactionBarProps): JSX.Element | null {
     className,
     process.env.NODE_ENV !== "production"
       ? (token: string) => `remove "${token}"; ReactionBar takes its colors from the theme`
-      : /* istanbul ignore next @preserve -- production only */ "",
+      : // Stryker disable next-line StringLiteral: production only; the check never runs there.
+        /* istanbul ignore next @preserve -- production only */ "",
   );
   useDevWarnings(
     "ReactionBar",
@@ -119,20 +120,30 @@ export function ReactionBar(props: ReactionBarProps): JSX.Element | null {
   if (shown.length === 0 && offered.length === 0) return null;
   return (
     <div {...rest} role="group" aria-label={label} data-ouro="reaction-bar" className={cn("flex min-w-0 flex-wrap items-center gap-1.5", className)}>
-      {shown.map((reaction) => {
-        const look = reaction.mine ? ({ tone: "primary", variant: "soft" } as const) : ({ tone: "secondary", variant: "outline" } as const);
+      {/* One keyed list, counts then quick reactions: a quick reaction once chosen, or the last one
+          taken back, keeps its button, so keyboard focus stays on it. */}
+      {[...shown, ...offered].map((entry) => {
+        const reaction: Partial<Reaction> & ReactionOption = entry;
+        const counted = reaction.count !== undefined;
+        const look = reaction.mine ? ({ tone: "primary", variant: "soft" } as const) : counted ? ({ tone: "secondary", variant: "outline" } as const) : ({ tone: "secondary", variant: "soft" } as const);
         const face = (
           <>
             <span aria-hidden="true">{reaction.emoji}</span>
-            <span className="sr-only">{reaction.label}, </span>
-            {reaction.count}
+            {counted ? (
+              <>
+                <span className="sr-only">{reaction.label}, </span>
+                {reaction.count}
+              </>
+            ) : (
+              <span className="sr-only">{reaction.label}</span>
+            )}
           </>
         );
         return onReact ? (
           <Badge
             key={reaction.key}
             data-ouro-control="reaction-bar"
-            data-ouro-part="reaction"
+            data-ouro-part={counted ? "reaction" : "quick"}
             {...look}
             aria-pressed={reaction.mine === true}
             disabled={disabled}
@@ -147,21 +158,6 @@ export function ReactionBar(props: ReactionBarProps): JSX.Element | null {
           </Badge>
         );
       })}
-      {offered.map((option) => (
-        <Badge
-          key={option.key}
-          data-ouro-control="reaction-bar"
-          data-ouro-part="quick"
-          tone="secondary"
-          variant="soft"
-          aria-pressed={false}
-          disabled={disabled}
-          onClick={(event) => onReact!(option.key, event)}
-        >
-          <span aria-hidden="true">{option.emoji}</span>
-          <span className="sr-only">{option.label}</span>
-        </Badge>
-      ))}
     </div>
   );
 }
