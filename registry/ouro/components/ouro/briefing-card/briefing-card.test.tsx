@@ -87,6 +87,13 @@ describe("BriefingCard", () => {
     expect(page.getByRole("button", { name: "Open chat" }).element().getBoundingClientRect().top).toBeGreaterThanOrEqual(note.bottom);
   });
 
+  it.each([undefined, null])("leaves out the detail, note and actions when they are %s", async (missing) => {
+    const { card } = await render(<BriefingCard title="Weekly sync" items={[]} detail={missing} note={missing} actions={missing} />);
+    // Only the title's block remains.
+    expect(card.childElementCount).toBe(1);
+    expect(card.firstElementChild!.childElementCount).toBe(1);
+  });
+
   it("keeps a long title and content inside the card", async () => {
     const { card, host } = await render(<BriefingCard title={"Quarterly ".repeat(30)} items={[{ id: "a", label: "Notes", content: "word".repeat(80) }]} />);
     expect(card.getBoundingClientRect().right).toBeLessThanOrEqual(host.getBoundingClientRect().right);

@@ -51,6 +51,20 @@ describe("AgentNote", () => {
     expect(note.querySelector("[data-ouro-note-source]")!.textContent).toBe("Based on 3 messages and a transcript");
     expect(note.textContent).toContain("· 5 min ago");
     expect(note.querySelectorAll("button")).toHaveLength(0);
+    // The source is quieter than the note's words.
+    const source = note.querySelector<HTMLElement>("[data-ouro-note-source]")!;
+    expect(getComputedStyle(source).color).not.toBe(getComputedStyle(note.querySelector("[data-ouro-note-text]")!).color);
+  });
+
+  it.each([undefined, null])("leaves out the time and source when they are %s", async (missing) => {
+    const { note } = await render(<AgentNote {...base} time={missing} source={missing} />);
+    expect(note.textContent).not.toContain("·");
+    expect(note.querySelector("[data-ouro-note-source]")).toBeNull();
+  });
+
+  it("does not take focus when it appears", async () => {
+    await render(<AgentNote {...base} onSave={() => {}} />);
+    expect(document.activeElement).toBe(document.body);
   });
 
   it("attributes the agent's words with a badge and a bar, and the person's edit to them", async () => {
@@ -141,8 +155,12 @@ describe("AgentNote", () => {
     await expect.element(box).toHaveValue(base.text);
     expect(box.element().getAttribute("maxlength")).toBe("80");
     expect(note.querySelector("[data-ouro-note-text]")).toBeNull();
+    await expect.element(page.getByRole("button", { name: "Cancel" })).toBeVisible();
     await userEvent.clear(box);
     await expect.element(page.getByRole("button", { name: "Save" })).toBeDisabled();
+    await userEvent.keyboard("   ");
+    await expect.element(page.getByRole("button", { name: "Save" })).toBeDisabled();
+    await userEvent.clear(box);
     await userEvent.type(box, "Bring the rollout numbers.");
     await userEvent.click(page.getByRole("button", { name: "Save" }));
     expect(onSave.mock.calls[0]![0]).toBe("Bring the rollout numbers.");
@@ -177,9 +195,23 @@ describe("AgentNote", () => {
     // Another key leaves the editor open.
     await userEvent.keyboard("{Tab}");
     await act(async () => page.getByRole("textbox", { name: "Modifier" }).element().focus());
+    // Escape is the editor's, so a dialog around the note stays open.
+    const seen = vi.fn((event: KeyboardEvent) => event.defaultPrevented);
+    document.addEventListener("keydown", seen);
     await userEvent.keyboard("{Escape}");
+    document.removeEventListener("keydown", seen);
+    expect(seen.mock.results[0]!.value).toBe(true);
     await expect.element(page.getByRole("button", { name: "Modifier" })).toHaveFocus();
     expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it("cancels safely when the app takes Edit away while the person edits", async () => {
+    const { rerender, note } = await render(<AgentNote {...base} onSave={() => {}} />);
+    await userEvent.click(page.getByRole("button", { name: "Edit" }));
+    await rerender(<AgentNote {...base} />);
+    await userEvent.click(page.getByRole("button", { name: "Cancel" }));
+    expect(note.querySelector("[data-ouro-note-text]")!.textContent).toBe(base.text);
+    expect(note.querySelectorAll("button")).toHaveLength(0);
   });
 
   it("keeps the person's words when the note changes while they edit, and says so", async () => {
