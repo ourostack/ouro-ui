@@ -29,7 +29,7 @@ async function order(page: Page, name: string): Promise<void> {
   await menu.getByRole("menuitem", { name, exact: true }).or(checkbox).click();
   // A checkbox item leaves the menu open, so more can be ticked; Escape closes it.
   if (await checkbox.count()) await page.keyboard.press("Escape");
-  await expect(menu).toBeHidden({ timeout: 15_000 });
+  await expect(menu).toBeHidden();
 }
 
 /** Up, and the axes: the squid lets go. */
@@ -39,12 +39,6 @@ async function win(page: Page): Promise<void> {
   await expect(scene(page)).toHaveAttribute("data-squid", "gone");
 }
 
-
-// CI's WebKit paints the whole voyage slowly (this spec took minutes there on main already), and
-// a press waits for the page to hold still, so every test here gets triple time in WebKit.
-test.beforeEach(({ browserName }) => {
-  test.slow(browserName === "webkit", "WebKit on CI paints the voyage slowly");
-});
 
 test.describe("each control in Chapter III", () => {
   test.beforeEach(async ({ page }) => {

@@ -79,6 +79,12 @@
     background: var(--card);
     color: var(--card-foreground);
     box-shadow: var(--shadow-sm);
+    /*
+     * Its own layer: a press inside the window repaints the window, not its shadow on the page
+     * under it. Without one, WebKit on Linux spent about half of each press's time on Chapter I
+     * repainting the windows' shadows (measured on CI for pull request 153).
+     */
+    will-change: transform;
   }
   .site-window-bar {
     display: flex;
@@ -401,6 +407,48 @@
       /* Level with the foot of the console's last row. */
       margin-bottom: 1.125rem;
     }
+  }
+}
+
+/*
+ * A section off the screen is not laid out or painted. A menu or a dialog locks the page's scroll,
+ * and WebKit then lays out the whole page again: on Linux that took Chapter III's Orders menu about
+ * 2 s, and about 0.5 s once the other sections were skipped. Each held size is about the section's
+ * height on a wide screen and on a phone, so the page barely moves as a section first renders.
+ */
+:is(#themes, #chapter-one, #chapter-two, #chapter-three, #agents) {
+  content-visibility: auto;
+}
+#themes {
+  contain-intrinsic-block-size: auto 760px;
+}
+#chapter-one {
+  contain-intrinsic-block-size: auto 1600px;
+}
+#chapter-two {
+  contain-intrinsic-block-size: auto 2270px;
+}
+#chapter-three {
+  contain-intrinsic-block-size: auto 1250px;
+}
+#agents {
+  contain-intrinsic-block-size: auto 1420px;
+}
+@media (max-width: 639px) {
+  #themes {
+    contain-intrinsic-block-size: auto 1450px;
+  }
+  #chapter-one {
+    contain-intrinsic-block-size: auto 2250px;
+  }
+  #chapter-two {
+    contain-intrinsic-block-size: auto 2640px;
+  }
+  #chapter-three {
+    contain-intrinsic-block-size: auto 1920px;
+  }
+  #agents {
+    contain-intrinsic-block-size: auto 2010px;
   }
 }
 

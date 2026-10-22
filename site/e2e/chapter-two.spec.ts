@@ -41,12 +41,6 @@ async function pick(page: Page, kind: string): Promise<void> {
 }
 
 
-// CI's WebKit paints the whole voyage slowly (this spec took minutes there on main already), and
-// a press waits for the page to hold still, so every test here gets triple time in WebKit.
-test.beforeEach(({ browserName }) => {
-  test.slow(browserName === "webkit", "WebKit on CI paints the voyage slowly");
-});
-
 test.describe("each control in Chapter II", () => {
   test.beforeEach(async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
