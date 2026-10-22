@@ -249,7 +249,7 @@ describe("Resizable handle (window splitter)", () => {
     try {
       await commands.drag({ from: [x, y], to: [x + 20, y], steps: 4, durationMs: 80, hold: true });
       // 20px of 400px is 5%.
-      expect(widths(screen.panels)[0]).toBe(140);
+      await expect.poll(() => widths(screen.panels)[0]).toBe(140);
       // A second finger comes down 100px away, moves, and lifts: the panel stays with the first.
       await act(async () => {
         second("pointerdown", x + 120);
@@ -285,7 +285,7 @@ describe("Resizable handle (window splitter)", () => {
     handle.addEventListener("pointerdown", (event) => (pointerId = event.pointerId), { once: true });
     try {
       await commands.drag({ from: [x, y], to: [x + 40, y], steps: 4, durationMs: 80, hold: true });
-      expect(widths(screen.panels)[0]).toBe(160);
+      await expect.poll(() => widths(screen.panels)[0]).toBe(160);
       await act(async () => {
         handle.dispatchEvent(new PointerEvent("pointercancel", { bubbles: true, pointerId }));
       });
@@ -309,7 +309,7 @@ describe("Resizable handle (window splitter)", () => {
     handle.addEventListener("pointerdown", (event) => (pointerId = event.pointerId), { once: true });
     try {
       await commands.drag({ from: [x, y], to: [x + 40, y], steps: 4, durationMs: 80, hold: true });
-      expect(widths(screen.panels)[0]).toBe(160);
+      await expect.poll(() => widths(screen.panels)[0]).toBe(160);
       // The capture is gone with no pointerup or pointercancel, as when the handle is hidden mid-drag.
       await act(async () => {
         handle.dispatchEvent(new PointerEvent("lostpointercapture", { bubbles: true, pointerId: pointerId + 1 }));
