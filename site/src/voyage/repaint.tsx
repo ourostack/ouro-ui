@@ -31,7 +31,7 @@ function DiveWindow(): JSX.Element {
   const [checked, setChecked] = useState<ReadonlySet<string>>(() => new Set(["hatch"]));
   const [open, setOpen] = useState(false);
   return (
-    <div className="site-window" data-site-sample="">
+    <div className="site-window will-change-transform" data-site-sample="">
       <div className="overflow-hidden rounded-[inherit] border border-border/70 will-change-transform">
         <div className="site-window-bar">
           <span className="site-window-dots" aria-hidden="true">
