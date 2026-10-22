@@ -56,7 +56,8 @@ describe("Chapter I", () => {
     expect(crew()).toContain(YARD.opening.text);
     await userEvent.click(page.getByRole("checkbox", { name: PARTS[0].job }));
     await expect.poll(() => plan().dataset.built).toBe("hull");
-    expect(crew()).toContain(YARD.built.hull.text);
+    // The crew's line follows the press's paint, as the plan does, in a commit of its own.
+    await expect.poll(crew).toContain(YARD.built.hull.text);
     for (const part of PARTS.slice(1)) await userEvent.click(page.getByRole("checkbox", { name: part.job }));
     await expect.poll(crew).toContain(YARD.ready.text);
     await userEvent.click(page.getByRole("button", { name: "Launch", exact: true }));
