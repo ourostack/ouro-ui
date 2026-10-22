@@ -1,4 +1,4 @@
-import { createContext, memo, startTransition, use, useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition, type FormEvent, type JSX, type ReactNode, type Ref } from "react";
+import { createContext, memo, startTransition, use, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition, type FormEvent, type JSX, type ReactNode, type Ref } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -327,9 +327,10 @@ function Shipyard(): JSX.Element {
   const [emptying, startEmptying] = useTransition();
   const left = PARTS.length - built.size;
   const ready = left === 0 && !launched && !emptying;
-  // The plan follows the controls a frame later: a press repaints its own control first, then the
-  // drawing (a deferred render), so no press waits on the plan's repaint.
-  const plan = useDeferredValue(useMemo(() => ({ built, launched }), [built, launched]));
+  // The plan follows the controls once the press has painted: a press repaints its own control
+  // first, then the drawing, so no press waits on the plan's repaint (a deferred render could
+  // commit before that paint).
+  const plan = useAfterPaint(useMemo(() => ({ built, launched }), [built, launched]));
   // The rail follows the plan.
   useEffect(() => voyage.set(plan), [voyage, plan]);
   // The jobs follow a reorder once it has painted: the handles' list and its menu are the press's
