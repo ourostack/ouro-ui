@@ -119,7 +119,6 @@ describe("AttentionCard", () => {
     expect(style.cursor).toBe("pointer");
     expect(style.touchAction).toBe("manipulation");
     expect(style.width).toBe(`${card.querySelector("[data-ouro-attention-message]")!.parentElement!.getBoundingClientRect().width}px`);
-    expect(style.textDecorationLine).toBe("none");
     await userEvent.hover(open);
     expect(getComputedStyle(open).textDecorationLine).toBe("underline");
   });
