@@ -95,7 +95,8 @@ test("browser-deps.sh installs the cached system packages with dpkg, and otherwi
   writeFileSync(join(bin, "sudo"), `#!/usr/bin/env bash\n"$@"\n`);
   writeFileSync(join(bin, "tee"), `#!/usr/bin/env bash\nprintf 'tee %s\\n' "$*" >> "${log}"\ncat >> "${log}"\n`);
   writeFileSync(join(bin, "dpkg"), `#!/usr/bin/env bash\nprintf 'dpkg %s\\n' "$*" >> "${log}"\nexit "\${DPKG:-0}"\n`);
-  writeFileSync(join(bin, "pnpm"), `#!/usr/bin/env bash\nprintf 'pnpm %s\\n' "$*" >> "${log}"\n`);
+  // pnpm fails its first $PNPM_FAILS calls, as an install stopped by timeout does.
+  writeFileSync(join(bin, "pnpm"), `#!/usr/bin/env bash\nprintf 'pnpm %s\\n' "$*" >> "${log}"\nn=$(grep -c '^pnpm ' "${log}")\n[ "$n" -gt "\${PNPM_FAILS:-0}" ]\n`);
   writeFileSync(join(bin, "apt-get"), `#!/usr/bin/env bash\nprintf 'apt-get %s\\n' "$*" >> "${log}"\n`);
   writeFileSync(join(bin, "timeout"), `#!/usr/bin/env bash\nprintf 'timeout %s\\n' "$1" >> "${log}"\nshift\nexec "$@"\n`);
   for (const name of ["uname", "sudo", "tee", "dpkg", "pnpm", "apt-get", "timeout"]) chmodSync(join(bin, name), 0o755);
@@ -124,11 +125,15 @@ test("browser-deps.sh installs the cached system packages with dpkg, and otherwi
   assert.equal(miss.status, 0, miss.stderr);
   assert.match(miss.calls, new RegExp(`^tee /etc/apt/apt\\.conf\\.d/90ouro-browser-debs\\nDir::Cache::Archives "${empty.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}/";\\nAPT::Keep-Downloaded-Packages "true";\\nBinary::apt::APT::Keep-Downloaded-Packages "true";$`, "m"));
   assert.match(miss.calls, /^pnpm exec playwright install-deps chromium webkit$/m);
-  assert.doesNotMatch(miss.calls, /^dpkg /m);
+  assert.doesNotMatch(miss.calls, /^dpkg -i/m);
   // A mirror that stops answering: a stalled download fails and is tried again, and the install is stopped after 15 minutes and run again.
   for (const result of [broken, miss]) {
-    assert.match(result.calls, /^tee \/etc\/apt\/apt\.conf\.d\/90ouro-acquire\nAcquire::http::Timeout "60";\nAcquire::https::Timeout "60";\nAcquire::Retries "3";\n(?:.*\n)*timeout 900\npnpm exec playwright install-deps chromium webkit$/m);
+    assert.match(result.calls, /^tee \/etc\/apt\/apt\.conf\.d\/90ouro-acquire\nAcquire::http::Timeout "60";\nAcquire::https::Timeout "60";\nAcquire::Retries "3";\n(?:.*\n)*dpkg --configure -a\ntimeout 900\npnpm exec playwright install-deps chromium webkit$/m);
   }
+  // Each try first mends what a stopped one left half unpacked.
+  const retried = run(join(scratch, "retried"), { PNPM_FAILS: "1", RETRY_DELAYS: "0" });
+  assert.equal(retried.status, 0, retried.stdout + retried.stderr);
+  assert.match(retried.calls, /^dpkg --configure -a\ntimeout 900\npnpm exec playwright install-deps chromium webkit\ndpkg --configure -a\ntimeout 900\npnpm exec playwright install-deps chromium webkit$/m);
   // A second apt waits for dpkg's lock rather than failing at once, on a hit and on a miss.
   for (const result of [hit, miss]) assert.match(result.calls, /^tee \/etc\/apt\/apt\.conf\.d\/90ouro-dpkg-lock\nDPkg::Lock::Timeout "600";$/m);
   assert.ok(existsSync(join(empty, "partial")));

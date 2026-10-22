@@ -15,8 +15,11 @@ concurrency:
 # Each job ends within about twice the 90th percentile of its passing runs (the last 60 runs of
 # this workflow, 2026-10-22), and 10 minutes at least: a runner that hangs, as on a mirror that
 # stopped answering (#174's queue run 39783627653), fails its job instead of holding the merge
-# queue for GitHub's 6 hours. Two jobs take more than twice their 90th percentile, after runs that
-# passed slower: mutation-shard (a cold cache, 12 minutes) and conformance-shard (15 minutes).
+# queue for GitHub's 6 hours. Some take more, after runs that passed slower: mutation-shard (a cold
+# cache, 12 minutes) and conformance-shard (15 minutes); ci, whose fallback to the full suite on a
+# reduced pull request took 15.7 minutes (#159); browser and e2e-shard, which a slow mirror took to
+# 50.6 and 38.9 minutes while still installing; and themes, visual and theme-install, where an apt
+# install stopped after 15 minutes and tried again still fits.
 jobs:
   plan:
     # Which browser tests this run needs (scripts/test-impact.mjs). A pull request into main runs
@@ -159,7 +162,7 @@ jobs:
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -270,7 +273,7 @@ jobs:
     needs: [plan, checks, browser, scripts]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 40
     outputs:
       reduced: ${{ steps.tests.outputs.reduced }}
       stems: ${{ steps.tests.outputs.stems }}
@@ -375,7 +378,7 @@ jobs:
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
@@ -681,7 +684,7 @@ jobs:
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -742,7 +745,7 @@ jobs:
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 50
     strategy:
       fail-fast: false
       matrix:
@@ -817,7 +820,7 @@ jobs:
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
