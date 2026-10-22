@@ -8,6 +8,7 @@ import { DocsShell } from "../components/layout";
 import { LiveDemo } from "../components/live-demo";
 import { siteGroups } from "../../../scripts/catalog-groups.mts";
 import { loadMarkdown } from "../docs/content";
+import { itemDetails } from "../docs/item-details";
 import { docsItems, GITHUB, installedPaths, itemFiles, itemMarkdown, partsSection, type DocsItem } from "../docs/items";
 import { inline, Markdown, parse, type Block } from "../docs/markdown";
 import { docsPages, exportPages, guidePages, pageMarkdown, publishedName, repositoryLink, type DocsPage } from "../docs/pages";
@@ -111,7 +112,7 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
       <Markdown blocks={body} link={(target) => siteLink(target, `docs/${item.title}.md`)} />
 
       <div className="mt-14 flex flex-wrap gap-x-6 gap-y-2 border-t border-border pt-6 text-sm">
-        <a href={`${GITHUB}/blob/main/${item.source}`} className="text-muted-foreground underline underline-offset-4 hover:text-foreground">
+        <a href={`${GITHUB}/blob/main/${itemDetails(item).source}`} className="text-muted-foreground underline underline-offset-4 hover:text-foreground">
           Source on GitHub
         </a>
         <a href={href(`/docs/${item.name}.md`)} className="text-muted-foreground underline underline-offset-4 hover:text-foreground">
@@ -181,7 +182,7 @@ export function DocsIndex(): JSX.Element {
                 <li key={item.name}>
                   <a href={href(`/docs/${item.name}/`)} className={card}>
                     <span className="font-medium text-foreground">{item.title}</span>
-                    <span className="text-sm leading-6 text-muted-foreground">{inline(item.summary)}</span>
+                    <span className="text-sm leading-6 text-muted-foreground">{inline(itemDetails(item).summary)}</span>
                   </a>
                 </li>
               ))}

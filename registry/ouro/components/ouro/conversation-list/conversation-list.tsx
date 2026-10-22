@@ -81,7 +81,7 @@ const moves: Readonly<Record<string, (index: number, last: number) => number>> =
 };
 
 /**
- * A list of conversations to choose from: each row shows the avatar, the title, when the
+ * A list of conversations to choose from. Each row shows the avatar, the title, when the
  * latest message arrived and a line of it, and marks unread conversations with a bold title
  * and a dot. The open conversation's row is highlighted and marked `aria-current`. Up and
  * Down arrows move between rows, Home and End jump to the first and last, and Enter, Space
@@ -95,8 +95,8 @@ const moves: Readonly<Record<string, (index: number, last: number) => number>> =
  *
  * @example
  * <ConversationList label="Conversations" items={conversations} selectedId={openId} onSelect={setOpenId} />
- * @claim "A list of conversations to choose" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > is a named list of buttons, one per conversation, in order)
- * @claim "A list of conversations to choose" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > shows unread conversations with a bold title, a dot and a spoken label)
+ * @claim "Each row shows the avatar, the" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > is a named list of buttons, one per conversation, in order)
+ * @claim "Each row shows the avatar, the" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > shows unread conversations with a bold title, a dot and a spoken label)
  * @claim "The open conversation's row is" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > marks the open conversation current and highlights it)
  * @claim "Up and Down arrows move between" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > moves focus with the arrow keys, Home and End)
  */

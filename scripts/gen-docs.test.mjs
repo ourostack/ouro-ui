@@ -64,7 +64,7 @@ test("generating is deterministic and matches the committed files", () => {
   for (const file of files) {
     assert.equal(readFileSync(join(out, "docs", file), "utf8"), doc(file), file);
   }
-  for (const file of ["README.md", "site/src/docs/catalog.json", "site/src/docs/pages.json"]) {
+  for (const file of ["README.md", "site/src/docs/catalog.json", "site/src/docs/item-details.json", "site/src/docs/pages.json"]) {
     assert.equal(readFileSync(join(out, file), "utf8"), readFileSync(join(root, file), "utf8"), file);
   }
 });

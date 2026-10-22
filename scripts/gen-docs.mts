@@ -8,7 +8,8 @@
 // - site/src/docs/catalog.json, the site's page per registry item, and site/src/docs/pages.json,
 //   its page per other documented export (Radio, OuroProvider) and per guide (docs/guides/*.md,
 //   written by hand), so every docs page has an address: docs/<kebab-case name>; each with its
-//   summary, so the docs index lists the pages without loading their Markdown;
+//   summary (an item's, with its source file, in site/src/docs/item-details.json, which only the
+//   docs load), so the docs index lists the pages without loading their Markdown;
 // - README.md "Upgrading from v0.1.0", between <!-- upgrade:start --> and <!-- upgrade:end -->,
 //   copied from UPGRADING.md with its {{latestRelease}} placeholder filled in;
 // - the release tag in the install commands of README.md, site/public/llms.txt and
@@ -627,13 +628,20 @@ const siteItems = components
     name: entry.name,
     title: entry.title,
     group: groupOf.get(entry.title)!,
-    source: `${componentsDir}${entry.folder}/${entry.stem}.tsx`,
-    summary: summary(outputs.get(`docs/${entry.title}.md`)!),
     ...(partFiles[entry.title] ? { parts: entry.title } : {}),
     ...(pageFunctions(entry.name).length > 0 ? { functions: pageFunctions(entry.name) } : {}),
   }))
   .sort((a, b) => catalogGroups.indexOf(a.group) - catalogGroups.indexOf(b.group));
 outputs.set("site/src/docs/catalog.json", `${JSON.stringify(siteItems, null, 2)}\n`);
+// Each item's source file (its folder and stem under the components directory) and summary, in
+// the catalog's order, apart from the catalog: every page's navigation loads the catalog, and
+// only the docs need these (site/src/docs/item-details.ts). Pairs, not keyed objects, so the docs
+// load no name twice.
+const siteDetails = siteItems.map(({ name, title }) => {
+  const entry = components.find((each) => each.name === name)!;
+  return [`${entry.folder}/${entry.stem}`, summary(outputs.get(`docs/${title}.md`)!)];
+});
+outputs.set("site/src/docs/item-details.json", `${JSON.stringify(siteDetails, null, 2)}\n`);
 
 /** `OuroProvider` to `ouro-provider`: the address of an export's page that is not a registry item's. */
 const kebab = (name: string) => name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();

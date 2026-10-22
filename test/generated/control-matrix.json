@@ -2312,5 +2312,75 @@
       "ReactionBar/ReadOnly",
       "ReactionBar/Disabled"
     ]
+  },
+  {
+    "item": "draft-review",
+    "stem": "draft-review",
+    "mode": "default",
+    "part": "accept",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "DraftReview/Playground",
+      "DraftReview/Review",
+      "DraftReview/WithApprove"
+    ]
+  },
+  {
+    "item": "draft-review",
+    "stem": "draft-review",
+    "mode": "default",
+    "part": "reject",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "DraftReview/Playground",
+      "DraftReview/Review",
+      "DraftReview/WithApprove"
+    ]
+  },
+  {
+    "item": "draft-review",
+    "stem": "draft-review",
+    "mode": "default",
+    "part": "accept-all",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "DraftReview/Playground",
+      "DraftReview/Review",
+      "DraftReview/WithApprove"
+    ]
+  },
+  {
+    "item": "draft-review",
+    "stem": "draft-review",
+    "mode": "default",
+    "part": "reject-all",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "DraftReview/Playground",
+      "DraftReview/Review",
+      "DraftReview/WithApprove"
+    ]
+  },
+  {
+    "item": "draft-review",
+    "stem": "draft-review",
+    "mode": "default",
+    "part": "show-source",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "DraftReview/Playground",
+      "DraftReview/Review",
+      "DraftReview/WithApprove"
+    ]
   }
 ]

@@ -1,0 +1,13 @@
+{
+  "order": 2640,
+  "components": ["draft-review"],
+  "controls": {
+    "draft-review": [
+      {"part": "accept", "role": "button", "portal": false},
+      {"part": "reject", "role": "button", "portal": false},
+      {"part": "accept-all", "role": "button", "portal": false},
+      {"part": "reject-all", "role": "button", "portal": false},
+      {"part": "show-source", "role": "button", "portal": false}
+    ]
+  }
+}
