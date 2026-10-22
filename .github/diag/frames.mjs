@@ -1,21 +1,24 @@
 // Diagnostic only (branch diag/webkit-frames): where WebKit on Linux spends its frames on /voyage/.
 import { chromium, webkit } from "@playwright/test";
 const [base, label] = [process.argv[2], process.argv[3]];
+const CV = "main > section, main > div > section, section[id] { content-visibility: auto; contain-intrinsic-size: auto 900px; }";
 const VARIANTS = {
   base: "",
-  noblur: ".stage-porthole::before { filter: none !important; }",
   noshadow: "*, *::before, *::after { box-shadow: none !important; }",
-  nowillchange: "* { will-change: auto !important; }",
-  nodropshadow: "svg, svg * { filter: none !important; }",
-  cvall: "main > section, main > div > section, section[id] { content-visibility: auto; contain-intrinsic-size: auto 900px; }",
-  nofilter: "*, *::before, *::after { filter: none !important; box-shadow: none !important; }",
+  winnoshadow: ".site-window { box-shadow: none !important; }",
+  winvisible: ".site-window { overflow: visible !important; }",
+  winlayer: ".site-window { will-change: transform; }",
+  wincontent: ".site-window > :not(.site-window-bar) { will-change: transform; }",
+  restnoshadow: "*:not(.site-window), *::before, *::after { box-shadow: none !important; }",
+  cvall: CV,
+  cvwin: CV + " .site-window { box-shadow: none !important; }",
 };
 const frames = (page) => page.evaluate(() => new Promise((r) => { const t = []; let last = performance.now(); const tick = (now) => { t.push(now - last); last = now; if (t.length < 40) requestAnimationFrame(tick); else { t.sort((a, b) => a - b); r(`${t[20].toFixed(0)}/${t[36].toFixed(0)}`); } }; requestAnimationFrame(tick); }));
 for (const type of [webkit, chromium]) {
   const browser = await type.launch();
   for (const [name, css] of Object.entries(VARIANTS)) {
     if (type === chromium && name !== "base") continue;
-    if (label === "main" && !["base", "nofilter", "noblur", "noshadow"].includes(name)) continue;
+    if (label === "main" && !["base", "noshadow", "winnoshadow"].includes(name)) continue;
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto(base + "voyage/");
@@ -41,11 +44,16 @@ for (const type of [webkit, chromium]) {
       await page.waitForTimeout(500);
       row.push(`c2 ${await frames(page)}`);
       t0 = Date.now();
+      let [opens, picks] = [0, 0];
       for (const port of ["Atlantis", "Crespo Island"]) {
+        t0 = Date.now();
         await page.getByRole("button", { name: new RegExp(`^Reorder ${port}`) }).click();
+        opens += Date.now() - t0;
+        t0 = Date.now();
         await page.getByRole("menu", { name: `Reorder ${port}` }).getByRole("menuitem", { name: "Move to top" }).click();
+        picks += Date.now() - t0;
       }
-      row.push(`2 moves ${Date.now() - t0}ms`);
+      row.push(`2 moves open ${opens}ms pick ${picks}ms`);
       await page.locator("#chapter-three").scrollIntoViewIfNeeded();
       await page.locator("#chapter-three[data-chapter-ready]").waitFor({ state: "attached" });
       await page.waitForTimeout(500);
