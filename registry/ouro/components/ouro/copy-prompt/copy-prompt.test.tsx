@@ -65,12 +65,22 @@ describe("CopyPrompt", () => {
   });
 
   it("copies the prompt, says Copied and calls onCopy", async () => {
-    const onCopy = vi.fn();
-    await render(<CopyPrompt text={text} onCopy={onCopy} copiedLabel="Copié" />);
-    await userEvent.click(page.getByRole("button", { name: "Copy" }));
-    await expect.poll(() => clipboard).toEqual([text]);
-    expect(onCopy).toHaveBeenCalledWith(text);
-    await expect.element(page.getByRole("button", { name: "Copié" })).toBeVisible();
+    // The confirmation lasts two seconds on the page's clock, which stands still here, so a slow
+    // runner cannot end it before the read (CopyButton's own tests do the same).
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      const onCopy = vi.fn();
+      const { host } = await render(<CopyPrompt text={text} onCopy={onCopy} copiedLabel="Copié" />);
+      const button = host.querySelector("button")!;
+      await userEvent.click(button);
+      const deadline = performance.now() + 5000;
+      while (button.textContent !== "Copié" && performance.now() < deadline) await new Promise((resolve) => requestAnimationFrame(resolve));
+      expect(button.textContent).toBe("Copié");
+      expect(clipboard).toEqual([text]);
+      expect(onCopy).toHaveBeenCalledWith(text);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("wraps the prompt in the page's type and keeps its line breaks", async () => {
