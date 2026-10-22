@@ -38,6 +38,10 @@ fi
 
 mkdir -p "$dir/partial"
 printf 'Dir::Cache::Archives "%s/";\nAPT::Keep-Downloaded-Packages "true";\nBinary::apt::APT::Keep-Downloaded-Packages "true";\n' "$dir" | sudo tee /etc/apt/apt.conf.d/90ouro-browser-debs > /dev/null
-"$here/retry.sh" pnpm exec playwright install-deps "$@"
+# A mirror that stops answering held jobs in "playwright-browsers" for close to an hour (#174's
+# queue run 39783627653): a download that stalls fails after a minute and apt tries it again, and
+# an install that still hangs is stopped after 15 minutes and run again (scripts/retry.sh).
+printf 'Acquire::http::Timeout "60";\nAcquire::https::Timeout "60";\nAcquire::Retries "3";\n' | sudo tee /etc/apt/apt.conf.d/90ouro-acquire > /dev/null
+"$here/retry.sh" timeout 900 pnpm exec playwright install-deps "$@"
 # apt leaves partial/ to its own user; the cache's tar reads the folder as the runner's.
 sudo chmod -R a+rX "$dir"
