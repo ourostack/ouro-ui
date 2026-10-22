@@ -1,10 +1,12 @@
 "use client";
 
-import type { ComponentType, HTMLAttributes, JSX, MouseEvent, ReactNode, Ref, SVGProps } from "react";
+import type { ComponentType, HTMLAttributes, JSX, ReactNode, Ref, SVGProps } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { fontFor, toneFor } from "@/registry/ouro/lib/ouro/appearance-hints";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { useFocusHandoff } from "@/registry/ouro/lib/ouro/focus-handoff";
+import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { toneWarning, type ToneName } from "@/registry/ouro/lib/ouro/tones";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
@@ -155,21 +157,6 @@ function CloseIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
   );
 }
 
-const focusable =
-  'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
-
-/**
- * Where focus goes when an alert is dismissed: the next control after it, where the reader
- * would continue, or else the last one before it.
- */
-function focusTarget(alert: Element): HTMLElement | undefined {
-  const candidates = [...document.querySelectorAll<HTMLElement>(focusable)].filter(
-    (element) => !alert.contains(element) && element.getClientRects().length > 0,
-  );
-  const after = candidates.find((element) => alert.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING);
-  return after ?? candidates.filter((element) => alert.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_PRECEDING).at(-1);
-}
-
 function alertHint(token: string): string {
   if (/^text-(xs|sm|base|lg|xl|\dxl)$/.test(token)) return `remove "${token}"; Alert sets its own size`;
   if (token.startsWith("font-")) return fontFor("Alert", token);
@@ -228,8 +215,12 @@ export function Alert(props: AlertProps): JSX.Element {
     status,
     onClose,
     children,
+    ref,
     ...rest
   } = props;
+  // When the alert leaves while it holds focus (its dismiss button, or an action that removes it),
+  // focus goes to what now stands where it stood: the next control, or the last one before it.
+  const merged = useMergedRef(ref, useFocusHandoff<HTMLDivElement>());
   // A tone that is not one of Ouro UI's (a type error) warns and renders the default.
   const tone = Object.hasOwn(tones, toneProp) ? (toneProp as ToneName) : "secondary";
   useAppearanceClassNameCheck(
@@ -258,6 +249,7 @@ export function Alert(props: AlertProps): JSX.Element {
   return (
     <div
       {...rest}
+      ref={merged}
       role={urgent.has(tone) ? "alert" : "status"}
       data-ouro="alert"
       data-tone={tone}
@@ -291,15 +283,7 @@ export function Alert(props: AlertProps): JSX.Element {
           aria-label={dismissLabel}
           data-ouro-control="alert"
           data-ouro-part="dismiss"
-          onClick={(event: MouseEvent<HTMLButtonElement>) => {
-            const button = event.currentTarget;
-            const target = focusTarget(button.closest('[data-ouro="alert"]')!);
-            onDismiss();
-            // Once the app has removed the alert, the close button's focus would fall to <body>.
-            requestAnimationFrame(() => {
-              if (!button.isConnected && (document.activeElement === null || document.activeElement === document.body)) target?.focus();
-            });
-          }}
+          onClick={() => onDismiss()}
           className="-my-1.5 -me-2 w-(--ouro-button-h) px-0"
         >
           <CloseIcon aria-hidden="true" className="size-4" />

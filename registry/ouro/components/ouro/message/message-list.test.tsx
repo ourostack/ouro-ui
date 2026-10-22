@@ -2,7 +2,7 @@ import { type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -109,6 +109,18 @@ afterEach(async () => {
 });
 
 describe("MessageList", () => {
+  it("outlines the scrollable region under forced colours, so a contrast theme shows where it ends", async () => {
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      const { scroller } = await render(<Chat items={history(20)} />);
+      expect(scroller.getAttribute("tabindex")).toBe("0");
+      expect(getComputedStyle(scroller).outlineStyle).toBe("solid");
+      expect(parseFloat(getComputedStyle(scroller).outlineWidth)).toBeGreaterThan(0);
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
   it("is a named, keyboard-scrollable region that opens at the newest message", async () => {
     const { scroller } = await render(<Chat items={history(20)} />);
     await expect.element(page.getByRole("region", { name: "Conversation" })).toBeVisible();

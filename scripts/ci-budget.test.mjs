@@ -50,6 +50,22 @@ test("a job's checks are matched by its name, with each matrix value it lists", 
   assert.deepEqual(graph.find((node) => node.id === "ci").needs, ["plan", "browser"]);
 });
 
+test("a check whose name holds an expression other than a matrix value (a shard count its needs compute) is matched too", () => {
+  const graph = jobGraph(`name: CI
+jobs:
+  mutation-shard:
+    strategy:
+      matrix:
+        shard: \${{ fromJSON(needs.mutation-plan.outputs.shards) }}
+    name: mutation (\${{ matrix.shard }}/\${{ needs.mutation-plan.outputs.count }})
+  mutation:
+    needs: [mutation-shard]
+`);
+  const owner = (name) => graph.filter((node) => node.pattern.test(name)).map((node) => node.id);
+  assert.deepEqual(owner("mutation (2/5)"), ["mutation-shard"]);
+  assert.deepEqual(owner("mutation"), ["mutation"]);
+});
+
 test("the critical path follows needs through the slowest job of each matrix, and leaves queues out", () => {
   const jobs = [
     job("plan", 0, 0, 1),

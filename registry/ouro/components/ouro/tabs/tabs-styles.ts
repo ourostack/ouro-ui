@@ -78,6 +78,7 @@ const tabClass =
   "rounded-md border-0 bg-transparent text-base font-medium text-muted-foreground sm:pointer-fine:text-sm " +
   "select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "not-data-disabled:pointer-fine:hover:text-foreground data-active:text-foreground " +
+  "forced-colors:data-active:bg-[Highlight] forced-colors:data-active:text-[HighlightText] " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
   "data-disabled:cursor-not-allowed data-disabled:opacity-50";
 
@@ -115,7 +116,7 @@ const indicatorClass =
   "data-[orientation=horizontal]:bottom-0 data-[orientation=horizontal]:left-0 data-[orientation=horizontal]:h-0.5 " +
   "data-[orientation=horizontal]:w-px data-[orientation=horizontal]:origin-left data-[orientation=horizontal]:translate-x-(--active-tab-left) " +
   "data-[orientation=horizontal]:scale-x-[tan(atan2(var(--active-tab-width,0px),1px))] " +
-  "data-[orientation=vertical]:top-0 data-[orientation=vertical]:right-0 data-[orientation=vertical]:w-0.5 " +
+  "data-[orientation=vertical]:top-0 data-[orientation=vertical]:end-0 data-[orientation=vertical]:w-0.5 " +
   "data-[orientation=vertical]:h-px data-[orientation=vertical]:origin-top data-[orientation=vertical]:translate-y-(--active-tab-top) " +
   "data-[orientation=vertical]:scale-y-[tan(atan2(var(--active-tab-height,0px),1px))]";
 

@@ -31,8 +31,9 @@ const trackClass =
 
 /**
  * The thumb slides 16px in the press duration when the switch turns on or off. While the
- * pointer is down it stretches 4px toward the way it will travel: to the
- * right when off, to the left when on. With reduced motion it neither slides nor stretches.
+ * pointer is down it stretches 4px toward the way it will travel: toward the inline end when
+ * off, toward the start when on (right and left in a left-to-right page). With reduced motion it
+ * neither slides nor stretches.
  * It is `muted-foreground` when off and `primary-foreground` when on, so the thumb's color
  * also tells the states apart.
  *
@@ -43,8 +44,10 @@ const trackClass =
  */
 const thumbClass =
   "pointer-events-none block size-(--ouro-switch-thumb) rounded-full bg-muted-foreground data-checked:bg-primary-foreground shadow-(--shadow-sm) " +
-  "translate-x-0 data-checked:translate-x-4 " +
-  "origin-left " +
+  // Translate and origin have no logical form, so a right-to-left page reverses them: the thumb
+  // starts at the inline start and slides toward the inline end either way.
+  "translate-x-0 data-checked:translate-x-4 rtl:data-checked:-translate-x-4 " +
+  "origin-left rtl:origin-right " +
   "motion-safe:[transition:translate_var(--ouro-duration-press)_var(--ouro-ease-out),scale_var(--ouro-duration-press)_var(--ouro-ease-out)] " +
   "motion-safe:group-active:not-data-disabled:scale-x-[1.2] " +
-  "motion-safe:group-active:not-data-disabled:data-checked:translate-x-3";
+  "motion-safe:group-active:not-data-disabled:data-checked:translate-x-3 rtl:motion-safe:group-active:not-data-disabled:data-checked:-translate-x-3";

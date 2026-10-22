@@ -165,6 +165,8 @@ const itemClass =
   "relative box-border grid min-h-11 cursor-default grid-cols-[1rem_1fr] items-center gap-2 rounded-sm px-2 py-1.5 " +
   "text-base leading-6 outline-none select-none pointer-fine:min-h-8 sm:pointer-fine:text-sm sm:pointer-fine:leading-5 " +
   "scroll-my-1 [-webkit-tap-highlight-color:transparent] data-highlighted:bg-accent data-highlighted:text-accent-foreground " +
+  // Forced colours drop the fill, so the highlight takes the system's pair.
+  "forced-colors:data-highlighted:bg-[Highlight] forced-colors:data-highlighted:text-[HighlightText] " +
   "not-data-disabled:active:bg-accent not-data-disabled:active:text-accent-foreground " +
   "data-disabled:opacity-50 [&_svg]:size-4";
 

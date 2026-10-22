@@ -1,0 +1,28 @@
+{
+  "registry/ouro/lib/ouro/touch-target.tsx": {
+    "left-1/2": "centres the target with -translate-1/2, which lands in the same place in either direction"
+  },
+  "registry/ouro/components/ouro/image-cropper/image-cropper.tsx": {
+    "left-1/2": "centres the image in the frame by its measured offset, which is the same in either direction"
+  },
+  "registry/ouro/components/ouro/inspector/inspector-styles.ts": {
+    "left-0": "an outline is moved onto its component by a transform from the component's measured screen position"
+  },
+  "registry/ouro/components/ouro/tabs/tabs-styles.ts": {
+    "data-[orientation=horizontal]:left-0": "the indicator moves by Base UI's --active-tab-left, the tab's measured distance from the list's left edge",
+    "data-[orientation=horizontal]:origin-left": "the indicator scales from the list's left edge, where Base UI measures --active-tab-left from",
+    "data-[orientation=horizontal]:translate-x-(--active-tab-left)": "Base UI's --active-tab-left is the tab's measured distance from the list's left edge, in either direction"
+  },
+  "registry/ouro/components/ouro/dialog/dialog-parts.tsx": {
+    "pr-[max(1rem,env(safe-area-inset-right,0px))]": "keeps the dialog clear of the screen's right-hand cut-out, which is physical",
+    "pl-[max(1rem,env(safe-area-inset-left,0px))]": "keeps the dialog clear of the screen's left-hand cut-out, which is physical"
+  },
+  "registry/ouro/components/ouro/sheet/sheet-parts.tsx": {
+    "rounded-r-xl": "a sheet from side=\"left\" rounds the edge that faces the page; the side prop is physical",
+    "pl-[env(safe-area-inset-left,0px)]": "a sheet from side=\"left\" stays clear of the screen's left-hand cut-out",
+    "after:right-[calc(100%-1px)]": "the overscroll fill behind a sheet from side=\"left\" sits off its left edge",
+    "rounded-l-xl": "a sheet from side=\"right\" rounds the edge that faces the page; the side prop is physical",
+    "pr-[env(safe-area-inset-right,0px)]": "a sheet from side=\"right\" stays clear of the screen's right-hand cut-out",
+    "after:left-[calc(100%-1px)]": "the overscroll fill behind a sheet from side=\"right\" sits off its right edge"
+  }
+}

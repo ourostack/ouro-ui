@@ -26,7 +26,7 @@ Type: `ProgressProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-4`, `max-w-sm`). Appearance classes warn in development; use `tone`. |
-| `format` | `Intl.NumberFormatOptions` |  | How the value is written, for `showValue` and screen readers: `{ style: "unit", unit: "megabyte" }`. |
+| `format` | `Intl.NumberFormatOptions` |  | How the value is written, for `showValue` and screen readers: `{ style: "unit", unit: "megabyte" }`. In the reader's locale once the page has hydrated; en-US in the server's HTML and during hydration, since the server cannot know the reader's. |
 | `hideLabel` | `boolean` |  | Hides the label visually; screen readers still use it. |
 | `id` | `string` |  | The progress bar's id, for `aria-describedby` or `aria-controls` elsewhere on the page. |
 | `indeterminateText` | `string` | `"Loading"` | What screen readers say for the value while it is `null`, that the work is under way. Translate it with the rest of your interface. |

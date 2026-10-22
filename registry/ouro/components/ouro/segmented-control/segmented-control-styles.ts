@@ -37,7 +37,7 @@ const labelClass = "m-0 block text-sm leading-5 font-medium text-foreground sele
 const groupClass =
   "relative isolate m-0 box-border inline-grid max-w-full grid-flow-col auto-cols-[minmax(0,1fr)] p-0.5 " +
   "h-(--ouro-segmented-h) [--ouro-segmented-h:calc(var(--spacing)*11)] sm:pointer-fine:[--ouro-segmented-h:calc(var(--spacing)*9)] " +
-  "rounded-lg bg-muted";
+  "rounded-lg bg-muted forced-colors:border forced-colors:border-solid";
 
 /**
  * The raised thumb behind the pressed segment. Segments are equal, so its place is the
@@ -49,8 +49,9 @@ const groupClass =
  * @claim "Segments are equal, so its place" registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx verify:testExists(registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx::SegmentedControl > keeps the label id and pressed state in server HTML and hydrates without a mismatch)
  */
 const thumbClass =
-  "pointer-events-none absolute top-0.5 bottom-0.5 left-0.5 -z-1 rounded-md " +
-  "w-[calc((100%-var(--spacing)*1)/var(--ouro-segment-count))] translate-x-[calc(var(--ouro-segment-index)*100%)] " +
+  "pointer-events-none absolute top-0.5 bottom-0.5 start-0.5 -z-1 rounded-md " +
+  "w-[calc((100%-var(--spacing)*1)/var(--ouro-segment-count))] translate-x-[calc(var(--ouro-segment-index)*100%)] rtl:translate-x-[calc(var(--ouro-segment-index)*-100%)] " +
+  "forced-colors:bg-[Highlight] " +
   "bg-background dark:bg-[color-mix(in_oklab,var(--foreground)_16%,var(--muted))] " +
   "shadow-(--shadow-sm) " +
   "[transition:translate_var(--ouro-duration-base)_var(--ouro-ease-in-out),opacity_var(--ouro-duration-fast)_ease] " +
@@ -67,7 +68,7 @@ const segmentClass =
   "press relative m-0 box-border flex min-w-0 cursor-pointer items-center justify-center px-3 pointer-coarse:min-w-11 " +
   "rounded-md border-0 bg-transparent text-base font-medium whitespace-nowrap text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))] sm:pointer-fine:text-sm " +
   "select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
-  "not-data-disabled:pointer-fine:hover:text-foreground data-pressed:text-foreground " +
+  "not-data-disabled:pointer-fine:hover:text-foreground data-pressed:text-foreground forced-colors:data-pressed:text-[HighlightText] " +
   "motion-safe:not-data-disabled:active:scale-(--ouro-press-scale) " +
   "outline-ring outline-offset-1 focus-visible:outline-2 focus-visible:outline-solid " +
   "data-disabled:cursor-not-allowed data-disabled:opacity-50";

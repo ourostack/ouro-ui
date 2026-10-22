@@ -10,6 +10,16 @@ import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { useCommandShortcut } from "@/registry/ouro/lib/ouro/use-command-shortcut";
 import { axeExclude } from "@/registry/ouro/lib/ouro/testing/axe";
 
+/** The colour behind an element: the nearest background around it that is not transparent. */
+function behind(element: Element): string {
+  for (let node = element.parentElement; node; node = node.parentElement) {
+    const color = getComputedStyle(node).backgroundColor;
+    if (color !== "transparent" && !/rgba\(.*,\s*0\)$/.test(color)) return color;
+  }
+  return "rgb(255, 255, 255)";
+}
+
+
 // Runs in Chromium and WebKit.
 
 const FIX = "Pass trigger={<Button>…</Button>} for an uncontrolled command palette, or open and onOpenChange to control it.";
@@ -132,6 +142,18 @@ describe("Command", () => {
     expect(actions.import).toHaveBeenCalledOnce();
     await expect.poll(popup).toBeNull();
     await expect.poll(() => document.activeElement).toBe(trigger());
+  });
+
+  it("shows the highlighted command in the system's highlight colours under forced colours, where its fill is dropped", async () => {
+    await openPalette();
+    await expect.poll(() => document.querySelector("[data-highlighted]")).not.toBeNull();
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      const highlighted = document.querySelector("[data-highlighted]")!;
+      expect(getComputedStyle(highlighted).backgroundColor).not.toBe(behind(highlighted));
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
   });
 
   it("moves the highlight with the arrow keys", async () => {

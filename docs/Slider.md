@@ -34,7 +34,7 @@ Type: `SliderProps<Value>`.
 | `hideLabel` | `boolean` |  | Hides the label visually; screen readers still read it as the slider's name. |
 | `label` (required) | `string` |  | What the slider sets, shown above it and read as its name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. |
 | `largeStep` | `number` | `10` | The step for Page Up, Page Down and Shift with an arrow key. |
-| `locale` | `Intl.LocalesArgument` | the browser's | The locale for `format`. |
+| `locale` | `Intl.LocalesArgument` | the browser's, once hydrated; en-US in the server's HTML | The locale for `format`. |
 | `max` | `number` | `100` | The highest value. |
 | `min` | `number` | `0` | The lowest value. |
 | `name` | `string` |  | The form field name the value submits under; a range submits one entry per thumb. |

@@ -104,13 +104,11 @@ test("reflows at 320 CSS pixels (400% zoom) in every preset without scrolling si
 });
 
 /**
- * HX parts that draw no boundary of their own under forced colours yet (a registry follow-up, noted
- * in the voyage PRs): a segmented control's segments sit in a group with no border, a collapsible's
- * trigger is a line of text with a chevron (the ship's log fold), and a reorderable's handle is a
- * grip of dots (Chapter I's order of work). The test fails once one of them gains a boundary, so
- * this list only shrinks.
+ * Parts that draw no boundary of their own under forced colours: none since the conformance matrix
+ * (#133) gave segmented-control segments, the collapsible trigger and the reorderable handle one.
+ * The test fails once any part loses its boundary.
  */
-const FORCED_COLOURS_GAPS = ["segmented-control/segment", "collapsible/trigger", "reorderable/handle"];
+const FORCED_COLOURS_GAPS: string[] = [];
 
 test("keeps every control's boundary under forced colours", async ({ page }) => {
   await page.emulateMedia({ forcedColors: "active" });

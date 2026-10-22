@@ -1,10 +1,12 @@
 "use client";
 
 import { Toast } from "@base-ui/react/toast";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type JSX, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FocusEvent, type JSX, type PointerEvent as ReactPointerEvent } from "react";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
+import { useFocusHandoff, type FocusHandoffOptions } from "@/registry/ouro/lib/ouro/focus-handoff";
+import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { rubberband, spring, type SpringHandle } from "@/registry/ouro/lib/ouro/spring";
 import { connectToaster, type ToastRecord } from "@/registry/ouro/lib/ouro/toast";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
@@ -141,7 +143,7 @@ export function Toaster(props: ToasterProps): JSX.Element | null {
       <Connect onActive={setActive} />
       {active && (
         <Toast.Portal className={portalClass}>
-          <Toast.Viewport aria-label={label} data-ouro="toaster" className={cn(viewportClass, className)}>
+          <Toast.Viewport aria-label={label} data-ouro="toaster" className={cn(viewportClass, className)} onFocus={rememberEntry}>
             <ToastList closeLabel={closeLabel} />
           </Toast.Viewport>
         </Toast.Portal>
@@ -277,15 +279,44 @@ function ToastList({ closeLabel }: { closeLabel: string }): JSX.Element[] {
 
 type ToastObject = ReturnType<typeof Toast.useToastManager>["toasts"][number];
 
+/**
+ * Where focus was before it entered each toast region, so a toast that leaves with it can send it back there.
+ *
+ * @claim "Where focus was before it entered" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > hands focus to %s when its dismiss button closes it from the keyboard)
+ */
+const cameFrom = new WeakMap<Element, HTMLElement>();
+
+function rememberEntry(event: FocusEvent<HTMLElement>): void {
+  const from = event.relatedTarget;
+  // Focus that comes from nowhere (a handoff from a toast that left, after focus fell to <body>)
+  // keeps the place it entered from.
+  if (from instanceof HTMLElement && !event.currentTarget.contains(from)) cameFrom.set(event.currentTarget, from);
+}
+
+/**
+ * A toast hands focus to the next toast, and never past its region to some other control of the
+ * page (a footer link): when it was the last, focus goes back where it was before it entered the
+ * toasts, or stays on the page when it came from nowhere.
+ *
+ * @claim "A toast hands focus to the next toast" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > hands focus to %s when its dismiss button closes it from the keyboard) verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > leaves focus on the page when the last toast goes and focus came from nowhere, rather than moving it to the page's last control)
+ */
+function toastHandoff(element: HTMLDivElement): FocusHandoffOptions {
+  const region = element.closest('[data-ouro="toaster"]')!;
+  return { within: region, fallback: cameFrom.get(region) ?? null };
+}
+
 /** One toast. The swipe is Ouro's own, so Base UI's is off. */
 function ToastItem({ item, closeLabel }: { item: ToastObject; closeLabel: string }): JSX.Element {
   const { close } = Toast.useToastManager();
   const swipe = useSwipeAway(() => close(item.id), item.transitionStatus === "ending");
+  // A toast its dismiss button or action closes hands focus to the next toast, or back to the page.
+  const ref = useMergedRef(swipe.ref, useFocusHandoff<HTMLDivElement>(toastHandoff));
   return (
     <Toast.Root
       toast={item}
       swipeDirection={NO_SWIPE}
       {...swipe}
+      ref={ref}
       data-ouro="toast"
       data-tone={item.type}
       // A high-priority toast is an alertdialog, an urgent part of its own.

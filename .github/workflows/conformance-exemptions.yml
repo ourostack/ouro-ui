@@ -1,0 +1,45 @@
+name: Conformance exemptions
+# The conformance matrix's exemptions against the base (scripts/conformance-exemptions.mjs,
+# docs/guides/conformance.md): a physical-side class physicalAllowed lets through, a story's
+# focusExit control and its clientOnly. Each one a pull request adds needs its reason and a
+# mention in the description, so it runs again when the description is edited, without the rest
+# of CI. A required check: in the merge queue, where the pull request's description was already
+# checked, it passes without checking.
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+  merge_group:
+permissions:
+  contents: read
+concurrency:
+  group: conformance-exemptions-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  exemptions:
+    name: conformance exemptions
+    runs-on: ubuntu-latest
+    steps:
+      - if: github.event_name == 'merge_group'
+        run: echo "Checked on the pull request, against its description; nothing to check in the merge queue."
+      - if: github.event_name == 'pull_request'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - if: github.event_name == 'pull_request'
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - if: github.event_name == 'pull_request'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - if: github.event_name == 'pull_request'
+        run: pnpm i --frozen-lockfile
+      # The description comes through the environment, never into the script's text.
+      - if: github.event_name == 'pull_request'
+        name: Exemptions against the base
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          git fetch --no-tags --depth=1 origin "$BASE_REF"
+          BASE_REF="origin/$BASE_REF" node scripts/conformance-exemptions.mjs

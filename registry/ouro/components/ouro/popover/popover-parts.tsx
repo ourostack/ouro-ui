@@ -73,7 +73,7 @@ export function PopoverRoot(props: BasePopover.Root.Props): JSX.Element {
 export function PopoverTrigger({ style, ...props }: BasePopover.Trigger.Props): JSX.Element {
   usePopoverPart("PopoverTrigger", "…");
   const noScale = (own?: CSSProperties): CSSProperties => ({ ...own, ["--ouro-press-scale" as string]: 1 });
-  return <BasePopover.Trigger {...(props.render === undefined ? { "data-ouro-control": "popover", "data-ouro-part": "trigger" } : {})} {...props} style={typeof style === "function" ? (state) => noScale(style(state)) : noScale(style)} />;
+  return <BasePopover.Trigger {...(props.render === undefined ? { className: "forced-colors:border forced-colors:border-solid", "data-ouro-control": "popover", "data-ouro-part": "trigger" } : {})} {...props} style={typeof style === "function" ? (state) => noScale(style(state)) : noScale(style)} />;
 }
 
 /**

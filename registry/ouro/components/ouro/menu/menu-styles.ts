@@ -101,6 +101,8 @@ const menuItemClass =
   "text-start text-base leading-5 pointer-fine:text-sm text-popover-foreground no-underline outline-none select-none " +
   "[-webkit-tap-highlight-color:transparent] " +
   "data-highlighted:bg-accent data-highlighted:text-accent-foreground active:bg-accent active:text-accent-foreground data-popup-open:bg-accent data-popup-open:text-accent-foreground " +
+  // Forced colours drop the fill, so the highlight (and an open submenu's trigger) takes the system's pair.
+  "forced-colors:data-highlighted:bg-[Highlight] forced-colors:data-highlighted:text-[HighlightText] forced-colors:data-popup-open:bg-[Highlight] forced-colors:data-popup-open:text-[HighlightText] " +
   // The current page is marked by weight and a bar at the start edge, so it differs from the highlight without relying on color.
   "aria-[current=page]:font-medium aria-[current=page]:before:absolute aria-[current=page]:before:inset-y-2 aria-[current=page]:before:start-0 aria-[current=page]:before:w-0.5 aria-[current=page]:before:rounded-full aria-[current=page]:before:bg-current aria-[current=page]:before:content-[''] " +
   "forced-colors:aria-[current=page]:before:border-s-2 forced-colors:aria-[current=page]:before:border-solid forced-colors:aria-[current=page]:before:border-current " +

@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { InstallPrompt } from "@/registry/ouro/components/ouro/install-prompt/install-prompt";
 
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names).
@@ -8,15 +9,13 @@ import { InstallPrompt } from "@/registry/ouro/components/ouro/install-prompt/in
  * Storybook is not an installable app, so the browser never offers to install it: this fires
  * the offer the browser fires for an app with a manifest, with a dialog that answers "dismissed".
  */
-function useSimulatedOffer() {
-  useEffect(() => {
-    localStorage.removeItem("ouro-install-dismissed");
-    const offer = Object.assign(new Event("beforeinstallprompt", { cancelable: true }), {
-      prompt: () => Promise.resolve(),
-      userChoice: Promise.resolve({ outcome: "dismissed" as const }),
-    });
-    window.dispatchEvent(offer);
-  }, []);
+function simulateOffer() {
+  localStorage.removeItem("ouro-install-dismissed");
+  const offer = Object.assign(new Event("beforeinstallprompt", { cancelable: true }), {
+    prompt: () => Promise.resolve(),
+    userChoice: Promise.resolve({ outcome: "dismissed" as const }),
+  });
+  window.dispatchEvent(offer);
 }
 
 const meta = {
@@ -25,10 +24,18 @@ const meta = {
   parameters: { layout: "padded" },
   decorators: [
     (Story) => {
-      useSimulatedOffer();
+      // Each round mounts a fresh offer, as a new visit to the page would.
+      const [round, setRound] = useState(0);
+      useEffect(simulateOffer, [round]);
       return (
-        <div style={{ maxWidth: 420 }}>
-          <Story />
+        <div style={{ maxWidth: 420, display: "grid", gap: 16, justifyItems: "start" }}>
+          <div key={round} style={{ justifySelf: "stretch" }}>
+            <Story />
+          </div>
+          {/* The page's own control after the offer: where focus goes when Install or Not now puts the card away. */}
+          <Button variant="outline" tone="secondary" onClick={() => setRound((value) => value + 1)}>
+            Offer again
+          </Button>
         </div>
       );
     },

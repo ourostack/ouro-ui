@@ -120,6 +120,22 @@ jobs:
       - run: pnpm site:build
       - run: node scripts/links.mjs site/dist
       - run: pnpm build-storybook
+      # The release rehearsal: release.yml runs CI on the release commit before it pushes the tag,
+      # so a check that reads the release's own tag fails only at release time. This writes the
+      # release commit's files here (scripts/release-commit.sh) for the next patch version, whose
+      # tag does not exist, and runs the checks that read them, and the site build, as CI on the
+      # release branch runs them.
+      - name: Release rehearsal
+        run: |
+          next=$(node -p 'const [major, minor, patch] = require("./package.json").ouro.latestRelease.slice(1).split(".").map(Number); `${major}.${minor}.${patch + 1}`')
+          if git rev-parse -q --verify "refs/tags/v$next" > /dev/null; then echo "::error::v$next already exists here, so it cannot stand for a release that has no tag yet."; exit 1; fi
+          scripts/release-commit.sh "$next"
+          # As CI runs on the release branch: a pinned registry.json fails the check only on main.
+          export GITHUB_REF="refs/heads/release/v$next" GITHUB_BASE_REF=""
+          pnpm registry --check
+          pnpm run docs --check
+          pnpm claims:check
+          pnpm site:build
   browser:
     # The browser tests (pnpm test), in shards that run side by side: each takes the test files
     # scripts/shard-timings.json says add up to its share of the time, and its slice of the suites
@@ -388,6 +404,253 @@ jobs:
           else
             OURO_STORIES=$(node scripts/test-impact.mjs stories "$COMPONENTS") pnpm test:themes --shard="$SHARD/3"
           fi
+  conformance-shard:
+    # The conformance matrix (test/conformance/, docs/guides/conformance.md): every story through
+    # the checks that replace recurring review findings (focus after every action, announcements,
+    # hydration under foreign time zones and locales, right to left, forced colours), in Chromium,
+    # beside the ci job. Each shard takes every nth story (OURO_CONFORMANCE_SHARD, n being the
+    # matrix's size), so the shards finish together and adding one is a one-line change; the
+    # `conformance` job below is the one check the rules require. On a reduced pull request, only
+    # the selected components' stories; with none selected, only the checks' proofs that they can
+    # fail (the broken stories, on the first shard), which every run checks.
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    runs-on: ubuntu-latest
+    env:
+      FULL: ${{ needs.plan.outputs.full != 'false' }}
+      COMPONENTS: ${{ needs.plan.outputs.components }}
+      SHARD: ${{ matrix.shard }}
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    name: conformance (${{ matrix.shard }}/3)
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - id: affected
+        name: Is any story affected?
+        run: |
+          if [ "$FULL" = true ] || [ -n "$COMPONENTS" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          elif [ "$SHARD" = 1 ]; then
+            echo "Not affected: this pull request changes no component, so no story's conformance can change. The checks still prove they can fail."
+            echo "run=proofs" >> "$GITHUB_OUTPUT"
+          else
+            echo "Not affected: this pull request changes no component, so no story's conformance can change. Nothing to run."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.affected.outputs.run != 'false'
+        run: pnpm i --frozen-lockfile
+      - if: steps.affected.outputs.run != 'false'
+        uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium
+      - if: steps.affected.outputs.run == 'true'
+        name: Conformance
+        env:
+          OURO_CONFORMANCE_SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
+        run: |
+          if [ "$FULL" = true ]; then
+            pnpm conformance
+          else
+            OURO_STORIES=$(node scripts/test-impact.mjs stories "$COMPONENTS") pnpm conformance
+          fi
+      - if: steps.affected.outputs.run == 'proofs'
+        name: The checks prove they can fail
+        run: pnpm conformance -t "can fail"
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: conformance-${{ matrix.shard }}
+          path: .vitest/attachments/
+          if-no-files-found: ignore
+  conformance:
+    # The one check the rules require for the conformance matrix: it passes when every shard did,
+    # so the shard count can change without touching the ruleset.
+    needs: [plan, conformance-shard]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    runs-on: ubuntu-latest
+    env:
+      RESULT: ${{ needs.conformance-shard.result }}
+    steps:
+      - name: Every shard passed
+        run: |
+          echo "The conformance shards: $RESULT."
+          [ "$RESULT" = success ]
+  mutation-plan:
+    # Plans mutation testing (scripts/mutation.mjs, docs/guides/conformance.md). The shards' results
+    # are kept between runs of a pull request, merged into one file, under a key with a hash of
+    # every lib/ file and of what the changed files import (scripts/mutation/cache.mjs key), since
+    # Stryker's incremental mode compares only a mutated file and its tests. With results cached
+    # under the same hash, three shards; without, five, so a cold run's mutants spread wider. On any
+    # other run, three shards that each report nothing to mutate.
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    runs-on: ubuntu-latest
+    env:
+      EVENT: ${{ github.event_name }}
+      PR: ${{ github.event.pull_request.number }}
+    outputs:
+      key: ${{ steps.key.outputs.key }}
+      count: ${{ steps.count.outputs.count }}
+      shards: ${{ steps.count.outputs.shards }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # A pull request's merge commit and its first parent, the base it merges into.
+          fetch-depth: 2
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - id: key
+        name: The cache key's prefix
+        run: |
+          if [ "$EVENT" = pull_request ]; then
+            echo "key=stryker-$PR-$(node scripts/mutation/cache.mjs key HEAD^1)-" >> "$GITHUB_OUTPUT"
+          else
+            echo "key=" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.key.outputs.key != ''
+        id: cached
+        name: Results from an earlier run?
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .tmp/stryker-incremental.json
+          key: ${{ steps.key.outputs.key }}${{ github.sha }}
+          restore-keys: ${{ steps.key.outputs.key }}
+          lookup-only: true
+      - id: count
+        name: How many shards
+        env:
+          KEY: ${{ steps.key.outputs.key }}
+          MATCHED: ${{ steps.cached.outputs.cache-matched-key }}
+        run: |
+          if [ -n "$KEY" ] && [ -z "$MATCHED" ]; then
+            count=5
+            echo "No results cached under $KEY: $count shards."
+          else
+            count=3
+            echo "Results cached under ${MATCHED:-nothing (not a pull request)}: $count shards."
+          fi
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          echo "shards=[$(seq "$count" | paste -sd , -)]" >> "$GITHUB_OUTPUT"
+  mutation-shard:
+    # Mutation testing of the lines a pull request added or changed in the runtime source: every
+    # mutant Stryker makes of them must fail a test. The changed ranges are split across the shards
+    # by their estimated mutants and their tests' measured time (scripts/mutation/test-seconds.json),
+    # and each shard starts from the results kept from the pull request's last run, so a push
+    # reruns only the mutants its change touched. Pull requests only; on any other run, and on a
+    # pull request that changes no runtime source, it reports that there is nothing to mutate. The
+    # `mutation` job below is the one check the rules require.
+    needs: [plan, mutation-plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    runs-on: ubuntu-latest
+    env:
+      EVENT: ${{ github.event_name }}
+      SHARD: ${{ matrix.shard }}
+      COUNT: ${{ needs.mutation-plan.outputs.count }}
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.mutation-plan.outputs.shards) }}
+    name: mutation (${{ matrix.shard }}/${{ needs.mutation-plan.outputs.count }})
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # A pull request's merge commit and its first parent, the base it merges into.
+          fetch-depth: 2
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - id: changed
+        name: Is any runtime source changed?
+        run: |
+          if [ "$EVENT" = pull_request ] && git diff --quiet HEAD^1 HEAD -- registry/ouro/components/ registry/ouro/lib/ouro/; then
+            echo "Nothing to mutate: this pull request changes no runtime source."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          elif [ "$EVENT" = pull_request ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Nothing to mutate: only a pull request's changed lines are mutated."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.changed.outputs.run == 'true'
+        run: pnpm i --frozen-lockfile
+      - if: steps.changed.outputs.run == 'true'
+        uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium
+      - if: steps.changed.outputs.run == 'true'
+        name: Results from the last run
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .tmp/stryker-incremental.json
+          key: ${{ needs.mutation-plan.outputs.key }}${{ github.sha }}
+          restore-keys: ${{ needs.mutation-plan.outputs.key }}
+      - if: steps.changed.outputs.run == 'true'
+        name: Mutation testing
+        run: pnpm mutation HEAD^1 --shard "$SHARD/$COUNT"
+      # This shard's results, survivors included, for the mutation job to merge and keep.
+      - if: ${{ !cancelled() && steps.changed.outputs.run == 'true' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: stryker-incremental-${{ matrix.shard }}
+          path: .tmp/stryker-incremental.json
+          if-no-files-found: ignore
+          retention-days: 1
+  mutation:
+    # The one check the rules require for mutation testing: it passes when every shard did (on a
+    # merge-queue run, each shard has nothing to mutate and passes), so the shard count can change
+    # without touching the ruleset. On a pull request it first merges the shards' results into one
+    # file and keeps it for the next run, under the plan's key.
+    needs: [plan, mutation-plan, mutation-shard]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    runs-on: ubuntu-latest
+    env:
+      RESULT: ${{ needs.mutation-shard.result }}
+      KEY: ${{ needs.mutation-plan.outputs.key }}
+    steps:
+      - if: env.KEY != ''
+        continue-on-error: true
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - if: env.KEY != ''
+        continue-on-error: true
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - if: env.KEY != ''
+        continue-on-error: true
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: stryker-incremental-*
+          path: .tmp/shards
+      - if: env.KEY != ''
+        continue-on-error: true
+        name: One result file from the shards
+        run: node scripts/mutation/cache.mjs merge .tmp/stryker-incremental.json .tmp/shards/*/stryker-incremental.json
+      - if: ${{ env.KEY != '' && hashFiles('.tmp/stryker-incremental.json') != '' }}
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .tmp/stryker-incremental.json
+          key: ${{ env.KEY }}${{ github.sha }}
+      - name: Every shard passed
+        run: |
+          echo "The mutation shards: $RESULT."
+          [ "$RESULT" = success ]
   visual:
     # Compares screenshots with the committed baselines, on the image that produced them
     # (visual-baselines.yml). Kept apart from `ci` so that job can follow ubuntu-latest.
@@ -835,7 +1098,7 @@ jobs:
     # (scripts/ci-budget.mjs, judge). It also records the wall time a developer waits, queues included, with its median
     # over the latest runs, and the runner time the run took from the shared pool. A required check
     # (ruleset 24881709); it fails only a pull request, never a merge group or a push.
-    needs: [plan, motion-coverage, themes, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-latest, install-upgrade, install-github]
+    needs: [plan, motion-coverage, themes, conformance, mutation, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-latest, install-upgrade, install-github]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     permissions:

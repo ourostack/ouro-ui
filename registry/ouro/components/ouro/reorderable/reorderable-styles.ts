@@ -60,7 +60,7 @@ const contentClass = "min-w-0 flex-1";
  */
 const handleClass =
   "press relative m-0 box-border inline-flex size-8 shrink-0 cursor-grab touch-none select-none items-center justify-center rounded-md border-0 " +
-  "bg-transparent p-0 text-muted-foreground [-webkit-tap-highlight-color:transparent] " +
+  "forced-colors:border forced-colors:border-solid bg-transparent p-0 text-muted-foreground [-webkit-tap-highlight-color:transparent] " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
   "pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground active:cursor-grabbing data-grabbed:bg-accent data-grabbed:text-accent-foreground " +
   "motion-safe:active:scale-(--ouro-press-scale) active:duration-(--ouro-duration-fast)";

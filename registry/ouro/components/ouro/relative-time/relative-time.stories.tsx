@@ -5,8 +5,10 @@ import { Text } from "@/registry/ouro/components/ouro/text/text";
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names).
 
 const MINUTE = 60_000;
-// Stories render once per load, so the times are set from when the story module loads.
-const loaded = Date.now();
+// Stories render once per load, so the times are set from when the story module loads, to the
+// hour: an app sends the instant with its server's HTML, and every page that loads this module in
+// the same hour (the server's render and the reader's hydration) agrees on it, as that would.
+const loaded = Math.floor(Date.now() / (60 * MINUTE)) * 60 * MINUTE;
 
 const meta = {
   title: "Text/RelativeTime",

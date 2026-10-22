@@ -70,7 +70,10 @@ function Column({ label, children }: { label: string; children: ReactNode }) {
 export const FeelComparison: Story = {
   args: { title: "Save to cookbook", children: null, trigger: <Button>Save</Button> },
   name: "Feel comparison",
-  parameters: { layout: "fullscreen" },
+  parameters: {
+    layout: "fullscreen",
+    conformance: { clientOnly: "The port of RedwoodUI's ActionSheet (RedwoodActionSheet.tsx) portals with createPortal during its first render, which React cannot render on a server" },
+  },
   render: () => (
     <div style={{ ...row, justifyContent: "center", gap: 32, padding: "48px 16px" }}>
       <Column label="Ouro UI">

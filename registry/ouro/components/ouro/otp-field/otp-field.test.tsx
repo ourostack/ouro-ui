@@ -244,6 +244,20 @@ describe("OtpField looks", () => {
     expect(getComputedStyle(slot).fontSize).toBe("14px");
   });
 
+  it("narrows its slots to fit a column too narrow for them, rather than spilling out of it", async () => {
+    await page.viewport(390, 844);
+    // A grid column grows to its content's narrowest width, so the slots must be able to narrow.
+    const { host, slots } = await render(
+      <div style={{ display: "grid", width: 300 }}>
+        <OtpField label="Recovery code" length={8} groupSize={4} />
+      </div>,
+    );
+    const column = host.firstElementChild!.getBoundingClientRect();
+    expect(slots).toHaveLength(8);
+    expect(slots.at(-1)!.getBoundingClientRect().right).toBeLessThanOrEqual(column.right + 0.5);
+    expect(slots[0]!.getBoundingClientRect().height).toBe(44);
+  });
+
   it("outlines the focused slot and marks invalid slots", async () => {
     const { host } = await render(
       <>

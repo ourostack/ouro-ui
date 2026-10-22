@@ -1,7 +1,7 @@
 "use client";
 
 import { Slider as BaseSlider } from "@base-ui/react/slider";
-import { cloneElement, useId, useLayoutEffect, useMemo, useRef, type JSX, type ReactElement, type ReactNode, type Ref } from "react";
+import { cloneElement, useId, useLayoutEffect, useMemo, useRef, useSyncExternalStore, type JSX, type ReactElement, type ReactNode, type Ref } from "react";
 import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-styles";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
@@ -83,7 +83,7 @@ export interface SliderProps<Value extends SliderValue = number> {
    * `{ style: "percent" }`, `{ style: "currency", currency: "EUR" }`.
    */
   format?: Intl.NumberFormatOptions | undefined;
-  /** The locale for `format`. @default the browser's */
+  /** The locale for `format`. @default the browser's, once hydrated; en-US in the server's HTML */
   locale?: Intl.LocalesArgument | undefined;
   /** Shows the formatted value at the end of the slider; a range shows both ends: `$10 – $40`. */
   showValue?: boolean | undefined;
@@ -159,6 +159,19 @@ function rangeOwner(labelId: string) {
     ),
   };
 }
+
+/** An empty subscription: here `useSyncExternalStore` only tells the server and hydration apart from the browser. */
+// Stryker disable next-line ArrowFunction: React takes an unsubscribe of undefined as none, and this store never changes.
+const noSubscription = () => () => {};
+
+/**
+ * The locale the value reads in on the server and during hydration when no `locale` is given: the
+ * reader's is unknown there, so both use this one, and the reader's browser switches to its own
+ * once it has hydrated the server's HTML.
+ *
+ * @claim "The locale the value reads in" registry/ouro/components/ouro/slider/slider.test.tsx verify:testExists(registry/ouro/components/ouro/slider/slider.test.tsx::Slider across locales > renders the same value text on a server in any locale, and shows the reader's once hydrated)
+ */
+const SERVER_LOCALE = "en-US";
 
 /** The default names for a range's thumbs: Minimum and Maximum, with Middle between. */
 function defaultThumbLabels(count: number): string[] {
@@ -331,6 +344,16 @@ function SliderControl({
     }
   });
   const { onValueChange, onValueCommitted, ...shared } = rootProps;
+  // Without a locale, the reader's is unknown on the server and during hydration, so both read
+  // en-US (Base UI keeps a formatter per locale, so the page's default never leaks in from a
+  // formatter made earlier) and the reader's browser switches to its own once hydrated.
+  const hydrated = useSyncExternalStore(
+    noSubscription,
+    () => true,
+    // Stryker disable next-line ArrowFunction: undefined, like false, reads as not yet hydrated.
+    () => false,
+  );
+  const locale = shared.locale ?? (hydrated ? undefined : SERVER_LOCALE);
   // Samples of the widest value text, all reserved so the track keeps its length: each end's
   // integer part with the step's decimals (Base UI's defaults are 0, 100 and a step of 1), plus
   // values in each power of ten, since compact notation ("1.1K") can be wider than either end.
@@ -352,12 +375,15 @@ function SliderControl({
       }
     }
   }
-  const texts = [...new Set(values.map((value) => number.format(value)))];
+  // Without a locale, the samples are in the reader's, which the server cannot know: it and
+  // hydration reserve nothing, and the browser fills them in, so the server's HTML hydrates as it is.
+  const texts = hydrated || shared.locale !== undefined ? [...new Set(values.map((value) => number.format(value)))] : [];
   const samples = isRange ? texts.map((text) => `${text} – ${text}`) : texts;
   return (
     <BaseSlider.Root
       ref={rootRef}
       {...shared}
+      locale={locale}
       {...(invalid ? { "data-ouro-invalid": "" } : {})}
       onValueChange={onValueChange && ((next) => onValueChange(next as number | number[]))}
       onValueCommitted={onValueCommitted && ((next) => onValueCommitted(next as number | number[]))}

@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState, type ReactNode } from "react";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names).
@@ -56,13 +57,19 @@ export const Files: Story = {
   ),
 };
 
+const waiting = ["menu.pdf", "crumb.jpg", "notes.txt"];
+
 function Composer() {
-  const [files, setFiles] = useState(["menu.pdf", "crumb.jpg", "notes.txt"]);
+  const [files, setFiles] = useState(waiting);
   return (
     <Surface>
       {files.map((file) => (
         <Attachment key={file} name={file} contentType={file.endsWith(".jpg") ? "image/jpeg" : undefined} onRemove={() => setFiles(files.filter((other) => other !== file))} />
       ))}
+      {/* The composer's own control, where focus goes once the last file is removed. */}
+      <Button variant="outline" tone="secondary" onClick={() => setFiles(waiting)}>
+        Attach files
+      </Button>
     </Surface>
   );
 }

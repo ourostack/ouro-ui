@@ -1,0 +1,298 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { changedLines, shardUnits, unitChanges, countDisables, describeSurvivor, disableProblems, estimateMutants, mutateRanges, parseShard, runtimeSource, survivors, testFilesFor } from "./mutation.mjs";
+import { parse } from "@babel/parser";
+import traverse from "@babel/traverse";
+import { ignoreReason, isClassList, testPhases } from "./mutation/plugins.mjs";
+import { dependencyFiles, dependencyHash, mergeReports, parseTestSeconds, planShards, shardCost, testSeconds, unmeasuredSeconds } from "./mutation/cache.mjs";
+
+test("runtimeSource takes component and lib code, and leaves tests, stories, types and the test kit", () => {
+  for (const path of ["registry/ouro/components/ouro/button/button.tsx", "registry/ouro/components/ouro/dialog/dialog-styles.ts", "registry/ouro/lib/ouro/cn.ts"]) assert.ok(runtimeSource(path), path);
+  for (const path of [
+    "registry/ouro/components/ouro/button/button.test.tsx",
+    "registry/ouro/components/ouro/button/button.touch.test.tsx",
+    "registry/ouro/components/ouro/button/button.test-d.ts",
+    "registry/ouro/components/ouro/button/button.stories.tsx",
+    "registry/ouro/components/ouro/button/component.json",
+    "registry/ouro/lib/ouro/env.d.ts",
+    "registry/ouro/lib/ouro/testing/act.ts",
+    "registry/ouro/e2e/ouro/button.spec.ts",
+    "test/stories.tsx",
+  ]) {
+    assert.ok(!runtimeSource(path), path);
+  }
+});
+
+test("changedLines reads each hunk's new lines, and a hunk that only removed lines changes none", () => {
+  const diff = [
+    "diff --git a/registry/a.ts b/registry/a.ts",
+    "--- a/registry/a.ts",
+    "+++ b/registry/a.ts",
+    "@@ -3,0 +4,2 @@ context",
+    "+x",
+    "+y",
+    "@@ -10 +12 @@",
+    "-old",
+    "+new",
+    "@@ -20,3 +22,0 @@",
+    "-gone",
+    "diff --git a/registry/b.ts b/registry/b.ts",
+    "--- a/registry/b.ts",
+    "+++ /dev/null",
+    "@@ -1,2 +0,0 @@",
+    "diff --git a/registry/c.tsx b/registry/c.tsx",
+    "--- /dev/null",
+    "+++ b/registry/c.tsx",
+    "@@ -0,0 +1,5 @@",
+  ].join("\n");
+  assert.deepEqual(changedLines(diff), { "registry/a.ts": [[4, 5], [12, 12]], "registry/c.tsx": [[1, 5]] });
+});
+
+test("mutateRanges names each changed range of runtime source as Stryker's path:start-end", () => {
+  assert.deepEqual(
+    mutateRanges({
+      "registry/ouro/components/ouro/button/button.tsx": [[4, 5], [12, 12]],
+      "registry/ouro/components/ouro/button/button.test.tsx": [[1, 9]],
+      "scripts/x.mjs": [[1, 1]],
+    }),
+    ["registry/ouro/components/ouro/button/button.tsx:4-5", "registry/ouro/components/ouro/button/button.tsx:12-12"],
+  );
+});
+
+test("testFilesFor runs a component file's folder's tests, and a lib file's own tests, then its importers'", () => {
+  const button = testFilesFor(["registry/ouro/components/ouro/button/button.tsx"]);
+  assert.ok(button.own.includes("registry/ouro/components/ouro/button/button.test.tsx"));
+  assert.ok(button.own.every((file) => file.startsWith("registry/ouro/components/ouro/button/")));
+  assert.deepEqual(button.wider, []);
+  const handoff = testFilesFor(["registry/ouro/lib/ouro/focus-handoff.ts"]);
+  assert.deepEqual(handoff.own, ["registry/ouro/lib/ouro/focus-handoff.test.tsx"]);
+  for (const folder of ["alert", "message", "toast"]) assert.ok(handoff.wider.some((file) => file.startsWith(`registry/ouro/components/ouro/${folder}/`)), folder);
+  assert.ok(!handoff.wider.some((file) => file.startsWith("registry/ouro/components/ouro/button/")));
+});
+
+test("survivors are the mutants that survived or that no test reached, described by place, mutator and replacement", () => {
+  const results = [
+    { status: "Killed", fileName: "a.ts", mutatorName: "BooleanLiteral", replacement: "false", location: { start: { line: 1, column: 0 } } },
+    { status: "Survived", fileName: "a.ts", mutatorName: "ConditionalExpression", replacement: "true", location: { start: { line: 3, column: 4 } } },
+    { status: "NoCoverage", fileName: "b.ts", mutatorName: "BlockStatement", replacement: "{}", location: { start: { line: 9, column: 0 } } },
+    { status: "Ignored", fileName: "b.ts", mutatorName: "StringLiteral", replacement: '""', location: { start: { line: 2, column: 0 } } },
+    { status: "Timeout", fileName: "b.ts", mutatorName: "UpdateOperator", replacement: "i--", location: { start: { line: 5, column: 0 } } },
+  ];
+  assert.deepEqual(survivors(results).map(describeSurvivor), ["a.ts:3:5 ConditionalExpression: true", "b.ts:9:1 BlockStatement: {}"]);
+});
+
+test("isClassList takes a string of Tailwind classes, and leaves words, sentences and markers", () => {
+  for (const text of ["m-0 box-border flex", "forced-colors:border forced-colors:border-solid", "data-[orientation=vertical]:end-0 sm:pointer-fine:text-sm", "-translate-1/2", "[--ouro-x:calc(var(--spacing)*9)]", "!px-0"]) assert.ok(isClassList(text), text);
+  for (const text of ["", "Close", "Remove menu.pdf", "is not a prop", "[ouro-ui] Button: x. Fix: y.", "menu", "sheet", "Character 1 of 6"]) assert.ok(!isClassList(text), text);
+});
+
+/** A stand-in for Babel's NodePath, enough for ignoreReason. */
+function path(node, { binary, parent } = {}) {
+  return {
+    node,
+    parentPath: parent ?? null,
+    isStringLiteral: () => node.type === "StringLiteral",
+    isTemplateLiteral: () => node.type === "TemplateLiteral",
+    isBinaryExpression: () => node.type === "BinaryExpression",
+    isStatement: () => node.type === "ExpressionStatement",
+    toString: () => binary ?? "",
+  };
+}
+
+test("the ouro-classes ignorer leaves out the development check, and mutates the rest", () => {
+  assert.equal(ignoreReason(path({ type: "StringLiteral", value: "m-0 flex gap-2" })), undefined);
+  assert.equal(ignoreReason(path({ type: "TemplateLiteral", quasis: [{ value: { cooked: "" } }, { value: { cooked: "" } }] })), undefined);
+  assert.equal(ignoreReason(path({ type: "StringLiteral", value: "Close" })), undefined);
+  const check = path({ type: "BinaryExpression" }, { binary: 'process.env.NODE_ENV !== "production"' });
+  assert.match(ignoreReason(path({ type: "StringLiteral", value: "production" }, { parent: check })), /development check/);
+  const statement = path({ type: "ExpressionStatement" });
+  assert.equal(ignoreReason(path({ type: "Identifier" }, { parent: statement })), undefined);
+  assert.equal(ignoreReason(path({ type: "BinaryExpression" }, { binary: "a !== b" })), undefined);
+});
+
+test("testPhases runs a mutant against its own file's tests, then its importers', and an unannounced file against every file's once", () => {
+  const spec = (moduleId) => ({ moduleId });
+  const byFile = new Map([
+    ["registry/ouro/lib/ouro/focus-handoff.ts", { own: [spec("focus-handoff.test.tsx")], wider: [spec("alert.test.tsx"), spec("toaster.test.tsx")] }],
+    ["registry/ouro/components/ouro/alert/alert.tsx", { own: [spec("alert.test.tsx")], wider: [] }],
+  ]);
+  assert.deepEqual(testPhases(byFile, "registry/ouro/components/ouro/alert/alert.tsx"), [[spec("alert.test.tsx")], []]);
+  assert.deepEqual(testPhases(byFile, "registry/ouro/lib/ouro/focus-handoff.ts"), [[spec("focus-handoff.test.tsx")], [spec("alert.test.tsx"), spec("toaster.test.tsx")]]);
+  assert.deepEqual(testPhases(byFile, ""), [[spec("focus-handoff.test.tsx"), spec("alert.test.tsx")], [spec("toaster.test.tsx")]]);
+});
+
+/** Each string in `source` (TSX) with whether the ouro-classes ignorer leaves it out. */
+function strings(source) {
+  const found = [];
+  const ast = parse(source, { sourceType: "module", plugins: ["typescript", "jsx"] });
+  (traverse.default ?? traverse)(ast, {
+    "StringLiteral|TemplateLiteral"(path) {
+      const text = path.isStringLiteral() ? path.node.value : path.node.quasis.map((quasi) => quasi.value.cooked).join("${}");
+      found.push([text, ignoreReason(path) !== undefined]);
+    },
+  });
+  return Object.fromEntries(found);
+}
+
+test("the ouro-classes ignorer leaves out only strings in class positions: className, cn() and cva() arguments, and *Class constants", () => {
+  const found = strings(`
+    const rootClass = "m-0 flex gap-2 " + "rounded-md";
+    const sizes = { sm: "h-9 px-3" };
+    const variants = cva("inline-flex items-center", { variants: { size: { sm: "h-8 px-2" } } });
+    function Part({ open }) {
+      const input = document.querySelector("a[href]");
+      input.setAttribute("aria-invalid", "true");
+      input.removeAttribute("aria-busy");
+      input.closest("[inert]");
+      return (
+        <div className={cn("grid gap-1", open && "data-open:block")} data-ouro-part="thumb-label" iconClassName="size-4 shrink-0" aria-describedby="field-description">
+          <span className={\`flex \${open ? "ring-2" : ""}\`} />
+        </div>
+      );
+    }
+  `);
+  for (const text of ["m-0 flex gap-2 ", "rounded-md", "inline-flex items-center", "grid gap-1", "data-open:block", "size-4 shrink-0", "ring-2", "h-8 px-2"]) assert.equal(found[text], true, text);
+  for (const text of ["a[href]", "aria-invalid", "aria-busy", "[inert]", "thumb-label", "field-description", "h-9 px-3"]) assert.equal(found[text], false, text);
+});
+
+test("disableProblems fails every Stryker comment a change adds to runtime source that is not next-line <Mutator>: <reason>", () => {
+  const diff = [
+    "+++ b/registry/ouro/components/ouro/button/button.tsx",
+    "@@ -10,0 +11,6 @@",
+    "+// Stryker disable all",
+    "+// Stryker disable next-line ConditionalExpression: the server snapshot never changes",
+    "+// Stryker disable next-line StringLiteral,ConditionalExpression: the label is decorative",
+    "+// Stryker disable next-line ConditionalExpression",
+    "+  // Stryker restore all",
+    "+const plain = 1;",
+    "+++ b/registry/ouro/components/ouro/button/button.test.tsx",
+    "@@ -1,0 +1,1 @@",
+    "+// Stryker disable all",
+  ].join("\n");
+  assert.deepEqual(disableProblems(diff), [
+    "registry/ouro/components/ouro/button/button.tsx:11: // Stryker disable all",
+    "registry/ouro/components/ouro/button/button.tsx:14: // Stryker disable next-line ConditionalExpression",
+    "registry/ouro/components/ouro/button/button.tsx:15: // Stryker restore all",
+  ]);
+  assert.equal(countDisables("a // Stryker disable next-line X: y\nb /* Stryker disable all */\n"), 2);
+});
+
+test("estimateMutants counts what Stryker can change on the changed lines, leaving class strings out", () => {
+  const text = [
+    "export function f(a, b) {",
+    '  const rootClass = "m-0 flex gap-2";',
+    '  if (a > 1 && b) return "on";',
+    "  return a ? b : !b;",
+    "}",
+  ].join("\n");
+  assert.equal(estimateMutants(text, "f.tsx", [[2, 2]]), 0);
+  assert.ok(estimateMutants(text, "f.tsx", [[3, 3]]) >= 4);
+  assert.ok(estimateMutants(text, "f.tsx", [[1, 5]]) > estimateMutants(text, "f.tsx", [[3, 4]]));
+});
+
+test("parseShard reads --shard as a 1-based index and a count", () => {
+  assert.deepEqual(parseShard("2/3"), { index: 2, count: 3 });
+  assert.deepEqual(parseShard("5/5"), { index: 5, count: 5 });
+  assert.equal(parseShard(undefined), null);
+  assert.throws(() => parseShard("4/3"), /--shard/);
+});
+
+test("parseTestSeconds reads each ouro-chromium test file's time from a CI log, colour codes and timestamps dropped", () => {
+  const log = [
+    "2026-10-21T08:18:26.8450286Z  \x1b[32m✓\x1b[39m \x1b[30m\x1b[45m ouro-chromium (chromium) \x1b[49m\x1b[39m registry/ouro/components/ouro/select/select.test.tsx \x1b[2m(\x1b[22m\x1b[2m32 tests\x1b[22m\x1b[2m)\x1b[22m\x1b[33m 6886\x1b[2mms\x1b[22m\x1b[39m",
+    "2026-10-21T08:18:35.0441612Z  ✓  ouro-webkit (webkit)  registry/ouro/components/ouro/select/select.test.tsx (32 tests) 8642ms",
+    "2026-10-21T08:19:49.3768162Z  ✓  ouro-chromium (chromium)  registry/ouro/lib/ouro/focus-handoff.test.tsx (12 tests | 1 skipped) 30ms",
+  ].join("\n");
+  assert.deepEqual(parseTestSeconds(log), { "registry/ouro/components/ouro/select/select.test.tsx": 6.886, "registry/ouro/lib/ouro/focus-handoff.test.tsx": 0.03 });
+});
+
+test("planShards weighs each mutant by its own tests' measured time and each shard by its first run over every test file it needs", () => {
+  const seconds = { "slow.test.tsx": 60, "fast.test.tsx": 1, "importer.test.tsx": 30 };
+  const files = {
+    "dialog.tsx": { mutants: 16, own: ["slow.test.tsx"], wider: [] },
+    "sheet.tsx": { mutants: 16, own: ["slow.test.tsx"], wider: [] },
+    "styles.ts": { mutants: 6, own: ["fast.test.tsx"], wider: [] },
+    "handoff.ts": { mutants: 55, own: ["fast.test.tsx"], wider: ["importer.test.tsx"] },
+  };
+  // 16 mutants x (1 + 0.5 x 60) + 0.5 x 60: the two slow files are each a shard's worth.
+  assert.equal(shardCost(["dialog.tsx"], files, seconds), 16 * 31 + 30);
+  // The importers' tests count once, in the first run, not per mutant.
+  assert.equal(shardCost(["handoff.ts"], files, seconds), 55 * 1.5 + 0.5 + 15);
+  assert.deepEqual(planShards(files, 3, seconds), [["dialog.tsx"], ["sheet.tsx"], ["handoff.ts", "styles.ts"]]);
+  // A file whose tests were never timed counts as a few seconds of tests, not none.
+  assert.equal(shardCost(["new.tsx"], { "new.tsx": { mutants: 2, own: ["new.test.tsx"], wider: [] } }, {}), 2 * (1 + 0.5 * unmeasuredSeconds) + 0.5 * unmeasuredSeconds);
+});
+
+test("the committed test times cover the mutation runner's test files", () => {
+  const seconds = testSeconds();
+  assert.ok(Object.keys(seconds).length > 100);
+  assert.ok(seconds["registry/ouro/components/ouro/dialog/dialog.test.tsx"] > seconds["registry/ouro/lib/ouro/focus-handoff.test.tsx"]);
+});
+
+test("dependencyFiles takes every lib file and what the changed files import, through each other; dependencyHash changes with any of them", () => {
+  const sources = {
+    "registry/ouro/components/ouro/a/a.tsx": 'import { b } from "./b-styles";\nimport { cn } from "@/registry/ouro/lib/ouro/cn";\nimport { C } from "@/registry/ouro/components/ouro/c/c";',
+    "registry/ouro/components/ouro/a/b-styles.ts": 'import { d } from "../d/d";',
+    "registry/ouro/components/ouro/c/c.tsx": "export const C = 1;",
+    "registry/ouro/components/ouro/d/d.ts": "export const d = 1;",
+    "registry/ouro/components/ouro/e/e.tsx": "export const e = 1;",
+    "registry/ouro/lib/ouro/cn.ts": "export const cn = 1;",
+    "registry/ouro/lib/ouro/spring.ts": "export const spring = 1;",
+  };
+  const options = { read: (path) => sources[path], exists: (path) => path in sources, list: () => ["registry/ouro/lib/ouro/cn.ts", "registry/ouro/lib/ouro/spring.ts"] };
+  const files = dependencyFiles(["registry/ouro/components/ouro/a/a.tsx"], options);
+  assert.deepEqual(files, [
+    "registry/ouro/components/ouro/a/b-styles.ts",
+    "registry/ouro/components/ouro/c/c.tsx",
+    "registry/ouro/components/ouro/d/d.ts",
+    "registry/ouro/lib/ouro/cn.ts",
+    "registry/ouro/lib/ouro/spring.ts",
+  ]);
+  const hash = (changes) => dependencyHash(files, (path) => changes[path] ?? sources[path]);
+  assert.equal(hash({}), hash({}));
+  assert.notEqual(hash({ "registry/ouro/components/ouro/d/d.ts": "export const d = 2;" }), hash({}));
+  assert.notEqual(hash({ "registry/ouro/lib/ouro/spring.ts": "export const spring = 2;" }), hash({}));
+  // Not a dependency: the hash is the same.
+  assert.equal(dependencyHash(files, (path) => ({ ...sources, "registry/ouro/components/ouro/e/e.tsx": "changed" })[path]), hash({}));
+});
+
+test("mergeReports makes one incremental report of the shards', renaming each test by its file and name so killedBy still names it", () => {
+  const shard = (path, tests, killedBy) => ({
+    schemaVersion: "2",
+    files: { [path]: { language: "typescript", source: "", mutants: [{ id: "0", status: "Killed", killedBy, coveredBy: killedBy }] } },
+    testFiles: { "dialog.test.tsx": { tests: tests.map((name, id) => ({ id: String(id), name })) } },
+  });
+  const merged = mergeReports([shard("dialog.tsx", ["opens", "closes"], ["1"]), shard("dialog-parts.tsx", ["closes", "traps focus"], ["1"])]);
+  assert.deepEqual(Object.keys(merged.files), ["dialog.tsx", "dialog-parts.tsx"]);
+  const names = Object.fromEntries(merged.testFiles["dialog.test.tsx"].tests.map(({ id, name }) => [id, name]));
+  assert.deepEqual(Object.values(names), ["opens", "closes", "traps focus"]);
+  assert.equal(names[merged.files["dialog.tsx"].mutants[0].killedBy[0]], "closes");
+  assert.equal(names[merged.files["dialog-parts.tsx"].mutants[0].killedBy[0]], "traps focus");
+  assert.equal(names[merged.files["dialog-parts.tsx"].mutants[0].coveredBy[0]], "traps focus");
+});
+
+test("mergeReports keeps every shard's mutants of a file whose changed ranges were split across shards", () => {
+  const at = (line) => ({ start: { line, column: 1 }, end: { line, column: 9 } });
+  const shard = (line, killedBy) => ({
+    schemaVersion: "2",
+    files: { "sheet-parts.tsx": { language: "typescript", source: "same", mutants: [{ id: "0", mutatorName: "StringLiteral", replacement: '""', location: at(line), status: "Killed", killedBy, coveredBy: killedBy }] } },
+    testFiles: { "sheet.test.tsx": { tests: [{ id: "0", name: `line ${line}` }] } },
+  });
+  const merged = mergeReports([shard(216, ["0"]), shard(438, ["0"])]);
+  const mutants = merged.files["sheet-parts.tsx"].mutants;
+  assert.deepEqual(mutants.map((mutant) => mutant.location.start.line), [216, 438]);
+  assert.equal(new Set(mutants.map((mutant) => mutant.id)).size, 2, "each mutant keeps an id of its own");
+  const names = Object.fromEntries(merged.testFiles["sheet.test.tsx"].tests.map(({ id, name }) => [id, name]));
+  assert.deepEqual(mutants.map((mutant) => names[mutant.killedBy[0]]), ["line 216", "line 438"]);
+});
+
+test("shardUnits makes each changed range of runtime source a unit of its own, with its file's tests, so one large file's mutants can spread across shards", () => {
+  const changed = { "registry/ouro/components/ouro/sheet/sheet-parts.tsx": [[216, 216], [438, 439]], "registry/ouro/components/ouro/sheet/sheet.stories.tsx": [[1, 3]] };
+  const text = ["const a = 1;", ...Array.from({ length: 440 }, (_, index) => (index === 214 ? "const b = x > 1 && y;" : index === 436 ? 'const c = { on: true, label: "x" };' : ""))].join("\n");
+  const units = shardUnits(changed, { read: () => text, testsFor: () => ({ own: ["sheet.test.tsx"], wider: [] }) });
+  assert.deepEqual(Object.keys(units), ["registry/ouro/components/ouro/sheet/sheet-parts.tsx:216-216", "registry/ouro/components/ouro/sheet/sheet-parts.tsx:438-439"]);
+  for (const unit of Object.values(units)) assert.deepEqual(unit.own, ["sheet.test.tsx"]);
+  assert.ok(units["registry/ouro/components/ouro/sheet/sheet-parts.tsx:216-216"].mutants > 0);
+  // Back to the changed lines Stryker mutates, by file.
+  assert.deepEqual(unitChanges(["registry/ouro/components/ouro/sheet/sheet-parts.tsx:438-439"], units), { "registry/ouro/components/ouro/sheet/sheet-parts.tsx": [[438, 439]] });
+});

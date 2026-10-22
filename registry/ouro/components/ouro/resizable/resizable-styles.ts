@@ -41,7 +41,8 @@ const groupClass = {
 /** A panel: it scrolls its own content when the content is larger than the panel. @internal */
 const panelClass =
   "relative box-border min-h-0 min-w-0 overflow-auto " +
-  "outline-ring focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-solid";
+  "outline-ring focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-solid " +
+  "forced-colors:[&[tabindex='0']]:outline-1 forced-colors:[&[tabindex='0']]:outline-solid forced-colors:[&[tabindex='0']]:-outline-offset-1";
 
 /**
  * The handle: a 1px line in the border color that turns the ring color on hover, focus

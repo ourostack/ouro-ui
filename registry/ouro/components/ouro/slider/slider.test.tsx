@@ -329,6 +329,77 @@ describe("Slider server rendering", () => {
     expect(recoverable).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
   });
+
+  it("reserves the value's width only after hydration when no locale is given, so a reader in another locale hydrates the server's HTML as it is", async () => {
+    // The widest value is measured in the reader's locale ("$60" on a server in en-US, "60 $" in de-DE), which a server cannot know.
+    const priced = <Slider label="Price" name="price" defaultValue={[10, 40]} min={0} max={60} showValue format={{ style: "currency", currency: "USD" }} />;
+    const host = document.createElement("div");
+    host.innerHTML = renderToString(priced);
+    document.body.append(host);
+    mounted.push(host);
+    expect(host.querySelectorAll("[data-ouro-slider-sample]")).toHaveLength(0);
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const recoverable = vi.fn();
+    let root!: Root;
+    await act(async () => {
+      root = hydrateRoot(host, priced, { onRecoverableError: recoverable });
+    });
+    roots.push(root);
+    await expect.poll(() => host.querySelectorAll("[data-ouro-slider-sample]").length).toBeGreaterThan(0);
+    expect(recoverable).not.toHaveBeenCalled();
+    expect(error).not.toHaveBeenCalled();
+    // With the locale given, the server measures it as the reader will.
+    const fixed = new DOMParser().parseFromString(renderToString(<Slider label="Kochzeit" name="kochzeit" defaultValue={20} max={90} showValue locale="de-DE" />), "text/html");
+    expect(fixed.querySelectorAll("[data-ouro-slider-sample]").length).toBeGreaterThan(0);
+  });
+});
+
+describe("Slider across locales", () => {
+  // A server in one locale and a reader in another. Each formats with its own runtime default, as
+  // `Intl.NumberFormat` without a locale does; Base UI keeps one formatter per locale and options,
+  // so each case uses options no other test does, to start from an empty cache as a fresh page would.
+  const RealNumberFormat = Intl.NumberFormat;
+  function runtimeLocale(locale: string) {
+    const Localized = function (requested?: Intl.LocalesArgument, options?: Intl.NumberFormatOptions) {
+      return new RealNumberFormat(requested ?? locale, options);
+    } as unknown as typeof Intl.NumberFormat;
+    Object.assign(Localized, { supportedLocalesOf: RealNumberFormat.supportedLocalesOf });
+    Intl.NumberFormat = Localized;
+  }
+  afterEach(() => {
+    Intl.NumberFormat = RealNumberFormat;
+  });
+
+  it("renders the same value text on a server in any locale, and shows the reader's once hydrated", async () => {
+    const priced = <Slider label="Price" name="price" defaultValue={[10, 40]} min={0} max={60} showValue format={{ style: "currency", currency: "CHF" }} />;
+    runtimeLocale("de-DE");
+    const html = renderToString(priced);
+    // A server in any locale writes the value in en-US until the reader's browser has hydrated it,
+    // and the reader's browser hydrates in en-US too, so the two always agree.
+    const english = (value: number) => new RealNumberFormat("en-US", { style: "currency", currency: "CHF" }).format(value);
+    const server = new DOMParser().parseFromString(html, "text/html");
+    expect(server.querySelector("[data-ouro-slider-value] > span")!.textContent).toBe(`${english(10)} – ${english(40)}`);
+    expect([...server.querySelectorAll('input[type="range"]')].map((input) => input.getAttribute("aria-valuetext"))).toEqual([`${english(10)} start range`, `${english(40)} end range`]);
+    runtimeLocale("fr-FR");
+    const host = document.createElement("div");
+    host.innerHTML = html;
+    document.body.append(host);
+    mounted.push(host);
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const recoverable = vi.fn();
+    let root!: Root;
+    await act(async () => {
+      root = hydrateRoot(host, priced, { onRecoverableError: recoverable });
+    });
+    roots.push(root);
+    const french = (value: number) => new RealNumberFormat("fr-FR", { style: "currency", currency: "CHF" }).format(value);
+    await expect.poll(() => host.querySelector("[data-ouro-slider-value] > span")!.textContent).toBe(`${french(10)} – ${french(40)}`);
+    expect([...host.querySelectorAll('input[type="range"]')].map((input) => input.getAttribute("aria-valuetext"))).toEqual([`${french(10)} start range`, `${french(40)} end range`]);
+    // React reports a mismatch once hydration is done, after the reader's text is on screen.
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    expect(recoverable).not.toHaveBeenCalled();
+    expect(error).not.toHaveBeenCalled();
+  });
 });
 
 describe("Slider server error", () => {

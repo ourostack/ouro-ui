@@ -20,7 +20,20 @@ export const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
  * `#vX.Y.Z` or `@vX.Y.Z` tag is already a checked claim: `pnpm run docs --check` fails unless
  * it names package.json's `ouro.latestRelease`.
  */
-const prepare = (file, text) => (syncedFiles.includes(file) ? text.replace(/([#@])v\d+\.\d+\.\d+\b/g, (tag) => tag[0] + "§".repeat(tag.length - 1)) : text);
+const mask = (text) => "§".repeat(text.length);
+/**
+ * A release commit's registry.json (release.yml, `scripts/registry.mts --release`) records its
+ * version and ends each item's docs message with "Ouro UI v<that version>.", which
+ * `pnpm registry --check` holds to the version field; that stamp is already a checked claim.
+ */
+const releaseStamp = (text) => {
+  const version = JSON.parse(text).version;
+  return typeof version === "string" ? text.replaceAll(` Ouro UI v${version}.`, ` Ouro UI v${mask(version)}.`) : text;
+};
+const prepare = (file, text) => {
+  if (syncedFiles.includes(file)) return text.replace(/([#@])v\d+\.\d+\.\d+\b/g, (tag) => tag[0] + mask(tag.slice(1)));
+  return file === "registry.json" ? releaseStamp(text) : text;
+};
 
 /** The generated pages claims:check renders again, because no other check does. */
 async function generatedFailures(root) {
