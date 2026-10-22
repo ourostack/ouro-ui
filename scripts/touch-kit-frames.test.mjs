@@ -314,6 +314,43 @@ test("a cross-origin frame that never answers its tidying up holds up no touch e
   assert.ok(start < 200 && end < 200, `touchStart ${start}ms, touchEnd ${end}ms`);
 });
 
+test("a touchstart or touchmove the page handled asks nothing more of the frame that handled it, and a lift tidies that frame and waits for it", async () => {
+  const { ctx, tests, stop } = stage({ onPage: true, listAfter: 60_000 });
+  // Each call into the test's frame, by action; its tidying up takes 800ms.
+  const actions = [];
+  const evaluate = tests.evaluate;
+  tests.evaluate = async (call) => {
+    const action = /\)\("(\w+)"/.exec(call)?.[1];
+    actions.push(action);
+    if (action === "settle") await new Promise((resolve) => setTimeout(resolve, 800));
+    return evaluate(call);
+  };
+  try {
+    let started = performance.now();
+    await touchStep(ctx, { type: "touchStart", x: 100, y: 50 });
+    const start = performance.now() - started;
+    assert.deepEqual(actions, ["expect", "wait"]);
+    started = performance.now();
+    await touchStep(ctx, { type: "touchMove", x: 100, y: 60 });
+    const move = performance.now() - started;
+    assert.deepEqual(actions.splice(0), ["expect", "wait", "expect", "wait"]);
+    assert.ok(start < 400 && move < 400, `touchStart ${start}ms, touchMove ${move}ms`);
+    started = performance.now();
+    await touchStep(ctx, { type: "touchEnd" });
+    assert.deepEqual(actions, ["expect", "wait", "settle"]);
+    assert.ok(performance.now() - started >= 790, "a lift waits for the frame's tidying");
+  } finally {
+    stop();
+  }
+});
+
+test("a touchstart does not wait for Chromium to let go of the node at its point", async () => {
+  const { start, end, sees } = await tapOnPage({ delays: { "Runtime.releaseObject": 1500 } });
+  assert.equal(sees, "touchend");
+  assert.ok(start < 400, `touchStart ${start}ms`);
+  assert.ok(end < 1400, `touchEnd ${end}ms`);
+});
+
 test("a touch command that takes longer than a second logs its steps, when each frame's watch answered and how late Node ran", async () => {
   const warn = mock.method(console, "warn", () => {});
   try {
@@ -322,7 +359,7 @@ test("a touch command that takes longer than a second logs its steps, when each 
     const [message] = warn.mock.calls[0].arguments;
     assert.match(
       message,
-      /^touchStep: the touchStart at \(100, 50\) took \d+ms\. Steps: \+\d+ms asked Chromium: layout \d+ms, hit test \d+ms, node \d+ms, watcher \d+ms, frame id \d+ms, released \d+ms; \+\d+ms the frame at the point: true, the test page; \+\d+ms watched; \+\d+ms sent; \+\d+ms handled by http:\/\/localhost:63315\/__vitest_test__\/; \+\d+ms tidied, waiting for http:\/\/localhost:63315\/__vitest_test__\/\. Watches: http:\/\/localhost:63315\/ answered at \+\d+ms; http:\/\/localhost:63315\/__vitest_test__\/ answered at \+\d+ms\. Node's event loop ran up to \d+ms late\.$/,
+      /^touchStep: the touchStart at \(100, 50\) took \d+ms\. Steps: \+\d+ms asked Chromium: layout \d+ms, hit test \d+ms, node \d+ms, watcher \d+ms, frame id \d+ms; \+\d+ms the frame at the point: true, the test page; \+\d+ms watched; \+\d+ms sent; \+\d+ms handled by http:\/\/localhost:63315\/__vitest_test__\/; \+\d+ms tidied, waiting for no frame\. Watches: http:\/\/localhost:63315\/ answered at \+\d+ms; http:\/\/localhost:63315\/__vitest_test__\/ answered at \+\d+ms\. Node's event loop ran up to \d+ms late\.$/,
     );
   } finally {
     warn.mock.restore();

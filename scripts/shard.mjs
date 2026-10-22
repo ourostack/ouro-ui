@@ -60,23 +60,36 @@ const median = (values) => {
  * Splits `keys` into `count` shards whose weights add up as evenly as the longest-first greedy split
  * gets them: heaviest first (ties by key), each to the lightest shard so far (ties to the lowest
  * index). The same keys and times give the same shards on every machine.
+ *
+ * With `groupOf`, each group's keys are spread as evenly as the shards allow too: a key goes to the
+ * shard with the least of its group so far, then the least in all (ties to the lowest index). Vitest
+ * runs its projects side by side, each in its own browser, so a shard takes about as long as its
+ * heaviest project, not the sum of them: a shard with twice another's WebKit files ran longest (run
+ * 39773408723), and one with the heaviest touch files ran them slowest (run 39776130394).
  */
-export function balance(keys, count, timings) {
+export function balance(keys, count, timings, groupOf) {
   const fallback = median(Object.values(timings).filter((value) => typeof value === "number"));
   const weightOf = (key) => (typeof timings[key] === "number" ? timings[key] : fallback);
-  const shards = Array.from({ length: count }, () => ({ keys: [], weight: 0 }));
+  const shards = Array.from({ length: count }, () => ({ keys: [], weight: 0, groups: new Map() }));
   const ordered = [...new Set(keys)].sort((a, b) => weightOf(b) - weightOf(a) || (a < b ? -1 : a > b ? 1 : 0));
   for (const key of ordered) {
-    const lightest = shards.reduce((best, shard) => (shard.weight < best.weight ? shard : best), shards[0]);
+    const group = groupOf?.(key);
+    const of = (shard) => shard.groups.get(group) ?? 0;
+    const lightest = shards.reduce((best, shard) => (of(shard) < of(best) || (of(shard) === of(best) && shard.weight < best.weight) ? shard : best), shards[0]);
     lightest.keys.push(key);
     lightest.weight += weightOf(key);
+    lightest.groups.set(group, of(lightest) + weightOf(key));
   }
+  for (const shard of shards) delete shard.groups;
   for (const shard of shards) shard.keys.sort();
   return shards;
 }
 
-/** The keys shard `index` (from 1) of `count` runs. */
-export const shardKeys = (keys, { index, count }, timings) => balance(keys, count, timings)[index - 1].keys;
+/** The keys shard `index` (from 1) of `count` runs, each group spread across the shards with `groupOf` (balance). */
+export const shardKeys = (keys, { index, count }, timings, groupOf) => balance(keys, count, timings, groupOf)[index - 1].keys;
+
+/** A Vitest timing key's project, as Vitest names it: `ouro-touch (chromium)` of `ouro-touch (chromium) <path>`. */
+export const projectOf = (key) => key.slice(0, key.indexOf(") ") + 1);
 
 /** The files `pnpm test:scripts` runs, from package.json. */
 export function scriptTestFiles(rootDir = root) {
