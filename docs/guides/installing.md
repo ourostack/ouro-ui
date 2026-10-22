@@ -19,6 +19,16 @@ npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.1.0
 
 Every other shadow and font comes from shadcn's standard tokens, so a theme that sets them restyles the components: `--shadow-lg` under popovers, menus, selects, comboboxes, navigation menus and toasts, `--shadow-xl` under dialogs, `--shadow-sm` under the slider and switch thumbs and the segmented control's indicator, `--font-heading` for `Heading` and the dialog, sheet and popover titles (the surrounding font when your theme has none) (`Kbd` keeps the surrounding font, as shadcn's does).[^theme-tokens] Tailwind defines the shadows itself, so `ouro-base` adds none of them.[^theme-tokens]
 
+The solid primary `Button`, the page's main action, reads `--ouro-action` and `--ouro-action-foreground` when your theme sets them, and `--primary` and `--primary-foreground` when it does not.[^action-token] Set them to give your actions their own colour while checkboxes, switches, radios, toggles and the current tab keep `--primary`. `ouro-base` leaves them unset, so the fallback works in a theme scoped to part of a page too.[^action-token]
+
+```css
+:root {
+  --ouro-action: oklch(0.25 0.01 60); /* charcoal actions */
+  --ouro-action-foreground: oklch(0.98 0.01 90);
+  --primary: oklch(0.55 0.1 60); /* brass selection */
+}
+```
+
 A variable your stylesheet already has keeps your value: the CLI adds only the ones that are missing. It adds the radius scale to `@theme inline` the same way, so an app that never defined `--radius-lg` there gets shadcn's scale in place of Tailwind's defaults; set `--radius` to change it.[^field-tokens]
 
 This one add also reformats the file, as shadcn@4.21.1 does for any item that carries CSS on Tailwind CSS v4: it adds `@custom-variant dark (&:is(.dark *));` when the file has no `@custom-variant`, and collapses blank lines.[^shadcn-css] Review that diff once. No component and no tests item carries CSS, so the CLI does not open the file again.[^stylesheet-items]
@@ -70,6 +80,7 @@ build: {
 ```
 
 [^release-tag]: scripts/latest-release.mjs verify:testExists(scripts/latest-release.test.mjs::every #vX.Y.Z or @vX.Y.Z literal in the docs names package.json's ouro.latestRelease) verify:fileLine(scripts/latest-release.mjs, /docs\/guides\/installing\.md/)
+[^action-token]: test:test/action-token.test.tsx::the action token > repaints the solid primary Button, as a button and as a link, and leaves every selection on --primary; test:test/action-token.test.tsx::the action token > follows a theme scoped to part of the page and its dark values verify:testExists(test/action-token.test.tsx::the action token > repaints the solid primary Button, as a button and as a link, and leaves every selection on --primary) verify:testExists(test/action-token.test.tsx::the action token > follows a theme scoped to part of the page and its dark values)
 [^stock-contrast]: test/stock-theme.test.tsx; test/shadcn-stock.css verify:fileLine(test/stock-theme.test.tsx, /4\.5/) verify:ciJob(ci)
 [^field-tokens]: registry/ouro/theme/ouro-base.css verify:testExists(scripts/install-check.test.mjs::an install whose stylesheet lacks the field border color or the radius scale fails) verify:fileLine(registry/ouro/theme/ouro-base.css, /--radius-4xl/)
 [^theme-tokens]: test/theme-tokens.test.tsx verify:testExists(test/theme-tokens.test.tsx::standard shadow and font tokens > falls back to the inherited font for headings when the theme names none, and Kbd always keeps it) verify:fileLine(test/theme-tokens.test.tsx, /--shadow-lg/)
