@@ -1,4 +1,4 @@
-import { createContext, memo, startTransition, use, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition, type FormEvent, type JSX, type ReactNode, type Ref } from "react";
+import { createContext, memo, startTransition, use, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition, type FormEvent, type JSX, type ReactNode, type Ref } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -327,10 +327,9 @@ function Shipyard(): JSX.Element {
   const [emptying, startEmptying] = useTransition();
   const left = PARTS.length - built.size;
   const ready = left === 0 && !launched && !emptying;
-  // The plan follows the controls once the press has painted: a press repaints its own control
-  // first, then the drawing, so no press waits on the plan's repaint (a deferred render could
-  // commit before that paint).
-  const plan = useAfterPaint(useMemo(() => ({ built, launched }), [built, launched]));
+  // The plan follows the controls a frame later: a press repaints its own control first, then the
+  // drawing (a deferred render), so no press waits on the plan's repaint.
+  const plan = useDeferredValue(useMemo(() => ({ built, launched }), [built, launched]));
   // The rail follows the plan.
   useEffect(() => voyage.set(plan), [voyage, plan]);
   // The jobs follow a reorder once it has painted: the handles' list and its menu are the press's
@@ -448,11 +447,11 @@ function Articles(): JSX.Element {
   const [line, setLine] = useState<CrewLine>(SIGN.opening);
   const [pending, setPending] = useState<{ name: string; wants: readonly Want[] } | null>(null);
   useEffect(() => voyage.set({ you }), [voyage, you]);
-  // A new signing brings a new, empty form, and focus goes to your row's Leave.
-  useEffect(() => {
-    if (signings === 0) return;
-    box.current?.querySelector<HTMLElement>("[data-chapter-control='leave'] button")?.focus();
-  }, [signings]);
+  // Signing on moves focus to your row's Leave in the press's own commit, before the browser paints:
+  // the new, empty form follows later and takes Sign away, so focus must already have left it.
+  useLayoutEffect(() => {
+    if (you) box.current?.querySelector<HTMLElement>("[data-chapter-control='leave'] button")?.focus();
+  }, [you]);
 
   const field = (name: string) => box.current?.querySelector<HTMLInputElement>(`input[name="${name}"]`);
   // Before the browser's checks stop a short signing, Conseil says what it still wants. (Enter in a

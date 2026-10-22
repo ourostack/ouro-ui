@@ -218,6 +218,34 @@ test.describe("each control in Chapter I", () => {
     await expect.poll(toasts.cleared).toBe(true);
   });
 
+  test("Sign hands focus straight to your row's Leave, with nothing unfocused in between", async ({ page }) => {
+    await open(page);
+    await nameField(page).fill("Ada Lovelace");
+    await chooseTrade(page, "Engineer");
+    await oath(page).click();
+    // Records each moment the page has nothing focused: after any change to the articles (a
+    // microtask, before a paint) and before every frame.
+    await articles(page).evaluate((box) => {
+      const lost: string[] = ((window as unknown as { __lost: string[] }).__lost = []);
+      const check = (when: string) => {
+        if (document.activeElement === document.body || document.activeElement === null) lost.push(when);
+      };
+      new MutationObserver(() => check("after a change")).observe(box, { childList: true, subtree: true });
+      const frame = () => {
+        check("before a frame");
+        requestAnimationFrame(frame);
+      };
+      requestAnimationFrame(frame);
+    });
+    await signButton(page).click();
+    const leave = articles(page).getByRole("button", { name: ARTICLES.leave });
+    await expect(leave).toBeFocused();
+    await expect(nameField(page)).toHaveValue("");
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    expect(await page.evaluate(() => (window as unknown as { __lost: string[] }).__lost)).toEqual([]);
+    await expect(leave).toBeFocused();
+  });
+
   test("control: sign, while the articles are not done, has Conseil refuse politely and pencil you in", async ({ page }) => {
     await open(page);
     await nameField(page).fill("Ada");
