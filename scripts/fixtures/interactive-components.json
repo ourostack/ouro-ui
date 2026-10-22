@@ -66,5 +66,6 @@
   "image-field",
   "share-button",
   "sync-status",
-  "install-prompt"
+  "install-prompt",
+  "preset-picker"
 ]
