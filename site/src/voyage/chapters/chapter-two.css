@@ -50,3 +50,16 @@
 .site-legs .recharts-cartesian-axis-tick-value {
   display: none;
 }
+/* On a phone, the chart drops its labels and compass rose, and draws each port's mark and the route larger. */
+@media (max-width: 40rem) {
+  .site-chart :is(.ch-labels, .ch-rose) {
+    display: none;
+  }
+  /* Each port's mark and name drawn half again as large, about its own place on the chart. */
+  .site-chart .ch-mark {
+    scale: 1.7;
+  }
+  .site-chart .ch-route {
+    stroke-width: 3.4px;
+  }
+}

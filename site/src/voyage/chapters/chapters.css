@@ -62,26 +62,6 @@
   opacity: 0.72;
 }
 /*
- * On a phone, where the rail beside a chapter is left out: a slim marker under the header, held
- * there while the chapter is on screen, with the chapter's name and a dot for each of its steps.
- */
-.site-phone-marker {
-  position: sticky;
-  top: var(--site-header-h, 3.5rem);
-  z-index: 30;
-  margin-block-end: 1.5rem;
-  padding: 0.5rem max(1rem, calc(50% - 600px));
-  border-block: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
-  background: var(--background);
-}
-.site-marker-dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border: 1.5px solid var(--muted-foreground);
-  border-radius: 999px;
-}
-
-/*
  * Chapter II as the server draws it: the chart room's map (voyage-chart.svg, inlined by
  * chapter-two.tsx) with the route on it, the leagues counter and the rail's compass. Every colour
  * is the theme's, so each preset repaints the chart.
@@ -96,18 +76,6 @@
 }
 
 /* On a phone the chart's small print would be specks: the ports and the route speak for themselves. */
-@media (max-width: 40rem) {
-  .site-chart :is(.ch-labels, .ch-rose) {
-    display: none;
-  }
-  /* Each port's mark and name drawn half again as large, about its own place on the chart. */
-  .site-chart .ch-mark {
-    scale: 1.7;
-  }
-  .site-chart .ch-route {
-    stroke-width: 3.4px;
-  }
-}
 /*
  * The rail's compass, Chapter III's drawings and the agents' findings take their size, room and
  * colour from inline styles in the server HTML, and what starts hidden is hidden there too
