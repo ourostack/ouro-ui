@@ -20,11 +20,11 @@ jobs:
       - run: cp .github/diag/lcp.mjs .github/diag/html.mjs .github/diag/strip.mjs /tmp/
       - run: pnpm i --frozen-lockfile && pnpm site:build && cp site/dist/voyage/index.html /tmp/voyage.html
       - run: |
-          for how in asis nolabels pad1k noagents; do
+          for how in nl0 nl200 nl400 nl600 nl800 nl1000; do
             cp /tmp/voyage.html site/dist/voyage/index.html
             node /tmp/strip.mjs $how
-            node /tmp/html.mjs $how | cut -c1-40
+            node /tmp/html.mjs $how | cut -c1-30
             rm -rf .lighthouseci
             npx --yes @lhci/cli@0.15.1 collect --config=site/lighthouserc.json > /dev/null 2>&1
-            node /tmp/lcp.mjs $how | cut -c1-60
+            node /tmp/lcp.mjs $how | cut -c1-30
           done

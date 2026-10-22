@@ -4,6 +4,13 @@ const file = "site/dist/voyage/index.html";
 let html = readFileSync(file, "utf8");
 const how = process.argv[2];
 if (how === "nolabels") html = html.replace(/<foreignObject\b[\s\S]*?<\/foreignObject>/g, "");
+const padded = /^nl(\d+)$/.exec(how);
+if (padded) {
+  html = html.replace(/<foreignObject\b[\s\S]*?<\/foreignObject>/g, "");
+  let bytes = "";
+  while (bytes.length < Number(padded[1]) * 1.7) bytes += Math.random().toString(36).slice(2);
+  html = html.replace("</body>", `<div hidden>${bytes}</div></body>`);
+}
 if (how === "pad1k") html = html.replace("</body>", `<div hidden>${Array.from({ length: 400 }, (_, i) => Math.random().toString(36).slice(2, 6)).join(" ")}</div></body>`);
 if (how === "noagents") html = html.replace(/<section[^>]*id="agents"[\s\S]*?<\/section>/, "");
 writeFileSync(file, html);
