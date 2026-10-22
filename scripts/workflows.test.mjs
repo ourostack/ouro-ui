@@ -700,7 +700,7 @@ test("the required ci job runs the claims ratchet on a pull request, against its
   const script = `git() { printf 'CALL git %s\\n' "$*" >&2; }\n${stepScript(block, "Claims")}`;
   const pull = runStep(script, { BASE_REF: "main" });
   assert.equal(pull.status, 0);
-  assert.match(pull.calls, /^CALL git fetch --no-tags --depth=1 origin main\nCALL node scripts\/claims\.mjs ratchet\nCALL pnpm claims:check --network=changed$/m);
+  assert.match(pull.calls, /^CALL git fetch --no-tags --depth=1 origin main\nCALL node scripts\/claims\.mjs ratchet\nCALL node scripts\/real-clock-ratchet\.mjs\nCALL pnpm claims:check --network=changed$/m);
   // A failing ratchet fails the job.
   assert.notEqual(runStep(script, { BASE_REF: "main" }, { nodeStatus: 1 }).status, 0);
   assert.doesNotMatch(runStep(script, { BASE_REF: "" }).calls, /ratchet/);
