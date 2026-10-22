@@ -3,13 +3,26 @@ import { chromium, webkit } from "@playwright/test";
 const [base, label] = [process.argv[2], process.argv[3]];
 const VARIANTS = {
   asis: "",
-  nomotto: ".stage-motto { display: none !important; }",
-  noblueprint: ".site-blueprint text { display: none !important; }",
-  nochart: ".site-chart text { display: none !important; }",
-  norecharts: ".recharts-wrapper text { display: none !important; }",
-  onlyrecharts: "main svg text:not(.recharts-wrapper text) { display: none !important; }",
-  nosketch: "main svg:not(.site-blueprint):not(.site-chart):not(.recharts-surface) text:not(.stage-motto) { display: none !important; }",
+  textinvisible: "main svg text { visibility: hidden !important; }",
+  textfo: { script: "fo" },
+  textone: { script: "one" },
 };
+/** Replaces each SVG text with an HTML span in a foreignObject (fo), or removes all but one (one). */
+const rewrite = (page, how) => page.evaluate((how) => {
+  const texts = [...document.querySelectorAll("main svg text")];
+  texts.forEach((text, index) => {
+    if (how === "one") { if (index > 0) text.remove(); return; }
+    const box = text.getBBox();
+    const fo = document.createElementNS("http://www.w3.org/2000/svg", "foreignObject");
+    fo.setAttribute("x", String(box.x)); fo.setAttribute("y", String(box.y)); fo.setAttribute("width", String(Math.max(1, box.width + 4))); fo.setAttribute("height", String(Math.max(1, box.height + 2)));
+    const span = document.createElement("span");
+    span.textContent = text.textContent;
+    span.style.cssText = "font-size: 10px; white-space: nowrap; display: block;";
+    fo.append(span);
+    text.replaceWith(fo);
+  });
+  return `${texts.length} texts`;
+}, how);
 /** Drops each rule whose selector has the pseudo-class at all, and counts them. */
 const drop = (page, pseudo) => page.evaluate((pseudo) => {
   const pattern = new RegExp(`:(${pseudo})(?![\\w-])`);
@@ -56,7 +69,7 @@ for (const type of [webkit, chromium]) {
     await page.locator("#chapter-two").scrollIntoViewIfNeeded();
     await page.locator("#chapter-two[data-chapter-ready]").waitFor({ state: "attached" });
     await page.waitForTimeout(800);
-    if (typeof css === "object") dropped = `dropped ${await drop(page, css.pseudo)}`;
+    if (typeof css === "object") dropped = await rewrite(page, css.script);
     const selection = await page.evaluate(() => new Promise((resolve) => {
       const node = document.querySelector("#chapter-two p")?.firstChild ?? document.body;
       const t0 = performance.now();
