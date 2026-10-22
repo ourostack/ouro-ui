@@ -42,6 +42,114 @@ afterEach(async () => {
   mounted = [];
 });
 
+// These read the DOM at once, with no wait for an element: a broken part fails here quickly.
+describe("AgentNote at a glance", () => {
+  const names = (note: HTMLElement) => [...note.querySelectorAll("button")].map((button) => button.textContent);
+  const press = (target: Element, type: "pointerdown" | "keydown") =>
+    act(async () => {
+      target.dispatchEvent(type === "pointerdown" ? new PointerEvent(type, { bubbles: true }) : new KeyboardEvent(type, { key: "Enter", bubbles: true }));
+    });
+
+  it("shows its parts, its attribution and the person's buttons in each state", async () => {
+    const handlers = { onPin: vi.fn(), onUnpin: vi.fn(), onSave: vi.fn(), onDismiss: vi.fn() };
+    const agent = await render(<AgentNote {...base} time="5 min ago" source="Based on 3 messages" {...handlers} />);
+    expect(names(agent.note)).toEqual(["Pin", "Edit", "Dismiss"]);
+    const parts = agent.note.getAttribute("aria-labelledby")!.split(" ");
+    expect(parts.map((part) => document.getElementById(part)!.textContent)).toEqual(["Note", "OuroAgent"]);
+    expect(agent.note.dataset.author).toBe("agent");
+    expect(agent.note.hasAttribute("data-pinned")).toBe(false);
+    expect(agent.note.hasAttribute("aria-busy")).toBe(false);
+    expect(agent.note.textContent).not.toContain("Pinned");
+    expect(agent.note.querySelector("[data-ouro-note-kept]")).toBeNull();
+    expect(agent.note.querySelector("[data-ouro-note-changed]")).toBeNull();
+    expect(agent.note.querySelector("[data-ouro-note-source]")!.textContent).toBe("Based on 3 messages");
+
+    const pinned = await render(<AgentNote {...base} pinned {...handlers} />);
+    expect(names(pinned.note)).toEqual(["Unpin", "Edit", "Dismiss"]);
+    expect(pinned.note.hasAttribute("data-pinned")).toBe(true);
+    expect(pinned.note.querySelector('[data-ouro="badge"][class*="success"]')!.textContent).toBe("Pinned");
+    expect(pinned.note.querySelector("[data-ouro-note-kept]")!.textContent).toBe("Kept: your agent won't change this note.");
+
+    const human = await render(<AgentNote {...base} author="human" onPin={handlers.onPin} />);
+    expect(names(human.note)).toEqual(["Pin"]);
+    expect(human.note.querySelector("[data-ouro-note-author]")!.textContent).toBe("Edited by you");
+    expect(human.note.querySelector("[data-ouro-note-kept]")).not.toBeNull();
+
+    expect(names((await render(<AgentNote {...base} pinned onPin={handlers.onPin} />)).note)).toEqual([]);
+    expect(names((await render(<AgentNote {...base} onUnpin={handlers.onUnpin} onDismiss={handlers.onDismiss} />)).note)).toEqual(["Dismiss"]);
+  });
+
+  it("reports the revision on screen when a press began", async () => {
+    const onPin = vi.fn();
+    const { note, rerender, button } = await render(<AgentNote {...base} revision="r1" onPin={onPin} />);
+    await press(button("Pin")!, "pointerdown");
+    await rerender(<AgentNote {...base} revision="r2" onPin={onPin} />);
+    await act(async () => button("Pin")!.click());
+    expect(onPin).toHaveBeenLastCalledWith("r1", expect.objectContaining({ type: "click" }));
+    // The click used up the press, so the next click reports the note it finds.
+    await rerender(<AgentNote {...base} revision="r3" onPin={onPin} />);
+    await act(async () => button("Pin")!.click());
+    expect(onPin).toHaveBeenLastCalledWith("r3", expect.anything());
+    await press(button("Pin")!, "keydown");
+    await rerender(<AgentNote {...base} revision="r4" onPin={onPin} />);
+    await act(async () => button("Pin")!.click());
+    expect(onPin).toHaveBeenLastCalledWith("r3", expect.anything());
+    expect(note.isConnected).toBe(true);
+  });
+
+  it("edits in place: saves, stays open when the save fails, is busy while saving, and cancels", async () => {
+    const onSave = vi.fn<NonNullable<AgentNoteProps["onSave"]>>();
+    const { note, rerender, button } = await render(<AgentNote {...base} revision="r1" onSave={onSave} />);
+    const area = () => note.querySelector("textarea")!;
+    await act(async () => button("Edit")!.click());
+    expect(names(note)).toEqual(["Save", "Cancel"]);
+    expect(note.querySelector("[data-ouro-note-text]")).toBeNull();
+    expect(area().value).toBe(base.text);
+    expect(document.activeElement).toBe(area());
+    expect(area().selectionStart).toBe(base.text.length);
+    expect(button("Save")!.disabled).toBe(false);
+    expect(note.querySelector("[data-ouro-note-changed]")).toBeNull();
+
+    // The agent replaces the note while the person edits: their words stay, and a notice says so.
+    await rerender(<AgentNote {...base} text="Newer words" revision="r2" onSave={onSave} />);
+    expect(note.querySelector("[data-ouro-note-changed]")!.textContent).toContain("Your agent changed this note while you were editing.");
+    expect(area().value).toBe(base.text);
+    await userEvent.fill(area(), "   ");
+    expect(button("Save")!.disabled).toBe(true);
+    await userEvent.fill(area(), "Short");
+    onSave.mockReturnValueOnce(false);
+    await act(async () => button("Save")!.click());
+    expect(onSave).toHaveBeenLastCalledWith("Short", "r2", expect.anything());
+    expect(area()).not.toBeNull();
+
+    let finish!: (value: boolean) => void;
+    onSave.mockImplementationOnce(() => new Promise<boolean>((resolve) => (finish = resolve)));
+    await act(async () => button("Save")!.click());
+    expect(note.getAttribute("aria-busy")).toBe("true");
+    expect(button("Save")!.disabled).toBe(true);
+    await act(async () => finish(true));
+    expect(note.hasAttribute("aria-busy")).toBe(false);
+    expect(note.querySelector("textarea")).toBeNull();
+    expect(document.activeElement).toBe(button("Edit"));
+
+    await act(async () => button("Edit")!.click());
+    const other = new KeyboardEvent("keydown", { key: "a", bubbles: true, cancelable: true });
+    await act(async () => area().dispatchEvent(other));
+    expect(other.defaultPrevented).toBe(false);
+    expect(note.querySelector("textarea")).not.toBeNull();
+    const escape = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+    await act(async () => area().dispatchEvent(escape));
+    expect(escape.defaultPrevented).toBe(true);
+    expect(note.querySelector("textarea")).toBeNull();
+    expect(document.activeElement).toBe(button("Edit"));
+
+    await act(async () => button("Edit")!.click());
+    await act(async () => button("Cancel")!.click());
+    expect(note.querySelector("textarea")).toBeNull();
+    expect(note.querySelector("[data-ouro-note-text]")!.textContent).toBe("Newer words");
+  });
+});
+
 describe("AgentNote", () => {
   it("is an article named by its label and author, saying when and what the agent read", async () => {
     const { note } = await render(<AgentNote {...base} time="5 min ago" source="Based on 3 messages and a transcript" />);
