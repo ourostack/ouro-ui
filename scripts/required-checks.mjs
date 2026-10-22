@@ -3,9 +3,11 @@
 // check (verify:ciJob) and scripts/workflows.test.mjs read cannot drift from the rules GitHub
 // enforces. required-checks.yml runs it hourly and on a change to the file.
 //
-//   node scripts/required-checks.mjs   needs GITHUB_REPOSITORY; GH_TOKEN optional on a public repository
-import { readFileSync } from "node:fs";
+//   node scripts/required-checks.mjs   needs GITHUB_REPOSITORY; GH_TOKEN optional on a public repository.
+//   Exits 1 on a drift (and writes drift=true to GITHUB_OUTPUT), 2 when the rules cannot be read.
+import { appendFileSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -24,22 +26,56 @@ export function checksDrift(file, live) {
   return { missing: live.filter((check) => !listed.has(check)), extra };
 }
 
+/** Main's rules could not be read: the API failed, which is not a drift. */
+class RulesUnreadable extends Error {
+  name = "RulesUnreadable";
+}
+
+/**
+ * Main's rules from the API (GET /repos/{repository}/rules/branches/main), asked up to `attempts`
+ * times, `delayMs` apart and doubling, after a network failure, a server error or a rate limit
+ * (403 or 429). Throws RulesUnreadable when they cannot be read.
+ */
+export async function readRules({ fetch = globalThis.fetch, repository, token, attempts = 3, delayMs = 2000 }) {
+  const headers = { accept: "application/vnd.github+json", "x-github-api-version": "2022-11-28", ...(token ? { authorization: `Bearer ${token}` } : {}) };
+  let last = "";
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    if (attempt > 1) await delay(delayMs * 2 ** (attempt - 2));
+    let response;
+    try {
+      response = await fetch(`https://api.github.com/repos/${repository}/rules/branches/main?per_page=100`, { headers });
+    } catch (error) {
+      last = error instanceof Error ? error.message : String(error);
+      continue;
+    }
+    if (response.ok) return response.json();
+    last = `${response.status} ${await response.text()}`;
+    if (!(response.status >= 500 || response.status === 429 || response.status === 403)) break;
+  }
+  throw new RulesUnreadable(`The rules for main could not be read: ${last}`);
+}
+
 async function main() {
   const repository = process.env.GITHUB_REPOSITORY;
   if (!repository) {
     console.error("Set GITHUB_REPOSITORY (owner/name).");
     return 2;
   }
-  const headers = { accept: "application/vnd.github+json", "x-github-api-version": "2022-11-28", ...(process.env.GH_TOKEN ? { authorization: `Bearer ${process.env.GH_TOKEN}` } : {}) };
-  const response = await globalThis.fetch(`https://api.github.com/repos/${repository}/rules/branches/main?per_page=100`, { headers });
-  if (!response.ok) {
-    console.error(`The rules for main could not be read: ${response.status} ${await response.text()}`);
-    return 1;
+  let rules;
+  try {
+    rules = await readRules({ repository, token: process.env.GH_TOKEN });
+  } catch (error) {
+    if (!(error instanceof RulesUnreadable)) throw error;
+    console.log(`::error::${error.message}. Not a drift: run it again later.`);
+    return 2;
   }
-  const live = requiredContexts(await response.json());
+  const live = requiredContexts(rules);
   const file = JSON.parse(readFileSync(join(root, ".github/required-checks.json"), "utf8"));
   const { missing, extra } = checksDrift(file, live);
-  if (missing.length === 0 && extra.length === 0) {
+  // The workflow reports a drift, and only a drift, in an issue.
+  const drift = missing.length > 0 || extra.length > 0;
+  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `drift=${drift}\n`);
+  if (!drift) {
     console.log(`.github/required-checks.json matches main's rules: ${live.join(", ")}.`);
     return 0;
   }

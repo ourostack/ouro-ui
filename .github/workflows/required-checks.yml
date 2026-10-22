@@ -3,7 +3,8 @@ name: Required checks
 # (scripts/required-checks.mjs, GET /repos/{owner}/{repo}/rules/branches/main): the claims check
 # (verify:ciJob) and scripts/workflows.test.mjs read the file, so it must not drift from the rules
 # GitHub enforces. Hourly, since a ruleset change starts no workflow, and on a change to the file.
-# A drift on main opens, or comments on, one "Required checks drifted" issue.
+# A drift on main opens, or comments on (at most daily), one "Required checks drifted" issue; an
+# API error fails the run but is no drift.
 on:
   schedule:
     - cron: "23 * * * *"
@@ -25,6 +26,8 @@ jobs:
   compare:
     name: required checks
     runs-on: ubuntu-latest
+    outputs:
+      drift: ${{ steps.compare.outputs.drift }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -37,13 +40,15 @@ jobs:
         with:
           node-version: 24
       - name: The file matches main's rules
+        # Exits 1 on a drift (drift=true), 2 when the API cannot be read, which is no drift.
+        id: compare
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/required-checks.mjs
   report:
-    # One issue for a drift on main, opened or commented on (scripts/scheduled-failure.sh).
+    # One issue for a drift on main, opened or commented on at most daily (scripts/scheduled-failure.sh).
     needs: [compare]
-    if: failure() && github.event_name != 'pull_request'
+    if: always() && needs.compare.outputs.drift == 'true' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -56,4 +61,5 @@ jobs:
       - env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          QUIET_HOURS: 24
         run: scripts/scheduled-failure.sh "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" "Required checks drifted" ".github/required-checks.json no longer matches the checks main's rules require"

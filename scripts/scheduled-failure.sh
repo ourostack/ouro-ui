@@ -5,7 +5,9 @@
 #
 #   scripts/scheduled-failure.sh <run-url> [<title> <what failed>]
 #
-# Needs gh with GH_TOKEN and GH_REPO set; the job that runs it has `issues: write`.
+# Needs gh with GH_TOKEN and GH_REPO set; the job that runs it has `issues: write`. With
+# QUIET_HOURS set, an open issue opened or commented on within that many hours gets no comment, so
+# an hourly check does not comment hourly.
 set -euo pipefail
 
 url=${1:?usage: scheduled-failure.sh <run-url> [<title> <what failed>]}
@@ -21,6 +23,13 @@ A dependency release may have changed what an Ouro install gets (item ranges flo
 fi
 number=$(gh issue list --state open --search "in:title \"$title\"" --json number,title --jq "map(select(.title == \"$title\")) | .[0].number // empty")
 if [ -n "$number" ]; then
+  if [ -n "${QUIET_HOURS:-}" ]; then
+    last=$(gh issue view "$number" --json createdAt,comments --jq '[.createdAt] + [.comments[].createdAt] | max | fromdateiso8601')
+    if [ $(($(date +%s) - last)) -lt $((QUIET_HOURS * 3600)) ]; then
+      echo "Issue #$number was opened or commented on within $QUIET_HOURS hours; no comment."
+      exit 0
+    fi
+  fi
   gh issue comment "$number" --body "Failed again: $url"
 else
   gh issue create --title "$title" --body "$body"
