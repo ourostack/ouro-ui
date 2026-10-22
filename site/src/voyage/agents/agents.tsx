@@ -36,7 +36,7 @@ function Specimen({ example }: { example: Example }): JSX.Element {
         <dl className="site-findings m-0 grid content-start gap-4">
           <div>
             <dt className="site-eyebrow">{AGENTS.typeCheck}</dt>
-            <dd className="site-mono site-finding m-0 mt-1.5" style={FINDING}>
+            <dd className="site-mono site-finding m-0 mt-1" style={FINDING}>
               <span aria-hidden="true" className="me-2 inline-block size-1.5 rounded-full bg-destructive align-middle" />
               <span data-agents-error="">{real.error}</span>
             </dd>
@@ -45,14 +45,14 @@ function Specimen({ example }: { example: Example }): JSX.Element {
             <dt className="site-eyebrow">
               {AGENTS.source} <span className="site-mono normal-case tracking-normal">{real.source.file}</span>
             </dt>
-            <dd className="site-mono site-finding m-0 mt-1.5" style={FINDING}>
+            <dd className="site-mono site-finding m-0 mt-1" style={FINDING}>
               <span className="block text-muted-foreground">{`/** ${real.source.doc} */`}</span>
               <span className="block">{real.source.code}</span>
             </dd>
           </div>
           <div>
             <dt className="site-eyebrow">{AGENTS.console}</dt>
-            <dd className="site-mono site-finding m-0 mt-1.5" style={FINDING} data-agents-console="">
+            <dd className="site-mono site-finding m-0 mt-1" style={FINDING} data-agents-console="">
               {example.devMessage}
             </dd>
           </div>

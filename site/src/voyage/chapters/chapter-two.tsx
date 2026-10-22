@@ -366,7 +366,7 @@ const Legs = memo(function Legs({ route }: { route: readonly PortId[] }): JSX.El
       <Chart title={CHART_ROOM.legs} description={CHART_ROOM.legsHint} type="bar" data={data} categoryKey="port" config={{ leagues: { label: "Leagues" } }} className="h-52" />
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 text-xs text-muted-foreground" data-chapter-axis="">
         {labels.map((label) => (
-          <span key={`${label.text}-${label.x}`} className="absolute -translate-x-1/2 whitespace-nowrap leading-none" style={{ left: label.x, top: label.y }}>
+          <span key={`${label.text}-${label.x}`} className="absolute whitespace-nowrap leading-none" style={{ left: label.x, top: label.y, translate: "-50%" }}>
             {label.text}
           </span>
         ))}
@@ -430,7 +430,7 @@ function Catalogue(): JSX.Element {
         <div data-chapter-control="filter">
           <Select
             label={CATALOGUE.filter}
-            className="w-44"
+            className="w-48"
             value={show}
             onValueChange={(value) => setShow(String(value))}
             options={[{ value: "all", label: CATALOGUE.every }, ...CLASSES.map((kind) => ({ value: kind.value, label: kind.plural }))]}

@@ -299,7 +299,7 @@ function Encounter(): JSX.Element {
     { label: ORDERS.organ, onSelect: () => order("organ"), keywords: ["music"] },
   ];
   return (
-    <div ref={box} className="grid gap-6 p-4 sm:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] sm:items-center sm:p-6">
+    <div ref={box} className="site-split grid gap-6 p-4 sm:items-center sm:p-6">
       <figure className="m-0">
         <Porthole />
       </figure>
@@ -419,7 +419,7 @@ function Saloon(): JSX.Element {
     setRounds((count) => count + 1);
   };
   return (
-    <div className="grid gap-6 p-4 sm:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] sm:items-center sm:p-6">
+    <div className="site-split grid gap-6 p-4 sm:items-center sm:p-6">
       <figure className="m-0">
         <OrganArt played={shown} label={shown ? `${SALOON.organ}. ${SALOON.playing}` : SALOON.organ} />
       </figure>
