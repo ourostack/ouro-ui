@@ -936,7 +936,9 @@ test("every required check is still a job that reports, under the name the rules
   }
   // The ruleset's required checks, which the claims check also reads (verify:ciJob accepts only these).
   for (const check of requiredChecks) assert.ok(names.has(check), `${check} is not among ${[...names.keys()].join(", ")}`);
-  assert.deepEqual(checkNames(jobs["install-shard"], "install-shard"), ["install (shadcn, nova, 1/2)", "install (shadcn, nova, 2/2)", "install (shadcn, vega, 1/2)", "install (shadcn, vega, 2/2)", "install (ouro, nova, 1/2)", "install (ouro, nova, 2/2)"]);
+  const installShards = shardCount(jobs["install-shard"]);
+  const installs = ["shadcn, nova", "shadcn, vega", "ouro, nova"].flatMap((app) => Array.from({ length: installShards }, (_, index) => `install (${app}, ${index + 1}/${installShards})`));
+  assert.deepEqual(checkNames(jobs["install-shard"], "install-shard"), installs);
   // conformance and mutation report under the names the ruleset will require once this workflow is on main.
   for (const check of ["conformance", "mutation"]) assert.ok(names.has(check), `${check} is not among ${[...names.keys()].join(", ")}`);
 });
@@ -1163,13 +1165,13 @@ test("an install shard runs its share of the shipped tests by measured time, or 
   assert.match(counting, new RegExp(`^for shard in ${Array.from({ length: count }, (_, index) => index + 1).join(" ")}; do$`, "m"));
   const markers = scratchDir("ouro-install-gate-");
   mkdirSync(join(markers, "passed"));
-  writeFileSync(join(markers, "passed/install-passed-shadcn-vega-1"), "");
+  for (let shard = 1; shard < count; shard++) writeFileSync(join(markers, `passed/install-passed-shadcn-vega-${shard}`), "");
   const passed = { RUNNER_TEMP: markers, VARIANT: "shadcn", PRESET: "vega", SHARDS: "success" };
   assert.match(gate, /^ {10}SHARDS: \$\{\{ needs\.install-shard\.result \}\}$/m);
   const missing = runStep(counting, passed);
   assert.equal(missing.status, 1);
-  assert.match(missing.stdout, /^::error::install \(shadcn, vega, 2\/2\) did not pass/m);
-  writeFileSync(join(markers, "passed/install-passed-shadcn-vega-2"), "");
+  assert.match(missing.stdout, new RegExp(`^::error::install \\(shadcn, vega, ${count}/${count}\\) did not pass`, "m"));
+  writeFileSync(join(markers, `passed/install-passed-shadcn-vega-${count}`), "");
   assert.equal(runStep(counting, passed).status, 0);
   // Every marker, but from an earlier attempt: this attempt's failed shard still fails the check.
   const rerun = runStep(counting, { ...passed, SHARDS: "failure" });
@@ -1329,12 +1331,15 @@ test("the budget job waits on every other job, reads the run's jobs and nothing 
   assert.equal(block.match(/^ {4}if: (.+)$/m)?.[1], untested);
   // Whether the run was full, which its ci-timings record says.
   assert.match(block, /^ {10}FULL: \$\{\{ needs\.plan\.outputs\.full != 'false' \}\}$/m);
+  // Whether ci ran the full suite as a fallback, which is not judged, and the branch whose previous full run confirms a regression.
+  assert.match(block, /^ {10}FALLBACK: \$\{\{ needs\.ci\.outputs\.fallback == 'true' \}\}$/m);
+  assert.match(block, /^ {10}HEAD_REF: \$\{\{ github\.head_ref \}\}$/m);
   assert.match(block, /^ {4}permissions:\n {6}actions: read\n {6}contents: read\n/m);
   const needs = block.match(/^ {4}needs: \[([^\]]*)\]$/m)[1].split(",").map((need) => need.trim());
   // Every job no other job needs: the ends of the run's chains.
   const needed = new Set(Object.entries(jobs).filter(([id]) => id !== "ci-budget").flatMap(([, other]) => other.match(/^ {4}needs: \[([^\]]*)\]$/m)?.[1].split(",").map((need) => need.trim()) ?? []));
   const ends = Object.keys(jobs).filter((id) => id !== "ci-budget" && !needed.has(id));
-  assert.deepEqual([...needs].sort(), [...ends, "plan"].sort());
+  assert.deepEqual([...needs].sort(), [...ends, "plan", "ci"].sort());
   const { jobGraph } = await import("./ci-budget.mjs");
   const graph = jobGraph(workflow("ci.yml"));
   for (const [id, block] of Object.entries(jobs)) {
