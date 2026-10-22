@@ -135,15 +135,23 @@ describe("AgentNote", () => {
     expect(onPin).toHaveBeenLastCalledWith("r1", expect.anything());
     await act(async () => pin.click());
     expect(onPin).toHaveBeenLastCalledWith("r2", expect.anything());
-    // A press that ends away from the button leaves nothing behind.
+    // A press that ends away from the button, by pointer or by key, leaves nothing behind.
     await act(async () => {
-      pin.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
-      window.dispatchEvent(new KeyboardEvent("keyup", { key: "Enter" }));
+      pin.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+      window.dispatchEvent(new PointerEvent("pointerup"));
     });
     await new Promise((resolve) => setTimeout(resolve, 10));
     await rerender(<AgentNote {...base} revision="r3" onPin={onPin} />);
     await act(async () => pin.click());
     expect(onPin).toHaveBeenLastCalledWith("r3", expect.anything());
+    await act(async () => {
+      pin.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+      window.dispatchEvent(new KeyboardEvent("keyup", { key: "Enter" }));
+    });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    await rerender(<AgentNote {...base} revision="r4" onPin={onPin} />);
+    await act(async () => pin.click());
+    expect(onPin).toHaveBeenLastCalledWith("r4", expect.anything());
   });
 
   it("edits in place: Edit focuses the text box, Save passes the words and returns focus to Edit", async () => {
