@@ -264,7 +264,9 @@ jobs:
           git commit -am "Prepare main for the next release"
           git push --force origin "$NEXT_BRANCH"
           gh pr create --base main --head "$NEXT_BRANCH" --title "Prepare main for the next release" \
-            --body "$TAG is released with these changes in its notes, so their fragments in changes/ are deleted for the next release, and $TAG becomes the newest release: the README, the site, llms.txt and the @ouro namespace move to it when this merges. Merge this before adding the next release's changes."
+            --body "$TAG is released with these changes in its notes, so their fragments in changes/ are deleted for the next release, and $TAG becomes the newest release: the README, the site, llms.txt and the @ouro namespace move to it when this merges.[^latest] Merge this before adding the next release's changes.
+
+          [^latest]: package.json verify:equals(package.json#ouro.latestRelease)=$TAG"
           # GitHub records a pull_request CI run for a PR a workflow opened with GITHUB_TOKEN,
           # but holds it (`action_required`) with no jobs, and the ruleset's required checks
           # count only pull_request-event checks, not a dispatched run (probe #142: a pull
@@ -328,7 +330,9 @@ jobs:
 
           CI for this PR is held until a person approves it. Run:
 
-              $cmd"
+          \`\`\`sh
+          $cmd
+          \`\`\`"
             for workflow in $PRODUCERS; do gh workflow run "$workflow" --ref "$NEXT_BRANCH" || echo "::warning::Could not dispatch $workflow on $NEXT_BRANCH either."; done
             echo "::error::Main has not passed CI for $TAG; Pages will not deploy. Approve and merge the PR, then pass main CI before deploying."
             exit 1
