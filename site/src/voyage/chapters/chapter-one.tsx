@@ -447,10 +447,17 @@ function Articles(): JSX.Element {
   const [line, setLine] = useState<CrewLine>(SIGN.opening);
   const [pending, setPending] = useState<{ name: string; wants: readonly Want[] } | null>(null);
   useEffect(() => voyage.set({ you }), [voyage, you]);
-  // Signing on moves focus to your row's Leave in the press's own commit, before the browser paints:
-  // the new, empty form follows later and takes Sign away, so focus must already have left it.
+  // The new, empty form waiting for the paint after a signing (its cancel), and whether Leave asked
+  // for the name field.
+  const emptyForm = useRef<(() => void) | null>(null);
+  const toName = useRef(false);
+  // Focus moves in the press's own commit, before the browser paints, so it never rests on the page:
+  // signing on, to your row's Leave (the new, empty form follows later and takes Sign away); leaving,
+  // to the name field of the form that commit shows.
   useLayoutEffect(() => {
     if (you) box.current?.querySelector<HTMLElement>("[data-chapter-control='leave'] button")?.focus();
+    else if (toName.current) box.current?.querySelector<HTMLElement>("input[name='name']")?.focus();
+    toName.current = false;
   }, [you]);
 
   const field = (name: string) => box.current?.querySelector<HTMLInputElement>(`input[name="${name}"]`);
@@ -494,15 +501,24 @@ function Articles(): JSX.Element {
     // does: making the form's fields again is most of a signing's work, and the toast stack measures
     // and re-lays itself out, so both wait for the press's own paint (your row on the list) rather
     // than holding it up. Your row and Conseil's welcome under it are kept clear of the toast.
-    afterPaint(() => {
+    emptyForm.current = afterPaint(() => {
+      emptyForm.current = null;
       startTransition(() => setSignings((count) => count + 1));
+    });
+    afterPaint(() => {
       toast(ARTICLES.signed(name), { tone: "success", description: ARTICLES.onList });
       keepClearOfToasts(box.current?.querySelector("[data-chapter-crew]"));
     });
   };
-  // Off the list, and back to the articles' first field to sign again.
+  // Off the list, and back to the articles' first field to sign again. Leaving before the new, empty
+  // form has come brings it in this commit, so the name field focused is the empty one.
   const leave = () => {
-    field("name")?.focus();
+    if (emptyForm.current) {
+      emptyForm.current();
+      emptyForm.current = null;
+      setSignings((count) => count + 1);
+    }
+    toName.current = true;
     setYou(null);
     setLine(SIGN.left);
   };
