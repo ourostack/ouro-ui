@@ -54,6 +54,57 @@ afterEach(async () => {
   mounted = [];
 });
 
+describe("DraftReview, part by part", () => {
+  const headerParts = (review: HTMLElement) => review.firstElementChild!.children;
+
+  it("numbers a change after its last change run, whatever unchanged text carries its id", async () => {
+    const carried: DraftReviewSegment[] = [
+      { kind: "insert", text: "Friday", changeId: "day" },
+      { kind: "same", text: " at ten", changeId: "day" },
+    ];
+    const { review } = await render(<DraftReview {...base} segments={carried} changes={[changes[0]!]} />);
+    const text = review!.querySelector("[data-ouro-draft-review-text]")!;
+    expect(text.querySelector("ins sup")!.textContent).toBe("1");
+    // The unchanged run is plain text, with no number and no mark.
+    const plain = text.lastElementChild!;
+    expect(plain.localName).toBe("span");
+    expect(plain.textContent).toBe(" at ten");
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("shows the header's actions only when there is something to show", async () => {
+    const one = [changes[0]!];
+    const { review, rerender } = await render(<DraftReview {...base} changes={one} segments={segments.slice(0, 3)} onAcceptAll={() => {}} onRejectAll={() => {}} />);
+    // One change: no Accept all or Reject all, and no empty actions.
+    expect(headerParts(review!)).toHaveLength(1);
+    await rerender(<DraftReview {...base} changes={one} segments={segments.slice(0, 3)} onAcceptAll={() => {}} actions={<button type="button">Send</button>} />);
+    expect([...review!.querySelectorAll("button")].map((button) => button.textContent)).not.toContain("Accept all");
+    await rerender(<DraftReview {...base} />);
+    expect(headerParts(review!)).toHaveLength(1);
+    await rerender(<DraftReview {...base} description={null} actions={null} />);
+    expect(headerParts(review!)).toHaveLength(1);
+    await rerender(<DraftReview {...base} onRejectAll={() => {}} />);
+    expect(headerParts(review!)).toHaveLength(2);
+  });
+
+  it("sets the description and a change's time and source quieter than its name", async () => {
+    const { review } = await render(<DraftReview {...base} description="From the agent" />);
+    const name = getComputedStyle(review!.querySelector("li > .font-semibold:not([aria-hidden])")!).color;
+    const [description] = [...headerParts(review!)].slice(1) as HTMLElement[];
+    expect(getComputedStyle(description!).color).not.toBe(name);
+    const quietParts = [...review!.querySelector("li")!.querySelectorAll<HTMLElement>(":scope > .text-xs:not([aria-hidden])")];
+    expect(quietParts.map((part) => part.textContent)).toEqual(["2 min ago", "Based on 3 messages"]);
+    for (const part of quietParts) expect(getComputedStyle(part).color).not.toBe(name);
+  });
+
+  it.each([undefined, null])("leaves out a change's time and source, and its Show button, when they are %s", async (missing) => {
+    const { review } = await render(<DraftReview {...base} changes={[{ id: "day", author: "agent", name: "Ouro", time: missing, source: missing }]} segments={segments.slice(0, 3)} onShowSource={() => {}} />);
+    const item = review!.querySelector("li")!;
+    expect(item.querySelectorAll(":scope > .text-xs:not([aria-hidden])")).toHaveLength(0);
+    expect([...item.querySelectorAll("button")].map((button) => button.textContent)).toEqual(["Accept", "Reject"]);
+  });
+});
+
 describe("DraftReview", () => {
   it("is a named region with a heading that counts the changes", async () => {
     const { review, rerender } = await render(<DraftReview {...base} />);
@@ -205,6 +256,12 @@ describe("DraftReview", () => {
 });
 
 describe("DraftReview development messages", () => {
+  it("warns of nothing when the props are right", async () => {
+    await render(<DraftReview {...base} />);
+    await render(<DraftReview {...base} onAcceptAll={() => {}} onRejectAll={() => {}} onShowSource={() => {}} description="From the agent" />);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it("names the fix for a run without its change, and shows it as plain text", async () => {
     const { review: missing } = await render(<DraftReview {...base} segments={[{ kind: "delete", text: "Hi" }]} />);
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("DraftReview: a delete run has no changeId, so it shows as unchanged text. Fix: "));

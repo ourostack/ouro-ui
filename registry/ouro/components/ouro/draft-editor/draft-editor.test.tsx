@@ -144,6 +144,73 @@ describe("DraftEditor", () => {
     ]);
   });
 
+  it("deletes one of a run of matching letters without losing or doubling any", async () => {
+    const onValueChange = vi.fn();
+    const { textarea } = await render(<DraftEditor label="Reply" value="aaa" segments={[{ author: "agent", text: "aaa" }]} onValueChange={onValueChange} />);
+    await act(async () => {
+      textarea.focus();
+      textarea.setSelectionRange(3, 3);
+    });
+    await userEvent.keyboard("{Backspace}");
+    expect(onValueChange).toHaveBeenLastCalledWith("aa", [{ author: "agent", text: "aa" }]);
+  });
+
+  it("places an edit by the text when no selection was recorded before it", async () => {
+    const onValueChange = vi.fn();
+    const { textarea } = await render(<DraftEditor label="Reply" value={value} segments={segments} onValueChange={onValueChange} />);
+    await act(async () => {
+      textarea.setRangeText("!", value.length, value.length, "end");
+      textarea.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertText", data: "!" }));
+    });
+    expect(onValueChange).toHaveBeenLastCalledWith(`${value}!`, [...segments, { author: "human", text: "!" }]);
+  });
+
+  it.each([
+    // The selection says a letter went in after "a", but "X" went in at the start.
+    ["starts elsewhere", 1, 2, 0, "Xabc", [{ author: "human", text: "X" }, { author: "agent", text: "abc" }]],
+    // The selection says a letter went in at the start, but "X" went in at the end.
+    ["ends elsewhere", 0, 1, 3, "abcX", [{ author: "agent", text: "abc" }, { author: "human", text: "X" }]],
+  ] as const)("places an edit by the text when the selection %s", async (_name, selected, caret, at, next, runs) => {
+    const onValueChange = vi.fn();
+    const { textarea } = await render(<DraftEditor label="Reply" value="abc" segments={[{ author: "agent", text: "abc" }]} onValueChange={onValueChange} />);
+    await act(async () => {
+      textarea.setSelectionRange(selected, selected);
+      textarea.dispatchEvent(new InputEvent("beforeinput", { bubbles: true, cancelable: true, inputType: "insertText", data: "X" }));
+      textarea.setRangeText("X", at, at);
+      textarea.setSelectionRange(caret, caret);
+      textarea.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertText", data: "X" }));
+    });
+    expect(onValueChange).toHaveBeenLastCalledWith(next, runs);
+  });
+
+  it("lines the highlight layer up with the text box, and draws it once the agent writes", async () => {
+    const { textarea, highlights, rerender } = await render(<DraftEditor label="Reply" value="Hi" segments={[{ author: "human", text: "Hi" }]} onValueChange={() => {}} />);
+    expect(highlights).toBeNull();
+    await rerender(<DraftEditor label="Reply" value={value} segments={segments} onValueChange={() => {}} />);
+    const layer = document.querySelector<HTMLElement>("[data-ouro-draft-highlights]")!;
+    expect(layer.style.top).toBe(`${textarea.offsetTop}px`);
+    expect(layer.style.left).toBe(`${textarea.offsetLeft}px`);
+    expect(layer.style.width).toBe(`${textarea.clientWidth}px`);
+    expect(layer.style.height).toBe(`${textarea.clientHeight}px`);
+  });
+
+  it("says each of the agent's runs once, trimmed, in a list", async () => {
+    const runs: DraftSegment[] = [
+      { author: "agent", text: " Friday " },
+      { author: "human", text: "or" },
+      { author: "agent", text: " Monday" },
+    ];
+    const { editor, textarea } = await render(<DraftEditor label="Reply" value=" Friday or Monday" segments={runs} onValueChange={() => {}} />);
+    const status = editor.querySelector<HTMLElement>('[id$="-status"]')!;
+    expect(status.querySelector(".sr-only")!.textContent).toBe("Written by an agent: “Friday”, “Monday”.");
+    expect(textarea.getAttribute("aria-describedby")).toBe(status.id);
+  });
+
+  it("sets the status line quieter than the draft", async () => {
+    const { editor, textarea } = await render(<DraftEditor label="Reply" value={value} segments={segments} onValueChange={() => {}} />);
+    expect(getComputedStyle(editor.querySelector('[id$="-status"]')!).color).not.toBe(getComputedStyle(textarea).color);
+  });
+
   it("places an edit by the text when the selection does not fit it", async () => {
     const onValueChange = vi.fn();
     const { textarea } = await render(<DraftEditor label="Reply" value={value} segments={segments} onValueChange={onValueChange} />);
@@ -237,6 +304,17 @@ describe("DraftEditor", () => {
     );
   });
 
+  it.each([
+    ["an agent's approval", { readinessBy: { author: "agent", name: "Ouro" } }, "was set by an agent", "has no readinessBy"],
+    ["an approval from no one", {}, "has no readinessBy", "was set by an agent"],
+  ])("names only the problem with %s", async (_name, extra, said, unsaid) => {
+    const props = { label: "Reply", value: "Hi", segments: [{ author: "human", text: "Hi" }], readiness: "approved", onValueChange: () => {}, ...extra } as unknown as DraftEditorProps;
+    await render(<DraftEditor {...props} />);
+    const messages = warn.mock.calls.map((call: unknown[]) => String(call[0]));
+    expect(messages.some((message: string) => message.includes(said))).toBe(true);
+    expect(messages.some((message: string) => message.includes(unsaid))).toBe(false);
+  });
+
   it("highlights nothing while the segments are out of step with the value, and gives no one the edit", async () => {
     const onValueChange = vi.fn();
     const { textarea, highlights } = await render(<DraftEditor label="Reply" value="Hello" segments={segments} onValueChange={onValueChange} />);
@@ -318,6 +396,14 @@ describe("DraftEditor", () => {
 });
 
 describe("DraftEditor development messages", () => {
+  it("warns of nothing when the props are right", async () => {
+    await render(<DraftEditor label="Reply" value={value} segments={segments} onValueChange={() => {}} />);
+    await render(<DraftEditor label="Reply" value={value} segments={segments} onValueChange={() => {}} readiness="drafting" />);
+    await render(<DraftEditor label="Reply" value={value} segments={segments} onValueChange={() => {}} readiness="needs-input" readinessNote="Which day?" />);
+    await render(<DraftEditor label="Reply" value={value} segments={segments} onValueChange={() => {}} readiness="approved" readinessBy={{ author: "human", name: "You" }} />);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it.each([
     ["a missing label", { label: undefined }, "label is missing, so screen readers cannot name the draft", '<DraftEditor label="Reply" value={text} segments={segments} onValueChange={save}>'],
     [

@@ -110,7 +110,8 @@ const readinessBadges = {
   "ready-for-review": { label: "Ready for your review", tone: "primary" },
   approved: { label: "Approved", tone: "success" },
 } as const;
-const readinessNames: readonly string[] = ["drafting", ...Object.keys(readinessBadges)];
+// The readinesses past drafting; anything else is drafting.
+const readinessNames: readonly string[] = Object.keys(readinessBadges);
 
 // The textarea's metrics the highlight layer copies, so its runs wrap exactly as the text does.
 const mirrored = ["fontFamily", "fontSize", "fontWeight", "fontStyle", "lineHeight", "letterSpacing", "wordSpacing", "textIndent", "textTransform", "tabSize"] as const;
@@ -118,8 +119,13 @@ const mirrored = ["fontFamily", "fontSize", "fontWeight", "fontStyle", "lineHeig
 // An agent's run: a tint of the theme's primary color and an underline, so it never relies on color alone.
 const agentMark =
   "rounded-xs bg-[color-mix(in_oklab,var(--primary)_16%,transparent)] underline decoration-primary decoration-2 underline-offset-4 " +
+  // Stryker disable next-line StringLiteral: forced colours only, where the conformance suite checks the highlight.
   "forced-colors:decoration-[Highlight]";
 const quiet = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]";
+
+// A last empty line, as the textarea keeps one under its text.
+// Stryker disable next-line StringLiteral: the layer clips to the textarea, so no highlight above the last line moves without it.
+const lastLine = "\n";
 
 const join = (segments: readonly DraftSegment[]) => segments.map((segment) => segment.text).join("");
 
@@ -137,6 +143,8 @@ interface DraftEdit {
  */
 function unchanged(before: string, after: string, edit: DraftEdit | null): [number, number] {
   let start = 0;
+  // Past either string's end its character reads undefined, unequal to the other's: before and after differ, so the bounds only stop the scan sooner.
+  // Stryker disable next-line ConditionalExpression,LogicalOperator,EqualityOperator: as above, the comparison alone ends the scan.
   while (start < before.length && start < after.length && before[start] === after[start]) start++;
   let end = 0;
   while (end < before.length - start && end < after.length - start && before[before.length - 1 - end] === after[after.length - 1 - end]) end++;
@@ -248,8 +256,11 @@ export function DraftEditor(props: DraftEditorProps): JSX.Element {
     const textarea = area.current!;
     const record = () => (selection.current = { start: textarea.selectionStart, end: textarea.selectionEnd });
     textarea.addEventListener("beforeinput", record);
+    // Stryker disable next-line ArrowFunction,StringLiteral: an unmounted editor's listener records a selection that nothing reads.
     return () => textarea.removeEventListener("beforeinput", record);
-  }, []);
+  },
+  // Stryker disable next-line ArrayDeclaration: the textarea is the same for the editor's life, so once is enough with any fixed list.
+  []);
   const change = (next: string) => {
     const before = selection.current;
     selection.current = null;
@@ -263,7 +274,8 @@ export function DraftEditor(props: DraftEditorProps): JSX.Element {
     className,
     process.env.NODE_ENV !== "production"
       ? (token: string) => `remove "${token}"; DraftEditor takes its colors from the theme`
-      : /* istanbul ignore next @preserve -- production only */ "",
+      : // Stryker disable next-line StringLiteral: production only; the check never runs there.
+        /* istanbul ignore next @preserve -- production only */ "",
   );
   useDevWarnings(
     "DraftEditor",
@@ -296,6 +308,7 @@ export function DraftEditor(props: DraftEditorProps): JSX.Element {
   // the text shows once and the highlight wraps with it. It is measured after mount (the
   // server writes none) and again whenever the textarea or its box changes size.
   useLayoutEffect(() => {
+    // Stryker disable next-line ConditionalExpression: with nothing to highlight the layer is not drawn, so measuring it changes nothing shown.
     if (!highlighted) return;
     const textarea = area.current!;
     const measure = () => {
@@ -306,8 +319,12 @@ export function DraftEditor(props: DraftEditorProps): JSX.Element {
     };
     measure();
     const observer = new ResizeObserver(measure);
+    // The box holds the textarea and each grows with the other, so either observer alone sees a resize.
+    // Stryker disable next-line CallExpression: as above.
     observer.observe(textarea);
+    // Stryker disable next-line CallExpression: as above.
     observer.observe(box.current!);
+    // Stryker disable next-line ArrowFunction: an unmounted editor's observer measures nothing that is shown.
     return () => observer.disconnect();
   }, [highlighted]);
 
@@ -362,7 +379,7 @@ export function DraftEditor(props: DraftEditorProps): JSX.Element {
                     <span key={index}>{segment.text}</span>
                   ),
                 )}
-                {"\n"}
+                {lastLine}
               </div>
             </div>
           )}

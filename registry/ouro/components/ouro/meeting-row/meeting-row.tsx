@@ -55,7 +55,8 @@ export interface MeetingRowOwnProps {
 /** Props for {@link MeetingRow}: its own props and the `<article>` attributes it passes through. */
 export type MeetingRowProps = Omit<HTMLAttributes<HTMLElement>, keyof MeetingRowOwnProps | "children"> & MeetingRowOwnProps;
 
-const states: readonly string[] = ["past", "now", "upcoming"];
+// The states other than upcoming; anything else is upcoming.
+const states: readonly string[] = ["past", "now"];
 const tones = ["primary", "secondary", "destructive", "success", "warning"] as const;
 type Tone = (typeof tones)[number];
 /** Tones' development message, about `statusTone`. */
@@ -109,7 +110,8 @@ export function MeetingRow(props: MeetingRowProps): JSX.Element {
     className,
     process.env.NODE_ENV !== "production"
       ? (token: string) => `remove "${token}"; MeetingRow takes its colors from the theme and its state`
-      : /* istanbul ignore next @preserve -- production only */ "",
+      : // Stryker disable next-line StringLiteral: production only; the check never runs there.
+        /* istanbul ignore next @preserve -- production only */ "",
   );
   useDevWarnings(
     "MeetingRow",

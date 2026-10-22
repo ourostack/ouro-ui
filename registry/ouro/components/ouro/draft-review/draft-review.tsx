@@ -164,15 +164,18 @@ export function DraftReview(props: DraftReviewProps): JSX.Element | null {
   const byId = new Map(changes.map((change) => [change.id, change]));
   // A change's number follows its last run in the text.
   const lastRun = new Map<string, number>();
-  segments.forEach((segment, index) => segment.kind !== "same" && segment.changeId !== undefined && lastRun.set(segment.changeId, index));
-  const unknown = segments.find((segment) => segment.kind !== "same" && !numbers.has(segment.changeId ?? ""));
+  segments.forEach((segment, index) => {
+    if (segment.kind !== "same") lastRun.set(segment.changeId!, index);
+  });
+  const unknown = segments.find((segment) => segment.kind !== "same" && !numbers.has(segment.changeId!));
 
   useAppearanceClassNameCheck(
     "DraftReview",
     className,
     process.env.NODE_ENV !== "production"
       ? (token: string) => `remove "${token}"; DraftReview takes its colors from the theme`
-      : /* istanbul ignore next @preserve -- production only */ "",
+      : // Stryker disable next-line StringLiteral: production only; the check never runs there.
+        /* istanbul ignore next @preserve -- production only */ "",
   );
   useDevWarnings(
     "DraftReview",
@@ -219,7 +222,7 @@ export function DraftReview(props: DraftReviewProps): JSX.Element | null {
       </div>
       <p data-ouro-draft-review-text="" className="m-0 rounded-md bg-background p-2 text-sm break-words whitespace-pre-wrap text-foreground">
         {segments.map((segment, index) => {
-          const n = numbers.get(segment.changeId ?? "");
+          const n = numbers.get(segment.changeId!);
           if (segment.kind === "same" || n === undefined) return <span key={index}>{segment.text}</span>;
           const number = lastRun.get(segment.changeId!) === index && (
             <sup aria-hidden="true" className={cn("ms-0.5 text-[0.7em] font-semibold no-underline", quiet)}>

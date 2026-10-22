@@ -129,7 +129,37 @@ describe("MeetingRow", () => {
   });
 });
 
+describe("MeetingRow, part by part", () => {
+  it("sets a past title in the time's quiet color, and others in the text color", async () => {
+    const { row, rerender } = await render(<MeetingRow {...base} state="past" />);
+    const title = () => getComputedStyle(row.querySelector<HTMLElement>(".font-semibold")!).color;
+    const time = () => getComputedStyle(row.querySelector<HTMLElement>(".tabular-nums")!).color;
+    expect(title()).toBe(time());
+    await rerender(<MeetingRow {...base} />);
+    expect(title()).not.toBe(time());
+  });
+
+  it("shows the duration in its own line, and nothing for the parts it is not given", async () => {
+    const { row, rerender } = await render(<MeetingRow {...base} duration="30 min" />);
+    const timeColumn = () => row.querySelector<HTMLElement>(".tabular-nums")!;
+    expect([...timeColumn().children].map((part) => part.textContent)).toEqual(["10:00", "30 min"]);
+    await rerender(<MeetingRow {...base} />);
+    expect(timeColumn().children).toHaveLength(1);
+    // Title only: no empty status, detail or actions line.
+    expect(row.querySelector(".flex-1")!.children).toHaveLength(1);
+    await rerender(<MeetingRow {...base} detail={null} actions={null} />);
+    expect(row.querySelector(".flex-1")!.children).toHaveLength(1);
+  });
+});
+
 describe("MeetingRow development messages", () => {
+  it("warns of nothing when the props are right", async () => {
+    await render(<MeetingRow {...base} />);
+    await render(<MeetingRow {...base} state="past" status="Accepted" />);
+    await render(<MeetingRow {...base} state="now" status="Tentative" statusTone="warning" duration="30 min" />);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it.each([
     ["a missing title", { title: undefined }, "title is missing, so the row does not say which meeting it is", '<MeetingRow title="Weekly sync" time="10:00" state="upcoming">'],
     ["an unknown state", { state: "live" }, 'state="live" is not a state; use "past", "now" or "upcoming"', '<MeetingRow state="upcoming">'],
@@ -155,6 +185,8 @@ describe("MeetingRow development messages", () => {
     const { row } = await render(<MeetingRow {...props} />);
     expect(row.dataset.state).toBe("upcoming");
     expect(row.querySelector('[data-ouro="badge"]')!.className).toContain("border-border");
+    // The row passes the badge a tone it knows, so only the row's own messages are shown.
+    expect(warn.mock.calls.flat().join("\n")).not.toContain("Badge:");
   });
 
   it("checks the className", async () => {
