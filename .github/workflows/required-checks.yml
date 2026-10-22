@@ -1,0 +1,59 @@
+name: Required checks
+# .github/required-checks.json against the checks main's rules require now
+# (scripts/required-checks.mjs, GET /repos/{owner}/{repo}/rules/branches/main): the claims check
+# (verify:ciJob) and scripts/workflows.test.mjs read the file, so it must not drift from the rules
+# GitHub enforces. Hourly, since a ruleset change starts no workflow, and on a change to the file.
+# A drift on main opens, or comments on, one "Required checks drifted" issue.
+on:
+  schedule:
+    - cron: "23 * * * *"
+  push:
+    branches: [main]
+    paths:
+      - .github/required-checks.json
+      - scripts/required-checks.mjs
+      - .github/workflows/required-checks.yml
+  pull_request:
+    paths:
+      - .github/required-checks.json
+      - scripts/required-checks.mjs
+      - .github/workflows/required-checks.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compare:
+    name: required checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .github/required-checks.json
+            scripts/required-checks.mjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: The file matches main's rules
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/required-checks.mjs
+  report:
+    # One issue for a drift on main, opened or commented on (scripts/scheduled-failure.sh).
+    needs: [compare]
+    if: failure() && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: scripts/scheduled-failure.sh "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" "Required checks drifted" ".github/required-checks.json no longer matches the checks main's rules require"

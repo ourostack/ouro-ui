@@ -226,6 +226,22 @@ test("Scheduled install reports any failure in one issue, with issues: write on 
   assert.match(scheduled, /^permissions:\n {2}contents: read\njobs:/m);
 });
 
+test("Required checks compares the file with main's live rules hourly, on a change to it, and by hand, and reports a drift in one issue", () => {
+  const text = workflow("required-checks.yml");
+  assert.match(text, /^ {2}schedule:\n {4}- cron: "\d+ \* \* \* \*"$/m);
+  assert.match(text, /^ {2}workflow_dispatch:$/m);
+  for (const event of ["push", "pull_request"]) {
+    const block = text.split(new RegExp(`^ {2}${event}:\n`, "m"))[1].split(/\n {2}\S/)[0];
+    for (const path of [".github/required-checks.json", "scripts/required-checks.mjs", ".github/workflows/required-checks.yml"]) assert.ok(block.includes(`- ${path}`), `${event} ${path}`);
+  }
+  assert.match(text, /^permissions:\n {2}contents: read\njobs:/m);
+  assert.match(text, /^ {8}run: node scripts\/required-checks\.mjs$/m);
+  const report = text.slice(text.indexOf("\n  report:\n"));
+  assert.match(report, /needs: \[compare\]\n\s+if: failure\(\) && github\.event_name != 'pull_request'/);
+  assert.match(report, /permissions:\n\s+contents: read\n\s+issues: write/);
+  assert.match(report, /run: scripts\/scheduled-failure\.sh "[^"]+" "Required checks drifted" /);
+});
+
 test("scheduled-failure.sh opens the issue once, then comments on it", () => {
   const bin = scratchDir("ouro-gh-");
   const log = join(bin, "calls.log");
@@ -239,12 +255,16 @@ test("scheduled-failure.sh opens the issue once, then comments on it", () => {
     });
   assert.equal(run("").status, 0);
   assert.equal(run("42").status, 0);
+  // Another workflow names its own issue and says what failed.
+  assert.equal(spawnSync("bash", [join(root, "scripts/scheduled-failure.sh"), "https://github.com/o/r/actions/runs/2", "Required checks drifted", "The required checks drifted from main's rules"], { encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, OPEN: "" } }).status, 0);
   const calls = readFileSync(log, "utf8").trim().split("\n");
   assert.match(calls[0], /^issue list --state open --search in:title "Scheduled install failed"/);
   assert.match(calls[1], /^issue create --title Scheduled install failed --body The weekly install of main and the newest release failed: https:\/\/github\.com\/o\/r\/actions\/runs\/1/);
   assert.match(calls[2], /^issue list /);
   assert.equal(calls[3], "issue comment 42 --body Failed again: https://github.com/o/r/actions/runs/1");
-  assert.equal(calls.length, 4);
+  assert.match(calls[4], /^issue list --state open --search in:title "Required checks drifted"/);
+  assert.match(calls[5], /^issue create --title Required checks drifted --body The required checks drifted from main's rules: https:\/\/github\.com\/o\/r\/actions\/runs\/2/);
+  assert.equal(calls.length, 6);
 });
 
 // v0.7.0 was out for two hours while the site's llms.txt and main's README still gave install
@@ -646,8 +666,15 @@ test("every required check is still a job that reports, under the name the rules
     const condition = block.match(/^ {4}if: (.+)$/m)?.[1];
     if (!["install-github", "install-latest", "plan"].includes(id)) assert.ok(!condition || condition === untested, `${id} has if: ${condition}`);
   }
+  // The checks of the other workflows that run on a pull request and in the merge queue (conformance exemptions).
+  for (const { file, text } of workflows.filter((entry) => entry.file !== "ci.yml" && /^ {2}pull_request:/m.test(entry.text) && /^ {2}merge_group:/m.test(entry.text))) {
+    for (const [, name] of text.matchAll(/^ {4}name: (.+)$/gm)) names.set(name, file);
+  }
   // The ruleset's required checks, which the claims check also reads (verify:ciJob accepts only these).
   for (const check of requiredChecks) assert.ok(names.has(check), `${check} is not among ${[...names.keys()].join(", ")}`);
+  // ruleset 24881709 requires these; required-checks.yml holds the file to the live rules.
+  for (const check of ["conformance", "conformance exemptions", "mutation"]) assert.ok(requiredChecks.includes(check), check);
+  assert.ok(!requiredChecks.includes("ci-budget"), "ci-budget is advisory until the ruleset requires it");
   assert.deepEqual(checkNames(jobs["install-shard"], "install-shard"), ["install (shadcn, nova, 1/2)", "install (shadcn, nova, 2/2)", "install (shadcn, vega, 1/2)", "install (shadcn, vega, 2/2)", "install (ouro, nova, 1/2)", "install (ouro, nova, 2/2)"]);
   // conformance and mutation report under the names the ruleset will require once this workflow is on main.
   for (const check of ["conformance", "mutation"]) assert.ok(names.has(check), `${check} is not among ${[...names.keys()].join(", ")}`);
