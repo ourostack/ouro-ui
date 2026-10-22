@@ -33,7 +33,7 @@ for (const type of [webkit, chromium]) {
     await page.getByRole("textbox", { name: "Your name" }).fill("Ada");
     await page.getByRole("checkbox", { name: "I will keep the Nautilus a secret." }).click();
     row.push(`articles ${Date.now() - t0}ms`);
-    if (name === "base" || name === "cv") {
+    if ((name === "base" || name === "cv") && (await page.locator("#chapter-two").count())) {
       await page.locator("#chapter-two").scrollIntoViewIfNeeded();
       await page.locator("#chapter-two[data-chapter-ready]").waitFor({ state: "attached" });
       await page.waitForTimeout(500);
