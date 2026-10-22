@@ -204,7 +204,8 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
         {/* On a phone the porthole and the crew's newest line stay under the header while the console scrolls beneath them (stage.css), so every press shows its effect without the page jumping. */}
         <div className="stage-window">
           <div className="stage-porthole">
-            <Scene state={scene} label={STAGE_COPY.sceneLabel} description={describeScene(scene)} motto={STAGE_COPY.motto} />
+            {/* Off screen the motto is not drawn: it is the page's one SVG text, and while WebKit draws any, every press of the pointer anywhere on the page lays out and repaints all of it (art.ts). */}
+            <Scene state={scene} label={STAGE_COPY.sceneLabel} description={describeScene(scene)} motto={offscreen ? "" : STAGE_COPY.motto} />
           </div>
           <CrewLine entry={log.at(-1)!} logOpen={logOpen} />
         </div>
