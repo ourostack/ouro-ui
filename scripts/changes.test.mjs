@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, URL } from "node:url";
 import { HEADING, assemble, changesProblem, fragmentProblems, listed } from "./changes.mjs";
 import { scratchDir } from "./scratch.mjs";
 
@@ -105,7 +105,9 @@ test("release.yml checks the changes against the last release before it pushes a
   assert.match(check.body, /gh release view .*--json body/);
   assert.match(check.body, /node scripts\/changes\.mjs check changes /);
   // The release commit, and so the tag, holds the assembled CHANGES.md; the notes print it.
-  assert.match(step("Push the release branch").body, /node scripts\/changes\.mjs assemble changes > CHANGES\.md\n\s*git add CHANGES\.md\n\s*git commit -am "Release \$TAG"/);
+  // (scripts/release-commit.sh writes the release commit's files.)
+  assert.match(step("Push the release branch").body, /scripts\/release-commit\.sh "\$VERSION"\n\s*git add CHANGES\.md\n\s*git commit -am "Release \$TAG"/);
+  assert.match(readFileSync(new URL("./release-commit.sh", import.meta.url), "utf8"), /\nnode scripts\/changes\.mjs assemble changes > CHANGES\.md\n/);
   assert.match(step("Tag and publish the release").body, /sed -e '1s\/\^# \/### \/' CHANGES\.md/);
   // Main keeps fragments only: no other step writes CHANGES.md.
   for (const name of ["Check the changes", "Prepare main for the next release"]) assert.doesNotMatch(step(name).body, /CHANGES\.md/, name);

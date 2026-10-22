@@ -59,7 +59,7 @@ export function summarise(samples: readonly number[], baseline: number): { p95: 
  * click-to-paint time in ms. Event Timing reports nothing under 16 ms (its durationThreshold floor),
  * so a press with no entry counts as 16 ms, if the browser's interaction count says it happened; a
  * press with neither is a broken measurement, and fails. Setting up a press runs at full speed, and
- * so does its tail (the porthole's deferred repaint), so a press is measured from a settled page, as
+ * so does its tail (the porthole's repaint after the press), so a press is measured from a settled page, as
  * a person's would be a beat later.
  */
 export async function measure(page: Page, label: string, { press, prepare, setUp }: Presses, throttle: number = LATENCY.throttle): Promise<number[]> {

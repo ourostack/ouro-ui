@@ -10,6 +10,8 @@ import {
   applyAllowed,
   checkClaims,
   classify,
+  hooks,
+  lintRegistry,
   loadConfig,
   policyProblems,
   urlCacheReview,
@@ -780,4 +782,17 @@ test("the claims checker ships in lib-claims and runs in an app", () => {
   const passed = run();
   assert.equal(passed.status, 0, passed.stderr);
   assert.match(passed.stdout, /2 claims verified/);
+});
+
+test("a release commit's registry.json lints as main's does: its docs messages name the version it records", async () => {
+  const { release } = await import("./registry.mts");
+  const main = readFileSync(join(repo, "registry.json"), "utf8");
+  const released = `${JSON.stringify(release(JSON.parse(main), "9.9.9"), null, 2)}\n`;
+  const verbs = new Set(loadConfig(repo).instructionVerbs);
+  const lint = (text) => lintRegistry(hooks.prepare("registry.json", text), { file: "registry.json", verbs }).findings.map((finding) => finding.message);
+  assert.match(released, /Ouro UI v9\.9\.9\./);
+  assert.deepEqual(lint(released), lint(main));
+  // `pnpm registry --check` holds the stamp to the registry's own version; any other version is a claim to source.
+  const other = released.replace(/"version": "9\.9\.9"/, '"version": "9.9.8"');
+  assert.ok(lint(other).some((message) => /names a version/.test(message)));
 });

@@ -195,6 +195,7 @@
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-feedback",
         "ourostack/ouro-ui/lib-floating",
+        "ourostack/ouro-ui/lib-focus-handoff",
         "ourostack/ouro-ui/lib-form-answer",
         "ourostack/ouro-ui/lib-key-shortcuts",
         "ourostack/ouro-ui/lib-last-input",
@@ -564,6 +565,19 @@
           "path": "registry/ouro/lib/ouro/floating.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/floating.ts"
+        }
+      ]
+    },
+    {
+      "name": "lib-focus-handoff",
+      "type": "registry:lib",
+      "title": "lib-focus-handoff",
+      "description": "Installed with the components that import it; you don't need to add it. The helper lib/ouro/focus-handoff.ts.",
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/focus-handoff.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/focus-handoff.ts"
         }
       ]
     },
@@ -1584,6 +1598,8 @@
         "ourostack/ouro-ui/lib-cn",
         "ourostack/ouro-ui/lib-dev",
         "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-focus-handoff",
+        "ourostack/ouro-ui/lib-refs",
         "ourostack/ouro-ui/lib-spring",
         "ourostack/ouro-ui/lib-toast",
         "ourostack/ouro-ui/lib-touch-target",
@@ -1733,6 +1749,8 @@
         "ourostack/ouro-ui/lib-class-name-check",
         "ourostack/ouro-ui/lib-cn",
         "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-focus-handoff",
+        "ourostack/ouro-ui/lib-refs",
         "ourostack/ouro-ui/lib-tones",
         "ourostack/ouro-ui/lib-use-dev-messages"
       ],
@@ -2936,6 +2954,8 @@
         "ourostack/ouro-ui/lib-class-name-check",
         "ourostack/ouro-ui/lib-cn",
         "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-focus-handoff",
+        "ourostack/ouro-ui/lib-refs",
         "ourostack/ouro-ui/lib-use-dev-messages"
       ],
       "files": [
@@ -3724,6 +3744,31 @@
           "path": "registry/ouro/lib/ouro/floating.test.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/floating.test.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "lib-focus-handoff-tests",
+      "type": "registry:item",
+      "title": "lib-focus-handoff tests",
+      "description": "Optional: the Vitest browser tests for lib-focus-handoff, and the tests of everything it installs. Add it beside lib-focus-handoff: add lib-focus-handoff lib-focus-handoff-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "devDependencies": [
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-focus-handoff",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/focus-handoff.test.tsx",
+          "type": "registry:lib",
+          "target": "@lib/ouro/focus-handoff.test.tsx"
         }
       ],
       "meta": {
@@ -4621,6 +4666,7 @@
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-focus-handoff-tests",
         "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-ouro-provider",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
@@ -5526,6 +5572,7 @@
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-focus-handoff-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-spring",
         "ourostack/ouro-ui/lib-spring-tests",
@@ -5846,6 +5893,7 @@
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-focus-handoff-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/ouro-testing"
@@ -8106,6 +8154,7 @@
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-floating-tests",
+        "ourostack/ouro-ui/lib-focus-handoff-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-spring",
@@ -8534,6 +8583,7 @@
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-focus-handoff-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/message",
         "ourostack/ouro-ui/ouro-testing"
@@ -8642,9 +8692,15 @@
       ],
       "registryDependencies": [
         "ourostack/ouro-ui/attachment",
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-focus-handoff-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/ouro-testing"
       ],
@@ -9891,6 +9947,7 @@
         "vitest"
       ],
       "registryDependencies": [
+        "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/button-tests",
         "ourostack/ouro-ui/card-tests",
         "ourostack/ouro-ui/heading-tests",
@@ -9966,6 +10023,7 @@
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-feedback-tests",
         "ourostack/ouro-ui/lib-floating-tests",
+        "ourostack/ouro-ui/lib-focus-handoff-tests",
         "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
@@ -10048,6 +10106,7 @@
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-feedback-tests",
         "ourostack/ouro-ui/lib-floating-tests",
+        "ourostack/ouro-ui/lib-focus-handoff-tests",
         "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
