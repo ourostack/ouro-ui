@@ -64,6 +64,16 @@ test("CI downloads Playwright's browsers only through the cached action", () => 
   assert.match(warm, /runs-on: \$\{\{ matrix\.runner \}\}/);
 });
 
+test("no job in a container uses setup-node's own cache, whose saved path does not exist there", () => {
+  // In the image the pnpm store is elsewhere, and a post step that saves a path that does not exist
+  // fails its job: the mutation shards of #170's queue run 39814190074.
+  const jobs = Object.entries(ciJobs()).filter(([, job]) => /^ {4}container:/m.test(job));
+  assert.ok(jobs.length > 0);
+  for (const [id, job] of jobs) {
+    for (const step of job.split(/\n(?= {6}- )/).filter((text) => text.includes("uses: actions/setup-node@"))) assert.match(step, /^ {10}cache: ""$/m, id);
+  }
+});
+
 test("CI's browser jobs run in Playwright's image at the version package.json pins, and only visual installs system packages on the runner", () => {
   const { devDependencies } = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
   const tag = `v${devDependencies.playwright}-noble`;
