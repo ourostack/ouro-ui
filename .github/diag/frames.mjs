@@ -3,10 +3,12 @@ import { chromium, webkit } from "@playwright/test";
 const [base, label] = [process.argv[2], process.argv[3]];
 const VARIANTS = {
   asis: "",
-  notransform: "main, main * { transform: none !important; scale: none !important; translate: none !important; rotate: none !important; will-change: auto !important; }",
-  svgnoevents: "main svg, main svg * { pointer-events: none !important; }",
-  svgcontain: "main svg { contain: strict; }",
-  textstatic: "main svg text { font-size: 12px !important; font-family: sans-serif !important; }",
+  nomotto: ".stage-motto { display: none !important; }",
+  noblueprint: ".site-blueprint text { display: none !important; }",
+  nochart: ".site-chart text { display: none !important; }",
+  norecharts: ".recharts-wrapper text { display: none !important; }",
+  onlyrecharts: "main svg text:not(.recharts-wrapper text) { display: none !important; }",
+  nosketch: "main svg:not(.site-blueprint):not(.site-chart):not(.recharts-surface) text:not(.stage-motto) { display: none !important; }",
 };
 /** Drops each rule whose selector has the pseudo-class at all, and counts them. */
 const drop = (page, pseudo) => page.evaluate((pseudo) => {
