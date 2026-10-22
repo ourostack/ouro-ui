@@ -81,6 +81,7 @@ describe("the hero", () => {
     expect(document.querySelector("h1")!.textContent).toBe("Feels right to the people using it. Obvious to the agents building it.");
     expect(document.querySelector("[data-site-eyebrow]")!.textContent).toBe(EYEBROW);
     expect(document.querySelector(".stage-motto textPath")!.textContent).toBe("MOBILIS IN MOBILI");
+    // real clock: the hero's line, which stays.
     await expect.element(page.getByText(STAGE_COPY.real)).toBeVisible();
   });
 
@@ -106,7 +107,9 @@ describe("the hero", () => {
       expect(install.release).toBe(latestRelease);
       expect(INSTALL_COMMAND).toBe(`npx shadcn@latest add ourostack/ouro-ui/${install.item}#${latestRelease}`);
       expect(INSTALL_CAPTION).toBe(`Installs with the shadcn CLI. ${install.item.charAt(0).toUpperCase()}${install.item.slice(1)} is one of ${install.count}.`);
+      // real clock: the hero's install command, which stays.
       await expect.element(page.getByText(INSTALL_COMMAND, { exact: true })).toBeVisible();
+      // real clock: the install command's caption, which stays.
       await expect.element(page.getByText(INSTALL_CAPTION)).toBeVisible();
       const code = document.querySelector<HTMLElement>("[data-site-install]")!;
       expect(code.scrollWidth).toBeLessThanOrEqual(code.clientWidth);
@@ -146,7 +149,9 @@ describe("the stage's controls", () => {
     await userEvent.keyboard("{End}");
     await expect.poll(() => scene().dataset.band).toBe("midnight");
     await expect.poll(() => scene().style.getPropertyValue("--d")).toBe("1.000");
+    // real clock: the depth gauge, which stays.
     await expect.element(page.getByText("300", { exact: true })).toBeVisible();
+    // real clock: the water's name on the gauge, which stays.
     await expect.element(page.getByText("Midnight water")).toBeVisible();
     await expect.poll(lastLog).toContain(LOG.band.midnight.text);
     await userEvent.keyboard("{Home}");
@@ -158,6 +163,7 @@ describe("the stage's controls", () => {
     await renderPage("/voyage/");
     const dive = page.getByRole("button", { name: STAGE_COPY.dive, exact: true });
     await expect.element(dive).toBeDisabled();
+    // real clock: the dive control's hint, which stays.
     await expect.element(page.getByText(STAGE_COPY.diveHint(0))).toBeVisible();
     for (const [index, name] of TANK_NAMES.entries()) {
       await userEvent.click(page.getByRole("switch", { name }));
@@ -168,6 +174,7 @@ describe("the stage's controls", () => {
     await expect.element(dive).toBeEnabled();
     // A small celebration: every gauge reads full, and the panel says so.
     expect(document.querySelectorAll(".stage-gauge[data-full]")).toHaveLength(3);
+    // real clock: the dive control's Ready line, which stays.
     await expect.element(page.getByText(STAGE_COPY.ready)).toBeVisible();
     await userEvent.click(dive);
     await expect.poll(() => scene().hasAttribute("data-dived")).toBe(true);

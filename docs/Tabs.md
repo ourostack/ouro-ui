@@ -2,7 +2,7 @@
 
 # Tabs
 
-Tabs that switch between panels in place: an accessible tab list with roving focus, arrow-key navigation, a line that slides to the selected tab, and 44px tabs on touch screens. Pass the tabs and their panels as `items`.
+Tabs that switch between panels in place: an accessible tab list with roving focus, arrow-key navigation, a line that slides to the selected tab, and 44px tabs on touch screens. Pass the tabs and their panels as `items`. Under forced colours (Windows contrast themes) each tab keeps a border and the selected one is filled with Highlight.
 
 ```tsx
 import { Tabs } from "@/registry/ouro/components/ouro/tabs/tabs";

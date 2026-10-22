@@ -9,7 +9,7 @@ import { brokenFor, conformanceStories, describeElement, layOut } from "./harnes
 // edge, state or focus ring is drawn with a background colour or a shadow vanishes. Under
 // forced colours, every story, closed and with each overlay open, must keep for each control:
 // - an edge: a border or outline on the control, on something inside it, or on its component's
-//   frame around it (for a box a person presses, types into, drags or scrolls: buttons, fields,
+//   frame around it (for a box a person presses, types into, drags or scrolls: buttons, tabs, fields,
 //   checkboxes, switches, sliders, scrollable regions; links, buttons drawn as underlined links,
 //   the rows of a list and the cells of a grid are text);
 // - its state: a checked, selected, pressed or current control looks different from one of the
@@ -17,7 +17,7 @@ import { brokenFor, conformanceStories, describeElement, layOut } from "./harnes
 // - its focus: focusing it from the keyboard changes what its component shows.
 
 /** Roles a person sees as a box to press, type into or drag, so they need an edge of their own or their frame's. */
-const boxed = new Set(["button", "checkbox", "switch", "radio", "slider", "textbox", "searchbox", "combobox", "spinbutton", "generic"]);
+const boxed = new Set(["button", "checkbox", "switch", "radio", "slider", "textbox", "searchbox", "combobox", "spinbutton", "tab", "generic"]);
 
 /** The states a control can be in that forced colours must keep apart from the off state. */
 const onState = '[aria-checked="true"], [aria-selected="true"], [aria-pressed="true"], [aria-current]:not([aria-current="false"]), [data-checked], [data-selected], [data-pressed]';
