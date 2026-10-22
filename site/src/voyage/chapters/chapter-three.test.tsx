@@ -49,6 +49,8 @@ describe("Chapter III", () => {
     await renderPage("/voyage/");
     await expect.element(page.getByRole("heading", { name: CHAPTER_THREE.title })).toBeInTheDocument();
     await expect.poll(() => document.querySelector("#chapter-two")).not.toBeNull();
+    // Each chapter is an island that loads on its own, so the one before may come second.
+    await expect.poll(() => document.querySelector("#chapter-two")).not.toBeNull();
     expect(document.querySelector("#chapter-two")!.compareDocumentPosition(document.querySelector("#chapter-three")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // The dialog's choices are in the dialog; install, components and again show once the organ plays.
     const marked = [...document.querySelectorAll("#chapter-three [data-chapter-control]")].map((element) => element.getAttribute("data-chapter-control"));
