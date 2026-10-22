@@ -137,7 +137,9 @@ test("release.yml opens the PR that prepares main after the release is published
   // CI is dispatched and the exact approve command goes to the job summary and the PR body.
   assert.match(reset.body, /--event pull_request/);
   assert.match(reset.body, /gh api -X POST "repos\/\$GITHUB_REPOSITORY\/actions\/runs\/\$run\/approve"/);
-  assert.match(reset.body, /else\n[\s\S]*GITHUB_STEP_SUMMARY[\s\S]*gh pr edit "\$NEXT_BRANCH" --body[\s\S]*gh workflow run ci\.yml --ref "\$NEXT_BRANCH" \|\| echo "::warning::/);
+  assert.match(reset.body, /else\n[\s\S]*GITHUB_STEP_SUMMARY[\s\S]*gh pr edit "\$NEXT_BRANCH" --body[\s\S]*for workflow in \$PRODUCERS; do gh workflow run "\$workflow" --ref "\$NEXT_BRANCH" \|\| echo "::warning::/);
+  // Each workflow that reports a required check has its held run approved, and the required checks decide.
+  assert.match(reset.body, /for workflow in \$PRODUCERS; do\n[\s\S]*--workflow "\$workflow"[\s\S]*scripts\/required-ci\.sh \$runs \|\| \{/);
   assert.match(release, /pull-requests: write/);
 });
 
@@ -155,7 +157,8 @@ test("release.yml advises deleting a tag only when GitHub says its release was n
 // Runs the approval part of "Prepare main for the next release" against a stand-in gh and git.
 // MODE: ok (approve works, and the pull request is queued), refuse (approve fails), flaky (the
 // first `run list` fails, then works), nodispatch (approve fails and so does the dispatch), redci
-// (approve works, the run fails), noqueue (approve works, the run passes, the queue refuses the
+// (approve works, a required check fails), budget (approve works, only a check main's rules do not
+// require fails), noqueue (approve works, the run passes, the queue refuses the
 // pull request), cleanup (gh pr merge merges it but exits non-zero, as when only its local branch
 // cleanup fails).
 const runApproval = (mode) => {
@@ -172,9 +175,12 @@ const runApproval = (mode) => {
     `#!/usr/bin/env bash
 all="$*"; printf '%s\\n' "\${all//$'\\n'/ }" >> "${log}"
 case "$1 $2" in
-  "run list") if [ "$MODE" = flaky ] && [ ! -e "${dir}/once" ]; then : > "${dir}/once"; exit 1; fi; echo 77 ;;
-  "api -X") [ "$MODE" = ok ] || [ "$MODE" = redci ] || [ "$MODE" = noqueue ] || [ "$MODE" = cleanup ] || exit 1 ;;
-  "run watch") [ "$MODE" = redci ] && exit 1 ;;
+  "run list") if [ "$MODE" = flaky ] && [ ! -e "${dir}/once" ]; then : > "${dir}/once"; exit 1; fi; case "$all" in *conformance-exemptions*) echo 78 ;; *) echo 77 ;; esac ;;
+  "api -X") [ "$MODE" = ok ] || [ "$MODE" = redci ] || [ "$MODE" = budget ] || [ "$MODE" = noqueue ] || [ "$MODE" = cleanup ] || exit 1 ;;
+  "run watch") [ "$MODE" = redci ] || [ "$MODE" = budget ] && exit 1 ;;
+  "api repos/o/r/rules/branches/main") printf '%s\\n' ci "conformance exemptions" ;;
+  "api repos/o/r/actions/runs/77/jobs?per_page=100") printf 'ci\\t%s\\nci-budget\\t%s\\n' "$([ "$MODE" = redci ] && echo failure || echo success)" "$([ "$MODE" = budget ] && echo failure || echo success)" ;;
+  "api repos/o/r/actions/runs/78/jobs?per_page=100") printf 'conformance exemptions\\tsuccess\\n' ;;
   "pr merge") [ "$MODE" = cleanup ] && { : > "${dir}/merged"; exit 1; }; exit 1 ;;
   "pr view") case "$all" in *"--json number"*) echo 9 ;; *"--json id"*) echo PR_id ;; *) echo "old body" ;; esac ;;
   "api graphql")
@@ -194,7 +200,8 @@ exit 0
   writeFileSync(output, "");
   const result = spawnSync("bash", ["-eo", "pipefail", "-c", script], {
     encoding: "utf8",
-    env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, MODE: mode, POLL_SECONDS: "0", TAG: "v1.2.3", NEXT_BRANCH: "prepare/after-v1.2.3", GITHUB_REPOSITORY: "o/r", GITHUB_STEP_SUMMARY: summary, GITHUB_OUTPUT: output },
+    cwd: root,
+    env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, MODE: mode, POLL_SECONDS: "0", PRODUCERS: "ci.yml conformance-exemptions.yml", TAG: "v1.2.3", NEXT_BRANCH: "prepare/after-v1.2.3", GITHUB_REPOSITORY: "o/r", GITHUB_STEP_SUMMARY: summary, GITHUB_OUTPUT: output },
   });
   return { result, calls: readFileSync(log, "utf8").trim().split("\n"), summary: readFileSync(summary, "utf8"), output: readFileSync(output, "utf8") };
 };
@@ -206,15 +213,17 @@ test("the approval step approves the held run and, once it passes, queues the pu
   assert.equal(output, "number=9\n", "The fixture must own and return its GITHUB_OUTPUT.");
   const at = (start) => calls.findIndex((c) => c.startsWith(start));
   assert.ok(at("api -X POST repos/o/r/actions/runs/77/approve") !== -1);
-  assert.ok(at("run watch 77 --exit-status") > at("api -X POST"));
+  assert.ok(at("api -X POST repos/o/r/actions/runs/78/approve") > at("api -X POST repos/o/r/actions/runs/77/approve"));
+  assert.ok(at("run watch 77") > at("api -X POST repos/o/r/actions/runs/78/approve"));
+  assert.ok(at("api repos/o/r/actions/runs/78/jobs") > at("run watch 78"));
   // gh pr merge cannot queue a pull request without auto-merge, so the step queues it itself.
-  assert.ok(at("pr merge prepare/after-v1.2.3 --squash") > at("run watch 77"));
+  assert.ok(at("pr merge prepare/after-v1.2.3 --squash") > at("api repos/o/r/actions/runs/78/jobs"));
   const enqueue = at("api graphql -f query=mutation { enqueuePullRequest");
   assert.ok(enqueue > at("pr merge"));
   assert.match(calls[enqueue], /pullRequestId: "PR_id", expectedHeadOid: "abc123"/);
   assert.equal(calls.filter((c) => c.includes("enqueuePullRequest")).length, 1);
   assert.ok(!calls.some((c) => c.startsWith("workflow run") || c.startsWith("pr edit")));
-  assert.match(summary, /Approved CI run 77/);
+  assert.match(summary, /Approved the runs 77 78/);
   assert.match(summary, /Queued "Prepare main for the next release" \(#9\)/);
 });
 
@@ -229,7 +238,8 @@ test("the approval step never queues a pull request whose CI failed, and says wh
   const red = runApproval("redci");
   assert.equal(red.result.status, 1, red.result.stderr);
   assert.ok(!red.calls.some((c) => c.startsWith("pr merge") || c.includes("enqueuePullRequest") || c.startsWith("workflow run")));
-  assert.match(red.result.stdout, /::error::CI on "Prepare main for the next release" did not pass; Pages will not deploy\. Fix it, merge it, then pass main CI before deploying/);
+  assert.match(red.result.stdout, /::error::Runs 77 78 did not pass the checks main's rules require: ci: failure\./);
+  assert.match(red.result.stdout, /::error::CI on "Prepare main for the next release" did not pass the checks main's rules require; Pages will not deploy\. Fix it, merge it, then pass main CI before deploying/);
   const refused = runApproval("noqueue");
   assert.equal(refused.result.status, 1, refused.result.stderr);
   // It tries a few times, then fails with what a person has to do.
@@ -237,6 +247,14 @@ test("the approval step never queues a pull request whose CI failed, and says wh
   assert.match(refused.result.stdout, /::warning::Could not add #9 to the merge queue \(attempt 5\)/);
   assert.match(refused.result.stdout, /::error::Could not queue "Prepare main for the next release" \(#9 is OPEN false\); Pages will not deploy\. Queue it by hand, then pass main CI before deploying/);
   assert.ok(!refused.calls.some((c) => c.startsWith("workflow run")));
+});
+
+test("the approval step queues a pull request whose only failing check is one main's rules do not require (ci-budget on #169)", () => {
+  const { result, calls, summary } = runApproval("budget");
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.match(result.stdout, /Runs 77 78 passed the checks main's rules require/);
+  assert.equal(calls.filter((c) => c.includes("enqueuePullRequest")).length, 1);
+  assert.match(summary, /Queued "Prepare main for the next release" \(#9\)/);
 });
 
 test("the approval step, when the approval is refused, preserves recovery instructions and branch dispatch but fails closed", () => {
@@ -249,6 +267,7 @@ test("the approval step, when the approval is refused, preserves recovery instru
   assert.notEqual(edit, -1);
   assert.match(calls[edit], /gh api -X POST repos\/o\/r\/actions\/runs\/77\/approve/);
   assert.ok(calls.findIndex((c) => c.startsWith("workflow run ci.yml --ref prepare/after-v1.2.3")) > edit);
+  assert.ok(calls.findIndex((c) => c.startsWith("workflow run conformance-exemptions.yml --ref prepare/after-v1.2.3")) > edit);
   assert.ok(!calls.some((c) => c.startsWith("pr merge") || c.includes("enqueuePullRequest") || c === "workflow run ci.yml --ref main"));
   assert.equal(output, "", "Refused approval must not name a pull request for the queue job.");
 });
@@ -256,7 +275,7 @@ test("the approval step, when the approval is refused, preserves recovery instru
 test("the approval step fails closed after a failed branch dispatch or refused approval following a failed first poll", () => {
   const failed = runApproval("nodispatch");
   assert.equal(failed.result.status, 1, failed.result.stderr);
-  assert.match(failed.result.stdout, /::warning::Could not dispatch CI/);
+  assert.match(failed.result.stdout, /::warning::Could not dispatch ci\.yml on prepare\/after-v1\.2\.3 either/);
   assert.match(failed.result.stdout, /::error::Main has not passed CI for v1\.2\.3; Pages will not deploy/);
   assert.match(failed.summary, /approve/);
   assert.ok(failed.calls.some((c) => c.startsWith("pr edit") && c.includes("gh api -X POST repos/o/r/actions/runs/77/approve")));
