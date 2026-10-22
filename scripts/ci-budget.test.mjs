@@ -2,7 +2,7 @@ import { Buffer } from "node:buffer";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { deflateRawSync } from "node:zlib";
-import { budget, criticalPath, jobGraph, judge, percentile, runnerTime, runWalls, unzipOne, wallTime } from "./ci-budget.mjs";
+import { baseline, budget, criticalPath, jobGraph, judge, percentile, recordPassed, runnerTime, runWalls, unzipOne, wallTime } from "./ci-budget.mjs";
 
 const workflow = `name: CI
 jobs:
@@ -91,25 +91,68 @@ test("a skipped job adds nothing, and a job no name matches is reported", () => 
   assert.deepEqual(path.unmatched, ["mystery"]);
 });
 
-test("one slow run only warns; a pull request fails past the ceiling or when the median of the last full runs is over budget", () => {
+test("a pull request over the budget fails only when it is also more than 2 minutes over main's baseline", () => {
   const limit = budget.targetMinutes * 60 * (1 + budget.margin);
   const min = 60;
-  const pr = (criticalSeconds, history, full = true) => judge({ event: "pull_request", criticalSeconds, full, history });
-  assert.deepEqual(pr(limit, [9 * min, 9 * min, 9 * min, 9 * min]), { fail: false, warning: null, median: 9 * min });
-  // Over the limit once, the others under it: a warning.
-  assert.deepEqual(pr(13 * min, [9 * min, 10 * min, 9 * min, 11 * min]), { fail: false, warning: "over", median: 10 * min });
-  // Most of the last five over it: the median fails it.
-  assert.deepEqual(pr(13 * min, [12.5 * min, 13 * min, 9 * min, 8 * min]), { fail: true, reason: "median", warning: null, median: 12.5 * min });
-  // Only the newest four before it count.
-  assert.equal(pr(13 * min, [13 * min, 13 * min, 9 * min, 9 * min, 13 * min, 13 * min]).median, 13 * min);
-  assert.equal(pr(13 * min, [9 * min, 9 * min, 9 * min, 13 * min, 13 * min]).fail, false);
-  // Fewer than five full runs recorded: no median, a warning.
-  assert.deepEqual(pr(13 * min, [13 * min, 13 * min]), { fail: false, warning: "over", median: null });
-  // Past the ceiling, one run fails, whatever came before.
-  assert.deepEqual(pr(budget.ceilingMinutes * min + 1, []), { fail: true, reason: "ceiling", warning: null, median: null });
-  // A reduced run's shorter path is no evidence for the median, and is held to the ceiling only.
-  assert.deepEqual(pr(13 * min, [13 * min, 13 * min, 13 * min, 13 * min], false), { fail: false, warning: "over", median: null });
-  for (const event of ["push", "merge_group", "workflow_dispatch"]) assert.equal(judge({ event, criticalSeconds: 30 * min, full: true, history: [30 * min, 30 * min, 30 * min, 30 * min] }).fail, false);
+  const pr = (criticalSeconds, baselineSeconds) => judge({ event: "pull_request", criticalSeconds, baselineSeconds });
+  // Within the budget: nothing, whatever main does.
+  assert.deepEqual(pr(limit, 9 * min), { fail: false, warning: null });
+  assert.deepEqual(pr(limit, 14 * min), { fail: false, warning: null });
+  // Over it and more than 2 minutes over main's baseline: this change made it slower.
+  assert.deepEqual(pr(12.5 * min, 10 * min), { fail: true, reason: "regression", warning: null });
+  // Over it but within 2 minutes of the baseline: a slow runner, more likely than this change.
+  assert.deepEqual(pr(12.5 * min, 10.5 * min), { fail: false, warning: "over" });
+  assert.deepEqual(pr(12 * min + 1, 10 * min + 1), { fail: false, warning: "over" });
+});
+
+test("after main slowed down, a pull request near main's baseline only warns, the one that fixes it included, and one clearly slower still fails", () => {
+  const min = 60;
+  const pr = (criticalSeconds, baselineSeconds) => judge({ event: "pull_request", criticalSeconds, baselineSeconds });
+  // Main's own baseline over the budget, and the pull request within 2 minutes of it: a warning.
+  assert.deepEqual(pr(14 * min, 13 * min), { fail: false, warning: "over" });
+  // A fix that only partly helps is still over the budget, and still passes.
+  assert.deepEqual(pr(12.5 * min, 14 * min), { fail: false, warning: "over" });
+  // More than 2 minutes over a baseline that is itself over the budget: this change made it slower still.
+  assert.deepEqual(pr(14.9 * min, 12.5 * min), { fail: true, reason: "regression", warning: null });
+  // A pull request far over a slow main still fails past the ceiling.
+  assert.deepEqual(pr(budget.ceilingMinutes * min + 1, 14 * min), { fail: true, reason: "ceiling", warning: null });
+});
+
+test("a run with a job that no ci.yml job matches fails, whatever its event, so the critical path never leaves a job out", () => {
+  for (const event of ["pull_request", "merge_group", "push"]) {
+    assert.deepEqual(judge({ event, criticalSeconds: 60, baselineSeconds: 60, unmatched: ["install (shadcn, nova, 3/3)"] }), { fail: true, reason: "unmatched", warning: null });
+  }
+  assert.deepEqual(judge({ event: "pull_request", criticalSeconds: 60, baselineSeconds: 60, unmatched: [] }), { fail: false, warning: null });
+});
+
+test("with no baseline a pull request only warns, past the ceiling it fails, and only a pull request is judged", () => {
+  const min = 60;
+  assert.deepEqual(judge({ event: "pull_request", criticalSeconds: 13 * min, baselineSeconds: null }), { fail: false, warning: "no-baseline" });
+  assert.deepEqual(judge({ event: "pull_request", criticalSeconds: budget.ceilingMinutes * min + 1, baselineSeconds: null }), { fail: true, reason: "ceiling", warning: null });
+  for (const event of ["push", "merge_group", "workflow_dispatch"]) assert.deepEqual(judge({ event, criticalSeconds: 30 * min, baselineSeconds: 9 * min }), { fail: false, warning: null });
+});
+
+test("main's baseline is the median of the critical paths its latest passing merge queue runs recorded in their own ci-timings, ci-budget's own result aside", () => {
+  // A merge queue run's ci-timings record: its critical path as that run's ci.yml measured it, and its jobs but ci-budget, still running then.
+  const run = (minutes, { attempt = 1, conclusion = "success" } = {}) => ({
+    attempt,
+    record: { criticalPathSeconds: minutes * 60, jobs: [{ job: "plan", conclusion: "success" }, { job: "browser (1/2)", conclusion }, { job: "install (next)", conclusion: "skipped" }] },
+  });
+  assert.equal(recordPassed(run(5).record), true);
+  assert.equal(recordPassed(run(5, { conclusion: "failure" }).record), false);
+  assert.equal(recordPassed(run(5, { conclusion: "cancelled" }).record), false);
+  // ci-budget's own result, had it been recorded, does not count.
+  assert.equal(recordPassed({ criticalPathSeconds: 60, jobs: [{ job: "plan", conclusion: "success" }, { job: "ci-budget", conclusion: "failure" }] }), true);
+  assert.equal(recordPassed({ criticalPathSeconds: 60, jobs: [] }), false);
+  const runs = [run(20, { conclusion: "failure" }), run(10), run(30, { attempt: 2 }), run(11), run(8), run(9), run(12), run(40)];
+  // The failed run and the re-run are left out; the first five that passed count, newest first.
+  const main = baseline(runs);
+  assert.deepEqual(main.values.map((value) => value / 60), [10, 11, 8, 9, 12]);
+  assert.equal(main.seconds, 10 * 60);
+  // A run with no ci-timings record is left out.
+  assert.deepEqual(baseline([{ attempt: 1, record: null }, run(5, { conclusion: "failure" })]), { seconds: null, values: [] });
+  assert.equal(budget.baselineRuns, 5);
+  assert.equal(budget.regressionMinutes, 2);
 });
 
 test("an artifact's one file comes out of its zip, stored or deflated, sizes read from the central directory", () => {
