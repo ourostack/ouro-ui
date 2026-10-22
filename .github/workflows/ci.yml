@@ -20,6 +20,13 @@ concurrency:
 # reduced pull request took 15.7 minutes (#159); browser and e2e-shard, which a slow mirror took to
 # 50.6 and 38.9 minutes while still installing; and themes, visual and theme-install, where an apt
 # install stopped after 15 minutes and tried again still fits.
+# The jobs that run a browser run in Playwright's image, at the version package.json pins, by
+# digest: its browsers and their system packages are in it, so they install nothing from Ubuntu's
+# mirror (OURO_SYSTEM_PACKAGES=image). The image has no zstd, so actions/cache there used gzip and
+# missed the caches the runner saved, Stryker's among them: the runner's own zstd is lent to it,
+# which needs the image's Ubuntu (24.04), so these jobs name that runner. Their pnpm store cache is
+# off, as the store's path differs there: pnpm i takes about 5 seconds from the network, and a
+# cache that missed cost 10 more to save.
 jobs:
   plan:
     # Which browser tests this run needs (scripts/test-impact.mjs). A pull request into main runs
@@ -161,13 +168,12 @@ jobs:
     # reduced pull request, the sets that install a selected component). Part of the ci check.
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
-    # Playwright's image, at the version package.json pins: its browsers and their system packages
-    # are in it, so the job installs nothing from Ubuntu's mirror (OURO_SYSTEM_PACKAGES=image).
+    # In Playwright's image (see the note above jobs:).
     container:
-      image: mcr.microsoft.com/playwright:v1.63.0-noble
-      options: --user 1001
+      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
       env:
         OURO_SYSTEM_PACKAGES: image
     strategy:
@@ -187,7 +193,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-          cache: pnpm
+          cache: ""
       - run: pnpm i --frozen-lockfile
       - id: tests
         name: Browser tests
@@ -272,11 +278,11 @@ jobs:
     # of the ci check.
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     container:
-      image: mcr.microsoft.com/playwright:v1.63.0-noble
-      options: --user 1001
+      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
       env:
         OURO_SYSTEM_PACKAGES: image
     name: scripts (browser)
@@ -290,7 +296,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-          cache: pnpm
+          cache: ""
       - run: pnpm i --frozen-lockfile
       - name: Script tests that drive a browser
         run: |
@@ -420,13 +426,12 @@ jobs:
     # selected components' stories, and nothing when it selected none.
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
-    # Playwright's image, at the version package.json pins: its browsers and their system packages
-    # are in it, so the job installs nothing from Ubuntu's mirror (OURO_SYSTEM_PACKAGES=image).
+    # In Playwright's image (see the note above jobs:).
     container:
-      image: mcr.microsoft.com/playwright:v1.63.0-noble
-      options: --user 1001
+      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
       env:
         OURO_SYSTEM_PACKAGES: image
     env:
@@ -445,7 +450,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-          cache: pnpm
+          cache: ""
       - id: affected
         name: Is any story affected?
         run: |
@@ -478,13 +483,12 @@ jobs:
     # fail (the broken stories, on the first shard), which every run checks.
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
-    # Playwright's image, at the version package.json pins: its browsers and their system packages
-    # are in it, so the job installs nothing from Ubuntu's mirror (OURO_SYSTEM_PACKAGES=image).
+    # In Playwright's image (see the note above jobs:).
     container:
-      image: mcr.microsoft.com/playwright:v1.63.0-noble
-      options: --user 1001
+      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
       env:
         OURO_SYSTEM_PACKAGES: image
     env:
@@ -504,7 +508,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-          cache: pnpm
+          cache: ""
       - id: affected
         name: Is any story affected?
         run: |
@@ -624,13 +628,12 @@ jobs:
     # `mutation` job below is the one check the rules require.
     needs: [plan, mutation-plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
-    # Playwright's image, at the version package.json pins: its browsers and their system packages
-    # are in it, so the job installs nothing from Ubuntu's mirror (OURO_SYSTEM_PACKAGES=image).
+    # In Playwright's image (see the note above jobs:).
     container:
-      image: mcr.microsoft.com/playwright:v1.63.0-noble
-      options: --user 1001
+      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
       env:
         OURO_SYSTEM_PACKAGES: image
     env:
@@ -652,7 +655,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-          cache: pnpm
+          cache: ""
       - id: changed
         name: Is any runtime source changed?
         run: |
@@ -796,13 +799,12 @@ jobs:
     # of the e2e check.
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 50
-    # Playwright's image, at the version package.json pins: its browsers and their system packages
-    # are in it, so the job installs nothing from Ubuntu's mirror (OURO_SYSTEM_PACKAGES=image).
+    # In Playwright's image (see the note above jobs:).
     container:
-      image: mcr.microsoft.com/playwright:v1.63.0-noble
-      options: --user 1001
+      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
       env:
         OURO_SYSTEM_PACKAGES: image
     strategy:
@@ -823,7 +825,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-          cache: pnpm
+          cache: ""
       - run: pnpm i --frozen-lockfile
       - name: End-to-end specs
         run: |
@@ -875,13 +877,12 @@ jobs:
     # dark, and its fonts load.
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
-    # Playwright's image, at the version package.json pins: its browsers and their system packages
-    # are in it, so the job installs nothing from Ubuntu's mirror (OURO_SYSTEM_PACKAGES=image).
+    # In Playwright's image (see the note above jobs:).
     container:
-      image: mcr.microsoft.com/playwright:v1.63.0-noble
-      options: --user 1001
+      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
       env:
         OURO_SYSTEM_PACKAGES: image
     steps:
@@ -892,7 +893,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-          cache: pnpm
+          cache: ""
       - run: pnpm i --frozen-lockfile
       - run: pnpm site:build
       - run: site/scripts/theme-install-test.sh "$RUNNER_TEMP/theme-app"
@@ -912,13 +913,12 @@ jobs:
     # test shares the CPU.
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
-    # Playwright's image, at the version package.json pins: its browsers and their system packages
-    # are in it, so the job installs nothing from Ubuntu's mirror (OURO_SYSTEM_PACKAGES=image).
+    # In Playwright's image (see the note above jobs:).
     container:
-      image: mcr.microsoft.com/playwright:v1.63.0-noble
-      options: --user 1001
+      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
       env:
         OURO_SYSTEM_PACKAGES: image
     steps:
@@ -929,7 +929,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-          cache: pnpm
+          cache: ""
       - run: pnpm i --frozen-lockfile
       - run: pnpm test:latency
       - if: failure()
@@ -977,13 +977,12 @@ jobs:
     # leaves a marker, which its variant's install check counts.
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
-    # Playwright's image, at the version package.json pins: its browsers and their system packages
-    # are in it, so the job installs nothing from Ubuntu's mirror (OURO_SYSTEM_PACKAGES=image).
+    # In Playwright's image (see the note above jobs:).
     container:
-      image: mcr.microsoft.com/playwright:v1.63.0-noble
-      options: --user 1001
+      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
       env:
         OURO_SYSTEM_PACKAGES: image
     strategy:
@@ -1011,7 +1010,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-          cache: pnpm
+          cache: ""
       - run: pnpm i --frozen-lockfile
       - name: Install test
         env:
@@ -1123,13 +1122,12 @@ jobs:
     # installs with what `npx shadcn@latest` runs today. Here rather than in release.yml, so the
     # unpinned CLI never runs in a job that holds a token able to push the tag.
     if: startsWith(github.ref, 'refs/heads/release/')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 35
-    # Playwright's image, at the version package.json pins: its browsers and their system packages
-    # are in it, so the job installs nothing from Ubuntu's mirror (OURO_SYSTEM_PACKAGES=image).
+    # In Playwright's image (see the note above jobs:).
     container:
-      image: mcr.microsoft.com/playwright:v1.63.0-noble
-      options: --user 1001
+      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
       env:
         OURO_SYSTEM_PACKAGES: image
     name: install (shadcn@latest, nova)
@@ -1141,7 +1139,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-          cache: pnpm
+          cache: ""
       - run: pnpm i --frozen-lockfile
       - run: SHADCN_VERSION=latest scripts/install-test.sh shadcn "$RUNNER_TEMP/latest" ${{ github.sha }}
   install-upgrade:

@@ -31,6 +31,10 @@ test("every action is pinned to a full commit SHA, with its version in a comment
       .map((line) => `${file}: ${line.trim()}`),
   );
   assert.deepEqual(unpinned, [], "Pin with owner/repo@<40-character SHA> # vX.Y.Z, or use one of .github/actions.");
+  // A job's container image too: by digest, with its tag in a comment.
+  const images = workflows.flatMap(({ file, text }) => [...text.matchAll(/^ {4}container:\n {6}image: (.+)$/gm)].map((match) => `${file}: ${match[1]}`));
+  assert.ok(images.length > 0);
+  assert.deepEqual(images.filter((line) => !/: [\w.-]+(\/[\w.-]+)+@sha256:[0-9a-f]{64} # v[\w.-]+$/.test(line)), [], "Pin with registry/image@sha256:<64 hex> # <tag>.");
 });
 
 const browserAction = readFileSync(join(actionsDir, "playwright-browsers/action.yml"), "utf8");
@@ -62,13 +66,19 @@ test("CI downloads Playwright's browsers only through the cached action", () => 
 
 test("CI's browser jobs run in Playwright's image at the version package.json pins, and only visual installs system packages on the runner", () => {
   const { devDependencies } = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
-  const image = `mcr.microsoft.com/playwright:v${devDependencies.playwright}-noble`;
+  const tag = `v${devDependencies.playwright}-noble`;
   const jobs = ciJobs();
   const inImage = Object.entries(jobs).filter(([, job]) => /^ {4}container:/m.test(job)).map(([id]) => id);
   assert.deepEqual(inImage.sort(), ["browser", "conformance-shard", "e2e-shard", "install-latest", "install-shard", "latency", "mutation-shard", "scripts-browser", "theme-install", "themes"]);
   for (const id of inImage) {
     // The browsers and their system packages are in the image: nothing is installed from Ubuntu's mirror.
-    assert.match(jobs[id], new RegExp(`^ {4}container:\\n {6}image: ${image.replace(/[.]/g, "\\.")}\\n {6}options: --user 1001\\n {6}env:\\n {8}OURO_SYSTEM_PACKAGES: image\\n`, "m"), id);
+    // Its digest's tag names the version package.json pins; the runner's zstd lets actions/cache there
+    // compress as on the runner, so the caches the runner saves (Stryker's) are found.
+    assert.match(jobs[id], new RegExp(`^ {4}container:\\n {6}image: mcr\\.microsoft\\.com/playwright@sha256:[0-9a-f]{64} # ${tag.replace(/[.]/g, "\\.")}\\n {6}options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro\\n {6}env:\\n {8}OURO_SYSTEM_PACKAGES: image\\n`, "m"), id);
+    // The pnpm store's path differs in the image, so the runner's cache of it never matches: it is off.
+    assert.match(jobs[id], /uses: actions\/setup-node@[^\n]*\n {8}with:\n {10}node-version: 24\n {10}cache: ""\n/, id);
+    // The runner's zstd needs the libraries of the image's Ubuntu (24.04, noble).
+    assert.match(jobs[id], /^ {4}runs-on: ubuntu-24\.04$/m, id);
     assert.doesNotMatch(jobs[id], /playwright-browsers|browser-deps|sudo|apt-get/, id);
   }
   // visual's screenshots were taken with the runner's fonts, which the image lacks: it keeps the
