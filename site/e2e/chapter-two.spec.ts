@@ -3,6 +3,7 @@ import { CATALOGUE, CHAPTER_TWO, CHAPTER_TWO_CONTROLS, CHART_ROOM, CLASSING, COD
 import { arrivals, routeLeagues, SHORTEST, writeDay, writeLeagues } from "../src/voyage/chapters/route";
 import { diagnostics } from "./diagnostics";
 import { openChapter, opensCodeSheet, operable, watchMotion } from "./chapters";
+import { watchToasts } from "./toasts";
 
 // Chapter II, "Plan the voyage", against the production build (site-design.md, "Verification in
 // CI"): each control in CHAPTER_TWO_CONTROLS has a test named "control: <id>" that operates it and
@@ -101,6 +102,7 @@ test.describe("each control in Chapter II", () => {
     const choose = room(page).getByRole("button", { name: "Choose date" });
     await choose.click();
     const calendar = page.getByRole("dialog", { name: CHART_ROOM.departure });
+    // real clock: the departure calendar, which stays open until a day is picked.
     await expect(calendar).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(calendar).toBeHidden();
@@ -155,11 +157,13 @@ test.describe("each control in Chapter II", () => {
     await expect(link).toHaveAttribute("href", narwhal.href);
     await expect(link).toHaveAttribute("target", "_blank");
     await link.hover();
+    // real clock: Aronnax's note, which stays while the name has the pointer.
     await expect(page.getByText(narwhal.note)).toBeVisible();
     await page.mouse.move(0, 0);
     await expect(page.getByText(narwhal.note)).toBeHidden();
     const argonaut = SPECIMENS.find((each) => each.id === "argonaut")!;
     await catalogue(page).getByRole("link", { name: new RegExp(argonaut.name) }).focus();
+    // real clock: Aronnax's note, which stays while the name has focus.
     await expect(page.getByText(argonaut.note)).toBeVisible();
   });
 
@@ -170,8 +174,9 @@ test.describe("each control in Chapter II", () => {
     await pick(page, "Fish");
     await expect(catalogueCrew(page)).toContainText(CLASSING.wrong("Fish", crab.hint).text);
     await expect.poll(() => names(page)).toHaveLength(SPECIMENS.length);
+    const toasts = await watchToasts(page);
     await pick(page, "Crustacean");
-    await expect(page.getByText(CLASSING.toast("Crustacean"))).toBeVisible();
+    await expect.poll(toasts.titles).toContain(CLASSING.toast("Crustacean"));
     await expect(catalogueCrew(page)).toContainText(CLASSING.right(crab.name, "Crustacean").text);
     await expect.poll(() => names(page)).toContain(crab.name);
     await expect(catalogue(page).locator("tbody tr", { hasText: crab.name })).toContainText(CATALOGUE.added);
@@ -184,7 +189,9 @@ test.describe("each control in Chapter II", () => {
     const button = catalogue(page).getByRole("button", { name: CATALOGUE.museum });
     await button.click();
     const sheet = page.getByRole("dialog", { name: MUSEUM.title });
+    // real clock: the museum's sheet, which stays open until it is closed.
     await expect(sheet).toBeVisible();
+    // real clock: the treasures in the museum's sheet, which stays open until it is closed.
     for (const treasure of MUSEUM.treasures) await expect(sheet.getByText(treasure.name, { exact: true })).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(sheet).toBeHidden();

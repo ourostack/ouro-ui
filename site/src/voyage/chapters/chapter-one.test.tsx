@@ -61,7 +61,7 @@ describe("Chapter I", () => {
     await expect.poll(crew).toContain(YARD.ready.text);
     await userEvent.click(page.getByRole("button", { name: "Launch", exact: true }));
     await expect.poll(() => plan().dataset.launched).toBe("");
-    await expect.element(page.getByText(SHIPYARD.afloat)).toBeVisible();
+    await expect.element(page.elementLocator(document.querySelector("#chapter-one")!).getByText(SHIPYARD.afloat)).toBeVisible();
   });
 
   it("refuses a name already aboard, through the form's own errors", async () => {

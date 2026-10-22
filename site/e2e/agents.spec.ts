@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import { agentExamples } from "../src/agents/examples";
 import { AGENTS, AGENTS_CONTROLS, FILED, SPECIES } from "../src/voyage/agents/copy";
+import { holdClock } from "../../registry/ouro/e2e/ouro/story";
 import { openChapter, operable } from "./chapters";
 
 // "Built for agents too" against the production build (site-design.md §5): each control in
@@ -69,18 +70,22 @@ test.describe("each control in Built for agents too", () => {
   test("control: install copies the install line, as the hero shows it", async ({ page, context, browserName }) => {
     test.skip(browserName !== "chromium", "Clipboard permissions are Chromium's to grant");
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    await page.clock.install();
     await open(page);
     const command = (await page.locator("[data-site-install]").textContent())!.trim();
     expect(command).toMatch(/^npx shadcn@latest add ourostack\/ouro-ui\//);
     const block = section(page).locator("[data-chapter-control='install']");
     await expect(block).toContainText(command);
     const copy = block.getByRole("button", { name: "Copy" });
+    // The page's clock stands still from here, so "Copied" cannot run out between the click and the check.
+    await holdClock(page);
     await copy.click();
     await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(command);
-    // The button says so: a tick, and "Copied" as its name, then Copy again.
+    // The button says so: a tick, and "Copied" as its name, then Copy again once its time is up.
     await expect(block.getByRole("button", { name: "Copied" })).toBeVisible();
     await expect(block.locator("[data-ouro='copy-button']")).toHaveAttribute("data-status", "copied");
-    await expect(block.getByRole("button", { name: "Copy" })).toBeVisible({ timeout: 5000 });
+    await page.clock.runFor(5000);
+    await expect(block.getByRole("button", { name: "Copy" })).toBeVisible();
   });
 });
 
