@@ -116,6 +116,7 @@ export function alertDone(label: string, done: string, event: TimerDoneEvent, { 
 /** Stops a timer's repeating alert, if it has one: on Dismiss, Restart or Cancel in any view of it. */
 export function stopAlert(key: string): void {
   clearInterval(repeating.get(key));
+  // Stryker disable next-line CallExpression: clearing the interval stops the alert; this only frees its entry.
   repeating.delete(key);
 }
 

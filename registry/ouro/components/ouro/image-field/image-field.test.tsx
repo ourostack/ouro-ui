@@ -347,6 +347,9 @@ describe("ImageField dropping a file", () => {
   it("lights the frame while a file is over the field, and takes a dropped photo as if chosen", async () => {
     const onFileChange = vi.fn();
     const { field, input, preview } = await render(<ImageField label="Cover" name="cover" onFileChange={onFileChange} />);
+    // Unlit until a file comes over it.
+    expect(zone().hasAttribute("data-dragging")).toBe(false);
+    expect(field().textContent).not.toContain("Drop the photo here");
     const data = new DataTransfer();
     data.items.add(await photo(2, 2, "dot.png"));
     const over = new DragEvent("dragover", { dataTransfer: data, bubbles: true, cancelable: true });

@@ -274,6 +274,7 @@ export function ImageField(props: ImageFieldProps): JSX.Element {
     );
   };
   const choose = (event: ChangeEvent<HTMLInputElement>) => {
+    // Stryker disable next-line OptionalChaining: a file input's files is never null while it fires change; the type allows null.
     const chosen = event.target.files?.[0];
     if (chosen) consider(chosen);
   };

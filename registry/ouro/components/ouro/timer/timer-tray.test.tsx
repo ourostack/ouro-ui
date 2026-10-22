@@ -305,6 +305,16 @@ describe("TimerTray development messages", () => {
     expect(tray().hasAttribute("hidden")).toBe(false);
   });
 
+  it("keeps React's keys apart for timers given an id in place of a timerId", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const loose = [
+      { id: "pasta", label: "Pasta", duration: 600 },
+      { id: "rice", label: "Rice", duration: 900 },
+    ] as unknown as TimerTrayItem[];
+    await render(<TimerTray timers={loose} />);
+    expect(error).not.toHaveBeenCalled();
+  });
+
   it.each([
     ["bg-card", 'remove "bg-card"; TimerTray sets its own look from the theme'],
     ["sticky", ""],

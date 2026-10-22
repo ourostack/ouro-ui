@@ -9,12 +9,16 @@ import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcemen
 const roots: Root[] = [];
 let mounted: Element[] = [];
 let tones = 0;
+let contexts = 0;
 const vibrations: unknown[] = [];
 
 // Every timer on the page shares one audio context, made on the first Start; this one counts tones.
 const scope = globalThis as unknown as { AudioContext: unknown };
 const realAudio = scope.AudioContext;
 class FakeAudio {
+  constructor() {
+    contexts += 1;
+  }
   state = "running";
   currentTime = 0;
   destination = {};
@@ -185,12 +189,15 @@ describe("Timer", () => {
       await advance(1000);
       expect(timer().getAttribute("data-status")).toBe("done");
       expect([tones, vibrations.length]).toEqual([3, 1]);
+      const made = contexts;
       await advance(2499);
       expect([tones, vibrations.length]).toEqual([3, 1]);
       await advance(1);
       expect([tones, vibrations.length]).toEqual([6, 2]);
       await advance(5000);
       expect([tones, vibrations.length]).toEqual([12, 4]);
+      // Each chime again plays in the page's one audio context, made on Start.
+      expect(contexts).toBe(made);
       expect(announced.count("Roast: Time's up")).toBe(1);
       await press(primary());
       expect(timer().getAttribute("data-status")).toBe("idle");
