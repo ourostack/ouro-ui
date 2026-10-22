@@ -39,7 +39,7 @@ export function partsOf({ inner }: Art, ...classes: string[]): string {
   const named = classes.join("|");
   const part = new RegExp(`<g\\b[^>]*\\bclass="(?:${named})"[^>]*>[\\s\\S]*?</g>|<\\w+\\b[^>]*\\bclass="(?:${named})"[^>]*/>`, "g");
   const parts = inner.match(part);
-  if (!parts) throw new Error(`The drawing has no part named ${classes.join(" or ")}`);
+  if (!parts) throw new Error(`The drawing is missing its ${classes.join(" or ")}`);
   return parts.join("");
 }
 
