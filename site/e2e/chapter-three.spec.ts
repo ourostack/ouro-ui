@@ -29,7 +29,7 @@ async function order(page: Page, name: string): Promise<void> {
   await menu.getByRole("menuitem", { name, exact: true }).or(checkbox).click();
   // A checkbox item leaves the menu open, so more can be ticked; Escape closes it.
   if (await checkbox.count()) await page.keyboard.press("Escape");
-  await expect(menu).toBeHidden();
+  await expect(menu).toBeHidden({ timeout: 15_000 });
 }
 
 /** Up, and the axes: the squid lets go. */
@@ -40,7 +40,10 @@ async function win(page: Page): Promise<void> {
 }
 
 test.describe("each control in Chapter III", () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, browserName }) => {
+    // CI's WebKit paints this page slowly (Chapter I's spec takes minutes there on main too), and
+    // these tests go through a menu several times.
+    test.slow(browserName === "webkit", "WebKit on CI is slow through repeated menus");
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.setViewportSize({ width: 1440, height: 900 });
   });
@@ -183,6 +186,8 @@ test("every operable element in Chapter III is one of its listed controls, in pa
   await open(page);
   await win(page);
   await playButton(page).click();
+  // The way on follows Play by a frame (the saloon's deferred render).
+  await expect(saloon(page).locator("[data-chapter-next]")).toBeVisible();
   const found = await operable(page, "chapter-three");
   expect(found.loose).toEqual([]);
   // The dialog's two choices are over the page, not in it.

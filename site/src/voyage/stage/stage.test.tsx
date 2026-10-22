@@ -110,11 +110,13 @@ describe("the hero", () => {
       expect(install.release).toBe(latestRelease);
       expect(INSTALL_COMMAND).toBe(`npx shadcn@latest add ourostack/ouro-ui/${install.item}#${latestRelease}`);
       expect(INSTALL_CAPTION).toBe(`Installs with the shadcn CLI. ${install.item.charAt(0).toUpperCase()}${install.item.slice(1)} is one of ${install.count}.`);
-      await expect.element(page.getByText(INSTALL_COMMAND, { exact: true })).toBeVisible();
-      await expect.element(page.getByText(INSTALL_CAPTION)).toBeVisible();
+      // The hero's own install line ("Built for agents too" shows it again, further down).
+      const hero = page.elementLocator(document.querySelector(".site-hero")!);
+      await expect.element(hero.getByText(INSTALL_COMMAND, { exact: true })).toBeVisible();
+      await expect.element(hero.getByText(INSTALL_CAPTION)).toBeVisible();
       const code = document.querySelector<HTMLElement>("[data-site-install]")!;
       expect(code.scrollWidth).toBeLessThanOrEqual(code.clientWidth);
-      await userEvent.click(page.getByRole("button", { name: "Copy", exact: true }));
+      await userEvent.click(hero.getByRole("button", { name: "Copy", exact: true }));
       await expect.element(page.getByText("Copied the install command", { exact: true })).toBeVisible();
       expect(writes).toEqual([INSTALL_COMMAND]);
     } finally {

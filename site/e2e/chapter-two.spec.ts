@@ -41,7 +41,10 @@ async function pick(page: Page, kind: string): Promise<void> {
 }
 
 test.describe("each control in Chapter II", () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, browserName }) => {
+    // CI's WebKit paints this page slowly (Chapter I's spec takes minutes there on main too), and
+    // these tests go through a menu several times.
+    test.slow(browserName === "webkit", "WebKit on CI is slow through repeated menus");
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.setViewportSize({ width: 1440, height: 900 });
   });
@@ -222,6 +225,7 @@ test("X-ray outlines Chapter II's HX components", async ({ page }) => {
 });
 
 test("on a phone, the chart room and the catalogue work by touch, and nothing overflows", async ({ browser, browserName }) => {
+  test.slow(browserName === "webkit", "WebKit on CI is slow through repeated menus");
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: browserName === "chromium", reducedMotion: "reduce", baseURL: test.info().project.use.baseURL! });
   const page = await context.newPage();
   const errors = diagnostics(page);
@@ -244,7 +248,8 @@ test("on a phone, the chart room and the catalogue work by touch, and nothing ov
   await expect(marker.getByRole("img")).toHaveAccessibleName("1 of 3 done");
   await catalogue(page).scrollIntoViewIfNeeded();
   await expect.poll(async () => (await marker.boundingBox())!.y).toBeLessThan(80);
-  await classify(page).tap();
+  // On a phone the Combobox is a button that opens a sheet of the classes.
+  await catalogue(page).getByRole("button", { name: CATALOGUE.classify }).tap();
   // The same in desktop WebKit: its emulated tap on an option closes the list before it picks.
   const option = page.getByRole("option", { name: "Crustacean", exact: true });
   await (browserName === "webkit" ? option.click() : option.tap());
