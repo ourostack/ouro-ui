@@ -2,7 +2,7 @@
 
 # AgentNote
 
-A short note an agent leaves for the person, attributed to the agent. It says who wrote it, when, and what the agent read to write it, and offers the person's own actions: Pin, Edit (a text box in place, with Save and Cancel) and Dismiss. While the words are the agent's, an Agent badge sits beside its name and a bar marks the note's start edge. A note the person pinned or edited is theirs: it says so, and the agent no longer replaces it. Pinning, editing and dismissing are a person's decisions: the handlers receive the click event, so the app can check `event.isTrusted`, and the `revision` on screen when the press began, so the app can refuse a decision about a note the agent replaced under the click. A newer revision that arrives while the person edits shows a notice and never replaces their words. Leave a handler out to leave its button out.
+A short note an agent leaves for the person, attributed to the agent. It says who wrote it, when, and what the agent read to write it, and offers the person's own actions: Pin, Edit (a text box in place, with Save and Cancel) and Dismiss. While the words are the agent's, an Agent badge sits beside its name and a bar marks the note's start edge. A note the person pinned or edited is theirs: it says so, and the agent no longer replaces it. Pinning, editing and dismissing are a person's decisions: the handlers receive the click event, so the app can check `event.isTrusted`, and the `revision` on screen when the press began, so the app can refuse a decision about a note the agent replaced under the click. A newer revision that arrives while the person edits shows a notice, spoken once, and never replaces their words. While a save is in progress the text box is read-only and Cancel waits. When the app removes a dismissed note, focus moves to the next control after it. Leave a handler out to leave its button out.
 
 ```tsx
 import { AgentNote } from "@/registry/ouro/components/ouro/agent-note/agent-note";
@@ -27,7 +27,7 @@ import { AgentNote } from "@/registry/ouro/components/ouro/agent-note/agent-note
 
 ## Use instead when
 
-- Use `Alert` instead for a notice from the app itself, and `DraftEditor` for text a person and an agent write together.
+- Use `Alert` instead for a notice from the app itself.
 
 ## Props
 
@@ -38,11 +38,12 @@ Type: `AgentNoteProps`.
 | `agentLabel` | `string` | `"Agent"` | The badge beside the agent's name, for other languages. |
 | `author` (required) | `"agent" \| "human"` |  | Who wrote the words on screen: the agent, or the person once they edited them. |
 | `cancelButtonLabel` | `string` | `"Cancel"` | The Cancel button's word, for other languages. |
-| `changedLabel` | `string` |  | The notice while the person edits a note that changed underneath, for other languages. |
+| `changedLabel` | `string` |  | The notice while the person edits a note that changed underneath, spoken once when it appears. For other languages. |
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-2`). Appearance classes warn in development. |
 | `dismissButtonLabel` | `string` | `"Dismiss"` | The Dismiss button's word, for other languages. |
-| `editButtonLabel` | `string` | `"Edit"` | The Edit button's word, and the text box's name. |
+| `editButtonLabel` | `string` | `"Edit"` | The Edit button's word, for other languages. |
 | `editedLabel` | `string` | `"Edited by you"` | What shows in place of the agent's name once the person edited the note. |
+| `editorLabel` | `string` | `label` | The text box's name while the person edits. |
 | `keptLabel` | `string` | `"Kept: your agent won't change this note."` | The line on a note the person kept, for other languages. |
 | `label` | `string` | `"Note"` | What the note is, before its author and in its name for screen readers. |
 | `maxLength` | `number` | `1500` | The longest note the person may save, in characters. |
@@ -57,6 +58,7 @@ Type: `AgentNoteProps`.
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 | `revision` | `string` |  | Which version of the note this is, such as a counter or a hash. The handlers receive the one on screen when the press began; while the person edits, a newer one shows a notice and keeps their words. |
 | `saveButtonLabel` | `string` | `"Save"` | The Save button's word, for other languages. |
+| `saveErrorLabel` | `string` | `"Couldn't save the note. Your words are still here."` | What the person hears when a save throws or rejects, for other languages. |
 | `savingLabel` | `string` | `"Saving note"` | What screen readers hear while a save is in progress, for other languages. |
 | `source` | `ReactNode` |  | What the agent read to write it, already worded, such as the messages and transcripts it used. |
 | `text` (required) | `string` |  | The note, as plain text. It shows as text, never as markup, keeping its line breaks. |
@@ -96,7 +98,7 @@ type AgentNoteHandler = (revision: string | undefined, event: MouseEvent<HTMLEle
 
 ### `AgentNoteSaveHandler`
 
-Saves the person's words. Receives the `revision` they last saw (the newer one once the note changed while they edited), and the click. Return `false`, or a promise of it, to keep the editor open, such as when saving failed; a throw or a rejection keeps it open too. A result that comes after the person cancelled or began another edit is ignored.
+Saves the person's words. Receives the `revision` they last saw (the newer one once the note changed while they edited), and the click. Return `false`, or a promise of it, to keep the editor open, such as when saving failed; a throw or a rejection keeps it open too, is reported (`reportError`) and tells the person (`saveErrorLabel`). Until it settles, the text box is read-only and Cancel waits.
 
 ```ts
 type AgentNoteSaveHandler = (text: string, revision: string | undefined, event: MouseEvent<HTMLElement>) => boolean | void | Promise<boolean | void>;

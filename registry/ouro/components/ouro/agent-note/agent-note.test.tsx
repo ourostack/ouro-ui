@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { AgentNote, type AgentNoteProps } from "@/registry/ouro/components/ouro/agent-note/agent-note";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -266,7 +267,7 @@ describe("AgentNote", () => {
     const onSave = vi.fn();
     const { note } = await render(<AgentNote {...base} revision="r1" onSave={onSave} maxLength={80} />);
     await userEvent.click(page.getByRole("button", { name: "Edit" }));
-    const box = page.getByRole("textbox", { name: "Edit" });
+    const box = page.getByRole("textbox", { name: "Note" });
     await expect.element(box).toHaveFocus();
     await expect.element(box).toHaveValue(base.text);
     expect(box.element().getAttribute("maxlength")).toBe("80");
@@ -295,7 +296,7 @@ describe("AgentNote", () => {
     await expect.element(page.getByRole("button", { name: "Save" })).toBeDisabled();
     await act(async () => finish(false));
     expect(note.hasAttribute("aria-busy")).toBe(false);
-    await expect.element(page.getByRole("textbox", { name: "Edit" })).toBeVisible();
+    await expect.element(page.getByRole("textbox", { name: "Note" })).toBeVisible();
   });
 
   it("keeps focus on Save while it saves and after the save fails", async () => {
@@ -321,61 +322,91 @@ describe("AgentNote", () => {
     ["throws a string", () => {
       throw "offline";
     }],
-  ])("stays open and can save again when onSave %s", async (_name, failing) => {
-    const onSave = vi.fn<NonNullable<AgentNoteProps["onSave"]>>(failing);
-    const { note } = await render(<AgentNote {...base} onSave={onSave} />);
-    await userEvent.click(page.getByRole("button", { name: "Edit" }));
-    await userEvent.click(page.getByRole("button", { name: "Save" }));
-    expect(note.hasAttribute("aria-busy")).toBe(false);
-    await expect.element(page.getByRole("textbox", { name: "Edit" })).toHaveValue(base.text);
-    expect(warn).toHaveBeenCalledWith('[ouro-ui] AgentNote: onSave threw "offline", so the editor stayed open. Fix: onSave={(text) => save(text).catch(() => false)}.');
-    onSave.mockImplementation(() => {});
-    await userEvent.click(page.getByRole("button", { name: "Save" }));
-    expect(onSave).toHaveBeenCalledTimes(2);
-    expect(note.querySelector("textarea")).toBeNull();
+  ])("stays open, reports the error, tells the person and can save again when onSave %s", async (_name, failing) => {
+    const reported = vi.spyOn(window, "reportError").mockImplementation(() => {});
+    const announced = watchAnnouncements();
+    try {
+      const onSave = vi.fn<NonNullable<AgentNoteProps["onSave"]>>(failing);
+      const { note } = await render(<AgentNote {...base} onSave={onSave} saveErrorLabel="Not saved." />);
+      await userEvent.click(page.getByRole("button", { name: "Edit" }));
+      await userEvent.click(page.getByRole("button", { name: "Save" }));
+      expect(note.hasAttribute("aria-busy")).toBe(false);
+      await expect.element(page.getByRole("textbox", { name: "Note" })).toHaveValue(base.text);
+      expect(reported).toHaveBeenCalledTimes(1);
+      expect(String(reported.mock.calls[0]![0])).toContain("offline");
+      await expect.poll(() => announced.count("Not saved.")).toBe(1);
+      onSave.mockImplementation(() => {});
+      await userEvent.click(page.getByRole("button", { name: "Save" }));
+      expect(onSave).toHaveBeenCalledTimes(2);
+      expect(note.querySelector("textarea")).toBeNull();
+    } finally {
+      announced.stop();
+    }
   });
 
-  it("ignores a save that settles after the person cancelled and began another edit", async () => {
-    const pending: ((value: boolean | void) => void)[] = [];
-    const onSave = vi.fn(() => new Promise<boolean | void>((resolve) => pending.push(resolve)));
+  it("says a failed save in its own words by default", async () => {
+    vi.spyOn(window, "reportError").mockImplementation(() => {});
+    const announced = watchAnnouncements();
+    try {
+      await render(<AgentNote {...base} onSave={() => Promise.reject(new Error("offline"))} />);
+      await userEvent.click(page.getByRole("button", { name: "Edit" }));
+      await userEvent.click(page.getByRole("button", { name: "Save" }));
+      await expect.poll(() => announced.count("Couldn't save the note. Your words are still here.")).toBe(1);
+    } finally {
+      announced.stop();
+    }
+  });
+
+  it("waits for a save in progress: the text box is read-only, and Cancel and Escape do nothing", async () => {
+    let finish!: (value: boolean | void) => void;
+    const onSave = vi.fn(() => new Promise<boolean | void>((resolve) => (finish = resolve)));
     const { note } = await render(<AgentNote {...base} onSave={onSave} />);
     await userEvent.click(page.getByRole("button", { name: "Edit" }));
-    await userEvent.click(page.getByRole("button", { name: "Save" }));
-    expect(note.getAttribute("aria-busy")).toBe("true");
-    await userEvent.click(page.getByRole("button", { name: "Cancel" }));
-    expect(note.hasAttribute("aria-busy")).toBe(false);
-    await userEvent.click(page.getByRole("button", { name: "Edit" }));
-    // The first save succeeds late: the newer edit stays open.
-    await act(async () => pending[0]!());
-    expect(note.querySelector("textarea")).not.toBeNull();
-    expect(note.hasAttribute("aria-busy")).toBe(false);
     await userEvent.click(page.getByRole("button", { name: "Save" }));
     expect(note.getAttribute("aria-busy")).toBe("true");
     await expect.element(page.getByText("Saving note", { exact: true })).toBeInTheDocument();
-    // A late failure does not unlock a newer save either.
-    await userEvent.click(page.getByRole("button", { name: "Cancel" }));
+    const box = note.querySelector("textarea")!;
+    expect(box.readOnly).toBe(true);
+    const cancel = page.getByRole("button", { name: "Cancel" });
+    expect(cancel.element().getAttribute("aria-disabled")).toBe("true");
+    // Forced: Playwright waits for a button to be enabled, and Cancel says it is not.
+    await userEvent.click(cancel, { force: true });
+    await act(async () => box.focus());
+    await userEvent.keyboard("{Escape}");
+    await userEvent.keyboard("lost");
+    expect(box.value).toBe(base.text);
+    expect(note.querySelector("textarea")).toBe(box);
+    // Saved: the editor closes, and the box was never left editable mid-save.
+    await act(async () => finish());
+    expect(note.querySelector("textarea")).toBeNull();
+    expect(onSave).toHaveBeenCalledTimes(1);
+  });
+
+  it("is editable again, with Cancel, once a save fails", async () => {
+    let finish!: (value: boolean | void) => void;
+    const { note } = await render(<AgentNote {...base} onSave={() => new Promise<boolean | void>((resolve) => (finish = resolve))} />);
     await userEvent.click(page.getByRole("button", { name: "Edit" }));
     await userEvent.click(page.getByRole("button", { name: "Save" }));
-    await act(async () => pending[1]!(false));
-    expect(note.getAttribute("aria-busy")).toBe("true");
-    await act(async () => pending[2]!(false));
-    expect(note.hasAttribute("aria-busy")).toBe(false);
-    expect(note.querySelector("textarea")).not.toBeNull();
+    await act(async () => finish(false));
+    expect(note.querySelector("textarea")!.readOnly).toBe(false);
+    expect(page.getByRole("button", { name: "Cancel" }).element().hasAttribute("aria-disabled")).toBe(false);
+    await userEvent.click(page.getByRole("button", { name: "Cancel" }));
+    expect(note.querySelector("textarea")).toBeNull();
   });
 
   it("cancels with Cancel or Escape, keeping the note's words", async () => {
     const onSave = vi.fn();
-    const { note } = await render(<AgentNote {...base} onSave={onSave} editButtonLabel="Modifier" cancelButtonLabel="Annuler" />);
+    const { note } = await render(<AgentNote {...base} onSave={onSave} editButtonLabel="Modifier" editorLabel="Texte de la note" cancelButtonLabel="Annuler" />);
     await userEvent.click(page.getByRole("button", { name: "Modifier" }));
-    await userEvent.type(page.getByRole("textbox", { name: "Modifier" }), " Extra");
+    await userEvent.type(page.getByRole("textbox", { name: "Texte de la note" }), " Extra");
     await userEvent.click(page.getByRole("button", { name: "Annuler" }));
     expect(note.querySelector("[data-ouro-note-text]")!.textContent).toBe(base.text);
     await expect.element(page.getByRole("button", { name: "Modifier" })).toHaveFocus();
     await userEvent.keyboard("{Enter}");
-    await expect.element(page.getByRole("textbox", { name: "Modifier" })).toHaveValue(base.text);
+    await expect.element(page.getByRole("textbox", { name: "Texte de la note" })).toHaveValue(base.text);
     // Another key leaves the editor open.
     await userEvent.keyboard("{ArrowLeft}");
-    await act(async () => page.getByRole("textbox", { name: "Modifier" }).element().focus());
+    await act(async () => page.getByRole("textbox", { name: "Texte de la note" }).element().focus());
     // Escape is the editor's, so a dialog around the note stays open.
     const seen = vi.fn((event: KeyboardEvent) => event.defaultPrevented);
     document.addEventListener("keydown", seen);
@@ -401,17 +432,28 @@ describe("AgentNote", () => {
     const onSave = vi.fn();
     const { note, rerender } = await render(<AgentNote {...base} revision="r1" onSave={onSave} />);
     await userEvent.click(page.getByRole("button", { name: "Edit" }));
-    const box = page.getByRole("textbox", { name: "Edit" });
+    const box = page.getByRole("textbox", { name: "Note" });
     // The caret starts at the end of the note.
     await userEvent.keyboard(" Mine.");
     expect(note.querySelector("[data-ouro-note-changed]")).toBeNull();
-    await rerender(<AgentNote {...base} text="The agent's newer words." revision="r2" onSave={onSave} />);
-    await expect.element(box).toHaveValue(`${base.text} Mine.`);
-    await expect
-      .element(page.getByText("Your agent changed this note while you were editing. Your words stay here; Save replaces the new version.", { exact: true }))
-      .toHaveAttribute("role", "status");
+    const announced = watchAnnouncements();
+    try {
+      await rerender(<AgentNote {...base} text="The agent's newer words." revision="r2" onSave={onSave} />);
+      await expect.element(box).toHaveValue(`${base.text} Mine.`);
+      // A plain line, spoken once through the shared announcer: a status region mounted with its text is often not read.
+      const notice = page.getByText("Your agent changed this note while you were editing. Your words stay here; Save replaces the new version.", { exact: true });
+      await expect.element(notice).toBeVisible();
+      expect(notice.element().hasAttribute("role")).toBe(false);
+      await expect.poll(() => announced.count("Your agent changed this note while you were editing.")).toBe(1);
+      // A third revision keeps the notice up, and does not say it again.
+      await rerender(<AgentNote {...base} text="Newer still." revision="r3" onSave={onSave} />);
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      expect(announced.count("Your agent changed this note while you were editing.")).toBe(1);
+    } finally {
+      announced.stop();
+    }
     await userEvent.click(page.getByRole("button", { name: "Save" }));
-    expect(onSave).toHaveBeenCalledWith(`${base.text} Mine.`, "r2", expect.anything());
+    expect(onSave).toHaveBeenCalledWith(`${base.text} Mine.`, "r3", expect.anything());
   });
 
   it("renders in server HTML and hydrates without a warning", async () => {
@@ -432,6 +474,23 @@ describe("AgentNote", () => {
     roots.push(root);
     expect(recoverable).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
+  });
+
+  it("hands focus to the next control when the app removes it after Dismiss", async () => {
+    function Notes() {
+      const [shown, setShown] = useState(true);
+      return (
+        <>
+          {shown && <AgentNote {...base} onDismiss={() => setShown(false)} />}
+          <button type="button">Next</button>
+        </>
+      );
+    }
+    await render(<Notes />);
+    await act(async () => page.getByRole("button", { name: "Dismiss" }).element().focus());
+    await userEvent.keyboard("{Enter}");
+    expect(document.querySelector('[data-ouro="agent-note"]')).toBeNull();
+    expect(document.activeElement).toBe(page.getByRole("button", { name: "Next" }).element());
   });
 
   it("forwards a ref and lets app layout classes win", async () => {

@@ -44,8 +44,9 @@ describe("EventChip", () => {
     const onClick = vi.fn();
     const { chip } = await render(<EventChip {...base} label="Next meeting" status="Needs you" statusTone="warning" onClick={onClick} />);
     expect(chip.tagName).toBe("BUTTON");
-    expect(chip.dataset.ouro).toBe("badge");
-    await userEvent.click(page.getByRole("button", { name: "Next meeting: in 12 min Weekly sync , Needs you" }));
+    expect(chip.dataset.ouro).toBe("event-chip");
+    expect([chip.dataset.ouroControl, chip.dataset.ouroPart]).toEqual(["event-chip", "chip"]);
+    await userEvent.click(page.getByRole("button", { name: "Next meeting: in 12 min Weekly sync, Needs you" }));
     expect(onClick).toHaveBeenCalledTimes(1);
     expect(chip.querySelector("[data-ouro-touch-target]")).not.toBeNull();
   });
@@ -54,8 +55,12 @@ describe("EventChip", () => {
     const view = await render(<EventChip {...base} href="https://example.com/sync" />);
     expect(view.chip.tagName).toBe("A");
     expect(view.chip.getAttribute("href")).toBe("https://example.com/sync");
+    expect(view.chip.dataset.ouroControl).toBe("event-chip");
     await view.rerender(<EventChip {...base} />);
     expect(view.chip.tagName).toBe("SPAN");
+    // A label is no control.
+    expect(view.chip.hasAttribute("data-ouro-control")).toBe(false);
+    expect(view.chip.dataset.ouro).toBe("event-chip");
   });
 
   it("draws the border and time in the primary color when soon or now", async () => {

@@ -16,7 +16,7 @@ import { EventChip } from "@/registry/ouro/components/ouro/event-chip/event-chip
 
 ## Use instead when
 
-- Use `MeetingRow` instead for the event in a list, and `Badge` for a label that is not an event.
+- Use `Badge` instead for a label that is not an event.
 
 ## Props
 

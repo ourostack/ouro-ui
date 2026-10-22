@@ -1,1 +1,9 @@
-{"order": 2710, "components": ["event-chip"]}
+{
+  "order": 2710,
+  "components": ["event-chip"],
+  "controls": {
+    "event-chip": [
+      {"part": "chip", "role": "button", "portal": false}
+    ]
+  }
+}

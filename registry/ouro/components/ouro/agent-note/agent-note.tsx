@@ -4,9 +4,11 @@ import { useEffect, useId, useRef, useState, type HTMLAttributes, type JSX, type
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
+import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { devWarn } from "@/registry/ouro/lib/ouro/dev";
+import { useFocusHandoff } from "@/registry/ouro/lib/ouro/focus-handoff";
+import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
 /** A person's decision about a note: the `revision` they saw when the press began, and the click. */
@@ -15,8 +17,9 @@ export type AgentNoteHandler = (revision: string | undefined, event: MouseEvent<
 /**
  * Saves the person's words. Receives the `revision` they last saw (the newer one once the note
  * changed while they edited), and the click. Return `false`, or a promise of it, to keep the
- * editor open, such as when saving failed; a throw or a rejection keeps it open too. A result
- * that comes after the person cancelled or began another edit is ignored.
+ * editor open, such as when saving failed; a throw or a rejection keeps it open too, is reported
+ * (`reportError`) and tells the person (`saveErrorLabel`). Until it settles, the text box is
+ * read-only and Cancel waits.
  */
 export type AgentNoteSaveHandler = (text: string, revision: string | undefined, event: MouseEvent<HTMLElement>) => boolean | void | Promise<boolean | void>;
 
@@ -66,14 +69,18 @@ export interface AgentNoteOwnProps {
   pinnedLabel?: string | undefined;
   /** The line on a note the person kept, for other languages. @default "Kept: your agent won't change this note." */
   keptLabel?: string | undefined;
-  /** The notice while the person edits a note that changed underneath, for other languages. */
+  /** The notice while the person edits a note that changed underneath, spoken once when it appears. For other languages. */
   changedLabel?: string | undefined;
+  /** What the person hears when a save throws or rejects, for other languages. @default "Couldn't save the note. Your words are still here." */
+  saveErrorLabel?: string | undefined;
   /** The Pin button's word, for other languages. @default "Pin" */
   pinButtonLabel?: string | undefined;
   /** The Unpin button's word, for other languages. @default "Unpin" */
   unpinButtonLabel?: string | undefined;
-  /** The Edit button's word, and the text box's name. @default "Edit" */
+  /** The Edit button's word, for other languages. @default "Edit" */
   editButtonLabel?: string | undefined;
+  /** The text box's name while the person edits. @default `label` */
+  editorLabel?: string | undefined;
   /** The Save button's word, for other languages. @default "Save" */
   saveButtonLabel?: string | undefined;
   /** What screen readers hear while a save is in progress, for other languages. @default "Saving note" */
@@ -110,11 +117,12 @@ const quiet = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foregr
  * editing and dismissing are a person's decisions: the handlers receive the click event, so
  * the app can check `event.isTrusted`, and the `revision` on screen when the press began, so
  * the app can refuse a decision about a note the agent replaced under the click. A newer
- * revision that arrives while the person edits shows a notice and never replaces their words.
- * Leave a handler out to leave its button out.
+ * revision that arrives while the person edits shows a notice, spoken once, and never replaces
+ * their words. While a save is in progress the text box is read-only and Cancel waits. When the
+ * app removes a dismissed note, focus moves to the next control after it. Leave a handler out
+ * to leave its button out.
  *
- * Use `Alert` instead for a notice from the app itself, and `DraftEditor` for text a person and
- * an agent write together.
+ * Use `Alert` instead for a notice from the app itself.
  *
  * @group Chat
  * @see https://ourostack.github.io/ouro-ui/docs/agent-note
@@ -157,9 +165,11 @@ export function AgentNote(props: AgentNoteProps): JSX.Element {
     pinnedLabel = "Pinned",
     keptLabel = "Kept: your agent won't change this note.",
     changedLabel = "Your agent changed this note while you were editing. Your words stay here; Save replaces the new version.",
+    saveErrorLabel = "Couldn't save the note. Your words are still here.",
     pinButtonLabel = "Pin",
     unpinButtonLabel = "Unpin",
     editButtonLabel = "Edit",
+    editorLabel = label,
     saveButtonLabel = "Save",
     savingLabel = "Saving note",
     cancelButtonLabel = "Cancel",
@@ -170,8 +180,11 @@ export function AgentNote(props: AgentNoteProps): JSX.Element {
     by,
     basis,
     onEdit,
+    ref,
     ...rest
   } = props;
+  // When the app removes the note (Dismiss), focus moves to the next control after it.
+  const article = useMergedRef(ref, useFocusHandoff<HTMLElement>());
   const id = useId();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(text);
@@ -202,52 +215,47 @@ export function AgentNote(props: AgentNoteProps): JSX.Element {
     return at;
   };
   const decisions: Record<string, AgentNoteHandler | undefined> = { pin: onPin, unpin: onUnpin, dismiss: onDismiss };
-  const decide = (event: MouseEvent<HTMLElement>) => decisions[event.currentTarget.dataset.decision!]!(seen(), event);
+  const decide = (event: MouseEvent<HTMLElement>) => decisions[event.currentTarget.dataset.ouroPart!]!(seen(), event);
 
-  // Each edit, save and cancel bumps the attempt, so a save that settles after the person
-  // cancelled or began another edit does not close or unlock that newer one.
-  const attempt = useRef(0);
-  const warnKey = useRef({});
   const startEditing = () => {
-    attempt.current++;
-    setSaving(false);
     setDraft(text);
     setStartedFrom(revision);
     refocus.current = "area";
     setEditing(true);
   };
   const stopEditing = () => {
-    attempt.current++;
-    setSaving(false);
+    // A save in progress finishes first: its words are on their way.
+    if (saving) return;
     refocus.current = "edit";
     setEditing(false);
   };
   const save = async (event: MouseEvent<HTMLElement>) => {
     const at = seen();
-    // Stryker disable next-line UpdateOperator: Save waits while a save is pending, so stepping the attempt down never meets an older save's.
-    const current = ++attempt.current;
     setSaving(true);
     let result: boolean | void = false;
     try {
       result = await onSave!(draft, at, event);
     } catch (error) {
-      // The editor stays open with the person's words, and the error is reported.
-      devWarn(
-        "AgentNote",
-        `onSave threw "${error instanceof Error ? error.message : String(error)}", so the editor stayed open`,
-        "onSave={(text) => save(text).catch(() => false)}",
-        warnKey.current,
-      );
+      // The editor stays open with the person's words; the error is reported, and the person told.
+      reportError(error);
+      announce(saveErrorLabel);
     } finally {
-      if (attempt.current === current) setSaving(false);
+      setSaving(false);
     }
-    if (attempt.current === current && result !== false) stopEditing();
+    if (result !== false) {
+      refocus.current = "edit";
+      setEditing(false);
+    }
   };
   const cancelOnEscape = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key !== "Escape") return;
     event.preventDefault();
     stopEditing();
   };
+  // The notice that the note changed underneath is spoken once, when it appears.
+  useEffect(() => {
+    if (changedUnder) announce(changedLabel);
+  }, [changedUnder, changedLabel]);
   useEffect(() => {
     if (refocus.current === "area") {
       // The caret goes to the end, where the person most often adds to the agent's words.
@@ -298,6 +306,7 @@ export function AgentNote(props: AgentNoteProps): JSX.Element {
   return (
     <article
       {...rest}
+      ref={article}
       data-ouro="agent-note"
       data-author={author}
       data-pinned={pinned ? "" : undefined}
@@ -335,14 +344,15 @@ export function AgentNote(props: AgentNoteProps): JSX.Element {
       {editing ? (
         <>
           {changedUnder && (
-            <p role="status" data-ouro-note-changed="" className={cn("m-0 text-xs", quiet)}>
+            <p data-ouro-note-changed="" className={cn("m-0 text-xs", quiet)}>
               {changedLabel}
             </p>
           )}
           <TextArea
             ref={area}
-            label={editButtonLabel}
+            label={editorLabel}
             hideLabel
+            readOnly={saving}
             value={draft}
             onValueChange={(next: string) => setDraft(next)}
             onKeyDown={cancelOnEscape}
@@ -371,11 +381,20 @@ export function AgentNote(props: AgentNoteProps): JSX.Element {
         {editing ? (
           <>
             {onSave && (
-              <Button size="sm" loading={saving} loadingLabel={savingLabel} disabled={!draft.trim()} {...pressProps} onClick={save}>
+              <Button
+                size="sm"
+                data-ouro-control="agent-note"
+                data-ouro-part="save"
+                loading={saving}
+                loadingLabel={savingLabel}
+                disabled={!draft.trim()}
+                {...pressProps}
+                onClick={save}
+              >
                 {saveButtonLabel}
               </Button>
             )}
-            <Button size="sm" variant="plain" onClick={stopEditing}>
+            <Button size="sm" variant="plain" data-ouro-control="agent-note" data-ouro-part="cancel" aria-disabled={saving || undefined} onClick={stopEditing}>
               {cancelButtonLabel}
             </Button>
           </>
@@ -383,22 +402,22 @@ export function AgentNote(props: AgentNoteProps): JSX.Element {
           <>
             {pinned
               ? onUnpin && (
-                  <Button size="sm" variant="plain" data-decision="unpin" {...pressProps} onClick={decide}>
+                  <Button size="sm" variant="plain" data-ouro-control="agent-note" data-ouro-part="unpin" {...pressProps} onClick={decide}>
                     {unpinButtonLabel}
                   </Button>
                 )
               : onPin && (
-                  <Button size="sm" variant="outline" data-decision="pin" {...pressProps} onClick={decide}>
+                  <Button size="sm" variant="outline" data-ouro-control="agent-note" data-ouro-part="pin" {...pressProps} onClick={decide}>
                     {pinButtonLabel}
                   </Button>
                 )}
             {onSave && (
-              <Button ref={editButton} size="sm" variant="plain" onClick={startEditing}>
+              <Button ref={editButton} size="sm" variant="plain" data-ouro-control="agent-note" data-ouro-part="edit" onClick={startEditing}>
                 {editButtonLabel}
               </Button>
             )}
             {onDismiss && (
-              <Button size="sm" variant="plain" data-decision="dismiss" {...pressProps} onClick={decide}>
+              <Button size="sm" variant="plain" data-ouro-control="agent-note" data-ouro-part="dismiss" {...pressProps} onClick={decide}>
                 {dismissButtonLabel}
               </Button>
             )}

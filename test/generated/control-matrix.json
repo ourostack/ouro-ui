@@ -2312,5 +2312,103 @@
       "ReactionBar/ReadOnly",
       "ReactionBar/Disabled"
     ]
+  },
+  {
+    "item": "agent-note",
+    "stem": "agent-note",
+    "mode": "default",
+    "part": "pin",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "AgentNote/Playground",
+      "AgentNote/Keep",
+      "AgentNote/States"
+    ]
+  },
+  {
+    "item": "agent-note",
+    "stem": "agent-note",
+    "mode": "default",
+    "part": "unpin",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "AgentNote/Playground",
+      "AgentNote/Keep",
+      "AgentNote/States"
+    ]
+  },
+  {
+    "item": "agent-note",
+    "stem": "agent-note",
+    "mode": "default",
+    "part": "edit",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "AgentNote/Playground",
+      "AgentNote/Keep",
+      "AgentNote/States"
+    ]
+  },
+  {
+    "item": "agent-note",
+    "stem": "agent-note",
+    "mode": "default",
+    "part": "save",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "AgentNote/Playground",
+      "AgentNote/Keep",
+      "AgentNote/States"
+    ]
+  },
+  {
+    "item": "agent-note",
+    "stem": "agent-note",
+    "mode": "default",
+    "part": "cancel",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "AgentNote/Playground",
+      "AgentNote/Keep",
+      "AgentNote/States"
+    ]
+  },
+  {
+    "item": "agent-note",
+    "stem": "agent-note",
+    "mode": "default",
+    "part": "dismiss",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "AgentNote/Playground",
+      "AgentNote/Keep",
+      "AgentNote/States"
+    ]
+  },
+  {
+    "item": "event-chip",
+    "stem": "event-chip",
+    "mode": "default",
+    "part": "chip",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "EventChip/Playground",
+      "EventChip/States",
+      "EventChip/Open"
+    ]
   }
 ]

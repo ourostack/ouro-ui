@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState, type ReactNode } from "react";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { AgentNote } from "@/registry/ouro/components/ouro/agent-note/agent-note";
 
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names).
@@ -16,31 +17,38 @@ function Keeping() {
   const [note, setNote] = useState({ text: agentText, author: "agent" as "agent" | "human", pinned: false, revision: 1, dismissed: false });
   const current = String(note.revision);
   const trusted = (revision: string | undefined, event: { isTrusted: boolean }) => event.isTrusted && revision === current;
-  if (note.dismissed) {
-    return (
-      <Surface>
-        <p style={{ margin: 0, fontSize: 14 }}>Dismissed.</p>
-      </Surface>
-    );
-  }
   return (
     <Surface>
-      <AgentNote
-        text={note.text}
-        author={note.author}
-        name="Ouro"
-        time="5 min ago"
-        source="Based on 3 messages and last week's notes"
-        pinned={note.pinned}
-        revision={current}
-        onPin={(revision, event) => trusted(revision, event) && setNote({ ...note, pinned: true })}
-        onUnpin={(revision, event) => trusted(revision, event) && setNote({ ...note, pinned: false })}
-        onSave={(text, _revision, event) => {
-          if (!event.isTrusted) return false;
-          setNote({ ...note, text, author: "human", revision: note.revision + 1 });
+      {note.dismissed ? (
+        <p style={{ margin: 0, fontSize: 14 }}>Dismissed.</p>
+      ) : (
+        <AgentNote
+          text={note.text}
+          author={note.author}
+          name="Ouro"
+          time="5 min ago"
+          source="Based on 3 messages and last week's notes"
+          pinned={note.pinned}
+          revision={current}
+          onPin={(revision, event) => trusted(revision, event) && setNote({ ...note, pinned: true })}
+          onUnpin={(revision, event) => trusted(revision, event) && setNote({ ...note, pinned: false })}
+          onSave={(text, _revision, event) => {
+            if (!event.isTrusted) return false;
+            setNote({ ...note, text, author: "human", revision: note.revision + 1 });
+          }}
+          onDismiss={(revision, event) => trusted(revision, event) && setNote({ ...note, dismissed: true })}
+        />
+      )}
+      {/* The agent at work, standing in here for the app: it rewrites a note the person has not kept or dismissed. */}
+      <Button
+        variant="outline"
+        onClick={() => {
+          if (note.dismissed || note.pinned || note.author === "human") return;
+          setNote({ ...note, text: "Sam now asks for the rollout numbers and the pilot dates.", revision: note.revision + 1 });
         }}
-        onDismiss={(revision, event) => trusted(revision, event) && setNote({ ...note, dismissed: true })}
-      />
+      >
+        Have Ouro rewrite it
+      </Button>
     </Surface>
   );
 }

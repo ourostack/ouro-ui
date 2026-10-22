@@ -75,8 +75,8 @@ function statusToneWarning(value: string): readonly [string, string] {
  * its title, the title is a heading, and the rows are a description list, so screen readers hear
  * each label with its content. Rows with nothing in them are left out.
  *
- * Use `Card` instead for content of your own shape, `DescriptionList` for a plain list of
- * details, and `MeetingRow` for the meeting itself in an agenda.
+ * Use `Card` instead for content of your own shape, and `DescriptionList` for a plain list of
+ * details.
  *
  * @group Display
  * @see https://ourostack.github.io/ouro-ui/docs/briefing-card

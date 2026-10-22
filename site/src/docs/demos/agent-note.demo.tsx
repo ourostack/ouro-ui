@@ -19,7 +19,9 @@ export default function AgentNoteDemo(): JSX.Element {
       onPin={(revision, event) => event.isTrusted && revision === current && setNote({ ...note, pinned: true })}
       onUnpin={(revision, event) => event.isTrusted && revision === current && setNote({ ...note, pinned: false })}
       onSave={(text, _revision, event) => {
-        if (event.isTrusted) setNote({ ...note, text, author: "human", revision: note.revision + 1 });
+        // Not a person's click: the editor stays open, and nothing is saved.
+        if (!event.isTrusted) return false;
+        setNote({ ...note, text, author: "human", revision: note.revision + 1 });
       }}
       className="max-w-md"
     />

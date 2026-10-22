@@ -75,7 +75,7 @@ function statusToneWarning(value: string): readonly [string, string] {
  * press feedback, and screen readers hear its `label`, time, title and status in order. Pass
  * `<RelativeTime>` as `when` to keep the time current.
  *
- * Use `MeetingRow` instead for the event in a list, and `Badge` for a label that is not an event.
+ * Use `Badge` instead for a label that is not an event.
  *
  * @group Display
  * @see https://ourostack.github.io/ouro-ui/docs/event-chip
@@ -135,11 +135,12 @@ export function EventChip(props: EventChipProps): JSX.Element {
       </span>
       <span data-ouro-event-title="" className="min-w-0 truncate">
         {title}
+        {/* Inline and sized to nothing, not sr-only: a positioned element gets a space before it in the name. */}
+        {status && <span className="text-[0px]">,</span>}
       </span>
       {status && (
         <span data-ouro-event-status="" className={cn("inline-flex shrink-0 items-center gap-1", quiet)}>
           <span aria-hidden="true" className={cn("size-1.5 rounded-full forced-colors:bg-[CanvasText]", dots[tone])} />
-          <span className="sr-only">, </span>
           {status}
         </span>
       )}
@@ -152,6 +153,9 @@ export function EventChip(props: EventChipProps): JSX.Element {
     href,
     onClick,
     ref,
+    "data-ouro": "event-chip",
+    // A chip that opens the event is a control; one that only shows it is a label.
+    ...(href !== undefined || onClick !== undefined ? { "data-ouro-control": "event-chip", "data-ouro-part": "chip" } : {}),
     "data-ouro-event-chip": "",
     "data-state": state,
     className: cn("max-w-full min-w-0 gap-2", className),

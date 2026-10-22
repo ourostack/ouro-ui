@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
  * reader starts.
  */
 export const storyIds = {
+  agentNote: "chat-agentnote--keep",
   checkbox: "forms-checkbox--playground",
   celebrate: "feedback-celebrate--in-context",
   checklist: "lists-checklist--in-context",

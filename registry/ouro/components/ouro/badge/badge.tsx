@@ -178,7 +178,8 @@ function badgeHint(token: string): string {
  * A short label for a status, category or count: "Draft", "Vegan", "3". With `href` it
  * becomes a link and with `onClick` a button, with press feedback and a 44px touch
  * target on phones, the same way `Button` does. Without `onClick` or `href` a Badge is
- * not a button: it is a static `<span>`, and `disabled` and `type` do nothing.
+ * not a button: it is a static `<span>`, and `disabled` and `type` do nothing. A component built
+ * on Badge may name itself with `data-ouro` (EventChip's `data-ouro="event-chip"`).
  *
  * Use `Button` instead for an action that needs a clear call to action, and `Alert` for
  * a message the reader must notice.
@@ -191,6 +192,7 @@ function badgeHint(token: string): string {
  * <Badge tone="success" variant="soft">Published</Badge>
  * <Badge href="/tags/vegan">Vegan</Badge>
  * <Badge onClick={toggle} aria-pressed={active}>Quick</Badge>
+ * @claim "A component built" registry/ouro/components/ouro/badge/badge.test.tsx verify:testExists(registry/ouro/components/ouro/badge/badge.test.tsx::Badge > takes another component's data-ouro, as a link, a button or a label)
  * @claim "With `href` it becomes a link" registry/ouro/components/ouro/badge/badge.test.tsx verify:testExists(registry/ouro/components/ouro/badge/badge.test.tsx::Badge > renders a button with onClick, with a touch target and press feedback)
  */
 export function Badge(props: BadgeProps): JSX.Element {
@@ -256,7 +258,7 @@ export function Badge(props: BadgeProps): JSX.Element {
   if (rest.href !== undefined) {
     const { type: _type, disabled: _disabled, ...anchorProps } = rest as Omit<BadgeLinkProps, keyof BadgeBaseProps>;
     return (
-      <RouterLink data-ouro-control="badge" data-ouro-part="root" {...anchorProps} onClick={onClick} data-ouro="badge" className={cn(base, interactive, look, className)}>
+      <RouterLink data-ouro-control="badge" data-ouro-part="root" data-ouro="badge" {...anchorProps} onClick={onClick} className={cn(base, interactive, look, className)}>
         <TouchTarget />
         {content}
       </RouterLink>
@@ -265,7 +267,7 @@ export function Badge(props: BadgeProps): JSX.Element {
   const { ref, type = "button", disabled, ...buttonProps } = rest as Omit<BadgeButtonProps, keyof BadgeBaseProps>;
   if (onClick !== undefined) {
     return (
-      <BaseButton data-ouro-control="badge" data-ouro-part="root" {...buttonProps} onClick={onClick} disabled={disabled} ref={ref as Ref<HTMLElement> | undefined} type={type} data-ouro="badge" className={cn(base, interactive, look, className)}>
+      <BaseButton data-ouro-control="badge" data-ouro-part="root" data-ouro="badge" {...buttonProps} onClick={onClick} disabled={disabled} ref={ref as Ref<HTMLElement> | undefined} type={type} className={cn(base, interactive, look, className)}>
         <TouchTarget />
         {content}
       </BaseButton>
@@ -274,7 +276,7 @@ export function Badge(props: BadgeProps): JSX.Element {
   // A static Badge is a <span>, not a button: the button's own attributes are dropped.
   const { name: _name, value: _value, form: _form, ...spanProps } = buttonProps;
   return (
-    <span {...(spanProps as HTMLAttributes<HTMLSpanElement>)} ref={ref} data-ouro="badge" className={cn(base, look, className)}>
+    <span data-ouro="badge" {...(spanProps as HTMLAttributes<HTMLSpanElement>)} ref={ref} className={cn(base, look, className)}>
       {content}
     </span>
   );

@@ -24,7 +24,7 @@ import { BriefingCard } from "@/registry/ouro/components/ouro/briefing-card/brie
 
 ## Use instead when
 
-- Use `Card` instead for content of your own shape, `DescriptionList` for a plain list of details, and `MeetingRow` for the meeting itself in an agenda.
+- Use `Card` instead for content of your own shape, and `DescriptionList` for a plain list of details.
 
 ## Props
 

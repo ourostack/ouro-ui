@@ -8,6 +8,7 @@ Each spec opens one story from a static build of this repository's Storybook, wa
 
 | Spec | Story | What the screen reader must say |
 | --- | --- | --- |
+| AgentNote | `chat-agentnote--keep` | "Edit", button; then "Your agent changed this note while you were editing…" from the live region when the agent rewrites the note mid-edit |
 | Checkbox | `forms-checkbox--playground` | "Email me new recipes", checkbox, unchecked; then checked after Space |
 | Checklist | `lists-checklist--in-context` | the first item's name, checkbox and its state; then the other state after Space |
 | Dialog | `overlays-dialog--playground` | "Edit", button; "Edit recipe", dialog, as it opens; the "Edit" button again after Escape |
