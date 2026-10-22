@@ -37,7 +37,7 @@ The props the modes share. Type: `DraftEditorProps`.
 | `className` | `string` |  | Layout only: width, margins, grid placement (`mt-2`). Appearance classes warn in development. |
 | `label` (required) | `string` |  | What the draft is, for screen readers ("Reply"). The box shows `placeholder` instead. Required. |
 | `maxRows` | `number` | `10` | Rows the box grows to before it scrolls. |
-| `onValueChange` (required) | `(value: string, segments: DraftSegment[] \| undefined) => void` |  | Called when the person edits, with the new text and the runs updated to match: the person's typing is theirs, and what they did not touch keeps its author. Store both. The runs are `undefined` when `segments` did not join to `value`: who wrote what is then unknown, so none of it is given to the person. |
+| `onValueChange` (required) | `(value: string, segments: DraftSegment[] \| undefined) => void` |  | Called when the person edits, with the new text and the runs updated to match: the person's typing is theirs, and what they did not touch keeps its author. Store both. The runs are `undefined` when `segments` did not join to `value`, since who wrote what is then unknown. |
 | `placeholder` | `string` |  | Text shown while the draft is empty. |
 | `readinessLabel` | `string` |  | The readiness badge's text, for other languages. Defaults to "Needs your input", "Ready for your review" or "Approved". |
 | `readinessNote` | `string` |  | A short note from whoever set the readiness ("Check the dates"). |

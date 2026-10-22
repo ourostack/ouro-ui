@@ -41,8 +41,8 @@ export interface DraftEditorOwnProps {
   /**
    * Called when the person edits, with the new text and the runs updated to match: the
    * person's typing is theirs, and what they did not touch keeps its author. Store both.
-   * The runs are `undefined` when `segments` did not join to `value`: who wrote what is then
-   * unknown, so none of it is given to the person.
+   * The runs are `undefined` when `segments` did not join to `value`, since who wrote what is
+   * then unknown.
    */
   onValueChange: (value: string, segments: DraftSegment[] | undefined) => void;
   /** Who wrote which part of `value`. Agent-written runs are highlighted in place. */
