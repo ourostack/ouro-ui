@@ -45,52 +45,57 @@ export const emulateMedia: BrowserCommand<[EmulateMediaOptions]> = async (ctx, o
 /** Waits for the running transitions in a frame (`getAnimations` restyles first, starting them). */
 const SETTLE_TRANSITIONS = `Promise.all(document.getAnimations().filter((animation) => animation instanceof CSSTransition && animation.playState === "running").map((animation) => animation.finished.catch(() => undefined))).then(() => undefined)`;
 
-/** How much longer than its `durationMs` a mouse drag may take before it is refused. */
-export const DRAG_SLACK_MS = 6000;
-const STALLED = "drag stalled";
+/** How much longer than its `durationMs` a mouse drag runs before it logs where it is waiting. */
+export const DRAG_SLOW_MS = 3000;
 
 /**
  * Drags with real mouse events through Playwright's `page.mouse`, spreading the
  * moves over `durationMs` so velocity-based gestures see a realistic speed.
  * Coordinates are relative to the top-level page (Vitest renders tests in an
  * iframe, so add the iframe offset when starting from an element's rect).
- * A drag still unfinished `DRAG_SLACK_MS` past its `durationMs` is refused, before
- * the test's own time limit, and the refusal (logged as well as thrown) names the
- * step the browser had not answered and how long each step before it took.
- * @claim "names the step the browser had not answered" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a mouse drag the browser stops answering is refused before the test's time limit, naming the stuck move and each move's time)
+ * A drag still running `DRAG_SLOW_MS` past its `durationMs` logs the step the browser
+ * has not answered yet and how long each step before it took, so a test that then hits
+ * its time limit says where the drag stalled; if the drag finishes after all, it logs
+ * every step's time. A drag that finishes in time logs nothing, and a slow one is not refused.
+ * @claim "logs the step the browser" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a mouse drag the browser stops answering logs the move it is stuck on and each earlier move's time, and is not refused)
+ * @claim "if the drag finishes after all" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a slow mouse drag that finishes logs every step's time once it ends)
+ * @claim "A drag that finishes in time logs nothing" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a mouse drag that finishes in time logs nothing)
  */
 export const drag: BrowserCommand<[DragOptions]> = async (ctx, { from, to, steps, durationMs, hold }) => {
   const { page } = ctx;
   const pause = steps > 0 ? durationMs / steps : 0;
-  const limit = durationMs + DRAG_SLACK_MS;
+  const slow = durationMs + DRAG_SLOW_MS;
   const start = performance.now();
-  const deadline: Limit = { kit: kitNow() + limit, real: start + limit };
   const times: string[] = [];
-  const timed = async (name: string, run: () => Promise<unknown>, record = true) => {
-    const begun = performance.now();
-    const elapsed = () => Math.round(performance.now() - begun);
-    try {
-      await within(run(), deadline, STALLED);
-    } catch (error) {
-      const at = Math.round(performance.now() - start);
-      const what = error instanceof Error && error.message === STALLED ? `was still unanswered ${elapsed()}ms later` : `failed after ${elapsed()}ms (${error instanceof Error ? error.message : String(error)})`;
-      const message =
-        `drag: ${name} ${what}, ${at}ms into a ${durationMs}ms drag of ${steps} moves (limit ${limit}ms). ` +
-        `Each step before it, pauses between moves left out: ${times.join(", ") || "none"}.`;
-      console.warn(message);
-      if (!hold) page.mouse.up().catch(() => undefined);
-      throw new Error(message, { cause: error });
-    }
-    if (record) times.push(`${name} ${elapsed()}ms`);
+  const since = (mark: number) => Math.round(performance.now() - mark);
+  const about = () => `a ${durationMs}ms drag of ${steps} moves (logged at ${slow}ms)`;
+  const timesText = () => times.join(", ") || "none";
+  let waiting = "";
+  let begun = start;
+  let logged = false;
+  const cancel = after({ kit: kitNow() + slow, real: start + slow }, () => {
+    logged = true;
+    console.warn(`drag: still waiting on ${waiting} after ${since(begun)}ms, ${since(start)}ms into ${about()}. Each step before it, pauses between moves left out: ${timesText()}.`);
+  });
+  const timed = async (name: string, run: () => Promise<unknown>) => {
+    waiting = name;
+    begun = performance.now();
+    await run();
+    times.push(`${name} ${since(begun)}ms`);
   };
-  await timed("the move to the start", () => page.mouse.move(from[0], from[1]));
-  await timed("the press", () => page.mouse.down());
-  for (let step = 1; step <= steps; step++) {
-    const t = step / steps;
-    await timed(`move ${step}`, () => page.mouse.move(from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t));
-    if (pause > 0) await timed(`the pause after move ${step}`, () => page.waitForTimeout(pause), false);
+  try {
+    await timed("the move to the start", () => page.mouse.move(from[0], from[1]));
+    await timed("the press", () => page.mouse.down());
+    for (let step = 1; step <= steps; step++) {
+      const t = step / steps;
+      await timed(`move ${step}`, () => page.mouse.move(from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t));
+      if (pause > 0) await page.waitForTimeout(pause);
+    }
+    if (!hold) await timed("the release", () => page.mouse.up());
+  } finally {
+    cancel();
   }
-  if (!hold) await timed("the release", () => page.mouse.up());
+  if (logged) console.warn(`drag: finished after ${since(start)}ms, in ${about()}. Each step, pauses between moves left out: ${timesText()}.`);
 };
 
 export interface FlickOptions {
