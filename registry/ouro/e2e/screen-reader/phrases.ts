@@ -45,6 +45,12 @@ export function nameAndRole(name: string, role: string, notFollowedBy?: string):
   return new RegExp(`${named}[^.]*\\b${role}\\b|\\b${role}\\b[^.]*${named}`, "i");
 }
 
+/** A link, as both readers say it ("link", "visited link"). */
+export const LINK = /\blink\b/i;
+
+/** `aria-current="page"`: VoiceOver and NVDA both say "current page". */
+export const CURRENT_PAGE = /\bcurrent page\b/i;
+
 /** "unchecked" (VoiceOver) or "not checked" (NVDA). */
 export const UNCHECKED = /\b(unchecked|not checked)\b/i;
 
