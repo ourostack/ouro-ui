@@ -38,7 +38,7 @@ for (const type of [webkit, chromium]) {
     for (const port of ["Atlantis", "Crespo Island"]) {
       await timed(page, row, "open", () => page.getByRole("button", { name: new RegExp(`^Reorder ${port}`) }).click());
       if (port === "Atlantis") row.push(`lock ${await locked(page)} open-frames ${await frames(page)}`);
-      await timed(page, row, "pick", () => page.getByRole("menu", { name: `Reorder ${port}` }).getByRole("menuitem", { name: "Move to bottom" }).click());
+      await timed(page, row, "pick", () => page.getByRole("menu", { name: `Reorder ${port}` }).getByRole("menuitem", { name: "Move to top" }).click());
       await timed(page, row, "hidden", () => page.getByRole("menu").waitFor({ state: "hidden" }));
     }
     await timed(page, row, "sheet", async () => {
