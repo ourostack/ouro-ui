@@ -26,9 +26,10 @@ import { touchStep } from "../registry/ouro/lib/ouro/testing/commands.ts";
  * properties change; Chromium then sends the frame touches only once it has drawn again, and until
  * then the test's page gets them (a screenshot after the frame draws does this in Chromium).
  * Playwright has no session of its own for the frame until `sessionAfter` ms, when the frame
- * navigates, as for a frame first looked up while it was still in its parent's process.
+ * navigates, as for a frame first looked up while it was still in its parent's process. The frame
+ * is busy until `busyUntil` ms: its watch answers only then.
  */
-function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage = false, delays = {}, stuck, hitTestableAfter = 0, routedAfter = hitTestableAfter, reembed = false, sessionAfter = 0 } = {}) {
+function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage = false, delays = {}, stuck, hitTestableAfter = 0, routedAfter = hitTestableAfter, reembed = false, sessionAfter = 0, busyUntil = 0 } = {}) {
   const page = new EventEmitter();
   const sent = [];
   const frame = (name, frameUrl, parent, id) => {
@@ -51,6 +52,7 @@ function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage =
         }
         const action = /\)\("(\w+)"/.exec(call)[1];
         if (action === "expect") {
+          if (self === target && since() < busyUntil) await new Promise((resolve) => setTimeout(resolve, busyUntil - since()));
           self.armed = true;
           return null;
         }
@@ -182,7 +184,7 @@ test("a touchstart on a frame in another process that Playwright never lists is 
     const started = Date.now();
     await assert.rejects(
       start(),
-      /^Error: touchStep: could not watch the frame at \(100, 350\) within 5000ms, so the touchStart was not sent\. The frame there is a frame in another process, at about:srcdoc, and it has no watcher\. Playwright lists http:\/\/localhost:63315\/, http:\/\/localhost:63315\/__vitest_test__\/\.$/,
+      /^Error: touchStep: could not watch the frame at \(100, 350\) within 5000ms, so the touchStart was not sent\. The frame there is a frame in another process, at about:srcdoc, and it has no watcher\. Playwright lists http:\/\/localhost:63315\/, http:\/\/localhost:63315\/__vitest_test__\/\. Steps: \+\d+ms asked Chromium: .+\.$/,
     );
     assert.ok(Date.now() - started >= 5000);
     assert.deepEqual(sent, []);
@@ -315,11 +317,67 @@ test("a touchstart that Chromium sends to the page around a frame in another pro
   try {
     await assert.rejects(
       start(),
-      /^Error: touchStep: Chromium sent the touchStart at \(100, 350\) to http:\/\/localhost:63315\/__vitest_test__\/, not to the frame in another process there \(a frame with no URL yet\), though that frame's watcher was armed, its hit test there reached inside it and it had drawn after the page around it\. The frame never saw the touch; the finger is lifted before the next gesture\.$/,
+      /^Error: touchStep: Chromium sent the touchStart at \(100, 350\) to http:\/\/localhost:63315\/__vitest_test__\/, not to the frame in another process there \(a frame with no URL yet\), though that frame's watcher was armed, its hit test there reached inside it and it had drawn after the page around it\. The frame never saw the touch; the finger is lifted before the next gesture\. Steps: .+\.$/,
     );
     assert.equal(tests.sees, "touchstart");
     assert.equal(target.sees, undefined);
   } finally {
+    stop();
+  }
+});
+
+/** Holds Node's event loop, as other work in Vitest's process does, for `ms` from each of `at` ms on. */
+function stallNode(stalls) {
+  const timers = stalls.map(([at, ms]) =>
+    setTimeout(() => {
+      const end = performance.now() + ms;
+      while (performance.now() < end);
+    }, at),
+  );
+  return () => timers.forEach((timer) => clearTimeout(timer));
+}
+
+// CI saw the kit refuse a busy cross-origin frame's touchstart on a shard where Node's event loop
+// ran up to 2.5 s late: the 5-second limit is for the browser, and Node's own stalls used it up.
+test("a touchstart into a busy frame in another process waits out Node's own stalls, which do not count against the time limit", async () => {
+  const { sent, target, start, stop } = stage({
+    listAfter: 0,
+    busyUntil: 1500,
+    delays: { "Page.getLayoutMetrics": 150, "DOM.getNodeForLocation": 150, "DOM.resolveNode": 150, "Runtime.callFunctionOn": 150, "DOM.describeNode": 150, "DOM.getContentQuads": 150 },
+  });
+  // From inside the kit's second question to Chromium, while the frame is busy, until past the limit.
+  const unstall = stallNode([[1100, 4500]]);
+  try {
+    const started = performance.now();
+    await start();
+    assert.ok(performance.now() - started > 5000, `took ${performance.now() - started}ms`);
+    assert.deepEqual(sent.map(({ type, targetArmed }) => ({ type, targetArmed })), [{ type: "touchStart", targetArmed: true }]);
+    assert.equal(target.sees, "touchstart");
+  } finally {
+    unstall();
+    stop();
+  }
+});
+
+test("a touchstart into a frame that never answers is still refused once the kit has waited the time limit, Node's stalls left out, and the refusal says what it waited on", async () => {
+  const { sent, start, stop } = stage({ listAfter: 60_000 });
+  const unstall = stallNode([[500, 1000]]);
+  try {
+    const started = performance.now();
+    let held = 0;
+    await assert.rejects(start(), (error) => {
+      assert.match(error.message, /^touchStep: could not watch the frame at \(100, 350\) within 5000ms, so the touchStart was not sent\. The frame there is a frame in another process, at about:srcdoc, and it has no watcher\. /);
+      held = Number(/ Node's event loop was held up for (\d+)ms of that, which is not counted\./.exec(error.message)?.[1]);
+      assert.ok(held >= 900 && held <= 1100, error.message);
+      assert.match(error.message, / Steps: \+\d+ms asked Chromium: /);
+      return true;
+    });
+    // The limit, on top of the stall it left out, and not much more.
+    const took = performance.now() - started;
+    assert.ok(took >= 5000 + held && took < 6500, `refused after ${took}ms, ${held}ms of them a stall`);
+    assert.deepEqual(sent, []);
+  } finally {
+    unstall();
     stop();
   }
 });

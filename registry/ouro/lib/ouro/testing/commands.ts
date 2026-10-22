@@ -221,6 +221,8 @@ type TouchWatchAction = "expect" | "wait" | "settle" | "inspect";
  */
 interface FrameAt {
   watched: boolean | "unknown" | "frame";
+  /** Chromium had not answered by the time limit. */
+  unanswered?: boolean;
   where: string;
   url?: string;
   frameId?: string | undefined;
@@ -241,17 +243,63 @@ interface FrameState {
   watching: boolean;
 }
 
-/** Rejects with `message` after `ms`, and stops its timer once `promise` settles. */
+/** How often the kit's clock looks at Node's event loop, and how late a look must be to count as a stall, in ms. */
+const STALL_TICK_MS = 10;
+const STALL_MS = 50;
+const stalls = { holders: 0, ticker: undefined as ReturnType<typeof setInterval> | undefined, last: 0, lost: 0 };
+
+/** The time Node's event loop has been held up while a touch command ran, in ms, a stall still under way included. */
+function stalledFor(): number {
+  if (!stalls.ticker) return stalls.lost;
+  const late = performance.now() - stalls.last - STALL_TICK_MS;
+  return stalls.lost + (late > STALL_MS ? late : 0);
+}
+
 /**
- * Runs `run` once `ms` have passed on `performance.now()`, and returns a function that cancels it.
- * A Node timer counts whole milliseconds of the event loop's cached time, so it can fire before its
- * delay on a precise clock; this one sets another timer for whatever is left.
+ * The kit's clock: `performance.now()` less the time Node's event loop was held up while a touch
+ * command ran. Other work in the same process, as Vitest's own for other test files, can hold it
+ * up for seconds; the browser goes on meanwhile, and its answers wait in the socket. The kit's
+ * limits are for the browser, so they count only the time the kit could run.
+ * @claim "The kit's limits are for the browser" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a touchstart into a busy frame in another process waits out Node's own stalls, which do not count against the time limit) verify:testExists(scripts/touch-kit-frames.test.mjs::a touchstart into a frame that never answers is still refused once the kit has waited the time limit, Node's stalls left out, and the refusal says what it waited on)
+ */
+function kitNow(): number {
+  return performance.now() - stalledFor();
+}
+
+/** Counts Node's stalls until the returned function is called; commands that overlap share one count. */
+function countStalls(): () => void {
+  if (stalls.holders++ === 0) {
+    stalls.last = performance.now();
+    stalls.ticker = setInterval(() => {
+      const now = performance.now();
+      const late = now - stalls.last - STALL_TICK_MS;
+      if (late > STALL_MS) stalls.lost += late;
+      stalls.last = now;
+    }, STALL_TICK_MS);
+    stalls.ticker.unref?.();
+  }
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    if (--stalls.holders > 0) return;
+    stalls.lost = stalledFor();
+    clearInterval(stalls.ticker);
+    stalls.ticker = undefined;
+  };
+}
+
+/**
+ * Runs `run` once `ms` have passed on the kit's clock (`kitNow`), and returns a function that
+ * cancels it. A Node timer counts whole milliseconds of the event loop's cached time, so it can
+ * fire before its delay on a precise clock, and after a stall it fires before the answers that
+ * came in meanwhile are read; this one sets another timer for whatever is left.
  */
 function after(ms: number, run: () => void): () => void {
-  const end = performance.now() + ms;
+  const end = kitNow() + ms;
   let timer: ReturnType<typeof setTimeout>;
   const check = () => {
-    const left = end - performance.now();
+    const left = end - kitNow();
     if (left > 0) timer = setTimeout(check, Math.ceil(left));
     else run();
   };
@@ -259,6 +307,7 @@ function after(ms: number, run: () => void): () => void {
   return () => clearTimeout(timer);
 }
 
+/** Rejects with `message` after `ms` on the kit's clock, and stops its timer once `promise` settles. */
 function within<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
   let cancel = () => {};
   const expired = new Promise<never>((_, reject) => (cancel = after(ms, () => reject(new Error(message)))));
@@ -505,7 +554,8 @@ type TouchTarget = { point: { x: number; y: number } } | { frame: Frame };
  * touches it can get here before Playwright lists the frame (CI probe run 38385210551). So
  * for a touchstart this asks Chromium which frame is at the point, and checks again each time
  * Playwright lists a frame or a document, or a frame's watch starts, until that frame is
- * watched. It throws after 5 seconds, naming the frame. Later events of a gesture go to the
+ * watched. It throws after 5 seconds, naming the frame and the steps it took: seconds of the kit's
+ * own time (`kitNow`), which leaves out Node's stalls. Later events of a gesture go to the
  * frame its touchstart went to, so for them it waits for that frame's watch only.
  * @claim "So for a touchstart this asks" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::a touchstart into a frame the kit cannot watch is refused after the time limit, and the next touch works)
  * @claim "Playwright learns of a new frame" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::a touch into an iframe added just before it is handled)
@@ -531,7 +581,8 @@ async function watchTarget(
   target: TouchTarget,
   trace: TouchTrace,
 ): Promise<{ calls: Map<Frame, Promise<FrameAnswer<null>>>; gone?: string; inside?: Frame }> {
-  const deadline = performance.now() + TOUCH_HANDLED_TIMEOUT_MS;
+  const deadline = kitNow() + TOUCH_HANDLED_TIMEOUT_MS;
+  const stalledAtStart = stalledFor();
   const calls = new Map<Frame, Promise<FrameAnswer<null>>>();
   let changed = () => {};
   const watch = (frame: Frame) => {
@@ -558,13 +609,17 @@ async function watchTarget(
     }
     // Whether the frame at the point is armed but the hit test there does not reach inside it yet, which no change announces.
     let inside: boolean | undefined;
+    // Chromium's last answer, kept when a later question is still out at the limit.
+    let known: FrameAt | undefined;
     for (;;) {
       // Listen before asking, so a change during the question is not missed.
       const change = new Promise<void>((resolve) => (changed = resolve));
       inside = undefined;
-      const at = await within(frameAtPoint(session, target.point, expected, trace), deadline - performance.now(), "Chromium did not say which frame is there").catch(
-        (error: Error): FrameAt => ({ watched: false, where: `unknown (${error.message})` }),
+      const asked = await within(frameAtPoint(session, target.point, expected, trace), deadline - kitNow(), "Chromium did not say which frame is there").catch(
+        (error: Error): FrameAt => ({ watched: false, where: `unknown (${error.message})`, unanswered: true }),
       );
+      const at = asked.unanswered && known ? { ...known, where: `${known.where} (Chromium had not answered the kit's next question there)` } : asked;
+      if (!asked.unanswered) known = asked;
       traceStep(trace, `the frame at the point: ${String(at.watched)}, ${at.where}`);
       if (at.watched === true) return { calls };
       if (at.watched === "frame") {
@@ -573,7 +628,7 @@ async function watchTarget(
         // as the test's own, are already armed, and a touch Chromium sends to a frame before its
         // watcher is armed is lost, not queued.
         const children = [...calls.keys()].filter((frame) => frame.parentFrame() !== null);
-        const found = await Promise.all(children.map((frame) => within(frameSession(page, frame), deadline - performance.now(), "").catch(() => undefined)));
+        const found = await Promise.all(children.map((frame) => within(frameSession(page, frame), deadline - kitNow(), "").catch(() => undefined)));
         const index = at.frameId === undefined ? -1 : found.findIndex((frame) => frame?.id === at.frameId);
         const there = children[index];
         if (there && (await within(calls.get(there)!, 0, "").then((answer) => answer.error === undefined, () => false))) {
@@ -586,7 +641,7 @@ async function watchTarget(
             // When the page around the frame embeds it afresh, as when the frame's visual properties
             // change, Chromium sends the frame touches only once it has drawn again. So the frame
             // draws, then the page around it, then the frame once more.
-            const draw = (frame: Frame | null) => (frame ? within(frame.evaluate(TWO_FRAMES), deadline - performance.now(), "").catch(() => {}) : undefined);
+            const draw = (frame: Frame | null) => (frame ? within(frame.evaluate(TWO_FRAMES), deadline - kitNow(), "").catch(() => {}) : undefined);
             await draw(there);
             await draw(there.parentFrame());
             await draw(there);
@@ -597,12 +652,12 @@ async function watchTarget(
       }
       if (at.watched === "unknown") {
         // Chromium could not say: wait for every frame Playwright lists, as far as the bound allows.
-        await within(answered(), deadline - performance.now(), "expired").catch(() => {});
+        await within(answered(), deadline - kitNow(), "expired").catch(() => {});
         traceStep(trace, "waited for every frame's watch");
         return { calls };
       }
       const soon = inside === false ? new Promise<void>((resolve) => setTimeout(resolve, TOUCH_POLL_MS)) : change;
-      const expired = await within(Promise.race([change, soon]), deadline - performance.now(), "expired").then(
+      const expired = await within(Promise.race([change, soon]), deadline - kitNow(), "expired").then(
         () => false,
         () => true,
       );
@@ -621,7 +676,8 @@ async function watchTarget(
               ? `The frame there is ${at.where}: its watcher is armed, but Chromium's hit test at that point does not reach inside it yet`
               : `The frame there is ${at.where}, and it has no watcher`) +
             (at.watched === "frame" ? `. Playwright lists ${[...calls.keys()].map((frame) => frame.url() || "a frame with no URL yet").join(", ")}` : "") +
-            (failed.length > 0 ? `. Frames whose watch did not start: ${failed.join("; ")}.` : "."),
+            (failed.length > 0 ? `. Frames whose watch did not start: ${failed.join("; ")}.` : ".") +
+            (stalledFor() - stalledAtStart >= STALL_MS ? ` Node's event loop was held up for ${Math.round(stalledFor() - stalledAtStart)}ms of that, which is not counted.` : ""),
         );
       }
     }
@@ -653,7 +709,8 @@ async function watchTarget(
  * it; it is told apart as a touchmove sent before the page has handled any in this gesture.
  *
  * Each wait is bounded: up to 5 seconds for the frame's watch (`watchTarget`), then up to 5
- * for the page to handle the event, so a command throws within about 10 seconds at worst.
+ * for the page to handle the event, so a command throws within about 10 seconds at worst, on the
+ * kit's own clock (`kitNow`).
  * @claim "The page then handles a touchend" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::touchStep resolves once the page has handled its event, also a move during a scroll)
  * @claim "One event is never on its" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::touchStep resolves once the page has handled its event, also a move during a scroll)
  * @claim "Each wait is bounded: up to" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::touchStep resolves once the page has handled its event, also a move during a scroll)
@@ -672,11 +729,17 @@ async function sendTouch(
   const none: TouchSeen = { seen: false, active: false, moved: false, saw: [] };
   const trace: TouchTrace = { start: Date.now(), steps: [], answered: new Map(), loop: monitorEventLoopDelay({ resolution: 10 }) };
   trace.loop.enable();
+  const stopCounting = countStalls();
   try {
     const handler = await sendTraced(command, page, session, expected, target, send, none, trace);
     logIfSlow(command, expected, trace, page.frames());
     return handler;
+  } catch (error) {
+    // A refusal says what the kit was waiting on, and since when.
+    if (error instanceof Error && error.message.startsWith(`${command}:`)) error.message += ` Steps: ${trace.steps.join("; ")}.`;
+    throw error;
   } finally {
+    stopCounting();
     trace.loop.disable();
   }
 }
