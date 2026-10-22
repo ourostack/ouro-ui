@@ -1,4 +1,4 @@
-import { memo, startTransition, useCallback, useDeferredValue, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type JSX, type SVGProps } from "react";
+import { memo, startTransition, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type JSX, type SVGProps } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Collapsible } from "@/registry/ouro/components/ouro/collapsible/collapsible";
@@ -10,6 +10,7 @@ import { Slider } from "@/registry/ouro/components/ouro/slider/slider";
 import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { keepClearOfToasts } from "../clear-of-toasts";
+import { useStable } from "../use-stable";
 import { GITHUB } from "../../paths";
 import { bandAt, BANDS, BELL_TOASTS, describeScene, LOG, MAX_DEPTH, OPENING_LOG, SPEEDS, STAGE_COPY, TANKS, type LogLine, type Speed } from "./copy";
 import { Scene } from "./scene";
@@ -30,11 +31,11 @@ export const STAGE_SOURCE = `${GITHUB}/tree/main/site/src/voyage/stage`;
 
 function BellIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
   return (
-    <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <g className="stage-bell-body">
-        <path d="M5 13.5V9a5 5 0 0 1 10 0v4.5l1.5 1.5h-13Z" />
-        <path d="M8.5 17a1.5 1.5 0 0 0 3 0" />
-      </g>
+    // The bell swings as a whole icon, not as a shape inside it: an animated SVG shape is redrawn by
+    // the page every frame, the icon's own box by the compositor (stage.css).
+    <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props} className={props.className ? `stage-bell-icon ${props.className}` : "stage-bell-icon"}>
+      <path d="M5 13.5V9a5 5 0 0 1 10 0v4.5l1.5 1.5h-13Z" />
+      <path d="M8.5 17a1.5 1.5 0 0 0 3 0" />
     </svg>
   );
 }
@@ -47,16 +48,44 @@ function ChimeIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
   );
 }
 
-/** A handler whose identity never changes but which always runs the latest render's code. */
-function useStable<Args extends unknown[]>(handler: (...args: Args) => void): (...args: Args) => void {
-  const latest = useRef(handler);
-  useLayoutEffect(() => {
-    latest.current = handler;
+/**
+ * A value that follows `value` once the frame that shows the change has painted. The porthole's
+ * picture is mostly SVG layers of engraved drawings, and a change to them (the sea's depth, a
+ * bubble) lays out the drawing again: tens of milliseconds on a slow CPU. As a deferred render
+ * (`useDeferredValue`) React may commit it before the browser paints the press, whenever the next
+ * frame is further off than React's render, and then that frame lays out the drawing first. Set
+ * from a task after the press's frame instead (afterPaint), it always lands after the press.
+ */
+function useAfterPaint<T>(value: T): T {
+  const [shown, setShown] = useState(value);
+  useEffect(() => afterPaint(() => startTransition(() => setShown(value))), [value]);
+  return shown;
+}
+
+/**
+ * Runs `then` in a task after the next frame, the one that shows a press, and returns a cancel.
+ * That frame is already handed to the compositor to draw, so `then` doesn't hold it up; a task a
+ * frame later still would leave the work closer to the next press.
+ */
+function afterPaint(then: () => void): () => void {
+  let timer = 0;
+  const frame = requestAnimationFrame(() => {
+    timer = window.setTimeout(then);
   });
-  return useCallback((...args: Args) => latest.current(...args), []);
+  return () => {
+    cancelAnimationFrame(frame);
+    clearTimeout(timer);
+  };
 }
 
 type TankId = (typeof TANKS)[number]["id"];
+
+/**
+ * The bell's toast id: each ring's answer replaces the last one in place while it shows, rather than
+ * stacking another toast that pushes the others up and out, which the page re-lays out frame after
+ * frame and the next ring waited on.
+ */
+const BELL_TOAST = "stage-bell";
 const EMPTY: Record<TankId, boolean> = { fore: false, middle: false, aft: false };
 
 /**
@@ -155,20 +184,19 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
   const onBell = useStable(() => {
     const line = BELL_TOASTS[rings % BELL_TOASTS.length]!;
     setRings((count) => count + 1);
-    write(LOG.bell);
-    // The crew answers once the bell has swung: the toast stack measures and re-lays itself out, so
-    // it waits for the press's own paint rather than holding it up.
-    requestAnimationFrame(() =>
-      setTimeout(() => {
-        toast(`${line.name}: ${line.text}`);
-        keepClearOfToasts(root.current?.querySelector("[data-stage-control='bell']"));
-      }),
-    );
+    // The crew answers once the bell has swung: the log's line and the toast both wait for the
+    // press's own paint (the log renders as a transition, which React would otherwise start before
+    // that frame, and the toast stack measures and re-lays itself out).
+    afterPaint(() => {
+      write(LOG.bell);
+      toast(`${line.name}: ${line.text}`, { id: BELL_TOAST });
+      keepClearOfToasts(root.current?.querySelector("[data-stage-control='bell']"));
+    });
   });
 
-  // The picture follows the controls a frame later: a press repaints its own control first, then
-  // the sea (a deferred render), so no press waits on the porthole's repaint.
-  const scene = useDeferredValue(useMemo(() => ({ depth, band, tanks: full, dived, lights, speed, dives: stream, rings }), [depth, band, full, dived, lights, speed, stream, rings]));
+  // The picture follows the controls once the press has painted (useAfterPaint), so no press waits
+  // on the porthole's repaint.
+  const scene = useAfterPaint(useMemo(() => ({ depth, band, tanks: full, dived, lights, speed, dives: stream, rings }), [depth, band, full, dived, lights, speed, stream, rings]));
 
   return (
     <div ref={root} className="stage" data-stage="" data-offscreen={offscreen ? "" : undefined}>
@@ -193,7 +221,8 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
           <Ballast tanks={tanks} full={full} dived={dived} onTank={onTank} onDive={onDive} />
           <div className="stage-row stage-deck">
             <LightsControl lights={lights} onChange={onLights} />
-            <ShipLog log={log} rings={rings} onRing={onBell} logOpen={logOpen} />
+            <ShipLog log={log} logOpen={logOpen} />
+            <Bell rings={rings} onRing={onBell} />
           </div>
           <div className="stage-row stage-real" data-stage-control="xray">
             <span>{STAGE_COPY.real}</span>
@@ -410,30 +439,37 @@ const LogEntry = memo(function LogEntry({ entry }: { entry: Entry }): JSX.Elemen
 
 /**
  * The ship's log: every line the crew has said lately, folded under "Ship's log (n)" (the newest
- * also shows under the porthole). The bell rings from here.
+ * also shows under the porthole).
  */
-const ShipLog = memo(function ShipLog({ log, rings, onRing, logOpen }: { log: Entry[]; rings: number; onRing: () => void; logOpen: Flag }): JSX.Element {
+const ShipLog = memo(function ShipLog({ log, logOpen }: { log: Entry[]; logOpen: Flag }): JSX.Element {
   const [open, setOpen] = useState(false);
   const onOpenChange = (next: boolean) => {
     setOpen(next);
     logOpen.set(next);
   };
   return (
-    <>
-      <div className="stage-log-fold" data-stage-control="log">
-        <Collapsible title={STAGE_COPY.logAll(log.length)} open={open} onOpenChange={onOpenChange}>
-          <MessageList label={STAGE_COPY.log} className="stage-log">
-            {log.map((entry) => (
-              <LogEntry key={entry.id} entry={entry} />
-            ))}
-          </MessageList>
-        </Collapsible>
-      </div>
-      <div className="stage-bell" data-stage-control="bell" data-ring={rings === 0 ? undefined : rings % 2 ? "a" : "b"}>
-        <Button variant="soft" tone="secondary" size="md" startIcon={BellIcon} onClick={onRing}>
-          {STAGE_COPY.bell}
-        </Button>
-      </div>
-    </>
+    <div className="stage-log-fold" data-stage-control="log">
+      <Collapsible title={STAGE_COPY.logAll(log.length)} open={open} onOpenChange={onOpenChange}>
+        <MessageList label={STAGE_COPY.log} className="stage-log">
+          {log.map((entry) => (
+            <LogEntry key={entry.id} entry={entry} />
+          ))}
+        </MessageList>
+      </Collapsible>
+    </div>
+  );
+});
+
+/**
+ * The bell, beside the log. Its own piece, so a ring re-renders the bell and not the log's list,
+ * whose line follows once the press has painted.
+ */
+const Bell = memo(function Bell({ rings, onRing }: { rings: number; onRing: () => void }): JSX.Element {
+  return (
+    <div className="stage-bell" data-stage-control="bell" data-ring={rings === 0 ? undefined : rings % 2 ? "a" : "b"}>
+      <Button variant="soft" tone="secondary" size="md" startIcon={BellIcon} onClick={onRing}>
+        {STAGE_COPY.bell}
+      </Button>
+    </div>
   );
 });
