@@ -32,9 +32,12 @@ import { touchStep } from "../registry/ouro/lib/ouro/testing/commands.ts";
  * (`sessionEarly` ms before, to show it). The frame
  * is busy until `busyUntil` ms: its watch answers only then. With `lost`, Chromium sends the frame's
  * touches nowhere, so the page never handles them. With `busyOnceSent`, the frame turns busy once a
- * touch is sent: no call into it answers after that, its wait and its tidying up included.
+ * touch is sent: no call into it answers after that, its wait and its tidying up included. The
+ * frame's own hit test (DOM.getNodeForLocation) never answers the first `hitTestHangs` times it is
+ * asked, as in a frame busy running its scripts. With `ackHangs`, Chromium never acknowledges a
+ * touchStart (Input.dispatchTouchEvent), as when a listener that can cancel it is busy in the page.
  */
-function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage = false, delays = {}, stuck, hitTestableAfter = 0, routedAfter = hitTestableAfter, reembed = false, sessionAfter = 0, busyUntil = 0, lost = false, busyOnceSent = false, sessionEarly = 0 } = {}) {
+function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage = false, delays = {}, stuck, hitTestableAfter = 0, routedAfter = hitTestableAfter, reembed = false, sessionAfter = 0, busyUntil = 0, lost = false, busyOnceSent = false, sessionEarly = 0, hitTestHangs = 0, ackHangs = false } = {}) {
   const page = new EventEmitter();
   const sent = [];
   const frame = (name, frameUrl, parent, id) => {
@@ -99,6 +102,7 @@ function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage =
   let timer;
   let sessionTimer;
   let hasSession = sessionAfter === 0;
+  let hitTests = 0;
   let started = Date.now();
   const since = () => Date.now() - started;
   const session = {
@@ -121,6 +125,10 @@ function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage =
       // The frame's element: 300 by 100 at the left, 300px down.
       if (method === "DOM.getContentQuads") return { quads: [[0, 300, 300, 300, 300, 400, 0, 400]] };
       if (method === "Input.dispatchTouchEvent") {
+        if (ackHangs && params.type === "touchStart") {
+          sent.push({ type: params.type, unacknowledged: true });
+          return new Promise(() => {});
+        }
         sent.push({ type: params.type, targetListed: listed.includes(target), targetArmed: target.armed, targetDrew: target.drew, at: since() });
         if (lost) return {};
         // Until Chromium routes touches into the frame, the page around it gets them, on its element.
@@ -155,6 +163,7 @@ function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage =
             if (method === "DOM.getNodeForLocation") {
               // The point, in the frame: (100, 350) on the page is (100, 50) here.
               assert.deepEqual([params.x, params.y], [100, 50]);
+              if (hitTests++ < hitTestHangs) return new Promise(() => {});
               if (since() < hitTestableAfter) throw new Error("No node found at given location");
               return { backendNodeId: 7 };
             }
@@ -463,6 +472,41 @@ test("a touch into a frame that turns busy once it is sent is refused within the
     assert.deepEqual(sent.map(({ type }) => type), ["touchStart"]);
   } finally {
     unstarve();
+    stop();
+  }
+});
+
+test("a frame whose hit test does not answer is asked again, and the touch reaches it once it does", { timeout: 15_000 }, async () => {
+  const { sent, target, start, stop } = stage({ listAfter: 0, hitTestHangs: 1 });
+  try {
+    await start();
+    assert.deepEqual(sent.map(({ type }) => type), ["touchStart"]);
+    assert.equal(target.sees, "touchstart");
+  } finally {
+    stop();
+  }
+});
+
+test("a frame whose hit test never answers is refused at the time limit, not waited on for ever", { timeout: 15_000 }, async () => {
+  const { sent, start, stop } = stage({ listAfter: 0, hitTestHangs: Infinity });
+  try {
+    const started = performance.now();
+    await assert.rejects(start(), /^Error: touchStep: could not watch the frame at \(100, 350\) within 5000ms, so the touchStart was not sent\. The frame there is a frame in another process, at about:srcdoc: its watcher is armed, but Chromium's hit test at that point does not reach inside it yet\b/);
+    assert.ok(performance.now() - started < 7000);
+    assert.deepEqual(sent, []);
+  } finally {
+    stop();
+  }
+});
+
+test("a touch Chromium never acknowledges is refused at the time limit, saying so", { timeout: 15_000 }, async () => {
+  const { sent, start, stop } = stage({ listAfter: 0, ackHangs: true });
+  try {
+    const started = performance.now();
+    await assert.rejects(start(), /^Error: touchStep: Chromium had not acknowledged the touchStart at \(100, 350\) within 5000ms\b/);
+    assert.ok(performance.now() - started < 8000);
+    assert.deepEqual(sent.map(({ type }) => type), ["touchStart"]);
+  } finally {
     stop();
   }
 });

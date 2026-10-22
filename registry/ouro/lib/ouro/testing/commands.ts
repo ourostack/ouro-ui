@@ -705,7 +705,13 @@ async function watchTarget(
           // Armed is not enough: Chromium sends a touch at a point inside such a frame only once its hit
           // test there reaches the frame's own document, and after the frame has drawn; until then the
           // page around it gets the touch. Ask again shortly until it does, as far as the bound allows.
-          inside = await hitsInside(session, found[index]!.session, at, target.point);
+          // A frame busy running its scripts may not answer its hit test: that probe counts as "not
+          // inside", and the next one, a poll later, may answer. No probe outlasts the bound.
+          const probe = { ...deadline, kit: Math.min(deadline.kit, kitNow() + TOUCH_TIDY_MS) };
+          inside = await within(hitsInside(session, found[index]!.session, at, target.point), probe, "unanswered").catch(() => {
+            traceStep(trace, `the frame's hit test did not answer within ${TOUCH_TIDY_MS}ms`);
+            return false;
+          });
           traceStep(trace, `the hit test ${inside ? "reaches" : "does not reach"} inside the frame`);
           if (inside) {
             // When the page around the frame embeds it afresh, as when the frame's visual properties
@@ -861,7 +867,7 @@ async function sendTraced(
   let handler: Frame | undefined;
   let watchdog = () => {};
   try {
-    await send();
+    await acknowledged(command, expected, send, trace.limit(TOUCH_HANDLED_TIMEOUT_MS));
     traceStep(trace, "sent");
     if (gone) throw new Error(gone);
     // Each frame waits once its watch has started, and stops after the bound on its own; a frame that
@@ -1101,6 +1107,21 @@ export type TouchStepOptions =
  */
 const fingersDown = new WeakMap<object, { x: number; y: number; frame: Frame | undefined }>();
 
+/**
+ * Sends a touch event (`send`, Input.dispatchTouchEvent) and waits for Chromium to acknowledge it,
+ * up to `limit`. Chromium answers once the page has run the listeners that can cancel the event, so
+ * a page busy in one never answers; the command is refused then, saying so, rather than waiting on.
+ * @claim "the command is refused then, saying so" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a touch Chromium never acknowledges is refused at the time limit, saying so)
+ */
+function acknowledged(command: string, point: TouchPoint, send: () => Promise<unknown>, limit: number | Limit): Promise<unknown> {
+  const ms = typeof limit === "number" ? limit : limit.kit - kitNow();
+  return within(
+    send(),
+    limit,
+    `${command}: Chromium had not acknowledged the ${point.type} at (${Math.round(point.x)}, ${Math.round(point.y)}) within ${Math.round(ms)}ms: a listener in the page that can cancel it may be busy. The finger is lifted before the next gesture.`,
+  );
+}
+
 /** Lifts a finger `touchStep` left down, so the next gesture starts clean. */
 async function releaseFinger(command: string, page: Page, session: CDPSession) {
   const finger = fingersDown.get(page);
@@ -1113,7 +1134,7 @@ async function releaseFinger(command: string, page: Page, session: CDPSession) {
     return;
   }
   // A page that never handled the touchstart gets no touchend to wait for.
-  await send();
+  await acknowledged(command, end, send, TOUCH_HANDLED_TIMEOUT_MS);
   await Promise.all(watchTouch(page, "settle", end, TOUCH_TIDY_MS));
 }
 
@@ -1152,7 +1173,7 @@ export const touchStep: BrowserCommand<[TouchStepOptions]> = async (ctx, step) =
     await session.send("Input.dispatchTouchEvent", { type, touchPoints: [{ x, y, id: 1 }] });
   };
   // Chromium sends the page nothing for a move to where the finger already is.
-  if (type === "touchMove" && last?.x === x && last.y === y) await send();
+  if (type === "touchMove" && last?.x === x && last.y === y) await acknowledged("touchStep", { type, x, y }, send, TOUCH_HANDLED_TIMEOUT_MS);
   else {
     // A move goes to the frame that handled the touchstart; a touchstart, or a move with no finger down, to the frame at the point.
     const handler = await sendTouch("touchStep", page, session, { type, x, y }, finger.frame ? { frame: finger.frame } : { point: { x, y } }, send);
