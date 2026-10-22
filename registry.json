@@ -3452,8 +3452,8 @@
       "name": "layout-proposal",
       "type": "registry:ui",
       "title": "LayoutProposal",
-      "description": "A change an agent proposes to the surface the person is using (a layout, a set of columns, an arrangement), which the person previews, then applies or discards.",
-      "docs": "A change an agent proposes to the surface the person is using (a layout, a set of columns, an arrangement), which the person previews, then applies or discards. Import: import { LayoutProposal } from \"@/components/ouro/layout-proposal/layout-proposal\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: badge, button, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/layout-proposal.md",
+      "description": "A change an agent proposes, which the person previews, then applies or discards.",
+      "docs": "A change an agent proposes, which the person previews, then applies or discards. Import: import { LayoutProposal } from \"@/components/ouro/layout-proposal/layout-proposal\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: badge, button, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/layout-proposal.md",
       "registryDependencies": [
         "ourostack/ouro-ui/badge",
         "ourostack/ouro-ui/button",
@@ -3475,8 +3475,8 @@
       "name": "preset-picker",
       "type": "registry:ui",
       "title": "PresetPicker",
-      "description": "Presets shown as cards (a layout, a template, a mode) with a name, a line about it and an optional tag, where choosing one applies it at once.",
-      "docs": "Presets shown as cards (a layout, a template, a mode) with a name, a line about it and an optional tag, where choosing one applies it at once. Import: import { PresetPicker } from \"@/components/ouro/preset-picker/preset-picker\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: the helpers it imports in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/preset-picker.md",
+      "description": "Presets as cards, where choosing one applies it at once.",
+      "docs": "Presets as cards, where choosing one applies it at once. Import: import { PresetPicker } from \"@/components/ouro/preset-picker/preset-picker\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: the helpers it imports in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/preset-picker.md",
       "registryDependencies": [
         "ourostack/ouro-ui/lib-class-name-check",
         "ourostack/ouro-ui/lib-cn",
@@ -3495,8 +3495,8 @@
       "name": "copy-prompt",
       "type": "registry:ui",
       "title": "CopyPrompt",
-      "description": "A ready-made prompt in the page's own type, with a button that copies it, for the person to hand to an agent of their own.",
-      "docs": "A ready-made prompt in the page's own type, with a button that copies it, for the person to hand to an agent of their own. Import: import { CopyPrompt } from \"@/components/ouro/copy-prompt/copy-prompt\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, copy-button, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/copy-prompt.md",
+      "description": "A ready-made prompt with a button that copies it.",
+      "docs": "A ready-made prompt with a button that copies it. Import: import { CopyPrompt } from \"@/components/ouro/copy-prompt/copy-prompt\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, copy-button, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/copy-prompt.md",
       "registryDependencies": [
         "ourostack/ouro-ui/copy-button",
         "ourostack/ouro-ui/lib-class-name-check",

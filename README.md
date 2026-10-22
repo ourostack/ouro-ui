@@ -282,7 +282,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **NativeSelect** — A labeled native `<select>` on the Field contract: pass `label`, `options` (or `<option>` children) and `error`. [Docs](docs/NativeSelect.md)
 - **NumberField** — A labeled number input on the Field contract: pass `label`, and `error` from your server action or client check. [Docs](docs/NumberField.md)
 - **OtpField** — A one-time code entry on the Field contract: one slot per character, with focus that moves as the person types, a whole code pasted at once, and `autoComplete="one-time-code"` so phones offer the code from a text message. [Docs](docs/OtpField.md)
-- **PresetPicker** — Presets shown as cards (a layout, a template, a mode) with a name, a line about it and an optional tag, where choosing one applies it at once. [Docs](docs/PresetPicker.md)
+- **PresetPicker** — Presets as cards, where choosing one applies it at once. [Docs](docs/PresetPicker.md)
 - **Radio** — One choice in a `RadioGroup`, with its label to its right. [Docs](docs/Radio.md)
 - **RadioGroup** — A group of radios under one legend, on the Field contract, for picking exactly one choice: pass `legend`, and `options` (or `Radio` children). [Docs](docs/RadioGroup.md)
 - **Select** — A labeled list of choices on the Field contract: pass `label`, `options` (or `SelectItem` children) and `error` from your server action or client check. [Docs](docs/Select.md)
@@ -396,8 +396,8 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 ### Chat
 
 - **Attachment** — A file attached to a chat message, or waiting to be sent with one: its icon, name and size. [Docs](docs/Attachment.md)
-- **CopyPrompt** — A ready-made prompt in the page's own type, with a button that copies it, for the person to hand to an agent of their own. [Docs](docs/CopyPrompt.md)
-- **LayoutProposal** — A change an agent proposes to the surface the person is using (a layout, a set of columns, an arrangement), which the person previews, then applies or discards. [Docs](docs/LayoutProposal.md)
+- **CopyPrompt** — A ready-made prompt with a button that copies it. [Docs](docs/CopyPrompt.md)
+- **LayoutProposal** — A change an agent proposes, which the person previews, then applies or discards. [Docs](docs/LayoutProposal.md)
 - **Message** — One message in a chat: who wrote it, their avatar and what they wrote, with any attachments under it. [Docs](docs/Message.md)
 - **MessageList** — A conversation: `Message`s in a scrolling, labeled region that opens at the newest one. [Docs](docs/MessageList.md)
 

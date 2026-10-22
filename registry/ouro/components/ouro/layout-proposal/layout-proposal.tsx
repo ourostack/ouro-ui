@@ -77,8 +77,8 @@ export type LayoutProposalProps = Omit<HTMLAttributes<HTMLElement>, keyof Layout
 const quiet = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]";
 
 /**
- * A change an agent proposes to the surface the person is using (a layout, a set of columns, an
- * arrangement), which the person previews, then applies or discards. It says who proposed it,
+ * A change an agent proposes, which the person previews, then applies or discards. The change
+ * is to the surface the person is using (a layout, a set of columns, an arrangement). It says who proposed it,
  * when and why, with a sketch of the change, and Preview, Apply and Discard. Preview turns into
  * "Back to current" in place, so focus stays on the button, and screen readers hear that
  * nothing changes until the person applies it. Applying and discarding are a person's decisions:

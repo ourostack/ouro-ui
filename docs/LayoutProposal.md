@@ -2,7 +2,7 @@
 
 # LayoutProposal
 
-A change an agent proposes to the surface the person is using (a layout, a set of columns, an arrangement), which the person previews, then applies or discards. It says who proposed it, when and why, with a sketch of the change, and Preview, Apply and Discard. Preview turns into "Back to current" in place, so focus stays on the button, and screen readers hear that nothing changes until the person applies it. Applying and discarding are a person's decisions: the handlers receive the click event, so the app can check `event.isTrusted`, and the proposal's `id` as it was when the press began, so the app can refuse a decision about a proposal that was replaced under the person's pointer. Once the person decides, the app removes the bar, so it moves focus to what follows, such as a line saying what happened.
+A change an agent proposes, which the person previews, then applies or discards. The change is to the surface the person is using (a layout, a set of columns, an arrangement). It says who proposed it, when and why, with a sketch of the change, and Preview, Apply and Discard. Preview turns into "Back to current" in place, so focus stays on the button, and screen readers hear that nothing changes until the person applies it. Applying and discarding are a person's decisions: the handlers receive the click event, so the app can check `event.isTrusted`, and the proposal's `id` as it was when the press began, so the app can refuse a decision about a proposal that was replaced under the person's pointer. Once the person decides, the app removes the bar, so it moves focus to what follows, such as a line saying what happened.
 
 ```tsx
 import { LayoutProposal } from "@/registry/ouro/components/ouro/layout-proposal/layout-proposal";

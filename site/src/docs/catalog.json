@@ -260,7 +260,7 @@
     "title": "PresetPicker",
     "group": "Forms",
     "source": "registry/ouro/components/ouro/preset-picker/preset-picker.tsx",
-    "summary": "Presets shown as cards (a layout, a template, a mode) with a name, a line about it and an optional tag, where choosing one applies it at once."
+    "summary": "Presets as cards, where choosing one applies it at once."
   },
   {
     "name": "sheet",
@@ -699,14 +699,14 @@
     "title": "LayoutProposal",
     "group": "Chat",
     "source": "registry/ouro/components/ouro/layout-proposal/layout-proposal.tsx",
-    "summary": "A change an agent proposes to the surface the person is using (a layout, a set of columns, an arrangement), which the person previews, then applies or discards."
+    "summary": "A change an agent proposes, which the person previews, then applies or discards."
   },
   {
     "name": "copy-prompt",
     "title": "CopyPrompt",
     "group": "Chat",
     "source": "registry/ouro/components/ouro/copy-prompt/copy-prompt.tsx",
-    "summary": "A ready-made prompt in the page's own type, with a button that copies it, for the person to hand to an agent of their own."
+    "summary": "A ready-made prompt with a button that copies it."
   },
   {
     "name": "inspector",
