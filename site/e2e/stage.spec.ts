@@ -412,7 +412,7 @@ test.describe("the ballast manifold and the bell's payoffs", () => {
   /** The share of the lower half of two same-sized screenshots whose pixels differ clearly. */
   const changedShare = (page: Page, before: Buffer, after: Buffer) =>
     page.evaluate(
-      async ([before, after]) => {
+      async ({ before, after }) => {
         const pixels = async (png: string) => {
           const bitmap = await createImageBitmap(new Blob([Uint8Array.from(atob(png), (char) => char.charCodeAt(0))], { type: "image/png" }));
           const context = new OffscreenCanvas(bitmap.width, bitmap.height).getContext("2d")!;
@@ -426,12 +426,13 @@ test.describe("the ballast manifold and the bell's payoffs", () => {
           for (let column = 0; column < a.width; column++) {
             const at = (row * a.width + column) * 4;
             total++;
-            if (Math.abs(a.data[at] - b.data[at]) + Math.abs(a.data[at + 1] - b.data[at + 1]) + Math.abs(a.data[at + 2] - b.data[at + 2]) > 96) changed++;
+            const apart = (channel: number) => Math.abs((a.data[at + channel] ?? 0) - (b.data[at + channel] ?? 0));
+            if (apart(0) + apart(1) + apart(2) > 96) changed++;
           }
         }
         return changed / total;
       },
-      [before.toString("base64"), after.toString("base64")],
+      { before: before.toString("base64"), after: after.toString("base64") },
     );
 
   for (const colorScheme of ["light", "dark"] as const) {
