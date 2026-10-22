@@ -8,7 +8,7 @@ import { compile } from "tailwindcss";
 import postcss from "postcss";
 import { viewportClass } from "../registry/ouro/components/ouro/toast/toaster-styles.ts";
 import { cn } from "../registry/ouro/lib/ouro/cn.ts";
-import { alarmingFileName, alarmingTestTitle, comments, directTabPresses, duplicateTestNames, hasClientDirective, leadingComment, needsClientDirective, testNames, timerBoundReads, unpreservedHints } from "./source-rules.mjs";
+import { alarmingFileName, alarmingTestTitle, comments, directTabPresses, duplicateTestNames, hasClientDirective, leadingComment, needsClientDirective, realClockEscapes, realClockProblems, testNames, timerBoundFiles, timerBoundReads, unpreservedHints } from "./source-rules.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const tracked = (...globs) =>
@@ -363,8 +363,62 @@ test("timerBoundReads finds a wait for a state that lasts a set time, in a test 
   assert.deepEqual(timerBoundReads("a.spec.ts", 'test.describe("d", () => {\ntest("s", async ({ page }) => {\nawait expect(b).toHaveAttribute("aria-busy", "true");\n});\n});'), ['d > s: await expect(b).toHaveAttribute("aria-busy", "true");']);
 });
 
+test("timerBoundReads finds a toast the page raises, read by its text, as the four site tests once read theirs", () => {
+  const site = (path, body, head = "") => timerBoundReads(path, `${head}\nit("t", async () => {\n${body}\n});`);
+  const spec = (path, body) => timerBoundReads(path, `test("s", async ({ page }) => {\n${body}\n});`);
+  // site/ renders pages that mount a Toaster, so a page-wide text or dialog read there may be a toast.
+  assert.equal(site("site/src/voyage/voyage.test.tsx", 'await expect.element(page.getByText("Copied the Brass theme", { exact: true })).toBeVisible();').length, 1);
+  assert.equal(site("site/src/voyage/voyage.test.tsx", `await expect.element(page.getByText("Couldn't copy", { exact: true }).first()).toBeVisible();`).length, 1);
+  assert.equal(site("site/src/voyage/stage/stage.test.tsx", 'await expect.element(page.getByText("Copied the install command", { exact: true })).toBeVisible();').length, 1);
+  assert.equal(site("site/src/voyage/stage/stage.test.tsx", "await expect.element(page.getByText(`${BELL_TOASTS[0]!.name}: ${BELL_TOASTS[0]!.text}`)).toBeVisible();").length, 1);
+  assert.equal(spec("site/e2e/stage.spec.ts", "await expect(page.getByText(`${BELL_TOASTS[0]!.name}: ${BELL_TOASTS[0]!.text}`)).toBeVisible();").length, 1);
+  assert.equal(spec("site/e2e/chapter-one.spec.ts", 'await expect(page.getByText(ARTICLES.signed("Ada Lovelace"))).toBeVisible();').length, 1);
+  // Outside site/, a file that imports toast() or the Toaster has toasts; one that imports neither has none.
+  const dialog = 'await expect.element(page.getByRole("dialog", { name: "Saved" })).toBeVisible();';
+  assert.equal(site("registry/a.test.tsx", dialog, 'import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";').length, 1);
+  assert.deepEqual(site("registry/a.test.tsx", dialog), []);
+  // A read inside a part of the page is not a toast's; a held clock passes.
+  assert.deepEqual(site("site/src/a.test.tsx", 'await expect.element(dialog.getByText("Saved")).toBeVisible();'), []);
+  assert.deepEqual(site("site/src/a.test.tsx", 'vi.useFakeTimers();\nawait expect.element(page.getByText("Saved")).toBeVisible();'), []);
+});
+
+test("timerBoundReads counts only a hold that is a call, made before the read and not undone before it", () => {
+  const vitest = (body) => timerBoundReads("a.test.tsx", `it("t", async () => {\n${body}\n});`);
+  const spec = (body) => timerBoundReads("a.spec.ts", `test("s", async ({ page }) => {\n${body}\n});`);
+  const busy = 'await expect(save).toHaveAttribute("aria-busy", "true");';
+  // Playwright's clock runs on after install(); only pauseAt (holdClock) stops it.
+  assert.equal(spec(`await page.clock.install();\n${busy}`).length, 1);
+  assert.deepEqual(spec(`await page.clock.install();\nawait page.clock.pauseAt(at);\n${busy}`), []);
+  // A hold after the read, or one undone before it, does not hold the read.
+  assert.equal(spec(`${busy}\nawait holdClock(page);`).length, 1);
+  assert.equal(spec(`await holdClock(page);\nawait page.clock.resume();\n${busy}`).length, 1);
+  const copied = 'await expect.poll(() => text()).toBe("Copied");';
+  assert.equal(vitest(`vi.useFakeTimers();\nvi.useRealTimers();\n${copied}`).length, 1);
+  // A hold in a comment or a string is no hold.
+  assert.equal(vitest(`// vi.useFakeTimers()\n${copied}`).length, 1);
+  assert.equal(vitest(`const note = "holdClock(page)";\n${copied}`).length, 1);
+});
+
+test("a real-clock escape needs a reason, and covers the statement it leads", () => {
+  const vitest = (body) => timerBoundReads("a.test.tsx", `import { toast } from "@/registry/ouro/lib/ouro/toast";\nit("t", async () => {\n${body}\n});`);
+  assert.equal(vitest('// real clock:\ntoast("Saved");').length, 1);
+  assert.deepEqual(vitest('// real clock: no Toaster is mounted, so nothing shows.\ntoast("Saved");'), []);
+  assert.deepEqual(vitest('// real clock: no Toaster is mounted, so nothing shows.\nfor (const message of ["A", "B"]) toast(message);'), []);
+  assert.deepEqual(vitest('// real clock: no Toaster is mounted, so nothing shows.\ntoast("Saved");\ntoast("Again");'), ['t: toast("Again")']);
+  assert.deepEqual(realClockEscapes('// real clock: a reason\nx();\n  // real clock: another\n// real clock:\n"// real clock: in a string"'), ["a reason", "another"]);
+});
+
+test("realClockProblems names a file that adds a real-clock escape the pull request does not mention", () => {
+  const base = new Map([["a.spec.ts", 1]]);
+  const head = new Map([["a.spec.ts", 2], ["b.test.tsx", 1], ["c.test.tsx", 0]]);
+  assert.deepEqual(realClockProblems({ base, head, body: "" }).map((problem) => problem.file), ["a.spec.ts", "b.test.tsx"]);
+  assert.deepEqual(realClockProblems({ base, head, body: "Escapes: `a.spec.ts` (static copy) and `b.test.tsx`." }), []);
+  // Fewer escapes, or as many, need no mention.
+  assert.deepEqual(realClockProblems({ base: new Map([["a.spec.ts", 2]]), head: new Map([["a.spec.ts", 1]]), body: "" }), []);
+});
+
 test("no test or spec waits for a state that lasts a set time on the real clock", () => {
-  const files = tracked("registry/**/*.test.ts", "registry/**/*.test.tsx", "registry/ouro/e2e/**/*.spec.ts", "test/**/*.test.tsx", "site/src/**/*.test.tsx", "site/e2e/**/*.spec.ts");
+  const files = tracked(...timerBoundFiles);
   const reads = files.map(read).flatMap(({ path, text }) => timerBoundReads(path, text).map((line) => `${path}: ${line}`));
   assert.deepEqual(reads, [], "Hold the page's clock (vi.useFakeTimers, holdClock) or record the state as it happens (watchAnnouncements, watchToasts); see timerBoundReads in scripts/source-rules.mjs.");
 });

@@ -103,7 +103,8 @@ jobs:
       # the checkout; urlOk reads scripts/claims-urls.json. On a pull request, the required checks
       # are read at its base, and the addresses it adds to the cache or changes are fetched again.
       # The ratchet runs here too, in a required check: what the pull request adds to, changes in
-      # or removes from claims.config.json's exemptions must be named in its description. After
+      # or removes from claims.config.json's exemptions must be named in its description, and so
+      # must each file that gains a `// real clock:` escape (scripts/real-clock-ratchet.mjs). After
       # editing the description, push again: a re-run reads the description the run started with.
       - name: Claims
         env:
@@ -113,6 +114,7 @@ jobs:
           if [ -n "$BASE_REF" ]; then
             git fetch --no-tags --depth=1 origin "$BASE_REF"
             CLAIMS_BASE_REF="origin/$BASE_REF" node scripts/claims.mjs ratchet
+            REAL_CLOCK_BASE_REF="origin/$BASE_REF" node scripts/real-clock-ratchet.mjs
             CLAIMS_BASE_REF="origin/$BASE_REF" pnpm claims:check --network=changed
           else
             pnpm claims:check

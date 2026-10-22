@@ -168,6 +168,7 @@ test("moves nothing under reduced motion: repainting, the picker and the dialog 
   await page.getByRole("radio", { name: "Submerged" }).click();
   await page.keyboard.press("Escape");
   await page.locator("[data-site-dive-trigger]").click();
+  // real clock: a confirm dialog, which stays open until answered.
   await expect(page.getByRole("dialog", { name: "Dive to 300 fathoms?" })).toBeVisible();
   await page.getByRole("button", { name: "Not yet" }).click();
   await page.getByRole("checkbox", { name: "Fill the ballast tanks" }).click();

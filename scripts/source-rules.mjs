@@ -238,8 +238,38 @@ export function directTabPresses(text) {
 
 /** Labels a component shows for a set time on the real clock: CopyButton's and ShareButton's confirmations. */
 const timedLabels = ["Copied", "Link copied", "Copy blocked", "Couldn't share"];
-/** A test body that holds the page's clock, or records the timed state as it happens. */
-const holdsClock = /vi\.useFakeTimers\(|fakeClock\(|showOnFakeClock\(|holdClock\(|page\.clock\.(install|pauseAt)|watchToasts\(/;
+
+/**
+ * What a call does to the page's clock, by its callee: `hold` stops it (Vitest's fake timers, a
+ * file's fakeClock helper, Playwright's pauseAt and holdClock), `release` lets it run again
+ * (useRealTimers, resume), and `record` keeps the toasts as they show (watchToasts). Playwright's
+ * `clock.install()` alone holds nothing: its clock runs on as the real one does.
+ */
+function clockEffect(callee) {
+  if (/^(vi\.useFakeTimers|fakeClock|showOnFakeClock|holdClock)$/.test(callee) || /\.clock\.pauseAt$/.test(callee)) return "hold";
+  if (/^vi\.useRealTimers$/.test(callee) || /\.clock\.resume$/.test(callee)) return "release";
+  if (callee === "watchToasts") return "record";
+  return undefined;
+}
+
+/** The tests and specs timerBoundReads reads, as git pathspecs. A pathspec needs a folder where it has a double star and a slash, so site/e2e's own specs are named on their own. */
+export const timerBoundFiles = ["registry/**/*.test.ts", "registry/**/*.test.tsx", "registry/ouro/e2e/**/*.spec.ts", "test/**/*.test.tsx", "site/src/**/*.test.tsx", "site/test/*.test.tsx", "site/e2e/*.spec.ts"];
+
+/** The reasons of the `// real clock: <reason>` comments in `text`, in order; one with no reason is no escape. */
+export function realClockEscapes(text) {
+  return [...text.matchAll(/^[ \t]*\/\/\s*real clock:[ \t]*(\S.*)$/gm)].map((match) => match[1].trim());
+}
+
+/**
+ * Files whose `// real clock:` escapes (`counts`: path to number) grew against the base's, and
+ * that the pull request's description does not name, as { file, message }: an escape lets a wait
+ * on the real clock through, so a reviewer sees each one added, as for claims.config.json's.
+ */
+export function realClockProblems({ base, head, body = "" }) {
+  return [...head]
+    .filter(([file, count]) => count > (base.get(file) ?? 0) && !body.includes(file))
+    .map(([file, count]) => ({ file, message: `${file} has ${count - (base.get(file) ?? 0)} more "// real clock:" escape(s) than the base; name the file in the pull request's description, with why the test means the real clock.` }));
+}
 
 /** Whether a `toast(message, options)` or `show(message, options)` call has a countdown: no `duration` of 0 or Infinity, and no `action` without a duration. */
 function countsDown(call) {
@@ -254,38 +284,105 @@ function countsDown(call) {
 
 /**
  * The reads in a Vitest test or Playwright spec of a state that lasts a set time on the real
- * clock, as "test name: statement", where the test neither holds the page's clock nor records the
- * state as it happens: a wait (`expect.poll`, `expect.element`, Playwright's `expect(locator)`) on a
- * confirmation label (`timedLabels`, and the file's own `copiedLabel` and `failedLabel` values); in
- * a spec, a wait on `aria-busy="true"`, `data-status="saving"` or a toast's box; in a test, a toast
- * with a countdown (`toast()`, or a file's `show()` helper, with no `duration: 0`). A test whose
- * body has a `// real clock: <reason>` comment is left alone.
+ * clock, as "test name: statement". A wait (`expect.poll`, `expect.element`, or in a spec
+ * Playwright's `expect`) is one when it reads a confirmation label (`timedLabels`, and the
+ * file's own `copiedLabel` and `failedLabel` values), or, in a file with toasts, a page-wide
+ * text or dialog (`page.getByText`, `page.getByRole("dialog")`), which may be a toast; in a spec,
+ * also `aria-busy="true"`, `data-status="saving"` or a toast's box. A file has toasts when it
+ * imports toast() or the Toaster, or is under site/, whose pages mount one. In a test, a toast
+ * with a countdown is one too (`toast()`, or a file's `show()` helper, with no `duration: 0`).
+ *
+ * The read passes when a call before it, and not undone between, holds the clock (`clockEffect`),
+ * or records the toasts, for a toast. Comments and strings hold nothing: the calls are read from
+ * the syntax tree. A `// real clock: <reason>` comment on the statement, or on one around it,
+ * lets it through (`realClockEscapes`).
  */
 export function timerBoundReads(path, text) {
   const source = parse(path, text);
   const spec = /\.spec\.ts$/.test(path);
   const labels = new Set([...timedLabels, ...[...text.matchAll(/(?:copiedLabel|failedLabel)=["']([^"']+)["']/g)].map((match) => match[1])]);
-  const toasts = /from\s+["'][^"']*\/lib\/ouro\/toast["']/.test(text);
+  const imports = (pattern) => source.statements.some((statement) => ts.isImportDeclaration(statement) && pattern.test(statement.moduleSpecifier.text));
+  const callsToast = imports(/\/lib\/ouro\/toast$/);
+  const hasToasts = path.startsWith("site/") || callsToast || imports(/\/components\/ouro\/toast\/toaster$/);
+  const calls = (node) => {
+    const found = [];
+    const visit = (child) => {
+      if (ts.isCallExpression(child)) found.push(child);
+      ts.forEachChild(child, visit);
+    };
+    visit(node);
+    return found;
+  };
+  const callee = (call) => call.expression.getText(source).replace(/\s+/g, "");
+  const escaped = (node, body) => {
+    for (let at = node; at && at !== body; at = at.parent) {
+      if (!ts.isStatement(at)) continue;
+      const comments = ts.getLeadingCommentRanges(text, at.getFullStart()) ?? [];
+      if (comments.some((range) => realClockEscapes(text.slice(range.pos, range.end)).length > 0)) return true;
+    }
+    return false;
+  };
   const found = [];
   const check = (name, body) => {
-    const code = body.getText(source);
-    if (/\/\/\s*real clock:/.test(code) || holdsClock.test(code)) return;
+    const effects = calls(body)
+      .map((call) => ({ at: call.getStart(source), effect: clockEffect(callee(call)) }))
+      .filter((each) => each.effect)
+      .sort((a, b) => a.at - b.at);
+    const state = (at) => {
+      let held = false;
+      let recorded = false;
+      for (const each of effects) {
+        if (each.at >= at) break;
+        if (each.effect === "hold") held = true;
+        if (each.effect === "release") held = false;
+        if (each.effect === "record") recorded = true;
+      }
+      return { held, recorded };
+    };
     // In a spec, the names a toast locator is kept under: `const toast = page.locator('[data-ouro="toast"]')`.
     const toastNames = new Set();
+    const declare = (node) => {
+      if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer && /data-ouro="toast"/.test(node.initializer.getText(source))) toastNames.add(node.name.text);
+      ts.forEachChild(node, declare);
+    };
+    if (spec) declare(body);
+    const flag = (node, label) => {
+      if (!escaped(node, body)) found.push(`${name}: ${label}`);
+    };
     const visit = (node) => {
-      if (spec && ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer && /data-ouro="toast"/.test(node.initializer.getText(source))) toastNames.add(node.name.text);
       if (ts.isExpressionStatement(node) || ts.isVariableStatement(node) || ts.isReturnStatement(node)) {
-        const statement = node.getText(source);
-        const waits = spec ? /\bexpect\b/.test(statement) : /expect\s*\.\s*(poll|element)\s*\(/.test(statement);
+        const inner = calls(node);
+        const names = inner.map(callee);
+        const waits = names.some((each) => /^expect\.(poll|element)$/.test(each) || (spec && each === "expect"));
         // A count of what a watch recorded (announcements) is no wait on the state itself.
-        const recorded = /\.(count|matching)\(/.test(statement);
-        const label = !recorded && [...statement.matchAll(/["'`]([^"'`]+)["'`]/g)].some((match) => labels.has(match[1]));
-        const toastBox = /data-ouro="toast"/.test(statement) || [...toastNames].some((name) => new RegExp(`\\b${name}\\b`).test(statement));
-        const state = spec && (/toHaveAttribute\(\s*["']aria-busy["'],\s*["']true["']/.test(statement) || /toHaveAttribute\(\s*["']data-status["'],\s*["']saving["']/.test(statement) || (toastBox && /toBeVisible|boundingBox/.test(statement)));
-        if ((waits && label) || state) found.push(`${name}: ${statement.split("\n")[0].trim()}`);
+        const counted = names.some((each) => /\.(count|matching)$/.test(each));
+        const strings = [];
+        const collect = (child) => {
+          if (ts.isStringLiteralLike(child)) strings.push(child.text);
+          ts.forEachChild(child, collect);
+        };
+        collect(node);
+        const label = !counted && strings.some((each) => labels.has(each));
+        const pageRead = inner.some((call) => {
+          const name = callee(call);
+          if (name === "page.getByText") return true;
+          return name === "page.getByRole" && call.arguments[0] && ts.isStringLiteralLike(call.arguments[0]) && /^(alert)?dialog$/.test(call.arguments[0].text);
+        });
+        const statement = node.getText(source);
+        const busy = spec && names.some((each) => /\.toHaveAttribute$/.test(each)) && (/["']aria-busy["'],\s*["']true["']/.test(statement) || /["']data-status["'],\s*["']saving["']/.test(statement));
+        const identifiers = [];
+        const named = (child) => {
+          if (ts.isIdentifier(child)) identifiers.push(child.text);
+          ts.forEachChild(child, named);
+        };
+        named(node);
+        const aboutToast = strings.some((each) => each.includes('data-ouro="toast"')) || identifiers.some((each) => toastNames.has(each));
+        const toastBox = spec && aboutToast && names.some((each) => /\.(toBeVisible|boundingBox)$/.test(each));
+        const { held, recorded } = state(node.getStart(source));
+        if (!held && ((waits && label) || busy || (waits && hasToasts && pageRead && !recorded) || (toastBox && !recorded))) flag(node, statement.split("\n")[0].trim());
       }
-      if (toasts && !spec && ts.isCallExpression(node) && ts.isIdentifier(node.expression) && /^(toast|show)$/.test(node.expression.text) && node.arguments.length > 0 && countsDown(node)) {
-        found.push(`${name}: ${node.getText(source).split("\n")[0].trim()}`);
+      if (callsToast && !spec && ts.isCallExpression(node) && ts.isIdentifier(node.expression) && /^(toast|show)$/.test(node.expression.text) && node.arguments.length > 0 && countsDown(node)) {
+        if (!state(node.getStart(source)).held) flag(node, node.getText(source).split("\n")[0].trim());
       }
       ts.forEachChild(node, visit);
     };
