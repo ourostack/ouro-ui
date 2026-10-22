@@ -1278,3 +1278,31 @@ test("sr-infra-issue.sh opens the screen-reader-infra issue once, then comments 
   assert.match(calls[2], /^issue create --title Screen-reader lane: infrastructure failure --label screen-reader-infra --body The screen-reader lane could not drive VoiceOver or NVDA \(nightly\): https:\/\/github\.com\/o\/r\/actions\/runs\/1/);
   assert.equal(calls[5], "issue comment 12 --body Failed again (nightly): https://github.com/o/r/actions/runs/1");
 });
+
+test("CI rehearses the release commit on every run: release.yml's own edits, for a version with no tag yet, then the checks and the site build that read them", () => {
+  // release.yml writes the release commit with the same script the rehearsal runs.
+  const release = workflow("release.yml");
+  const push = release.slice(release.indexOf("name: Push the release branch"));
+  const pushStep = push.split(/\n {6}- /)[0];
+  assert.match(pushStep, /^ {10}scripts\/release-commit\.sh "\$VERSION"$/m);
+  assert.doesNotMatch(pushStep, /^ +node scripts\/(registry\.mts --release|latest-release\.mjs set)/m);
+  const script = readFileSync(join(root, "scripts/release-commit.sh"), "utf8");
+  for (const line of ['node scripts/latest-release.mjs set "v$version"', "pnpm run docs", 'node scripts/registry.mts --release "$version"', "node scripts/changes.mjs assemble changes > CHANGES.md"]) assert.ok(script.includes(`\n${line}\n`), line);
+  // The rehearsal, in the checks job (part of the required ci check), after everything else there.
+  const block = ciJobs().checks;
+  const step = stepScript(block, "Release rehearsal");
+  assert.ok(block.indexOf("name: Release rehearsal") > block.indexOf("pnpm build-storybook"));
+  const run = (tagExists) => {
+    const stubs = `pnpm() { printf 'CALL pnpm %s\\n' "$*"; }\nscripts/release-commit.sh() { printf 'CALL release-commit %s\\n' "$*"; }\ngit() { return ${tagExists ? 0 : 1}; }`;
+    return spawnSync("bash", ["-e", "-o", "pipefail", "-c", `${stubs}\n${step}`], { cwd: root, encoding: "utf8" });
+  };
+  const [major, minor, patch] = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).ouro.latestRelease.slice(1).split(".").map(Number);
+  const next = `${major}.${minor}.${patch + 1}`;
+  const rehearsed = run(false);
+  assert.equal(rehearsed.status, 0, rehearsed.stderr);
+  assert.equal(rehearsed.stdout, [`CALL release-commit ${next}`, "CALL pnpm registry --check", "CALL pnpm run docs --check", "CALL pnpm claims:check", "CALL pnpm site:build", ""].join("\n"));
+  // A version whose tag exists would not rehearse a release that has none.
+  const tagged = run(true);
+  assert.equal(tagged.status, 1);
+  assert.match(tagged.stdout, new RegExp(`^::error::v${next.replace(/\./g, "\\.")} already exists here`, "m"));
+});
