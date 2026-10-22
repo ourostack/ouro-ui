@@ -3,6 +3,7 @@ import proof, { install } from "virtual:site-proof";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
+import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { keepClearOfToasts } from "./clear-of-toasts";
 import { VOYAGE_HERO } from "../copy";
@@ -124,9 +125,12 @@ function Proof(): JSX.Element {
       {proof.claims.map((claim, index) => (
         <li key={claim.text}>
           <CheckIcon />
-          <Link href={claim.href} tone="secondary" inline aria-describedby={`site-proof-where-${index}`}>
-            {claim.text}
-          </Link>
+          {/* HX Tooltip shows the destination on hover and focus (Escape closes it); screen readers hear it as the link's description. */}
+          <Tooltip content={claim.where} side="bottom" align="start">
+            <Link href={claim.href} tone="secondary" inline aria-describedby={`site-proof-where-${index}`}>
+              {claim.text}
+            </Link>
+          </Tooltip>
           <span className="site-proof-where" id={`site-proof-where-${index}`}>
             {claim.where}
           </span>

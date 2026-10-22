@@ -90,16 +90,26 @@ describe("the hero", () => {
     for (const claim of proof.claims) await expect.element(page.getByRole("link", { name: claim.text, exact: true })).toHaveAttribute("href", claim.href);
   });
 
-  it("says where each proof link goes, on hover and focus and to screen readers", async () => {
+  it("says where each proof link goes: a tooltip on hover and focus that Escape closes and that covers no other link, and a description for screen readers", async () => {
     await renderPage("/voyage/");
-    const claim = proof.claims[0]!;
-    const link = page.getByRole("link", { name: claim.text, exact: true });
-    await expect.element(link).toHaveAccessibleDescription(claim.where);
-    const where = document.getElementById(link.element().getAttribute("aria-describedby")!)!;
-    expect(getComputedStyle(where).display).toBe("none");
-    (link.element() as HTMLElement).focus();
-    await expect.poll(() => getComputedStyle(where).display).toBe("block");
     for (const each of proof.claims) await expect.element(page.getByRole("link", { name: each.text, exact: true })).toHaveAccessibleDescription(each.where);
+    const tip = () => document.querySelector<HTMLElement>('[data-ouro="tooltip"]');
+    const [first, , next] = proof.claims;
+    const link = page.getByRole("link", { name: first!.text, exact: true });
+    // On hover: the destination shows, and the link under it in the next row can still be pointed at.
+    await userEvent.hover(link);
+    await expect.poll(() => tip()?.textContent).toBe(first!.where);
+    const below = page.getByRole("link", { name: next!.text, exact: true }).element().getBoundingClientRect();
+    expect(document.elementFromPoint(below.left + below.width / 2, below.top + below.height / 2)?.closest("a")?.textContent).toBe(next!.text);
+    // Escape closes it, and the pointer stays where it is.
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => tip()).toBeNull();
+    await userEvent.unhover(link);
+    // On keyboard focus too.
+    await userEvent.keyboard("{Tab}");
+    (link.element() as HTMLElement).focus();
+    await userEvent.keyboard("{Shift>}{Tab}{/Shift}{Tab}");
+    await expect.poll(() => tip()?.textContent).toBe(first!.where);
   });
 
   it("shows the whole install command, for one component in the latest release, pinned to it", async () => {

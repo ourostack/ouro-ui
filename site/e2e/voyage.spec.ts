@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import { pressTab } from "../../registry/ouro/e2e/ouro/story";
 import { PRESET_NAMES, THEME_KEY } from "../src/themes/prepaint";
+import { currentProof } from "../scripts/proof.mts";
 import { LOG, TANKS } from "../src/voyage/stage/copy";
 import { diagnostics } from "./diagnostics";
 
@@ -243,4 +244,20 @@ test("the header works from the keyboard: picker, mode, X-ray and the command pa
   await page.keyboard.press("Escape");
   await expect(search).toBeFocused();
   expect(JSON.parse((await page.evaluate((key) => localStorage.getItem(key), THEME_KEY))!)).toEqual({ preset: "abyss", mode: "dark" });
+});
+
+test("on a touch screen, where no tooltip can show, each proof link's destination is printed under it", async ({ browser, browserName }) => {
+  test.skip(browserName !== "chromium", "Desktop WebKit reports a hovering pointer even with touch on");
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, baseURL: test.info().project.use.baseURL! });
+  const page = await context.newPage();
+  await page.goto("voyage/");
+  expect(await page.evaluate(() => matchMedia("(hover: none)").matches)).toBe(true);
+  for (const claim of currentProof().claims) {
+    const link = page.locator("[data-site-proof]").getByRole("link", { name: claim.text, exact: true });
+    const where = page.locator(`[id="${await link.getAttribute("aria-describedby")}"]`);
+    await expect(where).toHaveText(claim.where);
+    await expect(where).toBeVisible();
+    expect((await where.boundingBox())!.width).toBeGreaterThan(40);
+  }
+  await context.close();
 });
