@@ -219,7 +219,9 @@ test.describe("each control in Chapter I", () => {
     await expect(nameField(page)).toHaveValue("");
     const leave = articles(page).getByRole("button", { name: ARTICLES.leave });
     await expect(leave).toBeFocused();
-    await expect.poll(toasts.cleared).toBe(true);
+    // Judged only once the toast has settled: it slides in from below its place.
+    await expect.poll(toasts.settled).toBeGreaterThan(5);
+    expect(await toasts.overlapped()).toBe(false);
   });
 
   test("control: sign, while the articles are not done, has Conseil refuse politely and pencil you in", async ({ page }) => {
@@ -342,7 +344,9 @@ test("on a phone, the shipyard and the articles work by touch, and nothing overf
   await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length + 1));
   // The toast never covers your row or Conseil's welcome under it.
   await expect.poll(async () => (await toasts.titles()).length).toBeGreaterThan(0);
-  await expect.poll(toasts.cleared).toBe(true);
+  // Judged only once the toast has settled: it slides in from below its place.
+  await expect.poll(toasts.settled).toBeGreaterThan(5);
+  expect(await toasts.overlapped()).toBe(false);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   expect(errors).toEqual([]);
   await context.close();

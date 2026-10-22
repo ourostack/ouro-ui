@@ -143,6 +143,7 @@ test("real production hydration keeps label/control IDs while the uncached selec
     // While it closes, its backdrop still takes the page's clicks; press Save once it has gone.
     await expect(popup).toBeHidden();
     await page.getByRole("button", { name: "Save recipe", exact: true }).click();
+    // real clock: the field's error, which stays until the next save.
     await expect(page.getByText("A recipe called Pasta already exists.", { exact: true })).toBeVisible();
     await expect(name).toHaveAttribute("id", before!);
     await expect(name).toHaveAttribute("aria-invalid", "true");
