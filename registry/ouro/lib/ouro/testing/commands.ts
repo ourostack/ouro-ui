@@ -89,7 +89,11 @@ export const drag: BrowserCommand<[DragOptions]> = async (ctx, { from, to, steps
     for (let step = 1; step <= steps; step++) {
       const t = step / steps;
       await timed(`move ${step}`, () => page.mouse.move(from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t));
-      if (pause > 0) await page.waitForTimeout(pause);
+      if (pause > 0) {
+        waiting = `the pause after move ${step}`;
+        begun = performance.now();
+        await page.waitForTimeout(pause);
+      }
     }
     if (!hold) await timed("the release", () => page.mouse.up());
   } finally {

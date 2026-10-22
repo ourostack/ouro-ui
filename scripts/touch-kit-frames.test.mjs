@@ -593,6 +593,20 @@ test("a mouse drag the browser stops answering logs the move it is stuck on and 
   }
 });
 
+test("a mouse drag stalled in the pause after a move names that pause, not the move", { timeout: 15_000 }, async () => {
+  const warn = mock.method(console, "warn", () => {});
+  try {
+    const { page } = mousePage();
+    page.waitForTimeout = () => new Promise(() => {});
+    void drag({ page }, { from: [10, 10], to: [50, 10], steps: 4, durationMs: 40 });
+    await new Promise((resolve) => setTimeout(resolve, DRAG_SLOW_MS + 500));
+    assert.equal(warn.mock.callCount(), 1);
+    assert.match(warn.mock.calls[0].arguments[0], /^drag: still waiting on the pause after move 1 after \d+ms, .* move 1 \d+ms\.$/);
+  } finally {
+    warn.mock.restore();
+  }
+});
+
 test("a slow mouse drag that finishes logs every step's time once it ends", { timeout: 15_000 }, async () => {
   const warn = mock.method(console, "warn", () => {});
   try {
