@@ -1,9 +1,9 @@
-import { Suspense, type JSX } from "react";
+import { Suspense, useEffect, useLayoutEffect, useRef, useState, type JSX } from "react";
 import proof, { install } from "virtual:site-proof";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
-import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
+import type { Tooltip as TooltipComponent } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { keepClearOfToasts } from "./clear-of-toasts";
 import { VOYAGE_HERO } from "../copy";
@@ -118,24 +118,64 @@ function CheckIcon(): JSX.Element {
   );
 }
 
-/** The proof: each claim, computed from the repository, links to where you can check it, and says where that is on hover and focus. */
+/**
+ * The proof: each claim, computed from the repository, links to where you can check it, and says
+ * where that is on hover and focus (HX Tooltip; Escape closes it) and to screen readers (the link's
+ * description). The Tooltip's code is not in the page's first load: it comes once the pointer or
+ * focus is in the hero, on its way to a link, and a link that has focus by then keeps it.
+ */
 function Proof(): JSX.Element {
+  const list = useRef<HTMLUListElement>(null);
+  const refocus = useRef(-1);
+  const [Tip, setTip] = useState<typeof TooltipComponent | null>(null);
+  useEffect(() => {
+    const hero = list.current?.closest("section");
+    if (!hero) return;
+    let live = true;
+    const load = () => {
+      hero.removeEventListener("pointerover", load);
+      hero.removeEventListener("focusin", load);
+      void import("@/registry/ouro/components/ouro/tooltip/tooltip").then(({ Tooltip }) => {
+        if (!live) return;
+        refocus.current = [...(list.current?.querySelectorAll("a") ?? [])].indexOf(document.activeElement as HTMLAnchorElement);
+        setTip(() => Tooltip);
+      });
+    };
+    hero.addEventListener("pointerover", load);
+    hero.addEventListener("focusin", load);
+    return () => {
+      live = false;
+      hero.removeEventListener("pointerover", load);
+      hero.removeEventListener("focusin", load);
+    };
+  }, []);
+  useLayoutEffect(() => {
+    if (Tip && refocus.current >= 0) list.current?.querySelectorAll("a")[refocus.current]?.focus();
+  }, [Tip]);
   return (
-    <ul className="site-proof" aria-label="What we test" data-site-proof="">
-      {proof.claims.map((claim, index) => (
-        <li key={claim.text}>
-          <CheckIcon />
-          {/* HX Tooltip shows the destination on hover and focus (Escape closes it); screen readers hear it as the link's description. */}
-          <Tooltip content={claim.where} side="bottom" align="start">
-            <Link href={claim.href} tone="secondary" inline aria-describedby={`site-proof-where-${index}`}>
-              {claim.text}
-            </Link>
-          </Tooltip>
-          <span className="site-proof-where" id={`site-proof-where-${index}`}>
-            {claim.where}
-          </span>
-        </li>
-      ))}
+    <ul ref={list} className="site-proof" aria-label="What we test" data-site-proof="" data-site-proof-tips={Tip ? "" : undefined}>
+      {proof.claims.map((claim, index) => {
+        const link = (
+          <Link href={claim.href} tone="secondary" inline aria-describedby={`site-proof-where-${index}`}>
+            {claim.text}
+          </Link>
+        );
+        return (
+          <li key={claim.text}>
+            <CheckIcon />
+            {Tip ? (
+              <Tip content={claim.where} side="bottom" align="start">
+                {link}
+              </Tip>
+            ) : (
+              link
+            )}
+            <span className="site-proof-where" id={`site-proof-where-${index}`}>
+              {claim.where}
+            </span>
+          </li>
+        );
+      })}
     </ul>
   );
 }

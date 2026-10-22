@@ -5,6 +5,7 @@ import { cleanupPage, renderPage, setScheme } from "../../../test/render";
 import { fleschKincaid, syllables } from "../../../test/readability";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 import { EYEBROW, INSTALL_CAPTION, INSTALL_COMMAND, RELEASE_HREF } from "../hero";
 import { latestRelease } from "../../latest-release";
 import { allStageText, bandAt, BELL_TOASTS, describeScene, LOG, OPENING_LOG, STAGE_CONTROLS, STAGE_COPY, TANKS } from "./copy";
@@ -96,7 +97,12 @@ describe("the hero", () => {
     const tip = () => document.querySelector<HTMLElement>('[data-ouro="tooltip"]');
     const [first, , next] = proof.claims;
     const link = page.getByRole("link", { name: first!.text, exact: true });
-    // On hover: the destination shows, and the link under it in the next row can still be pointed at.
+    // On hover: the Tooltip's code comes once the pointer is in the hero, on its way to the link,
+    // and the destination shows; the link under it in the next row can still be pointed at.
+    expect(tip()).toBeNull();
+    const heading = page.getByRole("heading", { level: 1 });
+    await userEvent.hover(heading);
+    await expect.poll(() => document.querySelector("[data-site-proof-tips]")).not.toBeNull();
     await userEvent.hover(link);
     await expect.poll(() => tip()?.textContent).toBe(first!.where);
     const below = page.getByRole("link", { name: next!.text, exact: true }).element().getBoundingClientRect();
@@ -106,10 +112,21 @@ describe("the hero", () => {
     await expect.poll(() => tip()).toBeNull();
     await userEvent.unhover(link);
     // On keyboard focus too.
-    await userEvent.keyboard("{Tab}");
     (link.element() as HTMLElement).focus();
-    await userEvent.keyboard("{Shift>}{Tab}{/Shift}{Tab}");
+    await pressTab({ shift: true });
+    await pressTab();
     await expect.poll(() => tip()?.textContent).toBe(first!.where);
+  });
+
+  it("keeps a proof link's keyboard focus while the Tooltip's code loads, then shows where it goes", async () => {
+    await renderPage("/voyage/");
+    const link = page.getByRole("link", { name: proof.claims[0]!.text, exact: true });
+    expect(document.querySelector('[data-ouro="tooltip"]')).toBeNull();
+    // Keyboard focus, straight onto the link: the Tooltip's code loads, and the link keeps focus.
+    await pressTab();
+    (link.element() as HTMLElement).focus();
+    await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')?.textContent).toBe(proof.claims[0]!.where);
+    expect(document.activeElement?.textContent).toBe(proof.claims[0]!.text);
   });
 
   it("shows the whole install command, for one component in the latest release, pinned to it", async () => {
