@@ -913,18 +913,27 @@ jobs:
           cache: pnpm
       - run: pnpm i --frozen-lockfile
       # The app's own `playwright install`, at the same version, then finds them here.
-      - uses: ./.github/actions/playwright-browsers
+      - id: browsers
+        uses: ./.github/actions/playwright-browsers
         with:
           browsers: chromium webkit
           system-packages: "false"
-      # The browsers' system packages took 0.7 to 3.7 minutes of the shipped tests' setup: they
-      # install while the app is built, and install-test.sh waits for them (OURO_BROWSER_DEPS).
+      # The browsers' system packages took 0.7 to 3.7 minutes of the shipped tests' setup, and up
+      # to 6.5 more on a slow Ubuntu mirror: they install from their cache of .deb files
+      # (scripts/browser-deps.sh) while the app is built, and install-test.sh waits for them
+      # (OURO_BROWSER_DEPS).
+      - id: debs
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ouro-browser-debs
+          key: ${{ steps.browsers.outputs.debs-key }}
       - name: Browser system packages, in the background
         env:
           OURO_BROWSER_DEPS: ${{ runner.temp }}/browser-deps.status
         run: |
+          OURO_BROWSER_DEBS=$HOME/.cache/ouro-browser-debs
           # Detached from the step's output, so the step ends now and the install carries on.
-          ( pnpm exec playwright install-deps chromium webkit > "$RUNNER_TEMP/browser-deps.log" 2>&1; echo $? > "$OURO_BROWSER_DEPS" ) < /dev/null > /dev/null 2>&1 &
+          ( scripts/browser-deps.sh "$OURO_BROWSER_DEBS" chromium webkit > "$RUNNER_TEMP/browser-deps.log" 2>&1; echo $? > "$OURO_BROWSER_DEPS" ) < /dev/null > /dev/null 2>&1 &
       - name: Install test
         env:
           VARIANT: ${{ matrix.variant }}
@@ -934,6 +943,19 @@ jobs:
           if [ "$FULL" != true ]; then export OURO_COMPONENTS="$COMPONENTS"; fi
           scripts/install-test.sh "$VARIANT" "$RUNNER_TEMP/app" "$REF"
           mkdir -p "$RUNNER_TEMP/passed" && echo "$PASSED" > "$RUNNER_TEMP/passed/$PASSED"
+      # A miss saves the .deb files apt kept, once the background install has passed: a half-filled
+      # folder would fail the next dpkg -i. Another job may have saved the same key first.
+      - if: always() && steps.debs.outputs.cache-hit != 'true'
+        id: debs-ready
+        env:
+          OURO_BROWSER_DEPS: ${{ runner.temp }}/browser-deps.status
+        run: '[ "$(cat "$OURO_BROWSER_DEPS" 2>/dev/null)" = 0 ] && echo ready=true >> "$GITHUB_OUTPUT" || true'
+      - if: always() && steps.debs-ready.outputs.ready == 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        continue-on-error: true
+        with:
+          path: ~/.cache/ouro-browser-debs
+          key: ${{ steps.browsers.outputs.debs-key }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ env.PASSED }}

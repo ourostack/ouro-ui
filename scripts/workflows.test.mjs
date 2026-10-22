@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath, URL } from "node:url";
@@ -44,7 +44,7 @@ test("CI downloads Playwright's browsers only through the cached action", () => 
   // The install shards and install-latest restore them before install-test.sh, whose own
   // `playwright install`, at the same pinned version, then downloads nothing.
   const ci = workflows.find((workflow) => workflow.file === "ci.yml").text;
-  assert.equal(ci.match(/browsers: chromium webkit\n\s+system-packages: "false"\n(?:\s+#.*\n)*\s+- (name: Browser system packages|run: SHADCN_VERSION=latest scripts\/install-test\.sh)/g)?.length, 2);
+  assert.equal(ci.match(/browsers: chromium webkit\n\s+system-packages: "false"\n(?:\s+#.*\n)*\s+- (id: debs|run: SHADCN_VERSION=latest scripts\/install-test\.sh)/g)?.length, 2);
   // Main's cache, which every other run can restore, holds each set the workflows install, on
   // each runner image they run on.
   const warm = workflows.find((workflow) => workflow.file === "browser-cache.yml").text;
@@ -60,8 +60,8 @@ test("CI downloads Playwright's browsers only through the cached action", () => 
   assert.match(warm, /runs-on: \$\{\{ matrix\.runner \}\}/);
 });
 
-test("the browser action restores, downloads only what is missing with retries, saves on a miss, then installs system packages", () => {
-  const steps = ["actions/cache/restore@", "scripts/retry.sh pnpm exec playwright install $BROWSERS", "actions/cache/save@", "scripts/retry.sh pnpm exec playwright install-deps $BROWSERS"];
+test("the browser action restores, downloads only what is missing with retries, saves on a miss, then installs system packages from their own cache", () => {
+  const steps = ["actions/cache/restore@", "scripts/retry.sh pnpm exec playwright install $BROWSERS", "actions/cache/save@", "id: debs\n", 'scripts/browser-deps.sh "$OURO_BROWSER_DEBS" $BROWSERS', "steps.debs.outputs.cache-hit != 'true'"];
   const at = steps.map((step) => browserAction.indexOf(step));
   assert.ok(at.every((index) => index > 0), `missing: ${steps.filter((_, index) => at[index] < 0).join(", ")}`);
   assert.deepEqual([...at].sort((a, b) => a - b), at, "in this order");
@@ -72,7 +72,53 @@ test("the browser action restores, downloads only what is missing with retries, 
   assert.match(browserAction, /image=\$\(\. \/etc\/os-release && echo "\$\{ID\}\$\{VERSION_ID\}"\)/);
   assert.match(browserAction, /version=\$\(node -p 'require\("playwright\/package\.json"\)\.version'\)/);
   assert.match(browserAction, /- if: steps\.restore\.outputs\.cache-hit != 'true'\n\s+uses: actions\/cache\/save@/);
-  assert.match(browserAction, /- if: inputs\.system-packages == 'true'\n\s+shell: bash/);
+  // The system packages' .deb files, kept per runner image version (whose installed packages they
+  // complete), architecture, Playwright version and browsers.
+  assert.match(browserAction, /debs-key=browser-debs-\$\{RUNNER_OS\}-\$\{image\}-\$\{ImageVersion:-unknown\}-\$\{RUNNER_ARCH\}-\$\{version\}-\$\{set\}/);
+  assert.match(browserAction, /- if: inputs\.system-packages == 'true'\n\s+id: debs\n\s+uses: actions\/cache\/restore@/);
+  assert.match(browserAction, /- if: inputs\.system-packages == 'true' && steps\.debs\.outputs\.cache-hit != 'true'\n\s+uses: actions\/cache\/save@[0-9a-f]{40} # v[\d.]+\n\s+# Another job may have saved the same key first\.\n\s+continue-on-error: true/);
+  assert.match(browserAction, /^ {2}debs-key:\n {4}description: .+\n {4}value: \$\{\{ steps\.key\.outputs\.debs-key \}\}$/m);
+  assert.doesNotMatch(browserAction, /exec playwright install-deps/);
+});
+
+test("browser-deps.sh installs the cached system packages with dpkg, and otherwise installs them with Playwright, keeping the .deb files for the cache", () => {
+  const scratch = scratchDir("ouro-browser-deps-");
+  const bin = join(scratch, "bin");
+  mkdirSync(bin);
+  const log = join(scratch, "calls.log");
+  // Stand-ins: a Linux uname, sudo runs its command, tee writes to the log, dpkg exits $DPKG, pnpm logs.
+  writeFileSync(join(bin, "uname"), `#!/usr/bin/env bash\necho Linux\n`);
+  writeFileSync(join(bin, "sudo"), `#!/usr/bin/env bash\n"$@"\n`);
+  writeFileSync(join(bin, "tee"), `#!/usr/bin/env bash\nprintf 'tee %s\\n' "$*" >> "${log}"\ncat >> "${log}"\n`);
+  writeFileSync(join(bin, "dpkg"), `#!/usr/bin/env bash\nprintf 'dpkg %s\\n' "$*" >> "${log}"\nexit "\${DPKG:-0}"\n`);
+  writeFileSync(join(bin, "pnpm"), `#!/usr/bin/env bash\nprintf 'pnpm %s\\n' "$*" >> "${log}"\n`);
+  for (const name of ["uname", "sudo", "tee", "dpkg", "pnpm"]) chmodSync(join(bin, name), 0o755);
+  const run = (dir, env = {}) => {
+    writeFileSync(log, "");
+    const result = spawnSync("bash", [join(root, "scripts/browser-deps.sh"), dir, "chromium", "webkit"], { encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, ...env } });
+    return { ...result, calls: readFileSync(log, "utf8") };
+  };
+  const cached = join(scratch, "cached");
+  mkdirSync(cached);
+  writeFileSync(join(cached, "libwoff1_1.0.2_amd64.deb"), "");
+  writeFileSync(join(cached, "libavif16_1.0.4_amd64.deb"), "");
+  const hit = run(cached);
+  assert.equal(hit.status, 0, hit.stderr);
+  assert.match(hit.calls, /^dpkg -i .*libavif16_1\.0\.4_amd64\.deb .*libwoff1_1\.0\.2_amd64\.deb$/m);
+  assert.doesNotMatch(hit.calls, /pnpm/);
+  // dpkg fails: Playwright installs them from the network, which also mends what dpkg left half done.
+  const broken = run(cached, { DPKG: "1" });
+  assert.equal(broken.status, 0, broken.stderr);
+  assert.match(broken.stdout, /did not install/);
+  assert.match(broken.calls, /^pnpm exec playwright install-deps chromium webkit$/m);
+  // A miss: apt keeps the .deb files it downloads in the folder, for the cache to save.
+  const empty = join(scratch, "empty");
+  const miss = run(empty);
+  assert.equal(miss.status, 0, miss.stderr);
+  assert.match(miss.calls, new RegExp(`^tee /etc/apt/apt\\.conf\\.d/90ouro-browser-debs\\nDir::Cache::Archives "${empty.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}/";\\nAPT::Keep-Downloaded-Packages "true";\\nBinary::apt::APT::Keep-Downloaded-Packages "true";$`, "m"));
+  assert.match(miss.calls, /^pnpm exec playwright install-deps chromium webkit$/m);
+  assert.doesNotMatch(miss.calls, /dpkg/);
+  assert.ok(existsSync(join(empty, "partial")));
 });
 
 // The repository's scripts, which CI also runs: the .mjs files under scripts/ and site/scripts/, but their tests.
@@ -941,6 +987,18 @@ test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD
   assert.match(failed.stdout, /did not finish; installing them here/);
   assert.match(run({ CI: "1" }).stdout, /^npx playwright install --with-deps chromium webkit$/m);
   assert.match(ciJobs()["install-shard"], /^ {6}- name: Browser system packages, in the background\n {8}env:\n {10}OURO_BROWSER_DEPS: \$\{\{ runner\.temp \}\}\/browser-deps\.status\n/m);
+  // From their cache: restored before the background install, which uses it, and saved after the test on a miss.
+  const installJob = ciJobs()["install-shard"];
+  const restoreAt = installJob.search(/^ {6}- id: debs\n {8}uses: actions\/cache\/restore@/m);
+  const backgroundAt = installJob.indexOf('scripts/browser-deps.sh "$OURO_BROWSER_DEBS" chromium webkit');
+  const testAt = installJob.indexOf("- name: Install test");
+  // Saved only once the background install has passed: a half-filled folder would fail the next dpkg -i.
+  const readyAt = installJob.search(/^ {6}- if: always\(\) && steps\.debs\.outputs\.cache-hit != 'true'\n {8}id: debs-ready\n/m);
+  const saveAt = installJob.search(/^ {6}- if: always\(\) && steps\.debs-ready\.outputs\.ready == 'true'\n {8}uses: actions\/cache\/save@/m);
+  assert.ok(readyAt > testAt && saveAt > readyAt, `${readyAt} ${saveAt}`);
+  assert.match(installJob, /\[ "\$\(cat "\$OURO_BROWSER_DEPS" 2>\/dev\/null\)" = 0 \] && echo ready=true >> "\$GITHUB_OUTPUT" \|\| true/);
+  assert.ok(restoreAt > 0 && backgroundAt > restoreAt && testAt > backgroundAt && saveAt > testAt, `${restoreAt} ${backgroundAt} ${testAt} ${saveAt}`);
+  assert.match(installJob, /key: \$\{\{ steps\.browsers\.outputs\.debs-key \}\}/);
   assert.match(ciJobs()["install-shard"], /^ {10}OURO_BROWSER_DEPS: \$\{\{ runner\.temp \}\}\/browser-deps\.status$/gm);
   const some = run({ OURO_COMPONENTS: "checkbox,checkbox-group", OURO_SHARD: "1/3" });
   assert.equal(some.status, 0, some.stderr);
