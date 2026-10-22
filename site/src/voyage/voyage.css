@@ -80,11 +80,11 @@
     color: var(--card-foreground);
     box-shadow: var(--shadow-sm);
     /*
-     * Its own layer: a press inside the window repaints the window, not its shadow on the page
-     * under it. Without one, WebKit on Linux spent more than half of each press's time in Chapter I
-     * repainting the windows' shadows (measured on CI for pull request 153).
+     * Each window also carries `will-change-transform`, a layer of its own: a press inside the
+     * window repaints the window, not its shadow on the page under it. Without one, WebKit on Linux
+     * spent more than half of each press's time in Chapter I repainting the windows' shadows
+     * (measured on CI for pull request 153). The utility is in the page's CSS already.
      */
-    will-change: transform;
   }
   .site-window-bar {
     display: flex;
@@ -346,25 +346,20 @@
       row-gap: 2rem;
     }
   }
-  /* The destination, for screen readers (the link's description) and, where nothing can hover, in small print under the link. */
+  /*
+   * The destination: the link's description for screen readers (a hidden element still describes),
+   * and, where nothing can hover, small print under the link.
+   */
   .site-proof-where {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
+    display: none;
   }
   @media (hover: none) {
     .site-proof li {
       flex-wrap: wrap;
     }
     .site-proof-where {
-      position: static;
+      display: block;
       width: 100%;
-      height: auto;
-      overflow: visible;
-      clip-path: none;
       padding-inline-start: 1.5rem;
       font-size: 0.75rem;
     }
