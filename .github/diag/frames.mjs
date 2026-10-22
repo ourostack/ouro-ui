@@ -3,11 +3,10 @@ import { chromium, webkit } from "@playwright/test";
 const [base, label] = [process.argv[2], process.argv[3]];
 const VARIANTS = {
   asis: "",
-  noactive: { pseudo: "active" },
-  nohover: { pseudo: "hover" },
-  nofocus: { pseudo: "focus|focus-visible|focus-within" },
-  textfixed: "main svg text { text-rendering: optimizeSpeed; }",
-  textgeometric: "main svg text { text-rendering: geometricPrecision; }",
+  notransform: "main, main * { transform: none !important; scale: none !important; translate: none !important; rotate: none !important; will-change: auto !important; }",
+  svgnoevents: "main svg, main svg * { pointer-events: none !important; }",
+  svgcontain: "main svg { contain: strict; }",
+  textstatic: "main svg text { font-size: 12px !important; font-family: sans-serif !important; }",
 };
 /** Drops each rule whose selector has the pseudo-class at all, and counts them. */
 const drop = (page, pseudo) => page.evaluate((pseudo) => {
@@ -65,7 +64,18 @@ for (const type of [webkit, chromium]) {
       const t2 = performance.now();
       requestAnimationFrame(() => { const t3 = performance.now(); getSelection().removeAllRanges(); void document.body.offsetHeight; resolve(`selection set ${Math.round(t1 - t0)} layout ${Math.round(t2 - t1)} frame ${Math.round(t3 - t2)} clear+layout ${Math.round(performance.now() - t3)}`); });
     }));
-    console.log(`${type.name()} ${name} ${selection}`);
+    const synthetic = await page.evaluate(() => new Promise((resolve) => {
+      const target = document.querySelector("#chapter-two h2");
+      const t0 = performance.now();
+      target.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true, composed: true }));
+      target.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true, composed: true }));
+      const t1 = performance.now();
+      void document.body.offsetHeight;
+      const t2 = performance.now();
+      requestAnimationFrame(() => resolve(`synthetic js ${Math.round(t1 - t0)} layout ${Math.round(t2 - t1)} frame ${Math.round(performance.now() - t2)}`));
+    }));
+    const hover = await (async () => { const box = await page.locator("#chapter-two h2").first().boundingBox(); await page.mouse.move(5, 5); await page.waitForTimeout(300); await arm(page); const t = Date.now(); await page.mouse.move(box.x + 10, box.y + 10); return `hover ${Date.now() - t}`; })();
+    console.log(`${type.name()} ${name} ${selection} · ${synthetic} · ${hover} ${await read(page)}`);
     const targets = {
       text: page.locator("#chapter-two h2").first(),
     };
