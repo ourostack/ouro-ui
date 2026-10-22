@@ -17,7 +17,7 @@ export default function DraftEditorDemo(): JSX.Element {
       placeholder="Write a reply"
       value={draft.text}
       segments={draft.segments}
-      onValueChange={(text, segments) => setDraft({ text, segments })}
+      onValueChange={(text, segments = []) => setDraft({ text, segments })}
       readiness="ready-for-review"
       readinessBy={{ author: "agent", name: "Ouro" }}
       actions={<Button>Send</Button>}

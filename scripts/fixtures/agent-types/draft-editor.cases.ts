@@ -6,7 +6,7 @@ export const agentCases: AgentCase[] = [
   {
     id: "draftEditor02",
     habit: "a done readiness",
-    tsc: [notAssignable('"done"', `DraftReadiness | (string & { 'Use "drafting", "needs-input", "ready-for-review" or "approved"': never; }) | undefined`)],
+    tsc: [notAssignable('"done"', `"approved" | "drafting" | "needs-input" | "ready-for-review" | (string & { 'Use "drafting", "needs-input", "ready-for-review" or "approved"': never; }) | undefined`)],
     dev: '<DraftEditor readiness="ready-for-review">',
     names: ["tsc", "dev"],
   },

@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState, type ReactNode } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
-import { DraftEditor, type DraftEditorProps, type DraftSegment } from "@/registry/ouro/components/ouro/draft-editor/draft-editor";
+import { DraftEditor, type DraftReadinessProps, type DraftSegment } from "@/registry/ouro/components/ouro/draft-editor/draft-editor";
 
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names).
 
@@ -17,10 +17,10 @@ const shared: DraftSegment[] = [
 ];
 
 /** A draft the story keeps, as an app would: the text and its runs, from onValueChange. */
-function Draft({ initial = shared, ...props }: { initial?: DraftSegment[] } & Partial<DraftEditorProps>) {
+function Draft({ initial = shared, ...props }: { initial?: DraftSegment[]; readinessNote?: string; actions?: ReactNode } & DraftReadinessProps) {
   const [draft, setDraft] = useState({ text: initial.map((segment) => segment.text).join(""), segments: initial });
   return (
-    <DraftEditor label="Reply" placeholder="Write a reply" {...props} value={draft.text} segments={draft.segments} onValueChange={(text, segments) => setDraft({ text, segments })} />
+    <DraftEditor label="Reply" placeholder="Write a reply" {...props} value={draft.text} segments={draft.segments} onValueChange={(text, segments = []) => setDraft({ text, segments })} />
   );
 }
 

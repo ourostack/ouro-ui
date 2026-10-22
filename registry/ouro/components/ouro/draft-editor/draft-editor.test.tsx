@@ -4,7 +4,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
-import { DraftEditor, type DraftEditorProps, type DraftSegment } from "@/registry/ouro/components/ouro/draft-editor/draft-editor";
+import { DraftEditor, type DraftEditorProps, type DraftReadinessProps, type DraftSegment } from "@/registry/ouro/components/ouro/draft-editor/draft-editor";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 const roots: Root[] = [];
@@ -39,7 +39,7 @@ const segments: DraftSegment[] = [
 ];
 const value = segments.map((segment) => segment.text).join("");
 
-function Controlled({ initial = segments, onEdit, ...props }: { initial?: DraftSegment[]; onEdit?: (value: string, segments: DraftSegment[]) => void } & Partial<DraftEditorProps>) {
+function Controlled({ initial = segments, onEdit, ...props }: { initial?: DraftSegment[]; onEdit?: (value: string, segments: DraftSegment[] | undefined) => void } & DraftReadinessProps) {
   const [draft, setDraft] = useState({ text: initial.map((segment) => segment.text).join(""), segments: initial });
   return (
     <DraftEditor
@@ -49,7 +49,7 @@ function Controlled({ initial = segments, onEdit, ...props }: { initial?: DraftS
       segments={draft.segments}
       onValueChange={(text, next) => {
         onEdit?.(text, next);
-        setDraft({ text, segments: next });
+        setDraft({ text, segments: next ?? [] });
       }}
     />
   );
@@ -115,6 +115,48 @@ describe("DraftEditor", () => {
     expect(onChange.mock.lastCall![1].at(-1)).toEqual({ author: "agent", text: " at ten" });
   });
 
+  it("gives the person what they type where they type it, even when it matches the words around it", async () => {
+    const onChange = vi.fn();
+    const initial: DraftSegment[] = [
+      { author: "human", text: "Thanks. " },
+      { author: "agent", text: "I can meet on Friday at ten." },
+    ];
+    const { textarea } = await render(<Controlled initial={initial} onEdit={onChange} />);
+    const at = "Thanks. I can meet on Friday ".length;
+    await act(async () => {
+      textarea.focus();
+      textarea.setSelectionRange(at, at);
+    });
+    await userEvent.keyboard("at nine, or ");
+    expect(onChange).toHaveBeenLastCalledWith("Thanks. I can meet on Friday at nine, or at ten.", [
+      { author: "human", text: "Thanks. " },
+      { author: "agent", text: "I can meet on Friday " },
+      { author: "human", text: "at nine, or " },
+      { author: "agent", text: "at ten." },
+    ]);
+    // A deletion is placed by the caret too: Backspace takes the person's space, not the agent's.
+    await userEvent.keyboard("{Backspace}");
+    expect(onChange.mock.lastCall![1]).toEqual([
+      { author: "human", text: "Thanks. " },
+      { author: "agent", text: "I can meet on Friday " },
+      { author: "human", text: "at nine, or" },
+      { author: "agent", text: "at ten." },
+    ]);
+  });
+
+  it("places an edit by the text when the selection does not fit it", async () => {
+    const onValueChange = vi.fn();
+    const { textarea } = await render(<DraftEditor label="Reply" value={value} segments={segments} onValueChange={onValueChange} />);
+    // A beforeinput whose selection does not fit the change after it: the text places the change.
+    await act(async () => {
+      textarea.setSelectionRange(0, 0);
+      textarea.dispatchEvent(new InputEvent("beforeinput", { bubbles: true, cancelable: true, inputType: "insertText", data: "!" }));
+      textarea.setRangeText("!", value.length, value.length, "end");
+      textarea.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertText", data: "!" }));
+    });
+    expect(onValueChange).toHaveBeenLastCalledWith(`${value}!`, [...segments, { author: "human", text: "!" }]);
+  });
+
   it("describes the box with the agent's words, for screen readers", async () => {
     await render(<DraftEditor label="Reply" value={value} segments={segments} onValueChange={() => {}} aria-describedby="hint" />);
     const hint = document.createElement("p");
@@ -175,17 +217,27 @@ describe("DraftEditor", () => {
     expect(badge()!.textContent).toBe("Approved");
     expect(badge()!.className).toContain("bg-success/10");
     expect(warn).not.toHaveBeenCalled();
-    await rerender(
-      <DraftEditor label="Reply" value="Hi" segments={[{ author: "human", text: "Hi" }]} readiness="approved" readinessBy={{ author: "agent", name: "Ouro" }} onValueChange={() => {}} />,
-    );
+    expect(editor.dataset.readiness).toBe("approved");
+    const byAgent = { label: "Reply", value: "Hi", segments: [{ author: "human", text: "Hi" }], readiness: "approved", readinessBy: { author: "agent", name: "Ouro" }, onValueChange: () => {} } as unknown as DraftEditorProps;
+    await rerender(<DraftEditor {...byAgent} />);
     expect(badge()).toBeNull();
+    expect(editor.dataset.readiness).toBe("drafting");
     expect(editor.textContent).not.toContain("Ouro");
     expect(warn).toHaveBeenCalledWith(
       '[ouro-ui] DraftEditor: readiness="approved" was set by an agent, so it is not shown; only a person approves a draft. Fix: <DraftEditor readiness="ready-for-review" readinessBy={{ author: "agent", name: "Ouro" }}>.',
     );
+    // An approval from no one named is not shown either.
+    const byNoOne = { label: "Reply", value: "Hi", segments: [{ author: "human", text: "Hi" }], readiness: "approved", onValueChange: () => {} } as unknown as DraftEditorProps;
+    await rerender(<DraftEditor {...byNoOne} />);
+    expect(badge()).toBeNull();
+    expect(editor.dataset.readiness).toBe("drafting");
+    expect(editor.querySelector("textarea")!.getAttribute("aria-describedby")).toBeNull();
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] DraftEditor: readiness="approved" has no readinessBy, so it is not shown; only a person approves a draft. Fix: <DraftEditor readiness="approved" readinessBy={{ author: "human", name: "You" }}>.',
+    );
   });
 
-  it("highlights nothing while the segments are out of step with the value, and gives the person the edit", async () => {
+  it("highlights nothing while the segments are out of step with the value, and gives no one the edit", async () => {
     const onValueChange = vi.fn();
     const { textarea, highlights } = await render(<DraftEditor label="Reply" value="Hello" segments={segments} onValueChange={onValueChange} />);
     expect(highlights).toBeNull();
@@ -197,7 +249,8 @@ describe("DraftEditor", () => {
       textarea.setSelectionRange(5, 5);
     });
     await userEvent.keyboard("!");
-    expect(onValueChange).toHaveBeenLastCalledWith("Hello!", [{ author: "human", text: "Hello!" }]);
+    // Who wrote "Hello" is unknown, so the runs are not guessed: none of it is given to the person.
+    expect(onValueChange).toHaveBeenLastCalledWith("Hello!", undefined);
   });
 
   it("keeps the highlight under the text when the box scrolls", async () => {

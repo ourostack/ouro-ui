@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useLayoutEffect, useRef, useState, type CSSProperties, type JSX, type ReactNode, type Ref, type TextareaHTMLAttributes } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type JSX, type ReactNode, type Ref, type TextareaHTMLAttributes } from "react";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
@@ -41,14 +41,12 @@ export interface DraftEditorOwnProps {
   /**
    * Called when the person edits, with the new text and the runs updated to match: the
    * person's typing is theirs, and what they did not touch keeps its author. Store both.
+   * The runs are `undefined` when `segments` did not join to `value`: who wrote what is then
+   * unknown, so none of it is given to the person.
    */
-  onValueChange: (value: string, segments: DraftSegment[]) => void;
+  onValueChange: (value: string, segments: DraftSegment[] | undefined) => void;
   /** Who wrote which part of `value`. Agent-written runs are highlighted in place. */
   segments: readonly DraftSegment[];
-  /** Where the draft stands, shown as a badge above it. @default "drafting", which shows the badge only once it moves on */
-  readiness?: DraftReadiness | (string & { 'Use "drafting", "needs-input", "ready-for-review" or "approved"': never }) | undefined;
-  /** Who set the readiness. An agent's `approved` is not shown: only a person approves. */
-  readinessBy?: DraftReadinessBy | undefined;
   /** A short note from whoever set the readiness ("Check the dates"). */
   readinessNote?: string | undefined;
   /** The readiness badge's text, for other languages. Defaults to "Needs your input", "Ready for your review" or "Approved". */
@@ -76,8 +74,36 @@ export interface DraftEditorOwnProps {
   onChange?: { 'Use onValueChange={(text, segments) => save(text, segments)}': never };
 }
 
-/** Props for {@link DraftEditor}: its own props and the `<textarea>` attributes it passes through. */
-export type DraftEditorProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, keyof DraftEditorOwnProps | "children"> & DraftEditorOwnProps;
+/** An approved draft: only a person approves, so `readinessBy` names the person. */
+export interface DraftApproval {
+  /** Where the draft stands, shown as a badge above it. */
+  readiness: "approved";
+  /** The person who approved it. */
+  readinessBy: DraftReadinessBy & { author: "human" };
+}
+
+/** A draft not yet approved: where it stands, said by a person or an agent. */
+export interface DraftProgress {
+  /** Where the draft stands, shown as a badge above it. @default "drafting", which shows the badge only once it moves on */
+  readiness?: Exclude<DraftReadiness, "approved"> | (string & { 'Use "drafting", "needs-input", "ready-for-review" or "approved"': never }) | undefined;
+  /** Who set the readiness. */
+  readinessBy?: DraftReadinessBy | undefined;
+}
+
+/** Where the draft stands and who said so: `approved` takes a person in `readinessBy`. */
+export type DraftReadinessProps = DraftApproval | DraftProgress;
+
+/** The props both modes share: DraftEditor's own and the `<textarea>` attributes it passes through. */
+export type DraftEditorBaseProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, keyof DraftEditorOwnProps | "children"> & DraftEditorOwnProps;
+
+/** Approved by a person, named in `readinessBy`. */
+export type DraftEditorApprovedProps = DraftEditorBaseProps & DraftApproval;
+
+/** Drafting, needing input or ready for review, as a person or an agent says. */
+export type DraftEditorInProgressProps = DraftEditorBaseProps & DraftProgress;
+
+/** Props for {@link DraftEditor}. Only a person approves: `readiness="approved"` takes a person in `readinessBy`. */
+export type DraftEditorProps = DraftEditorApprovedProps | DraftEditorInProgressProps;
 
 const readinessBadges = {
   "needs-input": { label: "Needs your input", tone: "warning" },
@@ -97,12 +123,35 @@ const quiet = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foregr
 
 const join = (segments: readonly DraftSegment[]) => segments.map((segment) => segment.text).join("");
 
-/** The runs after an edit: the text between the unchanged start and end is the person's. */
-function rebase(segments: readonly DraftSegment[], before: string, after: string): DraftSegment[] {
+/** Where an edit was: the selection before it and the caret after it. */
+interface DraftEdit {
+  before: { start: number; end: number };
+  caret: number;
+}
+
+/**
+ * The lengths of the unchanged start and end around an edit: the longest unchanged start, then
+ * the longest unchanged end. When the changed text matches its neighbours, the change could sit
+ * in more than one place; the selection says where the person made it, so what they typed is
+ * theirs even when an agent's words around it read the same.
+ */
+function unchanged(before: string, after: string, edit: DraftEdit | null): [number, number] {
   let start = 0;
   while (start < before.length && start < after.length && before[start] === after[start]) start++;
   let end = 0;
   while (end < before.length - start && end < after.length - start && before[before.length - 1 - end] === after[after.length - 1 - end]) end++;
+  if (edit) {
+    // The same change, placed by the selection: as small, with the text around it unchanged.
+    const at = Math.min(edit.before.start, edit.caret);
+    const rest = after.length - edit.caret;
+    if (at + rest === start + end && before.slice(0, at) === after.slice(0, at) && before.endsWith(after.slice(edit.caret))) return [at, rest];
+  }
+  return [start, end];
+}
+
+/** The runs after an edit: the text between the unchanged start and end is the person's. */
+function rebase(segments: readonly DraftSegment[], before: string, after: string, edit: DraftEdit | null): DraftSegment[] {
+  const [start, end] = unchanged(before, after, edit);
   const runs: DraftSegment[] = [];
   const push = (author: DraftAuthor, text: string) => {
     if (!text) return;
@@ -132,7 +181,7 @@ function rebase(segments: readonly DraftSegment[], before: string, after: string
  * updated to match, so what they type is theirs and what they leave keeps its author.
  * Screen readers hear the agent's words in the box's description. An agent can ask for
  * input or say the draft is ready for review, but only a person approves it: an `approved`
- * set by an agent is not shown.
+ * shows only with a person in `readinessBy`.
  *
  * Use `TextArea` instead for text only one person writes, and `DraftReview` to accept or
  * reject an agent's changes one by one.
@@ -153,7 +202,7 @@ function rebase(segments: readonly DraftSegment[], before: string, after: string
  * @claim "the agent's words are highlighted in" registry/ouro/components/ouro/draft-editor/draft-editor.test.tsx verify:testExists(registry/ouro/components/ouro/draft-editor/draft-editor.test.tsx::DraftEditor > highlights the agent's words in place, under the text, wrapped as the text wraps)
  * @claim "so what they type is theirs" registry/ouro/components/ouro/draft-editor/draft-editor.test.tsx verify:testExists(registry/ouro/components/ouro/draft-editor/draft-editor.test.tsx::DraftEditor > gives the person's typing to them and keeps the author of what they leave)
  * @claim "Screen readers hear the agent's words" registry/ouro/components/ouro/draft-editor/draft-editor.test.tsx verify:testExists(registry/ouro/components/ouro/draft-editor/draft-editor.test.tsx::DraftEditor > describes the box with the agent's words, for screen readers)
- * @claim "an `approved` set by an agent" registry/ouro/components/ouro/draft-editor/draft-editor.test.tsx verify:testExists(registry/ouro/components/ouro/draft-editor/draft-editor.test.tsx::DraftEditor > shows approval only from a person)
+ * @claim "an `approved` shows only with a person" registry/ouro/components/ouro/draft-editor/draft-editor.test.tsx verify:testExists(registry/ouro/components/ouro/draft-editor/draft-editor.test.tsx::DraftEditor > shows approval only from a person)
  */
 export function DraftEditor(props: DraftEditorProps): JSX.Element {
   const {
@@ -189,8 +238,25 @@ export function DraftEditor(props: DraftEditorProps): JSX.Element {
   const inStep = join(segments) === value;
   const agentRuns = inStep ? segments.filter((segment) => segment.author === "agent" && segment.text.trim() !== "") : [];
   const highlighted = agentRuns.length > 0;
-  const agentApproved = readiness === "approved" && readinessBy?.author === "agent";
-  const badge = readiness === "drafting" || agentApproved ? null : readinessBadges[readiness];
+  // Only a person approves: an approval from an agent, or from no one named, shows as drafting.
+  const unapproved = readiness === "approved" && readinessBy?.author !== "human";
+  const shown: DraftReadiness = unapproved ? "drafting" : readiness;
+  const badge = shown === "drafting" ? null : readinessBadges[shown];
+  // The selection when an edit began (the native beforeinput), so the edit is placed where it was made.
+  const selection = useRef<DraftEdit["before"] | null>(null);
+  useEffect(() => {
+    const textarea = area.current!;
+    const record = () => (selection.current = { start: textarea.selectionStart, end: textarea.selectionEnd });
+    textarea.addEventListener("beforeinput", record);
+    return () => textarea.removeEventListener("beforeinput", record);
+  }, []);
+  const change = (next: string) => {
+    const before = selection.current;
+    selection.current = null;
+    // Out of step, who wrote what is unknown: the runs are not guessed, and no one is given the edit.
+    if (!inStep) return onValueChange(next, undefined);
+    onValueChange(next, rebase(segments, value, next, before && { before, caret: area.current!.selectionStart }));
+  };
 
   useAppearanceClassNameCheck(
     "DraftEditor",
@@ -209,10 +275,16 @@ export function DraftEditor(props: DraftEditorProps): JSX.Element {
             `readiness="${String(readinessProp)}" is not a readiness; use "drafting", "needs-input", "ready-for-review" or "approved"`,
             '<DraftEditor readiness="ready-for-review">',
           ],
-          agentApproved && [
-            'readiness="approved" was set by an agent, so it is not shown; only a person approves a draft',
-            '<DraftEditor readiness="ready-for-review" readinessBy={{ author: "agent", name: "Ouro" }}>',
-          ],
+          unapproved &&
+            readinessBy !== undefined && [
+              'readiness="approved" was set by an agent, so it is not shown; only a person approves a draft',
+              '<DraftEditor readiness="ready-for-review" readinessBy={{ author: "agent", name: "Ouro" }}>',
+            ],
+          unapproved &&
+            readinessBy === undefined && [
+              'readiness="approved" has no readinessBy, so it is not shown; only a person approves a draft',
+              '<DraftEditor readiness="approved" readinessBy={{ author: "human", name: "You" }}>',
+            ],
           provenance !== undefined && ["provenance is not a prop", "<DraftEditor segments={segments}>"],
           defaultValue !== undefined && ["defaultValue is not a prop; the draft is controlled", "<DraftEditor value={text} onValueChange={save}>"],
           onChange !== undefined && ["onChange is not a prop", "<DraftEditor onValueChange={(text, segments) => save(text, segments)}>"],
@@ -248,7 +320,7 @@ export function DraftEditor(props: DraftEditorProps): JSX.Element {
   const describedByIds = [describedBy, status ? `${id}-status` : undefined].filter(Boolean).join(" ") || undefined;
 
   return (
-    <div data-ouro="draft-editor" data-readiness={readiness} className={cn("box-border flex min-w-0 flex-col gap-2", className)}>
+    <div data-ouro="draft-editor" data-readiness={shown} className={cn("box-border flex min-w-0 flex-col gap-2", className)}>
       {status && (
         <div id={`${id}-status`} className={cn("flex flex-wrap items-center gap-2 text-xs", quiet)}>
           {highlighted && (
@@ -306,7 +378,7 @@ export function DraftEditor(props: DraftEditorProps): JSX.Element {
             value={value}
             placeholder={placeholder}
             aria-describedby={describedByIds}
-            onValueChange={(next: string) => onValueChange(next, rebase(inStep ? segments : [{ author: "human", text: value }], value, next))}
+            onValueChange={change}
             onScroll={(event) => {
               setScrollTop(event.currentTarget.scrollTop);
               onScroll?.(event);

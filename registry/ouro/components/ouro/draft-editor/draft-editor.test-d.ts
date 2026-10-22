@@ -5,12 +5,13 @@ import {
   type DraftAuthor,
   type DraftEditorProps,
   type DraftReadiness,
+  type DraftReadinessProps,
   type DraftSegment,
 } from "@/registry/ouro/components/ouro/draft-editor/draft-editor";
 
 // Type tests: `pnpm typecheck` compiles this file.
 
-type Save = (value: string, segments: DraftSegment[]) => void;
+type Save = (value: string, segments: DraftSegment[] | undefined) => void;
 expectTypeOf<{ label: "Reply"; value: "Hi"; segments: DraftSegment[]; onValueChange: Save }>().toExtend<DraftEditorProps>();
 expectTypeOf<{
   label: "Reply";
@@ -38,6 +39,13 @@ expectTypeOf<ComponentProps<typeof DraftEditor>>().toEqualTypeOf<DraftEditorProp
 expectTypeOf<{ value: "Hi"; segments: DraftSegment[]; onValueChange: Save }>().not.toExtend<DraftEditorProps>();
 expectTypeOf<{ label: "Reply"; value: "Hi"; onValueChange: Save }>().not.toExtend<DraftEditorProps>();
 expectTypeOf<{ label: "Reply"; value: "Hi"; segments: DraftSegment[] }>().not.toExtend<DraftEditorProps>();
+// onValueChange gives undefined runs when the segments were out of step, so a handler takes them.
+expectTypeOf<{ label: "Reply"; value: "Hi"; segments: DraftSegment[]; onValueChange: (value: string, segments: DraftSegment[]) => void }>().not.toExtend<DraftEditorProps>();
+// Only a person approves: approved takes a person in readinessBy.
+expectTypeOf<{ readiness: "approved"; readinessBy: { author: "human"; name: "You" } }>().toExtend<DraftReadinessProps>();
+expectTypeOf<{ readiness: "approved"; readinessBy: { author: "agent"; name: "Ouro" } }>().not.toExtend<DraftReadinessProps>();
+expectTypeOf<{ readiness: "approved" }>().not.toExtend<DraftReadinessProps>();
+expectTypeOf<{ readiness: "needs-input"; readinessBy: { author: "agent"; name: "Ouro" } }>().toExtend<DraftReadinessProps>();
 // A run's author is a person or an agent.
 expectTypeOf<{ author: "assistant"; text: "Hi" }>().not.toExtend<DraftSegment>();
 
