@@ -70,5 +70,7 @@
   "conversation-list",
   "attention-card",
   "reaction-bar",
-  "preset-picker"
+  "preset-picker",
+  "layout-proposal",
+  "copy-prompt"
 ]

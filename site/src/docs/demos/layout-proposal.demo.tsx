@@ -1,4 +1,4 @@
-import { useState, type JSX } from "react";
+import { useEffect, useRef, useState, type JSX } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { LayoutProposal } from "@/registry/ouro/components/ouro/layout-proposal/layout-proposal";
 
@@ -9,6 +9,11 @@ export default function LayoutProposalDemo(): JSX.Element {
   const [proposal, setProposal] = useState<string | null>("p1");
   const [previewing, setPreviewing] = useState(false);
   const [result, setResult] = useState("");
+  // Once the person decides, the bar goes: focus moves to the line that says what happened.
+  const said = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (!proposal) said.current!.focus();
+  }, [proposal]);
   const decide = (applied: boolean) => (id: string, event: { isTrusted: boolean }) => {
     if (!event.isTrusted || id !== proposal) return;
     setResult(applied ? "Applied." : "Discarded.");
@@ -18,7 +23,9 @@ export default function LayoutProposalDemo(): JSX.Element {
   if (!proposal) {
     return (
       <div className="flex items-center gap-3">
-        <span>{result}</span>
+        <span ref={said} tabIndex={-1}>
+          {result}
+        </span>
         <Button variant="outline" onClick={() => setProposal("p1")}>
           Show the proposal again
         </Button>
@@ -27,7 +34,7 @@ export default function LayoutProposalDemo(): JSX.Element {
   }
   return (
     <LayoutProposal
-      id={proposal}
+      proposalId={proposal}
       title="Customers first"
       by="Ouro"
       time="Just now"

@@ -2314,6 +2314,48 @@
     ]
   },
   {
+    "item": "layout-proposal",
+    "stem": "layout-proposal",
+    "mode": "default",
+    "part": "toggle",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "LayoutProposal/Playground",
+      "LayoutProposal/Proposal",
+      "LayoutProposal/Previewing"
+    ]
+  },
+  {
+    "item": "layout-proposal",
+    "stem": "layout-proposal",
+    "mode": "default",
+    "part": "apply",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "LayoutProposal/Playground",
+      "LayoutProposal/Proposal",
+      "LayoutProposal/Previewing"
+    ]
+  },
+  {
+    "item": "layout-proposal",
+    "stem": "layout-proposal",
+    "mode": "default",
+    "part": "discard",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "LayoutProposal/Playground",
+      "LayoutProposal/Proposal",
+      "LayoutProposal/Previewing"
+    ]
+  },
+  {
     "item": "preset-picker",
     "stem": "preset-picker",
     "mode": "default",
@@ -2324,6 +2366,19 @@
     "stories": [
       "PresetPicker/Playground",
       "PresetPicker/Choosing"
+    ]
+  },
+  {
+    "item": "copy-prompt",
+    "stem": "copy-prompt",
+    "mode": "default",
+    "part": "copy",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "CopyPrompt/Playground",
+      "CopyPrompt/Prompts"
     ]
   }
 ]

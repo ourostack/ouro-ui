@@ -36,7 +36,8 @@ export type CopyPromptProps = Omit<HTMLAttributes<HTMLDivElement>, keyof CopyPro
  * person to hand to an agent of their own. The prompt wraps as prose, keeping its line breaks, and the
  * button is `CopyButton`: it copies through the Clipboard API or a text selection, says
  * "Copied" for two seconds, and screen readers hear it once. Screen readers hear the prompt as
- * the button's description, so several prompts on a page stay apart.
+ * the button's description, so several prompts on a page stay apart. With no `text`, the button
+ * is disabled.
  *
  * Use `CodeBlock` instead for code or a command, in the monospace font, and `CopyButton` alone
  * to copy a value shown elsewhere.
@@ -86,7 +87,19 @@ export function CopyPrompt(props: CopyPromptProps): JSX.Element {
       <p id={`${id}-text`} data-ouro-copy-prompt-text="" className="m-0 min-w-0 flex-1 py-1 text-sm break-words whitespace-pre-wrap">
         {text}
       </p>
-      <CopyButton value={text ?? ""} label={label} copiedLabel={copiedLabel} failedLabel={failedLabel} onCopy={onCopy} variant="soft" aria-describedby={`${id}-text`} className="shrink-0" />
+      <CopyButton
+        data-ouro-control="copy-prompt"
+        data-ouro-part="copy"
+        value={text ?? ""}
+        disabled={!text}
+        label={label}
+        copiedLabel={copiedLabel}
+        failedLabel={failedLabel}
+        onCopy={onCopy}
+        variant="soft"
+        aria-describedby={`${id}-text`}
+        className="shrink-0"
+      />
     </div>
   );
 }

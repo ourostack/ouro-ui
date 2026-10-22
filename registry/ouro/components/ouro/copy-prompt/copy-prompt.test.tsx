@@ -31,6 +31,7 @@ async function render(node: ReactNode) {
   await act(async () => root.render(node));
   return {
     host,
+    rerender: (next: ReactNode) => act(async () => root.render(next)),
     get prompt() {
       return host.querySelector<HTMLElement>('[data-ouro="copy-prompt"]')!;
     },
@@ -126,11 +127,18 @@ describe("CopyPrompt development messages", () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
-  it("copies nothing made up when the text is missing", async () => {
+  it("copies nothing when the text is missing or empty: its button is disabled", async () => {
     const props = {} as unknown as CopyPromptProps;
-    await render(<CopyPrompt {...props} />);
-    await userEvent.click(page.getByRole("button"));
-    expect(clipboard.every((copied) => copied === "")).toBe(true);
+    const { rerender } = await render(<CopyPrompt {...props} />);
+    await expect.element(page.getByRole("button")).toBeDisabled();
+    // Forced: Playwright waits for a button to be enabled.
+    await userEvent.click(page.getByRole("button"), { force: true });
+    await rerender(<CopyPrompt text="" />);
+    await expect.element(page.getByRole("button")).toBeDisabled();
+    await userEvent.click(page.getByRole("button"), { force: true });
+    expect(clipboard).toEqual([]);
+    await rerender(<CopyPrompt text={text} />);
+    await expect.element(page.getByRole("button")).toBeEnabled();
   });
 
   it.each([

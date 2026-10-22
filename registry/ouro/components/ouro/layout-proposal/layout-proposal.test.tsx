@@ -30,7 +30,7 @@ async function render(node: ReactNode) {
   };
 }
 
-const base = { id: "p1", title: "Customers first", by: "Ouro", onApply: () => {}, onDiscard: () => {} };
+const base = { proposalId: "p1", title: "Customers first", by: "Ouro", onApply: () => {}, onDiscard: () => {} };
 
 function Previewing({ onPreview }: { onPreview?: (previewing: boolean) => void }) {
   const [previewing, setPreviewing] = useState(false);
@@ -88,14 +88,54 @@ describe("LayoutProposal", () => {
   it("applies and discards with the proposal's id and the person's click", async () => {
     const onApply = vi.fn();
     const onDiscard = vi.fn();
-    await render(<LayoutProposal {...base} onApply={onApply} onDiscard={onDiscard} />);
+    const { rerender } = await render(<LayoutProposal {...base} onApply={onApply} onDiscard={onDiscard} />);
     await userEvent.click(page.getByRole("button", { name: "Apply" }));
     expect(onApply).toHaveBeenCalledTimes(1);
     expect(onApply.mock.calls[0]![0]).toBe("p1");
     expect(onApply.mock.calls[0]![1].isTrusted).toBe(true);
+    await rerender(<LayoutProposal {...base} proposalId="p2" onApply={onApply} onDiscard={onDiscard} />);
     await userEvent.click(page.getByRole("button", { name: "Discard" }));
-    expect(onDiscard.mock.calls[0]![0]).toBe("p1");
+    expect(onDiscard.mock.calls[0]![0]).toBe("p2");
     expect(onDiscard.mock.calls[0]![1].isTrusted).toBe(true);
+  });
+
+  it("decides a proposal once, until it changes or its save settles with it still shown", async () => {
+    const onApply = vi.fn();
+    const onDiscard = vi.fn();
+    const { rerender, button } = await render(<LayoutProposal {...base} onApply={onApply} onDiscard={onDiscard} onPreview={() => {}} onEndPreview={() => {}} />);
+    // Forced: Playwright waits for a button to be enabled, and these say they are not.
+    await userEvent.dblClick(page.getByRole("button", { name: "Apply" }), { force: true });
+    await userEvent.click(page.getByRole("button", { name: "Discard" }), { force: true });
+    expect(onApply).toHaveBeenCalledTimes(1);
+    expect(onDiscard).not.toHaveBeenCalled();
+    expect(button("Apply")!.getAttribute("aria-disabled")).toBe("true");
+    expect(button("Discard")!.getAttribute("aria-disabled")).toBe("true");
+    // Preview is not a decision: it still works.
+    expect(button("Preview")!.hasAttribute("aria-disabled")).toBe(false);
+    // A new proposal can be decided.
+    let settle!: () => void;
+    const saving = vi.fn(() => new Promise<void>((resolve) => (settle = resolve)));
+    await rerender(<LayoutProposal {...base} proposalId="p2" onApply={onApply} onDiscard={saving} />);
+    expect(button("Apply")!.hasAttribute("aria-disabled")).toBe(false);
+    await userEvent.click(page.getByRole("button", { name: "Discard" }));
+    await userEvent.click(page.getByRole("button", { name: "Discard" }), { force: true });
+    expect(saving).toHaveBeenCalledTimes(1);
+    // Its save settled and the app still shows it: it can be decided again.
+    await act(async () => settle());
+    expect(button("Discard")!.hasAttribute("aria-disabled")).toBe(false);
+    await userEvent.click(page.getByRole("button", { name: "Discard" }));
+    expect(saving).toHaveBeenCalledTimes(2);
+    // A save that settles once the proposal is gone changes nothing for the one after it.
+    await rerender(<LayoutProposal {...base} proposalId="p3" onApply={onApply} onDiscard={saving} />);
+    await userEvent.click(page.getByRole("button", { name: "Apply" }));
+    await act(async () => settle());
+    expect(button("Apply")!.getAttribute("aria-disabled")).toBe("true");
+  });
+
+  it("passes the HTML id through to the region", async () => {
+    const { bar } = await render(<LayoutProposal {...base} id="proposal" />);
+    expect(bar.id).toBe("proposal");
+    expect(bar.dataset.proposalId).toBe("p1");
   });
 
   it("passes the id that was on screen when the press began, so a swapped proposal can be refused", async () => {
@@ -104,7 +144,7 @@ describe("LayoutProposal", () => {
     const apply = button("Apply")!;
     await act(async () => apply.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })));
     // The agent replaces the proposal while the person's pointer is down.
-    await rerender(<LayoutProposal {...base} id="p2" title="Calendar first" onApply={onApply} />);
+    await rerender(<LayoutProposal {...base} proposalId="p2" title="Calendar first" onApply={onApply} />);
     await act(async () => {
       window.dispatchEvent(new PointerEvent("pointerup"));
       apply.click();
@@ -119,7 +159,7 @@ describe("LayoutProposal", () => {
       window.dispatchEvent(new PointerEvent("pointerup"));
     });
     await new Promise((resolve) => setTimeout(resolve, 10));
-    await rerender(<LayoutProposal {...base} id="p3" onApply={onApply} />);
+    await rerender(<LayoutProposal {...base} proposalId="p3" onApply={onApply} />);
     await act(async () => apply.click());
     expect(onApply).toHaveBeenLastCalledWith("p3", expect.anything());
   });
@@ -129,7 +169,7 @@ describe("LayoutProposal", () => {
     const { rerender, button } = await render(<LayoutProposal {...base} onDiscard={onDiscard} />);
     const discard = button("Discard")!;
     await act(async () => discard.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true })));
-    await rerender(<LayoutProposal {...base} id="p2" onDiscard={onDiscard} />);
+    await rerender(<LayoutProposal {...base} proposalId="p2" onDiscard={onDiscard} />);
     await act(async () => discard.click());
     expect(onDiscard).toHaveBeenLastCalledWith("p1", expect.anything());
   });
@@ -165,7 +205,9 @@ describe("LayoutProposal", () => {
   it("offers no preview without onPreview", async () => {
     const { button, rerender } = await render(<LayoutProposal {...base} />);
     expect(button("Preview")).toBeUndefined();
-    await rerender(<LayoutProposal {...base} previewing onPreview={() => {}} />);
+    // Without onEndPreview, which the types require with onPreview, as plain JavaScript may leave it.
+    const previewOnly = { onPreview: () => {} } as object;
+    await rerender(<LayoutProposal {...base} previewing {...previewOnly} />);
     expect(button("Back to current")).toBeUndefined();
   });
 
@@ -254,7 +296,7 @@ describe("LayoutProposal presses", () => {
       window.dispatchEvent(new PointerEvent("pointerup"));
     });
     await new Promise((resolve) => setTimeout(resolve, 10));
-    await rerender(<LayoutProposal {...base} id="p2" onApply={onApply} />);
+    await rerender(<LayoutProposal {...base} proposalId="p2" onApply={onApply} />);
     await act(async () => apply.click());
     expect(onApply).toHaveBeenLastCalledWith("p2", expect.anything());
     await act(async () => {
@@ -262,7 +304,7 @@ describe("LayoutProposal presses", () => {
       window.dispatchEvent(new KeyboardEvent("keyup", { key: "Enter" }));
     });
     await new Promise((resolve) => setTimeout(resolve, 10));
-    await rerender(<LayoutProposal {...base} id="p3" onApply={onApply} />);
+    await rerender(<LayoutProposal {...base} proposalId="p3" onApply={onApply} />);
     await act(async () => apply.click());
     expect(onApply).toHaveBeenLastCalledWith("p3", expect.anything());
   });
@@ -276,7 +318,7 @@ describe("LayoutProposal development messages", () => {
   });
 
   it.each([
-    ["a missing id", { id: undefined }, "id is missing, so the app cannot tell a replaced proposal from the one the person saw", '<LayoutProposal id={proposal.id} title="Customers first" by="Ouro">'],
+    ["a missing proposalId", { proposalId: undefined }, "proposalId is missing, so the app cannot tell a replaced proposal from the one the person saw", '<LayoutProposal proposalId={proposal.id} title="Customers first" by="Ouro">'],
     ["onPreview without onEndPreview", { onPreview: () => {} }, "onPreview needs onEndPreview, so the person can leave the preview", "<LayoutProposal onPreview={(id) => preview(id)} onEndPreview={(id) => endPreview(id)}>"],
     ["onAccept", { onAccept: () => {} }, "onAccept is not a prop", "<LayoutProposal onApply={(id, event) => apply(id, event)}>"],
     ["onReject", { onReject: () => {} }, "onReject is not a prop", "<LayoutProposal onDiscard={(id) => discard(id)}>"],

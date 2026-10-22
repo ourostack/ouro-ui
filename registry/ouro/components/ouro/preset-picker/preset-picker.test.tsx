@@ -153,6 +153,16 @@ describe("PresetPicker", () => {
     await userEvent.keyboard("{PageDown}");
     document.removeEventListener("keydown", seen);
     expect(seen.mock.calls[0]![0].defaultPrevented).toBe(false);
+    // So do these with Alt, Ctrl or Cmd held (the browser's Back, the page's start and end). Dispatched,
+    // so the browser does not act on them here.
+    for (const modifier of ["altKey", "ctrlKey", "metaKey"]) {
+      for (const key of ["ArrowLeft", "Home", "End"]) {
+        const event = new KeyboardEvent("keydown", { key, [modifier]: true, bubbles: true, cancelable: true });
+        await act(async () => void cards[2]!.dispatchEvent(event));
+        expect(event.defaultPrevented, `${modifier} ${key}`).toBe(false);
+        expect(document.activeElement).toBe(cards[2]);
+      }
+    }
     expect(onValueChange).not.toHaveBeenCalled();
   });
 

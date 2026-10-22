@@ -54,7 +54,7 @@ function Proposing() {
     <Surface>
       {proposal && (
         <LayoutProposal
-          id={proposal.id}
+          proposalId={proposal.id}
           title={proposal.title}
           by="Ouro"
           time="Just now"
@@ -87,7 +87,7 @@ const meta = {
   component: LayoutProposal,
   parameters: { layout: "padded" },
   args: {
-    id: "p1",
+    proposalId: "p1",
     title: "Customers first",
     by: "Ouro",
     time: "2 min ago",
@@ -120,7 +120,7 @@ export const Proposal: Story = {
 export const Previewing: Story = {
   render: () => (
     <Surface>
-      <LayoutProposal id="p1" title="Customers first" by="Ouro" previewing onPreview={() => {}} onEndPreview={() => {}} onApply={() => {}} onDiscard={() => {}}>
+      <LayoutProposal proposalId="p1" title="Customers first" by="Ouro" previewing onPreview={() => {}} onEndPreview={() => {}} onApply={() => {}} onDiscard={() => {}}>
         <Columns names={layouts.p1} />
       </LayoutProposal>
     </Surface>

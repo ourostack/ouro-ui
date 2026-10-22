@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, type HTMLAttributes, type JSX, type MouseEvent, type ReactNode, type Ref } from "react";
+import { useEffect, useId, useRef, useState, type HTMLAttributes, type JSX, type MouseEvent, type ReactNode, type Ref } from "react";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { announce } from "@/registry/ouro/lib/ouro/announce";
@@ -8,16 +8,36 @@ import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
-/** A decision about a proposal: its `id` as it was when the person began the press, and the click. */
-export type LayoutProposalHandler = (id: string, event: MouseEvent<HTMLElement>) => void;
+/**
+ * A decision about a proposal: its `proposalId` as it was when the person began the press, and
+ * the click. Return the save's promise when the decision is saved later.
+ */
+export type LayoutProposalHandler = (proposalId: string, event: MouseEvent<HTMLElement>) => unknown;
+
+/** Preview, with the button that ends it: both handlers or neither. */
+export type LayoutProposalPreviewProps =
+  | {
+      /** Adds Preview, which shows the proposal in place without applying it. */
+      onPreview: LayoutProposalHandler;
+      /** Ends the preview and returns to the current arrangement. */
+      onEndPreview: LayoutProposalHandler;
+    }
+  | {
+      /** No preview. */
+      onPreview?: undefined;
+      /** No preview to end. */
+      onEndPreview?: undefined;
+    };
 
 /** The props LayoutProposal adds to the `<section>` attributes it passes through. */
 export interface LayoutProposalOwnProps {
   /**
-   * Identifies the proposal. The handlers receive the `id` that was on screen when the person
-   * began the press, so the app can refuse a decision about a proposal it has since replaced.
+   * Identifies the proposal. The handlers receive the `proposalId` that was on screen when the
+   * person began the press, so the app can refuse a decision about a proposal it has since
+   * replaced. Once the person applies or discards it, further decisions about it are ignored until
+   * it changes, or until the promise the handler returned settles with the proposal still shown.
    */
-  id: string;
+  proposalId: string;
   /** What the change is, in a few words ("Customers first"). */
   title: string;
   /** Who proposed it, usually the agent's name ("Ouro"). */
@@ -30,13 +50,9 @@ export interface LayoutProposalOwnProps {
   children?: ReactNode;
   /** The proposal is on screen in place of the current arrangement. @default false */
   previewing?: boolean | undefined;
-  /** Adds Preview, which shows the proposal in place without applying it. */
-  onPreview?: LayoutProposalHandler | undefined;
-  /** Ends the preview and returns to the current arrangement. Needed with `onPreview`. */
-  onEndPreview?: LayoutProposalHandler | undefined;
   /**
    * Called when the person applies the proposal. Applying is a person's decision: check
-   * `event.isTrusted`, and that `id` is still the proposal you hold, before you apply it.
+   * `event.isTrusted`, and that `proposalId` is still the proposal you hold, before you apply it.
    */
   onApply: LayoutProposalHandler;
   /** Called when the person discards the proposal, with the same checks as `onApply`. */
@@ -72,7 +88,7 @@ export interface LayoutProposalOwnProps {
 }
 
 /** Props for {@link LayoutProposal}: its own props and the `<section>` attributes it passes through. */
-export type LayoutProposalProps = Omit<HTMLAttributes<HTMLElement>, keyof LayoutProposalOwnProps> & LayoutProposalOwnProps;
+export type LayoutProposalProps = Omit<HTMLAttributes<HTMLElement>, keyof LayoutProposalOwnProps | "onPreview" | "onEndPreview"> & LayoutProposalOwnProps & LayoutProposalPreviewProps;
 
 const quiet = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]";
 
@@ -83,19 +99,20 @@ const quiet = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foregr
  * "Back to current" in place, so focus stays on the button, and screen readers hear that
  * nothing changes until the person applies it. Applying and discarding are a person's decisions:
  * the handlers receive the click event, so the app can check `event.isTrusted`, and the
- * proposal's `id` as it was when the press began, so the app can refuse a decision about a
- * proposal that was replaced under the person's pointer. Once the person decides, the app
- * removes the bar, so it moves focus to what follows, such as a line saying what happened.
+ * proposal's `proposalId` as it was when the press began, so the app can refuse a decision about a
+ * proposal that was replaced under the person's pointer. A proposal is decided once: Apply and
+ * Discard then say they are unavailable (`aria-disabled`) and ignore presses. Once the person
+ * decides, the app removes the bar, so it moves focus to what follows, such as a line saying what
+ * happened.
  *
- * Use `Alert` instead for a notice that asks for no decision, and `DraftReview` for changes to
- * text that are accepted one by one.
+ * Use `Alert` instead for a notice that asks for no decision.
  *
  * @group Chat
  * @see https://ourostack.github.io/ouro-ui/docs/layout-proposal
  *
  * @example
  * <LayoutProposal
- *   id={proposal.id}
+ *   proposalId={proposal.id}
  *   title="Customers first"
  *   by="Ouro"
  *   reason="You open customer chats first most mornings."
@@ -107,11 +124,12 @@ const quiet = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foregr
  * />
  * @claim "Preview turns into" registry/ouro/components/ouro/layout-proposal/layout-proposal.test.tsx verify:testExists(registry/ouro/components/ouro/layout-proposal/layout-proposal.test.tsx::LayoutProposal > turns Preview into Back to current in place, keeping focus, and speaks the preview note)
  * @claim "the handlers receive the click event" registry/ouro/components/ouro/layout-proposal/layout-proposal.test.tsx verify:testExists(registry/ouro/components/ouro/layout-proposal/layout-proposal.test.tsx::LayoutProposal > applies and discards with the proposal's id and the person's click)
- * @claim "the proposal's `id` as it was" registry/ouro/components/ouro/layout-proposal/layout-proposal.test.tsx verify:testExists(registry/ouro/components/ouro/layout-proposal/layout-proposal.test.tsx::LayoutProposal > passes the id that was on screen when the press began, so a swapped proposal can be refused)
+ * @claim "A proposal is decided once" registry/ouro/components/ouro/layout-proposal/layout-proposal.test.tsx verify:testExists(registry/ouro/components/ouro/layout-proposal/layout-proposal.test.tsx::LayoutProposal > decides a proposal once, until it changes or its save settles with it still shown)
+ * @claim "the proposal's `proposalId` as it was" registry/ouro/components/ouro/layout-proposal/layout-proposal.test.tsx verify:testExists(registry/ouro/components/ouro/layout-proposal/layout-proposal.test.tsx::LayoutProposal > passes the id that was on screen when the press began, so a swapped proposal can be refused)
  */
 export function LayoutProposal(props: LayoutProposalProps): JSX.Element {
   const {
-    id,
+    proposalId,
     title,
     by,
     time,
@@ -143,7 +161,7 @@ export function LayoutProposal(props: LayoutProposalProps): JSX.Element {
   // replaced between the press and the click is reported as the one the person saw.
   const pressed = useRef<string | null>(null);
   const begin = () => {
-    pressed.current = id;
+    pressed.current = proposalId;
     const clear = () => setTimeout(() => (pressed.current = null), 0);
     // A listener left behind would only clear a later press after that press's own click, as this one does.
     // Stryker disable next-line ObjectLiteral,BooleanLiteral,StringLiteral: the same press is cleared either way, by this event or the other.
@@ -153,11 +171,26 @@ export function LayoutProposal(props: LayoutProposalProps): JSX.Element {
   };
   const toggle = previewing ? onEndPreview : onPreview;
   const decisions: Record<string, LayoutProposalHandler | undefined> = { toggle, apply: onApply, discard: onDiscard };
+  // The proposal the person applied or discarded, so a second press about it does nothing.
+  const [decided, setDecided] = useState<string | null>(null);
+  const latest = useRef(proposalId);
+  useEffect(() => {
+    latest.current = proposalId;
+  });
   const finish = (event: MouseEvent<HTMLElement>) => {
-    const seen = pressed.current ?? id;
+    const seen = pressed.current ?? proposalId;
     pressed.current = null;
-    decisions[event.currentTarget.dataset.decision!]!(seen, event);
+    const part = event.currentTarget.dataset.ouroPart!;
+    if (part === "toggle") return void decisions[part]!(seen, event);
+    if (decided === seen) return;
+    setDecided(seen);
+    const result = decisions[part]!(seen, event);
+    if (typeof (result as PromiseLike<unknown> | undefined)?.then !== "function") return;
+    // Settled with the same proposal still shown: the app kept it, so it can be decided again.
+    const settle = () => latest.current === seen && setDecided((current) => (current === seen ? null : current));
+    (result as PromiseLike<unknown>).then(settle, settle);
   };
+  const unavailable = decided === proposalId ? true : undefined;
 
   // Speak the note when a preview starts, not when the bar first renders.
   const wasPreviewing = useRef(previewing);
@@ -178,7 +211,7 @@ export function LayoutProposal(props: LayoutProposalProps): JSX.Element {
     "LayoutProposal",
     process.env.NODE_ENV !== "production"
       ? () => [
-          id === undefined && ["id is missing, so the app cannot tell a replaced proposal from the one the person saw", '<LayoutProposal id={proposal.id} title="Customers first" by="Ouro">'],
+          proposalId === undefined && ["proposalId is missing, so the app cannot tell a replaced proposal from the one the person saw", '<LayoutProposal proposalId={proposal.id} title="Customers first" by="Ouro">'],
           onPreview !== undefined &&
             onEndPreview === undefined && ["onPreview needs onEndPreview, so the person can leave the preview", "<LayoutProposal onPreview={(id) => preview(id)} onEndPreview={(id) => endPreview(id)}>"],
           onAccept !== undefined && ["onAccept is not a prop", "<LayoutProposal onApply={(id, event) => apply(id, event)}>"],
@@ -193,7 +226,7 @@ export function LayoutProposal(props: LayoutProposalProps): JSX.Element {
     <section
       {...rest}
       data-ouro="layout-proposal"
-      data-proposal-id={id}
+      data-proposal-id={proposalId}
       data-previewing={previewing ? "" : undefined}
       aria-labelledby={`${labelId}-badge ${labelId}-title`}
       className={cn(
@@ -231,14 +264,14 @@ export function LayoutProposal(props: LayoutProposalProps): JSX.Element {
       </div>
       <div className="flex shrink-0 flex-wrap items-center gap-2">
         {toggle && (
-          <Button size="sm" variant="outline" data-decision="toggle" onPointerDown={begin} onKeyDown={begin} onClick={finish}>
+          <Button size="sm" variant="outline" data-ouro-control="layout-proposal" data-ouro-part="toggle" onPointerDown={begin} onKeyDown={begin} onClick={finish}>
             {previewing ? endPreviewLabel : previewLabel}
           </Button>
         )}
-        <Button size="sm" data-decision="apply" onPointerDown={begin} onKeyDown={begin} onClick={finish}>
+        <Button size="sm" data-ouro-control="layout-proposal" data-ouro-part="apply" aria-disabled={unavailable} onPointerDown={begin} onKeyDown={begin} onClick={finish}>
           {applyLabel}
         </Button>
-        <Button size="sm" variant="plain" data-decision="discard" onPointerDown={begin} onKeyDown={begin} onClick={finish}>
+        <Button size="sm" variant="plain" data-ouro-control="layout-proposal" data-ouro-part="discard" aria-disabled={unavailable} onPointerDown={begin} onKeyDown={begin} onClick={finish}>
           {discardLabel}
         </Button>
       </div>

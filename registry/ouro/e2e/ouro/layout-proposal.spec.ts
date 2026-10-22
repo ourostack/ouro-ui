@@ -16,5 +16,7 @@ test("a person previews a proposal, goes back, then applies it", async ({ page }
   await expect(surface).toHaveText("ConversationsConversationCalendar");
   await bar.getByRole("button", { name: "Apply" }).click();
   await expect(page.getByText("Applied: Customer chats, Conversation, Agenda")).toBeVisible();
+  // The bar is gone: focus is on the line that says what happened, not on the page.
+  await expect(page.getByText("Applied: Customer chats, Conversation, Agenda")).toBeFocused();
   await expect(page.getByRole("region", { name: /Customers first/ })).toHaveCount(0);
 });

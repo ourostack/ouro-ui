@@ -2,7 +2,7 @@
 
 # LayoutProposal
 
-A change an agent proposes, which the person previews, then applies or discards. The change is to the surface the person is using (a layout, a set of columns, an arrangement). It says who proposed it, when and why, with a sketch of the change, and Preview, Apply and Discard. Preview turns into "Back to current" in place, so focus stays on the button, and screen readers hear that nothing changes until the person applies it. Applying and discarding are a person's decisions: the handlers receive the click event, so the app can check `event.isTrusted`, and the proposal's `id` as it was when the press began, so the app can refuse a decision about a proposal that was replaced under the person's pointer. Once the person decides, the app removes the bar, so it moves focus to what follows, such as a line saying what happened.
+A change an agent proposes, which the person previews, then applies or discards. The change is to the surface the person is using (a layout, a set of columns, an arrangement). It says who proposed it, when and why, with a sketch of the change, and Preview, Apply and Discard. Preview turns into "Back to current" in place, so focus stays on the button, and screen readers hear that nothing changes until the person applies it. Applying and discarding are a person's decisions: the handlers receive the click event, so the app can check `event.isTrusted`, and the proposal's `proposalId` as it was when the press began, so the app can refuse a decision about a proposal that was replaced under the person's pointer. A proposal is decided once: Apply and Discard then say they are unavailable (`aria-disabled`) and ignore presses. Once the person decides, the app removes the bar, so it moves focus to what follows, such as a line saying what happened.
 
 ```tsx
 import { LayoutProposal } from "@/registry/ouro/components/ouro/layout-proposal/layout-proposal";
@@ -12,7 +12,7 @@ import { LayoutProposal } from "@/registry/ouro/components/ouro/layout-proposal/
 
 ```tsx
 <LayoutProposal
-  id={proposal.id}
+  proposalId={proposal.id}
   title="Customers first"
   by="Ouro"
   reason="You open customer chats first most mornings."
@@ -26,11 +26,11 @@ import { LayoutProposal } from "@/registry/ouro/components/ouro/layout-proposal/
 
 ## Use instead when
 
-- Use `Alert` instead for a notice that asks for no decision, and `DraftReview` for changes to text that are accepted one by one.
+- Use `Alert` instead for a notice that asks for no decision.
 
 ## Props
 
-Type: `LayoutProposalProps`.
+The props the modes share. Type: `LayoutProposalProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -40,20 +40,36 @@ Type: `LayoutProposalProps`.
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-2`). Appearance classes warn in development. |
 | `discardLabel` | `string` | `"Discard"` | The Discard button's word, for other languages. |
 | `endPreviewLabel` | `string` | `"Back to current"` | The button that ends the preview, for other languages. |
-| `id` (required) | `string` |  | Identifies the proposal. The handlers receive the `id` that was on screen when the person began the press, so the app can refuse a decision about a proposal it has since replaced. |
-| `onApply` (required) | `LayoutProposalHandler` |  | Called when the person applies the proposal. Applying is a person's decision: check `event.isTrusted`, and that `id` is still the proposal you hold, before you apply it. |
+| `onApply` (required) | `LayoutProposalHandler` |  | Called when the person applies the proposal. Applying is a person's decision: check `event.isTrusted`, and that `proposalId` is still the proposal you hold, before you apply it. |
 | `onDiscard` (required) | `LayoutProposalHandler` |  | Called when the person discards the proposal, with the same checks as `onApply`. |
-| `onEndPreview` | `LayoutProposalHandler` |  | Ends the preview and returns to the current arrangement. Needed with `onPreview`. |
-| `onPreview` | `LayoutProposalHandler` |  | Adds Preview, which shows the proposal in place without applying it. |
 | `previewing` | `boolean` | `false` | The proposal is on screen in place of the current arrangement. |
 | `previewingLabel` | `string` | `"Previewing"` | The badge while previewing, for other languages. |
 | `previewLabel` | `string` | `"Preview"` | The Preview button's word, for other languages. |
 | `previewNote` | `string` | `"This is a preview. Nothing changes until you apply it."` | The line shown, and spoken, while previewing. |
+| `proposalId` (required) | `string` |  | Identifies the proposal. The handlers receive the `proposalId` that was on screen when the person began the press, so the app can refuse a decision about a proposal it has since replaced. Once the person applies or discards it, further decisions about it are ignored until it changes, or until the promise the handler returned settles with the proposal still shown. |
 | `proposedLabel` | `string` | `"Proposed change"` | The badge, for other languages. |
 | `reason` | `ReactNode` |  | Why, in a sentence from whoever proposed it. Hidden while previewing. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 | `time` | `ReactNode` |  | When, already formatted ("2 min ago", `<RelativeTime>`). |
 | `title` (required) | `string` |  | What the change is, in a few words ("Customers first"). |
+
+## Modes
+
+`LayoutProposalProps` is a union: pass the props of exactly one mode. Mixing them is a type error.
+
+### With 
+
+Not in this mode (typed `never`):
+
+- `onEndPreview`: No preview to end.
+- `onPreview`: No preview.
+
+### With `onPreview` and `onEndPreview`
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `onEndPreview` (required) | `LayoutProposalHandler` |  | Ends the preview and returns to the current arrangement. |
+| `onPreview` (required) | `LayoutProposalHandler` |  | Adds Preview, which shows the proposal in place without applying it. |
 
 ## Native attributes
 
@@ -81,10 +97,10 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ### `LayoutProposalHandler`
 
-A decision about a proposal: its `id` as it was when the person began the press, and the click.
+A decision about a proposal: its `proposalId` as it was when the person began the press, and the click. Return the save's promise when the decision is saved later.
 
 ```ts
-type LayoutProposalHandler = (id: string, event: MouseEvent<HTMLElement>) => void;
+type LayoutProposalHandler = (proposalId: string, event: MouseEvent<HTMLElement>) => unknown;
 ```
 
 [^layout-classes]: test:registry/ouro/components/ouro/layout-proposal/layout-proposal.test.tsx::LayoutProposal > forwards a ref and lets app layout classes win verify:testExists(registry/ouro/components/ouro/layout-proposal/layout-proposal.test.tsx::LayoutProposal > forwards a ref and lets app layout classes win)

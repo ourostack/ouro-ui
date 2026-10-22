@@ -1,1 +1,11 @@
-{"order": 2660, "components": ["layout-proposal"]}
+{
+  "order": 2660,
+  "components": ["layout-proposal"],
+  "controls": {
+    "layout-proposal": [
+      {"part": "toggle", "role": "button", "portal": false},
+      {"part": "apply", "role": "button", "portal": false},
+      {"part": "discard", "role": "button", "portal": false}
+    ]
+  }
+}

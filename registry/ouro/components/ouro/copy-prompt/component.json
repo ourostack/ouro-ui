@@ -1,1 +1,9 @@
-{"order": 2680, "components": ["copy-prompt"]}
+{
+  "order": 2680,
+  "components": ["copy-prompt"],
+  "controls": {
+    "copy-prompt": [
+      {"part": "copy", "role": "button", "portal": false}
+    ]
+  }
+}
