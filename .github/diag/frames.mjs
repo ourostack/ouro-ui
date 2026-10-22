@@ -3,9 +3,12 @@ import { chromium, webkit } from "@playwright/test";
 const [base, label] = [process.argv[2], process.argv[3]];
 const VARIANTS = {
   asis: "",
-  cv: "main > section:not(#chapter-two), main > div > section:not(#chapter-two), section[id]:not(#chapter-two) { content-visibility: auto; contain-intrinsic-size: auto 900px; }",
   nosvg: "main svg { display: none !important; }",
-  nohero: ".site-hero { display: none !important; }",
+  svglayers: "main svg { will-change: transform; }",
+  nomap: "#chapter-two .site-chart { display: none !important; }",
+  nolegs: "#chapter-two [data-ouro-chart] { display: none !important; }",
+  nostage: ".site-hero svg { display: none !important; }",
+  noone: "#chapter-one svg, #chapter-three svg { display: none !important; }",
 };
 const record = (page) => page.evaluate(() => { const w = window; w.__long = []; let last = performance.now(); const tick = (now) => { if (now - last > 40) w.__long.push(Math.round(now - last)); last = now; w.__raf = requestAnimationFrame(tick); }; w.__raf = requestAnimationFrame(tick); });
 const longs = (page) => page.evaluate(() => { cancelAnimationFrame(window.__raf); const l = window.__long; return `${l.length}x${l.reduce((a, b) => a + b, 0)}`; });
@@ -70,16 +73,18 @@ for (const type of [webkit, chromium]) {
     await page.locator("#chapter-two[data-chapter-ready]").waitFor({ state: "attached" });
     await page.waitForTimeout(800);
     const row = [];
-    if (name === "asis") row.push(await census(page));
+    
     row.push(await probe(page));
-    await record(page);
-    let t0 = Date.now();
-    await page.getByRole("button", { name: /^Reorder Atlantis/ }).click();
-    row.push(`open ${Date.now() - t0} [${await longs(page)}]`);
+    const handle = page.getByRole("button", { name: /^Reorder Atlantis/ });
+    const step = async (name, fn) => { await record(page); const t = Date.now(); await fn(); await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))); row.push(`${name} ${Date.now() - t} [${await longs(page)}]`); };
+    const box = await handle.boundingBox();
+    await step("move", () => page.mouse.move(box.x + box.width / 2, box.y + box.height / 2));
+    await step("down", () => page.mouse.down());
+    await step("up", () => page.mouse.up());
     await page.waitForTimeout(300);
     row.push(await page.evaluate(() => window.__menu ?? "menu not seen"));
     await record(page);
-    t0 = Date.now();
+    const t0 = Date.now();
     await page.getByRole("menu").getByRole("menuitem", { name: "Move to top" }).click();
     await page.getByRole("menu").waitFor({ state: "hidden" });
     row.push(`pick ${Date.now() - t0} [${await longs(page)}]`);
