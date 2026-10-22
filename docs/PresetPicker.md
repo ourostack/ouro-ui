@@ -2,7 +2,7 @@
 
 # PresetPicker
 
-Presets shown as cards (a layout, a template, a mode) with a name, a line about it and an optional tag, where choosing one applies it at once. The preset in use is marked "In use" and `aria-current`. The arrow keys, Home and End move focus between the cards without choosing, and Enter, Space or a click chooses. Choosing the preset already in use does nothing.
+Presets shown as cards (a layout, a template, a mode) with a name, a line about it and an optional tag, where choosing one applies it at once. The preset in use is marked "In use" and `aria-current`. The arrow keys, Home and End move focus between the cards without choosing (right to left, the left arrow moves to the next card), and Enter, Space or a click chooses. Choosing the preset already in use does nothing.
 
 ```tsx
 import { PresetPicker } from "@/registry/ouro/components/ouro/preset-picker/preset-picker";

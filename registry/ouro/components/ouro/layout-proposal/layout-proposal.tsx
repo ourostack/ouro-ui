@@ -84,7 +84,8 @@ const quiet = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foregr
  * nothing changes until the person applies it. Applying and discarding are a person's decisions:
  * the handlers receive the click event, so the app can check `event.isTrusted`, and the
  * proposal's `id` as it was when the press began, so the app can refuse a decision about a
- * proposal that was replaced under the person's pointer.
+ * proposal that was replaced under the person's pointer. Once the person decides, the app
+ * removes the bar, so it moves focus to what follows, such as a line saying what happened.
  *
  * Use `Alert` instead for a notice that asks for no decision, and `DraftReview` for changes to
  * text that are accepted one by one.

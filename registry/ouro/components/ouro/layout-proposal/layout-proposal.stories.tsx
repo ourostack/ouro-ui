@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { LayoutProposal } from "@/registry/ouro/components/ouro/layout-proposal/layout-proposal";
 
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names).
@@ -37,6 +37,11 @@ function Proposing() {
   const [previewing, setPreviewing] = useState(false);
   const [current, setCurrent] = useState<string[]>(layouts.mine);
   const [log, setLog] = useState("Your layout: Conversations, Conversation, Calendar");
+  // Once the person decides, the bar goes: focus moves to the line that says what happened.
+  const said = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (!proposal) said.current!.focus();
+  }, [proposal]);
   const decide = (apply: boolean) => (id: string, event: { isTrusted: boolean }) => {
     if (!proposal || !event.isTrusted || id !== proposal.id) return setLog("That proposal changed before your click, so nothing was applied.");
     if (apply) setCurrent(layouts[proposal.id]);
@@ -70,7 +75,9 @@ function Proposing() {
           </div>
         ))}
       </div>
-      <p style={{ margin: 0, fontSize: 14 }}>{log}</p>
+      <p ref={said} tabIndex={-1} style={{ margin: 0, fontSize: 14 }}>
+        {log}
+      </p>
     </Surface>
   );
 }
