@@ -39,9 +39,9 @@ for (const type of [webkit, chromium]) {
       await page.waitForTimeout(500);
       row.push(`c2 ${await frames(page)}`);
       t0 = Date.now();
-      for (const port of ["Atlantis", "Vigo Bay"]) {
+      for (const port of ["Atlantis", "Crespo Island"]) {
         await page.getByRole("button", { name: new RegExp(`^Reorder ${port}`) }).click();
-        await page.getByRole("menu", { name: `Reorder ${port}` }).getByRole("menuitem", { name: "Move to bottom" }).click();
+        await page.getByRole("menu", { name: `Reorder ${port}` }).getByRole("menuitem", { name: "Move to top" }).click();
       }
       row.push(`2 moves ${Date.now() - t0}ms`);
       await page.locator("#chapter-three").scrollIntoViewIfNeeded();
