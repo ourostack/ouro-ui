@@ -409,6 +409,46 @@ test.describe("the ballast manifold and the bell's payoffs", () => {
     await expect(water).toHaveCSS("opacity", "1");
   });
 
+  /** The share of the lower half of two same-sized screenshots whose pixels differ clearly. */
+  const changedShare = (page: Page, before: Buffer, after: Buffer) =>
+    page.evaluate(
+      async ([before, after]) => {
+        const pixels = async (png: string) => {
+          const bitmap = await createImageBitmap(new Blob([Uint8Array.from(atob(png), (char) => char.charCodeAt(0))], { type: "image/png" }));
+          const context = new OffscreenCanvas(bitmap.width, bitmap.height).getContext("2d")!;
+          context.drawImage(bitmap, 0, 0);
+          return context.getImageData(0, 0, bitmap.width, bitmap.height);
+        };
+        const [a, b] = await Promise.all([pixels(before), pixels(after)]);
+        let changed = 0;
+        let total = 0;
+        for (let row = Math.ceil(a.height / 2); row < a.height; row++) {
+          for (let column = 0; column < a.width; column++) {
+            const at = (row * a.width + column) * 4;
+            total++;
+            if (Math.abs(a.data[at] - b.data[at]) + Math.abs(a.data[at + 1] - b.data[at + 1]) + Math.abs(a.data[at + 2] - b.data[at + 2]) > 96) changed++;
+          }
+        }
+        return changed / total;
+      },
+      [before.toString("base64"), after.toString("base64")],
+    );
+
+  for (const colorScheme of ["light", "dark"] as const) {
+    test(`under forced colours (${colorScheme}) a flooded sight glass shows its water`, async ({ page }) => {
+      await page.emulateMedia({ forcedColors: "active", colorScheme, reducedMotion: "reduce" });
+      await open(page);
+      const glass = page.locator("[data-stage-control='tank-aft'] .stage-gauge-glass");
+      await settled(page);
+      const empty = await glass.screenshot({ animations: "disabled" });
+      await tank(page, AFT.name).click();
+      await expect(page.locator("[data-stage-control='tank-aft'] .stage-gauge-water")).toHaveCSS("opacity", "1");
+      await settled(page);
+      const full = await glass.screenshot({ animations: "disabled" });
+      expect(await changedShare(page, empty, full), "the water fills most of the glass's lower half").toBeGreaterThan(0.6);
+    });
+  }
+
   test("full tanks make Dive the panel's one bright button, ringed and breathing", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await open(page);

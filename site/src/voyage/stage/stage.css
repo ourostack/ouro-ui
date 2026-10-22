@@ -1936,4 +1936,13 @@
   .stage-frame {
     border-color: CanvasText;
   }
+  /*
+   * The sight glasses' water and the deep's specks are HTML boxes painted by their background, which
+   * forced colours would turn into Canvas, so a flooded glass would look empty and the specks would
+   * vanish. They keep the drawing's colours, as the SVG fills around them do.
+   */
+  .stage-gauge-water,
+  .stage-speck {
+    forced-color-adjust: none;
+  }
 }
