@@ -209,6 +209,8 @@ describe("LayoutProposal", () => {
       apply.click();
     });
     expect(onApply).toHaveBeenLastCalledWith("p1", expect.anything());
+    // That decision was about p1, so p2, now on screen, is still undecided.
+    expect(apply.hasAttribute("aria-disabled")).toBe(false);
     // The next press is about the proposal now on screen.
     await act(async () => apply.click());
     expect(onApply).toHaveBeenLastCalledWith("p2", expect.anything());
