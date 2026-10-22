@@ -403,15 +403,22 @@ describe("Reorderable", () => {
     });
 
     it("leaves the page's scroll alone while the menu is open: its menu does not hold the page", async () => {
-      await render(list());
-      const locked = () => [document.documentElement, document.body].some((element) => /hidden|clip/.test(getComputedStyle(element).overflowY));
-      await userEvent.click(handle("Soften"));
-      await menuOpen();
-      // Base UI takes its lock on a zero timeout after the menu opens.
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      expect(locked()).toBe(false);
-      await userEvent.click(move("Move down"));
-      await menuClosed();
+      // A dropdown: below 640px the menu is a phone sheet, which holds the page (Menu's own tests).
+      await page.viewport(1024, 768);
+      try {
+        await render(list());
+        const locked = () => [document.documentElement, document.body].some((element) => /hidden|clip/.test(getComputedStyle(element).overflowY));
+        await userEvent.click(handle("Soften"));
+        await menuOpen();
+        expect(document.querySelector('[role="menu"]')!.getAttribute("data-ouro-presentation")).not.toBe("sheet");
+        // Base UI takes its lock on a zero timeout after the menu opens.
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        expect(locked()).toBe(false);
+        await userEvent.click(move("Move down"));
+        await menuClosed();
+      } finally {
+        await page.viewport(414, 896);
+      }
     });
 
     it("moves a row to the top and to the bottom, and disables the moves that cannot apply", async () => {
