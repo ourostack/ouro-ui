@@ -91,7 +91,7 @@ export function CopyPrompt(props: CopyPromptProps): JSX.Element {
       <CopyButton
         data-ouro-control="copy-prompt"
         data-ouro-part="copy"
-        value={text ?? ""}
+        value={text}
         disabled={!text}
         label={label}
         copiedLabel={copiedLabel}

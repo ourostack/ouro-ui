@@ -187,7 +187,7 @@ export function LayoutProposal(props: LayoutProposalProps): JSX.Element {
     const result = decisions[part]!(seen, event);
     if (typeof (result as PromiseLike<unknown> | undefined)?.then !== "function") return;
     // Settled with the same proposal still shown: the app kept it, so it can be decided again.
-    const settle = () => latest.current === seen && setDecided((current) => (current === seen ? null : current));
+    const settle = () => latest.current === seen && setDecided(null);
     (result as PromiseLike<unknown>).then(settle, settle);
   };
   const unavailable = decided === proposalId ? true : undefined;
