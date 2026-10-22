@@ -43,7 +43,11 @@ function Proposing() {
     if (!proposal) said.current!.focus();
   }, [proposal]);
   const decide = (apply: boolean) => (id: string, event: { isTrusted: boolean }) => {
-    if (!proposal || !event.isTrusted || id !== proposal.id) return setLog("That proposal changed before your click, so nothing was applied.");
+    if (!proposal || !event.isTrusted || id !== proposal.id) {
+      setLog("That proposal changed before your click, so nothing was applied.");
+      // Refused: the proposal stays undecided.
+      return false;
+    }
     if (apply) setCurrent(layouts[proposal.id]);
     setLog(apply ? `Applied: ${layouts[proposal.id].join(", ")}` : "Discarded.");
     setPreviewing(false);

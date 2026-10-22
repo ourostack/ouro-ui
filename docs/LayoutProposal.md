@@ -2,7 +2,7 @@
 
 # LayoutProposal
 
-A change an agent proposes, which the person previews, then applies or discards. The change is to the surface the person is using (a layout, a set of columns, an arrangement). It says who proposed it, when and why, with a sketch of the change, and Preview, Apply and Discard. Preview turns into "Back to current" in place, so focus stays on the button, and screen readers hear that nothing changes until the person applies it. Applying and discarding are a person's decisions: the handlers receive the click event, so the app can check `event.isTrusted`, and the proposal's `proposalId` as it was when the press began, so the app can refuse a decision about a proposal that was replaced under the person's pointer. A proposal is decided once: Apply and Discard then say they are unavailable (`aria-disabled`) and ignore presses. Once the person decides, the app removes the bar, so it moves focus to what follows, such as a line saying what happened.
+A change an agent proposes, which the person previews, then applies or discards. The change is to the surface the person is using (a layout, a set of columns, an arrangement). It says who proposed it, when and why, with a sketch of the change, and Preview, Apply and Discard. Preview turns into "Back to current" in place, so focus stays on the button, and screen readers hear that nothing changes until the person applies it. Applying and discarding are a person's decisions: the handlers receive the click event, so the app can check `event.isTrusted`, and the proposal's `proposalId` as it was when the press began, so the app can refuse a decision about a proposal that was replaced under the person's pointer. A handler that returns `false` refuses the decision. A proposal is decided once: Apply and Discard then say they are unavailable (`aria-disabled`) and ignore presses, and the pressed one shows it is busy while the promise its handler returned is pending. Once the person decides, the app removes the bar, so it moves focus to what follows, such as a line saying what happened.
 
 ```tsx
 import { LayoutProposal } from "@/registry/ouro/components/ouro/layout-proposal/layout-proposal";
@@ -40,7 +40,7 @@ The props the modes share. Type: `LayoutProposalProps`.
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-2`). Appearance classes warn in development. |
 | `discardLabel` | `string` | `"Discard"` | The Discard button's word, for other languages. |
 | `endPreviewLabel` | `string` | `"Back to current"` | The button that ends the preview, for other languages. |
-| `onApply` (required) | `LayoutProposalHandler` |  | Called when the person applies the proposal. Applying is a person's decision: check `event.isTrusted`, and that `proposalId` is still the proposal you hold, before you apply it. |
+| `onApply` (required) | `LayoutProposalHandler` |  | Called when the person applies the proposal. Applying is a person's decision: check `event.isTrusted`, and that `proposalId` is still the proposal you hold, before you apply it, and return `false` to refuse it, so Apply and Discard stay available. |
 | `onDiscard` (required) | `LayoutProposalHandler` |  | Called when the person discards the proposal, with the same checks as `onApply`. |
 | `previewing` | `boolean` | `false` | The proposal is on screen in place of the current arrangement. |
 | `previewingLabel` | `string` | `"Previewing"` | The badge while previewing, for other languages. |
@@ -97,7 +97,7 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ### `LayoutProposalHandler`
 
-A decision about a proposal: its `proposalId` as it was when the person began the press, and the click. Return the save's promise when the decision is saved later.
+A decision about a proposal: its `proposalId` as it was when the person began the press, and the click. Return the save's promise when the decision is saved later, and `false` to refuse it (a click that is not the person's, a proposal you have since replaced): the buttons then stay available.
 
 ```ts
 type LayoutProposalHandler = (proposalId: string, event: MouseEvent<HTMLElement>) => unknown;

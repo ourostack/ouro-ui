@@ -15,7 +15,7 @@ export default function LayoutProposalDemo(): JSX.Element {
     if (!proposal) said.current!.focus();
   }, [proposal]);
   const decide = (applied: boolean) => (id: string, event: { isTrusted: boolean }) => {
-    if (!event.isTrusted || id !== proposal) return;
+    if (!event.isTrusted || id !== proposal) return false;
     setResult(applied ? "Applied." : "Discarded.");
     setPreviewing(false);
     setProposal(null);

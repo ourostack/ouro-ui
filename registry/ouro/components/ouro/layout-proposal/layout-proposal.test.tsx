@@ -110,6 +110,8 @@ describe("LayoutProposal", () => {
     expect(onDiscard).not.toHaveBeenCalled();
     expect(button("Apply")!.getAttribute("aria-disabled")).toBe("true");
     expect(button("Discard")!.getAttribute("aria-disabled")).toBe("true");
+    // Nothing is pending, so nothing is busy.
+    expect(button("Apply")!.hasAttribute("aria-busy")).toBe(false);
     // Preview is not a decision: it still works.
     expect(button("Preview")!.hasAttribute("aria-disabled")).toBe(false);
     // A new proposal can be decided.
@@ -118,11 +120,17 @@ describe("LayoutProposal", () => {
     await rerender(<LayoutProposal {...base} proposalId="p2" onApply={onApply} onDiscard={saving} />);
     expect(button("Apply")!.hasAttribute("aria-disabled")).toBe(false);
     await userEvent.click(page.getByRole("button", { name: "Discard" }));
+    // The pressed button is busy while its save is pending; the other is only unavailable.
+    expect(button("Discard")!.getAttribute("aria-busy")).toBe("true");
+    expect(button("Discard")!.hasAttribute("data-loading")).toBe(true);
+    expect(button("Apply")!.getAttribute("aria-disabled")).toBe("true");
+    expect(button("Apply")!.hasAttribute("aria-busy")).toBe(false);
     await userEvent.click(page.getByRole("button", { name: "Discard" }), { force: true });
     expect(saving).toHaveBeenCalledTimes(1);
     // Its save settled and the app still shows it: it can be decided again.
     await act(async () => settle());
     expect(button("Discard")!.hasAttribute("aria-disabled")).toBe(false);
+    expect(button("Discard")!.hasAttribute("aria-busy")).toBe(false);
     await userEvent.click(page.getByRole("button", { name: "Discard" }));
     expect(saving).toHaveBeenCalledTimes(2);
     // A save that settles once the proposal is gone changes nothing for the one after it.
@@ -130,6 +138,54 @@ describe("LayoutProposal", () => {
     await userEvent.click(page.getByRole("button", { name: "Apply" }));
     await act(async () => settle());
     expect(button("Apply")!.getAttribute("aria-disabled")).toBe("true");
+    // Shown again after another proposal (p3, p4, p3), it starts undecided.
+    await rerender(<LayoutProposal {...base} proposalId="p4" onApply={onApply} onDiscard={saving} />);
+    expect(button("Apply")!.hasAttribute("aria-disabled")).toBe(false);
+    await rerender(<LayoutProposal {...base} proposalId="p3" onApply={onApply} onDiscard={saving} />);
+    expect(button("Apply")!.hasAttribute("aria-disabled")).toBe(false);
+    await userEvent.click(page.getByRole("button", { name: "Apply" }));
+    expect(onApply).toHaveBeenCalledTimes(3);
+  });
+
+  it("leaves a refused or failed decision undecided, so the person can still decide", async () => {
+    const proposal = { id: "p1" };
+    const onApply = vi.fn((id: string, event: { isTrusted: boolean }) => event.isTrusted && id === proposal.id && "applied");
+    const { button } = await render(<LayoutProposal {...base} onApply={onApply} onDiscard={() => {}} />);
+    // A script's click is not the person's: the handler refuses it, and nothing is decided.
+    await act(async () => button("Apply")!.click());
+    expect(onApply).toHaveLastReturnedWith(false);
+    expect(button("Apply")!.hasAttribute("aria-disabled")).toBe(false);
+    expect(button("Discard")!.hasAttribute("aria-disabled")).toBe(false);
+    await userEvent.click(page.getByRole("button", { name: "Apply" }));
+    expect(onApply).toHaveLastReturnedWith("applied");
+    expect(button("Apply")!.getAttribute("aria-disabled")).toBe("true");
+  });
+
+  it("rethrows a handler's error and leaves the proposal undecided", async () => {
+    const thrown: unknown[] = [];
+    const onError = (event: ErrorEvent) => {
+      thrown.push(event.error);
+      event.preventDefault();
+    };
+    window.addEventListener("error", onError);
+    try {
+      const boom = new Error("apply failed");
+      const { button } = await render(
+        <LayoutProposal
+          {...base}
+          onApply={() => {
+            throw boom;
+          }}
+          onDiscard={() => {}}
+        />,
+      );
+      await userEvent.click(page.getByRole("button", { name: "Apply" }));
+      await expect.poll(() => thrown).toContain(boom);
+      expect(button("Apply")!.hasAttribute("aria-disabled")).toBe(false);
+      expect(button("Discard")!.hasAttribute("aria-disabled")).toBe(false);
+    } finally {
+      window.removeEventListener("error", onError);
+    }
   });
 
   it("passes the HTML id through to the region", async () => {

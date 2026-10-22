@@ -10,7 +10,9 @@ import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
 /**
  * A decision about a proposal: its `proposalId` as it was when the person began the press, and
- * the click. Return the save's promise when the decision is saved later.
+ * the click. Return the save's promise when the decision is saved later, and `false` to refuse it
+ * (a click that is not the person's, a proposal you have since replaced): the buttons then stay
+ * available.
  */
 export type LayoutProposalHandler = (proposalId: string, event: MouseEvent<HTMLElement>) => unknown;
 
@@ -52,7 +54,8 @@ export interface LayoutProposalOwnProps {
   previewing?: boolean | undefined;
   /**
    * Called when the person applies the proposal. Applying is a person's decision: check
-   * `event.isTrusted`, and that `proposalId` is still the proposal you hold, before you apply it.
+   * `event.isTrusted`, and that `proposalId` is still the proposal you hold, before you apply it,
+   * and return `false` to refuse it, so Apply and Discard stay available.
    */
   onApply: LayoutProposalHandler;
   /** Called when the person discards the proposal, with the same checks as `onApply`. */
@@ -100,8 +103,10 @@ const quiet = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foregr
  * nothing changes until the person applies it. Applying and discarding are a person's decisions:
  * the handlers receive the click event, so the app can check `event.isTrusted`, and the
  * proposal's `proposalId` as it was when the press began, so the app can refuse a decision about a
- * proposal that was replaced under the person's pointer. A proposal is decided once: Apply and
- * Discard then say they are unavailable (`aria-disabled`) and ignore presses. Once the person
+ * proposal that was replaced under the person's pointer. A handler that returns `false` refuses the
+ * decision. A proposal is decided once: Apply and Discard then say they are unavailable
+ * (`aria-disabled`) and ignore presses, and the pressed one shows it is busy while the promise its
+ * handler returned is pending. Once the person
  * decides, the app removes the bar, so it moves focus to what follows, such as a line saying what
  * happened.
  *
@@ -125,6 +130,8 @@ const quiet = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foregr
  * @claim "Preview turns into" registry/ouro/components/ouro/layout-proposal/layout-proposal.test.tsx verify:testExists(registry/ouro/components/ouro/layout-proposal/layout-proposal.test.tsx::LayoutProposal > turns Preview into Back to current in place, keeping focus, and speaks the preview note)
  * @claim "the handlers receive the click event" registry/ouro/components/ouro/layout-proposal/layout-proposal.test.tsx verify:testExists(registry/ouro/components/ouro/layout-proposal/layout-proposal.test.tsx::LayoutProposal > applies and discards with the proposal's id and the person's click)
  * @claim "A proposal is decided once" registry/ouro/components/ouro/layout-proposal/layout-proposal.test.tsx verify:testExists(registry/ouro/components/ouro/layout-proposal/layout-proposal.test.tsx::LayoutProposal > decides a proposal once, until it changes or its save settles with it still shown)
+ * @claim "returns `false` refuses" registry/ouro/components/ouro/layout-proposal/layout-proposal.test.tsx verify:testExists(registry/ouro/components/ouro/layout-proposal/layout-proposal.test.tsx::LayoutProposal > leaves a refused or failed decision undecided, so the person can still decide)
+ * @claim "the pressed one shows it is busy" registry/ouro/components/ouro/layout-proposal/layout-proposal.test.tsx verify:testExists(registry/ouro/components/ouro/layout-proposal/layout-proposal.test.tsx::LayoutProposal > decides a proposal once, until it changes or its save settles with it still shown)
  * @claim "the proposal's `proposalId` as it was" registry/ouro/components/ouro/layout-proposal/layout-proposal.test.tsx verify:testExists(registry/ouro/components/ouro/layout-proposal/layout-proposal.test.tsx::LayoutProposal > passes the id that was on screen when the press began, so a swapped proposal can be refused)
  */
 export function LayoutProposal(props: LayoutProposalProps): JSX.Element {
@@ -171,26 +178,41 @@ export function LayoutProposal(props: LayoutProposalProps): JSX.Element {
   };
   const toggle = previewing ? onEndPreview : onPreview;
   const decisions: Record<string, LayoutProposalHandler | undefined> = { toggle, apply: onApply, discard: onDiscard };
-  // The proposal the person applied or discarded, so a second press about it does nothing.
-  const [decided, setDecided] = useState<string | null>(null);
-  const latest = useRef(proposalId);
-  useEffect(() => {
-    latest.current = proposalId;
-  });
+  // The decision the person made, so a second press about the same proposal does nothing, and
+  // whether its save is pending.
+  const [decided, setDecided] = useState<{ id: string; part: string; pending: boolean } | null>(null);
+  // A new proposal (or one shown again, A then B then A) starts undecided.
+  const [shown, setShown] = useState(proposalId);
+  if (shown !== proposalId) {
+    setShown(proposalId);
+    setDecided(null);
+  }
   const finish = (event: MouseEvent<HTMLElement>) => {
     const seen = pressed.current ?? proposalId;
     pressed.current = null;
     const part = event.currentTarget.dataset.ouroPart!;
     if (part === "toggle") return void decisions[part]!(seen, event);
-    if (decided === seen) return;
-    setDecided(seen);
-    const result = decisions[part]!(seen, event);
+    if (decided?.id === seen) return;
+    setDecided({ id: seen, part, pending: false });
+    let result: unknown;
+    try {
+      result = decisions[part]!(seen, event);
+    } catch (error) {
+      setDecided(null);
+      throw error;
+    }
+    // Refused (an untrusted click, a replaced proposal): nothing was decided.
+    if (result === false) return void setDecided(null);
     if (typeof (result as PromiseLike<unknown> | undefined)?.then !== "function") return;
-    // Settled with the same proposal still shown: the app kept it, so it can be decided again.
-    const settle = () => latest.current === seen && setDecided(null);
+    const pending = { id: seen, part, pending: true };
+    setDecided(pending);
+    // Settled with this decision still current (the app kept the proposal): it can be decided
+    // again. A proposal that changed meanwhile already started undecided.
+    const settle = () => setDecided((current) => (current === pending ? null : current));
     (result as PromiseLike<unknown>).then(settle, settle);
   };
-  const unavailable = decided === proposalId ? true : undefined;
+  const unavailable = decided?.id === proposalId ? true : undefined;
+  const busy = (part: string) => (unavailable && decided!.pending && decided!.part === part) || undefined;
 
   // Speak the note when a preview starts, not when the bar first renders.
   const wasPreviewing = useRef(previewing);
@@ -268,10 +290,10 @@ export function LayoutProposal(props: LayoutProposalProps): JSX.Element {
             {previewing ? endPreviewLabel : previewLabel}
           </Button>
         )}
-        <Button size="sm" data-ouro-control="layout-proposal" data-ouro-part="apply" aria-disabled={unavailable} onPointerDown={begin} onKeyDown={begin} onClick={finish}>
+        <Button size="sm" data-ouro-control="layout-proposal" data-ouro-part="apply" aria-disabled={unavailable} loading={busy("apply")} onPointerDown={begin} onKeyDown={begin} onClick={finish}>
           {applyLabel}
         </Button>
-        <Button size="sm" variant="plain" data-ouro-control="layout-proposal" data-ouro-part="discard" aria-disabled={unavailable} onPointerDown={begin} onKeyDown={begin} onClick={finish}>
+        <Button size="sm" variant="plain" data-ouro-control="layout-proposal" data-ouro-part="discard" aria-disabled={unavailable} loading={busy("discard")} onPointerDown={begin} onKeyDown={begin} onClick={finish}>
           {discardLabel}
         </Button>
       </div>
