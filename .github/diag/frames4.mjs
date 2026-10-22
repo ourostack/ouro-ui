@@ -10,7 +10,7 @@ const VARIANTS = {
   winnolayer: ".site-window { will-change: auto !important; }",
   nohas: "drop:has",
   nohover: "drop:hover|focus-visible|focus|active",
-  outerlayer: ".site-window { will-change: transform; }",
+  nopanelayer: ".site-window > div { will-change: auto !important; }",
 };
 const drop = (page, pseudo) => page.evaluate((pseudo) => {
   const pattern = new RegExp(`:(${pseudo})(?![\\w-])`);
