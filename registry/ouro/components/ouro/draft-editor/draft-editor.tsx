@@ -45,8 +45,8 @@ export interface DraftEditorOwnProps {
    * The runs are `undefined` when `segments` did not join to `value`, since who wrote what is
    * then unknown, and the agent's words are not highlighted until the runs join to the text
    * again. To get back in step, store runs that join to the new text: your own record of who
-   * wrote what, or, when you have none, the text as the person's (`[{ author: "human", text }]`),
-   * since they have now edited it; the agent's next words are highlighted as before.
+   * wrote what, or else the text as the person's (`[{ author: "human", text }]`), since they
+   * have now edited it; the agent's next words are highlighted as before.
    */
   onValueChange: (value: string, segments: DraftSegment[] | undefined) => void;
   /** Who wrote which part of `value`. Agent-written runs are highlighted in place. */

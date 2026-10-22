@@ -102,7 +102,7 @@ export type DraftReviewProps = Omit<HTMLAttributes<HTMLElement>, keyof DraftRevi
 
 /** The decisions DraftReview keeps: see `DraftReview`. */
 interface Decisions {
-  /** Each change decided and not yet gone, with whether its save is pending. */
+  /** The decided changes not yet gone, mapped to whether their save is pending. */
   ids: ReadonlyMap<string, boolean>;
   /** The changes a bulk press decided, and whether its save is pending. */
   bulk: { ids: readonly string[]; pending: boolean } | null;

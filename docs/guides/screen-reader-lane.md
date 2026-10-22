@@ -10,7 +10,7 @@ Each spec opens one story from a static build of this repository's Storybook, wa
 | --- | --- | --- |
 | Checkbox | `forms-checkbox--playground` | "Email me new recipes", checkbox, unchecked; then checked after Space |
 | Checklist | `lists-checklist--in-context` | the first item's name, checkbox and its state; then the other state after Space |
-| DraftEditor | `chat-drafteditor--shared`, `chat-drafteditor--agent-asks` | the box's description, "Written by an agent: 1 passage, starting “I can meet on Friday…”"; "Ask for input", button; then "Needs your input, Ouro: Which day suits you?" from the live region after Enter |
+| DraftEditor | `chat-drafteditor--shared`, `chat-drafteditor--agent-asks` | the box's description, "Written by an agent", how much and how it starts; "Ask for input", button; then "Needs your input, Ouro: Which day suits you?" from the live region after Enter |
 | DraftReview | `chat-draftreview--review` | "[Change 1, removed: Thursday]" and "[Change 1, added: Friday]", read on from the top of the page; "Accept, Change 2", button; then the next change's "Accept, Change 2", button, after Enter |
 | Dialog | `overlays-dialog--playground` | "Edit", button; "Edit recipe", dialog, as it opens; the "Edit" button again after Escape |
 | Select | `forms-select--playground` | "Course", combo box, collapsed; the list as it opens; "Main", then "Side"; "Course" with "Side" once chosen, read from the focused control |
