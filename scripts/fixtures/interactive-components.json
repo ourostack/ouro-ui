@@ -66,5 +66,8 @@
   "image-field",
   "share-button",
   "sync-status",
-  "install-prompt"
+  "install-prompt",
+  "conversation-list",
+  "attention-card",
+  "reaction-bar"
 ]

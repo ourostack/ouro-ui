@@ -688,6 +688,27 @@
     "summary": "A file attached to a chat message, or waiting to be sent with one: its icon, name and size."
   },
   {
+    "name": "conversation-list",
+    "title": "ConversationList",
+    "group": "Chat",
+    "source": "registry/ouro/components/ouro/conversation-list/conversation-list.tsx",
+    "summary": "A list of conversations to choose from: each row shows the avatar, the title, when the latest message arrived and a line of it, and marks unread conversations with a bold title and a dot."
+  },
+  {
+    "name": "attention-card",
+    "title": "AttentionCard",
+    "group": "Chat",
+    "source": "registry/ouro/components/ouro/attention-card/attention-card.tsx",
+    "summary": "Something that waits on the person: a mention, a question asked of them or a request still unanswered."
+  },
+  {
+    "name": "reaction-bar",
+    "title": "ReactionBar",
+    "group": "Chat",
+    "source": "registry/ouro/components/ouro/reaction-bar/reaction-bar.tsx",
+    "summary": "A message's reactions: each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press."
+  },
+  {
     "name": "inspector",
     "title": "Inspector",
     "group": "App setup",
