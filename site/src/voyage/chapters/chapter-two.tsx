@@ -196,7 +196,7 @@ function ChartLabel({ x, y, anchor, className, fontSize, fontWeight, halo = fals
 const RouteMap = memo(function RouteMap({ route }: { route: readonly PortId[] }): JSX.Element {
   return (
     <figure className="m-0 border-b border-border/70">
-      <svg className="site-chart" viewBox={chart.viewBox} role="img" aria-label={describeRoute(route)} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" data-route={route.join(" ")}>
+      <svg className="site-chart block h-auto w-full font-[family-name:var(--font-heading)]" viewBox={chart.viewBox} role="img" aria-label={describeRoute(route)} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" data-route={route.join(" ")}>
         <g dangerouslySetInnerHTML={{ __html: chart.inner }} />
         {/* A new route draws itself in afresh. */}
         <path key={route.join()} className="ch-route" d={routePath(route)} pathLength={1} strokeWidth={2.2} style={{ stroke: "var(--primary)" }} />

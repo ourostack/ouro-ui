@@ -64,18 +64,12 @@
 /*
  * Chapter II as the server draws it: the chart room's map (voyage-chart.svg, inlined by
  * chapter-two.tsx) with the route on it, the leagues counter and the rail's compass. Every colour
- * is the theme's, so each preset repaints the chart.
+ * is the theme's, so each preset repaints the chart. Its size and type are utilities on the svg
+ * (`block h-auto w-full font-[family-name:var(--font-heading)]`), which the page has already.
  */
 .site-chart {
-  --ch-ink: color-mix(in oklab, var(--primary) 70%, var(--foreground));
-  display: block;
-  width: 100%;
-  height: auto;
-  color: var(--ch-ink);
-  font-family: var(--font-heading);
+  color: color-mix(in oklab, var(--primary) 70%, var(--foreground));
 }
-
-/* On a phone the chart's small print would be specks: the ports and the route speak for themselves. */
 /*
  * The rail's compass, Chapter III's drawings and the agents' findings take their size, room and
  * colour from inline styles in the server HTML, and what starts hidden is hidden there too
