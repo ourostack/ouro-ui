@@ -69,7 +69,10 @@ test.describe("each control in Chapter II", () => {
     // The days beside the ports follow the new order.
     const firstDay = room(page).locator("[data-chapter-control='ports'] [data-chapter-day]").first();
     await expect(firstDay).toHaveText(CHART_ROOM.sail(writeDay(arrivals(moved, "1867-11-06")[0]!)));
-    // Conseil's shortest way: the counter turns, and the rail ticks the step.
+  });
+
+  test("control: ports, in Conseil's shortest order, turns the counter and ticks the rail", async ({ page }) => {
+    await open(page);
     await planShortest(page);
     await expect(total(page)).toHaveText(writeLeagues(SHORTEST));
     await expect(total(page)).toHaveAttribute("data-shortest", "");
