@@ -82,9 +82,10 @@ jobs:
           for run in $ci; do echo "CI: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$run" >> "$GITHUB_STEP_SUMMARY"; done
           echo "Screen-reader lane: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$sr" >> "$GITHUB_STEP_SUMMARY"
           failed=0
-          # Judged on the checks main's rules require, not on each run's conclusion (ci-budget's).
+          # Judged on the checks main's rules require and the release-only install-latest job, as the
+          # release judges its commit, not on each run's conclusion (ci-budget's).
           # shellcheck disable=SC2086 # one argument per run
-          scripts/required-ci.sh $ci >/dev/null || { echo "::error::CI did not pass the checks main's rules require on the rehearsal commit $sha (runs $ci)"; failed=1; }
+          scripts/required-ci.sh --also "install (shadcn@latest, nova)" $ci >/dev/null || { echo "::error::CI did not pass the checks main's rules require on the rehearsal commit $sha (runs $ci)"; failed=1; }
           gh run watch "$sr" --exit-status --interval 30 >/dev/null || { echo "::error::The screen-reader lane failed on the rehearsal commit $sha: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$sr. An infrastructure failure (SR_CLASS=infrastructure in its log) can be rehearsed again."; failed=1; }
           exit "$failed"
       - if: always()

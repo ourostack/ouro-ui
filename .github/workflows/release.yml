@@ -88,17 +88,17 @@ jobs:
           producers=$(gh api "repos/$GITHUB_REPOSITORY/rules/branches/main" --jq '[.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context] | unique | .[]' | node scripts/required-producers.mjs) || { echo "::error::Could not tell which workflows report main's required checks."; exit 1; }
           echo "producers=$(echo $producers)" >> "$GITHUB_OUTPUT"
           echo "PRODUCERS=$(echo $producers)" >> "$GITHUB_ENV"
-          # The latest run of each on this commit: a push run, the run the last release dispatched
+          # Main's runs of each on this commit: a push run, the run the last release dispatched
           # after it merged "Prepare main for the next release" (a merge made with a workflow's
-          # token starts no push run), or the merge queue's run, which tested this very commit
-          # before main fast-forwarded to it (the push run after it then runs only install-github,
-          # and decides when it is the latest). Each passes on the checks main's rules require
-          # (scripts/required-ci.sh), not on its overall conclusion, which ci-budget's failure
-          # would decide too.
+          # token starts no push run), and the merge queue's run, which tested this very commit
+          # before main fast-forwarded to it (the push run after it then skips every job but
+          # install-github). A check main's rules require passes when one of them passed it
+          # (scripts/required-ci.sh), whatever the runs' overall conclusions, which ci-budget's
+          # failure would decide too.
           runs=
           for workflow in $producers; do
-            ci=$(gh run list --workflow "$workflow" --commit "$sha" --json databaseId,event,headBranch --jq '[.[] | select((.headBranch == "main" and (.event == "push" or .event == "workflow_dispatch")) or .event == "merge_group" or (.event == "workflow_dispatch" and (.headBranch | startswith("gh-readonly-queue/main/"))))][0].databaseId')
-            [ -n "$ci" ] && [ "$ci" != null ] || { echo "::error::$workflow has not run on main ($sha)"; exit 1; }
+            ci=$(gh run list --workflow "$workflow" --commit "$sha" --json databaseId,event,headBranch --jq '[.[] | select((.headBranch == "main" and (.event == "push" or .event == "workflow_dispatch")) or .event == "merge_group" or (.event == "workflow_dispatch" and (.headBranch | startswith("gh-readonly-queue/main/")))) | .databaseId] | map(tostring) | join(" ")')
+            [ -n "$ci" ] || { echo "::error::$workflow has not run on main ($sha)"; exit 1; }
             runs="$runs $ci"
           done
           # shellcheck disable=SC2086 # one argument per run
@@ -150,10 +150,12 @@ jobs:
         name: Run CI on the release commit
         run: |
           sha=$(git rev-parse HEAD)
-          # CI and every other workflow that reports a check main's rules require, judged on those checks.
+          # CI and every other workflow that reports a check main's rules require, judged on those
+          # checks and on the release-only gates the rules cannot require, as main never runs them:
+          # ci.yml's install-latest job. ci-budget does not decide.
           run=$(scripts/dispatch-required.sh "$BRANCH" "$sha")
           # shellcheck disable=SC2086 # one argument per run
-          scripts/required-ci.sh $run
+          scripts/required-ci.sh --also "install (shadcn@latest, nova)" $run
       - if: steps.check.outputs.new == 'true'
         name: Pass the screen-reader lane on the release commit
         run: |

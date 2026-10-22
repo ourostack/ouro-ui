@@ -178,6 +178,7 @@ case "$1 $2" in
   "run list") if [ "$MODE" = flaky ] && [ ! -e "${dir}/once" ]; then : > "${dir}/once"; exit 1; fi; case "$all" in *conformance-exemptions*) echo 78 ;; *) echo 77 ;; esac ;;
   "api -X") [ "$MODE" = ok ] || [ "$MODE" = redci ] || [ "$MODE" = budget ] || [ "$MODE" = noqueue ] || [ "$MODE" = cleanup ] || exit 1 ;;
   "run watch") [ "$MODE" = redci ] || [ "$MODE" = budget ] && exit 1 ;;
+  "run view") echo completed ;;
   "api repos/o/r/rules/branches/main") printf '%s\\n' ci "conformance exemptions" ;;
   "api repos/o/r/actions/runs/77/jobs?per_page=100") printf 'ci\\t%s\\nci-budget\\t%s\\n' "$([ "$MODE" = redci ] && echo failure || echo success)" "$([ "$MODE" = budget ] && echo failure || echo success)" ;;
   "api repos/o/r/actions/runs/78/jobs?per_page=100") printf 'conformance exemptions\\tsuccess\\n' ;;
@@ -214,8 +215,8 @@ test("the approval step approves the held run and, once it passes, queues the pu
   const at = (start) => calls.findIndex((c) => c.startsWith(start));
   assert.ok(at("api -X POST repos/o/r/actions/runs/77/approve") !== -1);
   assert.ok(at("api -X POST repos/o/r/actions/runs/78/approve") > at("api -X POST repos/o/r/actions/runs/77/approve"));
-  assert.ok(at("run watch 77") > at("api -X POST repos/o/r/actions/runs/78/approve"));
-  assert.ok(at("api repos/o/r/actions/runs/78/jobs") > at("run watch 78"));
+  assert.ok(at("run view 77") > at("api -X POST repos/o/r/actions/runs/78/approve"));
+  assert.ok(at("api repos/o/r/actions/runs/78/jobs") > at("run view 78"));
   // gh pr merge cannot queue a pull request without auto-merge, so the step queues it itself.
   assert.ok(at("pr merge prepare/after-v1.2.3 --squash") > at("api repos/o/r/actions/runs/78/jobs"));
   const enqueue = at("api graphql -f query=mutation { enqueuePullRequest");
