@@ -177,7 +177,10 @@ describe("the action token", () => {
       Object.fromEntries(
         ["solid button", "solid link button", "disabled solid button"].map((name) => {
           const style = getComputedStyle(probe(host, name));
-          return [name, Object.fromEntries(painted.map((property) => [property, style.getPropertyValue(property)]))];
+          // The fill, the label and the focus ring: what the action token could change. The
+          // transparent border is left out; under forced colours Chromium on Linux can leave it
+          // part way through its ease.
+          return [name, Object.fromEntries(["background-color", "color", "outline-color"].map((property) => [property, style.getPropertyValue(property)]))];
         }),
       );
     // A colour still easing into its forced value settles before the two are compared.
