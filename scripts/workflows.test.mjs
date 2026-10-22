@@ -970,8 +970,7 @@ test("every required check is still a job that reports, under the name the rules
   // The ruleset's required checks, which the claims check also reads (verify:ciJob accepts only these).
   for (const check of requiredChecks) assert.ok(names.has(check), `${check} is not among ${[...names.keys()].join(", ")}`);
   // ruleset 24881709 requires these; required-checks.yml holds the file to the live rules.
-  for (const check of ["conformance", "conformance exemptions", "mutation"]) assert.ok(requiredChecks.includes(check), check);
-  assert.ok(!requiredChecks.includes("ci-budget"), "ci-budget is advisory until the ruleset requires it");
+  for (const check of ["ci-budget", "conformance", "conformance exemptions", "mutation"]) assert.ok(requiredChecks.includes(check), check);
   const installShards = shardCount(jobs["install-shard"]);
   const installs = ["shadcn, nova", "shadcn, vega", "ouro, nova"].flatMap((app) => Array.from({ length: installShards }, (_, index) => `install (${app}, ${index + 1}/${installShards})`));
   assert.deepEqual(checkNames(jobs["install-shard"], "install-shard"), installs);
