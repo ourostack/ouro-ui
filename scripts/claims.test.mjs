@@ -785,9 +785,11 @@ test("the claims checker ships in lib-claims and runs in an app", () => {
 });
 
 test("a release commit's registry.json lints as main's does: its docs messages name the version it records", async () => {
-  const { release } = await import("./registry.mts");
-  const main = readFileSync(join(repo, "registry.json"), "utf8");
-  const released = `${JSON.stringify(release(JSON.parse(main), "9.9.9"), null, 2)}\n`;
+  const { buildRegistry, release } = await import("./registry.mts");
+  // Built from the sources as main has it, unreleased, also on a release commit, whose registry.json is released already.
+  const registry = buildRegistry(repo);
+  const main = `${JSON.stringify(registry, null, 2)}\n`;
+  const released = `${JSON.stringify(release(registry, "9.9.9"), null, 2)}\n`;
   const verbs = new Set(loadConfig(repo).instructionVerbs);
   const lint = (text) => lintRegistry(hooks.prepare("registry.json", text), { file: "registry.json", verbs }).findings.map((finding) => finding.message);
   assert.match(released, /Ouro UI v9\.9\.9\./);

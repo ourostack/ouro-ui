@@ -1,0 +1,92 @@
+name: Release rehearsal
+run-name: Release rehearsal v${{ inputs.version }}
+# Rehearses cutting v<version> from main, and stops before anything is tagged or published:
+# it writes the release commit exactly as release.yml does (scripts/release-commit.sh) on
+# release/v<version>-rehearsal, builds and checks the @ouro namespace for it, runs the full CI
+# there (a release branch, so with ci.yml's release-only install-latest job) and the
+# screen-reader lane, then deletes the branch. A check that holds on main but not on a release
+# commit, as one that reads the release's own tag before it exists, fails here, not in the
+# release. Release refuses to cut v<version> until a rehearsal of that version has passed on
+# main's commit (release.yml, "Check the version, the tag and main's CI"), so it is part of
+# preparing every release: run it, fix what fails, run it again.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "The version to rehearse, x.y.z without the v"
+        required: true
+        type: string
+permissions: {}
+concurrency:
+  group: release-rehearsal-${{ inputs.version }}
+  cancel-in-progress: false
+jobs:
+  rehearse:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push and delete the rehearsal branch
+      actions: write # run CI and the screen-reader lane on it
+    # CI on the release commit, 45 minutes with the runner pool's queues, beside the screen-reader
+    # lane, and the namespace checks: 1.5 times that, as release.yml counts it.
+    timeout-minutes: 75
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ inputs.version }}
+      TAG: v${{ inputs.version }}
+      BRANCH: release/v${{ inputs.version }}-rehearsal
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+      - name: Check the version and the tag
+        run: |
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::version must be x.y.z, without the v"; exit 1; }
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
+            echo "::error::$TAG is already tagged: there is nothing to rehearse."
+            exit 1
+          fi
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      - name: Push the rehearsal branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          # What release.yml commits on release/v<version>, from the same script.
+          scripts/release-commit.sh "$VERSION"
+          git add CHANGES.md
+          git commit -am "Release $TAG (rehearsal)"
+          git push --force origin "$BRANCH"
+      - name: Build and check the @ouro namespace for the rehearsal commit
+        run: |
+          scripts/namespace.sh "$RUNNER_TEMP/ns" "$TAG"
+          node scripts/public-registry.mjs verify-build "$RUNNER_TEMP/ns" HEAD
+      - name: Run CI and the screen-reader lane on the rehearsal commit
+        run: |
+          sha=$(git rev-parse HEAD)
+          # Dispatched together: they run side by side.
+          gh workflow run ci.yml --ref "$BRANCH"
+          gh workflow run screen-reader.yml --ref "$BRANCH" -f source_sha="$sha"
+          ci=
+          sr=
+          for _ in $(seq 60); do
+            ci=$(gh run list --workflow ci.yml --branch "$BRANCH" --commit "$sha" --event workflow_dispatch --json databaseId --jq '.[0].databaseId // empty')
+            sr=$(gh run list --workflow screen-reader.yml --branch "$BRANCH" --commit "$sha" --event workflow_dispatch --json databaseId --jq '.[0].databaseId // empty')
+            [ -n "$ci" ] && [ -n "$sr" ] && break
+            sleep 5
+          done
+          [ -n "$ci" ] || { echo "::error::CI did not start on $BRANCH ($sha)"; exit 1; }
+          [ -n "$sr" ] || { echo "::error::The screen-reader lane did not start on $BRANCH ($sha)"; exit 1; }
+          echo "CI: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$ci" >> "$GITHUB_STEP_SUMMARY"
+          echo "Screen-reader lane: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$sr" >> "$GITHUB_STEP_SUMMARY"
+          failed=0
+          gh run watch "$ci" --exit-status --interval 30 >/dev/null || { echo "::error::CI failed on the rehearsal commit $sha: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$ci"; failed=1; }
+          gh run watch "$sr" --exit-status --interval 30 >/dev/null || { echo "::error::The screen-reader lane failed on the rehearsal commit $sha: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$sr. An infrastructure failure (SR_CLASS=infrastructure in its log) can be rehearsed again."; failed=1; }
+          exit "$failed"
+      - if: always()
+        name: Delete the rehearsal branch
+        run: git push origin --delete "$BRANCH" || echo "::notice::Could not delete $BRANCH; delete it by hand."
