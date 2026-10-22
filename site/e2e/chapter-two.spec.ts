@@ -120,6 +120,9 @@ test.describe("each control in Chapter II", () => {
     await planShortest(page);
     await expect(table.first()).toContainText("Atlantis");
     await expect(legs.locator(".recharts-bar-rectangle")).toHaveCount(START_ROUTE.length - 1);
+    // Each leg's label is HTML under its bar, not the chart's SVG text (useAxisLabels).
+    await expect(legs.locator("[data-chapter-axis]")).toContainText("Atlantis");
+    await expect(legs.locator(".recharts-cartesian-axis-tick-value").first()).toBeHidden();
   });
 
   test("control: sort orders the specimens by name, class or depth", async ({ page }) => {

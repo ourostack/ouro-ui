@@ -1,4 +1,4 @@
-import { createContext, memo, startTransition, use, useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore, type JSX } from "react";
+import { createContext, memo, startTransition, use, useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore, type JSX, type ReactNode, type RefObject } from "react";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { DatePicker } from "@/registry/ouro/components/ouro/calendar/date-picker";
@@ -18,7 +18,7 @@ import chartSource from "../../nautilus/art/voyage-chart.svg?raw";
 import compassSource from "../../nautilus/art/compass.svg?raw";
 import { keepClearOfToasts } from "../clear-of-toasts";
 import { Container } from "../layout";
-import { parseArt } from "../stage/art";
+import { labelBox, labelStyle, parseArt } from "../stage/art";
 import type { CrewLine } from "./copy";
 import {
   CATALOGUE,
@@ -132,6 +132,7 @@ function Planning(): JSX.Element {
     <div className="mt-10 hidden lg:block" data-chapter-planning="">
       <svg
         className="site-compass"
+        style={{ display: "block", width: "60%", height: "auto", color: "color-mix(in oklab, var(--primary) 60%, var(--foreground))" }}
         viewBox={compass.viewBox}
         aria-hidden="true"
         fill="none"
@@ -164,6 +165,27 @@ function describeRoute(route: readonly PortId[]): string {
   return `${CHART_ROOM.map}: ${route.map((id) => portNamed(id).name).join(", then ")}. ${CHART_ROOM.leagues(writeLeagues(routeLeagues(route)))}.`;
 }
 
+/** A label on the chart, as HTML in a foreignObject: SVG text costs WebKit a whole-page layout and repaint on every press (htmlLabels in art.ts). */
+function ChartLabel({ x, y, anchor, className, fontSize, fontWeight, halo = false, children }: { x: number; y: number; anchor: string; className: string; fontSize: number; fontWeight: number; halo?: boolean; children: ReactNode }): JSX.Element {
+  const box = labelBox(x, y, anchor);
+  return (
+    <foreignObject className={className} x={box.x} y={box.y} width={box.width} height={box.height} fontSize={fontSize} fontWeight={fontWeight}>
+      <div
+        style={{
+          ...labelStyle,
+          textAlign: box.align,
+          fontFamily: "var(--font-sans)",
+          color: "var(--foreground)",
+          // A halo of the card's colour, so the name reads across coasts and the route.
+          ...(halo ? { WebkitTextStroke: "3px var(--card)", paintOrder: "stroke fill" } : {}),
+        }}
+      >
+        {children}
+      </div>
+    </foreignObject>
+  );
+}
+
 /** The engraved chart, with the route drawn from port to port and each port's place in it. */
 const RouteMap = memo(function RouteMap({ route }: { route: readonly PortId[] }): JSX.Element {
   return (
@@ -179,12 +201,12 @@ const RouteMap = memo(function RouteMap({ route }: { route: readonly PortId[] })
             <g key={id} className="ch-port" data-port={id} transform={`translate(${x.toFixed(1)} ${y.toFixed(1)})`}>
               <g className="ch-mark">
                 <circle r={9} strokeWidth={1.4} />
-                <text className="ch-port-number" y={3.6} textAnchor="middle" fontSize={10} fontWeight={600} stroke="none">
+                <ChartLabel className="ch-port-number" x={0} y={3.6} anchor="middle" fontSize={10} fontWeight={600}>
                   {index + 1}
-                </text>
-                <text className="ch-port-name" x={label.dx} y={label.dy} textAnchor={label.anchor} fontSize={11} fontWeight={500} paintOrder="stroke" strokeWidth={3}>
+                </ChartLabel>
+                <ChartLabel className="ch-port-name" x={label.dx} y={label.dy} anchor={label.anchor} fontSize={11} fontWeight={500} halo>
                   {portNamed(id).short}
-                </text>
+                </ChartLabel>
               </g>
             </g>
           );
@@ -280,10 +302,68 @@ function Total({ route, last }: { route: readonly PortId[]; last: string }): JSX
   );
 }
 
-/** Each leg of the route as a bar: HX Chart, with its table for screen readers. */
+/** One of the chart's axis labels, where Recharts put it, from the top left of the chart's box. */
+interface AxisLabel {
+  x: number;
+  y: number;
+  text: string;
+}
+
+/**
+ * The legs chart's x-axis labels, read from where Recharts drew them. Recharts draws them as SVG
+ * text, which costs WebKit a whole-page layout and repaint on every press (htmlLabels in art.ts),
+ * so chapter-two.css hides them and Legs puts these over the chart as HTML instead.
+ */
+function useAxisLabels(host: RefObject<HTMLElement | null>): AxisLabel[] {
+  const [labels, setLabels] = useState<AxisLabel[]>([]);
+  useEffect(() => {
+    const element = host.current!;
+    let last = "";
+    const read = () => {
+      const origin = element.getBoundingClientRect();
+      const svg = element.querySelector("svg.recharts-surface");
+      const surface = svg?.getBoundingClientRect();
+      const next = [...element.querySelectorAll(".recharts-xAxis .recharts-cartesian-axis-tick-value")].map((text) => ({
+        x: surface!.left - origin.left + Number(text.getAttribute("x")),
+        y: surface!.top - origin.top + Number(text.getAttribute("y")),
+        text: text.textContent ?? "",
+      }));
+      const key = JSON.stringify(next);
+      if (key !== last) {
+        last = key;
+        setLabels(next);
+      }
+    };
+    read();
+    const mutations = new MutationObserver(read);
+    mutations.observe(element, { subtree: true, childList: true, characterData: true, attributeFilter: ["x", "y"] });
+    const resizes = new ResizeObserver(read);
+    resizes.observe(element);
+    return () => {
+      mutations.disconnect();
+      resizes.disconnect();
+    };
+  }, [host]);
+  return labels;
+}
+
+/** Each leg of the route as a bar: HX Chart, with its table for screen readers, and its x-axis labels as HTML (useAxisLabels). */
 const Legs = memo(function Legs({ route }: { route: readonly PortId[] }): JSX.Element {
   const data = useMemo(() => legs(route).map((leg) => ({ port: portNamed(leg.to).short, leagues: leg.leagues })), [route]);
-  return <Chart title={CHART_ROOM.legs} description={CHART_ROOM.legsHint} type="bar" data={data} categoryKey="port" config={{ leagues: { label: "Leagues" } }} className="h-52" />;
+  const host = useRef<HTMLDivElement>(null);
+  const labels = useAxisLabels(host);
+  return (
+    <div ref={host} className="site-legs relative">
+      <Chart title={CHART_ROOM.legs} description={CHART_ROOM.legsHint} type="bar" data={data} categoryKey="port" config={{ leagues: { label: "Leagues" } }} className="h-52" />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 text-xs text-muted-foreground" data-chapter-axis="">
+        {labels.map((label) => (
+          <span key={`${label.text}-${label.x}`} className="absolute -translate-x-1/2 whitespace-nowrap leading-none" style={{ left: label.x, top: label.y }}>
+            {label.text}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
 });
 
 type Sort = "name" | "kind" | "depth";

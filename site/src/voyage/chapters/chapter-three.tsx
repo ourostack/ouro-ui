@@ -11,7 +11,7 @@ import tentacleSource from "../../nautilus/art/tentacle.svg?raw";
 import { href } from "../../paths";
 import { keepClearOfToasts } from "../clear-of-toasts";
 import { Container } from "../layout";
-import { parseArt } from "../stage/art";
+import { parseArt, type Art } from "../stage/art";
 import type { CrewLine } from "./copy";
 import { BATTLE, CHAPTER_THREE, CODE_SHEETS_THREE, describeEncounter, ENCOUNTER, FIGHT, ORDERS, SALOON, TOASTS, type Order } from "./chapter-three-copy";
 import { Composition, Crew, Handoff, PhoneMarker, Steps, useAfterPaint, useChapterReady, type Step } from "./frame";
@@ -19,9 +19,17 @@ import { Composition, Crew, Handoff, PhoneMarker, Steps, useAfterPaint, useChapt
 // inside this island's script and goes into the page as the island hydrates.
 import chapterStyles from "./chapter-three.css?inline";
 
-const organ = parseArt(organSource);
-const squid = parseArt(squidSource);
-const tentacle = parseArt(tentacleSource);
+// What starts hidden (the organ's notes, the squid's ink) and the arm's core colour are set in the
+// drawings' own markup, so the server HTML has them without a rule in the first load's CSS.
+const organ = hide(parseArt(organSource), "or-note");
+const squid = hide(parseArt(squidSource), "sq-ink");
+const arm = parseArt(tentacleSource);
+const tentacle: Art = { ...arm, inner: arm.inner.replaceAll('class="tn-core"', 'class="tn-core" style="stroke:var(--background)"') };
+
+/** A drawing whose parts of a class start hidden (`opacity="0"`); island CSS shows them. */
+function hide(art: Art, name: string): Art {
+  return { ...art, inner: art.inner.replaceAll(`class="${name}"`, `class="${name}" opacity="0"`) };
+}
 
 /** How the fight stands: the encounter writes it, the saloon and the rail read it. */
 interface Fight {
@@ -151,7 +159,7 @@ function Battle(): JSX.Element {
   const played = useAfterPaint(useFight().played);
   return (
     <div className="mt-10 hidden lg:block" data-chapter-battle="">
-      <OrganArt className="site-organ site-organ-small" played={played} />
+      <OrganArt small played={played} />
       <Steps label={BATTLE.label} steps={steps} />
     </div>
   );
@@ -161,10 +169,11 @@ function BattleMarker(): JSX.Element {
   return <PhoneMarker chapter={CHAPTER_THREE.number} title={CHAPTER_THREE.title} steps={useBattle()} />;
 }
 
-function OrganArt({ className, played, label }: { className: string; played: boolean; label?: string }): JSX.Element {
+function OrganArt({ small = false, played, label }: { small?: boolean; played: boolean; label?: string }): JSX.Element {
   return (
     <svg
-      className={className}
+      className="site-organ"
+      style={{ display: "block", width: small ? "55%" : "100%", maxWidth: "20rem", height: "auto", marginInline: small ? 0 : "auto" }}
       viewBox={organ.viewBox}
       {...(label ? { role: "img", "aria-label": label } : { "aria-hidden": true })}
       fill="none"
@@ -186,6 +195,9 @@ const BOLTS = Array.from({ length: 12 }, (_, index) => {
 /** The sea's surface across the porthole, when we are up: a line of gentle waves. */
 const WAVE = `M0 150 ${Array.from({ length: 10 }, (_, index) => `Q${index * 40 + 20} ${index % 2 ? 158 : 142} ${index * 40 + 40} 150`).join(" ")} V164 H0 Z`;
 
+/** One of the porthole's stacked drawings: the whole of its box. */
+const LAYER = { position: "absolute", inset: 0, width: "100%", height: "100%" } as const;
+
 /** The sea behind the glass, and its surface when we are up. */
 const SEA = "color-mix(in oklab, var(--primary) 55%, oklch(0.24 0.045 250))";
 
@@ -203,13 +215,14 @@ function Porthole(): JSX.Element {
   return (
     <div
       className="site-porthole"
+      style={{ position: "relative", width: "100%", maxWidth: "22rem", aspectRatio: "1", marginInline: "auto" }}
       role="img"
       aria-label={`${ENCOUNTER.scene}. ${describeEncounter({ surfaced, lights, won })}`}
       data-surfaced={surfaced ? "" : undefined}
       data-lights={lights ? "" : undefined}
       data-squid={won ? "gone" : "holding"}
     >
-      <svg viewBox="0 0 400 400" fill="none" aria-hidden="true" className="absolute inset-0 size-full">
+      <svg viewBox="0 0 400 400" fill="none" aria-hidden="true" style={LAYER}>
         <defs>
           <clipPath id="porthole-glass">
             <circle cx="200" cy="200" r="176" />
@@ -221,19 +234,20 @@ function Porthole(): JSX.Element {
         </defs>
         <g clipPath="url(#porthole-glass)">
           <rect className="ph-sea" width="400" height="400" style={{ fill: SEA }} />
-          <g className="ph-sky">
+          <g className="ph-sky" opacity={0}>
             <rect width="400" height="150" />
             <circle className="ph-sun" cx="292" cy="84" r="20" />
             <path className="ph-wave" d={WAVE} style={{ fill: SEA }} />
           </g>
-          <rect className="ph-beam" width="400" height="400" fill="url(#porthole-beam)" />
+          <rect className="ph-beam" width="400" height="400" fill="url(#porthole-beam)" opacity={0} />
         </g>
       </svg>
-      <div className="absolute inset-0 [clip-path:circle(44%)]">
+      <div style={{ ...LAYER, clipPath: "circle(44%)" }}>
         <svg
           viewBox="0 0 400 400"
           aria-hidden="true"
-          className="ph-squid absolute inset-0 size-full will-change-transform"
+          className="ph-squid"
+          style={{ ...LAYER, willChange: "transform" }}
           fill="none"
           stroke="currentColor"
           strokeLinecap="round"
@@ -241,7 +255,7 @@ function Porthole(): JSX.Element {
           dangerouslySetInnerHTML={{ __html: squid.inner }}
         />
       </div>
-      <svg viewBox="0 0 400 400" fill="none" aria-hidden="true" className="absolute inset-0 size-full">
+      <svg viewBox="0 0 400 400" fill="none" aria-hidden="true" style={LAYER}>
         <g className="ph-bubbles" fill="white" fillOpacity={0.45}>
           <circle cx="90" cy="320" r="4" />
           <circle cx="110" cy="290" r="2.5" />
@@ -411,7 +425,7 @@ function Saloon(): JSX.Element {
   return (
     <div className="grid gap-6 p-4 sm:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] sm:items-center sm:p-6">
       <figure className="m-0">
-        <OrganArt className="site-organ" played={shown} label={shown ? `${SALOON.organ}. ${SALOON.playing}` : SALOON.organ} />
+        <OrganArt played={shown} label={shown ? `${SALOON.organ}. ${SALOON.playing}` : SALOON.organ} />
       </figure>
       <div className="grid content-start gap-5">
         <div className="site-log grid gap-2" data-chapter-log={shown ? "done" : "waiting"}>

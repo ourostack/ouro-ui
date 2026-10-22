@@ -12,6 +12,9 @@ import { AGENTS, FILED, SPECIES } from "./copy";
 
 type Example = (typeof agentExamples)[number];
 
+/** What the agent hears back, quoted as the tools print it, wrapped: inline, out of the first load's CSS budget (catalog.spec.ts). */
+const FINDING = { fontSize: "0.8125rem", lineHeight: 1.6, whiteSpace: "pre-wrap", overflowWrap: "anywhere", color: "var(--foreground)" } as const;
+
 /** One mistake, filed: what the agent wrote, and the three places it hears back. */
 function Specimen({ example }: { example: Example }): JSX.Element {
   const real = generated[example.id as keyof typeof generated];
@@ -33,7 +36,7 @@ function Specimen({ example }: { example: Example }): JSX.Element {
         <dl className="site-findings m-0 grid content-start gap-4">
           <div>
             <dt className="site-eyebrow">{AGENTS.typeCheck}</dt>
-            <dd className="site-mono site-finding m-0 mt-1.5">
+            <dd className="site-mono site-finding m-0 mt-1.5" style={FINDING}>
               <span aria-hidden="true" className="me-2 inline-block size-1.5 rounded-full bg-destructive align-middle" />
               <span data-agents-error="">{real.error}</span>
             </dd>
@@ -42,14 +45,14 @@ function Specimen({ example }: { example: Example }): JSX.Element {
             <dt className="site-eyebrow">
               {AGENTS.source} <span className="site-mono normal-case tracking-normal">{real.source.file}</span>
             </dt>
-            <dd className="site-mono site-finding m-0 mt-1.5">
+            <dd className="site-mono site-finding m-0 mt-1.5" style={FINDING}>
               <span className="block text-muted-foreground">{`/** ${real.source.doc} */`}</span>
               <span className="block">{real.source.code}</span>
             </dd>
           </div>
           <div>
             <dt className="site-eyebrow">{AGENTS.console}</dt>
-            <dd className="site-mono site-finding m-0 mt-1.5" data-agents-console="">
+            <dd className="site-mono site-finding m-0 mt-1.5" style={FINDING} data-agents-console="">
               {example.devMessage}
             </dd>
           </div>
