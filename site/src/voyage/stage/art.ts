@@ -36,7 +36,7 @@ export function labelBox(x: number, y: number, anchor: string): { x: number; y: 
 }
 
 /** The style of the line inside a label's box. */
-export const labelStyle = { paddingTop: `calc(${LABEL_RISE}px - 0.8em)`, lineHeight: 1, whiteSpace: "nowrap" } as const;
+export const labelStyle = { paddingTop: `calc(${LABEL_RISE}px - .8em)`, lineHeight: 1, whiteSpace: "nowrap" } as const;
 
 /**
  * A drawing's labels as HTML in a `<foreignObject>`, not SVG `<text>`. In WebKit any SVG text
@@ -50,7 +50,7 @@ export function htmlLabels(inner: string): string {
     const read = (name: string) => new RegExp(`(?:^|\\s)${name}="([^"]*)"`).exec(attributes)?.[1];
     const box = labelBox(Number(read("x") ?? 0), Number(read("y") ?? 0), read("text-anchor") ?? "start");
     const kept = ["class", "font-size", "letter-spacing", "opacity"].map((name) => (read(name) === undefined ? "" : ` ${name}="${read(name)}"`)).join("");
-    const style = `padding-top:${labelStyle.paddingTop};line-height:${labelStyle.lineHeight};white-space:${labelStyle.whiteSpace};text-align:${box.align}`;
+    const style = `padding-top:${labelStyle.paddingTop};line-height:1;white-space:nowrap${box.align === "left" ? "" : `;text-align:${box.align}`}`;
     return `<foreignObject x="${box.x}" y="${box.y}" width="${box.width}" height="${box.height}"${kept}><div style="${style}">${content}</div></foreignObject>`;
   });
 }

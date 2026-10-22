@@ -338,7 +338,7 @@
       "source": "original-svg",
       "published": "2026-10-21",
       "licence": "repository",
-      "sha256": "e15be4e8e9c273993955e5ce9bf2926d4ec0b4d818296b78cbde55d383cbe9e6",
+      "sha256": "966caf9409f42963332939c0e51fdbec9aedc7f55b356de83887552d009a9153",
       "modifications": "None: drawn for this site from Verne's text alone by site/scripts/drawings/squid.mjs (the sketch it comes from: each arm a centre line of curves, offset to a tapering band). Kept gentle for a child: no fight on the platform, no one lost; the squid lets go and sinks back into the deep behind its ink. Colours come from the theme (chapters.css), the skin mixed toward red as Verne's “reddish brown”.",
       "subject": "creature",
       "chapter": "III",

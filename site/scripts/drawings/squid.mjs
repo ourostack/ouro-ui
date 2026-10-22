@@ -37,7 +37,9 @@ function band(chain, base, samples = 48) {
     right.push([point[0] - normal[0] * half, point[1] - normal[1] * half]);
   }
   const points = [...left, ...right.reverse()];
-  return `M${points.map(([x, y]) => `${round(x)} ${round(y)}`).join(" L")} Z`;
+  // Whole units: a band's edge is a fraction of a pixel off at the porthole's size, and the
+  // drawing, which is in the voyage's first HTML, is a third lighter.
+  return `M${points.map(([x, y]) => `${Math.round(x)} ${Math.round(y)}`).join(" L")} Z`;
 }
 
 /** Sucker dots along one side of a chain, shrinking toward the tip. */

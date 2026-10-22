@@ -195,9 +195,6 @@ const BOLTS = Array.from({ length: 12 }, (_, index) => {
 /** The sea's surface across the porthole, when we are up: a line of gentle waves. */
 const WAVE = `M0 150 ${Array.from({ length: 10 }, (_, index) => `Q${index * 40 + 20} ${index % 2 ? 158 : 142} ${index * 40 + 40} 150`).join(" ")} V164 H0 Z`;
 
-/** One of the porthole's stacked drawings: the whole of its box. */
-const LAYER = { position: "absolute", inset: 0, width: "100%", height: "100%" } as const;
-
 /** The sea behind the glass, and its surface when we are up. */
 const SEA = "color-mix(in oklab, var(--primary) 55%, oklch(0.24 0.045 250))";
 
@@ -222,7 +219,7 @@ function Porthole(): JSX.Element {
       data-lights={lights ? "" : undefined}
       data-squid={won ? "gone" : "holding"}
     >
-      <svg viewBox="0 0 400 400" fill="none" aria-hidden="true" style={LAYER}>
+      <svg viewBox="0 0 400 400" fill="none" aria-hidden="true" className="absolute inset-0 size-full">
         <defs>
           <clipPath id="porthole-glass">
             <circle cx="200" cy="200" r="176" />
@@ -242,12 +239,11 @@ function Porthole(): JSX.Element {
           <rect className="ph-beam" width="400" height="400" fill="url(#porthole-beam)" opacity={0} />
         </g>
       </svg>
-      <div style={{ ...LAYER, clipPath: "circle(44%)" }}>
+      <div className="absolute inset-0" style={{ clipPath: "circle(44%)" }}>
         <svg
           viewBox="0 0 400 400"
           aria-hidden="true"
-          className="ph-squid"
-          style={{ ...LAYER, willChange: "transform" }}
+          className="ph-squid absolute inset-0 size-full will-change-transform"
           fill="none"
           stroke="currentColor"
           strokeLinecap="round"
@@ -255,7 +251,7 @@ function Porthole(): JSX.Element {
           dangerouslySetInnerHTML={{ __html: squid.inner }}
         />
       </div>
-      <svg viewBox="0 0 400 400" fill="none" aria-hidden="true" style={LAYER}>
+      <svg viewBox="0 0 400 400" fill="none" aria-hidden="true" className="absolute inset-0 size-full">
         <g className="ph-bubbles" fill="white" fillOpacity={0.45}>
           <circle cx="90" cy="320" r="4" />
           <circle cx="110" cy="290" r="2.5" />
