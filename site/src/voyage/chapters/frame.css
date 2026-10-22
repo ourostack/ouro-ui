@@ -1,10 +1,28 @@
 /*
  * What every chapter's frame needs once it answers, put in the page by useChapterReady with the
- * chapter's own styles (so it costs the first paint nothing): the phone marker's dots, the Code
- * sheet's wrapped lines and the crew's cheer.
+ * chapter's own styles (so it costs the first paint nothing): the phone marker, the Code sheet's
+ * wrapped lines and the crew's cheer. Every chapter lies below the first screen, and its island
+ * comes as it nears the screen, so the marker is styled before it shows.
  */
-/* The phone marker's dots fill as the chapter's steps are done (no step is done before it answers). */
+/*
+ * On a phone, where the rail beside a chapter is left out: a slim marker under the header, held
+ * there while the chapter is on screen, with the chapter's name and a dot for each of its steps.
+ */
+.site-phone-marker {
+  position: sticky;
+  top: var(--site-header-h, 3.5rem);
+  z-index: 30;
+  margin-block-end: 1.5rem;
+  padding: 0.5rem max(1rem, calc(50% - 600px));
+  border-block: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  background: var(--background);
+}
+/* Its dots fill as the chapter's steps are done. */
 .site-marker-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border: 1.5px solid var(--muted-foreground);
+  border-radius: 999px;
   transition:
     background-color var(--ouro-duration-slow) ease,
     border-color var(--ouro-duration-slow) ease;
