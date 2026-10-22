@@ -6,6 +6,7 @@ import { routeFor } from "../routes";
 import themes from "../themes/themes.json";
 import fonts from "../themes/fonts.json";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
+import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { applyStoredTheme, PRESET_NAMES, prepaintScript, THEME_KEY } from "../themes/prepaint";
 import { presetList } from "./presets";
 
@@ -144,30 +145,36 @@ describe("the header and the theme section", () => {
   it("copies the preset's theme with its fonts, or its tokens without them, and says so", async () => {
     const writes: string[] = [];
     const spy = vi.spyOn(navigator.clipboard, "writeText").mockImplementation(async (text) => void writes.push(text));
+    // A toast shows for five seconds, which a loaded runner can outlast between two steps; the
+    // announcements are recorded as they happen.
+    const announced = watchAnnouncements();
     try {
       root.setAttribute("data-theme", "brass");
       await renderPage("/voyage/");
       const brass = presetList.find((preset) => preset.name === "brass")!;
       await userEvent.click(page.getByRole("button", { name: "Copy theme", exact: true }));
-      await expect.element(page.getByText("Copied the Brass theme", { exact: true })).toBeVisible();
+      await expect.poll(() => announced.count("Copied the Brass theme")).toBe(1);
       await userEvent.click(page.getByRole("button", { name: "Copy tokens only", exact: true }));
-      await expect.element(page.getByText("Copied the Brass tokens", { exact: true })).toBeVisible();
+      await expect.poll(() => announced.count("Copied the Brass tokens")).toBe(1);
       expect(writes).toEqual([brass.css.theme, brass.css.tokens]);
       expect(writes[0]).toContain("https://ourostack.github.io/ouro-ui/fonts/cormorant-garamond-5.3.0.woff2");
       expect(writes[1]).not.toContain("@font-face");
     } finally {
+      announced.stop();
       spy.mockRestore();
     }
   });
 
   it("says so when the clipboard is refused", async () => {
     const spy = vi.spyOn(navigator.clipboard, "writeText").mockRejectedValue(new DOMException("denied", "NotAllowedError"));
+    const announced = watchAnnouncements();
     try {
       await renderPage("/voyage/");
       await userEvent.click(page.getByRole("button", { name: "Copy theme", exact: true }));
-      // A destructive toast is also read out from an assertive live region, so its text is there twice.
-      await expect.element(page.getByText("Couldn't copy", { exact: true }).first()).toBeVisible();
+      // A destructive toast is read out once, from an assertive live region.
+      await expect.poll(() => announced.matching("Couldn't copy").map((change) => change.region.getAttribute("role"))).toEqual(["alert"]);
     } finally {
+      announced.stop();
       spy.mockRestore();
     }
   });

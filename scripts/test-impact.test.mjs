@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { storyFileSelected } from "../test/story-selection.ts";
-import { coverageOnlyFailure, e2eArgs, runBrowserTests, storyFolders, testImpact, vitestArgs } from "./test-impact.mjs";
+import { decideReducedRun, e2eArgs, runBrowserShard, storyFolders, testImpact, vitestArgs } from "./test-impact.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const components = "registry/ouro/components/ouro";
@@ -225,20 +225,26 @@ test("the reduced end-to-end run takes the selected components' specs and the si
   for (const arg of e2eArgs(["checkbox", "dialog"])) assert.ok(existsSync(join(root, arg)), arg);
 });
 
-const vitestLog = (summary) => `\n Test Files  ${summary}\n      Tests  12 passed (12)\n`;
-
-test("a coverage threshold is the only failure the full suite decides", () => {
-  assert.equal(coverageOnlyFailure(`${vitestLog("4 passed (4)")}ERROR: Coverage for branches (97.5%) does not meet global threshold (100%)\n`), true);
-  assert.equal(coverageOnlyFailure(`\x1b[31m${vitestLog("1 failed | 3 passed (4)")}\x1b[39mERROR: Coverage for lines (97%) does not meet global threshold (100%)\n`), false);
-  assert.equal(coverageOnlyFailure(vitestLog("4 passed (4)")), false);
-  assert.equal(coverageOnlyFailure(`${vitestLog("4 passed (4)")}Unhandled Errors\nERROR: Coverage for lines (97%) does not meet global threshold (100%)\n`), false);
+test("a reduced shard runs its share of the selected tests, with the selected stories", async () => {
+  const calls = [];
+  const status = await runBrowserShard(["checkbox"], "2/6", {
+    root: fixture(),
+    spawn: async (command, args, env) => {
+      calls.push([command, ...args, env.OURO_STORIES].join(" "));
+      return { status: 3 };
+    },
+    log: () => {},
+  });
+  assert.equal(status, 3);
+  assert.equal(calls.length, 1);
+  assert.match(calls[0], /^pnpm exec vitest run --project=ouro-chromium .*--coverage .*registry\/ouro\/components\/ouro\/checkbox\/ .*test\/ site\/ --shard=2\/6 checkbox$/);
 });
 
-test("the reduced run passes on its own, and falls back to the full suite only when only coverage failed", async () => {
-  const run = async (results) => {
+test("the reduced run stands when the shards' merged coverage reaches 100%, and the full suite decides only when it falls short", async () => {
+  const run = async (results, components = ["checkbox"]) => {
     const calls = [];
     const outputs = [];
-    const status = await runBrowserTests(["checkbox"], {
+    const status = await decideReducedRun(components, "/cov", 6, {
       root: fixture(),
       spawn: async (command, args, env) => {
         calls.push([command, ...args, env.OURO_STORIES ?? "(every story)"].join(" "));
@@ -249,21 +255,28 @@ test("the reduced run passes on its own, and falls back to the full suite only w
     });
     return { status, calls, outputs };
   };
-  const passed = await run([{ status: 0, log: vitestLog("4 passed (4)") }]);
-  assert.equal(passed.status, 0);
-  assert.equal(passed.calls.length, 1);
-  assert.match(passed.calls[0], /^pnpm exec vitest run .*registry\/ouro\/components\/ouro\/checkbox\/ registry\/ouro\/lib\/ouro\/cn\. test\/ site\/ checkbox$/);
-  assert.deepEqual(passed.outputs, ["reduced=true", "stems=checkbox,checkbox-group"]);
+  const covered = await run([{ status: 0 }]);
+  assert.equal(covered.status, 0);
+  assert.deepEqual(covered.calls.map((call) => call.split(" ").slice(0, 5).join(" ")), ["node scripts/coverage-merge.mjs /cov --shards 6"]);
+  assert.deepEqual(covered.outputs, ["reduced=true", "stems=checkbox,checkbox-group", "fallback=false"]);
 
-  const failed = await run([{ status: 1, log: vitestLog("1 failed | 3 passed (4)") }]);
-  assert.equal(failed.status, 1);
-  assert.equal(failed.calls.length, 1);
+  const short = await run([{ status: 1 }, { status: 0 }, { status: 0 }]);
+  assert.equal(short.status, 0);
+  assert.deepEqual(short.calls.slice(1), ["scripts/retry.sh pnpm exec playwright install --with-deps chromium webkit (every story)", "pnpm test (every story)"]);
+  assert.deepEqual(short.outputs, ["reduced=false", "stems=", "fallback=true"]);
 
-  const coverage = await run([
-    { status: 1, log: `${vitestLog("4 passed (4)")}ERROR: Coverage for lines (99%) does not meet global threshold (100%)` },
-    { status: 0, log: "" },
-  ]);
-  assert.equal(coverage.status, 0);
-  assert.deepEqual(coverage.calls[1], "pnpm test (every story)");
-  assert.deepEqual(coverage.outputs, ["reduced=false", "stems="]);
+  const fullFails = await run([{ status: 1 }, { status: 0 }, { status: 1 }]);
+  assert.equal(fullFails.status, 1);
+
+  // A shard's coverage missing is no question for the full suite: the run fails.
+  const missing = await run([{ status: 3 }]);
+  assert.equal(missing.status, 3);
+  assert.equal(missing.calls.length, 1);
+  assert.deepEqual(missing.outputs, []);
+
+  // No component selected: nothing was measured, so there is no coverage to merge.
+  const none = await run([], []);
+  assert.equal(none.status, 0);
+  assert.deepEqual(none.calls, []);
+  assert.deepEqual(none.outputs, ["reduced=true", "stems=", "fallback=false"]);
 });

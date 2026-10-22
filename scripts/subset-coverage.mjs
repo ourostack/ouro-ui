@@ -10,6 +10,9 @@
 //   node scripts/subset-coverage.mjs --touching checkbox,checkbox-group
 //                                               checks only the sets that install one of these
 //                                               items (a pull request's reduced run in CI)
+//   node scripts/subset-coverage.mjs [--touching <items>] --shard 2/6
+//                                               checks every 6th of those sets, from the 2nd
+//                                               (CI's browser test shards share them out)
 //
 // For a set of components it reads registry.json as the shadcn CLI does: the install is the
 // closure of each `<name>-tests` item. It runs only the test files in that closure, in the
@@ -19,6 +22,7 @@ import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseShard } from "./shard.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -57,14 +61,22 @@ export function setsTouching(registry, items) {
   return sets.filter((set) => subset(registry, set).items.some((name) => items.includes(name)));
 }
 
+/** The sets shard `index` (from 1) of `count` checks: every `count`th, from its own index. */
+export const shardSets = (chosen, { index, count }) => chosen.filter((_, position) => position % count === index - 1);
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const args = process.argv.slice(2);
+  const all = process.argv.slice(2);
+  const shardAt = all.indexOf("--shard");
+  const shard = shardAt >= 0 ? parseShard(all[shardAt + 1]) : null;
+  const args = shardAt >= 0 ? all.filter((_, position) => position !== shardAt && position !== shardAt + 1) : all;
   const list = args[0] === "--list";
   const touching = args[0] === "--touching";
   const names = touching ? [] : args.filter((arg) => !arg.startsWith("--"));
   const registry = JSON.parse(readFileSync(join(root, "registry.json"), "utf8"));
   const items = touching ? (args[1] ?? "").split(",").filter(Boolean) : [];
-  const chosen = touching ? setsTouching(registry, items) : names.length > 0 ? [names] : sets;
+  const every = touching ? setsTouching(registry, items) : names.length > 0 ? [names] : sets;
+  const chosen = shard ? shardSets(every, shard) : every;
+  if (shard) console.log(`Shard ${shard.index}/${shard.count}: ${chosen.length} of ${every.length} set${every.length === 1 ? "" : "s"}${chosen.length > 0 ? `: ${chosen.map((set) => set.join(", ")).join("; ")}` : ""}.`);
   if (touching) console.log(chosen.length > 0 ? `Sets that install ${items.join(", ")}: ${chosen.map((set) => set.join(", ")).join("; ")}` : `No set installs ${items.join(", ") || "any selected component"}; nothing to check.`);
   for (const set of chosen) {
     const { items, runtime, tests } = subset(registry, set);
