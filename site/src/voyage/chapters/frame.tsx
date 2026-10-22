@@ -159,7 +159,7 @@ export function Composition({ id, title, intro, file, sheet, children }: { id: s
         {title}
       </h3>
       <p className="mt-1 mb-4 text-muted-foreground">{intro}</p>
-      <div className="site-window">
+      <div className="site-window will-change-transform">
         <div className="overflow-hidden rounded-[inherit] border border-border/70 will-change-transform">
           <div className="site-window-bar">
             <span className="site-window-dots" aria-hidden="true">
