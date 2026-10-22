@@ -1,4 +1,4 @@
-import { createContext, memo, startTransition, use, useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition, type FormEvent, type JSX, type ReactNode, type Ref } from "react";
+import { createContext, memo, startTransition, use, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition, type FormEvent, type JSX, type ReactNode, type Ref } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -19,6 +19,7 @@ import blueprintSource from "../../nautilus/art/nautilus-blueprint.svg?raw";
 import dividersSource from "../../nautilus/art/dividers.svg?raw";
 import islandSource from "../../nautilus/art/island-yard.svg?raw";
 import { GITHUB } from "../../paths";
+import { afterPaint, useAfterPaint } from "../after-paint";
 import { keepClearOfToasts } from "../clear-of-toasts";
 import { Container } from "../layout";
 import { useStable } from "../use-stable";
@@ -331,6 +332,9 @@ function Shipyard(): JSX.Element {
   const plan = useDeferredValue(useMemo(() => ({ built, launched }), [built, launched]));
   // The rail follows the plan.
   useEffect(() => voyage.set(plan), [voyage, plan]);
+  // The jobs follow a reorder once it has painted: the handles' list and its menu are the press's
+  // own, and the checklist renders again for the new order.
+  const jobOrder = useAfterPaint(order);
 
   // The crew's line follows the control's own change by a frame: it's a transition, so the press
   // paints first.
@@ -385,7 +389,7 @@ function Shipyard(): JSX.Element {
           <p className="site-eyebrow mb-2" aria-hidden="true">
             {SHIPYARD.jobs}
           </p>
-          <JobList order={order} built={built} onTick={tick} />
+          <JobList order={jobOrder} built={built} onTick={tick} />
         </div>
       </div>
       <div className="grid gap-4 border-t border-border/70 p-4 sm:p-6">
@@ -443,11 +447,21 @@ function Articles(): JSX.Element {
   const [line, setLine] = useState<CrewLine>(SIGN.opening);
   const [pending, setPending] = useState<{ name: string; wants: readonly Want[] } | null>(null);
   useEffect(() => voyage.set({ you }), [voyage, you]);
-  // A new signing brings a new, empty form, and focus goes to your row's Leave.
-  useEffect(() => {
-    if (signings === 0) return;
-    box.current?.querySelector<HTMLElement>("[data-chapter-control='leave'] button")?.focus();
+  // The new, empty form a signing asks for (its key, and the cancel of its wait for the paint) until
+  // that form has rendered, and whether Leave asked for the name field.
+  const emptyForm = useRef<{ key: number; cancel: () => void } | null>(null);
+  const toName = useRef(false);
+  useLayoutEffect(() => {
+    if (emptyForm.current && signings >= emptyForm.current.key) emptyForm.current = null;
   }, [signings]);
+  // Focus moves in the press's own commit, before the browser paints, so it never rests on the page:
+  // signing on, to your row's Leave (the new, empty form follows later and takes Sign away); leaving,
+  // to the name field of the form that commit shows.
+  useLayoutEffect(() => {
+    if (you) box.current?.querySelector<HTMLElement>("[data-chapter-control='leave'] button")?.focus();
+    else if (toName.current) box.current?.querySelector<HTMLElement>("input[name='name']")?.focus();
+    toName.current = false;
+  }, [you]);
 
   const field = (name: string) => box.current?.querySelector<HTMLInputElement>(`input[name="${name}"]`);
   // Before the browser's checks stop a short signing, Conseil says what it still wants. (Enter in a
@@ -485,21 +499,27 @@ function Articles(): JSX.Element {
     setAnswer({ errors: undefined });
     setPending(null);
     setYou({ name, trade });
-    setSignings((count) => count + 1);
     setLine(SIGN.welcome(name, trade));
-    // The toast follows once the press has painted, as the bell's does: the toast stack measures
-    // and re-lays itself out, so it waits for the press's own paint rather than holding it up. Your
-    // row and Conseil's welcome under it are kept clear of it.
-    requestAnimationFrame(() =>
-      setTimeout(() => {
-        toast(ARTICLES.signed(name), { tone: "success", description: ARTICLES.onList });
-        keepClearOfToasts(box.current?.querySelector("[data-chapter-crew]"));
-      }),
-    );
+    // The new, empty form and the toast follow once the press has painted, as the bell's toast
+    // does: making the form's fields again is most of a signing's work, and the toast stack measures
+    // and re-lays itself out, so both wait for the press's own paint (your row on the list) rather
+    // than holding it up. Your row and Conseil's welcome under it are kept clear of the toast.
+    const key = signings + 1;
+    emptyForm.current = { key, cancel: afterPaint(() => startTransition(() => setSignings(key))) };
+    afterPaint(() => {
+      toast(ARTICLES.signed(name), { tone: "success", description: ARTICLES.onList });
+      keepClearOfToasts(box.current?.querySelector("[data-chapter-crew]"));
+    });
   };
-  // Off the list, and back to the articles' first field to sign again.
+  // Off the list, and back to the articles' first field to sign again. Leaving before the new, empty
+  // form has rendered brings it in this commit (the same key, so a transition still on its way makes
+  // no second one), and the name field focused is the empty one.
   const leave = () => {
-    field("name")?.focus();
+    if (emptyForm.current) {
+      emptyForm.current.cancel();
+      setSignings(emptyForm.current.key);
+    }
+    toName.current = true;
     setYou(null);
     setLine(SIGN.left);
   };
