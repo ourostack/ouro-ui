@@ -61,8 +61,8 @@ The props the modes share. Type: `LayoutProposalProps`.
 
 Not in this mode (typed `never`):
 
-- `onEndPreview`: No preview to end.
-- `onPreview`: No preview.
+- `onEndPreview`: Left out with `onPreview`.
+- `onPreview`: Left out, with `onEndPreview`, to leave Preview out.
 
 ### With `onPreview` and `onEndPreview`
 

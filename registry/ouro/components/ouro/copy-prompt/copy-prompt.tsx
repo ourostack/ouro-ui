@@ -36,7 +36,7 @@ export type CopyPromptProps = Omit<HTMLAttributes<HTMLDivElement>, keyof CopyPro
  * person to hand to an agent of their own. The prompt wraps as prose, keeping its line breaks, and the
  * button is `CopyButton`: it copies through the Clipboard API or a text selection, says
  * "Copied" for two seconds, and screen readers hear it once. Screen readers hear the prompt as
- * the button's description, so several prompts on a page stay apart. With no `text`, the button
+ * the button's description, so several prompts on a page stay apart. Without `text`, the button
  * is disabled.
  *
  * Use `CodeBlock` instead for code or a command, in the monospace font, and `CopyButton` alone
@@ -47,6 +47,7 @@ export type CopyPromptProps = Omit<HTMLAttributes<HTMLDivElement>, keyof CopyPro
  *
  * @example
  * <CopyPrompt text="Suggest a layout for my mornings: customer chats first, then my calendar." />
+ * @claim "Without `text`, the button" registry/ouro/components/ouro/copy-prompt/copy-prompt.test.tsx verify:testExists(registry/ouro/components/ouro/copy-prompt/copy-prompt.test.tsx::CopyPrompt development messages > copies nothing when the text is missing or empty: its button is disabled)
  * @claim "Screen readers hear the prompt as" registry/ouro/components/ouro/copy-prompt/copy-prompt.test.tsx verify:testExists(registry/ouro/components/ouro/copy-prompt/copy-prompt.test.tsx::CopyPrompt > names the button by its label and describes it with the prompt)
  * @claim "The prompt wraps as prose, keeping" registry/ouro/components/ouro/copy-prompt/copy-prompt.test.tsx verify:testExists(registry/ouro/components/ouro/copy-prompt/copy-prompt.test.tsx::CopyPrompt > wraps the prompt in the page's type and keeps its line breaks)
  */

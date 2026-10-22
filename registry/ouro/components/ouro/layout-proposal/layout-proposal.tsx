@@ -23,9 +23,9 @@ export type LayoutProposalPreviewProps =
       onEndPreview: LayoutProposalHandler;
     }
   | {
-      /** No preview. */
+      /** Left out, with `onEndPreview`, to leave Preview out. */
       onPreview?: undefined;
-      /** No preview to end. */
+      /** Left out with `onPreview`. */
       onEndPreview?: undefined;
     };
 

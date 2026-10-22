@@ -2,7 +2,7 @@
 
 # CopyPrompt
 
-A ready-made prompt with a button that copies it. It shows in the page's own type, for the person to hand to an agent of their own. The prompt wraps as prose, keeping its line breaks, and the button is `CopyButton`: it copies through the Clipboard API or a text selection, says "Copied" for two seconds, and screen readers hear it once. Screen readers hear the prompt as the button's description, so several prompts on a page stay apart. With no `text`, the button is disabled.
+A ready-made prompt with a button that copies it. It shows in the page's own type, for the person to hand to an agent of their own. The prompt wraps as prose, keeping its line breaks, and the button is `CopyButton`: it copies through the Clipboard API or a text selection, says "Copied" for two seconds, and screen readers hear it once. Screen readers hear the prompt as the button's description, so several prompts on a page stay apart. Without `text`, the button is disabled.
 
 ```tsx
 import { CopyPrompt } from "@/registry/ouro/components/ouro/copy-prompt/copy-prompt";
