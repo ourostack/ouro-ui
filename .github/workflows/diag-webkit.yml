@@ -21,6 +21,7 @@ jobs:
       - run: pnpm site:build && node .github/diag/size.mjs branch
       - name: main
         run: |
+          cp .github/diag/size.mjs /tmp/size.mjs
           git checkout -q -f origin/main
           pnpm i --frozen-lockfile
           pnpm site:build && node /tmp/size.mjs main
