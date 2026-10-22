@@ -67,6 +67,20 @@ afterEach(async () => {
 });
 
 describe("ShareButton", () => {
+  // The page's timers stand still until a test moves them on (`wait`): announce()'s delay and the
+  // two-second confirmation. On a loaded runner more than two seconds can pass between a click and
+  // the next check, and the confirmation would end in between.
+  beforeEach(() => vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] }));
+  afterEach(() => vi.useRealTimers());
+  /** Moves the page's timers on by `ms`. */
+  const wait = (ms: number) => act(async () => vi.advanceTimersByTime(ms));
+  /** Waits on real frames until `read()` is `expected`: expect.poll moves the page's timers on at each retry. */
+  async function until<T>(read: () => T, expected: T) {
+    const deadline = performance.now() + 5000;
+    while (read() !== expected && performance.now() < deadline) await new Promise((resolve) => requestAnimationFrame(resolve));
+    expect(read()).toBe(expected);
+  }
+
   it("is an outline button that says Share beside a share icon, marked as the share-button control", async () => {
     const { wrapper, button } = await render(<ShareButton url="https://example.com" />);
     expect(wrapper.getAttribute("data-status")).toBe("idle");
@@ -86,12 +100,13 @@ describe("ShareButton", () => {
     try {
       const { wrapper, button } = await render(<ShareButton url="https://example.com/n/1" title="Note" text="A note" onShare={onShare} />);
       await userEvent.click(button);
-      await expect.poll(() => onShare.mock.calls.length).toBe(1);
+      await until(() => onShare.mock.calls.length, 1);
       expect(onShare).toHaveBeenCalledWith("shared");
       expect(shared).toEqual([{ url: "https://example.com/n/1", title: "Note", text: "A note" }]);
       expect(wrapper.getAttribute("data-status")).toBe("idle");
       expect(button.textContent).toBe("Share");
       expect(copied).toEqual([]);
+      await wait(100);
       expect(announced.count("Link copied")).toBe(0);
     } finally {
       announced.stop();
@@ -103,7 +118,7 @@ describe("ShareButton", () => {
     const onShare = vi.fn();
     const { wrapper, button } = await render(<ShareButton url="https://example.com" onShare={onShare} />);
     await userEvent.click(button);
-    await expect.poll(() => onShare.mock.calls[0]?.[0]).toBe("cancelled");
+    await until(() => onShare.mock.calls[0]?.[0], "cancelled");
     expect(wrapper.getAttribute("data-status")).toBe("idle");
   });
 
@@ -111,7 +126,7 @@ describe("ShareButton", () => {
     stubShare("share");
     const { button } = await render(<ShareButton />);
     await userEvent.click(button);
-    await expect.poll(() => shared[0]?.url).toBe(location.href);
+    await until(() => shared[0]?.url, location.href);
   });
 
   it("copies the link where there is no share sheet, says Link copied once, and reads Share again after two seconds", async () => {
@@ -120,14 +135,19 @@ describe("ShareButton", () => {
     try {
       const { wrapper, button } = await render(<ShareButton url="https://example.com/n/2" label="Share note" copiedLabel="Copied!" onShare={onShare} />);
       await userEvent.click(button);
-      await expect.poll(() => button.textContent).toBe("Copied!");
+      await until(() => button.textContent, "Copied!");
       expect(copied).toEqual(["https://example.com/n/2"]);
       expect(onShare).toHaveBeenCalledExactlyOnceWith("copied");
       expect(wrapper.getAttribute("data-status")).toBe("copied");
       expect(document.activeElement).toBe(button);
-      await expect.poll(() => announced.count("Copied!")).toBe(1);
-      await expect.poll(() => button.textContent).toBe("Share note");
+      await wait(100);
+      expect(announced.count("Copied!")).toBe(1);
+      await wait(1899);
+      expect(button.textContent).toBe("Copied!");
+      await wait(1);
+      expect(button.textContent).toBe("Share note");
       expect(wrapper.getAttribute("data-status")).toBe("idle");
+      expect(announced.count("Copied!")).toBe(1);
     } finally {
       announced.stop();
     }
@@ -138,11 +158,18 @@ describe("ShareButton", () => {
     try {
       const { button } = await render(<ShareButton url="https://example.com" />);
       await userEvent.click(button);
-      await expect.poll(() => announced.count("Link copied")).toBe(1);
-      // By either name: on a loaded runner the label can go back to Share within its two seconds
-      // before the click lands, and a click then must say Link copied again all the same.
-      await userEvent.click(page.getByRole("button", { name: /^(Link copied|Share)$/ }));
-      await expect.poll(() => announced.count("Link copied")).toBe(2);
+      await until(() => button.textContent, "Link copied");
+      await wait(100);
+      expect(announced.count("Link copied")).toBe(1);
+      await userEvent.click(page.getByRole("button", { name: "Link copied" }));
+      await until(() => copied.length, 2);
+      await wait(100);
+      expect(announced.count("Link copied")).toBe(2);
+      // The second click, 100ms in, starts the two seconds again: the first click's would end here.
+      await wait(1800);
+      expect(button.textContent).toBe("Link copied");
+      await wait(100);
+      expect(button.textContent).toBe("Share");
     } finally {
       announced.stop();
     }
@@ -155,9 +182,10 @@ describe("ShareButton", () => {
     try {
       const { wrapper, button } = await render(<ShareButton url="https://example.com" failedLabel="Sharing blocked" />);
       await userEvent.click(button);
-      await expect.poll(() => button.textContent).toBe("Sharing blocked");
+      await until(() => button.textContent, "Sharing blocked");
       expect(wrapper.getAttribute("data-status")).toBe("failed");
-      await expect.poll(() => announced.count("Sharing blocked")).toBe(1);
+      await wait(100);
+      expect(announced.count("Sharing blocked")).toBe(1);
     } finally {
       announced.stop();
     }
@@ -170,7 +198,7 @@ describe("ShareButton", () => {
     const rect = button.getBoundingClientRect();
     expect(Math.round(rect.width)).toBe(Math.round(rect.height));
     await userEvent.click(button);
-    await expect.poll(() => button.getAttribute("aria-label")).toBe("Link copied");
+    await until(() => button.getAttribute("aria-label"), "Link copied");
   });
 
   it("does nothing while disabled", async () => {
@@ -192,12 +220,17 @@ describe("ShareButton", () => {
   });
 
   it("stops its timer when it unmounts before the confirmation ends", async () => {
+    const schedule = vi.spyOn(globalThis, "setTimeout");
     const clear = vi.spyOn(globalThis, "clearTimeout");
     const { root, button } = await render(<ShareButton url="https://example.com" />);
     await userEvent.click(button);
-    await expect.poll(() => button.textContent).toBe("Link copied");
+    await until(() => button.textContent, "Link copied");
+    const confirmation = schedule.mock.calls.findIndex(([, delay]) => delay === 2000);
+    expect(confirmation).toBeGreaterThanOrEqual(0);
+    const timer = schedule.mock.results[confirmation]!.value as ReturnType<typeof setTimeout>;
+    clear.mockClear();
     await act(async () => root.unmount());
-    expect(clear).toHaveBeenCalled();
+    expect(clear).toHaveBeenCalledWith(timer);
   });
 });
 
