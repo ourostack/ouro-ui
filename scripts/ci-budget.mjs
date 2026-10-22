@@ -8,32 +8,42 @@
 //   what a developer waits for, and the median and 90th percentile of it over the last runs of the
 //   same event (the workflow runs API);
 // - the runner time: the minutes every job of the run held a runner, which on the shared runner
-//   pool (20 jobs at once on the Free plan) sets the wall time once runs wait on each other.
+//   pool (60 jobs at once on the Team plan) sets the wall time once runs wait on each other.
 //
 // It writes them, with every job's queue and run times, to the step summary and to --out (JSON, the
-// ci-timings artifact), and holds a pull request to the budget (see `judge`): a warning when this
-// run's critical path is over it, and a failure only past a hard ceiling or when the median of the
-// last full pull request runs is over it, as their ci-timings artifacts record them. One slow
-// runner cannot fail it, and a re-run of failed jobs, whose jobs API keeps the first attempt's times
-// for the jobs it did not re-run, cannot be needed to clear it.
+// ci-timings artifact), and holds a pull request to the budget (see `judge`): over it, its work
+// time (the critical path with setup steps left out) is compared with main's, the median of the
+// latest merge queue runs that passed, and with a ceiling. A run past either fails only when the
+// run's earlier attempt or the pull request's previous full run was past it too, so one slow runner
+// cannot fail a pull request; with neither, it fails asking for all jobs to be run again.
 //
 //   node scripts/ci-budget.mjs [--out <file>]   needs GH_TOKEN, GITHUB_REPOSITORY, RUN_ID,
 //                                               RUN_ATTEMPT and EVENT, and FULL (false on a
 //                                               reduced run)
 import { Buffer } from "node:buffer";
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
-import { inflateRawSync } from "node:zlib";
 import { dirname, join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
+import { inflateRawSync } from "node:zlib";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 /**
- * The target for a pull request's critical path, in minutes; the margin over it, past which a run
- * warns and the median of the last `medianRuns` full runs fails; and the hard ceiling one run fails at.
+ * The target for a pull request's critical path, in minutes, and the margin over it past which a
+ * run is over the budget; how many of main's latest passing merge queue runs make its baseline, and
+ * how many minutes of work time (setup left out) over that baseline a run over the budget fails at;
+ * and the hard ceiling one run fails at: `ceilingMinutes`, or `ceilingFactor` times main's
+ * baseline, whichever is more.
  */
-export const budget = { targetMinutes: 10, margin: 0.2, ceilingMinutes: 15, medianRuns: 5 };
+export const budget = { targetMinutes: 10, margin: 0.2, baselineRuns: 5, regressionMinutes: 3, ceilingMinutes: 15, ceilingFactor: 1.5 };
+
+/**
+ * The steps that set a job up rather than do its work: the runner's own, the checkout, pnpm and
+ * Node, the install, and the browsers and their system packages. Their time is the runner's and the
+ * network's more than the change's, so a regression is judged without them (`workSeconds`).
+ */
+export const setupSteps = [/^Set up job$/, /^Run actions\/checkout@/, /^Run pnpm\/action-setup@/, /^Run actions\/setup-node@/, /^Run pnpm i\b/, /^Run \.\/\.github\/actions\/playwright-browsers\b/, /^Browser system packages\b/, /install-deps/];
 
 /** This job, which is still running when it reads the run, and never on its own critical path. */
 const self = "ci-budget";
@@ -61,12 +71,19 @@ export function jobGraph(text) {
 
 const seconds = (from, to) => (from && to ? Math.max(0, (Date.parse(to) - Date.parse(from)) / 1000) : 0);
 
+/** A job's run time without its setup steps (`setupSteps`); a job reported without steps counts whole. */
+export function workSeconds(job) {
+  const setup = (job.steps ?? []).filter((step) => setupSteps.some((pattern) => pattern.test(step.name))).reduce((total, step) => total + seconds(step.started_at, step.completed_at), 0);
+  return Math.max(0, seconds(job.started_at, job.completed_at) - setup);
+}
+
 /**
  * The critical path through `jobs` (the API's jobs of one run attempt) along the graph's `needs`:
  * its seconds and its jobs, each the slowest instance of its id. A job no API job matches (skipped,
- * or not in this run) adds nothing. This job is left out.
+ * or not in this run) adds nothing. This job is left out. With `work`, each job counts its work
+ * time, setup left out (`workSeconds`).
  */
-export function criticalPath(jobs, graph) {
+export function criticalPath(jobs, graph, { work = false } = {}) {
   const nodes = graph.filter((node) => node.id !== self);
   const slowest = new Map();
   const unmatched = [];
@@ -76,7 +93,7 @@ export function criticalPath(jobs, graph) {
       if (!graph.some((candidate) => candidate.id === self && candidate.pattern.test(job.name))) unmatched.push(job.name);
       continue;
     }
-    const duration = job.conclusion === "skipped" ? 0 : seconds(job.started_at, job.completed_at);
+    const duration = job.conclusion === "skipped" ? 0 : work ? workSeconds(job) : seconds(job.started_at, job.completed_at);
     if (!slowest.has(node.id) || duration > slowest.get(node.id).seconds) slowest.set(node.id, { name: job.name, seconds: duration });
   }
   const memo = new Map();
@@ -123,20 +140,83 @@ export function runWalls(runs) {
 }
 
 /**
- * The budget's verdict on a run: `{ fail, warning, median }`. Only a pull request is held to it. Its
- * critical path past the ceiling fails it. A full run (not a reduced one, whose path is shorter) is
- * also failed when the median of its critical path and those of the last full pull request runs
- * (`history`, seconds, newest first), `medianRuns` of them in all, is over the limit; with fewer
- * runs recorded, it is not. Otherwise a critical path over the limit is a warning.
+ * The budget's verdict on a run: `{ fail, reason, warning }`. A run with a job that no ci.yml job
+ * name matches (`unmatched`) fails, whatever its event: its critical path would leave that job out.
+ * Otherwise only a pull request is held to it, and not a full-suite fallback run (`fallback`),
+ * whose time is the whole suite's, not the change's. Under the limit (the target and its margin)
+ * its critical path passes. Over it, its work time (the critical path with setup steps left out,
+ * `workSeconds`) is judged: past the ceiling (`ceilingSeconds`), or more than `regressionMinutes`
+ * over main's (`baselineWorkSeconds`), it fails when the earlier evidence (`earlierWorkSeconds`:
+ * this run's earlier attempt, or the pull request's previous full run) was past it too, warns when
+ * that was not, and with none fails asking for all its jobs to be run again, so one slow runner
+ * cannot fail a pull request, and a pull request pushed once cannot pass unjudged.
  */
-export function judge({ event, criticalSeconds, full, history }, { targetMinutes, margin, ceilingMinutes, medianRuns } = budget) {
+export function judge({ event, fallback = false, criticalSeconds, workSeconds: work = null, baselineWorkSeconds = null, earlierWorkSeconds = null, unmatched = [] }, { targetMinutes, margin, ceilingMinutes, ceilingFactor, regressionMinutes } = budget) {
   const limit = targetMinutes * 60 * (1 + margin);
-  const values = full ? [criticalSeconds, ...history.slice(0, medianRuns - 1)] : [];
-  const median = values.length === medianRuns ? percentile(values, 0.5) : null;
-  if (event !== "pull_request") return { fail: false, warning: null, median };
-  if (criticalSeconds > ceilingMinutes * 60) return { fail: true, reason: "ceiling", warning: null, median };
-  if (median !== null && median > limit) return { fail: true, reason: "median", warning: null, median };
-  return { fail: false, warning: criticalSeconds > limit ? "over" : null, median };
+  if (unmatched.length > 0) return { fail: true, reason: "unmatched", warning: null };
+  if (event !== "pull_request") return { fail: false, warning: null };
+  if (fallback) return { fail: false, warning: "fallback" };
+  if (criticalSeconds <= limit || typeof work !== "number") return { fail: false, warning: null };
+  const ceiling = ceilingSeconds(baselineWorkSeconds, { ceilingMinutes, ceilingFactor });
+  const regression = typeof baselineWorkSeconds === "number" ? baselineWorkSeconds + regressionMinutes * 60 : Infinity;
+  const reason = work > ceiling ? "ceiling" : work > regression ? "regression" : null;
+  if (!reason) return { fail: false, warning: typeof baselineWorkSeconds === "number" ? "over" : "no-baseline" };
+  const bar = reason === "ceiling" ? ceiling : regression;
+  if (typeof earlierWorkSeconds !== "number") return { fail: true, reason: "confirm", warning: null };
+  if (earlierWorkSeconds > bar) return { fail: true, reason, warning: null };
+  return { fail: false, warning: "unconfirmed" };
+}
+
+/** The work time a pull request's fails past, in seconds: `ceilingMinutes`, or `ceilingFactor` times main's work baseline when that is more. */
+export function ceilingSeconds(baselineWorkSeconds, { ceilingMinutes, ceilingFactor } = budget) {
+  return Math.max(ceilingMinutes * 60, typeof baselineWorkSeconds === "number" ? ceilingFactor * baselineWorkSeconds : 0);
+}
+
+/**
+ * Whether every job of a run attempt that ran (`jobs`, from the jobs API) ran in that attempt, as
+ * after "Re-run all jobs": "Re-run failed jobs" keeps the jobs that passed, with their times, so
+ * that attempt repeats the earlier one's work time and cannot confirm it.
+ */
+export function freshAttempt(jobs, attempt) {
+  return jobs.filter((job) => job.conclusion !== "skipped").every((job) => job.run_attempt === undefined || Number(job.run_attempt) === Number(attempt));
+}
+
+/** Whether a run's ci-timings record shows every job but ci-budget passed or was skipped. */
+export function recordPassed(record) {
+  const others = (record?.jobs ?? []).filter((job) => job.job !== self);
+  return others.length > 0 && others.every((job) => job.conclusion === "success" || job.conclusion === "skipped");
+}
+
+/**
+ * Main's baseline from merge queue runs, newest first, each `{ attempt, record }` with the run's own
+ * ci-timings record: the median of the critical paths the first `count` that passed recorded, each
+ * on its first attempt, since the jobs API of a re-run keeps the times of the jobs it did not run
+ * again. Each run's critical path is the one its own ci.yml measured, not this run's job graph's.
+ * `{ seconds, values }`; seconds is null when none passed.
+ */
+export function baseline(runs, count = budget.baselineRuns) {
+  const values = [];
+  const workValues = [];
+  for (const run of runs) {
+    if (values.length >= count) break;
+    if (run.attempt !== 1 || !recordPassed(run.record) || typeof run.record.criticalPathSeconds !== "number") continue;
+    if (run.record.criticalPathSeconds > 0) {
+      values.push(run.record.criticalPathSeconds);
+      if (typeof run.record.workPathSeconds === "number") workValues.push(run.record.workPathSeconds);
+    }
+  }
+  // Main's work time counts once every run of the baseline recorded one.
+  return { seconds: percentile(values, 0.5), values, workSeconds: workValues.length >= count ? percentile(workValues, 0.5) : null, workValues };
+}
+
+/**
+ * The work time (`workPathSeconds`) of a pull request's previous full run: the newest of its earlier
+ * runs' ci-timings records (newest first, null where a run kept none) that ran the full suite and
+ * not as a fallback. Null when there is none.
+ */
+export function previousFull(records) {
+  const found = records.find((record) => record && record.full === true && record.fallback !== true && typeof record.workPathSeconds === "number");
+  return found ? found.workPathSeconds : null;
 }
 
 /**
@@ -180,23 +260,38 @@ async function get(url, token, { raw = false } = {}) {
 const getJson = (url, token) => get(url, token);
 
 /**
- * The critical paths, seconds, newest first, of the last full pull request runs of ci.yml before this
- * one (`count` at most), as their ci-timings artifacts recorded them. A run with no such artifact,
- * or from before the artifact said whether the run was full, is left out.
+ * Main's latest completed merge queue runs of ci.yml that ran once, newest first, as
+ * `{ attempt, record }` with each run's ci-timings record (null when it has none), until `count`
+ * of them passed (of the latest 30).
  */
-async function fullRunHistory({ repository, runId, token, count }) {
+async function mergeQueueRuns({ repository, token, count }) {
   const found = [];
-  const { workflow_runs: runs } = await getJson(`https://api.github.com/repos/${repository}/actions/workflows/ci.yml/runs?event=pull_request&status=completed&per_page=30`, token);
+  const { workflow_runs: runs } = await getJson(`https://api.github.com/repos/${repository}/actions/workflows/ci.yml/runs?event=merge_group&status=completed&per_page=30`, token);
   for (const run of runs) {
-    if (found.length >= count) break;
-    if (String(run.id) === String(runId)) continue;
-    const { artifacts } = await getJson(`https://api.github.com/repos/${repository}/actions/runs/${run.id}/artifacts?name=ci-timings`, token);
-    const artifact = artifacts.find((candidate) => !candidate.expired);
-    if (!artifact) continue;
-    const record = JSON.parse(unzipOne(await get(artifact.archive_download_url, token, { raw: true })).toString("utf8"));
-    if (record.full === true && typeof record.criticalPathSeconds === "number") found.push(record.criticalPathSeconds);
+    if (found.filter((candidate) => recordPassed(candidate.record)).length >= count) break;
+    if (run.run_attempt !== 1) continue;
+    found.push({ attempt: 1, record: await timingsOf({ repository, token, runId: run.id }) });
   }
   return found;
+}
+
+/** A run's ci-timings record, or null when it kept none. */
+async function timingsOf({ repository, token, runId }) {
+  const { artifacts } = await getJson(`https://api.github.com/repos/${repository}/actions/runs/${runId}/artifacts?name=ci-timings`, token);
+  const artifact = artifacts.find((candidate) => !candidate.expired);
+  return artifact ? JSON.parse(unzipOne(await get(artifact.archive_download_url, token, { raw: true })).toString("utf8")) : null;
+}
+
+/** The work time of the pull request's previous full run (`previousFull`), from its branch's earlier runs. */
+async function previousRunWork({ repository, token, branch, runId }) {
+  const { workflow_runs: runs } = await getJson(`https://api.github.com/repos/${repository}/actions/workflows/ci.yml/runs?event=pull_request&branch=${encodeURIComponent(branch)}&status=completed&per_page=10`, token);
+  const records = [];
+  for (const run of runs.filter((candidate) => String(candidate.id) !== String(runId)).slice(0, 5)) {
+    const record = await timingsOf({ repository, token, runId: run.id });
+    records.push(record);
+    if (previousFull([record]) !== null) break;
+  }
+  return previousFull(records);
 }
 
 /** How many of the latest runs the wall time's median and 90th percentile are taken over. */
@@ -214,8 +309,9 @@ async function fetchJobs({ repository, runId, attempt, token }) {
 
 async function main(argv) {
   const out = argv[argv.indexOf("--out") + 1];
-  const { GH_TOKEN: token, GITHUB_REPOSITORY: repository, RUN_ID: runId, RUN_ATTEMPT: attempt = "1", EVENT: event } = process.env;
+  const { GH_TOKEN: token, GITHUB_REPOSITORY: repository, RUN_ID: runId, RUN_ATTEMPT: attempt = "1", EVENT: event, HEAD_REF: branch } = process.env;
   const full = process.env["FULL"] !== "false";
+  const fallback = process.env["FALLBACK"] === "true";
   if (!token || !repository || !runId || !event) {
     console.error("Set GH_TOKEN, GITHUB_REPOSITORY, RUN_ID, RUN_ATTEMPT and EVENT.");
     return 2;
@@ -223,6 +319,7 @@ async function main(argv) {
   const graph = jobGraph(readFileSync(join(root, ".github/workflows/ci.yml"), "utf8"));
   const jobs = await fetchJobs({ repository, runId, attempt, token });
   const path = criticalPath(jobs, graph);
+  const work = criticalPath(jobs, graph, { work: true });
   const wall = wallTime(jobs, graph);
   const runner = runnerTime(jobs, graph);
   // The latest completed runs of ci.yml for the same event, this one not yet among them.
@@ -235,27 +332,48 @@ async function main(argv) {
     console.log(`::warning::The wall times of the latest runs could not be read: ${error.message}`);
   }
   const limit = budget.targetMinutes * 60 * (1 + budget.margin);
-  let history = [];
-  if (event === "pull_request" && full) {
+  let mainBaseline = { seconds: null, values: [], workSeconds: null, workValues: [] };
+  // The earlier evidence a regression needs: this run's earlier attempt, when this one ran its jobs
+  // afresh ("Re-run all jobs"), or else the pull request's previous full run.
+  let earlier = { seconds: null, from: null };
+  if (event === "pull_request" && !fallback) {
     try {
-      history = await fullRunHistory({ repository, runId, token, count: budget.medianRuns - 1 });
+      mainBaseline = baseline(await mergeQueueRuns({ repository, token, count: budget.baselineRuns }));
     } catch (error) {
-      console.log(`::warning::The critical paths of the last full runs could not be read: ${error.message}`);
+      console.log(`::warning::Main's baseline, from its latest merge queue runs, could not be read: ${error.message}`);
+    }
+    if (path.seconds > limit) {
+      try {
+        if (Number(attempt) > 1 && freshAttempt(jobs, attempt)) {
+          const before = criticalPath(await fetchJobs({ repository, runId, attempt: Number(attempt) - 1, token }), graph, { work: true });
+          earlier = { seconds: before.seconds, from: `attempt ${Number(attempt) - 1} of this run` };
+        } else if (branch) {
+          const seconds = await previousRunWork({ repository, token, branch, runId });
+          if (seconds !== null) earlier = { seconds, from: "the pull request's previous full run" };
+        }
+      } catch (error) {
+        console.log(`::warning::The earlier attempt or the pull request's previous full run could not be read: ${error.message}`);
+      }
     }
   }
-  const verdict = judge({ event, criticalSeconds: path.seconds, full, history });
+  const verdict = judge({ event, fallback, criticalSeconds: path.seconds, workSeconds: work.seconds, baselineWorkSeconds: mainBaseline.workSeconds, earlierWorkSeconds: earlier.seconds, unmatched: path.unmatched });
+  const ceiling = ceilingSeconds(mainBaseline.workSeconds);
   const record = {
     run: `https://github.com/${repository}/actions/runs/${runId}/attempts/${attempt}`,
     event,
     full,
+    fallback,
     criticalPathSeconds: Math.round(path.seconds),
+    workPathSeconds: Math.round(work.seconds),
+    workPath: work.jobs.map((job) => ({ job: job.name, seconds: Math.round(job.seconds) })),
     criticalPath: path.jobs.map((job) => ({ job: job.name, seconds: Math.round(job.seconds) })),
     wallSeconds: Math.round(wall),
     runnerSeconds: Math.round(runner),
     recentWall: recent,
     budget: { ...budget, limitSeconds: limit },
-    history,
-    medianSeconds: verdict.median === null ? null : Math.round(verdict.median),
+    baseline: { seconds: mainBaseline.seconds === null ? null : Math.round(mainBaseline.seconds), runs: mainBaseline.values.map(Math.round), workSeconds: mainBaseline.workSeconds === null ? null : Math.round(mainBaseline.workSeconds), workRuns: mainBaseline.workValues.map(Math.round) },
+    earlierWork: earlier.seconds === null ? null : { seconds: Math.round(earlier.seconds), from: earlier.from },
+    ceilingSeconds: Math.round(ceiling),
     jobs: jobs
       .filter((job) => job.completed_at)
       .map((job) => ({ job: job.name, conclusion: job.conclusion, queuedSeconds: Math.round(seconds(job.created_at, job.started_at)), seconds: Math.round(seconds(job.started_at, job.completed_at)) }))
@@ -265,10 +383,8 @@ async function main(argv) {
   const summary = [
     `## CI time`,
     ``,
-    `Critical path **${minutes(path.seconds)}** (budget for a pull request: ${budget.targetMinutes} min; over ${minutes(limit)} warns, and fails when the median of the last ${budget.medianRuns} full runs is over it or one run passes ${budget.ceilingMinutes} min).`,
-    verdict.median === null
-      ? `Median of the last ${budget.medianRuns} full pull request runs: not taken (${full ? `${history.length + 1} recorded` : "a reduced run"}).`
-      : `Median of the last ${budget.medianRuns} full pull request runs, this one included: ${minutes(verdict.median)}.`,
+    `Critical path **${minutes(path.seconds)}**, work time (setup steps left out) **${minutes(work.seconds)}** (budget for a pull request: ${budget.targetMinutes} min; over ${minutes(limit)}, a work time more than ${budget.regressionMinutes} min over main's, or past ${minutes(ceiling)}, fails when the earlier attempt or the pull request's previous full run was past it too${fallback ? "; a full-suite fallback run is not judged" : ""}).`,
+    mainBaseline.seconds === null ? `Main's baseline: none (no passing merge queue run read).` : `Main's baseline, the median of its latest ${mainBaseline.values.length} passing merge queue runs: ${minutes(mainBaseline.seconds)}, work time ${mainBaseline.workSeconds === null ? "not recorded" : minutes(mainBaseline.workSeconds)}.`,
     ``,
     `Wall time **${minutes(wall)}**, queues included; runners held for **${minutes(runner)}**.`,
     recent && recent.runs > 0
@@ -290,13 +406,28 @@ async function main(argv) {
   ].join("\n");
   console.log(summary);
   if (process.env["GITHUB_STEP_SUMMARY"]) appendFileSync(process.env["GITHUB_STEP_SUMMARY"], summary);
-  if (path.unmatched.length > 0) console.log(`::warning::Jobs no ci.yml job name matches, left out of the critical path: ${path.unmatched.join(", ")}`);
   const chain = path.jobs.map((job) => `${job.name} ${minutes(job.seconds)}`).join(" → ");
   const advice = "Make the slowest job on it faster or split it (scripts/shard.mjs), or raise the budget in scripts/ci-budget.mjs with the reason.";
-  if (verdict.warning) console.log(`::warning::The critical path took ${minutes(path.seconds)}, over the ${budget.targetMinutes}-minute budget and its ${budget.margin * 100}% margin: ${chain}. One run can be a slow runner; the check fails when the median of the last ${budget.medianRuns} full runs is over it.`);
+  const over = `over the ${budget.targetMinutes}-minute budget and its ${budget.margin * 100}% margin`;
+  const workBar = verdict.reason === "ceiling" || mainBaseline.workSeconds === null ? minutes(ceiling) : minutes(mainBaseline.workSeconds + budget.regressionMinutes * 60);
+  const pastBar = `its work time (${minutes(work.seconds)}) is past ${workBar} (main's work time and ${budget.regressionMinutes} min, or the ceiling of ${budget.ceilingMinutes} min or ${budget.ceilingFactor}× main's)`;
+  const because = {
+    over: `but its work time (${minutes(work.seconds)}) is within ${budget.regressionMinutes} min of main's (${minutes(mainBaseline.workSeconds ?? 0)}): more likely a slow runner than this change`,
+    unconfirmed: `and ${pastBar}, but ${earlier.from}'s (${minutes(earlier.seconds ?? 0)}) was not: more likely a slow runner than this change`,
+    "no-baseline": "with no work time from a passing merge queue run on main to compare it with",
+    fallback: "on a full-suite fallback run, which is not judged",
+  }[verdict.warning];
+  if (verdict.warning) console.log(`::warning::The critical path took ${minutes(path.seconds)}, ${over}, ${because}: ${chain}.`);
   if (verdict.fail) {
-    const why = verdict.reason === "ceiling" ? `over the ${budget.ceilingMinutes}-minute ceiling` : `and the median of the last ${budget.medianRuns} full pull request runs is ${minutes(verdict.median)}, over the ${budget.targetMinutes}-minute budget and its ${budget.margin * 100}% margin`;
-    console.log(`::error::The critical path took ${minutes(path.seconds)}, ${why}: ${chain}. ${advice}`);
+    if (verdict.reason === "unmatched") {
+      console.log(`::error::No ci.yml job name matches these jobs, so the critical path would leave them out: ${path.unmatched.join(", ")}. Give each job a name the job graph reads (jobGraph), with every matrix value it uses listed in its matrix.`);
+      return 1;
+    }
+    if (verdict.reason === "confirm") {
+      console.log(`::error::The critical path took ${minutes(path.seconds)}, ${over}, and ${pastBar}, with no earlier attempt or full run of this pull request to confirm it: ${chain}. Re-run all jobs to confirm (not only the failed ones): one slow runner does not fail a pull request, two runs past it do.`);
+      return 1;
+    }
+    console.log(`::error::The critical path took ${minutes(path.seconds)}, ${over}, and ${pastBar}, as ${earlier.from}'s was (${minutes(earlier.seconds ?? 0)}): ${chain}. ${advice}`);
     return 1;
   }
   return 0;

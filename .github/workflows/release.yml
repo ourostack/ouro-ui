@@ -52,6 +52,7 @@ jobs:
     outputs:
       new: ${{ steps.check.outputs.new }}
       number: ${{ steps.prepare.outputs.number }}
+      producers: ${{ steps.check.outputs.producers }}
     env:
       GH_TOKEN: ${{ github.token }}
       VERSION: ${{ inputs.version }}
@@ -82,13 +83,35 @@ jobs:
             exit 1
           fi
           sha=$(git rev-parse HEAD)
-          # The latest CI run on this commit: a push run, the run the last release dispatched
+          # The workflows that report the checks main's rules require (CI, conformance exemptions:
+          # scripts/required-producers.mjs), which this run dispatches where GITHUB_TOKEN starts none.
+          producers=$(gh api "repos/$GITHUB_REPOSITORY/rules/branches/main" --jq '[.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context] | unique | .[]' | node scripts/required-producers.mjs) || { echo "::error::Could not tell which workflows report main's required checks."; exit 1; }
+          echo "producers=$(echo $producers)" >> "$GITHUB_OUTPUT"
+          echo "PRODUCERS=$(echo $producers)" >> "$GITHUB_ENV"
+          # Main's runs of each on this commit: a push run, the run the last release dispatched
           # after it merged "Prepare main for the next release" (a merge made with a workflow's
-          # token starts no push run), or the merge queue's run, which tested this very commit
-          # before main fast-forwarded to it (the push run after it then runs only install-github,
-          # and decides when it is the latest).
-          conclusion=$(gh run list --workflow ci.yml --commit "$sha" --json conclusion,event,headBranch --jq '[.[] | select((.headBranch == "main" and (.event == "push" or .event == "workflow_dispatch")) or .event == "merge_group" or (.event == "workflow_dispatch" and (.headBranch | startswith("gh-readonly-queue/main/"))))][0].conclusion')
-          [ "$conclusion" = success ] || { echo "::error::CI on main ($sha) is '${conclusion:-not run}', not success"; exit 1; }
+          # token starts no push run), and the merge queue's run, which tested this very commit
+          # before main fast-forwarded to it (the push run after it then skips every job but
+          # install-github). A check main's rules require passes when one of them passed it
+          # (scripts/required-ci.sh), whatever the runs' overall conclusions, which ci-budget's
+          # failure would decide too.
+          runs=
+          for workflow in $producers; do
+            ci=$(gh run list --workflow "$workflow" --commit "$sha" --json databaseId,event,headBranch --jq '[.[] | select((.headBranch == "main" and (.event == "push" or .event == "workflow_dispatch")) or .event == "merge_group" or (.event == "workflow_dispatch" and (.headBranch | startswith("gh-readonly-queue/main/")))) | .databaseId] | map(tostring) | join(" ")')
+            [ -n "$ci" ] || { echo "::error::$workflow has not run on main ($sha)"; exit 1; }
+            runs="$runs $ci"
+          done
+          # shellcheck disable=SC2086 # one argument per run
+          scripts/required-ci.sh $runs || { echo "::error::CI on main ($sha) did not pass the checks main's rules require"; exit 1; }
+          # install-github, the install a user runs today (`shadcn add` from main), runs only in main's
+          # own CI run (a push, or a dispatch on main), and the rules cannot require it: the queue's
+          # run skips it. So when main has its own run on this commit, the newest must have passed it.
+          own=$(gh run list --workflow ci.yml --commit "$sha" --json databaseId,event,headBranch --jq '[.[] | select(.headBranch == "main" and (.event == "push" or .event == "workflow_dispatch"))][0].databaseId // empty')
+          if [ -n "$own" ]; then
+            jobs=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$own/jobs?per_page=100" --paginate --jq '.jobs[] | [.name, .conclusion] | @tsv') || { echo "::error::Could not read the jobs of run $own."; exit 1; }
+            github=$(awk -F '\t' '$1 == "install-github" { print $2; exit }' <<<"$jobs")
+            [ "$github" = success ] || { echo "::error::install-github is '${github:-not in the run}' in main's own CI run $own ($sha), not success: the install a user runs today must pass before a release."; exit 1; }
+          fi
           # A rehearsal of this version on this commit (release-rehearsal.yml) ran the full CI and the
           # screen-reader lane on the release commit as this run will write it, so a check that fails
           # only on a release commit stops there, before anything is cut.
@@ -136,14 +159,12 @@ jobs:
         name: Run CI on the release commit
         run: |
           sha=$(git rev-parse HEAD)
-          gh workflow run ci.yml --ref "$BRANCH"
-          for _ in $(seq 60); do
-            run=$(gh run list --workflow ci.yml --branch "$BRANCH" --commit "$sha" --event workflow_dispatch --json databaseId --jq '.[0].databaseId')
-            [ -n "$run" ] && break
-            sleep 5
-          done
-          [ -n "$run" ] || { echo "::error::CI did not start on $BRANCH ($sha)"; exit 1; }
-          gh run watch "$run" --exit-status --interval 30
+          # CI and every other workflow that reports a check main's rules require, judged on those
+          # checks and on the release-only gates the rules cannot require, as main never runs them:
+          # ci.yml's install-latest job. ci-budget does not decide.
+          run=$(scripts/dispatch-required.sh "$BRANCH" "$sha")
+          # shellcheck disable=SC2086 # one argument per run
+          scripts/required-ci.sh --also "install (shadcn@latest, nova)" $run
       - if: steps.check.outputs.new == 'true'
         name: Pass the screen-reader lane on the release commit
         run: |
@@ -243,7 +264,9 @@ jobs:
           git commit -am "Prepare main for the next release"
           git push --force origin "$NEXT_BRANCH"
           gh pr create --base main --head "$NEXT_BRANCH" --title "Prepare main for the next release" \
-            --body "$TAG is released with these changes in its notes, so their fragments in changes/ are deleted for the next release, and $TAG becomes the newest release: the README, the site, llms.txt and the @ouro namespace move to it when this merges. Merge this before adding the next release's changes."
+            --body "$TAG is released with these changes in its notes, so their fragments in changes/ are deleted for the next release, and $TAG becomes the newest release: the README, the site, llms.txt and the @ouro namespace move to it when this merges.[^latest] Merge this before adding the next release's changes.
+
+          [^latest]: package.json verify:equals(package.json#ouro.latestRelease)=$TAG"
           # GitHub records a pull_request CI run for a PR a workflow opened with GITHUB_TOKEN,
           # but holds it (`action_required`) with no jobs, and the ruleset's required checks
           # count only pull_request-event checks, not a dispatched run (probe #142: a pull
@@ -253,22 +276,35 @@ jobs:
           # call it is untested here; when the approval fails, dispatch CI on the branch (a
           # signal only; it does not satisfy the ruleset); the exact command for a person goes to the
           # job summary and the PR body first, so a failed dispatch cannot hide it (AGENTS.md, "Pages and releases").
+          # The same holds for each workflow that reports a required check (conformance exemptions
+          # too): each one's held run is approved, and the required checks of all of them decide.
           sha=$(git rev-parse HEAD)
-          run=
-          for _ in $(seq 24); do
-            run=$(gh run list --workflow ci.yml --branch "$NEXT_BRANCH" --commit "$sha" --event pull_request --json databaseId --jq '.[0].databaseId' || true)
-            [ -n "$run" ] && break
-            sleep "${POLL_SECONDS:-5}"
+          runs=
+          approved=true
+          for workflow in $PRODUCERS; do
+            run=
+            for _ in $(seq 24); do
+              run=$(gh run list --workflow "$workflow" --branch "$NEXT_BRANCH" --commit "$sha" --event pull_request --json databaseId --jq '.[0].databaseId' || true)
+              [ -n "$run" ] && break
+              sleep "${POLL_SECONDS:-5}"
+            done
+            if [ -n "$run" ] && gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$run/approve" >/dev/null; then
+              runs="$runs $run"
+            else
+              approved=false
+              break
+            fi
           done
-          if [ -n "$run" ] && gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$run/approve" >/dev/null; then
-            echo "Approved CI run $run on $NEXT_BRANCH; its checks report on the pull request." >> "$GITHUB_STEP_SUMMARY"
+          if [ "$approved" = true ]; then
+            echo "Approved the runs$runs on $NEXT_BRANCH; their checks report on the pull request." >> "$GITHUB_STEP_SUMMARY"
             # Queue it here once its checks pass, so main's README names this release before the
             # run ends instead of when a person next looks; the queue job follows it through the
             # merge queue and CI on main, and the publish job deploys Pages.
             number=$(gh pr view "$NEXT_BRANCH" --json number --jq .number)
             echo "number=$number" >> "$GITHUB_OUTPUT"
             queue_state() { gh api graphql -f query="query { repository(owner: \"${GITHUB_REPOSITORY%/*}\", name: \"${GITHUB_REPOSITORY#*/}\") { pullRequest(number: $number) { state isInMergeQueue } } }" --jq '.data.repository.pullRequest | "\(.state) \(.isInMergeQueue)"'; }
-            gh run watch "$run" --exit-status --interval 30 || { echo "::error::CI on \"Prepare main for the next release\" did not pass; Pages will not deploy. Fix it, merge it, then pass main CI before deploying."; exit 1; }
+            # shellcheck disable=SC2086 # one argument per run
+            scripts/required-ci.sh $runs || { echo "::error::CI on \"Prepare main for the next release\" did not pass the checks main's rules require; Pages will not deploy. Fix it, merge it, then pass main CI before deploying."; exit 1; }
             gh pr merge "$NEXT_BRANCH" --squash || true
             # With the merge queue on main, gh asks for auto-merge to queue a pull request, which
             # this repository does not allow (probe #142): queue it directly, at the commit CI
@@ -286,7 +322,7 @@ jobs:
               *) echo "::error::Could not queue \"Prepare main for the next release\" (#$number is $state); Pages will not deploy. Queue it by hand, then pass main CI before deploying."; exit 1 ;;
             esac
           else
-            cmd="gh api -X POST repos/$GITHUB_REPOSITORY/actions/runs/${run:-<run id of the pull_request CI run on $NEXT_BRANCH>}/approve"
+            cmd="gh api -X POST repos/$GITHUB_REPOSITORY/actions/runs/${run:-<run id of the pull_request run of $workflow on $NEXT_BRANCH>}/approve"
             echo "::warning::Could not approve the held CI run on $NEXT_BRANCH; the required checks will not report until a person does."
             printf '%s\n' "### Approve CI on the \"Prepare main for the next release\" PR" "" "The required checks run only after a person approves the held CI run:" "" '```sh' "$cmd" '```' >> "$GITHUB_STEP_SUMMARY"
             pr_body=$(gh pr view "$NEXT_BRANCH" --json body --jq .body)
@@ -294,8 +330,10 @@ jobs:
 
           CI for this PR is held until a person approves it. Run:
 
-              $cmd"
-            gh workflow run ci.yml --ref "$NEXT_BRANCH" || echo "::warning::Could not dispatch CI on $NEXT_BRANCH either."
+          \`\`\`sh
+          $cmd
+          \`\`\`"
+            for workflow in $PRODUCERS; do gh workflow run "$workflow" --ref "$NEXT_BRANCH" || echo "::warning::Could not dispatch $workflow on $NEXT_BRANCH either."; done
             echo "::error::Main has not passed CI for $TAG; Pages will not deploy. Approve and merge the PR, then pass main CI before deploying."
             exit 1
           fi
@@ -342,6 +380,8 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
       NUMBER: ${{ needs.release.outputs.number }}
+      # The workflows that report main's required checks (scripts/required-producers.mjs, in the release job).
+      PRODUCERS: ${{ needs.release.outputs.producers }}
     steps:
       - id: queue
         name: Pass the merge queue and CI on main
@@ -350,45 +390,74 @@ jobs:
           # The contexts main's ruleset requires: the only statuses this reports.
           required=$(gh api "repos/$GITHUB_REPOSITORY/rules/branches/main" --jq '[.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context] | unique | .[]')
           [ -n "$required" ] || { echo "::error::Main's ruleset requires no check; nothing to report."; exit 1; }
+          [ -n "$PRODUCERS" ] || { echo "::error::No workflow reports main's required checks; nothing to run."; exit 1; }
+          # The jobs of finished runs, each line the run, the job's name and its conclusion.
+          jobs_of() { for r in "$@"; do gh api "repos/$GITHUB_REPOSITORY/actions/runs/$r/jobs?per_page=100" --paginate --jq '.jobs[] | [.name, .conclusion] | @tsv' | awk -v run="$r" '{ print run "\t" $0 }' || return 1; done; }
+          # A required check's state in those jobs: a job of that name that passed, or one of the
+          # jobs that skip by design (install-latest, install-github); anything else, a missing job
+          # included, fails. As scripts/required-ci.sh, which this job, running no code from the
+          # repository, does not run.
+          state_of() {
+            local conclusion
+            conclusion=$(awk -F '\t' -v name="$1" '$2 == name { print $3; exit }' <<<"$2")
+            case "$conclusion" in
+              success) echo success ;;
+              skipped) case "$1" in install-latest | install-github) echo success ;; *) echo failure ;; esac ;;
+              *) echo failure ;;
+            esac
+          }
           # Commits the queue built whose CI passed every required check.
           green=" "
           if [ "$(queue_state)" = "OPEN true" ]; then
             dispatched=" "
+            branches=" "
             reported=" "
             for _ in $(seq 400); do
               for ref in $(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/heads/gh-readonly-queue/main/pr-$NUMBER-" --jq '.[].ref' || true); do
                 branch=${ref#refs/heads/}
-                case "$dispatched" in *" $branch "*) continue ;; esac
-                if gh workflow run ci.yml --ref "$branch"; then
-                  dispatched="$dispatched$branch "
-                  echo "Ran CI on $branch." >> "$GITHUB_STEP_SUMMARY"
-                else
-                  echo "::warning::Could not run CI on $branch yet; trying again."
-                fi
+                for workflow in $PRODUCERS; do
+                  case "$dispatched" in *" $branch:$workflow "*) continue ;; esac
+                  if gh workflow run "$workflow" --ref "$branch"; then
+                    dispatched="$dispatched$branch:$workflow "
+                    case "$branches" in *" $branch "*) ;; *) branches="$branches$branch " ;; esac
+                    echo "Ran $workflow on $branch." >> "$GITHUB_STEP_SUMMARY"
+                  else
+                    echo "::warning::Could not run $workflow on $branch yet; trying again."
+                  fi
+                done
               done
-              for branch in $dispatched; do
+              for branch in $branches; do
                 case "$reported" in *" $branch "*) continue ;; esac
-                ci_status= ci_run= ci_sha=
-                read -r ci_run ci_status ci_sha <<<"$(gh run list --workflow ci.yml --branch "$branch" --event workflow_dispatch --limit 1 --json databaseId,status,headSha --jq '.[0] | "\(.databaseId) \(.status) \(.headSha)"' || true)" || true
-                [ "$ci_status" = completed ] || continue
-                jobs=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$ci_run/jobs?per_page=100" --paginate --jq '.jobs[] | [.name, .conclusion] | @tsv') || continue
+                # Every workflow's run on the branch, finished, before any check is reported.
+                runs=
+                ci_sha=
+                done_all=true
+                for workflow in $PRODUCERS; do
+                  case "$dispatched" in *" $branch:$workflow "*) ;; *) done_all=false; break ;; esac
+                  ci_status= ci_run= run_sha=
+                  read -r ci_run ci_status run_sha <<<"$(gh run list --workflow "$workflow" --branch "$branch" --event workflow_dispatch --limit 1 --json databaseId,status,headSha --jq '.[0] | "\(.databaseId) \(.status) \(.headSha)"' || true)" || true
+                  [ "$ci_status" = completed ] || { done_all=false; break; }
+                  runs="$runs $ci_run"
+                  ci_sha=${ci_sha:-$run_sha}
+                done
+                [ "$done_all" = true ] || continue
+                # shellcheck disable=SC2086 # one argument per run
+                jobs=$(jobs_of $runs) || continue
+                first=${runs# }
+                first=${first%% *}
                 posted=true
                 passed=true
                 while IFS= read -r context; do
-                  conclusion=$(awk -F '\t' -v name="$context" '$1 == name { print $2; exit }' <<<"$jobs")
-                  case "$conclusion" in
-                    success) state=success ;;
-                    # Jobs that skip by design on a queue branch; any other skipped job did not pass.
-                    skipped) case "$context" in install-latest | install-github) state=success ;; *) state=failure ;; esac ;;
-                    *) state=failure ;;
-                  esac
+                  conclusion=$(awk -F '\t' -v name="$context" '$2 == name { print $3; exit }' <<<"$jobs")
+                  run_of=$(awk -F '\t' -v name="$context" '$2 == name { print $1; exit }' <<<"$jobs")
+                  state=$(state_of "$context" "$jobs")
                   [ "$state" = success ] || passed=false
-                  gh api -X POST "repos/$GITHUB_REPOSITORY/statuses/$ci_sha" -f state="$state" -f context="$context" -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$ci_run" -f description="CI run $ci_run on the merge queue's branch: ${conclusion:-no such job}" >/dev/null || posted=false
+                  gh api -X POST "repos/$GITHUB_REPOSITORY/statuses/$ci_sha" -f state="$state" -f context="$context" -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/${run_of:-$first}" -f description="CI run ${run_of:-$first} on the merge queue's branch: ${conclusion:-no such job}" >/dev/null || posted=false
                 done <<<"$required"
                 [ "$posted" = true ] || continue
                 reported="$reported$branch "
                 [ "$passed" = false ] || green="$green$ci_sha "
-                echo "Reported CI run $ci_run's required checks on $branch as commit statuses." >> "$GITHUB_STEP_SUMMARY"
+                echo "Reported the required checks of runs$runs on $branch as commit statuses." >> "$GITHUB_STEP_SUMMARY"
               done
               [ "$(queue_state)" = "OPEN true" ] || break
               sleep "${POLL_SECONDS:-15}"
@@ -404,15 +473,27 @@ jobs:
           case "$green" in
             *" $tip "*) echo "Main is the merge queue's commit $tip, whose CI passed." >> "$GITHUB_STEP_SUMMARY" ;;
             *)
-              gh workflow run ci.yml --ref main || { echo "::error::Could not start CI on main; Pages will not deploy. Run it by hand (gh workflow run ci.yml --ref main) and deploy Pages only after it passes."; exit 1; }
-              ci=
-              for _ in $(seq 24); do
-                ci=$(gh run list --workflow ci.yml --event workflow_dispatch --commit "$tip" --limit 1 --json databaseId --jq '.[0].databaseId // empty')
-                [ -n "$ci" ] && break
-                sleep "${POLL_SECONDS:-5}"
+              runs=
+              for workflow in $PRODUCERS; do
+                gh workflow run "$workflow" --ref main || { echo "::error::Could not start $workflow on main; Pages will not deploy. Run it by hand (gh workflow run $workflow --ref main) and deploy Pages only after it passes."; exit 1; }
+                ci=
+                for _ in $(seq 24); do
+                  ci=$(gh run list --workflow "$workflow" --event workflow_dispatch --commit "$tip" --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+                  [ -n "$ci" ] && break
+                  sleep "${POLL_SECONDS:-5}"
+                done
+                [ -n "$ci" ] || { echo "::error::$workflow on main's tip did not start; Pages will not deploy. Run it on main and deploy Pages only after it passes."; exit 1; }
+                runs="$runs $ci"
               done
-              [ -n "$ci" ] || { echo "::error::CI on main's tip did not start; Pages will not deploy. Run CI on main and deploy Pages only after it passes."; exit 1; }
-              gh run watch "$ci" --exit-status --interval 30 || { echo "::error::CI on main's tip did not pass; Pages will not deploy. Fix main and pass CI before deploying."; exit 1; }
+              # Judged on the checks main's rules require, not on each run's conclusion.
+              for ci in $runs; do gh run watch "$ci" --interval 30 >/dev/null || true; done
+              # shellcheck disable=SC2086 # one argument per run
+              jobs=$(jobs_of $runs) || { echo "::error::Could not read the jobs of CI on main's tip; Pages will not deploy."; exit 1; }
+              failed=
+              while IFS= read -r context; do
+                [ "$(state_of "$context" "$jobs")" = success ] || failed="$failed $context;"
+              done <<<"$required"
+              [ -z "$failed" ] || { echo "::error::CI on main's tip did not pass the checks main's rules require ($failed); Pages will not deploy. Fix main and pass CI before deploying."; exit 1; }
               ;;
           esac
           echo "main_sha=$tip" >> "$GITHUB_OUTPUT"

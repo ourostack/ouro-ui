@@ -447,10 +447,13 @@ function Articles(): JSX.Element {
   const [line, setLine] = useState<CrewLine>(SIGN.opening);
   const [pending, setPending] = useState<{ name: string; wants: readonly Want[] } | null>(null);
   useEffect(() => voyage.set({ you }), [voyage, you]);
-  // The new, empty form waiting for the paint after a signing (its cancel), and whether Leave asked
-  // for the name field.
-  const emptyForm = useRef<(() => void) | null>(null);
+  // The new, empty form a signing asks for (its key, and the cancel of its wait for the paint) until
+  // that form has rendered, and whether Leave asked for the name field.
+  const emptyForm = useRef<{ key: number; cancel: () => void } | null>(null);
   const toName = useRef(false);
+  useLayoutEffect(() => {
+    if (emptyForm.current && signings >= emptyForm.current.key) emptyForm.current = null;
+  }, [signings]);
   // Focus moves in the press's own commit, before the browser paints, so it never rests on the page:
   // signing on, to your row's Leave (the new, empty form follows later and takes Sign away); leaving,
   // to the name field of the form that commit shows.
@@ -501,22 +504,20 @@ function Articles(): JSX.Element {
     // does: making the form's fields again is most of a signing's work, and the toast stack measures
     // and re-lays itself out, so both wait for the press's own paint (your row on the list) rather
     // than holding it up. Your row and Conseil's welcome under it are kept clear of the toast.
-    emptyForm.current = afterPaint(() => {
-      emptyForm.current = null;
-      startTransition(() => setSignings((count) => count + 1));
-    });
+    const key = signings + 1;
+    emptyForm.current = { key, cancel: afterPaint(() => startTransition(() => setSignings(key))) };
     afterPaint(() => {
       toast(ARTICLES.signed(name), { tone: "success", description: ARTICLES.onList });
       keepClearOfToasts(box.current?.querySelector("[data-chapter-crew]"));
     });
   };
   // Off the list, and back to the articles' first field to sign again. Leaving before the new, empty
-  // form has come brings it in this commit, so the name field focused is the empty one.
+  // form has rendered brings it in this commit (the same key, so a transition still on its way makes
+  // no second one), and the name field focused is the empty one.
   const leave = () => {
     if (emptyForm.current) {
-      emptyForm.current();
-      emptyForm.current = null;
-      setSignings((count) => count + 1);
+      emptyForm.current.cancel();
+      setSignings(emptyForm.current.key);
     }
     toName.current = true;
     setYou(null);
