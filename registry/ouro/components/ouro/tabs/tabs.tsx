@@ -95,6 +95,7 @@ function duplicateValue(items: readonly TabsItem[]): string | undefined {
  * Tabs that switch between panels in place: an accessible tab list with roving focus,
  * arrow-key navigation, a line that slides to the selected tab, and
  * 44px tabs on touch screens. Pass the tabs and their panels as `items`.
+ * Under forced colours (Windows contrast themes) each tab keeps a border and the selected one is filled with Highlight.
  *
  * Use `SegmentedControl` instead when the choice changes how one view looks (list or grid)
  * rather than which content shows. Use links in a nav instead when each tab is its own
@@ -115,6 +116,8 @@ function duplicateValue(items: readonly TabsItem[]): string | undefined {
  * @claim "Tabs that switch between panels in" registry/ouro/components/ouro/tabs/tabs.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > renders a labelled tab list with the first tab selected and its panel shown)
  * @claim "Tabs that switch between panels in" registry/ouro/components/ouro/tabs/tabs.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > slides the indicator under the selected tab)
  * @claim "Tabs that switch between panels in" registry/ouro/components/ouro/tabs/tabs.touch.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.touch.test.tsx::keeps 44px tabs with 16px text on a phone, also in landscape)
+ * @claim "Under forced colours (Windows contrast" registry/ouro/components/ouro/tabs/tabs.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > draws each tab's edge under forced colours, where its fill and the underline drop away)
+ * @claim "Under forced colours (Windows contrast" registry/ouro/components/ouro/tabs/tabs.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > shows which tab is selected under forced colours: Highlight behind it and HighlightText on it)
  */
 export function Tabs(props: TabsProps): JSX.Element {
   const {

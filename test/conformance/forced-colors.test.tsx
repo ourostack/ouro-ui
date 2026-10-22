@@ -9,7 +9,7 @@ import { brokenFor, conformanceStories, describeElement, layOut } from "./harnes
 // edge, state or focus ring is drawn with a background colour or a shadow vanishes. Under
 // forced colours, every story, closed and with each overlay open, must keep for each control:
 // - an edge: a border or outline on the control, on something inside it, or on its component's
-//   frame around it (for a box a person presses, types into, drags or scrolls: buttons, fields,
+//   frame around it (for a box a person presses, types into, drags or scrolls: buttons, tabs, fields,
 //   checkboxes, switches, sliders, scrollable regions; links, buttons drawn as underlined links,
 //   the rows of a list and the cells of a grid are text);
 // - its state: a checked, selected, pressed or current control looks different from one of the
@@ -17,7 +17,7 @@ import { brokenFor, conformanceStories, describeElement, layOut } from "./harnes
 // - its focus: focusing it from the keyboard changes what its component shows.
 
 /** Roles a person sees as a box to press, type into or drag, so they need an edge of their own or their frame's. */
-const boxed = new Set(["button", "checkbox", "switch", "radio", "slider", "textbox", "searchbox", "combobox", "spinbutton", "generic"]);
+const boxed = new Set(["button", "checkbox", "switch", "radio", "slider", "textbox", "searchbox", "combobox", "spinbutton", "tab", "generic"]);
 
 /** The states a control can be in that forced colours must keep apart from the off state. */
 const onState = '[aria-checked="true"], [aria-selected="true"], [aria-pressed="true"], [aria-current]:not([aria-current="false"]), [data-checked], [data-selected], [data-pressed]';
@@ -123,6 +123,19 @@ function look(root: Element, masked?: Element | null, kept?: Element): string {
 }
 
 /**
+ * The part to leave out while focus moves from `prior` to `control`: the outermost ancestor of
+ * `prior` that does not hold `control` (below their lowest common ancestor), so a ring that a part
+ * around `prior` draws is not taken for the control's cue as it goes; `prior` itself when it holds
+ * `control` (a scroll region and the link inside it).
+ */
+function outermostApart(prior: Element, control: Element): Element {
+  if (prior.contains(control)) return prior;
+  let part = prior;
+  while (part.parentElement && !part.parentElement.contains(control)) part = part.parentElement;
+  return part;
+}
+
+/**
  * The frame a control's focus is read in: the root of the component that marks it (a card's root
  * for its link), or the nearest component root.
  */
@@ -215,8 +228,9 @@ async function gaps(root: ParentNode, state: string): Promise<string[]> {
   // that already has focus goes last, once focus has moved away from it. Each control's focused
   // frame is compared with the frame at rest (focus outside it), recorded the first time focus
   // enters it. A frame never at rest (a menu opened with focus on its first item) is compared
-  // with the control that had focus left out, before and after, so the cue must be the control's
-  // own and not the other's ring going away. A control that takes no keyboard focus here is never
+  // with the control that had focus left out, with every part around it that does not hold the
+  // control, before and after, so the cue must be the control's own and not the other's ring going
+  // away. A control that takes no keyboard focus here is never
   // compared, and fails.
   await userEvent.keyboard("{Shift}");
   // Inert parts (a tab's hidden panel, a row's actions until it is swiped) take no focus; a part
@@ -249,8 +263,9 @@ async function gaps(root: ParentNode, state: string): Promise<string[]> {
     if (!around.contains(document.activeElement)) rest.set(around, look(around));
     const prior = document.activeElement;
     const resting = rest.get(around);
-    // Never at rest: the frame with the control that has focus left out.
-    const masked = resting === undefined ? prior : null;
+    // Never at rest: the frame with the control that has focus left out, and the parts around it
+    // that hold it but not the control (a card's or a thumb wrapper's ring drawn by `:has(:focus-visible)`).
+    const masked = resting === undefined && prior ? outermostApart(prior, control) : null;
     const before = resting ?? look(around, masked, control);
     control.focus();
     await frames();
@@ -360,6 +375,7 @@ describe("forced colours proves it can fail", () => {
       SiblingShadowFocus: 'focus shows nothing: unmarked <button type="button" class="broken-pair-shadow"',
       FocusRefused: "focus never compared, it takes no keyboard focus: broken-refuse/second",
       LoneFillHighlight: "highlight shows nothing",
+      WrapperRingThenShadow: 'with "Open" open: focus shows nothing: unmarked <button type="button" class="broken-wrap-shadow"',
     }),
   )("on $id", async (entry) => {
     expect((await forcedColourProblems(entry)).join("\n")).toContain(entry.expected);

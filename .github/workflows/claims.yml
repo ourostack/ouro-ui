@@ -15,6 +15,7 @@ jobs:
   pr-text:
     name: pull request claims
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -32,7 +33,8 @@ jobs:
           PR_BODY: ${{ github.event.pull_request.body }}
         run: pnpm claims:lint --pr
       # The exemptions in claims.config.json against the base's: a new one needs its reason and a
-      # mention in the description, so it runs again when the description is edited.
+      # mention in the description, so it runs again when the description is edited. So does a
+      # file that gains a `// real clock:` escape (scripts/real-clock-ratchet.mjs).
       - name: Exemptions against the base
         env:
           BASE_REF: ${{ github.base_ref }}
@@ -40,3 +42,4 @@ jobs:
         run: |
           git fetch --no-tags --depth=1 origin "$BASE_REF"
           CLAIMS_BASE_REF="origin/$BASE_REF" node scripts/claims.mjs ratchet
+          REAL_CLOCK_BASE_REF="origin/$BASE_REF" node scripts/real-clock-ratchet.mjs
