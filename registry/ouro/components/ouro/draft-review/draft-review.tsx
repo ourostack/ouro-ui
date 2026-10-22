@@ -114,10 +114,10 @@ const isPromise = (value: unknown): value is PromiseLike<unknown> => typeof (val
 
 const quiet = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]";
 // An agent's text is tinted with the theme's primary color, as in DraftEditor, and underlined, so
-// it never relies on color alone; a person's is underlined only.
+// it never relies on color alone; a person's is underlined only, in the text's own color.
 const inserted = {
   agent: "rounded-xs bg-[color-mix(in_oklab,var(--primary)_16%,transparent)] decoration-primary",
-  human: "decoration-foreground",
+  human: "",
 } as const;
 
 /**
@@ -345,7 +345,7 @@ export function DraftReview(props: DraftReviewProps): JSX.Element | null {
           const n = numbers.get(segment.changeId!);
           if (segment.kind === "same" || n === undefined) return <span key={index}>{segment.text}</span>;
           const number = lastRun.get(segment.changeId!) === index && (
-            <sup aria-hidden="true" className={cn("ms-0.5 text-[0.7em] font-semibold no-underline", quiet)}>
+            <sup aria-hidden="true" className={cn("ms-0.5 font-semibold no-underline", quiet)}>
               {n}
             </sup>
           );
