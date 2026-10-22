@@ -103,6 +103,15 @@ jobs:
           done
           # shellcheck disable=SC2086 # one argument per run
           scripts/required-ci.sh $runs || { echo "::error::CI on main ($sha) did not pass the checks main's rules require"; exit 1; }
+          # install-github, the install a user runs today (`shadcn add` from main), runs only in main's
+          # own CI run (a push, or a dispatch on main), and the rules cannot require it: the queue's
+          # run skips it. So when main has its own run on this commit, the newest must have passed it.
+          own=$(gh run list --workflow ci.yml --commit "$sha" --json databaseId,event,headBranch --jq '[.[] | select(.headBranch == "main" and (.event == "push" or .event == "workflow_dispatch"))][0].databaseId // empty')
+          if [ -n "$own" ]; then
+            jobs=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$own/jobs?per_page=100" --paginate --jq '.jobs[] | [.name, .conclusion] | @tsv') || { echo "::error::Could not read the jobs of run $own."; exit 1; }
+            github=$(awk -F '\t' '$1 == "install-github" { print $2; exit }' <<<"$jobs")
+            [ "$github" = success ] || { echo "::error::install-github is '${github:-not in the run}' in main's own CI run $own ($sha), not success: the install a user runs today must pass before a release."; exit 1; }
+          fi
           # A rehearsal of this version on this commit (release-rehearsal.yml) ran the full CI and the
           # screen-reader lane on the release commit as this run will write it, so a check that fails
           # only on a release commit stops there, before anything is cut.
@@ -255,7 +264,9 @@ jobs:
           git commit -am "Prepare main for the next release"
           git push --force origin "$NEXT_BRANCH"
           gh pr create --base main --head "$NEXT_BRANCH" --title "Prepare main for the next release" \
-            --body "$TAG is released with these changes in its notes, so their fragments in changes/ are deleted for the next release, and $TAG becomes the newest release: the README, the site, llms.txt and the @ouro namespace move to it when this merges. Merge this before adding the next release's changes."
+            --body "$TAG is released with these changes in its notes, so their fragments in changes/ are deleted for the next release, and $TAG becomes the newest release: the README, the site, llms.txt and the @ouro namespace move to it when this merges.[^latest] Merge this before adding the next release's changes.
+
+          [^latest]: package.json verify:equals(package.json#ouro.latestRelease)=$TAG"
           # GitHub records a pull_request CI run for a PR a workflow opened with GITHUB_TOKEN,
           # but holds it (`action_required`) with no jobs, and the ruleset's required checks
           # count only pull_request-event checks, not a dispatched run (probe #142: a pull
@@ -319,7 +330,9 @@ jobs:
 
           CI for this PR is held until a person approves it. Run:
 
-              $cmd"
+          \`\`\`sh
+          $cmd
+          \`\`\`"
             for workflow in $PRODUCERS; do gh workflow run "$workflow" --ref "$NEXT_BRANCH" || echo "::warning::Could not dispatch $workflow on $NEXT_BRANCH either."; done
             echo "::error::Main has not passed CI for $TAG; Pages will not deploy. Approve and merge the PR, then pass main CI before deploying."
             exit 1
