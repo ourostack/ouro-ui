@@ -2,7 +2,7 @@
 
 # BriefingCard
 
-What the person needs to know about one thing before they act on it (a meeting, a customer, a handover), in one card: a status badge and the title, a quiet line, labelled rows of counts, links and small buttons, an agent's note, and a row of actions. The card is a region named by its title, the title is a heading, and the rows are a description list, so screen readers hear each label with its content. Rows with nothing in them are left out.
+A card of what the person needs to know before they act on one thing. That thing may be a meeting, a customer or a handover; the card holds a status badge and the title, a quiet line, labelled rows of counts, links and small buttons, an agent's note, and a row of actions. The card is a region named by its title, the title is a heading, and the rows are a description list, so screen readers hear each label with its content. Rows with nothing in them are left out.
 
 ```tsx
 import { BriefingCard } from "@/registry/ouro/components/ouro/briefing-card/briefing-card";

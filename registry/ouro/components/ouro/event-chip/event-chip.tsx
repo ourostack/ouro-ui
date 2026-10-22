@@ -68,8 +68,8 @@ function statusToneWarning(value: string): readonly [string, string] {
 }
 
 /**
- * An upcoming event as a small chip that leads to it: how soon it starts, its title cut to one
- * line, and where the person stands with it after a dot ("Needs you"). Starting soon or happening
+ * An upcoming event as a small chip that leads to it. It shows how soon it starts, its title cut
+ * to one line, and where the person stands with it after a dot ("Needs you"). Starting soon or happening
  * now draws its border and time in the primary color. It is a `Badge`, so `onClick` makes it a
  * button and `href` a link (without either it is a static label), with Badge's touch target and
  * press feedback, and screen readers hear its `label`, time, title and status in order. Pass

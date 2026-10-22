@@ -3541,8 +3541,8 @@
       "name": "briefing-card",
       "type": "registry:ui",
       "title": "BriefingCard",
-      "description": "What the person needs to know about one thing before they act on it (a meeting, a customer, a handover), in one card: a status badge and the title, a quiet line, labelled rows of counts, links and small buttons, an agent's note, and a row of actions.",
-      "docs": "What the person needs to know about one thing before they act on it (a meeting, a customer, a handover), in one card: a status badge and the title, a quiet line, labelled rows of counts, links and small buttons, an agent's note, and a row of actions. Import: import { BriefingCard } from \"@/components/ouro/briefing-card/briefing-card\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: badge, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/briefing-card.md",
+      "description": "A card of what the person needs to know before they act on one thing.",
+      "docs": "A card of what the person needs to know before they act on one thing. Import: import { BriefingCard } from \"@/components/ouro/briefing-card/briefing-card\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: badge, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/briefing-card.md",
       "registryDependencies": [
         "ourostack/ouro-ui/badge",
         "ourostack/ouro-ui/lib-class-name-check",
@@ -3563,8 +3563,8 @@
       "name": "event-chip",
       "type": "registry:ui",
       "title": "EventChip",
-      "description": "An upcoming event as a small chip that leads to it: how soon it starts, its title cut to one line, and where the person stands with it after a dot (\"Needs you\").",
-      "docs": "An upcoming event as a small chip that leads to it: how soon it starts, its title cut to one line, and where the person stands with it after a dot (\"Needs you\"). Import: import { EventChip } from \"@/components/ouro/event-chip/event-chip\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: badge, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/event-chip.md",
+      "description": "An upcoming event as a small chip that leads to it.",
+      "docs": "An upcoming event as a small chip that leads to it. Import: import { EventChip } from \"@/components/ouro/event-chip/event-chip\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: badge, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/event-chip.md",
       "registryDependencies": [
         "ourostack/ouro-ui/badge",
         "ourostack/ouro-ui/lib-class-name-check",

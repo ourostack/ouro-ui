@@ -472,14 +472,14 @@
     "title": "BriefingCard",
     "group": "Display",
     "source": "registry/ouro/components/ouro/briefing-card/briefing-card.tsx",
-    "summary": "What the person needs to know about one thing before they act on it (a meeting, a customer, a handover), in one card: a status badge and the title, a quiet line, labelled rows of counts, links and small buttons, an agent's note, and a row of actions."
+    "summary": "A card of what the person needs to know before they act on one thing."
   },
   {
     "name": "event-chip",
     "title": "EventChip",
     "group": "Display",
     "source": "registry/ouro/components/ouro/event-chip/event-chip.tsx",
-    "summary": "An upcoming event as a small chip that leads to it: how soon it starts, its title cut to one line, and where the person stands with it after a dot (\"Needs you\")."
+    "summary": "An upcoming event as a small chip that leads to it."
   },
   {
     "name": "accordion",
