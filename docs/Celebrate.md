@@ -2,7 +2,7 @@
 
 # Celebrate
 
-A small moment of celebration for something the person finished: confetti bursts from a badge with the message ("List cleared") and screen readers hear the message once. With reduced motion nothing flies: the badge only fades in. Put it where the eye already is, such as at the end of the list that was just cleared.
+A small moment of celebration for something the person finished: confetti bursts from a badge with the message ("List cleared") and screen readers hear the message once. The words are spoken about 1.5 s after the moment, after a screen reader finishes reading the control that caused it. With reduced motion nothing flies: the badge only fades in. Put it where the eye already is, such as at the end of the list that was just cleared.
 
 ```tsx
 import { Celebrate } from "@/registry/ouro/components/ouro/celebrate/celebrate";
