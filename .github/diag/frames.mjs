@@ -3,17 +3,19 @@ import { chromium, webkit } from "@playwright/test";
 const [base, label] = [process.argv[2], process.argv[3]];
 const VARIANTS = {
   base: "",
-  cv: "main > section ~ section, main > div > section { content-visibility: auto; contain-intrinsic-size: auto 1200px; }",
-  nostage: ".site-hero-stage { display: none !important; }",
-  nosticky: "* { position: static !important; } header { position: static !important; }",
-  nofilter: "*, *::before, *::after { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; filter: none !important; box-shadow: none !important; }",
-  nosvg: "main svg { display: none !important; }",
+  noblur: ".stage-porthole::before { filter: none !important; }",
+  noshadow: "*, *::before, *::after { box-shadow: none !important; }",
+  nowillchange: "* { will-change: auto !important; }",
+  nodropshadow: "svg, svg * { filter: none !important; }",
+  cvall: "main > section, main > div > section, section[id] { content-visibility: auto; contain-intrinsic-size: auto 900px; }",
+  nofilter: "*, *::before, *::after { filter: none !important; box-shadow: none !important; }",
 };
 const frames = (page) => page.evaluate(() => new Promise((r) => { const t = []; let last = performance.now(); const tick = (now) => { t.push(now - last); last = now; if (t.length < 40) requestAnimationFrame(tick); else { t.sort((a, b) => a - b); r(`${t[20].toFixed(0)}/${t[36].toFixed(0)}`); } }; requestAnimationFrame(tick); }));
 for (const type of [webkit, chromium]) {
   const browser = await type.launch();
   for (const [name, css] of Object.entries(VARIANTS)) {
     if (type === chromium && name !== "base") continue;
+    if (label === "main" && !["base", "nofilter", "noblur", "noshadow"].includes(name)) continue;
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto(base + "voyage/");
@@ -33,7 +35,7 @@ for (const type of [webkit, chromium]) {
     await page.getByRole("textbox", { name: "Your name" }).fill("Ada");
     await page.getByRole("checkbox", { name: "I will keep the Nautilus a secret." }).click();
     row.push(`articles ${Date.now() - t0}ms`);
-    if ((name === "base" || name === "cv") && (await page.locator("#chapter-two").count())) {
+    if (await page.locator("#chapter-two").count()) {
       await page.locator("#chapter-two").scrollIntoViewIfNeeded();
       await page.locator("#chapter-two[data-chapter-ready]").waitFor({ state: "attached" });
       await page.waitForTimeout(500);
