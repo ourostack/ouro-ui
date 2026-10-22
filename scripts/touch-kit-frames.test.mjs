@@ -26,12 +26,15 @@ import { touchStep } from "../registry/ouro/lib/ouro/testing/commands.ts";
  * properties change; Chromium then sends the frame touches only once it has drawn again, and until
  * then the test's page gets them (a screenshot after the frame draws does this in Chromium).
  * Playwright has no session of its own for the frame until `sessionAfter` ms, when the frame
- * navigates, as for a frame first looked up while it was still in its parent's process. The frame
+ * navigates, as for a frame first looked up while it was still in its parent's process. The
+ * session comes with that event, not with the clock: Node sets a timer from the event loop's
+ * cached time, so under load it can fire before `Date.now()` says its delay has passed
+ * (`sessionEarly` ms before, to show it). The frame
  * is busy until `busyUntil` ms: its watch answers only then. With `lost`, Chromium sends the frame's
  * touches nowhere, so the page never handles them. With `busyOnceSent`, the frame turns busy once a
  * touch is sent: no call into it answers after that, its wait and its tidying up included.
  */
-function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage = false, delays = {}, stuck, hitTestableAfter = 0, routedAfter = hitTestableAfter, reembed = false, sessionAfter = 0, busyUntil = 0, lost = false, busyOnceSent = false } = {}) {
+function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage = false, delays = {}, stuck, hitTestableAfter = 0, routedAfter = hitTestableAfter, reembed = false, sessionAfter = 0, busyUntil = 0, lost = false, busyOnceSent = false, sessionEarly = 0 } = {}) {
   const page = new EventEmitter();
   const sent = [];
   const frame = (name, frameUrl, parent, id) => {
@@ -95,6 +98,7 @@ function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage =
   };
   let timer;
   let sessionTimer;
+  let hasSession = sessionAfter === 0;
   let started = Date.now();
   const since = () => Date.now() - started;
   const session = {
@@ -143,7 +147,7 @@ function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage =
       // A frame in its parent's process has no session of its own.
       newCDPSession: async (of) => {
         if (of === page) return session;
-        if (!of.id || (of === target && since() < sessionAfter)) throw new Error("This frame does not have a separate CDP session, it is a part of the parent frame's session");
+        if (!of.id || (of === target && !hasSession)) throw new Error("This frame does not have a separate CDP session, it is a part of the parent frame's session");
         return {
           async send(method, params) {
             if (method === "Page.getFrameTree") return { frameTree: { frame: { id: of.id } } };
@@ -165,7 +169,11 @@ function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage =
   const start = () => {
     started = Date.now();
     timer = setTimeout(list, listAfter);
-    if (sessionAfter > 0) sessionTimer = setTimeout(() => page.emit("framenavigated", target), sessionAfter);
+    if (sessionAfter > 0)
+      sessionTimer = setTimeout(() => {
+        hasSession = true;
+        page.emit("framenavigated", target);
+      }, sessionAfter - sessionEarly);
     return touchStep(ctx, { type: "touchStart", x: 100, y: 350 });
   };
   return { ctx, sent, target, tests, start, stop: () => (clearTimeout(timer), clearTimeout(sessionTimer)) };
@@ -198,7 +206,8 @@ test("a touchstart on a frame in another process that Playwright never lists is 
 });
 
 test("a frame with no session of its own when first asked is found once Playwright has one for it", async () => {
-  const { sent, target, start, stop } = stage({ listAfter: 0, sessionAfter: 300 });
+  // The event comes 20ms before the clock says 300ms, as a timer set from the event loop's stale time can under load (CI run 39750274493).
+  const { sent, target, start, stop } = stage({ listAfter: 0, sessionAfter: 300, sessionEarly: 20 });
   try {
     await start();
     assert.deepEqual(sent.map(({ type }) => type), ["touchStart"]);
